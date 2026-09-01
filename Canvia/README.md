@@ -145,11 +145,19 @@ API key, so there is no certificate to export, no `.p12`, and no temporary
 keychain — Xcode creates and renews the distribution certificate and profile
 itself.
 
-**One-time setup.** In [App Store Connect → Users and Access → Integrations →
-App Store Connect API](https://appstoreconnect.apple.com/access/integrations/api),
-create a team key with the **App Manager** role and download the `.p8` (Apple
-lets you download it exactly once). Then add four repository secrets under
-*Settings → Secrets and variables → Actions*:
+**One-time setup.**
+
+First create the app record. Automatic signing registers the *App ID* for you,
+but it does not create the App Store Connect *app*, and an upload for a bundle
+identifier with no app record is rejected. In App Store Connect → **Apps → +**,
+pick the same bundle identifier the workflow builds, and give it a name and an
+SKU.
+
+Then mint an API key. In [Users and Access → Integrations → App Store Connect
+API](https://appstoreconnect.apple.com/access/integrations/api), create a team
+key with the **App Manager** role and download the `.p8` — Apple lets you
+download it exactly once. Add four repository secrets under *Settings → Secrets
+and variables → Actions*:
 
 | Secret | Where it comes from |
 | --- | --- |
