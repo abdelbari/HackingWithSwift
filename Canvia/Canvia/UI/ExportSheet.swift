@@ -118,13 +118,23 @@ struct ExportSheet: View {
                             width: store.design.width * pxToPt,
                             height: store.design.height * pxToPt)
         let renderer = UIGraphicsPDFRenderer(bounds: bounds)
-        let images = try store.design.pages.map { try renderPage($0) }
+        var failure: Error?
+        // Render each page inside the loop so only ONE page bitmap is alive
+        // at a time. Pre-rendering them all would hold, for a ten-page poster
+        // at 3x, well over a gigabyte of pixels at once.
         let data = renderer.pdfData { ctx in
-            for image in images {
+            for page in store.design.pages {
                 ctx.beginPage()
-                image.draw(in: bounds)
+                autoreleasepool {
+                    if let image = try? renderPage(page) {
+                        image.draw(in: bounds)
+                    } else if failure == nil {
+                        failure = ExportError.renderFailed
+                    }
+                }
             }
         }
+        if let failure { throw failure }
         let url = tempURL(ext: "pdf")
         try data.write(to: url)
         exportedURL = url
