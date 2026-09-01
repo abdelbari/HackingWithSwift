@@ -28,38 +28,73 @@ jobs:
           npm install --no-audit --no-fund
           node verify.js ../Canvia ../Tests
 
+  # Two toolchains, because they test different things. The baseline leg
+  # proves the iOS 17 deployment target still builds and runs on the older
+  # SDK; the latest leg builds against the newest SDK Apple ships, which is
+  # where new deprecations and stricter diagnostics show up first.
+  #
+  # Versions here are not guesses - .github/workflows/canvia-probe.yml
+  # reports what each runner image actually carries. As of 2026-09-01:
+  #   macos-15: Xcode 16.0-16.4 + 26.0-26.3, runtimes iOS 18.5, 18.6, 26.0-26.2
+  #   macos-26: Xcode up to 26.6 (SDK iOS 26.5), runtimes iOS 26.2, 26.4, 26.5
+  # There is no iOS 26.6 - Xcode 26.6 carries the iOS 26.5 SDK. The next
+  # runtime after 26.5 is 27.0, which is downloadable but not preinstalled.
   build:
-    runs-on: macos-15
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: baseline-ios18
+            runner: macos-15
+            xcode: /Applications/Xcode_16.4.0.app
+            ios: '18.6'
+            device: iPhone 16
+          - name: latest-ios26
+            runner: macos-26
+            xcode: /Applications/Xcode_26.6.0.app
+            ios: '26.5'
+            device: iPhone 17 Pro
     steps:
       - uses: actions/checkout@v4
 
-      # The project uses the Xcode 16 synchronized-folder format
-      # (objectVersion 77), so an older Xcode cannot open it at all. Pin to
-      # the newest 16.x, which is what the project documents as its target;
-      # runners also carry 26.x, covered by the separate matrix job.
-      - name: Select Xcode
+      - name: Select Xcode ${{ matrix.xcode }}
         run: |
-          ls -d /Applications/Xcode*.app || true
-          PICK=$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -1)
-          [ -n "$PICK" ] || PICK=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
-          echo "using $PICK"
-          sudo xcode-select -s "$PICK"
+          if [ ! -d "${{ matrix.xcode }}" ]; then
+            echo "::error::${{ matrix.xcode }} is not installed on this runner."
+            ls -d /Applications/Xcode*.app 2>/dev/null | sort -V
+            exit 1
+          fi
+          sudo xcode-select -s "${{ matrix.xcode }}"
           xcodebuild -version
-          xcrun simctl list runtimes | grep -i ios
+          xcrun simctl list runtimes | grep -i '^iOS' || true
+
+      # Fail loudly when the requested runtime is absent rather than letting
+      # xcodebuild silently pick a different one - a green run against the
+      # wrong OS is worse than a red one.
+      - name: Require iOS ${{ matrix.ios }} runtime
+        run: |
+          if ! xcrun simctl list runtimes available | grep -q "iOS ${{ matrix.ios }} "; then
+            echo "::error::iOS ${{ matrix.ios }} runtime is not available on this runner."
+            xcrun simctl list runtimes available
+            exit 1
+          fi
+          echo "iOS ${{ matrix.ios }} is available"
 
       # The real compile. Code signing is off because this only ever runs in
       # a simulator. -derivedDataPath requires -scheme, hence the shared
       # scheme committed alongside the project.
       # Diagnostics go to stdout, not just the step summary: the job log is
       # the only channel readable without downloading the artifact.
-      - name: Build for iOS Simulator
+      - name: Build for iOS ${{ matrix.ios }} Simulator
         run: |
           status=0
           xcodebuild \
             -project Canvia/Canvia.xcodeproj \
             -scheme Canvia \
             -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination 'platform=iOS Simulator,name=${{ matrix.device }},OS=${{ matrix.ios }}' \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             build > build.log 2>&1 || status=$?
@@ -77,21 +112,17 @@ jobs:
           tail -25 build.log
           exit $status
 
-      - name: Launch in a simulator and screenshot
+      - name: Launch on iOS ${{ matrix.ios }} and screenshot
         if: ${{ success() && (github.event_name != 'workflow_dispatch' || inputs.screenshot) }}
         run: |
           set -e
-          # Pair the simulator with the Xcode that built the app. The runner
-          # also carries iOS 26 runtimes, which Xcode 16.4 cannot drive, so
-          # taking the newest runtime outright would fail here.
-          RUNTIMES=$(xcrun simctl list runtimes available)
-          echo "$RUNTIMES"
-          RUNTIME=$(grep -o 'com.apple.CoreSimulator.SimRuntime.iOS-18[0-9-]*' <<<"$RUNTIMES" | sort -V | tail -1)
-          [ -n "$RUNTIME" ] || RUNTIME=$(grep -o 'com.apple.CoreSimulator.SimRuntime.iOS-[0-9-]*' <<<"$RUNTIMES" | sort -V | tail -1)
-          [ -n "$RUNTIME" ] || { echo "no usable iOS runtime"; exit 1; }
+          RUNTIME=$(xcrun simctl list runtimes available \
+            | grep "iOS ${{ matrix.ios }} " \
+            | grep -o 'com.apple.CoreSimulator.SimRuntime.iOS-[0-9-]*' | head -1)
+          [ -n "$RUNTIME" ] || { echo "iOS ${{ matrix.ios }} runtime vanished"; exit 1; }
           echo "runtime: $RUNTIME"
-          DEVICE=$(xcrun simctl create canvia-ci "iPhone 16" "$RUNTIME")
-          echo "device: $DEVICE"
+          DEVICE=$(xcrun simctl create canvia-ci "${{ matrix.device }}" "$RUNTIME")
+          echo "device: $DEVICE (${{ matrix.device }})"
           xcrun simctl boot "$DEVICE"
           xcrun simctl bootstatus "$DEVICE" -b
 
@@ -108,7 +139,7 @@ jobs:
           # A launch that succeeds and then crashes still leaves the
           # springboard on screen, so confirm the process is alive.
           if xcrun simctl spawn "$DEVICE" launchctl list | grep -q com.canvia.app; then
-            echo "app is running"
+            echo "app is running on iOS ${{ matrix.ios }}"
           else
             echo "app is NOT running — it launched and exited"
             for report in $(ls -t ~/Library/Logs/DiagnosticReports/Canvia*.ips 2>/dev/null | head -2); do
@@ -134,7 +165,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: canvia-build
+          name: canvia-${{ matrix.name }}
           path: |
             build.log
             home.png
