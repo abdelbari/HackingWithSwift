@@ -69,5 +69,37 @@ UI/        HomeView, EditorView, ContextToolbar, insert/export/color/font/
            effects/filters/crop/position/layers/resize sheets, PagesBar
 ```
 
+## Verifying it
+
+Xcode is macOS-only, so the project carries two levels of checking.
+
+**`Tools/verify.js`** — a static gate that runs anywhere Node does. It
+parses every source file with the real tree-sitter Swift grammar and
+checks six things a compiler would otherwise have to tell you: that each
+file parses; that every call into project code matches a declared
+signature's argument labels; that every `.case` argument names a real
+case of the parameter's enum; that every switch over a project enum is
+exhaustive; that no `@ViewBuilder` block exceeds SwiftUI's ten-child
+limit; and that no shorthand closure passed to a higher-order method
+(`filter`, `map`, `sorted`, …) silently ignores the argument it must
+take. It does not type-check — a clean run means the syntax and the
+project's internal API surface are consistent, not that the app builds.
+
+```
+cd Tools && npm install && node verify.js ../Canvia ../Tests
+```
+
+**`.github/workflows/canvia-ios.yml`** — the real thing. A macOS runner
+compiles the app with `xcodebuild` against the iOS Simulator SDK, prints
+every compiler diagnostic to the job log, then boots a simulator,
+installs and launches the app, and captures a screenshot of it running.
+It fires on pushes that touch `Canvia/**` and can be started by hand from
+the Actions tab.
+
+`Tests/GeometryTests.swift` holds 17 assertions over the geometry core
+(rotated-anchor resize, snapping, AABB union, hit-testing). It sits
+outside the synchronized source folder, so it never joins the app target;
+add it to a test target to run it.
+
 The sibling web implementation lives in the `story` repo under
 `canva-clone/` and shares the document schema and content library.
