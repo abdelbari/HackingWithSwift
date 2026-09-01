@@ -30,7 +30,6 @@ jobs:
 
   build:
     runs-on: macos-15
-    needs: static
     steps:
       - uses: actions/checkout@v4
 
