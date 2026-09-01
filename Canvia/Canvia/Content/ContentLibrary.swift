@@ -123,8 +123,7 @@ enum ContentLibrary {
               let decoded = try? JSONDecoder().decode(ContentBundle.self, from: data) else {
             assertionFailure("Content.json missing or invalid")
             return ContentBundle(
-                shapes: [ShapeDef(id: "rect", name: "Square", category: "Basic",
-                                  path: "M0,0H100V100H0Z", rectLike: true)],
+                shapes: [fallbackShape],
                 templates: [], palettes: [], gradients: [], pairings: [],
                 stickerGroups: [],
                 photoSpecs: PhotoSpecs(meshes: [], waves: [], stripes: []))
@@ -139,11 +138,19 @@ enum ContentLibrary {
     static var pairings: [FontPairing] { bundle.pairings }
     static var stickerGroups: [StickerGroup] { bundle.stickerGroups }
 
+    /// A plain square, used whenever a shape id cannot be resolved.
+    static let fallbackShape = ShapeDef(id: "rect", name: "Square",
+                                        category: "Basic", path: "M0,0H100V100H0Z",
+                                        rectLike: true)
+
+    // `uniqueKeysWithValues:` traps on a duplicate id, and the trap would
+    // happen at launch, on first access. A duplicate in the content library
+    // is a content bug, not a reason to take the app down: keep the first.
     static let shapeMap: [String: ShapeDef] = Dictionary(
-        uniqueKeysWithValues: bundle.shapes.map { ($0.id, $0) })
+        bundle.shapes.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 
     static func shape(_ id: String?) -> ShapeDef {
-        shapeMap[id ?? "rect"] ?? shapeMap["rect"]!
+        shapeMap[id ?? "rect"] ?? shapeMap["rect"] ?? fallbackShape
     }
 
     static var shapeCategories: [String] {

@@ -120,10 +120,13 @@ jobs:
           fi
 
           xcrun simctl io "$DEVICE" screenshot home.png
-          sips -Z 340 -s format jpeg -s formatOptions 70 home.png --out home-small.jpg >/dev/null
+          # Keep the inline copy small: the job log is only readable from the
+          # tail, so a large base64 block pushes its own header out of reach.
+          sips -Z 230 -s format jpeg -s formatOptions 40 home.png --out home-small.jpg >/dev/null
+          ls -l home-small.jpg
 
           # Echo the shot into the job log so it can be read back without
-          # downloading the artifact.
+          # downloading the artifact (blob storage is not always reachable).
           echo "===SHOT_START==="
           base64 -i home-small.jpg | fold -w 200
           echo "===SHOT_END==="
