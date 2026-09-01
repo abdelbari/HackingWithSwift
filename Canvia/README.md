@@ -43,9 +43,10 @@ duplicate / delete via long-press), and a template gallery.
 - Undo/redo with gesture coalescing (a whole drag is one step), autosave,
   lock, opacity, duplicate, align / distribute / flip / exact-position
   sheet, layers sheet with drag reorder
-- Copy / cut / paste, select all, and group / ungroup from the top-bar
-  overflow menu (grouping is sticky multi-selection — selecting one member
-  selects the group — deliberately not nested transforms)
+- Top-bar overflow menu: layers, page background, copy / cut / paste,
+  select all, and group / ungroup (grouping is sticky multi-selection —
+  selecting one member selects the group — deliberately not nested
+  transforms)
 
 **Export** — PNG / JPEG at 1–3× and multi-page PDF, rendered with
 `ImageRenderer` from the very views the canvas shows, delivered through
