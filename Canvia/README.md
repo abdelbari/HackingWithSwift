@@ -99,8 +99,10 @@ process is still alive, and capture a screenshot of it running:
 | `baseline-ios18` | macos-15 | 16.4 | iPhone 16, iOS 18.6 |
 | `latest-ios26` | macos-26 | 26.6 | iPhone 17 Pro, iOS 26.5 |
 
-iOS 26.5 is the newest SDK Apple ships — Xcode 26.6 carries it; there is no
-iOS 26.6 runtime, and the next one after 26.5 is 27.0. The older leg is what
+iOS 26.5 is the newest SDK Apple ships — Xcode 26.6 carries it. iOS 26.6 does
+run on real devices, but Apple publishes no 26.6 SDK and no 26.6 simulator
+runtime (the catalog goes 26.5, then 27.0), so 26.5 is the newest iOS testable
+in a simulator; a phone on 26.6.x is only reachable by installing on it. The older leg is what
 proves the iOS 17 deployment target still works on an earlier SDK. The
 destination names a concrete OS and a preceding step asserts that runtime
 exists, so a missing runtime fails the leg rather than letting `xcodebuild`
@@ -147,17 +149,38 @@ itself.
 
 **One-time setup.**
 
-First create the app record. Automatic signing registers the *App ID* for you,
-but it does not create the App Store Connect *app*, and an upload for a bundle
-identifier with no app record is rejected. In App Store Connect → **Apps → +**,
-pick the same bundle identifier the workflow builds, and give it a name and an
-SKU.
+Four things have to exist before the first upload, and each one blocks it on
+its own:
+
+1. **Accept the current agreements** in App Store Connect → *Business*. Until
+   the Account Holder signs, you cannot create an app at all.
+2. **Register the App ID** at developer.apple.com → *Certificates, Identifiers &
+   Profiles → Identifiers → + → App IDs*, explicit, matching the bundle
+   identifier. Automatic signing does register it, but only during the archive —
+   too late for step 3, which needs it first. App IDs are globally unique across
+   *all* Apple accounts, so `com.canvia.app` may already belong to someone else;
+   if so pick something you control, e.g. `io.github.yourname.canvia`, and set
+   the `CANVIA_BUNDLE_ID` variable below.
+3. **Create the app record**: App Store Connect → *Apps → +*, that bundle
+   identifier, a globally unique app name, an SKU. An upload for a bundle
+   identifier with no app record is rejected — the likeliest first-run failure.
+4. **Create an Internal Testing group**: your app → *TestFlight → Internal
+   Testing → +*, enable automatic distribution, and add yourself as a tester.
+   Builds are invisible to anyone not in a group — the Account Holder included.
+   Skipping this is what produces a processed build and an empty TestFlight app.
 
 Then mint an API key. In [Users and Access → Integrations → App Store Connect
-API](https://appstoreconnect.apple.com/access/integrations/api), create a team
-key with the **App Manager** role and download the `.p8` — Apple lets you
-download it exactly once. Add four repository secrets under *Settings → Secrets
-and variables → Actions*:
+API](https://appstoreconnect.apple.com/access/integrations/api), create a **team
+key** with the **Admin** role and download the `.p8` — Apple lets you download it
+exactly once.
+
+> The role must be **Admin**, not App Manager. `-allowProvisioningUpdates` uses
+> cloud-managed distribution signing, and a non-Admin key is refused with
+> *"You haven't been given access to cloud-managed distribution certificates"* —
+> with no way to grant it after the fact. The failure lands in the archive step,
+> not the upload.
+
+Add four repository secrets under *Settings → Secrets and variables → Actions*:
 
 | Secret | Where it comes from |
 | --- | --- |
@@ -169,11 +192,17 @@ and variables → Actions*:
 Optionally set the repository *variable* `CANVIA_BUNDLE_ID` if you changed the
 bundle identifier. The first run registers the App ID under your team.
 
-The build number comes from the GitHub run number, because App Store Connect
-rejects a build number it has already seen. Export compliance is declared in
+The build number is derived from the run number and the run attempt, because
+App Store Connect rejects a build number it has already seen and `run_number`
+does *not* change when you re-run a failed workflow. Export compliance is declared in
 the project (`ITSAppUsesNonExemptEncryption = NO` — the app does no networking
 at all), so uploads do not stall waiting for that question to be answered by
 hand.
 
 The sibling web implementation lives in the `story` repo under
 `canva-clone/` and shares the document schema and content library.
+
+> **These workflows live on this branch, not on `master`.** GitHub only offers a
+> *Run workflow* button for a `workflow_dispatch` file that exists on the default
+> branch, so until this branch is merged the TestFlight workflow can only be
+> triggered by pushing a `v*` tag.
