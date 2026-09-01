@@ -18,6 +18,7 @@ struct EditorView: View {
     @State private var saveTask: Task<Void, Never>?
     @State private var paletteIndex = 0
     @FocusState private var titleFocused: Bool
+    @State private var titleBeforeEdit = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -72,11 +73,20 @@ struct EditorView: View {
                 // Snapshot BEFORE the first keystroke (focus gain) and record
                 // one undo step when editing ends, however it ends.
                 .onChange(of: titleFocused) { _, focused in
-                    if focused { store.beginGesture() } else { store.commit() }
+                    if focused {
+                        titleBeforeEdit = store.design.title
+                        store.beginGesture()
+                    } else if store.design.title != titleBeforeEdit {
+                        store.commit()
+                    } else {
+                        store.endGesture()   // focused and left without typing
+                    }
                 }
                 .onSubmit { titleFocused = false }
 
             Spacer()
+
+            overflowMenu
 
             Button { shuffleColors() } label: { Image(systemName: "sparkles") }
                 .accessibilityLabel("Shuffle colors")
@@ -92,6 +102,45 @@ struct EditorView: View {
         .padding(.vertical, 10)
         .background(.background)
         .overlay(alignment: .bottom) { Divider() }
+    }
+
+    private var overflowMenu: some View {
+        Menu {
+            Button {
+                store.selectAll()
+            } label: { Label("Select all", systemImage: "checkmark.circle") }
+
+            Button {
+                store.copySelected()
+            } label: { Label("Copy", systemImage: "doc.on.doc") }
+                .disabled(store.selection.isEmpty)
+
+            Button {
+                store.cutSelected()
+            } label: { Label("Cut", systemImage: "scissors") }
+                .disabled(store.selection.isEmpty)
+
+            Button {
+                store.paste()
+            } label: { Label("Paste", systemImage: "doc.on.clipboard") }
+                .disabled(!store.hasClipboard)
+
+            Divider()
+
+            if store.selectionIsGrouped {
+                Button {
+                    store.ungroupSelected()
+                } label: { Label("Ungroup", systemImage: "square.on.square.dashed") }
+            } else {
+                Button {
+                    store.groupSelected()
+                } label: { Label("Group", systemImage: "square.on.square") }
+                    .disabled(store.selection.count < 2)
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+        }
+        .accessibilityLabel("More actions")
     }
 
     private var insertButton: some View {

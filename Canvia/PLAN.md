@@ -76,6 +76,7 @@ sheet for z-order, Position sheet for align/flip/exact values.
   editor, ✨ Shuffle (luminance-ranked palette remap)
 - Pages: strip with live thumbnails, add/duplicate/delete/reorder
 - Undo/redo, autosave, lock, opacity, duplicate, align/distribute, flip
+- Copy/cut/paste, select all, group/ungroup, replace image in place
 - Export: PNG / JPEG (1–3×) / multi-page PDF via the share sheet
 
 ## Deliberate iOS adaptations

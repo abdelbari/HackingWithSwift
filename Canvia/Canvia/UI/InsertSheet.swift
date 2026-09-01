@@ -13,6 +13,8 @@ struct InsertSheet: View {
 
     private let tabs = ["Templates", "Elements", "Text", "Photos", "Stickers", "Background"]
 
+    private var isReplacing: Bool { store.replaceTargetId != nil }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -35,13 +37,21 @@ struct InsertSheet: View {
                 }
             }
             .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always))
-            .navigationTitle("Add to design")
+            .navigationTitle(isReplacing ? "Replace image" : "Add to design")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
         }
         .presentationDetents([.medium, .large])
+        .onAppear {
+            // Replacing? Go straight to the picture sources.
+            if isReplacing { tab = "Photos" }
+        }
+        .onDisappear {
+            // Abandoning the sheet must not leave a replace pending.
+            store.replaceTargetId = nil
+        }
         .onChange(of: pickedItem) {
             guard let item = pickedItem else { return }
             Task {
@@ -262,6 +272,23 @@ struct InsertSheet: View {
     }
 
     private func insertImage(_ src: String, natural: CGSize) {
+        // Replace mode swaps the source in place, keeping the frame, corner
+        // radius and filter — only the crop is reset for the new picture.
+        if let targetId = store.replaceTargetId {
+            store.replaceTargetId = nil
+            if store.page.elements.contains(where: { $0.id == targetId && $0.type == .image }) {
+                store.applyToPage { page in
+                    if let i = page.elements.firstIndex(where: { $0.id == targetId }) {
+                        page.elements[i].src = src
+                        page.elements[i].cropScale = 1
+                        page.elements[i].cropX = 0.5
+                        page.elements[i].cropY = 0.5
+                    }
+                }
+                store.selection = [targetId]
+                return
+            }
+        }
         let w = store.design.width * 0.5
         let h = natural.width > 0 ? w * natural.height / natural.width : w * 0.75
         store.add(.image(src, w: w.rounded(), h: h.rounded()))

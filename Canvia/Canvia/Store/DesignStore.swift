@@ -20,6 +20,13 @@ final class DesignStore {
     var guideY: Double?
     var badge: String?
 
+    /// When set, the next picked image replaces this element's source
+    /// instead of inserting a new image.
+    var replaceTargetId: String?
+
+    private var clipboard: [Element] = []
+    private var pasteCount = 0
+
     private struct HistoryEntry {
         var design: Design
         var pageIndex: Int
@@ -183,10 +190,83 @@ final class DesignStore {
     }
 
     func duplicateSelected() {
-        let copies = selectedElements.filter { !$0.locked }.map { $0.duplicated() }
+        let copies = Self.remapGroups(selectedElements.filter { !$0.locked }.map { $0.duplicated() })
         guard !copies.isEmpty else { return }
         applyToPage { $0.elements.append(contentsOf: copies) }
         selection = Set(copies.map(\.id))
+    }
+
+    /// Copies must not stay welded to the source's group: re-key each source
+    /// group, preserving grouping *within* the copies.
+    private static func remapGroups(_ elements: [Element]) -> [Element] {
+        var map: [String: String] = [:]
+        return elements.map { element in
+            guard let group = element.group else { return element }
+            if map[group] == nil { map[group] = UID.make("grp") }
+            var copy = element
+            copy.group = map[group]
+            return copy
+        }
+    }
+
+    // MARK: clipboard
+
+    var hasClipboard: Bool { !clipboard.isEmpty }
+
+    func copySelected() {
+        let selected = selectedElements
+        guard !selected.isEmpty else { return }
+        clipboard = selected
+        pasteCount = 0
+    }
+
+    func cutSelected() {
+        copySelected()
+        deleteSelected()
+    }
+
+    func paste() {
+        guard !clipboard.isEmpty else { return }
+        pasteCount += 1
+        let copies = Self.remapGroups(clipboard.map { $0.duplicated(offset: 24 * Double(pasteCount)) })
+        applyToPage { $0.elements.append(contentsOf: copies) }
+        selection = Set(copies.map(\.id))
+    }
+
+    func selectAll() {
+        editingTextId = nil
+        selection = Set(page.elements.filter { !$0.locked }.map(\.id))
+    }
+
+    // MARK: grouping
+    // Sticky multi-selection rather than nested transforms: selecting any
+    // member selects the whole group (see select(_:additive:)).
+
+    /// True when every selected element already shares one group.
+    var selectionIsGrouped: Bool {
+        let selected = selectedElements
+        guard selected.count > 1, let group = selected.first?.group else { return false }
+        return selected.allSatisfy { $0.group == group }
+    }
+
+    func groupSelected() {
+        guard selectedElements.filter({ !$0.locked }).count >= 2 else { return }
+        let gid = UID.make("grp")
+        applyToPage { page in
+            for i in page.elements.indices
+            where self.selection.contains(page.elements[i].id) && !page.elements[i].locked {
+                page.elements[i].group = gid
+            }
+        }
+    }
+
+    func ungroupSelected() {
+        guard selectedElements.contains(where: { $0.group != nil }) else { return }
+        applyToPage { page in
+            for i in page.elements.indices where self.selection.contains(page.elements[i].id) {
+                page.elements[i].group = nil
+            }
+        }
     }
 
     enum ZMove { case front, forward, backward, back }
@@ -244,6 +324,34 @@ final class DesignStore {
                 }
                 page.elements[i].x += dx
                 page.elements[i].y += dy
+            }
+        }
+    }
+
+    enum DistributeAxis { case horizontal, vertical }
+
+    /// Even spacing between the outermost two elements (needs 3+).
+    func distributeSelected(_ axis: DistributeAxis) {
+        let selected = selectedElements.filter { !$0.locked }
+        guard selected.count >= 3 else { return }
+        let horizontal = axis == .horizontal
+        var boxes = selected.map { (id: $0.id, box: Geometry.aabb($0)) }
+        boxes.sort { horizontal ? $0.box.minX < $1.box.minX : $0.box.minY < $1.box.minY }
+        guard let first = boxes.first, let last = boxes.last else { return }
+
+        let span = horizontal ? last.box.maxX - first.box.minX : last.box.maxY - first.box.minY
+        let total = boxes.reduce(0.0) { $0 + (horizontal ? $1.box.width : $1.box.height) }
+        let gap = (span - total) / Double(boxes.count - 1)
+
+        applyToPage { page in
+            var cursor: Double = horizontal ? first.box.minX : first.box.minY
+            for entry in boxes {
+                if let i = page.elements.firstIndex(where: { $0.id == entry.id }) {
+                    let start = horizontal ? entry.box.minX : entry.box.minY
+                    if horizontal { page.elements[i].x += cursor - start }
+                    else { page.elements[i].y += cursor - start }
+                }
+                cursor += (horizontal ? entry.box.width : entry.box.height) + gap
             }
         }
     }

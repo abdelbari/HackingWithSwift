@@ -96,6 +96,10 @@ struct ContextToolbar: View {
     private func imageControls(_ el: Element) -> some View {
         toolButton("camera.filters", "Filters") { activeSheet = .filters }
         toolButton("crop", "Crop") { activeSheet = .crop }
+        toolButton("arrow.2.squarepath", "Replace") {
+            store.replaceTargetId = el.id
+            activeSheet = .insert
+        }
         sliderControl("Round", value: el.radius ?? 0, in: 0...(min(el.w, el.h) / 2)) { v in
             store.updateSelectedTransient { $0.radius = v }
         }

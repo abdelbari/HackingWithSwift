@@ -449,6 +449,18 @@ struct PositionSheet: View {
                         orderButton("Bottom", "align.vertical.bottom") { store.alignSelected(.bottom) }
                     }
                 }
+                if store.selection.count >= 3 {
+                    Section("Distribute evenly") {
+                        HStack {
+                            orderButton("Horizontally", "arrow.left.and.right") {
+                                store.distributeSelected(.horizontal)
+                            }
+                            orderButton("Vertically", "arrow.up.and.down") {
+                                store.distributeSelected(.vertical)
+                            }
+                        }
+                    }
+                }
                 Section("Flip") {
                     HStack {
                         orderButton("Horizontal", "arrow.left.and.right.righttriangle.left.righttriangle.right") {

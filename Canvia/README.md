@@ -35,13 +35,17 @@ duplicate / delete via long-press), and a template gallery.
   echo, highlight) drawn through one CoreText pipeline shared by canvas,
   thumbnails and export
 - Images: Core Image filter presets, cover-crop zoom + focus point,
+  replace-in-place (swap the picture, keep the frame, radius and filter),
   corner radius, borders
 - Color: curated palettes, gradient presets, document colors, background
   editor, ✨ Shuffle (luminance-ranked palette remap)
 - Pages: live-thumbnail strip, add / duplicate / reorder / delete
 - Undo/redo with gesture coalescing (a whole drag is one step), autosave,
-  lock, opacity, duplicate, align / flip / exact-position sheet, layers
-  sheet with drag reorder
+  lock, opacity, duplicate, align / distribute / flip / exact-position
+  sheet, layers sheet with drag reorder
+- Copy / cut / paste, select all, and group / ungroup from the top-bar
+  overflow menu (grouping is sticky multi-selection — selecting one member
+  selects the group — deliberately not nested transforms)
 
 **Export** — PNG / JPEG at 1–3× and multi-page PDF, rendered with
 `ImageRenderer` from the very views the canvas shows, delivered through
