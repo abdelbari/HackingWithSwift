@@ -247,16 +247,19 @@ struct CanvasView: View {
             .onChanged { value in
                 // Only pan when the drag started on empty workspace: element
                 // drags run in the named space and consume their events.
-                guard !gesture.dragActive else { return }
-                store.canvasOffset = CGSize(
-                    width: store.canvasOffset.width + value.translation.width - lastPan.width,
-                    height: store.canvasOffset.height + value.translation.height - lastPan.height)
-                lastPan = value.translation
+                guard !gesture.dragActive else { panStart = nil; return }
+                // Re-base from the offset at gesture start rather than
+                // accumulating per-frame deltas, so an interrupted or
+                // partially-skipped gesture can't leave the canvas drifting.
+                let base = panStart ?? store.canvasOffset
+                if panStart == nil { panStart = base }
+                store.canvasOffset = CGSize(width: base.width + value.translation.width,
+                                            height: base.height + value.translation.height)
             }
-            .onEnded { _ in lastPan = .zero }
+            .onEnded { _ in panStart = nil }
     }
 
-    @State private var lastPan: CGSize = .zero
+    @State private var panStart: CGSize?
 
     // MARK: zoom helpers
 
