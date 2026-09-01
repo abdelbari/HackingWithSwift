@@ -13,6 +13,7 @@
 //   3. every implicit-member argument (.case) names a real case of the
 //      parameter's enum type
 //   4. every switch over a project enum is exhaustive or has a default
+//   5. no ViewBuilder block exceeds SwiftUI's ten-child limit
 //
 // It does NOT type-check. A clean run means the syntax and the project's
 // internal API surface are consistent; it cannot prove the app builds.
@@ -43,7 +44,7 @@ const rel = f => path.relative(process.cwd(), f);
 let FAILURES = 0;
 
 // ---------------------------------------------------------------- 1. parse
-console.log('\n[1/4] parsing');
+console.log('\n[1/5] parsing');
 for (const f of FILES) {
   const tree = parser.parse(fs.readFileSync(f, 'utf8'));
   const problems = [];
@@ -56,7 +57,7 @@ for (const f of FILES) {
 console.log(`      ${FILES.length} files`);
 
 // ------------------------------------------------- 2. argument labels
-console.log('[2/4] argument labels');
+console.log('[2/5] argument labels');
 const decls = new Map(), ourTypes = new Set();
 for (const f of FILES) {
   const tree = parser.parse(fs.readFileSync(f, 'utf8'));
@@ -141,7 +142,7 @@ for (const f of FILES) {
 console.log(`      ${calls} internal calls`);
 
 // --------------------------------------- 3 & 4. enum cases + exhaustiveness
-console.log('[3/4] enum-case arguments');
+console.log('[3/5] enum-case arguments');
 const enums = new Map();
 for (const f of FILES) {
   const tree = parser.parse(fs.readFileSync(f, 'utf8'));
@@ -203,7 +204,7 @@ for (const f of FILES) {
 }
 console.log(`      ${caseArgs} enum-case arguments`);
 
-console.log('[4/4] switch exhaustiveness');
+console.log('[4/5] switch exhaustiveness');
 let switches = 0;
 for (const f of FILES) {
   const tree = parser.parse(fs.readFileSync(f, 'utf8'));
@@ -229,6 +230,46 @@ for (const f of FILES) {
   });
 }
 console.log(`      ${switches} switches over project enums`);
+
+
+// ------------------------------------------- 5. ViewBuilder child limits
+// A ViewBuilder block accepts at most ten child views; exceeding it fails
+// with an opaque type-inference error rather than a clear diagnostic.
+console.log('[5/5] ViewBuilder child counts');
+const CONTAINERS = new Set(['HStack','VStack','ZStack','Group','Form','List','Section','Menu',
+  'ScrollView','NavigationStack','LazyVStack','LazyHStack','LazyVGrid','LazyHGrid','ToolbarItemGroup']);
+const countViews = stmts => stmts.namedChildren.filter(c =>
+  c.type !== 'property_declaration' && c.type !== 'assignment' && c.type !== 'comment').length;
+let builders = 0;
+for (const f of FILES) {
+  const tree = parser.parse(fs.readFileSync(f, 'utf8'));
+  each(tree.rootNode, n => {
+    let stmts = null, what = null;
+    if ((n.type === 'function_declaration' || n.type === 'property_declaration')
+        && /@ViewBuilder/.test(n.text.slice(0, 200))) {
+      const body = n.namedChildren.find(c => c.type === 'function_body'
+                                          || c.type === 'computed_property');
+      stmts = body && body.namedChildren.find(c => c.type === 'statements');
+      what = '@ViewBuilder block';
+    } else if (n.type === 'call_expression') {
+      const callee = n.namedChild(0);
+      if (callee && callee.type === 'simple_identifier' && CONTAINERS.has(callee.text)) {
+        const suffix = n.namedChildren.find(c => c.type === 'call_suffix');
+        const lambda = suffix && suffix.namedChildren.find(c => c.type === 'lambda_literal');
+        stmts = lambda && lambda.namedChildren.find(c => c.type === 'statements');
+        what = `${callee.text} { }`;
+      }
+    }
+    if (!stmts) return;
+    builders++;
+    const count = countViews(stmts);
+    if (count > 10) {
+      FAILURES++;
+      console.log(`  FAIL ${rel(f)}:${n.startPosition.row + 1}  ${what} has ${count} children (limit 10)`);
+    }
+  });
+}
+console.log(`      ${builders} ViewBuilder blocks`);
 
 console.log(FAILURES === 0 ? '\nOK — no static problems found\n' : `\n${FAILURES} PROBLEM(S)\n`);
 process.exit(FAILURES === 0 ? 0 : 1);

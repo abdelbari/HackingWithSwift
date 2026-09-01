@@ -17,7 +17,9 @@ It checks that:
    labels**, accounting for defaulted parameters;
 3. every implicit-member argument (`.someCase`) **names a real case** of the
    parameter's enum type;
-4. every `switch` over a project enum is **exhaustive** or has a `default`.
+4. every `switch` over a project enum is **exhaustive** or has a `default`;
+5. no **ViewBuilder block exceeds SwiftUI's ten-child limit** — going over
+   fails with an opaque type-inference error rather than a clear one.
 
 It does **not** type-check, so a clean run does not prove the app builds —
 it proves the syntax and the project's own API surface are self-consistent.
