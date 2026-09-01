@@ -303,14 +303,11 @@ struct InsertSheet: View {
 
     private var stickersGrid: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ForEach(ContentLibrary.stickerGroups) { group in
-                let emoji = group.emoji.filter {
-                    search.isEmpty || group.name.localizedCaseInsensitiveContains(search)
-                }
-                if !emoji.isEmpty {
+            ForEach(filteredStickerGroups) { group in
+                if !group.emoji.isEmpty {
                     sectionHeader(group.name)
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 52), spacing: 8)], spacing: 8) {
-                        ForEach(emoji, id: \.self) { glyph in
+                        ForEach(group.emoji, id: \.self) { glyph in
                             Button {
                                 store.add(.sticker(glyph, size: min(store.design.width, store.design.height) * 0.18))
                                 dismiss()
@@ -324,6 +321,15 @@ struct InsertSheet: View {
             }
         }
         .padding()
+    }
+
+    /// Sticker search matches on the group name — the glyphs themselves carry
+    /// no searchable text — so a non-matching group drops out whole.
+    private var filteredStickerGroups: [StickerGroup] {
+        guard !search.isEmpty else { return ContentLibrary.stickerGroups }
+        return ContentLibrary.stickerGroups.filter {
+            $0.name.localizedCaseInsensitiveContains(search)
+        }
     }
 
     private var backgroundNote: some View {

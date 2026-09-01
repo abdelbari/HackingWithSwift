@@ -14,6 +14,8 @@
 //      parameter's enum type
 //   4. every switch over a project enum is exhaustive or has a default
 //   5. no ViewBuilder block exceeds SwiftUI's ten-child limit
+//   6. no closure passed to a higher-order stdlib method silently ignores
+//      the argument it is required to take
 //
 // It does NOT type-check. A clean run means the syntax and the project's
 // internal API surface are consistent; it cannot prove the app builds.
@@ -44,7 +46,7 @@ const rel = f => path.relative(process.cwd(), f);
 let FAILURES = 0;
 
 // ---------------------------------------------------------------- 1. parse
-console.log('\n[1/5] parsing');
+console.log('\n[1/6] parsing');
 for (const f of FILES) {
   const tree = parser.parse(fs.readFileSync(f, 'utf8'));
   const problems = [];
@@ -57,7 +59,7 @@ for (const f of FILES) {
 console.log(`      ${FILES.length} files`);
 
 // ------------------------------------------------- 2. argument labels
-console.log('[2/5] argument labels');
+console.log('[2/6] argument labels');
 const decls = new Map(), ourTypes = new Set();
 for (const f of FILES) {
   const tree = parser.parse(fs.readFileSync(f, 'utf8'));
@@ -142,7 +144,7 @@ for (const f of FILES) {
 console.log(`      ${calls} internal calls`);
 
 // --------------------------------------- 3 & 4. enum cases + exhaustiveness
-console.log('[3/5] enum-case arguments');
+console.log('[3/6] enum-case arguments');
 const enums = new Map();
 for (const f of FILES) {
   const tree = parser.parse(fs.readFileSync(f, 'utf8'));
@@ -204,7 +206,7 @@ for (const f of FILES) {
 }
 console.log(`      ${caseArgs} enum-case arguments`);
 
-console.log('[4/5] switch exhaustiveness');
+console.log('[4/6] switch exhaustiveness');
 let switches = 0;
 for (const f of FILES) {
   const tree = parser.parse(fs.readFileSync(f, 'utf8'));
@@ -235,7 +237,7 @@ console.log(`      ${switches} switches over project enums`);
 // ------------------------------------------- 5. ViewBuilder child limits
 // A ViewBuilder block accepts at most ten child views; exceeding it fails
 // with an opaque type-inference error rather than a clear diagnostic.
-console.log('[5/5] ViewBuilder child counts');
+console.log('[5/6] ViewBuilder child counts');
 const CONTAINERS = new Set(['HStack','VStack','ZStack','Group','Form','List','Section','Menu',
   'ScrollView','NavigationStack','LazyVStack','LazyHStack','LazyVGrid','LazyHGrid','ToolbarItemGroup']);
 const countViews = stmts => stmts.namedChildren.filter(c =>
@@ -270,6 +272,74 @@ for (const f of FILES) {
   });
 }
 console.log(`      ${builders} ViewBuilder blocks`);
+
+
+// ------------------------- 6. closures that ignore a required argument
+// `xs.filter { flag }` is a hard error ("contextual type for closure argument
+// list expects 1 argument, which cannot be implicitly ignored") — and usually
+// signals a predicate that forgot to look at the element. A shorthand closure
+// passed to one of these methods must reference the arguments it is given.
+console.log('[6/6] closure arguments');
+const HOF = new Map([
+  ['filter', 1], ['map', 1], ['compactMap', 1], ['flatMap', 1], ['forEach', 1],
+  ['first', 1], ['firstIndex', 1], ['last', 1], ['lastIndex', 1],
+  ['contains', 1], ['allSatisfy', 1], ['drop', 1], ['prefix', 1],
+  ['removeAll', 1], ['partition', 1], ['split', 1],
+  ['sorted', 2], ['min', 2], ['max', 2], ['reduce', 2],
+]);
+// $0 inside a nested closure belongs to that closure, not this one.
+const shorthandArgs = lambda => {
+  const found = new Set();
+  const walk = (n, top) => {
+    if (!top && n.type === 'lambda_literal') return;
+    if (n.type === 'simple_identifier' && /^\$\d+$/.test(n.text)) found.add(n.text);
+    for (let i = 0; i < n.namedChildCount; i++) walk(n.namedChild(i), false);
+  };
+  walk(lambda, true);
+  return found;
+};
+let closures = 0;
+for (const f of FILES) {
+  const tree = parser.parse(fs.readFileSync(f, 'utf8'));
+  each(tree.rootNode, n => {
+    if (n.type !== 'call_expression') return;
+    const callee = n.namedChild(0);
+    if (!callee || callee.type !== 'navigation_expression') return;
+    const suffix = callee.namedChildren.find(c => c.type === 'navigation_suffix');
+    const method = suffix && suffix.namedChildren.find(c => c.type === 'simple_identifier');
+    if (!method || !HOF.has(method.text)) return;
+
+    const call = n.namedChildren.find(c => c.type === 'call_suffix');
+    if (!call) return;
+    // Trailing closure, or one passed as a labelled argument (where:/by:).
+    let lambda = call.namedChildren.find(c => c.type === 'lambda_literal');
+    if (!lambda) {
+      const args = call.namedChildren.find(c => c.type === 'value_arguments');
+      for (const a of args ? args.namedChildren : []) {
+        const l = a.namedChildren.find(c => c.type === 'lambda_literal');
+        if (l) lambda = l;
+      }
+    }
+    if (!lambda) return;
+    // An explicit parameter list (including `_ in`) is always fine.
+    if (lambda.namedChildren.some(c => c.type === 'lambda_function_type')) return;
+
+    closures++;
+    const arity = HOF.get(method.text);
+    const used = shorthandArgs(lambda);
+    const missing = [];
+    for (let i = 0; i < arity; i++) if (!used.has(`$${i}`)) missing.push(`$${i}`);
+    // A one-argument closure that uses none of its arguments is the error the
+    // compiler rejects; for the two-argument forms, `$0` alone still compiles
+    // (`$1` is inferred as unused), so only flag using neither.
+    const broken = arity === 1 ? missing.length === 1 : used.size === 0;
+    if (broken) {
+      FAILURES++;
+      console.log(`  FAIL ${rel(f)}:${lambda.startPosition.row + 1}  .${method.text} { } ignores ${missing.join(', ')}`);
+    }
+  });
+}
+console.log(`      ${closures} shorthand closures`);
 
 console.log(FAILURES === 0 ? '\nOK — no static problems found\n' : `\n${FAILURES} PROBLEM(S)\n`);
 process.exit(FAILURES === 0 ? 0 : 1);
