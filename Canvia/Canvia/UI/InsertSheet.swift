@@ -2,6 +2,7 @@
 // stickers, and photo-library uploads.
 
 import SwiftUI
+import UIKit
 import PhotosUI
 
 struct InsertSheet: View {

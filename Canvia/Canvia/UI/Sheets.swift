@@ -2,6 +2,7 @@
 // crop, position, layers, resize.
 
 import SwiftUI
+import UIKit
 
 private let sheetDetents: Set<PresentationDetent> = [.medium, .large]
 

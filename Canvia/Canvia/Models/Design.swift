@@ -3,6 +3,7 @@
 // schema so the validated template gallery decodes verbatim.
 
 import SwiftUI
+import UIKit
 
 enum UID {
     static func make(_ prefix: String = "el") -> String {

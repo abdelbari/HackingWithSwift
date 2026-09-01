@@ -6,6 +6,7 @@
 // then drag this file into the new target.
 
 import XCTest
+import CoreGraphics
 @testable import Canvia
 
 final class GeometryTests: XCTestCase {

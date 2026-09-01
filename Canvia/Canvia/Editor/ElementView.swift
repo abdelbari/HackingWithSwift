@@ -7,6 +7,9 @@
 // export share one text pipeline, which is what keeps wrapping consistent.
 
 import SwiftUI
+import UIKit
+import CoreText
+import CoreGraphics
 
 // MARK: - dispatch
 

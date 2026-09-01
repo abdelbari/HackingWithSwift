@@ -2,6 +2,7 @@
 // rendered Text view with the appropriate SwiftUI modifiers.
 
 import SwiftUI
+import UIKit
 
 enum TextEffect: String, CaseIterable, Identifiable {
     case none, shadow, lift, outline, splice, neon, glitch, highlight
