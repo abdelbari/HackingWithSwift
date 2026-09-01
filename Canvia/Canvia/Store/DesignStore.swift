@@ -1,0 +1,328 @@
+// Central editor state. Design is a value type, so history entries are
+// plain copies. Gesture coalescing mirrors the web store: beginGesture()
+// captures the pre-gesture doc, transient mutations happen freely, and one
+// commit() records a single undo step.
+
+import SwiftUI
+import Observation
+
+@Observable
+final class DesignStore {
+    var design: Design
+    var pageIndex: Int = 0
+    var selection: Set<String> = []
+    var editingTextId: String?
+    var zoom: Double = 1
+    var canvasOffset: CGSize = .zero
+
+    // Transient overlay state during gestures.
+    var guideX: Double?
+    var guideY: Double?
+    var badge: String?
+
+    private struct HistoryEntry {
+        var design: Design
+        var pageIndex: Int
+    }
+    private var past: [HistoryEntry] = []
+    private var future: [HistoryEntry] = []
+    private var pending: HistoryEntry?
+    private let historyLimit = 100
+
+    var onCommit: (() -> Void)?
+
+    init(design: Design) {
+        self.design = design
+    }
+
+    var page: Page {
+        get { design.pages[min(pageIndex, design.pages.count - 1)] }
+        set { design.pages[min(pageIndex, design.pages.count - 1)] = newValue }
+    }
+
+    func element(_ id: String) -> Element? {
+        page.elements.first { $0.id == id }
+    }
+
+    var selectedElements: [Element] {
+        page.elements.filter { selection.contains($0.id) }
+    }
+
+    var singleSelection: Element? {
+        selection.count == 1 ? selection.first.flatMap(element) : nil
+    }
+
+    // MARK: history
+
+    func beginGesture() {
+        if pending == nil {
+            pending = HistoryEntry(design: design, pageIndex: pageIndex)
+        }
+    }
+
+    func commit() {
+        let entry = pending ?? HistoryEntry(design: design, pageIndex: pageIndex)
+        past.append(entry)
+        if past.count > historyLimit { past.removeFirst() }
+        future.removeAll()
+        pending = nil
+        design.updatedAt = Date().timeIntervalSince1970 * 1000
+        onCommit?()
+    }
+
+    /// End a gesture that changed nothing, without recording history.
+    func endGesture() {
+        pending = nil
+    }
+
+    /// Mutate + record as one undo step.
+    func apply(_ mutate: (inout Design) -> Void) {
+        beginGesture()
+        mutate(&design)
+        commit()
+    }
+
+    /// Mutate the current page + record one undo step.
+    func applyToPage(_ mutate: (inout Page) -> Void) {
+        apply { design in
+            mutate(&design.pages[self.pageIndex])
+        }
+    }
+
+    /// Mutate every selected, unlocked element + record one undo step.
+    func updateSelected(_ mutate: (inout Element) -> Void) {
+        guard !selection.isEmpty else { return }
+        applyToPage { page in
+            for i in page.elements.indices
+            where self.selection.contains(page.elements[i].id) && !page.elements[i].locked {
+                mutate(&page.elements[i])
+            }
+        }
+    }
+
+    /// Transient variant for continuous controls; call commit() on release.
+    func updateSelectedTransient(_ mutate: (inout Element) -> Void) {
+        beginGesture()
+        for i in design.pages[pageIndex].elements.indices
+        where selection.contains(design.pages[pageIndex].elements[i].id)
+            && !design.pages[pageIndex].elements[i].locked {
+            mutate(&design.pages[pageIndex].elements[i])
+        }
+    }
+
+    var canUndo: Bool { !past.isEmpty }
+    var canRedo: Bool { !future.isEmpty }
+
+    func undo() {
+        guard let entry = past.popLast() else { return }
+        future.append(HistoryEntry(design: design, pageIndex: pageIndex))
+        restore(entry)
+    }
+
+    func redo() {
+        guard let entry = future.popLast() else { return }
+        past.append(HistoryEntry(design: design, pageIndex: pageIndex))
+        restore(entry)
+    }
+
+    private func restore(_ entry: HistoryEntry) {
+        design = entry.design
+        pageIndex = min(entry.pageIndex, design.pages.count - 1)
+        let ids = Set(page.elements.map(\.id))
+        selection = selection.intersection(ids)
+        editingTextId = nil
+        pending = nil
+        onCommit?()
+    }
+
+    // MARK: selection
+
+    func select(_ id: String?, additive: Bool = false) {
+        editingTextId = nil
+        guard let id else {
+            selection.removeAll()
+            return
+        }
+        // Expand to sticky group.
+        var ids: Set<String> = [id]
+        if let group = element(id)?.group {
+            ids = Set(page.elements.filter { $0.group == group }.map(\.id))
+        }
+        if additive {
+            if ids.isSubset(of: selection) { selection.subtract(ids) }
+            else { selection.formUnion(ids) }
+        } else {
+            selection = ids
+        }
+    }
+
+    // MARK: element commands
+
+    func add(_ element: Element, centered: Bool = true) {
+        var el = element
+        if centered && el.x == 0 && el.y == 0 {
+            el.x = (design.width - el.w) / 2
+            el.y = (design.height - el.h) / 2
+        }
+        applyToPage { $0.elements.append(el) }
+        selection = [el.id]
+    }
+
+    func deleteSelected() {
+        let ids = selection
+        guard !ids.isEmpty else { return }
+        applyToPage { page in
+            page.elements.removeAll { ids.contains($0.id) && !$0.locked }
+        }
+        selection.removeAll()
+    }
+
+    func duplicateSelected() {
+        let copies = selectedElements.filter { !$0.locked }.map { $0.duplicated() }
+        guard !copies.isEmpty else { return }
+        applyToPage { $0.elements.append(contentsOf: copies) }
+        selection = Set(copies.map(\.id))
+    }
+
+    enum ZMove { case front, forward, backward, back }
+
+    func reorderSelected(_ move: ZMove) {
+        let ids = selection
+        guard !ids.isEmpty else { return }
+        applyToPage { page in
+            switch move {
+            case .front:
+                let moved = page.elements.filter { ids.contains($0.id) }
+                page.elements.removeAll { ids.contains($0.id) }
+                page.elements.append(contentsOf: moved)
+            case .back:
+                let moved = page.elements.filter { ids.contains($0.id) }
+                page.elements.removeAll { ids.contains($0.id) }
+                page.elements.insert(contentsOf: moved, at: 0)
+            case .forward:
+                var i = page.elements.count - 2
+                while i >= 0 {
+                    if ids.contains(page.elements[i].id) && !ids.contains(page.elements[i + 1].id) {
+                        page.elements.swapAt(i, i + 1)
+                    }
+                    i -= 1
+                }
+            case .backward:
+                for i in 1..<max(1, page.elements.count) {
+                    if ids.contains(page.elements[i].id) && !ids.contains(page.elements[i - 1].id) {
+                        page.elements.swapAt(i, i - 1)
+                    }
+                }
+            }
+        }
+    }
+
+    enum AlignMode { case left, centerX, right, top, centerY, bottom }
+
+    func alignSelected(_ mode: AlignMode) {
+        let selected = selectedElements.filter { !$0.locked }
+        guard !selected.isEmpty else { return }
+        let bounds: CGRect = selected.count == 1
+            ? CGRect(x: 0, y: 0, width: design.width, height: design.height)
+            : Geometry.union(selected.map(Geometry.aabb))
+        applyToPage { page in
+            for i in page.elements.indices where self.selection.contains(page.elements[i].id) && !page.elements[i].locked {
+                let box = Geometry.aabb(page.elements[i])
+                var dx = 0.0, dy = 0.0
+                switch mode {
+                case .left: dx = bounds.minX - box.minX
+                case .centerX: dx = bounds.midX - box.midX
+                case .right: dx = bounds.maxX - box.maxX
+                case .top: dy = bounds.minY - box.minY
+                case .centerY: dy = bounds.midY - box.midY
+                case .bottom: dy = bounds.maxY - box.maxY
+                }
+                page.elements[i].x += dx
+                page.elements[i].y += dy
+            }
+        }
+    }
+
+    func toggleLockSelected() {
+        let anyUnlocked = selectedElements.contains { !$0.locked }
+        applyToPage { page in
+            for i in page.elements.indices where self.selection.contains(page.elements[i].id) {
+                page.elements[i].locked = anyUnlocked
+            }
+        }
+    }
+
+    func flipSelected(horizontal: Bool) {
+        updateSelected { el in
+            if horizontal { el.flipH.toggle() } else { el.flipV.toggle() }
+        }
+    }
+
+    // MARK: pages
+
+    func addPage() {
+        let bg = page.background
+        apply { $0.pages.insert(Page(background: bg), at: pageIndex + 1) }
+        pageIndex += 1
+        selection.removeAll()
+    }
+
+    func duplicatePage() {
+        var copy = page
+        copy.id = UID.make("page")
+        copy.elements = copy.elements.map {
+            var el = $0
+            el.id = UID.make()
+            return el
+        }
+        apply { $0.pages.insert(copy, at: pageIndex + 1) }
+        pageIndex += 1
+        selection.removeAll()
+    }
+
+    func deletePage() {
+        guard design.pages.count > 1 else { return }
+        apply { $0.pages.remove(at: pageIndex) }
+        pageIndex = min(pageIndex, design.pages.count - 1)
+        selection.removeAll()
+    }
+
+    func movePage(by delta: Int) {
+        let target = pageIndex + delta
+        guard target >= 0 && target < design.pages.count else { return }
+        apply { $0.pages.swapAt(pageIndex, target) }
+        pageIndex = target
+    }
+
+    func setPage(_ index: Int) {
+        guard index >= 0 && index < design.pages.count && index != pageIndex else { return }
+        pageIndex = index
+        selection.removeAll()
+        editingTextId = nil
+    }
+
+    /// Uniformly rescale all content to a new canvas size.
+    func resizeDesign(width: Double, height: Double) {
+        guard width != design.width || height != design.height else { return }
+        let scale = width / design.width
+        let dy = (height - design.height * scale) / 2
+        apply { d in
+            d.width = width
+            d.height = height
+            for p in d.pages.indices {
+                for i in d.pages[p].elements.indices {
+                    d.pages[p].elements[i].x *= scale
+                    d.pages[p].elements[i].y = d.pages[p].elements[i].y * scale + dy
+                    d.pages[p].elements[i].w *= scale
+                    d.pages[p].elements[i].h *= scale
+                    if let fs = d.pages[p].elements[i].fontSize {
+                        d.pages[p].elements[i].fontSize = fs * scale
+                    }
+                    if let t = d.pages[p].elements[i].thickness {
+                        d.pages[p].elements[i].thickness = max(1, t * scale)
+                    }
+                }
+            }
+        }
+    }
+}

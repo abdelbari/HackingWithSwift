@@ -1,0 +1,70 @@
+// Bottom pages bar: thumbnails, add/duplicate/move/delete.
+
+import SwiftUI
+
+struct PagesBar: View {
+    @Bindable var store: DesignStore
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Array(store.design.pages.enumerated()), id: \.element.id) { index, page in
+                        pageThumb(index: index, page: page)
+                    }
+                    Button { store.addPage() } label: {
+                        Image(systemName: "plus")
+                            .frame(width: 40, height: 56)
+                            .background(RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [5]))
+                                .foregroundStyle(.secondary))
+                    }
+                    .accessibilityLabel("Add page")
+                }
+                .padding(.horizontal, 12)
+            }
+
+            HStack(spacing: 2) {
+                Button { store.duplicatePage() } label: { Image(systemName: "plus.square.on.square") }
+                Button { store.movePage(by: -1) } label: { Image(systemName: "chevron.left") }
+                    .disabled(store.pageIndex == 0)
+                Button { store.movePage(by: 1) } label: { Image(systemName: "chevron.right") }
+                    .disabled(store.pageIndex >= store.design.pages.count - 1)
+                Button(role: .destructive) { store.deletePage() } label: { Image(systemName: "trash") }
+                    .disabled(store.design.pages.count <= 1)
+            }
+            .font(.system(size: 15))
+            .padding(.trailing, 12)
+        }
+        .frame(height: 72)
+        .background(.background)
+        .overlay(alignment: .top) { Divider() }
+    }
+
+    private func pageThumb(index: Int, page: Page) -> some View {
+        let aspect = store.design.width / store.design.height
+        return Button {
+            store.setPage(index)
+        } label: {
+            PageRenderView(design: store.design, page: page)
+                .scaleEffect(56 / store.design.height, anchor: .topLeading)
+                .frame(width: 56 * aspect, height: 56, alignment: .topLeading)
+                .clipped()
+                .overlay(alignment: .topLeading) {
+                    Text("\(index + 1)")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))
+                        .padding(2)
+                }
+                .background(Color.white)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8)
+                    .stroke(index == store.pageIndex ? Color(hex: "#8b3dff") : Color(.systemGray4),
+                            lineWidth: index == store.pageIndex ? 2 : 1))
+        }
+        .buttonStyle(.plain)
+    }
+}
