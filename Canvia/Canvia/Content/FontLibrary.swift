@@ -55,6 +55,12 @@ enum FontLibrary {
         return font
     }
 
+    /// SwiftUI Font for an element's typography (UIFont is toll-free
+    /// bridged to CTFont, but Swift needs the explicit cast).
+    static func font(family key: String?, size: Double, weight: Int, italic: Bool) -> Font {
+        Font(uiFont(family: key, size: size, weight: weight, italic: italic) as CTFont)
+    }
+
     static func uiWeight(_ weight: Int) -> UIFont.Weight {
         switch weight {
         case ..<300: return .light

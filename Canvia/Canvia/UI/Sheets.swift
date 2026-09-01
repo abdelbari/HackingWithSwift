@@ -197,7 +197,7 @@ struct FontSheet: View {
                     } label: {
                         HStack {
                             Text(stack.name)
-                                .font(Font(FontLibrary.uiFont(family: stack.key, size: 20, weight: 500, italic: false)))
+                                .font(FontLibrary.font(family: stack.key, size: 20, weight: 500, italic: false))
                             Spacer()
                             if store.singleSelection?.fontFamily == stack.key {
                                 Image(systemName: "checkmark").foregroundStyle(Color(hex: "#8b3dff"))

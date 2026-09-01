@@ -61,7 +61,7 @@ struct ExportSheet: View {
     private enum RasterFormat { case png, jpeg }
 
     private func exportButton(_ title: String, subtitle: String, icon: String,
-                              action: @escaping () throws -> Void) -> some View {
+                              action: @escaping @MainActor () throws -> Void) -> some View {
         Button {
             exporting = true
             errorMessage = nil

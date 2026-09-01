@@ -164,13 +164,13 @@ struct InsertSheet: View {
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundStyle(.secondary)
                             Text(pairing.heading.text)
-                                .font(Font(FontLibrary.uiFont(
+                                .font(FontLibrary.font(
                                     family: pairing.heading.fontFamily, size: 19,
-                                    weight: pairing.heading.fontWeight, italic: false)))
+                                    weight: pairing.heading.fontWeight, italic: false))
                             Text(pairing.body.text)
-                                .font(Font(FontLibrary.uiFont(
+                                .font(FontLibrary.font(
                                     family: pairing.body.fontFamily, size: 12,
-                                    weight: pairing.body.fontWeight, italic: false)))
+                                    weight: pairing.body.fontWeight, italic: false))
                                 .foregroundStyle(.secondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)

@@ -284,8 +284,8 @@ struct CanvasView: View {
             })
         TextField("", text: binding, axis: .vertical)
             .focused($textFieldFocused)
-            .font(Font(FontLibrary.uiFont(family: el.fontFamily, size: el.fontSize ?? 42,
-                                          weight: el.fontWeight ?? 400, italic: el.italic ?? false)))
+            .font(FontLibrary.font(family: el.fontFamily, size: el.fontSize ?? 42,
+                                          weight: el.fontWeight ?? 400, italic: el.italic ?? false))
             .foregroundStyle(Color(hex: el.color ?? "#1f2430"))
             .multilineTextAlignment(el.align == "left" ? .leading : el.align == "right" ? .trailing : .center)
             .frame(width: el.w)
