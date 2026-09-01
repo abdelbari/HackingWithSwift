@@ -89,17 +89,83 @@ project's internal API surface are consistent, not that the app builds.
 cd Tools && npm install && node verify.js ../Canvia ../Tests
 ```
 
-**`.github/workflows/canvia-ios.yml`** — the real thing. A macOS runner
-compiles the app with `xcodebuild` against the iOS Simulator SDK, prints
-every compiler diagnostic to the job log, then boots a simulator,
-installs and launches the app, and captures a screenshot of it running.
-It fires on pushes that touch `Canvia/**` and can be started by hand from
-the Actions tab.
+**`.github/workflows/canvia-ios.yml`** — the real thing. Two macOS legs
+compile the app with `xcodebuild`, print every compiler diagnostic to the
+job log, then boot a simulator, install and launch the app, confirm the
+process is still alive, and capture a screenshot of it running:
+
+| Leg | Runner | Xcode | Simulator |
+| --- | --- | --- | --- |
+| `baseline-ios18` | macos-15 | 16.4 | iPhone 16, iOS 18.6 |
+| `latest-ios26` | macos-26 | 26.6 | iPhone 17 Pro, iOS 26.5 |
+
+iOS 26.5 is the newest SDK Apple ships — Xcode 26.6 carries it; there is no
+iOS 26.6 runtime, and the next one after 26.5 is 27.0. The older leg is what
+proves the iOS 17 deployment target still works on an earlier SDK. The
+destination names a concrete OS and a preceding step asserts that runtime
+exists, so a missing runtime fails the leg rather than letting `xcodebuild`
+quietly build against a different version.
+
+`.github/workflows/canvia-probe.yml` reports what each runner image actually
+carries, so those versions can be re-checked rather than assumed.
 
 `Tests/GeometryTests.swift` holds 17 assertions over the geometry core
 (rotated-anchor resize, snapping, AABB union, hit-testing). It sits
 outside the synchronized source folder, so it never joins the app target;
 add it to a test target to run it.
+
+## Installing on your own iPhone
+
+Two routes. They are not alternatives so much as different speeds — use the
+first to iterate, the second to keep the app on your phone.
+
+### Straight from Xcode (fastest, no CI)
+
+1. Open `Canvia.xcodeproj`, select the **Canvia** target → **Signing &
+   Capabilities**.
+2. Set **Team** to your Apple Developer team.
+3. If `com.canvia.app` is not available to your team, change **Bundle
+   Identifier** to something you own, e.g. `com.yourname.canvia`.
+4. Plug the iPhone in, enable **Settings → Privacy & Security → Developer
+   Mode** on it, pick it as the run destination, and press Run.
+
+With a paid Apple Developer Program membership the provisioning profile is
+good for a year, so the app keeps working between rebuilds. (On a *free*
+Apple ID it would expire after 7 days.)
+
+### TestFlight from CI (hands-off, installs like a real app)
+
+`.github/workflows/canvia-testflight.yml` archives a Release build, signs it,
+and uploads it to App Store Connect. It runs on demand from the Actions tab,
+or on any `v*` tag. Builds reach TestFlight a few minutes after upload and
+last 90 days.
+
+Signing uses Xcode's automatic provisioning driven by an App Store Connect
+API key, so there is no certificate to export, no `.p12`, and no temporary
+keychain — Xcode creates and renews the distribution certificate and profile
+itself.
+
+**One-time setup.** In [App Store Connect → Users and Access → Integrations →
+App Store Connect API](https://appstoreconnect.apple.com/access/integrations/api),
+create a team key with the **App Manager** role and download the `.p8` (Apple
+lets you download it exactly once). Then add four repository secrets under
+*Settings → Secrets and variables → Actions*:
+
+| Secret | Where it comes from |
+| --- | --- |
+| `APP_STORE_CONNECT_KEY_ID` | the key's Key ID, e.g. `2X9R4HXF34` |
+| `APP_STORE_CONNECT_ISSUER_ID` | the Issuer ID shown above the key list |
+| `APP_STORE_CONNECT_PRIVATE_KEY` | the whole `.p8` file, `BEGIN`/`END` lines included |
+| `APPLE_TEAM_ID` | your 10-character Team ID, from Membership details |
+
+Optionally set the repository *variable* `CANVIA_BUNDLE_ID` if you changed the
+bundle identifier. The first run registers the App ID under your team.
+
+The build number comes from the GitHub run number, because App Store Connect
+rejects a build number it has already seen. Export compliance is declared in
+the project (`ITSAppUsesNonExemptEncryption = NO` — the app does no networking
+at all), so uploads do not stall waiting for that question to be answered by
+hand.
 
 The sibling web implementation lives in the `story` repo under
 `canva-clone/` and shares the document schema and content library.

@@ -151,16 +151,8 @@ jobs:
           fi
 
           xcrun simctl io "$DEVICE" screenshot home.png
-          # Keep the inline copy small: the job log is only readable from the
-          # tail, so a large base64 block pushes its own header out of reach.
-          sips -Z 230 -s format jpeg -s formatOptions 40 home.png --out home-small.jpg >/dev/null
-          ls -l home-small.jpg
-
-          # Echo the shot into the job log so it can be read back without
-          # downloading the artifact (blob storage is not always reachable).
-          echo "===SHOT_START==="
-          base64 -i home-small.jpg | fold -w 200
-          echo "===SHOT_END==="
+          sips -Z 200 -s format jpeg -s formatOptions 35 home.png --out home-small.jpg >/dev/null
+          ls -l home.png home-small.jpg
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -170,3 +162,14 @@ jobs:
             build.log
             home.png
           if-no-files-found: warn
+
+      # Last step on purpose. The job log is only readable from the tail, so
+      # emitting the image anywhere earlier lets a long build transcript push
+      # the block's own header out of reach. Artifact blob storage is not
+      # reachable from every environment, so the log is the fallback channel.
+      - name: Echo the screenshot into the log
+        if: ${{ always() && hashFiles('home-small.jpg') != '' }}
+        run: |
+          echo "===SHOT_START=== ${{ matrix.name }} iOS ${{ matrix.ios }} ${{ matrix.device }}"
+          base64 -i home-small.jpg | fold -w 200
+          echo "===SHOT_END==="
