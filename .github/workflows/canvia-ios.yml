@@ -50,9 +50,11 @@ jobs:
       # The real compile. Code signing is off because this only ever runs in
       # a simulator. -derivedDataPath requires -scheme, hence the shared
       # scheme committed alongside the project.
+      # Diagnostics go to stdout, not just the step summary: the job log is
+      # the only channel readable without downloading the artifact.
       - name: Build for iOS Simulator
         run: |
-          set -o pipefail
+          status=0
           xcodebuild \
             -project Canvia/Canvia.xcodeproj \
             -scheme Canvia \
@@ -60,18 +62,23 @@ jobs:
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
-            build 2>&1 | tee build.log | tail -60
+            build > build.log 2>&1 || status=$?
 
-      - name: Summarise warnings
-        if: always()
-        run: |
-          echo "### Build diagnostics" >> "$GITHUB_STEP_SUMMARY"
-          grep -E 'warning:|error:' build.log | sort -u | head -50 >> "$GITHUB_STEP_SUMMARY" || echo "none" >> "$GITHUB_STEP_SUMMARY"
-          echo "--- warnings ---"
-          grep -E 'warning:' build.log | sort -u | head -60 || echo "(none)"
+          echo "===== ERRORS ====="
+          grep -E '(error|fatal error):' build.log | sed 's#/Users/runner/work/HackingWithSwift/HackingWithSwift/##' \
+            | sort -u | head -80 || true
+          echo "===== NOTES ====="
+          grep -E '^[^ ].*\.swift:[0-9]+:[0-9]+: note:' build.log | sed 's#/Users/runner/work/HackingWithSwift/HackingWithSwift/##' \
+            | sort -u | head -30 || true
+          echo "===== WARNINGS ====="
+          grep -E 'warning:' build.log | grep -v 'Node.js\|deprecat' | sed 's#/Users/runner/work/HackingWithSwift/HackingWithSwift/##' \
+            | sort -u | head -40 || true
+          echo "===== TAIL ====="
+          tail -25 build.log
+          exit $status
 
       - name: Launch in a simulator and screenshot
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.screenshot }}
+        if: ${{ success() && (github.event_name != 'workflow_dispatch' || inputs.screenshot) }}
         run: |
           set -e
           DEVICE=$(xcrun simctl create canvia-ci "iPhone 16" \
