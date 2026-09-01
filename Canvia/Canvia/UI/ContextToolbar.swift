@@ -36,12 +36,49 @@ struct ContextToolbar: View {
         }
     }
 
+    // Grouped into three stacks rather than listed flat: a ViewBuilder block
+    // takes at most ten child views, and a flat list of these controls sits
+    // exactly on that ceiling — the next control added would fail to build.
     @ViewBuilder
     private func textControls(_ el: Element) -> some View {
-        toolButton("textformat", "Font") { activeSheet = .fonts }
-        colorChip(el.color ?? "#1f2430", "Color") { activeSheet = .colorText }
+        HStack(spacing: 14) {
+            toolButton("textformat", "Font") { activeSheet = .fonts }
+            colorChip(el.color ?? "#1f2430", "Color") { activeSheet = .colorText }
+            fontSizeStepper(el)
+        }
+        HStack(spacing: 14) {
+            toggle("bold", active: (el.fontWeight ?? 400) >= 700) {
+                store.updateSelected { $0.fontWeight = ($0.fontWeight ?? 400) >= 700 ? 400 : 700 }
+            }
+            toggle("italic", active: el.italic == true) {
+                store.updateSelected { $0.italic = !($0.italic ?? false) }
+            }
+            toggle("underline", active: el.underline == true) {
+                store.updateSelected { $0.underline = !($0.underline ?? false) }
+            }
+            toolButton(alignIcon(el.align), "Align") {
+                store.updateSelected { e in
+                    switch e.align ?? "center" {
+                    case "left": e.align = "center"
+                    case "center": e.align = "right"
+                    default: e.align = "left"
+                    }
+                }
+            }
+            toggle("list.bullet", active: el.listStyle == "bullet") {
+                store.updateSelected {
+                    $0.listStyle = $0.listStyle == "bullet" ? "none" : "bullet"
+                    $0.h = FontLibrary.measuredHeight(for: $0)
+                }
+            }
+        }
+        HStack(spacing: 14) {
+            toolButton("wand.and.stars", "Effects") { activeSheet = .effects }
+            toolButton("arrow.up.and.down.text.horizontal", "Spacing") { activeSheet = .spacing }
+        }
+    }
 
-        // Font size stepper
+    private func fontSizeStepper(_ el: Element) -> some View {
         HStack(spacing: 4) {
             Button { bumpFontSize(-2) } label: { Image(systemName: "minus") }
             Text("\(Int(el.fontSize ?? 42))")
@@ -52,33 +89,6 @@ struct ContextToolbar: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
         .background(Capsule().fill(Color(.systemGray6)))
-
-        toggle("bold", active: (el.fontWeight ?? 400) >= 700) {
-            store.updateSelected { $0.fontWeight = ($0.fontWeight ?? 400) >= 700 ? 400 : 700 }
-        }
-        toggle("italic", active: el.italic == true) {
-            store.updateSelected { $0.italic = !($0.italic ?? false) }
-        }
-        toggle("underline", active: el.underline == true) {
-            store.updateSelected { $0.underline = !($0.underline ?? false) }
-        }
-        toolButton(alignIcon(el.align), "Align") {
-            store.updateSelected { e in
-                switch e.align ?? "center" {
-                case "left": e.align = "center"
-                case "center": e.align = "right"
-                default: e.align = "left"
-                }
-            }
-        }
-        toggle("list.bullet", active: el.listStyle == "bullet") {
-            store.updateSelected {
-                $0.listStyle = $0.listStyle == "bullet" ? "none" : "bullet"
-                $0.h = FontLibrary.measuredHeight(for: $0)
-            }
-        }
-        toolButton("wand.and.stars", "Effects") { activeSheet = .effects }
-        toolButton("arrow.up.and.down.text.horizontal", "Spacing") { activeSheet = .spacing }
     }
 
     @ViewBuilder
