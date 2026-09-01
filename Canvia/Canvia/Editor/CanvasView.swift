@@ -14,6 +14,10 @@ struct CanvasView: View {
     struct GestureState {
         var dragOriginals: [String: CGPoint] = [:]
         var dragActive = false
+        // Siblings don't move during a drag, so their snap lines are computed
+        // once at grab time rather than rebuilt every frame.
+        var snapX: [Double] = []
+        var snapY: [Double] = []
         var resizeOriginal: Element?
         var rotateCenter: CGPoint?
         var rotateOffset: Double = 0
@@ -124,12 +128,15 @@ struct CanvasView: View {
                         uniqueKeysWithValues: store.selectedElements
                             .filter { !$0.locked }
                             .map { ($0.id, CGPoint(x: $0.x, y: $0.y)) })
+                    let lines = Geometry.snapLines(design: store.design, page: store.page,
+                                                   excluding: Set(gesture.dragOriginals.keys))
+                    gesture.snapX = lines.x
+                    gesture.snapY = lines.y
                 }
                 var dx = value.location.x - value.startLocation.x
                 var dy = value.location.y - value.startLocation.y
 
                 // Snap the union of moved boxes against page + siblings.
-                let movingIds = Set(gesture.dragOriginals.keys)
                 let boxes: [CGRect] = gesture.dragOriginals.compactMap { id, origin in
                     guard var moved = store.element(id) else { return nil }
                     moved.x = origin.x + dx
@@ -137,10 +144,8 @@ struct CanvasView: View {
                     return Geometry.aabb(moved)
                 }
                 if !boxes.isEmpty {
-                    let lines = Geometry.snapLines(design: store.design, page: store.page,
-                                                   excluding: movingIds)
                     let snap = Geometry.snap(box: Geometry.union(boxes),
-                                             xLines: lines.x, yLines: lines.y,
+                                             xLines: gesture.snapX, yLines: gesture.snapY,
                                              threshold: 6 / store.zoom)
                     dx += snap.dx
                     dy += snap.dy
@@ -155,7 +160,10 @@ struct CanvasView: View {
                         store.design.pages[store.pageIndex].elements[i].y = origin.y + dy
                     }
                 }
-                if let first = gesture.dragOriginals.keys.first, let moved = store.element(first) {
+                // Report the element the user actually grabbed: Dictionary
+                // ordering is undefined, so keys.first would flicker between
+                // members of a multi-element drag.
+                if let moved = store.element(el.id) {
                     store.badge = "\(Int(moved.x)), \(Int(moved.y))"
                 }
             }
