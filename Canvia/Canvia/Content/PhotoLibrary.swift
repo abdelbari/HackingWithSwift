@@ -25,7 +25,13 @@ private struct SeededRandom {
 enum PhotoLibrary {
     static let size = CGSize(width: 1200, height: 900)
 
-    private static var cache: [String: UIImage] = [:]
+    // NSCache, not a Dictionary: generated artwork is large (1200x900 RGBA
+    // is ~4 MB each) and the system evicts it under memory pressure.
+    private static let cache: NSCache<NSString, UIImage> = {
+        let c = NSCache<NSString, UIImage>()
+        c.countLimit = 24
+        return c
+    }()
     private static var builders: [String: (id: String, name: String, category: String, build: () -> UIImage)] = [:]
     private static var order: [String] = []
     private static var loaded = false
@@ -37,10 +43,10 @@ enum PhotoLibrary {
 
     static func image(id: String) -> UIImage? {
         ensureLoaded()
-        if let cached = cache[id] { return cached }
+        if let cached = cache.object(forKey: id as NSString) { return cached }
         guard let builder = builders[id] else { return nil }
         let img = builder.build()
-        cache[id] = img
+        cache.setObject(img, forKey: id as NSString)
         return img
     }
 
@@ -50,6 +56,19 @@ enum PhotoLibrary {
         if src.hasPrefix("asset:") { return image(id: String(src.dropFirst(6))) }
         if src.hasPrefix("media:") { return MediaStore.load(String(src.dropFirst(6))) }
         return nil
+    }
+
+    /// A downscaled copy, for filter thumbnails and other small previews.
+    static func preview(_ image: UIImage, maxEdge: CGFloat = 220) -> UIImage {
+        let longest = max(image.size.width, image.size.height)
+        guard longest > maxEdge else { return image }
+        let s = maxEdge / longest
+        let size = CGSize(width: image.size.width * s, height: image.size.height * s)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
     }
 
     private static func register(_ id: String, _ name: String, _ category: String,
@@ -324,7 +343,11 @@ enum PhotoLibrary {
 // MARK: user media store
 
 enum MediaStore {
-    private static var memory: [String: UIImage] = [:]
+    private static let memory: NSCache<NSString, UIImage> = {
+        let c = NSCache<NSString, UIImage>()
+        c.countLimit = 32
+        return c
+    }()
 
     static var directory: URL {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -341,7 +364,7 @@ enum MediaStore {
         let url = directory.appendingPathComponent("\(id).jpg")
         do {
             try data.write(to: url)
-            memory[id] = scaled
+            memory.setObject(scaled, forKey: id as NSString)
             return "media:\(id)"
         } catch {
             return nil
@@ -349,10 +372,10 @@ enum MediaStore {
     }
 
     static func load(_ id: String) -> UIImage? {
-        if let cached = memory[id] { return cached }
+        if let cached = memory.object(forKey: id as NSString) { return cached }
         let url = directory.appendingPathComponent("\(id).jpg")
         guard let data = try? Data(contentsOf: url), let img = UIImage(data: data) else { return nil }
-        memory[id] = img
+        memory.setObject(img, forKey: id as NSString)
         return img
     }
 

@@ -363,8 +363,11 @@ struct FiltersSheet: View {
     private func filterPreview(_ preset: ImageFilterPreset) -> some View {
         Group {
             if let src = store.singleSelection?.src,
-               let base = PhotoLibrary.resolve(src) {
-                Image(uiImage: ImageFilterEngine.apply(preset, to: base, cacheKey: src))
+               let full = PhotoLibrary.resolve(src) {
+                // Filter a small copy: ten full-size variants of a 1200x900
+                // artwork would be ~43 MB for a row of 76pt thumbnails.
+                let base = PhotoLibrary.preview(full)
+                Image(uiImage: ImageFilterEngine.apply(preset, to: base, cacheKey: src + "|preview"))
                     .resizable()
                     .aspectRatio(contentMode: .fill)
             } else {

@@ -18,17 +18,21 @@ enum ImageFilterPreset: String, CaseIterable, Identifiable {
 
 enum ImageFilterEngine {
     private static let context = CIContext()
-    private static var cache: [String: UIImage] = [:]
+    private static let cache: NSCache<NSString, UIImage> = {
+        let c = NSCache<NSString, UIImage>()
+        c.countLimit = 48
+        return c
+    }()
 
     static func apply(_ preset: ImageFilterPreset, to image: UIImage, cacheKey: String) -> UIImage {
         if preset == .none { return image }
         let key = "\(cacheKey)|\(preset.rawValue)"
-        if let cached = cache[key] { return cached }
+        if let cached = cache.object(forKey: key as NSString) { return cached }
         guard let input = CIImage(image: image) else { return image }
         let output = filtered(input, preset: preset)
         guard let cg = context.createCGImage(output, from: input.extent) else { return image }
         let result = UIImage(cgImage: cg, scale: image.scale, orientation: image.imageOrientation)
-        cache[key] = result
+        cache.setObject(result, forKey: key as NSString)
         return result
     }
 
