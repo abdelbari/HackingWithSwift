@@ -1,9 +1,11 @@
 name: Canvia iOS
 
-# Manual-only by design: macOS runners bill at a higher rate than Linux
-# ones, so this never fires on its own. Add a `push:` trigger if you want it
-# on every commit.
+# This repository is public, so GitHub-hosted runners - macOS included - are
+# free. Runs on the working branches and on demand.
 on:
+  push:
+    branches: [ 'claude/**' ]
+    paths: [ 'Canvia/**', '.github/workflows/canvia-ios.yml' ]
   workflow_dispatch:
     inputs:
       screenshot:
@@ -32,8 +34,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Show toolchain
+      # The project uses the Xcode 16 synchronized-folder format
+      # (objectVersion 77), so an older Xcode cannot even open it.
+      - name: Select the newest Xcode
         run: |
+          ls -d /Applications/Xcode*.app || true
+          NEWEST=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "using $NEWEST"
+          sudo xcode-select -s "$NEWEST"
           xcodebuild -version
           xcrun simctl list runtimes | head -20
 
@@ -60,7 +68,7 @@ jobs:
           grep -E 'warning:' build.log | sort -u | head -60 || echo "(none)"
 
       - name: Launch in a simulator and screenshot
-        if: ${{ inputs.screenshot }}
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.screenshot }}
         run: |
           set -e
           DEVICE=$(xcrun simctl create canvia-ci "iPhone 16" \
@@ -75,13 +83,13 @@ jobs:
           xcrun simctl launch --console-pty "$DEVICE" com.canvia.app &
           sleep 12
           xcrun simctl io "$DEVICE" screenshot home.png
-          sips -Z 420 home.png --out home-small.png >/dev/null
+          sips -Z 340 -s format jpeg -s formatOptions 70 home.png --out home-small.jpg >/dev/null
 
-          # Echo the shot into the log so it can be read back without
-          # downloading artifacts.
-          echo "===SCREENSHOT_BASE64_START==="
-          base64 -i home-small.png | fold -w 200
-          echo "===SCREENSHOT_BASE64_END==="
+          # Echo the shot into the job log so it can be read back without
+          # downloading the artifact.
+          echo "===SHOT_START==="
+          base64 -i home-small.jpg | fold -w 200
+          echo "===SHOT_END==="
 
       - uses: actions/upload-artifact@v4
         if: always()
