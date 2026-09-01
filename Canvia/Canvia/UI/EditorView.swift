@@ -107,6 +107,16 @@ struct EditorView: View {
     private var overflowMenu: some View {
         Menu {
             Button {
+                activeSheet = .layers
+            } label: { Label("Layers", systemImage: "square.3.layers.3d") }
+
+            Button {
+                activeSheet = .background
+            } label: { Label("Page background", systemImage: "photo.artframe") }
+
+            Divider()
+
+            Button {
                 store.selectAll()
             } label: { Label("Select all", systemImage: "checkmark.circle") }
 
