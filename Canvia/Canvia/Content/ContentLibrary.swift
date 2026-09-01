@@ -24,23 +24,27 @@ struct Template: Codable, Identifiable {
     /// A fresh Design at the template's native size.
     func instantiate() -> Design {
         var design = Design(title: name, width: width, height: height)
-        design.pages = [makePage(scale: 1, dy: 0)]
+        design.pages = [makePage(scale: 1, dx: 0, dy: 0)]
         return design
     }
 
     /// A page scaled uniformly into a target canvas (Canva-style apply).
+    /// Scale to *fit* — the smaller of the two ratios — then centre on both
+    /// axes, so applying a tall template to a wide canvas (or vice versa)
+    /// keeps every element on the page instead of spilling off the bottom.
     func makePage(for design: Design) -> Page {
-        let scale = design.width / width
+        let scale = min(design.width / width, design.height / height)
+        let dx = (design.width - width * scale) / 2
         let dy = (design.height - height * scale) / 2
-        return makePage(scale: scale, dy: dy)
+        return makePage(scale: scale, dx: dx, dy: dy)
     }
 
-    private func makePage(scale: Double, dy: Double) -> Page {
+    private func makePage(scale: Double, dx: Double, dy: Double) -> Page {
         var page = Page(background: background)
         page.elements = elements.map { spec in
             var el = spec
             el.id = UID.make()
-            el.x *= scale
+            el.x = el.x * scale + dx
             el.y = el.y * scale + dy
             el.w *= scale
             el.h *= scale

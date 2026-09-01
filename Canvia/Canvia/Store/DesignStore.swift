@@ -414,17 +414,20 @@ final class DesignStore {
         editingTextId = nil
     }
 
-    /// Uniformly rescale all content to a new canvas size.
+    /// Uniformly rescale all content to a new canvas size. Scaling to *fit*
+    /// (and centring on both axes) keeps content on the page when the aspect
+    /// ratio changes; scaling by width alone would push it off the bottom.
     func resizeDesign(width: Double, height: Double) {
         guard width != design.width || height != design.height else { return }
-        let scale = width / design.width
+        let scale = min(width / design.width, height / design.height)
+        let dx = (width - design.width * scale) / 2
         let dy = (height - design.height * scale) / 2
         apply { d in
             d.width = width
             d.height = height
             for p in d.pages.indices {
                 for i in d.pages[p].elements.indices {
-                    d.pages[p].elements[i].x *= scale
+                    d.pages[p].elements[i].x = d.pages[p].elements[i].x * scale + dx
                     d.pages[p].elements[i].y = d.pages[p].elements[i].y * scale + dy
                     d.pages[p].elements[i].w *= scale
                     d.pages[p].elements[i].h *= scale
