@@ -1,0 +1,93 @@
+name: Canvia iOS
+
+# Manual-only by design: macOS runners bill at a higher rate than Linux
+# ones, so this never fires on its own. Add a `push:` trigger if you want it
+# on every commit.
+on:
+  workflow_dispatch:
+    inputs:
+      screenshot:
+        description: "Boot a simulator, launch the app and capture a screenshot"
+        type: boolean
+        default: true
+
+jobs:
+  # Cheap Linux gate: syntax, argument labels, enum cases, switch
+  # exhaustiveness, ViewBuilder limits. Fails fast before paying for macOS.
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Static analysis
+        working-directory: Canvia/Tools
+        run: |
+          npm install --no-audit --no-fund
+          node verify.js ../Canvia ../Tests
+
+  build:
+    runs-on: macos-15
+    needs: static
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcrun simctl list runtimes | head -20
+
+      # The real compile. -target avoids needing a shared scheme; code
+      # signing is off because we only ever run this in a simulator.
+      - name: Build for iOS Simulator
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project Canvia/Canvia.xcodeproj \
+            -target Canvia \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee build.log | tail -40
+
+      - name: Summarise warnings
+        if: always()
+        run: |
+          echo "### Build diagnostics" >> "$GITHUB_STEP_SUMMARY"
+          grep -E 'warning:|error:' build.log | sort -u | head -50 >> "$GITHUB_STEP_SUMMARY" || echo "none" >> "$GITHUB_STEP_SUMMARY"
+          echo "--- warnings ---"
+          grep -E 'warning:' build.log | sort -u | head -60 || echo "(none)"
+
+      - name: Launch in a simulator and screenshot
+        if: ${{ inputs.screenshot }}
+        run: |
+          set -e
+          DEVICE=$(xcrun simctl create canvia-ci "iPhone 16" \
+            $(xcrun simctl list runtimes | grep -o 'com.apple.CoreSimulator.SimRuntime.iOS-[0-9-]*' | tail -1))
+          echo "device: $DEVICE"
+          xcrun simctl boot "$DEVICE"
+          xcrun simctl bootstatus "$DEVICE" -b
+
+          APP=$(find build -name 'Canvia.app' -type d | head -1)
+          echo "app: $APP"
+          xcrun simctl install "$DEVICE" "$APP"
+          xcrun simctl launch --console-pty "$DEVICE" com.canvia.app &
+          sleep 12
+          xcrun simctl io "$DEVICE" screenshot home.png
+          sips -Z 420 home.png --out home-small.png >/dev/null
+
+          # Echo the shot into the log so it can be read back without
+          # downloading artifacts.
+          echo "===SCREENSHOT_BASE64_START==="
+          base64 -i home-small.png | fold -w 200
+          echo "===SCREENSHOT_BASE64_END==="
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: canvia-build
+          path: |
+            build.log
+            home.png
+          if-no-files-found: warn
