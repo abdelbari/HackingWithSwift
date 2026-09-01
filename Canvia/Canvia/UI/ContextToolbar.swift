@@ -194,11 +194,15 @@ struct ContextToolbar: View {
 
     private func sliderControl(_ label: String, value: Double, in range: ClosedRange<Double>,
                                onChange: @escaping (Double) -> Void) -> some View {
-        VStack(spacing: 2) {
+        // A zero-length range makes Slider divide by zero; corner-radius
+        // bounds derive from element size, so keep a floor.
+        let safe = range.lowerBound < range.upperBound
+            ? range : range.lowerBound...(range.lowerBound + 1)
+        return VStack(spacing: 2) {
             Slider(value: Binding(
                 get: { value },
                 set: { onChange($0) }
-            ), in: range, onEditingChanged: { editing in
+            ), in: safe, onEditingChanged: { editing in
                 if !editing { store.commit() }
             })
             .frame(width: 110)
