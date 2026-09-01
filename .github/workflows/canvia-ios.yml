@@ -98,8 +98,27 @@ jobs:
           APP=$(find build -name 'Canvia.app' -type d | head -1)
           echo "app: $APP"
           xcrun simctl install "$DEVICE" "$APP"
-          xcrun simctl launch --console-pty "$DEVICE" com.canvia.app &
-          sleep 12
+
+          # Launch in the foreground so a failed launch is a failed step. The
+          # earlier `--console-pty ... &` form discarded both the exit status
+          # and the message, and the screenshot then caught the springboard.
+          xcrun simctl launch "$DEVICE" com.canvia.app
+          sleep 20
+
+          # A launch that succeeds and then crashes still leaves the
+          # springboard on screen, so confirm the process is alive.
+          if xcrun simctl spawn "$DEVICE" launchctl list | grep -q com.canvia.app; then
+            echo "app is running"
+          else
+            echo "app is NOT running — it launched and exited"
+            for report in $(ls -t ~/Library/Logs/DiagnosticReports/Canvia*.ips 2>/dev/null | head -2); do
+              echo "===== $report ====="
+              head -80 "$report"
+            done
+            xcrun simctl io "$DEVICE" screenshot home.png || true
+            exit 1
+          fi
+
           xcrun simctl io "$DEVICE" screenshot home.png
           sips -Z 340 -s format jpeg -s formatOptions 70 home.png --out home-small.jpg >/dev/null
 
