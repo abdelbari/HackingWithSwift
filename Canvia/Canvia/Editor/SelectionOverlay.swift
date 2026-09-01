@@ -75,12 +75,15 @@ struct SelectionOverlay: View {
             .frame(width: size, height: size)
             // Generous invisible touch target around the visible dot.
             .contentShape(Circle().inset(by: -14 * iz))
-            .position(point)
+            // Gesture BEFORE position: .position() wraps the view in a
+            // parent-sized container, so a gesture attached after it would
+            // hit-test across the whole canvas instead of just this handle.
             .gesture(
                 DragGesture(minimumDistance: 1, coordinateSpace: .named("page"))
                     .onChanged { value in onHandleDrag(handle, value.location) }
                     .onEnded { _ in onHandleEnd() }
             )
+            .position(point)
     }
 
     private func rotateHandle(for el: Element) -> some View {
@@ -95,12 +98,12 @@ struct SelectionOverlay: View {
             .background(Circle().fill(Color.white)
                 .shadow(color: .black.opacity(0.3), radius: 2 * iz, y: 1 * iz))
             .contentShape(Circle().inset(by: -12 * iz))
-            .position(bottomCenter)
             .gesture(
                 DragGesture(minimumDistance: 1, coordinateSpace: .named("page"))
                     .onChanged { value in onRotateDrag(value.location) }
                     .onEnded { _ in onRotateEnd() }
             )
+            .position(bottomCenter)
     }
 
     // MARK: guides + badge
