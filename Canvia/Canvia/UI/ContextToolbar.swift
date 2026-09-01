@@ -72,8 +72,10 @@ struct ContextToolbar: View {
             }
         }
         toggle("list.bullet", active: el.listStyle == "bullet") {
-            store.updateSelected { $0.listStyle = $0.listStyle == "bullet" ? "none" : "bullet" }
-            reconcileTextHeight()
+            store.updateSelected {
+                $0.listStyle = $0.listStyle == "bullet" ? "none" : "bullet"
+                $0.h = FontLibrary.measuredHeight(for: $0)
+            }
         }
         toolButton("wand.and.stars", "Effects") { activeSheet = .effects }
         toolButton("arrow.up.and.down.text.horizontal", "Spacing") { activeSheet = .spacing }
@@ -211,18 +213,7 @@ struct ContextToolbar: View {
     private func bumpFontSize(_ delta: Double) {
         store.updateSelected { el in
             el.fontSize = min(500, max(6, (el.fontSize ?? 42) + delta))
+            el.h = FontLibrary.measuredHeight(for: el)
         }
-        reconcileTextHeight()
-    }
-
-    private func reconcileTextHeight() {
-        store.beginGesture()
-        for i in store.design.pages[store.pageIndex].elements.indices {
-            let el = store.design.pages[store.pageIndex].elements[i]
-            if el.type == .text && store.selection.contains(el.id) {
-                store.design.pages[store.pageIndex].elements[i].h = FontLibrary.measuredHeight(for: el)
-            }
-        }
-        store.commit()
     }
 }

@@ -176,15 +176,27 @@ extension UIColor {
         }
     }
 
-    var hexString: String {
+    /// sRGB components clamped to 0...1 (ColorPicker often yields extended
+    /// sRGB / Display-P3 values outside the unit range).
+    private var srgbComponents: (r: CGFloat, g: CGFloat, b: CGFloat) {
+        var color = self
+        if let space = CGColorSpace(name: CGColorSpace.sRGB),
+           let converted = cgColor.converted(to: space, intent: .defaultIntent, options: nil) {
+            color = UIColor(cgColor: converted)
+        }
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        getRed(&r, green: &g, blue: &b, alpha: &a)
-        return String(format: "#%02x%02x%02x", Int(round(r * 255)), Int(round(g * 255)), Int(round(b * 255)))
+        color.getRed(&r, green: &g, blue: &b, alpha: &a)
+        return (min(1, max(0, r)), min(1, max(0, g)), min(1, max(0, b)))
+    }
+
+    var hexString: String {
+        let c = srgbComponents
+        return String(format: "#%02x%02x%02x",
+                      Int(round(c.r * 255)), Int(round(c.g * 255)), Int(round(c.b * 255)))
     }
 
     var isLight: Bool {
-        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        getRed(&r, green: &g, blue: &b, alpha: &a)
-        return (0.299 * r + 0.587 * g + 0.114 * b) > 0.62
+        let c = srgbComponents
+        return (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) > 0.62
     }
 }

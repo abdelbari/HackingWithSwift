@@ -56,8 +56,16 @@ struct CanvasView: View {
 
     private var pageContent: some View {
         ZStack {
+            // Deselect (and commit any inline text edit) on the page surface
+            // itself: the workspace-background tap can't fire here because
+            // the opaque page sits above it in the ZStack.
             PageRenderView(design: store.design, page: store.page)
                 .shadow(color: .black.opacity(0.18), radius: 14, y: 4)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    commitTextEditIfAny()
+                    store.select(nil)
+                }
 
             // Hit layer: one transparent overlay per element for taps/drags.
             ForEach(store.page.elements) { el in
@@ -101,7 +109,10 @@ struct CanvasView: View {
     // MARK: move
 
     private func moveGesture(_ el: Element) -> some Gesture {
-        DragGesture(minimumDistance: 3, coordinateSpace: .named("page"))
+        // minimumDistance is measured in the "page" space, so divide by zoom
+        // to keep a constant ~3 screen-point threshold — otherwise at high
+        // zoom the ancestor pan gesture (8 screen pts) activates first.
+        DragGesture(minimumDistance: 3 / max(store.zoom, 0.05), coordinateSpace: .named("page"))
             .onChanged { value in
                 guard !el.locked, store.editingTextId != el.id else { return }
                 if !gesture.dragActive {

@@ -17,6 +17,7 @@ struct EditorView: View {
     @State private var activeSheet: EditorSheet?
     @State private var saveTask: Task<Void, Never>?
     @State private var paletteIndex = 0
+    @FocusState private var titleFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -67,7 +68,13 @@ struct EditorView: View {
                 .multilineTextAlignment(.center)
                 .font(.system(size: 15, weight: .semibold))
                 .frame(maxWidth: 180)
-                .onSubmit { store.commit() }
+                .focused($titleFocused)
+                // Snapshot BEFORE the first keystroke (focus gain) and record
+                // one undo step when editing ends, however it ends.
+                .onChange(of: titleFocused) { _, focused in
+                    if focused { store.beginGesture() } else { store.commit() }
+                }
+                .onSubmit { titleFocused = false }
 
             Spacer()
 
@@ -113,20 +120,29 @@ struct EditorView: View {
                              current: store.singleSelection?.fill?.primaryColor,
                              allowGradients: true,
                              onPick: { c in store.updateSelected { $0.fill = .solid(c) } },
-                             onPickGradient: { p in store.updateSelected { $0.fill = p } })
+                             onPickGradient: { p in store.updateSelected { $0.fill = p } },
+                             onPickTransient: { c in store.updateSelectedTransient { $0.fill = .solid(c) } })
         case .colorText:
             ColorPickerSheet(store: store, title: "Text color",
                              current: store.singleSelection?.color,
-                             onPick: { c in store.updateSelected { $0.color = c } })
+                             onPick: { c in store.updateSelected { $0.color = c } },
+                             onPickTransient: { c in store.updateSelectedTransient { $0.color = c } })
         case .colorLine:
             ColorPickerSheet(store: store, title: "Line color",
                              current: store.singleSelection?.color,
-                             onPick: { c in store.updateSelected { $0.color = c } })
+                             onPick: { c in store.updateSelected { $0.color = c } },
+                             onPickTransient: { c in store.updateSelectedTransient { $0.color = c } })
         case .colorStroke:
             ColorPickerSheet(store: store, title: "Border color",
                              current: store.singleSelection?.stroke,
                              onPick: { c in
                                  store.updateSelected {
+                                     $0.stroke = c
+                                     if ($0.strokeWidth ?? 0) == 0 { $0.strokeWidth = 4 }
+                                 }
+                             },
+                             onPickTransient: { c in
+                                 store.updateSelectedTransient {
                                      $0.stroke = c
                                      if ($0.strokeWidth ?? 0) == 0 { $0.strokeWidth = 4 }
                                  }
@@ -179,6 +195,10 @@ struct EditorView: View {
 
     @MainActor
     private func saveNow() {
+        // Every explicit save supersedes (and must cancel) the debounced one,
+        // or a stale task can resurrect a design deleted after leaving.
+        saveTask?.cancel()
+        saveTask = nil
         DesignLibrary.save(store.design)
         // Thumbnail from page 1.
         let design = store.design

@@ -51,6 +51,12 @@ enum DesignLibrary {
         return try? JSONDecoder().decode(Design.self, from: data)
     }
 
+    static func copyThumbnail(from oldId: String, to newId: String) {
+        let src = thumbsDir.appendingPathComponent("\(oldId).jpg")
+        let dst = thumbsDir.appendingPathComponent("\(newId).jpg")
+        try? FileManager.default.copyItem(at: src, to: dst)
+    }
+
     static func delete(id: String) {
         try? FileManager.default.removeItem(at: designsDir.appendingPathComponent("\(id).json"))
         try? FileManager.default.removeItem(at: thumbsDir.appendingPathComponent("\(id).jpg"))

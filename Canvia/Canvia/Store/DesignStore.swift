@@ -60,8 +60,13 @@ final class DesignStore {
         }
     }
 
+    /// True while an open gesture holds a pre-mutation snapshot.
+    var hasPendingChanges: Bool { pending != nil }
+
     func commit() {
-        let entry = pending ?? HistoryEntry(design: design, pageIndex: pageIndex)
+        // Without a beginGesture() snapshot there is no pre-mutation state to
+        // record — pushing the current design would make undo a no-op.
+        guard let entry = pending else { return }
         past.append(entry)
         if past.count > historyLimit { past.removeFirst() }
         future.removeAll()

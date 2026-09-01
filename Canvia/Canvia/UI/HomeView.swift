@@ -165,10 +165,12 @@ struct HomeView: View {
                     } label: { Label("Rename", systemImage: "pencil") }
                     Button {
                         if var design = DesignLibrary.load(id: recent.id) {
+                            let sourceId = design.id
                             design.id = UID.make("doc")
                             design.title += " (copy)"
                             design.updatedAt = Date().timeIntervalSince1970 * 1000
                             DesignLibrary.save(design)
+                            DesignLibrary.copyThumbnail(from: sourceId, to: design.id)
                             recents = DesignLibrary.recents()
                         }
                     } label: { Label("Duplicate", systemImage: "plus.square.on.square") }

@@ -14,6 +14,9 @@ struct ColorPickerSheet: View {
     var allowGradients = false
     var onPick: (String) -> Void
     var onPickGradient: ((Paint) -> Void)?
+    /// Continuous variant for the system ColorPicker, which updates its
+    /// binding on every drag tick; falls back to onPick when absent.
+    var onPickTransient: ((String) -> Void)?
     @Environment(\.dismiss) private var dismiss
     @State private var custom = Color.white
 
@@ -25,7 +28,8 @@ struct ColorPickerSheet: View {
                 VStack(alignment: .leading, spacing: 14) {
                     ColorPicker("Custom color", selection: $custom, supportsOpacity: false)
                         .onChange(of: custom) {
-                            onPick(UIColor(custom).hexString)
+                            let hex = UIColor(custom).hexString
+                            if let onPickTransient { onPickTransient(hex) } else { onPick(hex) }
                         }
 
                     let docColors = ColorTools.documentColors(store.design)
@@ -65,6 +69,11 @@ struct ColorPickerSheet: View {
             }
         }
         .presentationDetents(sheetDetents)
+        // Continuous picking runs through transient updates; record the whole
+        // session as one undo step however the sheet closes.
+        .onDisappear {
+            if store.hasPendingChanges { store.commit() }
+        }
     }
 
     private func gradientFill(_ preset: GradientPreset) -> LinearGradient {
@@ -294,6 +303,9 @@ struct SpacingSheet: View {
             }
         }
         .presentationDetents([.medium])
+        .onDisappear {
+            if store.hasPendingChanges { store.commit() }
+        }
     }
 
     private func transientBinding(_ value: Double,
@@ -397,6 +409,9 @@ struct CropSheet: View {
             }
         }
         .presentationDetents([.medium])
+        .onDisappear {
+            if store.hasPendingChanges { store.commit() }
+        }
     }
 
     private func cropBinding(_ value: Double,
@@ -519,10 +534,15 @@ struct LayersSheet: View {
                     _ = count
                 }
                 .onDelete { offsets in
-                    let ids = offsets.map { Array(store.page.elements.reversed())[$0].id }
+                    let reversed = Array(store.page.elements.reversed())
+                    let removable = Set(offsets.map { reversed[$0] }
+                        .filter { !$0.locked }
+                        .map(\.id))
+                    guard !removable.isEmpty else { return }
                     store.applyToPage { page in
-                        page.elements.removeAll { ids.contains($0.id) && !$0.locked }
+                        page.elements.removeAll { removable.contains($0.id) }
                     }
+                    store.selection.subtract(removable)
                 }
             }
             .environment(\.editMode, .constant(.active))
