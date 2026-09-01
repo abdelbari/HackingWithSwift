@@ -145,6 +145,23 @@ struct Design: Codable, Equatable, Identifiable {
     private enum CodingKeys: String, CodingKey {
         case version, id, title, width, height, createdAt, updatedAt, pages
     }
+
+    /// Grow any text box that is shorter than the text actually needs.
+    ///
+    /// Template specs carry no height (the decoder estimates one from the
+    /// line count), and large display faces have leading beyond
+    /// fontSize x lineHeight — so without this the last line clips. Only
+    /// grows, never shrinks, so hand-sized boxes are left alone.
+    mutating func normalizeTextHeights() {
+        for p in pages.indices {
+            for i in pages[p].elements.indices where pages[p].elements[i].type == .text {
+                let measured = FontLibrary.measuredHeight(for: pages[p].elements[i])
+                if measured > pages[p].elements[i].h {
+                    pages[p].elements[i].h = measured
+                }
+            }
+        }
+    }
 }
 
 // MARK: - Color hex helpers

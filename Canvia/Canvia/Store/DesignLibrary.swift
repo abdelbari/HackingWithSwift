@@ -47,8 +47,10 @@ enum DesignLibrary {
 
     static func load(id: String) -> Design? {
         let url = designsDir.appendingPathComponent("\(id).json")
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        return try? JSONDecoder().decode(Design.self, from: data)
+        guard let data = try? Data(contentsOf: url),
+              var design = try? JSONDecoder().decode(Design.self, from: data) else { return nil }
+        design.normalizeTextHeights()
+        return design
     }
 
     static func copyThumbnail(from oldId: String, to newId: String) {
