@@ -463,6 +463,10 @@ struct PositionSheet: View {
                                 store.distributeSelected(.vertical)
                             }
                         }
+                        // Distribute skips locked elements, so gate on the
+                        // unlocked count — disabled rather than hidden, so the
+                        // control doesn't appear and vanish with lock state.
+                        .disabled(!store.canDistribute)
                     }
                 }
                 Section("Flip") {

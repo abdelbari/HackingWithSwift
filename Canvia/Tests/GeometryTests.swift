@@ -187,6 +187,57 @@ final class DesignStoreTests: XCTestCase {
         }
     }
 
+    /// Sorting by leading edge does not put the element with the greatest
+    /// trailing edge last, so span must come from the true union.
+    func testDistributePreservesOuterBoundsWithAWideMiddleElement() {
+        let s = store()
+        for (x, w) in [(0.0, 60.0), (100.0, 300.0), (500.0, 60.0)] {
+            var el = Element.shape("rect", w: w, h: 50)
+            el.x = x; el.y = 0
+            s.applyToPage { $0.elements.append(el) }
+        }
+        s.selectAll()
+        let leftBefore = s.page.elements.map(\.x).min()!
+        let rightBefore = s.page.elements.map { $0.x + $0.w }.max()!
+
+        s.distributeSelected(.horizontal)
+
+        XCTAssertEqual(s.page.elements.map(\.x).min()!, leftBefore, accuracy: 0.001)
+        XCTAssertEqual(s.page.elements.map { $0.x + $0.w }.max()!, rightBefore, accuracy: 0.001,
+                       "the outermost edge must not be dragged inward")
+    }
+
+    func testLockedElementsAreNotDeletedAndStaySelected() {
+        let s = store()
+        var free = Element.shape("rect"), locked = Element.shape("circle")
+        free.x = 0; locked.x = 200; locked.locked = true
+        s.applyToPage { $0.elements.append(contentsOf: [free, locked]) }
+        s.selection = [free.id, locked.id]
+
+        s.deleteSelected()
+        XCTAssertNil(s.element(free.id))
+        XCTAssertNotNil(s.element(locked.id), "a locked element must survive delete")
+        XCTAssertEqual(s.selection, [locked.id], "and stay selected, so it's visibly what remained")
+
+        let stepsBefore = s.canUndo
+        s.deleteSelected()          // nothing removable now
+        XCTAssertTrue(stepsBefore)
+        s.undo()
+        XCTAssertNotNil(s.element(free.id), "the no-op delete must not have recorded a step")
+    }
+
+    func testPastedCopiesAreUnlocked() {
+        let s = store()
+        var locked = Element.shape("rect")
+        locked.locked = true
+        s.applyToPage { $0.elements.append(locked) }
+        s.selection = [locked.id]
+        s.copySelected()
+        s.paste()
+        XCTAssertFalse(s.selectedElements.contains { $0.locked },
+                       "a pasted element the user cannot move is a dead end")
+    }
+
     func testPasteOffsetsEachTimeAndKeepsOriginal() {
         let s = store()
         var el = Element.shape("rect")

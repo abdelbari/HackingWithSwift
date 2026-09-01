@@ -70,16 +70,18 @@ struct EditorView: View {
                 .font(.system(size: 15, weight: .semibold))
                 .frame(maxWidth: 180)
                 .focused($titleFocused)
-                // Snapshot BEFORE the first keystroke (focus gain) and record
-                // one undo step when editing ends, however it ends.
+                // Record the rename atomically when editing ends. Holding the
+                // store's single pending slot for the whole session was
+                // fragile: any other commit while the keyboard was still up
+                // consumed it, so the rename reached neither undo nor autosave.
                 .onChange(of: titleFocused) { _, focused in
                     if focused {
                         titleBeforeEdit = store.design.title
-                        store.beginGesture()
-                    } else if store.design.title != titleBeforeEdit {
-                        store.commit()
                     } else {
-                        store.endGesture()   // focused and left without typing
+                        let renamed = store.design.title
+                        guard renamed != titleBeforeEdit else { return }
+                        store.design.title = titleBeforeEdit    // rewind…
+                        store.apply { $0.title = renamed }      // …and apply as one step
                     }
                 }
                 .onSubmit { titleFocused = false }
@@ -145,7 +147,7 @@ struct EditorView: View {
                 Button {
                     store.groupSelected()
                 } label: { Label("Group", systemImage: "square.on.square") }
-                    .disabled(store.selection.count < 2)
+                    .disabled(!store.canGroup)
             }
         } label: {
             Image(systemName: "ellipsis.circle")

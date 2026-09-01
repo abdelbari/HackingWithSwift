@@ -181,12 +181,14 @@ final class DesignStore {
     }
 
     func deleteSelected() {
-        let ids = selection
+        // Only unlocked elements go; committing when nothing can be removed
+        // would push a history entry identical to the previous one.
+        let ids = Set(selectedElements.filter { !$0.locked }.map(\.id))
         guard !ids.isEmpty else { return }
         applyToPage { page in
-            page.elements.removeAll { ids.contains($0.id) && !$0.locked }
+            page.elements.removeAll { ids.contains($0.id) }
         }
-        selection.removeAll()
+        selection.subtract(ids)   // anything locked stays selected, visibly
     }
 
     func duplicateSelected() {
@@ -213,6 +215,12 @@ final class DesignStore {
 
     var hasClipboard: Bool { !clipboard.isEmpty }
 
+    /// Commands that move elements ignore locked ones, so the UI must gate on
+    /// the unlocked subset or it offers controls that quietly do nothing.
+    var unlockedSelectionCount: Int { selectedElements.filter { !$0.locked }.count }
+    var canGroup: Bool { unlockedSelectionCount >= 2 }
+    var canDistribute: Bool { unlockedSelectionCount >= 3 }
+
     func copySelected() {
         let selected = selectedElements
         guard !selected.isEmpty else { return }
@@ -221,14 +229,25 @@ final class DesignStore {
     }
 
     func cutSelected() {
-        copySelected()
+        // Symmetric with deleteSelected: cut takes exactly what it removes,
+        // so a locked element is never both left behind and on the clipboard.
+        let removable = selectedElements.filter { !$0.locked }
+        guard !removable.isEmpty else { return }
+        clipboard = removable
+        pasteCount = 0
         deleteSelected()
     }
 
     func paste() {
         guard !clipboard.isEmpty else { return }
         pasteCount += 1
-        let copies = Self.remapGroups(clipboard.map { $0.duplicated(offset: 24 * Double(pasteCount)) })
+        // Copies arrive unlocked: locked is a property of the original, and a
+        // pasted element the user cannot move, edit or delete is a dead end.
+        let copies = Self.remapGroups(clipboard.map { element -> Element in
+            var copy = element.duplicated(offset: 24 * Double(pasteCount))
+            copy.locked = false
+            return copy
+        })
         applyToPage { $0.elements.append(contentsOf: copies) }
         selection = Set(copies.map(\.id))
     }
@@ -337,14 +356,21 @@ final class DesignStore {
         let horizontal = axis == .horizontal
         var boxes = selected.map { (id: $0.id, box: Geometry.aabb($0)) }
         boxes.sort { horizontal ? $0.box.minX < $1.box.minX : $0.box.minY < $1.box.minY }
-        guard let first = boxes.first, let last = boxes.last else { return }
 
-        let span = horizontal ? last.box.maxX - first.box.minX : last.box.maxY - first.box.minY
+        // Span must come from the selection's true outer bounds. Sorting by
+        // leading edge does not put the element with the greatest *trailing*
+        // edge last, so last.maxX can fall short of the real extent and drag
+        // the outermost element inward.
+        let bounds = Geometry.union(selected.map(Geometry.aabb))
+        let span = horizontal ? bounds.width : bounds.height
         let total = boxes.reduce(0.0) { $0 + (horizontal ? $1.box.width : $1.box.height) }
+        // A negative gap (parts summing wider than their bounds) evenly
+        // overlaps them, which is what Figma and Illustrator do; clamping to
+        // zero would instead push the run past the bounds it must preserve.
         let gap = (span - total) / Double(boxes.count - 1)
 
         applyToPage { page in
-            var cursor: Double = horizontal ? first.box.minX : first.box.minY
+            var cursor: Double = horizontal ? bounds.minX : bounds.minY
             for entry in boxes {
                 if let i = page.elements.firstIndex(where: { $0.id == entry.id }) {
                     let start = horizontal ? entry.box.minX : entry.box.minY
