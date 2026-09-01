@@ -34,29 +34,33 @@ jobs:
       - uses: actions/checkout@v4
 
       # The project uses the Xcode 16 synchronized-folder format
-      # (objectVersion 77), so an older Xcode cannot even open it.
-      - name: Select the newest Xcode
+      # (objectVersion 77), so an older Xcode cannot open it at all. Pin to
+      # the newest 16.x, which is what the project documents as its target;
+      # runners also carry 26.x, covered by the separate matrix job.
+      - name: Select Xcode
         run: |
           ls -d /Applications/Xcode*.app || true
-          NEWEST=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
-          echo "using $NEWEST"
-          sudo xcode-select -s "$NEWEST"
+          PICK=$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -1)
+          [ -n "$PICK" ] || PICK=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "using $PICK"
+          sudo xcode-select -s "$PICK"
           xcodebuild -version
-          xcrun simctl list runtimes | head -20
+          xcrun simctl list runtimes | grep -i ios
 
-      # The real compile. -target avoids needing a shared scheme; code
-      # signing is off because we only ever run this in a simulator.
+      # The real compile. Code signing is off because this only ever runs in
+      # a simulator. -derivedDataPath requires -scheme, hence the shared
+      # scheme committed alongside the project.
       - name: Build for iOS Simulator
         run: |
           set -o pipefail
           xcodebuild \
             -project Canvia/Canvia.xcodeproj \
-            -target Canvia \
+            -scheme Canvia \
             -configuration Debug \
-            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
-            build 2>&1 | tee build.log | tail -40
+            build 2>&1 | tee build.log | tail -60
 
       - name: Summarise warnings
         if: always()
