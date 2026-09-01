@@ -58,17 +58,29 @@ enum PhotoLibrary {
         return nil
     }
 
+    private static let previewCache: NSCache<NSString, UIImage> = {
+        let c = NSCache<NSString, UIImage>()
+        c.countLimit = 24
+        return c
+    }()
+
     /// A downscaled copy, for filter thumbnails and other small previews.
-    static func preview(_ image: UIImage, maxEdge: CGFloat = 220) -> UIImage {
+    /// Cached under `key`: a row of ten filter tiles re-renders often, and
+    /// rescaling a 1200x900 source ten times per pass is not free.
+    static func preview(_ image: UIImage, key: String, maxEdge: CGFloat = 220) -> UIImage {
+        let cacheKey = "\(key)|\(Int(maxEdge))" as NSString
+        if let cached = previewCache.object(forKey: cacheKey) { return cached }
         let longest = max(image.size.width, image.size.height)
         guard longest > maxEdge else { return image }
         let s = maxEdge / longest
         let size = CGSize(width: image.size.width * s, height: image.size.height * s)
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
-        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+        let scaled = UIGraphicsImageRenderer(size: size, format: format).image { _ in
             image.draw(in: CGRect(origin: .zero, size: size))
         }
+        previewCache.setObject(scaled, forKey: cacheKey)
+        return scaled
     }
 
     private static func register(_ id: String, _ name: String, _ category: String,

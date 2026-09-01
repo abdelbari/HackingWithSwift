@@ -366,7 +366,7 @@ struct FiltersSheet: View {
                let full = PhotoLibrary.resolve(src) {
                 // Filter a small copy: ten full-size variants of a 1200x900
                 // artwork would be ~43 MB for a row of 76pt thumbnails.
-                let base = PhotoLibrary.preview(full)
+                let base = PhotoLibrary.preview(full, key: src)
                 Image(uiImage: ImageFilterEngine.apply(preset, to: base, cacheKey: src + "|preview"))
                     .resizable()
                     .aspectRatio(contentMode: .fill)
