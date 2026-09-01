@@ -90,9 +90,29 @@ sheet for z-order, Position sheet for align/flip/exact values.
 
 ## Verification
 
-No Xcode is available in this build environment, so in place of a compile:
-an adversarial multi-agent review pass (compile-correctness, SwiftUI/API
-misuse, logic parity with the tested web geometry, Codable/JSON parity
-against the bundled templates) with skeptic verification, findings fixed
-before ship. The geometry math is a direct port of the web module that
-passes 73 unit checks; the template JSON is the validated gallery.
+No Xcode is available in this build environment, so the app is validated by
+everything that *can* run here, plus review for what can't:
+
+- **Static analysis** (`Tools/verify.js`, committed): the real tree-sitter
+  Swift grammar checks that all files parse, that every call into project
+  code matches a declared signature's argument labels, that implicit-member
+  arguments name real enum cases, and that switches over project enums are
+  exhaustive. Validated against deliberately injected defects.
+- **Data/code consistency**: every fontFamily, filter, effect, shapeId,
+  asset id, alignment, cap and dash in `Content.json` resolves against the
+  Swift enums and registries; every stored property on Design/Page/Element
+  has a CodingKey, so nothing is silently dropped on save.
+- **Algorithm simulation**: the SVG path parser (including the spec's
+  arc→Bézier conversion) is transcribed and run over all 44 shapes, then
+  rendered to confirm geometry; the store's history, grouping and clipboard
+  semantics are simulated through a scripted editing session; templates are
+  applied against every size preset to check nothing lands off-canvas.
+- **Adversarial multi-agent review** with skeptic verification for what
+  static analysis can't see — SwiftUI lifecycle, gesture routing, actor
+  isolation, memory behaviour. Confirmed findings fixed before ship.
+- **Swift unit tests** (`Tests/GeometryTests.swift`) mirroring the 73 checks
+  that pass against the JavaScript sibling; add a test target and ⌘U.
+
+A clean static run does not prove the app builds — it proves the syntax and
+the project's own API surface are self-consistent. The first Xcode build is
+still the real compile.
