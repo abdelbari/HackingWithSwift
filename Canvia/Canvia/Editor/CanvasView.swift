@@ -109,10 +109,11 @@ struct CanvasView: View {
     // MARK: move
 
     private func moveGesture(_ el: Element) -> some Gesture {
-        // minimumDistance is measured in the "page" space, so divide by zoom
-        // to keep a constant ~3 screen-point threshold — otherwise at high
-        // zoom the ancestor pan gesture (8 screen pts) activates first.
-        DragGesture(minimumDistance: 3 / max(store.zoom, 0.05), coordinateSpace: .named("page"))
+        // Keep a ~3 screen-point threshold: divide by zoom (the gesture reads
+        // the "page" space), then cap below the ancestor pan gesture's 8pt so
+        // an element drag always wins, however SwiftUI measures the distance.
+        DragGesture(minimumDistance: min(3 / max(store.zoom, 0.05), 6),
+                    coordinateSpace: .named("page"))
             .onChanged { value in
                 guard !el.locked, store.editingTextId != el.id else { return }
                 if !gesture.dragActive {

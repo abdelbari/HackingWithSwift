@@ -55,12 +55,16 @@ struct InsertSheet: View {
         }
         .onChange(of: pickedItem) {
             guard let item = pickedItem else { return }
+            // Capture the replace target now: loading is async, and the sheet
+            // (and with it store.replaceTargetId) may be gone by the time it
+            // finishes — the pick should still replace, not insert a stray.
+            let target = store.replaceTargetId
             Task {
                 if let data = try? await item.loadTransferable(type: Data.self),
                    let image = UIImage(data: data),
                    let src = MediaStore.store(image) {
                     await MainActor.run {
-                        insertImage(src, natural: image.size)
+                        insertImage(src, natural: image.size, replacing: target)
                         dismiss()
                     }
                 }
@@ -272,10 +276,10 @@ struct InsertSheet: View {
         }
     }
 
-    private func insertImage(_ src: String, natural: CGSize) {
+    private func insertImage(_ src: String, natural: CGSize, replacing: String? = nil) {
         // Replace mode swaps the source in place, keeping the frame, corner
         // radius and filter — only the crop is reset for the new picture.
-        if let targetId = store.replaceTargetId {
+        if let targetId = replacing ?? store.replaceTargetId {
             store.replaceTargetId = nil
             if store.page.elements.contains(where: { $0.id == targetId && $0.type == .image }) {
                 store.applyToPage { page in
