@@ -81,8 +81,16 @@ jobs:
         if: ${{ success() && (github.event_name != 'workflow_dispatch' || inputs.screenshot) }}
         run: |
           set -e
-          DEVICE=$(xcrun simctl create canvia-ci "iPhone 16" \
-            $(xcrun simctl list runtimes | grep -o 'com.apple.CoreSimulator.SimRuntime.iOS-[0-9-]*' | tail -1))
+          # Pair the simulator with the Xcode that built the app. The runner
+          # also carries iOS 26 runtimes, which Xcode 16.4 cannot drive, so
+          # taking the newest runtime outright would fail here.
+          RUNTIMES=$(xcrun simctl list runtimes available)
+          echo "$RUNTIMES"
+          RUNTIME=$(grep -o 'com.apple.CoreSimulator.SimRuntime.iOS-18[0-9-]*' <<<"$RUNTIMES" | sort -V | tail -1)
+          [ -n "$RUNTIME" ] || RUNTIME=$(grep -o 'com.apple.CoreSimulator.SimRuntime.iOS-[0-9-]*' <<<"$RUNTIMES" | sort -V | tail -1)
+          [ -n "$RUNTIME" ] || { echo "no usable iOS runtime"; exit 1; }
+          echo "runtime: $RUNTIME"
+          DEVICE=$(xcrun simctl create canvia-ci "iPhone 16" "$RUNTIME")
           echo "device: $DEVICE"
           xcrun simctl boot "$DEVICE"
           xcrun simctl bootstatus "$DEVICE" -b
