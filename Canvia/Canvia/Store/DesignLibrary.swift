@@ -64,6 +64,46 @@ enum DesignLibrary {
         try? FileManager.default.removeItem(at: thumbsDir.appendingPathComponent("\(id).jpg"))
     }
 
+    /// Delete uploaded photos no design references any more.
+    ///
+    /// Media files outlive the designs that used them: deleting a design
+    /// removes its JSON and thumbnail but not the pictures it embedded, so
+    /// Documents/media grows without bound. Only safe to run at launch, when
+    /// no editor holds a design that has added media but not yet saved.
+    static func pruneUnusedMedia() {
+        var referenced = Set<String>()
+        let mediaID: (String) -> String? = { src in
+            src.hasPrefix("media:") ? String(src.dropFirst(6)) : nil
+        }
+        for design in allDesigns() {
+            for page in design.pages {
+                if case .image(let src) = page.background, let id = mediaID(src) {
+                    referenced.insert(id)
+                }
+                for el in page.elements {
+                    if let src = el.src, let id = mediaID(src) { referenced.insert(id) }
+                }
+            }
+        }
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: MediaStore.directory, includingPropertiesForKeys: nil) else { return }
+        for url in files where url.pathExtension == "jpg" {
+            let id = url.deletingPathExtension().lastPathComponent
+            if !referenced.contains(id) {
+                try? FileManager.default.removeItem(at: url)
+            }
+        }
+    }
+
+    private static func allDesigns() -> [Design] {
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: designsDir, includingPropertiesForKeys: nil) else { return [] }
+        return files.filter { $0.pathExtension == "json" }.compactMap { url in
+            guard let data = try? Data(contentsOf: url) else { return nil }
+            return try? JSONDecoder().decode(Design.self, from: data)
+        }
+    }
+
     static func recents() -> [RecentDesign] {
         guard let files = try? FileManager.default.contentsOfDirectory(
             at: designsDir, includingPropertiesForKeys: nil) else { return [] }

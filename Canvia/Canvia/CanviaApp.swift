@@ -7,6 +7,12 @@ import SwiftUI
 struct CanviaApp: App {
     @State private var editingStore: DesignStore?
 
+    init() {
+        // Launch is the one moment no editor can be holding freshly added
+        // media that hasn't been saved yet, so it's the safe time to sweep.
+        DesignLibrary.pruneUnusedMedia()
+    }
+
     var body: some Scene {
         WindowGroup {
             if let store = editingStore {
