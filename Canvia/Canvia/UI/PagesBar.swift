@@ -1,6 +1,7 @@
 // Bottom pages bar: thumbnails, add/duplicate/move/delete.
 
 import SwiftUI
+import UIKit
 
 struct PagesBar: View {
     @Bindable var store: DesignStore
@@ -46,9 +47,8 @@ struct PagesBar: View {
         return Button {
             store.setPage(index)
         } label: {
-            PageRenderView(design: store.design, page: page)
-                .scaleEffect(56 / store.design.height, anchor: .topLeading)
-                .frame(width: 56 * aspect, height: 56, alignment: .topLeading)
+            PageThumbnail(design: store.design, page: page)
+                .frame(width: 56 * aspect, height: 56)
                 .clipped()
                 .overlay(alignment: .topLeading) {
                     Text("\(index + 1)")
@@ -66,5 +66,37 @@ struct PagesBar: View {
                             lineWidth: index == store.pageIndex ? 2 : 1))
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// A page rendered once into a bitmap rather than kept as a live element
+/// tree. A ten-page design would otherwise hold every element of every page
+/// in the hierarchy — each text element re-running CoreText layout — just to
+/// fill a row of 56pt thumbnails.
+///
+/// `task(id: page)` re-renders exactly when the page's contents change,
+/// because Page is Equatable, so the cache can never go stale.
+private struct PageThumbnail: View {
+    let design: Design
+    let page: Page
+    @State private var image: UIImage?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image).resizable().scaledToFit()
+            } else {
+                Color.white
+            }
+        }
+        .task(id: page) { render() }
+    }
+
+    @MainActor
+    private func render() {
+        let renderer = ImageRenderer(content: PageRenderView(design: design, page: page))
+        renderer.scale = max(0.02, 140 / max(design.width, 1))
+        renderer.isOpaque = true
+        if let ui = renderer.uiImage { image = ui }
     }
 }
