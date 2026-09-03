@@ -6,10 +6,11 @@
 // restyled without a find-and-replace across the whole tree, and it read as
 // assembled rather than designed, because nothing quite matched anything else.
 //
-// Neutrals resolve per appearance through UIColor's trait-aware initialiser,
+// Colours resolve per appearance through UIColor's trait-aware initialiser,
 // so dark mode falls out of using the tokens rather than needing a second pass
-// over every call site. Anything that is genuinely one fixed colour in both
-// appearances — the accent, the magenta snap guide — is declared once.
+// over every call site. Only the magenta snap guide is one fixed colour in
+// both appearances: it is drawn over page content, not over app chrome, so it
+// has no appearance to adapt to.
 
 import SwiftUI
 import UIKit
@@ -21,8 +22,14 @@ enum Theme {
     /// Canvia's accent. Deliberately not #8b3dff: that is Canva's own brand
     /// purple, and shipping a competitor's exact brand colour in the same
     /// product category is a trademark exposure, not a style choice.
-    static let accent = Color(hex: "#5a31f4")
-    static let accentPressed = Color(hex: "#4826c9")
+    ///
+    /// Lifted in dark mode. #5a31f4 on the dark workspace is 2.9:1, under the
+    /// 3:1 WCAG floor for a UI component — which is not a detail on the one
+    /// colour that marks every selected page, every active control and the
+    /// button that adds anything at all. The lighter value is 5.2:1 there,
+    /// and still carries white glyphs at 3.7:1.
+    static let accent = dynamic(light: "#5a31f4", dark: "#8f6bff")
+    static let accentPressed = dynamic(light: "#4826c9", dark: "#6f4ae0")
     static let accentSubtle = dynamic(light: "#ede7ff", dark: "#241c4a")
     /// Magenta reads clearly against both the accent and any page content.
     static let guide = Color(hex: "#ff2d9e")
@@ -31,10 +38,12 @@ enum Theme {
 
     /// The workspace behind the page.
     static let workspace = dynamic(light: "#ebecf0", dark: "#0e0f12")
-    /// Toolbars and bars.
-    static let chrome = dynamic(light: "#ffffff", dark: "#17181c")
-    /// Cards and sheets sitting on the workspace.
-    static let card = dynamic(light: "#ffffff", dark: "#1e2026")
+    /// Toolbars and bars. In dark mode this has to sit far enough above the
+    /// workspace to read as a separate plane — at 1.08:1 the bars dissolved
+    /// into the canvas and only their hairline divider gave them an edge.
+    static let chrome = dynamic(light: "#ffffff", dark: "#1c1d23")
+    /// Cards and sheets, which sit above the chrome and so are lighter again.
+    static let card = dynamic(light: "#ffffff", dark: "#24262e")
     /// Separators and the page's own edge.
     static let hairline = dynamic(light: "#00000014", dark: "#ffffff1f")
 

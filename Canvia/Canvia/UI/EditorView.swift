@@ -4,6 +4,20 @@
 
 import SwiftUI
 
+/// The app's primary action had no pressed state at all: tapping it changed
+/// nothing until the sheet arrived, which on a slow frame reads as a button
+/// that did not register.
+private struct AccentButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(Circle()
+                .fill(configuration.isPressed ? Theme.accentPressed : Theme.accent))
+            .scaleEffect(configuration.isPressed ? 0.92 : 1)
+            .animation(.spring(response: 0.24, dampingFraction: 0.65),
+                       value: configuration.isPressed)
+    }
+}
+
 enum EditorSheet: String, Identifiable {
     case insert, colorFill, colorText, colorLine, colorStroke, background
     case fonts, effects, spacing, filters, crop, position, layers, export, resize
@@ -211,9 +225,9 @@ struct EditorView: View {
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 54, height: 54)
-                .background(Circle().fill(Theme.accent))
-                .shadow(color: .black.opacity(0.25), radius: 8, y: 3)
         }
+        .buttonStyle(AccentButtonStyle())
+        .shadow(color: .black.opacity(0.25), radius: 8, y: 3)
         .accessibilityLabel("Add element")
     }
 
