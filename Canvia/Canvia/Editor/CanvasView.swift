@@ -10,6 +10,10 @@ struct CanvasView: View {
     @State private var gesture = GestureState()
     @FocusState private var textFieldFocused: Bool
 
+    /// Inverse zoom: ornaments are drawn in page units but should
+    /// stay a constant size on screen.
+    private var iz: Double { 1 / max(store.zoom, 0.01) }
+
     struct GestureState {
         var dragOriginals: [String: CGPoint] = [:]
         var dragActive = false
@@ -51,7 +55,14 @@ struct CanvasView: View {
             // itself: the workspace-background tap can't fire here because
             // the opaque page sits above it in the ZStack.
             PageRenderView(design: store.design, page: store.page)
-                .shadow(color: .black.opacity(0.18), radius: 14, y: 4)
+                // Divided by zoom like every other ornament: this lives inside
+                // the scroll view's zoomed subview, so a fixed radius was 4pt
+                // of blur at fit zoom — the page looked pasted flat onto the
+                // workspace — and a 42pt black halo at 3x.
+                .shadow(color: .black.opacity(0.16), radius: 12 * iz, y: 3 * iz)
+                // Carries the document edge in dark mode, where a shadow on a
+                // dark workspace is invisible.
+                .overlay(Rectangle().stroke(Theme.hairline, lineWidth: 1 * iz))
                 .contentShape(Rectangle())
                 .onTapGesture {
                     commitTextEditIfAny()

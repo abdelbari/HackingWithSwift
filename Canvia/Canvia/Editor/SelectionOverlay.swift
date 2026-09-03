@@ -18,7 +18,7 @@ struct SelectionOverlay: View {
             let selected = store.selectedElements
 
             ForEach(selected) { el in
-                outline(el, lineWidth: selected.count > 1 ? 1.5 : 2)
+                outline(el, lineWidth: selected.count > 1 ? 1 : 1.5)
             }
 
             if let el = store.singleSelection, !el.locked, store.editingTextId != el.id {
@@ -42,7 +42,9 @@ struct SelectionOverlay: View {
     }
 
     private func outline(_ el: Element, lineWidth: Double) -> some View {
-        Rectangle()
+        // Rounded by a hair: two square strokes meet in a miter that pokes
+        // out past the corner handles.
+        RoundedRectangle(cornerRadius: 1 * iz)
             .stroke(Theme.accent, lineWidth: lineWidth * iz)
             .frame(width: el.w, height: el.h)
             .rotationEffect(.degrees(el.rotation))
@@ -64,11 +66,13 @@ struct SelectionOverlay: View {
 
     private func handleDot(_ handle: Handle, el: Element) -> some View {
         let point = Geometry.handlePoint(el, handle)
-        let size = (handle.isCorner ? 14.0 : 12.0) * iz
+        let size = (handle.isCorner ? 11.0 : 9.0) * iz
         return Circle()
             .fill(Color.white)
-            .overlay(Circle().stroke(Color(hex: "#b3b9c4"), lineWidth: 1 * iz))
-            .shadow(color: .black.opacity(0.3), radius: 2 * iz, y: 1 * iz)
+            // A coloured ring on white already separates the handle from the
+            // page. The old grey ring plus a drop shadow made them read as
+            // beads sitting on top of the design rather than part of the tool.
+            .overlay(Circle().stroke(Theme.accent.opacity(0.9), lineWidth: 1 * iz))
             .frame(width: size, height: size)
             // Generous invisible touch target around the visible dot.
             .contentShape(Circle().inset(by: -10 * iz))
@@ -86,14 +90,18 @@ struct SelectionOverlay: View {
     private func rotateHandle(for el: Element) -> some View {
         // Below the bottom edge of the (rotated) element.
         let bottomCenter = Geometry.rotate(
-            CGPoint(x: el.x + el.w / 2, y: el.y + el.h + 34 * iz),
+            CGPoint(x: el.x + el.w / 2, y: el.y + el.h + 28 * iz),
             around: el.center, degrees: el.rotation)
-        return Image(systemName: "arrow.triangle.2.circlepath")
-            .font(.system(size: 13 * iz, weight: .bold))
-            .foregroundStyle(Theme.inkSecondary)
-            .frame(width: 26 * iz, height: 26 * iz)
+        // Was arrow.triangle.2.circlepath — the refresh/sync glyph, so the
+        // control for rotating your text read as a reload button.
+        return Image(systemName: "arrow.clockwise")
+            .font(.system(size: 11 * iz, weight: .semibold))
+            .foregroundStyle(Theme.accent)
+            // Track the element's angle, so the affordance says which way is up.
+            .rotationEffect(.degrees(el.rotation))
+            .frame(width: 24 * iz, height: 24 * iz)
             .background(Circle().fill(Color.white)
-                .shadow(color: .black.opacity(0.3), radius: 2 * iz, y: 1 * iz))
+                .overlay(Circle().stroke(Theme.accent.opacity(0.9), lineWidth: 1 * iz)))
             .contentShape(Circle().inset(by: -12 * iz))
             .gesture(
                 DragGesture(minimumDistance: 1, coordinateSpace: .named("page"))
