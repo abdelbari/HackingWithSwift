@@ -416,15 +416,28 @@ struct TemplateThumb: View {
 
 @MainActor
 enum TemplateThumbCache {
-    private static var cache: [String: UIImage] = [:]
+    // NSCache rather than a Dictionary. These are rendered at 320pt wide,
+    // which on a 3x device is a 960px bitmap — a few megabytes each, and one
+    // per template in the gallery. A plain Dictionary never gives any of that
+    // back: it has no eviction and does not react to a memory warning, so the
+    // cost stayed for the life of the process however long ago the user
+    // scrolled past. Every other image cache in the app (PhotoLibrary,
+    // ImageFilters, MediaStore) already uses NSCache; this one was the
+    // exception.
+    private static let cache: NSCache<NSString, UIImage> = {
+        let c = NSCache<NSString, UIImage>()
+        c.countLimit = 24
+        return c
+    }()
 
     static func thumbnail(for template: Template) -> UIImage? {
-        if let cached = cache[template.id] { return cached }
+        let key = template.id as NSString
+        if let cached = cache.object(forKey: key) { return cached }
         let design = template.instantiate()
         let renderer = ImageRenderer(content: PageRenderView(design: design, page: design.pages[0]))
         renderer.scale = 320 / max(design.width, 1)
         let image = renderer.uiImage
-        if let image { cache[template.id] = image }
+        if let image { cache.setObject(image, forKey: key) }
         return image
     }
 }
