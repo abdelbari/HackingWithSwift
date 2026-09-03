@@ -15,17 +15,25 @@ struct CanviaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if let store = editingStore {
-                EditorView(store: store) {
-                    editingStore = nil
-                }
-                .transition(.move(edge: .trailing))
-            } else {
-                HomeView { design in
-                    var opened = design
-                    opened.updatedAt = Date().timeIntervalSince1970 * 1000
-                    DesignLibrary.save(opened)
-                    editingStore = DesignStore(design: opened)
+            ZStack {
+                if let store = editingStore {
+                    EditorView(store: store) {
+                        withAnimation(.snappy(duration: 0.28)) { editingStore = nil }
+                    }
+                    // The transition was declared here from the start but had
+                    // never played: neither assignment to editingStore was
+                    // animated, so opening and closing a design just snapped.
+                    .transition(.move(edge: .trailing))
+                } else {
+                    HomeView { design in
+                        var opened = design
+                        opened.updatedAt = Date().timeIntervalSince1970 * 1000
+                        DesignLibrary.save(opened)
+                        withAnimation(.snappy(duration: 0.28)) {
+                            editingStore = DesignStore(design: opened)
+                        }
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 }
             }
         }
