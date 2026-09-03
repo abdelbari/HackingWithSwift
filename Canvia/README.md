@@ -34,9 +34,10 @@ duplicate / delete via long-press), and a template gallery.
   Snell Roundhand, …), 8 text effects (shadow, lift, hollow, splice, neon,
   echo, highlight) drawn through one CoreText pipeline shared by canvas,
   thumbnails and export
-- Images: Core Image filter presets, cover-crop zoom + focus point,
-  replace-in-place (swap the picture, keep the frame, radius and filter),
-  corner radius, borders
+- Images: one-tap background removal on device (Vision's foreground
+  segmenter — no account, no upload, no paywall), Core Image filter
+  presets, cover-crop zoom + focus point, replace-in-place (swap the
+  picture, keep the frame, radius and filter), corner radius, borders
 - Color: curated palettes, gradient presets, document colors, background
   editor, ✨ Shuffle (luminance-ranked palette remap)
 - Pages: live-thumbnail strip, add / duplicate / reorder / delete
@@ -50,7 +51,10 @@ duplicate / delete via long-press), and a template gallery.
 
 **Export** — PNG / JPEG at 1–3× and multi-page PDF, rendered with
 `ImageRenderer` from the very views the canvas shows, delivered through
-the share sheet.
+the share sheet. PDF pages are written as vectors, not page-sized
+bitmaps, and everything streams to disk rather than being assembled in
+memory. The scale picker shows the pixel size it will actually produce,
+including when a 32-megapixel cap is what decided it.
 
 ## Architecture
 

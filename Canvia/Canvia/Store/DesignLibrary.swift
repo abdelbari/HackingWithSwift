@@ -87,7 +87,7 @@ enum DesignLibrary {
         }
         guard let files = try? FileManager.default.contentsOfDirectory(
             at: MediaStore.directory, includingPropertiesForKeys: nil) else { return }
-        for url in files where url.pathExtension == "jpg" {
+        for url in files where MediaStore.extensions.contains(url.pathExtension) {
             let id = url.deletingPathExtension().lastPathComponent
             if !referenced.contains(id) {
                 try? FileManager.default.removeItem(at: url)

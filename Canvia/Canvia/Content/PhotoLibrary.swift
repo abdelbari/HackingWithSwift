@@ -361,6 +361,11 @@ enum MediaStore {
         return c
     }()
 
+    /// What we write, in the order load() looks for them. JPEG for
+    /// photographs; PNG when the picture has to keep an alpha channel, which
+    /// JPEG cannot carry — a background-removed cutout, most of all.
+    static let extensions = ["jpg", "png"]
+
     static var directory: URL {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("media", isDirectory: true)
@@ -388,11 +393,29 @@ enum MediaStore {
         }
     }
 
+    /// Store an image that has to keep its transparency, as PNG.
+    static func storeTransparent(_ image: UIImage) -> String? {
+        guard let data = image.pngData() else { return nil }
+        let id = UID.make("img")
+        let url = directory.appendingPathComponent("\(id).png")
+        do {
+            try data.write(to: url)
+            memory.setObject(image, forKey: id as NSString)
+            return "media:\(id)"
+        } catch {
+            return nil
+        }
+    }
+
     static func load(_ id: String) -> UIImage? {
         if let cached = memory.object(forKey: id as NSString) { return cached }
-        let url = directory.appendingPathComponent("\(id).jpg")
-        guard let data = try? Data(contentsOf: url), let img = UIImage(data: data) else { return nil }
-        memory.setObject(img, forKey: id as NSString)
-        return img
+        for ext in extensions {
+            let url = directory.appendingPathComponent("\(id).\(ext)")
+            guard let data = try? Data(contentsOf: url),
+                  let img = UIImage(data: data) else { continue }
+            memory.setObject(img, forKey: id as NSString)
+            return img
+        }
+        return nil
     }
 }

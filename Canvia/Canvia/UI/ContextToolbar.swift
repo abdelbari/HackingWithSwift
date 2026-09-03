@@ -29,6 +29,9 @@ struct ContextToolbar: View {
     @Bindable var store: DesignStore
     @Binding var activeSheet: EditorSheet?
 
+    @State private var cuttingOut = false
+    @State private var cutoutError: String?
+
     var body: some View {
         HStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -60,6 +63,13 @@ struct ContextToolbar: View {
         }
         .background(Theme.chrome)
         .overlay(alignment: .top) { Divider() }
+        .alert("Remove background",
+               isPresented: Binding(get: { cutoutError != nil },
+                                    set: { if !$0 { cutoutError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(cutoutError ?? "")
+        }
     }
 
     private var deleteButton: some View {
@@ -163,6 +173,7 @@ struct ContextToolbar: View {
 
     @ViewBuilder
     private func imageControls(_ el: Element) -> some View {
+        cutoutButton(el)
         toolButton("camera.filters", "Filters") { activeSheet = .filters }
         toolButton("crop", "Crop") { activeSheet = .crop }
         toolButton("arrow.2.squarepath", "Replace") {
@@ -229,6 +240,69 @@ struct ContextToolbar: View {
     }
 
     // MARK: helpers
+
+    /// Background removal. Kept at the head of the image controls because it
+    /// is the reason to reach for this bar at all — everything else here is a
+    /// refinement, this one changes the picture.
+    private func cutoutButton(_ el: Element) -> some View {
+        Button {
+            removeBackground(el)
+        } label: {
+            VStack(spacing: 3) {
+                ZStack {
+                    // Swapped in place rather than replacing the button, so
+                    // the bar does not reflow mid-operation and shift every
+                    // other control out from under a waiting finger.
+                    Image(systemName: "person.and.background.dotted")
+                        .font(Theme.controlGlyph)
+                        .opacity(cuttingOut ? 0 : 1)
+                    if cuttingOut { ProgressView().controlSize(.small) }
+                }
+                Text("Cut out").font(Theme.controlLabel)
+            }
+            .foregroundStyle(Theme.accent)
+        }
+        .buttonStyle(ToolButtonStyle())
+        .disabled(cuttingOut)
+        .accessibilityLabel("Remove background")
+    }
+
+    /// Vision's segmenter, off the main actor: it is fast, but "fast" for a
+    /// neural-engine pass is still tens of milliseconds more than a frame.
+    private func removeBackground(_ el: Element) {
+        guard !cuttingOut else { return }
+        cuttingOut = true
+        let id = el.id
+        let src = el.src
+        Task {
+            let cut = await Task.detached(priority: .userInitiated) { () -> Result<String, Error> in
+                guard let image = PhotoLibrary.resolve(src) else {
+                    return .failure(SubjectMask.Failure.failed)
+                }
+                do {
+                    guard let stored = MediaStore.storeTransparent(try SubjectMask.cutout(image))
+                    else { return .failure(SubjectMask.Failure.failed) }
+                    return .success(stored)
+                } catch {
+                    return .failure(error)
+                }
+            }.value
+            cuttingOut = false
+            switch cut {
+            case .failure(let error):
+                cutoutError = error.localizedDescription
+            case .success(let newSrc):
+                // Committed through the page so it lands in undo as one step,
+                // and addressed by id rather than by selection: the cutout
+                // finishes asynchronously and the selection may have moved on.
+                store.applyToPage { page in
+                    if let i = page.elements.firstIndex(where: { $0.id == id }) {
+                        page.elements[i].src = newSrc
+                    }
+                }
+            }
+        }
+    }
 
     private func toolButton(_ system: String, _ label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
