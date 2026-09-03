@@ -121,11 +121,17 @@ final class GeometryTests: XCTestCase {
 /// element after an edit, with nothing failing anywhere.
 final class ElementEqualityTests: XCTestCase {
 
-    private func base() -> Element {
+    /// One instance, copied — not rebuilt. Element.text mints a fresh id on
+    /// every call, so comparing two freshly-built elements would differ by id
+    /// whatever else was done to them, and the per-field loop below would
+    /// pass without testing anything.
+    private static let template: Element = {
         var el = Element.text("Hello", fontSize: 24, w: 200)
         el.x = 10; el.y = 20
         return el
-    }
+    }()
+
+    private func base() -> Element { Self.template }
 
     /// Every visual field, one at a time. Adding a field to Element that
     /// affects rendering and not to this list is the failure this guards.
@@ -172,6 +178,10 @@ final class ElementEqualityTests: XCTestCase {
         for (name, mutate) in mutations {
             var changed = base()
             mutate(&changed)
+            // Guard against the vacuous version of this test: if the ids
+            // differed, every comparison below would pass regardless of the
+            // field being mutated.
+            XCTAssertEqual(base().id, changed.id, "\(name): ids must match")
             XCTAssertNotEqual(base(), changed,
                               "changing \(name) left the element equal, so a view "
                               + "marked .equatable() would not re-render")
@@ -180,6 +190,17 @@ final class ElementEqualityTests: XCTestCase {
 
     func testIdenticalElementsCompareEqual() {
         XCTAssertEqual(base(), base())
+    }
+
+    /// Identity is part of equality, which is what makes it safe for the
+    /// canvas to key views on the element: two different elements that happen
+    /// to look alike must not be treated as interchangeable.
+    func testDistinctElementsWithSameFieldsDiffer() {
+        var a = Element.shape("rect", w: 100, h: 100)
+        var b = Element.shape("rect", w: 100, h: 100)
+        a.x = 5; b.x = 5
+        XCTAssertNotEqual(a, b, "separately created elements share every field but id")
+        XCTAssertNotEqual(a.id, b.id)
     }
 }
 
