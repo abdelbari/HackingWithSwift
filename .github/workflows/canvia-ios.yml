@@ -104,10 +104,15 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             test > build.log 2>&1 || status=$?
 
+          # Kept in a file as well: simctl bootstatus in the next step emits
+          # a hundred lines of migration chatter, which pushes this out of
+          # the readable tail of the job log.
+          { grep -E "^Test Suite .*(passed|failed)" build.log | sort -u | head -20 \
+              || echo "(no test results - did the build fail before tests ran?)"
+            grep -E "Executed [0-9]+ test" build.log | sort -u | head -5 || true
+          } > tests.txt
           echo "===== TESTS ====="
-          grep -E "^Test Suite .*(passed|failed)" build.log | sort -u | head -20 \
-            || echo "(no test results - did the build fail before tests ran?)"
-          grep -E "Executed [0-9]+ test" build.log | tail -2 || true
+          cat tests.txt
           echo "===== ERRORS ====="
           grep -E '(error|fatal error):' build.log | sed 's#/Users/runner/work/HackingWithSwift/HackingWithSwift/##' \
             | sort -u | head -80 || true
@@ -133,7 +138,7 @@ jobs:
           DEVICE=$(xcrun simctl create canvia-ci "${{ matrix.device }}" "$RUNTIME")
           echo "device: $DEVICE (${{ matrix.device }})"
           xcrun simctl boot "$DEVICE"
-          xcrun simctl bootstatus "$DEVICE" -b
+          xcrun simctl bootstatus "$DEVICE" -b > /dev/null
 
           APP=$(find build -name 'Canvia.app' -type d | head -1)
           echo "app: $APP"
@@ -176,9 +181,12 @@ jobs:
       # emitting the image anywhere earlier lets a long build transcript push
       # the block's own header out of reach. Artifact blob storage is not
       # reachable from every environment, so the log is the fallback channel.
-      - name: Echo the screenshot into the log
-        if: ${{ always() && hashFiles('home-small.jpg') != '' }}
+      - name: Echo the test results and screenshot into the log
+        if: always()
         run: |
+          echo "===== TESTS (${{ matrix.name }}, iOS ${{ matrix.ios }}) ====="
+          cat tests.txt 2>/dev/null || echo "(no test summary captured)"
+          [ -f home-small.jpg ] || exit 0
           echo "===SHOT_START=== ${{ matrix.name }} iOS ${{ matrix.ios }} ${{ matrix.device }}"
           base64 -i home-small.jpg | fold -w 200
           echo "===SHOT_END==="
