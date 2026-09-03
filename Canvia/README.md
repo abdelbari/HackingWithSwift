@@ -27,8 +27,9 @@ duplicate / delete via long-press), and a template gallery.
   for multi-select, pinch to zoom, drag empty canvas to pan
 - Content: 44 shapes (one SVG-path library parsed with full arc support),
   lines with caps and dashes, emoji stickers, 20 procedurally drawn
-  photos, photo-library imports, 8 complete templates that apply into any
-  canvas size
+  photos, photo-library imports, QR codes generated from a link or any
+  text (regenerated from the document, so they stay editable and nothing
+  is stored), 8 complete templates that apply into any canvas size
 - Text: inline editing (double-tap), 12 font personalities mapped to fonts
   that ship with iOS (Didot, Rockwell, Futura Condensed ExtraBold, Menlo,
   Snell Roundhand, …), 8 text effects (shadow, lift, hollow, splice, neon,

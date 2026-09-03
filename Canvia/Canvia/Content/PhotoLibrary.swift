@@ -50,11 +50,18 @@ enum PhotoLibrary {
         return img
     }
 
-    /// Resolve an element src: "asset:<id>" -> library, "media:<id>" -> user file.
+    /// Resolve an element src: "asset:<id>" -> library, "media:<id>" -> user
+    /// file, "qr:<payload>" -> a generated code.
+    ///
+    /// Every branch is synchronous and deterministic in the src alone. That is
+    /// what ElementView's Equatable conformance rests on — see the note above
+    /// it — so a source that had to be fetched or awaited would have to be
+    /// resolved somewhere else entirely.
     static func resolve(_ src: String?) -> UIImage? {
         guard let src else { return nil }
         if src.hasPrefix("asset:") { return image(id: String(src.dropFirst(6))) }
         if src.hasPrefix("media:") { return MediaStore.load(String(src.dropFirst(6))) }
+        if let payload = CodeGenerator.payload(from: src) { return CodeGenerator.qr(payload) }
         return nil
     }
 

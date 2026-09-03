@@ -11,6 +11,8 @@ struct InsertSheet: View {
     @State private var tab = "Templates"
     @State private var search = ""
     @State private var pickedItem: PhotosPickerItem?
+    @State private var qrPayload = ""
+    @FocusState private var qrFocused: Bool
 
     private let tabs = ["Templates", "Elements", "Text", "Photos", "Stickers", "Background"]
 
@@ -118,6 +120,8 @@ struct InsertSheet: View {
 
     private var elementsGrid: some View {
         VStack(alignment: .leading, spacing: 8) {
+            sectionHeader("QR code")
+            qrRow
             sectionHeader("Lines")
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 10)], spacing: 10) {
                 lineTile("line.diagonal", nil, nil)
@@ -151,6 +155,47 @@ struct InsertSheet: View {
             }
         }
         .padding()
+    }
+
+    /// A code is generated from its payload every time it is drawn, so the
+    /// element's source is the payload itself and there is nothing to store.
+    private var qrRow: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "qrcode")
+                .font(.title2)
+                .frame(width: 44, height: 44)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
+
+            TextField("Link or text", text: $qrPayload)
+                .textFieldStyle(.roundedBorder)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .keyboardType(.URL)
+                .submitLabel(.done)
+                .focused($qrFocused)
+                .onSubmit { addQRCode() }
+
+            Button("Add", action: addQRCode)
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.accent)
+                .disabled(trimmedQRPayload.isEmpty)
+        }
+    }
+
+    private var trimmedQRPayload: String {
+        qrPayload.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func addQRCode() {
+        let payload = trimmedQRPayload
+        guard !payload.isEmpty else { return }
+        qrFocused = false
+        // Square, because a QR code that is not square has been stretched and
+        // no longer scans.
+        let size = min(store.design.width, store.design.height) * 0.3
+        store.add(.image(CodeGenerator.source(for: payload), w: size.rounded(), h: size.rounded()))
+        qrPayload = ""
+        dismiss()
     }
 
     private func lineTile(_ icon: String, _ start: String?, _ end: String?) -> some View {
