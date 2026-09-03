@@ -53,13 +53,10 @@ struct SelectionOverlay: View {
     // MARK: handles
 
     private func handles(for el: Element) -> some View {
-        let handleSet: [Handle] = {
-            switch el.type {
-            case .line: return [.e, .w]
-            case .text: return [.nw, .ne, .se, .sw, .e, .w]
-            default: return Handle.allCases
-            }
-        }()
+        // Adaptive: on a small or zoomed-out element the expanded touch
+        // targets tile the whole interior, so selecting something would take
+        // away the ability to drag it. See Touch.handleSet.
+        let handleSet = Touch.handleSet(for: el, zoom: store.zoom)
         return ForEach(handleSet, id: \.rawValue) { handle in
             handleDot(handle, el: el)
         }
@@ -74,7 +71,7 @@ struct SelectionOverlay: View {
             .shadow(color: .black.opacity(0.3), radius: 2 * iz, y: 1 * iz)
             .frame(width: size, height: size)
             // Generous invisible touch target around the visible dot.
-            .contentShape(Circle().inset(by: -14 * iz))
+            .contentShape(Circle().inset(by: -10 * iz))
             // Gesture BEFORE position: .position() wraps the view in a
             // parent-sized container, so a gesture attached after it would
             // hit-test across the whole canvas instead of just this handle.

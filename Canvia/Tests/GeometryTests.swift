@@ -114,6 +114,71 @@ final class GeometryTests: XCTestCase {
 
 /// Store behaviour that is easy to regress: one gesture is one undo step,
 /// and copies must never stay welded to the source's group.
+/// The zoom-dependent interaction constants. These regressed once already:
+/// a screen-point threshold was capped in page units, which inverted its
+/// meaning at the fit zoom every design opens at, so a tap moved the element.
+final class TouchTests: XCTestCase {
+
+    private func shape(w: Double, h: Double, type: ElementType = .shape) -> Element {
+        var el = Element.shape("rect", w: w, h: h)
+        el.type = type
+        return el
+    }
+
+    /// The load-bearing property: a threshold expressed in screen points must
+    /// survive the round trip into page units and back out at ANY zoom.
+    func testDragSlopIsConstantOnScreen() {
+        for zoom in [0.1, 0.31, 0.5, 1.0, 2.0, 4.0] {
+            let pageDistance = Touch.pageUnits(Touch.dragSlop, zoom: zoom)
+            XCTAssertEqual(pageDistance * zoom, Touch.dragSlop, accuracy: 0.0001,
+                           "drag slop drifted at zoom \(zoom)")
+        }
+    }
+
+    /// The specific bug: at the fit zoom for a 1080-wide design on a phone the
+    /// old form yielded ~2 page units, i.e. ~0.6pt on glass.
+    func testDragSlopAtFitZoomIsNotHairTrigger() {
+        let fitZoom = 0.31
+        let pageDistance = Touch.pageUnits(Touch.dragSlop, zoom: fitZoom)
+        XCTAssertGreaterThan(pageDistance * fitZoom, 8,
+                             "a tap at fit zoom would still register as a drag")
+    }
+
+    func testHitTargetNeverBelowAppleMinimum() {
+        // A default line is 8 units tall; at fit zoom that is a 2.5pt sliver.
+        let thin = shape(w: 300, h: 8, type: .line)
+        for zoom in [0.2, 0.31, 1.0] {
+            let floor = Touch.pageUnits(Touch.minTarget, zoom: zoom)
+            XCTAssertGreaterThanOrEqual(max(thin.h, floor) * zoom, Touch.minTarget - 0.001,
+                                        "hit target too small at zoom \(zoom)")
+        }
+    }
+
+    func testHandlesVanishOnTinyElements() {
+        // 62pt on screen: eight 34pt targets would cover the whole element.
+        XCTAssertTrue(Touch.handleSet(for: shape(w: 200, h: 200), zoom: 0.2).isEmpty)
+    }
+
+    func testHandlesDropToCornersWhenTight() {
+        let handles = Touch.handleSet(for: shape(w: 200, h: 200), zoom: 0.5)
+        XCTAssertFalse(handles.isEmpty)
+        XCTAssertTrue(handles.allSatisfy(\.isCorner), "edge handles crowd a 100pt box")
+    }
+
+    func testHandlesFullSetWhenRoomy() {
+        let handles = Touch.handleSet(for: shape(w: 400, h: 400), zoom: 1.0)
+        XCTAssertEqual(Set(handles), Set(Handle.allCases))
+    }
+
+    /// A line only ever resizes along its length, at any size that shows handles.
+    func testLineKeepsOnlyEndHandles() {
+        let line = shape(w: 600, h: 8, type: .line)
+        XCTAssertEqual(Set(Touch.handleSet(for: line, zoom: 1.0)), [])
+        let tall = shape(w: 600, h: 200, type: .line)
+        XCTAssertTrue(Touch.handleSet(for: tall, zoom: 1.0).allSatisfy { $0 == .e || $0 == .w })
+    }
+}
+
 final class DesignStoreTests: XCTestCase {
 
     private func store() -> DesignStore {

@@ -79,7 +79,8 @@ struct CanvasView: View {
         Rectangle()
             .fill(Color.clear)
             .contentShape(Rectangle())
-            .frame(width: max(el.w, 24), height: max(el.h, 24))
+            .frame(width: max(el.w, Touch.pageUnits(Touch.minTarget, zoom: store.zoom)),
+                   height: max(el.h, Touch.pageUnits(Touch.minTarget, zoom: store.zoom)))
             .rotationEffect(.degrees(el.rotation))
             .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
             .onTapGesture(count: 2) {
@@ -100,10 +101,14 @@ struct CanvasView: View {
     // MARK: move
 
     private func moveGesture(_ el: Element) -> some Gesture {
-        // Keep a ~3 screen-point threshold: divide by zoom (the gesture reads
-        // the "page" space), then cap below the ancestor pan gesture's 8pt so
-        // an element drag always wins, however SwiftUI measures the distance.
-        DragGesture(minimumDistance: min(3 / max(store.zoom, 0.05), 6),
+        // A real screen-point threshold. The gesture reads the "page" space,
+        // so this has to be divided by zoom to mean 10 points on glass. The
+        // old form capped the result at 6 page units to stay under an ancestor
+        // pan gesture that the scroll view has since replaced — and the cap
+        // inverted the intent: at the fit zoom every design opens at (~0.3),
+        // it made the threshold ~2 points, so a tap moved the element and
+        // pushed an undo step.
+        DragGesture(minimumDistance: Touch.pageUnits(Touch.dragSlop, zoom: store.zoom),
                     coordinateSpace: .named("page"))
             .onChanged { value in
                 guard !el.locked, store.editingTextId != el.id else { return }
@@ -154,8 +159,12 @@ struct CanvasView: View {
                     store.badge = "\(Int(moved.x)), \(Int(moved.y))"
                 }
             }
-            .onEnded { _ in
-                if gesture.dragActive {
+            .onEnded { value in
+                // Crossing the threshold and landing back where you started is
+                // a tap that wandered, not an edit: it must not enter history,
+                // or undo fills up with steps that changed nothing.
+                let moved = hypot(value.translation.width, value.translation.height) * store.zoom
+                if gesture.dragActive && moved >= Touch.tapSlop {
                     store.commit()
                 } else {
                     store.endGesture()

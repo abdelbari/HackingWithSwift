@@ -5,6 +5,49 @@
 import CoreGraphics
 import Foundation
 
+/// Interaction constants that depend on zoom. Gesture code runs in page
+/// coordinates, so every screen-point threshold has to be divided by the zoom
+/// to mean what it says; getting this backwards is why a tap used to move an
+/// element at fit zoom.
+enum Touch {
+    /// Apple's minimum comfortable target, in screen points.
+    static let minTarget = 44.0
+    /// How far a finger must travel on screen before a press becomes a drag.
+    static let dragSlop = 10.0
+    /// A drag shorter than this on screen is treated as a tap that wandered,
+    /// and must not enter undo history.
+    static let tapSlop = 2.0
+
+    /// Convert a screen-point distance into page units at the current zoom.
+    static func pageUnits(_ screenPoints: Double, zoom: Double) -> Double {
+        screenPoints / max(zoom, 0.05)
+    }
+
+    /// Which resize handles are usable on this element at this zoom.
+    ///
+    /// Handles carry a touch target far larger than the dot that is drawn, so
+    /// on a small or zoomed-out element the eight of them tile the whole
+    /// interior and the element can no longer be dragged at all — selecting
+    /// something took away your ability to move it. Drop to corners when the
+    /// box is tight, and to none when it is tiny: the Position sheet still
+    /// resizes precisely, and being able to move the element matters more.
+    static func handleSet(for el: Element, zoom: Double) -> [Handle] {
+        let screenW = el.w * zoom
+        let screenH = el.h * zoom
+        let shortest = min(screenW, screenH)
+        if shortest < 60 { return [] }
+        let full: [Handle]
+        switch el.type {
+        case .line: full = [.e, .w]
+        case .text: full = [.nw, .ne, .se, .sw, .e, .w]
+        default: full = Handle.allCases
+        }
+        // Edge handles sit between the corners; below this the two collide.
+        if shortest < 120 { return full.filter(\.isCorner).isEmpty ? full : full.filter(\.isCorner) }
+        return full
+    }
+}
+
 enum Handle: String, CaseIterable {
     case nw, n, ne, e, se, s, sw, w
 
