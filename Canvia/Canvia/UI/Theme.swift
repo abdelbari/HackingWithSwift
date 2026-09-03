@@ -28,7 +28,13 @@ enum Theme {
     /// colour that marks every selected page, every active control and the
     /// button that adds anything at all. The lighter value is 5.2:1 there,
     /// and still carries white glyphs at 3.7:1.
-    static let accent = dynamic(light: "#5a31f4", dark: "#8f6bff")
+    static let accent = dynamic(light: brandHex, dark: "#8f6bff")
+
+    /// The brand purple itself, unadapted. Used where the surface is already
+    /// its own dark plane in both appearances — the home hero — and so has no
+    /// appearance to follow.
+    static let brand = Color(hex: brandHex)
+    private static let brandHex = "#5a31f4"
     static let accentPressed = dynamic(light: "#4826c9", dark: "#6f4ae0")
     static let accentSubtle = dynamic(light: "#ede7ff", dark: "#241c4a")
     /// Magenta reads clearly against both the accent and any page content.
@@ -37,11 +43,17 @@ enum Theme {
     static let guide = Color(hex: "#ff2d9e")
 
     /// The home hero. A tight indigo-to-violet ramp rather than a rainbow, so
-    /// it reads as one deliberate colour; it starts from the accent so the
-    /// brand and the chrome are demonstrably the same purple.
-    static let heroGradient = LinearGradient(
-        colors: [accent, Color(hex: "#7b4dff"), Color(hex: "#3d1fa8")],
-        startPoint: .topLeading, endPoint: .bottomTrailing)
+    /// it reads as one deliberate colour, starting from the brand purple.
+    ///
+    /// Fixed in both appearances. Built from the appearance-aware accent it
+    /// lightened in dark mode — the accent is lifted there to carry against a
+    /// near-black workspace — and the hero is not on that workspace, it is its
+    /// own purple slab with white type on it. Lightening it only pushed that
+    /// type from 6.6:1 to 3.7:1.
+    static let heroStops: [Color] = [brand, Color(hex: "#7b4dff"), Color(hex: "#3d1fa8")]
+    static let heroGradient = LinearGradient(colors: heroStops,
+                                             startPoint: .topLeading,
+                                             endPoint: .bottomTrailing)
 
     // MARK: surfaces
 

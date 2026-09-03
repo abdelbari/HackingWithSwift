@@ -142,6 +142,26 @@ final class ThemeTests: XCTestCase {
         XCTAssertEqual(hex(Theme.onPage, light), hex(Theme.onPage, dark))
     }
 
+    // MARK: the hero
+
+    /// The hero is a purple slab carrying white type, including the size
+    /// labels on its preset tiles, which are the smallest text on the screen.
+    func testWhiteTypeIsReadableOnEveryHeroStop() {
+        for (index, stop) in Theme.heroStops.enumerated() {
+            XCTAssertGreaterThanOrEqual(contrast(.white, on: stop, light), 4.5,
+                                        "hero stop \(index)")
+        }
+    }
+
+    /// Fixed in both appearances on purpose: it is its own dark surface, so
+    /// following the app's appearance only lightened it and cost the white
+    /// type its contrast.
+    func testTheHeroDoesNotFollowTheAppearance() {
+        for stop in Theme.heroStops {
+            XCTAssertEqual(hex(stop, light), hex(stop, dark))
+        }
+    }
+
     // MARK: surfaces
 
     /// Chrome has to read as a distinct plane from the workspace behind it,

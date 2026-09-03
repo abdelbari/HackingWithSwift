@@ -98,30 +98,43 @@ struct HomeView: View {
             }
 
             HStack(spacing: 8) {
-                TextField("Width", text: $customW)
-                    .keyboardType(.numberPad)
-                    .frame(width: 76)
-                    .padding(8)
-                    .background(.white, in: RoundedRectangle(cornerRadius: 9))
+                sizeField("Width", text: $customW)
                 Text("×").foregroundStyle(.white)
-                TextField("Height", text: $customH)
-                    .keyboardType(.numberPad)
-                    .frame(width: 76)
-                    .padding(8)
-                    .background(.white, in: RoundedRectangle(cornerRadius: 9))
-                Button("Create custom") {
+                sizeField("Height", text: $customH)
+                // White on the purple slab, not purple on purple: a brand
+                // -tinted button sits at 1.8:1 against the bottom of the
+                // gradient, which is under the 3:1 a control needs just to
+                // have a visible edge.
+                Button {
                     let w = min(4000, max(40, Double(customW) ?? 1080))
                     let h = min(4000, max(40, Double(customH) ?? 1080))
                     onOpen(Design(title: "Untitled design", width: w, height: h))
+                } label: {
+                    Text("Create custom")
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Theme.brand)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(Theme.accent)
+                .tint(.white)
             }
         }
         .padding(20)
         .frame(maxWidth: .infinity)
         .background(Theme.heroGradient)
         .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 26, bottomTrailingRadius: 26))
+    }
+
+    /// The field is a fixed white pill, so it has to be told it is a light
+    /// surface. Without that its text took the app's appearance and went
+    /// white-on-white in dark mode: the size you had typed was invisible, and
+    /// so was the placeholder telling you what the box was for.
+    private func sizeField(_ prompt: String, text: Binding<String>) -> some View {
+        TextField(prompt, text: text)
+            .keyboardType(.numberPad)
+            .frame(width: 76)
+            .padding(8)
+            .background(.white, in: RoundedRectangle(cornerRadius: 9))
+            .environment(\.colorScheme, .light)
     }
 
     // MARK: recents
