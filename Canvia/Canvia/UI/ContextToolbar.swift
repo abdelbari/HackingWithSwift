@@ -208,7 +208,13 @@ struct ContextToolbar: View {
 
         // Opacity
         if let el = store.selectedElements.first {
-            sliderControl("Opacity", value: el.opacity, in: 0.02...1) { v in
+            // Floor of 0, not 0.02. The old floor bought nothing — 2% is
+            // visually indistinguishable from invisible — while making the
+            // slider's own readout bottom out at "Opacity 2%", which reads as
+            // a bug, and denying a clean fully-transparent value. An element
+            // at 0 is still selected, still outlined, and still listed in the
+            // Layers sheet, so it cannot be lost.
+            sliderControl("Opacity", value: el.opacity, in: 0...1) { v in
                 store.updateSelectedTransient { $0.opacity = v }
             }
         }
