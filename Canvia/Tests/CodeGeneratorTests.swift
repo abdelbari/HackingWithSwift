@@ -43,6 +43,11 @@ final class CodeGeneratorTests: XCTestCase {
 
     // MARK: the only test that matters
 
+    /// This is also the mirror check, and it earned that in the first run: a
+    /// UIKit renderer's context is already flipped, so handing a CGImage
+    /// straight to CGContext.draw in it produced codes that looked perfect and
+    /// decoded as nothing. A pixel comparison would not have caught it — the
+    /// image was a valid-looking QR either way.
     func testAGeneratedCodeScansBackToItsPayload() throws {
         let code = try XCTUnwrap(CodeGenerator.qr("https://example.com/canvia"))
         XCTAssertEqual(try decode(code), "https://example.com/canvia")

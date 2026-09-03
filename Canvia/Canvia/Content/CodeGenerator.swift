@@ -54,14 +54,19 @@ enum CodeGenerator {
         guard let output = filter.outputImage,
               let modules = ciContext.createCGImage(output, from: output.extent) else { return nil }
 
+        // The generator emits one pixel per module, plus a border of one.
+        // Sizing from that gives two things a percentage could not: a quiet
+        // zone of exactly the four modules the spec asks for at any payload
+        // length, and a whole number of pixels per module, so every module
+        // lands on pixel boundaries however the code is scaled.
+        let count = Double(modules.width)
+        let unit = max((side / (count + 8)).rounded(.down), 1)
+        let drawn = unit * count
+        let inset = ((side - drawn) / 2).rounded()
+
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = true
-        // A code needs a quiet zone around it or a scanner cannot find its
-        // edges; the generator emits only a hairline of one. 8% a side is
-        // comfortably past the four modules the spec asks for at every size
-        // a payload this app can hold produces.
-        let quiet = (side * 0.08).rounded()
         let image = UIGraphicsImageRenderer(size: CGSize(width: side, height: side),
                                             format: format).image { ctx in
             UIColor.white.setFill()
@@ -69,9 +74,13 @@ enum CodeGenerator {
             // Nearest-neighbour: a QR scaled with smoothing has grey edges on
             // every module, and a scanner thresholds those into the wrong bit.
             ctx.cgContext.interpolationQuality = .none
-            ctx.cgContext.draw(modules, in: CGRect(x: quiet, y: quiet,
-                                                   width: side - quiet * 2,
-                                                   height: side - quiet * 2))
+            // Drawn through UIImage rather than CGContext.draw. A UIKit
+            // renderer's context is already flipped so that UIKit drawing
+            // comes out upright; handing a CGImage straight to CGContext.draw
+            // in it renders the code mirrored, which produces something that
+            // looks exactly like a QR code and decodes as nothing at all.
+            UIImage(cgImage: modules).draw(in: CGRect(x: inset, y: inset,
+                                                      width: drawn, height: drawn))
         }
         cache.setObject(image, forKey: key)
         return image
