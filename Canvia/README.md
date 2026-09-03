@@ -116,6 +116,19 @@ carries, so those versions can be re-checked rather than assumed.
 outside the synchronized source folder, so it never joins the app target;
 add it to a test target to run it.
 
+### A note on the iOS 26 look
+
+Linking against any iOS 26 SDK — which the `latest-ios26` leg and the TestFlight
+archive both do — opts the app into the iOS 26 design system on iOS 26 devices.
+There is no error and no warning; system-drawn controls simply restyle. Canvia
+draws most of its own chrome, and the iOS 26.5 CI screenshot renders correctly,
+so nothing is being done about it here.
+
+If a future change does look wrong on iOS 26, `UIDesignRequiresCompatibility =
+YES` in Info.plist restores the pre-26 appearance. Treat it as a stopgap, not a
+fix: Apple describes it as a debugging aid, and an app built against the iOS 27
+SDK ignores the key entirely.
+
 ## Installing on your own iPhone
 
 Two routes. They are not alternatives so much as different speeds — use the
