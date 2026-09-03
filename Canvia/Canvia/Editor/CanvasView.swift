@@ -21,6 +21,11 @@ struct CanvasView: View {
         // once at grab time rather than rebuilt every frame.
         var snapX: [Double] = []
         var snapY: [Double] = []
+        /// Union of the dragged elements' bounding boxes as they were at grab
+        /// time. Moving does not change any element's size or rotation, so the
+        /// union per frame is just this one translated — no need to look the
+        /// elements up and re-derive their boxes on every touch move.
+        var dragUnion: CGRect = .zero
         var resizeOriginal: Element?
         var rotateCenter: CGPoint?
         var rotateOffset: Double = 0
@@ -135,19 +140,21 @@ struct CanvasView: View {
                                                    excluding: Set(gesture.dragOriginals.keys))
                     gesture.snapX = lines.x
                     gesture.snapY = lines.y
+                    gesture.dragUnion = Geometry.union(
+                        store.selectedElements.filter { !$0.locked }.map(Geometry.aabb))
                 }
                 var dx = value.location.x - value.startLocation.x
                 var dy = value.location.y - value.startLocation.y
 
                 // Snap the union of moved boxes against page + siblings.
-                let boxes: [CGRect] = gesture.dragOriginals.compactMap { id, origin in
-                    guard var moved = store.element(id) else { return nil }
-                    moved.x = origin.x + dx
-                    moved.y = origin.y + dy
-                    return Geometry.aabb(moved)
-                }
-                if !boxes.isEmpty {
-                    let snap = Geometry.snap(box: Geometry.union(boxes),
+                // Translating the grab-time union is exact, not an
+                // approximation: rotation happens about each element's own
+                // centre, which moves with it, so translating an element
+                // translates its bounding box, and the union of translated
+                // boxes is the translated union.
+                if !gesture.dragUnion.isEmpty {
+                    let moved = gesture.dragUnion.offsetBy(dx: dx, dy: dy)
+                    let snap = Geometry.snap(box: moved,
                                              xLines: gesture.snapX, yLines: gesture.snapY,
                                              threshold: 6 / store.zoom)
                     dx += snap.dx

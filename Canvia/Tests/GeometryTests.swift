@@ -114,6 +114,64 @@ final class GeometryTests: XCTestCase {
 
 /// Store behaviour that is easy to regress: one gesture is one undo step,
 /// and copies must never stay welded to the source's group.
+/// The identity the drag path relies on: it computes the union of the dragged
+/// elements' bounding boxes once, at grab time, and merely translates it on
+/// each touch move rather than looking every element up and re-deriving its
+/// box. That is only sound if translating an element translates its AABB
+/// exactly — including when the element is rotated.
+final class DragUnionTests: XCTestCase {
+
+    private func element(x: Double, y: Double, w: Double = 120, h: Double = 80,
+                         rotation: Double = 0) -> Element {
+        var el = Element.shape("rect", w: w, h: h)
+        el.x = x; el.y = y; el.rotation = rotation
+        return el
+    }
+
+    func testTranslatingARotatedElementTranslatesItsAABB() {
+        for rotation in [0.0, 23, 45, 90, 137, 250, 359] {
+            let start = element(x: 100, y: 150, rotation: rotation)
+            var moved = start
+            moved.x += 37
+            moved.y -= 61
+
+            let translated = Geometry.aabb(start).offsetBy(dx: 37, dy: -61)
+            let recomputed = Geometry.aabb(moved)
+
+            XCTAssertEqual(translated.minX, recomputed.minX, accuracy: 0.0001,
+                           "AABB drifted at \(rotation) degrees")
+            XCTAssertEqual(translated.minY, recomputed.minY, accuracy: 0.0001)
+            XCTAssertEqual(translated.width, recomputed.width, accuracy: 0.0001)
+            XCTAssertEqual(translated.height, recomputed.height, accuracy: 0.0001)
+        }
+    }
+
+    /// And that the union of translated boxes equals the translated union, so
+    /// the shortcut holds for a multi-element drag too.
+    func testUnionOfTranslatedBoxesEqualsTranslatedUnion() {
+        let elements = [
+            element(x: 0, y: 0, rotation: 0),
+            element(x: 300, y: 90, w: 60, h: 200, rotation: 31),
+            element(x: -80, y: 240, w: 150, h: 40, rotation: 300),
+        ]
+        let dx = 44.0, dy = 19.0
+
+        let translatedUnion = Geometry.union(elements.map(Geometry.aabb))
+            .offsetBy(dx: dx, dy: dy)
+        let unionOfTranslated = Geometry.union(elements.map { el -> CGRect in
+            var moved = el
+            moved.x += dx
+            moved.y += dy
+            return Geometry.aabb(moved)
+        })
+
+        XCTAssertEqual(translatedUnion.minX, unionOfTranslated.minX, accuracy: 0.0001)
+        XCTAssertEqual(translatedUnion.minY, unionOfTranslated.minY, accuracy: 0.0001)
+        XCTAssertEqual(translatedUnion.width, unionOfTranslated.width, accuracy: 0.0001)
+        XCTAssertEqual(translatedUnion.height, unionOfTranslated.height, accuracy: 0.0001)
+    }
+}
+
 /// The zoom-dependent interaction constants. These regressed once already:
 /// a screen-point threshold was capped in page units, which inverted its
 /// meaning at the fit zoom every design opens at, so a tap moved the element.
