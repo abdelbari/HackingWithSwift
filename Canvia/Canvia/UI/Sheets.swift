@@ -45,7 +45,6 @@ struct ColorPickerSheet: View {
                             ForEach(ContentLibrary.gradients) { preset in
                                 Button {
                                     onPickGradient(preset.paint)
-                                    dismiss()
                                 } label: {
                                     RoundedRectangle(cornerRadius: 9)
                                         .fill(gradientFill(preset))
@@ -70,6 +69,7 @@ struct ColorPickerSheet: View {
             }
         }
         .presentationDetents(sheetDetents)
+        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
         // Continuous picking runs through transient updates; record the whole
         // session as one undo step however the sheet closes.
         .onDisappear {
@@ -90,8 +90,10 @@ struct ColorPickerSheet: View {
             LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(colors, id: \.self) { hex in
                     Button {
+                        // Stay open. Comparing three colours used to mean
+                        // three open/scroll/tap/dismiss cycles; Done is right
+                        // there in the toolbar when the choice is made.
                         onPick(hex)
-                        dismiss()
                     } label: {
                         RoundedRectangle(cornerRadius: 9)
                             .fill(Color(hex: hex))
@@ -174,6 +176,7 @@ struct BackgroundSheet: View {
             }
         }
         .presentationDetents(sheetDetents)
+        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
     }
 }
 
@@ -221,6 +224,7 @@ struct FontSheet: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .presentationDetents(sheetDetents)
+        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
     }
 }
 
@@ -263,6 +267,7 @@ struct EffectsSheet: View {
             }
         }
         .presentationDetents([.medium])
+        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
     }
 
     private func effectPreview(_ effect: TextEffect) -> some View {
@@ -304,6 +309,7 @@ struct SpacingSheet: View {
             }
         }
         .presentationDetents([.medium])
+        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
         .onDisappear {
             if store.hasPendingChanges { store.commit() }
         }
@@ -358,6 +364,7 @@ struct FiltersSheet: View {
             }
         }
         .presentationDetents([.medium])
+        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
     }
 
     private func filterPreview(_ preset: ImageFilterPreset) -> some View {
@@ -413,6 +420,7 @@ struct CropSheet: View {
             }
         }
         .presentationDetents([.medium])
+        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
         .onDisappear {
             if store.hasPendingChanges { store.commit() }
         }
@@ -498,6 +506,7 @@ struct PositionSheet: View {
             }
         }
         .presentationDetents(sheetDetents)
+        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
     }
 
     private func orderButton(_ label: String, _ system: String, action: @escaping () -> Void) -> some View {
@@ -573,6 +582,7 @@ struct LayersSheet: View {
             }
         }
         .presentationDetents(sheetDetents)
+        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
     }
 
     private func layerName(_ el: Element) -> String {
@@ -663,5 +673,6 @@ struct ResizeSheet: View {
             }
         }
         .presentationDetents(sheetDetents)
+        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
     }
 }

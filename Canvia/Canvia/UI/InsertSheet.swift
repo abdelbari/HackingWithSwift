@@ -45,6 +45,7 @@ struct InsertSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
         .onAppear {
             // Replacing? Go straight to the picture sources.
             if isReplacing { tab = "Photos" }
