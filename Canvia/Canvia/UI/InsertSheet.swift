@@ -61,14 +61,22 @@ struct InsertSheet: View {
             // finishes — the pick should still replace, not insert a stray.
             let target = store.replaceTargetId
             Task {
-                if let data = try? await item.loadTransferable(type: Data.self),
-                   let image = UIImage(data: data),
-                   let src = MediaStore.store(image) {
-                    await MainActor.run {
-                        insertImage(src, natural: image.size, replacing: target)
-                        dismiss()
-                    }
-                }
+                guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+                // Decoding, scaling, re-encoding and the file write all happen
+                // off the main actor. Previously this ran in a Task inheriting
+                // main-actor isolation — the `await MainActor.run` that used to
+                // sit here was doing nothing, because the work above it was
+                // already on the main actor and had blocked it for the whole
+                // decode of a full-resolution camera photo.
+                let stored = await Task.detached(priority: .userInitiated) {
+                    () -> (src: String, natural: CGSize)? in
+                    guard let prepared = ImageDownsampler.prepare(data),
+                          let src = MediaStore.store(prepared) else { return nil }
+                    return (src, prepared.natural)
+                }.value
+                guard let stored else { return }
+                insertImage(stored.src, natural: stored.natural, replacing: target)
+                dismiss()
             }
         }
     }

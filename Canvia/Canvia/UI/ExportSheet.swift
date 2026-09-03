@@ -1,10 +1,10 @@
-// Export sheet: PNG / JPEG at 1-3x and multi-page PDF, rendered with
-// ImageRenderer from the same PageRenderView the canvas uses, shared via
-// the system share sheet.
+// Export sheet: the chooser. PNG / JPEG at 1-3x and multi-page PDF, all
+// rendered from the same PageRenderView the canvas uses and handed to the
+// system share sheet. The rendering and encoding themselves live in
+// DesignExporter.
 
 import SwiftUI
 import UIKit
-import UniformTypeIdentifiers
 
 struct ExportSheet: View {
     @Bindable var store: DesignStore
@@ -17,24 +17,32 @@ struct ExportSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Quality") {
+                Section {
                     Picker("Scale", selection: $scale) {
                         Text("1×").tag(1)
                         Text("2×").tag(2)
                         Text("3×").tag(3)
                     }
                     .pickerStyle(.segmented)
+                } header: {
+                    Text("Quality")
+                } footer: {
+                    // "2×" means nothing on its own; the pixel count is the
+                    // thing people actually need to match a platform's
+                    // requirements. It also gives the size cap somewhere
+                    // honest to appear rather than silently under-delivering.
+                    Text(sizeNote)
                 }
                 Section("Format") {
                     exportButton("PNG", subtitle: "Current page, best for sharing", icon: "photo") {
-                        try exportRaster(format: .png)
+                        try export(.png)
                     }
                     exportButton("JPEG", subtitle: "Current page, smaller file", icon: "photo.fill") {
-                        try exportRaster(format: .jpeg)
+                        try export(.jpeg)
                     }
                     exportButton("PDF", subtitle: store.design.pages.count > 1
-                                 ? "All \(store.design.pages.count) pages"
-                                 : "Print-ready document", icon: "doc.richtext") {
+                                 ? "All \(store.design.pages.count) pages, vector"
+                                 : "Print-ready document, vector", icon: "doc.richtext") {
                         try exportPDF()
                     }
                 }
@@ -58,8 +66,6 @@ struct ExportSheet: View {
         }
         .presentationDetents([.medium])
     }
-
-    private enum RasterFormat { case png, jpeg }
 
     private func exportButton(_ title: String, subtitle: String, icon: String,
                               action: @escaping @MainActor () throws -> Void) -> some View {
@@ -85,79 +91,26 @@ struct ExportSheet: View {
         .disabled(exporting)
     }
 
-    @MainActor
-    private func renderPage(_ page: Page) throws -> UIImage {
-        let renderer = ImageRenderer(content: PageRenderView(design: store.design, page: page))
-        renderer.scale = CGFloat(scale)
-        renderer.isOpaque = true
-        guard let image = renderer.uiImage else {
-            throw ExportError.renderFailed
-        }
-        return image
+    private var sizeNote: String {
+        let size = DesignExporter.outputSize(design: store.design, requested: scale)
+        let dims = "\(Int(size.width)) × \(Int(size.height)) px"
+        guard DesignExporter.isClamped(design: store.design, requested: scale) else { return dims }
+        return dims + " — reduced from \(scale)× so the render fits in memory."
     }
 
     @MainActor
-    private func exportRaster(format: RasterFormat) throws {
-        let image = try renderPage(store.page)
-        let data: Data?
-        let ext: String
-        switch format {
-        case .png: data = image.pngData(); ext = "png"
-        case .jpeg: data = image.jpegData(compressionQuality: 0.92); ext = "jpg"
-        }
-        guard let data else { throw ExportError.encodeFailed }
-        let url = tempURL(ext: ext)
-        try data.write(to: url)
+    private func export(_ format: DesignExporter.RasterFormat) throws {
+        let url = DesignExporter.fileURL(for: store.design, ext: format.ext)
+        try DesignExporter.exportRaster(design: store.design, page: store.page,
+                                        format: format, scale: scale, to: url)
         exportedURL = url
     }
 
     @MainActor
     private func exportPDF() throws {
-        let pxToPt = 72.0 / 96.0
-        let bounds = CGRect(x: 0, y: 0,
-                            width: store.design.width * pxToPt,
-                            height: store.design.height * pxToPt)
-        let renderer = UIGraphicsPDFRenderer(bounds: bounds)
-        var failure: Error?
-        // Render each page inside the loop so only ONE page bitmap is alive
-        // at a time. Pre-rendering them all would hold, for a ten-page poster
-        // at 3x, well over a gigabyte of pixels at once.
-        let data = renderer.pdfData { ctx in
-            for page in store.design.pages {
-                ctx.beginPage()
-                autoreleasepool {
-                    if let image = try? renderPage(page) {
-                        image.draw(in: bounds)
-                    } else if failure == nil {
-                        failure = ExportError.renderFailed
-                    }
-                }
-            }
-        }
-        if let failure { throw failure }
-        let url = tempURL(ext: "pdf")
-        try data.write(to: url)
+        let url = DesignExporter.fileURL(for: store.design, ext: "pdf")
+        try DesignExporter.exportPDF(design: store.design, to: url)
         exportedURL = url
-    }
-
-    private func tempURL(ext: String) -> URL {
-        let name = store.design.title
-            .replacingOccurrences(of: "[^\\w\\d-_ ]", with: "", options: .regularExpression)
-            .trimmingCharacters(in: .whitespaces)
-            .replacingOccurrences(of: " ", with: "-")
-        let base = name.isEmpty ? "design" : name
-        return FileManager.default.temporaryDirectory
-            .appendingPathComponent("\(base).\(ext)")
-    }
-
-    private enum ExportError: LocalizedError {
-        case renderFailed, encodeFailed
-        var errorDescription: String? {
-            switch self {
-            case .renderFailed: return "could not render the page"
-            case .encodeFailed: return "could not encode the image"
-            }
-        }
     }
 }
 

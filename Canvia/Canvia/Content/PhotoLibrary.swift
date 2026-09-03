@@ -368,15 +368,20 @@ enum MediaStore {
         return dir
     }
 
-    /// Store a picked image (downscaled) and return its "media:<id>" src.
-    static func store(_ image: UIImage) -> String? {
+    /// Store a picked photo and return its "media:<id>" src.
+    ///
+    /// Takes bytes that are already at the size we keep. Scaling used to
+    /// happen here, from a UIImage the caller had fully decoded — see
+    /// ImageDownsampler for what that cost. Nothing about this function is
+    /// main-actor bound, so callers should run it off the main actor.
+    static func store(_ prepared: ImageDownsampler.Prepared) -> String? {
         let id = UID.make("img")
-        let scaled = downscale(image, maxEdge: 1600)
-        guard let data = scaled.jpegData(compressionQuality: 0.85) else { return nil }
         let url = directory.appendingPathComponent("\(id).jpg")
         do {
-            try data.write(to: url)
-            memory.setObject(scaled, forKey: id as NSString)
+            try prepared.jpeg.write(to: url)
+            // NSCache is thread-safe, so seeding it from a background task is
+            // fine and saves the first draw a round trip to disk.
+            memory.setObject(prepared.image, forKey: id as NSString)
             return "media:\(id)"
         } catch {
             return nil
@@ -389,17 +394,5 @@ enum MediaStore {
         guard let data = try? Data(contentsOf: url), let img = UIImage(data: data) else { return nil }
         memory.setObject(img, forKey: id as NSString)
         return img
-    }
-
-    private static func downscale(_ image: UIImage, maxEdge: CGFloat) -> UIImage {
-        let longest = max(image.size.width, image.size.height)
-        guard longest > maxEdge else { return image }
-        let scale = maxEdge / longest
-        let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        return UIGraphicsImageRenderer(size: newSize, format: format).image { _ in
-            image.draw(in: CGRect(origin: .zero, size: newSize))
-        }
     }
 }
