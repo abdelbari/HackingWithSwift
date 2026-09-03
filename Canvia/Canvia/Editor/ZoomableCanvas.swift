@@ -90,6 +90,11 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         let coordinator = context.coordinator
         coordinator.parent = self
         coordinator.host.rootView = content()
+        // Fitting below drives the scroll view, which calls back into
+        // scrollViewDidZoom, which writes the zoom binding — a SwiftUI state
+        // write in the middle of a SwiftUI update. See publishZoom.
+        coordinator.isUpdating = true
+        defer { coordinator.isUpdating = false }
 
         if coordinator.contentSize != contentSize {
             coordinator.contentSize = contentSize
@@ -119,6 +124,9 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         var contentSize: CGSize = .zero
         var fitToken: String = ""
         var needsFit = true
+        /// True while updateUIView is running, so zoom changes it causes are
+        /// published after the update rather than inside it.
+        var isUpdating = false
         private var panOrigin: CGPoint = .zero
 
         init(_ parent: ZoomableCanvas) {
@@ -136,8 +144,27 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             centerContent()
             // Writing through the binding on every frame of a pinch is what
             // keeps the selection handles the right size while zooming.
-            let scale = Double(scrollView.zoomScale)
-            if abs(parent.zoom - scale) > 0.0001 { parent.zoom = scale }
+            publishZoom(Double(scrollView.zoomScale))
+        }
+
+        /// Mirror the scroll view's scale outward.
+        ///
+        /// Deferred when the change came from updateUIView — fitting a new
+        /// document drives the scroll view, which calls back here, which would
+        /// otherwise mutate SwiftUI state in the middle of a SwiftUI update.
+        /// The fit itself stays synchronous: doing it a runloop later would
+        /// show one frame of the page's top-left corner filling the screen
+        /// before it snapped into place, on every design opened.
+        private func publishZoom(_ scale: Double) {
+            guard abs(parent.zoom - scale) > 0.0001 else { return }
+            guard isUpdating else {
+                parent.zoom = scale
+                return
+            }
+            DispatchQueue.main.async { [weak self] in
+                guard let self, abs(self.parent.zoom - scale) > 0.0001 else { return }
+                self.parent.zoom = scale
+            }
         }
 
         /// A page smaller than the viewport sits in the middle rather than
@@ -173,7 +200,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
                 CGPoint(x: (scaled.width - scroll.bounds.width) / 2 - scroll.contentInset.left,
                         y: (scaled.height - scroll.bounds.height) / 2 - scroll.contentInset.top),
                 animated: animated)
-            parent.zoom = Double(fit)
+            publishZoom(Double(fit))
         }
 
         // MARK: gestures
@@ -219,9 +246,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         /// SwiftUI gestures inside keep working untouched.
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                                shouldReceive touch: UITouch) -> Bool {
-            guard let scroll = scrollView else { return true }
-            let point = touch.location(in: host.view)
-            return !host.view.bounds.contains(point) || scroll.zoomScale <= 0
+            !host.view.bounds.contains(touch.location(in: host.view))
         }
     }
 }
