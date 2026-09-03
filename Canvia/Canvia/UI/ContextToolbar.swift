@@ -3,6 +3,28 @@
 
 import SwiftUI
 
+/// `.plain` removes SwiftUI's default press dimming, so every control in this
+/// bar acknowledged a tap with nothing at all. This restores that and enforces
+/// Apple's 44pt minimum target, which none of the three helpers below met:
+/// the toggle was 32x32, the colour chip 26x26, and the tool button had no
+/// frame at all — a 17pt glyph over a 9.5pt label, about 32pt tall.
+private struct ToolButtonStyle: ButtonStyle {
+    var minWidth: Double = Touch.minTarget
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .frame(minWidth: minWidth, minHeight: Touch.minTarget)
+            .contentShape(Rectangle())
+            .opacity(configuration.isPressed ? 0.45 : 1)
+            .scaleEffect(configuration.isPressed ? 0.92 : 1)
+            .animation(.spring(response: 0.22, dampingFraction: 0.7),
+                       value: configuration.isPressed)
+            .sensoryFeedback(trigger: configuration.isPressed) { _, pressed in
+                pressed ? .impact(weight: .light) : nil
+            }
+    }
+}
+
 struct ContextToolbar: View {
     @Bindable var store: DesignStore
     @Binding var activeSheet: EditorSheet?
@@ -174,7 +196,7 @@ struct ContextToolbar: View {
                 Text(label).font(.system(size: 9.5))
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ToolButtonStyle())
     }
 
     private func toggle(_ system: String, active: Bool, action: @escaping () -> Void) -> some View {
@@ -186,7 +208,7 @@ struct ContextToolbar: View {
                     .fill(active ? Color(hex: "#f1e8ff") : Color.clear))
                 .foregroundStyle(active ? Color(hex: "#7300e6") : Color.primary)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ToolButtonStyle())
     }
 
     private func colorChip(_ hex: String, _ label: String, action: @escaping () -> Void) -> some View {
@@ -199,7 +221,7 @@ struct ContextToolbar: View {
                 Text(label).font(.system(size: 9.5))
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ToolButtonStyle())
     }
 
     private func sliderControl(_ label: String, value: Double, in range: ClosedRange<Double>,

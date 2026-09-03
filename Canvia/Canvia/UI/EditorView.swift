@@ -28,11 +28,24 @@ struct EditorView: View {
                 insertButton
                     .padding(18)
             }
-            if !store.selection.isEmpty {
-                ContextToolbar(store: store, activeSheet: $activeSheet)
-            }
+            // Always rendered, never inserted. Adding and removing this from
+            // the stack resized the canvas on every selection — and by a
+            // different amount for a text selection than a shape one, so the
+            // page jumped under your finger at the exact moment you were
+            // trying to look at it.
+            ContextToolbar(store: store, activeSheet: $activeSheet)
+                .frame(height: store.selection.isEmpty ? 0 : nil)
+                .opacity(store.selection.isEmpty ? 0 : 1)
+                .clipped()
+                .allowsHitTesting(!store.selection.isEmpty)
             PagesBar(store: store)
         }
+        .animation(.spring(response: 0.30, dampingFraction: 0.86),
+                   value: store.selection.isEmpty)
+        // The whole point of a design tool is that it answers your hands.
+        .sensoryFeedback(.selection, trigger: store.selection)
+        .sensoryFeedback(.alignment, trigger: SnapSignal(x: store.guideX, y: store.guideY))
+        .sensoryFeedback(.impact(weight: .heavy), trigger: store.page.elements.count)
         .background(Color(hex: "#ebecf0"))
         .sheet(item: $activeSheet) { sheet in
             sheetView(sheet)
