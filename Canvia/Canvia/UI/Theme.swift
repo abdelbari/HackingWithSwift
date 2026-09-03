@@ -59,6 +59,12 @@ enum Theme {
     // MARK: content
 
     static let ink = dynamic(light: "#16181d", dark: "#f2f3f5")
+    /// For text drawn on the page rather than on app chrome. Fixed in both
+    /// appearances because the page has its own background: an appearance-
+    /// aware neutral would go pale-on-white the moment the app was in dark
+    /// mode. This grey clears 4.5:1 against white and 3.9:1 against a
+    /// near-black page, which is the range a page background can span.
+    static let onPage = Color(hex: "#6b7280")
     static let inkSecondary = dynamic(light: "#5f6b7a", dark: "#9aa4b2")
 
     // MARK: type

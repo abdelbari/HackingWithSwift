@@ -85,6 +85,10 @@ struct CanvasView: View {
                     store.select(nil)
                 }
 
+            if store.page.elements.isEmpty {
+                emptyPageHint
+            }
+
             // Hit layer: one transparent overlay per element for taps/drags.
             ForEach(store.page.elements) { el in
                 elementHitArea(el)
@@ -100,6 +104,27 @@ struct CanvasView: View {
                 inlineTextEditor(el)
             }
         }
+    }
+
+    /// What a blank page said before this was: nothing. A white square and a
+    /// round button in the corner, with no indication that the button is where
+    /// everything comes from.
+    ///
+    /// Drawn here rather than in PageRenderView on purpose — PageRenderView is
+    /// what thumbnails and exports render, and a hint that shipped inside an
+    /// exported PNG would be worse than no hint at all.
+    private var emptyPageHint: some View {
+        VStack(spacing: 10 * iz) {
+            Image(systemName: "plus.circle")
+                .font(.system(size: 34 * iz, weight: .light))
+            Text("Tap + to add text, photos,\nshapes and QR codes")
+                .font(.system(size: 15 * iz, weight: .medium))
+                .multilineTextAlignment(.center)
+        }
+        .foregroundStyle(Theme.onPage)
+        .position(x: store.design.width / 2, y: store.design.height / 2)
+        .allowsHitTesting(false)
+        .transition(.opacity)
     }
 
     private func elementHitArea(_ el: Element) -> some View {

@@ -125,6 +125,23 @@ final class ThemeTests: XCTestCase {
         XCTAssertEqual(hex(asset, dark), hex(Theme.accent, dark))
     }
 
+    /// Drawn on the page, which is the user's document and can be any colour
+    /// at all — so this one is checked against the extremes rather than
+    /// against a token: white paper at one end, a near-black background at
+    /// the other.
+    func testOnPageInkReadsAgainstAnyPageBackground() {
+        for traits in [light, dark] {
+            XCTAssertGreaterThanOrEqual(contrast(Theme.onPage, on: .white, traits), 4.5)
+            XCTAssertGreaterThanOrEqual(contrast(Theme.onPage, on: Color(hex: "#0d1216"), traits), 3)
+        }
+    }
+
+    /// It is fixed on purpose: resolving per appearance would make it pale on
+    /// white paper the moment the app itself was in dark mode.
+    func testOnPageInkDoesNotFollowTheAppearance() {
+        XCTAssertEqual(hex(Theme.onPage, light), hex(Theme.onPage, dark))
+    }
+
     // MARK: surfaces
 
     /// Chrome has to read as a distinct plane from the workspace behind it,
