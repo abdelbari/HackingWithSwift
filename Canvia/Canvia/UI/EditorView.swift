@@ -40,6 +40,7 @@ struct EditorView: View {
                 .allowsHitTesting(!store.selection.isEmpty)
             PagesBar(store: store)
         }
+        .background(keyboardCommands)
         .animation(.spring(response: 0.30, dampingFraction: 0.86),
                    value: store.selection.isEmpty)
         // The whole point of a design tool is that it answers your hands.
@@ -59,6 +60,38 @@ struct EditorView: View {
     }
 
     // MARK: top bar
+
+    /// Hardware-keyboard shortcuts. Every operation here already existed on
+    /// the store and was reachable only by tapping — which on an iPad with a
+    /// Magic Keyboard makes a design tool feel like a toy. Zero-sized buttons
+    /// in a background layer is the standard way to register shortcuts
+    /// without drawing anything.
+    ///
+    /// Deliberately not bound: plain Delete. The inline text editor is a
+    /// TextField, and a shortcut with no modifier would swallow backspace
+    /// while typing.
+    private var keyboardCommands: some View {
+        Group {
+            shortcut("z", [.command]) { store.undo() }
+            shortcut("z", [.command, .shift]) { store.redo() }
+            shortcut("c", [.command]) { store.copySelected() }
+            shortcut("x", [.command]) { store.cutSelected() }
+            shortcut("v", [.command]) { store.paste() }
+            shortcut("d", [.command]) { store.duplicateSelected() }
+            shortcut("a", [.command]) { store.selectAll() }
+            shortcut(.delete, [.command]) { store.deleteSelected() }
+            shortcut(.escape, []) { store.select(nil) }
+        }
+        .opacity(0)
+        .frame(width: 0, height: 0)
+        .accessibilityHidden(true)
+    }
+
+    private func shortcut(_ key: KeyEquivalent, _ modifiers: EventModifiers,
+                          action: @escaping () -> Void) -> some View {
+        Button("", action: action)
+            .keyboardShortcut(key, modifiers: modifiers)
+    }
 
     private var topBar: some View {
         HStack(spacing: 10) {
