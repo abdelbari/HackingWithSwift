@@ -38,7 +38,7 @@ struct PagesBar: View {
             .padding(.trailing, 12)
         }
         .frame(height: 72)
-        .background(.background)
+        .background(Theme.chrome)
         .overlay(alignment: .top) { Divider() }
     }
 

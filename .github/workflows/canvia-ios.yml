@@ -164,9 +164,30 @@ jobs:
             exit 1
           fi
 
-          xcrun simctl io "$DEVICE" screenshot home.png
-          sips -Z 200 -s format jpeg -s formatOptions 35 home.png --out home-small.jpg >/dev/null
-          ls -l home.png home-small.jpg
+          # Three shots, because the two things hardest to review from source
+          # are how a screen is composed and whether dark mode holds up. The
+          # editor one needs the app opened onto a design: -canviaOpenTemplate
+          # is a DEBUG-only launch argument that does exactly that (see
+          # CanviaApp), so the tour needs no UI-test target.
+          shoot() {   # shoot <name>
+            xcrun simctl io "$DEVICE" screenshot "$1.png"
+            sips -Z 380 -s format jpeg -s formatOptions 40 "$1.png" \
+              --out "$1-small.jpg" >/dev/null
+          }
+
+          shoot home-light
+
+          xcrun simctl ui "$DEVICE" appearance dark
+          sleep 3
+          shoot home-dark
+          xcrun simctl ui "$DEVICE" appearance light
+
+          xcrun simctl terminate "$DEVICE" com.canvia.app || true
+          xcrun simctl launch "$DEVICE" com.canvia.app -canviaOpenTemplate 0
+          sleep 12
+          shoot editor-light
+
+          ls -l *-small.jpg
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -174,7 +195,9 @@ jobs:
           name: canvia-${{ matrix.name }}
           path: |
             build.log
-            home.png
+            home-light.png
+            home-dark.png
+            editor-light.png
           if-no-files-found: warn
 
       # Last step on purpose. The job log is only readable from the tail, so
@@ -186,7 +209,9 @@ jobs:
         run: |
           echo "===== TESTS (${{ matrix.name }}, iOS ${{ matrix.ios }}) ====="
           cat tests.txt 2>/dev/null || echo "(no test summary captured)"
-          [ -f home-small.jpg ] || exit 0
-          echo "===SHOT_START=== ${{ matrix.name }} iOS ${{ matrix.ios }} ${{ matrix.device }}"
-          base64 -i home-small.jpg | fold -w 200
-          echo "===SHOT_END==="
+          for shot in home-light home-dark editor-light; do
+            [ -f "$shot-small.jpg" ] || continue
+            echo "===SHOT_START=== $shot ${{ matrix.name }} iOS ${{ matrix.ios }} ${{ matrix.device }}"
+            base64 -i "$shot-small.jpg" | fold -w 200
+            echo "===SHOT_END==="
+          done

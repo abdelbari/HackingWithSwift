@@ -164,7 +164,7 @@ struct EditorView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(.background)
+        .background(Theme.chrome)
         .overlay(alignment: .bottom) { Divider() }
     }
 

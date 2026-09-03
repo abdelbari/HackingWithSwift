@@ -117,14 +117,14 @@ struct SelectionOverlay: View {
     private var guides: some View {
         if let x = store.guideX {
             Rectangle()
-                .fill(Color(hex: "#ff2fa0"))
+                .fill(Theme.guide)
                 .frame(width: 1.5 * iz, height: store.design.height * 2)
                 .position(x: x, y: store.design.height / 2)
                 .allowsHitTesting(false)
         }
         if let y = store.guideY {
             Rectangle()
-                .fill(Color(hex: "#ff2fa0"))
+                .fill(Theme.guide)
                 .frame(width: store.design.width * 2, height: 1.5 * iz)
                 .position(x: store.design.width / 2, y: y)
                 .allowsHitTesting(false)

@@ -11,6 +11,27 @@ struct CanviaApp: App {
         // Launch is the one moment no editor can be holding freshly added
         // media that hasn't been saved yet, so it's the safe time to sweep.
         DesignLibrary.pruneUnusedMedia()
+        _editingStore = State(initialValue: Self.storeForLaunchArguments())
+    }
+
+    /// `-canviaOpenTemplate <n>` opens straight into the editor on template n.
+    ///
+    /// This exists so CI can photograph the editor, not only the home screen:
+    /// the two things hardest to review from source are how a screen is
+    /// composed and whether dark mode holds up, and neither is visible in a
+    /// screenshot of the launch screen. Debug-only, and driven by a launch
+    /// argument, so it is not reachable in a shipped build at all.
+    private static func storeForLaunchArguments() -> DesignStore? {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.firstIndex(of: "-canviaOpenTemplate"),
+              arguments.index(after: flag) < arguments.endIndex,
+              let index = Int(arguments[arguments.index(after: flag)]),
+              ContentLibrary.templates.indices.contains(index) else { return nil }
+        return DesignStore(design: ContentLibrary.templates[index].instantiate())
+        #else
+        return nil
+        #endif
     }
 
     var body: some Scene {

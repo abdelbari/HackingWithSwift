@@ -29,7 +29,9 @@ struct HomeView: View {
             }
             .padding(.bottom, 40)
         }
-        .background(Color(hex: "#fafbfc"))
+        // Was a hardcoded near-white, which in dark mode left primary-coloured
+        // text — white by then — on an almost white page.
+        .background(Theme.workspace)
         .onAppear { recents = DesignLibrary.recents() }
         .alert("Rename design", isPresented: Binding(
             get: { renaming != nil },
@@ -53,12 +55,12 @@ struct HomeView: View {
     private var hero: some View {
         VStack(spacing: 18) {
             Text("Canvia")
-                .font(.system(size: 30, weight: .heavy))
+                .font(.largeTitle.weight(.heavy))
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             Text("What will you design today?")
-                .font(.system(size: 24, weight: .bold))
+                .font(.title2.weight(.bold))
                 .foregroundStyle(.white)
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -70,16 +72,21 @@ struct HomeView: View {
                         } label: {
                             VStack(spacing: 8) {
                                 Image(systemName: preset.icon)
-                                    .font(.system(size: 22))
+                                    .font(.title2)
                                 Text(preset.name)
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(.caption.weight(.bold))
                                     .multilineTextAlignment(.center)
                                 Text("\(Int(preset.w)) × \(Int(preset.h))")
-                                    .font(.system(size: 9.5))
+                                    .font(.caption2)
                                     .opacity(0.85)
                             }
                             .foregroundStyle(.white)
-                            .frame(width: 108, height: 104)
+                            // Relative styles above, so the tile has to grow
+                            // with them: a fixed 104pt box clipped the size
+                            // label off at the larger accessibility sizes.
+                            .frame(width: 108)
+                            .frame(minHeight: 104)
+                            .padding(.vertical, 8)
                             .background(RoundedRectangle(cornerRadius: 14)
                                 .fill(.white.opacity(0.16))
                                 .overlay(RoundedRectangle(cornerRadius: 14)
@@ -113,13 +120,7 @@ struct HomeView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity)
-        .background(
-            // Was Canva's own teal -> purple -> pink over their brand purple.
-            // A tighter indigo-to-violet ramp reads as one deliberate colour
-            // rather than a rainbow, and belongs to this app.
-            LinearGradient(colors: [Theme.accent, Color(hex: "#7b4dff"), Color(hex: "#3d1fa8")],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
-        )
+        .background(Theme.heroGradient)
         .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 26, bottomTrailingRadius: 26))
     }
 
@@ -148,15 +149,15 @@ struct HomeView: View {
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text(recent.title)
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.subheadline.weight(.semibold))
                                 .lineLimit(1)
                             Text("\(Int(recent.width)) × \(Int(recent.height)) · \(recent.pages) page\(recent.pages > 1 ? "s" : "")")
-                                .font(.system(size: 11))
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                         .padding(10)
                     }
-                    .background(.background)
+                    .background(Theme.card)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .shadow(color: .black.opacity(0.08), radius: 5, y: 2)
                 }
@@ -202,15 +203,15 @@ struct HomeView: View {
                             .clipped()
                         VStack(alignment: .leading, spacing: 2) {
                             Text(template.name)
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.subheadline.weight(.semibold))
                             Text("\(template.category) · \(Int(template.width)) × \(Int(template.height))")
-                                .font(.system(size: 11))
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                         .padding(10)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .background(.background)
+                    .background(Theme.card)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .shadow(color: .black.opacity(0.08), radius: 5, y: 2)
                 }

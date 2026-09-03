@@ -32,7 +32,16 @@ enum Theme {
     static let accentPressed = dynamic(light: "#4826c9", dark: "#6f4ae0")
     static let accentSubtle = dynamic(light: "#ede7ff", dark: "#241c4a")
     /// Magenta reads clearly against both the accent and any page content.
+    /// Fixed in both appearances: it is drawn over the page, which has its own
+    /// background, so there is no app appearance for it to adapt to.
     static let guide = Color(hex: "#ff2d9e")
+
+    /// The home hero. A tight indigo-to-violet ramp rather than a rainbow, so
+    /// it reads as one deliberate colour; it starts from the accent so the
+    /// brand and the chrome are demonstrably the same purple.
+    static let heroGradient = LinearGradient(
+        colors: [accent, Color(hex: "#7b4dff"), Color(hex: "#3d1fa8")],
+        startPoint: .topLeading, endPoint: .bottomTrailing)
 
     // MARK: surfaces
 
