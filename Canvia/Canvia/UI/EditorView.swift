@@ -298,21 +298,35 @@ struct EditorView: View {
         saveTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 900_000_000)
             guard !Task.isCancelled else { return }
-            saveNow()
+            saveDocument()
         }
     }
 
+    /// The debounced path: persist the document, nothing else. This runs
+    /// 900ms after every committed edit, so it must stay cheap.
     @MainActor
-    private func saveNow() {
+    private func saveDocument() {
         // Every explicit save supersedes (and must cancel) the debounced one,
         // or a stale task can resurrect a design deleted after leaving.
         saveTask?.cancel()
         saveTask = nil
         DesignLibrary.save(store.design)
-        // Thumbnail from page 1.
+    }
+
+    /// Document plus a refreshed thumbnail. Only worth doing on the way back
+    /// to the home screen, which is the only place the thumbnail is ever
+    /// shown — and which cannot be on screen while the editor is. Rendering
+    /// it on the debounce meant a full ImageRenderer pass over page one after
+    /// every single edit, for an image nobody could see yet.
+    @MainActor
+    private func saveNow() {
+        saveDocument()
         let design = store.design
         let renderer = ImageRenderer(content: PageRenderView(design: design, page: design.pages[0]))
         renderer.scale = 300 / max(design.width, 1)
+        // The alpha channel is discarded by jpegData when the thumbnail is
+        // written, so compositing it is wasted work.
+        renderer.isOpaque = true
         if let ui = renderer.uiImage {
             DesignLibrary.saveThumbnail(ui, for: design.id)
         }
