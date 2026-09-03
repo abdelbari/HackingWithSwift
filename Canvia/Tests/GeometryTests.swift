@@ -176,8 +176,31 @@ final class FontLibraryCacheTests: XCTestCase {
     }
 
     func testFontRespondsToFamily() {
-        XCTAssertNotEqual(font(text { $0.fontFamily = "didot" })?.familyName,
-                          font(text { $0.fontFamily = "menlo" })?.familyName)
+        // Keys are personality names from FontLibrary.stacks, not font names.
+        // "serif" resolves to Georgia and "mono" to Menlo, both of which ship
+        // with iOS, so this compares two genuinely different families.
+        XCTAssertNotEqual(font(text { $0.fontFamily = "serif" })?.familyName,
+                          font(text { $0.fontFamily = "mono" })?.familyName)
+    }
+
+    /// The behaviour that made the first version of the test above pass
+    /// vacuously: an unrecognised key silently resolves to the default stack,
+    /// so two different-looking-but-invalid families produce the same font.
+    func testUnknownFamilyFallsBackToDefault() {
+        let fallback = font(text { $0.fontFamily = "not-a-real-stack" })?.familyName
+        let sans = font(text { $0.fontFamily = "sans" })?.familyName
+        XCTAssertEqual(fallback, sans)
+    }
+
+    /// Every declared personality must resolve to something usable, so a
+    /// stack naming a font iOS does not ship is caught here rather than
+    /// silently rendering as Helvetica for the user.
+    func testEveryFontStackResolves() {
+        for stack in FontLibrary.stacks {
+            let resolved = font(text { $0.fontFamily = stack.key })
+            XCTAssertNotNil(resolved, "\(stack.key) resolved to nothing")
+            XCTAssertGreaterThan(resolved?.pointSize ?? 0, 0)
+        }
     }
 
     func testColorRespondsToColor() {
