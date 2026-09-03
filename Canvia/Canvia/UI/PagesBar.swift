@@ -62,7 +62,7 @@ struct PagesBar: View {
                 .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(RoundedRectangle(cornerRadius: 8)
-                    .stroke(index == store.pageIndex ? Color(hex: "#8b3dff") : Color(.systemGray4),
+                    .stroke(index == store.pageIndex ? Theme.accent : Color(.systemGray4),
                             lineWidth: index == store.pageIndex ? 2 : 1))
         }
         .buttonStyle(.plain)

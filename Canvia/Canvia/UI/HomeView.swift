@@ -108,13 +108,16 @@ struct HomeView: View {
                     onOpen(Design(title: "Untitled design", width: w, height: h))
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(Color(hex: "#7300e6"))
+                .tint(Theme.accent)
             }
         }
         .padding(20)
         .frame(maxWidth: .infinity)
         .background(
-            LinearGradient(colors: [Color(hex: "#00c4cc"), Color(hex: "#7d2ae8"), Color(hex: "#ff5ca8")],
+            // Was Canva's own teal -> purple -> pink over their brand purple.
+            // A tighter indigo-to-violet ramp reads as one deliberate colour
+            // rather than a rainbow, and belongs to this app.
+            LinearGradient(colors: [Theme.accent, Color(hex: "#7b4dff"), Color(hex: "#3d1fa8")],
                            startPoint: .topLeading, endPoint: .bottomTrailing)
         )
         .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 26, bottomTrailingRadius: 26))

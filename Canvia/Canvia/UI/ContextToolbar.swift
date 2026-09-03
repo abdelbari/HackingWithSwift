@@ -205,8 +205,8 @@ struct ContextToolbar: View {
                 .font(.system(size: 16, weight: .semibold))
                 .frame(width: 32, height: 32)
                 .background(RoundedRectangle(cornerRadius: 8)
-                    .fill(active ? Color(hex: "#f1e8ff") : Color.clear))
-                .foregroundStyle(active ? Color(hex: "#7300e6") : Color.primary)
+                    .fill(active ? Theme.accentSubtle : Color.clear))
+                .foregroundStyle(active ? Theme.accent : Color.primary)
         }
         .buttonStyle(ToolButtonStyle())
     }

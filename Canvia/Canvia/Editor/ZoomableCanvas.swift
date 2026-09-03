@@ -41,7 +41,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     func makeUIView(context: Context) -> UIScrollView {
         let scroll = UIScrollView()
         scroll.delegate = context.coordinator
-        scroll.backgroundColor = UIColor(Color(hex: "#ebecf0"))
+        scroll.backgroundColor = UIColor(Theme.workspace)
         scroll.showsHorizontalScrollIndicator = false
         scroll.showsVerticalScrollIndicator = false
         scroll.alwaysBounceHorizontal = true

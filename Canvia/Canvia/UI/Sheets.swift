@@ -210,7 +210,7 @@ struct FontSheet: View {
                                 .font(FontLibrary.font(family: stack.key, size: 20, weight: 500, italic: false))
                             Spacer()
                             if store.singleSelection?.fontFamily == stack.key {
-                                Image(systemName: "checkmark").foregroundStyle(Color(hex: "#8b3dff"))
+                                Image(systemName: "checkmark").foregroundStyle(Theme.accent)
                             }
                         }
                     }
@@ -249,7 +249,7 @@ struct EffectsSheet: View {
                             .background(RoundedRectangle(cornerRadius: 10)
                                 .fill(Color(.systemGray6))
                                 .overlay(RoundedRectangle(cornerRadius: 10)
-                                    .stroke(active ? Color(hex: "#8b3dff") : .clear, lineWidth: 2)))
+                                    .stroke(active ? Theme.accent : .clear, lineWidth: 2)))
                         }
                         .buttonStyle(.plain)
                     }
@@ -344,7 +344,7 @@ struct FiltersSheet: View {
                             }
                             .padding(6)
                             .background(RoundedRectangle(cornerRadius: 10)
-                                .stroke(active ? Color(hex: "#8b3dff") : .clear, lineWidth: 2))
+                                .stroke(active ? Theme.accent : .clear, lineWidth: 2))
                         }
                         .buttonStyle(.plain)
                     }
@@ -540,7 +540,7 @@ struct LayersSheet: View {
                         Spacer()
                         if el.locked { Image(systemName: "lock.fill").foregroundStyle(.secondary) }
                         if store.selection.contains(el.id) {
-                            Image(systemName: "checkmark").foregroundStyle(Color(hex: "#8b3dff"))
+                            Image(systemName: "checkmark").foregroundStyle(Theme.accent)
                         }
                     }
                     .contentShape(Rectangle())

@@ -252,7 +252,7 @@ struct InsertSheet: View {
                 Label("Add from Photo Library", systemImage: "photo.badge.plus")
                     .frame(maxWidth: .infinity)
                     .padding(10)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Color(hex: "#f1e8ff")))
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
             }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
                 ForEach(filteredPhotos) { photo in

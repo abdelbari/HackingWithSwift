@@ -46,7 +46,7 @@ struct EditorView: View {
         .sensoryFeedback(.selection, trigger: store.selection)
         .sensoryFeedback(.alignment, trigger: SnapSignal(x: store.guideX, y: store.guideY))
         .sensoryFeedback(.impact(weight: .heavy), trigger: store.page.elements.count)
-        .background(Color(hex: "#ebecf0"))
+        .background(Theme.workspace)
         .sheet(item: $activeSheet) { sheet in
             sheetView(sheet)
         }
@@ -176,7 +176,7 @@ struct EditorView: View {
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 54, height: 54)
-                .background(Circle().fill(Color(hex: "#8b3dff")))
+                .background(Circle().fill(Theme.accent))
                 .shadow(color: .black.opacity(0.25), radius: 8, y: 3)
         }
         .accessibilityLabel("Add element")

@@ -29,7 +29,7 @@ struct SelectionOverlay: View {
             if selected.count > 1 {
                 let bounds = Geometry.union(selected.map(Geometry.aabb))
                 Rectangle()
-                    .stroke(Color(hex: "#7c2ae8"),
+                    .stroke(Theme.accent,
                             style: StrokeStyle(lineWidth: 1.5 * iz, dash: [6 * iz, 4 * iz]))
                     .frame(width: bounds.width, height: bounds.height)
                     .position(x: bounds.midX, y: bounds.midY)
@@ -43,7 +43,7 @@ struct SelectionOverlay: View {
 
     private func outline(_ el: Element, lineWidth: Double) -> some View {
         Rectangle()
-            .stroke(Color(hex: "#7c2ae8"), lineWidth: lineWidth * iz)
+            .stroke(Theme.accent, lineWidth: lineWidth * iz)
             .frame(width: el.w, height: el.h)
             .rotationEffect(.degrees(el.rotation))
             .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
@@ -90,7 +90,7 @@ struct SelectionOverlay: View {
             around: el.center, degrees: el.rotation)
         return Image(systemName: "arrow.triangle.2.circlepath")
             .font(.system(size: 13 * iz, weight: .bold))
-            .foregroundStyle(Color(hex: "#5f6b7a"))
+            .foregroundStyle(Theme.inkSecondary)
             .frame(width: 26 * iz, height: 26 * iz)
             .background(Circle().fill(Color.white)
                 .shadow(color: .black.opacity(0.3), radius: 2 * iz, y: 1 * iz))
