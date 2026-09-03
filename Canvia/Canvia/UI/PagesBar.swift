@@ -75,7 +75,9 @@ struct PagesBar: View {
 /// fill a row of 56pt thumbnails.
 ///
 /// `task(id: page)` re-renders exactly when the page's contents change,
-/// because Page is Equatable, so the cache can never go stale.
+/// because Page is Equatable, so the cache can never go stale — but "when
+/// the contents change" includes every frame of a drag, so the render is
+/// debounced below.
 private struct PageThumbnail: View {
     let design: Design
     let page: Page
@@ -89,7 +91,22 @@ private struct PageThumbnail: View {
                 Color.white
             }
         }
-        .task(id: page) { render() }
+        .task(id: page) {
+            // Debounced, because a drag rewrites the page on every frame.
+            // Without the wait, each of those frames started a full
+            // ImageRenderer pass over the whole page — rasterising every
+            // element, re-running CoreText for every text run — to refresh a
+            // 56pt thumbnail nobody is looking at mid-gesture.
+            //
+            // task(id:) cancels the in-flight task whenever the id changes, so
+            // during continuous movement none of them survive the sleep and
+            // exactly one render happens once the page stops changing. Pages
+            // that are not being edited keep the same id throughout, so they
+            // are never re-rendered at all.
+            try? await Task.sleep(for: .milliseconds(180))
+            guard !Task.isCancelled else { return }
+            render()
+        }
     }
 
     @MainActor
