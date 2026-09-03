@@ -1,14 +1,13 @@
-// Interactive canvas: the page rendered in page-pixel coordinates, scaled
-// and offset for zoom/pan, with a gesture layer for select/move and a
-// selection overlay for handles. All gesture math runs in the "page"
-// coordinate space so zoom never affects it.
+// Interactive canvas: the page rendered in page-pixel coordinates, inside a
+// scroll view that owns zoom and pan (see ZoomableCanvas), with a gesture
+// layer for select/move and a selection overlay for handles. All gesture math
+// runs in the "page" coordinate space so zoom never affects it.
 
 import SwiftUI
 
 struct CanvasView: View {
     @Bindable var store: DesignStore
     @State private var gesture = GestureState()
-    @State private var pinchBaseZoom: Double?
     @FocusState private var textFieldFocused: Bool
 
     struct GestureState {
@@ -24,36 +23,24 @@ struct CanvasView: View {
     }
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                Color(hex: "#ebecf0")
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        commitTextEditIfAny()
-                        store.select(nil)
-                    }
-
-                pageContent
-                    .coordinateSpace(name: "page")
-                    .frame(width: store.design.width, height: store.design.height)
-                    .scaleEffect(store.zoom)
-                    .offset(store.canvasOffset)
+        // Zoom and pan live in a UIScrollView rather than in SwiftUI gestures.
+        // See ZoomableCanvas for why: a MagnifyGesture on this stack can never
+        // outrank the per-element DragGestures inside it, which is what made
+        // pinching impossible once elements covered the page.
+        ZoomableCanvas(
+            contentSize: CGSize(width: store.design.width, height: store.design.height),
+            zoom: $store.zoom,
+            fitToken: "\(store.design.id)-\(store.design.width)x\(store.design.height)",
+            onBackgroundTap: {
+                commitTextEditIfAny()
+                store.select(nil)
             }
-            .onAppear { fitToScreen(in: geo.size) }
-            .onChange(of: store.design.id) { fitToScreen(in: geo.size) }
-            .onChange(of: store.design.width) { fitToScreen(in: geo.size) }
-            .onChange(of: store.design.height) { fitToScreen(in: geo.size) }
-            .gesture(
-                MagnifyGesture()
-                    .onChanged { value in
-                        if pinchBaseZoom == nil { pinchBaseZoom = store.zoom }
-                        store.zoom = min(4, max(0.05, (pinchBaseZoom ?? 1) * value.magnification))
-                    }
-                    .onEnded { _ in pinchBaseZoom = nil }
-            )
-            .simultaneousGesture(panGesture)
+        ) {
+            pageContent
+                .coordinateSpace(name: "page")
+                .frame(width: store.design.width, height: store.design.height)
         }
-        .clipped()
+        .ignoresSafeArea(.keyboard)
     }
 
     // MARK: page + overlay
@@ -238,38 +225,6 @@ struct CanvasView: View {
         store.guideX = nil
         store.guideY = nil
         store.badge = nil
-    }
-
-    // MARK: pan
-
-    private var panGesture: some Gesture {
-        DragGesture(minimumDistance: 8)
-            .onChanged { value in
-                // Only pan when the drag started on empty workspace: element
-                // drags run in the named space and consume their events.
-                guard !gesture.dragActive else { panStart = nil; return }
-                // Re-base from the offset at gesture start rather than
-                // accumulating per-frame deltas, so an interrupted or
-                // partially-skipped gesture can't leave the canvas drifting.
-                let base = panStart ?? store.canvasOffset
-                if panStart == nil { panStart = base }
-                store.canvasOffset = CGSize(width: base.width + value.translation.width,
-                                            height: base.height + value.translation.height)
-            }
-            .onEnded { _ in panStart = nil }
-    }
-
-    @State private var panStart: CGSize?
-
-    // MARK: zoom helpers
-
-    func fitToScreen(in size: CGSize) {
-        guard size.width > 0, size.height > 0 else { return }
-        let pad = 48.0
-        store.zoom = min((size.width - pad) / store.design.width,
-                         (size.height - pad) / store.design.height)
-        store.zoom = min(max(store.zoom, 0.05), 2)
-        store.canvasOffset = .zero
     }
 
     // MARK: inline text editing

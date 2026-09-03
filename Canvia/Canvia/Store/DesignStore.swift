@@ -12,8 +12,9 @@ final class DesignStore {
     var pageIndex: Int = 0
     var selection: Set<String> = []
     var editingTextId: String?
+    /// Mirrors the canvas scroll view's zoomScale, so selection handles can
+    /// stay a constant size on screen. The scroll view owns pan entirely.
     var zoom: Double = 1
-    var canvasOffset: CGSize = .zero
 
     // Transient overlay state during gestures.
     var guideX: Double?
