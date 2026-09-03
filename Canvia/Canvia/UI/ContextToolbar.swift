@@ -30,19 +30,56 @@ struct ContextToolbar: View {
     @Binding var activeSheet: EditorSheet?
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 14) {
-                if let el = store.singleSelection {
-                    typeControls(el)
-                    Divider().frame(height: 26)
+        HStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    if let el = store.singleSelection, hasTypeControls(el) {
+                        typeControls(el)
+                        Divider().frame(height: 24).padding(.horizontal, 6)
+                    }
+                    universalControls
                 }
-                universalControls
+                .padding(.leading, 12)
+                .padding(.trailing, 8)
+                .padding(.vertical, 6)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            // Fade the trailing edge so it is visible that the row continues.
+            // A text selection has eleven controls and about six fit on a
+            // 390pt phone, so Effects and Spacing were simply invisible.
+            .mask(LinearGradient(
+                stops: [.init(color: .black, location: 0),
+                        .init(color: .black, location: 0.93),
+                        .init(color: .clear, location: 1)],
+                startPoint: .leading, endPoint: .trailing))
+
+            // Destructive, so it gets a fixed home rather than a position that
+            // depends on how far you happen to have scrolled.
+            Divider().frame(height: 24)
+            deleteButton
+                .padding(.horizontal, 4)
         }
-        .background(.background)
+        .background(Theme.chrome)
         .overlay(alignment: .top) { Divider() }
+    }
+
+    private var deleteButton: some View {
+        Button(role: .destructive) {
+            store.deleteSelected()
+        } label: {
+            VStack(spacing: 3) {
+                Image(systemName: "trash").font(Theme.controlGlyph)
+                Text("Delete").font(Theme.controlLabel)
+            }
+            .foregroundStyle(.red)
+        }
+        .buttonStyle(ToolButtonStyle())
+        .sensoryFeedback(.impact(weight: .medium), trigger: store.selection)
+    }
+
+    /// A sticker selection emits nothing, which would leave a stray leading
+    /// divider with no group in front of it.
+    private func hasTypeControls(_ el: Element) -> Bool {
+        el.type != .sticker
     }
 
     // MARK: per-type
@@ -183,8 +220,6 @@ struct ContextToolbar: View {
         toolButton("plus.square.on.square", "Duplicate") { store.duplicateSelected() }
         toolButton("square.2.layers.3d.top.filled", "Forward") { store.reorderSelected(.forward) }
         toolButton("square.2.layers.3d.bottom.filled", "Backward") { store.reorderSelected(.backward) }
-        toolButton("trash", "Delete") { store.deleteSelected() }
-            .foregroundStyle(.red)
     }
 
     // MARK: helpers
@@ -192,8 +227,8 @@ struct ContextToolbar: View {
     private func toolButton(_ system: String, _ label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 3) {
-                Image(systemName: system).font(.system(size: 17))
-                Text(label).font(.system(size: 9.5))
+                Image(systemName: system).font(Theme.controlGlyph)
+                Text(label).font(Theme.controlLabel)
             }
         }
         .buttonStyle(ToolButtonStyle())
@@ -218,7 +253,7 @@ struct ContextToolbar: View {
                     .fill(Color(hex: hex))
                     .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.black.opacity(0.15)))
                     .frame(width: 26, height: 26)
-                Text(label).font(.system(size: 9.5))
+                Text(label).font(Theme.controlLabel)
             }
         }
         .buttonStyle(ToolButtonStyle())
@@ -238,8 +273,18 @@ struct ContextToolbar: View {
                 if !editing { store.commit() }
             })
             .frame(width: 110)
-            Text(label).font(.system(size: 9.5))
+            Text(readout(label, value))
+                .font(Theme.controlLabel)
+                .monospacedDigit()
+                .contentTransition(.numericText())
         }
+    }
+
+    /// "Round" tells you nothing; "Round 24" is a control.
+    private func readout(_ label: String, _ value: Double) -> String {
+        label == "Opacity"
+            ? "\(label) \(Int((value * 100).rounded()))%"
+            : "\(label) \(Int(value.rounded()))"
     }
 
     private func alignIcon(_ align: String?) -> String {
