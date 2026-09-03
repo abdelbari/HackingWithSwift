@@ -114,6 +114,75 @@ final class GeometryTests: XCTestCase {
 
 /// Store behaviour that is easy to regress: one gesture is one undo step,
 /// and copies must never stay welded to the source's group.
+/// PageRenderView marks each ElementView .equatable(), so SwiftUI skips
+/// re-running body for elements whose Element compared equal. That is only
+/// correct if Element's own equality covers every field that can change what
+/// is drawn — a field excluded from == would make the canvas show a stale
+/// element after an edit, with nothing failing anywhere.
+final class ElementEqualityTests: XCTestCase {
+
+    private func base() -> Element {
+        var el = Element.text("Hello", fontSize: 24, w: 200)
+        el.x = 10; el.y = 20
+        return el
+    }
+
+    /// Every visual field, one at a time. Adding a field to Element that
+    /// affects rendering and not to this list is the failure this guards.
+    func testEveryVisualFieldBreaksEquality() {
+        let mutations: [(String, (inout Element) -> Void)] = [
+            ("x", { $0.x += 1 }),
+            ("y", { $0.y += 1 }),
+            ("w", { $0.w += 1 }),
+            ("h", { $0.h += 1 }),
+            ("rotation", { $0.rotation += 1 }),
+            ("opacity", { $0.opacity = 0.5 }),
+            ("flipH", { $0.flipH.toggle() }),
+            ("flipV", { $0.flipV.toggle() }),
+            ("locked", { $0.locked.toggle() }),
+            ("shapeId", { $0.shapeId = "star" }),
+            ("fill", { $0.fill = .solid("#123456") }),
+            ("stroke", { $0.stroke = "#abcdef" }),
+            ("strokeWidth", { $0.strokeWidth = 3 }),
+            ("radius", { $0.radius = 7 }),
+            ("text", { $0.text = "Different" }),
+            ("fontFamily", { $0.fontFamily = "mono" }),
+            ("fontSize", { $0.fontSize = 99 }),
+            ("fontWeight", { $0.fontWeight = 900 }),
+            ("italic", { $0.italic = true }),
+            ("underline", { $0.underline = true }),
+            ("align", { $0.align = "left" }),
+            ("lineHeight", { $0.lineHeight = 2 }),
+            ("letterSpacing", { $0.letterSpacing = 4 }),
+            ("color", { $0.color = "#ff0000" }),
+            ("listStyle", { $0.listStyle = "bullet" }),
+            ("effect", { $0.effect = TextEffectSpec(type: "neon") }),
+            ("src", { $0.src = "asset:other" }),
+            ("filter", { $0.filter = "vivid" }),
+            ("cropScale", { $0.cropScale = 2 }),
+            ("cropX", { $0.cropX = 0.1 }),
+            ("cropY", { $0.cropY = 0.9 }),
+            ("glyph", { $0.glyph = "★" }),
+            ("thickness", { $0.thickness = 12 }),
+            ("dash", { $0.dash = "dashed" }),
+            ("startCap", { $0.startCap = "arrow" }),
+            ("endCap", { $0.endCap = "dot" }),
+        ]
+
+        for (name, mutate) in mutations {
+            var changed = base()
+            mutate(&changed)
+            XCTAssertNotEqual(base(), changed,
+                              "changing \(name) left the element equal, so a view "
+                              + "marked .equatable() would not re-render")
+        }
+    }
+
+    func testIdenticalElementsCompareEqual() {
+        XCTAssertEqual(base(), base())
+    }
+}
+
 /// FontLibrary memoises attribute construction and text measurement. The
 /// hazard of any cache keyed on a subset of a model's fields is a key that
 /// omits something that actually affects the result: you get a stale answer,

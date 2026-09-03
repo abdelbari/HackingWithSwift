@@ -13,6 +13,16 @@ import CoreGraphics
 
 // MARK: - dispatch
 
+/// `element` is the only input. Everything else the subviews reach for —
+/// `ContentLibrary.shape`, `PhotoLibrary.resolve`, `ImageFilterEngine.apply`
+/// — resolves synchronously and deterministically from fields of that
+/// element, so two `ElementView`s with equal elements render identically.
+///
+/// That is what makes the `Equatable` conformance below sound, and it is a
+/// real constraint rather than an observation: if image resolution ever
+/// becomes asynchronous, or a subview starts reading mutable state that is
+/// not part of `Element`, this view would keep showing a stale render and
+/// the conformance must go.
 struct ElementView: View {
     let element: Element
 
@@ -303,6 +313,12 @@ struct LineElementView: View {
     }
 }
 
+extension ElementView: Equatable {
+    static func == (lhs: ElementView, rhs: ElementView) -> Bool {
+        lhs.element == rhs.element
+    }
+}
+
 // MARK: - full page (canvas layer, thumbnails, export)
 
 struct PageRenderView: View {
@@ -313,7 +329,13 @@ struct PageRenderView: View {
         ZStack {
             backgroundView
             ForEach(page.elements) { el in
-                ElementView(element: el)
+                // .equatable() so a drag re-renders the element that moved
+                // rather than every element on the page. The store is
+                // @Observable and a gesture mutates the document each frame,
+                // so without this every text run re-lays out through CoreText
+                // and every shape re-parses its path, on every frame, however
+                // little actually changed.
+                ElementView(element: el).equatable()
             }
         }
         .frame(width: design.width, height: design.height)
