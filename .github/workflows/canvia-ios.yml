@@ -84,12 +84,15 @@ jobs:
           fi
           echo "iOS ${{ matrix.ios }} is available"
 
-      # The real compile. Code signing is off because this only ever runs in
-      # a simulator. -derivedDataPath requires -scheme, hence the shared
-      # scheme committed alongside the project.
+      # The real compile, plus XCTest. `test` rather than `build`, so the 17
+      # geometry assertions in Canvia/Tests actually execute on each iOS
+      # version instead of the run only proving the app links and launches.
+      # Code signing is off because this only ever runs in a simulator.
+      # -derivedDataPath requires -scheme, hence the shared scheme committed
+      # alongside the project.
       # Diagnostics go to stdout, not just the step summary: the job log is
       # the only channel readable without downloading the artifact.
-      - name: Build for iOS ${{ matrix.ios }} Simulator
+      - name: Build and test on iOS ${{ matrix.ios }}
         run: |
           status=0
           xcodebuild \
@@ -99,8 +102,12 @@ jobs:
             -destination 'platform=iOS Simulator,name=${{ matrix.device }},OS=${{ matrix.ios }}' \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
-            build > build.log 2>&1 || status=$?
+            test > build.log 2>&1 || status=$?
 
+          echo "===== TESTS ====="
+          grep -E "^Test Suite .*(passed|failed)" build.log | sort -u | head -20 \
+            || echo "(no test results - did the build fail before tests ran?)"
+          grep -E "Executed [0-9]+ test" build.log | tail -2 || true
           echo "===== ERRORS ====="
           grep -E '(error|fatal error):' build.log | sed 's#/Users/runner/work/HackingWithSwift/HackingWithSwift/##' \
             | sort -u | head -80 || true
