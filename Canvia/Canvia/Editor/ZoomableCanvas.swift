@@ -89,7 +89,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     func updateUIView(_ scroll: UIScrollView, context: Context) {
         let coordinator = context.coordinator
         coordinator.parent = self
-        coordinator.host.rootView = AnyView(content())
+        coordinator.host.rootView = content()
 
         if coordinator.contentSize != contentSize {
             coordinator.contentSize = contentSize
@@ -114,7 +114,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, UIScrollViewDelegate, UIGestureRecognizerDelegate {
         var parent: ZoomableCanvas
-        let host: UIHostingController<AnyView>
+        let host: UIHostingController<Content>
         weak var scrollView: UIScrollView?
         var contentSize: CGSize = .zero
         var fitToken: String = ""
@@ -123,7 +123,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
 
         init(_ parent: ZoomableCanvas) {
             self.parent = parent
-            self.host = UIHostingController(rootView: AnyView(parent.content()))
+            self.host = UIHostingController(rootView: parent.content())
             self.contentSize = parent.contentSize
             self.fitToken = parent.fitToken
             super.init()

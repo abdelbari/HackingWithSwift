@@ -56,15 +56,26 @@ struct CanvasView: View {
 
     private var pageContent: some View {
         ZStack {
-            // Deselect (and commit any inline text edit) on the page surface
-            // itself: the workspace-background tap can't fire here because
-            // the opaque page sits above it in the ZStack.
-            PageRenderView(design: store.design, page: store.page)
+            // The shadow casts from a plain rectangle, not from the page
+            // content. A .shadow() on PageRenderView made the blur's source a
+            // tree that changes on every frame of a drag, and whose radius
+            // changes on every frame of a pinch — so Core Animation had to
+            // re-render the blur continuously and could cache nothing. The
+            // page is an opaque rectangle of exactly these bounds, so a
+            // constant rect casts an identical shadow for free.
+            Rectangle()
+                .fill(Color.white)
+                .frame(width: store.design.width, height: store.design.height)
                 // Divided by zoom like every other ornament: this lives inside
                 // the scroll view's zoomed subview, so a fixed radius was 4pt
                 // of blur at fit zoom — the page looked pasted flat onto the
                 // workspace — and a 42pt black halo at 3x.
                 .shadow(color: .black.opacity(0.16), radius: 12 * iz, y: 3 * iz)
+
+            // Deselect (and commit any inline text edit) on the page surface
+            // itself: the workspace-background tap can't fire here because
+            // the opaque page sits above it in the ZStack.
+            PageRenderView(design: store.design, page: store.page)
                 // Carries the document edge in dark mode, where a shadow on a
                 // dark workspace is invisible.
                 .overlay(Rectangle().stroke(Theme.hairline, lineWidth: 1 * iz))
