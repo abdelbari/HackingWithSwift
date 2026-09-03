@@ -106,13 +106,13 @@ struct ContextToolbar: View {
             fontSizeStepper(el)
         }
         HStack(spacing: 14) {
-            toggle("bold", active: (el.fontWeight ?? 400) >= 700) {
+            toggle("bold", "Bold", active: (el.fontWeight ?? 400) >= 700) {
                 store.updateSelected { $0.fontWeight = ($0.fontWeight ?? 400) >= 700 ? 400 : 700 }
             }
-            toggle("italic", active: el.italic == true) {
+            toggle("italic", "Italic", active: el.italic == true) {
                 store.updateSelected { $0.italic = !($0.italic ?? false) }
             }
-            toggle("underline", active: el.underline == true) {
+            toggle("underline", "Underline", active: el.underline == true) {
                 store.updateSelected { $0.underline = !($0.underline ?? false) }
             }
             toolButton(alignIcon(el.align), "Align") {
@@ -124,7 +124,7 @@ struct ContextToolbar: View {
                     }
                 }
             }
-            toggle("list.bullet", active: el.listStyle == "bullet") {
+            toggle("list.bullet", "Bulleted list", active: el.listStyle == "bullet") {
                 store.updateSelected {
                     $0.listStyle = $0.listStyle == "bullet" ? "none" : "bullet"
                     $0.h = FontLibrary.measuredHeight(for: $0)
@@ -240,7 +240,8 @@ struct ContextToolbar: View {
         .buttonStyle(ToolButtonStyle())
     }
 
-    private func toggle(_ system: String, active: Bool, action: @escaping () -> Void) -> some View {
+    private func toggle(_ system: String, _ name: String, active: Bool,
+                        action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: system)
                 .font(.system(size: 16, weight: .semibold))
@@ -250,6 +251,10 @@ struct ContextToolbar: View {
                 .foregroundStyle(active ? Theme.accent : Color.primary)
         }
         .buttonStyle(ToolButtonStyle())
+        // The only icon-only control in the bar; the rest carry a visible
+        // text label that VoiceOver can already read.
+        .accessibilityLabel(name)
+        .accessibilityAddTraits(active ? [.isSelected] : [])
     }
 
     private func colorChip(_ hex: String, _ label: String, action: @escaping () -> Void) -> some View {

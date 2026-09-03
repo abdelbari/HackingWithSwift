@@ -106,8 +106,10 @@ struct EditorView: View {
 
             Button { store.undo() } label: { Image(systemName: "arrow.uturn.backward") }
                 .disabled(!store.canUndo)
+                .accessibilityLabel("Undo")
             Button { store.redo() } label: { Image(systemName: "arrow.uturn.forward") }
                 .disabled(!store.canRedo)
+                .accessibilityLabel("Redo")
 
             Spacer()
 
