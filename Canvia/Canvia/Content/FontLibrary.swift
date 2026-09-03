@@ -38,8 +38,88 @@ enum FontLibrary {
         stackMap[key ?? "sans"] ?? stacks[0]
     }
 
+    // MARK: memoisation
+    //
+    // None of this was cached. attributes(for:) walks a font-family stack
+    // calling UIFont(name:), rebuilds a descriptor, allocates a paragraph
+    // style and parses a hex colour; measuredHeight(for:) then runs a full
+    // CoreText layout on top. They are called on every keystroke while
+    // editing text, on every frame of a text resize, and once per text
+    // element when a document opens — always with the same handful of
+    // distinct inputs. Memoising turns a per-frame layout into a dictionary
+    // lookup.
+    //
+    // Guarded by a lock rather than isolated to the main actor: document
+    // decoding measures text off the main thread.
+
+    private struct TypographyKey: Hashable {
+        let family: String?
+        let size: Double
+        let weight: Int
+        let italic: Bool
+        let underline: Bool
+        let align: String?
+        let lineHeight: Double
+        let letterSpacing: Double
+        let color: String?
+
+        init(_ el: Element) {
+            family = el.fontFamily
+            size = el.fontSize ?? 42
+            weight = el.fontWeight ?? 400
+            italic = el.italic ?? false
+            underline = el.underline ?? false
+            align = el.align
+            lineHeight = el.lineHeight ?? 1.25
+            letterSpacing = el.letterSpacing ?? 0
+            color = el.color
+        }
+    }
+
+    private struct MeasureKey: Hashable {
+        let typography: TypographyKey
+        let text: String?
+        let listStyle: String?
+        let width: Double
+    }
+
+    private struct FontKey: Hashable {
+        let family: String?
+        let size: Double
+        let weight: Int
+        let italic: Bool
+    }
+
+    private static let lock = NSLock()
+    private static var fontCache: [FontKey: UIFont] = [:]
+    private static var attrCache: [TypographyKey: [NSAttributedString.Key: Any]] = [:]
+    private static var heightCache: [MeasureKey: Double] = [:]
+
+    /// Scrubbing a size slider would otherwise grow these without bound.
+    private static let cacheLimit = 256
+
+    private static func memoized<K: Hashable, V>(_ key: K,
+                                                 _ cache: inout [K: V],
+                                                 _ make: () -> V) -> V {
+        lock.lock()
+        if let hit = cache[key] { lock.unlock(); return hit }
+        lock.unlock()
+        let value = make()
+        lock.lock()
+        if cache.count >= cacheLimit { cache.removeAll(keepingCapacity: true) }
+        cache[key] = value
+        lock.unlock()
+        return value
+    }
+
     /// Resolve a concrete UIFont for an element's typography.
     static func uiFont(family key: String?, size: Double, weight: Int, italic: Bool) -> UIFont {
+        memoized(FontKey(family: key, size: size, weight: weight, italic: italic),
+                 &fontCache) { buildFont(family: key, size: size, weight: weight, italic: italic) }
+    }
+
+    private static func buildFont(family key: String?, size: Double,
+                                  weight: Int, italic: Bool) -> UIFont {
         let stack = stack(key)
         var base: UIFont?
         for family in stack.families {
@@ -76,6 +156,10 @@ enum FontLibrary {
 
     /// Attributes shared by canvas rendering, measurement and export.
     static func attributes(for el: Element) -> [NSAttributedString.Key: Any] {
+        memoized(TypographyKey(el), &attrCache) { buildAttributes(for: el) }
+    }
+
+    private static func buildAttributes(for el: Element) -> [NSAttributedString.Key: Any] {
         let size = el.fontSize ?? 42
         let font = uiFont(family: el.fontFamily, size: size,
                           weight: el.fontWeight ?? 400, italic: el.italic ?? false)
@@ -93,7 +177,7 @@ enum FontLibrary {
         paragraph.lineBreakMode = .byWordWrapping
         var attrs: [NSAttributedString.Key: Any] = [
             .font: font,
-            .paragraphStyle: paragraph,
+            .paragraphStyle: paragraph.copy(),
             .foregroundColor: UIColor(hex: el.color ?? "#1f2430"),
             .kern: el.letterSpacing ?? 0,
         ]
@@ -114,6 +198,12 @@ enum FontLibrary {
 
     /// Natural height of a text element at its wrap width.
     static func measuredHeight(for el: Element) -> Double {
+        let key = MeasureKey(typography: TypographyKey(el), text: el.text,
+                             listStyle: el.listStyle, width: el.w)
+        return memoized(key, &heightCache) { measure(el) }
+    }
+
+    private static func measure(_ el: Element) -> Double {
         let attrs = attributes(for: el)
         let str = NSAttributedString(string: displayText(for: el), attributes: attrs)
         let bounds = str.boundingRect(

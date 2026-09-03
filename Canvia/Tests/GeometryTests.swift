@@ -114,6 +114,113 @@ final class GeometryTests: XCTestCase {
 
 /// Store behaviour that is easy to regress: one gesture is one undo step,
 /// and copies must never stay welded to the source's group.
+/// FontLibrary memoises attribute construction and text measurement. The
+/// hazard of any cache keyed on a subset of a model's fields is a key that
+/// omits something that actually affects the result: you get a stale answer,
+/// which here means clipped or mis-measured text.
+///
+/// These tests vary one typography field at a time and assert the output
+/// changes. They are what fails the day a new field is added to Element and
+/// not added to the key.
+final class FontLibraryCacheTests: XCTestCase {
+
+    private func text(_ configure: (inout Element) -> Void = { _ in }) -> Element {
+        var el = Element.text("The quick brown fox jumps over the lazy dog", fontSize: 24, w: 200)
+        configure(&el)
+        return el
+    }
+
+    private func font(_ el: Element) -> UIFont? {
+        FontLibrary.attributes(for: el)[.font] as? UIFont
+    }
+
+    // MARK: fields that change the measured height
+
+    func testHeightRespondsToFontSize() {
+        XCTAssertNotEqual(FontLibrary.measuredHeight(for: text { $0.fontSize = 24 }),
+                          FontLibrary.measuredHeight(for: text { $0.fontSize = 48 }))
+    }
+
+    func testHeightRespondsToWidth() {
+        XCTAssertNotEqual(FontLibrary.measuredHeight(for: text { $0.w = 200 }),
+                          FontLibrary.measuredHeight(for: text { $0.w = 400 }))
+    }
+
+    func testHeightRespondsToLineHeight() {
+        XCTAssertNotEqual(FontLibrary.measuredHeight(for: text { $0.lineHeight = 1.0 }),
+                          FontLibrary.measuredHeight(for: text { $0.lineHeight = 2.5 }))
+    }
+
+    func testHeightRespondsToText() {
+        XCTAssertNotEqual(FontLibrary.measuredHeight(for: text { $0.text = "one line" }),
+                          FontLibrary.measuredHeight(for: text {
+                              $0.text = "a much longer run of words that has to wrap onto several lines"
+                          }))
+    }
+
+    func testHeightRespondsToLetterSpacing() {
+        XCTAssertNotEqual(FontLibrary.measuredHeight(for: text { $0.letterSpacing = 0 }),
+                          FontLibrary.measuredHeight(for: text { $0.letterSpacing = 14 }))
+    }
+
+    // MARK: fields that change the attributes but not necessarily the height
+
+    func testFontRespondsToWeight() {
+        XCTAssertNotEqual(font(text { $0.fontWeight = 400 })?.fontDescriptor.symbolicTraits,
+                          font(text { $0.fontWeight = 800 })?.fontDescriptor.symbolicTraits)
+    }
+
+    func testFontRespondsToItalic() {
+        XCTAssertNotEqual(font(text { $0.italic = false })?.fontDescriptor.symbolicTraits,
+                          font(text { $0.italic = true })?.fontDescriptor.symbolicTraits)
+    }
+
+    func testFontRespondsToFamily() {
+        XCTAssertNotEqual(font(text { $0.fontFamily = "didot" })?.familyName,
+                          font(text { $0.fontFamily = "menlo" })?.familyName)
+    }
+
+    func testColorRespondsToColor() {
+        let a = FontLibrary.attributes(for: text { $0.color = "#ff0000" })[.foregroundColor] as? UIColor
+        let b = FontLibrary.attributes(for: text { $0.color = "#0000ff" })[.foregroundColor] as? UIColor
+        XCTAssertNotEqual(a, b)
+    }
+
+    func testKernRespondsToLetterSpacing() {
+        let a = FontLibrary.attributes(for: text { $0.letterSpacing = 0 })[.kern] as? Double
+        let b = FontLibrary.attributes(for: text { $0.letterSpacing = 9 })[.kern] as? Double
+        XCTAssertNotEqual(a, b)
+    }
+
+    func testUnderlineRespondsToUnderline() {
+        XCTAssertNil(FontLibrary.attributes(for: text { $0.underline = false })[.underlineStyle])
+        XCTAssertNotNil(FontLibrary.attributes(for: text { $0.underline = true })[.underlineStyle])
+    }
+
+    func testAlignmentRespondsToAlign() {
+        let a = FontLibrary.attributes(for: text { $0.align = "left" })[.paragraphStyle] as? NSParagraphStyle
+        let b = FontLibrary.attributes(for: text { $0.align = "right" })[.paragraphStyle] as? NSParagraphStyle
+        XCTAssertNotEqual(a?.alignment, b?.alignment)
+    }
+
+    /// Handing the cached NSMutableParagraphStyle straight out would let one
+    /// caller's mutation reach every other element sharing that typography.
+    func testParagraphStyleIsNotMutableSharedState() {
+        let attrs = FontLibrary.attributes(for: text())
+        XCTAssertFalse(attrs[.paragraphStyle] is NSMutableParagraphStyle,
+                       "cached paragraph style must be handed out immutable")
+    }
+
+    /// Repeated calls must agree — the whole point of the cache.
+    func testRepeatedCallsAreStable() {
+        let el = text { $0.fontSize = 31; $0.lineHeight = 1.4 }
+        let first = FontLibrary.measuredHeight(for: el)
+        for _ in 0..<50 {
+            XCTAssertEqual(FontLibrary.measuredHeight(for: el), first, accuracy: 0.0001)
+        }
+    }
+}
+
 /// The identity the drag path relies on: it computes the union of the dragged
 /// elements' bounding boxes once, at grab time, and merely translates it on
 /// each touch move rather than looking every element up and re-deriving its
