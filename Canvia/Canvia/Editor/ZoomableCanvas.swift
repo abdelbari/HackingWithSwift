@@ -185,20 +185,16 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             guard let scroll = scrollView,
                   contentSize.width > 0, contentSize.height > 0,
                   scroll.bounds.width > 0, scroll.bounds.height > 0 else { return }
-            let pad = 48.0
-            let fit = min((scroll.bounds.width - pad) / contentSize.width,
-                          (scroll.bounds.height - pad) / contentSize.height)
+            let fit = Geometry.fitScale(content: contentSize, in: scroll.bounds.size)
             // Let the user zoom well past fit in both directions, but never so
             // far out that the page becomes a speck.
             scroll.minimumZoomScale = min(fit * 0.5, 0.05)
             scroll.maximumZoomScale = max(fit * 8, 4)
             scroll.setZoomScale(fit, animated: animated)
             centerContent()
-            // Centre the page in the viewport.
             let scaled = CGSize(width: contentSize.width * fit, height: contentSize.height * fit)
             scroll.setContentOffset(
-                CGPoint(x: (scaled.width - scroll.bounds.width) / 2 - scroll.contentInset.left,
-                        y: (scaled.height - scroll.bounds.height) / 2 - scroll.contentInset.top),
+                Geometry.centeredOffset(scaledContent: scaled, in: scroll.bounds.size),
                 animated: animated)
             publishZoom(Double(fit))
         }
@@ -224,9 +220,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
 
         @objc func handleDoubleTap(_ tap: UITapGestureRecognizer) {
             guard let scroll = scrollView else { return }
-            let pad = 48.0
-            let fit = min((scroll.bounds.width - pad) / max(contentSize.width, 1),
-                          (scroll.bounds.height - pad) / max(contentSize.height, 1))
+            let fit = Geometry.fitScale(content: contentSize, in: scroll.bounds.size)
             if scroll.zoomScale > fit * 1.05 {
                 fitToScreen(animated: true)
             } else {

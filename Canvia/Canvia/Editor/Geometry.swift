@@ -227,4 +227,26 @@ enum Geometry {
         }
         return (xs, ys)
     }
+
+    // MARK: viewport
+
+    /// The scale at which `content` fits inside `viewport` with `padding`
+    /// points to spare on the tighter axis.
+    static func fitScale(content: CGSize, in viewport: CGSize, padding: Double = 48) -> Double {
+        guard content.width > 0, content.height > 0,
+              viewport.width > 0, viewport.height > 0 else { return 1 }
+        return min((viewport.width - padding) / content.width,
+                   (viewport.height - padding) / content.height)
+    }
+
+    /// The scroll offset that centres already-scaled content in a viewport.
+    ///
+    /// A content point p appears on screen at p - offset, whatever the scroll
+    /// view's content inset is: an inset widens the scrollable range, it does
+    /// not move the content's origin. Folding the inset in here is what put
+    /// every opened design half a viewport down and right of centre.
+    static func centeredOffset(scaledContent content: CGSize, in viewport: CGSize) -> CGPoint {
+        CGPoint(x: (content.width - viewport.width) / 2,
+                y: (content.height - viewport.height) / 2)
+    }
 }
