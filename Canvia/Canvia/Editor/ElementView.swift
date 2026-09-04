@@ -81,7 +81,7 @@ struct ShapeElementView: View {
     let element: Element
 
     var body: some View {
-        let def = ContentLibrary.shape(element.shapeId)
+        let def = ContentLibrary.shape(for: element)
         let shape = LibraryShape(definition: def, cornerRadius: element.radius ?? 0)
         let fill = element.fill ?? .solid("#8b5cf6")
         ZStack {

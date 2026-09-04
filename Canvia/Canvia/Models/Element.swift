@@ -79,6 +79,10 @@ struct Element: Codable, Equatable, Identifiable {
 
     // shape
     var shapeId: String?
+    /// Arbitrary vector geometry as SVG path data in a 0…100 box, for
+    /// shapes the library does not have: chart slices, traced outlines,
+    /// imported paths. When set it wins over shapeId.
+    var pathData: String?
     var fill: Paint?
     var stroke: String?
     var strokeWidth: Double?
@@ -170,6 +174,7 @@ struct Element: Codable, Equatable, Identifiable {
         blendMode = try? c.decode(String.self, forKey: .blendMode)
         altText = try? c.decode(String.self, forKey: .altText)
         shapeId = try? c.decode(String.self, forKey: .shapeId)
+        pathData = try? c.decode(String.self, forKey: .pathData)
         fill = try? c.decode(Paint.self, forKey: .fill)
         stroke = try? c.decode(String.self, forKey: .stroke)
         strokeWidth = try? c.decode(Double.self, forKey: .strokeWidth)
@@ -229,7 +234,7 @@ struct Element: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow, blendMode, altText
-        case shapeId, fill, stroke, strokeWidth, radius
+        case shapeId, pathData, fill, stroke, strokeWidth, radius
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve
         case vAlign, fitText, paragraphSpacing, textStyleId

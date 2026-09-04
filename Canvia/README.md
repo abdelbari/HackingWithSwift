@@ -89,6 +89,15 @@ duplicate / delete via long-press), and a template gallery.
   an opaque screenshot as the far smaller JPEG — and every colour picker
   offers "From the photo": the six most prominent colours of the selected
   picture or the page's background picture, read from its pixels.
+- Charts and tables from typed data: bars, columns, pie, donut or line
+  from "Label, value" lines; a table from comma- or tab-separated rows
+  with a header row in the accent, banded rows, columns sized to their
+  longest cell. Both arrive as ordinary grouped elements — pie slices and
+  line paths are shapes with their own path data — so they recolour,
+  export and read aloud like anything else.
+- Read a picture: Live Text turns the words in a photo into editable text
+  elements where they were; a QR code in a photo comes back as a clean
+  code element with its payload.
 - A master page: mark any page as master and its elements draw behind
   every other page (each page can opt out) — on the canvas, in every
   export, in the SVG. "{page}" and "{pages}" in any text become the page

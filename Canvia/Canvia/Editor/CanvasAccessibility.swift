@@ -23,7 +23,7 @@ enum CanvasAccessibility {
             let clipped = body.count > 80 ? String(body.prefix(80)) + "…" : body
             return "Text: \(clipped)"
         case .shape:
-            return "\(ContentLibrary.shape(el.shapeId).name) shape"
+            return el.pathData == nil ? "\(ContentLibrary.shape(el.shapeId).name) shape" : "Custom shape"
         case .image:
             return el.maskShapeId == nil ? "Photo" : "Photo in a \(ContentLibrary.shape(el.maskShapeId).name) frame"
         case .sticker:

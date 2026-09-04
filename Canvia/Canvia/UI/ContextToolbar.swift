@@ -172,6 +172,37 @@ struct ContextToolbar: View {
         }
     }
 
+    /// Live Text: the words in the picture become text elements over it.
+    private func readText(_ el: Element) {
+        guard let image = PhotoLibrary.resolve(el.src) else { return }
+        let frame = el.frame
+        Task.detached(priority: .userInitiated) {
+            let lines = TextRecognizer.lines(in: image)
+            await MainActor.run {
+                let elements = TextRecognizer.elements(from: lines, in: frame)
+                guard !elements.isEmpty else { return }
+                store.applyToPage { $0.elements.append(contentsOf: elements) }
+                store.selection = Set(elements.map(\.id))
+            }
+        }
+    }
+
+    /// A code in the picture becomes a clean, editable code element beside it.
+    private func readCode(_ el: Element) {
+        guard let image = PhotoLibrary.resolve(el.src) else { return }
+        let frame = el.frame
+        Task.detached(priority: .userInitiated) {
+            let payload = TextRecognizer.codePayload(in: image)
+            await MainActor.run {
+                guard let payload else { return }
+                let side = min(frame.width, frame.height) * 0.6
+                var code = Element.image(CodeGenerator.source(for: payload), w: side.rounded(), h: side.rounded())
+                code.x = (frame.midX - side / 2).rounded(); code.y = (frame.midY - side / 2).rounded()
+                store.add(code, centered: false)
+            }
+        }
+    }
+
     /// Saved, linked text styles: apply one, save the current look as one,
     /// or push this element's look back into the style it follows.
     private func stylesMenu(_ el: Element) -> some View {
@@ -307,6 +338,16 @@ struct ContextToolbar: View {
         toolButton("square.on.circle", "Frame") { activeSheet = .frame }
         toolButton("camera.filters", "Filters") { activeSheet = .filters }
         toolButton("crop", "Crop") { activeSheet = .crop }
+        Menu {
+            Button {
+                readText(el)
+            } label: { Label("Text in this picture → text elements", systemImage: "text.viewfinder") }
+            Button {
+                readCode(el)
+            } label: { Label("QR code in this picture → code element", systemImage: "qrcode.viewfinder") }
+        } label: {
+            toolLabel("doc.text.magnifyingglass", "Read")
+        }
         toolButton("text.below.photo", "Alt text") {
             altDraft = el.altText ?? ""
             editingAlt = true

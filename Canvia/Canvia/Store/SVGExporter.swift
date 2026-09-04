@@ -114,7 +114,7 @@ enum SVGExporter {
         if let kind = el.fill?.kind, kind == "pattern" || kind == "image" {
             return bitmapMarkup(el)
         }
-        let definition = ContentLibrary.shape(el.shapeId)
+        let definition = ContentLibrary.shape(for: el)
         var d = definition.path
         if definition.rectLike == true, let radius = el.radius, radius > 0, el.w > 0, el.h > 0 {
             // The library path is drawn in a 100x100 box and scaled onto the

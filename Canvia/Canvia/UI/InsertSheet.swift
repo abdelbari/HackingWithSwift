@@ -165,6 +165,7 @@ struct InsertSheet: View {
                 lineTile("arrow.left.and.right", "arrow", "arrow")
                 lineTile("ellipsis", "dot", "dot")
             }
+            dataRow
             componentsSection
             let starred = Favorites.ids(of: "shape").compactMap { ContentLibrary.shapeMap[$0] }
             ForEach(["Favourites"] + ContentLibrary.shapeCategories, id: \.self) { category in
@@ -500,6 +501,25 @@ struct InsertSheet: View {
             favoritesVersion += 1
         } label: {
             Label(on ? "Remove from favourites" : "Add to favourites", systemImage: on ? "star.slash" : "star")
+        }
+    }
+
+    // MARK: data
+
+    @State private var showingData = false
+
+    private var dataRow: some View {
+        Button {
+            showingData = true
+        } label: {
+            Label("Chart or table from typed data", systemImage: "chart.bar.xaxis")
+                .frame(maxWidth: .infinity)
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
+        }
+        .sheet(isPresented: $showingData) {
+            DataSheet(store: store)
+                .onDisappear { if !store.selection.isEmpty { dismiss() } }
         }
     }
 

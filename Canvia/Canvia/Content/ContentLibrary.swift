@@ -153,6 +153,15 @@ enum ContentLibrary {
         shapeMap[id ?? "rect"] ?? shapeMap["rect"] ?? fallbackShape
     }
 
+    /// The geometry an element draws: its own path data if it has any,
+    /// else the library shape it names.
+    static func shape(for el: Element) -> ShapeDef {
+        if let d = el.pathData, !d.isEmpty {
+            return ShapeDef(id: "custom", name: "Custom shape", category: "Custom", path: d, rectLike: false)
+        }
+        return shape(el.shapeId)
+    }
+
     static var shapeCategories: [String] {
         var seen: [String] = []
         for s in shapes where !seen.contains(s.category) { seen.append(s.category) }
