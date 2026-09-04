@@ -286,7 +286,9 @@ enum FontLibrary {
             let fits = measuredHeight(for: probe) <= el.h && naturalWidth(for: probe) <= el.w
             if fits { lo = mid } else { hi = mid }
         }
-        return (lo * 2).rounded() / 2
+        // Down to the half-point, never up: `lo` is the largest size proven
+        // to fit, and rounding above it spilled by a pixel.
+        return (lo * 2).rounded(.down) / 2
     }
 
     /// The width the longest word needs at this size — the point below which
