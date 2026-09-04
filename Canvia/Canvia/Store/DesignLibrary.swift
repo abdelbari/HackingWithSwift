@@ -100,7 +100,12 @@ enum DesignLibrary {
     /// end of the burst rather than every keystroke of it.
     @discardableResult
     static func snapshot(_ design: Design, force: Bool = false, now: Date = Date()) -> Bool {
-        guard let data = try? JSONEncoder().encode(design) else { return false }
+        // Sorted keys, so encoding the same document twice gives the same
+        // bytes. JSONEncoder's default order is whatever the dictionary
+        // hashes to that run, and the dedup below compares bytes.
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        guard let data = try? encoder.encode(design) else { return false }
         let dir = historyDir(for: design.id)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let existing = versions(for: design.id)
