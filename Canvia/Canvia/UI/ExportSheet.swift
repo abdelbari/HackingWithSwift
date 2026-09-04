@@ -292,7 +292,8 @@ struct ExportSheet: View {
                 progress: { progress = $0 })
         } else {
             let url = DesignExporter.fileURL(for: store.design, ext: "mp4")
-            try await MovieExporter.exportMP4(design: store.design, to: url, progress: report)
+            try await MovieExporter.exportMP4(design: store.design, settings: MovieExporter.Settings(store.design.motion),
+                                              to: url, progress: report)
             urls = [url]
         }
         try await PhotoSaver.save(urls)
@@ -332,7 +333,7 @@ struct ExportSheet: View {
     }
 
     private var motionSection: some View {
-        let hold = String(format: "%.1f", MovieExporter.Settings().secondsPerPage)
+        let hold = String(format: "%.1f", MovieExporter.Settings(store.design.motion).secondsPerPage)
         return Section {
             exportButton("MP4 video", subtitle: movieSubtitle, icon: "film") {
                 try await exportMovie()
@@ -340,10 +341,38 @@ struct ExportSheet: View {
             exportButton("Animated GIF", subtitle: movieSubtitle, icon: "square.stack.3d.down.right") {
                 try exportGIF()
             }
+            DisclosureGroup("Motion settings") { motionSettings }
         } header: {
             Text("Motion")
         } footer: {
-            Text("Each page holds for \(hold)s with a slow push in and a cross-fade between pages.")
+            Text(motionNote(hold: hold))
+        }
+    }
+
+    private func motionNote(hold: String) -> String {
+        let m = store.design.motion ?? MotionSettings()
+        var note = "Each page holds for \(hold)s"
+        if m.movement { note += " with a slow push in" }
+        note += m.crossfade ? " and a cross-fade between pages." : ", cutting between pages."
+        return note
+    }
+
+    /// Timing, frame rate and the two moves, saved with the design.
+    private var motionSettings: some View {
+        let binding = Binding<MotionSettings>(
+            get: { store.design.motion ?? MotionSettings() },
+            set: { next in
+                store.apply { $0.motion = next == MotionSettings() ? nil : next }
+            })
+        return Group {
+            Stepper(value: binding.secondsPerPage, in: MotionSettings.secondsRange, step: 0.5) {
+                Text("Hold each page \(String(format: "%.1f", binding.wrappedValue.secondsPerPage))s")
+            }
+            Picker("Frame rate", selection: binding.fps) {
+                ForEach(MotionSettings.fpsChoices, id: \.self) { Text("\($0) fps").tag($0) }
+            }
+            Toggle("Slow push in", isOn: binding.movement)
+            Toggle("Cross-fade between pages", isOn: binding.crossfade)
         }
     }
 
@@ -402,7 +431,7 @@ struct ExportSheet: View {
 
     private var movieSubtitle: String {
         let pages = store.design.pages.count
-        let seconds = Double(pages) * MovieExporter.Settings().secondsPerPage
+        let seconds = Double(pages) * MovieExporter.Settings(store.design.motion).secondsPerPage
         return pages > 1
             ? "All \(pages) pages, \(String(format: "%.0f", seconds))s"
             : "One page, \(String(format: "%.0f", seconds))s"
@@ -445,7 +474,8 @@ struct ExportSheet: View {
     @MainActor
     private func exportMovie() async throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "mp4")
-        try await MovieExporter.exportMP4(design: store.design, to: url, progress: report)
+        try await MovieExporter.exportMP4(design: store.design, settings: MovieExporter.Settings(store.design.motion),
+                                              to: url, progress: report)
         sharedURLs = [url]
         exportedURL = url
     }
@@ -453,7 +483,8 @@ struct ExportSheet: View {
     @MainActor
     private func exportGIF() throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "gif")
-        try MovieExporter.exportGIF(design: store.design, to: url, progress: { progress = $0 })
+        try MovieExporter.exportGIF(design: store.design, settings: MovieExporter.Settings(store.design.motion),
+                                    to: url, progress: { progress = $0 })
         sharedURLs = [url]
         exportedURL = url
     }

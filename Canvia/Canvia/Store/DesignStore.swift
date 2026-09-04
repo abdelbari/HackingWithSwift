@@ -552,6 +552,7 @@ final class DesignStore {
         var duotone: Duotone?
         var opacity: Double
         var shadow: Shadow?
+        var blendMode: String?
         var thickness: Double?
         var dash: String?
         var startCap: String?
@@ -569,7 +570,8 @@ final class DesignStore {
               listStyle: el.listStyle, indent: el.indent, textFill: el.textFill,
               effect: el.effect, curve: el.curve, filter: el.filter,
               adjustments: el.adjustments, maskShapeId: el.maskShapeId, duotone: el.duotone,
-              opacity: el.opacity, shadow: el.shadow, thickness: el.thickness, dash: el.dash,
+              opacity: el.opacity, shadow: el.shadow, blendMode: el.blendMode,
+              thickness: el.thickness, dash: el.dash,
               startCap: el.startCap, endCap: el.endCap)
     }
 
@@ -581,6 +583,7 @@ final class DesignStore {
     static func apply(_ style: Style, to el: inout Element) {
         el.opacity = style.opacity
         el.shadow = style.shadow
+        el.blendMode = style.blendMode
         switch el.type {
         case .shape:
             el.fill = style.fill
@@ -721,6 +724,49 @@ final class DesignStore {
             }
             d.pages = out
         }
+    }
+
+    // MARK: document theme
+
+    /// Text at or above this size is a heading and takes the pairing's
+    /// heading face; the rest takes the body face.
+    static let headingSize = 32.0
+
+    /// The design with a palette and a type pairing applied to every page:
+    /// colours remapped by luminance rank onto the palette, headings and body
+    /// text given the pairing's faces at their own sizes. Pure, so the sheet
+    /// can preview it before anyone commits.
+    static func themed(_ design: Design, palette: [String]?, pairing: FontPairing?) -> Design {
+        var out = design
+        if let palette, !palette.isEmpty {
+            let colors = ColorTools.documentColors(design, limit: 24)
+            if !colors.isEmpty {
+                for p in out.pages.indices {
+                    ColorTools.shuffle(page: &out.pages[p], docColors: colors, palette: palette)
+                }
+            }
+        }
+        if let pairing {
+            for p in out.pages.indices {
+                for i in out.pages[p].elements.indices where out.pages[p].elements[i].type == .text {
+                    let spec = (out.pages[p].elements[i].fontSize ?? 42) >= headingSize
+                        ? pairing.heading : pairing.body
+                    out.pages[p].elements[i].fontFamily = spec.fontFamily
+                    out.pages[p].elements[i].fontWeight = spec.fontWeight
+                    if let spacing = spec.letterSpacing { out.pages[p].elements[i].letterSpacing = spacing }
+                    out.pages[p].elements[i].h = FontLibrary.layoutHeight(for: out.pages[p].elements[i])
+                }
+            }
+        }
+        return out
+    }
+
+    /// Apply a theme to the whole document as one undo step.
+    func applyTheme(palette: [String]?, pairing: FontPairing?) {
+        let next = Self.themed(design, palette: palette, pairing: pairing)
+        guard next != design else { return }
+        apply { $0 = next }
+        announce("Applied theme to \(design.pages.count == 1 ? "the page" : "all \(design.pages.count) pages")")
     }
 
     // MARK: page clipboard

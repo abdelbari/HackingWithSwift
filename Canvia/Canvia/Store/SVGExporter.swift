@@ -65,6 +65,7 @@ enum SVGExporter {
         var attributes = ""
         if !transforms.isEmpty { attributes += " transform=\"\(transforms.joined(separator: " "))\"" }
         if el.opacity < 1 { attributes += " opacity=\"\(num(el.opacity))\"" }
+        attributes += BlendModes.svgStyle(el.blendMode)
         if let shadow = el.shadow {
             let id = "shadow\(index)"
             defs.append(shadowDef(id: id, shadow: shadow))

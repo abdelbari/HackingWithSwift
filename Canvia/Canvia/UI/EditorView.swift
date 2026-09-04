@@ -21,7 +21,7 @@ private struct AccentButtonStyle: ButtonStyle {
 enum EditorSheet: String, Identifiable {
     case insert, colorFill, colorText, colorLine, colorStroke, background
     case fonts, effects, spacing, filters, crop, position, layers, export, resize, find, frame, shadow
-    case history, proofread
+    case history, proofread, theme
     var id: String { rawValue }
 }
 
@@ -205,6 +205,10 @@ struct EditorView: View {
                 } label: { Label("Check spelling", systemImage: "textformat.abc.dottedunderline") }
 
                 Button {
+                    activeSheet = .theme
+                } label: { Label("Document theme", systemImage: "paintpalette") }
+
+                Button {
                     // Whatever is on screen now is the newest version, so
                     // the list never starts with a state you cannot get back
                     // to.
@@ -357,6 +361,8 @@ struct EditorView: View {
             VersionHistorySheet(store: store)
         case .proofread:
             ProofreadSheet(store: store)
+        case .theme:
+            ThemeSheet(store: store)
         }
     }
 

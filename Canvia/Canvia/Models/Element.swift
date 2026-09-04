@@ -70,6 +70,9 @@ struct Element: Codable, Equatable, Identifiable {
     var flipV: Bool = false
     var group: String?
     var shadow: Shadow?
+    /// How the element composites over what is under it; nil is normal.
+    /// See BlendModes for the names.
+    var blendMode: String?
 
     // shape
     var shapeId: String?
@@ -143,6 +146,7 @@ struct Element: Codable, Equatable, Identifiable {
         flipV = (try? c.decode(Bool.self, forKey: .flipV)) ?? false
         group = try? c.decode(String.self, forKey: .group)
         shadow = try? c.decode(Shadow.self, forKey: .shadow)
+        blendMode = try? c.decode(String.self, forKey: .blendMode)
         shapeId = try? c.decode(String.self, forKey: .shapeId)
         fill = try? c.decode(Paint.self, forKey: .fill)
         stroke = try? c.decode(String.self, forKey: .stroke)
@@ -196,7 +200,7 @@ struct Element: Codable, Equatable, Identifiable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow
+        case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow, blendMode
         case shapeId, fill, stroke, strokeWidth, radius
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve

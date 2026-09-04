@@ -89,6 +89,13 @@ duplicate / delete via long-press), and a template gallery.
   an opaque screenshot as the far smaller JPEG — and every colour picker
   offers "From the photo": the six most prominent colours of the selected
   picture or the page's background picture, read from its pixels.
+- Document theme: pick a palette and a type pairing, see page one
+  wearing them, apply to every page as one undo step — colours remapped
+  by luminance rank, headings (32 px and up) and body text given the
+  pairing's faces at their own sizes.
+- Blend modes on any element — multiply, screen, overlay and the rest of
+  the CSS set — honoured on the canvas, in every export, and in the SVG
+  as mix-blend-mode.
 - Rubber-band selection: drag from empty page and everything the band
   touches is selected, live, sticky groups included
 - A multi-selection resizes and rotates as one unit from its box —
@@ -139,7 +146,8 @@ what reaches the printer is the document rather than a picture of it.
 
 **MP4 and animated GIF** — a multi-page design is already a sequence, so
 it exports as one: each page holds for 2.5 seconds with a slow push in
-and a cross-fade into the next, written frame by frame with AVAssetWriter
+and a cross-fade into the next (hold time, frame rate, push-in and fade
+are settings saved with the design), written frame by frame with AVAssetWriter
 (video) and ImageIO (GIF). No network, no account, no codec licence.
 
 SVG keeps shapes and lines as paths and strokes, and converts text to

@@ -117,6 +117,21 @@ struct Page: Codable, Equatable, Identifiable {
     private enum CodingKeys: String, CodingKey { case id, background, elements, notes }
 }
 
+/// How a design plays as a video or GIF. Saved with the design, because a
+/// deck timed for a trade-show loop should still be timed that way next
+/// week.
+struct MotionSettings: Codable, Equatable {
+    var secondsPerPage: Double = 2.5
+    var fps: Int = 30
+    /// The slow push-in on each page.
+    var movement: Bool = true
+    /// Cross-fade between pages; off is a hard cut.
+    var crossfade: Bool = true
+
+    static let fpsChoices = [24, 30, 60]
+    static let secondsRange = 0.5...10.0
+}
+
 struct Design: Codable, Equatable, Identifiable {
     var version: Int = 1
     var id: String = UID.make("doc")
@@ -126,6 +141,7 @@ struct Design: Codable, Equatable, Identifiable {
     var createdAt: Double = Date().timeIntervalSince1970 * 1000
     var updatedAt: Double = Date().timeIntervalSince1970 * 1000
     var pages: [Page] = [Page()]
+    var motion: MotionSettings?
 
     var size: CGSize { CGSize(width: width, height: height) }
 
@@ -146,10 +162,11 @@ struct Design: Codable, Equatable, Identifiable {
         updatedAt = (try? c.decode(Double.self, forKey: .updatedAt)) ?? createdAt
         let pages = (try? c.decode([Page].self, forKey: .pages)) ?? []
         self.pages = pages.isEmpty ? [Page()] : pages
+        motion = try? c.decode(MotionSettings.self, forKey: .motion)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case version, id, title, width, height, createdAt, updatedAt, pages
+        case version, id, title, width, height, createdAt, updatedAt, pages, motion
     }
 
     /// Grow any text box that is shorter than the text actually needs.

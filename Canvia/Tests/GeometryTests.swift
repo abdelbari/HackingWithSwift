@@ -170,6 +170,7 @@ final class ElementEqualityTests: XCTestCase {
             ("adjustments", { var a = Adjustments(); a.warmth = 0.5; $0.adjustments = a }),
             ("maskShapeId", { $0.maskShapeId = "circle" }),
             ("indent", { $0.indent = 2 }),
+            ("blendMode", { $0.blendMode = "multiply" }),
             ("textFill", { $0.textFill = Paint(kind: "gradient", color: nil, angle: 90,
                                                 stops: [GradientStop(offset: 0, color: "#ff0000"),
                                                         GradientStop(offset: 1, color: "#0000ff")]) }),

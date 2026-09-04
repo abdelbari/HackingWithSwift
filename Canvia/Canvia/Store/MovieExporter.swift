@@ -29,6 +29,19 @@ enum MovieExporter {
         var maxEdge: Double = 1920
         var zoom: Double = 0.06
         var crossfade: Double = 0.5
+
+        init() {}
+
+        /// The design's own motion settings, or the defaults when it has none.
+        init(_ motion: MotionSettings?) {
+            let m = motion ?? MotionSettings()
+            secondsPerPage = min(max(m.secondsPerPage, MotionSettings.secondsRange.lowerBound),
+                                 MotionSettings.secondsRange.upperBound)
+            fps = MotionSettings.fpsChoices.contains(m.fps) ? m.fps : 30
+            zoom = m.movement ? 0.06 : 0
+            // A fade cannot outlast the page it fades from.
+            crossfade = m.crossfade ? min(0.5, secondsPerPage / 2) : 0
+        }
     }
 
     enum MovieError: LocalizedError {

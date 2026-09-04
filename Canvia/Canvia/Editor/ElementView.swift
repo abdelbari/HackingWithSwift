@@ -38,6 +38,7 @@ struct ElementView: View {
             .scaleEffect(x: element.flipH ? -1 : 1, y: element.flipV ? -1 : 1)
             .rotationEffect(.degrees(element.rotation))
             .opacity(element.opacity)
+            .blendMode(BlendModes.swiftUI(element.blendMode))
             .position(x: element.x + element.w / 2, y: element.y + element.h / 2)
     }
 

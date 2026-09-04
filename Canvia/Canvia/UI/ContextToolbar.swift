@@ -149,6 +149,20 @@ struct ContextToolbar: View {
         }
     }
 
+    private func blendMenu(_ el: Element) -> some View {
+        Menu {
+            Picker("Blend", selection: Binding(
+                get: { BlendModes.mode(el.blendMode).id },
+                set: { id in
+                    store.updateSelected { $0.blendMode = BlendModes.isNormal(id) ? nil : id }
+                })) {
+                ForEach(BlendModes.all) { Text($0.name).tag($0.id) }
+            }
+        } label: {
+            toolLabel("circle.lefthalf.filled", "Blend", active: !BlendModes.isNormal(el.blendMode))
+        }
+    }
+
     /// Bullets, numbers or letters. A menu rather than a toggle because
     /// three list kinds through one button would cycle, and nobody counts
     /// taps to reach "letters".
@@ -281,6 +295,7 @@ struct ContextToolbar: View {
     private var universalControls: some View {
         toolButton("square.3.layers.3d", "Position") { activeSheet = .position }
         toolButton("shadow", "Shadow") { activeSheet = .shadow }
+        if let el = store.selectedElements.first { blendMenu(el) }
 
         // Opacity
         if let el = store.selectedElements.first {
