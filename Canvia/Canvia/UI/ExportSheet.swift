@@ -27,90 +27,18 @@ struct ExportSheet: View {
 
     var body: some View {
         NavigationStack {
+            // One computed property per section. As a single expression the
+            // form was past what the type checker will resolve "in reasonable
+            // time" — every string interpolation, ternary and `if` adds a
+            // branch, and eight sections of them is too many.
             Form {
-                Section {
-                    Picker("Scale", selection: $scale) {
-                        Text("1×").tag(1)
-                        Text("2×").tag(2)
-                        Text("3×").tag(3)
-                    }
-                    .pickerStyle(.segmented)
-                } header: {
-                    Text("Quality")
-                } footer: {
-                    // "2×" means nothing on its own; the pixel count is the
-                    // thing people actually need to match a platform's
-                    // requirements. It also gives the size cap somewhere
-                    // honest to appear rather than silently under-delivering.
-                    Text(sizeNote)
-                }
-                Section {
-                    Slider(value: $jpegQuality, in: 0.3...1)
-                } header: {
-                    Text("JPEG quality")
-                } footer: {
-                    Text("\(Int((jpegQuality * 100).rounded()))% — about \(estimatedSize). "
-                         + "PNG and PDF are lossless and ignore this.")
-                }
-                if store.design.pages.count > 1 {
-                    Section {
-                        Picker("Pages", selection: $pageRange) {
-                            ForEach(RangeChoice.allCases) { Text($0.label).tag($0) }
-                        }
-                        .pickerStyle(.segmented)
-                    } header: {
-                        Text("Pages")
-                    } footer: {
-                        Text(pageRange == .all
-                             ? "One file per page, numbered — so each can be posted on its own."
-                             : "Page \(store.pageIndex + 1) only.")
-                    }
-                }
-                Section {
-                    Toggle("Transparent background", isOn: $transparent)
-                } footer: {
-                    Text("PNG only. Drops the page's own background rather than "
-                         + "flattening it, so the export really has nothing behind it.")
-                }
-                Section("Format") {
-                    exportButton("PNG", subtitle: "Current page, best for sharing", icon: "photo") {
-                        try export(.png)
-                    }
-                    exportButton("JPEG", subtitle: "Current page, about \(estimatedSize)",
-                                 icon: "photo.fill") {
-                        try export(.jpeg)
-                    }
-                    exportButton("PDF", subtitle: store.design.pages.count > 1
-                                 ? "All \(store.design.pages.count) pages, vector"
-                                 : "Print-ready document, vector", icon: "doc.richtext") {
-                        try exportPDF()
-                    }
-                    exportButton("SVG", subtitle: "Current page, editable vectors",
-                                 icon: "scribble.variable") {
-                        try exportSVG()
-                    }
-                }
-                if UIPrintInteractionController.isPrintingAvailable {
-                    Section("Print") {
-                        exportButton("Send to a printer", subtitle: "AirPrint, actual size",
-                                     icon: "printer") {
-                            try printDesign()
-                        }
-                    }
-                }
-                Section {
-                    exportButton("MP4 video", subtitle: movieSubtitle, icon: "film") {
-                        try await exportMovie()
-                    }
-                    exportButton("Animated GIF", subtitle: movieSubtitle, icon: "square.stack.3d.down.right") {
-                        try exportGIF()
-                    }
-                } header: {
-                    Text("Motion")
-                } footer: {
-                    Text("Each page holds for \(MovieExporter.Settings().secondsPerPage, specifier: "%.1f")s "
-                         + "with a slow push in and a cross-fade between pages.")
-                }
+                qualitySection
+                jpegSection
+                if store.design.pages.count > 1 { pagesSection }
+                transparencySection
+                formatSection
+                if UIPrintInteractionController.isPrintingAvailable { printSection }
+                motionSection
                 if let errorMessage {
                     Text(errorMessage).foregroundStyle(.red)
                 }
@@ -133,6 +61,109 @@ struct ExportSheet: View {
             }
         }
         .presentationDetents([.medium])
+    }
+
+    // MARK: sections
+
+    private var qualitySection: some View {
+        Section {
+            Picker("Scale", selection: $scale) {
+                Text("1×").tag(1)
+                Text("2×").tag(2)
+                Text("3×").tag(3)
+            }
+            .pickerStyle(.segmented)
+        } header: {
+            Text("Quality")
+        } footer: {
+            // "2×" means nothing on its own; the pixel count is the thing
+            // people actually need to match a platform's requirements. It also
+            // gives the size cap somewhere honest to appear rather than
+            // silently under-delivering.
+            Text(sizeNote)
+        }
+    }
+
+    private var jpegSection: some View {
+        let percent = Int((jpegQuality * 100).rounded())
+        return Section {
+            Slider(value: $jpegQuality, in: 0.3...1)
+        } header: {
+            Text("JPEG quality")
+        } footer: {
+            Text("\(percent)% — about \(estimatedSize). PNG and PDF are lossless and ignore this.")
+        }
+    }
+
+    private var pagesSection: some View {
+        let note = pageRange == .all
+            ? "One file per page, numbered — so each can be posted on its own."
+            : "Page \(store.pageIndex + 1) only."
+        return Section {
+            Picker("Pages", selection: $pageRange) {
+                ForEach(RangeChoice.allCases) { Text($0.label).tag($0) }
+            }
+            .pickerStyle(.segmented)
+        } header: {
+            Text("Pages")
+        } footer: {
+            Text(note)
+        }
+    }
+
+    private var transparencySection: some View {
+        Section {
+            Toggle("Transparent background", isOn: $transparent)
+        } footer: {
+            Text("PNG only. Drops the page's own background rather than "
+                 + "flattening it, so the export really has nothing behind it.")
+        }
+    }
+
+    private var formatSection: some View {
+        let pdfSubtitle = store.design.pages.count > 1
+            ? "All \(store.design.pages.count) pages, vector"
+            : "Print-ready document, vector"
+        let jpegSubtitle = "Current page, about \(estimatedSize)"
+        return Section("Format") {
+            exportButton("PNG", subtitle: "Current page, best for sharing", icon: "photo") {
+                try export(.png)
+            }
+            exportButton("JPEG", subtitle: jpegSubtitle, icon: "photo.fill") {
+                try export(.jpeg)
+            }
+            exportButton("PDF", subtitle: pdfSubtitle, icon: "doc.richtext") {
+                try exportPDF()
+            }
+            exportButton("SVG", subtitle: "Current page, editable vectors",
+                         icon: "scribble.variable") {
+                try exportSVG()
+            }
+        }
+    }
+
+    private var printSection: some View {
+        Section("Print") {
+            exportButton("Send to a printer", subtitle: "AirPrint, actual size", icon: "printer") {
+                try printDesign()
+            }
+        }
+    }
+
+    private var motionSection: some View {
+        let hold = String(format: "%.1f", MovieExporter.Settings().secondsPerPage)
+        return Section {
+            exportButton("MP4 video", subtitle: movieSubtitle, icon: "film") {
+                try await exportMovie()
+            }
+            exportButton("Animated GIF", subtitle: movieSubtitle, icon: "square.stack.3d.down.right") {
+                try exportGIF()
+            }
+        } header: {
+            Text("Motion")
+        } footer: {
+            Text("Each page holds for \(hold)s with a slow push in and a cross-fade between pages.")
+        }
     }
 
     private func exportButton(_ title: String, subtitle: String, icon: String,
