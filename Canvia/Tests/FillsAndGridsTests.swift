@@ -45,13 +45,15 @@ final class FillsAndGridsTests: XCTestCase {
         for name in Patterns.names {
             let paint = Paint.pattern(name, color: "#000000", secondary: "#ffffff", scale: 12)
             let image = Patterns.image(paint, size: CGSize(width: 60, height: 60))
+            // Every pixel, not a stride: a hairline grid and small dots fall
+            // between any coarse sample, and the point is whether marks exist.
             var dark = 0, light = 0
-            for y in stride(from: 1, to: 60, by: 3) { for x in stride(from: 1, to: 60, by: 3) {
+            for y in 0..<60 { for x in 0..<60 {
                 let c = try rgb(image, x: x, y: y)
-                if c.r < 80 { dark += 1 } else if c.r > 180 { light += 1 }
+                if c.r < 100 { dark += 1 } else if c.r > 180 { light += 1 }
             } }
-            XCTAssertGreaterThan(dark, 5, "\(name) drew no marks")
-            XCTAssertGreaterThan(light, 5, "\(name) covered its background")
+            XCTAssertGreaterThan(dark, 20, "\(name) drew no marks")
+            XCTAssertGreaterThan(light, 20, "\(name) covered its background")
         }
     }
 
