@@ -16,6 +16,7 @@
 //   5. no ViewBuilder block exceeds SwiftUI's ten-child limit
 //   6. no closure passed to a higher-order stdlib method silently ignores
 //      the argument it is required to take
+//   7. every argument in an inout position is passed with an explicit &
 //
 // It does NOT type-check. A clean run means the syntax and the project's
 // internal API surface are consistent; it cannot prove the app builds.
@@ -46,7 +47,7 @@ const rel = f => path.relative(process.cwd(), f);
 let FAILURES = 0;
 
 // ---------------------------------------------------------------- 1. parse
-console.log('\n[1/6] parsing');
+console.log('\n[1/7] parsing');
 for (const f of FILES) {
   const tree = parser.parse(fs.readFileSync(f, 'utf8'));
   const problems = [];
@@ -59,7 +60,7 @@ for (const f of FILES) {
 console.log(`      ${FILES.length} files`);
 
 // ------------------------------------------------- 2. argument labels
-console.log('[2/6] argument labels');
+console.log('[2/7] argument labels');
 const decls = new Map(), ourTypes = new Set();
 for (const f of FILES) {
   const tree = parser.parse(fs.readFileSync(f, 'utf8'));
@@ -86,7 +87,12 @@ for (const f of FILES) {
                      'type_constraints','optional_type','array_type','dictionary_type',
                      'function_type','tuple_type'].includes(nxt.type)) hasDefault = true;
       }
-      labels.push({ label, hasDefault });
+      // `inout` only as a parameter modifier — a closure-typed parameter
+      // like `(inout Design) -> Void` has "inout" in its text but is passed
+      // by value like anything else.
+      const mods = p.namedChildren.find(c => c.type === 'parameter_modifiers');
+      const isInout = !!(mods && /\binout\b/.test(mods.text));
+      labels.push({ label, hasDefault, isInout });
     });
     if (!decls.has(name)) decls.set(name, []);
     decls.get(name).push({ labels, file: f, row: n.startPosition.row + 1 });
@@ -144,7 +150,7 @@ for (const f of FILES) {
 console.log(`      ${calls} internal calls`);
 
 // --------------------------------------- 3 & 4. enum cases + exhaustiveness
-console.log('[3/6] enum-case arguments');
+console.log('[3/7] enum-case arguments');
 const enums = new Map();
 for (const f of FILES) {
   const tree = parser.parse(fs.readFileSync(f, 'utf8'));
@@ -206,7 +212,7 @@ for (const f of FILES) {
 }
 console.log(`      ${caseArgs} enum-case arguments`);
 
-console.log('[4/6] switch exhaustiveness');
+console.log('[4/7] switch exhaustiveness');
 let switches = 0;
 for (const f of FILES) {
   const tree = parser.parse(fs.readFileSync(f, 'utf8'));
@@ -237,7 +243,7 @@ console.log(`      ${switches} switches over project enums`);
 // ------------------------------------------- 5. ViewBuilder child limits
 // A ViewBuilder block accepts at most ten child views; exceeding it fails
 // with an opaque type-inference error rather than a clear diagnostic.
-console.log('[5/6] ViewBuilder child counts');
+console.log('[5/7] ViewBuilder child counts');
 const CONTAINERS = new Set(['HStack','VStack','ZStack','Group','Form','List','Section','Menu',
   'ScrollView','NavigationStack','LazyVStack','LazyHStack','LazyVGrid','LazyHGrid','ToolbarItemGroup']);
 const countViews = stmts => stmts.namedChildren.filter(c =>
@@ -279,7 +285,7 @@ console.log(`      ${builders} ViewBuilder blocks`);
 // list expects 1 argument, which cannot be implicitly ignored") — and usually
 // signals a predicate that forgot to look at the element. A shorthand closure
 // passed to one of these methods must reference the arguments it is given.
-console.log('[6/6] closure arguments');
+console.log('[6/7] closure arguments');
 const HOF = new Map([
   ['filter', 1], ['map', 1], ['compactMap', 1], ['flatMap', 1], ['forEach', 1],
   ['first', 1], ['firstIndex', 1], ['last', 1], ['lastIndex', 1],
@@ -340,6 +346,55 @@ for (const f of FILES) {
   });
 }
 console.log(`      ${closures} shorthand closures`);
+
+// ------------------------------------------------------- 7. inout arguments
+// Swift needs `&` at the call site for an inout parameter, and forgetting it
+// is a plain compile error that costs a full macOS CI leg to discover. The
+// grammar makes it cheap to catch here: a parameter carries `inout` as a
+// modifier node, which a closure-typed parameter such as `(inout Design) ->
+// Void` does not.
+console.log('[7/7] inout arguments');
+const requiredAmps = new Map();
+for (const [name, ds] of decls) {
+  // The minimum across overloads: if any declaration of this name takes no
+  // inout parameter, a call with no `&` may well be that one.
+  const counts = ds.map(d => d.labels.filter(l => l.isInout && !l.hasDefault).length);
+  const need = counts.length ? Math.min(...counts) : 0;
+  if (need > 0) requiredAmps.set(name, need);
+}
+let inoutCalls = 0;
+if (requiredAmps.size) {
+  for (const f of FILES) {
+    const tree = parser.parse(fs.readFileSync(f, 'utf8'));
+    each(tree.rootNode, n => {
+      if (n.type !== 'call_expression') return;
+      const callee = n.namedChild(0);
+      const suffix = n.namedChildren.find(c => c.type === 'call_suffix');
+      if (!callee || !suffix) return;
+      let name = null;
+      if (callee.type === 'simple_identifier') name = callee.text;
+      else if (callee.type === 'navigation_expression') {
+        const suf = callee.namedChildren.find(c => c.type === 'navigation_suffix');
+        const id = suf && suf.namedChildren.find(c => c.type === 'simple_identifier');
+        if (id) name = id.text;
+      }
+      if (!name || !requiredAmps.has(name)) return;
+      inoutCalls++;
+      const va = suffix.namedChildren.find(c => c.type === 'value_arguments');
+      const args = va ? va.namedChildren.filter(c => c.type === 'value_argument') : [];
+      // The node's text carries the label too ("defs: &defs"), so strip a
+      // leading label before looking for the ampersand.
+      const value = a => a.text.replace(/^\s*[A-Za-z_][A-Za-z0-9_]*\s*:\s*/, '').trim();
+      const amps = args.filter(a => value(a).startsWith('&')).length;
+      const need = requiredAmps.get(name);
+      if (amps >= need) return;
+      FAILURES++;
+      console.log(`  FAIL ${rel(f)}:${n.startPosition.row + 1}  ${name}(...) passes ${amps} `
+        + `inout argument(s) but ${need} parameter(s) need an explicit &`);
+    });
+  }
+}
+console.log(`      ${inoutCalls} calls to ${requiredAmps.size} inout function(s)`);
 
 console.log(FAILURES === 0 ? '\nOK — no static problems found\n' : `\n${FAILURES} PROBLEM(S)\n`);
 process.exit(FAILURES === 0 ? 0 : 1);

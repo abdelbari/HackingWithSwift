@@ -145,7 +145,7 @@ struct ContextToolbar: View {
             toolButton("wand.and.stars", "Effects") { activeSheet = .effects }
             toolButton("arrow.up.and.down.text.horizontal", "Spacing") { activeSheet = .spacing }
             sliderControl("Curve", value: el.curve ?? 0, in: -180...180) { degrees in
-                store.updateSelectedTransient { curve($0, to: degrees) }
+                store.updateSelectedTransient { curve(&$0, to: degrees) }
             }
         }
     }
