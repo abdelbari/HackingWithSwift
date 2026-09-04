@@ -22,8 +22,7 @@ final class CurvedTextTests: XCTestCase {
         el.fontSize = size
         el.w = w
         el.curve = curve
-        el.h = curve == nil ? FontLibrary.measuredHeight(for: el)
-                            : (TextOutliner.curvedSize(for: el, degrees: curve!)?.height ?? size * 4)
+        el.h = FontLibrary.layoutHeight(for: el)
         return el
     }
 
@@ -69,12 +68,24 @@ final class CurvedTextTests: XCTestCase {
     }
 
     /// A positive angle arcs up like a rainbow, a negative one down like a
-    /// valley. They are mirror images, so their boxes match.
-    func testPositiveAndNegativeCurvesMirrorEachOther() throws {
-        let up = try XCTUnwrap(TextOutliner.curvedSize(for: text(), degrees: 120))
-        let down = try XCTUnwrap(TextOutliner.curvedSize(for: text(), degrees: -120))
-        XCTAssertEqual(up.width, down.width, accuracy: 1)
-        XCTAssertEqual(up.height, down.height, accuracy: 1)
+    /// valley. The baselines are mirror images; the boxes are not, and must
+    /// not be: the letters stand on the baseline in both, so on the rainbow
+    /// they point outward from the circle and on the valley inward. The
+    /// rainbow's tilted end letters therefore reach further out, and it is
+    /// the wider and taller of the two — by less than a glyph's height,
+    /// which is all that difference can be.
+    func testAValleyIsTheRainbowsBaselineNotItsBox() throws {
+        let size = 40.0
+        let up = try XCTUnwrap(TextOutliner.curvedSize(for: text(size: size), degrees: 120))
+        let down = try XCTUnwrap(TextOutliner.curvedSize(for: text(size: size), degrees: -120))
+        XCTAssertGreaterThan(up.width, down.width, "the valley's end letters lean outward")
+        XCTAssertGreaterThanOrEqual(up.height, down.height - 1)
+        XCTAssertLessThan(up.width - down.width, size * 2)
+        XCTAssertLessThan(up.height - down.height, size * 2)
+        // Whatever the letters do, both are bent: a real valley is far taller
+        // than the flat line it came from.
+        let flat = try XCTUnwrap(TextOutliner.path(for: text(size: size))).boundingBox
+        XCTAssertGreaterThan(down.height, flat.height * 2)
     }
 
     /// The letters keep their size. If the glyphs were being scaled to fit an

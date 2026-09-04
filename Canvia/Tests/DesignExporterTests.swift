@@ -333,8 +333,12 @@ final class ExportRangeTests: XCTestCase {
         let url = DesignExporter.fileURL(for: design(pages: 1), ext: "png", suffix: "-clear")
         written = [url]
         var d = design(pages: 1)
-        // An element small enough that the corners are background only.
-        d.pages[0].elements = [Element.shape("rect", w: 20, h: 20)]
+        // An element small enough, and far enough from the corner being
+        // sampled, that the corner is background only.
+        var rect = Element.shape("rect", w: 20, h: 20)
+        rect.x = 50
+        rect.y = 35
+        d.pages[0].elements = [rect]
         try DesignExporter.exportRaster(design: d, page: d.pages[0], format: .png,
                                         scale: 1, transparent: true, to: url)
         XCTAssertEqual(try alpha(at: CGPoint(x: 2, y: 2), of: url), 0,

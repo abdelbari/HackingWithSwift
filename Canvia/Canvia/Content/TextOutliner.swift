@@ -40,7 +40,12 @@ enum TextOutliner {
         let attributed = NSAttributedString(string: text,
                                             attributes: FontLibrary.attributes(for: el))
         let framesetter = CTFramesetterCreateWithAttributedString(attributed)
-        let box = CGPath(rect: CGRect(x: 0, y: 0, width: el.w, height: el.h), transform: nil)
+        // Never shorter than the text needs: CoreText drops any line that
+        // does not fit the frame, and an element whose height is a frame
+        // behind its text (mid-edit, or measured for a curve it no longer
+        // has) would outline as nothing at all.
+        let height = max(el.h, FontLibrary.measuredHeight(for: el))
+        let box = CGPath(rect: CGRect(x: 0, y: 0, width: el.w, height: height), transform: nil)
         let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: 0, length: 0), box, nil)
         guard let lines = CTFrameGetLines(frame) as? [CTLine], !lines.isEmpty else { return nil }
 

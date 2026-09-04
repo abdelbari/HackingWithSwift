@@ -163,10 +163,14 @@ enum ImageFilterEngine {
         if a.warmth != 0 {
             let f = CIFilter.temperatureAndTint()
             f.inputImage = image
-            // 6500K is the neutral the filter is defined against; pushing the
-            // *target* neutral warmer makes the picture warmer.
+            // The filter re-balances a picture lit at `neutral` as if it had
+            // been lit at `targetNeutral`, so a *higher* target temperature
+            // makes the picture bluer — the light it is correcting for was
+            // warm. Warmer therefore means a lower target. This is the
+            // direction the test pins, because the other way round looks
+            // entirely plausible.
             f.neutral = CIVector(x: 6500, y: 0)
-            f.targetNeutral = CIVector(x: 6500 + a.warmth * 2500, y: 0)
+            f.targetNeutral = CIVector(x: 6500 - a.warmth * 2500, y: 0)
             image = f.outputImage ?? image
         }
 
