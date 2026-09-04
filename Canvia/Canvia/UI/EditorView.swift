@@ -111,6 +111,21 @@ struct EditorView: View {
                 shortcut("x", [.command]) { store.cutSelected() }
                 shortcut("v", [.command]) { store.paste() }
             }
+            // Arrow keys nudge a page unit, ten with Shift — only while no
+            // text field has the keyboard, or the arrows would never reach
+            // the caret.
+            if store.editingTextId == nil && !titleFocused {
+                Group {
+                    shortcut(.leftArrow, []) { store.nudgeSelected(dx: -1, dy: 0) }
+                    shortcut(.rightArrow, []) { store.nudgeSelected(dx: 1, dy: 0) }
+                    shortcut(.upArrow, []) { store.nudgeSelected(dx: 0, dy: -1) }
+                    shortcut(.downArrow, []) { store.nudgeSelected(dx: 0, dy: 1) }
+                    shortcut(.leftArrow, [.shift]) { store.nudgeSelected(dx: -10, dy: 0) }
+                    shortcut(.rightArrow, [.shift]) { store.nudgeSelected(dx: 10, dy: 0) }
+                    shortcut(.upArrow, [.shift]) { store.nudgeSelected(dx: 0, dy: -10) }
+                    shortcut(.downArrow, [.shift]) { store.nudgeSelected(dx: 0, dy: 10) }
+                }
+            }
             Group {
                 shortcut("d", [.command]) { store.duplicateSelected() }
                 shortcut("a", [.command]) { store.selectAll() }

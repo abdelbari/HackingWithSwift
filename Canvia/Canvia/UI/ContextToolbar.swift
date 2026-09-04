@@ -132,6 +132,7 @@ struct ContextToolbar: View {
                     switch e.align ?? "center" {
                     case "left": e.align = "center"
                     case "center": e.align = "right"
+                    case "right": e.align = "justify"
                     default: e.align = "left"
                     }
                 }
@@ -474,6 +475,7 @@ struct ContextToolbar: View {
         switch align ?? "center" {
         case "left": return "text.alignleft"
         case "right": return "text.alignright"
+        case "justify": return "text.justify"
         default: return "text.aligncenter"
         }
     }

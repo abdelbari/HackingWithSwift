@@ -244,7 +244,7 @@ struct CanvasView: View {
 
     private func nudge(_ el: Element, dx: Double, dy: Double) {
         store.select(el.id)
-        store.updateSelected { $0.x += dx; $0.y += dy }
+        store.nudgeSelected(dx: dx, dy: dy)
     }
 
     // MARK: move
@@ -352,6 +352,9 @@ struct CanvasView: View {
                 if handle.isCorner {
                     let scale = next.width / original.w
                     el.fontSize = max(6, (original.fontSize ?? 42) * scale)
+                    el.h = next.height
+                } else if el.fitText == true || el.vAlign != nil {
+                    // The box is the design here; the type follows it.
                     el.h = next.height
                 } else {
                     el.h = FontLibrary.layoutHeight(for: el)

@@ -400,6 +400,75 @@ final class DesignStore {
         }
     }
 
+    /// Tidy the unlocked selection into a row, column or grid, one undo step.
+    /// The gap is a fiftieth of the page's shorter side: visible, not loose.
+    func tidySelected(_ mode: Geometry.TidyMode) {
+        let members = selectedElements.filter { !$0.locked }
+        guard members.count >= 2 else { return }
+        let gap = (min(design.width, design.height) / 50).rounded()
+        let tidied = Geometry.tidy(members, mode: mode, gap: gap)
+        applyToPage { page in
+            let byId = Dictionary(uniqueKeysWithValues: tidied.map { ($0.id, $0) })
+            for i in page.elements.indices {
+                if let e = byId[page.elements[i].id] { page.elements[i] = e }
+            }
+        }
+    }
+
+    /// Move the unlocked selection by a step, as one undo step. Arrow keys,
+    /// VoiceOver actions and the numeric fields all come through here.
+    func nudgeSelected(dx: Double, dy: Double) {
+        guard dx != 0 || dy != 0, unlockedSelectionCount > 0 else { return }
+        updateSelected { $0.x += dx; $0.y += dy }
+    }
+
+    /// The selection's box, for the numeric fields; nil when nothing is
+    /// selected.
+    var selectionBox: CGRect? {
+        let members = selectedElements
+        return members.isEmpty ? nil : Geometry.union(members.map(Geometry.aabb))
+    }
+
+    /// Resize the whole selection so its box becomes `to`, one undo step.
+    func setSelectionBox(_ to: CGRect) {
+        let members = selectedElements.filter { !$0.locked }
+        guard let from = selectionBox, !members.isEmpty, to.width >= 1, to.height >= 1 else { return }
+        let scaled = from.size == to.size
+            ? members.map { el in var e = el; e.x += to.minX - from.minX; e.y += to.minY - from.minY; return e }
+            : Geometry.scale(members, from: from, to: to)
+        applyToPage { page in
+            let byId = Dictionary(uniqueKeysWithValues: scaled.map { ($0.id, $0) })
+            for i in page.elements.indices {
+                if let e = byId[page.elements[i].id] { page.elements[i] = e }
+            }
+        }
+    }
+
+    /// Turn the whole selection about its centre by `degrees`, one undo step.
+    func rotateSelection(by degrees: Double) {
+        let members = selectedElements.filter { !$0.locked }
+        guard let box = selectionBox, !members.isEmpty, degrees != 0 else { return }
+        let turned = Geometry.rotate(members, around: CGPoint(x: box.midX, y: box.midY), by: degrees)
+        applyToPage { page in
+            let byId = Dictionary(uniqueKeysWithValues: turned.map { ($0.id, $0) })
+            for i in page.elements.indices {
+                if let e = byId[page.elements[i].id] { page.elements[i] = e }
+            }
+        }
+    }
+
+    /// Close a text box onto its text: no slack below, no slack beside.
+    func shrinkWrapText() {
+        updateSelected { el in
+            guard el.type == .text else { return }
+            if el.fitText == true { el.fontSize = FontLibrary.fittingFontSize(for: el) }
+            el.fitText = nil
+            el.vAlign = nil
+            el.w = max(8, min(el.w, FontLibrary.lineWidth(for: el) + 2))
+            el.h = FontLibrary.measuredHeight(for: el)
+        }
+    }
+
     enum DistributeAxis { case horizontal, vertical }
 
     /// Even spacing between the outermost two elements (needs 3+).
@@ -569,6 +638,8 @@ final class DesignStore {
         var listStyle: String?
         var indent: Int?
         var textFill: Paint?
+        var vAlign: String?
+        var paragraphSpacing: Double?
         var effect: TextEffectSpec?
         var curve: Double?
         var filter: String?
@@ -593,6 +664,7 @@ final class DesignStore {
               fontWeight: el.fontWeight, italic: el.italic, underline: el.underline,
               align: el.align, lineHeight: el.lineHeight, letterSpacing: el.letterSpacing,
               listStyle: el.listStyle, indent: el.indent, textFill: el.textFill,
+              vAlign: el.vAlign, paragraphSpacing: el.paragraphSpacing,
               effect: el.effect, curve: el.curve, filter: el.filter,
               adjustments: el.adjustments, maskShapeId: el.maskShapeId, duotone: el.duotone,
               opacity: el.opacity, shadow: el.shadow, blendMode: el.blendMode,
@@ -628,6 +700,8 @@ final class DesignStore {
             el.listStyle = style.listStyle
             el.indent = style.indent
             el.textFill = style.textFill
+            el.vAlign = style.vAlign
+            el.paragraphSpacing = style.paragraphSpacing
             el.effect = style.effect
             el.curve = style.curve
             el.h = FontLibrary.layoutHeight(for: el)

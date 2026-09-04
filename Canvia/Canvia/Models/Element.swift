@@ -96,6 +96,14 @@ struct Element: Codable, Equatable, Identifiable {
     var listStyle: String?
     /// Indent level, 0…4. Each level is one and a half ems.
     var indent: Int?
+    /// Where the text sits in a box taller than it: "top" | "middle" |
+    /// "bottom"; nil is top and the box hugs the text.
+    var vAlign: String?
+    /// Choose the type size so the text fills the box, rather than the box
+    /// following the text.
+    var fitText: Bool?
+    /// Space after each paragraph, in ems.
+    var paragraphSpacing: Double?
     /// A gradient behind the letters. nil paints `color`; a solid Paint here
     /// is never stored, since `color` already is one.
     var textFill: Paint?
@@ -171,6 +179,9 @@ struct Element: Codable, Equatable, Identifiable {
         color = try? c.decode(String.self, forKey: .color)
         listStyle = try? c.decode(String.self, forKey: .listStyle)
         indent = try? c.decode(Int.self, forKey: .indent)
+        vAlign = try? c.decode(String.self, forKey: .vAlign)
+        fitText = try? c.decode(Bool.self, forKey: .fitText)
+        paragraphSpacing = try? c.decode(Double.self, forKey: .paragraphSpacing)
         textFill = try? c.decode(Paint.self, forKey: .textFill)
         effect = try? c.decode(TextEffectSpec.self, forKey: .effect)
         curve = try? c.decode(Double.self, forKey: .curve)
@@ -213,6 +224,7 @@ struct Element: Codable, Equatable, Identifiable {
         case shapeId, fill, stroke, strokeWidth, radius
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve
+        case vAlign, fitText, paragraphSpacing
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit
         case glyph
         case thickness, dash, startCap, endCap

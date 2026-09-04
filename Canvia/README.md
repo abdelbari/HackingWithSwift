@@ -89,6 +89,14 @@ duplicate / delete via long-press), and a template gallery.
   an opaque screenshot as the far smaller JPEG — and every colour picker
   offers "From the photo": the six most prominent colours of the selected
   picture or the page's background picture, read from its pixels.
+- Tidy up: a messy selection into a row, a column or a grid with equal
+  gaps, one undo step. Arrow keys nudge the selection a unit (ten with
+  Shift), and the Position sheet edits a multi-selection's box by number —
+  move, scale together, turn about its centre.
+- Text boxes: auto-fit sizes the type to fill the box you draw; vertical
+  alignment (top, middle, bottom) places shorter text in a taller box;
+  shrink-to-fit closes the box onto its text. Justified alignment and
+  paragraph spacing join the type controls.
 - Pattern fills — stripes, dots, checks, grid, zigzag, crosshatch — drawn
   procedurally in any two colours so they stay sharp at every zoom and
   export, and photo fills that pour a picture into any shape; both from

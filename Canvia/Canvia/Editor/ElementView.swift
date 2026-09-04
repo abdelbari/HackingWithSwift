@@ -122,7 +122,7 @@ struct TextElementView: View {
     }
 
     private func drawText(in cg: CGContext, size: CGSize) {
-        let el = element
+        var el = element
         let effect = TextEffect.from(el.effect)
         let text = FontLibrary.displayText(for: el)
         guard !text.isEmpty else { return }
@@ -130,10 +130,16 @@ struct TextElementView: View {
             drawCurvedText(in: cg, size: size, effect: effect)
             return
         }
+        // Fitted text is measured at the size that fills the box.
+        if el.fitText == true { el.fontSize = FontLibrary.fittingFontSize(for: el) }
         var attrs = FontLibrary.attributes(for: el)
         let fontSize = el.fontSize ?? 42
         let color = UIColor(hex: el.color ?? "#1f2430")
-        let rect = CGRect(origin: .zero, size: size)
+        // Vertical alignment: the text's own height against the box's.
+        let measured = FontLibrary.measuredHeight(for: el)
+        let slack = max(0, size.height - measured)
+        let dy: Double = el.vAlign == "middle" ? slack / 2 : el.vAlign == "bottom" ? slack : 0
+        let rect = CGRect(x: 0, y: dy, width: size.width, height: size.height - dy)
 
         UIGraphicsPushContext(cg)
         defer { UIGraphicsPopContext() }

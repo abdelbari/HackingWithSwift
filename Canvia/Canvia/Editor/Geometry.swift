@@ -39,7 +39,10 @@ enum Touch {
         let full: [Handle]
         switch el.type {
         case .line: full = [.e, .w]
-        case .text: full = [.nw, .ne, .se, .sw, .e, .w]
+        // A text box follows its text, so its top and bottom edges are not
+        // the user's to drag — unless the text is fitted to the box or
+        // aligned within it, when the box is the thing being designed.
+        case .text: full = (el.fitText == true || el.vAlign != nil) ? Handle.allCases : [.nw, .ne, .se, .sw, .e, .w]
         default: full = Handle.allCases
         }
         // Edge handles sit between the corners; below this the two collide.
@@ -310,6 +313,59 @@ enum Geometry {
                 .truncatingRemainder(dividingBy: 360)
             return e
         }
+    }
+
+    enum TidyMode { case row, column, grid }
+
+    /// A messy selection made regular: a row (left to right, centred on the
+    /// union's middle), a column (top to bottom, centred on its middle) or a
+    /// grid (reading order, square-ish, cells the size of the largest box).
+    /// Everything stays inside the union's top-left corner; gaps are equal.
+    static func tidy(_ elements: [Element], mode: TidyMode, gap: Double) -> [Element] {
+        guard elements.count >= 2 else { return elements }
+        let union = self.union(elements.map(aabb))
+        var out = elements
+        switch mode {
+        case .row:
+            let ordered = elements.indices.sorted { aabb(elements[$0]).minX < aabb(elements[$1]).minX }
+            var x = union.minX
+            for i in ordered {
+                let box = aabb(elements[i])
+                out[i].x += x - box.minX
+                out[i].y += union.midY - box.midY
+                x += box.width + gap
+            }
+        case .column:
+            let ordered = elements.indices.sorted { aabb(elements[$0]).minY < aabb(elements[$1]).minY }
+            var y = union.minY
+            for i in ordered {
+                let box = aabb(elements[i])
+                out[i].y += y - box.minY
+                out[i].x += union.midX - box.midX
+                y += box.height + gap
+            }
+        case .grid:
+            // Reading order as they sit now: by row band, then left to right.
+            let boxes = elements.map(aabb)
+            let cellW = boxes.map(\.width).max() ?? 0
+            let cellH = boxes.map(\.height).max() ?? 0
+            let columns = Int(Double(elements.count).squareRoot().rounded(.up))
+            let ordered = elements.indices.sorted {
+                let a = boxes[$0], b = boxes[$1]
+                let rowA = ((a.midY - union.minY) / max(cellH, 1)).rounded(.down)
+                let rowB = ((b.midY - union.minY) / max(cellH, 1)).rounded(.down)
+                return rowA != rowB ? rowA < rowB : a.minX < b.minX
+            }
+            for (n, i) in ordered.enumerated() {
+                let col = Double(n % columns), row = Double(n / columns)
+                let cellX = union.minX + col * (cellW + gap)
+                let cellY = union.minY + row * (cellH + gap)
+                // Centred in its cell, so mixed sizes still read as a grid.
+                out[i].x += (cellX + (cellW - boxes[i].width) / 2) - boxes[i].minX
+                out[i].y += (cellY + (cellH - boxes[i].height) / 2) - boxes[i].minY
+            }
+        }
+        return out
     }
 
     /// A stand-in element for a multi-selection's box, so the single-element

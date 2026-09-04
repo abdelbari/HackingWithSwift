@@ -64,10 +64,12 @@ enum FontLibrary {
         let color: String?
         let listStyle: String?
         let indent: Int
+        let paragraphSpacing: Double
 
         init(_ el: Element) {
             listStyle = el.listStyle
             indent = FontLibrary.indentLevel(of: el)
+            paragraphSpacing = el.paragraphSpacing ?? 0
             family = el.fontFamily
             size = el.fontSize ?? 42
             weight = el.fontWeight ?? 400
@@ -172,9 +174,11 @@ enum FontLibrary {
             switch el.align ?? "center" {
             case "left": return .left
             case "right": return .right
+            case "justify": return .justified
             default: return .center
             }
         }()
+        paragraph.paragraphSpacing = size * max(0, el.paragraphSpacing ?? 0)
         let lineHeight = size * (el.lineHeight ?? 1.25)
         paragraph.minimumLineHeight = lineHeight
         paragraph.maximumLineHeight = lineHeight
@@ -258,7 +262,55 @@ enum FontLibrary {
            let curved = TextOutliner.curvedSize(for: el, degrees: degrees) {
             return max(curved.height, el.fontSize ?? 42)
         }
-        return measuredHeight(for: el)
+        // A fitted box is the size the user made it; the type fits inside.
+        if el.fitText == true { return max(el.h, 8) }
+        let measured = measuredHeight(for: el)
+        // A vertically aligned box may be taller than its text — that is
+        // the whole point of aligning within it — and must not snap shut.
+        if el.vAlign != nil { return max(el.h, measured) }
+        return measured
+    }
+
+    /// The largest type size, up to `maxSize`, at which the text fits inside
+    /// the element's own box. Binary search over the measurement, which is
+    /// what the box would do by hand: bigger until it spills, then back.
+    static func fittingFontSize(for el: Element, maxSize: Double = 400) -> Double {
+        guard el.w > 8, el.h > 8, !(el.text ?? "").isEmpty else { return el.fontSize ?? 42 }
+        var probe = el
+        probe.fitText = nil
+        probe.vAlign = nil
+        var lo = 6.0, hi = maxSize
+        for _ in 0..<18 {
+            let mid = (lo + hi) / 2
+            probe.fontSize = mid
+            let fits = measuredHeight(for: probe) <= el.h && naturalWidth(for: probe) <= el.w
+            if fits { lo = mid } else { hi = mid }
+        }
+        return (lo * 2).rounded() / 2
+    }
+
+    /// The width the longest word needs at this size — the point below which
+    /// a box does not narrow the text, it breaks it.
+    static func naturalWidth(for el: Element) -> Double {
+        let attrs = attributes(for: el)
+        let words = displayText(for: el).split(whereSeparator: { $0 == " " || $0 == "\n" })
+        return words.reduce(0.0) { widest, word in
+            max(widest, ceil(NSAttributedString(string: String(word), attributes: attrs).size().width))
+        }
+    }
+
+    /// The width of the widest line, so a box can shrink onto its text.
+    static func lineWidth(for el: Element) -> Double {
+        let attrs = attributes(for: el)
+        return displayText(for: el).components(separatedBy: "\n").reduce(0.0) { widest, line in
+            max(widest, ceil(NSAttributedString(string: line, attributes: attrs).size().width))
+        }
+    }
+
+    /// The size the canvas draws a text element at: its own, or the one
+    /// that fits its box.
+    static func effectiveFontSize(for el: Element) -> Double {
+        el.fitText == true ? fittingFontSize(for: el) : (el.fontSize ?? 42)
     }
 
     /// Natural height of a text element at its wrap width, ignoring any curve.

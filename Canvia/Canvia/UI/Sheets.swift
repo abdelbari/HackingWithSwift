@@ -194,6 +194,44 @@ struct SpacingSheet: View {
                         Slider(value: transientBinding(el.letterSpacing ?? 0) { v, e in e.letterSpacing = v },
                                in: -2...20, step: 0.5)
                     }
+                    Section {
+                        Slider(value: transientBinding(el.paragraphSpacing ?? 0) { v, e in
+                            e.paragraphSpacing = v < 0.01 ? nil : v
+                        }, in: 0...2, step: 0.1)
+                    } header: {
+                        Text("Paragraph spacing")
+                    } footer: {
+                        Text("Extra space after each line break, in ems.")
+                    }
+                    Section {
+                        Picker("Vertical alignment", selection: Binding(
+                            get: { el.vAlign ?? "top" },
+                            set: { v in store.updateSelected { $0.vAlign = v == "top" ? nil : v } })) {
+                            Text("Top").tag("top")
+                            Text("Middle").tag("middle")
+                            Text("Bottom").tag("bottom")
+                        }
+                        .pickerStyle(.segmented)
+                        Toggle("Auto-fit text to the box", isOn: Binding(
+                            get: { el.fitText == true },
+                            set: { on in
+                                store.updateSelected {
+                                    if on {
+                                        $0.fitText = true
+                                    } else {
+                                        // Keep the size it had fitted to, so
+                                        // turning it off changes nothing visible.
+                                        $0.fontSize = FontLibrary.fittingFontSize(for: $0)
+                                        $0.fitText = nil
+                                    }
+                                }
+                            }))
+                        Button("Shrink the box to the text") { store.shrinkWrapText() }
+                    } header: {
+                        Text("Text box")
+                    } footer: {
+                        Text("With auto-fit on, drag the box and the type resizes to fill it; the alignment places shorter text within a taller box.")
+                    }
                 }
             }
             .navigationTitle("Spacing")
@@ -558,6 +596,16 @@ struct PositionSheet: View {
                         .disabled(!store.canDistribute)
                     }
                 }
+                if store.selection.count >= 2 {
+                    Section("Tidy up") {
+                        HStack {
+                            orderButton("Row", "rectangle.split.3x1") { store.tidySelected(.row) }
+                            orderButton("Column", "rectangle.split.1x2") { store.tidySelected(.column) }
+                            orderButton("Grid", "rectangle.split.3x3") { store.tidySelected(.grid) }
+                        }
+                        .disabled(store.unlockedSelectionCount < 2)
+                    }
+                }
                 Section("Flip") {
                     HStack {
                         orderButton("Horizontal", "arrow.left.and.right.righttriangle.left.righttriangle.right") {
@@ -577,6 +625,26 @@ struct PositionSheet: View {
                             numberRow("Height", value: el.h) { v in store.updateSelected { $0.h = max(8, v) } }
                         }
                         numberRow("Rotation", value: el.rotation) { v in store.updateSelected { $0.rotation = v } }
+                    }
+                } else if let box = store.selectionBox {
+                    // The selection as one thing: its box moves and scales,
+                    // and a rotation turns the whole about the centre.
+                    Section("Exact (selection)") {
+                        numberRow("X", value: box.minX) { v in
+                            store.setSelectionBox(CGRect(x: v, y: box.minY, width: box.width, height: box.height))
+                        }
+                        numberRow("Y", value: box.minY) { v in
+                            store.setSelectionBox(CGRect(x: box.minX, y: v, width: box.width, height: box.height))
+                        }
+                        numberRow("Width", value: box.width) { v in
+                            let w = max(8, v)
+                            store.setSelectionBox(CGRect(x: box.minX, y: box.minY, width: w, height: box.height * w / max(box.width, 1)))
+                        }
+                        numberRow("Height", value: box.height) { v in
+                            let h = max(8, v)
+                            store.setSelectionBox(CGRect(x: box.minX, y: box.minY, width: box.width * h / max(box.height, 1), height: h))
+                        }
+                        numberRow("Rotate by", value: 0) { v in store.rotateSelection(by: v) }
                     }
                 }
             }
