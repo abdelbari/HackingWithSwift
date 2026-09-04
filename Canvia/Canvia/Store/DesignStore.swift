@@ -16,6 +16,11 @@ final class DesignStore {
     /// stay a constant size on screen. The scroll view owns pan entirely.
     var zoom: Double = 1
 
+    /// What the canvas snaps to. Persisted; see SnapSettings.
+    var snapping = SnapSettings.load() {
+        didSet { if snapping != oldValue { snapping.save() } }
+    }
+
     // Transient overlay state during gestures.
     var guideX: Double?
     var guideY: Double?
@@ -257,6 +262,31 @@ final class DesignStore {
     func selectAll() {
         editingTextId = nil
         selection = Set(page.elements.filter { !$0.locked }.map(\.id))
+    }
+
+    /// Rubber-band selection: everything the rectangle touches, with sticky
+    /// groups expanded so a band across one member takes the whole group.
+    func select(within rect: CGRect) {
+        editingTextId = nil
+        var ids = Set(Geometry.intersecting(page.elements, rect).map(\.id))
+        let groups = Set(page.elements.filter { ids.contains($0.id) }.compactMap(\.group))
+        for el in page.elements where el.group.map(groups.contains) == true {
+            ids.insert(el.id)
+        }
+        selection = ids
+    }
+
+    /// Write back a set of elements mid-gesture, matched by id. Used by the
+    /// group transforms, which compute every member from the grab-time
+    /// originals rather than mutating in place.
+    func replaceTransient(_ updated: [Element]) {
+        beginGesture()
+        let byId = Dictionary(uniqueKeysWithValues: updated.map { ($0.id, $0) })
+        for i in design.pages[pageIndex].elements.indices {
+            if let e = byId[design.pages[pageIndex].elements[i].id] {
+                design.pages[pageIndex].elements[i] = e
+            }
+        }
     }
 
     // MARK: grouping

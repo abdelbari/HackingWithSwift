@@ -216,16 +216,97 @@ enum Geometry {
         return result
     }
 
-    /// Candidate snap lines: page edges/center plus sibling edges/centers.
-    static func snapLines(design: Design, page: Page, excluding ids: Set<String>) -> (x: [Double], y: [Double]) {
-        var xs: [Double] = [0, design.width / 2, design.width]
-        var ys: [Double] = [0, design.height / 2, design.height]
-        for el in page.elements where !ids.contains(el.id) {
-            let b = aabb(el)
-            xs.append(contentsOf: [b.minX, b.midX, b.maxX])
-            ys.append(contentsOf: [b.minY, b.midY, b.maxY])
+    /// Candidate snap lines: page edges/center plus sibling edges/centers,
+    /// plus every grid line when a grid is on — each source only if its
+    /// switch is.
+    static func snapLines(design: Design, page: Page, excluding ids: Set<String>,
+                          settings: SnapSettings = SnapSettings()) -> (x: [Double], y: [Double]) {
+        var xs: [Double] = []
+        var ys: [Double] = []
+        if settings.toPage {
+            xs += [0, design.width / 2, design.width]
+            ys += [0, design.height / 2, design.height]
+        }
+        if settings.toElements {
+            for el in page.elements where !ids.contains(el.id) {
+                let b = aabb(el)
+                xs.append(contentsOf: [b.minX, b.midX, b.maxX])
+                ys.append(contentsOf: [b.minY, b.midY, b.maxY])
+            }
+        }
+        if settings.gridEnabled {
+            xs += gridLines(across: design.width, spacing: settings.grid)
+            ys += gridLines(across: design.height, spacing: settings.grid)
         }
         return (xs, ys)
+    }
+
+    /// 0, spacing, 2·spacing … up to and including the far edge.
+    static func gridLines(across length: Double, spacing: Double) -> [Double] {
+        guard spacing > 0, length > 0 else { return [] }
+        return stride(from: 0, through: length, by: spacing).map { $0 }
+    }
+
+    // MARK: selection and group transforms
+
+    /// The elements a rubber band drawn over `rect` picks up: anything
+    /// unlocked whose box it touches. Touching, not containing — a marquee
+    /// that had to swallow an element whole would miss everything larger than
+    /// the screen at the current zoom.
+    static func intersecting(_ elements: [Element], _ rect: CGRect) -> [Element] {
+        guard rect.width > 0 || rect.height > 0 else { return [] }
+        return elements.filter { !$0.locked && aabb($0).intersects(rect) }
+    }
+
+    /// Scale a set of elements together so that the box `from` (their
+    /// union, at grab time) becomes `to`. Positions, sizes and text sizes all
+    /// scale; rotations are kept, which is exact only for a uniform scale —
+    /// which is why a group offers corner handles and nothing else.
+    static func scale(_ elements: [Element], from: CGRect, to: CGRect,
+                      minSize: Double = 4) -> [Element] {
+        guard from.width > 0, from.height > 0 else { return elements }
+        let sx = to.width / from.width
+        let sy = to.height / from.height
+        return elements.map { el in
+            var e = el
+            let cx = to.minX + (el.center.x - from.minX) * sx
+            let cy = to.minY + (el.center.y - from.minY) * sy
+            e.w = max(minSize, el.w * sx)
+            // A line's height is its stroke, not a dimension of its box.
+            e.h = el.type == .line ? el.h : max(minSize, el.h * sy)
+            e.x = cx - e.w / 2
+            e.y = cy - e.h / 2
+            if el.type == .text {
+                e.fontSize = max(6, (el.fontSize ?? 42) * min(sx, sy))
+            }
+            return e
+        }
+    }
+
+    /// Turn a set of elements as one about `center` by `degrees`: each moves
+    /// around the pivot and turns by the same amount on its own axis.
+    static func rotate(_ elements: [Element], around center: CGPoint,
+                       by degrees: Double) -> [Element] {
+        elements.map { el in
+            var e = el
+            let c = rotate(el.center, around: center, degrees: degrees)
+            e.x = c.x - el.w / 2
+            e.y = c.y - el.h / 2
+            e.rotation = ((el.rotation + degrees).truncatingRemainder(dividingBy: 360) + 360)
+                .truncatingRemainder(dividingBy: 360)
+            return e
+        }
+    }
+
+    /// A stand-in element for a multi-selection's box, so the single-element
+    /// handle geometry (which handle sits where, what resizing from it means)
+    /// applies to the group unchanged.
+    static func boxElement(_ box: CGRect) -> Element {
+        var e = Element()
+        e.type = .shape
+        e.x = box.minX; e.y = box.minY
+        e.w = box.width; e.h = box.height
+        return e
     }
 
     // MARK: viewport

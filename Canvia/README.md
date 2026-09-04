@@ -65,6 +65,14 @@ duplicate / delete via long-press), and a template gallery.
 - Copy style / paste style: the look of an element without its identity,
   position or content, and never across element kinds — pasting a text
   style onto a rectangle changes nothing about the rectangle
+- Rubber-band selection: drag from empty page and everything the band
+  touches is selected, live, sticky groups included
+- A multi-selection resizes and rotates as one unit from its box —
+  corner handles only, because a uniform scale is the only one that
+  keeps rotated members exact; text scales its type along with its box
+- Snapping with switches: to the page, to other elements, and to a grid
+  of 8/16/32/64 px that can be shown as hairlines on the canvas (never in
+  an export). Remembered across launches.
 - Version history: a copy of the design is kept at most every two
   minutes while editing, and whenever the editor is left, only when
   something changed, thirty deep. Restoring one is a single undo step

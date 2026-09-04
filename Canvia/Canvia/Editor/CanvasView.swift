@@ -29,6 +29,12 @@ struct CanvasView: View {
         var resizeOriginal: Element?
         var rotateCenter: CGPoint?
         var rotateOffset: Double = 0
+        /// A multi-selection being resized or rotated as one: the members
+        /// and their union as they were when the handle was grabbed.
+        var groupOriginals: [Element] = []
+        var groupBox: CGRect = .zero
+        /// The rubber band, in page units, while one is being drawn.
+        var marquee: CGRect?
     }
 
     var body: some View {
@@ -84,6 +90,12 @@ struct CanvasView: View {
                     commitTextEditIfAny()
                     store.select(nil)
                 }
+                // A one-finger drag from empty page draws a rubber band.
+                // It starts on the page, so the workspace pan (which refuses
+                // touches on the page) never competes with it.
+                .gesture(marqueeGesture)
+
+            if store.snapping.showGrid { gridOverlay }
 
             if store.page.elements.isEmpty {
                 emptyPageHint
@@ -99,6 +111,8 @@ struct CanvasView: View {
                              onHandleEnd: { store.commit(); clearTransient() },
                              onRotateDrag: rotateDrag,
                              onRotateEnd: { store.commit(); clearTransient() })
+
+            if let band = gesture.marquee { marqueeView(band) }
 
             if let id = store.editingTextId, let el = store.element(id) {
                 inlineTextEditor(el)
@@ -125,6 +139,58 @@ struct CanvasView: View {
         .position(x: store.design.width / 2, y: store.design.height / 2)
         .allowsHitTesting(false)
         .transition(.opacity)
+    }
+
+    // MARK: marquee
+
+    private var marqueeGesture: some Gesture {
+        DragGesture(minimumDistance: Touch.pageUnits(Touch.dragSlop, zoom: store.zoom),
+                    coordinateSpace: .named("page"))
+            .onChanged { value in
+                if gesture.marquee == nil { commitTextEditIfAny() }
+                let band = CGRect(
+                    x: min(value.startLocation.x, value.location.x),
+                    y: min(value.startLocation.y, value.location.y),
+                    width: abs(value.location.x - value.startLocation.x),
+                    height: abs(value.location.y - value.startLocation.y))
+                gesture.marquee = band
+                // Live: the selection follows the band as it grows, so you
+                // see what you are about to get before you let go.
+                store.select(within: band)
+            }
+            .onEnded { _ in
+                gesture.marquee = nil
+            }
+    }
+
+    private func marqueeView(_ band: CGRect) -> some View {
+        Rectangle()
+            .fill(Theme.accent.opacity(0.10))
+            .overlay(Rectangle().stroke(Theme.accent, lineWidth: 1 * iz))
+            .frame(width: max(band.width, 1), height: max(band.height, 1))
+            .position(x: band.midX, y: band.midY)
+            .allowsHitTesting(false)
+    }
+
+    /// The snapping grid, as hairlines over the page. Drawn here and not in
+    /// PageRenderView, so it is never in an export or a thumbnail.
+    private var gridOverlay: some View {
+        let spacing = store.snapping.grid
+        let w = store.design.width, h = store.design.height
+        return Canvas { context, _ in
+            var path = Path()
+            for x in Geometry.gridLines(across: w, spacing: spacing) {
+                path.move(to: CGPoint(x: x, y: 0))
+                path.addLine(to: CGPoint(x: x, y: h))
+            }
+            for y in Geometry.gridLines(across: h, spacing: spacing) {
+                path.move(to: CGPoint(x: 0, y: y))
+                path.addLine(to: CGPoint(x: w, y: y))
+            }
+            context.stroke(path, with: .color(Theme.accent.opacity(0.18)), lineWidth: 1 * iz)
+        }
+        .frame(width: w, height: h)
+        .allowsHitTesting(false)
     }
 
     private func elementHitArea(_ el: Element) -> some View {
@@ -173,7 +239,8 @@ struct CanvasView: View {
                             .filter { !$0.locked }
                             .map { ($0.id, CGPoint(x: $0.x, y: $0.y)) })
                     let lines = Geometry.snapLines(design: store.design, page: store.page,
-                                                   excluding: Set(gesture.dragOriginals.keys))
+                                                   excluding: Set(gesture.dragOriginals.keys),
+                                                   settings: store.snapping)
                     gesture.snapX = lines.x
                     gesture.snapY = lines.y
                     gesture.dragUnion = Geometry.union(
@@ -230,6 +297,10 @@ struct CanvasView: View {
     // MARK: resize / rotate (called from the overlay)
 
     private func handleDrag(_ handle: Handle, _ location: CGPoint) {
+        if store.selection.count > 1 {
+            groupHandleDrag(handle, location)
+            return
+        }
         guard let selected = store.singleSelection, !selected.locked else { return }
         if gesture.resizeOriginal?.id != selected.id || !gesture.dragActive {
             store.beginGesture()
@@ -267,7 +338,49 @@ struct CanvasView: View {
         }
     }
 
+    /// Resize a multi-selection from a corner of its box: the box resizes
+    /// exactly as a single element would, and every member is scaled to
+    /// follow it.
+    private func groupHandleDrag(_ handle: Handle, _ location: CGPoint) {
+        if gesture.groupOriginals.isEmpty || !gesture.dragActive {
+            let members = store.selectedElements.filter { !$0.locked }
+            guard !members.isEmpty else { return }
+            store.beginGesture()
+            gesture.dragActive = true
+            gesture.groupOriginals = members
+            gesture.groupBox = Geometry.union(members.map(Geometry.aabb))
+        }
+        let box = Geometry.resize(Geometry.boxElement(gesture.groupBox), handle: handle,
+                                  to: location, proportional: true, minSize: 8)
+        store.replaceTransient(Geometry.scale(gesture.groupOriginals, from: gesture.groupBox, to: box))
+        store.badge = "\(Int(box.width)) × \(Int(box.height))"
+    }
+
+    private func groupRotateDrag(_ location: CGPoint) {
+        if gesture.groupOriginals.isEmpty || !gesture.dragActive {
+            let members = store.selectedElements.filter { !$0.locked }
+            guard !members.isEmpty else { return }
+            store.beginGesture()
+            gesture.dragActive = true
+            gesture.groupOriginals = members
+            gesture.groupBox = Geometry.union(members.map(Geometry.aabb))
+            gesture.rotateCenter = CGPoint(x: gesture.groupBox.midX, y: gesture.groupBox.midY)
+            gesture.rotateOffset = Geometry.angle(from: gesture.rotateCenter!, to: location)
+        }
+        guard let center = gesture.rotateCenter else { return }
+        var delta = Geometry.angle(from: center, to: location) - gesture.rotateOffset
+        delta = (delta.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
+        delta = Geometry.snapAngle(delta, step: 45, threshold: 4)
+        store.replaceTransient(Geometry.rotate(gesture.groupOriginals, around: center,
+                                               by: (delta * 10).rounded() / 10))
+        store.badge = "\(Int(delta))°"
+    }
+
     private func rotateDrag(_ location: CGPoint) {
+        if store.selection.count > 1 {
+            groupRotateDrag(location)
+            return
+        }
         guard let selected = store.singleSelection, !selected.locked else { return }
         if gesture.rotateCenter == nil || !gesture.dragActive {
             store.beginGesture()

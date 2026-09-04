@@ -210,6 +210,10 @@ struct EditorView: View {
             }
 
             Section {
+                snappingMenu
+            }
+
+            Section {
                 Button {
                     store.copyStyle()
                 } label: { Label("Copy style", systemImage: "paintbrush.pointed") }
@@ -390,6 +394,27 @@ struct EditorView: View {
         toastTask?.cancel()
         toastTask = nil
         withAnimation(.easeOut(duration: 0.2)) { toast = nil }
+    }
+
+    /// Snapping switches and the grid, in a submenu so the overflow stays a
+    /// list of verbs. Toggles rather than a sheet: each is one tap and you
+    /// are back on the canvas, which is where you want to be when you are
+    /// deciding whether the snapping is helping.
+    private var snappingMenu: some View {
+        Menu {
+            Toggle("Snap to elements", isOn: $store.snapping.toElements)
+            Toggle("Snap to page", isOn: $store.snapping.toPage)
+            Picker("Grid", selection: $store.snapping.grid) {
+                Text("No grid").tag(0.0)
+                ForEach(SnapSettings.gridChoices.filter { $0 > 0 }, id: \.self) { step in
+                    Text("Every \(Int(step)) px").tag(step)
+                }
+            }
+            Toggle("Show grid", isOn: $store.snapping.showGrid)
+                .disabled(!store.snapping.gridEnabled)
+        } label: {
+            Label("Snapping", systemImage: "square.grid.3x3")
+        }
     }
 
     // MARK: actions

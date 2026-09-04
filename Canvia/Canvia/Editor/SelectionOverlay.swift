@@ -33,12 +33,24 @@ struct SelectionOverlay: View {
                             style: StrokeStyle(lineWidth: 1.5 * iz, dash: [6 * iz, 4 * iz]))
                     .frame(width: bounds.width, height: bounds.height)
                     .position(x: bounds.midX, y: bounds.midY)
+                    .allowsHitTesting(false)
+                // The group resizes and turns as one unit from its box.
+                // Corners only: a uniform scale is the only one that keeps
+                // rotated members exact (see Geometry.scale).
+                if selected.contains(where: { !$0.locked }) {
+                    let box = Geometry.boxElement(bounds)
+                    ForEach(Touch.handleSet(for: box, zoom: store.zoom).filter(\.isCorner),
+                            id: \.rawValue) { handle in
+                        handleDot(handle, el: box)
+                    }
+                    rotateHandle(for: box)
+                }
             }
 
             guides
             badgeView
         }
-        .allowsHitTesting(store.singleSelection != nil)
+        .allowsHitTesting(!store.selection.isEmpty)
     }
 
     private func outline(_ el: Element, lineWidth: Double) -> some View {
