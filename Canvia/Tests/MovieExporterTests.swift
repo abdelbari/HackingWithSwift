@@ -87,6 +87,7 @@ final class MovieExporterTests: XCTestCase {
 
     /// Every frame has to be drawn — a page that renders as an empty context
     /// is a black flash in the middle of the video.
+    @MainActor
     func testEveryFrameDrawsSomething() throws {
         let d = design(pages: 2)
         let size = MovieExporter.videoSize(for: d, maxEdge: 1920)
@@ -108,6 +109,7 @@ final class MovieExporterTests: XCTestCase {
 
     /// The push in. Later frames of a page show a larger crop, so the boundary
     /// between the white half and the black half moves.
+    @MainActor
     func testThePageZoomsAcrossItsFrames() throws {
         let d = design(pages: 1)
         let size = MovieExporter.videoSize(for: d, maxEdge: 1920)
@@ -125,6 +127,7 @@ final class MovieExporterTests: XCTestCase {
 
     /// The cross-fade lives at the end of a page, so the last page never fades
     /// out to nothing.
+    @MainActor
     func testTheFinalFrameIsNotFadedOut() throws {
         let d = design(pages: 2)
         let size = MovieExporter.videoSize(for: d, maxEdge: 1920)

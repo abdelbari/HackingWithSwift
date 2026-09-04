@@ -17,6 +17,7 @@
 //   6. no closure passed to a higher-order stdlib method silently ignores
 //      the argument it is required to take
 //   7. every argument in an inout position is passed with an explicit &
+//   8. no synchronous, non-isolated function calls a @MainActor one directly
 //
 // It does NOT type-check. A clean run means the syntax and the project's
 // internal API surface are consistent; it cannot prove the app builds.
@@ -54,7 +55,7 @@ const rel = f => path.relative(process.cwd(), f);
 let FAILURES = 0;
 
 // ---------------------------------------------------------------- 1. parse
-console.log('\n[1/7] parsing');
+console.log('\n[1/8] parsing');
 for (const f of FILES) {
   const tree = parse(fs.readFileSync(f, 'utf8'));
   const problems = [];
@@ -67,7 +68,7 @@ for (const f of FILES) {
 console.log(`      ${FILES.length} files`);
 
 // ------------------------------------------------- 2. argument labels
-console.log('[2/7] argument labels');
+console.log('[2/8] argument labels');
 const decls = new Map(), ourTypes = new Set();
 for (const f of FILES) {
   const tree = parse(fs.readFileSync(f, 'utf8'));
@@ -157,7 +158,7 @@ for (const f of FILES) {
 console.log(`      ${calls} internal calls`);
 
 // --------------------------------------- 3 & 4. enum cases + exhaustiveness
-console.log('[3/7] enum-case arguments');
+console.log('[3/8] enum-case arguments');
 const enums = new Map();
 for (const f of FILES) {
   const tree = parse(fs.readFileSync(f, 'utf8'));
@@ -219,7 +220,7 @@ for (const f of FILES) {
 }
 console.log(`      ${caseArgs} enum-case arguments`);
 
-console.log('[4/7] switch exhaustiveness');
+console.log('[4/8] switch exhaustiveness');
 let switches = 0;
 for (const f of FILES) {
   const tree = parse(fs.readFileSync(f, 'utf8'));
@@ -250,7 +251,7 @@ console.log(`      ${switches} switches over project enums`);
 // ------------------------------------------- 5. ViewBuilder child limits
 // A ViewBuilder block accepts at most ten child views; exceeding it fails
 // with an opaque type-inference error rather than a clear diagnostic.
-console.log('[5/7] ViewBuilder child counts');
+console.log('[5/8] ViewBuilder child counts');
 const CONTAINERS = new Set(['HStack','VStack','ZStack','Group','Form','List','Section','Menu',
   'ScrollView','NavigationStack','LazyVStack','LazyHStack','LazyVGrid','LazyHGrid','ToolbarItemGroup']);
 const countViews = stmts => stmts.namedChildren.filter(c =>
@@ -292,7 +293,7 @@ console.log(`      ${builders} ViewBuilder blocks`);
 // list expects 1 argument, which cannot be implicitly ignored") — and usually
 // signals a predicate that forgot to look at the element. A shorthand closure
 // passed to one of these methods must reference the arguments it is given.
-console.log('[6/7] closure arguments');
+console.log('[6/8] closure arguments');
 const HOF = new Map([
   ['filter', 1], ['map', 1], ['compactMap', 1], ['flatMap', 1], ['forEach', 1],
   ['first', 1], ['firstIndex', 1], ['last', 1], ['lastIndex', 1],
@@ -360,7 +361,7 @@ console.log(`      ${closures} shorthand closures`);
 // grammar makes it cheap to catch here: a parameter carries `inout` as a
 // modifier node, which a closure-typed parameter such as `(inout Design) ->
 // Void` does not.
-console.log('[7/7] inout arguments');
+console.log('[7/8] inout arguments');
 const requiredAmps = new Map();
 for (const [name, ds] of decls) {
   // The minimum across overloads: if any declaration of this name takes no
@@ -402,6 +403,127 @@ if (requiredAmps.size) {
   }
 }
 console.log(`      ${inoutCalls} calls to ${requiredAmps.size} inout function(s)`);
+
+// ------------------------------------------------- 8. main-actor isolation
+// Calling a @MainActor function from a synchronous non-isolated one is a
+// compile error, and the usual way to write it is a test method that forgot
+// the attribute its helper has. Approximated rather than type-checked: a name
+// counts as main-actor only if EVERY declaration of it is, and only direct
+// calls in a function's own body are examined — a call inside a closure may
+// well be inside a `Task { @MainActor in ... }`.
+console.log('[8/8] main-actor isolation');
+const MAIN_ACTOR_PROTOCOLS = new Set([
+  'View', 'App', 'Scene', 'Shape', 'ViewModifier', 'ButtonStyle', 'PrimitiveButtonStyle',
+  'UIViewRepresentable', 'UIViewControllerRepresentable', 'InsettableShape',
+  'UIApplicationDelegate', 'UISceneDelegate',
+]);
+const isolatedNames = new Map();   // name -> {total, isolated}
+const declaringNode = new Map();
+for (const f of FILES) {
+  const tree = parse(fs.readFileSync(f, 'utf8'));
+  // A declaration is isolated if it carries @MainActor, or its enclosing type
+  // does. tree-sitter exposes the attribute as an `attribute` child of the
+  // declaration's `modifiers`.
+  const isolatedType = node => {
+    const mods = node.namedChildren.find(c => c.type === 'modifiers');
+    if (mods && /@MainActor/.test(mods.text)) return true;
+    // Conforming to one of these puts every member on the main actor without
+    // an attribute anywhere in this source — the protocols themselves are
+    // declared @MainActor in the SDK.
+    return node.namedChildren
+      .filter(c => c.type === 'inheritance_specifier')
+      .some(c => MAIN_ACTOR_PROTOCOLS.has(c.text.trim()));
+  };
+  const walk = (node, inherited) => {
+    let carries = inherited;
+    if (node.type === 'class_declaration' || node.type === 'protocol_declaration') {
+      carries = inherited || isolatedType(node);
+    }
+    if (node.type === 'function_declaration') {
+      const id = node.namedChildren.find(c => c.type === 'simple_identifier');
+      if (id) {
+        const own = carries || isolatedType(node);
+        const seen = isolatedNames.get(id.text) || { total: 0, isolated: 0 };
+        seen.total++;
+        if (own) seen.isolated++;
+        isolatedNames.set(id.text, seen);
+        declaringNode.set(id.text, rel(f) + ':' + (node.startPosition.row + 1));
+      }
+    }
+    for (let i = 0; i < node.namedChildCount; i++) walk(node.namedChild(i), carries);
+  };
+  walk(tree.rootNode, false);
+}
+const mainActorOnly = new Set(
+  [...isolatedNames].filter(([, v]) => v.total > 0 && v.total === v.isolated).map(([k]) => k));
+
+let isolationChecks = 0;
+for (const f of FILES) {
+  const tree = parse(fs.readFileSync(f, 'utf8'));
+  const typeIsolated = node => {
+    const mods = node.namedChildren.find(c => c.type === 'modifiers');
+    if (mods && /@MainActor/.test(mods.text)) return true;
+    return node.namedChildren
+      .filter(c => c.type === 'inheritance_specifier')
+      .some(c => MAIN_ACTOR_PROTOCOLS.has(c.text.trim()));
+  };
+  const walk = (node, inherited) => {
+    let carries = inherited;
+    if (node.type === 'class_declaration' || node.type === 'protocol_declaration') {
+      carries = inherited || typeIsolated(node);
+    }
+    if (node.type === 'function_declaration') {
+      const id = node.namedChildren.find(c => c.type === 'simple_identifier');
+      const mods = node.namedChildren.find(c => c.type === 'modifiers');
+      const own = carries || !!(mods && /@MainActor/.test(mods.text));
+      // async and throws-async bodies can await their way onto the actor.
+      const isAsync = /\basync\b/.test(node.text.slice(0, node.text.indexOf('{') + 1));
+      if (id && !own && !isAsync) {
+        isolationChecks++;
+        const body = node.namedChildren.find(c => c.type === 'function_body');
+        if (body) {
+          const offenders = [];
+          const scan = n => {
+            // Not into closures: a call there may sit inside Task { @MainActor in }.
+            // Not into #selector either — naming a method is not calling it.
+            if (n.type === 'lambda_literal' || n.type === 'selector_expression') return;
+            if (n.type === 'call_expression') {
+              const callee = n.namedChild(0);
+              const suffix = n.namedChildren.find(c => c.type === 'call_suffix');
+              // Subscripts parse as calls too — `body[a..<b]` is not a call to
+              // anything named body — so require an actual parenthesised
+              // argument list.
+              if (!suffix || !suffix.text.trimStart().startsWith('(')) {
+                for (let i = 0; i < n.namedChildCount; i++) scan(n.namedChild(i));
+                return;
+              }
+              let name = null;
+              if (callee && callee.type === 'simple_identifier') name = callee.text;
+              else if (callee && callee.type === 'navigation_expression') {
+                const suf = callee.namedChildren.find(c => c.type === 'navigation_suffix');
+                const sid = suf && suf.namedChildren.find(c => c.type === 'simple_identifier');
+                if (sid) name = sid.text;
+              }
+              if (name && mainActorOnly.has(name) && name !== id.text) {
+                offenders.push({ name, row: n.startPosition.row + 1 });
+              }
+            }
+            for (let i = 0; i < n.namedChildCount; i++) scan(n.namedChild(i));
+          };
+          scan(body);
+          for (const o of offenders) {
+            FAILURES++;
+            console.log(`  FAIL ${rel(f)}:${o.row}  ${id.text} is not @MainActor but calls `
+              + `${o.name} (declared @MainActor at ${declaringNode.get(o.name)})`);
+          }
+        }
+      }
+    }
+    for (let i = 0; i < node.namedChildCount; i++) walk(node.namedChild(i), carries);
+  };
+  walk(tree.rootNode, false);
+}
+console.log(`      ${isolationChecks} non-isolated functions, ${mainActorOnly.size} main-actor names`);
 
 console.log(FAILURES === 0 ? '\nOK — no static problems found\n' : `\n${FAILURES} PROBLEM(S)\n`);
 process.exit(FAILURES === 0 ? 0 : 1);
