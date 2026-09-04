@@ -194,3 +194,126 @@ final class AdjustmentsTests: XCTestCase {
         XCTAssertEqual(target.src, "asset:b", "the picture itself was overwritten")
     }
 }
+
+// MARK: - duotone
+
+final class DuotoneTests: XCTestCase {
+
+    /// A gradient from black to white, so every point of the luminance ramp is
+    /// present and can be checked against where it should land.
+    private func rampImage(size: Int = 64) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        return UIGraphicsImageRenderer(size: CGSize(width: size, height: size),
+                                       format: format).image { ctx in
+            for x in 0..<size {
+                UIColor(white: CGFloat(x) / CGFloat(size - 1), alpha: 1).setFill()
+                ctx.fill(CGRect(x: x, y: 0, width: 1, height: size))
+            }
+        }
+    }
+
+    private func rgb(_ image: UIImage, x: Int, y: Int) throws -> (r: Double, g: Double, b: Double) {
+        let cg = try XCTUnwrap(image.cgImage)
+        var pixel: [UInt8] = [0, 0, 0, 0]
+        try pixel.withUnsafeMutableBytes { raw in
+            let ctx = try XCTUnwrap(CGContext(
+                data: raw.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            ctx.interpolationQuality = .none
+            ctx.draw(cg, in: CGRect(x: -x, y: -(cg.height - 1 - y),
+                                    width: cg.width, height: cg.height))
+        }
+        return (Double(pixel[0]), Double(pixel[1]), Double(pixel[2]))
+    }
+
+    private func toned(_ tone: Duotone, key: String = UUID().uuidString) -> UIImage {
+        ImageFilterEngine.apply(.none, adjustments: .neutral, duotone: tone,
+                                to: rampImage(), cacheKey: key)
+    }
+
+    /// The defining property: darkest becomes the dark colour, lightest
+    /// becomes the light one. Swapping those is the obvious mistake and the
+    /// result still looks like a duotone.
+    func testTheDarkEndBecomesTheDarkColour() throws {
+        let tone = Duotone(dark: "#0000ff", light: "#ffff00")
+        let out = toned(tone)
+        let darkEnd = try rgb(out, x: 1, y: 32)
+        let lightEnd = try rgb(out, x: 62, y: 32)
+        XCTAssertGreaterThan(darkEnd.b, darkEnd.r + 60, "the dark end is not blue")
+        XCTAssertGreaterThan(lightEnd.r, lightEnd.b + 60, "the light end is not yellow")
+    }
+
+    /// Between the ends it is a ramp, not a threshold — a two-tone poster
+    /// effect would pass the ends test and be a different feature.
+    func testTheMiddleIsBetweenTheTwoColours() throws {
+        let out = toned(Duotone(dark: "#000000", light: "#ffffff"))
+        let left = try rgb(out, x: 4, y: 32).r
+        let middle = try rgb(out, x: 32, y: 32).r
+        let right = try rgb(out, x: 60, y: 32).r
+        XCTAssertGreaterThan(middle, left + 20)
+        XCTAssertLessThan(middle, right - 20)
+    }
+
+    /// Colour in the source must not decide where a pixel lands on the ramp —
+    /// only how light it is. Without the desaturation first, a red and a green
+    /// of the same luminance map to different points.
+    func testSourceColourDoesNotChangeWhereAPixelLands() throws {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        // Two patches with matching luminance and opposite hues.
+        let source = UIGraphicsImageRenderer(size: CGSize(width: 40, height: 20),
+                                             format: format).image { ctx in
+            UIColor(red: 0.6, green: 0.35, blue: 0.35, alpha: 1).setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: 20, height: 20))
+            UIColor(red: 0.35, green: 0.35, blue: 0.6, alpha: 1).setFill()
+            ctx.fill(CGRect(x: 20, y: 0, width: 20, height: 20))
+        }
+        let out = ImageFilterEngine.apply(.none, adjustments: .neutral,
+                                          duotone: Duotone(dark: "#000000", light: "#ffffff"),
+                                          to: source, cacheKey: UUID().uuidString)
+        let a = try rgb(out, x: 5, y: 10)
+        let b = try rgb(out, x: 35, y: 10)
+        XCTAssertEqual(a.r, b.r, accuracy: 22, "hue is still deciding the mapping")
+    }
+
+    func testNoDuotoneLeavesTheImageAlone() {
+        let source = rampImage()
+        XCTAssertIdentical(
+            ImageFilterEngine.apply(.none, adjustments: .neutral, duotone: nil,
+                                    to: source, cacheKey: "none"),
+            source)
+    }
+
+    /// Two duotones must not share a cache key, or picking a second one shows
+    /// the first.
+    func testEachDuotoneHasItsOwnCacheEntry() throws {
+        let source = rampImage()
+        let a = ImageFilterEngine.apply(.none, adjustments: .neutral,
+                                        duotone: Duotone(dark: "#ff0000", light: "#ffffff"),
+                                        to: source, cacheKey: "shared")
+        let b = ImageFilterEngine.apply(.none, adjustments: .neutral,
+                                        duotone: Duotone(dark: "#0000ff", light: "#ffffff"),
+                                        to: source, cacheKey: "shared")
+        let redEnd = try rgb(a, x: 1, y: 32)
+        let blueEnd = try rgb(b, x: 1, y: 32)
+        XCTAssertGreaterThan(redEnd.r, redEnd.b + 60)
+        XCTAssertGreaterThan(blueEnd.b, blueEnd.r + 60)
+    }
+
+    func testDuotoneSurvivesAJSONRoundTrip() throws {
+        var el = Element.image("asset:x", w: 100, h: 100)
+        el.duotone = Duotone(dark: "#123456", light: "#fedcba")
+        let restored = try JSONDecoder().decode(Element.self, from: JSONEncoder().encode(el))
+        XCTAssertEqual(restored.duotone, el.duotone)
+        XCTAssertEqual(restored, el)
+    }
+
+    func testADocumentWithoutADuotoneDecodesWithNone() throws {
+        let json = #"{"id":"el_1","type":"image","src":"asset:x","w":10,"h":10}"#
+        XCTAssertNil(try JSONDecoder().decode(Element.self, from: Data(json.utf8)).duotone)
+    }
+}

@@ -11,6 +11,16 @@ struct ExportSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var scale = 2
     @State private var jpegQuality = 0.92
+    @State private var transparent = false
+    @State private var pageRange = RangeChoice.current
+    @State private var sharedURLs: [URL] = []
+
+    private enum RangeChoice: String, CaseIterable, Identifiable {
+        case current, all
+        var id: String { rawValue }
+        var label: String { self == .current ? "This page" : "All pages" }
+        var exportRange: DesignExporter.PageRange { self == .current ? .current : .all }
+    }
     @State private var exporting = false
     @State private var exportedURL: URL?
     @State private var errorMessage: String?
@@ -41,6 +51,26 @@ struct ExportSheet: View {
                 } footer: {
                     Text("\(Int((jpegQuality * 100).rounded()))% — about \(estimatedSize). "
                          + "PNG and PDF are lossless and ignore this.")
+                }
+                if store.design.pages.count > 1 {
+                    Section {
+                        Picker("Pages", selection: $pageRange) {
+                            ForEach(RangeChoice.allCases) { Text($0.label).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                    } header: {
+                        Text("Pages")
+                    } footer: {
+                        Text(pageRange == .all
+                             ? "One file per page, numbered — so each can be posted on its own."
+                             : "Page \(store.pageIndex + 1) only.")
+                    }
+                }
+                Section {
+                    Toggle("Transparent background", isOn: $transparent)
+                } footer: {
+                    Text("PNG only. Drops the page's own background rather than "
+                         + "flattening it, so the export really has nothing behind it.")
                 }
                 Section("Format") {
                     exportButton("PNG", subtitle: "Current page, best for sharing", icon: "photo") {
@@ -92,8 +122,11 @@ struct ExportSheet: View {
             }
             .sheet(item: Binding(
                 get: { exportedURL.map(ShareURL.init) },
-                set: { if $0 == nil { exportedURL = nil } })) { item in
-                ShareSheet(url: item.url)
+                set: { if $0 == nil { exportedURL = nil; sharedURLs = [] } })) { item in
+                // Every file at once when a range produced several: handing
+                // them over one sheet at a time would mean nine dismissals for
+                // a nine-page deck.
+                ShareSheet(urls: sharedURLs.isEmpty ? [item.url] : sharedURLs)
             }
             .overlay {
                 if exporting { ProgressView("Rendering…") }
@@ -144,11 +177,13 @@ struct ExportSheet: View {
 
     @MainActor
     private func export(_ format: DesignExporter.RasterFormat) throws {
-        let url = DesignExporter.fileURL(for: store.design, ext: format.ext)
-        try DesignExporter.exportRaster(design: store.design, page: store.page,
-                                        format: format, scale: scale,
-                                        quality: jpegQuality, to: url)
-        exportedURL = url
+        let urls = try DesignExporter.exportPages(
+            design: store.design, range: pageRange.exportRange, current: store.pageIndex,
+            format: format, scale: scale, quality: jpegQuality,
+            // JPEG has no alpha channel to be transparent in.
+            transparent: transparent && format == .png)
+        sharedURLs = urls
+        exportedURL = urls.first
     }
 
     private var movieSubtitle: String {
@@ -197,6 +232,7 @@ struct ExportSheet: View {
     private func exportMovie() async throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "mp4")
         try await MovieExporter.exportMP4(design: store.design, to: url)
+        sharedURLs = [url]
         exportedURL = url
     }
 
@@ -204,6 +240,7 @@ struct ExportSheet: View {
     private func exportGIF() throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "gif")
         try MovieExporter.exportGIF(design: store.design, to: url)
+        sharedURLs = [url]
         exportedURL = url
     }
 
@@ -211,13 +248,16 @@ struct ExportSheet: View {
     private func exportSVG() throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "svg")
         try DesignExporter.exportSVG(design: store.design, page: store.page, to: url)
+        sharedURLs = [url]
         exportedURL = url
     }
 
     @MainActor
     private func exportPDF() throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "pdf")
-        try DesignExporter.exportPDF(design: store.design, to: url)
+        try DesignExporter.exportPDF(design: store.design, range: pageRange.exportRange,
+                                     current: store.pageIndex, to: url)
+        sharedURLs = [url]
         exportedURL = url
     }
 }
@@ -228,10 +268,10 @@ private struct ShareURL: Identifiable {
 }
 
 private struct ShareSheet: UIViewControllerRepresentable {
-    let url: URL
+    let urls: [URL]
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        UIActivityViewController(activityItems: urls, applicationActivities: nil)
     }
 
     func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}

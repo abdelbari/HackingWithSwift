@@ -316,6 +316,7 @@ struct ImageElementView: View {
         guard let base = PhotoLibrary.resolve(element.src) else { return nil }
         let preset = ImageFilterPreset.from(element.filter)
         return ImageFilterEngine.apply(preset, adjustments: element.adjustments ?? .neutral,
+                                       duotone: element.duotone,
                                        to: base, cacheKey: element.src ?? "")
     }
 }

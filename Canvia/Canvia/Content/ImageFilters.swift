@@ -65,6 +65,39 @@ struct Adjustments: Codable, Equatable, Hashable {
     }
 }
 
+/// Two colours a photo is mapped onto by luminance.
+///
+/// The one photo treatment that makes an image belong to a brand rather than
+/// merely sit next to it — which is why it is a pair of colours rather than a
+/// preset: the whole point is that they are *your* colours.
+struct Duotone: Codable, Equatable, Hashable {
+    /// Where the photo is darkest, and where it is lightest.
+    var dark: String
+    var light: String
+
+    static let presets: [(name: String, tone: Duotone)] = [
+        ("Ink", Duotone(dark: "#0b1020", light: "#e9edff")),
+        ("Ultraviolet", Duotone(dark: "#2a0a5e", light: "#ffd6f2")),
+        ("Sunset", Duotone(dark: "#3d1436", light: "#ffc773")),
+        ("Forest", Duotone(dark: "#0d2b1d", light: "#c9f2a0")),
+        ("Steel", Duotone(dark: "#131a22", light: "#9fd4ff")),
+        ("Rose", Duotone(dark: "#3b0d20", light: "#ffd9d0")),
+    ]
+
+    private enum CodingKeys: String, CodingKey { case dark, light }
+
+    init(dark: String, light: String) {
+        self.dark = dark
+        self.light = light
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        dark = (try? c.decode(String.self, forKey: .dark)) ?? "#000000"
+        light = (try? c.decode(String.self, forKey: .light)) ?? "#ffffff"
+    }
+}
+
 enum ImageFilterEngine {
     private static let context = CIContext()
     private static let cache: NSCache<NSString, UIImage> = {
@@ -79,18 +112,46 @@ enum ImageFilterEngine {
 
     static func apply(_ preset: ImageFilterPreset, adjustments: Adjustments,
                       to image: UIImage, cacheKey: String) -> UIImage {
-        if preset == .none && adjustments.isNeutral { return image }
-        let key = "\(cacheKey)|\(preset.rawValue)\(adjustments.signature)"
+        apply(preset, adjustments: adjustments, duotone: nil, to: image, cacheKey: cacheKey)
+    }
+
+    static func apply(_ preset: ImageFilterPreset, adjustments: Adjustments,
+                      duotone: Duotone?, to image: UIImage, cacheKey: String) -> UIImage {
+        if preset == .none && adjustments.isNeutral && duotone == nil { return image }
+        let tone = duotone.map { "|duo\($0.dark)\($0.light)" } ?? ""
+        let key = "\(cacheKey)|\(preset.rawValue)\(adjustments.signature)\(tone)"
         if let cached = cache.object(forKey: key as NSString) { return cached }
         guard let input = CIImage(image: image) else { return image }
         // Preset first, adjustments second: the preset is the look, the dials
         // are the correction on top of it. The other order would have a dial
         // silently undone by whichever preset was picked afterwards.
-        let output = adjusted(filtered(input, preset: preset), adjustments, extent: input.extent)
+        var output = adjusted(filtered(input, preset: preset), adjustments, extent: input.extent)
+        // Duotone last, because it replaces colour outright — running it
+        // before a saturation dial would leave that dial with nothing to do.
+        if let duotone { output = mapped(output, to: duotone) }
         guard let cg = context.createCGImage(output, from: input.extent) else { return image }
         let result = UIImage(cgImage: cg, scale: image.scale, orientation: image.imageOrientation)
         cache.setObject(result, forKey: key as NSString)
         return result
+    }
+
+    /// Luminance mapped onto two colours: darkest becomes `dark`, lightest
+    /// becomes `light`, and everything between is a straight ramp.
+    ///
+    /// Desaturated first. CIFalseColor reads luminance, so a picture with
+    /// strong colour in it would otherwise map its reds and its greens to
+    /// different points of the ramp for reasons that have nothing to do with
+    /// how light they are.
+    private static func mapped(_ input: CIImage, to duotone: Duotone) -> CIImage {
+        let mono = CIFilter.colorControls()
+        mono.inputImage = input
+        mono.saturation = 0
+        guard let grey = mono.outputImage else { return input }
+        let map = CIFilter.falseColor()
+        map.inputImage = grey
+        map.color0 = CIColor(color: UIColor(hex: duotone.dark))
+        map.color1 = CIColor(color: UIColor(hex: duotone.light))
+        return map.outputImage ?? input
     }
 
     /// The dials, in the order a photographer would reach for them.

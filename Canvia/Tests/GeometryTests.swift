@@ -168,6 +168,7 @@ final class ElementEqualityTests: XCTestCase {
             ("filter", { $0.filter = "vivid" }),
             ("adjustments", { var a = Adjustments(); a.warmth = 0.5; $0.adjustments = a }),
             ("maskShapeId", { $0.maskShapeId = "circle" }),
+            ("duotone", { $0.duotone = Duotone(dark: "#000033", light: "#ffcc00") }),
             ("cropScale", { $0.cropScale = 2 }),
             ("cropX", { $0.cropX = 0.1 }),
             ("cropY", { $0.cropY = 0.9 }),

@@ -237,3 +237,132 @@ final class DesignExporterTests: XCTestCase {
         return (type, CGSize(width: width, height: height))
     }
 }
+
+// MARK: - page ranges and transparency
+
+@MainActor
+final class ExportRangeTests: XCTestCase {
+
+    private var written: [URL] = []
+
+    override func tearDown() {
+        for url in written { try? FileManager.default.removeItem(at: url) }
+        written = []
+        super.tearDown()
+    }
+
+    private func design(pages: Int) -> Design {
+        var d = Design(title: "range", width: 120, height: 90)
+        d.pages = (0..<pages).map { _ in
+            Page(background: .color("#3355ff"), elements: [Element.shape("rect", w: 40, h: 30)])
+        }
+        return d
+    }
+
+    // MARK: which pages
+
+    func testCurrentIsOnlyThePageYouAreOn() {
+        let d = design(pages: 5)
+        XCTAssertEqual(DesignExporter.PageRange.current.indices(in: d, current: 2), [2])
+    }
+
+    func testAllIsEveryPage() {
+        let d = design(pages: 4)
+        XCTAssertEqual(DesignExporter.PageRange.all.indices(in: d, current: 0), [0, 1, 2, 3])
+    }
+
+    /// A range given backwards is still a range — the alternative is an empty
+    /// export and no explanation.
+    func testAReversedRangeIsNormalised() {
+        let d = design(pages: 5)
+        XCTAssertEqual(DesignExporter.PageRange.range(3, 1).indices(in: d, current: 0), [1, 2, 3])
+    }
+
+    /// Indices out of the document's range are clamped rather than crashing —
+    /// a saved range outliving the pages it referred to is ordinary.
+    func testOutOfRangeIndicesAreClamped() {
+        let d = design(pages: 3)
+        XCTAssertEqual(DesignExporter.PageRange.range(-4, 99).indices(in: d, current: 0), [0, 1, 2])
+        XCTAssertEqual(DesignExporter.PageRange.current.indices(in: d, current: 99), [2])
+    }
+
+    func testAnEmptyDocumentYieldsNoPages() {
+        var d = design(pages: 1)
+        d.pages = []
+        XCTAssertTrue(DesignExporter.PageRange.all.indices(in: d, current: 0).isEmpty)
+    }
+
+    // MARK: files
+
+    /// One file per page, numbered — the point of a range is that each page
+    /// can be sent on its own.
+    func testAllPagesProducesOneNumberedFileEach() throws {
+        let urls = try DesignExporter.exportPages(design: design(pages: 3), range: .all,
+                                                  current: 0, format: .png, scale: 1)
+        written = urls
+        XCTAssertEqual(urls.count, 3)
+        XCTAssertEqual(Set(urls.map(\.lastPathComponent)).count, 3, "two pages shared a filename")
+        for (index, url) in urls.enumerated() {
+            XCTAssertTrue(url.lastPathComponent.contains("-\(index + 1)."), url.lastPathComponent)
+            XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+        }
+    }
+
+    /// A single page keeps the plain name: "poster.png", not "poster-1.png".
+    func testASinglePageIsNotNumbered() throws {
+        let urls = try DesignExporter.exportPages(design: design(pages: 3), range: .current,
+                                                  current: 1, format: .png, scale: 1)
+        written = urls
+        XCTAssertEqual(urls.count, 1)
+        XCTAssertFalse(urls[0].lastPathComponent.contains("-"), urls[0].lastPathComponent)
+    }
+
+    func testThePDFCoversOnlyTheChosenRange() throws {
+        let url = DesignExporter.fileURL(for: design(pages: 4), ext: "pdf")
+        written = [url]
+        try DesignExporter.exportPDF(design: design(pages: 4), range: .current, current: 2, to: url)
+        let pdf = try XCTUnwrap(CGPDFDocument(url as CFURL))
+        XCTAssertEqual(pdf.numberOfPages, 1)
+    }
+
+    // MARK: transparency
+
+    /// The corner of a transparent export has to be actually transparent, not
+    /// an opaque white square with an alpha channel bolted on.
+    func testATransparentPNGHasNothingBehindIt() throws {
+        let url = DesignExporter.fileURL(for: design(pages: 1), ext: "png", suffix: "-clear")
+        written = [url]
+        var d = design(pages: 1)
+        // An element small enough that the corners are background only.
+        d.pages[0].elements = [Element.shape("rect", w: 20, h: 20)]
+        try DesignExporter.exportRaster(design: d, page: d.pages[0], format: .png,
+                                        scale: 1, transparent: true, to: url)
+        XCTAssertEqual(try alpha(at: CGPoint(x: 2, y: 2), of: url), 0,
+                       "the background survived a transparent export")
+    }
+
+    func testAnOpaqueExportIsStillOpaque() throws {
+        let url = DesignExporter.fileURL(for: design(pages: 1), ext: "png", suffix: "-solid")
+        written = [url]
+        let d = design(pages: 1)
+        try DesignExporter.exportRaster(design: d, page: d.pages[0], format: .png,
+                                        scale: 1, transparent: false, to: url)
+        XCTAssertEqual(try alpha(at: CGPoint(x: 2, y: 2), of: url), 255)
+    }
+
+    private func alpha(at point: CGPoint, of url: URL) throws -> UInt8 {
+        let source = try XCTUnwrap(CGImageSourceCreateWithURL(url as CFURL, nil))
+        let image = try XCTUnwrap(CGImageSourceCreateImageAtIndex(source, 0, nil))
+        var pixel: [UInt8] = [0, 0, 0, 0]
+        try pixel.withUnsafeMutableBytes { raw in
+            let ctx = try XCTUnwrap(CGContext(
+                data: raw.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            ctx.interpolationQuality = .none
+            ctx.draw(image, in: CGRect(x: -point.x, y: -(Double(image.height) - 1 - point.y),
+                                       width: Double(image.width), height: Double(image.height)))
+        }
+        return pixel[3]
+    }
+}

@@ -98,14 +98,21 @@ enum DesignExporter {
 
     @MainActor
     static func exportRaster(design: Design, page: Page, format: RasterFormat,
-                             scale: Int, quality: Double = 0.92, to url: URL) throws {
+                             scale: Int, quality: Double = 0.92,
+                             transparent: Bool = false, to url: URL) throws {
         try autoreleasepool {
-            let renderer = ImageRenderer(content: PageRenderView(design: design, page: page))
+            // A transparent export drops the page's own background rather than
+            // just turning off compositing: "no background" has to mean the
+            // background is gone, not that an opaque white one is drawn
+            // without an alpha channel.
+            var rendered = page
+            if transparent { rendered.background = .color("#00000000") }
+            let renderer = ImageRenderer(content: PageRenderView(design: design, page: rendered))
             renderer.scale = CGFloat(effectiveScale(design: design, requested: scale))
-            // Every page background is opaque — a colour, a gradient, or an
-            // image over white — so compositing an alpha channel is work whose
-            // result is discarded by both encoders.
-            renderer.isOpaque = true
+            // Opaque unless asked otherwise: every page background is a
+            // colour, a gradient, or an image over white, so compositing an
+            // alpha channel is work both encoders would discard.
+            renderer.isOpaque = !transparent
             // cgImage rather than uiImage: the encoder below wants a CGImage,
             // and going through UIImage only to unwrap it again would keep the
             // wrapper alive for the whole encode.
@@ -122,18 +129,61 @@ enum DesignExporter {
         }
     }
 
+    /// Which pages an export covers.
+    enum PageRange: Equatable {
+        case current
+        case all
+        /// Zero-based, inclusive.
+        case range(Int, Int)
+
+        func indices(in design: Design, current: Int) -> [Int] {
+            let last = design.pages.count - 1
+            guard last >= 0 else { return [] }
+            switch self {
+            case .current: return [min(max(current, 0), last)]
+            case .all: return Array(0...last)
+            case .range(let from, let to):
+                let lower = min(max(min(from, to), 0), last)
+                let upper = min(max(max(from, to), 0), last)
+                return Array(lower...upper)
+            }
+        }
+    }
+
+    /// One file per page, named `<design>-1.png` and so on.
+    ///
+    /// Separate files rather than one strip: a page range exists so each page
+    /// can be posted or sent on its own, and stitching them back apart is
+    /// exactly the work this is meant to save.
+    @MainActor
+    static func exportPages(design: Design, range: PageRange, current: Int,
+                            format: RasterFormat, scale: Int, quality: Double = 0.92,
+                            transparent: Bool = false) throws -> [URL] {
+        let indices = range.indices(in: design, current: current)
+        guard !indices.isEmpty else { throw ExportError.renderFailed }
+        return try indices.map { index in
+            let suffix = indices.count > 1 ? "-\(index + 1)" : ""
+            let url = fileURL(for: design, ext: format.ext, suffix: suffix)
+            try exportRaster(design: design, page: design.pages[index], format: format,
+                             scale: scale, quality: quality, transparent: transparent, to: url)
+            return url
+        }
+    }
+
     // MARK: pdf
 
     /// Page units are pixels at 96dpi; PDF works in points at 72.
     static let pxToPt = 72.0 / 96.0
 
     @MainActor
-    static func exportPDF(design: Design, to url: URL) throws {
+    static func exportPDF(design: Design, range: PageRange = .all, current: Int = 0,
+                          to url: URL) throws {
         let bounds = CGRect(x: 0, y: 0,
                             width: design.width * pxToPt,
                             height: design.height * pxToPt)
+        let indices = range.indices(in: design, current: current)
         try UIGraphicsPDFRenderer(bounds: bounds).writePDF(to: url) { ctx in
-            for page in design.pages {
+            for page in indices.map({ design.pages[$0] }) {
                 autoreleasepool {
                     ctx.beginPage()
                     draw(design: design, page: page, into: ctx.cgContext, fitting: bounds)
@@ -172,7 +222,7 @@ enum DesignExporter {
 
     /// A temporary file named after the design, so the share sheet offers
     /// something recognisable rather than "file.png".
-    static func fileURL(for design: Design, ext: String) -> URL {
+    static func fileURL(for design: Design, ext: String, suffix: String = "") -> URL {
         // Keep word characters, spaces and hyphens; drop everything else.
         // \\w already covers digits and underscore, and the hyphen is escaped
         // rather than left next to a class shorthand where an engine has to
@@ -183,6 +233,6 @@ enum DesignExporter {
             .replacingOccurrences(of: " ", with: "-")
         let base = name.isEmpty ? "design" : name
         return FileManager.default.temporaryDirectory
-            .appendingPathComponent("\(base).\(ext)")
+            .appendingPathComponent("\(base)\(suffix).\(ext)")
     }
 }

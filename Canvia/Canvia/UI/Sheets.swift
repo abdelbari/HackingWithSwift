@@ -234,6 +234,7 @@ struct FiltersSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     presetGrid
+                    duotoneRow
                     adjustmentDials
                 }
                 .padding()
@@ -266,6 +267,56 @@ struct FiltersSheet: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    /// Two colours a photo is mapped onto by luminance — the one treatment
+    /// that makes an image belong to a brand rather than merely sit next to
+    /// one. The document's own colours come first, because those are the ones
+    /// it is supposed to match.
+    private var duotoneRow: some View {
+        let current = store.singleSelection?.duotone
+        let docColors = ColorTools.documentColors(store.design, limit: 6)
+        let fromDocument: Duotone? = docColors.count >= 2
+            ? Duotone(dark: docColors.min { ColorTheory.hsl($0).l < ColorTheory.hsl($1).l } ?? docColors[0],
+                      light: docColors.max { ColorTheory.hsl($0).l < ColorTheory.hsl($1).l } ?? docColors[1])
+            : nil
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("Duotone").font(.headline)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    duotoneTile(nil, name: "None", active: current == nil)
+                    if let fromDocument {
+                        duotoneTile(fromDocument, name: "Document", active: current == fromDocument)
+                    }
+                    ForEach(Duotone.presets, id: \.name) { preset in
+                        duotoneTile(preset.tone, name: preset.name, active: current == preset.tone)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    private func duotoneTile(_ tone: Duotone?, name: String, active: Bool) -> some View {
+        Button {
+            store.updateSelected { $0.duotone = tone }
+        } label: {
+            VStack(spacing: 5) {
+                RoundedRectangle(cornerRadius: 9)
+                    .fill(tone.map {
+                        LinearGradient(colors: [Color(hex: $0.dark), Color(hex: $0.light)],
+                                       startPoint: .topLeading, endPoint: .bottomTrailing)
+                    } ?? LinearGradient(colors: [Color(.systemGray5), Color(.systemGray4)],
+                                        startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 62, height: 44)
+                    .overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.hairline))
+                Text(name).font(.caption2)
+            }
+            .padding(3)
+            .background(RoundedRectangle(cornerRadius: 11)
+                .stroke(active ? Theme.accent : .clear, lineWidth: 2))
+        }
+        .buttonStyle(.plain)
     }
 
     /// A preset is a look you pick; these are the dials you turn afterwards.
@@ -329,6 +380,7 @@ struct FiltersSheet: View {
                 Image(uiImage: ImageFilterEngine.apply(
                     preset,
                     adjustments: store.singleSelection?.adjustments ?? .neutral,
+                    duotone: store.singleSelection?.duotone,
                     to: base, cacheKey: src + "|preview"))
                     .resizable()
                     .aspectRatio(contentMode: .fill)

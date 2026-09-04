@@ -60,6 +60,7 @@ struct Element: Codable, Equatable, Identifiable {
     /// more shapes than this one does not silently crop someone's photo.
     var maskShapeId: String?
     var adjustments: Adjustments?
+    var duotone: Duotone?
     var cropScale: Double?
     var cropX: Double?
     var cropY: Double?
@@ -114,6 +115,7 @@ struct Element: Codable, Equatable, Identifiable {
         filter = try? c.decode(String.self, forKey: .filter)
         maskShapeId = try? c.decode(String.self, forKey: .maskShapeId)
         adjustments = try? c.decode(Adjustments.self, forKey: .adjustments)
+        duotone = try? c.decode(Duotone.self, forKey: .duotone)
         cropScale = try? c.decode(Double.self, forKey: .cropScale)
         cropX = try? c.decode(Double.self, forKey: .cropX)
         cropY = try? c.decode(Double.self, forKey: .cropY)
@@ -146,7 +148,7 @@ struct Element: Codable, Equatable, Identifiable {
         case shapeId, fill, stroke, strokeWidth, radius
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
         case lineHeight, letterSpacing, color, listStyle, effect, curve
-        case src, filter, maskShapeId, adjustments, cropScale, cropX, cropY
+        case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY
         case glyph
         case thickness, dash, startCap, endCap
     }

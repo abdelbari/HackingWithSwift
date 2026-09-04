@@ -44,7 +44,9 @@ duplicate / delete via long-press), and a template gallery.
   would otherwise be an ellipse
 - Images: one-tap background removal on device (Vision's foreground
   segmenter — no account, no upload, no paywall), Core Image filter
-  presets plus six free-hand dials (brightness, contrast, saturation,
+  presets, duotone (a photo's luminance mapped onto two of your own
+  colours, offered from the document's own palette first), plus six
+  free-hand dials (brightness, contrast, saturation,
   warmth, sharpness, vignette) that compose on top of the preset rather
   than replacing it, cover-crop zoom + focus point, replace-in-place (swap the
   picture, keep the frame, radius and filter), corner radius, borders
@@ -69,7 +71,9 @@ duplicate / delete via long-press), and a template gallery.
   selecting one member selects the group — deliberately not nested
   transforms)
 
-**Export** — PNG / JPEG at 1–3×, multi-page PDF and SVG, rendered with
+**Export** — PNG / JPEG at 1–3× (this page or every page, one numbered
+file each, with an optional transparent background that really removes
+the page's own), multi-page PDF and SVG, rendered with
 `ImageRenderer` from the very views the canvas shows, delivered through
 the share sheet. PDF pages are written as vectors, not page-sized
 bitmaps, and everything streams to disk rather than being assembled in

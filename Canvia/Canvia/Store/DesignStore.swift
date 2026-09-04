@@ -493,6 +493,7 @@ final class DesignStore {
         var filter: String?
         var adjustments: Adjustments?
         var maskShapeId: String?
+        var duotone: Duotone?
         var opacity: Double
         var thickness: Double?
         var dash: String?
@@ -509,7 +510,7 @@ final class DesignStore {
               fontWeight: el.fontWeight, italic: el.italic, underline: el.underline,
               align: el.align, lineHeight: el.lineHeight, letterSpacing: el.letterSpacing,
               listStyle: el.listStyle, effect: el.effect, curve: el.curve, filter: el.filter,
-              adjustments: el.adjustments, maskShapeId: el.maskShapeId,
+              adjustments: el.adjustments, maskShapeId: el.maskShapeId, duotone: el.duotone,
               opacity: el.opacity, thickness: el.thickness, dash: el.dash,
               startCap: el.startCap, endCap: el.endCap)
     }
@@ -545,6 +546,7 @@ final class DesignStore {
             el.filter = style.filter
             el.adjustments = style.adjustments
             el.maskShapeId = style.maskShapeId
+            el.duotone = style.duotone
             el.radius = style.radius
             el.stroke = style.stroke
             el.strokeWidth = style.strokeWidth
