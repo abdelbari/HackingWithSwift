@@ -27,6 +27,7 @@ struct ColorPickerSheet: View {
     /// is up, and the body runs on every tick of the colour wheel.
     @State private var photoColors: [String] = []
     @State private var eyedropping = false
+    @State private var gradientKind = "linear"
 
     private let columns = [GridItem(.adaptive(minimum: 40), spacing: 10)]
 
@@ -91,15 +92,24 @@ struct ColorPickerSheet: View {
 
                     if allowGradients, let onPickGradient {
                         Text("Gradients").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
+                        Picker("Gradient shape", selection: $gradientKind) {
+                            Text("Linear").tag("linear")
+                            Text("Radial").tag("radial")
+                            Text("Angular").tag("angular")
+                        }
+                        .pickerStyle(.segmented)
                         LazyVGrid(columns: columns, spacing: 10) {
                             ForEach(ContentLibrary.gradients) { preset in
+                                var paint = preset.paint
+                                let _ = { paint.gradientKind = gradientKind == "linear" ? nil : gradientKind }()
                                 Button {
-                                    onPickGradient(preset.paint)
+                                    onPickGradient(paint)
                                 } label: {
                                     RoundedRectangle(cornerRadius: 9)
-                                        .fill(gradientFill(preset))
+                                        .fill(paint.gradientStyle())
                                         .frame(height: 40)
                                 }
+                                .accessibilityLabel("\(preset.name) \(gradientKind) gradient")
                             }
                         }
                     }

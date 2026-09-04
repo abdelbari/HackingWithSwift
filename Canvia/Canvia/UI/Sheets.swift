@@ -227,6 +227,14 @@ struct SpacingSheet: View {
                                 }
                             }))
                         Button("Shrink the box to the text") { store.shrinkWrapText() }
+                        Toggle("Drop cap", isOn: Binding(
+                            get: { el.dropCap == true },
+                            set: { on in
+                                store.updateSelected {
+                                    $0.dropCap = on ? true : nil
+                                    $0.h = FontLibrary.layoutHeight(for: $0)
+                                }
+                            }))
                     } header: {
                         Text("Text box")
                     } footer: {

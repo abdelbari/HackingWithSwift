@@ -87,6 +87,9 @@ struct Element: Codable, Equatable, Identifiable {
     var stroke: String?
     var strokeWidth: Double?
     var radius: Double?
+    /// Per-corner radii — top-left, top-right, bottom-right, bottom-left —
+    /// for rect-like shapes; nil means `radius` on all four.
+    var corners: [Double]?
 
     // text
     var text: String?
@@ -114,6 +117,9 @@ struct Element: Codable, Equatable, Identifiable {
     /// The saved text style this element follows. Updating the style
     /// re-applies it to every element that carries the id.
     var textStyleId: String?
+    /// The first letter set large, three lines deep, with the text wrapping
+    /// around it.
+    var dropCap: Bool?
     /// A gradient behind the letters. nil paints `color`; a solid Paint here
     /// is never stored, since `color` already is one.
     var textFill: Paint?
@@ -179,6 +185,7 @@ struct Element: Codable, Equatable, Identifiable {
         stroke = try? c.decode(String.self, forKey: .stroke)
         strokeWidth = try? c.decode(Double.self, forKey: .strokeWidth)
         radius = try? c.decode(Double.self, forKey: .radius)
+        corners = try? c.decode([Double].self, forKey: .corners)
         text = try? c.decode(String.self, forKey: .text)
         fontFamily = try? c.decode(String.self, forKey: .fontFamily)
         fontSize = try? c.decode(Double.self, forKey: .fontSize)
@@ -195,6 +202,7 @@ struct Element: Codable, Equatable, Identifiable {
         fitText = try? c.decode(Bool.self, forKey: .fitText)
         paragraphSpacing = try? c.decode(Double.self, forKey: .paragraphSpacing)
         textStyleId = try? c.decode(String.self, forKey: .textStyleId)
+        dropCap = try? c.decode(Bool.self, forKey: .dropCap)
         textFill = try? c.decode(Paint.self, forKey: .textFill)
         effect = try? c.decode(TextEffectSpec.self, forKey: .effect)
         curve = try? c.decode(Double.self, forKey: .curve)
@@ -234,10 +242,10 @@ struct Element: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow, blendMode, altText
-        case shapeId, pathData, fill, stroke, strokeWidth, radius
+        case shapeId, pathData, fill, stroke, strokeWidth, radius, corners
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve
-        case vAlign, fitText, paragraphSpacing, textStyleId
+        case vAlign, fitText, paragraphSpacing, textStyleId, dropCap
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit
         case glyph
         case thickness, dash, startCap, endCap

@@ -67,13 +67,38 @@ struct ElementView: View {
 struct LibraryShape: Shape {
     let definition: ShapeDef
     let cornerRadius: Double
+    /// Top-left, top-right, bottom-right, bottom-left; nil is cornerRadius
+    /// on all four.
+    var corners: [Double]? = nil
 
     func path(in rect: CGRect) -> Path {
+        if definition.rectLike == true, let corners, corners.count == 4, corners.contains(where: { $0 > 0 }) {
+            return Path(Self.roundedRect(rect, corners: corners))
+        }
         if definition.rectLike == true && cornerRadius > 0 {
             let r = min(cornerRadius, rect.width / 2, rect.height / 2)
             return Path(roundedRect: rect, cornerRadius: r)
         }
         return Path(SVGPath.scaledPath(definition.path, to: rect.size))
+    }
+
+    /// A rectangle with a different radius at each corner, each clamped so
+    /// neighbours never overlap.
+    static func roundedRect(_ rect: CGRect, corners: [Double]) -> CGPath {
+        let limit = min(rect.width, rect.height) / 2
+        let r = corners.map { min(max($0, 0), limit) }
+        let p = CGMutablePath()
+        p.move(to: CGPoint(x: rect.minX + r[0], y: rect.minY))
+        p.addLine(to: CGPoint(x: rect.maxX - r[1], y: rect.minY))
+        p.addArc(tangent1End: CGPoint(x: rect.maxX, y: rect.minY), tangent2End: CGPoint(x: rect.maxX, y: rect.minY + r[1]), radius: r[1])
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - r[2]))
+        p.addArc(tangent1End: CGPoint(x: rect.maxX, y: rect.maxY), tangent2End: CGPoint(x: rect.maxX - r[2], y: rect.maxY), radius: r[2])
+        p.addLine(to: CGPoint(x: rect.minX + r[3], y: rect.maxY))
+        p.addArc(tangent1End: CGPoint(x: rect.minX, y: rect.maxY), tangent2End: CGPoint(x: rect.minX, y: rect.maxY - r[3]), radius: r[3])
+        p.addLine(to: CGPoint(x: rect.minX, y: rect.minY + r[0]))
+        p.addArc(tangent1End: CGPoint(x: rect.minX, y: rect.minY), tangent2End: CGPoint(x: rect.minX + r[0], y: rect.minY), radius: r[0])
+        p.closeSubpath()
+        return p
     }
 }
 
@@ -82,14 +107,11 @@ struct ShapeElementView: View {
 
     var body: some View {
         let def = ContentLibrary.shape(for: element)
-        let shape = LibraryShape(definition: def, cornerRadius: element.radius ?? 0)
+        let shape = LibraryShape(definition: def, cornerRadius: element.radius ?? 0, corners: element.corners)
         let fill = element.fill ?? .solid("#8b5cf6")
         ZStack {
-            if fill.kind == "gradient", let stops = fill.stops {
-                let pts = fill.unitPoints
-                shape.fill(LinearGradient(
-                    stops: stops.map { .init(color: Color(hex: $0.color), location: $0.offset) },
-                    startPoint: pts.start, endPoint: pts.end))
+            if fill.kind == "gradient", fill.stops != nil {
+                shape.fill(fill.gradientStyle())
             } else if fill.kind == "pattern" || fill.kind == "image" {
                 // A pattern or a photo is a view, not a ShapeStyle, so it is
                 // clipped to the shape rather than poured into it.
@@ -175,6 +197,13 @@ struct TextElementView: View {
             break
         }
 
+        // A drop cap: the letter, then the rest framed around it. Only the
+        // plain effect, since the letter and body are drawn as two runs.
+        if effect == .none, let layout = FontLibrary.dropCapLayout(for: el) {
+            drawDropCap(layout, attrs: attrs, in: cg, rect: rect, el: el)
+            return
+        }
+
         switch effect {
         case .outline:
             attrs[.strokeColor] = color
@@ -235,15 +264,63 @@ struct TextElementView: View {
         }
     }
 
-    /// Fill `rect` with a linear gradient along the paint's CSS angle. With
-    /// `flipped`, the context's y runs upward and the endpoints are mirrored
-    /// so "0° is up" still means up on screen.
+    /// The cap at the top-left, the body in a CoreText frame whose path is
+    /// the box minus the cap's corner — so lines wrap beside the letter and
+    /// run full width once past it.
+    private func drawDropCap(_ layout: FontLibrary.DropCapLayout, attrs: [NSAttributedString.Key: Any],
+                             in cg: CGContext, rect: CGRect, el: Element) {
+        var capAttrs = attrs
+        var capEl = el
+        capEl.fontSize = layout.capFontSize
+        capEl.lineHeight = 1
+        capAttrs[.font] = FontLibrary.uiFont(family: el.fontFamily, size: layout.capFontSize,
+                                             weight: el.fontWeight ?? 400, italic: el.italic ?? false)
+        capAttrs[.paragraphStyle] = nil
+        let cap = NSAttributedString(string: layout.letter, attributes: capAttrs)
+        let capSize = cap.size()
+        // Sit the cap's baseline on the third line's baseline.
+        let line = (el.fontSize ?? 42) * (el.lineHeight ?? 1.25)
+        let capTop = rect.minY + line * FontLibrary.dropCapLines - capSize.height
+        cap.draw(at: CGPoint(x: rect.minX, y: capTop))
+
+        guard !layout.rest.isEmpty else { return }
+        let body = NSAttributedString(string: layout.rest, attributes: attrs)
+        let framesetter = CTFramesetterCreateWithAttributedString(body)
+        // CoreText frames in a y-up space: build the path in the flipped
+        // frame and draw with the context flipped to match.
+        let frame = CGMutablePath()
+        let full = CGRect(x: rect.minX, y: 0, width: rect.width, height: rect.height)
+        frame.addRect(full)
+        let notch = CGRect(x: rect.minX, y: rect.height - layout.capRect.height,
+                           width: layout.capRect.width, height: layout.capRect.height)
+        frame.addRect(notch)
+        let ctFrame = CTFramesetterCreateFrame(framesetter, CFRange(location: 0, length: 0), frame,
+                                               [kCTFramePathFillRuleAttributeName: CTFramePathFillRule.evenOdd.rawValue] as CFDictionary)
+        cg.saveGState()
+        cg.textMatrix = .identity
+        cg.translateBy(x: 0, y: rect.minY + rect.height)
+        cg.scaleBy(x: 1, y: -1)
+        CTFrameDraw(ctFrame, cg)
+        cg.restoreGState()
+    }
+
+    /// Fill `rect` with the paint's gradient: linear along its CSS angle, or
+    /// radial from the centre. Angular has no CoreGraphics equivalent and
+    /// paints as linear here. With `flipped`, the context's y runs upward
+    /// and the endpoints are mirrored so "0° is up" still means up on screen.
     static func paintGradient(_ paint: Paint, in cg: CGContext, rect: CGRect, flipped: Bool) {
         guard let stops = paint.stops, !stops.isEmpty else { return }
         let colors = stops.map { UIColor(hex: $0.color).cgColor } as CFArray
         let locations = stops.map { CGFloat($0.offset) }
         guard let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
                                         colors: colors, locations: locations) else { return }
+        if paint.gradientKind == "radial" {
+            let centre = CGPoint(x: rect.midX, y: rect.midY)
+            cg.drawRadialGradient(gradient, startCenter: centre, startRadius: 0, endCenter: centre,
+                                  endRadius: max(rect.width, rect.height) / 2,
+                                  options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
+            return
+        }
         let pts = paint.unitPoints
         func point(_ u: UnitPoint) -> CGPoint {
             let y = flipped ? 1 - u.y : u.y

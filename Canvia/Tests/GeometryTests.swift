@@ -173,6 +173,8 @@ final class ElementEqualityTests: XCTestCase {
             ("blendMode", { $0.blendMode = "multiply" }),
             ("altText", { $0.altText = "A dog" }),
             ("pathData", { $0.pathData = "M0 0 L100 100" }),
+            ("corners", { $0.corners = [10, 0, 10, 0] }),
+            ("dropCap", { $0.dropCap = true }),
             ("straighten", { $0.straighten = 7 }),
             ("vAlign", { $0.vAlign = "middle" }),
             ("fitText", { $0.fitText = true }),

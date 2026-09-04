@@ -89,6 +89,15 @@ duplicate / delete via long-press), and a template gallery.
   an opaque screenshot as the far smaller JPEG — and every colour picker
   offers "From the photo": the six most prominent colours of the selected
   picture or the page's background picture, read from its pixels.
+- Radial and angular gradients beside linear, on shapes, text and page
+  backgrounds (radial reaches the SVG; angular ships as pixels, since SVG
+  has no conic gradient). Per-corner radii on rectangles — top only,
+  bottom only, opposite corners — exact in the SVG. Drop caps: the first
+  letter three lines deep with the paragraph wrapping around it.
+- Your uploads: every picture ever imported, newest first, in the Photos
+  tab — insert again, star, or delete. Custom shapes from an SVG file:
+  the first path, relative commands and smooth curves included, fitted
+  into the library's box.
 - Charts and tables from typed data: bars, columns, pie, donut or line
   from "Label, value" lines; a table from comma- or tab-separated rows
   with a header row in the accent, banded rows, columns sized to their

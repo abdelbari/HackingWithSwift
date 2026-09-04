@@ -23,6 +23,8 @@ struct Paint: Codable, Equatable, Hashable {
     var color: String?            // solid; pattern foreground
     var angle: Double?            // gradient, CSS convention: 0° = up, 90° = right
     var stops: [GradientStop]?
+    /// gradient: "linear" (nil) | "radial" | "angular".
+    var gradientKind: String?
     /// pattern: which one (see Patterns.names), its background, and its
     /// tile size in page units.
     var pattern: String?
@@ -56,13 +58,30 @@ struct Paint: Codable, Equatable, Hashable {
         return (UnitPoint(x: 0.5 - dx, y: 0.5 - dy), UnitPoint(x: 0.5 + dx, y: 0.5 + dy))
     }
 
+    var swiftUIStops: [Gradient.Stop] {
+        (stops ?? []).map { .init(color: Color(hex: $0.color), location: $0.offset) }
+    }
+
+    /// The gradient as a ShapeStyle: linear along the angle, radial from the
+    /// centre out to the edges, or angular sweeping from the angle.
+    func gradientStyle() -> AnyShapeStyle {
+        switch gradientKind {
+        case "radial":
+            return AnyShapeStyle(EllipticalGradient(stops: swiftUIStops, center: .center,
+                                                    startRadiusFraction: 0, endRadiusFraction: 0.5))
+        case "angular":
+            return AnyShapeStyle(AngularGradient(stops: swiftUIStops, center: .center,
+                                                 angle: .degrees((angle ?? 0) - 90)))
+        default:
+            let pts = unitPoints
+            return AnyShapeStyle(LinearGradient(stops: swiftUIStops, startPoint: pts.start, endPoint: pts.end))
+        }
+    }
+
     @ViewBuilder
     func fillView() -> some View {
-        if kind == "gradient", let stops {
-            let pts = unitPoints
-            LinearGradient(
-                stops: stops.map { .init(color: Color(hex: $0.color), location: $0.offset) },
-                startPoint: pts.start, endPoint: pts.end)
+        if kind == "gradient", stops != nil {
+            Rectangle().fill(gradientStyle())
         } else if kind == "pattern" {
             PatternFill(paint: self)
         } else if kind == "image", let ui = PhotoLibrary.resolve(src) {

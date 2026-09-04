@@ -626,6 +626,8 @@ final class DesignStore {
         var stroke: String?
         var strokeWidth: Double?
         var radius: Double?
+        var corners: [Double]?
+        var dropCap: Bool?
         var color: String?
         var fontFamily: String?
         var fontSize: Double?
@@ -660,6 +662,7 @@ final class DesignStore {
 
     static func style(of el: Element) -> Style {
         Style(fill: el.fill, stroke: el.stroke, strokeWidth: el.strokeWidth, radius: el.radius,
+              corners: el.corners, dropCap: el.dropCap,
               color: el.color, fontFamily: el.fontFamily, fontSize: el.fontSize,
               fontWeight: el.fontWeight, italic: el.italic, underline: el.underline,
               align: el.align, lineHeight: el.lineHeight, letterSpacing: el.letterSpacing,
@@ -687,7 +690,9 @@ final class DesignStore {
             el.stroke = style.stroke
             el.strokeWidth = style.strokeWidth
             el.radius = style.radius
+            el.corners = style.corners
         case .text:
+            el.dropCap = style.dropCap
             el.color = style.color
             el.fontFamily = style.fontFamily
             el.fontSize = style.fontSize

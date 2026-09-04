@@ -166,6 +166,7 @@ struct InsertSheet: View {
                 lineTile("ellipsis", "dot", "dot")
             }
             dataRow
+            svgImportRow
             componentsSection
             let starred = Favorites.ids(of: "shape").compactMap { ContentLibrary.shapeMap[$0] }
             ForEach(["Favourites"] + ContentLibrary.shapeCategories, id: \.self) { category in
@@ -339,6 +340,75 @@ struct InsertSheet: View {
         store.selection = [heading.id, body.id]
     }
 
+    // MARK: uploads
+
+    /// Every picture ever imported, newest first, insertable again and
+    /// deletable — the pile that used to be invisible.
+    @ViewBuilder
+    private var uploadsSection: some View {
+        let uploads = MediaStore.all()
+        if !uploads.isEmpty {
+            sectionHeader("Your uploads")
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
+                ForEach(favoritesFirst(uploads, kind: "upload", id: { $0 }), id: \.self) { id in
+                    Button {
+                        let natural = MediaStore.load(id)?.size ?? CGSize(width: 4, height: 3)
+                        insertImage("media:\(id)", natural: natural)
+                        dismiss()
+                    } label: {
+                        Group {
+                            if let ui = MediaStore.load(id) {
+                                Image(uiImage: PhotoLibrary.preview(ui, key: "media:\(id)"))
+                                    .resizable().aspectRatio(contentMode: .fill)
+                            } else {
+                                Color(.systemGray5)
+                            }
+                        }
+                        .frame(height: 72)
+                        .frame(maxWidth: .infinity)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                    .accessibilityLabel("Uploaded picture")
+                    .contextMenu {
+                        favoriteButton("upload", id)
+                        Button(role: .destructive) {
+                            MediaStore.delete(id)
+                            favoritesVersion += 1
+                        } label: { Label("Delete upload", systemImage: "trash") }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: svg
+
+    @State private var importingSVG = false
+
+    private var svgImportRow: some View {
+        Button {
+            importingSVG = true
+        } label: {
+            Label("Custom shape from an SVG file", systemImage: "scribble.variable")
+                .frame(maxWidth: .infinity)
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
+        }
+        .fileImporter(isPresented: $importingSVG, allowedContentTypes: [.svg]) { result in
+            guard case .success(let url) = result else { return }
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            guard let text = try? String(contentsOf: url, encoding: .utf8),
+                  let d = SVGPath.importFirstPath(fromSVG: text) else { return }
+            let size = min(store.design.width, store.design.height) * 0.4
+            var el = Element.shape("rect", w: size.rounded(), h: size.rounded())
+            el.pathData = d
+            el.radius = 0
+            store.add(el)
+            dismiss()
+        }
+    }
+
     // MARK: layouts
 
     /// Grid layouts: empty frames in one tap, filled with Replace.
@@ -460,6 +530,7 @@ struct InsertSheet: View {
                     }
                 }
             }
+            uploadsSection
             if !isReplacing { layoutsRow }
             Button {
                 importingPDF = true

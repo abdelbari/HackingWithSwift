@@ -318,6 +318,38 @@ enum FontLibrary {
         }
     }
 
+    // MARK: drop caps
+
+    static let dropCapLines = 3.0
+
+    /// The drop cap's letter and box, and the rest of the text: the cap is
+    /// the first letter at three lines' height, the body wraps beside and
+    /// then below it.
+    struct DropCapLayout {
+        var letter: String
+        var rest: String
+        var capRect: CGRect
+        var capFontSize: Double
+    }
+
+    static func dropCapLayout(for el: Element) -> DropCapLayout? {
+        let text = displayText(for: el)
+        guard el.dropCap == true, el.curve == nil, !isList(el),
+              let first = text.first, first.isLetter || first.isNumber else { return nil }
+        let size = el.fontSize ?? 42
+        let line = size * (el.lineHeight ?? 1.25)
+        let capSize = line * dropCapLines * 0.82
+        var capEl = el
+        capEl.fontSize = capSize
+        capEl.lineHeight = 1
+        let letter = String(first)
+        let width = ceil(NSAttributedString(string: letter, attributes: attributes(for: capEl)).size().width)
+        let rest = String(text.dropFirst()).trimmingCharacters(in: .init(charactersIn: " "))
+        return DropCapLayout(letter: letter, rest: rest,
+                             capRect: CGRect(x: 0, y: 0, width: width + size * 0.25, height: line * dropCapLines),
+                             capFontSize: capSize)
+    }
+
     /// The size the canvas draws a text element at: its own, or the one
     /// that fits its box.
     static func effectiveFontSize(for el: Element) -> Double {
@@ -332,6 +364,21 @@ enum FontLibrary {
     }
 
     private static func measure(_ el: Element) -> Double {
+        if let layout = dropCapLayout(for: el) {
+            // The body beside the cap, then below it: measured as the text
+            // at the narrow width for three lines, and the full width after.
+            let attrs = attributes(for: el)
+            let line = (el.fontSize ?? 42) * (el.lineHeight ?? 1.25)
+            let narrow = max(el.w - layout.capRect.width, 20)
+            let body = NSAttributedString(string: layout.rest, attributes: attrs)
+            let besideHeight = body.boundingRect(with: CGSize(width: narrow, height: .greatestFiniteMagnitude),
+                                                 options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil).height
+            if besideHeight <= line * dropCapLines + 1 { return ceil(max(besideHeight, layout.capRect.height)) }
+            let overflowLines = (besideHeight - line * dropCapLines) / max(line, 1)
+            // Lines that spill below the cap get the full width, so fewer.
+            let below = ceil(overflowLines * narrow / el.w) * line
+            return ceil(layout.capRect.height + below)
+        }
         let attrs = attributes(for: el)
         let str = NSAttributedString(string: displayText(for: el), attributes: attrs)
         let bounds = str.boundingRect(

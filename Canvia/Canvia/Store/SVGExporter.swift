@@ -114,9 +114,20 @@ enum SVGExporter {
         if let kind = el.fill?.kind, kind == "pattern" || kind == "image" {
             return bitmapMarkup(el)
         }
+        // SVG has no conic gradient either; an angular fill ships as pixels.
+        if el.fill?.kind == "gradient", el.fill?.gradientKind == "angular" {
+            return bitmapMarkup(el)
+        }
         let definition = ContentLibrary.shape(for: el)
         var d = definition.path
-        if definition.rectLike == true, let radius = el.radius, radius > 0, el.w > 0, el.h > 0 {
+        if definition.rectLike == true, let corners = el.corners, corners.count == 4,
+           corners.contains(where: { $0 > 0 }), el.w > 0, el.h > 0 {
+            // Per-corner radii: the exact path, in the 100-unit box, with
+            // each radius scaled per axis like the uniform case below.
+            var into = CGAffineTransform(scaleX: 100 / el.w, y: 100 / el.h)
+            let path = LibraryShape.roundedRect(CGRect(x: 0, y: 0, width: el.w, height: el.h), corners: corners)
+            d = TextOutliner.svgPathData(path.copy(using: &into) ?? path)
+        } else if definition.rectLike == true, let radius = el.radius, radius > 0, el.w > 0, el.h > 0 {
             // The library path is drawn in a 100x100 box and scaled onto the
             // element, so the corner radius has to be expressed in that box —
             // and separately per axis, or a wide box gets round corners on one
@@ -275,6 +286,12 @@ enum SVGExporter {
     /// comes out at the wrong angle.
     private static func gradientDef(id: String, paint: Paint,
                                     width: Double, height: Double) -> String {
+        let stopsMarkup = (paint.stops ?? []).map {
+            "<stop offset=\"\(num($0.offset))\" stop-color=\"\(escape($0.color))\"/>"
+        }.joined()
+        if paint.gradientKind == "radial" {
+            return "<radialGradient id=\"\(id)\" cx=\"0.5\" cy=\"0.5\" r=\"0.5\">\(stopsMarkup)</radialGradient>"
+        }
         let radians = ((paint.angle ?? 0) - 90) * .pi / 180
         let dx = cos(radians), dy = sin(radians)
         let length = abs(width * dx) + abs(height * dy)

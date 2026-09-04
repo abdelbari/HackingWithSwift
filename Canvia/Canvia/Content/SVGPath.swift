@@ -17,36 +17,47 @@ enum SVGPath {
         var scanner = Tokenizer(d)
         var current = CGPoint.zero
         var start = CGPoint.zero
+        // For S and T: the last control point, reflected for a smooth join.
+        var lastControl: CGPoint?
+        var lastWasCurve = false
 
-        while let cmd = scanner.nextCommand() {
+        while let raw = scanner.nextCommand() {
+            // Lowercase commands are relative to the current point; the
+            // shape library is all absolute, but an imported SVG rarely is.
+            let relative = raw.isLowercase
+            let cmd = Character(raw.uppercased())
+            func abs(_ x: Double, _ y: Double) -> CGPoint {
+                relative ? CGPoint(x: current.x + x, y: current.y + y) : CGPoint(x: x, y: y)
+            }
+            var thisWasCurve = false
             switch cmd {
             case "M":
                 if let x = scanner.nextNumber(), let y = scanner.nextNumber() {
-                    current = CGPoint(x: x, y: y)
+                    current = abs(x, y)
                     path.move(to: current)
                     start = current
                 }
                 // Additional coordinate pairs after M are implicit L.
                 while scanner.numberFollows,
                       let lx = scanner.nextNumber(), let ly = scanner.nextNumber() {
-                    current = CGPoint(x: lx, y: ly)
+                    current = abs(lx, ly)
                     path.addLine(to: current)
                 }
             case "L":
                 while let x = scanner.nextNumber(), let y = scanner.nextNumber() {
-                    current = CGPoint(x: x, y: y)
+                    current = abs(x, y)
                     path.addLine(to: current)
                     if !scanner.numberFollows { break }
                 }
             case "H":
                 while let x = scanner.nextNumber() {
-                    current = CGPoint(x: x, y: current.y)
+                    current = CGPoint(x: relative ? current.x + x : x, y: current.y)
                     path.addLine(to: current)
                     if !scanner.numberFollows { break }
                 }
             case "V":
                 while let y = scanner.nextNumber() {
-                    current = CGPoint(x: current.x, y: y)
+                    current = CGPoint(x: current.x, y: relative ? current.y + y : y)
                     path.addLine(to: current)
                     if !scanner.numberFollows { break }
                 }
@@ -54,17 +65,43 @@ enum SVGPath {
                 while let x1 = scanner.nextNumber(), let y1 = scanner.nextNumber(),
                       let x2 = scanner.nextNumber(), let y2 = scanner.nextNumber(),
                       let x = scanner.nextNumber(), let y = scanner.nextNumber() {
-                    current = CGPoint(x: x, y: y)
-                    path.addCurve(to: current,
-                                  control1: CGPoint(x: x1, y: y1),
-                                  control2: CGPoint(x: x2, y: y2))
+                    let c1 = abs(x1, y1), c2 = abs(x2, y2)
+                    current = abs(x, y)
+                    path.addCurve(to: current, control1: c1, control2: c2)
+                    lastControl = c2
+                    thisWasCurve = true
+                    if !scanner.numberFollows { break }
+                }
+            case "S":
+                while let x2 = scanner.nextNumber(), let y2 = scanner.nextNumber(),
+                      let x = scanner.nextNumber(), let y = scanner.nextNumber() {
+                    let reflected = (lastWasCurve || thisWasCurve) && lastControl != nil
+                        ? CGPoint(x: 2 * current.x - lastControl!.x, y: 2 * current.y - lastControl!.y) : current
+                    let c2 = abs(x2, y2)
+                    current = abs(x, y)
+                    path.addCurve(to: current, control1: reflected, control2: c2)
+                    lastControl = c2
+                    thisWasCurve = true
                     if !scanner.numberFollows { break }
                 }
             case "Q":
                 while let x1 = scanner.nextNumber(), let y1 = scanner.nextNumber(),
                       let x = scanner.nextNumber(), let y = scanner.nextNumber() {
-                    current = CGPoint(x: x, y: y)
-                    path.addQuadCurve(to: current, control: CGPoint(x: x1, y: y1))
+                    let c = abs(x1, y1)
+                    current = abs(x, y)
+                    path.addQuadCurve(to: current, control: c)
+                    lastControl = c
+                    thisWasCurve = true
+                    if !scanner.numberFollows { break }
+                }
+            case "T":
+                while let x = scanner.nextNumber(), let y = scanner.nextNumber() {
+                    let c = (lastWasCurve || thisWasCurve) && lastControl != nil
+                        ? CGPoint(x: 2 * current.x - lastControl!.x, y: 2 * current.y - lastControl!.y) : current
+                    current = abs(x, y)
+                    path.addQuadCurve(to: current, control: c)
+                    lastControl = c
+                    thisWasCurve = true
                     if !scanner.numberFollows { break }
                 }
             case "A":
@@ -72,7 +109,7 @@ enum SVGPath {
                       let rot = scanner.nextNumber(),
                       let largeArc = scanner.nextNumber(), let sweep = scanner.nextNumber(),
                       let x = scanner.nextNumber(), let y = scanner.nextNumber() {
-                    let end = CGPoint(x: x, y: y)
+                    let end = abs(x, y)
                     addArc(to: path, from: current, to: end,
                            rx: rx, ry: ry, rotationDeg: rot,
                            largeArc: largeArc != 0, sweep: sweep != 0)
@@ -85,9 +122,35 @@ enum SVGPath {
             default:
                 break
             }
+            lastWasCurve = thisWasCurve
         }
         cache[d] = path
         return path
+    }
+
+    /// Path data for a CGPath, fitted into the 0…100 box the library uses:
+    /// scaled by its longer side and centred on the shorter. What an
+    /// imported SVG path becomes.
+    static func normalised(_ path: CGPath) -> String? {
+        let box = path.boundingBoxOfPath
+        guard box.width > 0 || box.height > 0 else { return nil }
+        let scale = 100 / max(box.width, box.height)
+        var t = CGAffineTransform(translationX: -box.minX, y: -box.minY)
+            .concatenating(CGAffineTransform(scaleX: scale, y: scale))
+            .concatenating(CGAffineTransform(translationX: (100 - box.width * scale) / 2,
+                                             y: (100 - box.height * scale) / 2))
+        guard let fitted = path.copy(using: &t) else { return nil }
+        return TextOutliner.svgPathData(fitted)
+    }
+
+    /// The first path in an SVG document, as normalised path data.
+    static func importFirstPath(fromSVG text: String) -> String? {
+        guard let range = text.range(of: #"<path[^>]*\sd\s*=\s*"([^"]*)""#, options: .regularExpression) else { return nil }
+        let tag = String(text[range])
+        guard let dStart = tag.range(of: #"d\s*=\s*""#, options: .regularExpression) else { return nil }
+        let d = tag[dStart.upperBound...].dropLast()
+        let parsed = path(String(d))
+        return parsed.isEmpty ? nil : normalised(parsed)
     }
 
     /// Path scaled from the 100×100 definition space to an arbitrary size,
@@ -201,7 +264,7 @@ enum SVGPath {
             while index < chars.count {
                 let c = chars[index]
                 index += 1
-                if c.isLetter { return Character(c.uppercased()) }
+                if c.isLetter { return c }
             }
             return nil
         }

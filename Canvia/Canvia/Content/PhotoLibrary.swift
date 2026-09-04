@@ -400,6 +400,27 @@ enum MediaStore {
         }
     }
 
+    /// Every uploaded picture's id, newest first.
+    static func all() -> [String] {
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: [.contentModificationDateKey]) else { return [] }
+        return files.filter { extensions.contains($0.pathExtension) }
+            .map { url -> (String, Date) in
+                let date = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
+                return (url.deletingPathExtension().lastPathComponent, date)
+            }
+            .sorted { $0.1 > $1.1 }
+            .map(\.0)
+    }
+
+    /// Remove an upload for good, from disk and the cache.
+    static func delete(_ id: String) {
+        for ext in extensions {
+            try? FileManager.default.removeItem(at: directory.appendingPathComponent("\(id).\(ext)"))
+        }
+        memory.removeObject(forKey: id as NSString)
+    }
+
     /// Store a picture that is already the right size and has nothing
     /// see-through in it, as JPEG.
     static func storeOpaque(_ image: UIImage, quality: CGFloat = 0.85) -> String? {

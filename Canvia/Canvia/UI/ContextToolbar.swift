@@ -325,11 +325,39 @@ struct ContextToolbar: View {
     private func shapeControls(_ el: Element) -> some View {
         colorChip(el.fill?.primaryColor ?? "#8b5cf6", "Fill") { activeSheet = .colorFill }
         colorChip(el.stroke ?? "#0d1216", "Border") { activeSheet = .colorStroke }
-        if ContentLibrary.shape(el.shapeId).rectLike == true {
+        if ContentLibrary.shape(el.shapeId).rectLike == true && el.pathData == nil {
             sliderControl("Round", value: el.radius ?? 0, in: 0...(min(el.w, el.h) / 2)) { v in
-                store.updateSelectedTransient { $0.radius = v }
+                store.updateSelectedTransient { $0.radius = v; $0.corners = nil }
             }
+            cornersMenu(el)
         }
+    }
+
+    /// Which corners the rounding applies to. The slider sets how much;
+    /// this sets where, as the patterns people actually use.
+    private func cornersMenu(_ el: Element) -> some View {
+        let r = el.radius ?? 0
+        let patterns: [(String, [Double])] = [
+            ("All corners", [r, r, r, r]), ("Top only", [r, r, 0, 0]), ("Bottom only", [0, 0, r, r]),
+            ("Left only", [r, 0, 0, r]), ("Right only", [0, r, r, 0]), ("Opposite corners", [r, 0, r, 0]),
+        ]
+        return Menu {
+            ForEach(patterns, id: \.0) { name, radii in
+                Button(name) {
+                    store.updateSelected { e in
+                        e.corners = name == "All corners" ? nil : radii
+                        if e.radius == nil || e.radius == 0 { e.radius = min(e.w, e.h) * 0.2 }
+                        if e.corners != nil {
+                            let rr = e.radius ?? 0
+                            e.corners = radii.map { $0 > 0 ? rr : 0 }
+                        }
+                    }
+                }
+            }
+        } label: {
+            toolLabel("rectangle.tophalf.inset.filled", "Corners", active: el.corners != nil)
+        }
+        .disabled(r <= 0 && el.corners == nil)
     }
 
     @ViewBuilder
