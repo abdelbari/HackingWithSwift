@@ -20,7 +20,7 @@ private struct AccentButtonStyle: ButtonStyle {
 
 enum EditorSheet: String, Identifiable {
     case insert, colorFill, colorText, colorLine, colorStroke, background
-    case fonts, effects, spacing, filters, crop, position, layers, export, resize
+    case fonts, effects, spacing, filters, crop, position, layers, export, resize, find
     var id: String { rawValue }
 }
 
@@ -86,15 +86,20 @@ struct EditorView: View {
     /// while typing.
     private var keyboardCommands: some View {
         Group {
-            shortcut("z", [.command]) { store.undo() }
-            shortcut("z", [.command, .shift]) { store.redo() }
-            shortcut("c", [.command]) { store.copySelected() }
-            shortcut("x", [.command]) { store.cutSelected() }
-            shortcut("v", [.command]) { store.paste() }
-            shortcut("d", [.command]) { store.duplicateSelected() }
-            shortcut("a", [.command]) { store.selectAll() }
-            shortcut(.delete, [.command]) { store.deleteSelected() }
-            shortcut(.escape, []) { store.select(nil) }
+            Group {
+                shortcut("z", [.command]) { store.undo() }
+                shortcut("z", [.command, .shift]) { store.redo() }
+                shortcut("c", [.command]) { store.copySelected() }
+                shortcut("x", [.command]) { store.cutSelected() }
+                shortcut("v", [.command]) { store.paste() }
+            }
+            Group {
+                shortcut("d", [.command]) { store.duplicateSelected() }
+                shortcut("a", [.command]) { store.selectAll() }
+                shortcut("f", [.command]) { activeSheet = .find }
+                shortcut(.delete, [.command]) { store.deleteSelected() }
+                shortcut(.escape, []) { store.select(nil) }
+            }
         }
         .opacity(0)
         .frame(width: 0, height: 0)
@@ -170,46 +175,67 @@ struct EditorView: View {
 
     private var overflowMenu: some View {
         Menu {
-            Button {
-                activeSheet = .layers
-            } label: { Label("Layers", systemImage: "square.3.layers.3d") }
-
-            Button {
-                activeSheet = .background
-            } label: { Label("Page background", systemImage: "photo.artframe") }
-
-            Divider()
-
-            Button {
-                store.selectAll()
-            } label: { Label("Select all", systemImage: "checkmark.circle") }
-
-            Button {
-                store.copySelected()
-            } label: { Label("Copy", systemImage: "doc.on.doc") }
-                .disabled(store.selection.isEmpty)
-
-            Button {
-                store.cutSelected()
-            } label: { Label("Cut", systemImage: "scissors") }
-                .disabled(store.selection.isEmpty)
-
-            Button {
-                store.paste()
-            } label: { Label("Paste", systemImage: "doc.on.clipboard") }
-                .disabled(!store.hasClipboard)
-
-            Divider()
-
-            if store.selectionIsGrouped {
+            // Sections rather than a flat list with dividers: a ViewBuilder
+            // block takes ten children and this menu is past that, and menu
+            // sections draw the same separators for free.
+            Section {
                 Button {
-                    store.ungroupSelected()
-                } label: { Label("Ungroup", systemImage: "square.on.square.dashed") }
-            } else {
+                    activeSheet = .layers
+                } label: { Label("Layers", systemImage: "square.3.layers.3d") }
+
                 Button {
-                    store.groupSelected()
-                } label: { Label("Group", systemImage: "square.on.square") }
-                    .disabled(!store.canGroup)
+                    activeSheet = .background
+                } label: { Label("Page background", systemImage: "photo.artframe") }
+
+                Button {
+                    activeSheet = .find
+                } label: { Label("Find and replace", systemImage: "text.magnifyingglass") }
+            }
+
+            Section {
+                Button {
+                    store.copyStyle()
+                } label: { Label("Copy style", systemImage: "paintbrush.pointed") }
+                    .disabled(store.singleSelection == nil)
+
+                Button {
+                    store.pasteStyle()
+                } label: { Label("Paste style", systemImage: "paintbrush") }
+                    .disabled(!store.hasCopiedStyle || store.selection.isEmpty)
+            }
+
+            Section {
+                Button {
+                    store.selectAll()
+                } label: { Label("Select all", systemImage: "checkmark.circle") }
+
+                Button {
+                    store.copySelected()
+                } label: { Label("Copy", systemImage: "doc.on.doc") }
+                    .disabled(store.selection.isEmpty)
+
+                Button {
+                    store.cutSelected()
+                } label: { Label("Cut", systemImage: "scissors") }
+                    .disabled(store.selection.isEmpty)
+
+                Button {
+                    store.paste()
+                } label: { Label("Paste", systemImage: "doc.on.clipboard") }
+                    .disabled(!store.hasClipboard)
+            }
+
+            Section {
+                if store.selectionIsGrouped {
+                    Button {
+                        store.ungroupSelected()
+                    } label: { Label("Ungroup", systemImage: "square.on.square.dashed") }
+                } else {
+                    Button {
+                        store.groupSelected()
+                    } label: { Label("Group", systemImage: "square.on.square") }
+                        .disabled(!store.canGroup)
+                }
             }
         } label: {
             Image(systemName: "ellipsis.circle")
@@ -290,6 +316,8 @@ struct EditorView: View {
             ExportSheet(store: store)
         case .resize:
             ResizeSheet(store: store)
+        case .find:
+            FindReplaceSheet(store: store)
         }
     }
 

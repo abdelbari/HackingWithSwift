@@ -383,6 +383,188 @@ final class DesignStore {
         }
     }
 
+    // MARK: find and replace
+
+    /// Where one match lives, so a caller can jump to it.
+    struct TextMatch: Equatable, Identifiable {
+        var id: String { "\(pageIndex)|\(elementId)|\(range.location)" }
+        var pageIndex: Int
+        var elementId: String
+        var range: NSRange
+        /// The line the match sits on, for showing it in a list.
+        var preview: String
+    }
+
+    /// Every occurrence of `needle` across every page, in reading order.
+    ///
+    /// Pure and non-mutating, so the sheet can show a live count while typing
+    /// without touching the document or the undo stack.
+    func matches(for needle: String, caseSensitive: Bool = false) -> [TextMatch] {
+        guard !needle.isEmpty else { return [] }
+        var found: [TextMatch] = []
+        for (index, page) in design.pages.enumerated() {
+            for element in page.elements where element.type == .text {
+                let body = element.text ?? ""
+                guard !body.isEmpty else { continue }
+                let options: String.CompareOptions = caseSensitive ? [.literal] : [.caseInsensitive]
+                var searchStart = body.startIndex
+                while let range = body.range(of: needle, options: options,
+                                             range: searchStart..<body.endIndex) {
+                    let ns = NSRange(range, in: body)
+                    found.append(TextMatch(pageIndex: index, elementId: element.id,
+                                           range: ns, preview: line(of: body, containing: range)))
+                    // Advance past this match, never past the end.
+                    searchStart = range.upperBound > range.lowerBound
+                        ? range.upperBound
+                        : body.index(after: range.lowerBound)
+                    if searchStart >= body.endIndex { break }
+                }
+            }
+        }
+        return found
+    }
+
+    private func line(of body: String, containing range: Range<String.Index>) -> String {
+        let lower = body[body.startIndex..<range.lowerBound].lastIndex(of: "\n")
+            .map { body.index(after: $0) } ?? body.startIndex
+        let upper = body[range.upperBound...].firstIndex(of: "\n") ?? body.endIndex
+        return String(body[lower..<upper]).trimmingCharacters(in: .whitespaces)
+    }
+
+    /// Replace every occurrence across every page, as one undo step.
+    ///
+    /// One step on purpose: a replace-all that took forty steps to undo would
+    /// be worse than no undo at all. Returns how many were replaced.
+    @discardableResult
+    func replaceAll(_ needle: String, with replacement: String,
+                    caseSensitive: Bool = false) -> Int {
+        guard !needle.isEmpty else { return 0 }
+        let total = matches(for: needle, caseSensitive: caseSensitive).count
+        guard total > 0 else { return 0 }
+        let options: String.CompareOptions = caseSensitive ? [.literal] : [.caseInsensitive]
+        apply { design in
+            for p in design.pages.indices {
+                for i in design.pages[p].elements.indices
+                where design.pages[p].elements[i].type == .text {
+                    guard let body = design.pages[p].elements[i].text, !body.isEmpty else { continue }
+                    let replaced = body.replacingOccurrences(of: needle, with: replacement,
+                                                             options: options)
+                    guard replaced != body else { continue }
+                    design.pages[p].elements[i].text = replaced
+                    design.pages[p].elements[i].h =
+                        FontLibrary.layoutHeight(for: design.pages[p].elements[i])
+                }
+            }
+        }
+        return total
+    }
+
+    /// Show a match: switch to its page and select its element.
+    func reveal(_ match: TextMatch) {
+        guard design.pages.indices.contains(match.pageIndex) else { return }
+        pageIndex = match.pageIndex
+        selection = [match.elementId]
+    }
+
+    // MARK: style
+
+    /// The look of an element, without its identity, position or content.
+    ///
+    /// Copying a style is a different operation from copying an element, and
+    /// conflating them is why "make this heading look like that one" usually
+    /// ends in retyping the text.
+    struct Style: Equatable {
+        var fill: Paint?
+        var stroke: String?
+        var strokeWidth: Double?
+        var radius: Double?
+        var color: String?
+        var fontFamily: String?
+        var fontSize: Double?
+        var fontWeight: Int?
+        var italic: Bool?
+        var underline: Bool?
+        var align: String?
+        var lineHeight: Double?
+        var letterSpacing: Double?
+        var listStyle: String?
+        var effect: TextEffectSpec?
+        var curve: Double?
+        var filter: String?
+        var opacity: Double
+        var thickness: Double?
+        var dash: String?
+        var startCap: String?
+        var endCap: String?
+    }
+
+    private(set) var copiedStyle: Style?
+    var hasCopiedStyle: Bool { copiedStyle != nil }
+
+    static func style(of el: Element) -> Style {
+        Style(fill: el.fill, stroke: el.stroke, strokeWidth: el.strokeWidth, radius: el.radius,
+              color: el.color, fontFamily: el.fontFamily, fontSize: el.fontSize,
+              fontWeight: el.fontWeight, italic: el.italic, underline: el.underline,
+              align: el.align, lineHeight: el.lineHeight, letterSpacing: el.letterSpacing,
+              listStyle: el.listStyle, effect: el.effect, curve: el.curve, filter: el.filter,
+              opacity: el.opacity, thickness: el.thickness, dash: el.dash,
+              startCap: el.startCap, endCap: el.endCap)
+    }
+
+    /// Apply a style, keeping everything that makes the element itself.
+    ///
+    /// Fields that belong to another kind of element are left alone rather
+    /// than copied across: pasting a text style onto a rectangle should change
+    /// nothing about the rectangle, not give it a font.
+    static func apply(_ style: Style, to el: inout Element) {
+        el.opacity = style.opacity
+        switch el.type {
+        case .shape:
+            el.fill = style.fill
+            el.stroke = style.stroke
+            el.strokeWidth = style.strokeWidth
+            el.radius = style.radius
+        case .text:
+            el.color = style.color
+            el.fontFamily = style.fontFamily
+            el.fontSize = style.fontSize
+            el.fontWeight = style.fontWeight
+            el.italic = style.italic
+            el.underline = style.underline
+            el.align = style.align
+            el.lineHeight = style.lineHeight
+            el.letterSpacing = style.letterSpacing
+            el.listStyle = style.listStyle
+            el.effect = style.effect
+            el.curve = style.curve
+            el.h = FontLibrary.layoutHeight(for: el)
+        case .image:
+            el.filter = style.filter
+            el.radius = style.radius
+            el.stroke = style.stroke
+            el.strokeWidth = style.strokeWidth
+        case .line:
+            el.color = style.color
+            el.thickness = style.thickness
+            el.dash = style.dash
+            el.startCap = style.startCap
+            el.endCap = style.endCap
+            if let thickness = style.thickness { el.h = max(8, thickness) }
+        case .sticker:
+            break
+        }
+    }
+
+    func copyStyle() {
+        guard let el = singleSelection else { return }
+        copiedStyle = Self.style(of: el)
+    }
+
+    func pasteStyle() {
+        guard let style = copiedStyle else { return }
+        updateSelected { Self.apply(style, to: &$0) }
+    }
+
     func toggleLockSelected() {
         let anyUnlocked = selectedElements.contains { !$0.locked }
         applyToPage { page in

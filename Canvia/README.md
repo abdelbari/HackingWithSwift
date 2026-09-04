@@ -48,7 +48,13 @@ duplicate / delete via long-press), and a template gallery.
 - Undo/redo with gesture coalescing (a whole drag is one step), autosave,
   lock, opacity, duplicate, align / distribute / flip / exact-position
   sheet, layers sheet with drag reorder
-- Top-bar overflow menu: layers, page background, copy / cut / paste,
+- Find and replace across every page, with a live match count and
+  replace-all as a single undo step
+- Copy style / paste style: the look of an element without its identity,
+  position or content, and never across element kinds — pasting a text
+  style onto a rectangle changes nothing about the rectangle
+- Top-bar overflow menu: layers, page background, find and replace, copy
+  and paste style, copy / cut / paste,
   select all, and group / ungroup (grouping is sticky multi-selection —
   selecting one member selects the group — deliberately not nested
   transforms)
@@ -59,6 +65,9 @@ the share sheet. PDF pages are written as vectors, not page-sized
 bitmaps, and everything streams to disk rather than being assembled in
 memory. The scale picker shows the pixel size it will actually produce,
 including when a 32-megapixel cap is what decided it.
+
+**Print** — AirPrint, through the same vector PDF the export writes, so
+what reaches the printer is the document rather than a picture of it.
 
 **MP4 and animated GIF** — a multi-page design is already a sequence, so
 it exports as one: each page holds for 2.5 seconds with a slow push in

@@ -50,6 +50,14 @@ struct ExportSheet: View {
                         try exportSVG()
                     }
                 }
+                if UIPrintInteractionController.isPrintingAvailable {
+                    Section("Print") {
+                        exportButton("Send to a printer", subtitle: "AirPrint, actual size",
+                                     icon: "printer") {
+                            try printDesign()
+                        }
+                    }
+                }
                 Section {
                     exportButton("MP4 video", subtitle: movieSubtitle, icon: "film") {
                         try await exportMovie()
@@ -132,6 +140,40 @@ struct ExportSheet: View {
         return pages > 1
             ? "All \(pages) pages, \(String(format: "%.0f", seconds))s"
             : "One page, \(String(format: "%.0f", seconds))s"
+    }
+
+    /// Printing goes through the same vector PDF the export does, so what
+    /// comes out of the printer is the document rather than a picture of it —
+    /// text stays text at the printer's own resolution.
+    @MainActor
+    private func printDesign() throws {
+        let url = DesignExporter.fileURL(for: store.design, ext: "pdf")
+        try DesignExporter.exportPDF(design: store.design, to: url)
+
+        let info = UIPrintInfo.printInfo()
+        info.outputType = .general
+        info.jobName = store.design.title.isEmpty ? "Canvia design" : store.design.title
+        info.orientation = store.design.width > store.design.height ? .landscape : .portrait
+
+        let controller = UIPrintInteractionController.shared
+        controller.printInfo = info
+        controller.printingItem = url
+        // iPad refuses the sheet-less presentation and raises rather than
+        // failing quietly, so it gets an anchor rect.
+        if let anchor = Self.keyWindow, UIDevice.current.userInterfaceIdiom == .pad {
+            controller.present(from: CGRect(x: anchor.bounds.midX, y: anchor.bounds.midY,
+                                            width: 1, height: 1),
+                               in: anchor, animated: true, completionHandler: nil)
+        } else {
+            controller.present(animated: true, completionHandler: nil)
+        }
+    }
+
+    private static var keyWindow: UIWindow? {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first { $0.isKeyWindow }
     }
 
     @MainActor
