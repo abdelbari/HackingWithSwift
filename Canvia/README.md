@@ -60,6 +60,11 @@ bitmaps, and everything streams to disk rather than being assembled in
 memory. The scale picker shows the pixel size it will actually produce,
 including when a 32-megapixel cap is what decided it.
 
+**MP4 and animated GIF** — a multi-page design is already a sequence, so
+it exports as one: each page holds for 2.5 seconds with a slow push in
+and a cross-fade into the next, written frame by frame with AVAssetWriter
+(video) and ImageIO (GIF). No network, no account, no codec licence.
+
 SVG keeps shapes and lines as paths and strokes, and converts text to
 glyph outlines rather than `<text>` — the twelve font personalities map
 to faces that ship with iOS and are not on the machine opening the file,

@@ -50,6 +50,19 @@ struct ExportSheet: View {
                         try exportSVG()
                     }
                 }
+                Section {
+                    exportButton("MP4 video", subtitle: movieSubtitle, icon: "film") {
+                        try await exportMovie()
+                    }
+                    exportButton("Animated GIF", subtitle: movieSubtitle, icon: "square.stack.3d.down.right") {
+                        try exportGIF()
+                    }
+                } header: {
+                    Text("Motion")
+                } footer: {
+                    Text("Each page holds for \(MovieExporter.Settings().secondsPerPage, specifier: "%.1f")s "
+                         + "with a slow push in and a cross-fade between pages.")
+                }
                 if let errorMessage {
                     Text(errorMessage).foregroundStyle(.red)
                 }
@@ -72,14 +85,17 @@ struct ExportSheet: View {
     }
 
     private func exportButton(_ title: String, subtitle: String, icon: String,
-                              action: @escaping @MainActor () throws -> Void) -> some View {
+                              action: @escaping @MainActor () async throws -> Void) -> some View {
         Button {
             exporting = true
             errorMessage = nil
-            // Render on the main actor after the spinner appears.
+            // Render on the main actor after the spinner appears. Async
+            // because a video is written frame by frame and takes seconds —
+            // the raster paths are synchronous and satisfy this signature
+            // unchanged.
             Task { @MainActor in
                 defer { exporting = false }
-                do { try action() }
+                do { try await action() }
                 catch { errorMessage = "Export failed: \(error.localizedDescription)" }
             }
         } label: {
@@ -107,6 +123,28 @@ struct ExportSheet: View {
         let url = DesignExporter.fileURL(for: store.design, ext: format.ext)
         try DesignExporter.exportRaster(design: store.design, page: store.page,
                                         format: format, scale: scale, to: url)
+        exportedURL = url
+    }
+
+    private var movieSubtitle: String {
+        let pages = store.design.pages.count
+        let seconds = Double(pages) * MovieExporter.Settings().secondsPerPage
+        return pages > 1
+            ? "All \(pages) pages, \(String(format: "%.0f", seconds))s"
+            : "One page, \(String(format: "%.0f", seconds))s"
+    }
+
+    @MainActor
+    private func exportMovie() async throws {
+        let url = DesignExporter.fileURL(for: store.design, ext: "mp4")
+        try await MovieExporter.exportMP4(design: store.design, to: url)
+        exportedURL = url
+    }
+
+    @MainActor
+    private func exportGIF() throws {
+        let url = DesignExporter.fileURL(for: store.design, ext: "gif")
+        try MovieExporter.exportGIF(design: store.design, to: url)
         exportedURL = url
     }
 
