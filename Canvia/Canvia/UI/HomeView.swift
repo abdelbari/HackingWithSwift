@@ -15,6 +15,8 @@ struct HomeView: View {
     @State private var sort = DesignLibrary.Sort.recent
     @State private var trashed: [RecentDesign] = []
     @State private var showingTrash = false
+    @State private var importing = false
+    @State private var importError: String?
 
     var body: some View {
         ScrollView {
@@ -26,6 +28,7 @@ struct HomeView: View {
                 if recents.isEmpty && trashed.isEmpty {
                     firstRunCard
                 }
+                importRow
                 if !recents.isEmpty {
                     HStack {
                         Text("Recent designs")
@@ -82,6 +85,38 @@ struct HomeView: View {
     private func reload() {
         recents = DesignLibrary.recents()
         trashed = DesignLibrary.trashed()
+    }
+
+    /// A design file made by Export on another device (or this one, as a
+    /// backup) comes back in through here.
+    private var importRow: some View {
+        HStack {
+            Button {
+                importing = true
+            } label: {
+                Label("Open a Canvia design file", systemImage: "square.and.arrow.down")
+                    .font(.subheadline)
+            }
+            Spacer()
+        }
+        .padding(.horizontal)
+        .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
+            guard case .success(let url) = result else { return }
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            do {
+                let design = try DesignPackage.import(try Data(contentsOf: url))
+                onOpen(design)
+            } catch {
+                importError = error.localizedDescription
+            }
+        }
+        .alert("Couldn't open that file", isPresented: Binding(
+            get: { importError != nil }, set: { if !$0 { importError = nil } })) {
+            Button("OK") { importError = nil }
+        } message: {
+            Text(importError ?? "")
+        }
     }
 
     private var shownRecents: [RecentDesign] {

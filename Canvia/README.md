@@ -89,6 +89,20 @@ duplicate / delete via long-press), and a template gallery.
   an opaque screenshot as the far smaller JPEG — and every colour picker
   offers "From the photo": the six most prominent colours of the selected
   picture or the page's background picture, read from its pixels.
+- A Canvia design file (.canvia.json) exports the document with every
+  photo it uses inlined, and the home screen opens one back in — under
+  a fresh id, with its photos stored afresh, so two imports never share
+  a file.
+- A contrast check across the document: every text against what is
+  actually behind it (the topmost flat shape under it, or the page),
+  WCAG AA thresholds by text size, and a one-tap fix to a colour that
+  passes.
+- Alt text on any element, read by VoiceOver and written as the SVG
+  group's title; for photos, Suggest asks the on-device classifier for a
+  first draft.
+- A brand kit — colours, a heading and body face, logos — kept across
+  designs: first in every colour picker, a pairing in the theme sheet,
+  and logos in the Photos tab.
 - Tidy up: a messy selection into a row, a column or a grid with equal
   gaps, one undo step. Arrow keys nudge the selection a unit (ten with
   Shift), and the Position sheet edits a multi-selection's box by number —

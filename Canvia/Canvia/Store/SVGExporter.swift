@@ -71,7 +71,10 @@ enum SVGExporter {
             defs.append(shadowDef(id: id, shadow: shadow))
             attributes += " filter=\"url(#\(id))\""
         }
-        return "<g\(attributes)>\(markup(el, index: index, defs: &defs))</g>"
+        // An alt text becomes the group's title, which is what screen readers
+        // and browsers read for an SVG element.
+        let title = el.altText.map { "<title>\(escape($0))</title>" } ?? ""
+        return "<g\(attributes)>\(title)\(markup(el, index: index, defs: &defs))</g>"
     }
 
     /// feDropShadow, which every current renderer supports. stdDeviation is

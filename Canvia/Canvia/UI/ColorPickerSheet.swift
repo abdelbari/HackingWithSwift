@@ -47,6 +47,11 @@ struct ColorPickerSheet: View {
                     // Recents first: the colour you used thirty seconds ago is
                     // the one you are most likely to want again, and it was
                     // previously three taps away in the system picker.
+                    let brand = BrandKit.load().colors
+                    if !brand.isEmpty {
+                        section("Brand", colors: brand)
+                    }
+
                     let recents = RecentColors.all
                     if !recents.isEmpty {
                         section("Recent", colors: recents)

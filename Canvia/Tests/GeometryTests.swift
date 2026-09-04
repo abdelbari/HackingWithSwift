@@ -171,6 +171,7 @@ final class ElementEqualityTests: XCTestCase {
             ("maskShapeId", { $0.maskShapeId = "circle" }),
             ("indent", { $0.indent = 2 }),
             ("blendMode", { $0.blendMode = "multiply" }),
+            ("altText", { $0.altText = "A dog" }),
             ("straighten", { $0.straighten = 7 }),
             ("vAlign", { $0.vAlign = "middle" }),
             ("fitText", { $0.fitText = true }),

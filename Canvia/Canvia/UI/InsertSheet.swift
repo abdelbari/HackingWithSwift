@@ -426,6 +426,32 @@ struct InsertSheet: View {
                     .padding(10)
                     .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
             }
+            let logos = BrandKit.load().logos
+            if !logos.isEmpty {
+                sectionHeader("Brand logos")
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
+                    ForEach(logos, id: \.self) { src in
+                        Button {
+                            let natural = PhotoLibrary.resolve(src)?.size ?? CGSize(width: 4, height: 3)
+                            insertImage(src, natural: natural)
+                            dismiss()
+                        } label: {
+                            Group {
+                                if let ui = PhotoLibrary.resolve(src) {
+                                    Image(uiImage: PhotoLibrary.preview(ui, key: src))
+                                        .resizable().aspectRatio(contentMode: .fit)
+                                } else {
+                                    Color(.systemGray5)
+                                }
+                            }
+                            .frame(height: 72)
+                            .frame(maxWidth: .infinity)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
+                        }
+                        .accessibilityLabel("Brand logo")
+                    }
+                }
+            }
             if !isReplacing { layoutsRow }
             Button {
                 importingPDF = true

@@ -73,6 +73,9 @@ struct Element: Codable, Equatable, Identifiable {
     /// How the element composites over what is under it; nil is normal.
     /// See BlendModes for the names.
     var blendMode: String?
+    /// What the element shows, for people who cannot see it: read by
+    /// VoiceOver and written into the SVG. Photos mostly.
+    var altText: String?
 
     // shape
     var shapeId: String?
@@ -162,6 +165,7 @@ struct Element: Codable, Equatable, Identifiable {
         group = try? c.decode(String.self, forKey: .group)
         shadow = try? c.decode(Shadow.self, forKey: .shadow)
         blendMode = try? c.decode(String.self, forKey: .blendMode)
+        altText = try? c.decode(String.self, forKey: .altText)
         shapeId = try? c.decode(String.self, forKey: .shapeId)
         fill = try? c.decode(Paint.self, forKey: .fill)
         stroke = try? c.decode(String.self, forKey: .stroke)
@@ -220,7 +224,7 @@ struct Element: Codable, Equatable, Identifiable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow, blendMode
+        case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow, blendMode, altText
         case shapeId, fill, stroke, strokeWidth, radius
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve

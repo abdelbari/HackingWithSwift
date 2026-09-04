@@ -21,7 +21,7 @@ private struct AccentButtonStyle: ButtonStyle {
 enum EditorSheet: String, Identifiable {
     case insert, colorFill, colorText, colorLine, colorStroke, background
     case fonts, effects, spacing, filters, crop, position, layers, export, resize, find, frame, shadow
-    case history, proofread, theme, help
+    case history, proofread, theme, help, contrast, brand
     var id: String { rawValue }
 }
 
@@ -233,6 +233,14 @@ struct EditorView: View {
                 } label: { Label("Document theme", systemImage: "paintpalette") }
 
                 Button {
+                    activeSheet = .contrast
+                } label: { Label("Check contrast", systemImage: "circle.lefthalf.striped.horizontal") }
+
+                Button {
+                    activeSheet = .brand
+                } label: { Label("Brand kit", systemImage: "briefcase") }
+
+                Button {
                     activeSheet = .help
                 } label: { Label("Help", systemImage: "questionmark.circle") }
 
@@ -391,6 +399,10 @@ struct EditorView: View {
             ProofreadSheet(store: store)
         case .theme:
             ThemeSheet(store: store)
+        case .contrast:
+            ContrastSheet(store: store)
+        case .brand:
+            BrandKitSheet(store: store)
         case .help:
             // The help sheet is itself presented; the one it opens has to
             // wait for it to be gone, or SwiftUI drops the second present.

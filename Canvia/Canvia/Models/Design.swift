@@ -239,7 +239,7 @@ extension UIColor {
 
     /// sRGB components clamped to 0...1 (ColorPicker often yields extended
     /// sRGB / Display-P3 values outside the unit range).
-    private var srgbComponents: (r: CGFloat, g: CGFloat, b: CGFloat) {
+    var srgbComponents: (r: CGFloat, g: CGFloat, b: CGFloat) {
         var color = self
         if let space = CGColorSpace(name: CGColorSpace.sRGB),
            let converted = cgColor.converted(to: space, intent: .defaultIntent, options: nil) {

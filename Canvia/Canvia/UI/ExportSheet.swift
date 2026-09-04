@@ -302,6 +302,13 @@ struct ExportSheet: View {
 
     private var clipboardSection: some View {
         Section {
+            exportButton("Canvia design file", subtitle: "The design and its photos, to send or back up",
+                         icon: "shippingbox") {
+                let url = DesignExporter.fileURL(for: store.design, ext: DesignPackage.ext)
+                try DesignPackage.export(store.design).write(to: url)
+                sharedURLs = [url]
+                exportedURL = url
+            }
             exportButton(copied ? "Copied" : "Copy as image",
                          subtitle: "PNG on the clipboard, for Messages, Mail or Notes",
                          icon: copied ? "checkmark.circle" : "doc.on.clipboard") {

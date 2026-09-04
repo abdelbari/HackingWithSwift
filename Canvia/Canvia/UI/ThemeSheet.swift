@@ -96,7 +96,7 @@ struct ThemeSheet: View {
 
     private var pairingList: some View {
         VStack(spacing: 8) {
-            ForEach(ContentLibrary.pairings) { pr in
+            ForEach([BrandKit.load().pairing].compactMap { $0 } + ContentLibrary.pairings) { pr in
                 Button {
                     pairing = pairing?.id == pr.id ? nil : pr
                 } label: {

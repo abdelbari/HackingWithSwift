@@ -28,6 +28,8 @@ private struct ToolButtonStyle: ButtonStyle {
 
 struct ContextToolbar: View {
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiate
+    @State private var editingAlt = false
+    @State private var altDraft = ""
     @Bindable var store: DesignStore
     @Binding var activeSheet: EditorSheet?
 
@@ -252,6 +254,26 @@ struct ContextToolbar: View {
         toolButton("square.on.circle", "Frame") { activeSheet = .frame }
         toolButton("camera.filters", "Filters") { activeSheet = .filters }
         toolButton("crop", "Crop") { activeSheet = .crop }
+        toolButton("text.below.photo", "Alt text") {
+            altDraft = el.altText ?? ""
+            editingAlt = true
+        }
+        .alert("Describe this picture", isPresented: $editingAlt) {
+            TextField("What it shows", text: $altDraft)
+            Button("Suggest") {
+                if let ui = PhotoLibrary.resolve(el.src), let draft = AltText.describe(ui) {
+                    altDraft = draft
+                }
+                editingAlt = true
+            }
+            Button("Save") {
+                let text = altDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                store.updateSelected { $0.altText = text.isEmpty ? nil : text }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Read by VoiceOver and written into SVG exports. Suggest asks the on-device classifier for a first draft.")
+        }
         toolButton("arrow.2.squarepath", "Replace") {
             store.replaceTargetId = el.id
             activeSheet = .insert

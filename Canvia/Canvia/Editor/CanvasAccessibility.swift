@@ -13,6 +13,9 @@ import Foundation
 enum CanvasAccessibility {
 
     static func label(for el: Element) -> String {
+        if let alt = el.altText?.trimmingCharacters(in: .whitespacesAndNewlines), !alt.isEmpty {
+            return alt
+        }
         switch el.type {
         case .text:
             let body = (el.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
