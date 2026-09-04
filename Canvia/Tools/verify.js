@@ -18,6 +18,7 @@
 //      the argument it is required to take
 //   7. every argument in an inout position is passed with an explicit &
 //   8. no synchronous, non-isolated function calls a @MainActor one directly
+//   9. no file-scope `private` declaration is referenced from another file
 //
 // It does NOT type-check. A clean run means the syntax and the project's
 // internal API surface are consistent; it cannot prove the app builds.
@@ -55,7 +56,7 @@ const rel = f => path.relative(process.cwd(), f);
 let FAILURES = 0;
 
 // ---------------------------------------------------------------- 1. parse
-console.log('\n[1/8] parsing');
+console.log('\n[1/9] parsing');
 for (const f of FILES) {
   const tree = parse(fs.readFileSync(f, 'utf8'));
   const problems = [];
@@ -68,7 +69,7 @@ for (const f of FILES) {
 console.log(`      ${FILES.length} files`);
 
 // ------------------------------------------------- 2. argument labels
-console.log('[2/8] argument labels');
+console.log('[2/9] argument labels');
 const decls = new Map(), ourTypes = new Set();
 for (const f of FILES) {
   const tree = parse(fs.readFileSync(f, 'utf8'));
@@ -158,7 +159,7 @@ for (const f of FILES) {
 console.log(`      ${calls} internal calls`);
 
 // --------------------------------------- 3 & 4. enum cases + exhaustiveness
-console.log('[3/8] enum-case arguments');
+console.log('[3/9] enum-case arguments');
 const enums = new Map();
 for (const f of FILES) {
   const tree = parse(fs.readFileSync(f, 'utf8'));
@@ -220,7 +221,7 @@ for (const f of FILES) {
 }
 console.log(`      ${caseArgs} enum-case arguments`);
 
-console.log('[4/8] switch exhaustiveness');
+console.log('[4/9] switch exhaustiveness');
 let switches = 0;
 for (const f of FILES) {
   const tree = parse(fs.readFileSync(f, 'utf8'));
@@ -251,7 +252,7 @@ console.log(`      ${switches} switches over project enums`);
 // ------------------------------------------- 5. ViewBuilder child limits
 // A ViewBuilder block accepts at most ten child views; exceeding it fails
 // with an opaque type-inference error rather than a clear diagnostic.
-console.log('[5/8] ViewBuilder child counts');
+console.log('[5/9] ViewBuilder child counts');
 const CONTAINERS = new Set(['HStack','VStack','ZStack','Group','Form','List','Section','Menu',
   'ScrollView','NavigationStack','LazyVStack','LazyHStack','LazyVGrid','LazyHGrid','ToolbarItemGroup']);
 const countViews = stmts => stmts.namedChildren.filter(c =>
@@ -293,7 +294,7 @@ console.log(`      ${builders} ViewBuilder blocks`);
 // list expects 1 argument, which cannot be implicitly ignored") — and usually
 // signals a predicate that forgot to look at the element. A shorthand closure
 // passed to one of these methods must reference the arguments it is given.
-console.log('[6/8] closure arguments');
+console.log('[6/9] closure arguments');
 const HOF = new Map([
   ['filter', 1], ['map', 1], ['compactMap', 1], ['flatMap', 1], ['forEach', 1],
   ['first', 1], ['firstIndex', 1], ['last', 1], ['lastIndex', 1],
@@ -361,7 +362,7 @@ console.log(`      ${closures} shorthand closures`);
 // grammar makes it cheap to catch here: a parameter carries `inout` as a
 // modifier node, which a closure-typed parameter such as `(inout Design) ->
 // Void` does not.
-console.log('[7/8] inout arguments');
+console.log('[7/9] inout arguments');
 const requiredAmps = new Map();
 for (const [name, ds] of decls) {
   // The minimum across overloads: if any declaration of this name takes no
@@ -411,7 +412,7 @@ console.log(`      ${inoutCalls} calls to ${requiredAmps.size} inout function(s)
 // counts as main-actor only if EVERY declaration of it is, and only direct
 // calls in a function's own body are examined — a call inside a closure may
 // well be inside a `Task { @MainActor in ... }`.
-console.log('[8/8] main-actor isolation');
+console.log('[8/9] main-actor isolation');
 const MAIN_ACTOR_PROTOCOLS = new Set([
   'View', 'App', 'Scene', 'Shape', 'ViewModifier', 'ButtonStyle', 'PrimitiveButtonStyle',
   'UIViewRepresentable', 'UIViewControllerRepresentable', 'InsettableShape',
@@ -524,6 +525,73 @@ for (const f of FILES) {
   walk(tree.rootNode, false);
 }
 console.log(`      ${isolationChecks} non-isolated functions, ${mainActorOnly.size} main-actor names`);
+
+// ------------------------------------------------ 9. file-scope private use
+// `private` at file scope means this file only, which is easy to forget when
+// a file is split in two — the symbol is still right there in the editor.
+console.log('[9/9] file-scope private');
+const privateAtFileScope = new Map();   // name -> file that declares it
+const declaredAnywhere = new Map();     // file -> Set of names it declares
+for (const f of FILES) {
+  const tree = parse(fs.readFileSync(f, 'utf8'));
+  const mine = new Set();
+  each(tree.rootNode, n => {
+    if (n.type === 'function_declaration' || n.type === 'class_declaration'
+        || n.type === 'protocol_declaration' || n.type === 'typealias_declaration') {
+      const id = n.namedChildren.find(c => c.type === 'simple_identifier'
+        || c.type === 'type_identifier');
+      if (id) mine.add(id.text);
+    }
+    if (n.type === 'property_declaration') {
+      // The declared name only. Walking the whole declaration would sweep up
+      // every identifier in the initialiser — including, for a computed `var
+      // body`, the entire view — and then the guard below would treat this
+      // file as declaring everything it merely mentions.
+      const pattern = n.namedChildren.find(c => c.type === 'pattern');
+      const id = pattern && pattern.namedChildren.find(c => c.type === 'simple_identifier');
+      if (id) mine.add(id.text);
+    }
+  });
+  declaredAnywhere.set(f, mine);
+
+  // Only direct children of the file count: `private` inside a type is a
+  // different rule and none of this applies to it.
+  const root = tree.rootNode;
+  for (let i = 0; i < root.namedChildCount; i++) {
+    const n = root.namedChild(i);
+    const mods = n.namedChildren.find(c => c.type === 'modifiers');
+    if (!mods || !/\b(private|fileprivate)\b/.test(mods.text)) continue;
+    let name = null;
+    if (n.type === 'property_declaration') {
+      const pattern = n.namedChildren.find(c => c.type === 'pattern');
+      const id = pattern && pattern.namedChildren.find(c => c.type === 'simple_identifier');
+      if (id) name = id.text;
+    } else {
+      const id = n.namedChildren.find(c => c.type === 'simple_identifier'
+        || c.type === 'type_identifier');
+      if (id) name = id.text;
+    }
+    if (name) privateAtFileScope.set(name, f);
+  }
+}
+let privateRefs = 0;
+for (const f of FILES) {
+  const tree = parse(fs.readFileSync(f, 'utf8'));
+  const reported = new Set();
+  each(tree.rootNode, n => {
+    if (n.type !== 'simple_identifier' && n.type !== 'type_identifier') return;
+    const owner = privateAtFileScope.get(n.text);
+    if (!owner || owner === f || reported.has(n.text)) return;
+    // A file that declares the same name itself is talking about its own.
+    if ((declaredAnywhere.get(f) || new Set()).has(n.text)) return;
+    reported.add(n.text);
+    FAILURES++;
+    privateRefs++;
+    console.log(`  FAIL ${rel(f)}:${n.startPosition.row + 1}  ${n.text} is private to `
+      + `${rel(owner)} and cannot be seen from here`);
+  });
+}
+console.log(`      ${privateAtFileScope.size} file-scope private names, ${privateRefs} escaped`);
 
 console.log(FAILURES === 0 ? '\nOK — no static problems found\n' : `\n${FAILURES} PROBLEM(S)\n`);
 process.exit(FAILURES === 0 ? 0 : 1);

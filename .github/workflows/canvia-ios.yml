@@ -111,6 +111,13 @@ jobs:
               || echo "(no test results - did the build fail before tests ran?)"
             grep -E "Executed [0-9]+ test" build.log | sort -u | head -5 || true
           } > tests.txt
+          # Kept in a file for the same reason as the test summary: the
+          # screenshot step and the artifact upload push several hundred lines
+          # between this step and the end of the job, and the job log is only
+          # readable from its tail.
+          grep -E '(error|fatal error):' build.log \
+            | sed 's#/Users/runner/work/HackingWithSwift/HackingWithSwift/##' \
+            | sort -u | head -40 > errors.txt || true
           echo "===== TESTS ====="
           cat tests.txt
           echo "===== ERRORS ====="
@@ -209,6 +216,10 @@ jobs:
         run: |
           echo "===== TESTS (${{ matrix.name }}, iOS ${{ matrix.ios }}) ====="
           cat tests.txt 2>/dev/null || echo "(no test summary captured)"
+          if [ -s errors.txt ]; then
+            echo "===== ERRORS (${{ matrix.name }}) ====="
+            cat errors.txt
+          fi
           for shot in home-light home-dark editor-light; do
             [ -f "$shot-small.jpg" ] || continue
             echo "===SHOT_START=== $shot ${{ matrix.name }} iOS ${{ matrix.ios }} ${{ matrix.device }}"

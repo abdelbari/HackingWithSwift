@@ -6,7 +6,9 @@
 import SwiftUI
 import UIKit
 
-private let sheetDetents: Set<PresentationDetent> = [.medium, .large]
+/// Shared by every editor sheet, including the colour picker in its own
+/// file — so not private, which at file scope means this file only.
+let sheetDetents: Set<PresentationDetent> = [.medium, .large]
 
 // MARK: - background
 
