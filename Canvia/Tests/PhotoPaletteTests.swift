@@ -32,11 +32,11 @@ final class PhotoPaletteTests: XCTestCase {
 
     func testTheBiggestColoursComeFirst() {
         let palette = PhotoPalette.extract(from: blocks(), count: 3)
-        XCTAssertEqual(palette.count, 3)
+        XCTAssertEqual(palette.count, 3, "\(palette)")
         let first = channels(palette[0]), second = channels(palette[1]), third = channels(palette[2])
-        XCTAssertGreaterThan(first.r, 200); XCTAssertLessThan(first.b, 60)
-        XCTAssertGreaterThan(second.b, 200); XCTAssertLessThan(second.r, 60)
-        XCTAssertGreaterThan(third.g, 200); XCTAssertLessThan(third.r, 60)
+        XCTAssertGreaterThan(first.r, 200, "\(palette)"); XCTAssertLessThan(first.b, 60, "\(palette)")
+        XCTAssertGreaterThan(second.b, 200, "\(palette)"); XCTAssertLessThan(second.r, 60, "\(palette)")
+        XCTAssertGreaterThan(third.g, 200, "\(palette)"); XCTAssertLessThan(third.r, 60, "\(palette)")
     }
 
     func testCountIsHonoured() {
