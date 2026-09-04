@@ -304,7 +304,8 @@ struct ImageElementView: View {
     private func resolvedImage() -> UIImage? {
         guard let base = PhotoLibrary.resolve(element.src) else { return nil }
         let preset = ImageFilterPreset.from(element.filter)
-        return ImageFilterEngine.apply(preset, to: base, cacheKey: element.src ?? "")
+        return ImageFilterEngine.apply(preset, adjustments: element.adjustments ?? .neutral,
+                                       to: base, cacheKey: element.src ?? "")
     }
 }
 

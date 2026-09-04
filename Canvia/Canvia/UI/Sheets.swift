@@ -338,22 +338,9 @@ struct FiltersSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(ImageFilterPreset.allCases) { preset in
-                        let active = ImageFilterPreset.from(store.singleSelection?.filter) == preset
-                        Button {
-                            store.updateSelected { $0.filter = preset.rawValue }
-                        } label: {
-                            VStack(spacing: 6) {
-                                filterPreview(preset)
-                                Text(preset.displayName).font(.system(size: 11))
-                            }
-                            .padding(6)
-                            .background(RoundedRectangle(cornerRadius: 10)
-                                .stroke(active ? Theme.accent : .clear, lineWidth: 2))
-                        }
-                        .buttonStyle(.plain)
-                    }
+                VStack(alignment: .leading, spacing: 16) {
+                    presetGrid
+                    adjustmentDials
                 }
                 .padding()
             }
@@ -363,8 +350,79 @@ struct FiltersSheet: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+    }
+
+    private var presetGrid: some View {
+        LazyVGrid(columns: columns, spacing: 12) {
+            ForEach(ImageFilterPreset.allCases) { preset in
+                let active = ImageFilterPreset.from(store.singleSelection?.filter) == preset
+                Button {
+                    store.updateSelected { $0.filter = preset.rawValue }
+                } label: {
+                    VStack(spacing: 6) {
+                        filterPreview(preset)
+                        Text(preset.displayName).font(.caption)
+                    }
+                    .padding(6)
+                    .background(RoundedRectangle(cornerRadius: 10)
+                        .stroke(active ? Theme.accent : .clear, lineWidth: 2))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    /// A preset is a look you pick; these are the dials you turn afterwards.
+    /// Both are needed — a preset alone cannot rescue an underexposed photo,
+    /// and a stack of dials is not a starting point.
+    private var adjustmentDials: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Adjust").font(.headline)
+                Spacer()
+                Button("Reset") {
+                    store.updateSelected { $0.adjustments = nil }
+                }
+                .font(.callout)
+                .disabled(store.singleSelection?.adjustments?.isNeutral ?? true)
+            }
+            dial("Brightness", \.brightness, in: -1...1)
+            dial("Contrast", \.contrast, in: -1...1)
+            dial("Saturation", \.saturation, in: -1...1)
+            dial("Warmth", \.warmth, in: -1...1)
+            dial("Sharpness", \.sharpness, in: -1...1)
+            dial("Vignette", \.vignette, in: 0...1)
+        }
+    }
+
+    private func dial(_ label: String, _ key: WritableKeyPath<Adjustments, Double>,
+                      in range: ClosedRange<Double>) -> some View {
+        let current = store.singleSelection?.adjustments ?? .neutral
+        return VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(label).font(.subheadline)
+                Spacer()
+                Text(String(format: "%+.0f", current[keyPath: key] * 100))
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            Slider(value: Binding(
+                get: { current[keyPath: key] },
+                set: { value in
+                    store.updateSelectedTransient { el in
+                        var adjustments = el.adjustments ?? .neutral
+                        adjustments[keyPath: key] = value
+                        // Back to nil when every dial is centred, so an
+                        // untouched image keeps the filter cache key it had.
+                        el.adjustments = adjustments.isNeutral ? nil : adjustments
+                    }
+                }
+            ), in: range, onEditingChanged: { editing in
+                if !editing { store.commit() }
+            })
+        }
     }
 
     private func filterPreview(_ preset: ImageFilterPreset) -> some View {
@@ -374,7 +432,10 @@ struct FiltersSheet: View {
                 // Filter a small copy: ten full-size variants of a 1200x900
                 // artwork would be ~43 MB for a row of 76pt thumbnails.
                 let base = PhotoLibrary.preview(full, key: src)
-                Image(uiImage: ImageFilterEngine.apply(preset, to: base, cacheKey: src + "|preview"))
+                Image(uiImage: ImageFilterEngine.apply(
+                    preset,
+                    adjustments: store.singleSelection?.adjustments ?? .neutral,
+                    to: base, cacheKey: src + "|preview"))
                     .resizable()
                     .aspectRatio(contentMode: .fill)
             } else {

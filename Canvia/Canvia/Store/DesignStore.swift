@@ -491,6 +491,7 @@ final class DesignStore {
         var effect: TextEffectSpec?
         var curve: Double?
         var filter: String?
+        var adjustments: Adjustments?
         var opacity: Double
         var thickness: Double?
         var dash: String?
@@ -507,6 +508,7 @@ final class DesignStore {
               fontWeight: el.fontWeight, italic: el.italic, underline: el.underline,
               align: el.align, lineHeight: el.lineHeight, letterSpacing: el.letterSpacing,
               listStyle: el.listStyle, effect: el.effect, curve: el.curve, filter: el.filter,
+              adjustments: el.adjustments,
               opacity: el.opacity, thickness: el.thickness, dash: el.dash,
               startCap: el.startCap, endCap: el.endCap)
     }
@@ -540,6 +542,7 @@ final class DesignStore {
             el.h = FontLibrary.layoutHeight(for: el)
         case .image:
             el.filter = style.filter
+            el.adjustments = style.adjustments
             el.radius = style.radius
             el.stroke = style.stroke
             el.strokeWidth = style.strokeWidth

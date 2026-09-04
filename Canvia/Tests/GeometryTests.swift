@@ -166,6 +166,7 @@ final class ElementEqualityTests: XCTestCase {
             ("curve", { $0.curve = 90 }),
             ("src", { $0.src = "asset:other" }),
             ("filter", { $0.filter = "vivid" }),
+            ("adjustments", { var a = Adjustments(); a.warmth = 0.5; $0.adjustments = a }),
             ("cropScale", { $0.cropScale = 2 }),
             ("cropX", { $0.cropX = 0.1 }),
             ("cropY", { $0.cropY = 0.9 }),

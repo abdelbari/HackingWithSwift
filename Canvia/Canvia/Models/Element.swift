@@ -55,6 +55,7 @@ struct Element: Codable, Equatable, Identifiable {
     // image
     var src: String?
     var filter: String?
+    var adjustments: Adjustments?
     var cropScale: Double?
     var cropX: Double?
     var cropY: Double?
@@ -107,6 +108,7 @@ struct Element: Codable, Equatable, Identifiable {
         curve = try? c.decode(Double.self, forKey: .curve)
         src = try? c.decode(String.self, forKey: .src)
         filter = try? c.decode(String.self, forKey: .filter)
+        adjustments = try? c.decode(Adjustments.self, forKey: .adjustments)
         cropScale = try? c.decode(Double.self, forKey: .cropScale)
         cropX = try? c.decode(Double.self, forKey: .cropX)
         cropY = try? c.decode(Double.self, forKey: .cropY)
@@ -139,7 +141,7 @@ struct Element: Codable, Equatable, Identifiable {
         case shapeId, fill, stroke, strokeWidth, radius
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
         case lineHeight, letterSpacing, color, listStyle, effect, curve
-        case src, filter, cropScale, cropX, cropY
+        case src, filter, adjustments, cropScale, cropX, cropY
         case glyph
         case thickness, dash, startCap, endCap
     }

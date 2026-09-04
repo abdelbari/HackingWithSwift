@@ -40,7 +40,9 @@ duplicate / delete via long-press), and a template gallery.
   thumbnails and export
 - Images: one-tap background removal on device (Vision's foreground
   segmenter — no account, no upload, no paywall), Core Image filter
-  presets, cover-crop zoom + focus point, replace-in-place (swap the
+  presets plus six free-hand dials (brightness, contrast, saturation,
+  warmth, sharpness, vignette) that compose on top of the preset rather
+  than replacing it, cover-crop zoom + focus point, replace-in-place (swap the
   picture, keep the frame, radius and filter), corner radius, borders
 - Color: curated palettes, gradient presets, document colors, background
   editor, ✨ Shuffle (luminance-ranked palette remap)
