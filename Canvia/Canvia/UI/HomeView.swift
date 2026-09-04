@@ -11,28 +11,54 @@ struct HomeView: View {
     @State private var customH = "1080"
     @State private var renaming: RecentDesign?
     @State private var renameText = ""
+    @State private var query = ""
+    @State private var sort = DesignLibrary.Sort.recent
+    @State private var trashed: [RecentDesign] = []
+    @State private var showingTrash = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 hero
+                if !recents.isEmpty || !trashed.isEmpty {
+                    searchBar
+                }
                 if !recents.isEmpty {
-                    Text("Recent designs")
-                        .font(.title3.weight(.bold))
-                        .padding(.horizontal)
-                    recentsGrid
+                    HStack {
+                        Text("Recent designs")
+                            .font(.title3.weight(.bold))
+                        Spacer()
+                        sortMenu
+                    }
+                    .padding(.horizontal)
+                    if shownRecents.isEmpty {
+                        Text("No design matches “\(query)”.")
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+                    } else {
+                        recentsGrid
+                    }
+                }
+                if !trashed.isEmpty {
+                    trashSection
                 }
                 Text("Start from a template")
                     .font(.title3.weight(.bold))
                     .padding(.horizontal)
-                templatesGrid
+                if shownTemplates.isEmpty {
+                    Text("No template matches “\(query)”.")
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+                } else {
+                    templatesGrid
+                }
             }
             .padding(.bottom, 40)
         }
         // Was a hardcoded near-white, which in dark mode left primary-coloured
         // text — white by then — on an almost white page.
         .background(Theme.workspace)
-        .onAppear { recents = DesignLibrary.recents() }
+        .onAppear { reload() }
         .alert("Rename design", isPresented: Binding(
             get: { renaming != nil },
             set: { if !$0 { renaming = nil } })) {
@@ -42,12 +68,110 @@ struct HomeView: View {
                     design.title = renameText.trimmingCharacters(in: .whitespaces)
                     design.updatedAt = Date().timeIntervalSince1970 * 1000
                     DesignLibrary.save(design)
-                    recents = DesignLibrary.recents()
+                    reload()
                 }
                 renaming = nil
             }
             Button("Cancel", role: .cancel) { renaming = nil }
         }
+    }
+
+    private func reload() {
+        recents = DesignLibrary.recents()
+        trashed = DesignLibrary.trashed()
+    }
+
+    private var shownRecents: [RecentDesign] {
+        DesignLibrary.filter(recents, query: query, sort: sort)
+    }
+
+    private var shownTemplates: [Template] {
+        let needle = query.trimmingCharacters(in: .whitespaces)
+        guard !needle.isEmpty else { return ContentLibrary.templates }
+        return ContentLibrary.templates.filter {
+            $0.name.localizedCaseInsensitiveContains(needle)
+                || $0.category.localizedCaseInsensitiveContains(needle)
+        }
+    }
+
+    // MARK: search and sort
+
+    /// One field for both lists. Twenty designs is where scrolling stops
+    /// finding things; a search box is what finds them after that.
+    private var searchBar: some View {
+        HStack {
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            TextField("Search designs and templates", text: $query)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            if !query.isEmpty {
+                Button { query = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .padding(10)
+        .background(Theme.card, in: RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal)
+    }
+
+    private var sortMenu: some View {
+        Menu {
+            Picker("Sort by", selection: $sort) {
+                ForEach(DesignLibrary.Sort.allCases) { Text($0.label).tag($0) }
+            }
+        } label: {
+            Label(sort.label, systemImage: "arrow.up.arrow.down")
+                .font(.subheadline)
+        }
+    }
+
+    // MARK: trash
+
+    /// Collapsed by default: what was deleted is not what the home screen is
+    /// for, but it has to be findable for the thirty days it is kept.
+    private var trashSection: some View {
+        DisclosureGroup(isExpanded: $showingTrash) {
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(trashed) { entry in
+                    HStack(spacing: 12) {
+                        Group {
+                            if let thumb = entry.thumbnail {
+                                Image(uiImage: thumb).resizable().aspectRatio(contentMode: .fill)
+                            } else {
+                                Color(.systemGray5)
+                            }
+                        }
+                        .frame(width: 56, height: 42)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(entry.title).font(.subheadline.weight(.semibold)).lineLimit(1)
+                            Text("Deleted \(Date(timeIntervalSince1970: entry.updatedAt / 1000), style: .relative) ago")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button("Restore") {
+                            DesignLibrary.restore(id: entry.id)
+                            reload()
+                        }
+                        .buttonStyle(.bordered)
+                        Button(role: .destructive) {
+                            DesignLibrary.delete(id: entry.id)
+                            reload()
+                        } label: { Image(systemName: "trash") }
+                        .accessibilityLabel("Delete forever")
+                    }
+                }
+                Text("Designs in the trash are removed after 30 days.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            .padding(.top, 8)
+        } label: {
+            Text(trashed.count == 1 ? "Recently deleted (1)" : "Recently deleted (\(trashed.count))")
+                .font(.title3.weight(.bold))
+        }
+        .padding(.horizontal)
     }
 
     // MARK: hero
@@ -141,7 +265,7 @@ struct HomeView: View {
 
     private var recentsGrid: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
-            ForEach(recents) { recent in
+            ForEach(shownRecents) { recent in
                 Button {
                     if let design = DesignLibrary.load(id: recent.id) {
                         onOpen(design)
@@ -188,12 +312,14 @@ struct HomeView: View {
                             design.updatedAt = Date().timeIntervalSince1970 * 1000
                             DesignLibrary.save(design)
                             DesignLibrary.copyThumbnail(from: sourceId, to: design.id)
-                            recents = DesignLibrary.recents()
+                            reload()
                         }
                     } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
                     Button(role: .destructive) {
-                        DesignLibrary.delete(id: recent.id)
-                        recents = DesignLibrary.recents()
+                        // To the trash, not gone: thirty days to change
+                        // your mind, in the section below.
+                        DesignLibrary.trash(id: recent.id)
+                        reload()
                     } label: { Label("Delete", systemImage: "trash") }
                 }
             }
@@ -205,7 +331,7 @@ struct HomeView: View {
 
     private var templatesGrid: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
-            ForEach(ContentLibrary.templates) { template in
+            ForEach(shownTemplates) { template in
                 Button {
                     onOpen(template.instantiate())
                 } label: {

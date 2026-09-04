@@ -7,6 +7,7 @@ struct PagesBar: View {
     @Bindable var store: DesignStore
     @State private var confirmingDelete = false
     @State private var editingNotes = false
+    @State private var organizing = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -28,7 +29,21 @@ struct PagesBar: View {
             }
 
             HStack(spacing: 2) {
-                Button { store.duplicatePage() } label: { Image(systemName: "plus.square.on.square") }
+                Button { organizing = true } label: { Image(systemName: "square.grid.2x2") }
+                    .accessibilityLabel("Organize pages")
+                Menu {
+                    Button { store.duplicatePage() } label: {
+                        Label("Duplicate page", systemImage: "plus.square.on.square")
+                    }
+                    Button { store.copyPage() } label: {
+                        Label("Copy page", systemImage: "doc.on.doc")
+                    }
+                    Button { store.pastePage() } label: {
+                        Label("Paste page after", systemImage: "doc.on.clipboard")
+                    }
+                    .disabled(!store.hasPageOnClipboard)
+                } label: { Image(systemName: "plus.square.on.square") }
+                    .accessibilityLabel("Duplicate, copy or paste page")
                 Button { store.movePage(by: -1) } label: { Image(systemName: "chevron.left") }
                     .disabled(store.pageIndex == 0)
                 Button { store.movePage(by: 1) } label: { Image(systemName: "chevron.right") }
@@ -67,6 +82,9 @@ struct PagesBar: View {
         }
         .sheet(isPresented: $editingNotes) {
             PageNotesSheet(store: store)
+        }
+        .sheet(isPresented: $organizing) {
+            PageOrganizerSheet(store: store)
         }
     }
 
@@ -131,7 +149,7 @@ private struct PageNotesSheet: View {
 /// because Page is Equatable, so the cache can never go stale — but "when
 /// the contents change" includes every frame of a drag, so the render is
 /// debounced below.
-private struct PageThumbnail: View {
+struct PageThumbnail: View {
     let design: Design
     let page: Page
     @State private var image: UIImage?

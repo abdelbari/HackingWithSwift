@@ -10,6 +10,8 @@ struct CanviaApp: App {
     init() {
         // Launch is the one moment no editor can be holding freshly added
         // media that hasn't been saved yet, so it's the safe time to sweep.
+        // Trash first, so what it empties is not still holding media.
+        DesignLibrary.purgeTrash()
         DesignLibrary.pruneUnusedMedia()
         _editingStore = State(initialValue: Self.storeForLaunchArguments())
     }

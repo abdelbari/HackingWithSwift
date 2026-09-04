@@ -681,6 +681,60 @@ final class DesignStore {
         pageIndex = target
     }
 
+    /// List-style reorder, as the organizer's drag hands it over. The
+    /// current page stays current wherever it ends up.
+    func movePages(from source: IndexSet, to destination: Int) {
+        let currentId = page.id
+        apply { $0.pages.move(fromOffsets: source, toOffset: destination) }
+        if let i = design.pages.firstIndex(where: { $0.id == currentId }) { pageIndex = i }
+    }
+
+    /// Delete several pages in one undo step, never the last one.
+    func deletePages(_ ids: Set<String>) {
+        let victims = design.pages.filter { ids.contains($0.id) }
+        guard !victims.isEmpty, victims.count < design.pages.count else { return }
+        let currentId = page.id
+        apply { $0.pages.removeAll { ids.contains($0.id) } }
+        pageIndex = design.pages.firstIndex { $0.id == currentId } ?? min(pageIndex, design.pages.count - 1)
+        selection.removeAll()
+        announce(victims.count == 1 ? "Deleted 1 page" : "Deleted \(victims.count) pages")
+    }
+
+    /// Duplicate several pages, each copy landing right after its source.
+    func duplicatePages(_ ids: Set<String>) {
+        guard design.pages.contains(where: { ids.contains($0.id) }) else { return }
+        apply { d in
+            var out: [Page] = []
+            for p in d.pages {
+                out.append(p)
+                if ids.contains(p.id) {
+                    var copy = p
+                    copy.id = UID.make("page")
+                    copy.elements = copy.elements.map { var el = $0; el.id = UID.make(); return el }
+                    out.append(copy)
+                }
+            }
+            d.pages = out
+        }
+    }
+
+    // MARK: page clipboard
+
+    func copyPage() {
+        PageClipboard.copy(page, width: design.width, height: design.height)
+    }
+
+    var hasPageOnClipboard: Bool { PageClipboard.hasPage() }
+
+    /// Paste the copied page after the current one, scaled to this design.
+    func pastePage() {
+        guard let payload = PageClipboard.paste() else { return }
+        let landed = PageClipboard.fitted(payload, width: design.width, height: design.height)
+        apply { $0.pages.insert(landed, at: pageIndex + 1) }
+        pageIndex += 1
+        selection.removeAll()
+    }
+
     func setPage(_ index: Int) {
         guard index >= 0 && index < design.pages.count && index != pageIndex else { return }
         pageIndex = index

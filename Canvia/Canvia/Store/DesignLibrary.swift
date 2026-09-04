@@ -59,10 +59,123 @@ enum DesignLibrary {
         try? FileManager.default.copyItem(at: src, to: dst)
     }
 
+    /// Gone for good: the document, its thumbnail and its versions.
     static func delete(id: String) {
         try? FileManager.default.removeItem(at: designsDir.appendingPathComponent("\(id).json"))
         try? FileManager.default.removeItem(at: thumbsDir.appendingPathComponent("\(id).jpg"))
+        try? FileManager.default.removeItem(at: trashDir.appendingPathComponent("\(id).json"))
+        try? FileManager.default.removeItem(at: trashDir.appendingPathComponent("\(id).jpg"))
         try? FileManager.default.removeItem(at: historyDir(for: id))
+    }
+
+    // MARK: trash
+
+    /// Deleted designs wait here for thirty days. "Delete" on the home
+    /// screen used to be the only irreversible action in the app, and it sat
+    /// two taps from "Rename" in the same menu.
+    static let trashRetention: TimeInterval = 30 * 24 * 3600
+
+    private static var trashDir: URL {
+        let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("trash", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    /// Move a design to the trash. Its versions stay where they are, so a
+    /// restore brings its history back too.
+    static func trash(id: String, now: Date = Date()) {
+        let json = trashDir.appendingPathComponent("\(id).json")
+        try? FileManager.default.removeItem(at: json)
+        try? FileManager.default.moveItem(at: designsDir.appendingPathComponent("\(id).json"), to: json)
+        // The file's own modification date is the deletion date: no index
+        // to keep in step, and a move preserves the old date otherwise.
+        try? FileManager.default.setAttributes([.modificationDate: now], ofItemAtPath: json.path)
+        let thumb = trashDir.appendingPathComponent("\(id).jpg")
+        try? FileManager.default.removeItem(at: thumb)
+        try? FileManager.default.moveItem(at: thumbsDir.appendingPathComponent("\(id).jpg"), to: thumb)
+    }
+
+    static func restore(id: String) {
+        try? FileManager.default.moveItem(at: trashDir.appendingPathComponent("\(id).json"),
+                                          to: designsDir.appendingPathComponent("\(id).json"))
+        try? FileManager.default.moveItem(at: trashDir.appendingPathComponent("\(id).jpg"),
+                                          to: thumbsDir.appendingPathComponent("\(id).jpg"))
+    }
+
+    /// What is in the trash, most recently deleted first. `updatedAt` on
+    /// each entry is the deletion time, which is what the list shows.
+    static func trashed() -> [RecentDesign] {
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: trashDir, includingPropertiesForKeys: [.contentModificationDateKey]) else { return [] }
+        var result: [RecentDesign] = []
+        for url in files where url.pathExtension == "json" {
+            guard let data = try? Data(contentsOf: url),
+                  let design = try? JSONDecoder().decode(Design.self, from: data) else { continue }
+            let deleted = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?
+                .contentModificationDate ?? Date()
+            let thumb = (try? Data(contentsOf: trashDir.appendingPathComponent("\(design.id).jpg")))
+                .flatMap(UIImage.init(data:))
+            result.append(RecentDesign(
+                id: design.id, title: design.title,
+                width: design.width, height: design.height,
+                pages: design.pages.count, updatedAt: deleted.timeIntervalSince1970 * 1000,
+                thumbnail: thumb))
+        }
+        return result.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    /// Delete for good whatever has sat in the trash past the retention.
+    /// Returns the ids it removed.
+    @discardableResult
+    static func purgeTrash(now: Date = Date()) -> [String] {
+        let cutoff = now.timeIntervalSince1970 * 1000 - trashRetention * 1000
+        let stale = trashed().filter { $0.updatedAt < cutoff }.map(\.id)
+        for id in stale { delete(id: id) }
+        return stale
+    }
+
+    static func emptyTrash() {
+        for entry in trashed() { delete(id: entry.id) }
+    }
+
+    // MARK: search and sort
+
+    enum Sort: String, CaseIterable, Identifiable {
+        case recent, name, largest
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .recent: return "Last edited"
+            case .name: return "Name"
+            case .largest: return "Most pages"
+            }
+        }
+    }
+
+    /// The recents that match a query, in an order. Matching is on the
+    /// title, case- and diacritic-insensitively, and on the size ("1080")
+    /// because that is how people remember a design they never named.
+    static func filter(_ designs: [RecentDesign], query: String, sort: Sort = .recent) -> [RecentDesign] {
+        let needle = query.trimmingCharacters(in: .whitespaces)
+        var matched = designs
+        if !needle.isEmpty {
+            matched = designs.filter { d in
+                d.title.range(of: needle, options: [.caseInsensitive, .diacriticInsensitive]) != nil
+                    || "\(Int(d.width))×\(Int(d.height))".contains(needle)
+                    || "\(Int(d.width))x\(Int(d.height))".contains(needle)
+            }
+        }
+        switch sort {
+        case .recent:
+            return matched.sorted { $0.updatedAt > $1.updatedAt }
+        case .name:
+            return matched.sorted {
+                $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+            }
+        case .largest:
+            return matched.sorted { $0.pages != $1.pages ? $0.pages > $1.pages : $0.updatedAt > $1.updatedAt }
+        }
     }
 
     // MARK: version history
@@ -182,12 +295,16 @@ enum DesignLibrary {
         }
     }
 
+    /// Live and trashed both: a design in the trash can come back, and its
+    /// photos have to still be there when it does.
     private static func allDesigns() -> [Design] {
-        guard let files = try? FileManager.default.contentsOfDirectory(
-            at: designsDir, includingPropertiesForKeys: nil) else { return [] }
-        return files.filter { $0.pathExtension == "json" }.compactMap { url in
-            guard let data = try? Data(contentsOf: url) else { return nil }
-            return try? JSONDecoder().decode(Design.self, from: data)
+        [designsDir, trashDir].flatMap { dir -> [Design] in
+            guard let files = try? FileManager.default.contentsOfDirectory(
+                at: dir, includingPropertiesForKeys: nil) else { return [] }
+            return files.filter { $0.pathExtension == "json" }.compactMap { url in
+                guard let data = try? Data(contentsOf: url) else { return nil }
+                return try? JSONDecoder().decode(Design.self, from: data)
+            }
         }
     }
 

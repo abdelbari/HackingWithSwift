@@ -65,6 +65,14 @@ duplicate / delete via long-press), and a template gallery.
 - Copy style / paste style: the look of an element without its identity,
   position or content, and never across element kinds — pasting a text
   style onto a rectangle changes nothing about the rectangle
+- A page organizer: every page as a list with drag handles, multi-select
+  to duplicate or delete (never the last page), tap to jump. Pages copy
+  and paste across designs and across launches through the system
+  pasteboard, scaled to fit a differently sized design.
+- The home screen searches designs (title, loosely; size, exactly) and
+  templates, sorts by last edited, name or page count, and keeps deleted
+  designs in a Recently deleted section for thirty days, with Restore
+  and Delete forever. Their photos and version history wait with them.
 - VoiceOver on the canvas: every element is named (what it is, and what
   it says if it is text), valued (where and how big, in percentages of
   the page, plus rotation and lock) and carries actions — move in four
