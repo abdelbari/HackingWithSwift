@@ -59,7 +59,7 @@ enum PhotoPalette {
         return chosen.map { hex($0.0, $0.1, $0.2) }
     }
 
-    /// The picture at 64 pixels on its longer side, as straight 8-bit RGBA.
+    /// The picture sampled at 64 pixels on its longer side, as 8-bit RGBA.
     ///
     /// Two steps on purpose. UIKit shrinks the picture into a standard-range
     /// 8-bit image first, whatever the source was — extended-range, 16-bit,
@@ -76,7 +76,13 @@ enum PhotoPalette {
         format.scale = 1
         format.opaque = false
         format.preferredRange = .standard
-        let small = UIGraphicsImageRenderer(size: CGSize(width: w, height: h), format: format).image { _ in
+        let small = UIGraphicsImageRenderer(size: CGSize(width: w, height: h), format: format).image { ctx in
+            // Nearest neighbour, not a filtered shrink: a filter invents
+            // colours along every edge — a row of red-blue purple where a
+            // red block meets a blue one — and on a graphic those blends
+            // can outnumber a real small feature. Sampling picks pixels the
+            // picture actually has.
+            ctx.cgContext.interpolationQuality = .none
             image.draw(in: CGRect(x: 0, y: 0, width: w, height: h))
         }
         guard let cg = small.cgImage else { return nil }

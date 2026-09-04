@@ -51,12 +51,13 @@ final class ThemeApplyTests: XCTestCase {
     }
 
     func testApplyingIsOneUndoStepAcrossPages() {
-        let s = DesignStore(design: design())
+        let original = design()
+        let s = DesignStore(design: original)
         s.applyTheme(palette: ["#123456", "#abcdef"], pairing: pairing())
         XCTAssertEqual(s.design.pages[1].elements[0].fontFamily, "mono")
         XCTAssertEqual(s.announcement, "Applied theme to all 2 pages")
         s.undo()
-        XCTAssertEqual(s.design, design(), "one undo restores every page")
+        XCTAssertEqual(s.design, original, "one undo restores every page")
     }
 
     func testANoOpThemeRecordsNothing() {

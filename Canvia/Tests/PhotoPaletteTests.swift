@@ -18,7 +18,7 @@ final class PhotoPaletteTests: XCTestCase {
             UIColor.blue.setFill()
             ctx.fill(CGRect(x: 0, y: 60, width: 90, height: 30))
             UIColor.green.setFill()
-            ctx.fill(CGRect(x: 70, y: 70, width: 12, height: 12))
+            ctx.fill(CGRect(x: 66, y: 66, width: 20, height: 20))
             if transparentCorner {
                 ctx.cgContext.clear(CGRect(x: 0, y: 0, width: 45, height: 45))
             }
