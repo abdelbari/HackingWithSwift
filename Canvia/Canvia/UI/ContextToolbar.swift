@@ -200,14 +200,20 @@ struct ContextToolbar: View {
     @ViewBuilder
     private func imageControls(_ el: Element) -> some View {
         cutoutButton(el)
+        toolButton("square.on.circle", "Frame") { activeSheet = .frame }
         toolButton("camera.filters", "Filters") { activeSheet = .filters }
         toolButton("crop", "Crop") { activeSheet = .crop }
         toolButton("arrow.2.squarepath", "Replace") {
             store.replaceTargetId = el.id
             activeSheet = .insert
         }
-        sliderControl("Round", value: el.radius ?? 0, in: 0...(min(el.w, el.h) / 2)) { v in
-            store.updateSelectedTransient { $0.radius = v }
+        // Hidden behind a frame: a corner radius on a star means nothing, and
+        // a slider whose range is derived from the box looks broken when the
+        // box is not what is being drawn.
+        if el.maskShapeId == nil {
+            sliderControl("Round", value: el.radius ?? 0, in: 0...(min(el.w, el.h) / 2)) { v in
+                store.updateSelectedTransient { $0.radius = v }
+            }
         }
     }
 

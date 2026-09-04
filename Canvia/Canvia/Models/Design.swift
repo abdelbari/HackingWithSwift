@@ -94,11 +94,16 @@ struct Page: Codable, Equatable, Identifiable {
     var id: String = UID.make("page")
     var background: Background = .color("#ffffff")
     var elements: [Element] = []
+    /// Speaker or production notes. Never drawn on the page — they are about
+    /// the page, not on it — so nothing that renders reads this.
+    var notes: String?
 
-    init(id: String = UID.make("page"), background: Background = .color("#ffffff"), elements: [Element] = []) {
+    init(id: String = UID.make("page"), background: Background = .color("#ffffff"),
+         elements: [Element] = [], notes: String? = nil) {
         self.id = id
         self.background = background
         self.elements = elements
+        self.notes = notes
     }
 
     init(from decoder: Decoder) throws {
@@ -106,9 +111,10 @@ struct Page: Codable, Equatable, Identifiable {
         id = (try? c.decode(String.self, forKey: .id)) ?? UID.make("page")
         background = (try? c.decode(Background.self, forKey: .background)) ?? .color("#ffffff")
         elements = (try? c.decode([Element].self, forKey: .elements)) ?? []
+        notes = try? c.decode(String.self, forKey: .notes)
     }
 
-    private enum CodingKeys: String, CodingKey { case id, background, elements }
+    private enum CodingKeys: String, CodingKey { case id, background, elements, notes }
 }
 
 struct Design: Codable, Equatable, Identifiable {

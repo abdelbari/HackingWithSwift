@@ -292,13 +292,24 @@ struct ImageElementView: View {
             }
         }
         .frame(width: element.w, height: element.h)
-        .clipShape(RoundedRectangle(cornerRadius: element.radius ?? 0))
+        // Inside ImageElementView, not ElementView: the clip has to happen in
+        // the element's own space, before the rotate/flip/position stack, or
+        // the frame becomes a screen-space cookie cutter the photo slides
+        // around underneath.
+        .clipShape(frame)
         .overlay {
             if let stroke = element.stroke, let sw = element.strokeWidth, sw > 0 {
-                RoundedRectangle(cornerRadius: element.radius ?? 0)
-                    .stroke(Color(hex: stroke), lineWidth: sw)
+                // The same shape as the clip. A rounded rectangle here would
+                // draw a rectangular border floating around a star-framed
+                // photo.
+                frame.stroke(Color(hex: stroke), lineWidth: sw)
             }
         }
+    }
+
+    private var frame: FrameShape {
+        FrameShape(definition: element.maskShapeId.flatMap { ContentLibrary.shapeMap[$0] },
+                   cornerRadius: element.radius ?? 0)
     }
 
     private func resolvedImage() -> UIImage? {

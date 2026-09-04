@@ -20,7 +20,7 @@ private struct AccentButtonStyle: ButtonStyle {
 
 enum EditorSheet: String, Identifiable {
     case insert, colorFill, colorText, colorLine, colorStroke, background
-    case fonts, effects, spacing, filters, crop, position, layers, export, resize, find
+    case fonts, effects, spacing, filters, crop, position, layers, export, resize, find, frame
     var id: String { rawValue }
 }
 
@@ -318,6 +318,8 @@ struct EditorView: View {
             ResizeSheet(store: store)
         case .find:
             FindReplaceSheet(store: store)
+        case .frame:
+            FrameSheet(store: store)
         }
     }
 

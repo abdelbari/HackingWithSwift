@@ -38,15 +38,23 @@ duplicate / delete via long-press), and a template gallery.
   Snell Roundhand, …), 8 text effects (shadow, lift, hollow, splice, neon,
   echo, highlight) drawn through one CoreText pipeline shared by canvas,
   thumbnails and export
+- Photo frames: any library shape clips a photo — circle, star, blob,
+  speech bubble — applying one squares the box about its centre, because
+  the library's paths stretch onto the element and a circle on a 4:3 photo
+  would otherwise be an ellipse
 - Images: one-tap background removal on device (Vision's foreground
   segmenter — no account, no upload, no paywall), Core Image filter
   presets plus six free-hand dials (brightness, contrast, saturation,
   warmth, sharpness, vignette) that compose on top of the preset rather
   than replacing it, cover-crop zoom + focus point, replace-in-place (swap the
   picture, keep the frame, radius and filter), corner radius, borders
-- Color: curated palettes, gradient presets, document colors, background
-  editor, ✨ Shuffle (luminance-ranked palette remap)
-- Pages: live-thumbnail strip, add / duplicate / reorder / delete
+- Color: recently used colours first, colour harmony derived from whatever
+  is chosen (complementary, analogous, triadic, split, tetradic, and a
+  tint/shade ramp), curated palettes, gradient presets, document colors,
+  background editor, ✨ Shuffle (luminance-ranked palette remap)
+- Pages: live-thumbnail strip, add / duplicate / reorder / delete (with a
+  confirmation when the page is not empty), and per-page notes that are
+  never drawn and so cannot reach an export
 - Undo/redo with gesture coalescing (a whole drag is one step), autosave,
   lock, opacity, duplicate, align / distribute / flip / exact-position
   sheet, layers sheet with drag reorder

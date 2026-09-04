@@ -1,118 +1,12 @@
-// Editor sheets: colors, background, fonts, effects, spacing, filters,
-// crop, position, layers, resize.
+// Editor sheets: background, fonts, effects, spacing, filters, crop,
+// position, layers, resize. The colour picker has its own file — it grew
+// past what belongs in a shared one, and past the size the Linux static
+// checker could read in a single string.
 
 import SwiftUI
 import UIKit
 
 private let sheetDetents: Set<PresentationDetent> = [.medium, .large]
-
-// MARK: - color picker
-
-struct ColorPickerSheet: View {
-    @Bindable var store: DesignStore
-    var title: String
-    var current: String?
-    var allowGradients = false
-    var onPick: (String) -> Void
-    var onPickGradient: ((Paint) -> Void)?
-    /// Continuous variant for the system ColorPicker, which updates its
-    /// binding on every drag tick; falls back to onPick when absent.
-    var onPickTransient: ((String) -> Void)?
-    @Environment(\.dismiss) private var dismiss
-    @State private var custom = Color.white
-
-    private let columns = [GridItem(.adaptive(minimum: 40), spacing: 10)]
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    ColorPicker("Custom color", selection: $custom, supportsOpacity: false)
-                        .onChange(of: custom) {
-                            let hex = UIColor(custom).hexString
-                            if let onPickTransient { onPickTransient(hex) } else { onPick(hex) }
-                        }
-
-                    let docColors = ColorTools.documentColors(store.design)
-                    if !docColors.isEmpty {
-                        section("Document colors", colors: docColors)
-                    }
-                    section("Default colors", colors: ContentLibrary.defaultSwatches)
-
-                    if allowGradients, let onPickGradient {
-                        Text("Gradients").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
-                        LazyVGrid(columns: columns, spacing: 10) {
-                            ForEach(ContentLibrary.gradients) { preset in
-                                Button {
-                                    onPickGradient(preset.paint)
-                                } label: {
-                                    RoundedRectangle(cornerRadius: 9)
-                                        .fill(gradientFill(preset))
-                                        .frame(height: 40)
-                                }
-                            }
-                        }
-                    }
-
-                    ForEach(ContentLibrary.palettes) { palette in
-                        section(palette.name, colors: palette.colors)
-                    }
-                }
-                .padding()
-            }
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
-        .presentationDetents(sheetDetents)
-        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-        // Continuous picking runs through transient updates; record the whole
-        // session as one undo step however the sheet closes.
-        .onDisappear {
-            if store.hasPendingChanges { store.commit() }
-        }
-    }
-
-    private func gradientFill(_ preset: GradientPreset) -> LinearGradient {
-        let pts = preset.paint.unitPoints
-        return LinearGradient(
-            stops: preset.stops.map { .init(color: Color(hex: $0.color), location: $0.offset) },
-            startPoint: pts.start, endPoint: pts.end)
-    }
-
-    private func section(_ title: String, colors: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.footnote.weight(.bold)).foregroundStyle(.secondary)
-            LazyVGrid(columns: columns, spacing: 10) {
-                ForEach(colors, id: \.self) { hex in
-                    Button {
-                        // Stay open. Comparing three colours used to mean
-                        // three open/scroll/tap/dismiss cycles; Done is right
-                        // there in the toolbar when the choice is made.
-                        onPick(hex)
-                    } label: {
-                        RoundedRectangle(cornerRadius: 9)
-                            .fill(Color(hex: hex))
-                            .overlay(RoundedRectangle(cornerRadius: 9)
-                                .stroke(Color.black.opacity(0.12)))
-                            .frame(height: 40)
-                            .overlay {
-                                if current?.lowercased() == hex.lowercased() {
-                                    Image(systemName: "checkmark")
-                                        .fontWeight(.bold)
-                                        .foregroundStyle(UIColor(hex: hex).isLight ? .black : .white)
-                                }
-                            }
-                    }
-                }
-            }
-        }
-    }
-}
 
 // MARK: - background
 

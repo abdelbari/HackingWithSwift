@@ -55,6 +55,10 @@ struct Element: Codable, Equatable, Identifiable {
     // image
     var src: String?
     var filter: String?
+    /// A shape from the library to clip this image to. Unknown ids resolve to
+    /// no frame rather than to a rectangle, so a document from a build with
+    /// more shapes than this one does not silently crop someone's photo.
+    var maskShapeId: String?
     var adjustments: Adjustments?
     var cropScale: Double?
     var cropX: Double?
@@ -108,6 +112,7 @@ struct Element: Codable, Equatable, Identifiable {
         curve = try? c.decode(Double.self, forKey: .curve)
         src = try? c.decode(String.self, forKey: .src)
         filter = try? c.decode(String.self, forKey: .filter)
+        maskShapeId = try? c.decode(String.self, forKey: .maskShapeId)
         adjustments = try? c.decode(Adjustments.self, forKey: .adjustments)
         cropScale = try? c.decode(Double.self, forKey: .cropScale)
         cropX = try? c.decode(Double.self, forKey: .cropX)
@@ -141,7 +146,7 @@ struct Element: Codable, Equatable, Identifiable {
         case shapeId, fill, stroke, strokeWidth, radius
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
         case lineHeight, letterSpacing, color, listStyle, effect, curve
-        case src, filter, adjustments, cropScale, cropX, cropY
+        case src, filter, maskShapeId, adjustments, cropScale, cropX, cropY
         case glyph
         case thickness, dash, startCap, endCap
     }

@@ -10,6 +10,7 @@ struct ExportSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
     @State private var scale = 2
+    @State private var jpegQuality = 0.92
     @State private var exporting = false
     @State private var exportedURL: URL?
     @State private var errorMessage: String?
@@ -33,11 +34,20 @@ struct ExportSheet: View {
                     // honest to appear rather than silently under-delivering.
                     Text(sizeNote)
                 }
+                Section {
+                    Slider(value: $jpegQuality, in: 0.3...1)
+                } header: {
+                    Text("JPEG quality")
+                } footer: {
+                    Text("\(Int((jpegQuality * 100).rounded()))% — about \(estimatedSize). "
+                         + "PNG and PDF are lossless and ignore this.")
+                }
                 Section("Format") {
                     exportButton("PNG", subtitle: "Current page, best for sharing", icon: "photo") {
                         try export(.png)
                     }
-                    exportButton("JPEG", subtitle: "Current page, smaller file", icon: "photo.fill") {
+                    exportButton("JPEG", subtitle: "Current page, about \(estimatedSize)",
+                                 icon: "photo.fill") {
                         try export(.jpeg)
                     }
                     exportButton("PDF", subtitle: store.design.pages.count > 1
@@ -126,11 +136,18 @@ struct ExportSheet: View {
         return dims + " — reduced from \(scale)× so the render fits in memory."
     }
 
+    private var estimatedSize: String {
+        let bytes = DesignExporter.estimatedJPEGBytes(design: store.design,
+                                                      requested: scale, quality: jpegQuality)
+        return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
+    }
+
     @MainActor
     private func export(_ format: DesignExporter.RasterFormat) throws {
         let url = DesignExporter.fileURL(for: store.design, ext: format.ext)
         try DesignExporter.exportRaster(design: store.design, page: store.page,
-                                        format: format, scale: scale, to: url)
+                                        format: format, scale: scale,
+                                        quality: jpegQuality, to: url)
         exportedURL = url
     }
 

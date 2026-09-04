@@ -5,6 +5,8 @@ import UIKit
 
 struct PagesBar: View {
     @Bindable var store: DesignStore
+    @State private var confirmingDelete = false
+    @State private var editingNotes = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -31,7 +33,21 @@ struct PagesBar: View {
                     .disabled(store.pageIndex == 0)
                 Button { store.movePage(by: 1) } label: { Image(systemName: "chevron.right") }
                     .disabled(store.pageIndex >= store.design.pages.count - 1)
-                Button(role: .destructive) { store.deletePage() } label: { Image(systemName: "trash") }
+                Button { editingNotes = true } label: {
+                    Image(systemName: (store.page.notes?.isEmpty == false)
+                          ? "note.text" : "note")
+                }
+                .accessibilityLabel("Page notes")
+                Button(role: .destructive) {
+                    // A page can hold an hour's work and the bin is next to
+                    // the arrows. Undo covers it, but only if you notice
+                    // before the next edit pushes it down the stack.
+                    if store.page.elements.isEmpty {
+                        store.deletePage()
+                    } else {
+                        confirmingDelete = true
+                    }
+                } label: { Image(systemName: "trash") }
                     .disabled(store.design.pages.count <= 1)
             }
             .font(.system(size: 15))
@@ -40,6 +56,18 @@ struct PagesBar: View {
         .frame(height: 72)
         .background(Theme.chrome)
         .overlay(alignment: .top) { Divider() }
+        .confirmationDialog("Delete page \(store.pageIndex + 1)?",
+                            isPresented: $confirmingDelete, titleVisibility: .visible) {
+            Button("Delete page", role: .destructive) { store.deletePage() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(store.page.elements.count == 1
+                 ? "It has 1 element on it."
+                 : "It has \(store.page.elements.count) elements on it.")
+        }
+        .sheet(isPresented: $editingNotes) {
+            PageNotesSheet(store: store)
+        }
     }
 
     private func pageThumb(index: Int, page: Page) -> some View {
@@ -66,6 +94,31 @@ struct PagesBar: View {
                             lineWidth: index == store.pageIndex ? 2 : 1))
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// Notes about a page rather than on it: what to say over this slide, what
+/// the client asked for, which photo still needs replacing. Never rendered,
+/// so they cannot leak into an export.
+private struct PageNotesSheet: View {
+    @Bindable var store: DesignStore
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            TextEditor(text: Binding(
+                get: { store.page.notes ?? "" },
+                set: { text in
+                    store.applyToPage { $0.notes = text.isEmpty ? nil : text }
+                }))
+                .padding(8)
+                .navigationTitle("Notes for page \(store.pageIndex + 1)")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                }
+        }
+        .presentationDetents([.medium])
     }
 }
 

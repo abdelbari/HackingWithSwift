@@ -42,6 +42,13 @@ const collect = (dir, acc = []) => {
 let FILES = [];
 for (const r of ROOTS) FILES = FILES.concat(fs.statSync(r).isDirectory() ? collect(r) : [r]);
 FILES.sort();
+// tree-sitter's Node binding copies string input into a fixed buffer and
+// throws "Invalid argument" past about 32 KB. The callback form has no such
+// limit, so anything large is fed through it — a source file crossing that
+// size must not silently stop being checked.
+const parse = src => src.length < 30000
+  ? parser.parse(src)
+  : parser.parse(index => src.slice(index, index + 4096));
 const each = (n, f) => { f(n); for (let i = 0; i < n.namedChildCount; i++) each(n.namedChild(i), f); };
 const rel = f => path.relative(process.cwd(), f);
 let FAILURES = 0;
@@ -49,7 +56,7 @@ let FAILURES = 0;
 // ---------------------------------------------------------------- 1. parse
 console.log('\n[1/7] parsing');
 for (const f of FILES) {
-  const tree = parser.parse(fs.readFileSync(f, 'utf8'));
+  const tree = parse(fs.readFileSync(f, 'utf8'));
   const problems = [];
   each(tree.rootNode, n => {
     if (n.type === 'ERROR') problems.push(`ERROR at ${n.startPosition.row + 1}:${n.startPosition.column + 1}`);
@@ -63,7 +70,7 @@ console.log(`      ${FILES.length} files`);
 console.log('[2/7] argument labels');
 const decls = new Map(), ourTypes = new Set();
 for (const f of FILES) {
-  const tree = parser.parse(fs.readFileSync(f, 'utf8'));
+  const tree = parse(fs.readFileSync(f, 'utf8'));
   each(tree.rootNode, n => {
     if (n.type === 'class_declaration' || n.type === 'protocol_declaration') {
       const id = n.namedChildren.find(c => c.type === 'type_identifier');
@@ -127,7 +134,7 @@ const matches = (sig, given) => {
 };
 let calls = 0;
 for (const f of FILES) {
-  const tree = parser.parse(fs.readFileSync(f, 'utf8'));
+  const tree = parse(fs.readFileSync(f, 'utf8'));
   each(tree.rootNode, n => {
     if (n.type !== 'call_expression') return;
     const callee = n.namedChild(0), suffix = n.namedChildren.find(c => c.type === 'call_suffix');
@@ -153,7 +160,7 @@ console.log(`      ${calls} internal calls`);
 console.log('[3/7] enum-case arguments');
 const enums = new Map();
 for (const f of FILES) {
-  const tree = parser.parse(fs.readFileSync(f, 'utf8'));
+  const tree = parse(fs.readFileSync(f, 'utf8'));
   each(tree.rootNode, n => {
     if (n.type !== 'class_declaration') return;
     if (!/^\s*(public |private |internal |fileprivate )?(indirect )?enum\b/.test(n.text)) return;
@@ -173,7 +180,7 @@ for (const f of FILES) {
 }
 const paramEnum = new Map();
 for (const f of FILES) {
-  const tree = parser.parse(fs.readFileSync(f, 'utf8'));
+  const tree = parse(fs.readFileSync(f, 'utf8'));
   each(tree.rootNode, n => {
     if (n.type !== 'function_declaration') return;
     const id = n.namedChildren.find(c => c.type === 'simple_identifier'); if (!id) return;
@@ -186,7 +193,7 @@ for (const f of FILES) {
 }
 let caseArgs = 0;
 for (const f of FILES) {
-  const tree = parser.parse(fs.readFileSync(f, 'utf8'));
+  const tree = parse(fs.readFileSync(f, 'utf8'));
   each(tree.rootNode, n => {
     if (n.type !== 'call_expression') return;
     const callee = n.namedChild(0), suffix = n.namedChildren.find(c => c.type === 'call_suffix');
@@ -215,7 +222,7 @@ console.log(`      ${caseArgs} enum-case arguments`);
 console.log('[4/7] switch exhaustiveness');
 let switches = 0;
 for (const f of FILES) {
-  const tree = parser.parse(fs.readFileSync(f, 'utf8'));
+  const tree = parse(fs.readFileSync(f, 'utf8'));
   each(tree.rootNode, n => {
     if (n.type !== 'switch_statement') return;
     const entries = n.namedChildren.filter(c => c.type === 'switch_entry');
@@ -250,7 +257,7 @@ const countViews = stmts => stmts.namedChildren.filter(c =>
   c.type !== 'property_declaration' && c.type !== 'assignment' && c.type !== 'comment').length;
 let builders = 0;
 for (const f of FILES) {
-  const tree = parser.parse(fs.readFileSync(f, 'utf8'));
+  const tree = parse(fs.readFileSync(f, 'utf8'));
   each(tree.rootNode, n => {
     let stmts = null, what = null;
     if ((n.type === 'function_declaration' || n.type === 'property_declaration')
@@ -306,7 +313,7 @@ const shorthandArgs = lambda => {
 };
 let closures = 0;
 for (const f of FILES) {
-  const tree = parser.parse(fs.readFileSync(f, 'utf8'));
+  const tree = parse(fs.readFileSync(f, 'utf8'));
   each(tree.rootNode, n => {
     if (n.type !== 'call_expression') return;
     const callee = n.namedChild(0);
@@ -365,7 +372,7 @@ for (const [name, ds] of decls) {
 let inoutCalls = 0;
 if (requiredAmps.size) {
   for (const f of FILES) {
-    const tree = parser.parse(fs.readFileSync(f, 'utf8'));
+    const tree = parse(fs.readFileSync(f, 'utf8'));
     each(tree.rootNode, n => {
       if (n.type !== 'call_expression') return;
       const callee = n.namedChild(0);
