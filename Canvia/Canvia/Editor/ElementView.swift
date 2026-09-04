@@ -25,10 +25,32 @@ import CoreGraphics
 /// the conformance must go.
 struct ElementView: View {
     let element: Element
+    @Environment(\.animationTime) private var animationTime
+
+    /// The element's entrance state at the environment's time; settled when
+    /// there is no time, which is the editor at rest.
+    private var motion: ElementAnimation.State {
+        guard let clock = animationTime, let animation = element.animation else { return .settled }
+        return animation.state(at: clock.time, text: element.text, size: max(element.w, element.h))
+    }
+
+    /// The element as drawn now: text cut to the revealed characters, a
+    /// photo's crop drifted along its Ken Burns.
+    private var shown: Element {
+        var el = element
+        if let n = motion.visibleCharacters, let text = el.text { el.text = String(text.prefix(n)) }
+        if let clock = animationTime, let drift = el.kenBurns, el.type == .image {
+            let crop = drift.crop(from: el, fraction: clock.hold > 0 ? clock.time / clock.hold : 0)
+            el.cropScale = crop.scale; el.cropX = crop.x; el.cropY = crop.y
+        }
+        return el
+    }
 
     var body: some View {
         content
             .frame(width: element.w, height: element.h)
+            .scaleEffect(motion.scale)
+            .offset(motion.offset)
             // Before the flip and rotation, so the shadow is cast in the
             // element's own space and turns with it — a shadow applied after
             // rotation would always fall straight down whatever the element
@@ -37,7 +59,7 @@ struct ElementView: View {
                     x: element.shadow?.offsetX ?? 0, y: element.shadow?.offsetY ?? 0)
             .scaleEffect(x: element.flipH ? -1 : 1, y: element.flipV ? -1 : 1)
             .rotationEffect(.degrees(element.rotation))
-            .opacity(element.opacity)
+            .opacity(element.opacity * motion.opacity)
             .blendMode(BlendModes.swiftUI(element.blendMode))
             .position(x: element.x + element.w / 2, y: element.y + element.h / 2)
     }
@@ -52,12 +74,13 @@ struct ElementView: View {
 
     @ViewBuilder
     private var content: some View {
-        switch element.type {
-        case .shape: ShapeElementView(element: element)
-        case .text: TextElementView(element: element)
-        case .image: ImageElementView(element: element)
-        case .sticker: StickerElementView(element: element)
-        case .line: LineElementView(element: element)
+        let el = shown
+        switch el.type {
+        case .shape: ShapeElementView(element: el)
+        case .text: TextElementView(element: el)
+        case .image: ImageElementView(element: el)
+        case .sticker: StickerElementView(element: el)
+        case .line: LineElementView(element: el)
         }
     }
 }

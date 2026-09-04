@@ -914,6 +914,62 @@ final class DesignStore {
         }
     }
 
+    // MARK: animation preview
+
+    /// Seconds into the current page while a preview plays; nil at rest.
+    var previewTime: Double?
+    private var previewTask: Task<Void, Never>?
+
+    var pageHold: Double {
+        page.holdSeconds ?? design.motion?.secondsPerPage ?? MotionSettings().secondsPerPage
+    }
+
+    var pageIsAnimated: Bool {
+        page.elements.contains { $0.animation != nil || $0.kenBurns != nil }
+    }
+
+    /// Play the page's entrances and drifts once, at 30 frames a second,
+    /// then settle. Scrub by setting previewTime directly.
+    func playPreview() {
+        previewTask?.cancel()
+        let hold = pageHold
+        previewTask = Task { @MainActor in
+            var t = 0.0
+            while t <= hold {
+                previewTime = t
+                try? await Task.sleep(for: .milliseconds(33))
+                guard !Task.isCancelled else { return }
+                t += 1.0 / 30
+            }
+            previewTime = nil
+        }
+    }
+
+    func stopPreview() {
+        previewTask?.cancel()
+        previewTask = nil
+        previewTime = nil
+    }
+
+    /// Give every selected element an entrance, staggered in layer order so
+    /// a list builds itself rather than arriving as a block.
+    func animateSelected(_ kind: String?) {
+        guard !selection.isEmpty else { return }
+        applyToPage { page in
+            var n = 0
+            for i in page.elements.indices where self.selection.contains(page.elements[i].id) {
+                if let kind {
+                    let textOnly = ElementAnimation.textKinds.contains(kind)
+                    if textOnly && page.elements[i].type != .text { continue }
+                    page.elements[i].animation = ElementAnimation(kind: kind, delay: Double(n) * 0.15, duration: 0.6)
+                    n += 1
+                } else {
+                    page.elements[i].animation = nil
+                }
+            }
+        }
+    }
+
     // MARK: master page and guides
 
     /// Make the current page the master (or clear it), one undo step.

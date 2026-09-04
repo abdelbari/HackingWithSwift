@@ -89,9 +89,11 @@ final class CropTests: XCTestCase {
         XCTAssertEqual(second.size.width / second.size.height, 0.5, accuracy: 0.01)
         XCTAssertEqual(first.size.width, 400, accuracy: 1, "the long edge is the requested size")
 
-        // The all-blue page tells a fill that never recorded from a flip.
+        // The all-blue page tells a fill that never recorded from a flip —
+        // checked on red, which white would not pass.
         let middle = try rgb(second, x: Int(second.size.width) / 2, y: Int(second.size.height) / 2)
-        XCTAssertGreaterThan(middle.b, 200, "the PDF's fills did not survive import at all: \(middle)")
+        XCTAssertLessThan(middle.r, 60, "the PDF's fills did not survive import at all (blank page): \(middle)")
+        XCTAssertGreaterThan(middle.b, 200, "\(middle)")
 
         let w = Int(first.size.width), h = Int(first.size.height)
         let tl = try rgb(first, x: 10, y: 10), tr = try rgb(first, x: w - 10, y: 10)

@@ -219,6 +219,43 @@ enum Geometry {
         return result
     }
 
+    struct EqualGap {
+        var dx: Double = 0
+        var dy: Double = 0
+        /// The gap made equal on each axis, when one was.
+        var gapX: Double?
+        var gapY: Double?
+    }
+
+    /// Equal-spacing detection: when the moving box sits between two
+    /// neighbours on an axis (overlapping them on the other) and its two
+    /// gaps are within `threshold` of each other, the shift that makes them
+    /// equal — and the gap, for the badge.
+    static func equalGap(moving: CGRect, siblings: [CGRect], threshold: Double) -> EqualGap {
+        var result = EqualGap()
+        let besideY = siblings.filter { $0.maxY > moving.minY && $0.minY < moving.maxY }
+        let left = besideY.filter { $0.maxX <= moving.minX + 0.5 }.max { $0.maxX < $1.maxX }
+        let right = besideY.filter { $0.minX >= moving.maxX - 0.5 }.min { $0.minX < $1.minX }
+        if let left, let right {
+            let gl = moving.minX - left.maxX, gr = right.minX - moving.maxX
+            if abs(gl - gr) <= threshold * 2 {
+                result.dx = (gr - gl) / 2
+                result.gapX = ((gl + gr) / 2).rounded()
+            }
+        }
+        let besideX = siblings.filter { $0.maxX > moving.minX && $0.minX < moving.maxX }
+        let above = besideX.filter { $0.maxY <= moving.minY + 0.5 }.max { $0.maxY < $1.maxY }
+        let below = besideX.filter { $0.minY >= moving.maxY - 0.5 }.min { $0.minY < $1.minY }
+        if let above, let below {
+            let ga = moving.minY - above.maxY, gb = below.minY - moving.maxY
+            if abs(ga - gb) <= threshold * 2 {
+                result.dy = (gb - ga) / 2
+                result.gapY = ((ga + gb) / 2).rounded()
+            }
+        }
+        return result
+    }
+
     /// Candidate snap lines: page edges/center plus sibling edges/centers,
     /// plus every grid line when a grid is on — each source only if its
     /// switch is.

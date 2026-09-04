@@ -89,6 +89,14 @@ duplicate / delete via long-press), and a template gallery.
   an opaque screenshot as the far smaller JPEG — and every colour picker
   offers "From the photo": the six most prominent colours of the selected
   picture or the page's background picture, read from its pixels.
+- Animation: any element can arrive — fade, rise, pop, slide from either
+  side — and text can reveal by letter, by word, letter-pop or line-rise;
+  Animate on the toolbar staggers a selection in layer order. One pure
+  evaluator turns a time into opacity, offset, scale and revealed
+  characters, and the canvas preview (Play on the pages bar), the MP4 and
+  the GIF all read it. Photos can drift with Ken Burns over the page's
+  hold. While dragging, an element that lands at the same distance from
+  two neighbours snaps to exactly equal spacing and says the gap.
 - Radial and angular gradients beside linear, on shapes, text and page
   backgrounds (radial reaches the SVG; angular ships as pixels, since SVG
   has no conic gradient). Per-corner radii on rectangles — top only,

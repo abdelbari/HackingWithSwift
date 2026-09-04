@@ -45,7 +45,8 @@ final class MasterAndGuidesTests: XCTestCase {
         d.pages[0].elements = [Element.shape("rect")]
         d.pages[1].elements = [Element.text("Page {page} of {pages}", fontSize: 24, w: 300)]
         let svg = SVGExporter.svg(design: d, page: d.pages[1])
-        XCTAssertEqual(svg.components(separatedBy: "<g").count - 1, 2, "master rect plus the text: \(svg.prefix(200))")
+        // One <path> each: the master's rectangle and the page's text.
+        XCTAssertEqual(svg.components(separatedBy: "<path").count - 1, 2, "master rect plus the text: \(svg.prefix(200))")
         let straight = TextOutliner.path(for: {
             var e = d.pages[1].elements[0]; e.text = "Page 2 of 3"; return e
         }())

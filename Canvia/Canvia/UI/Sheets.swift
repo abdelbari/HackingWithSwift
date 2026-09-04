@@ -481,6 +481,16 @@ struct CropSheet: View {
                         aspectRow(el)
                     }
                     Section {
+                        Toggle("Ken Burns drift in video", isOn: Binding(
+                            get: { el.kenBurns != nil },
+                            set: { on in store.updateSelected { $0.kenBurns = on ? KenBurns() : nil } }))
+                        if el.kenBurns != nil {
+                            Button("Preview the drift") { store.playPreview() }
+                        }
+                    } footer: {
+                        Text("The photo zooms in slowly over the page's hold, keeping its focus.")
+                    }
+                    Section {
                         Button {
                             focusOnSubject(el)
                         } label: { Label("Focus on the subject", systemImage: "viewfinder") }

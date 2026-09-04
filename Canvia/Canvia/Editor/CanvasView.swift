@@ -26,6 +26,8 @@ struct CanvasView: View {
         /// union per frame is just this one translated — no need to look the
         /// elements up and re-derive their boxes on every touch move.
         var dragUnion: CGRect = .zero
+        /// Sibling boxes at grab time, for equal-spacing hints.
+        var siblingBoxes: [CGRect] = []
         var resizeOriginal: Element?
         var rotateCenter: CGPoint?
         var rotateOffset: Double = 0
@@ -82,6 +84,7 @@ struct CanvasView: View {
             // itself: the workspace-background tap can't fire here because
             // the opaque page sits above it in the ZStack.
             PageRenderView(design: store.design, page: store.page)
+                .environment(\.animationTime, store.previewTime.map { ($0, store.pageHold) })
                 // Carries the document edge in dark mode, where a shadow on a
                 // dark workspace is invisible.
                 .overlay(Rectangle().stroke(Theme.hairline, lineWidth: 1 * iz))
@@ -311,6 +314,9 @@ struct CanvasView: View {
                     gesture.snapY = lines.y
                     gesture.dragUnion = Geometry.union(
                         store.selectedElements.filter { !$0.locked }.map(Geometry.aabb))
+                    gesture.siblingBoxes = store.page.elements
+                        .filter { gesture.dragOriginals[$0.id] == nil }
+                        .map(Geometry.aabb)
                 }
                 var dx = value.location.x - value.startLocation.x
                 var dy = value.location.y - value.startLocation.y
@@ -330,6 +336,17 @@ struct CanvasView: View {
                     dy += snap.dy
                     store.guideX = snap.guideX
                     store.guideY = snap.guideY
+                    // Equal spacing: between two neighbours, land at the
+                    // same distance from each and say what that distance is.
+                    if store.snapping.toElements {
+                        let even = Geometry.equalGap(moving: gesture.dragUnion.offsetBy(dx: dx, dy: dy),
+                                                     siblings: gesture.siblingBoxes, threshold: 6 / store.zoom)
+                        dx += even.dx
+                        dy += even.dy
+                        if let g = even.gapX ?? even.gapY {
+                            store.badge = "↔ \(Int(g))"
+                        }
+                    }
                 }
 
                 for i in store.design.pages[store.pageIndex].elements.indices {
@@ -341,8 +358,9 @@ struct CanvasView: View {
                 }
                 // Report the element the user actually grabbed: Dictionary
                 // ordering is undefined, so keys.first would flicker between
-                // members of a multi-element drag.
-                if let moved = store.element(el.id) {
+                // members of a multi-element drag. An equal-spacing badge,
+                // set above, takes precedence: it is the rarer, more useful fact.
+                if let moved = store.element(el.id), store.badge?.hasPrefix("↔") != true {
                     store.badge = "\(Int(moved.x)), \(Int(moved.y))"
                 }
             }

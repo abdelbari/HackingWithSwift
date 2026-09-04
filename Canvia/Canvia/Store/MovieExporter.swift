@@ -156,6 +156,25 @@ enum MovieExporter {
 
     // MARK: frames
 
+    /// Whether a page has to be rendered frame by frame.
+    static func isAnimated(_ page: Page) -> Bool {
+        page.elements.contains { $0.animation != nil || $0.kenBurns != nil }
+    }
+
+    /// A page at a moment, for animated pages: the same render as the page
+    /// bitmap, with the clock set.
+    @MainActor
+    static func animatedFrame(design: Design, page: Int, time: Double, hold: Double, size: CGSize) -> CGImage? {
+        guard design.pages.indices.contains(page), isAnimated(design.pages[page]) else { return nil }
+        return autoreleasepool { () -> CGImage? in
+            let renderer = ImageRenderer(content: PageRenderView(design: design, page: design.pages[page])
+                .environment(\.animationTime, (time, hold)))
+            renderer.scale = size.width / max(design.width, 1)
+            renderer.isOpaque = true
+            return renderer.cgImage
+        }
+    }
+
     /// One bitmap per page, at the output size. Rendered once and reused for
     /// every frame of that page — re-rendering the SwiftUI tree seventy-five
     /// times per page would take longer than the encode.
@@ -183,17 +202,30 @@ enum MovieExporter {
 
     static func draw(frame index: Int, pages: [CGImage], size: CGSize,
                      settings: Settings, timings: [Timing]?, into context: CGContext) {
+        draw(frame: index, pages: pages, size: size, settings: settings, timings: timings,
+             animated: nil, into: context)
+    }
+
+    /// A page whose elements animate is rendered per frame by `animated`
+    /// (page index, seconds into the page, the page's hold in seconds);
+    /// pages that do not use the one bitmap in `pages`.
+    static func draw(frame index: Int, pages: [CGImage], size: CGSize,
+                     settings: Settings, timings: [Timing]?,
+                     animated: ((Int, Double, Double) -> CGImage?)?, into context: CGContext) {
         guard !pages.isEmpty else { return }
         let timeline = timings ?? uniformTimeline(pages: pages.count, settings: settings)
         let where_ = locate(frame: index, in: timeline)
         let page = min(where_.page, pages.count - 1)
         let progress = where_.progress
+        let timing = timeline[min(page, timeline.count - 1)]
+        let hold = Double(timing.frames) / Double(max(settings.fps, 1))
+        let seconds = Double(index - timing.start) / Double(max(settings.fps, 1))
 
         context.setFillColor(gray: 1, alpha: 1)
         context.fill(CGRect(origin: .zero, size: size))
         context.interpolationQuality = .high
 
-        drawPage(pages[page], progress: progress, alpha: 1,
+        drawPage(animated?(page, seconds, hold) ?? pages[page], progress: progress, alpha: 1,
                  size: size, settings: settings, into: context)
 
         // The transition lives at the end of a page rather than the start of
@@ -267,6 +299,9 @@ enum MovieExporter {
 
         let timings = timeline(design: design, settings: settings)
         let total = timings.last?.end ?? 1
+        // Animated pages are rendered ahead, one bitmap per frame, since the
+        // writer callback runs off the main actor where SwiftUI cannot draw.
+        let frames = animatedFrames(design: design, size: size, settings: settings, timings: timings)
         let state = WriteState()
         let queue = DispatchQueue(label: "canvia.movie.write")
 
@@ -293,7 +328,8 @@ enum MovieExporter {
                         continuation.resume(throwing: MovieError.writerFailed("no pixel buffer"))
                         return
                     }
-                    fill(buffer, frame: state.index, pages: pages, size: size, settings: settings, timings: timings)
+                    fill(buffer, frame: state.index, pages: pages, size: size, settings: settings,
+                         timings: timings, animated: frames)
                     let time = CMTime(value: CMTimeValue(state.index),
                                       timescale: CMTimeScale(settings.fps))
                     guard adaptor.append(buffer, withPresentationTime: time) else {
@@ -349,8 +385,31 @@ enum MovieExporter {
         return buffer
     }
 
+    /// Every frame of every animated page, pre-rendered, keyed by page then
+    /// frame within the page. Static pages have no entry.
+    @MainActor
+    private static func animatedFrames(design: Design, size: CGSize, settings: Settings,
+                                       timings: [Timing]) -> ((Int, Double, Double) -> CGImage?)? {
+        let animatedPages = design.pages.indices.filter { isAnimated(design.pages[$0]) }
+        guard !animatedPages.isEmpty else { return nil }
+        var cache: [Int: [CGImage]] = [:]
+        for p in animatedPages where p < timings.count {
+            let t = timings[p]
+            let hold = Double(t.frames) / Double(max(settings.fps, 1))
+            cache[p] = (0..<t.frames).compactMap { f in
+                animatedFrame(design: design, page: p, time: Double(f) / Double(max(settings.fps, 1)), hold: hold, size: size)
+            }
+        }
+        return { page, seconds, _ in
+            guard let frames = cache[page], !frames.isEmpty else { return nil }
+            let f = min(max(Int((seconds * Double(settings.fps)).rounded()), 0), frames.count - 1)
+            return frames[f]
+        }
+    }
+
     private static func fill(_ buffer: CVPixelBuffer, frame index: Int, pages: [CGImage],
-                             size: CGSize, settings: Settings, timings: [Timing]) {
+                             size: CGSize, settings: Settings, timings: [Timing],
+                             animated: ((Int, Double, Double) -> CGImage?)?) {
         CVPixelBufferLockBaseAddress(buffer, [])
         defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
         guard let context = CGContext(
@@ -360,7 +419,8 @@ enum MovieExporter {
             space: CGColorSpaceCreateDeviceRGB(),
             bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue
                 | CGBitmapInfo.byteOrder32Little.rawValue) else { return }
-        draw(frame: index, pages: pages, size: size, settings: settings, timings: timings, into: context)
+        draw(frame: index, pages: pages, size: size, settings: settings, timings: timings,
+             animated: animated, into: context)
     }
 
     // MARK: gif
@@ -383,6 +443,7 @@ enum MovieExporter {
 
         let timings = timeline(design: design, settings: gifSettings)
         let total = timings.last?.end ?? 1
+        let frames = animatedFrames(design: design, size: size, settings: gifSettings, timings: timings)
         guard let destination = CGImageDestinationCreateWithURL(
             url as CFURL, UTType.gif.identifier as CFString, total, nil) else {
             throw MovieError.writerFailed("no GIF destination")
@@ -414,7 +475,7 @@ enum MovieExporter {
                     throw MovieError.writerFailed("a frame context would not open")
                 }
                 draw(frame: index, pages: pages, size: size, settings: gifSettings,
-                     timings: timings, into: context)
+                     timings: timings, animated: frames, into: context)
                 guard let frame = context.makeImage() else {
                     throw MovieError.writerFailed("a frame would not render")
                 }

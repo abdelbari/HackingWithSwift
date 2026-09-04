@@ -120,6 +120,10 @@ struct Element: Codable, Equatable, Identifiable {
     /// The first letter set large, three lines deep, with the text wrapping
     /// around it.
     var dropCap: Bool?
+    /// How the element arrives on the page, in video and preview.
+    var animation: ElementAnimation?
+    /// For photos: a slow drift of the crop over the page's hold.
+    var kenBurns: KenBurns?
     /// A gradient behind the letters. nil paints `color`; a solid Paint here
     /// is never stored, since `color` already is one.
     var textFill: Paint?
@@ -203,6 +207,8 @@ struct Element: Codable, Equatable, Identifiable {
         paragraphSpacing = try? c.decode(Double.self, forKey: .paragraphSpacing)
         textStyleId = try? c.decode(String.self, forKey: .textStyleId)
         dropCap = try? c.decode(Bool.self, forKey: .dropCap)
+        animation = try? c.decode(ElementAnimation.self, forKey: .animation)
+        kenBurns = try? c.decode(KenBurns.self, forKey: .kenBurns)
         textFill = try? c.decode(Paint.self, forKey: .textFill)
         effect = try? c.decode(TextEffectSpec.self, forKey: .effect)
         curve = try? c.decode(Double.self, forKey: .curve)
@@ -245,7 +251,7 @@ struct Element: Codable, Equatable, Identifiable {
         case shapeId, pathData, fill, stroke, strokeWidth, radius, corners
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve
-        case vAlign, fitText, paragraphSpacing, textStyleId, dropCap
+        case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, kenBurns
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit
         case glyph
         case thickness, dash, startCap, endCap

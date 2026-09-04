@@ -158,6 +158,34 @@ struct ContextToolbar: View {
         }
     }
 
+    /// An entrance for the selection, and a way to see it.
+    private func animateMenu(_ el: Element) -> some View {
+        Menu {
+            Button { store.animateSelected(nil) } label: {
+                Label("No animation", systemImage: el.animation == nil ? "checkmark" : "circle")
+            }
+            Divider()
+            ForEach(ElementAnimation.kinds.filter { !ElementAnimation.textKinds.contains($0) }, id: \.self) { kind in
+                Button { store.animateSelected(kind); store.playPreview() } label: {
+                    Label(ElementAnimation.name(kind), systemImage: el.animation?.kind == kind ? "checkmark" : "circle")
+                }
+            }
+            if store.selectedElements.contains(where: { $0.type == .text }) {
+                Divider()
+                ForEach(ElementAnimation.kinds.filter { ElementAnimation.textKinds.contains($0) }, id: \.self) { kind in
+                    Button { store.animateSelected(kind); store.playPreview() } label: {
+                        Label(ElementAnimation.name(kind), systemImage: el.animation?.kind == kind ? "checkmark" : "circle")
+                    }
+                }
+            }
+            Divider()
+            Button { store.playPreview() } label: { Label("Play this page", systemImage: "play") }
+                .disabled(!store.pageIsAnimated)
+        } label: {
+            toolLabel("sparkles.rectangle.stack", "Animate", active: el.animation != nil)
+        }
+    }
+
     private func blendMenu(_ el: Element) -> some View {
         Menu {
             Picker("Blend", selection: Binding(
@@ -442,7 +470,7 @@ struct ContextToolbar: View {
     private var universalControls: some View {
         toolButton("square.3.layers.3d", "Position") { activeSheet = .position }
         toolButton("shadow", "Shadow") { activeSheet = .shadow }
-        if let el = store.selectedElements.first { blendMenu(el) }
+        if let el = store.selectedElements.first { blendMenu(el); animateMenu(el) }
 
         // Opacity
         if let el = store.selectedElements.first {
