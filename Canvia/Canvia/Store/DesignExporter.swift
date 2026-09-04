@@ -61,23 +61,117 @@ enum DesignExporter {
     static let pixelBudget: Double = 32_000_000
 
     /// The scale a request actually renders at, after the budget.
-    static func effectiveScale(design: Design, requested: Int) -> Double {
+    static func effectiveScale(design: Design, requested: Double) -> Double {
         let area = max(design.width * design.height, 1)
         let ceiling = (pixelBudget / area).squareRoot()
-        return min(Double(requested), ceiling)
+        return min(max(requested, 0.01), ceiling)
+    }
+
+    static func effectiveScale(design: Design, requested: Int) -> Double {
+        effectiveScale(design: design, requested: Double(requested))
     }
 
     /// The exported image's size in pixels, which is what the user is really
     /// choosing when they pick a scale.
-    static func outputSize(design: Design, requested: Int) -> CGSize {
+    static func outputSize(design: Design, requested: Double) -> CGSize {
         let scale = effectiveScale(design: design, requested: requested)
         return CGSize(width: (design.width * scale).rounded(),
                       height: (design.height * scale).rounded())
     }
 
+    static func outputSize(design: Design, requested: Int) -> CGSize {
+        outputSize(design: design, requested: Double(requested))
+    }
+
     /// True when the budget, not the user, decided the scale.
+    static func isClamped(design: Design, requested: Double) -> Bool {
+        effectiveScale(design: design, requested: requested) < requested - 0.001
+    }
+
     static func isClamped(design: Design, requested: Int) -> Bool {
-        effectiveScale(design: design, requested: requested) < Double(requested) - 0.001
+        isClamped(design: design, requested: Double(requested))
+    }
+
+    /// The scale that puts the design's longer side at `pixels`. Platforms
+    /// specify sizes, not multipliers — "1080 wide", "4K" — so this is what
+    /// the size field and the presets resolve through.
+    static func scale(forLongEdge pixels: Double, design: Design) -> Double {
+        let edge = max(design.width, design.height, 1)
+        return max(0.05, pixels / edge)
+    }
+
+    /// The longer side, in pixels, at the requested scale after the budget.
+    static func longEdge(design: Design, requested: Double) -> Double {
+        let size = outputSize(design: design, requested: requested)
+        return max(size.width, size.height)
+    }
+
+    /// A named output size. Long edge only: the short edge follows the
+    /// design's own ratio, which is what "export at 1080" means to anyone
+    /// who says it.
+    struct SizePreset: Identifiable {
+        var name: String
+        var longEdge: Double
+        var id: String { name }
+    }
+
+    static let sizePresets: [SizePreset] = [
+        SizePreset(name: "Instagram post (1080)", longEdge: 1080),
+        SizePreset(name: "Story / Reel (1920)", longEdge: 1920),
+        SizePreset(name: "Full HD (1920)", longEdge: 1920),
+        SizePreset(name: "4K (3840)", longEdge: 3840),
+        SizePreset(name: "A4 at 300 dpi (3508)", longEdge: 3508),
+        SizePreset(name: "US Letter at 300 dpi (3300)", longEdge: 3300),
+    ]
+
+    // MARK: resolution guard
+
+    /// Below this on the long edge an export looks soft on any phone screen.
+    static let softBelowLongEdge = 1080.0
+
+    /// The image elements that will be upscaled at this export size: fewer
+    /// source pixels than the pixels their frame covers in the output. A
+    /// photo dragged out to fill a poster and exported at 3x is the classic
+    /// case, and the output is blurry in a way nothing on screen showed.
+    ///
+    /// `pixelSize` resolves an element's source to its stored pixel size; a
+    /// nil means unknown and is not flagged.
+    static func upscaledImages(page: Page, scale: Double,
+                               pixelSize: (String) -> CGSize?) -> [String] {
+        page.elements.compactMap { el in
+            guard el.type == .image, let src = el.src, let source = pixelSize(src),
+                  source.width > 0, source.height > 0 else { return nil }
+            // A cropped-in photo shows fewer of its pixels over the same
+            // frame, so it needs proportionally more of them.
+            let zoom = max(el.cropScale ?? 1, 1)
+            let needed = max(el.w, el.h) * scale * zoom
+            let has = max(source.width, source.height)
+            return needed > has * 1.05 ? el.id : nil
+        }
+    }
+
+    // MARK: selection
+
+    /// A one-page design holding only `ids`, sized to their box, so "export
+    /// the selection" is an ordinary page export of a smaller page. The
+    /// page's background comes along: a cut-out over a colour should keep
+    /// its colour unless the export is asked to be transparent.
+    static func selectionDesign(design: Design, page: Page, ids: Set<String>) -> Design? {
+        let chosen = page.elements.filter { ids.contains($0.id) }
+        guard !chosen.isEmpty else { return nil }
+        let box = Geometry.union(chosen.map(Geometry.aabb)).integral
+        guard box.width > 0, box.height > 0 else { return nil }
+        var cropped = Design(title: design.title, width: box.width, height: box.height)
+        cropped.id = design.id
+        var only = page
+        only.elements = chosen.map { el in
+            var moved = el
+            moved.x -= box.minX
+            moved.y -= box.minY
+            return moved
+        }
+        cropped.pages = [only]
+        return cropped
     }
 
     // MARK: raster
@@ -89,34 +183,43 @@ enum DesignExporter {
     /// than a guess by a wide margin. Calibrated against photographic content
     /// at 4:2:0 chroma: about 0.55 bits per pixel at quality 0.5, scaling with
     /// roughly the square of quality.
-    static func estimatedJPEGBytes(design: Design, requested: Int, quality: Double) -> Int {
+    static func estimatedJPEGBytes(design: Design, requested: Double, quality: Double) -> Int {
         let size = outputSize(design: design, requested: requested)
         let pixels = size.width * size.height
         let bitsPerPixel = 0.15 + 2.6 * pow(max(0, min(1, quality)), 2)
         return max(2_048, Int(pixels * bitsPerPixel / 8))
     }
 
+    /// The page as pixels. Everything raster goes through here: files, the
+    /// clipboard, and any test that wants to look at the output.
+    @MainActor
+    static func render(design: Design, page: Page, scale: Double,
+                       transparent: Bool = false) -> CGImage? {
+        // A transparent export drops the page's own background rather than
+        // just turning off compositing: "no background" has to mean the
+        // background is gone, not that an opaque white one is drawn
+        // without an alpha channel.
+        var rendered = page
+        if transparent { rendered.background = .color("#00000000") }
+        let renderer = ImageRenderer(content: PageRenderView(design: design, page: rendered))
+        renderer.scale = CGFloat(effectiveScale(design: design, requested: scale))
+        // Opaque unless asked otherwise: every page background is a
+        // colour, a gradient, or an image over white, so compositing an
+        // alpha channel is work both encoders would discard.
+        renderer.isOpaque = !transparent
+        // cgImage rather than uiImage: the encoders want a CGImage, and going
+        // through UIImage only to unwrap it again would keep the wrapper
+        // alive for the whole encode.
+        return renderer.cgImage
+    }
+
     @MainActor
     static func exportRaster(design: Design, page: Page, format: RasterFormat,
-                             scale: Int, quality: Double = 0.92,
+                             scale: Double, quality: Double = 0.92,
                              transparent: Bool = false, to url: URL) throws {
         try autoreleasepool {
-            // A transparent export drops the page's own background rather than
-            // just turning off compositing: "no background" has to mean the
-            // background is gone, not that an opaque white one is drawn
-            // without an alpha channel.
-            var rendered = page
-            if transparent { rendered.background = .color("#00000000") }
-            let renderer = ImageRenderer(content: PageRenderView(design: design, page: rendered))
-            renderer.scale = CGFloat(effectiveScale(design: design, requested: scale))
-            // Opaque unless asked otherwise: every page background is a
-            // colour, a gradient, or an image over white, so compositing an
-            // alpha channel is work both encoders would discard.
-            renderer.isOpaque = !transparent
-            // cgImage rather than uiImage: the encoder below wants a CGImage,
-            // and going through UIImage only to unwrap it again would keep the
-            // wrapper alive for the whole encode.
-            guard let cg = renderer.cgImage else { throw ExportError.renderFailed }
+            guard let cg = render(design: design, page: page, scale: scale,
+                                  transparent: transparent) else { throw ExportError.renderFailed }
             guard let destination = CGImageDestinationCreateWithURL(
                 url as CFURL, format.contentType.identifier as CFString, 1, nil)
             else { throw ExportError.encodeFailed }
@@ -157,7 +260,7 @@ enum DesignExporter {
     /// exactly the work this is meant to save.
     @MainActor
     static func exportPages(design: Design, range: PageRange, current: Int,
-                            format: RasterFormat, scale: Int, quality: Double = 0.92,
+                            format: RasterFormat, scale: Double, quality: Double = 0.92,
                             transparent: Bool = false,
                             progress: ((Double) -> Void)? = nil) throws -> [URL] {
         let indices = range.indices(in: design, current: current)

@@ -9,7 +9,10 @@ import UIKit
 struct ExportSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
-    @State private var scale = 2
+    @State private var scale = 2.0
+    @State private var longEdgeText = ""
+    @State private var selectionOnly = false
+    @State private var copied = false
     @State private var jpegQuality = 0.92
     @State private var transparent = false
     @State private var pageRange = RangeChoice.current
@@ -39,9 +42,10 @@ struct ExportSheet: View {
             Form {
                 qualitySection
                 jpegSection
-                if store.design.pages.count > 1 { pagesSection }
+                if store.design.pages.count > 1 && !selectionOnly { pagesSection }
                 transparencySection
                 formatSection
+                clipboardSection
                 photosSection
                 if UIPrintInteractionController.isPrintingAvailable { printSection }
                 motionSection
@@ -101,20 +105,95 @@ struct ExportSheet: View {
     private var qualitySection: some View {
         Section {
             Picker("Scale", selection: $scale) {
-                Text("1×").tag(1)
-                Text("2×").tag(2)
-                Text("3×").tag(3)
+                Text("1×").tag(1.0)
+                Text("2×").tag(2.0)
+                Text("3×").tag(3.0)
             }
             .pickerStyle(.segmented)
+            // The size people are actually told to produce. Typing 1080
+            // sets whatever scale puts the long side there.
+            HStack {
+                Text("Long edge")
+                Spacer()
+                TextField("px", text: $longEdgeText)
+                    .keyboardType(.numberPad)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 90)
+                    .onSubmit(applyLongEdge)
+                    .onChange(of: longEdgeText) { applyLongEdge() }
+                Text("px").foregroundStyle(.secondary)
+                Menu {
+                    ForEach(DesignExporter.sizePresets) { preset in
+                        Button(preset.name) { longEdgeText = String(Int(preset.longEdge)) }
+                    }
+                } label: {
+                    Image(systemName: "list.bullet").accessibilityLabel("Size presets")
+                }
+            }
+            if !store.selection.isEmpty {
+                Toggle("Selection only, cropped to its bounds", isOn: $selectionOnly)
+            }
         } header: {
-            Text("Quality")
+            Text("Size")
         } footer: {
             // "2×" means nothing on its own; the pixel count is the thing
             // people actually need to match a platform's requirements. It also
             // gives the size cap somewhere honest to appear rather than
             // silently under-delivering.
-            Text(sizeNote)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(sizeNote)
+                if let warning = resolutionWarning {
+                    Label(warning, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                }
+            }
         }
+    }
+
+    private func applyLongEdge() {
+        guard let px = Double(longEdgeText.trimmingCharacters(in: .whitespaces)), px >= 16 else { return }
+        let next = DesignExporter.scale(forLongEdge: px, design: exportedDesign)
+        if abs(next - scale) > 0.0001 { scale = next }
+    }
+
+    /// A selection export is a one-page design, so it is always "this page"
+    /// of that design.
+    private var exportedRange: DesignExporter.PageRange {
+        selectionOnly ? .current : pageRange.exportRange
+    }
+
+    private var exportedPageIndex: Int { selectionOnly ? 0 : store.pageIndex }
+
+    /// The design that is actually rendered: the whole page, or the selection
+    /// as a page of its own.
+    private var exportedDesign: Design {
+        if selectionOnly,
+           let cropped = DesignExporter.selectionDesign(design: store.design, page: store.page,
+                                                        ids: store.selection) {
+            return cropped
+        }
+        return store.design
+    }
+
+    /// Soft output, said before the export rather than discovered in the
+    /// post: a long edge too short for a phone screen, or a photo that will
+    /// be stretched past the pixels it has.
+    private var resolutionWarning: String? {
+        let design = exportedDesign
+        let edge = DesignExporter.longEdge(design: design, requested: scale)
+        if edge < DesignExporter.softBelowLongEdge {
+            return "Only \(Int(edge)) px on the long side — will look soft on most screens."
+        }
+        let effective = DesignExporter.effectiveScale(design: design, requested: scale)
+        let upscaled = DesignExporter.upscaledImages(page: design.pages[0], scale: effective,
+                                                     pixelSize: { src in
+            PhotoLibrary.resolve(src).map { CGSize(width: $0.size.width * $0.scale,
+                                                    height: $0.size.height * $0.scale) }
+        })
+        guard !upscaled.isEmpty else { return nil }
+        return upscaled.count == 1
+            ? "One photo has fewer pixels than this size needs and will look blurry."
+            : "\(upscaled.count) photos have fewer pixels than this size needs and will look blurry."
     }
 
     private var jpegSection: some View {
@@ -207,7 +286,7 @@ struct ExportSheet: View {
         let urls: [URL]
         if let format {
             urls = try DesignExporter.exportPages(
-                design: store.design, range: pageRange.exportRange, current: store.pageIndex,
+                design: exportedDesign, range: exportedRange, current: exportedPageIndex,
                 format: format, scale: scale, quality: jpegQuality,
                 transparent: transparent && format == .png,
                 progress: { progress = $0 })
@@ -218,6 +297,30 @@ struct ExportSheet: View {
         }
         try await PhotoSaver.save(urls)
         savedToPhotos = urls.count == 1 ? "Saved to Photos" : "Saved \(urls.count) photos"
+    }
+
+    private var clipboardSection: some View {
+        Section {
+            exportButton(copied ? "Copied" : "Copy as image",
+                         subtitle: "PNG on the clipboard, for Messages, Mail or Notes",
+                         icon: copied ? "checkmark.circle" : "doc.on.clipboard") {
+                try copyToClipboard()
+            }
+        }
+    }
+
+    @MainActor
+    private func copyToClipboard() throws {
+        let design = exportedDesign
+        guard let cg = DesignExporter.render(design: design, page: design.pages[0],
+                                             scale: scale, transparent: transparent)
+        else { throw DesignExporter.ExportError.renderFailed }
+        UIPasteboard.general.image = UIImage(cgImage: cg)
+        copied = true
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            copied = false
+        }
     }
 
     private var printSection: some View {
@@ -273,14 +376,14 @@ struct ExportSheet: View {
     }
 
     private var sizeNote: String {
-        let size = DesignExporter.outputSize(design: store.design, requested: scale)
+        let size = DesignExporter.outputSize(design: exportedDesign, requested: scale)
         let dims = "\(Int(size.width)) × \(Int(size.height)) px"
-        guard DesignExporter.isClamped(design: store.design, requested: scale) else { return dims }
-        return dims + " — reduced from \(scale)× so the render fits in memory."
+        guard DesignExporter.isClamped(design: exportedDesign, requested: scale) else { return dims }
+        return dims + " — reduced from \(String(format: "%.1f", scale))× so the render fits in memory."
     }
 
     private var estimatedSize: String {
-        let bytes = DesignExporter.estimatedJPEGBytes(design: store.design,
+        let bytes = DesignExporter.estimatedJPEGBytes(design: exportedDesign,
                                                       requested: scale, quality: jpegQuality)
         return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
     }
@@ -288,7 +391,7 @@ struct ExportSheet: View {
     @MainActor
     private func export(_ format: DesignExporter.RasterFormat) throws {
         let urls = try DesignExporter.exportPages(
-            design: store.design, range: pageRange.exportRange, current: store.pageIndex,
+            design: exportedDesign, range: exportedRange, current: exportedPageIndex,
             format: format, scale: scale, quality: jpegQuality,
             // JPEG has no alpha channel to be transparent in.
             transparent: transparent && format == .png,
@@ -358,7 +461,8 @@ struct ExportSheet: View {
     @MainActor
     private func exportSVG() throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "svg")
-        try DesignExporter.exportSVG(design: store.design, page: store.page, to: url)
+        try DesignExporter.exportSVG(design: exportedDesign,
+                                     page: exportedDesign.pages[exportedPageIndex], to: url)
         sharedURLs = [url]
         exportedURL = url
     }

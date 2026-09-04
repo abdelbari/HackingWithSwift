@@ -334,6 +334,74 @@ final class ExportRangeTests: XCTestCase {
         XCTAssertEqual(pdf.numberOfPages, 1)
     }
 
+    // MARK: exact sizes
+
+    func testALongEdgeResolvesToTheScaleThatProducesIt() {
+        let wide = Design(title: "wide", width: 1600, height: 900)
+        let scale = DesignExporter.scale(forLongEdge: 3840, design: wide)
+        XCTAssertEqual(DesignExporter.longEdge(design: wide, requested: scale), 3840, accuracy: 0.5)
+        let tall = Design(title: "tall", width: 900, height: 1600)
+        XCTAssertEqual(DesignExporter.outputSize(design: tall,
+                                                 requested: DesignExporter.scale(forLongEdge: 1920, design: tall)),
+                       CGSize(width: 1080, height: 1920))
+    }
+
+    func testAFractionalScaleRendersAtThatSize() throws {
+        let d = Design(title: "half", width: 200, height: 100)
+        let url = DesignExporter.fileURL(for: d, ext: "png", suffix: "-half")
+        written = [url]
+        try DesignExporter.exportRaster(design: d, page: d.pages[0], format: .png,
+                                        scale: 0.5, to: url)
+        let source = try XCTUnwrap(CGImageSourceCreateWithURL(url as CFURL, nil))
+        let image = try XCTUnwrap(CGImageSourceCreateImageAtIndex(source, 0, nil))
+        XCTAssertEqual(image.width, 100)
+        XCTAssertEqual(image.height, 50)
+    }
+
+    // MARK: resolution guard
+
+    func testAPhotoStretchedPastItsPixelsIsFlagged() {
+        var big = Element.image("media:big", w: 1000, h: 600)
+        big.id = "big"
+        var small = Element.image("media:small", w: 100, h: 60)
+        small.id = "small"
+        var zoomed = Element.image("media:small", w: 100, h: 60)
+        zoomed.id = "zoomed"
+        zoomed.cropScale = 3
+        let page = Page(elements: [big, small, zoomed, Element.shape("rect")])
+        let sizes = ["media:big": CGSize(width: 800, height: 480),
+                     "media:small": CGSize(width: 200, height: 120)]
+        let flagged = DesignExporter.upscaledImages(page: page, scale: 1, pixelSize: { sizes[$0] })
+        XCTAssertEqual(flagged, ["big", "zoomed"],
+                       "the big photo lacks pixels; the small one has spare, unless it is cropped in 3x")
+        XCTAssertEqual(DesignExporter.upscaledImages(page: page, scale: 3, pixelSize: { sizes[$0] }),
+                       ["big", "small", "zoomed"])
+        XCTAssertTrue(DesignExporter.upscaledImages(page: page, scale: 3, pixelSize: { _ in nil }).isEmpty,
+                      "an unknown source is not flagged")
+    }
+
+    // MARK: selection
+
+    func testASelectionExportsAsAPageOfItsOwnSize() throws {
+        var a = Element.shape("rect", w: 40, h: 30); a.x = 100; a.y = 50; a.id = "a"
+        var b = Element.shape("circle", w: 20, h: 20); b.x = 160; b.y = 90; b.id = "b"
+        var far = Element.shape("rect", w: 300, h: 300); far.x = 500; far.y = 500; far.id = "far"
+        let page = Page(background: .color("#123456"), elements: [a, b, far])
+        var d = Design(title: "sel", width: 1000, height: 1000)
+        d.pages = [page]
+
+        let cropped = try XCTUnwrap(DesignExporter.selectionDesign(design: d, page: page, ids: ["a", "b"]))
+        XCTAssertEqual(cropped.width, 80)   // 100…180
+        XCTAssertEqual(cropped.height, 60)  // 50…110
+        XCTAssertEqual(cropped.pages.count, 1)
+        XCTAssertEqual(cropped.pages[0].elements.map(\.id), ["a", "b"], "the unselected element came along")
+        XCTAssertEqual(cropped.pages[0].elements[0].x, 0)
+        XCTAssertEqual(cropped.pages[0].elements[1].x, 60)
+        XCTAssertEqual(cropped.pages[0].elements[1].y, 40)
+        XCTAssertEqual(cropped.pages[0].background, .color("#123456"), "the background stays")
+        XCTAssertNil(DesignExporter.selectionDesign(design: d, page: page, ids: []))
+    }
+
     // MARK: transparency
 
     /// The corner of a transparent export has to be actually transparent, not

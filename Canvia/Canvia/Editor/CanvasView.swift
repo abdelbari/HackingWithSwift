@@ -214,6 +214,37 @@ struct CanvasView: View {
                 store.select(el.id, additive: true)
             }
             .gesture(moveGesture(el))
+            .accessibilityElement()
+            .accessibilityLabel(CanvasAccessibility.label(for: el))
+            .accessibilityValue(CanvasAccessibility.value(for: el, design: store.design))
+            .accessibilityAddTraits(store.selection.contains(el.id) ? [.isButton, .isSelected] : .isButton)
+            .accessibilityHint(el.type == .text ? "Double tap to select; double tap and hold to edit" : "Double tap to select")
+            .accessibilityActions { accessibilityActions(for: el) }
+    }
+
+    /// The edits that otherwise need a drag, as VoiceOver actions. Each acts
+    /// on this element alone, selecting it first, and is one undo step.
+    @ViewBuilder
+    private func accessibilityActions(for el: Element) -> some View {
+        let step = CanvasAccessibility.nudge(for: store.design)
+        if !el.locked {
+            Button("Move left") { nudge(el, dx: -step, dy: 0) }
+            Button("Move right") { nudge(el, dx: step, dy: 0) }
+            Button("Move up") { nudge(el, dx: 0, dy: -step) }
+            Button("Move down") { nudge(el, dx: 0, dy: step) }
+            Button("Duplicate") { store.select(el.id); store.duplicateSelected() }
+            Button("Delete") { store.select(el.id); store.deleteSelected() }
+        }
+        Button("Bring forward") { store.select(el.id); store.reorderSelected(.forward) }
+        Button("Send backward") { store.select(el.id); store.reorderSelected(.backward) }
+        if el.type == .text && !el.locked {
+            Button("Edit text") { startTextEdit(el) }
+        }
+    }
+
+    private func nudge(_ el: Element, dx: Double, dy: Double) {
+        store.select(el.id)
+        store.updateSelected { $0.x += dx; $0.y += dy }
     }
 
     // MARK: move

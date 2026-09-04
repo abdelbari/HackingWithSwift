@@ -65,6 +65,11 @@ duplicate / delete via long-press), and a template gallery.
 - Copy style / paste style: the look of an element without its identity,
   position or content, and never across element kinds — pasting a text
   style onto a rectangle changes nothing about the rectangle
+- VoiceOver on the canvas: every element is named (what it is, and what
+  it says if it is text), valued (where and how big, in percentages of
+  the page, plus rotation and lock) and carries actions — move in four
+  directions, duplicate, delete, layer order, edit text — so the whole
+  page can be arranged without a drag.
 - Photos import several at once (up to ten, landing as a cascade), keep
   their transparency when they have any — a PNG logo is stored as PNG,
   an opaque screenshot as the far smaller JPEG — and every colour picker
@@ -92,7 +97,13 @@ duplicate / delete via long-press), and a template gallery.
   selecting one member selects the group — deliberately not nested
   transforms)
 
-**Export** — PNG / JPEG at 1–3× (this page or every page, one numbered
+**Export** — PNG / JPEG at 1–3× or at an exact size: type the long edge
+in pixels, or pick a preset (Instagram post, Story, Full HD, 4K, A4 and
+Letter at 300 dpi) and the scale follows. The selection alone can be
+exported, cropped to its bounds, and any raster can be copied to the
+clipboard as PNG. A warning appears before the export when the output
+would be under 1080 px on the long side or a photo would be stretched
+past the pixels it has (this page or every page, one numbered
 file each, with an optional transparent background that really removes
 the page's own), multi-page PDF and SVG, rendered with
 `ImageRenderer` from the very views the canvas shows, delivered through
