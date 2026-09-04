@@ -116,6 +116,13 @@ struct Element: Codable, Equatable, Identifiable {
     var cropScale: Double?
     var cropX: Double?
     var cropY: Double?
+    /// Degrees the picture is turned inside its frame, -45…45, to level a
+    /// horizon. The frame does not turn; the picture is scaled up to keep
+    /// covering it.
+    var straighten: Double?
+    /// Fit the whole picture inside the frame (letterboxed) instead of
+    /// filling the frame and cropping. nil is fill.
+    var cropFit: Bool?
 
     // sticker
     var glyph: String?
@@ -175,6 +182,8 @@ struct Element: Codable, Equatable, Identifiable {
         cropScale = try? c.decode(Double.self, forKey: .cropScale)
         cropX = try? c.decode(Double.self, forKey: .cropX)
         cropY = try? c.decode(Double.self, forKey: .cropY)
+        straighten = try? c.decode(Double.self, forKey: .straighten)
+        cropFit = try? c.decode(Bool.self, forKey: .cropFit)
         glyph = try? c.decode(String.self, forKey: .glyph)
         thickness = try? c.decode(Double.self, forKey: .thickness)
         dash = try? c.decode(String.self, forKey: .dash)
@@ -204,7 +213,7 @@ struct Element: Codable, Equatable, Identifiable {
         case shapeId, fill, stroke, strokeWidth, radius
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve
-        case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY
+        case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit
         case glyph
         case thickness, dash, startCap, endCap
     }

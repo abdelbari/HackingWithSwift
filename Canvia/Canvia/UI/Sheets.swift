@@ -415,8 +415,35 @@ struct CropSheet: View {
                     Section("Vertical focus") {
                         Slider(value: cropBinding(el.cropY ?? 0.5) { v, e in e.cropY = v }, in: 0...1)
                     }
-                    Button("Reset crop") {
-                        store.updateSelected { $0.cropScale = 1; $0.cropX = 0.5; $0.cropY = 0.5 }
+                    Section {
+                        Slider(value: cropBinding(el.straighten ?? 0) { v, e in
+                            e.straighten = abs(v) < 0.05 ? nil : v
+                        }, in: -45...45)
+                    } header: {
+                        Text("Straighten")
+                    } footer: {
+                        Text("\(String(format: "%.1f", el.straighten ?? 0))° — the picture turns inside its frame and grows to keep covering it.")
+                    }
+                    Section("Frame") {
+                        Picker("Fill", selection: Binding(
+                            get: { el.cropFit == true ? 1 : 0 },
+                            set: { choice in store.updateSelected { $0.cropFit = choice == 1 ? true : nil } })) {
+                            Text("Fill").tag(0)
+                            Text("Fit").tag(1)
+                        }
+                        .pickerStyle(.segmented)
+                        aspectRow(el)
+                    }
+                    Section {
+                        Button {
+                            focusOnSubject(el)
+                        } label: { Label("Focus on the subject", systemImage: "viewfinder") }
+                        Button("Reset crop") {
+                            store.updateSelected {
+                                $0.cropScale = 1; $0.cropX = 0.5; $0.cropY = 0.5
+                                $0.straighten = nil; $0.cropFit = nil
+                            }
+                        }
                     }
                 }
             }
@@ -438,6 +465,51 @@ struct CropSheet: View {
     private func cropBinding(_ value: Double,
                              _ set: @escaping (Double, inout Element) -> Void) -> Binding<Double> {
         Binding(get: { value }, set: { v in store.updateSelectedTransient { set(v, &$0) } })
+    }
+
+    /// The frame's proportions, as the platforms name them. Reshaping keeps
+    /// the frame's centre and its width; the picture inside re-covers it.
+    static let aspects: [(name: String, ratio: Double)] = [
+        ("1:1", 1), ("4:5", 4.0 / 5), ("3:2", 3.0 / 2), ("4:3", 4.0 / 3), ("16:9", 16.0 / 9), ("9:16", 9.0 / 16),
+    ]
+
+    private func aspectRow(_ el: Element) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(Self.aspects, id: \.name) { aspect in
+                    let active = abs(el.w / max(el.h, 1) - aspect.ratio) < 0.01
+                    Button(aspect.name) {
+                        store.updateSelected { e in
+                            let centre = CGPoint(x: e.x + e.w / 2, y: e.y + e.h / 2)
+                            e.h = (e.w / aspect.ratio).rounded()
+                            e.x = centre.x - e.w / 2
+                            e.y = centre.y - e.h / 2
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(active ? Theme.accent : .secondary)
+                    .controlSize(.small)
+                }
+            }
+        }
+    }
+
+    /// Put the crop's focus where Vision says the subject is, and zoom in a
+    /// little if the crop is at rest — a focus point on an uncropped picture
+    /// changes nothing visible.
+    private func focusOnSubject(_ el: Element) {
+        guard let image = PhotoLibrary.resolve(el.src) else { return }
+        Task.detached(priority: .userInitiated) {
+            let point = SmartCrop.focalPoint(in: image)
+            await MainActor.run {
+                guard let point else { return }
+                store.updateSelected {
+                    $0.cropX = point.x
+                    $0.cropY = point.y
+                    if ($0.cropScale ?? 1) < 1.05 { $0.cropScale = 1.3 }
+                }
+            }
+        }
     }
 }
 

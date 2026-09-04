@@ -400,6 +400,20 @@ enum MediaStore {
         }
     }
 
+    /// Store a picture that is already the right size and has nothing
+    /// see-through in it, as JPEG.
+    static func storeOpaque(_ image: UIImage, quality: CGFloat = 0.85) -> String? {
+        guard let data = image.jpegData(compressionQuality: quality) else { return nil }
+        let id = UID.make("img")
+        do {
+            try data.write(to: directory.appendingPathComponent("\(id).jpg"))
+            memory.setObject(image, forKey: id as NSString)
+            return "media:\(id)"
+        } catch {
+            return nil
+        }
+    }
+
     /// Store an image that has to keep its transparency, as PNG.
     static func storeTransparent(_ image: UIImage) -> String? {
         guard let data = image.pngData() else { return nil }

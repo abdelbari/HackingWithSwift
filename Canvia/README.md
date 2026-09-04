@@ -89,6 +89,12 @@ duplicate / delete via long-press), and a template gallery.
   an opaque screenshot as the far smaller JPEG — and every colour picker
   offers "From the photo": the six most prominent colours of the selected
   picture or the page's background picture, read from its pixels.
+- A real crop: zoom and focus, a straighten slider (the picture turns
+  inside its frame and grows exactly enough to keep covering it), fill
+  or fit, the platform aspect presets, and Focus on the subject — Vision
+  saliency puts the focus where a person would look first.
+- PDF import: each page rendered upright at import size and placed as a
+  picture — one page onto this page, a document as new pages of its own.
 - Document theme: pick a palette and a type pairing, see page one
   wearing them, apply to every page as one undo step — colours remapped
   by luminance rank, headings (32 px and up) and body text given the

@@ -247,6 +247,20 @@ enum Geometry {
         return stride(from: 0, through: length, by: spacing).map { $0 }
     }
 
+    /// How much a `width` × `height` picture turned by `degrees` has to grow
+    /// to still cover a frame of the same size. A levelled horizon must not
+    /// show the frame's corners through the picture's.
+    static func coverScale(width: Double, height: Double, degrees: Double) -> Double {
+        guard width > 0, height > 0 else { return 1 }
+        let r = abs(degrees) * .pi / 180
+        let c = abs(cos(r)), s = abs(sin(r))
+        // The rotated frame's bounding box, which the unrotated picture must
+        // span in both directions.
+        let needW = width * c + height * s
+        let needH = width * s + height * c
+        return max(needW / width, needH / height, 1)
+    }
+
     // MARK: selection and group transforms
 
     /// The elements a rubber band drawn over `rect` picks up: anything

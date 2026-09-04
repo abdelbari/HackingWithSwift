@@ -340,7 +340,12 @@ struct ImageElementView: View {
         GeometryReader { _ in
             if let ui = resolvedImage() {
                 let frameW = element.w, frameH = element.h
-                let scale = max(frameW / ui.size.width, frameH / ui.size.height)
+                // Fill covers the frame and crops; fit shows the whole picture
+                // and leaves the frame's remainder empty.
+                let fit = element.cropFit == true
+                let scale = fit
+                    ? min(frameW / ui.size.width, frameH / ui.size.height)
+                    : max(frameW / ui.size.width, frameH / ui.size.height)
                 let dispW = ui.size.width * scale
                 let dispH = ui.size.height * scale
                 let cropX = element.cropX ?? 0.5
@@ -349,11 +354,16 @@ struct ImageElementView: View {
                 // aligns with the same fraction of the frame.
                 let offsetX = (dispW - frameW) * (0.5 - cropX)
                 let offsetY = (dispH - frameH) * (0.5 - cropY)
+                let tilt = element.straighten ?? 0
+                // Levelling turns the picture inside the frame; in fill mode
+                // it also grows so the frame's corners stay covered.
+                let cover = fit ? 1 : Geometry.coverScale(width: frameW, height: frameH, degrees: tilt)
                 Image(uiImage: ui)
                     .resizable()
                     .frame(width: dispW, height: dispH)
+                    .rotationEffect(.degrees(tilt))
                     .position(x: frameW / 2 + offsetX, y: frameH / 2 + offsetY)
-                    .scaleEffect(element.cropScale ?? 1,
+                    .scaleEffect((element.cropScale ?? 1) * cover,
                                  anchor: UnitPoint(x: cropX, y: cropY))
             } else {
                 Color(hex: "#e3e6ea")

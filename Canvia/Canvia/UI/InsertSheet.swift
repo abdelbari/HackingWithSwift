@@ -2,6 +2,7 @@
 // stickers, and photo-library uploads.
 
 import SwiftUI
+import UniformTypeIdentifiers
 import UIKit
 import PhotosUI
 
@@ -11,6 +12,7 @@ struct InsertSheet: View {
     @State private var tab = "Templates"
     @State private var search = ""
     @State private var pickedItems: [PhotosPickerItem] = []
+    @State private var importingPDF = false
     @State private var qrPayload = ""
     @FocusState private var qrFocused: Bool
 
@@ -51,6 +53,10 @@ struct InsertSheet: View {
         .onAppear {
             // Replacing? Go straight to the picture sources.
             if isReplacing { tab = "Photos" }
+        }
+        .fileImporter(isPresented: $importingPDF, allowedContentTypes: [.pdf]) { result in
+            guard case .success(let url) = result else { return }
+            importPDF(url)
         }
         .onDisappear {
             // Abandoning the sheet must not leave a replace pending.
@@ -306,6 +312,43 @@ struct InsertSheet: View {
         store.selection = [heading.id, body.id]
     }
 
+    // MARK: pdf
+
+    /// One page becomes a picture on this page; several become pages of
+    /// their own after it, each picture fitted to the page.
+    private func importPDF(_ url: URL) {
+        let scoped = url.startAccessingSecurityScopedResource()
+        let data = try? Data(contentsOf: url)
+        if scoped { url.stopAccessingSecurityScopedResource() }
+        guard let data else { return }
+        let target = store.replaceTargetId
+        Task {
+            let stored = await Task.detached(priority: .userInitiated) { () -> [(src: String, natural: CGSize)] in
+                PDFImporter.pages(of: data).compactMap { image in
+                    MediaStore.storeOpaque(image).map { ($0, image.size) }
+                }
+            }.value
+            guard !stored.isEmpty else { return }
+            if stored.count == 1 || target != nil {
+                insertImage(stored[0].src, natural: stored[0].natural, replacing: target)
+            } else {
+                let w = store.design.width, h = store.design.height
+                let pages = stored.map { item -> Page in
+                    let scale = min(w / max(item.natural.width, 1), h / max(item.natural.height, 1))
+                    var el = Element.image(item.src, w: (item.natural.width * scale).rounded(),
+                                           h: (item.natural.height * scale).rounded())
+                    el.x = ((w - el.w) / 2).rounded()
+                    el.y = ((h - el.h) / 2).rounded()
+                    return Page(elements: [el])
+                }
+                let at = store.pageIndex + 1
+                store.apply { $0.pages.insert(contentsOf: pages, at: at) }
+                store.setPage(at)
+            }
+            dismiss()
+        }
+    }
+
     // MARK: photos
 
     private var photosGrid: some View {
@@ -316,6 +359,15 @@ struct InsertSheet: View {
                          matching: .images) {
                 Label(store.replaceTargetId == nil ? "Add from Photo Library" : "Choose a replacement",
                       systemImage: "photo.badge.plus")
+                    .frame(maxWidth: .infinity)
+                    .padding(10)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
+            }
+            Button {
+                importingPDF = true
+            } label: {
+                Label(isReplacing ? "Replace with a PDF page" : "Import a PDF (each page becomes a page)",
+                      systemImage: "doc.richtext")
                     .frame(maxWidth: .infinity)
                     .padding(10)
                     .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
