@@ -258,7 +258,7 @@ struct InsertSheet: View {
             var el = Element.text(label, fontSize: (store.design.width * size).rounded(),
                                   w: (store.design.width * 0.72).rounded())
             el.fontWeight = weight
-            el.h = FontLibrary.measuredHeight(for: el)
+            el.h = FontLibrary.layoutHeight(for: el)
             store.add(el)
             dismiss()
         } label: {
@@ -282,7 +282,7 @@ struct InsertSheet: View {
         heading.fontWeight = pairing.heading.fontWeight
         heading.letterSpacing = (pairing.heading.letterSpacing ?? 0) * scale
         heading.x = x; heading.y = y0
-        heading.h = FontLibrary.measuredHeight(for: heading)
+        heading.h = FontLibrary.layoutHeight(for: heading)
 
         var body = Element.text(pairing.body.text,
                                 fontSize: pairing.body.fontSize * scale, w: w)
@@ -290,7 +290,7 @@ struct InsertSheet: View {
         body.fontWeight = pairing.body.fontWeight
         body.letterSpacing = (pairing.body.letterSpacing ?? 0) * scale
         body.x = x; body.y = y0 + heading.h + 14 * scale
-        body.h = FontLibrary.measuredHeight(for: body)
+        body.h = FontLibrary.layoutHeight(for: body)
 
         store.applyToPage { page in
             page.elements.append(contentsOf: [heading, body])

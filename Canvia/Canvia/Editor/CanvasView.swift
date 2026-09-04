@@ -252,7 +252,7 @@ struct CanvasView: View {
                     el.fontSize = max(6, (original.fontSize ?? 42) * scale)
                     el.h = next.height
                 } else {
-                    el.h = FontLibrary.measuredHeight(for: el)
+                    el.h = FontLibrary.layoutHeight(for: el)
                 }
             case .line:
                 el.y = next.minY + (next.height - original.h) / 2
@@ -319,7 +319,7 @@ struct CanvasView: View {
                 store.beginGesture()
                 if let i = store.design.pages[store.pageIndex].elements.firstIndex(where: { $0.id == el.id }) {
                     store.design.pages[store.pageIndex].elements[i].text = newValue
-                    let h = FontLibrary.measuredHeight(for: store.design.pages[store.pageIndex].elements[i])
+                    let h = FontLibrary.layoutHeight(for: store.design.pages[store.pageIndex].elements[i])
                     store.design.pages[store.pageIndex].elements[i].h = h
                 }
             })

@@ -22,7 +22,18 @@ enum TextOutliner {
     /// Every glyph of `el`, as one path in the element's own coordinate space:
     /// origin at its top-left, y increasing downward, which is the space SVG
     /// and the canvas both use.
+    /// Below this the arc is indistinguishable from a straight line, and the
+    /// radius it implies is large enough to lose precision.
+    static let straightBelowDegrees = 1.0
+
     static func path(for el: Element) -> CGPath? {
+        if let degrees = el.curve, abs(degrees) >= straightBelowDegrees {
+            return curvedPath(for: el, degrees: degrees)
+        }
+        return straightPath(for: el)
+    }
+
+    private static func straightPath(for el: Element) -> CGPath? {
         let text = FontLibrary.displayText(for: el)
         guard !text.isEmpty, el.w > 0, el.h > 0 else { return nil }
 
@@ -84,6 +95,95 @@ enum TextOutliner {
             let transform = CGAffineTransform(translationX: x, y: y).scaledBy(x: 1, y: -1)
             combined.addPath(glyph, transform: transform)
         }
+    }
+
+    // MARK: curved
+
+    /// Glyphs laid along an arc spanning `degrees`, centred in the element's
+    /// box. A single line always: wrapping and an arc are contradictory, and a
+    /// curved headline is what this is for.
+    ///
+    /// The whole layout is one circle. The text's own advance width fixes the
+    /// radius — span the same width over a wider angle and the circle gets
+    /// tighter — so the letters stay their natural size and only their
+    /// baseline bends, which is what makes it read as type on a curve rather
+    /// than as type that has been squashed.
+    static func curvedPath(for el: Element, degrees: Double) -> CGPath? {
+        let flat = FontLibrary.displayText(for: el)
+            .components(separatedBy: "\n")
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !flat.isEmpty, el.w > 0, el.h > 0 else { return nil }
+
+        let attributed = NSAttributedString(string: flat,
+                                            attributes: FontLibrary.attributes(for: el))
+        let line = CTLineCreateWithAttributedString(attributed)
+        let width = CTLineGetTypographicBounds(line, nil, nil, nil)
+        guard width > 0.5, let runs = CTLineGetGlyphRuns(line) as? [CTRun] else { return nil }
+
+        let theta = degrees * .pi / 180
+        let radius = width / theta
+        let declared = FontLibrary.uiFont(family: el.fontFamily,
+                                          size: el.fontSize ?? 42,
+                                          weight: el.fontWeight ?? 400,
+                                          italic: el.italic ?? false)
+
+        let combined = CGMutablePath()
+        for run in runs {
+            let count = CTRunGetGlyphCount(run)
+            guard count > 0 else { continue }
+            let attributes = CTRunGetAttributes(run) as? [String: Any]
+            let uiFont = attributes?[kCTFontAttributeName as String] as? UIFont ?? declared
+            let font = CTFontCreateWithName(uiFont.fontName as CFString, uiFont.pointSize, nil)
+
+            var glyphs = [CGGlyph](repeating: 0, count: count)
+            var positions = [CGPoint](repeating: .zero, count: count)
+            var advances = [CGSize](repeating: .zero, count: count)
+            let range = CFRange(location: 0, length: count)
+            CTRunGetGlyphs(run, range, &glyphs)
+            CTRunGetPositions(run, range, &positions)
+            CTRunGetAdvances(run, range, &advances)
+
+            for i in 0..<count {
+                guard let glyph = CTFontCreatePathForGlyph(font, glyphs[i], nil) else { continue }
+                // Place each glyph by its own centre rather than its left edge,
+                // so wide and narrow letters sit evenly around the arc instead
+                // of drifting anticlockwise as the line goes on.
+                let centreAdvance = positions[i].x + advances[i].width / 2
+                let angle = (centreAdvance / width - 0.5) * theta
+                let point = CGPoint(x: radius * sin(angle), y: radius * (1 - cos(angle)))
+                let transform = CGAffineTransform(translationX: point.x, y: point.y)
+                    .rotated(by: angle)
+                    .translatedBy(x: -advances[i].width / 2, y: 0)
+                    .scaledBy(x: 1, y: -1)
+                combined.addPath(glyph, transform: transform)
+            }
+        }
+        guard !combined.isEmpty else { return nil }
+
+        // Centre the arc in the element's box. Its own bounds are the only
+        // honest anchor: where the apex lands depends on the angle, and a
+        // fixed offset would slide the text off a steeply curved element.
+        let bounds = combined.boundingBoxOfPath
+        var centring = CGAffineTransform(
+            translationX: (el.w - bounds.width) / 2 - bounds.minX,
+            y: (el.h - bounds.height) / 2 - bounds.minY)
+        return combined.copy(using: &centring)
+    }
+
+    /// The box a curved element needs. Bending a line of text makes it both
+    /// narrower and much taller, and nothing else in the app can work that
+    /// out — the straight measurement would clip the arc away.
+    static func curvedSize(for el: Element, degrees: Double) -> CGSize? {
+        var probe = el
+        // Measure in a box large enough that the centring above cannot clamp
+        // anything, then read the ink's own extent.
+        probe.w = max(el.w, 1)
+        probe.h = max(el.w, 1) * 4
+        probe.curve = degrees
+        guard let path = curvedPath(for: probe, degrees: degrees) else { return nil }
+        let bounds = path.boundingBoxOfPath
+        return CGSize(width: ceil(bounds.width), height: ceil(bounds.height))
     }
 
     /// SVG path data for a CGPath. Coordinates are rounded to `precision`

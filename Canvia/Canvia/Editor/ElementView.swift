@@ -105,6 +105,10 @@ struct TextElementView: View {
         let effect = TextEffect.from(el.effect)
         let text = FontLibrary.displayText(for: el)
         guard !text.isEmpty else { return }
+        if let degrees = el.curve, abs(degrees) >= TextOutliner.straightBelowDegrees {
+            drawCurvedText(in: cg, size: size, effect: effect)
+            return
+        }
         var attrs = FontLibrary.attributes(for: el)
         let fontSize = el.fontSize ?? 42
         let color = UIColor(hex: el.color ?? "#1f2430")
@@ -169,6 +173,59 @@ struct TextElementView: View {
             str.draw(in: rect)
         default:
             NSAttributedString(string: text, attributes: attrs).draw(in: rect)
+        }
+    }
+
+    /// Curved text is drawn from its outlines rather than by NSAttributedString,
+    /// because there is no attributed-string way to bend a baseline. The
+    /// effects that survive that are the ones a filled path can carry — the
+    /// shadows and the glow; outline and splice become a stroke on the same
+    /// path, and glitch becomes two offset fills.
+    private func drawCurvedText(in cg: CGContext, size: CGSize, effect: TextEffect) {
+        var el = element
+        el.w = size.width
+        el.h = size.height
+        guard let path = TextOutliner.path(for: el) else { return }
+        let fontSize = el.fontSize ?? 42
+        let color = UIColor(hex: el.color ?? "#1f2430")
+
+        switch effect {
+        case .shadow:
+            cg.setShadow(offset: CGSize(width: fontSize * 0.06, height: fontSize * 0.06),
+                         blur: fontSize * 0.12, color: UIColor.black.withAlphaComponent(0.55).cgColor)
+        case .lift:
+            cg.setShadow(offset: CGSize(width: 0, height: fontSize * 0.18),
+                         blur: fontSize * 0.5, color: UIColor.black.withAlphaComponent(0.35).cgColor)
+        case .neon:
+            cg.setShadow(offset: .zero, blur: fontSize * 0.35,
+                         color: color.withAlphaComponent(0.85).cgColor)
+        default:
+            break
+        }
+
+        switch effect {
+        case .outline, .splice:
+            cg.addPath(path)
+            cg.setStrokeColor(color.cgColor)
+            cg.setLineWidth(max(2.5, fontSize * 0.035))
+            cg.setLineJoin(.round)
+            cg.strokePath()
+        case .glitch:
+            for (dx, tint) in [(fontSize * 0.06, "#00e5ff"), (-fontSize * 0.06, "#ff2d78")] {
+                cg.saveGState()
+                cg.translateBy(x: dx, y: 0)
+                cg.addPath(path)
+                cg.setFillColor(UIColor(hex: tint).withAlphaComponent(0.85).cgColor)
+                cg.fillPath()
+                cg.restoreGState()
+            }
+            cg.addPath(path)
+            cg.setFillColor(color.cgColor)
+            cg.fillPath()
+        default:
+            cg.addPath(path)
+            cg.setFillColor(color.cgColor)
+            cg.fillPath()
         }
     }
 

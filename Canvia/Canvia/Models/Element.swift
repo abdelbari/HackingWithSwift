@@ -48,6 +48,9 @@ struct Element: Codable, Equatable, Identifiable {
     var color: String?
     var listStyle: String?
     var effect: TextEffectSpec?
+    /// Degrees of arc for curved text. Positive bends the baseline into a
+    /// rainbow, negative into a valley; nil or zero is a straight line.
+    var curve: Double?
 
     // image
     var src: String?
@@ -101,6 +104,7 @@ struct Element: Codable, Equatable, Identifiable {
         color = try? c.decode(String.self, forKey: .color)
         listStyle = try? c.decode(String.self, forKey: .listStyle)
         effect = try? c.decode(TextEffectSpec.self, forKey: .effect)
+        curve = try? c.decode(Double.self, forKey: .curve)
         src = try? c.decode(String.self, forKey: .src)
         filter = try? c.decode(String.self, forKey: .filter)
         cropScale = try? c.decode(Double.self, forKey: .cropScale)
@@ -134,7 +138,7 @@ struct Element: Codable, Equatable, Identifiable {
         case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group
         case shapeId, fill, stroke, strokeWidth, radius
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
-        case lineHeight, letterSpacing, color, listStyle, effect
+        case lineHeight, letterSpacing, color, listStyle, effect, curve
         case src, filter, cropScale, cropX, cropY
         case glyph
         case thickness, dash, startCap, endCap

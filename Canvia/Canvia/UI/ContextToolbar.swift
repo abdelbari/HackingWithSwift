@@ -137,14 +137,40 @@ struct ContextToolbar: View {
             toggle("list.bullet", "Bulleted list", active: el.listStyle == "bullet") {
                 store.updateSelected {
                     $0.listStyle = $0.listStyle == "bullet" ? "none" : "bullet"
-                    $0.h = FontLibrary.measuredHeight(for: $0)
+                    $0.h = FontLibrary.layoutHeight(for: $0)
                 }
             }
         }
         HStack(spacing: 14) {
             toolButton("wand.and.stars", "Effects") { activeSheet = .effects }
             toolButton("arrow.up.and.down.text.horizontal", "Spacing") { activeSheet = .spacing }
+            sliderControl("Curve", value: el.curve ?? 0, in: -180...180) { degrees in
+                store.updateSelectedTransient { curve($0, to: degrees) }
+            }
         }
+    }
+
+    /// Bend a text element's baseline, and resize its box to the ink.
+    ///
+    /// Curving makes a line of text shorter and much taller, and nothing else
+    /// in the app can work that out — the straight measurement would leave the
+    /// arc hanging outside its own selection box. The width only ever grows,
+    /// so straightening the text again returns it to the wrap width the user
+    /// chose rather than to whatever the widest arc happened to need.
+    private func curve(_ el: inout Element, to degrees: Double) {
+        let centre = CGPoint(x: el.x + el.w / 2, y: el.y + el.h / 2)
+        let straight = abs(degrees) < TextOutliner.straightBelowDegrees
+        el.curve = straight ? nil : degrees
+        if straight {
+            // measuredHeight, not layoutHeight: the curve has just been
+            // cleared and this is deliberately the flat measurement.
+            el.h = FontLibrary.measuredHeight(for: el)
+        } else if let size = TextOutliner.curvedSize(for: el, degrees: degrees) {
+            el.w = max(el.w, size.width)
+            el.h = max(size.height, el.fontSize ?? 42)
+        }
+        el.x = centre.x - el.w / 2
+        el.y = centre.y - el.h / 2
     }
 
     private func fontSizeStepper(_ el: Element) -> some View {
@@ -383,7 +409,7 @@ struct ContextToolbar: View {
     private func bumpFontSize(_ delta: Double) {
         store.updateSelected { el in
             el.fontSize = min(500, max(6, (el.fontSize ?? 42) + delta))
-            el.h = FontLibrary.measuredHeight(for: el)
+            el.h = FontLibrary.layoutHeight(for: el)
         }
     }
 }

@@ -163,6 +163,7 @@ final class ElementEqualityTests: XCTestCase {
             ("color", { $0.color = "#ff0000" }),
             ("listStyle", { $0.listStyle = "bullet" }),
             ("effect", { $0.effect = TextEffectSpec(type: "neon") }),
+            ("curve", { $0.curve = 90 }),
             ("src", { $0.src = "asset:other" }),
             ("filter", { $0.filter = "vivid" }),
             ("cropScale", { $0.cropScale = 2 }),

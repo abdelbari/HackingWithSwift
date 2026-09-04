@@ -53,7 +53,7 @@ struct Template: Codable, Identifiable {
             if el.type == .line, let t = el.thickness { el.thickness = max(1, t * scale) }
             // Measure after scaling: the spec carries no height, and the
             // decoder's line-count estimate ignores leading and wrapping.
-            if el.type == .text { el.h = FontLibrary.measuredHeight(for: el) }
+            if el.type == .text { el.h = FontLibrary.layoutHeight(for: el) }
             return el
         }
         return page

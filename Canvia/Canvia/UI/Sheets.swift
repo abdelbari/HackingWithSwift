@@ -322,7 +322,7 @@ struct SpacingSheet: View {
             set: { v in
                 store.updateSelectedTransient { el in
                     set(v, &el)
-                    if el.type == .text { el.h = FontLibrary.measuredHeight(for: el) }
+                    if el.type == .text { el.h = FontLibrary.layoutHeight(for: el) }
                 }
             })
     }

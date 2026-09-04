@@ -30,7 +30,10 @@ duplicate / delete via long-press), and a template gallery.
   photos, photo-library imports, QR codes generated from a link or any
   text (regenerated from the document, so they stay editable and nothing
   is stored), 8 complete templates that apply into any canvas size
-- Text: inline editing (double-tap), 12 font personalities mapped to fonts
+- Text: curved text on an arc from -180° to 180° (glyphs placed along one
+  circle whose radius the line's own width fixes, so letters keep their
+  size rather than being squashed to fit), inline editing (double-tap),
+  12 font personalities mapped to fonts
   that ship with iOS (Didot, Rockwell, Futura Condensed ExtraBold, Menlo,
   Snell Roundhand, …), 8 text effects (shadow, lift, hollow, splice, neon,
   echo, highlight) drawn through one CoreText pipeline shared by canvas,

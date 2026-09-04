@@ -155,7 +155,7 @@ struct Design: Codable, Equatable, Identifiable {
     mutating func normalizeTextHeights() {
         for p in pages.indices {
             for i in pages[p].elements.indices where pages[p].elements[i].type == .text {
-                let measured = FontLibrary.measuredHeight(for: pages[p].elements[i])
+                let measured = FontLibrary.layoutHeight(for: pages[p].elements[i])
                 if measured > pages[p].elements[i].h {
                     pages[p].elements[i].h = measured
                 }

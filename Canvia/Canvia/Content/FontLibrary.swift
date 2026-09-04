@@ -196,7 +196,22 @@ enum FontLibrary {
             .joined(separator: "\n")
     }
 
-    /// Natural height of a text element at its wrap width.
+    /// The height a text element's box needs — the one everything outside this
+    /// file should ask for.
+    ///
+    /// Curving a line makes it much taller than its flat measurement, so a
+    /// caller that reached past this to measuredHeight would keep resetting a
+    /// curved element's box to the straight height and clip the arc away. That
+    /// is why this exists rather than each call site deciding.
+    static func layoutHeight(for el: Element) -> Double {
+        if let degrees = el.curve, abs(degrees) >= TextOutliner.straightBelowDegrees,
+           let curved = TextOutliner.curvedSize(for: el, degrees: degrees) {
+            return max(curved.height, el.fontSize ?? 42)
+        }
+        return measuredHeight(for: el)
+    }
+
+    /// Natural height of a text element at its wrap width, ignoring any curve.
     static func measuredHeight(for el: Element) -> Double {
         let key = MeasureKey(typography: TypographyKey(el), text: el.text,
                              listStyle: el.listStyle, width: el.w)
