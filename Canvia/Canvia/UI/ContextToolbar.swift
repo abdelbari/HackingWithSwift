@@ -10,6 +10,7 @@ import SwiftUI
 /// frame at all — a 17pt glyph over a 9.5pt label, about 32pt tall.
 private struct ToolButtonStyle: ButtonStyle {
     var minWidth: Double = Touch.minTarget
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -17,7 +18,7 @@ private struct ToolButtonStyle: ButtonStyle {
             .contentShape(Rectangle())
             .opacity(configuration.isPressed ? 0.45 : 1)
             .scaleEffect(configuration.isPressed ? 0.92 : 1)
-            .animation(.spring(response: 0.22, dampingFraction: 0.7),
+            .animation(reduceMotion ? nil : .spring(response: 0.22, dampingFraction: 0.7),
                        value: configuration.isPressed)
             .sensoryFeedback(trigger: configuration.isPressed) { _, pressed in
                 pressed ? .impact(weight: .light) : nil
@@ -26,6 +27,7 @@ private struct ToolButtonStyle: ButtonStyle {
 }
 
 struct ContextToolbar: View {
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiate
     @Bindable var store: DesignStore
     @Binding var activeSheet: EditorSheet?
 
@@ -412,6 +414,13 @@ struct ContextToolbar: View {
                 .background(RoundedRectangle(cornerRadius: 8)
                     .fill(active ? Theme.accentSubtle : Color.clear))
                 .foregroundStyle(active ? Theme.accent : Color.primary)
+                // Differentiate Without Colour: "on" is also a bar under
+                // the glyph, not only a tint.
+                .overlay(alignment: .bottom) {
+                    if active && differentiate {
+                        Capsule().fill(Theme.accent).frame(width: 16, height: 2).padding(.bottom, 3)
+                    }
+                }
         }
         .buttonStyle(ToolButtonStyle())
         // The only icon-only control in the bar; the rest carry a visible

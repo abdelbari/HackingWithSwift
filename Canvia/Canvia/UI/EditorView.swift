@@ -21,7 +21,7 @@ private struct AccentButtonStyle: ButtonStyle {
 enum EditorSheet: String, Identifiable {
     case insert, colorFill, colorText, colorLine, colorStroke, background
     case fonts, effects, spacing, filters, crop, position, layers, export, resize, find, frame, shadow
-    case history, proofread, theme
+    case history, proofread, theme, help
     var id: String { rawValue }
 }
 
@@ -36,10 +36,14 @@ struct EditorView: View {
     @State private var titleBeforeEdit = ""
     @State private var toast: String?
     @State private var toastTask: Task<Void, Never>?
+    @State private var tip: Tip?
+    @State private var tipTask: Task<Void, Never>?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 0) {
             topBar
+            if let tip { tipBanner(tip) }
             ZStack(alignment: .bottomTrailing) {
                 CanvasView(store: store)
                 insertButton
@@ -63,6 +67,11 @@ struct EditorView: View {
             guard let text else { return }
             store.announcement = nil
             show(toast: text)
+        }
+        .onChange(of: store.tipEvent) { _, event in
+            guard let event else { return }
+            store.tipEvent = nil
+            if let next = TipEngine.shared.tip(for: event) { show(tip: next) }
         }
         .animation(.spring(response: 0.30, dampingFraction: 0.86),
                    value: store.selection.isEmpty)
@@ -207,6 +216,10 @@ struct EditorView: View {
                 Button {
                     activeSheet = .theme
                 } label: { Label("Document theme", systemImage: "paintpalette") }
+
+                Button {
+                    activeSheet = .help
+                } label: { Label("Help", systemImage: "questionmark.circle") }
 
                 Button {
                     // Whatever is on screen now is the newest version, so
@@ -363,6 +376,16 @@ struct EditorView: View {
             ProofreadSheet(store: store)
         case .theme:
             ThemeSheet(store: store)
+        case .help:
+            // The help sheet is itself presented; the one it opens has to
+            // wait for it to be gone, or SwiftUI drops the second present.
+            HelpSheet { sheet in
+                activeSheet = nil
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(400))
+                    activeSheet = sheet
+                }
+            }
         }
     }
 
@@ -398,9 +421,52 @@ struct EditorView: View {
         }
     }
 
+    // MARK: tips
+
+    /// One line under the top bar, with a way to close it, gone on its own
+    /// after a while. Above the canvas rather than over it: a tip must never
+    /// cover the thing it is talking about.
+    private func tipBanner(_ tip: Tip) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: tip.systemImage)
+                .foregroundStyle(Theme.accent)
+                .padding(.top, 1)
+            Text(tip.text)
+                .font(.footnote)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            Button {
+                dismissTip()
+            } label: { Image(systemName: "xmark").font(.footnote.weight(.semibold)) }
+                .accessibilityLabel("Dismiss tip")
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Theme.accentSubtle)
+        .overlay(alignment: .bottom) { Divider() }
+        .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
+        .accessibilityElement(children: .combine)
+    }
+
+    private func show(tip next: Tip) {
+        tipTask?.cancel()
+        withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85)) { tip = next }
+        tipTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(9))
+            guard !Task.isCancelled else { return }
+            dismissTip()
+        }
+    }
+
+    private func dismissTip() {
+        tipTask?.cancel()
+        tipTask = nil
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { tip = nil }
+    }
+
     private func show(toast text: String) {
         toastTask?.cancel()
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { toast = text }
+        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { toast = text }
         toastTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(4))
             guard !Task.isCancelled else { return }
@@ -411,7 +477,7 @@ struct EditorView: View {
     private func dismissToast() {
         toastTask?.cancel()
         toastTask = nil
-        withAnimation(.easeOut(duration: 0.2)) { toast = nil }
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { toast = nil }
     }
 
     /// Snapping switches and the grid, in a submenu so the overflow stays a

@@ -31,13 +31,18 @@ struct InsertSheet: View {
                 .padding(.top, 8)
 
                 ScrollView {
-                    switch tab {
-                    case "Templates": templatesGrid
-                    case "Elements": elementsGrid
-                    case "Text": textList
-                    case "Photos": photosGrid
-                    case "Stickers": stickersGrid
-                    default: backgroundNote
+                    if nothingMatches {
+                        ContentUnavailableView.search(text: search)
+                            .padding(.top, 40)
+                    } else {
+                        switch tab {
+                        case "Templates": templatesGrid
+                        case "Elements": elementsGrid
+                        case "Text": textList
+                        case "Photos": photosGrid
+                        case "Stickers": stickersGrid
+                        default: backgroundNote
+                        }
                     }
                 }
             }
@@ -94,6 +99,20 @@ struct InsertSheet: View {
                 }
                 if placed > 0 { dismiss() }
             }
+        }
+    }
+
+    /// A search that finds nothing on this tab says so, rather than showing
+    /// a blank scroll view that looks like a load that never finished.
+    private var nothingMatches: Bool {
+        guard !search.isEmpty else { return false }
+        switch tab {
+        case "Templates": return filteredTemplates.isEmpty
+        case "Elements":
+            return !ContentLibrary.shapes.contains { $0.name.localizedCaseInsensitiveContains(search) }
+        case "Photos": return filteredPhotos.isEmpty
+        case "Stickers": return filteredStickerGroups.allSatisfy { $0.emoji.isEmpty }
+        default: return false
         }
     }
 

@@ -89,6 +89,15 @@ duplicate / delete via long-press), and a template gallery.
   an opaque screenshot as the far smaller JPEG — and every colour picker
   offers "From the photo": the six most prominent colours of the selected
   picture or the page's background picture, read from its pixels.
+- A help centre in the menu: searchable, offline, every topic with a
+  "Show me" that opens the sheet it describes. Contextual tips under the
+  top bar — first element, first text, first photo, first multi-selection,
+  a crowded page — each once per install and never two within a minute.
+  Real empty states: an empty Layers sheet, a search with no results, a
+  home screen with nothing on it yet, all say so.
+- Reduce Motion drops the springs on toasts, tips and buttons; Increase
+  Contrast thickens selection outlines; Differentiate Without Colour
+  marks the current page with a check and active toggles with a bar.
 - A real crop: zoom and focus, a straighten slider (the picture turns
   inside its frame and grows exactly enough to keep covering it), fill
   or fit, the platform aspect presets, and Focus on the subject — Vision

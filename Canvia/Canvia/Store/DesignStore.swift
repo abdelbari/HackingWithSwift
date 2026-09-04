@@ -172,11 +172,19 @@ final class DesignStore {
         } else {
             selection = ids
         }
+        if selection.count >= 2 { tipEvent = .multiSelected }
     }
 
     // MARK: element commands
 
     func add(_ element: Element, centered: Bool = true) {
+        defer {
+            let count = page.elements.count
+            tipEvent = count == 1 ? .firstElementAdded
+                : element.type == .text ? .textAdded
+                : element.type == .image ? .photoAdded
+                : count >= 6 ? .manyElements : nil
+        }
         var el = element
         if centered && el.x == 0 && el.y == 0 {
             el.x = (design.width - el.w) / 2
@@ -419,6 +427,10 @@ final class DesignStore {
     /// A one-line description of something just done that undo can reverse,
     /// for the toast to show. Cleared by the view once shown.
     var announcement: String?
+
+    /// Something just happened that a first-timer might want a word about.
+    /// The editor hands it to TipEngine, which decides whether to say it.
+    var tipEvent: TipEvent?
 
     private func announce(_ text: String) {
         announcement = text

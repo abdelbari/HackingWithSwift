@@ -622,6 +622,12 @@ struct LayersSheet: View {
     var body: some View {
         NavigationStack {
             List {
+                if store.page.elements.isEmpty {
+                    ContentUnavailableView("Nothing on this page yet",
+                                           systemImage: "square.3.layers.3d",
+                                           description: Text("Everything you add will be listed here, top-most first, and can be dragged into a new order."))
+                        .listRowBackground(Color.clear)
+                }
                 // Top-most first; List reordering maps back to array indices.
                 ForEach(Array(store.page.elements.reversed())) { el in
                     HStack(spacing: 12) {

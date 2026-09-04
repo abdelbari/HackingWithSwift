@@ -23,6 +23,9 @@ struct HomeView: View {
                 if !recents.isEmpty || !trashed.isEmpty {
                     searchBar
                 }
+                if recents.isEmpty && trashed.isEmpty {
+                    firstRunCard
+                }
                 if !recents.isEmpty {
                     HStack {
                         Text("Recent designs")
@@ -92,6 +95,28 @@ struct HomeView: View {
             $0.name.localizedCaseInsensitiveContains(needle)
                 || $0.category.localizedCaseInsensitiveContains(needle)
         }
+    }
+
+    /// What the home screen says before there is anything on it. A blank
+    /// space under the hero reads as a broken list; this says where things
+    /// will go and what to do first.
+    private var firstRunCard: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "rectangle.stack.badge.plus")
+                .font(.title)
+                .foregroundStyle(Theme.accent)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Your designs will show up here")
+                    .font(.subheadline.weight(.semibold))
+                Text("Pick a size above or a template below to start. Everything saves itself.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.card, in: RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal)
     }
 
     // MARK: search and sort

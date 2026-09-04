@@ -11,14 +11,19 @@ struct SelectionOverlay: View {
     var onRotateDrag: (CGPoint) -> Void
     var onRotateEnd: () -> Void
 
+    @Environment(\.colorSchemeContrast) private var contrast
+
     private var iz: Double { 1 / max(store.zoom, 0.01) }
+    /// Increase Contrast: heavier outlines, since a one-point accent line
+    /// over a busy photo is exactly what that setting is asking to fix.
+    private var weight: Double { contrast == .increased ? 1.8 : 1 }
 
     var body: some View {
         ZStack {
             let selected = store.selectedElements
 
             ForEach(selected) { el in
-                outline(el, lineWidth: selected.count > 1 ? 1 : 1.5)
+                outline(el, lineWidth: (selected.count > 1 ? 1 : 1.5) * weight)
             }
 
             if let el = store.singleSelection, !el.locked, store.editingTextId != el.id {

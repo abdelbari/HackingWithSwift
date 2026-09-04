@@ -8,6 +8,7 @@ struct PagesBar: View {
     @State private var confirmingDelete = false
     @State private var editingNotes = false
     @State private var organizing = false
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiate
 
     var body: some View {
         HStack(spacing: 10) {
@@ -110,8 +111,19 @@ struct PagesBar: View {
                 .overlay(RoundedRectangle(cornerRadius: 8)
                     .stroke(index == store.pageIndex ? Theme.accent : Color(.systemGray4),
                             lineWidth: index == store.pageIndex ? 2 : 1))
+                // Differentiate Without Colour: the current page is also the
+                // one with the check, not only the one with the purple edge.
+                .overlay(alignment: .bottomTrailing) {
+                    if differentiate && index == store.pageIndex {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white, Theme.accent)
+                            .padding(2)
+                    }
+                }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Page \(index + 1)\(index == store.pageIndex ? ", current" : "")")
     }
 }
 
