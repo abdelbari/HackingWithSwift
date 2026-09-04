@@ -190,6 +190,7 @@ final class DesignStore {
             page.elements.removeAll { ids.contains($0.id) }
         }
         selection.subtract(ids)   // anything locked stays selected, visibly
+        announce(ids.count == 1 ? "Deleted 1 element" : "Deleted \(ids.count) elements")
     }
 
     func duplicateSelected() {
@@ -383,6 +384,28 @@ final class DesignStore {
         }
     }
 
+    // MARK: announcements
+
+    /// A one-line description of something just done that undo can reverse,
+    /// for the toast to show. Cleared by the view once shown.
+    var announcement: String?
+
+    private func announce(_ text: String) {
+        announcement = text
+    }
+
+    /// Replace the whole document with a saved version, as one undo step —
+    /// restoring is itself an edit, and one you might want to take back.
+    func restore(_ version: Design) {
+        var restored = version
+        restored.id = design.id
+        restored.updatedAt = Date().timeIntervalSince1970 * 1000
+        apply { $0 = restored }
+        pageIndex = min(pageIndex, max(design.pages.count - 1, 0))
+        selection.removeAll()
+        announce("Restored an earlier version")
+    }
+
     // MARK: find and replace
 
     /// Where one match lives, so a caller can jump to it.
@@ -456,6 +479,7 @@ final class DesignStore {
                 }
             }
         }
+        announce(total == 1 ? "Replaced 1 occurrence" : "Replaced \(total) occurrences")
         return total
     }
 
@@ -613,9 +637,11 @@ final class DesignStore {
 
     func deletePage() {
         guard design.pages.count > 1 else { return }
+        let number = pageIndex + 1
         apply { $0.pages.remove(at: pageIndex) }
         pageIndex = min(pageIndex, design.pages.count - 1)
         selection.removeAll()
+        announce("Deleted page \(number)")
     }
 
     func movePage(by delta: Int) {

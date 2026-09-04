@@ -21,6 +21,7 @@ private struct AccentButtonStyle: ButtonStyle {
 enum EditorSheet: String, Identifiable {
     case insert, colorFill, colorText, colorLine, colorStroke, background
     case fonts, effects, spacing, filters, crop, position, layers, export, resize, find, frame, shadow
+    case history
     var id: String { rawValue }
 }
 
@@ -33,6 +34,8 @@ struct EditorView: View {
     @State private var paletteIndex = 0
     @FocusState private var titleFocused: Bool
     @State private var titleBeforeEdit = ""
+    @State private var toast: String?
+    @State private var toastTask: Task<Void, Never>?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -55,6 +58,12 @@ struct EditorView: View {
             PagesBar(store: store)
         }
         .background(keyboardCommands)
+        .overlay(alignment: .bottom) { undoToast }
+        .onChange(of: store.announcement) { _, text in
+            guard let text else { return }
+            store.announcement = nil
+            show(toast: text)
+        }
         .animation(.spring(response: 0.30, dampingFraction: 0.86),
                    value: store.selection.isEmpty)
         // The whole point of a design tool is that it answers your hands.
@@ -190,6 +199,14 @@ struct EditorView: View {
                 Button {
                     activeSheet = .find
                 } label: { Label("Find and replace", systemImage: "text.magnifyingglass") }
+
+                Button {
+                    // Whatever is on screen now is the newest version, so
+                    // the list never starts with a state you cannot get back
+                    // to.
+                    DesignLibrary.snapshot(store.design)
+                    activeSheet = .history
+                } label: { Label("Version history", systemImage: "clock.arrow.circlepath") }
             }
 
             Section {
@@ -322,7 +339,57 @@ struct EditorView: View {
             FrameSheet(store: store)
         case .shadow:
             ShadowSheet(store: store)
+        case .history:
+            VersionHistorySheet(store: store)
         }
+    }
+
+    // MARK: undo toast
+
+    /// A brief line after a destructive edit — delete, restore, replace all —
+    /// with an Undo button on it. The edits are already undoable from the
+    /// toolbar; the toast is for the moment right after, when you have not
+    /// yet looked for the button and are not sure the thing is gone.
+    @ViewBuilder
+    private var undoToast: some View {
+        if let toast {
+            HStack(spacing: 12) {
+                Text(toast)
+                    .font(.subheadline)
+                    .lineLimit(1)
+                Button("Undo") {
+                    store.undo()
+                    dismissToast()
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.accent)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(.regularMaterial, in: Capsule())
+            .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
+            // Clear of the pages bar and the context toolbar, both of which
+            // live at the bottom of the stack.
+            .padding(.bottom, store.selection.isEmpty ? 96 : 150)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    private func show(toast text: String) {
+        toastTask?.cancel()
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { toast = text }
+        toastTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            dismissToast()
+        }
+    }
+
+    private func dismissToast() {
+        toastTask?.cancel()
+        toastTask = nil
+        withAnimation(.easeOut(duration: 0.2)) { toast = nil }
     }
 
     // MARK: actions
@@ -357,6 +424,8 @@ struct EditorView: View {
         saveTask?.cancel()
         saveTask = nil
         DesignLibrary.save(store.design)
+        // Rate-limited inside, so this is free most of the time.
+        DesignLibrary.snapshot(store.design)
     }
 
     /// Document plus a refreshed thumbnail. Only worth doing on the way back
@@ -367,6 +436,8 @@ struct EditorView: View {
     @MainActor
     private func saveNow() {
         saveDocument()
+        // Leaving the editor is a moment worth keeping whatever the timer says.
+        DesignLibrary.snapshot(store.design, force: true)
         let design = store.design
         let renderer = ImageRenderer(content: PageRenderView(design: design, page: design.pages[0]))
         renderer.scale = 300 / max(design.width, 1)

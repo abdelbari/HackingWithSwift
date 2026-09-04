@@ -62,6 +62,88 @@ enum DesignLibrary {
     static func delete(id: String) {
         try? FileManager.default.removeItem(at: designsDir.appendingPathComponent("\(id).json"))
         try? FileManager.default.removeItem(at: thumbsDir.appendingPathComponent("\(id).jpg"))
+        try? FileManager.default.removeItem(at: historyDir(for: id))
+    }
+
+    // MARK: version history
+
+    /// One saved state of a design, kept so an edit made an hour ago can be
+    /// walked back after undo has long since been pushed off the stack.
+    struct Version: Identifiable, Equatable {
+        var id: String { url.lastPathComponent }
+        var url: URL
+        var savedAt: Date
+        var pages: Int
+        var elements: Int
+    }
+
+    /// How many versions a design keeps. Thirty at a few kilobytes each is
+    /// nothing; a thousand is a directory listing that takes a second.
+    static let versionLimit = 30
+
+    /// The least time between two versions of the same design. Autosave runs
+    /// 900ms after every edit, and a version per edit would be undo with a
+    /// worse interface.
+    static var versionInterval: TimeInterval = 120
+
+    private static func historyDir(for id: String) -> URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("history", isDirectory: true)
+            .appendingPathComponent(id, isDirectory: true)
+    }
+
+    /// Record the design as a version, if it has changed since the last one
+    /// and enough time has passed. Returns whether a version was written.
+    ///
+    /// Content-deduplicated, so saving the same document twice records it
+    /// once; and rate-limited, so a burst of edits records the state at the
+    /// end of the burst rather than every keystroke of it.
+    @discardableResult
+    static func snapshot(_ design: Design, force: Bool = false, now: Date = Date()) -> Bool {
+        guard let data = try? JSONEncoder().encode(design) else { return false }
+        let dir = historyDir(for: design.id)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let existing = versions(for: design.id)
+        if let latest = existing.first {
+            if !force, now.timeIntervalSince(latest.savedAt) < versionInterval { return false }
+            if let last = try? Data(contentsOf: latest.url), last == data { return false }
+        }
+        let name = String(format: "%.3f", now.timeIntervalSince1970)
+        guard (try? data.write(to: dir.appendingPathComponent("\(name).json"))) != nil else {
+            return false
+        }
+        // Oldest out once past the limit.
+        let all = versions(for: design.id)
+        for stale in all.dropFirst(versionLimit) {
+            try? FileManager.default.removeItem(at: stale.url)
+        }
+        return true
+    }
+
+    /// Newest first.
+    static func versions(for id: String) -> [Version] {
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: historyDir(for: id), includingPropertiesForKeys: nil) else { return [] }
+        return files.filter { $0.pathExtension == "json" }.compactMap { url -> Version? in
+            guard let stamp = Double(url.deletingPathExtension().lastPathComponent),
+                  let data = try? Data(contentsOf: url),
+                  let design = try? JSONDecoder().decode(Design.self, from: data) else { return nil }
+            return Version(url: url, savedAt: Date(timeIntervalSince1970: stamp),
+                           pages: design.pages.count,
+                           elements: design.pages.reduce(0) { $0 + $1.elements.count })
+        }
+        .sorted { $0.savedAt > $1.savedAt }
+    }
+
+    static func load(version: Version) -> Design? {
+        guard let data = try? Data(contentsOf: version.url),
+              var design = try? JSONDecoder().decode(Design.self, from: data) else { return nil }
+        design.normalizeTextHeights()
+        return design
+    }
+
+    static func clearVersions(for id: String) {
+        try? FileManager.default.removeItem(at: historyDir(for: id))
     }
 
     /// Delete uploaded photos no design references any more.

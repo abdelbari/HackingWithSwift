@@ -65,8 +65,16 @@ duplicate / delete via long-press), and a template gallery.
 - Copy style / paste style: the look of an element without its identity,
   position or content, and never across element kinds — pasting a text
   style onto a rectangle changes nothing about the rectangle
-- Top-bar overflow menu: layers, page background, find and replace, copy
-  and paste style, copy / cut / paste,
+- Version history: a copy of the design is kept at most every two
+  minutes while editing, and whenever the editor is left, only when
+  something changed, thirty deep. Restoring one is a single undo step
+  and the current state is kept as a version first, so it is never a
+  one-way door.
+- An undo toast after the edits people regret — delete, delete page,
+  replace all, restore — naming what just happened with an Undo button
+  on it, gone after four seconds.
+- Top-bar overflow menu: layers, page background, find and replace,
+  version history, copy and paste style, copy / cut / paste,
   select all, and group / ungroup (grouping is sticky multi-selection —
   selecting one member selects the group — deliberately not nested
   transforms)
@@ -79,6 +87,10 @@ the share sheet. PDF pages are written as vectors, not page-sized
 bitmaps, and everything streams to disk rather than being assembled in
 memory. The scale picker shows the pixel size it will actually produce,
 including when a 32-megapixel cap is what decided it.
+
+**Save to Photos** — PNG (this page or the selected range) or the MP4
+straight into the photo library with add-only permission, no share
+sheet in the way.
 
 **Print** — AirPrint, through the same vector PDF the export writes, so
 what reaches the printer is the document rather than a picture of it.

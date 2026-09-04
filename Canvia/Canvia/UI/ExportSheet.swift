@@ -14,6 +14,7 @@ struct ExportSheet: View {
     @State private var transparent = false
     @State private var pageRange = RangeChoice.current
     @State private var sharedURLs: [URL] = []
+    @State private var savedToPhotos: String?
 
     private enum RangeChoice: String, CaseIterable, Identifiable {
         case current, all
@@ -37,6 +38,7 @@ struct ExportSheet: View {
                 if store.design.pages.count > 1 { pagesSection }
                 transparencySection
                 formatSection
+                photosSection
                 if UIPrintInteractionController.isPrintingAvailable { printSection }
                 motionSection
                 if let errorMessage {
@@ -140,6 +142,50 @@ struct ExportSheet: View {
                 try exportSVG()
             }
         }
+    }
+
+    private var photosSection: some View {
+        Section {
+            exportButton("PNG to Photos", subtitle: photosSubtitle, icon: "photo.badge.plus") {
+                try await saveToPhotos(.png)
+            }
+            exportButton("Video to Photos", subtitle: movieSubtitle, icon: "film.stack") {
+                try await saveToPhotos(nil)
+            }
+        } header: {
+            Text("Photos")
+        } footer: {
+            if let savedToPhotos {
+                Label(savedToPhotos, systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+            }
+        }
+    }
+
+    private var photosSubtitle: String {
+        pageRange == .current || store.design.pages.count == 1
+            ? "Current page, straight into your library"
+            : "Selected pages, one photo each"
+    }
+
+    /// Render, then hand the files to Photos rather than the share sheet.
+    /// `nil` means the movie.
+    @MainActor
+    private func saveToPhotos(_ format: DesignExporter.RasterFormat?) async throws {
+        savedToPhotos = nil
+        let urls: [URL]
+        if let format {
+            urls = try DesignExporter.exportPages(
+                design: store.design, range: pageRange.exportRange, current: store.pageIndex,
+                format: format, scale: scale, quality: jpegQuality,
+                transparent: transparent && format == .png)
+        } else {
+            let url = DesignExporter.fileURL(for: store.design, ext: "mp4")
+            try await MovieExporter.exportMP4(design: store.design, to: url)
+            urls = [url]
+        }
+        try await PhotoSaver.save(urls)
+        savedToPhotos = urls.count == 1 ? "Saved to Photos" : "Saved \(urls.count) photos"
     }
 
     private var printSection: some View {
