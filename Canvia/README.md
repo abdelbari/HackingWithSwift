@@ -61,7 +61,13 @@ duplicate / delete via long-press), and a template gallery.
   lock, opacity, duplicate, align / distribute / flip / exact-position
   sheet, layers sheet with drag reorder
 - Find and replace across every page, with a live match count and
-  replace-all as a single undo step
+  replace-all as a single undo step; and a spelling check across the
+  document through the system dictionary, each mistake with its
+  suggestions a tap away (acronyms, hashtags and addresses left alone)
+- Bulleted, numbered and lettered lists with hanging indents, and up to
+  four indent levels on any paragraph
+- Gradient text: any gradient from the colour picker fills the letters,
+  straight or curved, and survives into the SVG
 - Copy style / paste style: the look of an element without its identity,
   position or content, and never across element kinds — pasting a text
   style onto a rectangle changes nothing about the rectangle

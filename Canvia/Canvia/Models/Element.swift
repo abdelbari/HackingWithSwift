@@ -89,7 +89,13 @@ struct Element: Codable, Equatable, Identifiable {
     var lineHeight: Double?
     var letterSpacing: Double?
     var color: String?
+    /// "none" | "bullet" | "number" | "letter"; nil is none.
     var listStyle: String?
+    /// Indent level, 0…4. Each level is one and a half ems.
+    var indent: Int?
+    /// A gradient behind the letters. nil paints `color`; a solid Paint here
+    /// is never stored, since `color` already is one.
+    var textFill: Paint?
     var effect: TextEffectSpec?
     /// Degrees of arc for curved text. Positive bends the baseline into a
     /// rainbow, negative into a valley; nil or zero is a straight line.
@@ -153,6 +159,8 @@ struct Element: Codable, Equatable, Identifiable {
         letterSpacing = try? c.decode(Double.self, forKey: .letterSpacing)
         color = try? c.decode(String.self, forKey: .color)
         listStyle = try? c.decode(String.self, forKey: .listStyle)
+        indent = try? c.decode(Int.self, forKey: .indent)
+        textFill = try? c.decode(Paint.self, forKey: .textFill)
         effect = try? c.decode(TextEffectSpec.self, forKey: .effect)
         curve = try? c.decode(Double.self, forKey: .curve)
         src = try? c.decode(String.self, forKey: .src)
@@ -191,7 +199,7 @@ struct Element: Codable, Equatable, Identifiable {
         case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow
         case shapeId, fill, stroke, strokeWidth, radius
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
-        case lineHeight, letterSpacing, color, listStyle, effect, curve
+        case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY
         case glyph
         case thickness, dash, startCap, endCap

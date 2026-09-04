@@ -134,12 +134,11 @@ struct ContextToolbar: View {
                     }
                 }
             }
-            toggle("list.bullet", "Bulleted list", active: el.listStyle == "bullet") {
-                store.updateSelected {
-                    $0.listStyle = $0.listStyle == "bullet" ? "none" : "bullet"
-                    $0.h = FontLibrary.layoutHeight(for: $0)
-                }
-            }
+            listMenu(el)
+            toolButton("decrease.indent", "Outdent") { indent(el, by: -1) }
+                .disabled(FontLibrary.indentLevel(of: el) == 0)
+            toolButton("increase.indent", "Indent") { indent(el, by: 1) }
+                .disabled(FontLibrary.indentLevel(of: el) >= FontLibrary.maxIndent)
         }
         HStack(spacing: 14) {
             toolButton("wand.and.stars", "Effects") { activeSheet = .effects }
@@ -147,6 +146,39 @@ struct ContextToolbar: View {
             sliderControl("Curve", value: el.curve ?? 0, in: -180...180) { degrees in
                 store.updateSelectedTransient { curve(&$0, to: degrees) }
             }
+        }
+    }
+
+    /// Bullets, numbers or letters. A menu rather than a toggle because
+    /// three list kinds through one button would cycle, and nobody counts
+    /// taps to reach "letters".
+    private func listMenu(_ el: Element) -> some View {
+        Menu {
+            Picker("List", selection: Binding(
+                get: { el.listStyle ?? "none" },
+                set: { style in
+                    store.updateSelected {
+                        $0.listStyle = style == "none" ? nil : style
+                        $0.h = FontLibrary.layoutHeight(for: $0)
+                    }
+                })) {
+                Label("No list", systemImage: "text.alignleft").tag("none")
+                Label("Bullets", systemImage: "list.bullet").tag("bullet")
+                Label("Numbers", systemImage: "list.number").tag("number")
+                Label("Letters", systemImage: "character").tag("letter")
+            }
+        } label: {
+            let icon = el.listStyle == "number" ? "list.number"
+                : el.listStyle == "letter" ? "character" : "list.bullet"
+            toolLabel(icon, "List", active: FontLibrary.isList(el))
+        }
+    }
+
+    private func indent(_ el: Element, by delta: Int) {
+        store.updateSelected {
+            $0.indent = min(FontLibrary.maxIndent, max(0, FontLibrary.indentLevel(of: $0) + delta))
+            if $0.indent == 0 { $0.indent = nil }
+            $0.h = FontLibrary.layoutHeight(for: $0)
         }
     }
 
@@ -345,6 +377,15 @@ struct ContextToolbar: View {
             }
         }
         .buttonStyle(ToolButtonStyle())
+    }
+
+    /// The face of a toolButton without the button, for a Menu label.
+    private func toolLabel(_ system: String, _ label: String, active: Bool = false) -> some View {
+        VStack(spacing: 3) {
+            Image(systemName: system).font(Theme.controlGlyph)
+            Text(label).font(Theme.controlLabel)
+        }
+        .foregroundStyle(active ? Theme.accent : Color.primary)
     }
 
     private func toggle(_ system: String, _ name: String, active: Bool,

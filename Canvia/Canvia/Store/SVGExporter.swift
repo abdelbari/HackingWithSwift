@@ -90,7 +90,7 @@ enum SVGExporter {
     private static func markup(_ el: Element, index: Int, defs: inout [String]) -> String {
         switch el.type {
         case .shape: return shapeMarkup(el, index: index, defs: &defs)
-        case .text: return textMarkup(el)
+        case .text: return textMarkup(el, index: index, defs: &defs)
         case .line: return lineMarkup(el)
         case .image, .sticker: return bitmapMarkup(el)
         }
@@ -140,12 +140,24 @@ enum SVGExporter {
         "V\(num(ry))A\(num(rx)),\(num(ry)) 0 0 1 \(num(rx)),0Z"
     }
 
-    private static func textMarkup(_ el: Element) -> String {
+    private static func textMarkup(_ el: Element, index: Int, defs: inout [String]) -> String {
         guard let path = TextOutliner.path(for: el) else { return "" }
         let d = TextOutliner.svgPathData(path)
         guard !d.isEmpty else { return "" }
+        let paint: String
+        if let fill = el.textFill, fill.kind == "gradient", let stops = fill.stops, !stops.isEmpty {
+            // userSpaceOnUse over the element's box rather than the path's
+            // bounding box: the letters' own box is shorter than the element
+            // and varies with the text, and the canvas paints the gradient
+            // across the element.
+            let id = "textgrad\(index)"
+            defs.append(gradientDef(id: id, paint: fill, width: el.w, height: el.h))
+            paint = "url(#\(id))"
+        } else {
+            paint = escape(el.color ?? "#1f2430")
+        }
         return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" +
-               "<path d=\"\(d)\" fill=\"\(escape(el.color ?? "#1f2430"))\" fill-rule=\"nonzero\"/></g>"
+               "<path d=\"\(d)\" fill=\"\(paint)\" fill-rule=\"nonzero\"/></g>"
     }
 
     private static func lineMarkup(_ el: Element) -> String {

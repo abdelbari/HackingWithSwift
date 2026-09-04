@@ -542,6 +542,8 @@ final class DesignStore {
         var lineHeight: Double?
         var letterSpacing: Double?
         var listStyle: String?
+        var indent: Int?
+        var textFill: Paint?
         var effect: TextEffectSpec?
         var curve: Double?
         var filter: String?
@@ -564,7 +566,8 @@ final class DesignStore {
               color: el.color, fontFamily: el.fontFamily, fontSize: el.fontSize,
               fontWeight: el.fontWeight, italic: el.italic, underline: el.underline,
               align: el.align, lineHeight: el.lineHeight, letterSpacing: el.letterSpacing,
-              listStyle: el.listStyle, effect: el.effect, curve: el.curve, filter: el.filter,
+              listStyle: el.listStyle, indent: el.indent, textFill: el.textFill,
+              effect: el.effect, curve: el.curve, filter: el.filter,
               adjustments: el.adjustments, maskShapeId: el.maskShapeId, duotone: el.duotone,
               opacity: el.opacity, shadow: el.shadow, thickness: el.thickness, dash: el.dash,
               startCap: el.startCap, endCap: el.endCap)
@@ -595,6 +598,8 @@ final class DesignStore {
             el.lineHeight = style.lineHeight
             el.letterSpacing = style.letterSpacing
             el.listStyle = style.listStyle
+            el.indent = style.indent
+            el.textFill = style.textFill
             el.effect = style.effect
             el.curve = style.curve
             el.h = FontLibrary.layoutHeight(for: el)

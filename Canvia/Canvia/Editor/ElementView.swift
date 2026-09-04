@@ -188,6 +188,50 @@ struct TextElementView: View {
         default:
             NSAttributedString(string: text, attributes: attrs).draw(in: rect)
         }
+
+        // A gradient fill is painted through the letters after the fact: the
+        // solid text above has already cast whatever shadow or glow the
+        // effect asked for, and this replaces its face. Not for the effects
+        // that draw the letters as strokes or doubles — a gradient across
+        // an outline is a smear.
+        if let fill = el.textFill, fill.kind == "gradient",
+           [.none, .shadow, .lift, .neon, .highlight].contains(effect) {
+            let renderer = UIGraphicsImageRenderer(size: size)
+            var maskAttrs = attrs
+            maskAttrs[.foregroundColor] = UIColor.black
+            let mask = renderer.image { _ in
+                NSAttributedString(string: text, attributes: maskAttrs).draw(in: rect)
+            }
+            guard let cgMask = mask.cgImage else { return }
+            cg.saveGState()
+            cg.setShadow(offset: .zero, blur: 0, color: nil)
+            // The context is in UIKit orientation; a CGImage mask is not.
+            // Flip about the box so the letters land where they were drawn,
+            // and paint the gradient in the same flipped space.
+            cg.translateBy(x: 0, y: size.height)
+            cg.scaleBy(x: 1, y: -1)
+            cg.clip(to: rect, mask: cgMask)
+            Self.paintGradient(fill, in: cg, rect: rect, flipped: true)
+            cg.restoreGState()
+        }
+    }
+
+    /// Fill `rect` with a linear gradient along the paint's CSS angle. With
+    /// `flipped`, the context's y runs upward and the endpoints are mirrored
+    /// so "0° is up" still means up on screen.
+    static func paintGradient(_ paint: Paint, in cg: CGContext, rect: CGRect, flipped: Bool) {
+        guard let stops = paint.stops, !stops.isEmpty else { return }
+        let colors = stops.map { UIColor(hex: $0.color).cgColor } as CFArray
+        let locations = stops.map { CGFloat($0.offset) }
+        guard let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                        colors: colors, locations: locations) else { return }
+        let pts = paint.unitPoints
+        func point(_ u: UnitPoint) -> CGPoint {
+            let y = flipped ? 1 - u.y : u.y
+            return CGPoint(x: rect.minX + rect.width * u.x, y: rect.minY + rect.height * y)
+        }
+        cg.drawLinearGradient(gradient, start: point(pts.start), end: point(pts.end),
+                              options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
     }
 
     /// Curved text is drawn from its outlines rather than by NSAttributedString,
@@ -240,6 +284,16 @@ struct TextElementView: View {
             cg.addPath(path)
             cg.setFillColor(color.cgColor)
             cg.fillPath()
+            // The outline is a path, so the gradient clips to it directly —
+            // no mask, no flip; the path is already in this context's space.
+            if let fill = el.textFill, fill.kind == "gradient" {
+                cg.saveGState()
+                cg.setShadow(offset: .zero, blur: 0, color: nil)
+                cg.addPath(path)
+                cg.clip()
+                Self.paintGradient(fill, in: cg, rect: CGRect(origin: .zero, size: size), flipped: false)
+                cg.restoreGState()
+            }
         }
     }
 

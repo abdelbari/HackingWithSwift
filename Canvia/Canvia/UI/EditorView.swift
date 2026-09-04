@@ -21,7 +21,7 @@ private struct AccentButtonStyle: ButtonStyle {
 enum EditorSheet: String, Identifiable {
     case insert, colorFill, colorText, colorLine, colorStroke, background
     case fonts, effects, spacing, filters, crop, position, layers, export, resize, find, frame, shadow
-    case history
+    case history, proofread
     var id: String { rawValue }
 }
 
@@ -201,6 +201,10 @@ struct EditorView: View {
                 } label: { Label("Find and replace", systemImage: "text.magnifyingglass") }
 
                 Button {
+                    activeSheet = .proofread
+                } label: { Label("Check spelling", systemImage: "textformat.abc.dottedunderline") }
+
+                Button {
                     // Whatever is on screen now is the newest version, so
                     // the list never starts with a state you cannot get back
                     // to.
@@ -293,10 +297,16 @@ struct EditorView: View {
                              onPickGradient: { p in store.updateSelected { $0.fill = p } },
                              onPickTransient: { c in store.updateSelectedTransient { $0.fill = .solid(c) } })
         case .colorText:
+            // A gradient on text is a fill, not a colour, so it lives in its
+            // own field; picking a plain colour clears it.
             ColorPickerSheet(store: store, title: "Text color",
                              current: store.singleSelection?.color,
-                             onPick: { c in store.updateSelected { $0.color = c } },
-                             onPickTransient: { c in store.updateSelectedTransient { $0.color = c } })
+                             allowGradients: true,
+                             onPick: { c in store.updateSelected { $0.color = c; $0.textFill = nil } },
+                             onPickGradient: { p in store.updateSelected { $0.textFill = p } },
+                             onPickTransient: { c in
+                                 store.updateSelectedTransient { $0.color = c; $0.textFill = nil }
+                             })
         case .colorLine:
             ColorPickerSheet(store: store, title: "Line color",
                              current: store.singleSelection?.color,
@@ -345,6 +355,8 @@ struct EditorView: View {
             ShadowSheet(store: store)
         case .history:
             VersionHistorySheet(store: store)
+        case .proofread:
+            ProofreadSheet(store: store)
         }
     }
 

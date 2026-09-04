@@ -62,8 +62,12 @@ enum FontLibrary {
         let lineHeight: Double
         let letterSpacing: Double
         let color: String?
+        let listStyle: String?
+        let indent: Int
 
         init(_ el: Element) {
+            listStyle = el.listStyle
+            indent = FontLibrary.indentLevel(of: el)
             family = el.fontFamily
             size = el.fontSize ?? 42
             weight = el.fontWeight ?? 400
@@ -175,6 +179,12 @@ enum FontLibrary {
         paragraph.minimumLineHeight = lineHeight
         paragraph.maximumLineHeight = lineHeight
         paragraph.lineBreakMode = .byWordWrapping
+        // Indent levels push the whole paragraph in; a list marker then
+        // hangs: the first line starts at the marker, wrapped lines start
+        // where the text after the marker does.
+        let indent = Double(indentLevel(of: el)) * size * indentEm
+        paragraph.firstLineHeadIndent = indent
+        paragraph.headIndent = indent + (isList(el) ? size * markerEm : 0)
         var attrs: [NSAttributedString.Key: Any] = [
             .font: font,
             .paragraphStyle: paragraph.copy(),
@@ -190,10 +200,50 @@ enum FontLibrary {
     /// Display text including bullet prefixes.
     static func displayText(for el: Element) -> String {
         let raw = el.text ?? ""
-        guard el.listStyle == "bullet" else { return raw }
+        guard isList(el) else { return raw }
+        var n = 0
         return raw.components(separatedBy: "\n")
-            .map { $0.trimmingCharacters(in: .whitespaces).isEmpty ? $0 : "•  \($0)" }
+            .map { line in
+                guard !line.trimmingCharacters(in: .whitespaces).isEmpty else { return line }
+                n += 1
+                return (listMarker(style: el.listStyle, index: n) ?? "") + line
+            }
             .joined(separator: "\n")
+    }
+
+    /// One indent level, in ems.
+    static let indentEm = 1.5
+    /// Room a list marker takes, in ems; wrapped lines hang under the text.
+    static let markerEm = 1.4
+
+    static let listStyles = ["none", "bullet", "number", "letter"]
+    static let maxIndent = 4
+
+    static func isList(_ el: Element) -> Bool {
+        el.listStyle.map { $0 != "none" } ?? false
+    }
+
+    static func indentLevel(of el: Element) -> Int {
+        min(maxIndent, max(0, el.indent ?? 0))
+    }
+
+    /// The prefix a line gets, by style and one-based position among the
+    /// non-blank lines. Letters run a…z then aa, ab… so the 27th item is
+    /// not a crash and not "{".
+    static func listMarker(style: String?, index: Int) -> String? {
+        switch style {
+        case "bullet": return "•  "
+        case "number": return "\(index).  "
+        case "letter":
+            var n = index, s = ""
+            while n > 0 {
+                n -= 1
+                s = String(UnicodeScalar(UInt8(97 + n % 26))) + s
+                n /= 26
+            }
+            return s + ".  "
+        default: return nil
+        }
     }
 
     /// The height a text element's box needs — the one everything outside this
