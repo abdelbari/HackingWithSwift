@@ -135,19 +135,26 @@ enum DataGraphics {
     /// from 3 o'clock, y down) through `sweep`; with `inner` > 0, a ring.
     static func wedge(from start: Double, sweep: Double, inner: Double) -> String {
         let c = 50.0, r = 50.0, ri = r * inner
-        let end = start + min(sweep, 2 * .pi - 0.0001)
         func pt(_ radius: Double, _ a: Double) -> String {
             "\(num(c + radius * cos(a))) \(num(c + radius * sin(a)))"
         }
-        let large = sweep > .pi ? 1 : 0
-        var d = ""
-        if inner > 0 {
-            d = "M\(pt(ri, start)) L\(pt(r, start)) A\(num(r)) \(num(r)) 0 \(large) 1 \(pt(r, end)) " +
-                "L\(pt(ri, end)) A\(num(ri)) \(num(ri)) 0 \(large) 0 \(pt(ri, start)) Z"
-        } else {
-            d = "M\(num(c)) \(num(c)) L\(pt(r, start)) A\(num(r)) \(num(r)) 0 \(large) 1 \(pt(r, end)) Z"
+        // A whole circle: two half arcs, since an arc whose ends coincide
+        // is no arc at all once the numbers are rounded.
+        if sweep >= 2 * .pi - 0.001 {
+            let half = start + .pi
+            if inner > 0 {
+                return "M\(pt(r, start)) A\(num(r)) \(num(r)) 0 0 1 \(pt(r, half)) A\(num(r)) \(num(r)) 0 0 1 \(pt(r, start)) Z " +
+                       "M\(pt(ri, start)) A\(num(ri)) \(num(ri)) 0 0 0 \(pt(ri, half)) A\(num(ri)) \(num(ri)) 0 0 0 \(pt(ri, start)) Z"
+            }
+            return "M\(num(c)) \(num(c)) L\(pt(r, start)) A\(num(r)) \(num(r)) 0 0 1 \(pt(r, half)) A\(num(r)) \(num(r)) 0 0 1 \(pt(r, start)) Z"
         }
-        return d
+        let end = start + sweep
+        let large = sweep > .pi ? 1 : 0
+        if inner > 0 {
+            return "M\(pt(ri, start)) L\(pt(r, start)) A\(num(r)) \(num(r)) 0 \(large) 1 \(pt(r, end)) " +
+                   "L\(pt(ri, end)) A\(num(ri)) \(num(ri)) 0 \(large) 0 \(pt(ri, start)) Z"
+        }
+        return "M\(num(c)) \(num(c)) L\(pt(r, start)) A\(num(r)) \(num(r)) 0 \(large) 1 \(pt(r, end)) Z"
     }
 
     static func polyline(_ points: [CGPoint]) -> String {

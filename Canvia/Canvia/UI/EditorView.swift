@@ -121,44 +121,61 @@ struct EditorView: View {
     private var keyboardCommands: some View {
         Group {
             Group {
-                shortcut("z", [.command]) { store.undo() }
-                shortcut("z", [.command, .shift]) { store.redo() }
-                shortcut("c", [.command]) { store.copySelected() }
-                shortcut("x", [.command]) { store.cutSelected() }
-                shortcut("v", [.command]) { store.paste() }
+                shortcut("z", [.command], "Undo") { store.undo() }
+                shortcut("z", [.command, .shift], "Redo") { store.redo() }
+                shortcut("c", [.command], "Copy") { store.copySelected() }
+                shortcut("x", [.command], "Cut") { store.cutSelected() }
+                shortcut("v", [.command], "Paste") { store.paste() }
+                shortcut("d", [.command], "Duplicate") { store.duplicateSelected() }
+                shortcut("a", [.command], "Select all") { store.selectAll() }
+                shortcut(.delete, [.command], "Delete") { store.deleteSelected() }
+                shortcut(.escape, [], "Deselect") { store.select(nil) }
             }
             // Arrow keys nudge a page unit, ten with Shift — only while no
             // text field has the keyboard, or the arrows would never reach
             // the caret.
             if store.editingTextId == nil && !titleFocused {
                 Group {
-                    shortcut(.leftArrow, []) { store.nudgeSelected(dx: -1, dy: 0) }
-                    shortcut(.rightArrow, []) { store.nudgeSelected(dx: 1, dy: 0) }
-                    shortcut(.upArrow, []) { store.nudgeSelected(dx: 0, dy: -1) }
-                    shortcut(.downArrow, []) { store.nudgeSelected(dx: 0, dy: 1) }
-                    shortcut(.leftArrow, [.shift]) { store.nudgeSelected(dx: -10, dy: 0) }
-                    shortcut(.rightArrow, [.shift]) { store.nudgeSelected(dx: 10, dy: 0) }
-                    shortcut(.upArrow, [.shift]) { store.nudgeSelected(dx: 0, dy: -10) }
-                    shortcut(.downArrow, [.shift]) { store.nudgeSelected(dx: 0, dy: 10) }
+                    shortcut(.leftArrow, [], "Nudge left") { store.nudgeSelected(dx: -1, dy: 0) }
+                    shortcut(.rightArrow, [], "Nudge right") { store.nudgeSelected(dx: 1, dy: 0) }
+                    shortcut(.upArrow, [], "Nudge up") { store.nudgeSelected(dx: 0, dy: -1) }
+                    shortcut(.downArrow, [], "Nudge down") { store.nudgeSelected(dx: 0, dy: 1) }
+                    shortcut(.leftArrow, [.shift], "Nudge left by 10") { store.nudgeSelected(dx: -10, dy: 0) }
+                    shortcut(.rightArrow, [.shift], "Nudge right by 10") { store.nudgeSelected(dx: 10, dy: 0) }
+                    shortcut(.upArrow, [.shift], "Nudge up by 10") { store.nudgeSelected(dx: 0, dy: -10) }
+                    shortcut(.downArrow, [.shift], "Nudge down by 10") { store.nudgeSelected(dx: 0, dy: 10) }
                 }
             }
             Group {
-                shortcut("d", [.command]) { store.duplicateSelected() }
-                shortcut("a", [.command]) { store.selectAll() }
-                shortcut("f", [.command]) { activeSheet = .find }
-                shortcut(.delete, [.command]) { store.deleteSelected() }
-                shortcut(.escape, []) { store.select(nil) }
+                shortcut("g", [.command], "Group") { store.groupSelected() }
+                shortcut("g", [.command, .shift], "Ungroup") { store.ungroupSelected() }
+                shortcut("]", [.command], "Bring forward") { store.reorderSelected(.forward) }
+                shortcut("[", [.command], "Send backward") { store.reorderSelected(.backward) }
+                shortcut("]", [.command, .shift], "Bring to front") { store.reorderSelected(.front) }
+                shortcut("[", [.command, .shift], "Send to back") { store.reorderSelected(.back) }
+                shortcut("l", [.command, .shift], "Lock or unlock") { store.toggleLockSelected() }
+            }
+            Group {
+                shortcut("f", [.command], "Find and replace") { activeSheet = .find }
+                shortcut("e", [.command], "Export") { activeSheet = .export }
+                shortcut("k", [.command], "Layers") { activeSheet = .layers }
+                shortcut("p", [.command, .shift], "Present") { presenting = true }
+                shortcut("/", [.command], "Help") { activeSheet = .help }
+                shortcut("n", [.command, .shift], "New page") { store.addPage() }
             }
         }
-        .opacity(0)
-        .frame(width: 0, height: 0)
-        .accessibilityHidden(true)
     }
 
-    private func shortcut(_ key: KeyEquivalent, _ modifiers: EventModifiers,
+    /// A zero-size button carrying a shortcut. It has a real title, unseen
+    /// here, because holding ⌘ on an iPad lists every shortcut by the title
+    /// of its button — an empty title made the list a column of blanks.
+    private func shortcut(_ key: KeyEquivalent, _ modifiers: EventModifiers, _ title: String,
                           action: @escaping () -> Void) -> some View {
-        Button("", action: action)
+        Button(title, action: action)
             .keyboardShortcut(key, modifiers: modifiers)
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
     }
 
     private var topBar: some View {

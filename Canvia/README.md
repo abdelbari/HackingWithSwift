@@ -235,6 +235,29 @@ sheet in the way.
 
 **Print** — AirPrint, through the same vector PDF the export writes, so
 what reaches the printer is the document rather than a picture of it.
+The export sheet also writes a print-ready PDF for a print shop or a
+home printer: pick the paper (A4, A3, Letter, Tabloid, portrait or
+landscape), fit the page to the sheet, print it at actual size, or tile
+a poster across as many sheets as it takes with an overlap to trim and
+join; add bleed and crop marks when the shop asks for them.
+
+**Magic resize** — the resize sheet offers *Reflow* alongside *Scale*:
+instead of scaling the old page onto the new one, every element keeps
+its relative position on each axis independently — a footer stays at
+the foot of a much taller story, a right-aligned logo stays at the right
+edge — while sizes scale by the smaller ratio so nothing stretches, and
+text boxes widen to use a wider page. Guides move with the page. One
+undo step.
+
+**Spotlight** — every design is indexed with its title, the words typed
+into it and its thumbnail, so searching the phone for "bake sale" finds
+the poster; opening the result opens the design.
+
+**Keyboard** — with a hardware keyboard, the usual shortcuts, each with
+a title in the discoverability overlay: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, ⌘D
+duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and
+with ⇧) to reorder layers, ⇧⌘L lock, ⌘E export, ⌘K crop, ⇧⌘P present,
+⇧⌘N new page, ⌘/ help, arrows to nudge (⇧ for ten).
 
 **Present** — the design full screen from the menu: black surround,
 tap or swipe between pages, a clock, the page's notes for whoever holds

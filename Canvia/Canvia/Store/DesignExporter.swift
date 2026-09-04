@@ -305,6 +305,66 @@ enum DesignExporter {
         }
     }
 
+    /// A print-ready PDF on real paper: each design page fitted, at actual
+    /// size, or tiled across sheets; with optional bleed and crop marks.
+    @MainActor
+    static func exportPrintPDF(design: Design, range: PageRange = .all, current: Int = 0,
+                               options: PrintLayout.Options, to url: URL) throws {
+        let sheet = CGRect(origin: .zero, size: options.sheet)
+        let indices = range.indices(in: design, current: current)
+        let pagePts = PrintLayout.pagePoints(design: design, bleed: options.bleed)
+        try UIGraphicsPDFRenderer(bounds: sheet).writePDF(to: url) { ctx in
+            for page in indices.map({ design.pages[$0] }) {
+                let placements: [(sheetRect: CGRect, source: CGRect)]
+                switch options.fit {
+                case .fit:
+                    placements = [(PrintLayout.fitRect(page: pagePts, in: options.printable),
+                                   CGRect(origin: .zero, size: pagePts))]
+                case .actual:
+                    let r = CGRect(x: options.printable.midX - pagePts.width / 2,
+                                   y: options.printable.midY - pagePts.height / 2,
+                                   width: pagePts.width, height: pagePts.height)
+                    placements = [(r, CGRect(origin: .zero, size: pagePts))]
+                case .tile:
+                    placements = PrintLayout.tiles(page: pagePts, printable: options.printable.size,
+                                                   overlap: options.overlap).map { tile in
+                        (CGRect(origin: options.printable.origin, size: tile.size), tile)
+                    }
+                }
+                for placement in placements {
+                    autoreleasepool {
+                        ctx.beginPage()
+                        let cg = ctx.cgContext
+                        cg.saveGState()
+                        // Show only this piece of the page.
+                        cg.clip(to: placement.sheetRect)
+                        // Map the source region of the (bled) page onto the sheet rect.
+                        let scale = placement.sheetRect.width / max(placement.source.width, 1)
+                        cg.translateBy(x: placement.sheetRect.minX - placement.source.minX * scale,
+                                       y: placement.sheetRect.minY - placement.source.minY * scale)
+                        cg.scaleBy(x: scale, y: scale)
+                        // The page itself sits inside the bleed; the bleed is
+                        // the page's own edge colours stretched — drawn here
+                        // as the page scaled up by the bleed, the way a
+                        // print shop's bleed is made when none was designed.
+                        let bleedRect = CGRect(origin: .zero, size: pagePts)
+                        draw(design: design, page: page, into: cg, fitting: bleedRect)
+                        cg.restoreGState()
+                        if options.cropMarks {
+                            let trimmed = placement.sheetRect.insetBy(dx: options.bleed * scale, dy: options.bleed * scale)
+                            cg.setStrokeColor(gray: 0, alpha: 1)
+                            cg.setLineWidth(0.5)
+                            for (a, b) in PrintLayout.cropMarkSegments(around: trimmed) {
+                                cg.move(to: a); cg.addLine(to: b)
+                            }
+                            cg.strokePath()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /// Draw one page into an arbitrary context at `bounds`, as vectors.
     @MainActor
     private static func draw(design: Design, page: Page,

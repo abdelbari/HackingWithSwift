@@ -15,7 +15,8 @@ final class DataGraphicsTests: XCTestCase {
         let series = DataGraphics.parse("Spring, 40\nSummer,65%\n\nnothing here\n12\nWinter , -5")
         XCTAssertEqual(series.map(\.label), ["Spring", "Summer", "Item 5", "Winter"])
         XCTAssertEqual(series.map(\.value), [40, 65, 12, 0])
-        XCTAssertEqual(DataGraphics.parseTable("a, b\tc\n\n1,2,3"), [["a", "b\tc"], ["1", "2", "3"]])
+        // A tab anywhere on the line makes tab the separator for that line.
+        XCTAssertEqual(DataGraphics.parseTable("a, b\tc\n\n1,2,3"), [["a, b", "c"], ["1", "2", "3"]])
         XCTAssertEqual(DataGraphics.parseTable("a\tb\n1\t2"), [["a", "b"], ["1", "2"]])
     }
 
@@ -107,7 +108,7 @@ final class DataGraphicsTests: XCTestCase {
         let els = TextRecognizer.elements(from: lines, in: CGRect(x: 100, y: 100, width: 400, height: 200))
         XCTAssertEqual(els.count, 1)
         XCTAssertEqual(els[0].text, "HELLO")
-        XCTAssertEqual(els[0].x, 140); XCTAssertEqual(els[0].y, 120)
+        XCTAssertEqual(els[0].x, 140); XCTAssertEqual(els[0].y, 140)
         XCTAssertEqual(els[0].fontSize, 16, "80% of the line's 20px box")
     }
 

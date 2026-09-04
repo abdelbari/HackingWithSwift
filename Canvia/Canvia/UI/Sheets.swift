@@ -802,14 +802,30 @@ struct ResizeSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var customW = ""
     @State private var customH = ""
+    @State private var reflow = true
+
+    private func resize(_ w: Double, _ h: Double) {
+        if reflow { store.magicResize(width: w, height: h) } else { resize(w, h) }
+    }
 
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    Picker("How", selection: $reflow) {
+                        Text("Reflow").tag(true)
+                        Text("Scale").tag(false)
+                    }
+                    .pickerStyle(.segmented)
+                } footer: {
+                    Text(reflow
+                         ? "Reflow keeps each element's place on the new page — a footer stays at the foot, a corner logo in its corner — and sizes follow the smaller ratio."
+                         : "Scale shrinks or grows everything uniformly to fit, centred, leaving margins when the shape changes.")
+                }
                 Section("Presets") {
                     ForEach(SizePreset.all) { preset in
                         Button {
-                            store.resizeDesign(width: preset.w, height: preset.h)
+                            resize(preset.w, preset.h)
                             dismiss()
                         } label: {
                             HStack {

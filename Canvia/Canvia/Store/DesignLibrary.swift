@@ -34,6 +34,7 @@ enum DesignLibrary {
         do {
             let data = try JSONEncoder().encode(design)
             try data.write(to: designsDir.appendingPathComponent("\(design.id).json"))
+            SpotlightIndexer.index(design)
             return true
         } catch {
             return false
@@ -61,6 +62,7 @@ enum DesignLibrary {
 
     /// Gone for good: the document, its thumbnail and its versions.
     static func delete(id: String) {
+        SpotlightIndexer.remove(id)
         try? FileManager.default.removeItem(at: designsDir.appendingPathComponent("\(id).json"))
         try? FileManager.default.removeItem(at: thumbsDir.appendingPathComponent("\(id).jpg"))
         try? FileManager.default.removeItem(at: trashDir.appendingPathComponent("\(id).json"))
@@ -85,6 +87,7 @@ enum DesignLibrary {
     /// Move a design to the trash. Its versions stay where they are, so a
     /// restore brings its history back too.
     static func trash(id: String, now: Date = Date()) {
+        SpotlightIndexer.remove(id)
         let json = trashDir.appendingPathComponent("\(id).json")
         try? FileManager.default.removeItem(at: json)
         try? FileManager.default.moveItem(at: designsDir.appendingPathComponent("\(id).json"), to: json)
@@ -97,6 +100,7 @@ enum DesignLibrary {
     }
 
     static func restore(id: String) {
+        defer { if let design = load(id: id) { SpotlightIndexer.index(design) } }
         try? FileManager.default.moveItem(at: trashDir.appendingPathComponent("\(id).json"),
                                           to: designsDir.appendingPathComponent("\(id).json"))
         try? FileManager.default.moveItem(at: trashDir.appendingPathComponent("\(id).jpg"),

@@ -13,6 +13,7 @@ struct ExportSheet: View {
     @State private var longEdgeText = ""
     @State private var selectionOnly = false
     @State private var copied = false
+    @State private var paper = PrintLayout.Options()
     @State private var jpegQuality = 0.92
     @State private var transparent = false
     @State private var pageRange = RangeChoice.current
@@ -332,10 +333,50 @@ struct ExportSheet: View {
     }
 
     private var printSection: some View {
-        Section("Print") {
-            exportButton("Send to a printer", subtitle: "AirPrint, actual size", icon: "printer") {
+        Section {
+            exportButton("Send to a printer", subtitle: "AirPrint, on the paper layout below", icon: "printer") {
                 try printDesign()
             }
+            exportButton("Print-ready PDF", subtitle: "Paper, bleed and crop marks as set", icon: "doc.badge.gearshape") {
+                let url = DesignExporter.fileURL(for: store.design, ext: "pdf", suffix: "-print")
+                try DesignExporter.exportPrintPDF(design: store.design, range: exportedRange, current: exportedPageIndex,
+                                                  options: paper, to: url)
+                sharedURLs = [url]
+                exportedURL = url
+            }
+            DisclosureGroup("Paper layout") { paperSettings }
+        } header: {
+            Text("Print")
+        } footer: {
+            Text(paperNote)
+        }
+    }
+
+    private var paperNote: String {
+        let pts = PrintLayout.pagePoints(design: exportedDesign, bleed: paper.bleed)
+        switch paper.fit {
+        case .fit: return "Fitted to \(paper.paper.name)\(paper.landscape ? " landscape" : "")."
+        case .actual:
+            let fits = pts.width <= paper.printable.width && pts.height <= paper.printable.height
+            return fits ? "Prints at actual size, \(String(format: "%.0f × %.0f mm", pts.width / 2.835, pts.height / 2.835))."
+                        : "Larger than the sheet at actual size — it will be clipped. Tile it instead."
+        case .tile:
+            let n = PrintLayout.tiles(page: pts, printable: paper.printable.size, overlap: paper.overlap).count
+            return "\(n) sheets of \(paper.paper.name), overlapping by \(Int(paper.overlap)) pt to trim and join."
+        }
+    }
+
+    private var paperSettings: some View {
+        Group {
+            Picker("Paper", selection: $paper.paper) {
+                ForEach(PrintLayout.papers) { Text($0.name).tag($0) }
+            }
+            Toggle("Landscape", isOn: $paper.landscape)
+            Picker("Placement", selection: $paper.fit) {
+                ForEach(PrintLayout.Fit.allCases) { Text($0.name).tag($0) }
+            }
+            Stepper(value: $paper.bleed, in: 0...36, step: 3) { Text("Bleed \(String(format: "%.0f", paper.bleed / 2.835)) mm") }
+            Toggle("Crop marks", isOn: $paper.cropMarks)
         }
     }
 
@@ -450,7 +491,8 @@ struct ExportSheet: View {
     @MainActor
     private func printDesign() throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "pdf")
-        try DesignExporter.exportPDF(design: store.design, to: url)
+        try DesignExporter.exportPrintPDF(design: store.design, range: exportedRange, current: exportedPageIndex,
+                                          options: paper, to: url)
 
         let info = UIPrintInfo.printInfo()
         info.outputType = .general

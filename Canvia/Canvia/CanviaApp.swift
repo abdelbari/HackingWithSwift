@@ -1,6 +1,7 @@
 // Canvia — a Canva-inspired design studio for iOS.
 // Entry point + home ⇄ editor routing.
 
+import CoreSpotlight
 import SwiftUI
 
 @main
@@ -59,6 +60,12 @@ struct CanviaApp: App {
                     }
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 }
+            }
+            // A Spotlight result opens its design.
+            .onContinueUserActivity(CSSearchableItemActionType) { activity in
+                guard let id = SpotlightIndexer.designID(from: activity),
+                      let design = DesignLibrary.load(id: id) else { return }
+                withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
             }
         }
     }
