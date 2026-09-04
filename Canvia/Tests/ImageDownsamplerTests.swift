@@ -184,7 +184,7 @@ final class ImageDownsamplerTests: XCTestCase {
         XCTAssertEqual(prepared.image.size, CGSize(width: 400, height: 200))
         // The bytes handed to the store must decode back at the stored size,
         // not the original's: that is the whole point of the re-encode.
-        let round = try XCTUnwrap(ImageDownsampler.pixelSize(prepared.jpeg))
+        let round = try XCTUnwrap(ImageDownsampler.pixelSize(prepared.encoded))
         XCTAssertEqual(round, CGSize(width: 400, height: 200))
         XCTAssertLessThan(prepared.encoded.count, 2_000_000)
     }
