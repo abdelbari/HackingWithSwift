@@ -58,17 +58,29 @@ final class CropTests: XCTestCase {
 
     /// Two pages of different shapes, the first with a red mark in its top-left
     /// corner: page count, aspect ratio and orientation in one document.
+    ///
+    /// Written with CoreGraphics directly, whose PDF space is unambiguous —
+    /// origin bottom-left, y up — so "top-left" means the rectangle whose y
+    /// runs from half the height to the full height. A UIKit PDF renderer
+    /// would flip that for us, and then the test could not tell which side
+    /// had flipped.
     func testPDFPagesComeOutUprightAtTheirOwnShape() throws {
-        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 200, height: 100))
-        let data = renderer.pdfData { ctx in
-            ctx.beginPage()
-            UIColor.red.setFill()
-            ctx.fill(CGRect(x: 0, y: 0, width: 100, height: 50))          // top-left in UIKit space
-            ctx.beginPage(withBounds: CGRect(x: 0, y: 0, width: 100, height: 200), pageInfo: [:])
-            UIColor.blue.setFill()
-            ctx.fill(CGRect(x: 0, y: 0, width: 100, height: 200))
-        }
-        let pages = PDFImporter.pages(of: data, maxEdge: 400)
+        let data = NSMutableData()
+        var box = CGRect(x: 0, y: 0, width: 200, height: 100)
+        let consumer = try XCTUnwrap(CGDataConsumer(data: data))
+        let pdf = try XCTUnwrap(CGContext(consumer: consumer, mediaBox: &box, nil))
+        pdf.beginPDFPage(nil)
+        pdf.setFillColor(UIColor.red.cgColor)
+        pdf.fill(CGRect(x: 0, y: 50, width: 100, height: 50))       // upper-left in PDF space
+        pdf.endPDFPage()
+        var tall = CGRect(x: 0, y: 0, width: 100, height: 200)
+        pdf.beginPDFPage([kCGPDFContextMediaBox as String: Data(bytes: &tall, count: MemoryLayout<CGRect>.size)] as CFDictionary)
+        pdf.setFillColor(UIColor.blue.cgColor)
+        pdf.fill(tall)
+        pdf.endPDFPage()
+        pdf.closePDF()
+
+        let pages = PDFImporter.pages(of: data as Data, maxEdge: 400)
         XCTAssertEqual(pages.count, 2)
         let first = try XCTUnwrap(pages.first), second = try XCTUnwrap(pages.last)
         XCTAssertEqual(first.size.width / first.size.height, 2, accuracy: 0.01)
@@ -76,10 +88,10 @@ final class CropTests: XCTestCase {
         XCTAssertEqual(first.size.width, 400, accuracy: 1, "the long edge is the requested size")
 
         let topLeft = try rgb(first, x: 10, y: 10)
-        let bottomRight = try rgb(first, x: Int(first.size.width) - 10, y: Int(first.size.height) - 10)
-        XCTAssertGreaterThan(topLeft.r, 200, "the red mark is not at the top-left: the page is flipped")
-        XCTAssertLessThan(topLeft.g, 60)
-        XCTAssertGreaterThan(bottomRight.g, 200, "the rest of the page is not white")
+        let bottomLeft = try rgb(first, x: 10, y: Int(first.size.height) - 10)
+        XCTAssertGreaterThan(topLeft.r, 200, "\(topLeft)")
+        XCTAssertLessThan(topLeft.g, 60, "the red mark is not at the top-left: the page is flipped — \(topLeft) / \(bottomLeft)")
+        XCTAssertGreaterThan(bottomLeft.g, 200, "the lower half should be white — \(bottomLeft)")
     }
 
     func testAFileThatIsNotAPDFImportsNothing() {
