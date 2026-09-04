@@ -13,6 +13,8 @@ struct InsertSheet: View {
     @State private var search = ""
     @State private var pickedItems: [PhotosPickerItem] = []
     @State private var importingPDF = false
+    /// Bumped when a favourite is toggled, so the tab re-reads the set.
+    @State private var favoritesVersion = 0
     @State private var qrPayload = ""
     @FocusState private var qrFocused: Bool
 
@@ -31,6 +33,7 @@ struct InsertSheet: View {
                 .padding(.top, 8)
 
                 ScrollView {
+                    Color.clear.frame(height: 0).id(favoritesVersion)
                     if nothingMatches {
                         ContentUnavailableView.search(text: search)
                             .padding(.top, 40)
@@ -120,7 +123,7 @@ struct InsertSheet: View {
 
     private var templatesGrid: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 12)], spacing: 12) {
-            ForEach(filteredTemplates) { template in
+            ForEach(favoritesFirst(filteredTemplates, kind: "template", id: \.id)) { template in
                 Button {
                     let page = template.makePage(for: store.design)
                     store.applyToPage { current in
@@ -162,8 +165,10 @@ struct InsertSheet: View {
                 lineTile("arrow.left.and.right", "arrow", "arrow")
                 lineTile("ellipsis", "dot", "dot")
             }
-            ForEach(ContentLibrary.shapeCategories, id: \.self) { category in
-                let shapes = ContentLibrary.shapes.filter {
+            componentsSection
+            let starred = Favorites.ids(of: "shape").compactMap { ContentLibrary.shapeMap[$0] }
+            ForEach(["Favourites"] + ContentLibrary.shapeCategories, id: \.self) { category in
+                let shapes = category == "Favourites" ? starred : ContentLibrary.shapes.filter {
                     $0.category == category &&
                     (search.isEmpty || $0.name.localizedCaseInsensitiveContains(search))
                 }
@@ -182,6 +187,7 @@ struct InsertSheet: View {
                                     .frame(width: 64, height: 64)
                                     .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
                             }
+                            .contextMenu { favoriteButton("shape", shape.id) }
                         }
                     }
                 }
@@ -463,17 +469,79 @@ struct InsertSheet: View {
                     .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
             }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
-                ForEach(filteredPhotos) { photo in
+                ForEach(favoritesFirst(filteredPhotos, kind: "photo", id: \.id)) { photo in
                     Button {
                         insertImage("asset:\(photo.id)", natural: PhotoLibrary.size)
                         dismiss()
                     } label: {
                         photoThumb(photo.id)
                     }
+                    .contextMenu { favoriteButton("photo", photo.id) }
                 }
             }
         }
         .padding()
+    }
+
+    // MARK: favourites
+
+    /// Starred items lead, in their own order, then the rest as they were.
+    private func favoritesFirst<T>(_ items: [T], kind: String, id: (T) -> String) -> [T] {
+        let starred = Set(Favorites.ids(of: kind))
+        guard !starred.isEmpty else { return items }
+        return items.filter { starred.contains(id($0)) } + items.filter { !starred.contains(id($0)) }
+    }
+
+    private func favoriteButton(_ kind: String, _ id: String) -> some View {
+        let on = Favorites.isFavorite(kind, id)
+        return Button {
+            Favorites.toggle(kind, id)
+            favoritesVersion += 1
+        } label: {
+            Label(on ? "Remove from favourites" : "Add to favourites", systemImage: on ? "star.slash" : "star")
+        }
+    }
+
+    // MARK: components
+
+    @ViewBuilder
+    private var componentsSection: some View {
+        let components = Components.load()
+        if !components.isEmpty {
+            sectionHeader("Components")
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
+                ForEach(components) { component in
+                    Button {
+                        store.insertComponent(component)
+                        dismiss()
+                    } label: {
+                        VStack(spacing: 4) {
+                            componentThumb(component)
+                            Text(component.name).font(.caption2).lineLimit(1)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            Components.remove(component.id)
+                            favoritesVersion += 1
+                        } label: { Label("Delete component", systemImage: "trash") }
+                    }
+                }
+            }
+        }
+    }
+
+    private func componentThumb(_ component: Component) -> some View {
+        var design = Design(title: component.name, width: max(component.width, 1), height: max(component.height, 1))
+        design.pages[0] = Page(background: .color("#ffffff"), elements: component.elements)
+        let scale = min(96 / design.width, 64 / design.height)
+        return PageRenderView(design: design, page: design.pages[0])
+            .scaleEffect(scale, anchor: .topLeading)
+            .frame(width: design.width * scale, height: design.height * scale)
+            .frame(width: 100, height: 68)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     private var filteredPhotos: [PhotoDef] {
@@ -532,6 +600,7 @@ struct InsertSheet: View {
                                 Text(glyph).font(.system(size: 34))
                                     .frame(width: 52, height: 52)
                             }
+                            .contextMenu { favoriteButton("sticker", glyph) }
                         }
                     }
                 }
@@ -543,7 +612,9 @@ struct InsertSheet: View {
     /// Sticker search matches on the group name — the glyphs themselves carry
     /// no searchable text — so a non-matching group drops out whole.
     private var filteredStickerGroups: [StickerGroup] {
-        guard !search.isEmpty else { return ContentLibrary.stickerGroups }
+        let starred = Favorites.ids(of: "sticker")
+        let favourites = starred.isEmpty ? [] : [StickerGroup(name: "Favourites", emoji: starred)]
+        guard !search.isEmpty else { return favourites + ContentLibrary.stickerGroups }
         return ContentLibrary.stickerGroups.filter {
             $0.name.localizedCaseInsensitiveContains(search)
         }

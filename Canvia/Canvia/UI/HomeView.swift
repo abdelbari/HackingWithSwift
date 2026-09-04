@@ -16,6 +16,7 @@ struct HomeView: View {
     @State private var trashed: [RecentDesign] = []
     @State private var showingTrash = false
     @State private var importing = false
+    @State private var favoritesVersion = 0
     @State private var importError: String?
 
     var body: some View {
@@ -125,11 +126,13 @@ struct HomeView: View {
 
     private var shownTemplates: [Template] {
         let needle = query.trimmingCharacters(in: .whitespaces)
-        guard !needle.isEmpty else { return ContentLibrary.templates }
-        return ContentLibrary.templates.filter {
+        let matching = needle.isEmpty ? ContentLibrary.templates : ContentLibrary.templates.filter {
             $0.name.localizedCaseInsensitiveContains(needle)
                 || $0.category.localizedCaseInsensitiveContains(needle)
         }
+        // Starred templates first.
+        let starred = Set(Favorites.ids(of: "template"))
+        return matching.filter { starred.contains($0.id) } + matching.filter { !starred.contains($0.id) }
     }
 
     /// What the home screen says before there is anything on it. A blank
@@ -413,10 +416,29 @@ struct HomeView: View {
                     .background(Theme.card)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .shadow(color: .black.opacity(0.08), radius: 5, y: 2)
+                    .overlay(alignment: .topTrailing) {
+                        if Favorites.isFavorite("template", template.id) {
+                            Image(systemName: "star.fill")
+                                .font(.caption)
+                                .foregroundStyle(.yellow)
+                                .padding(6)
+                                .accessibilityLabel("Favourite")
+                        }
+                    }
                 }
                 .buttonStyle(.plain)
+                .contextMenu {
+                    let on = Favorites.isFavorite("template", template.id)
+                    Button {
+                        Favorites.toggle("template", template.id)
+                        favoritesVersion += 1
+                    } label: {
+                        Label(on ? "Remove from favourites" : "Add to favourites", systemImage: on ? "star.slash" : "star")
+                    }
+                }
             }
         }
         .padding(.horizontal)
+        .id(favoritesVersion)
     }
 }

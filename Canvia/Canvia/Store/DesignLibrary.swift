@@ -178,6 +178,33 @@ enum DesignLibrary {
         }
     }
 
+    // MARK: starters
+
+    static let startersKey = "canvia.starters.seeded"
+
+    /// On the very first launch, two sample designs, so the home screen
+    /// shows what a finished design looks like and there is something to
+    /// open, poke at and undo. Once, ever: deleting them must not bring
+    /// them back.
+    @discardableResult
+    static func seedStartersIfNeeded(defaults: UserDefaults = .standard,
+                                     templates: [Template] = ContentLibrary.templates,
+                                     now: Date = Date()) -> [Design] {
+        guard !defaults.bool(forKey: startersKey) else { return [] }
+        defaults.set(true, forKey: startersKey)
+        guard recents().isEmpty else { return [] }
+        var seeded: [Design] = []
+        for (n, template) in templates.prefix(2).enumerated() {
+            var design = template.instantiate()
+            design.title = "Sample: \(template.name)"
+            // A moment apart, so the two sort predictably.
+            design.updatedAt = now.timeIntervalSince1970 * 1000 - Double(n) * 1000
+            save(design)
+            seeded.append(design)
+        }
+        return seeded
+    }
+
     // MARK: version history
 
     /// One saved state of a design, kept so an edit made an hour ago can be

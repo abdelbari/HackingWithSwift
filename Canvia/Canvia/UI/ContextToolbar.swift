@@ -30,6 +30,9 @@ struct ContextToolbar: View {
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiate
     @State private var editingAlt = false
     @State private var altDraft = ""
+    @State private var namingStyle = false
+    @State private var styleName = ""
+    @State private var styleVersion = 0
     @Bindable var store: DesignStore
     @Binding var activeSheet: EditorSheet?
 
@@ -146,6 +149,7 @@ struct ContextToolbar: View {
                 .disabled(FontLibrary.indentLevel(of: el) >= FontLibrary.maxIndent)
         }
         HStack(spacing: 14) {
+            stylesMenu(el)
             toolButton("wand.and.stars", "Effects") { activeSheet = .effects }
             toolButton("arrow.up.and.down.text.horizontal", "Spacing") { activeSheet = .spacing }
             sliderControl("Curve", value: el.curve ?? 0, in: -180...180) { degrees in
@@ -165,6 +169,55 @@ struct ContextToolbar: View {
             }
         } label: {
             toolLabel("circle.lefthalf.filled", "Blend", active: !BlendModes.isNormal(el.blendMode))
+        }
+    }
+
+    /// Saved, linked text styles: apply one, save the current look as one,
+    /// or push this element's look back into the style it follows.
+    private func stylesMenu(_ el: Element) -> some View {
+        let styles = TextStyles.load()
+        let followed = styles.first { $0.id == el.textStyleId }
+        return Menu {
+            if styles.isEmpty {
+                Text("No saved styles yet")
+            }
+            ForEach(styles) { style in
+                Button {
+                    store.applyTextStyle(style)
+                    styleVersion += 1
+                } label: {
+                    Label(style.name, systemImage: style.id == el.textStyleId ? "checkmark" : "textformat")
+                }
+            }
+            Divider()
+            Button {
+                styleName = ""
+                namingStyle = true
+            } label: { Label("Save this look as a style…", systemImage: "plus") }
+            if let followed {
+                Button {
+                    store.updateTextStyle(followed.id, from: el)
+                    styleVersion += 1
+                } label: { Label("Update “\(followed.name)” from this text", systemImage: "arrow.triangle.2.circlepath") }
+                Button(role: .destructive) {
+                    TextStyles.remove(followed.id)
+                    styleVersion += 1
+                } label: { Label("Delete “\(followed.name)”", systemImage: "trash") }
+            }
+        } label: {
+            toolLabel("character.textbox", "Styles", active: followed != nil)
+        }
+        .id(styleVersion)
+        .alert("Name this style", isPresented: $namingStyle) {
+            TextField("Heading, Caption, Price…", text: $styleName)
+            Button("Save") {
+                let name = styleName.trimmingCharacters(in: .whitespaces)
+                guard !name.isEmpty else { return }
+                let saved = TextStyles.add(named: name, from: el)
+                store.updateSelected { $0.textStyleId = saved.id }
+                styleVersion += 1
+            }
+            Button("Cancel", role: .cancel) {}
         }
     }
 

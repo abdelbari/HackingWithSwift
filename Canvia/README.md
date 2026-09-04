@@ -89,6 +89,15 @@ duplicate / delete via long-press), and a template gallery.
   an opaque screenshot as the far smaller JPEG — and every colour picker
   offers "From the photo": the six most prominent colours of the selected
   picture or the page's background picture, read from its pixels.
+- Saved, linked text styles: name a look ("Heading", "Price"), apply it
+  to any text from the Styles menu, and update it from one element to
+  change every element that follows it, on every page, as one undo step.
+- Favourites: star any shape, photo, sticker or template (press and hold)
+  and it leads its tab; components: save a selection under a name and
+  drop it into any design at half the page's width, grouped, with fresh
+  ids. Both live with the person, not the design.
+- Two sample designs on the very first launch — once, ever — so the home
+  screen is not a blank space with a purple hero on top of it.
 - A Canvia design file (.canvia.json) exports the document with every
   photo it uses inlined, and the home screen opens one back in — under
   a fresh id, with its photos stored afresh, so two imports never share

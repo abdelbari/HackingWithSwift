@@ -38,6 +38,8 @@ struct EditorView: View {
     @State private var toastTask: Task<Void, Never>?
     @State private var tip: Tip?
     @State private var presenting = false
+    @State private var namingComponent = false
+    @State private var componentName = ""
     @State private var tipTask: Task<Void, Never>?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -86,6 +88,16 @@ struct EditorView: View {
         }
         .fullScreenCover(isPresented: $presenting) {
             PresentationView(design: store.design, startPage: store.pageIndex)
+        }
+        .alert("Name this component", isPresented: $namingComponent) {
+            TextField("Footer, Price tag, Call-out…", text: $componentName)
+            Button("Save") {
+                let name = componentName.trimmingCharacters(in: .whitespaces)
+                if !name.isEmpty { store.saveSelectionAsComponent(named: name) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Components appear in the Elements tab of Add, in every design, and drop in at half the page's width.")
         }
         .onAppear {
             store.onCommit = { scheduleSave() }
@@ -262,6 +274,11 @@ struct EditorView: View {
             }
 
             Section {
+                Button {
+                    componentName = ""
+                    namingComponent = true
+                } label: { Label("Save selection as component…", systemImage: "square.grid.3x1.folder.badge.plus") }
+                    .disabled(store.selection.isEmpty)
                 snappingMenu
             }
 

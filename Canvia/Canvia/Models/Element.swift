@@ -107,6 +107,9 @@ struct Element: Codable, Equatable, Identifiable {
     var fitText: Bool?
     /// Space after each paragraph, in ems.
     var paragraphSpacing: Double?
+    /// The saved text style this element follows. Updating the style
+    /// re-applies it to every element that carries the id.
+    var textStyleId: String?
     /// A gradient behind the letters. nil paints `color`; a solid Paint here
     /// is never stored, since `color` already is one.
     var textFill: Paint?
@@ -186,6 +189,7 @@ struct Element: Codable, Equatable, Identifiable {
         vAlign = try? c.decode(String.self, forKey: .vAlign)
         fitText = try? c.decode(Bool.self, forKey: .fitText)
         paragraphSpacing = try? c.decode(Double.self, forKey: .paragraphSpacing)
+        textStyleId = try? c.decode(String.self, forKey: .textStyleId)
         textFill = try? c.decode(Paint.self, forKey: .textFill)
         effect = try? c.decode(TextEffectSpec.self, forKey: .effect)
         curve = try? c.decode(Double.self, forKey: .curve)
@@ -228,7 +232,7 @@ struct Element: Codable, Equatable, Identifiable {
         case shapeId, fill, stroke, strokeWidth, radius
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve
-        case vAlign, fitText, paragraphSpacing
+        case vAlign, fitText, paragraphSpacing, textStyleId
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit
         case glyph
         case thickness, dash, startCap, endCap

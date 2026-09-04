@@ -621,7 +621,7 @@ final class DesignStore {
     /// Copying a style is a different operation from copying an element, and
     /// conflating them is why "make this heading look like that one" usually
     /// ends in retyping the text.
-    struct Style: Equatable {
+    struct Style: Equatable, Codable {
         var fill: Paint?
         var stroke: String?
         var strokeWidth: Double?
@@ -866,6 +866,47 @@ final class DesignStore {
         guard next != design else { return }
         apply { $0 = next }
         announce("Applied theme to \(design.pages.count == 1 ? "the page" : "all \(design.pages.count) pages")")
+    }
+
+    // MARK: components
+
+    /// Save the selection as a component, keeping nothing locked in it.
+    @discardableResult
+    func saveSelectionAsComponent(named name: String) -> Component? {
+        Components.add(named: name, from: selectedElements)
+    }
+
+    /// Drop a component onto the page at half its width, centred.
+    func insertComponent(_ component: Component) {
+        let width = (design.width * 0.5).rounded()
+        let height = width * component.height / max(component.width, 1)
+        let origin = CGPoint(x: ((design.width - width) / 2).rounded(), y: ((design.height - height) / 2).rounded())
+        let elements = Components.instance(of: component, width: width, at: origin)
+        guard !elements.isEmpty else { return }
+        applyToPage { $0.elements.append(contentsOf: elements) }
+        selection = Set(elements.map(\.id))
+    }
+
+    // MARK: text styles
+
+    /// Apply a saved style to the selected text elements, one undo step.
+    func applyTextStyle(_ style: TextStyle) {
+        updateSelected { el in TextStyles.apply(style, to: &el) }
+    }
+
+    /// Re-read the style from `element` and re-apply it to every element on
+    /// every page that follows it — the linked half of a linked style.
+    func updateTextStyle(_ id: String, from element: Element) {
+        TextStyles.update(id, from: element)
+        guard let style = TextStyles.load().first(where: { $0.id == id }) else { return }
+        apply { design in
+            for p in design.pages.indices {
+                for i in design.pages[p].elements.indices
+                where design.pages[p].elements[i].textStyleId == id && design.pages[p].elements[i].id != element.id {
+                    TextStyles.apply(style, to: &design.pages[p].elements[i])
+                }
+            }
+        }
     }
 
     // MARK: page clipboard
