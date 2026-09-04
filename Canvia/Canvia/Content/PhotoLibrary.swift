@@ -388,9 +388,9 @@ enum MediaStore {
     /// main-actor bound, so callers should run it off the main actor.
     static func store(_ prepared: ImageDownsampler.Prepared) -> String? {
         let id = UID.make("img")
-        let url = directory.appendingPathComponent("\(id).jpg")
+        let url = directory.appendingPathComponent("\(id).\(prepared.ext)")
         do {
-            try prepared.jpeg.write(to: url)
+            try prepared.encoded.write(to: url)
             // NSCache is thread-safe, so seeding it from a background task is
             // fine and saves the first draw a round trip to disk.
             memory.setObject(prepared.image, forKey: id as NSString)

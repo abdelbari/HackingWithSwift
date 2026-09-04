@@ -158,16 +158,26 @@ enum DesignExporter {
     @MainActor
     static func exportPages(design: Design, range: PageRange, current: Int,
                             format: RasterFormat, scale: Int, quality: Double = 0.92,
-                            transparent: Bool = false) throws -> [URL] {
+                            transparent: Bool = false,
+                            progress: ((Double) -> Void)? = nil) throws -> [URL] {
         let indices = range.indices(in: design, current: current)
         guard !indices.isEmpty else { throw ExportError.renderFailed }
-        return try indices.map { index in
+        var urls: [URL] = []
+        for (n, index) in indices.enumerated() {
+            // A page is the unit: a cancelled export leaves no half-written
+            // file behind, and nothing from the pages it had finished either.
+            if Task.isCancelled {
+                for url in urls { try? FileManager.default.removeItem(at: url) }
+                throw CancellationError()
+            }
             let suffix = indices.count > 1 ? "-\(index + 1)" : ""
             let url = fileURL(for: design, ext: format.ext, suffix: suffix)
             try exportRaster(design: design, page: design.pages[index], format: format,
                              scale: scale, quality: quality, transparent: transparent, to: url)
-            return url
+            urls.append(url)
+            progress?(Double(n + 1) / Double(indices.count))
         }
+        return urls
     }
 
     // MARK: pdf

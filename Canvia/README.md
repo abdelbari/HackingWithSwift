@@ -65,6 +65,11 @@ duplicate / delete via long-press), and a template gallery.
 - Copy style / paste style: the look of an element without its identity,
   position or content, and never across element kinds — pasting a text
   style onto a rectangle changes nothing about the rectangle
+- Photos import several at once (up to ten, landing as a cascade), keep
+  their transparency when they have any — a PNG logo is stored as PNG,
+  an opaque screenshot as the far smaller JPEG — and every colour picker
+  offers "From the photo": the six most prominent colours of the selected
+  picture or the page's background picture, read from its pixels.
 - Rubber-band selection: drag from empty page and everything the band
   touches is selected, live, sticky groups included
 - A multi-selection resizes and rotates as one unit from its box —
@@ -95,6 +100,10 @@ the share sheet. PDF pages are written as vectors, not page-sized
 bitmaps, and everything streams to disk rather than being assembled in
 memory. The scale picker shows the pixel size it will actually produce,
 including when a 32-megapixel cap is what decided it.
+
+Every export shows how far along it is — a page at a time for rasters,
+a frame at a time for the video — with a Cancel button that stops the
+writer at the next frame and leaves no partial file behind.
 
 **Save to Photos** — PNG (this page or the selected range) or the MP4
 straight into the photo library with add-only permission, no share

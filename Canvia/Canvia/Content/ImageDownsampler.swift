@@ -63,8 +63,12 @@ enum ImageDownsampler {
     /// Deliberately not Sendable: it is built and consumed inside a single
     /// off-actor task, and the UIImage never crosses back.
     struct Prepared {
-        /// Re-encoded at the stored size.
-        let jpeg: Data
+        /// Re-encoded at the stored size: JPEG for a photograph, PNG when
+        /// the picture has transparent pixels that JPEG would fill white.
+        let encoded: Data
+        let ext: String
+        /// Whether the encoding is PNG because the picture is see-through.
+        var keepsAlpha: Bool { ext == "png" }
         /// The decoded image, to seed the media cache so the first draw after
         /// an insert does not go back to disk.
         let image: UIImage
@@ -76,15 +80,57 @@ enum ImageDownsampler {
     static func prepare(_ data: Data, maxEdge: CGFloat = 1600,
                         quality: CGFloat = 0.85) -> Prepared? {
         autoreleasepool {
-            guard let image = downsample(data, maxEdge: maxEdge),
-                  let jpeg = image.jpegData(compressionQuality: quality)
-            else { return nil }
+            guard let image = downsample(data, maxEdge: maxEdge) else { return nil }
+            // A logo or a sticker with a transparent background must stay
+            // transparent, and JPEG cannot carry it: PNG for those, and only
+            // those — an opaque PNG screenshot is a photograph as far as the
+            // store is concerned, and a JPEG a fifth the size.
+            let encoded: Data
+            let ext: String
+            if let cg = image.cgImage, hasTransparentPixels(cg), let png = image.pngData() {
+                encoded = png
+                ext = "png"
+            } else if let jpeg = image.jpegData(compressionQuality: quality) {
+                encoded = jpeg
+                ext = "jpg"
+            } else {
+                return nil
+            }
             // Fall back to the decoded size if the header could not be read:
             // the ratio is the same either way, and a missing header should
             // not lose the import.
             let natural = pixelSize(data) ?? image.size
-            return Prepared(jpeg: jpeg, image: image, natural: natural)
+            return Prepared(encoded: encoded, ext: ext, image: image, natural: natural)
         }
+    }
+
+    /// Whether any pixel is less than fully opaque. A quick no when the
+    /// image has no alpha channel at all; otherwise a pass over a 256px
+    /// rendition, which is enough to catch any cut-out worth keeping.
+    static func hasTransparentPixels(_ cg: CGImage) -> Bool {
+        switch cg.alphaInfo {
+        case .none, .noneSkipFirst, .noneSkipLast: return false
+        default: break
+        }
+        let scale = 256.0 / Double(max(cg.width, cg.height, 1))
+        let w = max(1, Int((Double(cg.width) * min(scale, 1)).rounded()))
+        let h = max(1, Int((Double(cg.height) * min(scale, 1)).rounded()))
+        var pixels = [UInt8](repeating: 0, count: w * h * 4)
+        let drawn = pixels.withUnsafeMutableBytes { raw -> Bool in
+            guard let ctx = CGContext(
+                data: raw.baseAddress, width: w, height: h, bitsPerComponent: 8,
+                bytesPerRow: w * 4, space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+            ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+            return true
+        }
+        guard drawn else { return false }
+        var i = 3
+        while i < pixels.count {
+            if pixels[i] < 250 { return true }
+            i += 4
+        }
+        return false
     }
 
     private static func makeSource(_ data: Data) -> CGImageSource? {

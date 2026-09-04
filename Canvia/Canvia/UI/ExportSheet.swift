@@ -22,7 +22,11 @@ struct ExportSheet: View {
         var label: String { self == .current ? "This page" : "All pages" }
         var exportRange: DesignExporter.PageRange { self == .current ? .current : .all }
     }
-    @State private var exporting = false
+    /// Fraction done while an export runs; nil when idle. Rasters report a
+    /// page at a time, the movie a frame at a time.
+    @State private var progress: Double?
+    @State private var exportTask: Task<Void, Never>?
+    private var exporting: Bool { progress != nil }
     @State private var exportedURL: URL?
     @State private var errorMessage: String?
 
@@ -59,10 +63,37 @@ struct ExportSheet: View {
                 ShareSheet(urls: sharedURLs.isEmpty ? [item.url] : sharedURLs)
             }
             .overlay {
-                if exporting { ProgressView("Rendering…") }
+                if let progress { progressCard(progress) }
             }
         }
         .presentationDetents([.medium])
+    }
+
+    /// Determinate, with a way out. A spinner with no number is fine for a
+    /// PNG; a nine-page 4K video takes long enough that not knowing whether
+    /// it is a tenth done or nine tenths, and having no button to press, is
+    /// the difference between waiting and force-quitting.
+    private func progressCard(_ fraction: Double) -> some View {
+        VStack(spacing: 14) {
+            ProgressView(value: fraction) {
+                Text("Rendering… \(Int((fraction * 100).rounded()))%")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .progressViewStyle(.linear)
+            Button("Cancel", role: .cancel) { exportTask?.cancel() }
+                .buttonStyle(.bordered)
+        }
+        .padding(20)
+        .frame(width: 260)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.15), radius: 16, y: 6)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// Progress from the movie writer's queue, delivered to the sheet's
+    /// state on the main actor.
+    private func report(_ fraction: Double) {
+        Task { @MainActor in progress = min(1, max(0, fraction)) }
     }
 
     // MARK: sections
@@ -178,10 +209,11 @@ struct ExportSheet: View {
             urls = try DesignExporter.exportPages(
                 design: store.design, range: pageRange.exportRange, current: store.pageIndex,
                 format: format, scale: scale, quality: jpegQuality,
-                transparent: transparent && format == .png)
+                transparent: transparent && format == .png,
+                progress: { progress = $0 })
         } else {
             let url = DesignExporter.fileURL(for: store.design, ext: "mp4")
-            try await MovieExporter.exportMP4(design: store.design, to: url)
+            try await MovieExporter.exportMP4(design: store.design, to: url, progress: report)
             urls = [url]
         }
         try await PhotoSaver.save(urls)
@@ -215,15 +247,16 @@ struct ExportSheet: View {
     private func exportButton(_ title: String, subtitle: String, icon: String,
                               action: @escaping @MainActor () async throws -> Void) -> some View {
         Button {
-            exporting = true
+            progress = 0
             errorMessage = nil
-            // Render on the main actor after the spinner appears. Async
+            // Render on the main actor after the progress card appears. Async
             // because a video is written frame by frame and takes seconds —
             // the raster paths are synchronous and satisfy this signature
             // unchanged.
-            Task { @MainActor in
-                defer { exporting = false }
+            exportTask = Task { @MainActor in
+                defer { progress = nil; exportTask = nil }
                 do { try await action() }
+                catch is CancellationError { /* asked for; nothing to report */ }
                 catch { errorMessage = "Export failed: \(error.localizedDescription)" }
             }
         } label: {
@@ -258,7 +291,8 @@ struct ExportSheet: View {
             design: store.design, range: pageRange.exportRange, current: store.pageIndex,
             format: format, scale: scale, quality: jpegQuality,
             // JPEG has no alpha channel to be transparent in.
-            transparent: transparent && format == .png)
+            transparent: transparent && format == .png,
+            progress: { progress = $0 })
         sharedURLs = urls
         exportedURL = urls.first
     }
@@ -308,7 +342,7 @@ struct ExportSheet: View {
     @MainActor
     private func exportMovie() async throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "mp4")
-        try await MovieExporter.exportMP4(design: store.design, to: url)
+        try await MovieExporter.exportMP4(design: store.design, to: url, progress: report)
         sharedURLs = [url]
         exportedURL = url
     }
@@ -316,7 +350,7 @@ struct ExportSheet: View {
     @MainActor
     private func exportGIF() throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "gif")
-        try MovieExporter.exportGIF(design: store.design, to: url)
+        try MovieExporter.exportGIF(design: store.design, to: url, progress: { progress = $0 })
         sharedURLs = [url]
         exportedURL = url
     }

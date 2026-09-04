@@ -45,6 +45,44 @@ final class ImageDownsamplerTests: XCTestCase {
         return out as Data
     }
 
+    /// A PNG of `width` x `height` whose left half is opaque red and whose
+    /// right half is fully transparent when `clear` is set.
+    private func png(width: Int, height: Int, clear: Bool) -> Data {
+        let ctx = CGContext(data: nil, width: width, height: height,
+                            bitsPerComponent: 8, bytesPerRow: 0,
+                            space: CGColorSpaceCreateDeviceRGB(),
+                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        ctx.setFillColor(red: 1, green: 0, blue: 0, alpha: 1)
+        ctx.fill(CGRect(x: 0, y: 0, width: clear ? width / 2 : width, height: height))
+        let cg = ctx.makeImage()!
+        let out = NSMutableData()
+        let dest = CGImageDestinationCreateWithData(out, UTType.png.identifier as CFString, 1, nil)!
+        CGImageDestinationAddImage(dest, cg, nil)
+        XCTAssertTrue(CGImageDestinationFinalize(dest))
+        return out as Data
+    }
+
+    // MARK: alpha
+
+    /// A logo with a see-through background has to stay see-through, and
+    /// only that: an opaque PNG is stored as the smaller JPEG.
+    func testTransparencySurvivesImportAndOpacityDoesNotPayForIt() throws {
+        let clear = try XCTUnwrap(ImageDownsampler.prepare(png(width: 64, height: 32, clear: true)))
+        XCTAssertEqual(clear.ext, "png")
+        XCTAssertTrue(clear.keepsAlpha)
+        let stored = try XCTUnwrap(UIImage(data: clear.encoded)?.cgImage)
+        XCTAssertTrue(ImageDownsampler.hasTransparentPixels(stored), "the stored copy lost its alpha")
+
+        let solid = try XCTUnwrap(ImageDownsampler.prepare(png(width: 64, height: 32, clear: false)))
+        XCTAssertEqual(solid.ext, "jpg")
+        XCTAssertFalse(solid.keepsAlpha)
+    }
+
+    func testAnImageWithoutAnAlphaChannelIsNeverTransparent() throws {
+        let cg = try XCTUnwrap(UIImage(data: jpeg(width: 16, height: 16))?.cgImage)
+        XCTAssertFalse(ImageDownsampler.hasTransparentPixels(cg))
+    }
+
     // MARK: size
 
     func testPixelSizeReadsTheHeader() {
@@ -148,7 +186,7 @@ final class ImageDownsamplerTests: XCTestCase {
         // not the original's: that is the whole point of the re-encode.
         let round = try XCTUnwrap(ImageDownsampler.pixelSize(prepared.jpeg))
         XCTAssertEqual(round, CGSize(width: 400, height: 200))
-        XCTAssertLessThan(prepared.jpeg.count, 2_000_000)
+        XCTAssertLessThan(prepared.encoded.count, 2_000_000)
     }
 
     /// `natural` is the *original's* displayed size, because that is what the

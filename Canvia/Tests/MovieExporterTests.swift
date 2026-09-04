@@ -194,6 +194,69 @@ final class MovieExporterTests: XCTestCase {
                              "the frame is upside down or the halves have merged")
     }
 
+    // MARK: progress and cancellation
+
+    @MainActor
+    func testTheVideoReportsProgressUpToOne() async throws {
+        let url = destination("mp4")
+        var settings = MovieExporter.Settings()
+        settings.secondsPerPage = 0.5
+        settings.fps = 10
+        let seen = ProgressLog()
+        do {
+            try await MovieExporter.exportMP4(design: design(pages: 1), settings: settings, to: url,
+                                              progress: { seen.record($0) })
+        } catch {
+            throw XCTSkip("no H.264 encoder in this environment: \(error)")
+        }
+        let values = seen.values
+        XCTAssertFalse(values.isEmpty)
+        XCTAssertEqual(values.last ?? 0, 1, accuracy: 0.0001)
+        XCTAssertEqual(values, values.sorted(), "progress went backwards")
+    }
+
+    @MainActor
+    func testACancelledVideoLeavesNoFileAndThrowsCancellation() async throws {
+        let url = destination("mp4")
+        var settings = MovieExporter.Settings()
+        settings.secondsPerPage = 3
+        settings.fps = 30
+        let task = Task { @MainActor in
+            try await MovieExporter.exportMP4(design: design(pages: 3), settings: settings, to: url)
+        }
+        try await Task.sleep(for: .milliseconds(120))
+        task.cancel()
+        do {
+            try await task.value
+            XCTFail("a cancelled export finished")
+        } catch is CancellationError {
+            XCTAssertFalse(FileManager.default.fileExists(atPath: url.path), "the partial file was left behind")
+        } catch {
+            throw XCTSkip("no H.264 encoder in this environment: \(error)")
+        }
+    }
+
+    @MainActor
+    func testTheGIFReportsProgressUpToOne() throws {
+        let url = destination("gif")
+        var settings = MovieExporter.Settings()
+        settings.secondsPerPage = 0.5
+        var values: [Double] = []
+        try MovieExporter.exportGIF(design: design(pages: 2), settings: settings, to: url,
+                                    progress: { values.append($0) })
+        XCTAssertEqual(values.count, MovieExporter.frameCount(pages: 2, settings: {
+            var s = settings; s.fps = 12; return s
+        }()))
+        XCTAssertEqual(values.last ?? 0, 1, accuracy: 0.0001)
+    }
+
+    private final class ProgressLog: @unchecked Sendable {
+        private let lock = NSLock()
+        private var stored: [Double] = []
+        func record(_ v: Double) { lock.lock(); stored.append(v); lock.unlock() }
+        var values: [Double] { lock.lock(); defer { lock.unlock() }; return stored }
+    }
+
     @MainActor
     func testTheGIFHasAFrameForEveryFrame() throws {
         let url = destination("gif")

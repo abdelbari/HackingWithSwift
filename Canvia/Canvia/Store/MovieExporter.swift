@@ -119,8 +119,12 @@ enum MovieExporter {
 
     // MARK: mp4
 
+    /// Progress is reported as a fraction of frames written, from the writer's
+    /// own queue. Cancelling the surrounding task stops the writer at the next
+    /// frame, discards the partial file and throws CancellationError.
     @MainActor
-    static func exportMP4(design: Design, settings: Settings = Settings(), to url: URL) async throws {
+    static func exportMP4(design: Design, settings: Settings = Settings(), to url: URL,
+                          progress: (@Sendable (Double) -> Void)? = nil) async throws {
         try? FileManager.default.removeItem(at: url)
         let size = videoSize(for: design, maxEdge: settings.maxEdge)
         let pages = pageImages(design: design, size: size)
@@ -151,10 +155,17 @@ enum MovieExporter {
         let state = WriteState()
         let queue = DispatchQueue(label: "canvia.movie.write")
 
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+        do {
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             input.requestMediaDataWhenReady(on: queue) {
                 while input.isReadyForMoreMediaData {
                     guard !state.finished else { return }
+                    if state.cancelled {
+                        state.finished = true
+                        continuation.resume(throwing: CancellationError())
+                        return
+                    }
                     if state.index >= total {
                         state.finished = true
                         input.markAsFinished()
@@ -177,8 +188,22 @@ enum MovieExporter {
                         return
                     }
                     state.index += 1
+                    progress?(Double(state.index) / Double(total))
                 }
             }
+            }
+        } onCancel: {
+            // Seen by the writer callback on its next frame; the callback is
+            // the one that resumes, so the continuation is never resumed
+            // twice.
+            state.cancelled = true
+        }
+        } catch {
+            // Cancelled or failed: either way a partial MP4 is worse than
+            // none, because it opens and plays and stops early.
+            writer.cancelWriting()
+            try? FileManager.default.removeItem(at: url)
+            throw error
         }
 
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
@@ -191,9 +216,14 @@ enum MovieExporter {
 
     /// Mutable state shared with the writer's callback, which is invoked
     /// repeatedly and must resume its continuation exactly once.
-    private final class WriteState {
+    ///
+    /// Unchecked because every access is on the writer's serial queue, except
+    /// the cancel flag, which is a single Bool store that the next callback
+    /// iteration reads — a stale read costs one more frame, never a crash.
+    private final class WriteState: @unchecked Sendable {
         var index = 0
         var finished = false
+        var cancelled = false
     }
 
     private static func makeBuffer(from pool: CVPixelBufferPool) -> CVPixelBuffer? {
@@ -223,7 +253,8 @@ enum MovieExporter {
     /// A GIF at the video's frame rate would be tens of megabytes, so it gets
     /// its own: fewer frames a second and a smaller frame.
     @MainActor
-    static func exportGIF(design: Design, settings: Settings = Settings(), to url: URL) throws {
+    static func exportGIF(design: Design, settings: Settings = Settings(), to url: URL,
+                          progress: ((Double) -> Void)? = nil) throws {
         var gifSettings = settings
         gifSettings.fps = 12
         gifSettings.maxEdge = min(settings.maxEdge, 640)
@@ -248,6 +279,12 @@ enum MovieExporter {
         ] as CFDictionary
 
         for index in 0..<total {
+            // Between frames, not mid-frame: a frame takes milliseconds and a
+            // half-drawn one is never written.
+            if Task.isCancelled {
+                try? FileManager.default.removeItem(at: url)
+                throw CancellationError()
+            }
             try autoreleasepool {
                 guard let context = CGContext(
                     data: nil, width: Int(size.width), height: Int(size.height),
@@ -263,6 +300,7 @@ enum MovieExporter {
                 }
                 CGImageDestinationAddImage(destination, frame, frameProperties)
             }
+            progress?(Double(index + 1) / Double(total))
         }
         guard CGImageDestinationFinalize(destination) else {
             throw MovieError.writerFailed("the GIF would not finalise")

@@ -10,7 +10,7 @@ struct InsertSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var tab = "Templates"
     @State private var search = ""
-    @State private var pickedItem: PhotosPickerItem?
+    @State private var pickedItems: [PhotosPickerItem] = []
     @State private var qrPayload = ""
     @FocusState private var qrFocused: Bool
 
@@ -56,29 +56,37 @@ struct InsertSheet: View {
             // Abandoning the sheet must not leave a replace pending.
             store.replaceTargetId = nil
         }
-        .onChange(of: pickedItem) {
-            guard let item = pickedItem else { return }
+        .onChange(of: pickedItems) {
+            let items = pickedItems
+            guard !items.isEmpty else { return }
+            pickedItems = []
             // Capture the replace target now: loading is async, and the sheet
             // (and with it store.replaceTargetId) may be gone by the time it
             // finishes — the pick should still replace, not insert a stray.
             let target = store.replaceTargetId
             Task {
-                guard let data = try? await item.loadTransferable(type: Data.self) else { return }
-                // Decoding, scaling, re-encoding and the file write all happen
-                // off the main actor. Previously this ran in a Task inheriting
-                // main-actor isolation — the `await MainActor.run` that used to
-                // sit here was doing nothing, because the work above it was
-                // already on the main actor and had blocked it for the whole
-                // decode of a full-resolution camera photo.
-                let stored = await Task.detached(priority: .userInitiated) {
-                    () -> (src: String, natural: CGSize)? in
-                    guard let prepared = ImageDownsampler.prepare(data),
-                          let src = MediaStore.store(prepared) else { return nil }
-                    return (src, prepared.natural)
-                }.value
-                guard let stored else { return }
-                insertImage(stored.src, natural: stored.natural, replacing: target)
-                dismiss()
+                // Several at once land as a cascade, each a step down and
+                // right from the last, so ten photos are ten visible photos
+                // and not one photo ten deep.
+                var placed = 0
+                for item in items {
+                    guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+                    // Decoding, scaling, re-encoding and the file write all
+                    // happen off the main actor, where a full-resolution
+                    // camera photo's decode belongs.
+                    let stored = await Task.detached(priority: .userInitiated) {
+                        () -> (src: String, natural: CGSize)? in
+                        guard let prepared = ImageDownsampler.prepare(data),
+                              let src = MediaStore.store(prepared) else { return nil }
+                        return (src, prepared.natural)
+                    }.value
+                    guard let stored else { continue }
+                    insertImage(stored.src, natural: stored.natural,
+                                replacing: placed == 0 ? target : nil,
+                                cascade: placed)
+                    placed += 1
+                }
+                if placed > 0 { dismiss() }
             }
         }
     }
@@ -302,8 +310,12 @@ struct InsertSheet: View {
 
     private var photosGrid: some View {
         VStack(alignment: .leading, spacing: 10) {
-            PhotosPicker(selection: $pickedItem, matching: .images) {
-                Label("Add from Photo Library", systemImage: "photo.badge.plus")
+            // One when replacing — a replace has one slot to fill.
+            PhotosPicker(selection: $pickedItems,
+                         maxSelectionCount: store.replaceTargetId == nil ? 10 : 1,
+                         matching: .images) {
+                Label(store.replaceTargetId == nil ? "Add from Photo Library" : "Choose a replacement",
+                      systemImage: "photo.badge.plus")
                     .frame(maxWidth: .infinity)
                     .padding(10)
                     .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
@@ -330,7 +342,8 @@ struct InsertSheet: View {
         }
     }
 
-    private func insertImage(_ src: String, natural: CGSize, replacing: String? = nil) {
+    private func insertImage(_ src: String, natural: CGSize, replacing: String? = nil,
+                             cascade: Int = 0) {
         // Replace mode swaps the source in place, keeping the frame, corner
         // radius and filter — only the crop is reset for the new picture.
         if let targetId = replacing ?? store.replaceTargetId {
@@ -351,6 +364,14 @@ struct InsertSheet: View {
         let w = store.design.width * 0.5
         let h = natural.width > 0 ? w * natural.height / natural.width : w * 0.75
         store.add(.image(src, w: w.rounded(), h: h.rounded()))
+        if cascade > 0, let id = store.selection.first,
+           let i = store.page.elements.firstIndex(where: { $0.id == id }) {
+            // Part of the same add, so nudged in place rather than through
+            // updateSelected, which would make the offset its own undo step.
+            let step = Double(cascade) * store.design.width * 0.04
+            store.design.pages[store.pageIndex].elements[i].x += step
+            store.design.pages[store.pageIndex].elements[i].y += step
+        }
     }
 
     // MARK: stickers

@@ -308,6 +308,15 @@ final class ExportRangeTests: XCTestCase {
         }
     }
 
+    func testARangeReportsAPageAtATime() throws {
+        var seen: [Double] = []
+        let urls = try DesignExporter.exportPages(design: design(pages: 4), range: .all,
+                                                  current: 0, format: .png, scale: 1,
+                                                  progress: { seen.append($0) })
+        written = urls
+        XCTAssertEqual(seen, [0.25, 0.5, 0.75, 1])
+    }
+
     /// A single page keeps the plain name: "poster.png", not "poster-1.png".
     func testASinglePageIsNotNumbered() throws {
         let urls = try DesignExporter.exportPages(design: design(pages: 3), range: .current,
