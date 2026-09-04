@@ -36,22 +36,23 @@ enum PDFImporter {
         let pageW = turned ? box.height : box.width
         let pageH = turned ? box.width : box.height
         let scale = min(maxEdge / max(pageW, pageH), 4)
-        let size = CGSize(width: (pageW * scale).rounded(), height: (pageH * scale).rounded())
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        format.opaque = true
-        return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
-            let cg = ctx.cgContext
-            UIColor.white.setFill()
-            cg.fill(CGRect(origin: .zero, size: size))
-            // PDF space has its origin at the bottom-left; the renderer's is
-            // top-left. Flip, then let Quartz fit the page (rotation included).
-            cg.translateBy(x: 0, y: size.height)
-            cg.scaleBy(x: 1, y: -1)
-            let transform = page.getDrawingTransform(.cropBox, rect: CGRect(origin: .zero, size: size),
-                                                     rotate: 0, preserveAspectRatio: true)
-            cg.concatenate(transform)
-            cg.drawPDFPage(page)
-        }
+        let width = max(1, Int((pageW * scale).rounded()))
+        let height = max(1, Int((pageH * scale).rounded()))
+        // A plain bitmap context, not a UIKit renderer: its origin is
+        // bottom-left with y up, which is PDF's own space, so the page draws
+        // upright with no flip to get wrong — and the CGImage it makes has
+        // its first row at the top like any other.
+        guard let cg = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
+                                 bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+                                 bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else { return nil }
+        cg.setFillColor(gray: 1, alpha: 1)
+        cg.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        cg.interpolationQuality = .high
+        let transform = page.getDrawingTransform(.cropBox, rect: CGRect(x: 0, y: 0, width: width, height: height),
+                                                 rotate: 0, preserveAspectRatio: true)
+        cg.concatenate(transform)
+        cg.drawPDFPage(page)
+        guard let image = cg.makeImage() else { return nil }
+        return UIImage(cgImage: image, scale: 1, orientation: .up)
     }
 }
