@@ -145,6 +145,15 @@ enum DesignExporter {
         }
     }
 
+    // MARK: svg
+
+    @MainActor
+    static func exportSVG(design: Design, page: Page, to url: URL) throws {
+        let markup = SVGExporter.svg(design: design, page: page)
+        guard let data = markup.data(using: .utf8) else { throw ExportError.encodeFailed }
+        try data.write(to: url)
+    }
+
     // MARK: destination
 
     /// A temporary file named after the design, so the share sheet offers

@@ -50,12 +50,19 @@ duplicate / delete via long-press), and a template gallery.
   selecting one member selects the group — deliberately not nested
   transforms)
 
-**Export** — PNG / JPEG at 1–3× and multi-page PDF, rendered with
+**Export** — PNG / JPEG at 1–3×, multi-page PDF and SVG, rendered with
 `ImageRenderer` from the very views the canvas shows, delivered through
 the share sheet. PDF pages are written as vectors, not page-sized
 bitmaps, and everything streams to disk rather than being assembled in
 memory. The scale picker shows the pixel size it will actually produce,
 including when a 32-megapixel cap is what decided it.
+
+SVG keeps shapes and lines as paths and strokes, and converts text to
+glyph outlines rather than `<text>` — the twelve font personalities map
+to faces that ship with iOS and are not on the machine opening the file,
+so `<text>` would silently substitute. Images and stickers embed as
+bitmaps rendered through the very views the canvas draws, so crop,
+filter, corner radius and emoji colour arrive exactly as they looked.
 
 ## Architecture
 

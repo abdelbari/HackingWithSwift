@@ -45,6 +45,10 @@ struct ExportSheet: View {
                                  : "Print-ready document, vector", icon: "doc.richtext") {
                         try exportPDF()
                     }
+                    exportButton("SVG", subtitle: "Current page, editable vectors",
+                                 icon: "scribble.variable") {
+                        try exportSVG()
+                    }
                 }
                 if let errorMessage {
                     Text(errorMessage).foregroundStyle(.red)
@@ -103,6 +107,13 @@ struct ExportSheet: View {
         let url = DesignExporter.fileURL(for: store.design, ext: format.ext)
         try DesignExporter.exportRaster(design: store.design, page: store.page,
                                         format: format, scale: scale, to: url)
+        exportedURL = url
+    }
+
+    @MainActor
+    private func exportSVG() throws {
+        let url = DesignExporter.fileURL(for: store.design, ext: "svg")
+        try DesignExporter.exportSVG(design: store.design, page: store.page, to: url)
         exportedURL = url
     }
 
