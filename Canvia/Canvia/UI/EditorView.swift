@@ -233,6 +233,23 @@ struct EditorView: View {
                 } label: { Label("Present", systemImage: "play.rectangle") }
 
                 Button {
+                    store.toggleMasterPage()
+                } label: {
+                    Label(store.isOnMasterPage ? "Stop using this page as master" : "Use this page as master",
+                          systemImage: "rectangle.on.rectangle")
+                }
+                if store.design.masterPage != nil && !store.isOnMasterPage {
+                    Button {
+                        store.toggleUsesMaster()
+                    } label: {
+                        Label(store.page.usesMaster == false ? "Show master on this page" : "Hide master on this page",
+                              systemImage: "rectangle.on.rectangle.slash")
+                    }
+                }
+            }
+
+            Section {
+                Button {
                     activeSheet = .layers
                 } label: { Label("Layers", systemImage: "square.3.layers.3d") }
 
@@ -556,6 +573,11 @@ struct EditorView: View {
             }
             Toggle("Show margins", isOn: $store.snapping.showMargins)
                 .disabled(!store.snapping.marginEnabled)
+            Divider()
+            Button { store.addGuide(vertical: true) } label: { Label("Add vertical guide", systemImage: "line.vertical") }
+            Button { store.addGuide(vertical: false) } label: { Label("Add horizontal guide", systemImage: "line.horizontal") }
+            Button(role: .destructive) { store.clearGuides() } label: { Label("Remove all guides", systemImage: "trash") }
+                .disabled(store.design.guides.isEmpty)
         } label: {
             Label("Snapping", systemImage: "square.grid.3x3")
         }

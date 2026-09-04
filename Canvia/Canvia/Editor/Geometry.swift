@@ -246,6 +246,10 @@ enum Geometry {
             xs += [m, design.width - m]
             ys += [m, design.height - m]
         }
+        // Guides are placed on purpose, so they snap whatever else is off.
+        for guide in design.guides {
+            if guide.vertical { xs.append(guide.position) } else { ys.append(guide.position) }
+        }
         return (xs, ys)
     }
 

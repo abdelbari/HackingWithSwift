@@ -26,6 +26,7 @@ struct ColorPickerSheet: View {
     /// Read once when the sheet opens: the picture does not change while it
     /// is up, and the body runs on every tick of the colour wheel.
     @State private var photoColors: [String] = []
+    @State private var eyedropping = false
 
     private let columns = [GridItem(.adaptive(minimum: 40), spacing: 10)]
 
@@ -47,9 +48,23 @@ struct ColorPickerSheet: View {
                     // Recents first: the colour you used thirty seconds ago is
                     // the one you are most likely to want again, and it was
                     // previously three taps away in the system picker.
-                    let brand = BrandKit.load().colors
-                    if !brand.isEmpty {
-                        section("Brand", colors: brand)
+                    Group {
+                        Button {
+                            eyedropping = true
+                        } label: {
+                            Label("Pick a colour from the design", systemImage: "eyedropper")
+                                .frame(maxWidth: .infinity)
+                                .padding(10)
+                                .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
+                        }
+                        .sheet(isPresented: $eyedropping) {
+                            EyedropperSheet(design: store.design, page: store.page) { hex in choose(hex) }
+                        }
+
+                        let brand = BrandKit.load().colors
+                        if !brand.isEmpty {
+                            section("Brand", colors: brand)
+                        }
                     }
 
                     let recents = RecentColors.all

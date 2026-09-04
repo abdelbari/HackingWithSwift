@@ -36,8 +36,15 @@ enum SVGExporter {
         var body: [String] = []
 
         body.append(backgroundMarkup(design: design, page: page, defs: &defs))
-        for (index, el) in page.elements.enumerated() {
-            body.append(elementGroup(el, index: index, defs: &defs))
+        let number = (design.pages.firstIndex { $0.id == page.id } ?? 0) + 1
+        let drawn = design.masterElements(behind: page) + page.elements
+        for (index, el) in drawn.enumerated() {
+            var resolved = el
+            if el.type == .text, let raw = el.text, raw.contains("{page") {
+                resolved.text = raw.replacingOccurrences(of: "{page}", with: String(number))
+                    .replacingOccurrences(of: "{pages}", with: String(design.pages.count))
+            }
+            body.append(elementGroup(resolved, index: index, defs: &defs))
         }
 
         let header = "<svg xmlns=\"http://www.w3.org/2000/svg\" " +

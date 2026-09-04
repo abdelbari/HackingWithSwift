@@ -123,6 +123,8 @@ struct Page: Codable, Equatable, Identifiable {
     /// How this page gives way to the next: "fade" | "cut" | "slide"; nil
     /// is the document's setting.
     var transition: String?
+    /// Whether the master page shows behind this one; nil is yes.
+    var usesMaster: Bool?
 
     init(id: String = UID.make("page"), background: Background = .color("#ffffff"),
          elements: [Element] = [], notes: String? = nil) {
@@ -140,9 +142,19 @@ struct Page: Codable, Equatable, Identifiable {
         notes = try? c.decode(String.self, forKey: .notes)
         holdSeconds = try? c.decode(Double.self, forKey: .holdSeconds)
         transition = try? c.decode(String.self, forKey: .transition)
+        usesMaster = try? c.decode(Bool.self, forKey: .usesMaster)
     }
 
-    private enum CodingKeys: String, CodingKey { case id, background, elements, notes, holdSeconds, transition }
+    private enum CodingKeys: String, CodingKey {
+        case id, background, elements, notes, holdSeconds, transition, usesMaster
+    }
+}
+
+/// A vertical or horizontal line to line things up against, in page units.
+struct Guide: Codable, Equatable, Identifiable {
+    var id: String = UID.make("guide")
+    var vertical: Bool
+    var position: Double
 }
 
 /// How a design plays as a video or GIF. Saved with the design, because a
@@ -170,6 +182,11 @@ struct Design: Codable, Equatable, Identifiable {
     var updatedAt: Double = Date().timeIntervalSince1970 * 1000
     var pages: [Page] = [Page()]
     var motion: MotionSettings?
+    /// The page whose elements show behind every other page that uses the
+    /// master — a header, a footer, a logo in the corner, drawn once.
+    var masterPageId: String?
+    /// Draggable alignment guides, in page units, kept with the design.
+    var guides: [Guide] = []
 
     var size: CGSize { CGSize(width: width, height: height) }
 
@@ -191,10 +208,25 @@ struct Design: Codable, Equatable, Identifiable {
         let pages = (try? c.decode([Page].self, forKey: .pages)) ?? []
         self.pages = pages.isEmpty ? [Page()] : pages
         motion = try? c.decode(MotionSettings.self, forKey: .motion)
+        masterPageId = try? c.decode(String.self, forKey: .masterPageId)
+        guides = (try? c.decode([Guide].self, forKey: .guides)) ?? []
     }
 
     private enum CodingKeys: String, CodingKey {
-        case version, id, title, width, height, createdAt, updatedAt, pages, motion
+        case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides
+    }
+
+    /// The master page, if one is set and still exists.
+    var masterPage: Page? {
+        guard let id = masterPageId else { return nil }
+        return pages.first { $0.id == id }
+    }
+
+    /// The elements drawn behind `page` from the master: none on the master
+    /// itself, none on a page that opted out.
+    func masterElements(behind page: Page) -> [Element] {
+        guard let master = masterPage, master.id != page.id, page.usesMaster != false else { return [] }
+        return master.elements
     }
 
     /// Grow any text box that is shorter than the text actually needs.

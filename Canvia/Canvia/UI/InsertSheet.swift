@@ -259,6 +259,7 @@ struct InsertSheet: View {
             textInsert("Add a heading", size: 0.08, weight: 700)
             textInsert("Add a subheading", size: 0.045, weight: 600)
             textInsert("Add body text", size: 0.028, weight: 400)
+            textInsert("Page {page} of {pages}", size: 0.022, weight: 500)
 
             if !ContentLibrary.pairings.isEmpty {
                 sectionHeader("Font pairings")

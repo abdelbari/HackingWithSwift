@@ -89,6 +89,14 @@ duplicate / delete via long-press), and a template gallery.
   an opaque screenshot as the far smaller JPEG — and every colour picker
   offers "From the photo": the six most prominent colours of the selected
   picture or the page's background picture, read from its pixels.
+- A master page: mark any page as master and its elements draw behind
+  every other page (each page can opt out) — on the canvas, in every
+  export, in the SVG. "{page}" and "{pages}" in any text become the page
+  number and the page count where the page is known.
+- Guides: add vertical and horizontal guides from the Snapping menu, drag
+  them into place, press and hold to remove; they are saved with the
+  design and everything snaps to them. An eyedropper in every colour
+  picker samples any colour from the rendered design.
 - Saved, linked text styles: name a look ("Heading", "Price"), apply it
   to any text from the Styles menu, and update it from one element to
   change every element that follows it, on every page, as one undo step.

@@ -97,6 +97,7 @@ struct CanvasView: View {
 
             if store.snapping.showGrid { gridOverlay }
             if store.snapping.marginEnabled && store.snapping.showMargins { marginOverlay }
+            ForEach(store.design.guides) { guide in guideLine(guide) }
 
             if store.page.elements.isEmpty {
                 emptyPageHint
@@ -192,6 +193,28 @@ struct CanvasView: View {
         }
         .frame(width: w, height: h)
         .allowsHitTesting(false)
+    }
+
+    /// A guide: a thin line across the page that can be dragged into place
+    /// and removed with a long press. Its touch target is wide though the
+    /// line is not.
+    private func guideLine(_ guide: Guide) -> some View {
+        let w = store.design.width, h = store.design.height
+        return Rectangle()
+            .fill(Theme.guide.opacity(0.9))
+            .frame(width: guide.vertical ? 1.5 * iz : w, height: guide.vertical ? h : 1.5 * iz)
+            .contentShape(Rectangle().inset(by: -8 * iz))
+            .gesture(
+                DragGesture(minimumDistance: 1, coordinateSpace: .named("page"))
+                    .onChanged { value in
+                        store.moveGuideTransient(guide.id, to: guide.vertical ? value.location.x : value.location.y)
+                    }
+                    .onEnded { _ in store.commit() }
+            )
+            .onLongPressGesture(minimumDuration: 0.5) { store.removeGuide(guide.id) }
+            .position(x: guide.vertical ? guide.position : w / 2, y: guide.vertical ? h / 2 : guide.position)
+            .accessibilityLabel(guide.vertical ? "Vertical guide at \(Int(guide.position))" : "Horizontal guide at \(Int(guide.position))")
+            .accessibilityHint("Drag to move, press and hold to remove")
     }
 
     /// The safe area as a dashed inset. Like the grid, never exported.

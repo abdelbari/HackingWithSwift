@@ -110,6 +110,7 @@ struct ShapeElementView: View {
 
 struct TextElementView: View {
     let element: Element
+    @Environment(\.pageNumber) private var pageNumber
 
     var body: some View {
         SwiftUI.Canvas { context, size in
@@ -124,6 +125,11 @@ struct TextElementView: View {
     private func drawText(in cg: CGContext, size: CGSize) {
         var el = element
         let effect = TextEffect.from(el.effect)
+        // Page tokens resolve here, where the page is known.
+        if let pageNumber, let raw = el.text, raw.contains("{page") {
+            el.text = raw.replacingOccurrences(of: "{page}", with: String(pageNumber.number))
+                .replacingOccurrences(of: "{pages}", with: String(pageNumber.count))
+        }
         let text = FontLibrary.displayText(for: el)
         guard !text.isEmpty else { return }
         if let degrees = el.curve, abs(degrees) >= TextOutliner.straightBelowDegrees {
@@ -489,6 +495,11 @@ struct PageRenderView: View {
     var body: some View {
         ZStack {
             backgroundView
+            // The master page's elements, behind this page's own. Not on
+            // the master itself, and not on a page that opted out.
+            ForEach(design.masterElements(behind: page)) { el in
+                ElementView(element: el).equatable()
+            }
             ForEach(page.elements) { el in
                 // .equatable() so a drag re-renders the element that moved
                 // rather than every element on the page. The store is
@@ -501,6 +512,12 @@ struct PageRenderView: View {
         }
         .frame(width: design.width, height: design.height)
         .clipped()
+        .environment(\.pageNumber, pageNumberValue)
+    }
+
+    private var pageNumberValue: (number: Int, count: Int)? {
+        guard let index = design.pages.firstIndex(where: { $0.id == page.id }) else { return nil }
+        return (index + 1, design.pages.count)
     }
 
     @ViewBuilder

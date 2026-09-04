@@ -70,12 +70,14 @@ final class CropTests: XCTestCase {
         let consumer = try XCTUnwrap(CGDataConsumer(data: data))
         let pdf = try XCTUnwrap(CGContext(consumer: consumer, mediaBox: &box, nil))
         pdf.beginPDFPage(nil)
-        pdf.setFillColor(UIColor.red.cgColor)
+        // Device RGB, set by components: a UIColor's extended-range CGColor
+        // is not something a PDF context is guaranteed to record.
+        pdf.setFillColor(red: 1, green: 0, blue: 0, alpha: 1)
         pdf.fill(CGRect(x: 0, y: 50, width: 100, height: 50))       // upper-left in PDF space
         pdf.endPDFPage()
         var tall = CGRect(x: 0, y: 0, width: 100, height: 200)
         pdf.beginPDFPage([kCGPDFContextMediaBox as String: Data(bytes: &tall, count: MemoryLayout<CGRect>.size)] as CFDictionary)
-        pdf.setFillColor(UIColor.blue.cgColor)
+        pdf.setFillColor(red: 0, green: 0, blue: 1, alpha: 1)
         pdf.fill(tall)
         pdf.endPDFPage()
         pdf.closePDF()
@@ -87,11 +89,17 @@ final class CropTests: XCTestCase {
         XCTAssertEqual(second.size.width / second.size.height, 0.5, accuracy: 0.01)
         XCTAssertEqual(first.size.width, 400, accuracy: 1, "the long edge is the requested size")
 
-        let topLeft = try rgb(first, x: 10, y: 10)
-        let bottomLeft = try rgb(first, x: 10, y: Int(first.size.height) - 10)
-        XCTAssertGreaterThan(topLeft.r, 200, "\(topLeft)")
-        XCTAssertLessThan(topLeft.g, 60, "the red mark is not at the top-left: the page is flipped — \(topLeft) / \(bottomLeft)")
-        XCTAssertGreaterThan(bottomLeft.g, 200, "the lower half should be white — \(bottomLeft)")
+        // The all-blue page tells a fill that never recorded from a flip.
+        let middle = try rgb(second, x: Int(second.size.width) / 2, y: Int(second.size.height) / 2)
+        XCTAssertGreaterThan(middle.b, 200, "the PDF's fills did not survive import at all: \(middle)")
+
+        let w = Int(first.size.width), h = Int(first.size.height)
+        let tl = try rgb(first, x: 10, y: 10), tr = try rgb(first, x: w - 10, y: 10)
+        let bl = try rgb(first, x: 10, y: h - 10), br = try rgb(first, x: w - 10, y: h - 10)
+        let corners = "tl \(tl) tr \(tr) bl \(bl) br \(br)"
+        XCTAssertGreaterThan(tl.r, 200, corners)
+        XCTAssertLessThan(tl.g, 60, "the red mark is not at the top-left — \(corners)")
+        XCTAssertGreaterThan(bl.g, 200, "the lower half should be white — \(corners)")
     }
 
     func testAFileThatIsNotAPDFImportsNothing() {

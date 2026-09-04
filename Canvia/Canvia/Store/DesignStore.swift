@@ -909,6 +909,47 @@ final class DesignStore {
         }
     }
 
+    // MARK: master page and guides
+
+    /// Make the current page the master (or clear it), one undo step.
+    func toggleMasterPage() {
+        let id = page.id
+        apply { $0.masterPageId = $0.masterPageId == id ? nil : id }
+    }
+
+    var isOnMasterPage: Bool { design.masterPageId == page.id }
+
+    func toggleUsesMaster() {
+        applyToPage { $0.usesMaster = $0.usesMaster == false ? nil : false }
+    }
+
+    /// A guide across the middle of the page, to be dragged from there.
+    func addGuide(vertical: Bool) {
+        addGuide(vertical: vertical, at: (vertical ? design.width / 2 : design.height / 2).rounded())
+    }
+
+    func addGuide(vertical: Bool, at position: Double) {
+        apply { $0.guides.append(Guide(vertical: vertical, position: position)) }
+    }
+
+    /// Slide a guide while dragging; commit() when the finger lifts.
+    func moveGuideTransient(_ id: String, to position: Double) {
+        beginGesture()
+        if let i = design.guides.firstIndex(where: { $0.id == id }) {
+            let limit = design.guides[i].vertical ? design.width : design.height
+            design.guides[i].position = min(max(position, 0), limit).rounded()
+        }
+    }
+
+    func removeGuide(_ id: String) {
+        apply { $0.guides.removeAll { $0.id == id } }
+    }
+
+    func clearGuides() {
+        guard !design.guides.isEmpty else { return }
+        apply { $0.guides.removeAll() }
+    }
+
     // MARK: page clipboard
 
     func copyPage() {

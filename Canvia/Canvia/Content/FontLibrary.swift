@@ -203,7 +203,16 @@ enum FontLibrary {
 
     /// Display text including bullet prefixes.
     static func displayText(for el: Element) -> String {
-        let raw = el.text ?? ""
+        displayText(for: el, pageNumber: nil, pageCount: nil)
+    }
+
+    /// "{page}" and "{pages}" in a text element become the page's number and
+    /// the document's page count when the caller knows them; left as they
+    /// are when it does not, so measuring is honest about the width.
+    static func displayText(for el: Element, pageNumber: Int?, pageCount: Int?) -> String {
+        var raw = el.text ?? ""
+        if let pageNumber { raw = raw.replacingOccurrences(of: "{page}", with: String(pageNumber)) }
+        if let pageCount { raw = raw.replacingOccurrences(of: "{pages}", with: String(pageCount)) }
         guard isList(el) else { return raw }
         var n = 0
         return raw.components(separatedBy: "\n")
