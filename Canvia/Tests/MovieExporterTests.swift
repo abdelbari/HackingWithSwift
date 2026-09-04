@@ -244,8 +244,9 @@ final class MovieExporterTests: XCTestCase {
         var values: [Double] = []
         try MovieExporter.exportGIF(design: design(pages: 2), settings: settings, to: url,
                                     progress: { values.append($0) })
+        let plan = MovieExporter.gifPlan(design: design(pages: 2), settings: settings)
         XCTAssertEqual(values.count, MovieExporter.frameCount(pages: 2, settings: {
-            var s = settings; s.fps = 12; return s
+            var s = settings; s.fps = plan.fps; return s
         }()))
         XCTAssertEqual(values.last ?? 0, 1, accuracy: 0.0001)
     }
@@ -266,8 +267,9 @@ final class MovieExporterTests: XCTestCase {
 
         let source = try XCTUnwrap(CGImageSourceCreateWithURL(url as CFURL, nil))
         XCTAssertEqual(CGImageSourceGetType(source) as String?, "com.compuserve.gif")
-        // exportGIF drops to 12fps regardless of what it is handed.
-        XCTAssertEqual(CGImageSourceGetCount(source), 12)
+        // exportGIF paces itself by the budget plan, not the video's rate.
+        let plan = MovieExporter.gifPlan(design: design(pages: 2), settings: settings)
+        XCTAssertEqual(CGImageSourceGetCount(source), plan.fps)   // 2 pages × 0.5s × fps
     }
 
     @MainActor

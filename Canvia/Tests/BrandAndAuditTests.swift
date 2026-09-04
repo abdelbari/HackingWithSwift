@@ -42,16 +42,17 @@ final class BrandAndAuditTests: XCTestCase {
 
     func testLargeTextNeedsLessAndTheBackdropIsWhatIsBehind() {
         var d = Design(title: "c", width: 800, height: 600)
-        var panel = Element.shape("rect", w: 800, h: 300); panel.fill = .solid("#222222")
+        var panel = Element.shape("rect", w: 800, h: 300); panel.fill = .solid("#000000")
         var onPanel = Element.text("Grey on dark", fontSize: 16, w: 300); onPanel.color = "#777777"; onPanel.y = 100
         var onPage = Element.text("Grey on white", fontSize: 16, w: 300); onPage.color = "#777777"; onPage.y = 450
         var big = Element.text("Big grey", fontSize: 40, w: 300); big.color = "#777777"; big.y = 500
         d.pages[0] = Page(background: .color("#ffffff"), elements: [panel, onPanel, onPage, big])
 
-        XCTAssertEqual(ContrastAudit.backdrop(for: onPanel, in: d.pages[0]), "#222222")
+        XCTAssertEqual(ContrastAudit.backdrop(for: onPanel, in: d.pages[0]), "#000000")
         XCTAssertEqual(ContrastAudit.backdrop(for: onPage, in: d.pages[0]), "#ffffff")
         let findings = ContrastAudit.audit(d)
-        XCTAssertEqual(findings.map(\.elementId), [onPage.id], "#777 on white is 4.48:1, just under; on #222 it passes; at 40px 4.48 passes 3:1")
+        XCTAssertEqual(findings.map(\.elementId), [onPage.id],
+                       "#777 on white is 4.48:1, just under; on black it is 4.69:1 and passes; at 40px 4.48 passes 3:1")
         XCTAssertEqual(findings[0].required, 4.5)
         XCTAssertGreaterThanOrEqual(ContrastAudit.ratio(findings[0].suggestion, "#ffffff"), 4.5, "the suggestion must pass")
     }
