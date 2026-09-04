@@ -37,6 +37,7 @@ struct EditorView: View {
     @State private var toast: String?
     @State private var toastTask: Task<Void, Never>?
     @State private var tip: Tip?
+    @State private var presenting = false
     @State private var tipTask: Task<Void, Never>?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -82,6 +83,9 @@ struct EditorView: View {
         .background(Theme.workspace)
         .sheet(item: $activeSheet) { sheet in
             sheetView(sheet)
+        }
+        .fullScreenCover(isPresented: $presenting) {
+            PresentationView(design: store.design, startPage: store.pageIndex)
         }
         .onAppear {
             store.onCommit = { scheduleSave() }
@@ -212,6 +216,10 @@ struct EditorView: View {
             // block takes ten children and this menu is past that, and menu
             // sections draw the same separators for free.
             Section {
+                Button {
+                    presenting = true
+                } label: { Label("Present", systemImage: "play.rectangle") }
+
                 Button {
                     activeSheet = .layers
                 } label: { Label("Layers", systemImage: "square.3.layers.3d") }
@@ -523,6 +531,14 @@ struct EditorView: View {
             }
             Toggle("Show grid", isOn: $store.snapping.showGrid)
                 .disabled(!store.snapping.gridEnabled)
+            Picker("Margins", selection: $store.snapping.margin) {
+                Text("No margins").tag(0.0)
+                ForEach(SnapSettings.marginChoices.filter { $0 > 0 }, id: \.self) { m in
+                    Text("\(Int((m * 100).rounded()))% of the short side").tag(m)
+                }
+            }
+            Toggle("Show margins", isOn: $store.snapping.showMargins)
+                .disabled(!store.snapping.marginEnabled)
         } label: {
             Label("Snapping", systemImage: "square.grid.3x3")
         }

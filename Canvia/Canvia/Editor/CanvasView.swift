@@ -96,6 +96,7 @@ struct CanvasView: View {
                 .gesture(marqueeGesture)
 
             if store.snapping.showGrid { gridOverlay }
+            if store.snapping.marginEnabled && store.snapping.showMargins { marginOverlay }
 
             if store.page.elements.isEmpty {
                 emptyPageHint
@@ -191,6 +192,17 @@ struct CanvasView: View {
         }
         .frame(width: w, height: h)
         .allowsHitTesting(false)
+    }
+
+    /// The safe area as a dashed inset. Like the grid, never exported.
+    private var marginOverlay: some View {
+        let m = store.snapping.marginInset(for: store.design)
+        return Rectangle()
+            .strokeBorder(Theme.guide.opacity(0.55),
+                          style: StrokeStyle(lineWidth: 1 * iz, dash: [6 * iz, 4 * iz]))
+            .frame(width: max(store.design.width - 2 * m, 1), height: max(store.design.height - 2 * m, 1))
+            .position(x: store.design.width / 2, y: store.design.height / 2)
+            .allowsHitTesting(false)
     }
 
     private func elementHitArea(_ el: Element) -> some View {

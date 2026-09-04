@@ -136,13 +136,39 @@ private struct PageNotesSheet: View {
 
     var body: some View {
         NavigationStack {
-            TextEditor(text: Binding(
-                get: { store.page.notes ?? "" },
-                set: { text in
-                    store.applyToPage { $0.notes = text.isEmpty ? nil : text }
-                }))
-                .padding(8)
-                .navigationTitle("Notes for page \(store.pageIndex + 1)")
+            Form {
+                Section("Notes") {
+                    TextEditor(text: Binding(
+                        get: { store.page.notes ?? "" },
+                        set: { text in
+                            store.applyToPage { $0.notes = text.isEmpty ? nil : text }
+                        }))
+                    .frame(minHeight: 120)
+                }
+                Section {
+                    let hold = store.page.holdSeconds ?? store.design.motion?.secondsPerPage ?? MotionSettings().secondsPerPage
+                    Stepper(value: Binding(
+                        get: { hold },
+                        set: { v in store.applyToPage { $0.holdSeconds = v } }),
+                            in: MotionSettings.secondsRange, step: 0.5) {
+                        Text("Hold \(String(format: "%.1f", hold))s" + (store.page.holdSeconds == nil ? " (document setting)" : ""))
+                    }
+                    Picker("Transition to the next page", selection: Binding(
+                        get: { store.page.transition ?? "default" },
+                        set: { v in store.applyToPage { $0.transition = v == "default" ? nil : v } })) {
+                        Text("Document setting").tag("default")
+                        Text("Fade").tag("fade")
+                        Text("Cut").tag("cut")
+                        Text("Slide").tag("slide")
+                    }
+                    if store.page.holdSeconds != nil {
+                        Button("Use the document's timing") { store.applyToPage { $0.holdSeconds = nil } }
+                    }
+                } header: {
+                    Text("In video and presentation")
+                }
+            }
+                .navigationTitle("Page \(store.pageIndex + 1)")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }

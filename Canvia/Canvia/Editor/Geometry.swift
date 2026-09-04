@@ -241,6 +241,11 @@ enum Geometry {
             xs += gridLines(across: design.width, spacing: settings.grid)
             ys += gridLines(across: design.height, spacing: settings.grid)
         }
+        if settings.marginEnabled {
+            let m = settings.marginInset(for: design)
+            xs += [m, design.width - m]
+            ys += [m, design.height - m]
+        }
         return (xs, ys)
     }
 

@@ -14,8 +14,21 @@ struct SnapSettings: Equatable, Codable {
     /// Grid spacing in page units; 0 is no grid.
     var grid: Double = 0
     var showGrid = false
+    /// Page margin as a fraction of the shorter side; 0 is none. Drawn as a
+    /// dashed inset and snapped to, so content lands inside a safe area
+    /// rather than at the edge.
+    var margin: Double = 0
+    var showMargins = true
 
     var gridEnabled: Bool { grid > 0 }
+    var marginEnabled: Bool { margin > 0 }
+
+    static let marginChoices: [Double] = [0, 0.02, 0.05, 0.08]
+
+    /// The margin in page units for a design.
+    func marginInset(for design: Design) -> Double {
+        (min(design.width, design.height) * margin).rounded()
+    }
 
     /// The spacings offered. Powers of two, because designs are sized in
     /// them (1080, 1920, 2048) and so are the paddings people type.

@@ -71,6 +71,89 @@ enum MovieExporter {
         max(1, pages) * max(1, Int((settings.secondsPerPage * Double(settings.fps)).rounded()))
     }
 
+    // MARK: timeline
+
+    static let transitions = ["fade", "cut", "slide"]
+
+    /// One page's stretch of the sequence: where it starts, how many frames
+    /// it holds, and how it hands over to the next.
+    struct Timing: Equatable {
+        var start: Int
+        var frames: Int
+        var transition: String
+        var end: Int { start + frames }
+    }
+
+    /// Each page's own hold and transition, falling back to the document's.
+    static func timeline(design: Design, settings: Settings) -> [Timing] {
+        var start = 0
+        return design.pages.map { page in
+            let seconds = min(max(page.holdSeconds ?? settings.secondsPerPage, 0.1), 60)
+            let frames = max(1, Int((seconds * Double(settings.fps)).rounded()))
+            let transition = page.transition ?? (settings.crossfade > 0 ? "fade" : "cut")
+            defer { start += frames }
+            return Timing(start: start, frames: frames, transition: transition)
+        }
+    }
+
+    /// Uniform timings for a page count, which is what the settings alone
+    /// describe.
+    static func uniformTimeline(pages: Int, settings: Settings) -> [Timing] {
+        let perPage = max(1, Int((settings.secondsPerPage * Double(settings.fps)).rounded()))
+        return (0..<max(1, pages)).map {
+            Timing(start: $0 * perPage, frames: perPage, transition: settings.crossfade > 0 ? "fade" : "cut")
+        }
+    }
+
+    static func frameCount(design: Design, settings: Settings) -> Int {
+        timeline(design: design, settings: settings).last?.end ?? 1
+    }
+
+    /// The page a frame belongs to, and how far through it.
+    static func locate(frame index: Int, in timings: [Timing]) -> (page: Int, progress: Double, remaining: Int) {
+        guard !timings.isEmpty else { return (0, 0, 1) }
+        let page = timings.lastIndex { $0.start <= index } ?? 0
+        let t = timings[page]
+        let into = min(max(index - t.start, 0), t.frames - 1)
+        return (page, Double(into) / Double(t.frames), t.frames - into)
+    }
+
+    // MARK: gif budget
+
+    /// A GIF stores every frame in full; a size that is fine as H.264 is
+    /// tens of megabytes as GIF. Given a byte budget, pick the largest frame
+    /// and the higher of two honest frame rates that fit.
+    ///
+    /// Honest because GIF delays are whole hundredths of a second: 12fps is
+    /// stored as 0.08s and plays at 12.5, 30fps as 0.03 and plays at 33.
+    /// 20fps (0.05) and 10fps (0.10) play at exactly what they say.
+    struct GIFPlan: Equatable {
+        var maxEdge: Double
+        var fps: Int
+        var delay: Double { 1 / Double(fps) }
+    }
+
+    static let gifBudget = 8_000_000
+
+    static func gifPlan(design: Design, settings: Settings, budget: Int = gifBudget) -> GIFPlan {
+        let seconds = timeline(design: design, settings: settings)
+            .reduce(0.0) { $0 + Double($1.frames) / Double(max(settings.fps, 1)) }
+        let aspect = max(design.width, 1) / max(design.height, 1)
+        var last = GIFPlan(maxEdge: 240, fps: 10)
+        for fps in [20, 10] {
+            for edge in [640.0, 480, 360, 240] {
+                let w = aspect >= 1 ? edge : edge * aspect
+                let h = aspect >= 1 ? edge / aspect : edge
+                // About 0.35 bytes a pixel a frame for LZW on flat design
+                // content; photos run higher, and the budget has slack.
+                let bytes = w * h * seconds * Double(fps) * 0.35
+                last = GIFPlan(maxEdge: edge, fps: fps)
+                if bytes <= Double(budget) { return last }
+            }
+        }
+        return last
+    }
+
     // MARK: frames
 
     /// One bitmap per page, at the output size. Rendered once and reused for
@@ -95,10 +178,16 @@ enum MovieExporter {
     /// is showing — can be exercised on its own.
     static func draw(frame index: Int, pages: [CGImage], size: CGSize,
                      settings: Settings, into context: CGContext) {
+        draw(frame: index, pages: pages, size: size, settings: settings, timings: nil, into: context)
+    }
+
+    static func draw(frame index: Int, pages: [CGImage], size: CGSize,
+                     settings: Settings, timings: [Timing]?, into context: CGContext) {
         guard !pages.isEmpty else { return }
-        let perPage = max(1, Int((settings.secondsPerPage * Double(settings.fps)).rounded()))
-        let page = min(index / perPage, pages.count - 1)
-        let progress = Double(index % perPage) / Double(perPage)
+        let timeline = timings ?? uniformTimeline(pages: pages.count, settings: settings)
+        let where_ = locate(frame: index, in: timeline)
+        let page = min(where_.page, pages.count - 1)
+        let progress = where_.progress
 
         context.setFillColor(gray: 1, alpha: 1)
         context.fill(CGRect(origin: .zero, size: size))
@@ -107,14 +196,26 @@ enum MovieExporter {
         drawPage(pages[page], progress: progress, alpha: 1,
                  size: size, settings: settings, into: context)
 
-        // The fade lives at the end of a page rather than the start of the
-        // next, so the last page never fades into nothing.
-        let fadeFrames = Int((settings.crossfade * Double(settings.fps)).rounded())
-        let remaining = perPage - (index % perPage)
-        if page + 1 < pages.count, fadeFrames > 0, remaining <= fadeFrames {
-            let alpha = 1 - Double(remaining) / Double(fadeFrames)
-            drawPage(pages[page + 1], progress: 0, alpha: alpha,
-                     size: size, settings: settings, into: context)
+        // The transition lives at the end of a page rather than the start of
+        // the next, so the last page never fades into nothing.
+        let transition = timeline[min(page, timeline.count - 1)].transition
+        let overlap = Int((max(settings.crossfade, transition == "cut" ? 0 : 0.5) * Double(settings.fps)).rounded())
+        let remaining = where_.remaining
+        if page + 1 < pages.count, transition != "cut", overlap > 0, remaining <= overlap {
+            let t = 1 - Double(remaining) / Double(overlap)
+            switch transition {
+            case "slide":
+                // The next page pushes in from the right, easing out.
+                let eased = 1 - pow(1 - t, 3)
+                context.saveGState()
+                context.translateBy(x: size.width * (1 - eased), y: 0)
+                drawPage(pages[page + 1], progress: 0, alpha: 1,
+                         size: size, settings: settings, into: context)
+                context.restoreGState()
+            default:
+                drawPage(pages[page + 1], progress: 0, alpha: t,
+                         size: size, settings: settings, into: context)
+            }
         }
     }
 
@@ -164,7 +265,8 @@ enum MovieExporter {
         }
         writer.startSession(atSourceTime: .zero)
 
-        let total = frameCount(pages: pages.count, settings: settings)
+        let timings = timeline(design: design, settings: settings)
+        let total = timings.last?.end ?? 1
         let state = WriteState()
         let queue = DispatchQueue(label: "canvia.movie.write")
 
@@ -191,7 +293,7 @@ enum MovieExporter {
                         continuation.resume(throwing: MovieError.writerFailed("no pixel buffer"))
                         return
                     }
-                    fill(buffer, frame: state.index, pages: pages, size: size, settings: settings)
+                    fill(buffer, frame: state.index, pages: pages, size: size, settings: settings, timings: timings)
                     let time = CMTime(value: CMTimeValue(state.index),
                                       timescale: CMTimeScale(settings.fps))
                     guard adaptor.append(buffer, withPresentationTime: time) else {
@@ -248,7 +350,7 @@ enum MovieExporter {
     }
 
     private static func fill(_ buffer: CVPixelBuffer, frame index: Int, pages: [CGImage],
-                             size: CGSize, settings: Settings) {
+                             size: CGSize, settings: Settings, timings: [Timing]) {
         CVPixelBufferLockBaseAddress(buffer, [])
         defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
         guard let context = CGContext(
@@ -258,7 +360,7 @@ enum MovieExporter {
             space: CGColorSpaceCreateDeviceRGB(),
             bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue
                 | CGBitmapInfo.byteOrder32Little.rawValue) else { return }
-        draw(frame: index, pages: pages, size: size, settings: settings, into: context)
+        draw(frame: index, pages: pages, size: size, settings: settings, timings: timings, into: context)
     }
 
     // MARK: gif
@@ -268,15 +370,19 @@ enum MovieExporter {
     @MainActor
     static func exportGIF(design: Design, settings: Settings = Settings(), to url: URL,
                           progress: ((Double) -> Void)? = nil) throws {
+        // Sized to a budget and paced at a rate the format can state
+        // exactly; see gifPlan.
+        let plan = gifPlan(design: design, settings: settings)
         var gifSettings = settings
-        gifSettings.fps = 12
-        gifSettings.maxEdge = min(settings.maxEdge, 640)
+        gifSettings.fps = plan.fps
+        gifSettings.maxEdge = min(settings.maxEdge, plan.maxEdge)
 
         let size = videoSize(for: design, maxEdge: gifSettings.maxEdge)
         let pages = pageImages(design: design, size: size)
         guard !pages.isEmpty else { throw MovieError.nothingToRender }
 
-        let total = frameCount(pages: pages.count, settings: gifSettings)
+        let timings = timeline(design: design, settings: gifSettings)
+        let total = timings.last?.end ?? 1
         guard let destination = CGImageDestinationCreateWithURL(
             url as CFURL, UTType.gif.identifier as CFString, total, nil) else {
             throw MovieError.writerFailed("no GIF destination")
@@ -287,7 +393,7 @@ enum MovieExporter {
 
         let frameProperties = [
             kCGImagePropertyGIFDictionary: [
-                kCGImagePropertyGIFDelayTime: 1.0 / Double(gifSettings.fps),
+                kCGImagePropertyGIFDelayTime: plan.delay,
             ],
         ] as CFDictionary
 
@@ -307,7 +413,8 @@ enum MovieExporter {
                         | CGBitmapInfo.byteOrder32Little.rawValue) else {
                     throw MovieError.writerFailed("a frame context would not open")
                 }
-                draw(frame: index, pages: pages, size: size, settings: gifSettings, into: context)
+                draw(frame: index, pages: pages, size: size, settings: gifSettings,
+                     timings: timings, into: context)
                 guard let frame = context.makeImage() else {
                     throw MovieError.writerFailed("a frame would not render")
                 }

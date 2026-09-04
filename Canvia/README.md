@@ -149,9 +149,10 @@ duplicate / delete via long-press), and a template gallery.
 - A multi-selection resizes and rotates as one unit from its box —
   corner handles only, because a uniform scale is the only one that
   keeps rotated members exact; text scales its type along with its box
-- Snapping with switches: to the page, to other elements, and to a grid
-  of 8/16/32/64 px that can be shown as hairlines on the canvas (never in
-  an export). Remembered across launches.
+- Snapping with switches: to the page, to other elements, to a grid
+  of 8/16/32/64 px that can be shown as hairlines on the canvas, and to
+  page margins (2/5/8% of the short side) drawn as a dashed safe area —
+  none of it ever in an export. Remembered across launches.
 - Version history: a copy of the design is kept at most every two
   minutes while editing, and whenever the editor is left, only when
   something changed, thirty deep. Restoring one is a single undo step
@@ -192,10 +193,19 @@ sheet in the way.
 **Print** — AirPrint, through the same vector PDF the export writes, so
 what reaches the printer is the document rather than a picture of it.
 
+**Present** — the design full screen from the menu: black surround,
+tap or swipe between pages, a clock, the page's notes for whoever holds
+the phone, and autoplay on each page's own timing. Every page can set
+its own hold and its transition to the next (fade, cut or slide) from
+its notes sheet; the video honours both.
+
 **MP4 and animated GIF** — a multi-page design is already a sequence, so
 it exports as one: each page holds for 2.5 seconds with a slow push in
 and a cross-fade into the next (hold time, frame rate, push-in and fade
-are settings saved with the design), written frame by frame with AVAssetWriter
+are settings saved with the design, and each page can override its hold
+and transition). The GIF is sized to an 8 MB budget — the largest frame
+and the higher of two frame rates that fit — and paced at 20 or 10 fps,
+the rates a GIF can state exactly, written frame by frame with AVAssetWriter
 (video) and ImageIO (GIF). No network, no account, no codec licence.
 
 SVG keeps shapes and lines as paths and strokes, and converts text to

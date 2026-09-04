@@ -117,6 +117,12 @@ struct Page: Codable, Equatable, Identifiable {
     /// Speaker or production notes. Never drawn on the page — they are about
     /// the page, not on it — so nothing that renders reads this.
     var notes: String?
+    /// How long this page holds in a video or presentation; nil is the
+    /// document's setting.
+    var holdSeconds: Double?
+    /// How this page gives way to the next: "fade" | "cut" | "slide"; nil
+    /// is the document's setting.
+    var transition: String?
 
     init(id: String = UID.make("page"), background: Background = .color("#ffffff"),
          elements: [Element] = [], notes: String? = nil) {
@@ -132,9 +138,11 @@ struct Page: Codable, Equatable, Identifiable {
         background = (try? c.decode(Background.self, forKey: .background)) ?? .color("#ffffff")
         elements = (try? c.decode([Element].self, forKey: .elements)) ?? []
         notes = try? c.decode(String.self, forKey: .notes)
+        holdSeconds = try? c.decode(Double.self, forKey: .holdSeconds)
+        transition = try? c.decode(String.self, forKey: .transition)
     }
 
-    private enum CodingKeys: String, CodingKey { case id, background, elements, notes }
+    private enum CodingKeys: String, CodingKey { case id, background, elements, notes, holdSeconds, transition }
 }
 
 /// How a design plays as a video or GIF. Saved with the design, because a
