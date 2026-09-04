@@ -248,6 +248,7 @@ struct ContextToolbar: View {
     @ViewBuilder
     private var universalControls: some View {
         toolButton("square.3.layers.3d", "Position") { activeSheet = .position }
+        toolButton("shadow", "Shadow") { activeSheet = .shadow }
 
         // Opacity
         if let el = store.selectedElements.first {

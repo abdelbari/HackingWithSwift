@@ -29,10 +29,24 @@ struct ElementView: View {
     var body: some View {
         content
             .frame(width: element.w, height: element.h)
+            // Before the flip and rotation, so the shadow is cast in the
+            // element's own space and turns with it — a shadow applied after
+            // rotation would always fall straight down whatever the element
+            // was doing, which is not how light works.
+            .shadow(color: shadowColor, radius: element.shadow?.blur ?? 0,
+                    x: element.shadow?.offsetX ?? 0, y: element.shadow?.offsetY ?? 0)
             .scaleEffect(x: element.flipH ? -1 : 1, y: element.flipV ? -1 : 1)
             .rotationEffect(.degrees(element.rotation))
             .opacity(element.opacity)
             .position(x: element.x + element.w / 2, y: element.y + element.h / 2)
+    }
+
+    /// Clear when there is no shadow: SwiftUI's shadow modifier with a clear
+    /// colour draws nothing, so the modifier can stay in the chain and the
+    /// view tree keeps one shape whether or not a shadow is set.
+    private var shadowColor: Color {
+        guard let shadow = element.shadow else { return .clear }
+        return Color(hex: shadow.color).opacity(shadow.opacity)
     }
 
     @ViewBuilder

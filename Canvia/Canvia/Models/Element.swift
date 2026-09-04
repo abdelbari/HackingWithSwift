@@ -14,6 +14,48 @@ struct TextEffectSpec: Codable, Equatable, Hashable {
     var type: String = "none"     // none|shadow|lift|outline|splice|neon|glitch|highlight
 }
 
+/// A drop shadow or glow behind any element.
+///
+/// A glow is a shadow with no offset and a colour, so it is the same struct;
+/// the presets are what tell them apart. Every value has a default so an
+/// element that has a shadow at all gets a sensible one.
+struct Shadow: Codable, Equatable, Hashable {
+    var color: String = "#000000"
+    var opacity: Double = 0.35
+    var blur: Double = 12
+    var offsetX: Double = 0
+    var offsetY: Double = 6
+
+    static let presets: [(name: String, shadow: Shadow)] = [
+        ("Soft", Shadow(color: "#000000", opacity: 0.30, blur: 14, offsetX: 0, offsetY: 6)),
+        ("Lift", Shadow(color: "#000000", opacity: 0.22, blur: 28, offsetX: 0, offsetY: 14)),
+        ("Hard", Shadow(color: "#000000", opacity: 0.55, blur: 0, offsetX: 6, offsetY: 6)),
+        ("Long", Shadow(color: "#000000", opacity: 0.25, blur: 4, offsetX: 14, offsetY: 14)),
+        ("Glow", Shadow(color: "#ffffff", opacity: 0.9, blur: 20, offsetX: 0, offsetY: 0)),
+        ("Neon", Shadow(color: "#5a31f4", opacity: 0.9, blur: 24, offsetX: 0, offsetY: 0)),
+    ]
+
+    private enum CodingKeys: String, CodingKey { case color, opacity, blur, offsetX, offsetY }
+
+    init(color: String = "#000000", opacity: Double = 0.35, blur: Double = 12,
+         offsetX: Double = 0, offsetY: Double = 6) {
+        self.color = color
+        self.opacity = opacity
+        self.blur = blur
+        self.offsetX = offsetX
+        self.offsetY = offsetY
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        color = (try? c.decode(String.self, forKey: .color)) ?? "#000000"
+        opacity = (try? c.decode(Double.self, forKey: .opacity)) ?? 0.35
+        blur = (try? c.decode(Double.self, forKey: .blur)) ?? 12
+        offsetX = (try? c.decode(Double.self, forKey: .offsetX)) ?? 0
+        offsetY = (try? c.decode(Double.self, forKey: .offsetY)) ?? 6
+    }
+}
+
 struct Element: Codable, Equatable, Identifiable {
     var id: String = UID.make()
     var type: ElementType = .shape
@@ -27,6 +69,7 @@ struct Element: Codable, Equatable, Identifiable {
     var flipH: Bool = false
     var flipV: Bool = false
     var group: String?
+    var shadow: Shadow?
 
     // shape
     var shapeId: String?
@@ -93,6 +136,7 @@ struct Element: Codable, Equatable, Identifiable {
         flipH = (try? c.decode(Bool.self, forKey: .flipH)) ?? false
         flipV = (try? c.decode(Bool.self, forKey: .flipV)) ?? false
         group = try? c.decode(String.self, forKey: .group)
+        shadow = try? c.decode(Shadow.self, forKey: .shadow)
         shapeId = try? c.decode(String.self, forKey: .shapeId)
         fill = try? c.decode(Paint.self, forKey: .fill)
         stroke = try? c.decode(String.self, forKey: .stroke)
@@ -144,7 +188,7 @@ struct Element: Codable, Equatable, Identifiable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group
+        case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow
         case shapeId, fill, stroke, strokeWidth, radius
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
         case lineHeight, letterSpacing, color, listStyle, effect, curve

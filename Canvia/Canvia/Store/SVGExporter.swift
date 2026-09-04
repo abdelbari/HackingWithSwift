@@ -65,7 +65,25 @@ enum SVGExporter {
         var attributes = ""
         if !transforms.isEmpty { attributes += " transform=\"\(transforms.joined(separator: " "))\"" }
         if el.opacity < 1 { attributes += " opacity=\"\(num(el.opacity))\"" }
+        if let shadow = el.shadow {
+            let id = "shadow\(index)"
+            defs.append(shadowDef(id: id, shadow: shadow))
+            attributes += " filter=\"url(#\(id))\""
+        }
         return "<g\(attributes)>\(markup(el, index: index, defs: &defs))</g>"
+    }
+
+    /// feDropShadow, which every current renderer supports. stdDeviation is
+    /// half the blur radius: SwiftUI's radius is the full extent of the blur,
+    /// SVG's is the Gaussian sigma, and half is the conventional match.
+    ///
+    /// The filter region is widened well past the element's box, because the
+    /// default 10% margin clips a large soft shadow at a hard straight edge.
+    private static func shadowDef(id: String, shadow: Shadow) -> String {
+        "<filter id=\"\(id)\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\">" +
+        "<feDropShadow dx=\"\(num(shadow.offsetX))\" dy=\"\(num(shadow.offsetY))\" " +
+        "stdDeviation=\"\(num(shadow.blur / 2))\" flood-color=\"\(escape(shadow.color))\" " +
+        "flood-opacity=\"\(num(shadow.opacity))\"/></filter>"
     }
 
     @MainActor

@@ -146,6 +146,7 @@ final class ElementEqualityTests: XCTestCase {
             ("flipH", { $0.flipH.toggle() }),
             ("flipV", { $0.flipV.toggle() }),
             ("locked", { $0.locked.toggle() }),
+            ("shadow", { $0.shadow = Shadow(color: "#ff0000") }),
             ("shapeId", { $0.shapeId = "star" }),
             ("fill", { $0.fill = .solid("#123456") }),
             ("stroke", { $0.stroke = "#abcdef" }),

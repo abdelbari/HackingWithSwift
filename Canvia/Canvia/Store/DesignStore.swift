@@ -495,6 +495,7 @@ final class DesignStore {
         var maskShapeId: String?
         var duotone: Duotone?
         var opacity: Double
+        var shadow: Shadow?
         var thickness: Double?
         var dash: String?
         var startCap: String?
@@ -511,7 +512,7 @@ final class DesignStore {
               align: el.align, lineHeight: el.lineHeight, letterSpacing: el.letterSpacing,
               listStyle: el.listStyle, effect: el.effect, curve: el.curve, filter: el.filter,
               adjustments: el.adjustments, maskShapeId: el.maskShapeId, duotone: el.duotone,
-              opacity: el.opacity, thickness: el.thickness, dash: el.dash,
+              opacity: el.opacity, shadow: el.shadow, thickness: el.thickness, dash: el.dash,
               startCap: el.startCap, endCap: el.endCap)
     }
 
@@ -522,6 +523,7 @@ final class DesignStore {
     /// nothing about the rectangle, not give it a font.
     static func apply(_ style: Style, to el: inout Element) {
         el.opacity = style.opacity
+        el.shadow = style.shadow
         switch el.type {
         case .shape:
             el.fill = style.fill
