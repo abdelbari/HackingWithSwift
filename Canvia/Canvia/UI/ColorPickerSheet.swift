@@ -84,6 +84,11 @@ struct ColorPickerSheet: View {
                         }
                     }
 
+                    if allowGradients, let onPickGradient {
+                        patternsSection(onPickGradient)
+                        photoFillSection(onPickGradient)
+                    }
+
                     ForEach(ContentLibrary.palettes) { palette in
                         section(palette.name, colors: palette.colors)
                     }
@@ -134,6 +139,58 @@ struct ColorPickerSheet: View {
                         }
                         .accessibilityLabel("\(kind.displayName) \(hex)")
                     }
+                }
+            }
+        }
+    }
+
+    /// Six patterns in the current colour over white. Tap one to fill with
+    /// it; the colour swatches above keep working on it afterwards, since a
+    /// pattern's foreground is the paint's colour.
+    private func patternsSection(_ pick: @escaping (Paint) -> Void) -> some View {
+        let ink = current ?? UIColor(custom).hexString
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("Patterns").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
+            LazyVGrid(columns: columns, spacing: 10) {
+                ForEach(Patterns.names, id: \.self) { name in
+                    let paint = Paint.pattern(name, color: ink, secondary: "#ffffff", scale: 12)
+                    Button { pick(paint) } label: {
+                        PatternFill(paint: paint)
+                            .frame(height: 40)
+                            .clipShape(RoundedRectangle(cornerRadius: 9))
+                            .overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.hairline))
+                    }
+                    .accessibilityLabel("\(Patterns.displayName(name)) pattern")
+                }
+            }
+        }
+    }
+
+    /// The library's photos, and any the document already uses, as fills.
+    private func photoFillSection(_ pick: @escaping (Paint) -> Void) -> some View {
+        var sources = PhotoLibrary.photos.prefix(8).map { "asset:\($0.id)" }
+        for page in store.design.pages {
+            for el in page.elements where el.type == .image {
+                if let src = el.src, !sources.contains(src) { sources.append(src) }
+            }
+        }
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("Photo fill").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
+            LazyVGrid(columns: columns, spacing: 10) {
+                ForEach(sources, id: \.self) { src in
+                    Button { pick(.image(src)) } label: {
+                        Group {
+                            if let ui = PhotoLibrary.resolve(src) {
+                                Image(uiImage: PhotoLibrary.preview(ui, key: src))
+                                    .resizable().aspectRatio(contentMode: .fill)
+                            } else {
+                                Color(.systemGray5)
+                            }
+                        }
+                        .frame(height: 40)
+                        .clipShape(RoundedRectangle(cornerRadius: 9))
+                    }
+                    .accessibilityLabel("Fill with photo")
                 }
             }
         }

@@ -90,6 +90,12 @@ struct ShapeElementView: View {
                 shape.fill(LinearGradient(
                     stops: stops.map { .init(color: Color(hex: $0.color), location: $0.offset) },
                     startPoint: pts.start, endPoint: pts.end))
+            } else if fill.kind == "pattern" || fill.kind == "image" {
+                // A pattern or a photo is a view, not a ShapeStyle, so it is
+                // clipped to the shape rather than poured into it.
+                fill.fillView()
+                    .frame(width: element.w, height: element.h)
+                    .clipShape(shape)
             } else {
                 shape.fill(Color(hex: fill.color ?? "#8b5cf6"))
             }

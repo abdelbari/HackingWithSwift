@@ -228,7 +228,7 @@ final class DesignStore {
 
     // MARK: clipboard
 
-    var hasClipboard: Bool { !clipboard.isEmpty }
+    var hasClipboard: Bool { !clipboard.isEmpty || ElementClipboard.hasContent() }
 
     /// Commands that move elements ignore locked ones, so the UI must gate on
     /// the unlocked subset or it offers controls that quietly do nothing.
@@ -241,6 +241,7 @@ final class DesignStore {
         guard !selected.isEmpty else { return }
         clipboard = selected
         pasteCount = 0
+        ElementClipboard.write(selected)
     }
 
     func cutSelected() {
@@ -250,10 +251,22 @@ final class DesignStore {
         guard !removable.isEmpty else { return }
         clipboard = removable
         pasteCount = 0
+        ElementClipboard.write(removable)
         deleteSelected()
     }
 
     func paste() {
+        // Our own copy first; otherwise whatever another app left: a
+        // picture, or some text.
+        if clipboard.isEmpty {
+            if let mine = ElementClipboard.read() {
+                clipboard = mine
+                pasteCount = 0
+            } else if let stranger = ElementClipboard.foreign(designWidth: design.width) {
+                add(stranger)
+                return
+            }
+        }
         guard !clipboard.isEmpty else { return }
         pasteCount += 1
         // Copies arrive unlocked: locked is a property of the original, and a

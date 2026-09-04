@@ -201,7 +201,9 @@ enum ColorTools {
         }
         func addPaint(_ p: Paint?) {
             guard let p else { return }
-            if p.kind == "gradient" { p.stops?.forEach { add($0.color) } } else { add(p.color) }
+            if p.kind == "gradient" { p.stops?.forEach { add($0.color) } }
+            else if p.kind == "pattern" { add(p.color); add(p.secondary) }
+            else if p.kind != "image" { add(p.color) }
         }
         for page in design.pages {
             switch page.background {

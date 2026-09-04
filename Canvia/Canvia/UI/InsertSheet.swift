@@ -331,6 +331,50 @@ struct InsertSheet: View {
         store.selection = [heading.id, body.id]
     }
 
+    // MARK: layouts
+
+    /// Grid layouts: empty frames in one tap, filled with Replace.
+    private var layoutsRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            sectionHeader("Photo grids")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(PhotoGrids.layouts) { layout in
+                        Button {
+                            let margin = (store.design.width * 0.04).rounded()
+                            let frames = PhotoGrids.elements(for: layout, width: store.design.width,
+                                                             height: store.design.height,
+                                                             margin: margin, gutter: (margin / 2).rounded())
+                            store.applyToPage { $0.elements.append(contentsOf: frames) }
+                            store.selection = Set(frames.map(\.id))
+                            dismiss()
+                        } label: {
+                            VStack(spacing: 4) {
+                                layoutThumb(layout)
+                                Text(layout.name).font(.caption2)
+                            }
+                            .frame(width: 72)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("\(layout.name) photo grid")
+                    }
+                }
+            }
+        }
+    }
+
+    private func layoutThumb(_ layout: PhotoGrids.Layout) -> some View {
+        Canvas { context, size in
+            for cell in layout.cells {
+                let r = CGRect(x: cell.minX * size.width + 1.5, y: cell.minY * size.height + 1.5,
+                               width: cell.width * size.width - 3, height: cell.height * size.height - 3)
+                context.fill(Path(roundedRect: r, cornerRadius: 2), with: .color(Color(hex: "#9aa4b2")))
+            }
+        }
+        .frame(width: 64, height: 48)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color(.systemGray6)))
+    }
+
     // MARK: pdf
 
     /// One page becomes a picture on this page; several become pages of
@@ -382,6 +426,7 @@ struct InsertSheet: View {
                     .padding(10)
                     .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
             }
+            if !isReplacing { layoutsRow }
             Button {
                 importingPDF = true
             } label: {

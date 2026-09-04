@@ -97,7 +97,13 @@ enum SVGExporter {
         }
     }
 
+    @MainActor
     private static func shapeMarkup(_ el: Element, index: Int, defs: inout [String]) -> String {
+        // A pattern or photo fill has no vector equivalent worth the bytes;
+        // it ships as the same bitmap the canvas shows.
+        if let kind = el.fill?.kind, kind == "pattern" || kind == "image" {
+            return bitmapMarkup(el)
+        }
         let definition = ContentLibrary.shape(el.shapeId)
         var d = definition.path
         if definition.rectLike == true, let radius = el.radius, radius > 0, el.w > 0, el.h > 0 {

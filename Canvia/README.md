@@ -89,6 +89,17 @@ duplicate / delete via long-press), and a template gallery.
   an opaque screenshot as the far smaller JPEG — and every colour picker
   offers "From the photo": the six most prominent colours of the selected
   picture or the page's background picture, read from its pixels.
+- Pattern fills — stripes, dots, checks, grid, zigzag, crosshatch — drawn
+  procedurally in any two colours so they stay sharp at every zoom and
+  export, and photo fills that pour a picture into any shape; both from
+  the fill colour picker, both usable as page backgrounds.
+- Photo grids: six layouts of empty frames (2 across, 3 across, 2 by 2,
+  1 + 2, 1 over 3, 3 by 3) flush to the margins and one gutter apart,
+  grouped, filled with Replace.
+- Copy and paste go through the system pasteboard too: elements survive
+  switching designs or quitting, a copied text element pastes into other
+  apps as text, and a picture or text copied elsewhere pastes in as a
+  photo or a text element.
 - A help centre in the menu: searchable, offline, every topic with a
   "Show me" that opens the sheet it describes. Contextual tips under the
   top bar — first element, first text, first photo, first multi-selection,

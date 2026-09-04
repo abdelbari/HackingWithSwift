@@ -19,13 +19,29 @@ struct GradientStop: Codable, Equatable, Hashable {
 }
 
 struct Paint: Codable, Equatable, Hashable {
-    var kind: String              // "solid" | "gradient"
-    var color: String?            // solid
+    var kind: String              // "solid" | "gradient" | "pattern" | "image"
+    var color: String?            // solid; pattern foreground
     var angle: Double?            // gradient, CSS convention: 0° = up, 90° = right
     var stops: [GradientStop]?
+    /// pattern: which one (see Patterns.names), its background, and its
+    /// tile size in page units.
+    var pattern: String?
+    var secondary: String?
+    var scale: Double?
+    /// image: a photo source, "asset:…" or "media:…", filling the shape.
+    var src: String?
 
     static func solid(_ color: String) -> Paint {
         Paint(kind: "solid", color: color, angle: nil, stops: nil)
+    }
+
+    static func pattern(_ name: String, color: String, secondary: String, scale: Double = 24) -> Paint {
+        Paint(kind: "pattern", color: color, angle: nil, stops: nil,
+              pattern: name, secondary: secondary, scale: scale, src: nil)
+    }
+
+    static func image(_ src: String) -> Paint {
+        Paint(kind: "image", color: nil, angle: nil, stops: nil, pattern: nil, secondary: nil, scale: nil, src: src)
     }
 
     var primaryColor: String {
@@ -47,6 +63,10 @@ struct Paint: Codable, Equatable, Hashable {
             LinearGradient(
                 stops: stops.map { .init(color: Color(hex: $0.color), location: $0.offset) },
                 startPoint: pts.start, endPoint: pts.end)
+        } else if kind == "pattern" {
+            PatternFill(paint: self)
+        } else if kind == "image", let ui = PhotoLibrary.resolve(src) {
+            Image(uiImage: ui).resizable().aspectRatio(contentMode: .fill)
         } else {
             Color(hex: color ?? "#000000")
         }
