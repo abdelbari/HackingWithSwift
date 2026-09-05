@@ -132,8 +132,13 @@ final class SoundtrackTraceLoopTests: XCTestCase {
     }
 
     func testSimplifyDropsCollinearCellCorners() {
-        let square: [CGPoint] = (0...10).map { CGPoint(x: Double($0), y: 0) } + (1...10).map { CGPoint(x: 10, y: Double($0)) }
-            + (0..<10).reversed().map { CGPoint(x: Double($0), y: 10) } + (1..<10).reversed().map { CGPoint(x: 0, y: Double($0)) }
+        // Built in four steps: the older compiler cannot type one long
+        // concatenation of mapped ranges in reasonable time.
+        var square: [CGPoint] = []
+        for x in 0...10 { square.append(CGPoint(x: Double(x), y: 0)) }
+        for y in 1...10 { square.append(CGPoint(x: 10, y: Double(y))) }
+        for x in stride(from: 9, through: 0, by: -1) { square.append(CGPoint(x: Double(x), y: 10)) }
+        for y in stride(from: 9, through: 1, by: -1) { square.append(CGPoint(x: 0, y: Double(y))) }
         let s = Tracer.simplify(square, tolerance: 0.5)
         XCTAssertEqual(s.count, 4, "\(s)")
     }
