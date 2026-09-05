@@ -1,0 +1,593 @@
+# Canvia for iOS
+
+A Canva-inspired design studio built natively in SwiftUI — zero third-party
+dependencies, fully offline. See [PLAN.md](PLAN.md) for the design plan.
+
+## Requirements
+
+- **Xcode 16 or newer** (the project uses the modern synchronized-folder
+  format), **iOS 17+** deployment target.
+
+## Run it
+
+Open `Canvia.xcodeproj` in Xcode, pick a simulator or device, and Run.
+No packages to resolve, nothing to configure.
+
+## What it does
+
+**Home** — size presets (Instagram post/story, presentation, poster, A4,
+business card, …), custom sizes, recent designs with thumbnails (rename /
+duplicate / delete via long-press), and a template gallery.
+
+**Editor**
+- Direct manipulation: tap to select, drag to move with magenta snap
+  guides (page edges/centers + sibling edges/centers), rotation-aware
+  corner/edge resize handles (corners keep aspect; text corners scale the
+  font), rotate handle with 45° snapping and live angle badge, long-press
+  for multi-select, pinch to zoom, drag empty canvas to pan
+- Content: 44 shapes (one SVG-path library parsed with full arc support),
+  lines with caps and dashes, emoji stickers, 20 procedurally drawn
+  photos, photo-library imports, QR codes generated from a link or any
+  text (regenerated from the document, so they stay editable and nothing
+  is stored), 8 complete templates that apply into any canvas size
+- Text: curved text on an arc from -180° to 180° (glyphs placed along one
+  circle whose radius the line's own width fixes, so letters keep their
+  size rather than being squashed to fit), inline editing (double-tap),
+  12 font personalities mapped to fonts
+  that ship with iOS (Didot, Rockwell, Futura Condensed ExtraBold, Menlo,
+  Snell Roundhand, …), 8 text effects (shadow, lift, hollow, splice, neon,
+  echo, highlight) drawn through one CoreText pipeline shared by canvas,
+  thumbnails and export
+- Photo frames: any library shape clips a photo — circle, star, blob,
+  speech bubble — applying one squares the box about its centre, because
+  the library's paths stretch onto the element and a circle on a 4:3 photo
+  would otherwise be an ellipse
+- Images: one-tap background removal on device (Vision's foreground
+  segmenter — no account, no upload, no paywall), Core Image filter
+  presets, duotone (a photo's luminance mapped onto two of your own
+  colours, offered from the document's own palette first), plus six
+  free-hand dials (brightness, contrast, saturation,
+  warmth, sharpness, vignette) that compose on top of the preset rather
+  than replacing it, cover-crop zoom + focus point, replace-in-place (swap the
+  picture, keep the frame, radius and filter), corner radius, borders
+- Color: recently used colours first, colour harmony derived from whatever
+  is chosen (complementary, analogous, triadic, split, tetradic, and a
+  tint/shade ramp), curated palettes, gradient presets, document colors,
+  background editor, ✨ Shuffle (luminance-ranked palette remap)
+- Pages: live-thumbnail strip, add / duplicate / reorder / delete (with a
+  confirmation when the page is not empty), and per-page notes that are
+  never drawn and so cannot reach an export
+- Undo/redo with gesture coalescing (a whole drag is one step), autosave,
+  lock, opacity, duplicate, align / distribute / flip / exact-position
+  sheet, layers sheet with drag reorder
+- Find and replace across every page, with a live match count and
+  replace-all as a single undo step; and a spelling check across the
+  document through the system dictionary, each mistake with its
+  suggestions a tap away (acronyms, hashtags and addresses left alone)
+- Bulleted, numbered and lettered lists with hanging indents, and up to
+  four indent levels on any paragraph
+- Gradient text: any gradient from the colour picker fills the letters,
+  straight or curved, and survives into the SVG
+- Copy style / paste style: the look of an element without its identity,
+  position or content, and never across element kinds — pasting a text
+  style onto a rectangle changes nothing about the rectangle
+- A page organizer: every page as a list with drag handles, multi-select
+  to duplicate or delete (never the last page), tap to jump. Pages copy
+  and paste across designs and across launches through the system
+  pasteboard, scaled to fit a differently sized design.
+- The home screen searches designs (title, loosely; size, exactly) and
+  templates, sorts by last edited, name or page count, and keeps deleted
+  designs in a Recently deleted section for thirty days, with Restore
+  and Delete forever. Their photos and version history wait with them.
+- VoiceOver on the canvas: every element is named (what it is, and what
+  it says if it is text), valued (where and how big, in percentages of
+  the page, plus rotation and lock) and carries actions — move in four
+  directions, duplicate, delete, layer order, edit text — so the whole
+  page can be arranged without a drag.
+- Photos import several at once (up to ten, landing as a cascade), keep
+  their transparency when they have any — a PNG logo is stored as PNG,
+  an opaque screenshot as the far smaller JPEG — and every colour picker
+  offers "From the photo": the six most prominent colours of the selected
+  picture or the page's background picture, read from its pixels.
+- Animation: any element can arrive — fade, rise, pop, slide from either
+  side — and text can reveal by letter, by word, letter-pop or line-rise;
+  Animate on the toolbar staggers a selection in layer order. One pure
+  evaluator turns a time into opacity, offset, scale and revealed
+  characters, and the canvas preview (Play on the pages bar), the MP4 and
+  the GIF all read it. Photos can drift with Ken Burns over the page's
+  hold. While dragging, an element that lands at the same distance from
+  two neighbours snaps to exactly equal spacing and says the gap.
+- Radial and angular gradients beside linear, on shapes, text and page
+  backgrounds (radial reaches the SVG; angular ships as pixels, since SVG
+  has no conic gradient). Per-corner radii on rectangles — top only,
+  bottom only, opposite corners — exact in the SVG. Drop caps: the first
+  letter three lines deep with the paragraph wrapping around it.
+- Your uploads: every picture ever imported, newest first, in the Photos
+  tab — insert again, star, or delete. Custom shapes from an SVG file:
+  the first path, relative commands and smooth curves included, fitted
+  into the library's box.
+- Charts and tables from typed data: bars, columns, pie, donut or line
+  from "Label, value" lines; a table from comma- or tab-separated rows
+  with a header row in the accent, banded rows, columns sized to their
+  longest cell. Both arrive as ordinary grouped elements — pie slices and
+  line paths are shapes with their own path data — so they recolour,
+  export and read aloud like anything else.
+- Read a picture: Live Text turns the words in a photo into editable text
+  elements where they were; a QR code in a photo comes back as a clean
+  code element with its payload.
+- A master page: mark any page as master and its elements draw behind
+  every other page (each page can opt out) — on the canvas, in every
+  export, in the SVG. "{page}" and "{pages}" in any text become the page
+  number and the page count where the page is known.
+- Guides: add vertical and horizontal guides from the Snapping menu, drag
+  them into place, press and hold to remove; they are saved with the
+  design and everything snaps to them. An eyedropper in every colour
+  picker samples any colour from the rendered design.
+- Saved, linked text styles: name a look ("Heading", "Price"), apply it
+  to any text from the Styles menu, and update it from one element to
+  change every element that follows it, on every page, as one undo step.
+- Favourites: star any shape, photo, sticker or template (press and hold)
+  and it leads its tab; components: save a selection under a name and
+  drop it into any design at half the page's width, grouped, with fresh
+  ids. Both live with the person, not the design.
+- Two sample designs on the very first launch — once, ever — so the home
+  screen is not a blank space with a purple hero on top of it.
+- A Canvia design file (.canvia.json) exports the document with every
+  photo it uses inlined, and the home screen opens one back in — under
+  a fresh id, with its photos stored afresh, so two imports never share
+  a file.
+- A contrast check across the document: every text against what is
+  actually behind it (the topmost flat shape under it, or the page),
+  WCAG AA thresholds by text size, and a one-tap fix to a colour that
+  passes.
+- Alt text on any element, read by VoiceOver and written as the SVG
+  group's title; for photos, Suggest asks the on-device classifier for a
+  first draft.
+- A brand kit — colours, a heading and body face, logos — kept across
+  designs: first in every colour picker, a pairing in the theme sheet,
+  and logos in the Photos tab.
+- Tidy up: a messy selection into a row, a column or a grid with equal
+  gaps, one undo step. Arrow keys nudge the selection a unit (ten with
+  Shift), and the Position sheet edits a multi-selection's box by number —
+  move, scale together, turn about its centre.
+- Text boxes: auto-fit sizes the type to fill the box you draw; vertical
+  alignment (top, middle, bottom) places shorter text in a taller box;
+  shrink-to-fit closes the box onto its text. Justified alignment and
+  paragraph spacing join the type controls.
+- Pattern fills — stripes, dots, checks, grid, zigzag, crosshatch — drawn
+  procedurally in any two colours so they stay sharp at every zoom and
+  export, and photo fills that pour a picture into any shape; both from
+  the fill colour picker, both usable as page backgrounds.
+- Photo grids: six layouts of empty frames (2 across, 3 across, 2 by 2,
+  1 + 2, 1 over 3, 3 by 3) flush to the margins and one gutter apart,
+  grouped, filled with Replace.
+- Copy and paste go through the system pasteboard too: elements survive
+  switching designs or quitting, a copied text element pastes into other
+  apps as text, and a picture or text copied elsewhere pastes in as a
+  photo or a text element.
+- A help centre in the menu: searchable, offline, every topic with a
+  "Show me" that opens the sheet it describes. Contextual tips under the
+  top bar — first element, first text, first photo, first multi-selection,
+  a crowded page — each once per install and never two within a minute.
+  Real empty states: an empty Layers sheet, a search with no results, a
+  home screen with nothing on it yet, all say so.
+- Reduce Motion drops the springs on toasts, tips and buttons; Increase
+  Contrast thickens selection outlines; Differentiate Without Colour
+  marks the current page with a check and active toggles with a bar.
+- A real crop: zoom and focus, a straighten slider (the picture turns
+  inside its frame and grows exactly enough to keep covering it), fill
+  or fit, the platform aspect presets, and Focus on the subject — Vision
+  saliency puts the focus where a person would look first.
+- PDF import: each page rendered upright at import size and placed as a
+  picture — one page onto this page, a document as new pages of its own.
+- Document theme: pick a palette and a type pairing, see page one
+  wearing them, apply to every page as one undo step — colours remapped
+  by luminance rank, headings (32 px and up) and body text given the
+  pairing's faces at their own sizes.
+- Blend modes on any element — multiply, screen, overlay and the rest of
+  the CSS set — honoured on the canvas, in every export, and in the SVG
+  as mix-blend-mode.
+- Rubber-band selection: drag from empty page and everything the band
+  touches is selected, live, sticky groups included
+- A multi-selection resizes and rotates as one unit from its box —
+  corner handles only, because a uniform scale is the only one that
+  keeps rotated members exact; text scales its type along with its box
+- Snapping with switches: to the page, to other elements, to a grid
+  of 8/16/32/64 px that can be shown as hairlines on the canvas, and to
+  page margins (2/5/8% of the short side) drawn as a dashed safe area —
+  none of it ever in an export. Remembered across launches.
+- Version history: a copy of the design is kept at most every two
+  minutes while editing, and whenever the editor is left, only when
+  something changed, thirty deep. Restoring one is a single undo step
+  and the current state is kept as a version first, so it is never a
+  one-way door.
+- An undo toast after the edits people regret — delete, delete page,
+  replace all, restore — naming what just happened with an Undo button
+  on it, gone after four seconds.
+- Top-bar overflow menu: layers, page background, find and replace,
+  version history, copy and paste style, copy / cut / paste,
+  select all, and group / ungroup (grouping is sticky multi-selection —
+  selecting one member selects the group — deliberately not nested
+  transforms)
+
+**Export** — PNG / JPEG at 1–3× or at an exact size: type the long edge
+in pixels, or pick a preset (Instagram post, Story, Full HD, 4K, A4 and
+Letter at 300 dpi) and the scale follows. The selection alone can be
+exported, cropped to its bounds, and any raster can be copied to the
+clipboard as PNG. A warning appears before the export when the output
+would be under 1080 px on the long side or a photo would be stretched
+past the pixels it has (this page or every page, one numbered
+file each, with an optional transparent background that really removes
+the page's own), multi-page PDF and SVG, rendered with
+`ImageRenderer` from the very views the canvas shows, delivered through
+the share sheet. PDF pages are written as vectors, not page-sized
+bitmaps, and everything streams to disk rather than being assembled in
+memory. The scale picker shows the pixel size it will actually produce,
+including when a 32-megapixel cap is what decided it.
+
+Every export shows how far along it is — a page at a time for rasters,
+a frame at a time for the video — with a Cancel button that stops the
+writer at the next frame and leaves no partial file behind.
+
+**Save to Photos** — PNG (this page or the selected range) or the MP4
+straight into the photo library with add-only permission, no share
+sheet in the way.
+
+**Print** — AirPrint, through the same vector PDF the export writes, so
+what reaches the printer is the document rather than a picture of it.
+The export sheet also writes a print-ready PDF for a print shop or a
+home printer: pick the paper (A4, A3, Letter, Tabloid, portrait or
+landscape), fit the page to the sheet, print it at actual size, or tile
+a poster across as many sheets as it takes with an overlap to trim and
+join; add bleed and crop marks when the shop asks for them.
+
+**Magic resize** — the resize sheet offers *Reflow* alongside *Scale*:
+instead of scaling the old page onto the new one, every element keeps
+its relative position on each axis independently — a footer stays at
+the foot of a much taller story, a right-aligned logo stays at the right
+edge — while sizes scale by the smaller ratio so nothing stretches, and
+text boxes widen to use a wider page. Guides move with the page. One
+undo step.
+
+**Spotlight** — every design is indexed with its title, the words typed
+into it and its thumbnail, so searching the phone for "bake sale" finds
+the poster; opening the result opens the design.
+
+**Draw** — the pencil in the top bar turns the page into a drawing
+surface: a finger or an Apple Pencil stroke is thinned, smoothed through
+quadratic curves and kept as an ordinary shape element with no fill — so
+it is moved, rotated, recoloured and exported as a real path like anything
+else, one undo step per stroke. A floating bar sets the pen's colour and
+width; the Width slider on a selected stroke changes it afterwards.
+
+**Drag and drop** — pictures, text and links dragged from other apps land
+where they are let go: a photo at up to half the page's width, text as a
+left-aligned box, a link as its address. The page outlines itself while
+something hovers over it.
+
+**Scan a document** — the Photos tab of Add opens the document camera on
+devices that have one; the deskewed pages come in the way a PDF's do, one
+picture on this page or one page each.
+
+**Read aloud** — the menu reads the page in reading order (rows top to
+bottom, left to right — the same order VoiceOver takes the canvas in),
+pictures by their alt text and page-number tokens resolved.
+
+**Haptics** — selection, snapping to guides and to 45° rotation, undo and
+redo, grouping, a new page and each drawn stroke are each felt, once,
+through `.sensoryFeedback`.
+
+**Home** — templates browse by category from a row of chips; designs can be
+filed into folders from their context menu (folder chips appear when one
+exists) and filing is not an edit, so the order stays. The first launch
+shows a four-card tour, once — `-canviaSkipTour` keeps it off the CI
+screenshot — and contextual tips fire the first time you rotate, add a
+page, draw or drop something in.
+
+**Tone curve** — the Adjust panel's dials end with a curve: Fade, Lift
+shadows, Crush blacks, S-curve, Matte and Brighten mids, each a five-point
+CIToneCurve applied after the colour dials and saved with the picture's
+other adjustments.
+
+**Connectors** — select two elements and Connect draws an arrow from the
+edge of one to the edge of the other that is laid again whenever either
+moves, resizes or is undone; delete an end and the arrow stays where it
+was as a plain line. Flow charts and org charts keep their arrows.
+
+**Siri and Shortcuts** — two App Intents: *New Design* at a chosen size
+(Instagram post or story, presentation, YouTube thumbnail, poster, flyer)
+and *Open Design*, which offers your recent designs by name. Each brings
+the app forward and leaves it a launch request it serves once.
+
+**Windows** — on iPad a design's context menu opens it in a new window,
+so two designs (or a design and its reference) sit side by side.
+
+**Inline styles** — words inside one text element can be bold, italic,
+underlined or struck through by writing them the way a message would:
+`**bold**`, `*italic*` or `_italic_`, `__underline__`, `~~strike~~`. The
+markers are stripped for display and measurement; the styled words are
+drawn on the canvas, outlined as bold or italic glyphs in the SVG, and
+carried into the PDF. Markers that would split a word (snake_case, 2*3) or
+have no partner stay literal.
+
+**Soundtrack** — Motion settings take a music file from Files; the MP4
+export lays it under the picture, looped or trimmed to the video's length
+at a chosen volume, fading out over the last second. Audio lives in
+Documents/audio by id and is muxed with AVFoundation onto the finished
+video.
+
+**Right to left** — a text whose first letter is Hebrew, Arabic or another
+right-to-left script lays out from the right, and its indents and list
+markers follow the leading edge.
+
+**Trace to vector** — Read ▸ *Trace to a vector shape* on a picture walks
+the outline of its ink (its opaque part, or its dark part when it has no
+transparency), simplifies and smooths it, and drops a path shape in the
+ink's own colour over the same spot — holes and all, wound so a nonzero
+fill keeps them open. A signature, a logo or a cut-out becomes a shape
+that scales cleanly and takes any fill.
+
+**Loops** — Animate offers Pulse, Wiggle, Bounce and Spin: moves that
+never settle, for stickers and badges, on the canvas preview and in the
+video and GIF alike.
+
+**Apple Pencil** — drawing takes a Pencil like a finger, and the Pencil's
+double tap toggles the pen on and off (honouring the system setting).
+
+**Text on a path** — the text toolbar's Path menu sets a wave, an arch, a
+valley, a rising diagonal, a swoosh or a circle; the path is path data in
+the element's own box, so resizing the box reshapes the path, and each
+glyph sits by its centre at its share of the path's length. The canvas,
+the SVG (as outlines) and the PDF all draw the same layout; the Curve
+slider and the Path menu replace each other.
+
+**Vertical writing** — the text toolbar's Vertical toggle stacks the
+characters upright down a column at the line height, columns running from
+the right, a new column at every newline or when the box runs out —
+Japanese and Chinese set the way a poster sets them, and Latin stacked
+the way a shop sign is. Drawn as outlines like curved text, so the SVG
+and PDF carry it exactly.
+
+**Object eraser** — Erase on a picture's toolbar turns the page into a
+brush: paint over what should go, in strokes of a chosen width, then Erase
+fills the region from its surroundings — an onion-peel fill on a small
+working copy, softened and blended back through a feathered mask — and
+stores the result as a new picture, one undo step. Strokes are mapped
+through the element's rotation, crop zoom and fill/fit placement into the
+picture's own pixels. Skies, walls and tabletops come out clean; busy
+backgrounds come out as a smudge, as the honest tools on a phone do.
+
+**Mixed page sizes** — a page can have a size of its own: the Resize sheet
+applies to the whole design or to this page only, reflowing or scaling the
+page's content onto it. The canvas refits when you land on a page shaped
+differently, snapping and centring use the page's size, thumbnails keep
+each page's shape, the SVG and the PDF write each page at its own size
+(a deck can carry a slide and a handout), and the video letterboxes a page
+shaped unlike the frame on black. Resizing the whole design brings every
+page to the new size.
+
+**Dictation** — a microphone on the text toolbar (where speech
+recognition is available) appends what you say to the selected text as
+the words arrive, on-device where the system allows, and records the
+change when you stop. The keyboard's own microphone works in the inline
+editor as well, and on iPad so does Scribble.
+
+**Handwriting to text** — select drawn strokes and *To text* renders them
+black on white, reads them with the on-device text recogniser and puts a
+text element in their place at their size — Undo keeps the strokes.
+
+**Siri suggestions and Handoff** — the design being edited is published as
+a user activity, so it comes back as a suggestion and can be continued on
+another device that has the same design.
+
+**Video clips** — the photo picker takes videos too. A clip is stored by
+id and placed as an ordinary picture element whose source is the clip:
+at rest it shows the clip's first frame, so crop, filters, frames and
+every still export work as they do for a photo; when the page plays —
+the canvas preview, the MP4, the GIF — the element shows the frame at
+that moment, looping over the clip's length. A page with a clip renders
+frame by frame like an animated page. The clip's own sound is not
+carried; a soundtrack is.
+
+**Keyboard** — with a hardware keyboard, the usual shortcuts, each with
+a title in the discoverability overlay: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, ⌘D
+duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and
+with ⇧) to reorder layers, ⇧⌘L lock, ⌘E export, ⌘K crop, ⇧⌘P present,
+⇧⌘N new page, ⌘/ help, arrows to nudge (⇧ for ten).
+
+**Present** — the design full screen from the menu: black surround,
+tap or swipe between pages, a clock, the page's notes for whoever holds
+the phone, and autoplay on each page's own timing. Every page can set
+its own hold and its transition to the next (fade, cut or slide) from
+its notes sheet; the video honours both.
+
+**MP4 and animated GIF** — a multi-page design is already a sequence, so
+it exports as one: each page holds for 2.5 seconds with a slow push in
+and a cross-fade into the next (hold time, frame rate, push-in and fade
+are settings saved with the design, and each page can override its hold
+and transition). The GIF is sized to an 8 MB budget — the largest frame
+and the higher of two frame rates that fit — and paced at 20 or 10 fps,
+the rates a GIF can state exactly, written frame by frame with AVAssetWriter
+(video) and ImageIO (GIF). No network, no account, no codec licence.
+
+SVG keeps shapes and lines as paths and strokes, and converts text to
+glyph outlines rather than `<text>` — the twelve font personalities map
+to faces that ship with iOS and are not on the machine opening the file,
+so `<text>` would silently substitute. Images and stickers embed as
+bitmaps rendered through the very views the canvas draws, so crop,
+filter, corner radius and emoji colour arrive exactly as they looked.
+
+**Not built, and why** — a home-screen widget and an App Group. Both need
+a second target (a widget extension) with its own signing and an
+app-group entitlement provisioned for the team, which the one-target,
+sign-to-run setup in this repository deliberately avoids so the app
+installs from Xcode with a free account. The App Intents above cover
+the "start a design from outside the app" case that a widget would.
+
+## Architecture
+
+```
+Models/    Design · Page · Element · Paint — Codable value types using the
+           same JSON schema as the Canvia web app, so the validated
+           template gallery ships verbatim in Content.json
+Store/     DesignStore (@Observable; snapshot undo/redo — history is just
+           [Design] thanks to value semantics), DesignLibrary (Documents)
+Content/   shape library + SVG path parser (arcs → Béziers), procedural
+           photo generators, fonts, text effects, CI filters, templates
+Editor/    Geometry (rotated-anchor resize, snapping, AABB), CanvasView,
+           ElementView (+ PageRenderView reused for thumbnails & export),
+           SelectionOverlay
+UI/        HomeView, EditorView, ContextToolbar, insert/export/color/font/
+           effects/filters/crop/position/layers/resize sheets, PagesBar
+```
+
+## Verifying it
+
+Xcode is macOS-only, so the project carries two levels of checking.
+
+**`Tools/verify.js`** — a static gate that runs anywhere Node does. It
+parses every source file with the real tree-sitter Swift grammar and
+checks six things a compiler would otherwise have to tell you: that each
+file parses; that every call into project code matches a declared
+signature's argument labels; that every `.case` argument names a real
+case of the parameter's enum; that every switch over a project enum is
+exhaustive; that no `@ViewBuilder` block exceeds SwiftUI's ten-child
+limit; and that no shorthand closure passed to a higher-order method
+(`filter`, `map`, `sorted`, …) silently ignores the argument it must
+take. It does not type-check — a clean run means the syntax and the
+project's internal API surface are consistent, not that the app builds.
+
+```
+cd Tools && npm install && node verify.js ../Canvia ../Tests
+```
+
+**`.github/workflows/canvia-ios.yml`** — the real thing. Two macOS legs
+compile the app with `xcodebuild`, print every compiler diagnostic to the
+job log, then boot a simulator, install and launch the app, confirm the
+process is still alive, and capture a screenshot of it running:
+
+| Leg | Runner | Xcode | Simulator |
+| --- | --- | --- | --- |
+| `baseline-ios18` | macos-15 | 16.4 | iPhone 16, iOS 18.6 |
+| `latest-ios26` | macos-26 | 26.6 | iPhone 17 Pro, iOS 26.5 |
+
+iOS 26.5 is the newest SDK Apple ships — Xcode 26.6 carries it. iOS 26.6 does
+run on real devices, but Apple publishes no 26.6 SDK and no 26.6 simulator
+runtime (the catalog goes 26.5, then 27.0), so 26.5 is the newest iOS testable
+in a simulator; a phone on 26.6.x is only reachable by installing on it. The older leg is what
+proves the iOS 17 deployment target still works on an earlier SDK. The
+destination names a concrete OS and a preceding step asserts that runtime
+exists, so a missing runtime fails the leg rather than letting `xcodebuild`
+quietly build against a different version.
+
+`.github/workflows/canvia-probe.yml` reports what each runner image actually
+carries, so those versions can be re-checked rather than assumed.
+
+`Tests/GeometryTests.swift` holds 17 assertions over the geometry core
+(rotated-anchor resize, snapping, AABB union, hit-testing). It sits
+outside the synchronized source folder, so it never joins the app target;
+add it to a test target to run it.
+
+### A note on the iOS 26 look
+
+Linking against any iOS 26 SDK — which the `latest-ios26` leg and the TestFlight
+archive both do — opts the app into the iOS 26 design system on iOS 26 devices.
+There is no error and no warning; system-drawn controls simply restyle. Canvia
+draws most of its own chrome, and the iOS 26.5 CI screenshot renders correctly,
+so nothing is being done about it here.
+
+If a future change does look wrong on iOS 26, `UIDesignRequiresCompatibility =
+YES` in Info.plist restores the pre-26 appearance. Treat it as a stopgap, not a
+fix: Apple describes it as a debugging aid, and an app built against the iOS 27
+SDK ignores the key entirely.
+
+## Installing on your own iPhone
+
+Two routes. They are not alternatives so much as different speeds — use the
+first to iterate, the second to keep the app on your phone.
+
+### Straight from Xcode (fastest, no CI)
+
+1. Open `Canvia.xcodeproj`, select the **Canvia** target → **Signing &
+   Capabilities**.
+2. Set **Team** to your Apple Developer team.
+3. If `com.canvia.app` is not available to your team, change **Bundle
+   Identifier** to something you own, e.g. `com.yourname.canvia`.
+4. Plug the iPhone in, enable **Settings → Privacy & Security → Developer
+   Mode** on it, pick it as the run destination, and press Run.
+
+With a paid Apple Developer Program membership the provisioning profile is
+good for a year, so the app keeps working between rebuilds. (On a *free*
+Apple ID it would expire after 7 days.)
+
+### TestFlight from CI (hands-off, installs like a real app)
+
+`.github/workflows/canvia-testflight.yml` archives a Release build, signs it,
+and uploads it to App Store Connect. It runs on demand from the Actions tab,
+or on any `v*` tag. Builds reach TestFlight a few minutes after upload and
+last 90 days.
+
+Signing uses Xcode's automatic provisioning driven by an App Store Connect
+API key, so there is no certificate to export, no `.p12`, and no temporary
+keychain — Xcode creates and renews the distribution certificate and profile
+itself.
+
+**One-time setup.**
+
+Four things have to exist before the first upload, and each one blocks it on
+its own:
+
+1. **Accept the current agreements** in App Store Connect → *Business*. Until
+   the Account Holder signs, you cannot create an app at all.
+2. **Register the App ID** at developer.apple.com → *Certificates, Identifiers &
+   Profiles → Identifiers → + → App IDs*, explicit, matching the bundle
+   identifier. Automatic signing does register it, but only during the archive —
+   too late for step 3, which needs it first. App IDs are globally unique across
+   *all* Apple accounts, so `com.canvia.app` may already belong to someone else;
+   if so pick something you control, e.g. `io.github.yourname.canvia`, and set
+   the `CANVIA_BUNDLE_ID` variable below.
+3. **Create the app record**: App Store Connect → *Apps → +*, that bundle
+   identifier, a globally unique app name, an SKU. An upload for a bundle
+   identifier with no app record is rejected — the likeliest first-run failure.
+4. **Create an Internal Testing group**: your app → *TestFlight → Internal
+   Testing → +*, enable automatic distribution, and add yourself as a tester.
+   Builds are invisible to anyone not in a group — the Account Holder included.
+   Skipping this is what produces a processed build and an empty TestFlight app.
+
+Then mint an API key. In [Users and Access → Integrations → App Store Connect
+API](https://appstoreconnect.apple.com/access/integrations/api), create a **team
+key** with the **Admin** role and download the `.p8` — Apple lets you download it
+exactly once.
+
+> The role must be **Admin**, not App Manager. `-allowProvisioningUpdates` uses
+> cloud-managed distribution signing, and a non-Admin key is refused with
+> *"You haven't been given access to cloud-managed distribution certificates"* —
+> with no way to grant it after the fact. The failure lands in the archive step,
+> not the upload.
+
+Add four repository secrets under *Settings → Secrets and variables → Actions*:
+
+| Secret | Where it comes from |
+| --- | --- |
+| `APP_STORE_CONNECT_KEY_ID` | the key's Key ID, e.g. `2X9R4HXF34` |
+| `APP_STORE_CONNECT_ISSUER_ID` | the Issuer ID shown above the key list |
+| `APP_STORE_CONNECT_PRIVATE_KEY` | the whole `.p8` file, `BEGIN`/`END` lines included |
+| `APPLE_TEAM_ID` | your 10-character Team ID, from Membership details |
+
+Optionally set the repository *variable* `CANVIA_BUNDLE_ID` if you changed the
+bundle identifier. The first run registers the App ID under your team.
+
+The build number is derived from the run number and the run attempt, because
+App Store Connect rejects a build number it has already seen and `run_number`
+does *not* change when you re-run a failed workflow. Export compliance is declared in
+the project (`ITSAppUsesNonExemptEncryption = NO` — the app does no networking
+at all), so uploads do not stall waiting for that question to be answered by
+hand.
+
+The sibling web implementation lives in the `story` repo under
+`canva-clone/` and shares the document schema and content library.
+
+> **These workflows live on this branch, not on `master`.** GitHub only offers a
+> *Run workflow* button for a `workflow_dispatch` file that exists on the default
+> branch, so until this branch is merged the TestFlight workflow can only be
+> triggered by pushing a `v*` tag.

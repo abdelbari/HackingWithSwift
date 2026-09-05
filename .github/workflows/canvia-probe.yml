@@ -1,0 +1,59 @@
+name: Canvia runner probe
+
+# Fact-finding only: reports what each GitHub-hosted macOS runner actually
+# carries — Xcode versions, installed simulator runtimes, and (via the xcodes
+# CLI) the runtimes that could be downloaded on demand. Nothing here builds
+# the app; it exists so the real workflow can target a version that is
+# genuinely available instead of one we assumed.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'claude/**' ]
+    paths: [ '.github/workflows/canvia-probe.yml' ]
+
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-26, macos-latest]
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: true
+    steps:
+      - name: Runner identity
+        run: |
+          echo "requested label: ${{ matrix.runner }}"
+          sw_vers
+          uname -m
+
+      - name: Installed Xcodes
+        run: |
+          ls -d /Applications/Xcode*.app 2>/dev/null | sort -V
+          echo "--- default ---"
+          xcodebuild -version
+
+      - name: Newest Xcode, and the SDK it carries
+        run: |
+          PICK=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
+          echo "newest: $PICK"
+          sudo xcode-select -s "$PICK"
+          xcodebuild -version
+          echo "--- iOS SDKs ---"
+          xcodebuild -showsdks 2>/dev/null | grep -i ios || true
+
+      - name: Installed simulator runtimes
+        run: xcrun simctl list runtimes
+
+      - name: Runtimes available to download
+        # The xcodes CLI lists every runtime Apple publishes, marking the ones
+        # already present — this is the only way to see what a -downloadPlatform
+        # could fetch without actually fetching gigabytes.
+        run: |
+          if command -v xcodes >/dev/null 2>&1; then
+            xcodes runtimes 2>&1 | grep -i '^iOS' || xcodes runtimes 2>&1 | tail -40
+          else
+            echo "xcodes CLI not installed on this image"
+          fi
+
+      - name: iPhone device types
+        run: xcrun simctl list devicetypes 2>/dev/null | grep -i iphone || true

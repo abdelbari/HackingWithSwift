@@ -1,0 +1,342 @@
+// Element model: one struct for all five element kinds (shape, text, image,
+// sticker, line) with optional per-kind fields — mirroring the web JSON so
+// templates decode directly. Every field the decoder might miss gets a
+// sensible default.
+
+import Foundation
+import CoreGraphics
+
+enum ElementType: String, Codable {
+    case shape, text, image, sticker, line
+}
+
+struct TextEffectSpec: Codable, Equatable, Hashable {
+    var type: String = "none"     // none|shadow|lift|outline|splice|neon|glitch|highlight
+}
+
+/// A drop shadow or glow behind any element.
+///
+/// A glow is a shadow with no offset and a colour, so it is the same struct;
+/// the presets are what tell them apart. Every value has a default so an
+/// element that has a shadow at all gets a sensible one.
+struct Shadow: Codable, Equatable, Hashable {
+    var color: String = "#000000"
+    var opacity: Double = 0.35
+    var blur: Double = 12
+    var offsetX: Double = 0
+    var offsetY: Double = 6
+
+    static let presets: [(name: String, shadow: Shadow)] = [
+        ("Soft", Shadow(color: "#000000", opacity: 0.30, blur: 14, offsetX: 0, offsetY: 6)),
+        ("Lift", Shadow(color: "#000000", opacity: 0.22, blur: 28, offsetX: 0, offsetY: 14)),
+        ("Hard", Shadow(color: "#000000", opacity: 0.55, blur: 0, offsetX: 6, offsetY: 6)),
+        ("Long", Shadow(color: "#000000", opacity: 0.25, blur: 4, offsetX: 14, offsetY: 14)),
+        ("Glow", Shadow(color: "#ffffff", opacity: 0.9, blur: 20, offsetX: 0, offsetY: 0)),
+        ("Neon", Shadow(color: "#5a31f4", opacity: 0.9, blur: 24, offsetX: 0, offsetY: 0)),
+    ]
+
+    private enum CodingKeys: String, CodingKey { case color, opacity, blur, offsetX, offsetY }
+
+    init(color: String = "#000000", opacity: Double = 0.35, blur: Double = 12,
+         offsetX: Double = 0, offsetY: Double = 6) {
+        self.color = color
+        self.opacity = opacity
+        self.blur = blur
+        self.offsetX = offsetX
+        self.offsetY = offsetY
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        color = (try? c.decode(String.self, forKey: .color)) ?? "#000000"
+        opacity = (try? c.decode(Double.self, forKey: .opacity)) ?? 0.35
+        blur = (try? c.decode(Double.self, forKey: .blur)) ?? 12
+        offsetX = (try? c.decode(Double.self, forKey: .offsetX)) ?? 0
+        offsetY = (try? c.decode(Double.self, forKey: .offsetY)) ?? 6
+    }
+}
+
+struct Element: Codable, Equatable, Identifiable {
+    var id: String = UID.make()
+    var type: ElementType = .shape
+    var x: Double = 0
+    var y: Double = 0
+    var w: Double = 100
+    var h: Double = 100
+    var rotation: Double = 0
+    var opacity: Double = 1
+    var locked: Bool = false
+    var flipH: Bool = false
+    var flipV: Bool = false
+    var group: String?
+    var shadow: Shadow?
+    /// How the element composites over what is under it; nil is normal.
+    /// See BlendModes for the names.
+    var blendMode: String?
+    /// What the element shows, for people who cannot see it: read by
+    /// VoiceOver and written into the SVG. Photos mostly.
+    var altText: String?
+    /// A line that joins two elements holds their ids and is laid again
+    /// whenever either moves (see Connectors).
+    var connectFrom: String?
+    var connectTo: String?
+
+    // shape
+    var shapeId: String?
+    /// Arbitrary vector geometry as SVG path data in a 0…100 box, for
+    /// shapes the library does not have: chart slices, traced outlines,
+    /// imported paths. When set it wins over shapeId.
+    var pathData: String?
+    var fill: Paint?
+    var stroke: String?
+    var strokeWidth: Double?
+    var radius: Double?
+    /// Per-corner radii — top-left, top-right, bottom-right, bottom-left —
+    /// for rect-like shapes; nil means `radius` on all four.
+    var corners: [Double]?
+
+    // text
+    var text: String?
+    var fontFamily: String?
+    var fontSize: Double?
+    var fontWeight: Int?
+    var italic: Bool?
+    var underline: Bool?
+    var align: String?
+    var lineHeight: Double?
+    var letterSpacing: Double?
+    var color: String?
+    /// "none" | "bullet" | "number" | "letter"; nil is none.
+    var listStyle: String?
+    /// Indent level, 0…4. Each level is one and a half ems.
+    var indent: Int?
+    /// Where the text sits in a box taller than it: "top" | "middle" |
+    /// "bottom"; nil is top and the box hugs the text.
+    var vAlign: String?
+    /// Choose the type size so the text fills the box, rather than the box
+    /// following the text.
+    var fitText: Bool?
+    /// Space after each paragraph, in ems.
+    var paragraphSpacing: Double?
+    /// The saved text style this element follows. Updating the style
+    /// re-applies it to every element that carries the id.
+    var textStyleId: String?
+    /// The first letter set large, three lines deep, with the text wrapping
+    /// around it.
+    var dropCap: Bool?
+    /// How the element arrives on the page, in video and preview.
+    var animation: ElementAnimation?
+    /// For photos: a slow drift of the crop over the page's hold.
+    var kenBurns: KenBurns?
+    /// A gradient behind the letters. nil paints `color`; a solid Paint here
+    /// is never stored, since `color` already is one.
+    var textFill: Paint?
+    var effect: TextEffectSpec?
+    /// Degrees of arc for curved text. Positive bends the baseline into a
+    /// rainbow, negative into a valley; nil or zero is a straight line.
+    var curve: Double?
+    /// Path data in the element's 0…100 box that the text follows; the
+    /// curve is ignored while this is set.
+    var textPath: String?
+    /// Characters stacked top to bottom in columns that run right to left,
+    /// the way Japanese and Chinese are set on a poster.
+    var vertical: Bool?
+
+    // image
+    var src: String?
+    var filter: String?
+    /// A shape from the library to clip this image to. Unknown ids resolve to
+    /// no frame rather than to a rectangle, so a document from a build with
+    /// more shapes than this one does not silently crop someone's photo.
+    var maskShapeId: String?
+    var adjustments: Adjustments?
+    var duotone: Duotone?
+    var cropScale: Double?
+    var cropX: Double?
+    var cropY: Double?
+    /// Degrees the picture is turned inside its frame, -45…45, to level a
+    /// horizon. The frame does not turn; the picture is scaled up to keep
+    /// covering it.
+    var straighten: Double?
+    /// Fit the whole picture inside the frame (letterboxed) instead of
+    /// filling the frame and cropping. nil is fill.
+    var cropFit: Bool?
+
+    // sticker
+    var glyph: String?
+
+    // line
+    var thickness: Double?
+    var dash: String?
+    var startCap: String?
+    var endCap: String?
+
+    var frame: CGRect { CGRect(x: x, y: y, width: w, height: h) }
+    var center: CGPoint { CGPoint(x: x + w / 2, y: y + h / 2) }
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = (try? c.decode(String.self, forKey: .id)) ?? UID.make()
+        type = (try? c.decode(ElementType.self, forKey: .type)) ?? .shape
+        x = (try? c.decode(Double.self, forKey: .x)) ?? 0
+        y = (try? c.decode(Double.self, forKey: .y)) ?? 0
+        w = (try? c.decode(Double.self, forKey: .w)) ?? 100
+        h = (try? c.decode(Double.self, forKey: .h)) ?? Element.defaultHeight(for: type, decoded: c)
+        rotation = (try? c.decode(Double.self, forKey: .rotation)) ?? 0
+        opacity = (try? c.decode(Double.self, forKey: .opacity)) ?? 1
+        locked = (try? c.decode(Bool.self, forKey: .locked)) ?? false
+        flipH = (try? c.decode(Bool.self, forKey: .flipH)) ?? false
+        flipV = (try? c.decode(Bool.self, forKey: .flipV)) ?? false
+        group = try? c.decode(String.self, forKey: .group)
+        shadow = try? c.decode(Shadow.self, forKey: .shadow)
+        blendMode = try? c.decode(String.self, forKey: .blendMode)
+        altText = try? c.decode(String.self, forKey: .altText)
+        connectFrom = try? c.decode(String.self, forKey: .connectFrom)
+        connectTo = try? c.decode(String.self, forKey: .connectTo)
+        shapeId = try? c.decode(String.self, forKey: .shapeId)
+        pathData = try? c.decode(String.self, forKey: .pathData)
+        fill = try? c.decode(Paint.self, forKey: .fill)
+        stroke = try? c.decode(String.self, forKey: .stroke)
+        strokeWidth = try? c.decode(Double.self, forKey: .strokeWidth)
+        radius = try? c.decode(Double.self, forKey: .radius)
+        corners = try? c.decode([Double].self, forKey: .corners)
+        text = try? c.decode(String.self, forKey: .text)
+        fontFamily = try? c.decode(String.self, forKey: .fontFamily)
+        fontSize = try? c.decode(Double.self, forKey: .fontSize)
+        fontWeight = try? c.decode(Int.self, forKey: .fontWeight)
+        italic = try? c.decode(Bool.self, forKey: .italic)
+        underline = try? c.decode(Bool.self, forKey: .underline)
+        align = try? c.decode(String.self, forKey: .align)
+        lineHeight = try? c.decode(Double.self, forKey: .lineHeight)
+        letterSpacing = try? c.decode(Double.self, forKey: .letterSpacing)
+        color = try? c.decode(String.self, forKey: .color)
+        listStyle = try? c.decode(String.self, forKey: .listStyle)
+        indent = try? c.decode(Int.self, forKey: .indent)
+        vAlign = try? c.decode(String.self, forKey: .vAlign)
+        fitText = try? c.decode(Bool.self, forKey: .fitText)
+        paragraphSpacing = try? c.decode(Double.self, forKey: .paragraphSpacing)
+        textStyleId = try? c.decode(String.self, forKey: .textStyleId)
+        dropCap = try? c.decode(Bool.self, forKey: .dropCap)
+        animation = try? c.decode(ElementAnimation.self, forKey: .animation)
+        kenBurns = try? c.decode(KenBurns.self, forKey: .kenBurns)
+        textFill = try? c.decode(Paint.self, forKey: .textFill)
+        effect = try? c.decode(TextEffectSpec.self, forKey: .effect)
+        curve = try? c.decode(Double.self, forKey: .curve)
+        textPath = try? c.decode(String.self, forKey: .textPath)
+        vertical = try? c.decode(Bool.self, forKey: .vertical)
+        src = try? c.decode(String.self, forKey: .src)
+        filter = try? c.decode(String.self, forKey: .filter)
+        maskShapeId = try? c.decode(String.self, forKey: .maskShapeId)
+        adjustments = try? c.decode(Adjustments.self, forKey: .adjustments)
+        duotone = try? c.decode(Duotone.self, forKey: .duotone)
+        cropScale = try? c.decode(Double.self, forKey: .cropScale)
+        cropX = try? c.decode(Double.self, forKey: .cropX)
+        cropY = try? c.decode(Double.self, forKey: .cropY)
+        straighten = try? c.decode(Double.self, forKey: .straighten)
+        cropFit = try? c.decode(Bool.self, forKey: .cropFit)
+        glyph = try? c.decode(String.self, forKey: .glyph)
+        thickness = try? c.decode(Double.self, forKey: .thickness)
+        dash = try? c.decode(String.self, forKey: .dash)
+        startCap = try? c.decode(String.self, forKey: .startCap)
+        endCap = try? c.decode(String.self, forKey: .endCap)
+    }
+
+    private static func defaultHeight(for type: ElementType, decoded c: KeyedDecodingContainer<CodingKeys>) -> Double {
+        switch type {
+        case .line:
+            let t = (try? c.decode(Double.self, forKey: .thickness)) ?? 4
+            return max(8, t)
+        case .text:
+            // Pre-layout estimate; the canvas measures and corrects it.
+            let size = (try? c.decode(Double.self, forKey: .fontSize)) ?? 42
+            let lh = (try? c.decode(Double.self, forKey: .lineHeight)) ?? 1.25
+            let lines = ((try? c.decode(String.self, forKey: .text)) ?? "x")
+                .components(separatedBy: "\n").count
+            return (size * lh * Double(lines)).rounded(.up)
+        default:
+            return 100
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow, blendMode, altText
+        case connectFrom, connectTo
+        case shapeId, pathData, fill, stroke, strokeWidth, radius, corners
+        case text, fontFamily, fontSize, fontWeight, italic, underline, align
+        case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
+        case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, kenBurns
+        case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit
+        case glyph
+        case thickness, dash, startCap, endCap
+    }
+
+    // MARK: factories (defaults mirror the web factories)
+
+    static func shape(_ shapeId: String, w: Double = 200, h: Double = 200) -> Element {
+        var e = Element()
+        e.type = .shape
+        e.shapeId = shapeId
+        e.w = w; e.h = h
+        e.fill = .solid("#8b5cf6")
+        e.radius = 0
+        return e
+    }
+
+    static func text(_ string: String, fontSize: Double = 42, w: Double = 400) -> Element {
+        var e = Element()
+        e.type = .text
+        e.text = string
+        e.fontSize = fontSize
+        e.fontFamily = "sans"
+        e.fontWeight = 400
+        e.align = "center"
+        e.lineHeight = 1.25
+        e.letterSpacing = 0
+        e.color = "#1f2430"
+        e.effect = TextEffectSpec(type: "none")
+        e.w = w
+        e.h = fontSize * 1.25
+        return e
+    }
+
+    static func image(_ src: String, w: Double = 480, h: Double = 360) -> Element {
+        var e = Element()
+        e.type = .image
+        e.src = src
+        e.w = w; e.h = h
+        e.filter = "none"
+        e.cropScale = 1; e.cropX = 0.5; e.cropY = 0.5
+        e.radius = 0
+        return e
+    }
+
+    static func sticker(_ glyph: String, size: Double = 160) -> Element {
+        var e = Element()
+        e.type = .sticker
+        e.glyph = glyph
+        e.w = size; e.h = size
+        return e
+    }
+
+    static func line(w: Double = 300) -> Element {
+        var e = Element()
+        e.type = .line
+        e.w = w; e.h = 8
+        e.color = "#1f2430"
+        e.thickness = 4
+        e.dash = "solid"
+        e.startCap = "none"; e.endCap = "none"
+        return e
+    }
+
+    /// Deep copy with a fresh id, offset for duplicate/paste.
+    func duplicated(offset: Double = 24) -> Element {
+        var copy = self
+        copy.id = UID.make()
+        copy.x += offset
+        copy.y += offset
+        return copy
+    }
+}
