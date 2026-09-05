@@ -51,8 +51,8 @@ struct ThemeSheet: View {
         return VStack(alignment: .leading, spacing: 6) {
             PageRenderView(design: design, page: design.pages[0])
                 .scaleEffect(previewScale(design), anchor: .topLeading)
-                .frame(width: design.size(at: 0).width * previewScale(design),
-                       height: design.size(at: 0).height * previewScale(design))
+                .frame(width: Double(design.size(at: 0).width) * previewScale(design),
+                       height: Double(design.size(at: 0).height) * previewScale(design))
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.hairline))
                 .frame(maxWidth: .infinity)
@@ -62,7 +62,8 @@ struct ThemeSheet: View {
     }
 
     private func previewScale(_ design: Design) -> Double {
-        min(320 / max(design.size(at: 0).width, 1), 220 / max(design.size(at: 0).height, 1))
+        let size = design.size(at: 0)
+        return min(320 / max(Double(size.width), 1), 220 / max(Double(size.height), 1))
     }
 
     private var paletteGrid: some View {

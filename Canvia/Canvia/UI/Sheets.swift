@@ -889,8 +889,8 @@ struct ResizeSheet: View {
                         Text("×")
                         TextField("Height", text: $customH).keyboardType(.numberPad)
                         Button("Apply") {
-                            let w = min(4000, max(40, Double(customW) ?? store.pageSize.width))
-                            let h = min(4000, max(40, Double(customH) ?? store.pageSize.height))
+                            let w = min(4000, max(40, Double(customW) ?? store.pageWidth))
+                            let h = min(4000, max(40, Double(customH) ?? store.pageHeight))
                             resize(w, h)
                             dismiss()
                         }
@@ -901,8 +901,8 @@ struct ResizeSheet: View {
             .navigationTitle("Resize design")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
-                customW = String(Int(store.pageSize.width))
-                customH = String(Int(store.pageSize.height))
+                customW = String(Int(store.pageWidth))
+                customH = String(Int(store.pageHeight))
             }
         }
         .presentationDetents(sheetDetents)

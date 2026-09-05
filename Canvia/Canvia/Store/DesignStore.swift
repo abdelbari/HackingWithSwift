@@ -59,6 +59,8 @@ final class DesignStore {
 
     /// The current page's size — its own, or the document's.
     var pageSize: CGSize { design.size(for: page) }
+    var pageWidth: Double { page.width ?? design.width }
+    var pageHeight: Double { page.height ?? design.height }
 
     var selectedElements: [Element] {
         page.elements.filter { selection.contains($0.id) }
@@ -210,8 +212,8 @@ final class DesignStore {
         }
         var el = element
         if centered && el.x == 0 && el.y == 0 {
-            el.x = (pageSize.width - el.w) / 2
-            el.y = (pageSize.height - el.h) / 2
+            el.x = (pageWidth - el.w) / 2
+            el.y = (pageHeight - el.h) / 2
         }
         applyToPage { $0.elements.append(el) }
         selection = [el.id]
@@ -431,7 +433,7 @@ final class DesignStore {
     func tidySelected(_ mode: Geometry.TidyMode) {
         let members = selectedElements.filter { !$0.locked }
         guard members.count >= 2 else { return }
-        let gap = (min(pageSize.width, pageSize.height) / 50).rounded()
+        let gap = (min(pageWidth, pageHeight) / 50).rounded()
         let tidied = Geometry.tidy(members, mode: mode, gap: gap)
         applyToPage { page in
             let byId = Dictionary(uniqueKeysWithValues: tidied.map { ($0.id, $0) })
@@ -1018,9 +1020,9 @@ final class DesignStore {
 
     /// Drop a component onto the page at half its width, centred.
     func insertComponent(_ component: Component) {
-        let width = (pageSize.width * 0.5).rounded()
+        let width = (pageWidth * 0.5).rounded()
         let height = width * component.height / max(component.width, 1)
-        let origin = CGPoint(x: ((pageSize.width - width) / 2).rounded(), y: ((pageSize.height - height) / 2).rounded())
+        let origin = CGPoint(x: ((pageWidth - width) / 2).rounded(), y: ((pageHeight - height) / 2).rounded())
         let elements = Components.instance(of: component, width: width, at: origin)
         guard !elements.isEmpty else { return }
         applyToPage { $0.elements.append(contentsOf: elements) }
@@ -1121,7 +1123,7 @@ final class DesignStore {
 
     /// A guide across the middle of the page, to be dragged from there.
     func addGuide(vertical: Bool) {
-        addGuide(vertical: vertical, at: (vertical ? pageSize.width / 2 : pageSize.height / 2).rounded())
+        addGuide(vertical: vertical, at: (vertical ? pageWidth / 2 : pageHeight / 2).rounded())
     }
 
     func addGuide(vertical: Bool, at position: Double) {
@@ -1132,7 +1134,7 @@ final class DesignStore {
     func moveGuideTransient(_ id: String, to position: Double) {
         beginGesture()
         if let i = design.guides.firstIndex(where: { $0.id == id }) {
-            let limit = design.guides[i].vertical ? pageSize.width : pageSize.height
+            let limit = design.guides[i].vertical ? pageWidth : pageHeight
             design.guides[i].position = min(max(position, 0), limit).rounded()
         }
     }
@@ -1149,7 +1151,7 @@ final class DesignStore {
     // MARK: page clipboard
 
     func copyPage() {
-        PageClipboard.copy(page, width: pageSize.width, height: pageSize.height)
+        PageClipboard.copy(page, width: pageWidth, height: pageHeight)
     }
 
     var hasPageOnClipboard: Bool { PageClipboard.hasPage() }
@@ -1157,7 +1159,7 @@ final class DesignStore {
     /// Paste the copied page after the current one, scaled to this design.
     func pastePage() {
         guard let payload = PageClipboard.paste() else { return }
-        let landed = PageClipboard.fitted(payload, width: pageSize.width, height: pageSize.height)
+        let landed = PageClipboard.fitted(payload, width: pageWidth, height: pageHeight)
         apply { $0.pages.insert(landed, at: pageIndex + 1) }
         pageIndex += 1
         selection.removeAll()

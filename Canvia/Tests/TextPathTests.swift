@@ -62,7 +62,7 @@ final class TextPathTests: XCTestCase {
         let c = try XCTUnwrap(TextOutliner.path(for: circle)).boundingBoxOfPath
         // Centred on the circle's far side, the text wraps round more than a
         // third of it: tall, and well wider than a line's height.
-        XCTAssertGreaterThan(c.height, 200); XCTAssertGreaterThan(c.width, 100)
+        XCTAssertGreaterThan(c.width, 200); XCTAssertGreaterThan(c.height, 100)
         // The box is kept: measurement does not collapse a path box to a line.
         XCTAssertEqual(FontLibrary.layoutHeight(for: circle), 300)
     }

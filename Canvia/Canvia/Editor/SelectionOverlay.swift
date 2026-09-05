@@ -135,15 +135,15 @@ struct SelectionOverlay: View {
         if let x = store.guideX {
             Rectangle()
                 .fill(Theme.guide)
-                .frame(width: 1.5 * iz, height: store.pageSize.height * 2)
-                .position(x: x, y: store.pageSize.height / 2)
+                .frame(width: 1.5 * iz, height: store.pageHeight * 2)
+                .position(x: x, y: store.pageHeight / 2)
                 .allowsHitTesting(false)
         }
         if let y = store.guideY {
             Rectangle()
                 .fill(Theme.guide)
-                .frame(width: store.pageSize.width * 2, height: 1.5 * iz)
-                .position(x: store.pageSize.width / 2, y: y)
+                .frame(width: store.pageWidth * 2, height: 1.5 * iz)
+                .position(x: store.pageWidth / 2, y: y)
                 .allowsHitTesting(false)
         }
     }

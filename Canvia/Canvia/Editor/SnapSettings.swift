@@ -31,7 +31,7 @@ struct SnapSettings: Equatable, Codable {
     }
 
     func marginInset(for size: CGSize) -> Double {
-        (min(size.width, size.height) * margin).rounded()
+        (min(Double(size.width), Double(size.height)) * margin).rounded()
     }
 
     /// The spacings offered. Powers of two, because designs are sized in

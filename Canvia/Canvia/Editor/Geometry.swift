@@ -264,9 +264,10 @@ enum Geometry {
         var xs: [Double] = []
         var ys: [Double] = []
         let size = design.size(for: page)
+        let pw = Double(size.width), ph = Double(size.height)
         if settings.toPage {
-            xs += [0, size.width / 2, size.width]
-            ys += [0, size.height / 2, size.height]
+            xs += [0, pw / 2, pw]
+            ys += [0, ph / 2, ph]
         }
         if settings.toElements {
             for el in page.elements where !ids.contains(el.id) {
@@ -276,13 +277,13 @@ enum Geometry {
             }
         }
         if settings.gridEnabled {
-            xs += gridLines(across: size.width, spacing: settings.grid)
-            ys += gridLines(across: size.height, spacing: settings.grid)
+            xs += gridLines(across: pw, spacing: settings.grid)
+            ys += gridLines(across: ph, spacing: settings.grid)
         }
         if settings.marginEnabled {
             let m = settings.marginInset(for: size)
-            xs += [m, size.width - m]
-            ys += [m, size.height - m]
+            xs += [m, pw - m]
+            ys += [m, ph - m]
         }
         // Guides are placed on purpose, so they snap whatever else is off.
         for guide in design.guides {

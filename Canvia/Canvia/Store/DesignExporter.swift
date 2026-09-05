@@ -294,7 +294,7 @@ enum DesignExporter {
         let indices = range.indices(in: design, current: current)
         func bounds(_ page: Page) -> CGRect {
             let size = design.size(for: page)
-            return CGRect(x: 0, y: 0, width: size.width * pxToPt, height: size.height * pxToPt)
+            return CGRect(x: 0, y: 0, width: Double(size.width) * pxToPt, height: Double(size.height) * pxToPt)
         }
         let first = bounds(design.pages[indices.first ?? 0])
         try UIGraphicsPDFRenderer(bounds: first).writePDF(to: url) { ctx in
