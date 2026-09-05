@@ -70,10 +70,11 @@ final class CropTests: XCTestCase {
         var box = CGRect(x: 0, y: 0, width: 200, height: 100)
         let consumer = try XCTUnwrap(CGDataConsumer(data: data))
         let pdf = try XCTUnwrap(CGContext(consumer: consumer, mediaBox: &box, nil))
-        pdf.beginPDFPage(nil)
+        pdf.beginPDFPage([kCGPDFContextMediaBox as String: Data(bytes: &box, count: MemoryLayout<CGRect>.size)] as CFDictionary)
         // Device RGB, set by components: a UIColor's extended-range CGColor
         // is not something a PDF context is guaranteed to record.
-        pdf.setFillColor(red: 1, green: 0, blue: 0, alpha: 1)
+        pdf.setFillColorSpace(CGColorSpaceCreateDeviceRGB())
+        pdf.setFillColor([1, 0, 0, 1])
         pdf.fill(CGRect(x: 0, y: 50, width: 100, height: 50))       // upper-left in PDF space
         pdf.endPDFPage()
         var tall = CGRect(x: 0, y: 0, width: 100, height: 200)
@@ -112,8 +113,9 @@ final class CropTests: XCTestCase {
             cg.drawPDFPage(page1)
         }
         let plainMap = try colorMap(plain)
-        XCTAssertEqual(map, "RRRRWWWW\nRRRRWWWW\nWWWWWWWW\nWWWWWWWW",
-                       "the red mark should fill the top-left quarter — importer:\n\(map)\nplain UIKit flip:\n\(plainMap)\n\(boxes)")
+        // One line: the CI log keeps only the first line of a failure.
+        XCTAssertEqual(map, "RRRRWWWW/RRRRWWWW/WWWWWWWW/WWWWWWWW",
+                       "the red mark should fill the top-left quarter — importer: \(map); plain UIKit flip: \(plainMap); \(boxes); pdf bytes \(data.length); importer ink \(inkCount(first)); plain ink \(inkCount(plain))")
     }
 
     /// Eight by four cells, each sampled at its centre.
@@ -131,7 +133,26 @@ final class CropTests: XCTestCase {
             }
             rows.append(line)
         }
-        return rows.joined(separator: "\n")
+        return rows.joined(separator: "/")
+    }
+
+    /// How many pixels are red and how many are anything but white — read
+    /// from the whole bitmap, independent of the single-pixel sampler.
+    private func inkCount(_ image: UIImage) -> String {
+        guard let cg = image.cgImage else { return "no cgImage" }
+        let w = cg.width, h = cg.height
+        var pixels = [UInt8](repeating: 0, count: w * h * 4)
+        guard let ctx = CGContext(data: &pixels, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                                  space: CGColorSpaceCreateDeviceRGB(),
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return "no context" }
+        ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+        var red = 0, nonWhite = 0, firstRed = -1
+        for p in 0..<(w * h) {
+            let r = pixels[p * 4], g = pixels[p * 4 + 1], b = pixels[p * 4 + 2]
+            if r > 200 && g < 60 && b < 60 { red += 1; if firstRed < 0 { firstRed = p } }
+            if r < 240 || g < 240 || b < 240 { nonWhite += 1 }
+        }
+        return "red \(red) nonWhite \(nonWhite) of \(w * h), first red at \(firstRed < 0 ? "none" : "(\(firstRed % w), \(firstRed / w))")"
     }
 
     func testAFileThatIsNotAPDFImportsNothing() {

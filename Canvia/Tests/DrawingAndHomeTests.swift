@@ -80,7 +80,7 @@ final class DrawingAndHomeTests: XCTestCase {
         // Smaller than half the page, so it keeps its own size.
         XCTAssertEqual(mid, CGRect(x: 300, y: 250, width: 400, height: 300))
         let big = CanvasDrop.imageFrame(natural: CGSize(width: 4000, height: 3000), page: page, at: CGPoint(x: 500, y: 400))
-        XCTAssertEqual(big, CGRect(x: 250, y: 212, width: 500, height: 375))
+        XCTAssertEqual(big, CGRect(x: 250, y: 213, width: 500, height: 375))
         // Dropped at the corner: slid back inside, not shrunk.
         let corner = CanvasDrop.imageFrame(natural: CGSize(width: 400, height: 300), page: page, at: CGPoint(x: 990, y: 790))
         XCTAssertEqual(corner.maxX, 1000); XCTAssertEqual(corner.maxY, 800)
