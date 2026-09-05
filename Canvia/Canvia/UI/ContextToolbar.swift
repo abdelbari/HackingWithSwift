@@ -132,6 +132,13 @@ struct ContextToolbar: View {
             toggle("underline", "Underline", active: el.underline == true) {
                 store.updateSelected { $0.underline = !($0.underline ?? false) }
             }
+            toggle("text.justify.leading", "Vertical", active: el.vertical == true) {
+                store.updateSelected { e in
+                    e.vertical = e.vertical == true ? nil : true
+                    // A column wants height; give a one-line box a few rows.
+                    if e.vertical == true, e.h < (e.fontSize ?? 42) * 4 { e.h = (e.fontSize ?? 42) * 4 }
+                }
+            }
             toolButton(alignIcon(el.align), "Align") {
                 store.updateSelected { e in
                     switch e.align ?? "center" {

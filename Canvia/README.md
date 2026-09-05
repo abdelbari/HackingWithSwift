@@ -341,6 +341,13 @@ glyph sits by its centre at its share of the path's length. The canvas,
 the SVG (as outlines) and the PDF all draw the same layout; the Curve
 slider and the Path menu replace each other.
 
+**Vertical writing** — the text toolbar's Vertical toggle stacks the
+characters upright down a column at the line height, columns running from
+the right, a new column at every newline or when the box runs out —
+Japanese and Chinese set the way a poster sets them, and Latin stacked
+the way a shop sign is. Drawn as outlines like curved text, so the SVG
+and PDF carry it exactly.
+
 **Keyboard** — with a hardware keyboard, the usual shortcuts, each with
 a title in the discoverability overlay: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, ⌘D
 duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and

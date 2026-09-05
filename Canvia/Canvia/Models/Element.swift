@@ -138,6 +138,9 @@ struct Element: Codable, Equatable, Identifiable {
     /// Path data in the element's 0…100 box that the text follows; the
     /// curve is ignored while this is set.
     var textPath: String?
+    /// Characters stacked top to bottom in columns that run right to left,
+    /// the way Japanese and Chinese are set on a poster.
+    var vertical: Bool?
 
     // image
     var src: String?
@@ -222,6 +225,7 @@ struct Element: Codable, Equatable, Identifiable {
         effect = try? c.decode(TextEffectSpec.self, forKey: .effect)
         curve = try? c.decode(Double.self, forKey: .curve)
         textPath = try? c.decode(String.self, forKey: .textPath)
+        vertical = try? c.decode(Bool.self, forKey: .vertical)
         src = try? c.decode(String.self, forKey: .src)
         filter = try? c.decode(String.self, forKey: .filter)
         maskShapeId = try? c.decode(String.self, forKey: .maskShapeId)
@@ -261,7 +265,7 @@ struct Element: Codable, Equatable, Identifiable {
         case connectFrom, connectTo
         case shapeId, pathData, fill, stroke, strokeWidth, radius, corners
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
-        case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath
+        case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, kenBurns
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit
         case glyph

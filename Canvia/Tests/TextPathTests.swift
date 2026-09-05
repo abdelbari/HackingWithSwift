@@ -88,3 +88,40 @@ final class TextPathTests: XCTestCase {
         XCTAssertTrue(svg.contains("<path d=\"M"), svg.prefix(200).description)
     }
 }
+
+final class VerticalTextTests: XCTestCase {
+
+    @MainActor
+    func testVerticalTextStacksDownAColumn() throws {
+        var el = Element.text("縦書き", fontSize: 40, w: 200)
+        el.h = 240
+        el.vertical = true
+        let box = try XCTUnwrap(TextOutliner.path(for: el)).boundingBoxOfPath
+        XCTAssertGreaterThan(box.height, box.width * 2, "\(box)")
+        XCTAssertGreaterThan(box.height, 100)
+        // Centred across the box.
+        XCTAssertEqual(box.midX, 100, accuracy: 12)
+        XCTAssertTrue(TextOutliner.followsAPath(el))
+        XCTAssertEqual(FontLibrary.layoutHeight(for: el), 240)
+    }
+
+    @MainActor
+    func testLatinStacksUprightAndNewlinesStartColumns() throws {
+        var one = Element.text("ABC", fontSize: 30, w: 200); one.h = 300; one.vertical = true
+        var two = Element.text("ABC\nDEF", fontSize: 30, w: 200); two.h = 300; two.vertical = true
+        let a = try XCTUnwrap(TextOutliner.path(for: one)).boundingBoxOfPath
+        let b = try XCTUnwrap(TextOutliner.path(for: two)).boundingBoxOfPath
+        XCTAssertGreaterThan(a.height, a.width)
+        XCTAssertGreaterThan(b.width, a.width + 20, "a second column sits beside the first")
+        XCTAssertEqual(a.height, b.height, accuracy: 2)
+    }
+
+    @MainActor
+    func testAColumnTooTallWrapsToTheNextColumn() throws {
+        var el = Element.text("ABCDEFGH", fontSize: 30, w: 300); el.h = 120; el.vertical = true
+        // 120 / (30 * 1.25) = 3 rows per column → 3 columns.
+        let box = try XCTUnwrap(TextOutliner.path(for: el)).boundingBoxOfPath
+        XCTAssertGreaterThan(box.width, 80)
+        XCTAssertLessThanOrEqual(box.height, 120 + 5)
+    }
+}

@@ -308,7 +308,9 @@ enum FontLibrary {
     /// is why this exists rather than each call site deciding.
     static func layoutHeight(for el: Element) -> Double {
         // Text on a path keeps the box it was given: the box is the path.
+        // Vertical text keeps its box too; its columns are cut to it.
         if let data = el.textPath, !data.isEmpty { return max(el.h, (el.fontSize ?? 42) * 1.25) }
+        if el.vertical == true { return max(el.h, (el.fontSize ?? 42) * 1.25) }
         if let degrees = el.curve, abs(degrees) >= TextOutliner.straightBelowDegrees,
            let curved = TextOutliner.curvedSize(for: el, degrees: degrees) {
             return max(curved.height, el.fontSize ?? 42)

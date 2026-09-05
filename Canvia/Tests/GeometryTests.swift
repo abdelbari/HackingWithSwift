@@ -139,6 +139,7 @@ final class ElementEqualityTests: XCTestCase {
         let mutations: [(String, (inout Element) -> Void)] = [
             ("connectFrom", { $0.connectFrom = "a" }),
             ("textPath", { $0.textPath = "M0 0L100 100" }),
+            ("vertical", { $0.vertical = true }),
             ("connectTo", { $0.connectTo = "b" }),
             ("x", { $0.x += 1 }),
             ("y", { $0.y += 1 }),

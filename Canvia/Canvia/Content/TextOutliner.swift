@@ -27,6 +27,9 @@ enum TextOutliner {
     static let straightBelowDegrees = 1.0
 
     static func path(for el: Element) -> CGPath? {
+        if el.vertical == true {
+            return verticalPath(for: el)
+        }
         if let data = el.textPath, !data.isEmpty {
             return pathText(for: el, data: data)
         }
@@ -39,6 +42,7 @@ enum TextOutliner {
     /// Whether the text is drawn as glyph outlines on a curve or a path
     /// rather than as straight lines.
     static func followsAPath(_ el: Element) -> Bool {
+        if el.vertical == true { return true }
         if let data = el.textPath, !data.isEmpty { return true }
         return el.curve.map { abs($0) >= straightBelowDegrees } ?? false
     }
@@ -87,6 +91,74 @@ enum TextOutliner {
                     .translatedBy(x: -advances[i].width / 2, y: 0)
                     .scaledBy(x: 1, y: -1)
                 combined.addPath(glyph, transform: transform)
+            }
+        }
+        return combined.isEmpty ? nil : combined
+    }
+
+    /// Vertical writing: each character upright, stacked down a column at
+    /// the line height, columns filling from the right edge leftward and a
+    /// new column at every newline or when the box runs out. Latin letters
+    /// stack upright too, the way a shop sign does.
+    static func verticalPath(for el: Element) -> CGPath? {
+        let text = FontLibrary.displayText(for: el)
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, el.w > 0, el.h > 0 else { return nil }
+        let size = el.fontSize ?? 42
+        let step = size * (el.lineHeight ?? 1.25)
+        let columnWidth = size * 1.3
+        let attrs = FontLibrary.attributes(for: el)
+        let declared = FontLibrary.uiFont(family: el.fontFamily, size: size,
+                                          weight: el.fontWeight ?? 400, italic: el.italic ?? false)
+        // Columns: split at newlines, then at the box's height.
+        let perColumn = max(1, Int(el.h / step))
+        var columns: [[Character]] = []
+        for paragraph in text.components(separatedBy: "\n") {
+            let chars = Array(paragraph)
+            if chars.isEmpty { columns.append([]); continue }
+            var i = 0
+            while i < chars.count {
+                columns.append(Array(chars[i..<min(i + perColumn, chars.count)]))
+                i += perColumn
+            }
+        }
+        // Columns run from the right; the block is centred across the box.
+        let blockWidth = Double(columns.count) * columnWidth
+        let rightEdge = el.w / 2 + blockWidth / 2
+        let combined = CGMutablePath()
+        for (c, column) in columns.enumerated() {
+            let centreX = rightEdge - (Double(c) + 0.5) * columnWidth
+            let columnHeight = Double(column.count) * step
+            let top: Double
+            switch el.vAlign ?? "top" {
+            case "middle": top = (el.h - columnHeight) / 2
+            case "bottom": top = el.h - columnHeight
+            default: top = 0
+            }
+            for (r, ch) in column.enumerated() where ch != " " {
+                let line = CTLineCreateWithAttributedString(NSAttributedString(string: String(ch), attributes: attrs))
+                var ascent: CGFloat = 0, descent: CGFloat = 0
+                let advance = CTLineGetTypographicBounds(line, &ascent, &descent, nil)
+                guard let runs = CTLineGetGlyphRuns(line) as? [CTRun] else { continue }
+                // The glyph's centre at the column's centre, its baseline so
+                // the letter is centred in its step.
+                let baselineY = top + Double(r) * step + (step + ascent - descent) / 2
+                for run in runs {
+                    let count = CTRunGetGlyphCount(run)
+                    guard count > 0 else { continue }
+                    let attributes = CTRunGetAttributes(run) as? [String: Any]
+                    let uiFont = attributes?[kCTFontAttributeName as String] as? UIFont ?? declared
+                    let font = CTFontCreateWithName(uiFont.fontName as CFString, uiFont.pointSize, nil)
+                    var glyphs = [CGGlyph](repeating: 0, count: count)
+                    var positions = [CGPoint](repeating: .zero, count: count)
+                    CTRunGetGlyphs(run, CFRange(location: 0, length: count), &glyphs)
+                    CTRunGetPositions(run, CFRange(location: 0, length: count), &positions)
+                    for i in 0..<count {
+                        guard let glyph = CTFontCreatePathForGlyph(font, glyphs[i], nil) else { continue }
+                        let transform = CGAffineTransform(translationX: centreX - advance / 2 + positions[i].x, y: baselineY)
+                            .scaledBy(x: 1, y: -1)
+                        combined.addPath(glyph, transform: transform)
+                    }
+                }
             }
         }
         return combined.isEmpty ? nil : combined
