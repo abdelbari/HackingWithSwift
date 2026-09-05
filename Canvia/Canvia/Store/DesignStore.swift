@@ -1091,10 +1091,11 @@ final class DesignStore {
     }
 
     /// Reflow to a new canvas rather than scaling the old one onto it: every
-    /// element keeps its relative position on each axis independently, so a
-    /// footer stays at the foot of a much taller page and a right-aligned
-    /// logo stays at the right edge — while sizes scale by the smaller ratio
-    /// and keep their shape. Pure; `magicResize` commits it.
+    /// element keeps its position on each axis as the split of the room
+    /// around it — an element flush with the right edge stays flush, a
+    /// footer stays at the foot of a much taller page, a centred one stays
+    /// centred — while sizes scale by the smaller ratio and keep their
+    /// shape. Pure; `magicResize` commits it.
     static func reflowed(_ design: Design, width: Double, height: Double) -> Design {
         guard width > 0, height > 0 else { return design }
         let rx = width / max(design.width, 1), ry = height / max(design.height, 1)
@@ -1102,12 +1103,17 @@ final class DesignStore {
         var out = design
         out.width = width
         out.height = height
+        /// Where on the new axis an element goes: the same share of the free
+        /// room on either side as before; the centre's fraction when the
+        /// element filled the axis and there was no room to share.
+        func place(_ pos: Double, _ size: Double, _ old: Double, _ newSize: Double, _ new: Double) -> Double {
+            let room = old - size
+            if room > 0.5 { return (new - newSize) * (pos / room) }
+            return (pos + size / 2) / max(old, 1) * new - newSize / 2
+        }
         for p in out.pages.indices {
             for i in out.pages[p].elements.indices {
                 let el = out.pages[p].elements[i]
-                // Anchor by the element's centre as a fraction of the page.
-                let cx = (el.x + el.w / 2) / max(design.width, 1)
-                let cy = (el.y + el.h / 2) / max(design.height, 1)
                 var e = el
                 e.w = el.w * s
                 e.h = el.h * s
@@ -1119,8 +1125,8 @@ final class DesignStore {
                     e.w = min(el.w * rx, width)
                     e.h = FontLibrary.layoutHeight(for: e)
                 }
-                e.x = cx * width - e.w / 2
-                e.y = cy * height - e.h / 2
+                e.x = place(el.x, el.w, design.width, e.w, width)
+                e.y = place(el.y, el.h, design.height, e.h, height)
                 // Never off the page.
                 e.x = min(max(e.x, 0), max(width - e.w, 0))
                 e.y = min(max(e.y, 0), max(height - e.h, 0))
