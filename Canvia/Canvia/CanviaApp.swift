@@ -83,6 +83,12 @@ struct CanviaApp: App {
                       let design = DesignLibrary.load(id: id) else { return }
                 withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
             }
+            // A suggested or handed-off design opens too.
+            .onContinueUserActivity(DesignActivity.type) { activity in
+                guard let id = DesignActivity.designID(from: activity),
+                      let design = DesignLibrary.load(id: id) else { return }
+                withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
+            }
             // An intent that ran while the app was already open.
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active, let store = Self.storeForLaunchRequest() else { return }

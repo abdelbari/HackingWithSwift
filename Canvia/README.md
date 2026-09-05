@@ -366,6 +366,20 @@ each page's shape, the SVG and the PDF write each page at its own size
 shaped unlike the frame on black. Resizing the whole design brings every
 page to the new size.
 
+**Dictation** — a microphone on the text toolbar (where speech
+recognition is available) appends what you say to the selected text as
+the words arrive, on-device where the system allows, and records the
+change when you stop. The keyboard's own microphone works in the inline
+editor as well, and on iPad so does Scribble.
+
+**Handwriting to text** — select drawn strokes and *To text* renders them
+black on white, reads them with the on-device text recogniser and puts a
+text element in their place at their size — Undo keeps the strokes.
+
+**Siri suggestions and Handoff** — the design being edited is published as
+a user activity, so it comes back as a suggestion and can be continued on
+another device that has the same design.
+
 **Keyboard** — with a hardware keyboard, the usual shortcuts, each with
 a title in the discoverability overlay: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, ⌘D
 duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and

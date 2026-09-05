@@ -37,6 +37,7 @@ struct ContextToolbar: View {
     @Binding var activeSheet: EditorSheet?
 
     @State private var cuttingOut = false
+    @State private var dictationBase = ""
     @State private var cutoutError: String?
 
     var body: some View {
@@ -160,9 +161,41 @@ struct ContextToolbar: View {
             toolButton("wand.and.stars", "Effects") { activeSheet = .effects }
             toolButton("arrow.up.and.down.text.horizontal", "Spacing") { activeSheet = .spacing }
             pathMenu(el)
+            if Dictation.isAvailable { dictateButton(el) }
             sliderControl("Curve", value: el.curve ?? 0, in: -180...180) { degrees in
                 store.updateSelectedTransient { curve(&$0, to: degrees) }
             }
+        }
+    }
+
+    /// Speak, and the words append to the selected text as they arrive;
+    /// tap again to stop, which is when the change is recorded.
+    private func dictateButton(_ el: Element) -> some View {
+        let listening = Dictation.shared.isListening
+        return toolButton(listening ? "mic.fill" : "mic", listening ? "Stop" : "Dictate") {
+            if listening {
+                Dictation.shared.stop()
+                store.commit()
+                return
+            }
+            dictationBase = el.text ?? ""
+            let base = dictationBase
+            Dictation.shared.start { spoken, isFinal in
+                Task { @MainActor in
+                    store.updateSelectedTransient { e in
+                        e.text = Dictation.merge(base, spoken)
+                        e.h = FontLibrary.layoutHeight(for: e)
+                    }
+                    if isFinal { store.commit() }
+                }
+            }
+        }
+        .alert("Dictation", isPresented: Binding(
+            get: { Dictation.shared.error != nil },
+            set: { if !$0 { Dictation.shared.error = nil } })) {
+            Button("OK") { Dictation.shared.error = nil }
+        } message: {
+            Text(Dictation.shared.error ?? "")
         }
     }
 
@@ -419,6 +452,9 @@ struct ContextToolbar: View {
             sliderControl("Width", value: el.strokeWidth ?? 4, in: 1...40) { v in
                 store.updateSelectedTransient { $0.strokeWidth = v }
             }
+        }
+        if Freehand.isStroke(el) {
+            toolButton("text.viewfinder", "To text") { store.strokesToText() }
         }
         if ContentLibrary.shape(el.shapeId).rectLike == true && el.pathData == nil {
             sliderControl("Round", value: el.radius ?? 0, in: 0...(min(el.w, el.h) / 2)) { v in

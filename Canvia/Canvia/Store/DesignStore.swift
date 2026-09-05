@@ -560,6 +560,35 @@ final class DesignStore {
         eraserStrokes = []
     }
 
+    /// The selected strokes read as handwriting: one text element takes
+    /// their place, at their size, with what the recogniser made of them.
+    func strokesToText() {
+        let strokes = selectedElements.filter(Freehand.isStroke)
+        guard let rendered = Freehand.bitmap(of: strokes) else { return }
+        let ids = Set(strokes.map(\.id))
+        let index = pageIndex
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let lines = TextRecognizer.lines(in: rendered.image)
+            await MainActor.run {
+                guard let self else { return }
+                let text = lines.map(\.text).joined(separator: "\n")
+                guard !text.isEmpty else { self.announce("No words were recognised in the strokes"); return }
+                let frame = rendered.frame
+                let size = max(12, (frame.height / Double(max(lines.count, 1)) * 0.6).rounded())
+                var el = Element.text(text, fontSize: size, w: max(60, frame.width.rounded()))
+                el.align = "left"
+                el.x = frame.minX.rounded(); el.y = frame.minY.rounded()
+                el.h = FontLibrary.layoutHeight(for: el)
+                self.apply { d in
+                    d.pages[index].elements.removeAll { ids.contains($0.id) }
+                    d.pages[index].elements.append(el)
+                }
+                self.selection = [el.id]
+                self.announce("Handwriting became text — Undo keeps the strokes")
+            }
+        }
+    }
+
     func cancelErasing() {
         erasing = nil
         eraserStrokes = []

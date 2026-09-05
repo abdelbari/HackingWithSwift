@@ -9,6 +9,7 @@
 
 import CoreGraphics
 import Foundation
+import UIKit
 
 enum Freehand {
 
@@ -103,6 +104,45 @@ enum Freehand {
         e.strokeWidth = tool.width
         e.radius = nil
         return e
+    }
+
+    /// Whether an element is a drawn stroke: a path shape with no fill.
+    static func isStroke(_ el: Element) -> Bool {
+        el.type == .shape && el.pathData?.isEmpty == false && el.fill?.kind == "none"
+    }
+
+    /// The strokes drawn black on white at `scale` pixels per page unit,
+    /// padded, with the page rect the bitmap covers — what handwriting
+    /// recognition reads.
+    static func bitmap(of strokes: [Element], scale: Double = 2) -> (image: UIImage, frame: CGRect)? {
+        let members = strokes.filter(isStroke)
+        guard let first = members.first else { return nil }
+        var union = first.frame
+        for s in members.dropFirst() { union = union.union(s.frame) }
+        let pad = max(12, union.height * 0.15)
+        let frame = union.insetBy(dx: -pad, dy: -pad)
+        let w = Int((frame.width * scale).rounded()), h = Int((frame.height * scale).rounded())
+        guard w > 0, h > 0, w * h < 30_000_000 else { return nil }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let image = UIGraphicsImageRenderer(size: CGSize(width: w, height: h), format: format).image { ctx in
+            let cg = ctx.cgContext
+            cg.setFillColor(gray: 1, alpha: 1)
+            cg.fill(CGRect(x: 0, y: 0, width: w, height: h))
+            cg.scaleBy(x: scale, y: scale)
+            cg.translateBy(x: -frame.minX, y: -frame.minY)
+            cg.setStrokeColor(gray: 0, alpha: 1)
+            cg.setLineCap(.round); cg.setLineJoin(.round)
+            for s in members {
+                guard let data = s.pathData else { continue }
+                var into = CGAffineTransform(translationX: s.x, y: s.y)
+                let path = SVGPath.scaledPath(data, to: CGSize(width: s.w, height: s.h)).copy(using: &into)
+                cg.setLineWidth(max(2, s.strokeWidth ?? 4))
+                if let path { cg.addPath(path); cg.strokePath() }
+            }
+        }
+        return (image, frame)
     }
 
     private static func num(_ v: Double) -> String {

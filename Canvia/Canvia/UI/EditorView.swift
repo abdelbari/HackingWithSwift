@@ -117,6 +117,10 @@ struct EditorView: View {
         .onDisappear {
             saveNow()
         }
+        // The design being edited, for Siri suggestions and Handoff.
+        .userActivity(DesignActivity.type, element: store.design.id) { _, activity in
+            DesignActivity.configure(activity, design: store.design)
+        }
     }
 
     // MARK: top bar
