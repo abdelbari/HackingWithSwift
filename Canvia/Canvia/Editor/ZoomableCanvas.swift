@@ -36,6 +36,8 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     let fitToken: String
     /// Tapping the workspace outside the page.
     let onBackgroundTap: () -> Void
+    /// The Apple Pencil's double tap, when the user has it set to do anything.
+    let onPencilTap: () -> Void
     @ViewBuilder var content: () -> Content
 
     func makeUIView(context: Context) -> UIScrollView {
@@ -55,6 +57,12 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         // Leave one-finger drags to the content, so dragging an element is
         // never mistaken for scrolling.
         scroll.panGestureRecognizer.minimumNumberOfTouches = 2
+
+        // Double-tapping the Pencil's barrel toggles the pen, the way it
+        // switches tools in every drawing app.
+        let pencil = UIPencilInteraction()
+        pencil.delegate = context.coordinator
+        scroll.addInteraction(pencil)
 
         let host = context.coordinator.host
         host.view.backgroundColor = .clear
@@ -117,8 +125,13 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     @MainActor
-    final class Coordinator: NSObject, UIScrollViewDelegate, UIGestureRecognizerDelegate {
+    final class Coordinator: NSObject, UIScrollViewDelegate, UIGestureRecognizerDelegate, UIPencilInteractionDelegate {
         var parent: ZoomableCanvas
+
+        func pencilInteractionDidTap(_ interaction: UIPencilInteraction) {
+            guard UIPencilInteraction.preferredTapAction != .ignore else { return }
+            parent.onPencilTap()
+        }
         let host: UIHostingController<Content>
         weak var scrollView: UIScrollView?
         var contentSize: CGSize = .zero

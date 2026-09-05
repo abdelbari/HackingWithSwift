@@ -310,6 +310,30 @@ drawn on the canvas, outlined as bold or italic glyphs in the SVG, and
 carried into the PDF. Markers that would split a word (snake_case, 2*3) or
 have no partner stay literal.
 
+**Soundtrack** — Motion settings take a music file from Files; the MP4
+export lays it under the picture, looped or trimmed to the video's length
+at a chosen volume, fading out over the last second. Audio lives in
+Documents/audio by id and is muxed with AVFoundation onto the finished
+video.
+
+**Right to left** — a text whose first letter is Hebrew, Arabic or another
+right-to-left script lays out from the right, and its indents and list
+markers follow the leading edge.
+
+**Trace to vector** — Read ▸ *Trace to a vector shape* on a picture walks
+the outline of its ink (its opaque part, or its dark part when it has no
+transparency), simplifies and smooths it, and drops a path shape in the
+ink's own colour over the same spot — holes and all, wound so a nonzero
+fill keeps them open. A signature, a logo or a cut-out becomes a shape
+that scales cleanly and takes any fill.
+
+**Loops** — Animate offers Pulse, Wiggle, Bounce and Spin: moves that
+never settle, for stickers and badges, on the canvas preview and in the
+video and GIF alike.
+
+**Apple Pencil** — drawing takes a Pencil like a finger, and the Pencil's
+double tap toggles the pen on and off (honouring the system setting).
+
 **Keyboard** — with a hardware keyboard, the usual shortcuts, each with
 a title in the discoverability overlay: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, ⌘D
 duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and

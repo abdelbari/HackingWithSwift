@@ -29,6 +29,9 @@ enum MovieExporter {
         var maxEdge: Double = 1920
         var zoom: Double = 0.06
         var crossfade: Double = 0.5
+        /// AudioStore id under the video, if any, and its volume.
+        var soundtrack: String?
+        var soundVolume: Double = 1
 
         init() {}
 
@@ -41,6 +44,8 @@ enum MovieExporter {
             zoom = m.movement ? 0.06 : 0
             // A fade cannot outlast the page it fades from.
             crossfade = m.crossfade ? min(0.5, secondsPerPage / 2) : 0
+            soundtrack = m.soundtrack
+            soundVolume = min(max(m.soundVolume ?? 1, 0), 1)
         }
     }
 
@@ -362,6 +367,16 @@ enum MovieExporter {
         }
         guard writer.status == .completed else {
             throw MovieError.writerFailed(writer.error?.localizedDescription ?? "the writer stopped early")
+        }
+
+        // The soundtrack goes under the finished picture: muxed into a
+        // sibling file, which then takes the video's place.
+        if let audio = AudioStore.url(for: settings.soundtrack) {
+            let withSound = url.deletingPathExtension().appendingPathExtension("sound.mp4")
+            try await Soundtrack.mux(video: url, audio: audio, volume: settings.soundVolume, to: withSound)
+            try Task.checkCancellation()
+            try FileManager.default.removeItem(at: url)
+            try FileManager.default.moveItem(at: withSound, to: url)
         }
     }
 

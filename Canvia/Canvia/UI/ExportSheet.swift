@@ -14,6 +14,8 @@ struct ExportSheet: View {
     @State private var selectionOnly = false
     @State private var copied = false
     @State private var paper = PrintLayout.Options()
+    @State private var pickingAudio = false
+    @State private var audioSeconds: Double?
     @State private var jpegQuality = 0.92
     @State private var transparent = false
     @State private var pageRange = RangeChoice.current
@@ -421,6 +423,54 @@ struct ExportSheet: View {
             }
             Toggle("Slow push in", isOn: binding.movement)
             Toggle("Cross-fade between pages", isOn: binding.crossfade)
+            soundtrackRows(binding)
+        }
+    }
+
+    /// A music file under the video: picked from Files, looped or trimmed
+    /// to the video's length, faded out over the last second.
+    @ViewBuilder
+    private func soundtrackRows(_ binding: Binding<MotionSettings>) -> some View {
+        let current = binding.wrappedValue.soundtrack
+        HStack {
+            Label(current.map(AudioStore.label) ?? "No soundtrack", systemImage: "music.note")
+                .lineLimit(1)
+            Spacer()
+            if let audioSeconds, current != nil {
+                Text(String(format: "%.0fs", audioSeconds)).font(.caption).foregroundStyle(.secondary)
+            }
+            Button(current == nil ? "Choose…" : "Change…") { pickingAudio = true }
+                .font(.callout)
+            if let id = current {
+                Button(role: .destructive) {
+                    binding.wrappedValue.soundtrack = nil
+                    AudioStore.delete(id)
+                    audioSeconds = nil
+                } label: { Image(systemName: "xmark.circle") }
+                .accessibilityLabel("Remove soundtrack")
+            }
+        }
+        .fileImporter(isPresented: $pickingAudio, allowedContentTypes: [.audio]) { result in
+            guard case .success(let url) = result else { return }
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            if let previous = current { AudioStore.delete(previous) }
+            guard let id = AudioStore.store(url) else { return }
+            binding.wrappedValue.soundtrack = id
+            Task { audioSeconds = await AudioStore.duration(of: id) }
+        }
+        .task(id: current) {
+            if let id = current { audioSeconds = await AudioStore.duration(of: id) }
+        }
+        if current != nil {
+            HStack {
+                Text("Volume")
+                Slider(value: Binding(get: { binding.wrappedValue.soundVolume ?? 1 },
+                                      set: { binding.wrappedValue.soundVolume = $0 == 1 ? nil : $0 }),
+                       in: 0...1)
+                Text("\(Int(((binding.wrappedValue.soundVolume ?? 1) * 100).rounded()))%")
+                    .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            }
         }
     }
 

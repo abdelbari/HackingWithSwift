@@ -54,7 +54,8 @@ struct CanvasView: View {
             onBackgroundTap: {
                 commitTextEditIfAny()
                 store.select(nil)
-            }
+            },
+            onPencilTap: { store.toggleDrawing() }
         ) {
             pageContent
                 .coordinateSpace(name: "page")

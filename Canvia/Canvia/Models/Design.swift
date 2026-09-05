@@ -190,6 +190,10 @@ struct MotionSettings: Codable, Equatable {
     var movement: Bool = true
     /// Cross-fade between pages; off is a hard cut.
     var crossfade: Bool = true
+    /// An AudioStore id played under the video, looped or trimmed to fit,
+    /// and its volume (nil is full).
+    var soundtrack: String?
+    var soundVolume: Double?
 
     static let fpsChoices = [24, 30, 60]
     static let secondsRange = 0.5...10.0

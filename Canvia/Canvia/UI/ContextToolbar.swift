@@ -165,7 +165,13 @@ struct ContextToolbar: View {
                 Label("No animation", systemImage: el.animation == nil ? "checkmark" : "circle")
             }
             Divider()
-            ForEach(ElementAnimation.kinds.filter { !ElementAnimation.textKinds.contains($0) }, id: \.self) { kind in
+            ForEach(ElementAnimation.kinds.filter { !ElementAnimation.textKinds.contains($0) && !ElementAnimation.loopKinds.contains($0) }, id: \.self) { kind in
+                Button { store.animateSelected(kind); store.playPreview() } label: {
+                    Label(ElementAnimation.name(kind), systemImage: el.animation?.kind == kind ? "checkmark" : "circle")
+                }
+            }
+            Divider()
+            ForEach(ElementAnimation.kinds.filter { ElementAnimation.loopKinds.contains($0) }, id: \.self) { kind in
                 Button { store.animateSelected(kind); store.playPreview() } label: {
                     Label(ElementAnimation.name(kind), systemImage: el.animation?.kind == kind ? "checkmark" : "circle")
                 }
@@ -211,6 +217,27 @@ struct ContextToolbar: View {
                 guard !elements.isEmpty else { return }
                 store.applyToPage { $0.elements.append(contentsOf: elements) }
                 store.selection = Set(elements.map(\.id))
+            }
+        }
+    }
+
+    /// The picture's ink — its opaque part, or its dark part — becomes a
+    /// path shape over the same spot, in the ink's own colour.
+    private func traceImage(_ el: Element) {
+        guard let image = PhotoLibrary.resolve(el.src) else { return }
+        let frame = el.frame
+        Task.detached(priority: .userInitiated) {
+            let traced = Tracer.trace(image)
+            await MainActor.run {
+                guard let traced else { return }
+                let w = (frame.width * traced.bounds.width).rounded(), h = (frame.height * traced.bounds.height).rounded()
+                var shape = Element.shape("traced", w: max(w, 4), h: max(h, 4))
+                shape.x = (frame.minX + frame.width * traced.bounds.minX).rounded()
+                shape.y = (frame.minY + frame.height * traced.bounds.minY).rounded()
+                shape.pathData = traced.pathData
+                shape.fill = .solid(traced.color)
+                store.add(shape, centered: false)
+                store.announce("Traced — a shape in the picture's colour")
             }
         }
     }
@@ -407,6 +434,9 @@ struct ContextToolbar: View {
             Button {
                 readCode(el)
             } label: { Label("QR code in this picture → code element", systemImage: "qrcode.viewfinder") }
+            Button {
+                traceImage(el)
+            } label: { Label("Trace to a vector shape", systemImage: "scribble.variable") }
         } label: {
             toolLabel("doc.text.magnifyingglass", "Read")
         }

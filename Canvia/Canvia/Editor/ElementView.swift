@@ -58,7 +58,7 @@ struct ElementView: View {
             .shadow(color: shadowColor, radius: element.shadow?.blur ?? 0,
                     x: element.shadow?.offsetX ?? 0, y: element.shadow?.offsetY ?? 0)
             .scaleEffect(x: element.flipH ? -1 : 1, y: element.flipV ? -1 : 1)
-            .rotationEffect(.degrees(element.rotation))
+            .rotationEffect(.degrees(element.rotation + motion.rotation))
             .opacity(element.opacity * motion.opacity)
             .blendMode(BlendModes.swiftUI(element.blendMode))
             .position(x: element.x + element.w / 2, y: element.y + element.h / 2)

@@ -16,8 +16,15 @@ struct ElementAnimation: Codable, Equatable {
     var delay: Double = 0
     var duration: Double = 0.6
 
-    static let kinds = ["fade", "rise", "pop", "slideLeft", "slideRight", "typewriter", "words", "letterPop", "lineRise"]
+    static let kinds = ["fade", "rise", "pop", "slideLeft", "slideRight", "typewriter", "words", "letterPop", "lineRise",
+                        "pulse", "wiggle", "bounce", "spin"]
     static let textKinds: Set<String> = ["typewriter", "words", "letterPop", "lineRise"]
+    /// Loops never settle: a sticker that keeps moving for as long as the
+    /// page is shown.
+    static let loopKinds: Set<String> = ["pulse", "wiggle", "bounce", "spin"]
+    static let loopPeriod = 1.2
+
+    var loops: Bool { Self.loopKinds.contains(kind) }
 
     static func name(_ kind: String) -> String {
         switch kind {
@@ -30,6 +37,10 @@ struct ElementAnimation: Codable, Equatable {
         case "words": return "Word by word"
         case "letterPop": return "Letter pop"
         case "lineRise": return "Line rise"
+        case "pulse": return "Pulse (loop)"
+        case "wiggle": return "Wiggle (loop)"
+        case "bounce": return "Bounce (loop)"
+        case "spin": return "Spin (loop)"
         default: return kind
         }
     }
@@ -39,6 +50,8 @@ struct ElementAnimation: Codable, Equatable {
         var opacity: Double = 1
         var offset: CGSize = .zero
         var scale: Double = 1
+        /// Degrees, for the looping moves.
+        var rotation: Double = 0
         /// For text reveals: how many characters are shown; nil is all.
         var visibleCharacters: Int?
         static let settled = State()
@@ -54,6 +67,7 @@ struct ElementAnimation: Codable, Equatable {
     }
 
     func state(at t: Double, text: String? = nil, size: Double = 100) -> State {
+        if loops { return loopState(at: t) }
         let p = progress(at: t)
         if p >= 1 { return .settled }
         var s = State()
@@ -93,8 +107,24 @@ struct ElementAnimation: Codable, Equatable {
         return s
     }
 
-    /// When the element is fully in.
-    var end: Double { delay + duration }
+    /// When the element is fully in; a loop is never in.
+    var end: Double { loops ? .infinity : delay + duration }
+
+    /// One cycle every `loopPeriod` seconds from the delay, at rest before it.
+    private func loopState(at t: Double) -> State {
+        guard t >= delay else { return .settled }
+        let phase = ((t - delay) / Self.loopPeriod).truncatingRemainder(dividingBy: 1)
+        let wave = sin(phase * 2 * .pi)
+        var s = State()
+        switch kind {
+        case "pulse": s.scale = 1 + 0.08 * wave
+        case "wiggle": s.rotation = 8 * wave
+        case "bounce": s.offset = CGSize(width: 0, height: -abs(wave) * 12)
+        case "spin": s.rotation = phase * 360
+        default: break
+        }
+        return s
+    }
 }
 
 /// Ken Burns: a slow drift of a photo's crop over the page.

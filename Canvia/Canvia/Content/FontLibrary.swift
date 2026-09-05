@@ -65,8 +65,10 @@ enum FontLibrary {
         let listStyle: String?
         let indent: Int
         let paragraphSpacing: Double
+        let rightToLeft: Bool
 
         init(_ el: Element) {
+            rightToLeft = FontLibrary.isRightToLeft(el.text ?? "")
             listStyle = el.listStyle
             indent = FontLibrary.indentLevel(of: el)
             paragraphSpacing = el.paragraphSpacing ?? 0
@@ -183,6 +185,10 @@ enum FontLibrary {
         paragraph.minimumLineHeight = lineHeight
         paragraph.maximumLineHeight = lineHeight
         paragraph.lineBreakMode = .byWordWrapping
+        // Hebrew, Arabic and the other right-to-left scripts lay out from
+        // the right, and the indents and list markers below follow, since
+        // head indents are measured from the leading edge.
+        paragraph.baseWritingDirection = isRightToLeft(el.text ?? "") ? .rightToLeft : .natural
         // Indent levels push the whole paragraph in; a list marker then
         // hangs: the first line starts at the marker, wrapped lines start
         // where the text after the marker does.
@@ -199,6 +205,17 @@ enum FontLibrary {
             attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue
         }
         return attrs
+    }
+
+    /// True when the first letter of the text is from a right-to-left
+    /// script: Hebrew, Arabic, Syriac, Thaana, NKo and the Arabic
+    /// presentation forms. Digits and punctuation before it do not decide.
+    static func isRightToLeft(_ text: String) -> Bool {
+        for scalar in text.unicodeScalars where scalar.properties.isAlphabetic {
+            let v = scalar.value
+            return (0x0590...0x08FF).contains(v) || (0xFB1D...0xFDFF).contains(v) || (0xFE70...0xFEFF).contains(v)
+        }
+        return false
     }
 
     /// Display text including bullet prefixes.
