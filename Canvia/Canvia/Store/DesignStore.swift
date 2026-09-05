@@ -567,7 +567,7 @@ final class DesignStore {
         buzz(.stroke)
     }
 
-    private func announce(_ text: String) {
+    func announce(_ text: String) {
         announcement = text
     }
 
