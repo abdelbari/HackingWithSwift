@@ -284,6 +284,24 @@ shows a four-card tour, once — `-canviaSkipTour` keeps it off the CI
 screenshot — and contextual tips fire the first time you rotate, add a
 page, draw or drop something in.
 
+**Tone curve** — the Adjust panel's dials end with a curve: Fade, Lift
+shadows, Crush blacks, S-curve, Matte and Brighten mids, each a five-point
+CIToneCurve applied after the colour dials and saved with the picture's
+other adjustments.
+
+**Connectors** — select two elements and Connect draws an arrow from the
+edge of one to the edge of the other that is laid again whenever either
+moves, resizes or is undone; delete an end and the arrow stays where it
+was as a plain line. Flow charts and org charts keep their arrows.
+
+**Siri and Shortcuts** — two App Intents: *New Design* at a chosen size
+(Instagram post or story, presentation, YouTube thumbnail, poster, flyer)
+and *Open Design*, which offers your recent designs by name. Each brings
+the app forward and leaves it a launch request it serves once.
+
+**Windows** — on iPad a design's context menu opens it in a new window,
+so two designs (or a design and its reference) sit side by side.
+
 **Keyboard** — with a hardware keyboard, the usual shortcuts, each with
 a title in the discoverability overlay: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, ⌘D
 duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and

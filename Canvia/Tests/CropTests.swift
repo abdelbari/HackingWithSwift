@@ -64,6 +64,7 @@ final class CropTests: XCTestCase {
     /// runs from half the height to the full height. A UIKit PDF renderer
     /// would flip that for us, and then the test could not tell which side
     /// had flipped.
+    @MainActor
     func testPDFPagesComeOutUprightAtTheirOwnShape() throws {
         let data = NSMutableData()
         var box = CGRect(x: 0, y: 0, width: 200, height: 100)

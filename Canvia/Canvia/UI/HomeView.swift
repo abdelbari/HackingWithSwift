@@ -23,6 +23,8 @@ struct HomeView: View {
     @State private var filingInto: RecentDesign?
     @State private var newFolderName = ""
     @State private var touring = false
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.supportsMultipleWindows) private var supportsMultipleWindows
 
     var body: some View {
         ScrollView {
@@ -471,6 +473,11 @@ struct HomeView: View {
                             } label: { Label("Remove from folder", systemImage: "folder.badge.minus") }
                         }
                     } label: { Label("Move to folder", systemImage: "folder") }
+                    if supportsMultipleWindows {
+                        Button {
+                            openWindow(value: recent.id)
+                        } label: { Label("Open in new window", systemImage: "macwindow.badge.plus") }
+                    }
                     Button(role: .destructive) {
                         // To the trash, not gone: thirty days to change
                         // your mind, in the section below.

@@ -33,6 +33,8 @@ struct Adjustments: Codable, Equatable, Hashable {
     var sharpness: Double = 0
     /// 0…1.
     var vignette: Double = 0
+    /// A ToneCurve preset id, or nil for a straight line.
+    var curve: String?
 
     static let neutral = Adjustments()
     var isNeutral: Bool { self == Adjustments.neutral }
@@ -45,11 +47,11 @@ struct Adjustments: Codable, Equatable, Hashable {
             value == 0 ? "" : "\(label)\(Int((value * 100).rounded()))"
         }
         return "adj" + f("b", brightness) + f("c", contrast) + f("s", saturation)
-            + f("w", warmth) + f("k", sharpness) + f("v", vignette)
+            + f("w", warmth) + f("k", sharpness) + f("v", vignette) + (curve.map { "t\($0)" } ?? "")
     }
 
     private enum CodingKeys: String, CodingKey {
-        case brightness, contrast, saturation, warmth, sharpness, vignette
+        case brightness, contrast, saturation, warmth, sharpness, vignette, curve
     }
 
     init() {}
@@ -60,6 +62,7 @@ struct Adjustments: Codable, Equatable, Hashable {
         contrast = (try? c.decode(Double.self, forKey: .contrast)) ?? 0
         saturation = (try? c.decode(Double.self, forKey: .saturation)) ?? 0
         warmth = (try? c.decode(Double.self, forKey: .warmth)) ?? 0
+        curve = try? c.decode(String.self, forKey: .curve)
         sharpness = (try? c.decode(Double.self, forKey: .sharpness)) ?? 0
         vignette = (try? c.decode(Double.self, forKey: .vignette)) ?? 0
     }
@@ -184,6 +187,9 @@ enum ImageFilterEngine {
             f.saturation = Float(max(0, 1 + a.saturation))
             image = f.outputImage ?? image
         }
+
+        // The curve after the dials, on the already balanced picture.
+        image = ToneCurve.apply(a.curve, to: image)
 
         if a.sharpness > 0 {
             let f = CIFilter.sharpenLuminance()

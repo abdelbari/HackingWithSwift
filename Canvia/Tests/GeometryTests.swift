@@ -137,6 +137,8 @@ final class ElementEqualityTests: XCTestCase {
     /// affects rendering and not to this list is the failure this guards.
     func testEveryVisualFieldBreaksEquality() {
         let mutations: [(String, (inout Element) -> Void)] = [
+            ("connectFrom", { $0.connectFrom = "a" }),
+            ("connectTo", { $0.connectTo = "b" }),
             ("x", { $0.x += 1 }),
             ("y", { $0.y += 1 }),
             ("w", { $0.w += 1 }),

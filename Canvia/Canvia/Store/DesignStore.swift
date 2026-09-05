@@ -80,6 +80,8 @@ final class DesignStore {
         // Without a beginGesture() snapshot there is no pre-mutation state to
         // record — pushing the current design would make undo a no-op.
         guard let entry = pending else { return }
+        // Connectors follow their ends as part of the same step.
+        Connectors.resolve(in: &design)
         past.append(entry)
         if past.count > historyLimit { past.removeFirst() }
         future.removeAll()
@@ -126,6 +128,22 @@ final class DesignStore {
             && !design.pages[pageIndex].elements[i].locked {
             mutate(&design.pages[pageIndex].elements[i])
         }
+        Connectors.resolve(&design.pages[pageIndex])
+    }
+
+    /// Joins the two selected elements with an arrow that follows them.
+    func connectSelected() {
+        let ordered = page.elements.filter { selection.contains($0.id) }
+        guard ordered.count == 2 else { return }
+        var line = Element.line(w: 100)
+        line.connectFrom = ordered[0].id
+        line.connectTo = ordered[1].id
+        line.endCap = "arrow"
+        let g = Connectors.geometry(from: ordered[0].frame, to: ordered[1].frame, thickness: line.thickness ?? 4)
+        line.x = g.x; line.y = g.y; line.w = g.w; line.h = g.h; line.rotation = g.rotation
+        applyToPage { $0.elements.append(line) }
+        selection = [line.id]
+        announce("Connected — the arrow follows both ends")
     }
 
     var canUndo: Bool { !past.isEmpty }
@@ -304,6 +322,7 @@ final class DesignStore {
     /// originals rather than mutating in place.
     func replaceTransient(_ updated: [Element]) {
         beginGesture()
+        defer { Connectors.resolve(&design.pages[pageIndex]) }
         let byId = Dictionary(uniqueKeysWithValues: updated.map { ($0.id, $0) })
         for i in design.pages[pageIndex].elements.indices {
             if let e = byId[design.pages[pageIndex].elements[i].id] {

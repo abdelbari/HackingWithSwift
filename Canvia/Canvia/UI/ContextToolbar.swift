@@ -496,6 +496,9 @@ struct ContextToolbar: View {
             store.toggleLockSelected()
         }
         toolButton("plus.square.on.square", "Duplicate") { store.duplicateSelected() }
+        if store.selection.count == 2 {
+            toolButton("arrow.right", "Connect") { store.connectSelected() }
+        }
         toolButton("square.2.layers.3d.top.filled", "Forward") { store.reorderSelected(.forward) }
         toolButton("square.2.layers.3d.bottom.filled", "Backward") { store.reorderSelected(.backward) }
     }

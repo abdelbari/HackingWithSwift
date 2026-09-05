@@ -7,6 +7,7 @@ import SwiftUI
 @main
 struct CanviaApp: App {
     @State private var editingStore: DesignStore?
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         // Launch is the one moment no editor can be holding freshly added
@@ -15,7 +16,22 @@ struct CanviaApp: App {
         DesignLibrary.purgeTrash()
         DesignLibrary.pruneUnusedMedia()
         DesignLibrary.seedStartersIfNeeded()
-        _editingStore = State(initialValue: Self.storeForLaunchArguments())
+        _editingStore = State(initialValue: Self.storeForLaunchArguments() ?? Self.storeForLaunchRequest())
+    }
+
+    /// An App Intent's request, if one is waiting: a new design at a size,
+    /// or one of the library's designs.
+    private static func storeForLaunchRequest() -> DesignStore? {
+        guard let request = LaunchRequest.take() else { return nil }
+        switch request {
+        case .newDesign(let w, let h, let title):
+            var design = Design(title: title, width: w, height: h)
+            design.updatedAt = Date().timeIntervalSince1970 * 1000
+            DesignLibrary.save(design)
+            return DesignStore(design: design)
+        case .open(let id):
+            return DesignLibrary.load(id: id).map { DesignStore(design: $0) }
+        }
     }
 
     /// `-canviaOpenTemplate <n>` opens straight into the editor on template n.
@@ -67,6 +83,16 @@ struct CanviaApp: App {
                       let design = DesignLibrary.load(id: id) else { return }
                 withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
             }
+            // An intent that ran while the app was already open.
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active, let store = Self.storeForLaunchRequest() else { return }
+                withAnimation(.snappy(duration: 0.28)) { editingStore = store }
+            }
+        }
+
+        // A second window on iPad, opened from a design's context menu.
+        WindowGroup("Design", id: "design", for: String.self) { $id in
+            DesignWindow(id: $id)
         }
     }
 }

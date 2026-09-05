@@ -387,6 +387,30 @@ struct FiltersSheet: View {
             dial("Warmth", \.warmth, in: -1...1)
             dial("Sharpness", \.sharpness, in: -1...1)
             dial("Vignette", \.vignette, in: 0...1)
+            curveRow
+        }
+    }
+
+    /// Tone curves as named presets — the five-point curves a photographer
+    /// reaches for, chosen rather than dragged on a phone-sized graph.
+    private var curveRow: some View {
+        let current = store.singleSelection?.adjustments?.curve
+        return HStack {
+            Text("Tone curve").font(.subheadline)
+            Spacer()
+            Picker("Tone curve", selection: Binding(
+                get: { current ?? "" },
+                set: { id in
+                    store.updateSelected { el in
+                        var adjustments = el.adjustments ?? .neutral
+                        adjustments.curve = id.isEmpty ? nil : id
+                        el.adjustments = adjustments.isNeutral ? nil : adjustments
+                    }
+                })) {
+                Text("None").tag("")
+                ForEach(ToneCurve.presets) { Text($0.name).tag($0.id) }
+            }
+            .pickerStyle(.menu)
         }
     }
 

@@ -76,6 +76,10 @@ struct Element: Codable, Equatable, Identifiable {
     /// What the element shows, for people who cannot see it: read by
     /// VoiceOver and written into the SVG. Photos mostly.
     var altText: String?
+    /// A line that joins two elements holds their ids and is laid again
+    /// whenever either moves (see Connectors).
+    var connectFrom: String?
+    var connectTo: String?
 
     // shape
     var shapeId: String?
@@ -183,6 +187,8 @@ struct Element: Codable, Equatable, Identifiable {
         shadow = try? c.decode(Shadow.self, forKey: .shadow)
         blendMode = try? c.decode(String.self, forKey: .blendMode)
         altText = try? c.decode(String.self, forKey: .altText)
+        connectFrom = try? c.decode(String.self, forKey: .connectFrom)
+        connectTo = try? c.decode(String.self, forKey: .connectTo)
         shapeId = try? c.decode(String.self, forKey: .shapeId)
         pathData = try? c.decode(String.self, forKey: .pathData)
         fill = try? c.decode(Paint.self, forKey: .fill)
@@ -248,6 +254,7 @@ struct Element: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow, blendMode, altText
+        case connectFrom, connectTo
         case shapeId, pathData, fill, stroke, strokeWidth, radius, corners
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve
