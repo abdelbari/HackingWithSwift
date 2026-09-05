@@ -348,6 +348,15 @@ Japanese and Chinese set the way a poster sets them, and Latin stacked
 the way a shop sign is. Drawn as outlines like curved text, so the SVG
 and PDF carry it exactly.
 
+**Object eraser** — Erase on a picture's toolbar turns the page into a
+brush: paint over what should go, in strokes of a chosen width, then Erase
+fills the region from its surroundings — an onion-peel fill on a small
+working copy, softened and blended back through a feathered mask — and
+stores the result as a new picture, one undo step. Strokes are mapped
+through the element's rotation, crop zoom and fill/fit placement into the
+picture's own pixels. Skies, walls and tabletops come out clean; busy
+backgrounds come out as a smudge, as the honest tools on a phone do.
+
 **Keyboard** — with a hardware keyboard, the usual shortcuts, each with
 a title in the discoverability overlay: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, ⌘D
 duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and

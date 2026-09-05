@@ -133,6 +133,7 @@ struct CanvasView: View {
             }
 
             if let tool = store.drawing { drawingLayer(tool) }
+            if store.erasing != nil { eraserLayer }
         }
         // Pictures, text and links from other apps land where they are let go.
         .onDrop(of: CanvasDrop.types, isTargeted: $dropTargeted) { providers, location in
@@ -143,6 +144,38 @@ struct CanvasView: View {
                 Rectangle().stroke(Theme.accent, lineWidth: 4 * iz).allowsHitTesting(false)
             }
         }
+    }
+
+    // MARK: eraser
+
+    /// Painting the region to remove: the strokes so far in translucent red,
+    /// the current one live, all in page units for the store to map.
+    private var eraserLayer: some View {
+        ZStack {
+            Color.clear.contentShape(Rectangle())
+            ForEach(Array(store.eraserStrokes.enumerated()), id: \.offset) { _, stroke in
+                Path(Freehand.cgPath(stroke))
+                    .stroke(Color.red.opacity(0.45), style: StrokeStyle(lineWidth: store.eraserWidth, lineCap: .round, lineJoin: .round))
+            }
+            if !strokePoints.isEmpty {
+                Path(Freehand.cgPath(strokePoints))
+                    .stroke(Color.red.opacity(0.45), style: StrokeStyle(lineWidth: store.eraserWidth, lineCap: .round, lineJoin: .round))
+            }
+        }
+        .frame(width: store.design.width, height: store.design.height)
+        .gesture(
+            DragGesture(minimumDistance: 0, coordinateSpace: .named("page"))
+                .onChanged { value in
+                    if strokePoints.isEmpty { strokePoints = [value.startLocation] }
+                    strokePoints.append(value.location)
+                }
+                .onEnded { _ in
+                    store.eraserStrokes.append(Freehand.thinned(strokePoints))
+                    strokePoints = []
+                }
+        )
+        .accessibilityLabel("Eraser")
+        .accessibilityHint("Drag over what should go, then tap Erase")
     }
 
     // MARK: drawing

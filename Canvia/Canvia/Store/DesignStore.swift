@@ -542,6 +542,54 @@ final class DesignStore {
     var rotationSnapped = false
     /// The pen, while drawing mode is on: strokes become shape elements.
     var drawing: Freehand.Tool?
+    /// The image being erased from, while the eraser is out, and the
+    /// strokes painted over it so far, in page units.
+    var erasing: String?
+    var eraserStrokes: [[CGPoint]] = []
+    var eraserWidth: Double = 40
+    var eraserBusy = false
+
+    func beginErasing(_ id: String) {
+        drawing = nil
+        editingTextId = nil
+        selection = [id]
+        erasing = id
+        eraserStrokes = []
+    }
+
+    func cancelErasing() {
+        erasing = nil
+        eraserStrokes = []
+    }
+
+    /// Fills the painted region from its surroundings, stores the result as
+    /// a new picture and points the element at it — one undo step.
+    func applyEraser() {
+        guard let id = erasing, let el = element(id), !eraserStrokes.isEmpty,
+              let image = PhotoLibrary.resolve(el.src) else { cancelErasing(); return }
+        let strokes = eraserStrokes.map { stroke in
+            stroke.map { ObjectEraser.imagePoint($0, element: el, imageSize: image.size) }
+        }
+        // The brush in image pixels: the page-unit width through the same
+        // scale the picture is shown at.
+        let shown = max(el.w / max(image.size.width, 1), el.h / max(image.size.height, 1)) * max(el.cropScale ?? 1, 0.01)
+        let width = max(4, eraserWidth / max(shown, 0.0001))
+        eraserBusy = true
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let result = ObjectEraser.erase(image, strokes: strokes, width: width)
+            let hasAlpha = image.cgImage.map { $0.alphaInfo != .none && $0.alphaInfo != .noneSkipLast && $0.alphaInfo != .noneSkipFirst } ?? false
+            let src = result.flatMap { hasAlpha ? MediaStore.storeTransparent($0) : MediaStore.storeOpaque($0) }
+            await MainActor.run {
+                guard let self else { return }
+                self.eraserBusy = false
+                defer { self.cancelErasing() }
+                guard let src else { self.announce("Nothing to erase there"); return }
+                self.selection = [id]
+                self.updateSelected { $0.src = src }
+                self.announce("Erased — Undo brings it back")
+            }
+        }
+    }
 
     func buzz(_ kind: HapticEvent.Kind) {
         haptic = HapticEvent(kind: kind, serial: haptic.serial + 1)

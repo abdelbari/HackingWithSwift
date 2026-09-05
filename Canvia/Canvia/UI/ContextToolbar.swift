@@ -461,6 +461,7 @@ struct ContextToolbar: View {
         toolButton("square.on.circle", "Frame") { activeSheet = .frame }
         toolButton("camera.filters", "Filters") { activeSheet = .filters }
         toolButton("crop", "Crop") { activeSheet = .crop }
+        toolButton("eraser", "Erase") { store.beginErasing(el.id) }
         Menu {
             Button {
                 readText(el)

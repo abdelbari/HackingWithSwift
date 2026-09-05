@@ -53,6 +53,10 @@ struct EditorView: View {
                     drawingBar(tool)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.bottom, 14)
+                } else if store.erasing != nil {
+                    eraserBar
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.bottom, 14)
                 } else {
                     insertButton
                         .padding(18)
@@ -433,6 +437,42 @@ struct EditorView: View {
                 .accessibilityLabel("Undo stroke")
             Button("Done") { store.drawing = nil }
                 .fontWeight(.semibold)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: Capsule())
+        .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    /// Brush size, the strokes so far, and the two ways out.
+    private var eraserBar: some View {
+        HStack(spacing: 12) {
+            Menu {
+                ForEach([20.0, 40, 70, 110], id: \.self) { w in
+                    Button {
+                        store.eraserWidth = w
+                    } label: { Label("\(Int(w)) px", systemImage: store.eraserWidth == w ? "checkmark" : "circle") }
+                }
+            } label: {
+                Label("Brush", systemImage: "circle.dashed")
+            }
+            Button {
+                if !store.eraserStrokes.isEmpty { store.eraserStrokes.removeLast() }
+            } label: { Image(systemName: "arrow.uturn.backward").frame(width: 30, height: 30) }
+                .disabled(store.eraserStrokes.isEmpty)
+                .accessibilityLabel("Undo stroke")
+            Button("Cancel") { store.cancelErasing() }
+            Button {
+                store.applyEraser()
+            } label: {
+                if store.eraserBusy {
+                    ProgressView()
+                } else {
+                    Text("Erase").fontWeight(.semibold)
+                }
+            }
+            .disabled(store.eraserStrokes.isEmpty || store.eraserBusy)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
