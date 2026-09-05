@@ -181,7 +181,7 @@ struct TextElementView: View {
         }
         let text = FontLibrary.displayText(for: el)
         guard !text.isEmpty else { return }
-        if let degrees = el.curve, abs(degrees) >= TextOutliner.straightBelowDegrees {
+        if TextOutliner.followsAPath(el) {
             drawCurvedText(in: cg, size: size, effect: effect)
             return
         }

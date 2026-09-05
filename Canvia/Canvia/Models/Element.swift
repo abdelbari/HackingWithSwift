@@ -135,6 +135,9 @@ struct Element: Codable, Equatable, Identifiable {
     /// Degrees of arc for curved text. Positive bends the baseline into a
     /// rainbow, negative into a valley; nil or zero is a straight line.
     var curve: Double?
+    /// Path data in the element's 0…100 box that the text follows; the
+    /// curve is ignored while this is set.
+    var textPath: String?
 
     // image
     var src: String?
@@ -218,6 +221,7 @@ struct Element: Codable, Equatable, Identifiable {
         textFill = try? c.decode(Paint.self, forKey: .textFill)
         effect = try? c.decode(TextEffectSpec.self, forKey: .effect)
         curve = try? c.decode(Double.self, forKey: .curve)
+        textPath = try? c.decode(String.self, forKey: .textPath)
         src = try? c.decode(String.self, forKey: .src)
         filter = try? c.decode(String.self, forKey: .filter)
         maskShapeId = try? c.decode(String.self, forKey: .maskShapeId)
@@ -257,7 +261,7 @@ struct Element: Codable, Equatable, Identifiable {
         case connectFrom, connectTo
         case shapeId, pathData, fill, stroke, strokeWidth, radius, corners
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
-        case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve
+        case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, kenBurns
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit
         case glyph

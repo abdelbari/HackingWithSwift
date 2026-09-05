@@ -152,9 +152,35 @@ struct ContextToolbar: View {
             stylesMenu(el)
             toolButton("wand.and.stars", "Effects") { activeSheet = .effects }
             toolButton("arrow.up.and.down.text.horizontal", "Spacing") { activeSheet = .spacing }
+            pathMenu(el)
             sliderControl("Curve", value: el.curve ?? 0, in: -180...180) { degrees in
                 store.updateSelectedTransient { curve(&$0, to: degrees) }
             }
+        }
+    }
+
+    /// Text along a path: a wave, an arch, a circle — set on the element as
+    /// path data in its box, so the box's shape is the path's.
+    private func pathMenu(_ el: Element) -> some View {
+        Menu {
+            Button {
+                store.updateSelected { $0.textPath = nil }
+            } label: { Label("Straight", systemImage: el.textPath == nil ? "checkmark" : "circle") }
+            Divider()
+            ForEach(TextPaths.presets) { preset in
+                Button {
+                    store.updateSelected { e in
+                        e.textPath = preset.data
+                        e.curve = nil
+                        // A path wants room above and below its line.
+                        if e.h < (e.fontSize ?? 42) * 3 { e.h = (e.fontSize ?? 42) * 3 }
+                    }
+                } label: {
+                    Label(preset.name, systemImage: el.textPath == preset.data ? "checkmark" : "circle")
+                }
+            }
+        } label: {
+            toolLabel("point.topleft.down.to.point.bottomright.curvepath", "Path", active: el.textPath != nil)
         }
     }
 
@@ -348,6 +374,7 @@ struct ContextToolbar: View {
     /// so straightening the text again returns it to the wrap width the user
     /// chose rather than to whatever the widest arc happened to need.
     private func curve(_ el: inout Element, to degrees: Double) {
+        if abs(degrees) >= TextOutliner.straightBelowDegrees { el.textPath = nil }
         let centre = CGPoint(x: el.x + el.w / 2, y: el.y + el.h / 2)
         let straight = abs(degrees) < TextOutliner.straightBelowDegrees
         el.curve = straight ? nil : degrees

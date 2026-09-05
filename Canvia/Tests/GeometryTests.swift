@@ -138,6 +138,7 @@ final class ElementEqualityTests: XCTestCase {
     func testEveryVisualFieldBreaksEquality() {
         let mutations: [(String, (inout Element) -> Void)] = [
             ("connectFrom", { $0.connectFrom = "a" }),
+            ("textPath", { $0.textPath = "M0 0L100 100" }),
             ("connectTo", { $0.connectTo = "b" }),
             ("x", { $0.x += 1 }),
             ("y", { $0.y += 1 }),

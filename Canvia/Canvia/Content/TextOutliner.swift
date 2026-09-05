@@ -27,10 +27,69 @@ enum TextOutliner {
     static let straightBelowDegrees = 1.0
 
     static func path(for el: Element) -> CGPath? {
+        if let data = el.textPath, !data.isEmpty {
+            return pathText(for: el, data: data)
+        }
         if let degrees = el.curve, abs(degrees) >= straightBelowDegrees {
             return curvedPath(for: el, degrees: degrees)
         }
         return straightPath(for: el)
+    }
+
+    /// Whether the text is drawn as glyph outlines on a curve or a path
+    /// rather than as straight lines.
+    static func followsAPath(_ el: Element) -> Bool {
+        if let data = el.textPath, !data.isEmpty { return true }
+        return el.curve.map { abs($0) >= straightBelowDegrees } ?? false
+    }
+
+    /// Glyphs set along `data`, scaled into the element's box, each by its
+    /// centre at its share of the path's length; the text is centred on the
+    /// path when it is shorter than the path and runs off the end when it is
+    /// longer, so a box that is too small says so rather than squeezing.
+    static func pathText(for el: Element, data: String) -> CGPath? {
+        let flat = FontLibrary.displayText(for: el)
+            .components(separatedBy: "\n")
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !flat.isEmpty, el.w > 0, el.h > 0 else { return nil }
+        let walker = PathWalker(SVGPath.scaledPath(data, to: CGSize(width: el.w, height: el.h)))
+        guard walker.length > 1 else { return nil }
+
+        let attributed = NSAttributedString(string: flat, attributes: FontLibrary.attributes(for: el))
+        let line = CTLineCreateWithAttributedString(attributed)
+        let width = CTLineGetTypographicBounds(line, nil, nil, nil)
+        guard width > 0.5, let runs = CTLineGetGlyphRuns(line) as? [CTRun] else { return nil }
+        let start = max(0, (walker.length - width) / 2)
+        let declared = FontLibrary.uiFont(family: el.fontFamily, size: el.fontSize ?? 42,
+                                          weight: el.fontWeight ?? 400, italic: el.italic ?? false)
+
+        let combined = CGMutablePath()
+        for run in runs {
+            let count = CTRunGetGlyphCount(run)
+            guard count > 0 else { continue }
+            let attributes = CTRunGetAttributes(run) as? [String: Any]
+            let uiFont = attributes?[kCTFontAttributeName as String] as? UIFont ?? declared
+            let font = CTFontCreateWithName(uiFont.fontName as CFString, uiFont.pointSize, nil)
+            var glyphs = [CGGlyph](repeating: 0, count: count)
+            var positions = [CGPoint](repeating: .zero, count: count)
+            var advances = [CGSize](repeating: .zero, count: count)
+            let range = CFRange(location: 0, length: count)
+            CTRunGetGlyphs(run, range, &glyphs)
+            CTRunGetPositions(run, range, &positions)
+            CTRunGetAdvances(run, range, &advances)
+            for i in 0..<count {
+                guard let glyph = CTFontCreatePathForGlyph(font, glyphs[i], nil) else { continue }
+                let centre = start + positions[i].x + advances[i].width / 2
+                let here = walker.locate(centre)
+                let transform = CGAffineTransform(translationX: here.point.x, y: here.point.y)
+                    .rotated(by: here.angle)
+                    .translatedBy(x: -advances[i].width / 2, y: 0)
+                    .scaledBy(x: 1, y: -1)
+                combined.addPath(glyph, transform: transform)
+            }
+        }
+        return combined.isEmpty ? nil : combined
     }
 
     private static func straightPath(for el: Element) -> CGPath? {

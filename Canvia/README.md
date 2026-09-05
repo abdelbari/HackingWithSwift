@@ -334,6 +334,13 @@ video and GIF alike.
 **Apple Pencil** — drawing takes a Pencil like a finger, and the Pencil's
 double tap toggles the pen on and off (honouring the system setting).
 
+**Text on a path** — the text toolbar's Path menu sets a wave, an arch, a
+valley, a rising diagonal, a swoosh or a circle; the path is path data in
+the element's own box, so resizing the box reshapes the path, and each
+glyph sits by its centre at its share of the path's length. The canvas,
+the SVG (as outlines) and the PDF all draw the same layout; the Curve
+slider and the Path menu replace each other.
+
 **Keyboard** — with a hardware keyboard, the usual shortcuts, each with
 a title in the discoverability overlay: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, ⌘D
 duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and
