@@ -208,8 +208,31 @@ enum FontLibrary {
 
     /// "{page}" and "{pages}" in a text element become the page's number and
     /// the document's page count when the caller knows them; left as they
-    /// are when it does not, so measuring is honest about the width.
+    /// are when it does not, so measuring is honest about the width. Inline
+    /// style markers (**bold** and the like) are stripped: this is what is
+    /// measured and what plain drawing shows.
     static func displayText(for el: Element, pageNumber: Int?, pageCount: Int?) -> String {
+        RichText.strip(markedDisplayText(for: el, pageNumber: pageNumber, pageCount: pageCount))
+    }
+
+    /// The text as drawn with its inline styles applied: the plain display
+    /// text with bold, italic, underline and strike runs on top of the
+    /// element's own attributes.
+    static func attributedString(for el: Element) -> NSAttributedString {
+        let marked = markedDisplayText(for: el, pageNumber: nil, pageCount: nil)
+        let base = attributes(for: el)
+        guard RichText.hasMarkup(marked) else { return NSAttributedString(string: marked, attributes: base) }
+        let size = el.fontSize ?? 42
+        let weight = el.fontWeight ?? 400
+        return RichText.attributed(marked, base: base) { bold, italic in
+            uiFont(family: el.fontFamily, size: size,
+                   weight: bold ? (weight >= 700 ? 900 : 700) : weight,
+                   italic: italic || el.italic == true)
+        }
+    }
+
+    /// Display text with the inline style markers still in it.
+    static func markedDisplayText(for el: Element, pageNumber: Int?, pageCount: Int?) -> String {
         var raw = el.text ?? ""
         if let pageNumber { raw = raw.replacingOccurrences(of: "{page}", with: String(pageNumber)) }
         if let pageCount { raw = raw.replacingOccurrences(of: "{pages}", with: String(pageCount)) }

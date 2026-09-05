@@ -257,11 +257,13 @@ struct TextElementView: View {
             NSAttributedString(string: text, attributes: attrs).draw(in: rect)
         case .neon:
             // Multiple passes deepen the glow.
-            let str = NSAttributedString(string: text, attributes: attrs)
+            let str = FontLibrary.attributedString(for: el)
             str.draw(in: rect)
             str.draw(in: rect)
         default:
-            NSAttributedString(string: text, attributes: attrs).draw(in: rect)
+            // Plain, shadow and lift carry the inline styles; the effects
+            // above draw the letters as strokes and doubles and stay plain.
+            FontLibrary.attributedString(for: el).draw(in: rect)
         }
 
         // A gradient fill is painted through the letters after the fact: the

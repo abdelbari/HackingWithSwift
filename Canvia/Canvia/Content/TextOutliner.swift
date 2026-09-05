@@ -37,8 +37,8 @@ enum TextOutliner {
         let text = FontLibrary.displayText(for: el)
         guard !text.isEmpty, el.w > 0, el.h > 0 else { return nil }
 
-        let attributed = NSAttributedString(string: text,
-                                            attributes: FontLibrary.attributes(for: el))
+        // With the inline styles, so a bold word outlines as bold glyphs.
+        let attributed = FontLibrary.attributedString(for: el)
         let framesetter = CTFramesetterCreateWithAttributedString(attributed)
         // Never shorter than the text needs: CoreText drops any line that
         // does not fit the frame, and an element whose height is a frame

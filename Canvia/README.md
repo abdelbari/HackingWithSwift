@@ -302,6 +302,14 @@ the app forward and leaves it a launch request it serves once.
 **Windows** — on iPad a design's context menu opens it in a new window,
 so two designs (or a design and its reference) sit side by side.
 
+**Inline styles** — words inside one text element can be bold, italic,
+underlined or struck through by writing them the way a message would:
+`**bold**`, `*italic*` or `_italic_`, `__underline__`, `~~strike~~`. The
+markers are stripped for display and measurement; the styled words are
+drawn on the canvas, outlined as bold or italic glyphs in the SVG, and
+carried into the PDF. Markers that would split a word (snake_case, 2*3) or
+have no partner stay literal.
+
 **Keyboard** — with a hardware keyboard, the usual shortcuts, each with
 a title in the discoverability overlay: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, ⌘D
 duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and
