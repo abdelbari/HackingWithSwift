@@ -12,7 +12,7 @@ import Foundation
 
 enum PrintLayout {
 
-    struct Paper: Identifiable, Equatable {
+    struct Paper: Identifiable, Hashable {
         var id: String
         var name: String
         /// Points, portrait.

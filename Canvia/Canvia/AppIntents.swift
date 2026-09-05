@@ -59,7 +59,7 @@ struct DesignEntity: AppEntity {
     static var defaultQuery = DesignQuery()
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(title)", subtitle: pages == 1 ? "1 page" : "\(pages) pages")
+        DisplayRepresentation(title: "\(title)", subtitle: "\(pages) pages")
     }
 
     init(_ recent: RecentDesign) {
