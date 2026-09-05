@@ -65,12 +65,18 @@ enum Tracer {
         let scale = Double(maxEdge) / Double(max(cg.width, cg.height))
         let w = max(2, Int((Double(cg.width) * min(scale, 1)).rounded()))
         let h = max(2, Int((Double(cg.height) * min(scale, 1)).rounded()))
-        var pixels = [UInt8](repeating: 0, count: w * h * 4)
-        guard let ctx = CGContext(data: &pixels, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+        // The context owns its buffer; it is read back through `data` so no
+        // pointer into a Swift array outlives the call that made it.
+        guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
                                   space: CGColorSpaceCreateDeviceRGB(),
                                   bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
         ctx.interpolationQuality = .medium
         ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+        guard let base = ctx.data else { return nil }
+        let bpr = ctx.bytesPerRow
+        let bytes = base.assumingMemoryBound(to: UInt8.self)
+        var pixels = [UInt8](repeating: 0, count: w * h * 4)
+        for y in 0..<h { for x in 0..<w { for c in 0..<4 { pixels[(y * w + x) * 4 + c] = bytes[y * bpr + x * 4 + c] } } }
         // Transparent anywhere: the alpha is the stencil. Otherwise darkness is.
         var hasAlpha = false
         var i = 3

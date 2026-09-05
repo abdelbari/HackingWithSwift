@@ -112,18 +112,30 @@ enum ObjectEraser {
         let maxEdge = 384.0
         let s = min(1, maxEdge / Double(max(cg.width, cg.height)))
         let w = max(2, Int((Double(cg.width) * s).rounded())), h = max(2, Int((Double(cg.height) * s).rounded()))
-        var pixels = [UInt8](repeating: 0, count: w * h * 4)
-        var maskPixels = [UInt8](repeating: 0, count: w * h)
-        guard let ctx = CGContext(data: &pixels, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+        // Both contexts own their buffers, read and written back through
+        // `data`, so no pointer into a Swift array outlives its call.
+        guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
                                   space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue),
-              let mctx = CGContext(data: &maskPixels, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w,
+              let mctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
                                    space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return nil }
         ctx.interpolationQuality = .medium
         ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
         mctx.draw(maskImage, in: CGRect(x: 0, y: 0, width: w, height: h))
-        let masked = maskPixels.map { $0 > 127 }
+        guard let colorBase = ctx.data, let maskBase = mctx.data else { return nil }
+        let bpr = ctx.bytesPerRow, mbpr = mctx.bytesPerRow
+        let colorBytes = colorBase.assumingMemoryBound(to: UInt8.self)
+        let maskBytes = maskBase.assumingMemoryBound(to: UInt8.self)
+        var pixels = [UInt8](repeating: 0, count: w * h * 4)
+        var masked = [Bool](repeating: false, count: w * h)
+        for y in 0..<h {
+            for x in 0..<w {
+                for c in 0..<4 { pixels[(y * w + x) * 4 + c] = colorBytes[y * bpr + x * 4 + c] }
+                masked[y * w + x] = maskBytes[y * mbpr + x] > 127
+            }
+        }
         guard masked.contains(true) else { return image }
         peelFill(pixels: &pixels, masked: masked, width: w, height: h)
+        for y in 0..<h { for x in 0..<w { for c in 0..<4 { colorBytes[y * bpr + x * 4 + c] = pixels[(y * w + x) * 4 + c] } } }
         guard let filledSmall = ctx.makeImage() else { return nil }
 
         // Full size: the blurred fill shows through the feathered mask only.
