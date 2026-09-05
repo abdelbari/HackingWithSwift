@@ -95,13 +95,42 @@ final class CropTests: XCTestCase {
         XCTAssertLessThan(middle.r, 60, "the PDF's fills did not survive import at all (blank page): \(middle)")
         XCTAssertGreaterThan(middle.b, 200, "\(middle)")
 
-        let w = Int(first.size.width), h = Int(first.size.height)
-        let tl = try rgb(first, x: 10, y: 10), tr = try rgb(first, x: w - 10, y: 10)
-        let bl = try rgb(first, x: 10, y: h - 10), br = try rgb(first, x: w - 10, y: h - 10)
-        let corners = "tl \(tl) tr \(tr) bl \(bl) br \(br)"
-        XCTAssertGreaterThan(tl.r, 200, corners)
-        XCTAssertLessThan(tl.g, 60, "the red mark is not at the top-left — \(corners)")
-        XCTAssertGreaterThan(bl.g, 200, "the lower half should be white — \(corners)")
+        // The whole page as a coarse map — R red, W white, B blue, ? other —
+        // so a failure says where the mark went, not only that it is not
+        // where it should be. Alongside it, the same page drawn the plain
+        // UIKit way and the page boxes, to tell the fixture from the importer.
+        let map = try colorMap(first)
+        let document = try XCTUnwrap(CGPDFDocument(try XCTUnwrap(CGDataProvider(data: data as CFData))))
+        let page1 = try XCTUnwrap(document.page(at: 1))
+        let boxes = "media \(page1.getBoxRect(.mediaBox)) crop \(page1.getBoxRect(.cropBox)) rotation \(page1.rotationAngle)"
+        let format = UIGraphicsImageRendererFormat(); format.scale = 1
+        let plain = UIGraphicsImageRenderer(size: CGSize(width: 400, height: 200), format: format).image { ctx in
+            let cg = ctx.cgContext
+            UIColor.white.setFill(); cg.fill(CGRect(x: 0, y: 0, width: 400, height: 200))
+            cg.translateBy(x: 0, y: 200); cg.scaleBy(x: 2, y: -2)
+            cg.drawPDFPage(page1)
+        }
+        let plainMap = try colorMap(plain)
+        XCTAssertEqual(map, "RRRRWWWW\nRRRRWWWW\nWWWWWWWW\nWWWWWWWW",
+                       "the red mark should fill the top-left quarter — importer:\n\(map)\nplain UIKit flip:\n\(plainMap)\n\(boxes)")
+    }
+
+    /// Eight by four cells, each sampled at its centre.
+    private func colorMap(_ image: UIImage) throws -> String {
+        let w = Int(image.size.width), h = Int(image.size.height)
+        var rows: [String] = []
+        for r in 0..<4 {
+            var line = ""
+            for c in 0..<8 {
+                let px = try rgb(image, x: c * w / 8 + w / 16, y: r * h / 4 + h / 8)
+                if px.r > 200 && px.g < 60 && px.b < 60 { line += "R" }
+                else if px.b > 200 && px.r < 60 { line += "B" }
+                else if px.r > 200 && px.g > 200 && px.b > 200 { line += "W" }
+                else { line += "?" }
+            }
+            rows.append(line)
+        }
+        return rows.joined(separator: "\n")
     }
 
     func testAFileThatIsNotAPDFImportsNothing() {
