@@ -24,10 +24,11 @@ final class ObjectEraserTests: XCTestCase {
         let top = ObjectEraser.imagePoint(CGPoint(x: 300, y: 50), element: el, imageSize: tall)
         XCTAssertEqual(top.x, 200, accuracy: 0.001)
         XCTAssertEqual(top.y, 300, accuracy: 0.001, "the frame's top edge is 300px into an 800px picture")
-        // Rotated 90°: the page point above the centre is the picture's left middle.
+        // Rotated 90° clockwise: a page point 100 above the centre was, before
+        // the turn, 100 to the left of it — a quarter of the way in.
         el.rotation = 90
         let r = ObjectEraser.imagePoint(CGPoint(x: 300, y: 50), element: el, imageSize: size)
-        XCTAssertEqual(r.x, 0, accuracy: 0.01); XCTAssertEqual(r.y, 200, accuracy: 0.01)
+        XCTAssertEqual(r.x, 200, accuracy: 0.01); XCTAssertEqual(r.y, 200, accuracy: 0.01)
     }
 
     func testMaskPaintsTheStrokeWhiteWhereItGoes() throws {
