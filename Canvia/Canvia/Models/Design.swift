@@ -37,6 +37,10 @@ struct Paint: Codable, Equatable, Hashable {
         Paint(kind: "solid", color: color, angle: nil, stops: nil)
     }
 
+    /// No fill at all: an outline, a drawn stroke. Not called `none`, which
+    /// on an optional fill would read as nil.
+    static let clear = Paint(kind: "none", color: nil, angle: nil, stops: nil)
+
     static func pattern(_ name: String, color: String, secondary: String, scale: Double = 24) -> Paint {
         Paint(kind: "pattern", color: color, angle: nil, stops: nil,
               pattern: name, secondary: secondary, scale: scale, src: nil)
@@ -206,6 +210,8 @@ struct Design: Codable, Equatable, Identifiable {
     var masterPageId: String?
     /// Draggable alignment guides, in page units, kept with the design.
     var guides: [Guide] = []
+    /// The folder on the home screen this design is filed under, if any.
+    var folder: String?
 
     var size: CGSize { CGSize(width: width, height: height) }
 
@@ -229,10 +235,11 @@ struct Design: Codable, Equatable, Identifiable {
         motion = try? c.decode(MotionSettings.self, forKey: .motion)
         masterPageId = try? c.decode(String.self, forKey: .masterPageId)
         guides = (try? c.decode([Guide].self, forKey: .guides)) ?? []
+        folder = try? c.decode(String.self, forKey: .folder)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides
+        case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides, folder
     }
 
     /// The master page, if one is set and still exists.

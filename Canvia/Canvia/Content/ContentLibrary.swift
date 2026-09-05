@@ -162,6 +162,24 @@ enum ContentLibrary {
         return shape(el.shapeId)
     }
 
+    /// Template categories in the order they first appear.
+    static var templateCategories: [String] {
+        var seen: [String] = []
+        for t in templates where !seen.contains(t.category) { seen.append(t.category) }
+        return seen
+    }
+
+    /// Templates in a category (nil is all of them) whose name or category
+    /// matches the query (empty is all of them).
+    static func filteredTemplates(in category: String?, matching query: String) -> [Template] {
+        let needle = query.trimmingCharacters(in: .whitespaces)
+        return templates.filter { t in
+            (category == nil || t.category == category)
+                && (needle.isEmpty || t.name.localizedCaseInsensitiveContains(needle)
+                    || t.category.localizedCaseInsensitiveContains(needle))
+        }
+    }
+
     static var shapeCategories: [String] {
         var seen: [String] = []
         for s in shapes where !seen.contains(s.category) { seen.append(s.category) }

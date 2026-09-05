@@ -353,6 +353,12 @@ struct ContextToolbar: View {
     private func shapeControls(_ el: Element) -> some View {
         colorChip(el.fill?.primaryColor ?? "#8b5cf6", "Fill") { activeSheet = .colorFill }
         colorChip(el.stroke ?? "#0d1216", "Border") { activeSheet = .colorStroke }
+        if el.fill?.kind == "none" {
+            // A drawn stroke or an outline: its width is what there is to set.
+            sliderControl("Width", value: el.strokeWidth ?? 4, in: 1...40) { v in
+                store.updateSelectedTransient { $0.strokeWidth = v }
+            }
+        }
         if ContentLibrary.shape(el.shapeId).rectLike == true && el.pathData == nil {
             sliderControl("Round", value: el.radius ?? 0, in: 0...(min(el.w, el.h) / 2)) { v in
                 store.updateSelectedTransient { $0.radius = v; $0.corners = nil }

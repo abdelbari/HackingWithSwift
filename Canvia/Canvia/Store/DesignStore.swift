@@ -135,12 +135,14 @@ final class DesignStore {
         guard let entry = past.popLast() else { return }
         future.append(HistoryEntry(design: design, pageIndex: pageIndex))
         restore(entry)
+        buzz(.undo)
     }
 
     func redo() {
         guard let entry = future.popLast() else { return }
         past.append(HistoryEntry(design: design, pageIndex: pageIndex))
         restore(entry)
+        buzz(.redo)
     }
 
     private func restore(_ entry: HistoryEntry) {
@@ -323,6 +325,7 @@ final class DesignStore {
 
     func groupSelected() {
         guard selectedElements.filter({ !$0.locked }).count >= 2 else { return }
+        buzz(.grouped)
         let gid = UID.make("grp")
         applyToPage { page in
             for i in page.elements.indices
@@ -334,6 +337,7 @@ final class DesignStore {
 
     func ungroupSelected() {
         guard selectedElements.contains(where: { $0.group != nil }) else { return }
+        buzz(.grouped)
         applyToPage { page in
             for i in page.elements.indices where self.selection.contains(page.elements[i].id) {
                 page.elements[i].group = nil
@@ -513,6 +517,36 @@ final class DesignStore {
     /// Something just happened that a first-timer might want a word about.
     /// The editor hands it to TipEngine, which decides whether to say it.
     var tipEvent: TipEvent?
+    /// A change worth feeling; the editor turns it into haptics.
+    var haptic = HapticEvent(kind: .undo, serial: 0)
+    /// True while a rotation drag sits on a 45° snap.
+    var rotationSnapped = false
+    /// The pen, while drawing mode is on: strokes become shape elements.
+    var drawing: Freehand.Tool?
+
+    func buzz(_ kind: HapticEvent.Kind) {
+        haptic = HapticEvent(kind: kind, serial: haptic.serial + 1)
+    }
+
+    func toggleDrawing() {
+        if drawing == nil {
+            editingTextId = nil
+            selection.removeAll()
+            drawing = Freehand.Tool()
+        } else {
+            drawing = nil
+        }
+    }
+
+    /// A finished stroke in page units becomes one shape and one undo step;
+    /// nothing is selected, so the next stroke starts clean.
+    func finishStroke(_ points: [CGPoint]) {
+        guard let tool = drawing, let el = Freehand.element(points: points, tool: tool) else { return }
+        add(el, centered: false)
+        selection.removeAll()
+        if tipEvent == nil { tipEvent = .drewStroke }
+        buzz(.stroke)
+    }
 
     private func announce(_ text: String) {
         announcement = text
@@ -762,6 +796,8 @@ final class DesignStore {
         apply { $0.pages.insert(Page(background: bg), at: pageIndex + 1) }
         pageIndex += 1
         selection.removeAll()
+        buzz(.pageAdded)
+        tipEvent = .pageAdded
     }
 
     func duplicatePage() {

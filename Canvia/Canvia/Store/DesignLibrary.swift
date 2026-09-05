@@ -11,6 +11,7 @@ struct RecentDesign: Identifiable {
     var pages: Int
     var updatedAt: Double
     var thumbnail: UIImage?
+    var folder: String? = nil
 }
 
 enum DesignLibrary {
@@ -160,6 +161,27 @@ enum DesignLibrary {
     /// The recents that match a query, in an order. Matching is on the
     /// title, case- and diacritic-insensitively, and on the size ("1080")
     /// because that is how people remember a design they never named.
+    /// Every folder in use, alphabetically.
+    static func folders(in designs: [RecentDesign]) -> [String] {
+        Array(Set(designs.compactMap(\.folder))).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    /// Files a design under a folder — nil or blank takes it out of one.
+    /// Filing is not an edit, so the design's edit time stays.
+    @discardableResult
+    static func move(id: String, toFolder folder: String?) -> Bool {
+        guard var design = load(id: id) else { return false }
+        let name = folder?.trimmingCharacters(in: .whitespaces)
+        design.folder = (name?.isEmpty ?? true) ? nil : name
+        return save(design)
+    }
+
+    /// The designs in a folder (nil is every folder), then the query and sort.
+    static func filter(_ designs: [RecentDesign], query: String, sort: Sort, folder: String?) -> [RecentDesign] {
+        let inFolder = folder == nil ? designs : designs.filter { $0.folder == folder }
+        return filter(inFolder, query: query, sort: sort)
+    }
+
     static func filter(_ designs: [RecentDesign], query: String, sort: Sort = .recent) -> [RecentDesign] {
         let needle = query.trimmingCharacters(in: .whitespaces)
         var matched = designs
@@ -352,7 +374,7 @@ enum DesignLibrary {
                 id: design.id, title: design.title,
                 width: design.width, height: design.height,
                 pages: design.pages.count, updatedAt: design.updatedAt,
-                thumbnail: thumb))
+                thumbnail: thumb, folder: design.folder))
         }
         return result.sorted { $0.updatedAt > $1.updatedAt }
     }

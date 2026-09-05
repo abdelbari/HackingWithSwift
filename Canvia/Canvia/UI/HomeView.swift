@@ -18,6 +18,11 @@ struct HomeView: View {
     @State private var importing = false
     @State private var favoritesVersion = 0
     @State private var importError: String?
+    @State private var templateCategory: String?
+    @State private var folder: String?
+    @State private var filingInto: RecentDesign?
+    @State private var newFolderName = ""
+    @State private var touring = false
 
     var body: some View {
         ScrollView {
@@ -38,6 +43,7 @@ struct HomeView: View {
                         sortMenu
                     }
                     .padding(.horizontal)
+                    if !folders.isEmpty { folderChips }
                     if shownRecents.isEmpty {
                         Text("No design matches “\(query)”.")
                             .foregroundStyle(.secondary)
@@ -52,6 +58,7 @@ struct HomeView: View {
                 Text("Start from a template")
                     .font(.title3.weight(.bold))
                     .padding(.horizontal)
+                templateCategoryChips
                 if shownTemplates.isEmpty {
                     Text("No template matches “\(query)”.")
                         .foregroundStyle(.secondary)
@@ -65,7 +72,26 @@ struct HomeView: View {
         // Was a hardcoded near-white, which in dark mode left primary-coloured
         // text — white by then — on an almost white page.
         .background(Theme.workspace)
-        .onAppear { reload() }
+        .onAppear {
+            reload()
+            if Onboarding.needsTour { touring = true }
+        }
+        .sheet(isPresented: $touring, onDismiss: { Onboarding.markSeen() }) {
+            WelcomeTour { touring = false }
+        }
+        .alert("New folder", isPresented: Binding(
+            get: { filingInto != nil },
+            set: { if !$0 { filingInto = nil } })) {
+            TextField("Folder name", text: $newFolderName)
+            Button("Move") {
+                if let target = filingInto {
+                    DesignLibrary.move(id: target.id, toFolder: newFolderName)
+                    reload()
+                }
+                filingInto = nil
+            }
+            Button("Cancel", role: .cancel) { filingInto = nil }
+        }
         .alert("Rename design", isPresented: Binding(
             get: { renaming != nil },
             set: { if !$0 { renaming = nil } })) {
@@ -121,18 +147,65 @@ struct HomeView: View {
     }
 
     private var shownRecents: [RecentDesign] {
-        DesignLibrary.filter(recents, query: query, sort: sort)
+        DesignLibrary.filter(recents, query: query, sort: sort, folder: folder)
     }
 
+    private var folders: [String] { DesignLibrary.folders(in: recents) }
+
     private var shownTemplates: [Template] {
-        let needle = query.trimmingCharacters(in: .whitespaces)
-        let matching = needle.isEmpty ? ContentLibrary.templates : ContentLibrary.templates.filter {
-            $0.name.localizedCaseInsensitiveContains(needle)
-                || $0.category.localizedCaseInsensitiveContains(needle)
-        }
+        let matching = ContentLibrary.filteredTemplates(in: templateCategory, matching: query)
         // Starred templates first.
         let starred = Set(Favorites.ids(of: "template"))
         return matching.filter { starred.contains($0.id) } + matching.filter { !starred.contains($0.id) }
+    }
+
+    // MARK: chips
+
+    /// One row of categories over the templates, so browsing is a tap
+    /// rather than a scroll through everything.
+    private var templateCategoryChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                chip("All", selected: templateCategory == nil) { templateCategory = nil }
+                ForEach(ContentLibrary.templateCategories, id: \.self) { category in
+                    chip(category, selected: templateCategory == category) {
+                        templateCategory = templateCategory == category ? nil : category
+                    }
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+
+    private var folderChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                chip("All", selected: folder == nil) { folder = nil }
+                ForEach(folders, id: \.self) { name in
+                    chip(name, selected: folder == name, systemImage: "folder") {
+                        folder = folder == name ? nil : name
+                    }
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+
+    private func chip(_ title: String, selected: Bool, systemImage: String? = nil,
+                      action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                if let systemImage { Image(systemName: systemImage).font(.caption) }
+                Text(title)
+            }
+            .font(.subheadline.weight(.medium))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(selected ? Theme.accent : Theme.card, in: Capsule())
+            .foregroundStyle(selected ? Color.white : Theme.ink)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     /// What the home screen says before there is anything on it. A blank
@@ -351,9 +424,11 @@ struct HomeView: View {
                             Text(recent.title)
                                 .font(.subheadline.weight(.semibold))
                                 .lineLimit(1)
-                            Text("\(Int(recent.width)) × \(Int(recent.height)) · \(recent.pages) page\(recent.pages > 1 ? "s" : "")")
+                            Text("\(Int(recent.width)) × \(Int(recent.height)) · \(recent.pages) page\(recent.pages > 1 ? "s" : "")"
+                                 + (folder == nil ? (recent.folder.map { " · \($0)" } ?? "") : ""))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .lineLimit(1)
                         }
                         .padding(10)
                     }
@@ -378,6 +453,24 @@ struct HomeView: View {
                             reload()
                         }
                     } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
+                    Menu {
+                        ForEach(folders.filter { $0 != recent.folder }, id: \.self) { name in
+                            Button(name) {
+                                DesignLibrary.move(id: recent.id, toFolder: name)
+                                reload()
+                            }
+                        }
+                        Button {
+                            newFolderName = ""
+                            filingInto = recent
+                        } label: { Label("New folder…", systemImage: "folder.badge.plus") }
+                        if recent.folder != nil {
+                            Button(role: .destructive) {
+                                DesignLibrary.move(id: recent.id, toFolder: nil)
+                                reload()
+                            } label: { Label("Remove from folder", systemImage: "folder.badge.minus") }
+                        }
+                    } label: { Label("Move to folder", systemImage: "folder") }
                     Button(role: .destructive) {
                         // To the trash, not gone: thirty days to change
                         // your mind, in the section below.

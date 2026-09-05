@@ -9,6 +9,7 @@ import Foundation
 
 enum TipEvent: String, Equatable {
     case firstElementAdded, textAdded, photoAdded, multiSelected, manyElements, curvedText
+    case rotated, pageAdded, drewStroke, dropped
 }
 
 struct Tip: Equatable, Identifiable {
@@ -48,6 +49,14 @@ final class TipEngine {
                            systemImage: "square.3.layers.3d"),
         .curvedText: Tip(id: "curve", text: "Curved text grows taller as it bends — drag its corners if the box looks tight.",
                          systemImage: "textformat.abc"),
+        .rotated: Tip(id: "rotate", text: "Rotation snaps at every 45° and taps when it lands; keep turning to leave the snap. Position sets an exact angle.",
+                      systemImage: "rotate.right"),
+        .pageAdded: Tip(id: "page", text: "New page. Swipe the pages bar to move between pages, and use its notes button for speaker notes and this page's timing.",
+                        systemImage: "doc.on.doc"),
+        .drewStroke: Tip(id: "stroke", text: "Each stroke is a shape: tap the pencil again to stop drawing, then select a stroke to recolour, resize or delete it.",
+                         systemImage: "pencil.tip"),
+        .dropped: Tip(id: "drop", text: "Dropped in place. Pictures, text and links from other apps can be dragged straight onto the page.",
+                      systemImage: "square.and.arrow.down.on.square"),
     ]
 
     private var shown: Set<String> {

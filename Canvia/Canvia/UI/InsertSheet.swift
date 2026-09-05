@@ -13,6 +13,7 @@ struct InsertSheet: View {
     @State private var search = ""
     @State private var pickedItems: [PhotosPickerItem] = []
     @State private var importingPDF = false
+    @State private var scanning = false
     /// Bumped when a favourite is toggled, so the tab re-reads the set.
     @State private var favoritesVersion = 0
     @State private var qrPayload = ""
@@ -469,25 +470,43 @@ struct InsertSheet: View {
                     MediaStore.storeOpaque(image).map { ($0, image.size) }
                 }
             }.value
-            guard !stored.isEmpty else { return }
-            if stored.count == 1 || target != nil {
-                insertImage(stored[0].src, natural: stored[0].natural, replacing: target)
-            } else {
-                let w = store.design.width, h = store.design.height
-                let pages = stored.map { item -> Page in
-                    let scale = min(w / max(item.natural.width, 1), h / max(item.natural.height, 1))
-                    var el = Element.image(item.src, w: (item.natural.width * scale).rounded(),
-                                           h: (item.natural.height * scale).rounded())
-                    el.x = ((w - el.w) / 2).rounded()
-                    el.y = ((h - el.h) / 2).rounded()
-                    return Page(elements: [el])
-                }
-                let at = store.pageIndex + 1
-                store.apply { $0.pages.insert(contentsOf: pages, at: at) }
-                store.setPage(at)
-            }
-            dismiss()
+            insertPictures(stored, replacing: target)
         }
+    }
+
+    /// Pages from the document camera come in the same way a PDF's do.
+    private func importScan(_ images: [UIImage]) {
+        guard !images.isEmpty else { return }
+        let target = store.replaceTargetId
+        Task {
+            let stored = await Task.detached(priority: .userInitiated) { () -> [(src: String, natural: CGSize)] in
+                images.compactMap { image in MediaStore.storeOpaque(image).map { ($0, image.size) } }
+            }.value
+            insertPictures(stored, replacing: target)
+        }
+    }
+
+    /// One picture goes on this page (or into the slot being replaced);
+    /// several become pages of their own after it, each fitted to the page.
+    private func insertPictures(_ stored: [(src: String, natural: CGSize)], replacing target: String?) {
+        guard !stored.isEmpty else { return }
+        if stored.count == 1 || target != nil {
+            insertImage(stored[0].src, natural: stored[0].natural, replacing: target)
+        } else {
+            let w = store.design.width, h = store.design.height
+            let pages = stored.map { item -> Page in
+                let scale = min(w / max(item.natural.width, 1), h / max(item.natural.height, 1))
+                var el = Element.image(item.src, w: (item.natural.width * scale).rounded(),
+                                       h: (item.natural.height * scale).rounded())
+                el.x = ((w - el.w) / 2).rounded()
+                el.y = ((h - el.h) / 2).rounded()
+                return Page(elements: [el])
+            }
+            let at = store.pageIndex + 1
+            store.apply { $0.pages.insert(contentsOf: pages, at: at) }
+            store.setPage(at)
+        }
+        dismiss()
     }
 
     // MARK: photos
@@ -495,14 +514,33 @@ struct InsertSheet: View {
     private var photosGrid: some View {
         VStack(alignment: .leading, spacing: 10) {
             // One when replacing — a replace has one slot to fill.
-            PhotosPicker(selection: $pickedItems,
-                         maxSelectionCount: store.replaceTargetId == nil ? 10 : 1,
-                         matching: .images) {
-                Label(store.replaceTargetId == nil ? "Add from Photo Library" : "Choose a replacement",
-                      systemImage: "photo.badge.plus")
-                    .frame(maxWidth: .infinity)
-                    .padding(10)
-                    .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
+            Group {
+                PhotosPicker(selection: $pickedItems,
+                             maxSelectionCount: store.replaceTargetId == nil ? 10 : 1,
+                             matching: .images) {
+                    Label(store.replaceTargetId == nil ? "Add from Photo Library" : "Choose a replacement",
+                          systemImage: "photo.badge.plus")
+                        .frame(maxWidth: .infinity)
+                        .padding(10)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
+                }
+                if DocumentScanner.isSupported {
+                    Button {
+                        scanning = true
+                    } label: {
+                        Label("Scan a document", systemImage: "doc.viewfinder")
+                            .frame(maxWidth: .infinity)
+                            .padding(10)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
+                    }
+                    .fullScreenCover(isPresented: $scanning) {
+                        DocumentScanner { images in
+                            scanning = false
+                            importScan(images)
+                        }
+                        .ignoresSafeArea()
+                    }
+                }
             }
             let logos = BrandKit.load().logos
             if !logos.isEmpty {

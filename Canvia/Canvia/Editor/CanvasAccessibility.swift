@@ -55,3 +55,23 @@ enum CanvasAccessibility {
         (max(design.width, design.height) / 100).rounded()
     }
 }
+
+extension CanvasAccessibility {
+    /// The order a sighted reader takes the page in — rows top to bottom,
+    /// left to right within a row — so VoiceOver reads it the same way
+    /// rather than in the order things were added. Elements whose tops are
+    /// within a twelfth of the page height of the row's first share a row.
+    static func readingOrder(_ elements: [Element], pageHeight: Double) -> [String] {
+        let tolerance = max(pageHeight, 1) / 12
+        let byTop = elements.sorted { a, b in a.y != b.y ? a.y < b.y : a.x < b.x }
+        var rows: [[Element]] = []
+        for el in byTop {
+            if let last = rows.last, let head = last.first, abs(el.y - head.y) <= tolerance {
+                rows[rows.count - 1].append(el)
+            } else {
+                rows.append([el])
+            }
+        }
+        return rows.flatMap { row in row.sorted { a, b in a.x != b.x ? a.x < b.x : a.y < b.y } }.map(\.id)
+    }
+}

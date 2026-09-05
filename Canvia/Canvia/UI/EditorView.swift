@@ -49,8 +49,14 @@ struct EditorView: View {
             if let tip { tipBanner(tip) }
             ZStack(alignment: .bottomTrailing) {
                 CanvasView(store: store)
-                insertButton
-                    .padding(18)
+                if let tool = store.drawing {
+                    drawingBar(tool)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.bottom, 14)
+                } else {
+                    insertButton
+                        .padding(18)
+                }
             }
             // Always rendered, never inserted. Adding and removing this from
             // the stack resized the canvas on every selection — and by a
@@ -82,6 +88,8 @@ struct EditorView: View {
         .sensoryFeedback(.selection, trigger: store.selection)
         .sensoryFeedback(.alignment, trigger: SnapSignal(x: store.guideX, y: store.guideY))
         .sensoryFeedback(.impact(weight: .heavy), trigger: store.page.elements.count)
+        .sensoryFeedback(.alignment, trigger: store.rotationSnapped) { _, snapped in snapped }
+        .sensoryFeedback(trigger: store.haptic) { _, event in event.feedback }
         .background(Theme.workspace)
         .sheet(item: $activeSheet) { sheet in
             sheetView(sheet)
@@ -221,7 +229,14 @@ struct EditorView: View {
 
             Spacer()
 
-            overflowMenu
+            Group {
+                overflowMenu
+                Button { store.toggleDrawing() } label: {
+                    Image(systemName: store.drawing == nil ? "pencil.tip" : "pencil.tip.crop.circle.fill")
+                }
+                .accessibilityLabel(store.drawing == nil ? "Draw" : "Stop drawing")
+                .accessibilityAddTraits(store.drawing == nil ? [] : .isSelected)
+            }
 
             Button { shuffleColors() } label: { Image(systemName: "sparkles") }
                 .accessibilityLabel("Shuffle colors")
@@ -248,6 +263,17 @@ struct EditorView: View {
                 Button {
                     presenting = true
                 } label: { Label("Present", systemImage: "play.rectangle") }
+
+                Button {
+                    if ReadAloud.shared.isSpeaking {
+                        ReadAloud.shared.stop()
+                    } else {
+                        ReadAloud.shared.speak(ReadAloud.script(for: store.page, in: store.design))
+                    }
+                } label: {
+                    Label(ReadAloud.shared.isSpeaking ? "Stop reading" : "Read page aloud",
+                          systemImage: ReadAloud.shared.isSpeaking ? "speaker.slash" : "speaker.wave.2")
+                }
 
                 Button {
                     store.toggleMasterPage()
@@ -365,6 +391,54 @@ struct EditorView: View {
             Image(systemName: "ellipsis.circle")
         }
         .accessibilityLabel("More actions")
+    }
+
+    /// The pen's colour and width, floating over the canvas while drawing.
+    /// Undo takes back the last stroke; the pencil in the top bar (or Done)
+    /// puts the pen away.
+    private func drawingBar(_ tool: Freehand.Tool) -> some View {
+        HStack(spacing: 10) {
+            ForEach(Freehand.colors, id: \.self) { hex in
+                Button {
+                    store.drawing?.color = hex
+                } label: {
+                    Circle()
+                        .fill(Color(hex: hex))
+                        .frame(width: 22, height: 22)
+                        .overlay(Circle().stroke(Theme.hairline))
+                        .overlay {
+                            if tool.color == hex {
+                                Circle().stroke(Theme.accent, lineWidth: 2).padding(-3)
+                            }
+                        }
+                }
+                .accessibilityLabel("Pen colour \(hex)")
+                .accessibilityAddTraits(tool.color == hex ? .isSelected : [])
+            }
+            Menu {
+                ForEach(Freehand.widths, id: \.self) { w in
+                    Button {
+                        store.drawing?.width = w
+                    } label: {
+                        Label("\(Int(w)) px", systemImage: tool.width == w ? "checkmark" : "minus")
+                    }
+                }
+            } label: {
+                Image(systemName: "lineweight")
+                    .frame(width: 30, height: 30)
+            }
+            .accessibilityLabel("Pen width, \(Int(tool.width)) pixels")
+            Button { store.undo() } label: { Image(systemName: "arrow.uturn.backward").frame(width: 30, height: 30) }
+                .disabled(!store.canUndo)
+                .accessibilityLabel("Undo stroke")
+            Button("Done") { store.drawing = nil }
+                .fontWeight(.semibold)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: Capsule())
+        .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     private var insertButton: some View {

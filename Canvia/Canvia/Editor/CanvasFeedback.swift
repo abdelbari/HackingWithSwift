@@ -8,7 +8,7 @@
 // between, so a drag along a guide taps once on arrival rather than buzzing
 // continuously for as long as it stays aligned.
 
-import Foundation
+import SwiftUI
 
 struct SnapSignal: Equatable {
     let onX: Bool
@@ -17,5 +17,22 @@ struct SnapSignal: Equatable {
     init(x: Double?, y: Double?) {
         self.onX = x != nil
         self.onY = y != nil
+    }
+}
+
+/// Discrete things worth feeling. The serial makes every event a change,
+/// so two deletes in a row both tap.
+struct HapticEvent: Equatable {
+    enum Kind: Equatable { case undo, redo, grouped, pageAdded, stroke }
+    var kind: Kind
+    var serial: Int
+
+    var feedback: SensoryFeedback {
+        switch kind {
+        case .undo, .redo: return .impact(weight: .light)
+        case .grouped: return .impact(weight: .medium)
+        case .pageAdded: return .success
+        case .stroke: return .impact(weight: .light, intensity: 0.6)
+        }
     }
 }

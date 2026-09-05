@@ -8,6 +8,9 @@ import SwiftUI
 struct CanvasView: View {
     @Bindable var store: DesignStore
     @State private var gesture = GestureState()
+    /// The stroke being drawn, in page units, while the pen is on.
+    @State private var strokePoints: [CGPoint] = []
+    @State private var dropTargeted = false
     @FocusState private var textFieldFocused: Bool
 
     /// Inverse zoom: ornaments are drawn in page units but should
@@ -98,31 +101,77 @@ struct CanvasView: View {
                 // touches on the page) never competes with it.
                 .gesture(marqueeGesture)
 
-            if store.snapping.showGrid { gridOverlay }
-            if store.snapping.marginEnabled && store.snapping.showMargins { marginOverlay }
-            ForEach(store.design.guides) { guide in guideLine(guide) }
+            Group {
+                if store.snapping.showGrid { gridOverlay }
+                if store.snapping.marginEnabled && store.snapping.showMargins { marginOverlay }
+                ForEach(store.design.guides) { guide in guideLine(guide) }
+            }
 
             if store.page.elements.isEmpty {
                 emptyPageHint
             }
 
-            // Hit layer: one transparent overlay per element for taps/drags.
+            // Hit layer: one transparent overlay per element for taps/drags,
+            // announced in reading order rather than stacking order.
+            let order = CanvasAccessibility.readingOrder(store.page.elements, pageHeight: store.design.height)
             ForEach(store.page.elements) { el in
                 elementHitArea(el)
+                    .accessibilitySortPriority(Double(order.count - (order.firstIndex(of: el.id) ?? 0)))
             }
 
             SelectionOverlay(store: store,
                              onHandleDrag: handleDrag,
                              onHandleEnd: { store.commit(); clearTransient() },
                              onRotateDrag: rotateDrag,
-                             onRotateEnd: { store.commit(); clearTransient() })
+                             onRotateEnd: { store.commit(); clearTransient(); store.tipEvent = .rotated })
 
             if let band = gesture.marquee { marqueeView(band) }
 
             if let id = store.editingTextId, let el = store.element(id) {
                 inlineTextEditor(el)
             }
+
+            if let tool = store.drawing { drawingLayer(tool) }
         }
+        // Pictures, text and links from other apps land where they are let go.
+        .onDrop(of: CanvasDrop.types, isTargeted: $dropTargeted) { providers, location in
+            CanvasDrop.handle(providers, at: location, store: store)
+        }
+        .overlay {
+            if dropTargeted {
+                Rectangle().stroke(Theme.accent, lineWidth: 4 * iz).allowsHitTesting(false)
+            }
+        }
+    }
+
+    // MARK: drawing
+
+    /// Above everything while the pen is on, so a stroke never selects or
+    /// moves what it crosses. The live line is the same smoothed curve the
+    /// finished element will hold.
+    private func drawingLayer(_ tool: Freehand.Tool) -> some View {
+        ZStack {
+            Color.clear.contentShape(Rectangle())
+            if !strokePoints.isEmpty {
+                Path(Freehand.cgPath(strokePoints))
+                    .stroke(Color(hex: tool.color),
+                            style: StrokeStyle(lineWidth: tool.width, lineCap: .round, lineJoin: .round))
+            }
+        }
+        .frame(width: store.design.width, height: store.design.height)
+        .gesture(
+            DragGesture(minimumDistance: 0, coordinateSpace: .named("page"))
+                .onChanged { value in
+                    if strokePoints.isEmpty { strokePoints = [value.startLocation] }
+                    strokePoints.append(value.location)
+                }
+                .onEnded { _ in
+                    store.finishStroke(strokePoints)
+                    strokePoints = []
+                }
+        )
+        .accessibilityLabel("Drawing surface")
+        .accessibilityHint("Drag to draw a stroke")
     }
 
     /// What a blank page said before this was: nothing. A white square and a
@@ -478,7 +527,9 @@ struct CanvasView: View {
         guard let center = gesture.rotateCenter else { return }
         var angle = Geometry.angle(from: center, to: location) - gesture.rotateOffset
         angle = (angle.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
+        let raw = angle
         angle = Geometry.snapAngle(angle, step: 45, threshold: 4)
+        store.rotationSnapped = angle != raw
         store.updateSelectedTransient { $0.rotation = (angle * 10).rounded() / 10 }
         store.badge = "\(Int(angle))°"
     }
@@ -488,6 +539,7 @@ struct CanvasView: View {
         store.guideX = nil
         store.guideY = nil
         store.badge = nil
+        store.rotationSnapped = false
     }
 
     // MARK: inline text editing

@@ -154,7 +154,8 @@ jobs:
           # Launch in the foreground so a failed launch is a failed step. The
           # earlier `--console-pty ... &` form discarded both the exit status
           # and the message, and the screenshot then caught the springboard.
-          xcrun simctl launch "$DEVICE" com.canvia.app
+          # -canviaSkipTour keeps the first-run tour off the home screenshot.
+          xcrun simctl launch "$DEVICE" com.canvia.app -canviaSkipTour
           sleep 20
 
           # A launch that succeeds and then crashes still leaves the

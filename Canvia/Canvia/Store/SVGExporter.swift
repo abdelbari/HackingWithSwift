@@ -143,6 +143,8 @@ enum SVGExporter {
             let id = "grad\(index)"
             defs.append(gradientDef(id: id, paint: fill, width: el.w, height: el.h))
             paint = "url(#\(id))"
+        } else if fill.kind == "none" {
+            paint = "none"
         } else {
             paint = escape(fill.color ?? "#8b5cf6")
         }
@@ -153,7 +155,7 @@ enum SVGExporter {
             // the element: a plain stroke-width would come out stretched by
             // the same factor, and differently on each axis.
             stroke = " stroke=\"\(escape(color))\" stroke-width=\"\(num(width))\"" +
-                     " vector-effect=\"non-scaling-stroke\" stroke-linejoin=\"round\""
+                     " vector-effect=\"non-scaling-stroke\" stroke-linejoin=\"round\" stroke-linecap=\"round\""
         }
 
         let sx = el.w / 100, sy = el.h / 100

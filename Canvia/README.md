@@ -253,6 +253,37 @@ undo step.
 into it and its thumbnail, so searching the phone for "bake sale" finds
 the poster; opening the result opens the design.
 
+**Draw** — the pencil in the top bar turns the page into a drawing
+surface: a finger or an Apple Pencil stroke is thinned, smoothed through
+quadratic curves and kept as an ordinary shape element with no fill — so
+it is moved, rotated, recoloured and exported as a real path like anything
+else, one undo step per stroke. A floating bar sets the pen's colour and
+width; the Width slider on a selected stroke changes it afterwards.
+
+**Drag and drop** — pictures, text and links dragged from other apps land
+where they are let go: a photo at up to half the page's width, text as a
+left-aligned box, a link as its address. The page outlines itself while
+something hovers over it.
+
+**Scan a document** — the Photos tab of Add opens the document camera on
+devices that have one; the deskewed pages come in the way a PDF's do, one
+picture on this page or one page each.
+
+**Read aloud** — the menu reads the page in reading order (rows top to
+bottom, left to right — the same order VoiceOver takes the canvas in),
+pictures by their alt text and page-number tokens resolved.
+
+**Haptics** — selection, snapping to guides and to 45° rotation, undo and
+redo, grouping, a new page and each drawn stroke are each felt, once,
+through `.sensoryFeedback`.
+
+**Home** — templates browse by category from a row of chips; designs can be
+filed into folders from their context menu (folder chips appear when one
+exists) and filing is not an edit, so the order stays. The first launch
+shows a four-card tour, once — `-canviaSkipTour` keeps it off the CI
+screenshot — and contextual tips fire the first time you rotate, add a
+page, draw or drop something in.
+
 **Keyboard** — with a hardware keyboard, the usual shortcuts, each with
 a title in the discoverability overlay: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, ⌘D
 duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and

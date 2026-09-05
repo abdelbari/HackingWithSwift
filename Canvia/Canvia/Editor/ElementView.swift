@@ -141,11 +141,15 @@ struct ShapeElementView: View {
                 fill.fillView()
                     .frame(width: element.w, height: element.h)
                     .clipShape(shape)
+            } else if fill.kind == "none" {
+                // An outline only — a drawn stroke, or a shape whose fill
+                // was cleared. The transparent rectangle keeps the frame.
+                Color.clear
             } else {
                 shape.fill(Color(hex: fill.color ?? "#8b5cf6"))
             }
             if let stroke = element.stroke, let sw = element.strokeWidth, sw > 0 {
-                shape.stroke(Color(hex: stroke), style: StrokeStyle(lineWidth: sw, lineJoin: .round))
+                shape.stroke(Color(hex: stroke), style: StrokeStyle(lineWidth: sw, lineCap: .round, lineJoin: .round))
             }
         }
     }
