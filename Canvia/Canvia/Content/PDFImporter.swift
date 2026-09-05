@@ -48,7 +48,13 @@ enum PDFImporter {
         cg.setFillColor(gray: 1, alpha: 1)
         cg.fill(CGRect(x: 0, y: 0, width: width, height: height))
         cg.interpolationQuality = .high
-        let transform = page.getDrawingTransform(.cropBox, rect: CGRect(x: 0, y: 0, width: width, height: height),
+        // The scale is ours: CGPDFPage's drawing transform fits a page into
+        // a rect by scaling *down* only, so asked for a bitmap larger than
+        // the page in points it centres the page at 1:1 and leaves a
+        // border. Scale first, then let the transform handle the crop box's
+        // origin and the page's /Rotate at the page's own size.
+        cg.scaleBy(x: scale, y: scale)
+        let transform = page.getDrawingTransform(.cropBox, rect: CGRect(x: 0, y: 0, width: pageW, height: pageH),
                                                  rotate: 0, preserveAspectRatio: true)
         cg.concatenate(transform)
         cg.drawPDFPage(page)

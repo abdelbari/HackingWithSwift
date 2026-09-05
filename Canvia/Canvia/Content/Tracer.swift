@@ -88,12 +88,10 @@ enum Tracer {
             if ink { r += min(pr, 1); g += min(pg, 1); b += min(pb, 1); n += 1 }
         }
         guard n > 0 else { return nil }
-        // The context drew the image with row 0 at the bottom; flip the grid so
-        // y runs down like the page.
-        var flipped = [Bool](repeating: false, count: w * h)
-        for y in 0..<h { for x in 0..<w { flipped[y * w + x] = cells[(h - 1 - y) * w + x] } }
+        // A bitmap context's memory runs from the top row down, as the page
+        // does, so the grid needs no flip.
         let hex = String(format: "#%02x%02x%02x", Int((r / n * 255).rounded()), Int((g / n * 255).rounded()), Int((b / n * 255).rounded()))
-        return (Mask(width: w, height: h, cells: flipped), hex)
+        return (Mask(width: w, height: h, cells: cells), hex)
     }
 
     // MARK: outlines

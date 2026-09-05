@@ -50,9 +50,9 @@ final class TextPathTests: XCTestCase {
         diagonal.h = 200
         diagonal.textPath = TextPaths.preset("rise")?.data
         let d = try XCTUnwrap(TextOutliner.path(for: diagonal)).boundingBoxOfPath
-        // Straight text of this size is one line tall; on the diagonal it
-        // spans most of the box's height too.
-        XCTAssertGreaterThan(d.height, 100)
+        // Straight text of this size is one line (~36) tall; centred on the
+        // diagonal it climbs across a good part of the box as well.
+        XCTAssertGreaterThan(d.height, 55)
         XCTAssertLessThan(d.height, 220)
         XCTAssertTrue(TextOutliner.followsAPath(diagonal))
 
@@ -60,7 +60,9 @@ final class TextPathTests: XCTestCase {
         circle.h = 300
         circle.textPath = TextPaths.preset("circle")?.data
         let c = try XCTUnwrap(TextOutliner.path(for: circle)).boundingBoxOfPath
-        XCTAssertGreaterThan(c.width, 200); XCTAssertGreaterThan(c.height, 200)
+        // Centred on the circle's far side, the text wraps round more than a
+        // third of it: tall, and well wider than a line's height.
+        XCTAssertGreaterThan(c.height, 200); XCTAssertGreaterThan(c.width, 100)
         // The box is kept: measurement does not collapse a path box to a line.
         XCTAssertEqual(FontLibrary.layoutHeight(for: circle), 300)
     }

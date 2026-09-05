@@ -84,7 +84,7 @@ enum TextOutliner {
             CTRunGetAdvances(run, range, &advances)
             for i in 0..<count {
                 guard let glyph = CTFontCreatePathForGlyph(font, glyphs[i], nil) else { continue }
-                let centre = start + positions[i].x + advances[i].width / 2
+                let centre = start + Double(positions[i].x) + Double(advances[i].width) / 2
                 let here = walker.locate(centre)
                 let transform = CGAffineTransform(translationX: here.point.x, y: here.point.y)
                     .rotated(by: here.angle)
@@ -141,7 +141,7 @@ enum TextOutliner {
                 guard let runs = CTLineGetGlyphRuns(line) as? [CTRun] else { continue }
                 // The glyph's centre at the column's centre, its baseline so
                 // the letter is centred in its step.
-                let baselineY = top + Double(r) * step + (step + ascent - descent) / 2
+                let baselineY = top + Double(r) * step + (step + Double(ascent) - Double(descent)) / 2
                 for run in runs {
                     let count = CTRunGetGlyphCount(run)
                     guard count > 0 else { continue }

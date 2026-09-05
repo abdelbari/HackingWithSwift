@@ -37,10 +37,11 @@ final class ObjectEraserTests: XCTestCase {
         let ctx = try XCTUnwrap(CGContext(data: &px, width: 100, height: 60, bitsPerComponent: 8, bytesPerRow: 100,
                                           space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue))
         ctx.draw(mask, in: CGRect(x: 0, y: 0, width: 100, height: 60))
-        // The drawn context has row 0 at the bottom: y=10 from the top is row 49.
-        XCTAssertGreaterThan(px[49 * 100 + 50], 200, "on the stroke")
-        XCTAssertEqual(px[10 * 100 + 50], 0, "far from the stroke, at the top-of-image's mirror")
-        XCTAssertEqual(px[49 * 100 + 2], 0, "before the stroke's start")
+        // A bitmap context's memory runs from the top row down, so y=10 from
+        // the top of the picture is buffer row 10.
+        XCTAssertGreaterThan(px[10 * 100 + 50], 200, "on the stroke")
+        XCTAssertEqual(px[49 * 100 + 50], 0, "far from the stroke, near the bottom")
+        XCTAssertEqual(px[10 * 100 + 2], 0, "before the stroke's start")
     }
 
     func testPeelFillClosesAHoleFromItsNeighbours() {

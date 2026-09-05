@@ -27,8 +27,11 @@ final class AnimationTests: XCTestCase {
         XCTAssertEqual(ElementAnimation(kind: "pop").state(at: 0, size: size).scale, 0.4, accuracy: 0.001)
         XCTAssertEqual(ElementAnimation(kind: "slideLeft").state(at: 0, size: size).offset.width, 200, accuracy: 0.001)
         XCTAssertEqual(ElementAnimation(kind: "slideRight").state(at: 0, size: size).offset.width, -200, accuracy: 0.001)
-        for kind in ElementAnimation.kinds {
+        for kind in ElementAnimation.kinds where !ElementAnimation.loopKinds.contains(kind) {
             XCTAssertEqual(ElementAnimation(kind: kind).state(at: 10, text: "Hello there", size: size), .settled, kind)
+        }
+        for kind in ElementAnimation.loopKinds {
+            XCTAssertTrue(ElementAnimation(kind: kind).loops, kind)
         }
     }
 

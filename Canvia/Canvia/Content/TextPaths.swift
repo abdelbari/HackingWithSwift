@@ -55,16 +55,20 @@ struct PathWalker {
                 let c = e.points[0], p = e.points[1], s = current
                 for i in 1...segments {
                     let t = Double(i) / Double(segments), u = 1 - t
-                    pts.append(CGPoint(x: u * u * s.x + 2 * u * t * c.x + t * t * p.x,
-                                       y: u * u * s.y + 2 * u * t * c.y + t * t * p.y))
+                    let a = u * u, b = 2 * u * t, d = t * t
+                    let x: Double = a * s.x + b * c.x + d * p.x
+                    let y: Double = a * s.y + b * c.y + d * p.y
+                    pts.append(CGPoint(x: x, y: y))
                 }
                 current = p
             case .addCurveToPoint:
                 let c1 = e.points[0], c2 = e.points[1], p = e.points[2], s = current
                 for i in 1...segments {
                     let t = Double(i) / Double(segments), u = 1 - t
-                    pts.append(CGPoint(x: u * u * u * s.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t * t * t * p.x,
-                                       y: u * u * u * s.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t * t * t * p.y))
+                    let a = u * u * u, b = 3 * u * u * t, cc = 3 * u * t * t, d = t * t * t
+                    let x: Double = a * s.x + b * c1.x + cc * c2.x + d * p.x
+                    let y: Double = a * s.y + b * c1.y + cc * c2.y + d * p.y
+                    pts.append(CGPoint(x: x, y: y))
                 }
                 current = p
             case .closeSubpath:

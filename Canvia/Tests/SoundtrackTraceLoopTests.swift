@@ -115,6 +115,18 @@ final class SoundtrackTraceLoopTests: XCTestCase {
         XCTAssertFalse(path.contains(CGPoint(x: 50, y: 50), using: .winding), "the hole stays open under a nonzero fill")
     }
 
+    func testTracingKeepsTheInkWhereItWas() throws {
+        // A dark block in the top-left quarter stays top-left.
+        let img = picture(100, transparent: false) { cg in
+            cg.setFillColor(UIColor.black.cgColor)
+            cg.fill(CGRect(x: 5, y: 5, width: 40, height: 40))
+        }
+        let t = try XCTUnwrap(Tracer.trace(img))
+        XCTAssertLessThan(t.bounds.maxY, 0.55, "\(t.bounds)")
+        XCTAssertLessThan(t.bounds.maxX, 0.55, "\(t.bounds)")
+        XCTAssertLessThan(t.bounds.minY, 0.1, "\(t.bounds)")
+    }
+
     func testBlankPicturesTraceToNothing() {
         XCTAssertNil(Tracer.trace(picture(40, transparent: false) { _ in }))
     }
