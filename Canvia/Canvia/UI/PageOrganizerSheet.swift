@@ -66,7 +66,8 @@ struct PageOrganizerSheet: View {
     }
 
     private func row(index: Int, page: Page) -> some View {
-        let aspect = store.design.width / max(store.design.height, 1)
+        let pageSize = store.design.size(for: page)
+        let aspect = pageSize.width / max(pageSize.height, 1)
         return HStack(spacing: 14) {
             PageThumbnail(design: store.design, page: page)
                 .frame(width: 72 * min(aspect, 1.8), height: 72)

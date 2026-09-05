@@ -96,7 +96,8 @@ struct PagesBar: View {
     }
 
     private func pageThumb(index: Int, page: Page) -> some View {
-        let aspect = store.design.width / store.design.height
+        let pageSize = store.design.size(for: page)
+        let aspect = pageSize.width / max(pageSize.height, 1)
         return Button {
             store.setPage(index)
         } label: {
@@ -227,7 +228,7 @@ struct PageThumbnail: View {
     @MainActor
     private func render() {
         let renderer = ImageRenderer(content: PageRenderView(design: design, page: page))
-        renderer.scale = max(0.02, 140 / max(design.width, 1))
+        renderer.scale = max(0.02, 140 / max(design.size(for: page).width, 1))
         renderer.isOpaque = true
         if let ui = renderer.uiImage { image = ui }
     }

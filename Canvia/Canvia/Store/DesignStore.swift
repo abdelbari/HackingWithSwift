@@ -57,6 +57,9 @@ final class DesignStore {
         page.elements.first { $0.id == id }
     }
 
+    /// The current page's size — its own, or the document's.
+    var pageSize: CGSize { design.size(for: page) }
+
     var selectedElements: [Element] {
         page.elements.filter { selection.contains($0.id) }
     }
@@ -207,8 +210,8 @@ final class DesignStore {
         }
         var el = element
         if centered && el.x == 0 && el.y == 0 {
-            el.x = (design.width - el.w) / 2
-            el.y = (design.height - el.h) / 2
+            el.x = (pageSize.width - el.w) / 2
+            el.y = (pageSize.height - el.h) / 2
         }
         applyToPage { $0.elements.append(el) }
         selection = [el.id]
@@ -403,7 +406,7 @@ final class DesignStore {
         let selected = selectedElements.filter { !$0.locked }
         guard !selected.isEmpty else { return }
         let bounds: CGRect = selected.count == 1
-            ? CGRect(x: 0, y: 0, width: design.width, height: design.height)
+            ? CGRect(origin: .zero, size: pageSize)
             : Geometry.union(selected.map(Geometry.aabb))
         applyToPage { page in
             for i in page.elements.indices where self.selection.contains(page.elements[i].id) && !page.elements[i].locked {
@@ -428,7 +431,7 @@ final class DesignStore {
     func tidySelected(_ mode: Geometry.TidyMode) {
         let members = selectedElements.filter { !$0.locked }
         guard members.count >= 2 else { return }
-        let gap = (min(design.width, design.height) / 50).rounded()
+        let gap = (min(pageSize.width, pageSize.height) / 50).rounded()
         let tidied = Geometry.tidy(members, mode: mode, gap: gap)
         applyToPage { page in
             let byId = Dictionary(uniqueKeysWithValues: tidied.map { ($0.id, $0) })
@@ -986,9 +989,9 @@ final class DesignStore {
 
     /// Drop a component onto the page at half its width, centred.
     func insertComponent(_ component: Component) {
-        let width = (design.width * 0.5).rounded()
+        let width = (pageSize.width * 0.5).rounded()
         let height = width * component.height / max(component.width, 1)
-        let origin = CGPoint(x: ((design.width - width) / 2).rounded(), y: ((design.height - height) / 2).rounded())
+        let origin = CGPoint(x: ((pageSize.width - width) / 2).rounded(), y: ((pageSize.height - height) / 2).rounded())
         let elements = Components.instance(of: component, width: width, at: origin)
         guard !elements.isEmpty else { return }
         applyToPage { $0.elements.append(contentsOf: elements) }
@@ -1089,7 +1092,7 @@ final class DesignStore {
 
     /// A guide across the middle of the page, to be dragged from there.
     func addGuide(vertical: Bool) {
-        addGuide(vertical: vertical, at: (vertical ? design.width / 2 : design.height / 2).rounded())
+        addGuide(vertical: vertical, at: (vertical ? pageSize.width / 2 : pageSize.height / 2).rounded())
     }
 
     func addGuide(vertical: Bool, at position: Double) {
@@ -1100,7 +1103,7 @@ final class DesignStore {
     func moveGuideTransient(_ id: String, to position: Double) {
         beginGesture()
         if let i = design.guides.firstIndex(where: { $0.id == id }) {
-            let limit = design.guides[i].vertical ? design.width : design.height
+            let limit = design.guides[i].vertical ? pageSize.width : pageSize.height
             design.guides[i].position = min(max(position, 0), limit).rounded()
         }
     }
@@ -1117,7 +1120,7 @@ final class DesignStore {
     // MARK: page clipboard
 
     func copyPage() {
-        PageClipboard.copy(page, width: design.width, height: design.height)
+        PageClipboard.copy(page, width: pageSize.width, height: pageSize.height)
     }
 
     var hasPageOnClipboard: Bool { PageClipboard.hasPage() }
@@ -1125,7 +1128,7 @@ final class DesignStore {
     /// Paste the copied page after the current one, scaled to this design.
     func pastePage() {
         guard let payload = PageClipboard.paste() else { return }
-        let landed = PageClipboard.fitted(payload, width: design.width, height: design.height)
+        let landed = PageClipboard.fitted(payload, width: pageSize.width, height: pageSize.height)
         apply { $0.pages.insert(landed, at: pageIndex + 1) }
         pageIndex += 1
         selection.removeAll()
@@ -1138,49 +1141,76 @@ final class DesignStore {
         editingTextId = nil
     }
 
-    /// Reflow to a new canvas rather than scaling the old one onto it: every
-    /// element keeps its position on each axis as the split of the room
-    /// around it — an element flush with the right edge stays flush, a
-    /// footer stays at the foot of a much taller page, a centred one stays
-    /// centred — while sizes scale by the smaller ratio and keep their
-    /// shape. Pure; `magicResize` commits it.
-    static func reflowed(_ design: Design, width: Double, height: Double) -> Design {
-        guard width > 0, height > 0 else { return design }
-        let rx = width / max(design.width, 1), ry = height / max(design.height, 1)
+    /// One page reflowed from one size to another: every element keeps its
+    /// position on each axis as the split of the room around it — flush
+    /// stays flush, centred stays centred — while sizes scale by the smaller
+    /// ratio and keep their shape; text may widen to use a wider page.
+    static func reflowedPage(_ page: Page, from old: CGSize, to new: CGSize) -> Page {
+        let rx = new.width / max(old.width, 1), ry = new.height / max(old.height, 1)
         let s = min(rx, ry)
-        var out = design
-        out.width = width
-        out.height = height
         /// Where on the new axis an element goes: the same share of the free
         /// room on either side as before; the centre's fraction when the
         /// element filled the axis and there was no room to share.
-        func place(_ pos: Double, _ size: Double, _ old: Double, _ newSize: Double, _ new: Double) -> Double {
-            let room = old - size
-            if room > 0.5 { return (new - newSize) * (pos / room) }
-            return (pos + size / 2) / max(old, 1) * new - newSize / 2
+        func place(_ pos: Double, _ size: Double, _ oldAxis: Double, _ newSize: Double, _ newAxis: Double) -> Double {
+            let room = oldAxis - size
+            if room > 0.5 { return (newAxis - newSize) * (pos / room) }
+            return (pos + size / 2) / max(oldAxis, 1) * newAxis - newSize / 2
         }
-        for p in out.pages.indices {
-            for i in out.pages[p].elements.indices {
-                let el = out.pages[p].elements[i]
-                var e = el
-                e.w = el.w * s
-                e.h = el.h * s
-                if let fs = el.fontSize { e.fontSize = fs * s }
-                if let t = el.thickness { e.thickness = max(1, t * s) }
-                // Text may stretch to use a wider page: its box grows with
-                // the width ratio, up to the page, and reflows.
-                if el.type == .text, rx > s {
-                    e.w = min(el.w * rx, width)
-                    e.h = FontLibrary.layoutHeight(for: e)
-                }
-                e.x = place(el.x, el.w, design.width, e.w, width)
-                e.y = place(el.y, el.h, design.height, e.h, height)
-                // Never off the page.
-                e.x = min(max(e.x, 0), max(width - e.w, 0))
-                e.y = min(max(e.y, 0), max(height - e.h, 0))
-                out.pages[p].elements[i] = e
+        var out = page
+        for i in out.elements.indices {
+            let el = out.elements[i]
+            var e = el
+            e.w = el.w * s
+            e.h = el.h * s
+            if let fs = el.fontSize { e.fontSize = fs * s }
+            if let t = el.thickness { e.thickness = max(1, t * s) }
+            if el.type == .text, rx > s {
+                e.w = min(el.w * rx, new.width)
+                e.h = FontLibrary.layoutHeight(for: e)
             }
+            e.x = place(el.x, el.w, old.width, e.w, new.width)
+            e.y = place(el.y, el.h, old.height, e.h, new.height)
+            // Never off the page.
+            e.x = min(max(e.x, 0), max(new.width - e.w, 0))
+            e.y = min(max(e.y, 0), max(new.height - e.h, 0))
+            out.elements[i] = e
         }
+        return out
+    }
+
+    /// One page scaled uniformly to fit a new size and centred, so a change
+    /// of shape leaves margins rather than pushing content off the page.
+    static func scaledPage(_ page: Page, from old: CGSize, to new: CGSize) -> Page {
+        let scale = min(new.width / max(old.width, 1), new.height / max(old.height, 1))
+        let dx = (new.width - old.width * scale) / 2
+        let dy = (new.height - old.height * scale) / 2
+        var out = page
+        for i in out.elements.indices {
+            out.elements[i].x = out.elements[i].x * scale + dx
+            out.elements[i].y = out.elements[i].y * scale + dy
+            out.elements[i].w *= scale
+            out.elements[i].h *= scale
+            if let fs = out.elements[i].fontSize { out.elements[i].fontSize = fs * scale }
+            if let t = out.elements[i].thickness { out.elements[i].thickness = max(1, t * scale) }
+        }
+        return out
+    }
+
+    /// Reflow the whole design to a new canvas rather than scaling the old
+    /// one onto it (see `reflowedPage`); pages with a size of their own are
+    /// brought to the new size too. Pure; `magicResize` commits it.
+    static func reflowed(_ design: Design, width: Double, height: Double) -> Design {
+        guard width > 0, height > 0 else { return design }
+        let new = CGSize(width: width, height: height)
+        var out = design
+        out.width = width
+        out.height = height
+        for p in out.pages.indices {
+            out.pages[p] = reflowedPage(design.pages[p], from: design.size(for: design.pages[p]), to: new)
+            out.pages[p].width = nil
+            out.pages[p].height = nil
+        }
+        let rx = width / max(design.width, 1), ry = height / max(design.height, 1)
         out.guides = out.guides.map { g in
             var g2 = g
             g2.position = g.vertical ? g.position * rx : g.position * ry
@@ -1190,7 +1220,7 @@ final class DesignStore {
     }
 
     func magicResize(width: Double, height: Double) {
-        guard width != design.width || height != design.height else { return }
+        guard width != design.width || height != design.height || design.hasMixedPageSizes else { return }
         let next = Self.reflowed(design, width: width, height: height)
         apply { $0 = next }
         announce("Reflowed to \(Int(width)) × \(Int(height))")
@@ -1200,27 +1230,35 @@ final class DesignStore {
     /// (and centring on both axes) keeps content on the page when the aspect
     /// ratio changes; scaling by width alone would push it off the bottom.
     func resizeDesign(width: Double, height: Double) {
-        guard width != design.width || height != design.height else { return }
-        let scale = min(width / design.width, height / design.height)
-        let dx = (width - design.width * scale) / 2
-        let dy = (height - design.height * scale) / 2
+        guard width != design.width || height != design.height || design.hasMixedPageSizes else { return }
+        let new = CGSize(width: width, height: height)
         apply { d in
+            for p in d.pages.indices {
+                d.pages[p] = Self.scaledPage(d.pages[p], from: d.size(for: d.pages[p]), to: new)
+                d.pages[p].width = nil
+                d.pages[p].height = nil
+            }
             d.width = width
             d.height = height
-            for p in d.pages.indices {
-                for i in d.pages[p].elements.indices {
-                    d.pages[p].elements[i].x = d.pages[p].elements[i].x * scale + dx
-                    d.pages[p].elements[i].y = d.pages[p].elements[i].y * scale + dy
-                    d.pages[p].elements[i].w *= scale
-                    d.pages[p].elements[i].h *= scale
-                    if let fs = d.pages[p].elements[i].fontSize {
-                        d.pages[p].elements[i].fontSize = fs * scale
-                    }
-                    if let t = d.pages[p].elements[i].thickness {
-                        d.pages[p].elements[i].thickness = max(1, t * scale)
-                    }
-                }
-            }
         }
+    }
+
+    /// This page alone takes a new size — a story after a square post — with
+    /// its content reflowed or scaled onto it. The document's own size is
+    /// what the other pages keep; choosing it again clears the override.
+    func resizePage(width: Double, height: Double, reflow: Bool) {
+        let old = pageSize
+        let new = CGSize(width: width, height: height)
+        guard new != old, width > 0, height > 0 else { return }
+        let index = pageIndex
+        apply { d in
+            var pg = reflow ? Self.reflowedPage(d.pages[index], from: old, to: new)
+                            : Self.scaledPage(d.pages[index], from: old, to: new)
+            let isDocument = width == d.width && height == d.height
+            pg.width = isDocument ? nil : width
+            pg.height = isDocument ? nil : height
+            d.pages[index] = pg
+        }
+        announce("This page is now \(Int(width)) × \(Int(height))")
     }
 }

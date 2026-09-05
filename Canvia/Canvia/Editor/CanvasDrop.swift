@@ -47,7 +47,7 @@ enum CanvasDrop {
     /// whether anything was taken; the elements arrive as each item loads.
     @MainActor
     static func handle(_ providers: [NSItemProvider], at point: CGPoint, store: DesignStore) -> Bool {
-        let page = store.design.size
+        let page = store.pageSize
         var taken = 0
         for provider in providers {
             let offset = Double(taken) * page.width * 0.04

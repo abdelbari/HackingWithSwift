@@ -616,7 +616,7 @@ struct PageRenderView: View {
                 ElementView(element: el).equatable()
             }
         }
-        .frame(width: design.width, height: design.height)
+        .frame(width: design.size(for: page).width, height: design.size(for: page).height)
         .clipped()
         .environment(\.pageNumber, pageNumberValue)
     }
@@ -638,7 +638,7 @@ struct PageRenderView: View {
                 Image(uiImage: ui)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(width: design.width, height: design.height)
+                    .frame(width: design.size(for: page).width, height: design.size(for: page).height)
                     .clipped()
             } else {
                 Color.white

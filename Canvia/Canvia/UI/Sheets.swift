@@ -827,9 +827,16 @@ struct ResizeSheet: View {
     @State private var customW = ""
     @State private var customH = ""
     @State private var reflow = true
+    @State private var pageOnly = false
 
     private func resize(_ w: Double, _ h: Double) {
-        if reflow { store.magicResize(width: w, height: h) } else { resize(w, h) }
+        if pageOnly {
+            store.resizePage(width: w, height: h, reflow: reflow)
+        } else if reflow {
+            store.magicResize(width: w, height: h)
+        } else {
+            store.resizeDesign(width: w, height: h)
+        }
     }
 
     var body: some View {
@@ -845,6 +852,19 @@ struct ResizeSheet: View {
                     Text(reflow
                          ? "Reflow keeps each element's place on the new page — a footer stays at the foot, a corner logo in its corner — and sizes follow the smaller ratio."
                          : "Scale shrinks or grows everything uniformly to fit, centred, leaving margins when the shape changes.")
+                }
+                if store.design.pages.count > 1 {
+                    Section {
+                        Picker("Apply to", selection: $pageOnly) {
+                            Text("Whole design").tag(false)
+                            Text("This page only").tag(true)
+                        }
+                        .pickerStyle(.segmented)
+                    } footer: {
+                        Text(pageOnly
+                             ? "Pages can have sizes of their own — a story after a square post. Exports, the video and the PDF keep each page's shape."
+                             : "Every page takes the new size; pages that had their own size join it.")
+                    }
                 }
                 Section("Presets") {
                     ForEach(SizePreset.all) { preset in
@@ -869,9 +889,9 @@ struct ResizeSheet: View {
                         Text("×")
                         TextField("Height", text: $customH).keyboardType(.numberPad)
                         Button("Apply") {
-                            let w = min(4000, max(40, Double(customW) ?? store.design.width))
-                            let h = min(4000, max(40, Double(customH) ?? store.design.height))
-                            store.resizeDesign(width: w, height: h)
+                            let w = min(4000, max(40, Double(customW) ?? store.pageSize.width))
+                            let h = min(4000, max(40, Double(customH) ?? store.pageSize.height))
+                            resize(w, h)
                             dismiss()
                         }
                         .buttonStyle(.borderedProminent)
@@ -881,8 +901,8 @@ struct ResizeSheet: View {
             .navigationTitle("Resize design")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
-                customW = String(Int(store.design.width))
-                customH = String(Int(store.design.height))
+                customW = String(Int(store.pageSize.width))
+                customH = String(Int(store.pageSize.height))
             }
         }
         .presentationDetents(sheetDetents)

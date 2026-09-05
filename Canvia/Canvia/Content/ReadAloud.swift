@@ -22,7 +22,7 @@ final class ReadAloud: NSObject, AVSpeechSynthesizerDelegate {
     static func script(for page: Page, in design: Design) -> String {
         let number = (design.pages.firstIndex { $0.id == page.id } ?? 0) + 1
         let elements = design.masterElements(behind: page) + page.elements
-        let order = CanvasAccessibility.readingOrder(elements, pageHeight: design.height)
+        let order = CanvasAccessibility.readingOrder(elements, pageHeight: design.size(for: page).height)
         let byId = Dictionary(elements.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         var parts: [String] = []
         for id in order {

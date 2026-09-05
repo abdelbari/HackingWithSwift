@@ -60,7 +60,7 @@ struct DataSheet: View {
     }
 
     private func add() {
-        let w = store.design.width, h = store.design.height
+        let w = store.pageSize.width, h = store.pageSize.height
         let frame = CGRect(x: (w * 0.1).rounded(), y: (h * 0.2).rounded(), width: (w * 0.8).rounded(), height: (h * 0.6).rounded())
         let palette = ColorTools.documentColors(store.design, limit: 8)
         let colors = palette.count >= 2 ? palette : (ContentLibrary.palettes.first?.colors ?? ["#5a31f4"])

@@ -60,8 +60,12 @@ enum PrintLayout {
 
     /// The design page in points, bleed included.
     static func pagePoints(design: Design, bleed: Double) -> CGSize {
-        CGSize(width: design.width * DesignExporter.pxToPt + 2 * bleed,
-               height: design.height * DesignExporter.pxToPt + 2 * bleed)
+        pagePoints(size: design.size, bleed: bleed)
+    }
+
+    static func pagePoints(size: CGSize, bleed: Double) -> CGSize {
+        CGSize(width: size.width * DesignExporter.pxToPt + 2 * bleed,
+               height: size.height * DesignExporter.pxToPt + 2 * bleed)
     }
 
     /// Where the page lands on the sheet when fitted: centred, as large as

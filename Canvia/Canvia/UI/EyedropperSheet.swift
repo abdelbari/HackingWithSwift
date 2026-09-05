@@ -14,8 +14,8 @@ struct EyedropperSheet: View {
     var body: some View {
         NavigationStack {
             GeometryReader { geo in
-                let fit = min(geo.size.width / max(design.width, 1), (geo.size.height - 80) / max(design.height, 1))
-                let size = CGSize(width: design.width * fit, height: design.height * fit)
+                let fit = min(geo.size.width / max(design.size(for: page).width, 1), (geo.size.height - 80) / max(design.size(for: page).height, 1))
+                let size = CGSize(width: design.size(for: page).width * fit, height: design.size(for: page).height * fit)
                 VStack(spacing: 14) {
                     ZStack(alignment: .topLeading) {
                         if let rendered {
@@ -70,7 +70,7 @@ struct EyedropperSheet: View {
         }
         .task {
             rendered = DesignExporter.render(design: design, page: page,
-                                             scale: min(1, 1200 / max(design.width, design.height, 1)))
+                                             scale: min(1, 1200 / max(design.size(for: page).width, design.size(for: page).height, 1)))
         }
     }
 

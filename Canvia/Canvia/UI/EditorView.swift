@@ -762,7 +762,7 @@ struct EditorView: View {
         DesignLibrary.snapshot(store.design, force: true)
         let design = store.design
         let renderer = ImageRenderer(content: PageRenderView(design: design, page: design.pages[0]))
-        renderer.scale = 300 / max(design.width, 1)
+        renderer.scale = 300 / max(design.size(at: 0).width, 1)
         // The alpha channel is discarded by jpegData when the thumbnail is
         // written, so compositing it is wasted work.
         renderer.isOpaque = true

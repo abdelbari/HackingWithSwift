@@ -48,9 +48,9 @@ struct CanvasView: View {
         // outrank the per-element DragGestures inside it, which is what made
         // pinching impossible once elements covered the page.
         ZoomableCanvas(
-            contentSize: CGSize(width: store.design.width, height: store.design.height),
+            contentSize: CGSize(width: store.pageSize.width, height: store.pageSize.height),
             zoom: $store.zoom,
-            fitToken: "\(store.design.id)-\(store.design.width)x\(store.design.height)",
+            fitToken: "\(store.design.id)-\(store.pageSize.width)x\(store.pageSize.height)",
             onBackgroundTap: {
                 commitTextEditIfAny()
                 store.select(nil)
@@ -59,7 +59,7 @@ struct CanvasView: View {
         ) {
             pageContent
                 .coordinateSpace(name: "page")
-                .frame(width: store.design.width, height: store.design.height)
+                .frame(width: store.pageSize.width, height: store.pageSize.height)
         }
         .ignoresSafeArea(.keyboard)
     }
@@ -77,7 +77,7 @@ struct CanvasView: View {
             // constant rect casts an identical shadow for free.
             Rectangle()
                 .fill(Color.white)
-                .frame(width: store.design.width, height: store.design.height)
+                .frame(width: store.pageSize.width, height: store.pageSize.height)
                 // Divided by zoom like every other ornament: this lives inside
                 // the scroll view's zoomed subview, so a fixed radius was 4pt
                 // of blur at fit zoom — the page looked pasted flat onto the
@@ -114,7 +114,7 @@ struct CanvasView: View {
 
             // Hit layer: one transparent overlay per element for taps/drags,
             // announced in reading order rather than stacking order.
-            let order = CanvasAccessibility.readingOrder(store.page.elements, pageHeight: store.design.height)
+            let order = CanvasAccessibility.readingOrder(store.page.elements, pageHeight: store.pageSize.height)
             ForEach(store.page.elements) { el in
                 elementHitArea(el)
                     .accessibilitySortPriority(Double(order.count - (order.firstIndex(of: el.id) ?? 0)))
@@ -162,7 +162,7 @@ struct CanvasView: View {
                     .stroke(Color.red.opacity(0.45), style: StrokeStyle(lineWidth: store.eraserWidth, lineCap: .round, lineJoin: .round))
             }
         }
-        .frame(width: store.design.width, height: store.design.height)
+        .frame(width: store.pageSize.width, height: store.pageSize.height)
         .gesture(
             DragGesture(minimumDistance: 0, coordinateSpace: .named("page"))
                 .onChanged { value in
@@ -192,7 +192,7 @@ struct CanvasView: View {
                             style: StrokeStyle(lineWidth: tool.width, lineCap: .round, lineJoin: .round))
             }
         }
-        .frame(width: store.design.width, height: store.design.height)
+        .frame(width: store.pageSize.width, height: store.pageSize.height)
         .gesture(
             DragGesture(minimumDistance: 0, coordinateSpace: .named("page"))
                 .onChanged { value in
@@ -224,7 +224,7 @@ struct CanvasView: View {
                 .multilineTextAlignment(.center)
         }
         .foregroundStyle(Theme.onPage)
-        .position(x: store.design.width / 2, y: store.design.height / 2)
+        .position(x: store.pageSize.width / 2, y: store.pageSize.height / 2)
         .allowsHitTesting(false)
         .transition(.opacity)
     }
@@ -264,7 +264,7 @@ struct CanvasView: View {
     /// PageRenderView, so it is never in an export or a thumbnail.
     private var gridOverlay: some View {
         let spacing = store.snapping.grid
-        let w = store.design.width, h = store.design.height
+        let w = store.pageSize.width, h = store.pageSize.height
         return Canvas { context, _ in
             var path = Path()
             for x in Geometry.gridLines(across: w, spacing: spacing) {
@@ -285,7 +285,7 @@ struct CanvasView: View {
     /// and removed with a long press. Its touch target is wide though the
     /// line is not.
     private func guideLine(_ guide: Guide) -> some View {
-        let w = store.design.width, h = store.design.height
+        let w = store.pageSize.width, h = store.pageSize.height
         return Rectangle()
             .fill(Theme.guide.opacity(0.9))
             .frame(width: guide.vertical ? 1.5 * iz : w, height: guide.vertical ? h : 1.5 * iz)
@@ -305,12 +305,12 @@ struct CanvasView: View {
 
     /// The safe area as a dashed inset. Like the grid, never exported.
     private var marginOverlay: some View {
-        let m = store.snapping.marginInset(for: store.design)
+        let m = store.snapping.marginInset(for: store.pageSize)
         return Rectangle()
             .strokeBorder(Theme.guide.opacity(0.55),
                           style: StrokeStyle(lineWidth: 1 * iz, dash: [6 * iz, 4 * iz]))
-            .frame(width: max(store.design.width - 2 * m, 1), height: max(store.design.height - 2 * m, 1))
-            .position(x: store.design.width / 2, y: store.design.height / 2)
+            .frame(width: max(store.pageSize.width - 2 * m, 1), height: max(store.pageSize.height - 2 * m, 1))
+            .position(x: store.pageSize.width / 2, y: store.pageSize.height / 2)
             .allowsHitTesting(false)
     }
 

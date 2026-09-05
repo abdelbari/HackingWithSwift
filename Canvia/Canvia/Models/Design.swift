@@ -148,6 +148,10 @@ struct Page: Codable, Equatable, Identifiable {
     var transition: String?
     /// Whether the master page shows behind this one; nil is yes.
     var usesMaster: Bool?
+    /// This page's own size, when it differs from the document's — a story
+    /// page after a square post. nil is the document's size.
+    var width: Double?
+    var height: Double?
 
     init(id: String = UID.make("page"), background: Background = .color("#ffffff"),
          elements: [Element] = [], notes: String? = nil) {
@@ -166,10 +170,12 @@ struct Page: Codable, Equatable, Identifiable {
         holdSeconds = try? c.decode(Double.self, forKey: .holdSeconds)
         transition = try? c.decode(String.self, forKey: .transition)
         usesMaster = try? c.decode(Bool.self, forKey: .usesMaster)
+        width = try? c.decode(Double.self, forKey: .width)
+        height = try? c.decode(Double.self, forKey: .height)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, background, elements, notes, holdSeconds, transition, usesMaster
+        case id, background, elements, notes, holdSeconds, transition, usesMaster, width, height
     }
 }
 
@@ -218,6 +224,18 @@ struct Design: Codable, Equatable, Identifiable {
     var folder: String?
 
     var size: CGSize { CGSize(width: width, height: height) }
+
+    /// A page's size: its own when it has one, else the document's.
+    func size(for page: Page) -> CGSize {
+        CGSize(width: page.width ?? width, height: page.height ?? height)
+    }
+
+    func size(at index: Int) -> CGSize {
+        pages.indices.contains(index) ? size(for: pages[index]) : size
+    }
+
+    /// Whether any page has a size of its own.
+    var hasMixedPageSizes: Bool { pages.contains { $0.width != nil || $0.height != nil } }
 
     init(title: String = "Untitled design", width: Double = 1080, height: Double = 1080) {
         self.title = title

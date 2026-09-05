@@ -291,15 +291,20 @@ enum DesignExporter {
     @MainActor
     static func exportPDF(design: Design, range: PageRange = .all, current: Int = 0,
                           to url: URL) throws {
-        let bounds = CGRect(x: 0, y: 0,
-                            width: design.width * pxToPt,
-                            height: design.height * pxToPt)
         let indices = range.indices(in: design, current: current)
-        try UIGraphicsPDFRenderer(bounds: bounds).writePDF(to: url) { ctx in
+        func bounds(_ page: Page) -> CGRect {
+            let size = design.size(for: page)
+            return CGRect(x: 0, y: 0, width: size.width * pxToPt, height: size.height * pxToPt)
+        }
+        let first = bounds(design.pages[indices.first ?? 0])
+        try UIGraphicsPDFRenderer(bounds: first).writePDF(to: url) { ctx in
             for page in indices.map({ design.pages[$0] }) {
                 autoreleasepool {
-                    ctx.beginPage()
-                    draw(design: design, page: page, into: ctx.cgContext, fitting: bounds)
+                    // Each page at its own size: a deck can mix a slide and a
+                    // handout.
+                    let box = bounds(page)
+                    ctx.beginPage(withBounds: box, pageInfo: [:])
+                    draw(design: design, page: page, into: ctx.cgContext, fitting: box)
                 }
             }
         }
@@ -312,9 +317,9 @@ enum DesignExporter {
                                options: PrintLayout.Options, to url: URL) throws {
         let sheet = CGRect(origin: .zero, size: options.sheet)
         let indices = range.indices(in: design, current: current)
-        let pagePts = PrintLayout.pagePoints(design: design, bleed: options.bleed)
         try UIGraphicsPDFRenderer(bounds: sheet).writePDF(to: url) { ctx in
             for page in indices.map({ design.pages[$0] }) {
+                let pagePts = PrintLayout.pagePoints(size: design.size(for: page), bleed: options.bleed)
                 let placements: [(sheetRect: CGRect, source: CGRect)]
                 switch options.fit {
                 case .fit:

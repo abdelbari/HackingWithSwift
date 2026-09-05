@@ -263,9 +263,10 @@ enum Geometry {
                           settings: SnapSettings = SnapSettings()) -> (x: [Double], y: [Double]) {
         var xs: [Double] = []
         var ys: [Double] = []
+        let size = design.size(for: page)
         if settings.toPage {
-            xs += [0, design.width / 2, design.width]
-            ys += [0, design.height / 2, design.height]
+            xs += [0, size.width / 2, size.width]
+            ys += [0, size.height / 2, size.height]
         }
         if settings.toElements {
             for el in page.elements where !ids.contains(el.id) {
@@ -275,13 +276,13 @@ enum Geometry {
             }
         }
         if settings.gridEnabled {
-            xs += gridLines(across: design.width, spacing: settings.grid)
-            ys += gridLines(across: design.height, spacing: settings.grid)
+            xs += gridLines(across: size.width, spacing: settings.grid)
+            ys += gridLines(across: size.height, spacing: settings.grid)
         }
         if settings.marginEnabled {
-            let m = settings.marginInset(for: design)
-            xs += [m, design.width - m]
-            ys += [m, design.height - m]
+            let m = settings.marginInset(for: size)
+            xs += [m, size.width - m]
+            ys += [m, size.height - m]
         }
         // Guides are placed on purpose, so they snap whatever else is off.
         for guide in design.guides {

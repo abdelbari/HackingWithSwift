@@ -174,10 +174,23 @@ enum MovieExporter {
         return autoreleasepool { () -> CGImage? in
             let renderer = ImageRenderer(content: PageRenderView(design: design, page: design.pages[page])
                 .environment(\.animationTime, (time, hold)))
-            renderer.scale = size.width / max(design.width, 1)
+            renderer.scale = renderScale(for: design.size(for: design.pages[page]), in: size)
             renderer.isOpaque = true
             return renderer.cgImage
         }
+    }
+
+    /// The scale that fits a page of `page` size inside the video frame.
+    static func renderScale(for page: CGSize, in size: CGSize) -> CGFloat {
+        min(size.width / max(page.width, 1), size.height / max(page.height, 1))
+    }
+
+    /// Where a page bitmap sits in the frame: filling it when the shapes
+    /// agree, letterboxed and centred when a page has a size of its own.
+    static func fitRect(image: CGSize, in size: CGSize) -> CGRect {
+        let s = min(size.width / max(image.width, 1), size.height / max(image.height, 1))
+        let w = image.width * s, h = image.height * s
+        return CGRect(x: (size.width - w) / 2, y: (size.height - h) / 2, width: w, height: h)
     }
 
     /// One bitmap per page, at the output size. Rendered once and reused for
@@ -188,7 +201,7 @@ enum MovieExporter {
         design.pages.compactMap { page in
             autoreleasepool { () -> CGImage? in
                 let renderer = ImageRenderer(content: PageRenderView(design: design, page: page))
-                renderer.scale = size.width / max(design.width, 1)
+                renderer.scale = renderScale(for: design.size(for: page), in: size)
                 renderer.isOpaque = true
                 return renderer.cgImage
             }
@@ -226,7 +239,11 @@ enum MovieExporter {
         let hold = Double(timing.frames) / Double(max(settings.fps, 1))
         let seconds = Double(index - timing.start) / Double(max(settings.fps, 1))
 
-        context.setFillColor(gray: 1, alpha: 1)
+        // White behind a page that fills the frame; black bars behind one
+        // shaped unlike the video.
+        let fitted = fitRect(image: CGSize(width: pages[page].width, height: pages[page].height), in: size)
+        let letterboxed = fitted.width < size.width - 0.5 || fitted.height < size.height - 0.5
+        context.setFillColor(gray: letterboxed ? 0 : 1, alpha: 1)
         context.fill(CGRect(origin: .zero, size: size))
         context.interpolationQuality = .high
 
@@ -258,8 +275,9 @@ enum MovieExporter {
 
     private static func drawPage(_ image: CGImage, progress: Double, alpha: Double,
                                  size: CGSize, settings: Settings, into context: CGContext) {
+        let fitted = fitRect(image: CGSize(width: image.width, height: image.height), in: size)
         let scale = 1 + settings.zoom * progress
-        let width = size.width * scale, height = size.height * scale
+        let width = fitted.width * scale, height = fitted.height * scale
         let rect = CGRect(x: (size.width - width) / 2, y: (size.height - height) / 2,
                           width: width, height: height)
         context.saveGState()

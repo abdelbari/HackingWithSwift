@@ -55,10 +55,11 @@ struct PresentationView: View {
     }
 
     private func pageView(in size: CGSize) -> some View {
-        let scale = min(size.width / max(design.width, 1), size.height / max(design.height, 1))
+        let pageSize = design.size(for: page)
+        let scale = min(size.width / max(pageSize.width, 1), size.height / max(pageSize.height, 1))
         return PageRenderView(design: design, page: page)
             .scaleEffect(scale)
-            .frame(width: design.width * scale, height: design.height * scale)
+            .frame(width: pageSize.width * scale, height: pageSize.height * scale)
             .position(x: size.width / 2, y: size.height / 2)
             .accessibilityLabel("Page \(index + 1) of \(design.pages.count)")
     }

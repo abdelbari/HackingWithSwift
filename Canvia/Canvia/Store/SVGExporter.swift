@@ -47,10 +47,11 @@ enum SVGExporter {
             body.append(elementGroup(resolved, index: index, defs: &defs))
         }
 
+        let size = design.size(for: page)
         let header = "<svg xmlns=\"http://www.w3.org/2000/svg\" " +
             "xmlns:xlink=\"http://www.w3.org/1999/xlink\" " +
-            "width=\"\(num(design.width))\" height=\"\(num(design.height))\" " +
-            "viewBox=\"0 0 \(num(design.width)) \(num(design.height))\">"
+            "width=\"\(num(size.width))\" height=\"\(num(size.height))\" " +
+            "viewBox=\"0 0 \(num(size.width)) \(num(size.height))\">"
         let defsBlock = defs.isEmpty ? "" : "<defs>\(defs.joined())</defs>"
         return header + defsBlock + body.joined() + "</svg>"
     }
@@ -257,25 +258,26 @@ enum SVGExporter {
 
     @MainActor
     private static func backgroundMarkup(design: Design, page: Page, defs: inout [String]) -> String {
+        let size = design.size(for: page)
         switch page.background {
         case .color(let hex):
-            return "<rect width=\"\(num(design.width))\" height=\"\(num(design.height))\" " +
+            return "<rect width=\"\(num(size.width))\" height=\"\(num(size.height))\" " +
                    "fill=\"\(escape(hex))\"/>"
         case .gradient(let paint):
             defs.append(gradientDef(id: "bg", paint: paint,
-                                    width: design.width, height: design.height))
-            return "<rect width=\"\(num(design.width))\" height=\"\(num(design.height))\" " +
+                                    width: size.width, height: size.height))
+            return "<rect width=\"\(num(size.width))\" height=\"\(num(size.height))\" " +
                    "fill=\"url(#bg)\"/>"
         case .image:
             let renderer = ImageRenderer(content: PageBackgroundView(design: design, page: page))
             renderer.scale = bitmapScale
             renderer.isOpaque = true
             guard let image = renderer.uiImage, let data = image.jpegData(compressionQuality: 0.9) else {
-                return "<rect width=\"\(num(design.width))\" height=\"\(num(design.height))\" fill=\"#ffffff\"/>"
+                return "<rect width=\"\(num(size.width))\" height=\"\(num(size.height))\" fill=\"#ffffff\"/>"
             }
             let uri = "data:image/jpeg;base64," + data.base64EncodedString()
-            return "<image x=\"0\" y=\"0\" width=\"\(num(design.width))\" " +
-                   "height=\"\(num(design.height))\" preserveAspectRatio=\"none\" " +
+            return "<image x=\"0\" y=\"0\" width=\"\(num(size.width))\" " +
+                   "height=\"\(num(size.height))\" preserveAspectRatio=\"none\" " +
                    "xlink:href=\"\(uri)\"/>"
         }
     }
@@ -340,7 +342,7 @@ private struct PageBackgroundView: View {
                 Color.white
             }
         }
-        .frame(width: design.width, height: design.height)
+        .frame(width: design.size(for: page).width, height: design.size(for: page).height)
         .clipped()
     }
 }

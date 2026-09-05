@@ -357,6 +357,15 @@ through the element's rotation, crop zoom and fill/fit placement into the
 picture's own pixels. Skies, walls and tabletops come out clean; busy
 backgrounds come out as a smudge, as the honest tools on a phone do.
 
+**Mixed page sizes** — a page can have a size of its own: the Resize sheet
+applies to the whole design or to this page only, reflowing or scaling the
+page's content onto it. The canvas refits when you land on a page shaped
+differently, snapping and centring use the page's size, thumbnails keep
+each page's shape, the SVG and the PDF write each page at its own size
+(a deck can carry a slide and a handout), and the video letterboxes a page
+shaped unlike the frame on black. Resizing the whole design brings every
+page to the new size.
+
 **Keyboard** — with a hardware keyboard, the usual shortcuts, each with
 a title in the discoverability overlay: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, ⌘D
 duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and
