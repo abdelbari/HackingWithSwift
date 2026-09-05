@@ -380,6 +380,15 @@ text element in their place at their size — Undo keeps the strokes.
 a user activity, so it comes back as a suggestion and can be continued on
 another device that has the same design.
 
+**Video clips** — the photo picker takes videos too. A clip is stored by
+id and placed as an ordinary picture element whose source is the clip:
+at rest it shows the clip's first frame, so crop, filters, frames and
+every still export work as they do for a photo; when the page plays —
+the canvas preview, the MP4, the GIF — the element shows the frame at
+that moment, looping over the clip's length. A page with a clip renders
+frame by frame like an animated page. The clip's own sound is not
+carried; a soundtrack is.
+
 **Keyboard** — with a hardware keyboard, the usual shortcuts, each with
 a title in the discoverability overlay: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, ⌘D
 duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and

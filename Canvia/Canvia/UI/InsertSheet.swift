@@ -86,6 +86,19 @@ struct InsertSheet: View {
                 var placed = 0
                 for item in items {
                     guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+                    // A clip: stored whole, shown by its poster frame, played
+                    // on the page preview and in the video export.
+                    if let movie = item.supportedContentTypes.first(where: { $0.conforms(to: .movie) }) {
+                        let ext = movie.preferredFilenameExtension ?? "mov"
+                        let stored = await Task.detached(priority: .userInitiated) { () -> (src: String, natural: CGSize)? in
+                            guard let id = VideoStore.store(data, ext: ext), let poster = VideoStore.poster(id) else { return nil }
+                            return (VideoStore.src(id, at: nil), poster.size)
+                        }.value
+                        guard let stored else { continue }
+                        insertImage(stored.src, natural: stored.natural, replacing: nil, cascade: placed)
+                        placed += 1
+                        continue
+                    }
                     // Decoding, scaling, re-encoding and the file write all
                     // happen off the main actor, where a full-resolution
                     // camera photo's decode belongs.
@@ -517,8 +530,8 @@ struct InsertSheet: View {
             Group {
                 PhotosPicker(selection: $pickedItems,
                              maxSelectionCount: store.replaceTargetId == nil ? 10 : 1,
-                             matching: .images) {
-                    Label(store.replaceTargetId == nil ? "Add from Photo Library" : "Choose a replacement",
+                             matching: store.replaceTargetId == nil ? .any(of: [.images, .videos]) : .images) {
+                    Label(store.replaceTargetId == nil ? "Add photos or video" : "Choose a replacement",
                           systemImage: "photo.badge.plus")
                         .frame(maxWidth: .infinity)
                         .padding(10)

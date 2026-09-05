@@ -1060,7 +1060,7 @@ final class DesignStore {
     }
 
     var pageIsAnimated: Bool {
-        page.elements.contains { $0.animation != nil || $0.kenBurns != nil }
+        page.elements.contains { $0.animation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src) }
     }
 
     /// Play the page's entrances and drifts once, at 30 frames a second,

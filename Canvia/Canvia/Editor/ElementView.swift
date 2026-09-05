@@ -43,6 +43,10 @@ struct ElementView: View {
             let crop = drift.crop(from: el, fraction: clock.hold > 0 ? clock.time / clock.hold : 0)
             el.cropScale = crop.scale; el.cropX = crop.x; el.cropY = crop.y
         }
+        // A clip shows the frame at this moment while the page plays.
+        if let clock = animationTime, let src = el.src, let parts = VideoStore.split(src), parts.time == nil {
+            el.src = VideoStore.src(parts.id, at: clock.time)
+        }
         return el
     }
 

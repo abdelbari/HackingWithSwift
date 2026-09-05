@@ -61,6 +61,7 @@ enum PhotoLibrary {
         guard let src else { return nil }
         if src.hasPrefix("asset:") { return image(id: String(src.dropFirst(6))) }
         if src.hasPrefix("media:") { return MediaStore.load(String(src.dropFirst(6))) }
+        if VideoStore.isVideo(src) { return VideoStore.resolve(src) }
         if let payload = CodeGenerator.payload(from: src) { return CodeGenerator.qr(payload) }
         return nil
     }

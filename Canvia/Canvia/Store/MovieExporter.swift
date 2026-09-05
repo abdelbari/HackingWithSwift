@@ -163,7 +163,7 @@ enum MovieExporter {
 
     /// Whether a page has to be rendered frame by frame.
     static func isAnimated(_ page: Page) -> Bool {
-        page.elements.contains { $0.animation != nil || $0.kenBurns != nil }
+        page.elements.contains { $0.animation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src) }
     }
 
     /// A page at a moment, for animated pages: the same render as the page

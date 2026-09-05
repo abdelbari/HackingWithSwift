@@ -497,7 +497,12 @@ struct ContextToolbar: View {
         toolButton("square.on.circle", "Frame") { activeSheet = .frame }
         toolButton("camera.filters", "Filters") { activeSheet = .filters }
         toolButton("crop", "Crop") { activeSheet = .crop }
-        toolButton("eraser", "Erase") { store.beginErasing(el.id) }
+        if VideoStore.isVideo(el.src) {
+            // A clip: play the page to see it move; stills come from its poster.
+            toolButton("play.circle", "Play") { store.playPreview() }
+        } else {
+            toolButton("eraser", "Erase") { store.beginErasing(el.id) }
+        }
         Menu {
             Button {
                 readText(el)
