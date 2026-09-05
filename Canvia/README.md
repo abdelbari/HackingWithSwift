@@ -417,6 +417,13 @@ so `<text>` would silently substitute. Images and stickers embed as
 bitmaps rendered through the very views the canvas draws, so crop,
 filter, corner radius and emoji colour arrive exactly as they looked.
 
+**Not built, and why** — a home-screen widget and an App Group. Both need
+a second target (a widget extension) with its own signing and an
+app-group entitlement provisioned for the team, which the one-target,
+sign-to-run setup in this repository deliberately avoids so the app
+installs from Xcode with a free account. The App Intents above cover
+the "start a design from outside the app" case that a widget would.
+
 ## Architecture
 
 ```
