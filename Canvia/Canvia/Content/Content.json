@@ -5760,6 +5760,2968 @@
    ]
   },
   {
+   "id": "deck-indigo-agenda",
+   "name": "Deck Agenda Contents",
+   "category": "Business",
+   "width": 1920.0,
+   "height": 1080.0,
+   "background": {
+    "type": "color",
+    "value": "#4a5896"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 1000,
+     "y": 0,
+     "w": 920,
+     "h": 1080,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#2b3364"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 1560,
+     "y": 760,
+     "w": 640,
+     "opacity": 0.12,
+     "h": 640,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffb267"
+     }
+    },
+    {
+     "type": "line",
+     "x": 120,
+     "y": 96,
+     "w": 88,
+     "thickness": 5,
+     "color": "#ffb267",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 122,
+     "w": 600,
+     "text": "AGENDA",
+     "fontSize": 24,
+     "fontFamily": "mono",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#ffb267",
+     "letterSpacing": 7
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 320,
+     "w": 860,
+     "text": "What we'll\ncover today",
+     "fontSize": 118,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.04,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 630,
+     "w": 740,
+     "opacity": 0.82,
+     "text": "Forty minutes, five sections, and one decision to make at the end.",
+     "fontSize": 28,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.45,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "text",
+     "x": 1200,
+     "y": 300,
+     "w": 560,
+     "opacity": 0.62,
+     "text": "45 MINUTES  ·  5 SECTIONS",
+     "fontSize": 20,
+     "fontFamily": "mono",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#eef1fb",
+     "letterSpacing": 5
+    },
+    {
+     "type": "text",
+     "x": 1080,
+     "y": 380,
+     "w": 80,
+     "text": "01\n02\n03\n04\n05",
+     "fontSize": 36,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "right",
+     "lineHeight": 1.6,
+     "color": "#ffb267"
+    },
+    {
+     "type": "text",
+     "x": 1200,
+     "y": 380,
+     "w": 600,
+     "text": "Where the quarter landed\nWhat the churn data says\nThe two options on the table\nCost, risk and timing\nWhat we need from you",
+     "fontSize": 36,
+     "fontFamily": "grotesk",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.6,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 980,
+     "w": 760,
+     "opacity": 0.72,
+     "text": "NORTHWIND  ·  Q3 STRATEGY REVIEW",
+     "fontSize": 20,
+     "fontFamily": "mono",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#eef1fb",
+     "letterSpacing": 4
+    }
+   ]
+  },
+  {
+   "id": "deck-indigo-key-points",
+   "name": "Deck Key Points",
+   "category": "Business",
+   "width": 1920.0,
+   "height": 1080.0,
+   "background": {
+    "type": "color",
+    "value": "#4a5896"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 770,
+     "y": 250,
+     "w": 3,
+     "opacity": 0.25,
+     "h": 620,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#eef1fb"
+     }
+    },
+    {
+     "type": "line",
+     "x": 120,
+     "y": 96,
+     "w": 88,
+     "thickness": 5,
+     "color": "#ffb267",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 122,
+     "w": 600,
+     "text": "WHAT CHANGED",
+     "fontSize": 24,
+     "fontFamily": "mono",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#ffb267",
+     "letterSpacing": 7
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 270,
+     "w": 560,
+     "text": "Four shifts\nthat moved\nretention",
+     "fontSize": 72,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.05,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 560,
+     "w": 540,
+     "opacity": 0.82,
+     "text": "Retention went from 71% to 84% in twelve weeks. Not one of them was a new feature.",
+     "fontSize": 28,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.45,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "shape",
+     "x": 830,
+     "y": 264,
+     "w": 16,
+     "h": 16,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffb267"
+     },
+     "radius": 4
+    },
+    {
+     "type": "text",
+     "x": 880,
+     "y": 250,
+     "w": 920,
+     "text": "A release train every Thursday — shipped or not, the date never moves.",
+     "fontSize": 36,
+     "fontFamily": "grotesk",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "shape",
+     "x": 830,
+     "y": 444,
+     "w": 16,
+     "h": 16,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffb267"
+     },
+     "radius": 4
+    },
+    {
+     "type": "text",
+     "x": 880,
+     "y": 430,
+     "w": 920,
+     "text": "One named owner per metric, printed at the top of the dashboard.",
+     "fontSize": 36,
+     "fontFamily": "grotesk",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "shape",
+     "x": 830,
+     "y": 624,
+     "w": 16,
+     "h": 16,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffb267"
+     },
+     "radius": 4
+    },
+    {
+     "type": "text",
+     "x": 880,
+     "y": 610,
+     "w": 920,
+     "text": "Support tickets triaged by the team that wrote the code.",
+     "fontSize": 36,
+     "fontFamily": "grotesk",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "shape",
+     "x": 830,
+     "y": 804,
+     "w": 16,
+     "h": 16,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffb267"
+     },
+     "radius": 4
+    },
+    {
+     "type": "text",
+     "x": 880,
+     "y": 790,
+     "w": 920,
+     "text": "The roadmap argued against churn data, never against opinion.",
+     "fontSize": 36,
+     "fontFamily": "grotesk",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 980,
+     "w": 760,
+     "opacity": 0.72,
+     "text": "NORTHWIND  ·  Q3 STRATEGY REVIEW",
+     "fontSize": 20,
+     "fontFamily": "mono",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#eef1fb",
+     "letterSpacing": 4
+    }
+   ]
+  },
+  {
+   "id": "deck-indigo-comparison",
+   "name": "Deck Side By Side",
+   "category": "Business",
+   "width": 1920.0,
+   "height": 1080.0,
+   "background": {
+    "type": "color",
+    "value": "#4a5896"
+   },
+   "elements": [
+    {
+     "type": "line",
+     "x": 120,
+     "y": 96,
+     "w": 88,
+     "thickness": 5,
+     "color": "#ffb267",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 122,
+     "w": 600,
+     "text": "THE DECISION",
+     "fontSize": 24,
+     "fontFamily": "mono",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#ffb267",
+     "letterSpacing": 7
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 190,
+     "w": 1200,
+     "text": "Two ways to ship it",
+     "fontSize": 72,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.05,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "shape",
+     "x": 120,
+     "y": 340,
+     "w": 800,
+     "h": 460,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#eef1fb"
+     },
+     "radius": 24
+    },
+    {
+     "type": "shape",
+     "x": 1000,
+     "y": 340,
+     "w": 800,
+     "h": 460,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#2b3364"
+     },
+     "radius": 24
+    },
+    {
+     "type": "text",
+     "x": 176,
+     "y": 400,
+     "w": 640,
+     "text": "BUILD IT IN-HOUSE",
+     "fontSize": 24,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#2b3364",
+     "letterSpacing": 6
+    },
+    {
+     "type": "text",
+     "x": 176,
+     "y": 470,
+     "w": 688,
+     "text": "12 weeks to first release\n£180k of build cost\nThe roadmap stays ours\nTwo engineers off billing",
+     "fontSize": 36,
+     "fontFamily": "grotesk",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.6,
+     "color": "#2b3364"
+    },
+    {
+     "type": "text",
+     "x": 1056,
+     "y": 400,
+     "w": 640,
+     "text": "SHIP WITH A PARTNER",
+     "fontSize": 24,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#ffb267",
+     "letterSpacing": 6
+    },
+    {
+     "type": "text",
+     "x": 1056,
+     "y": 470,
+     "w": 688,
+     "text": "5 weeks to first release\n£240k first-year licence\nTheir roadmap, their pace\nNo engineers reassigned",
+     "fontSize": 36,
+     "fontFamily": "grotesk",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.6,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "shape",
+     "x": 920,
+     "y": 530,
+     "w": 80,
+     "h": 80,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffb267"
+     }
+    },
+    {
+     "type": "text",
+     "x": 920,
+     "y": 556,
+     "w": 80,
+     "text": "VS",
+     "fontSize": 24,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#2b3364",
+     "letterSpacing": 2
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 980,
+     "w": 760,
+     "opacity": 0.72,
+     "text": "NORTHWIND  ·  Q3 STRATEGY REVIEW",
+     "fontSize": 20,
+     "fontFamily": "mono",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#eef1fb",
+     "letterSpacing": 4
+    }
+   ]
+  },
+  {
+   "id": "deck-indigo-pull-quote",
+   "name": "Deck Pull Quote",
+   "category": "Business",
+   "width": 1920.0,
+   "height": 1080.0,
+   "background": {
+    "type": "color",
+    "value": "#4a5896"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 1420,
+     "y": -260,
+     "w": 820,
+     "opacity": 0.12,
+     "h": 820,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffb267"
+     }
+    },
+    {
+     "type": "shape",
+     "x": -160,
+     "y": 780,
+     "w": 520,
+     "opacity": 0.08,
+     "h": 520,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#eef1fb"
+     }
+    },
+    {
+     "type": "line",
+     "x": 120,
+     "y": 96,
+     "w": 88,
+     "thickness": 5,
+     "color": "#ffb267",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 122,
+     "w": 600,
+     "text": "IN THEIR WORDS",
+     "fontSize": 24,
+     "fontFamily": "mono",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#ffb267",
+     "letterSpacing": 7
+    },
+    {
+     "type": "shape",
+     "x": 120,
+     "y": 300,
+     "w": 10,
+     "h": 270,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffb267"
+     }
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 296,
+     "w": 1560,
+     "text": "“We stopped guessing which features mattered.\nThe churn dashboard picks the roadmap now,\nand the argument is over in four minutes.”",
+     "fontSize": 64,
+     "fontFamily": "grotesk",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "line",
+     "x": 200,
+     "y": 660,
+     "w": 64,
+     "thickness": 4,
+     "color": "#ffb267",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 700,
+     "w": 700,
+     "text": "Priya Raman",
+     "fontSize": 36,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 760,
+     "w": 700,
+     "opacity": 0.85,
+     "text": "VP PRODUCT  ·  NORTHWIND",
+     "fontSize": 22,
+     "fontFamily": "mono",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#eef1fb",
+     "letterSpacing": 4
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 980,
+     "w": 760,
+     "opacity": 0.72,
+     "text": "NORTHWIND  ·  Q3 STRATEGY REVIEW",
+     "fontSize": 20,
+     "fontFamily": "mono",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#eef1fb",
+     "letterSpacing": 4
+    }
+   ]
+  },
+  {
+   "id": "deck-indigo-team",
+   "name": "Deck Meet The Team",
+   "category": "Business",
+   "width": 1920.0,
+   "height": 1080.0,
+   "background": {
+    "type": "color",
+    "value": "#4a5896"
+   },
+   "elements": [
+    {
+     "type": "line",
+     "x": 120,
+     "y": 96,
+     "w": 88,
+     "thickness": 5,
+     "color": "#ffb267",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 122,
+     "w": 600,
+     "text": "THE TEAM",
+     "fontSize": 24,
+     "fontFamily": "mono",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#ffb267",
+     "letterSpacing": 7
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 190,
+     "w": 1200,
+     "text": "Who you'll work with",
+     "fontSize": 72,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.05,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 290,
+     "w": 900,
+     "opacity": 0.82,
+     "text": "The same three people from kickoff to handover — no rotating bench.",
+     "fontSize": 28,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.45,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "shape",
+     "x": 240,
+     "y": 370,
+     "w": 400,
+     "h": 390,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#2b3364"
+     },
+     "radius": 28
+    },
+    {
+     "type": "shape",
+     "x": 760,
+     "y": 370,
+     "w": 400,
+     "h": 390,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#2b3364"
+     },
+     "radius": 28
+    },
+    {
+     "type": "shape",
+     "x": 1280,
+     "y": 370,
+     "w": 400,
+     "h": 390,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#2b3364"
+     },
+     "radius": 28
+    },
+    {
+     "type": "text",
+     "x": 240,
+     "y": 796,
+     "w": 400,
+     "text": "Priya Raman",
+     "fontSize": 36,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "text",
+     "x": 760,
+     "y": 796,
+     "w": 400,
+     "text": "Marcus Hale",
+     "fontSize": 36,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "text",
+     "x": 1280,
+     "y": 796,
+     "w": 400,
+     "text": "Ana Rivera-Cole",
+     "fontSize": 36,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "text",
+     "x": 240,
+     "y": 852,
+     "w": 400,
+     "text": "VP PRODUCT",
+     "fontSize": 22,
+     "fontFamily": "mono",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#ffb267",
+     "letterSpacing": 4
+    },
+    {
+     "type": "text",
+     "x": 760,
+     "y": 852,
+     "w": 400,
+     "text": "HEAD OF DATA",
+     "fontSize": 22,
+     "fontFamily": "mono",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#ffb267",
+     "letterSpacing": 4
+    },
+    {
+     "type": "text",
+     "x": 1280,
+     "y": 852,
+     "w": 400,
+     "text": "ENGAGEMENT LEAD",
+     "fontSize": 22,
+     "fontFamily": "mono",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#ffb267",
+     "letterSpacing": 4
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 980,
+     "w": 760,
+     "opacity": 0.72,
+     "text": "NORTHWIND  ·  Q3 STRATEGY REVIEW",
+     "fontSize": 20,
+     "fontFamily": "mono",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#eef1fb",
+     "letterSpacing": 4
+    }
+   ]
+  },
+  {
+   "id": "deck-indigo-closing",
+   "name": "Deck Thank You",
+   "category": "Business",
+   "width": 1920.0,
+   "height": 1080.0,
+   "background": {
+    "type": "color",
+    "value": "#4a5896"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 1480,
+     "y": -200,
+     "w": 700,
+     "opacity": 0.13,
+     "h": 700,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffb267"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 0,
+     "y": 760,
+     "w": 1920,
+     "h": 320,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#2b3364"
+     }
+    },
+    {
+     "type": "line",
+     "x": 120,
+     "y": 96,
+     "w": 88,
+     "thickness": 5,
+     "color": "#ffb267",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 122,
+     "w": 600,
+     "text": "NEXT STEPS",
+     "fontSize": 24,
+     "fontFamily": "mono",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#ffb267",
+     "letterSpacing": 7
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 260,
+     "w": 1200,
+     "text": "Thank you.",
+     "fontSize": 170,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.02,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "line",
+     "x": 120,
+     "y": 490,
+     "w": 180,
+     "thickness": 6,
+     "color": "#ffb267",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 550,
+     "w": 900,
+     "opacity": 0.85,
+     "text": "The model, the dashboard and this deck are in the shared folder. Ask us anything before Friday.",
+     "fontSize": 32,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.45,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 840,
+     "w": 560,
+     "text": "priya@northwind.co",
+     "fontSize": 36,
+     "fontFamily": "mono",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#ffb267"
+    },
+    {
+     "type": "text",
+     "x": 760,
+     "y": 840,
+     "w": 520,
+     "text": "northwind.co/q3-review",
+     "fontSize": 36,
+     "fontFamily": "mono",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "text",
+     "x": 1340,
+     "y": 840,
+     "w": 460,
+     "text": "+44 20 7946 0112",
+     "fontSize": 36,
+     "fontFamily": "mono",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#eef1fb"
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 980,
+     "w": 760,
+     "opacity": 0.72,
+     "text": "NORTHWIND  ·  Q3 STRATEGY REVIEW",
+     "fontSize": 20,
+     "fontFamily": "mono",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#eef1fb",
+     "letterSpacing": 4
+    }
+   ]
+  },
+  {
+   "id": "education-science-block-timetable",
+   "name": "Science Block Timetable",
+   "category": "Education",
+   "width": 1240.0,
+   "height": 1748.0,
+   "background": {
+    "type": "color",
+    "value": "#1f7168"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 820,
+     "y": -220,
+     "w": 640,
+     "opacity": 0.1,
+     "h": 640,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#eef5f1"
+     }
+    },
+    {
+     "type": "text",
+     "x": 90,
+     "y": 112,
+     "w": 1060,
+     "text": "ST MARTIN'S SIXTH FORM · AUTUMN TERM",
+     "fontSize": 26,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#eef5f1",
+     "letterSpacing": 6
+    },
+    {
+     "type": "line",
+     "x": 90,
+     "y": 172,
+     "w": 220,
+     "thickness": 8,
+     "color": "#eef5f1",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 90,
+     "y": 224,
+     "w": 1060,
+     "text": "YEAR 12\nSCIENCE\nTIMETABLE",
+     "fontSize": 128,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.05,
+     "color": "#eef5f1",
+     "letterSpacing": 2
+    },
+    {
+     "type": "text",
+     "x": 90,
+     "y": 668,
+     "w": 1060,
+     "text": "From Monday 15 September · Block B, second floor",
+     "fontSize": 32,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#eef5f1"
+    },
+    {
+     "type": "shape",
+     "x": 0,
+     "y": 760,
+     "w": 1240,
+     "h": 988,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#eef5f1"
+     }
+    },
+    {
+     "type": "text",
+     "x": 90,
+     "y": 830,
+     "w": 1060,
+     "text": "WEEK A · TAUGHT SESSIONS",
+     "fontSize": 24,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#1f7168",
+     "letterSpacing": 6
+    },
+    {
+     "type": "line",
+     "x": 90,
+     "y": 884,
+     "w": 1060,
+     "thickness": 3,
+     "color": "#1f7168",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 90,
+     "y": 930,
+     "w": 280,
+     "text": "MON 09:00\nMON 13:30\nTUE 11:00\nWED 09:00\nTHU 14:00\nFRI 10:15\nFRI 15:00",
+     "fontSize": 36,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.55,
+     "color": "#0c2320"
+    },
+    {
+     "type": "text",
+     "x": 380,
+     "y": 930,
+     "w": 560,
+     "text": "Organic Chemistry\nPhysics: Waves\nFurther Maths\nBiology Practical\nChemistry Tutorial\nPhysics Problems\nStudy Skills Clinic",
+     "fontSize": 36,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.55,
+     "color": "#0c2320"
+    },
+    {
+     "type": "text",
+     "x": 960,
+     "y": 930,
+     "w": 190,
+     "text": "B12\nS4\nM07\nLab 3\nB12\nS4\nLRC",
+     "fontSize": 36,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "right",
+     "lineHeight": 1.55,
+     "color": "#1f7168"
+    },
+    {
+     "type": "text",
+     "x": 90,
+     "y": 1420,
+     "w": 1060,
+     "text": "Lab coat and safety specs for every practical.\nThe Friday clinic is drop-in — no sign-up needed.",
+     "fontSize": 30,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.45,
+     "color": "#134039"
+    },
+    {
+     "type": "text",
+     "x": 90,
+     "y": 1600,
+     "w": 1060,
+     "text": "Ms Adeyemi · adeyemi@stmartins.sch.uk · Staffroom B2",
+     "fontSize": 26,
+     "fontFamily": "mono",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#1f7168",
+     "letterSpacing": 2
+    }
+   ]
+  },
+  {
+   "id": "education-photosynthesis-lesson-opener",
+   "name": "Photosynthesis Lesson Opener",
+   "category": "Education",
+   "width": 1920.0,
+   "height": 1080.0,
+   "background": {
+    "type": "color",
+    "value": "#d19a2b"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 90,
+     "y": 70,
+     "w": 1740,
+     "h": 940,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#241a08"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 98,
+     "y": 78,
+     "w": 1724,
+     "h": 924,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#d19a2b"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 98,
+     "y": 846,
+     "w": 1724,
+     "h": 156,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#241a08"
+     }
+    },
+    {
+     "type": "sticker",
+     "x": 930,
+     "y": 118,
+     "w": 60,
+     "h": 60,
+     "glyph": "🌱"
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 196,
+     "w": 1520,
+     "text": "BIOLOGY · YEAR 10 · UNIT 2 · LESSON 04",
+     "fontSize": 30,
+     "fontFamily": "grotesk",
+     "fontWeight": 600,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#4a2f0d",
+     "letterSpacing": 12
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 280,
+     "w": 1520,
+     "text": "Photosynthesis",
+     "fontSize": 168,
+     "fontFamily": "didone",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#241a08"
+    },
+    {
+     "type": "text",
+     "x": 310,
+     "y": 486,
+     "w": 1300,
+     "text": "turning light into sugar",
+     "fontSize": 62,
+     "fontFamily": "elegant",
+     "fontWeight": 400,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#4a2f0d",
+     "letterSpacing": 1
+    },
+    {
+     "type": "line",
+     "x": 860,
+     "y": 600,
+     "w": 200,
+     "thickness": 5,
+     "color": "#4a2f0d",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 310,
+     "y": 668,
+     "w": 1300,
+     "text": "By the end of this lesson you can write the word and symbol\nequations, name both products, and explain why a leaf is broad,\nthin and packed with chloroplasts.",
+     "fontSize": 32,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "center",
+     "lineHeight": 1.5,
+     "color": "#241a08"
+    },
+    {
+     "type": "text",
+     "x": 310,
+     "y": 905,
+     "w": 1300,
+     "text": "MS OKONKWO · ROOM S4 · TEXTBOOK PAGES 88-95",
+     "fontSize": 26,
+     "fontFamily": "grotesk",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#f7f5f0",
+     "letterSpacing": 8
+    }
+   ]
+  },
+  {
+   "id": "education-five-study-techniques",
+   "name": "Five Study Techniques",
+   "category": "Education",
+   "width": 1080.0,
+   "height": 1080.0,
+   "background": {
+    "type": "color",
+    "value": "#e0d8f4"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 740,
+     "y": -170,
+     "w": 520,
+     "opacity": 0.15,
+     "h": 520,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#6d43c8"
+     }
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 96,
+     "w": 920,
+     "text": "REVISION SERIES · NO 03",
+     "fontSize": 24,
+     "fontFamily": "grotesk",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#6d43c8",
+     "letterSpacing": 8
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 150,
+     "w": 920,
+     "text": "5 STUDY\nTECHNIQUES\nTHAT WORK",
+     "fontSize": 104,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.04,
+     "color": "#241a52"
+    },
+    {
+     "type": "sticker",
+     "x": 860,
+     "y": 160,
+     "w": 130,
+     "h": 130,
+     "glyph": "🧠"
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 506,
+     "w": 880,
+     "text": "Evidence-based, exam-tested. Sorry, highlighters.",
+     "fontSize": 28,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#5c4f8c"
+    },
+    {
+     "type": "line",
+     "x": 80,
+     "y": 570,
+     "w": 920,
+     "thickness": 4,
+     "color": "#b6a6e0",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 612,
+     "w": 90,
+     "text": "01\n02\n03\n04\n05",
+     "fontSize": 40,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.28,
+     "color": "#6d43c8"
+    },
+    {
+     "type": "text",
+     "x": 190,
+     "y": 612,
+     "w": 810,
+     "text": "Retrieval practice — close the book\nSpaced repetition across five days\nInterleave two subjects per session\nExplain it out loud to someone\nPast papers, timed, no notes",
+     "fontSize": 32,
+     "fontFamily": "grotesk",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.6,
+     "color": "#241a52"
+    },
+    {
+     "type": "line",
+     "x": 80,
+     "y": 940,
+     "w": 920,
+     "thickness": 3,
+     "color": "#b6a6e0",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 976,
+     "w": 920,
+     "text": "@stmartins.study · Revision club, Thursdays 15:30, LRC",
+     "fontSize": 24,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#5c4f8c"
+    }
+   ]
+  },
+  {
+   "id": "education-open-evening-notice",
+   "name": "Open Evening Notice",
+   "category": "Education",
+   "width": 1587.0,
+   "height": 2245.0,
+   "background": {
+    "type": "color",
+    "value": "#9c3a4d"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 0,
+     "y": 0,
+     "w": 1587,
+     "h": 190,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#2c1017"
+     }
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 72,
+     "w": 1347,
+     "text": "GREENHILL ACADEMY",
+     "fontSize": 44,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.1,
+     "color": "#f6d3d9",
+     "letterSpacing": 14
+    },
+    {
+     "type": "shape",
+     "x": -280,
+     "y": 1660,
+     "w": 920,
+     "opacity": 0.07,
+     "h": 920,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#f2edf0"
+     }
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 330,
+     "w": 1347,
+     "text": "WEDNESDAY 8 OCTOBER · 5.30-8.00 PM",
+     "fontSize": 38,
+     "fontFamily": "grotesk",
+     "fontWeight": 600,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#f6d3d9",
+     "letterSpacing": 8
+    },
+    {
+     "type": "text",
+     "x": 90,
+     "y": 430,
+     "w": 1407,
+     "text": "OPEN\nEVENING",
+     "fontSize": 260,
+     "fontFamily": "impact",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 0.95,
+     "color": "#f2edf0",
+     "letterSpacing": 4
+    },
+    {
+     "type": "line",
+     "x": 644,
+     "y": 1000,
+     "w": 300,
+     "thickness": 10,
+     "color": "#f0c3cb",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 1060,
+     "w": 1347,
+     "text": "Year 6 into Year 7 · September 2027 intake",
+     "fontSize": 50,
+     "fontFamily": "elegant",
+     "fontWeight": 400,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#f2edf0",
+     "letterSpacing": 1
+    },
+    {
+     "type": "shape",
+     "x": 140,
+     "y": 1330,
+     "w": 1307,
+     "h": 500,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#f2edf0"
+     },
+     "radius": 28
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 1458,
+     "w": 190,
+     "text": "17.30\n18.00\n18.45\n19.30",
+     "fontSize": 38,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.6,
+     "color": "#9c3a4d"
+    },
+    {
+     "type": "text",
+     "x": 420,
+     "y": 1458,
+     "w": 980,
+     "text": "Doors open · main hall\nHead teacher's welcome (repeats 19.00)\nSubject fairs · science, art and D&T\nSixth form and transport Q&A",
+     "fontSize": 38,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.6,
+     "color": "#2c1017"
+    },
+    {
+     "type": "shape",
+     "x": 1180,
+     "y": 1110,
+     "w": 300,
+     "rotation": -9,
+     "h": 300,
+     "shapeId": "seal",
+     "fill": {
+      "kind": "solid",
+      "color": "#f0c3cb"
+     }
+    },
+    {
+     "type": "text",
+     "x": 1195,
+     "y": 1195,
+     "w": 270,
+     "rotation": -9,
+     "text": "NO\nBOOKING\nNEEDED",
+     "fontSize": 36,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#2c1017",
+     "letterSpacing": 2
+    },
+    {
+     "type": "shape",
+     "x": 0,
+     "y": 2035,
+     "w": 1587,
+     "h": 210,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#2c1017"
+     }
+    },
+    {
+     "type": "text",
+     "x": 120,
+     "y": 2103,
+     "w": 1347,
+     "text": "Fairfield Road, Leeds LS8 3QP · 0113 555 0192\ngreenhill.sch.uk · step-free access · parking on site",
+     "fontSize": 30,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "center",
+     "lineHeight": 1.5,
+     "color": "#f6d3d9"
+    }
+   ]
+  },
+  {
+   "id": "food-recipe-lemon-orzo",
+   "name": "Lemon Orzo Recipe",
+   "category": "Food",
+   "width": 1080.0,
+   "height": 1080.0,
+   "background": {
+    "type": "color",
+    "value": "#c98a2e"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 720,
+     "y": -160,
+     "w": 520,
+     "h": 520,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#b3761f"
+     }
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 86,
+     "w": 936,
+     "text": "WEEKNIGHT DINNER  ·  SERVES 4  ·  25 MINUTES",
+     "fontSize": 26,
+     "fontFamily": "mono",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#2b1c07",
+     "letterSpacing": 5
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 138,
+     "w": 936,
+     "text": "LEMON ORZO\nWITH GREENS",
+     "fontSize": 108,
+     "fontFamily": "condensed",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 0.98,
+     "color": "#2b1c07",
+     "letterSpacing": 1
+    },
+    {
+     "type": "line",
+     "x": 72,
+     "y": 388,
+     "w": 936,
+     "thickness": 8,
+     "color": "#2b1c07",
+     "dash": "solid"
+    },
+    {
+     "type": "shape",
+     "x": 548,
+     "y": 418,
+     "w": 460,
+     "h": 590,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#1e3d2f"
+     },
+     "radius": 22
+    },
+    {
+     "type": "text",
+     "x": 584,
+     "y": 456,
+     "w": 388,
+     "text": "METHOD",
+     "fontSize": 28,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#eef5ef",
+     "letterSpacing": 6
+    },
+    {
+     "type": "text",
+     "x": 584,
+     "y": 512,
+     "w": 388,
+     "text": "1 · Boil orzo in salted water, 8 minutes.\n2 · Soften garlic in oil — keep it pale.\n3 · Wilt greens with a ladle of that water.\n4 · Fold in orzo, lemon zest and juice.\n5 · Pecorino, dill, plenty of pepper.",
+     "fontSize": 26,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.5,
+     "color": "#eef5ef"
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 428,
+     "w": 430,
+     "text": "INGREDIENTS",
+     "fontSize": 28,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#2b1c07",
+     "letterSpacing": 6
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 490,
+     "w": 430,
+     "text": "300g orzo\n2 lemons — zest, juice\n200g spring greens\n3 fat cloves of garlic\n80g pecorino, grated\n2 tbsp olive oil\nA handful of dill\nSea salt, black pepper",
+     "fontSize": 30,
+     "fontFamily": "mono",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.6,
+     "color": "#2b1c07"
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 906,
+     "w": 430,
+     "text": "Vegan swap: toasted almonds\nin place of the pecorino.",
+     "fontSize": 24,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.4,
+     "color": "#2b1c07"
+    },
+    {
+     "type": "sticker",
+     "x": 886,
+     "y": 60,
+     "w": 104,
+     "h": 104,
+     "glyph": "🍋"
+    }
+   ]
+  },
+  {
+   "id": "food-story-todays-special",
+   "name": "Tonight's Special",
+   "category": "Food",
+   "width": 1080.0,
+   "height": 1920.0,
+   "background": {
+    "type": "color",
+    "value": "#8a2436"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 700,
+     "y": -180,
+     "w": 600,
+     "h": 600,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#a33144"
+     }
+    },
+    {
+     "type": "shape",
+     "x": -200,
+     "y": 1500,
+     "w": 700,
+     "h": 700,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#701c2c"
+     }
+    },
+    {
+     "type": "text",
+     "x": 100,
+     "y": 300,
+     "w": 880,
+     "text": "TONIGHT'S SPECIAL",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#c4e3cf",
+     "letterSpacing": 14
+    },
+    {
+     "type": "line",
+     "x": 430,
+     "y": 380,
+     "w": 220,
+     "thickness": 4,
+     "color": "#c4e3cf",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 100,
+     "y": 470,
+     "w": 880,
+     "text": "Wood-Fired\nMussels &\nSaffron",
+     "fontSize": 148,
+     "fontFamily": "didone",
+     "fontWeight": 400,
+     "align": "center",
+     "lineHeight": 1.02,
+     "color": "#ffffff"
+    },
+    {
+     "type": "text",
+     "x": 160,
+     "y": 1000,
+     "w": 760,
+     "text": "Norfolk mussels in saffron cream, wild fennel tops and a slab of grilled sourdough.",
+     "fontSize": 40,
+     "fontFamily": "serif",
+     "fontWeight": 400,
+     "align": "center",
+     "lineHeight": 1.45,
+     "color": "#c4e3cf"
+    },
+    {
+     "type": "shape",
+     "x": 390,
+     "y": 1230,
+     "w": 300,
+     "rotation": -8,
+     "h": 300,
+     "shapeId": "seal",
+     "fill": {
+      "kind": "solid",
+      "color": "#c4e3cf"
+     }
+    },
+    {
+     "type": "text",
+     "x": 390,
+     "y": 1325,
+     "w": 300,
+     "text": "£24",
+     "fontSize": 96,
+     "fontFamily": "didone",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#8a2436"
+    },
+    {
+     "type": "text",
+     "x": 100,
+     "y": 1580,
+     "w": 880,
+     "text": "SERVED 5 — 10 PM  ·  TWELVE SEATS ONLY",
+     "fontSize": 30,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#c4e3cf",
+     "letterSpacing": 8
+    },
+    {
+     "type": "text",
+     "x": 100,
+     "y": 1626,
+     "w": 880,
+     "text": "THE SALT ROOM  ·  42 QUAY STREET  ·  @thesaltroom",
+     "fontSize": 26,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ffffff",
+     "letterSpacing": 5
+    }
+   ]
+  },
+  {
+   "id": "food-menu-colour-blocks",
+   "name": "Glasshouse Block Menu",
+   "category": "Food",
+   "width": 1240.0,
+   "height": 1748.0,
+   "background": {
+    "type": "color",
+    "value": "#e4efe9"
+   },
+   "elements": [
+    {
+     "type": "text",
+     "x": 80,
+     "y": 110,
+     "w": 1080,
+     "text": "DINNER  ·  WEDNESDAY TO SUNDAY  ·  6 TILL LATE",
+     "fontSize": 28,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#3a5b52",
+     "letterSpacing": 8
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 160,
+     "w": 1080,
+     "text": "THE\nGLASSHOUSE",
+     "fontSize": 112,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#12332e",
+     "letterSpacing": 2
+    },
+    {
+     "type": "sticker",
+     "x": 1040,
+     "y": 96,
+     "w": 90,
+     "h": 90,
+     "glyph": "🌿"
+    },
+    {
+     "type": "shape",
+     "x": 0,
+     "y": 420,
+     "w": 1240,
+     "h": 390,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#0f4a44"
+     }
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 468,
+     "w": 1080,
+     "text": "SMALL PLATES",
+     "fontSize": 56,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.1,
+     "color": "#dff0e7",
+     "letterSpacing": 10
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 556,
+     "w": 1080,
+     "text": "Charred padrón peppers, sea salt · 8\nWhipped cod roe with rye crisps · 11\nFried artichokes, lemon aioli · 10\nFlatbread, seaweed butter · 7",
+     "fontSize": 38,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.5,
+     "color": "#dff0e7"
+    },
+    {
+     "type": "shape",
+     "x": 0,
+     "y": 830,
+     "w": 1240,
+     "h": 390,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#54345f"
+     }
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 878,
+     "w": 1080,
+     "text": "FROM THE GRILL",
+     "fontSize": 56,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.1,
+     "color": "#dff0e7",
+     "letterSpacing": 10
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 966,
+     "w": 1080,
+     "text": "Whole plaice, brown butter, capers · 26\nLamb shoulder, smoked aubergine · 29\nHispi cabbage, hazelnut crumb · 18\nDry-aged sirloin for two · 54",
+     "fontSize": 38,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.5,
+     "color": "#dff0e7"
+    },
+    {
+     "type": "shape",
+     "x": 0,
+     "y": 1240,
+     "w": 1240,
+     "h": 390,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#26695e"
+     }
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 1288,
+     "w": 1080,
+     "text": "SWEET & AFTER",
+     "fontSize": 56,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.1,
+     "color": "#dff0e7",
+     "letterSpacing": 10
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 1376,
+     "w": 1080,
+     "text": "Burnt honey cheesecake · 9\nPoached quince, bay ice cream · 9\nChocolate cremeux, olive oil · 10\nEspresso and a nip of amaro · 7",
+     "fontSize": 38,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.5,
+     "color": "#dff0e7"
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 1666,
+     "w": 1080,
+     "text": "26 QUAY STREET  ·  GLASSHOUSE.CO  ·  BOOKINGS 0117 555 0142",
+     "fontSize": 26,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#3a5b52",
+     "letterSpacing": 4
+    }
+   ]
+  },
+  {
+   "id": "food-card-coffee-loyalty",
+   "name": "Coffee Loyalty Card",
+   "category": "Food",
+   "width": 1050.0,
+   "height": 600.0,
+   "background": {
+    "type": "color",
+    "value": "#276b7a"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 790,
+     "y": -130,
+     "w": 420,
+     "h": 420,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1b5566"
+     }
+    },
+    {
+     "type": "text",
+     "x": 70,
+     "y": 78,
+     "w": 620,
+     "text": "Rook & Ripe",
+     "fontSize": 74,
+     "fontFamily": "script",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.1,
+     "color": "#ffffff"
+    },
+    {
+     "type": "text",
+     "x": 70,
+     "y": 178,
+     "w": 700,
+     "text": "SPECIALTY COFFEE  ·  LOYALTY CARD",
+     "fontSize": 20,
+     "fontFamily": "mono",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#cdeaf0",
+     "letterSpacing": 6
+    },
+    {
+     "type": "shape",
+     "x": 130,
+     "y": 300,
+     "w": 76,
+     "h": 76,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1b5566"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 232,
+     "y": 300,
+     "w": 76,
+     "h": 76,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1b5566"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 334,
+     "y": 300,
+     "w": 76,
+     "h": 76,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1b5566"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 436,
+     "y": 300,
+     "w": 76,
+     "h": 76,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1b5566"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 538,
+     "y": 300,
+     "w": 76,
+     "h": 76,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1b5566"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 640,
+     "y": 300,
+     "w": 76,
+     "h": 76,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1b5566"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 742,
+     "y": 300,
+     "w": 76,
+     "h": 76,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1b5566"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 844,
+     "y": 300,
+     "w": 76,
+     "h": 76,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#f0a03c"
+     }
+    },
+    {
+     "type": "sticker",
+     "x": 860,
+     "y": 316,
+     "w": 44,
+     "h": 44,
+     "glyph": "☕"
+    },
+    {
+     "type": "text",
+     "x": 70,
+     "y": 418,
+     "w": 910,
+     "text": "Collect a stamp with every coffee. The eighth is on us.",
+     "fontSize": 27,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#e8f6f9"
+    },
+    {
+     "type": "text",
+     "x": 70,
+     "y": 486,
+     "w": 910,
+     "text": "12 MILL LANE  ·  OPEN 7—4 DAILY  ·  @rookandripe",
+     "fontSize": 20,
+     "fontFamily": "mono",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#cdeaf0",
+     "letterSpacing": 5
+    }
+   ]
+  },
+  {
+   "id": "travel-itinerary-five-days-kyoto",
+   "name": "Five Days In Kyoto",
+   "category": "Travel",
+   "width": 2480.0,
+   "height": 3508.0,
+   "background": {
+    "type": "color",
+    "value": "#dce6ec"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 0,
+     "y": 0,
+     "w": 2480,
+     "h": 820,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#14303e"
+     }
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 180,
+     "w": 2080,
+     "text": "TRAVEL ITINERARY · AUTUMN 2026",
+     "fontSize": 46,
+     "fontFamily": "mono",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#8fb9cc",
+     "letterSpacing": 12
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 270,
+     "w": 2080,
+     "text": "FIVE DAYS\nIN KYOTO",
+     "fontSize": 250,
+     "fontFamily": "condensed",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 0.95,
+     "color": "#f2f7fa",
+     "letterSpacing": 2
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 980,
+     "w": 2080,
+     "text": "DAY 01 · WED 14 OCT — HIGASHIYAMA",
+     "fontSize": 62,
+     "fontFamily": "condensed",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#b03a4a",
+     "letterSpacing": 5
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 1080,
+     "w": 2080,
+     "text": "07:40   Coffee at Inoda, Sanjo branch\n09:00   Kiyomizu-dera before the coaches\n13:00   Udon at Omen, Kodai-ji\n17:30   Dusk walk down Ninen-zaka",
+     "fontSize": 46,
+     "fontFamily": "mono",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.45,
+     "color": "#173442"
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 1452,
+     "w": 2080,
+     "text": "DAY 02 · THU 15 OCT — ARASHIYAMA",
+     "fontSize": 62,
+     "fontFamily": "condensed",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#b03a4a",
+     "letterSpacing": 5
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 1552,
+     "w": 2080,
+     "text": "08:15   Sagano line from Kyoto Station\n09:10   Bamboo grove, then Okochi-Sanso\n12:30   Bento beside the Hozu river\n16:00   Randen tram back to Shijo",
+     "fontSize": 46,
+     "fontFamily": "mono",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.45,
+     "color": "#173442"
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 1924,
+     "w": 2080,
+     "text": "DAY 03 · FRI 16 OCT — NORTHERN HILLS",
+     "fontSize": 62,
+     "fontFamily": "condensed",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#b03a4a",
+     "letterSpacing": 5
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 2024,
+     "w": 2080,
+     "text": "08:00   Bus 205 to Kinkaku-ji\n11:00   Ryoan-ji rock garden, then tea\n14:00   Philosopher's Path, north to south\n19:00   Dinner at Monk, Jodoji",
+     "fontSize": 46,
+     "fontFamily": "mono",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.45,
+     "color": "#173442"
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 2396,
+     "w": 2080,
+     "text": "DAY 04 · SAT 17 OCT — NARA DAY TRIP",
+     "fontSize": 62,
+     "fontFamily": "condensed",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#b03a4a",
+     "letterSpacing": 5
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 2496,
+     "w": 2080,
+     "text": "08:30   Kintetsu limited express, 45 min\n10:00   Todai-ji and the Great Buddha\n12:30   Kakinoha-zushi in Naramachi\n16:40   Back to Kyoto, bath at the ryokan",
+     "fontSize": 46,
+     "fontFamily": "mono",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.45,
+     "color": "#173442"
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 2868,
+     "w": 2080,
+     "text": "DAY 05 · SUN 18 OCT — FUSHIMI & HOME",
+     "fontSize": 62,
+     "fontFamily": "condensed",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#b03a4a",
+     "letterSpacing": 5
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 2968,
+     "w": 2080,
+     "text": "06:30   Fushimi Inari at first light\n09:30   Sake tasting at Gekkeikan Okura\n12:00   Nishiki Market for gifts\n15:10   Haruka express to Kansai Airport",
+     "fontSize": 46,
+     "fontFamily": "mono",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.45,
+     "color": "#173442"
+    },
+    {
+     "type": "text",
+     "x": 200,
+     "y": 3320,
+     "w": 2080,
+     "text": "STAY — MACHIYA IN NISHIJIN  ·  IC CARDS TOPPED UP  ·  BUS PASS ¥700",
+     "fontSize": 40,
+     "fontFamily": "mono",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#3f5f6e",
+     "letterSpacing": 4
+    }
+   ]
+  },
+  {
+   "id": "travel-packing-iceland-ring-road",
+   "name": "Iceland Ring Road",
+   "category": "Travel",
+   "width": 1080.0,
+   "height": 1920.0,
+   "background": {
+    "type": "color",
+    "value": "#556231"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 660,
+     "y": -190,
+     "w": 620,
+     "opacity": 0.22,
+     "h": 620,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#93bdd4"
+     }
+    },
+    {
+     "type": "text",
+     "x": 90,
+     "y": 240,
+     "w": 900,
+     "text": "PACK LIST · 9 DAYS OUT",
+     "fontSize": 34,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#c6e0ee",
+     "letterSpacing": 9
+    },
+    {
+     "type": "text",
+     "x": 90,
+     "y": 310,
+     "w": 900,
+     "text": "ICELAND\nRING ROAD",
+     "fontSize": 124,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 0.95,
+     "color": "#f1f4e9"
+    },
+    {
+     "type": "text",
+     "x": 90,
+     "y": 575,
+     "w": 900,
+     "text": "SEPT 5–13 · CAMPERVAN FOR TWO",
+     "fontSize": 32,
+     "fontFamily": "grotesk",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#f1f4e9",
+     "letterSpacing": 5
+    },
+    {
+     "type": "line",
+     "x": 90,
+     "y": 650,
+     "w": 280,
+     "thickness": 8,
+     "color": "#93bdd4",
+     "dash": "solid"
+    },
+    {
+     "type": "shape",
+     "x": 60,
+     "y": 720,
+     "w": 960,
+     "opacity": 0.45,
+     "h": 840,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#2c3418"
+     },
+     "radius": 30
+    },
+    {
+     "type": "text",
+     "x": 130,
+     "y": 790,
+     "w": 820,
+     "text": "01 · ON THE ROAD",
+     "fontSize": 32,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#c6e0ee",
+     "letterSpacing": 7
+    },
+    {
+     "type": "text",
+     "x": 130,
+     "y": 844,
+     "w": 820,
+     "text": "— Passport, licence + IDP\n— Camper papers & fuel card\n— Two 20L water carriers",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.45,
+     "color": "#f1f4e9"
+    },
+    {
+     "type": "text",
+     "x": 130,
+     "y": 1050,
+     "w": 820,
+     "text": "02 · WHEN IT TURNS",
+     "fontSize": 32,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#c6e0ee",
+     "letterSpacing": 7
+    },
+    {
+     "type": "text",
+     "x": 130,
+     "y": 1104,
+     "w": 820,
+     "text": "— Hardshell over fleece\n— Wool base layers x3\n— Buff, gloves, sleep mask",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.45,
+     "color": "#f1f4e9"
+    },
+    {
+     "type": "text",
+     "x": 130,
+     "y": 1310,
+     "w": 820,
+     "text": "03 · CAMP KITCHEN",
+     "fontSize": 32,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#c6e0ee",
+     "letterSpacing": 7
+    },
+    {
+     "type": "text",
+     "x": 130,
+     "y": 1364,
+     "w": 820,
+     "text": "— Jetboil + 2 gas canisters\n— Skyr, rye bread, coffee\n— Quick-dry towel for the pools",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.45,
+     "color": "#f1f4e9"
+    },
+    {
+     "type": "text",
+     "x": 90,
+     "y": 1610,
+     "w": 900,
+     "text": "TICK IT OFF · KEF WHEELS UP 06:20",
+     "fontSize": 28,
+     "fontFamily": "grotesk",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#f1f4e9",
+     "letterSpacing": 6
+    }
+   ]
+  },
+  {
+   "id": "travel-poster-lofoten-sea-cliffs",
+   "name": "Lofoten Sea Cliffs",
+   "category": "Travel",
+   "width": 1587.0,
+   "height": 2245.0,
+   "background": {
+    "type": "color",
+    "value": "#2f5ea3"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 210,
+     "y": 230,
+     "w": 64,
+     "opacity": 0.55,
+     "h": 64,
+     "shapeId": "star-5",
+     "fill": {
+      "kind": "solid",
+      "color": "#eef3f7"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 1330,
+     "y": 190,
+     "w": 44,
+     "opacity": 0.4,
+     "h": 44,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#eef3f7"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 590,
+     "y": 270,
+     "w": 430,
+     "h": 430,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#f2a39a"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 520,
+     "y": 590,
+     "w": 1200,
+     "h": 960,
+     "shapeId": "triangle",
+     "fill": {
+      "kind": "solid",
+      "color": "#eef3f7"
+     }
+    },
+    {
+     "type": "shape",
+     "x": -180,
+     "y": 790,
+     "w": 1160,
+     "h": 760,
+     "shapeId": "triangle",
+     "fill": {
+      "kind": "solid",
+      "color": "#17335f"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 0,
+     "y": 1550,
+     "w": 1587,
+     "h": 695,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#132b50"
+     }
+    },
+    {
+     "type": "line",
+     "x": 0,
+     "y": 1546,
+     "w": 1587,
+     "thickness": 8,
+     "color": "#f2a39a",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 130,
+     "y": 1650,
+     "w": 1327,
+     "text": "NORTHERN NORWAY · 68° NORTH",
+     "fontSize": 40,
+     "fontFamily": "condensed",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#f2a39a",
+     "letterSpacing": 14
+    },
+    {
+     "type": "text",
+     "x": 130,
+     "y": 1735,
+     "w": 1327,
+     "text": "LOFOTEN",
+     "fontSize": 250,
+     "fontFamily": "impact",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 0.95,
+     "color": "#eef3f7",
+     "letterSpacing": 10
+    },
+    {
+     "type": "line",
+     "x": 130,
+     "y": 2010,
+     "w": 420,
+     "thickness": 8,
+     "color": "#f2a39a",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 130,
+     "y": 2058,
+     "w": 1327,
+     "text": "REINE · HAMNØY · NUSFJORD — FERRY 07:15",
+     "fontSize": 42,
+     "fontFamily": "condensed",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#a9c3e0",
+     "letterSpacing": 5
+    }
+   ]
+  },
+  {
+   "id": "travel-guide-lisbon-48-hours",
+   "name": "Lisbon City Guide",
+   "category": "Travel",
+   "width": 1080.0,
+   "height": 1080.0,
+   "background": {
+    "type": "color",
+    "value": "#874f74"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -160,
+     "y": 760,
+     "w": 520,
+     "opacity": 0.09,
+     "h": 520,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#f0dfe9"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 76,
+     "y": 76,
+     "w": 928,
+     "opacity": 0.1,
+     "h": 928,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#f0dfe9"
+     }
+    },
+    {
+     "type": "line",
+     "x": 440,
+     "y": 200,
+     "w": 200,
+     "thickness": 3,
+     "color": "#e6c3d6",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 140,
+     "y": 250,
+     "w": 800,
+     "text": "THE CITY GUIDE",
+     "fontSize": 34,
+     "fontFamily": "elegant",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#faf4f8",
+     "letterSpacing": 14
+    },
+    {
+     "type": "text",
+     "x": 90,
+     "y": 340,
+     "w": 900,
+     "text": "Lisbon",
+     "fontSize": 230,
+     "fontFamily": "didone",
+     "fontWeight": 400,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#f9f3f6",
+     "letterSpacing": 2
+    },
+    {
+     "type": "line",
+     "x": 470,
+     "y": 630,
+     "w": 140,
+     "thickness": 2,
+     "color": "#e6c3d6",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 90,
+     "y": 690,
+     "w": 900,
+     "text": "48 HOURS IN ALFAMA, CHIADO\n& CAIS DO SODRÉ",
+     "fontSize": 40,
+     "fontFamily": "serif",
+     "fontWeight": 400,
+     "align": "center",
+     "lineHeight": 1.35,
+     "color": "#f9f0f5",
+     "letterSpacing": 6
+    },
+    {
+     "type": "text",
+     "x": 90,
+     "y": 880,
+     "w": 900,
+     "text": "SPRING 2026 · TRAM 28 FROM 06:00",
+     "fontSize": 28,
+     "fontFamily": "elegant",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#faf4f8",
+     "letterSpacing": 8
+    },
+    {
+     "type": "shape",
+     "x": 780,
+     "y": 120,
+     "w": 170,
+     "rotation": -12,
+     "h": 170,
+     "shapeId": "seal",
+     "fill": {
+      "kind": "solid",
+      "color": "#e6c3d6"
+     }
+    },
+    {
+     "type": "text",
+     "x": 780,
+     "y": 182,
+     "w": 170,
+     "rotation": -12,
+     "text": "No.07",
+     "fontSize": 42,
+     "fontFamily": "didone",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.1,
+     "color": "#5a2f4c",
+     "letterSpacing": 1
+    }
+   ]
+  },
+  {
    "id": "slides-momentum-opener",
    "name": "Momentum Deck Opener",
    "category": "Business",
