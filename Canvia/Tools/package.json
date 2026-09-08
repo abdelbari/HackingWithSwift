@@ -1,0 +1,15 @@
+{
+  "name": "canvia-verify",
+  "private": true,
+  "description": "Static checks for the Canvia Swift sources (no Xcode required)",
+  "scripts": {
+    "verify": "node verify.js ../Canvia ../Tests"
+  },
+  "dependencies": {
+    "tree-sitter": "^0.21.0",
+    "tree-sitter-swift": "^0.5.0"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.24.0"
+  }
+}
