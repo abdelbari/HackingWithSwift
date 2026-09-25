@@ -222,9 +222,15 @@ struct SizePreset: Identifiable {
 enum ColorTools {
     static func documentColors(_ design: Design, limit: Int = 10) -> [String] {
         var counts: [String: Int] = [:]
+        // First-seen order, so colours used equally often come out the same
+        // way every launch — a Dictionary's own order changes with each run
+        // — and the same way as on the Android twin.
+        var order: [String] = []
         func add(_ c: String?) {
             guard let c, c.hasPrefix("#") else { return }
-            counts[c.lowercased(), default: 0] += 1
+            let key = c.lowercased()
+            if counts[key] == nil { order.append(key) }
+            counts[key, default: 0] += 1
         }
         func addPaint(_ p: Paint?) {
             guard let p else { return }
@@ -244,7 +250,14 @@ enum ColorTools {
                 add(el.color)
             }
         }
-        return counts.sorted { $0.value > $1.value }.prefix(limit).map(\.key)
+        let ranked: [(offset: Int, element: String)] = Array(order.enumerated())
+        let sorted = ranked.sorted { (a: (offset: Int, element: String), b: (offset: Int, element: String)) -> Bool in
+            let ca: Int = counts[a.element] ?? 0
+            let cb: Int = counts[b.element] ?? 0
+            if ca != cb { return ca > cb }
+            return a.offset < b.offset
+        }
+        return sorted.prefix(limit).map { $0.element }
     }
 
     private static func luminance(_ hex: String) -> Double {

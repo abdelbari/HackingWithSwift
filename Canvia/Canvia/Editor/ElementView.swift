@@ -26,26 +26,38 @@ import CoreGraphics
 struct ElementView: View {
     let element: Element
     @Environment(\.animationTime) private var animationTime
+    @Environment(\.pageNumber) private var pageNumber
+
+    /// The element with "{page}" and "{pages}" filled in, where the page is
+    /// known: what a reveal counts and cuts, so the words that appear are the
+    /// words that stay — as the Android twin reveals them.
+    private var resolved: Element {
+        guard let pageNumber, let raw = element.text, raw.contains("{page") else { return element }
+        var el = element
+        el.text = raw.replacingOccurrences(of: "{page}", with: String(pageNumber.number))
+            .replacingOccurrences(of: "{pages}", with: String(pageNumber.count))
+        return el
+    }
 
     /// The element's entrance state at the environment's time; settled when
     /// there is no time, which is the editor at rest.
     private var motion: ElementAnimation.State {
         guard let clock = animationTime, let animation = element.animation else { return .settled }
         // A reveal counts the characters as they read, style marks left out.
-        return animation.state(at: clock.time, text: element.text.map(RichText.strip), size: max(element.w, element.h))
+        return animation.state(at: clock.time, text: resolved.text.map(RichText.strip), size: max(element.w, element.h))
     }
 
     /// The element as drawn now: text cut to the revealed characters, a
     /// photo's crop drifted along its Ken Burns.
     private var shown: Element {
-        var el = element
+        var el = resolved
         if let n = motion.visibleCharacters, let text = el.text {
             // Fitted type stays at the size the whole text fits at, rather than
             // filling the box with the first letter and shrinking as the rest
             // arrive; and the words shown keep their style marks round them,
             // so none is ever drawn — as the Android twin reveals them.
             if el.fitText == true {
-                el.fontSize = FontLibrary.fittingFontSize(for: element)
+                el.fontSize = FontLibrary.fittingFontSize(for: resolved)
                 el.fitText = nil
             }
             el.text = RichText.revealed(text, count: n)
@@ -197,7 +209,8 @@ struct TextElementView: View {
         let text = FontLibrary.displayText(for: el)
         guard !text.isEmpty else { return }
         if TextOutliner.followsAPath(el) {
-            drawCurvedText(in: cg, size: size, effect: effect)
+            // The page's numbers filled in, as on a straight line.
+            drawCurvedText(el, in: cg, size: size, effect: effect)
             return
         }
         // Fitted text is measured at the size that fills the box.
@@ -389,8 +402,8 @@ struct TextElementView: View {
     /// effects that survive that are the ones a filled path can carry — the
     /// shadows and the glow; outline and splice become a stroke on the same
     /// path, and glitch becomes two offset fills.
-    private func drawCurvedText(in cg: CGContext, size: CGSize, effect: TextEffect) {
-        var el = element
+    private func drawCurvedText(_ resolved: Element, in cg: CGContext, size: CGSize, effect: TextEffect) {
+        var el = resolved
         el.w = size.width
         el.h = size.height
         guard let path = TextOutliner.path(for: el) else { return }

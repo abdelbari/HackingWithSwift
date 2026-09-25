@@ -247,7 +247,9 @@ struct InsertSheet: View {
         qrFocused = false
         // Square, because a QR code that is not square has been stretched and
         // no longer scans.
-        let size = min(store.design.width, store.design.height) * 0.3
+        // From this page's size — a page may have its own — as the Android
+        // twin sizes a code.
+        let size = min(store.pageWidth, store.pageHeight) * 0.3
         store.add(.image(CodeGenerator.source(for: payload), w: size.rounded(), h: size.rounded()))
         qrPayload = ""
         dismiss()
@@ -311,8 +313,9 @@ struct InsertSheet: View {
 
     private func textInsert(_ label: String, size: Double, weight: Int) -> some View {
         Button {
-            var el = Element.text(label, fontSize: (store.design.width * size).rounded(),
-                                  w: (store.design.width * 0.72).rounded())
+            // Sized from this page, which may have a size of its own.
+            var el = Element.text(label, fontSize: (store.pageWidth * size).rounded(),
+                                  w: (store.pageWidth * 0.72).rounded())
             el.fontWeight = weight
             el.h = FontLibrary.layoutHeight(for: el)
             store.add(el)
@@ -328,10 +331,12 @@ struct InsertSheet: View {
     }
 
     private func insertPairing(_ pairing: FontPairing) {
-        let scale = store.design.width / 1080
-        let w = store.design.width * 0.72
-        let x = store.design.width * 0.14
-        let y0 = store.design.height * 0.38
+        // Placed on this page, which may have a size of its own: from the
+        // design's size, a pairing ran off a narrower page.
+        let scale = store.pageWidth / 1080
+        let w = store.pageWidth * 0.72
+        let x = store.pageWidth * 0.14
+        let y0 = store.pageHeight * 0.38
         var heading = Element.text(pairing.heading.text,
                                    fontSize: pairing.heading.fontSize * scale, w: w)
         heading.fontFamily = pairing.heading.fontFamily
