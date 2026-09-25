@@ -230,7 +230,10 @@ struct EditorView: View {
                         let renamed = store.design.title
                         guard renamed != titleBeforeEdit else { return }
                         store.design.title = titleBeforeEdit    // rewind…
-                        store.apply { $0.title = renamed }      // …and apply as one step
+                        store.apply {                           // …and apply as one step
+                            $0.title = renamed
+                            $0.titleAuto = false                // a person chose this name
+                        }
                     }
                 }
                 .onSubmit { titleFocused = false }

@@ -222,6 +222,15 @@ struct Design: Codable, Equatable, Identifiable {
     var guides: [Guide] = []
     /// The folder on the home screen this design is filed under, if any.
     var folder: String?
+    /// True while the title is still one an app chose, so the Android twin
+    /// may keep improving it — from "Poster" to the design's own headline.
+    /// Cleared for good the first time a person renames the design, on either
+    /// platform.
+    ///
+    /// Carried here even though this app never renames anything itself:
+    /// without it, a save on iOS silently dropped the field, and a design
+    /// renamed on Android came back from the iPhone renaming itself again.
+    var titleAuto: Bool = true
 
     var size: CGSize { CGSize(width: width, height: height) }
 
@@ -258,10 +267,12 @@ struct Design: Codable, Equatable, Identifiable {
         masterPageId = try? c.decode(String.self, forKey: .masterPageId)
         guides = (try? c.decode([Guide].self, forKey: .guides)) ?? []
         folder = try? c.decode(String.self, forKey: .folder)
+        titleAuto = (try? c.decode(Bool.self, forKey: .titleAuto)) ?? true
     }
 
     private enum CodingKeys: String, CodingKey {
         case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides, folder
+        case titleAuto
     }
 
     /// The master page, if one is set and still exists.

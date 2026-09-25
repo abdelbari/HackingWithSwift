@@ -101,6 +101,7 @@ struct HomeView: View {
             Button("Save") {
                 if let target = renaming, var design = DesignLibrary.load(id: target.id) {
                     design.title = renameText.trimmingCharacters(in: .whitespaces)
+                    design.titleAuto = false
                     design.updatedAt = Date().timeIntervalSince1970 * 1000
                     DesignLibrary.save(design)
                     reload()
