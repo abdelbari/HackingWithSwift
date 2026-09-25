@@ -115,6 +115,9 @@ struct HomeView: View {
     private func reload() {
         recents = DesignLibrary.recents()
         trashed = DesignLibrary.trashed()
+        // A folder exists while something is in it: when its last design
+        // goes, the shelf shows everything again rather than nothing.
+        if let f = folder, !DesignLibrary.folders(in: recents).contains(f) { folder = nil }
     }
 
     /// A design file made by Export on another device (or this one, as a
@@ -296,7 +299,7 @@ struct HomeView: View {
                         }
                         .buttonStyle(.bordered)
                         Button(role: .destructive) {
-                            DesignLibrary.delete(id: entry.id)
+                            DesignLibrary.deleteTrashed(id: entry.id)
                             reload()
                         } label: { Image(systemName: "trash") }
                         .accessibilityLabel("Delete forever")

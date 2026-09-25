@@ -71,6 +71,17 @@ enum DesignLibrary {
         try? FileManager.default.removeItem(at: historyDir(for: id))
     }
 
+    /// Gone for good from the trash only. A live design with the same id —
+    /// one imported again, or restored and deleted twice — keeps its
+    /// document and versions; the versions go only when nothing lives on.
+    static func deleteTrashed(id: String) {
+        try? FileManager.default.removeItem(at: trashDir.appendingPathComponent("\(id).json"))
+        try? FileManager.default.removeItem(at: trashDir.appendingPathComponent("\(id).jpg"))
+        guard !FileManager.default.fileExists(atPath: designsDir.appendingPathComponent("\(id).json").path) else { return }
+        try? FileManager.default.removeItem(at: historyDir(for: id))
+        SpotlightIndexer.remove(id)
+    }
+
     // MARK: trash
 
     /// Deleted designs wait here for thirty days. "Delete" on the home
@@ -136,12 +147,12 @@ enum DesignLibrary {
     static func purgeTrash(now: Date = Date()) -> [String] {
         let cutoff = now.timeIntervalSince1970 * 1000 - trashRetention * 1000
         let stale = trashed().filter { $0.updatedAt < cutoff }.map(\.id)
-        for id in stale { delete(id: id) }
+        for id in stale { deleteTrashed(id: id) }
         return stale
     }
 
     static func emptyTrash() {
-        for entry in trashed() { delete(id: entry.id) }
+        for entry in trashed() { deleteTrashed(id: entry.id) }
     }
 
     // MARK: search and sort
