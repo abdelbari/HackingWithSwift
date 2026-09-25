@@ -483,12 +483,18 @@ struct InsertSheet: View {
         guard let data else { return }
         let target = store.replaceTargetId
         Task {
-            let stored = await Task.detached(priority: .userInitiated) { () -> [(src: String, natural: CGSize)] in
-                PDFImporter.pages(of: data).compactMap { image in
-                    MediaStore.storeOpaque(image).map { ($0, image.size) }
+            // Each page stored as it is rendered, so only one is in memory.
+            let (stored, total) = await Task.detached(priority: .userInitiated) { () -> ([(src: String, natural: CGSize)], Int) in
+                var stored: [(src: String, natural: CGSize)] = []
+                let total = PDFImporter.forEachPage(of: data) { image in
+                    if let src = MediaStore.storeOpaque(image) { stored.append((src, image.size)) }
                 }
+                return (stored, total)
             }.value
             insertPictures(stored, replacing: target)
+            if target == nil, total > stored.count, stored.count > 1 {
+                store.announce("Brought in the first \(stored.count) of \(total) pages")
+            }
         }
     }
 

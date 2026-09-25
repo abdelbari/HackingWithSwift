@@ -19,12 +19,30 @@ enum PDFImporter {
     }
 
     static func pages(of data: Data, maxEdge: CGFloat = 1600) -> [UIImage] {
+        var images: [UIImage] = []
+        forEachPage(of: data, maxEdge: maxEdge) { images.append($0) }
+        return images
+    }
+
+    /// The most pages one import brings in, as on the Android twin: a
+    /// hundred-page manual is not a design, and each page is a picture held
+    /// in memory while it is stored.
+    static let maxPages = 60
+
+    /// Each of the first `limit` pages rendered and handed to `body` in turn,
+    /// so only one is held at a time; the document's page count, or 0 when
+    /// it is not a PDF.
+    @discardableResult
+    static func forEachPage(of data: Data, limit: Int = maxPages, maxEdge: CGFloat = 1600,
+                            _ body: (UIImage) -> Void) -> Int {
         guard let provider = CGDataProvider(data: data as CFData),
-              let document = CGPDFDocument(provider) else { return [] }
-        return (1...max(document.numberOfPages, 1)).compactMap { index in
-            guard let page = document.page(at: index) else { return nil }
-            return render(page, maxEdge: maxEdge)
+              let document = CGPDFDocument(provider), document.numberOfPages > 0 else { return 0 }
+        for index in 1...min(document.numberOfPages, max(limit, 1)) {
+            autoreleasepool {
+                if let page = document.page(at: index), let image = render(page, maxEdge: maxEdge) { body(image) }
+            }
         }
+        return document.numberOfPages
     }
 
     private static func render(_ page: CGPDFPage, maxEdge: CGFloat) -> UIImage? {

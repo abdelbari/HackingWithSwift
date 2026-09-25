@@ -125,6 +125,9 @@ const matches = (sig, given) => {
   for (const g of given) {
     let advanced = false;
     while (i < sig.length) {
+      // A trailing closure passes over defaulted parameters to the one
+      // that takes it, as Swift's forward scan does — never the last.
+      if (g === '_TRAILING_' && sig[i].hasDefault && i < sig.length - 1) { i++; continue; }
       if (sig[i].label === g || g === '_TRAILING_') { i++; advanced = true; break; }
       if (sig[i].hasDefault) { i++; continue; }
       return false;
@@ -149,6 +152,14 @@ for (const f of FILES) {
     if (!base || !OUR_BASES.has(base) || !decls.has(id.text)) return;
     calls++;
     const given = argLabels(suffix);
+    // `let x = f(a) { … }` parses as f(a) called again with the closure:
+    // the outer call's lone lambda is this call's trailing closure.
+    const outer = n.parent;
+    if (outer && outer.type === 'call_expression' && outer.namedChild(0) && outer.namedChild(0).id === n.id) {
+      const os = outer.namedChildren.find(c => c.type === 'call_suffix');
+      if (os && !os.namedChildren.find(c => c.type === 'value_arguments') &&
+          os.namedChildren.find(c => c.type === 'lambda_literal') && !given.includes('_TRAILING_')) given.push('_TRAILING_');
+    }
     if (decls.get(id.text).some(d => matches(d.labels, given))) return;
     FAILURES++;
     console.log(`  FAIL ${rel(f)}:${n.startPosition.row + 1}  ${base}.${id.text}(${given.join(', ')})`);

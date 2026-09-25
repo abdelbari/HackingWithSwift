@@ -965,6 +965,9 @@ final class DesignStore {
     /// Duplicate several pages, each copy landing right after its source.
     func duplicatePages(_ ids: Set<String>) {
         guard design.pages.contains(where: { ids.contains($0.id) }) else { return }
+        // The page on screen stays on screen, wherever the copies land.
+        let currentId = page.id
+        defer { if let i = design.pages.firstIndex(where: { $0.id == currentId }) { pageIndex = i } }
         apply { d in
             var out: [Page] = []
             for p in d.pages {
