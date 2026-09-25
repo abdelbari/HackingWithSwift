@@ -31,6 +31,20 @@ final class BrandAndAuditTests: XCTestCase {
         XCTAssertThrowsError(try DesignPackage.import(Data("{}".utf8), mediaDirectory: dir))
     }
 
+    func testAnImportedMasterPageFollowsItsPageToItsNewId() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        var d = Design(title: "Deck", width: 400, height: 300)
+        d.pages.append(Page())
+        d.masterPageId = d.pages[1].id
+        let back = try DesignPackage.import(try DesignPackage.export(d, mediaDirectory: dir), mediaDirectory: dir)
+        XCTAssertNotEqual(back.pages[1].id, d.pages[1].id)
+        XCTAssertEqual(back.masterPageId, back.pages[1].id)
+        XCTAssertNotNil(back.masterPage)
+    }
+
     // MARK: contrast
 
     func testTheRatioIsWCAG() {

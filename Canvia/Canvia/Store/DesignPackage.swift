@@ -79,8 +79,11 @@ enum DesignPackage {
         var design = package.design
         design.id = UID.make("doc")
         design.updatedAt = Date().timeIntervalSince1970 * 1000
+        var pageIds: [String: String] = [:]
         for p in design.pages.indices {
-            design.pages[p].id = UID.make("page")
+            let fresh = UID.make("page")
+            pageIds[design.pages[p].id] = fresh
+            design.pages[p].id = fresh
             if case .image(let src) = design.pages[p].background, let moved = rewrite(src) {
                 design.pages[p].background = .image(moved)
             }
@@ -91,6 +94,11 @@ enum DesignPackage {
                     design.pages[p].elements[i].fill = fill
                 }
             }
+        }
+        // The master page is named by its id, which was just renewed: follow
+        // it, or an imported design silently loses its master.
+        if let master = design.masterPageId {
+            design.masterPageId = pageIds[master]
         }
         design.normalizeTextHeights()
         return design
