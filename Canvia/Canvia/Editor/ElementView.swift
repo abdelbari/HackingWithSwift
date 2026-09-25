@@ -31,14 +31,25 @@ struct ElementView: View {
     /// there is no time, which is the editor at rest.
     private var motion: ElementAnimation.State {
         guard let clock = animationTime, let animation = element.animation else { return .settled }
-        return animation.state(at: clock.time, text: element.text, size: max(element.w, element.h))
+        // A reveal counts the characters as they read, style marks left out.
+        return animation.state(at: clock.time, text: element.text.map(RichText.strip), size: max(element.w, element.h))
     }
 
     /// The element as drawn now: text cut to the revealed characters, a
     /// photo's crop drifted along its Ken Burns.
     private var shown: Element {
         var el = element
-        if let n = motion.visibleCharacters, let text = el.text { el.text = String(text.prefix(n)) }
+        if let n = motion.visibleCharacters, let text = el.text {
+            // Fitted type stays at the size the whole text fits at, rather than
+            // filling the box with the first letter and shrinking as the rest
+            // arrive; and the words shown keep their style marks round them,
+            // so none is ever drawn — as the Android twin reveals them.
+            if el.fitText == true {
+                el.fontSize = FontLibrary.fittingFontSize(for: element)
+                el.fitText = nil
+            }
+            el.text = RichText.revealed(text, count: n)
+        }
         if let clock = animationTime, let drift = el.kenBurns, el.type == .image {
             let crop = drift.crop(from: el, fraction: clock.hold > 0 ? clock.time / clock.hold : 0)
             el.cropScale = crop.scale; el.cropX = crop.x; el.cropY = crop.y

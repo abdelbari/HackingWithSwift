@@ -257,17 +257,20 @@ enum MovieExporter {
         let remaining = where_.remaining
         if page + 1 < pages.count, transition != "cut", overlap > 0, remaining <= overlap {
             let t = 1 - Double(remaining) / Double(overlap)
+            // A page that moves comes in as it opens, its entrances still to
+            // play, not as it ends — as the Android twin draws it.
+            let coming = animated?(page + 1, 0, 0) ?? pages[page + 1]
             switch transition {
             case "slide":
                 // The next page pushes in from the right, easing out.
                 let eased = 1 - pow(1 - t, 3)
                 context.saveGState()
                 context.translateBy(x: size.width * (1 - eased), y: 0)
-                drawPage(pages[page + 1], progress: 0, alpha: 1,
+                drawPage(coming, progress: 0, alpha: 1,
                          size: size, settings: settings, into: context)
                 context.restoreGState()
             default:
-                drawPage(pages[page + 1], progress: 0, alpha: t,
+                drawPage(coming, progress: 0, alpha: t,
                          size: size, settings: settings, into: context)
             }
         }

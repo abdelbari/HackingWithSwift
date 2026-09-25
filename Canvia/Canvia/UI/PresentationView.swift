@@ -19,6 +19,15 @@ struct PresentationView: View {
     @State private var started = Date()
     @State private var elapsed: TimeInterval = 0
     @State private var autoplayTask: Task<Void, Never>?
+    /// How the page now showing came in, and how the one before it left.
+    @State private var moving: AnyTransition = .opacity
+    /// When the page now showing came up: its entrances play from here.
+    @State private var shownAt = Date()
+    /// Whether everything on the page has come to rest, so the clock that
+    /// plays it can stop.
+    @State private var settled = false
+    @State private var settleTask: Task<Void, Never>?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     private var page: Page { design.pages[min(index, design.pages.count - 1)] }
@@ -29,7 +38,11 @@ struct PresentationView: View {
                 Color.black.ignoresSafeArea()
                 pageView(in: geo.size)
                     .id(page.id)
-                    .transition(.opacity)
+                    .transition(moving)
+                    // A later page always lies over an earlier one: a slide
+                    // forward comes in on top, a slide back goes in under
+                    // the page leaving.
+                    .zIndex(Double(index))
                     .gesture(DragGesture(minimumDistance: 30).onEnded { value in
                         if value.translation.width < 0 { go(1) } else { go(-1) }
                     })
@@ -46,9 +59,11 @@ struct PresentationView: View {
             index = min(max(startPage, 0), design.pages.count - 1)
             started = Date()
             UIApplication.shared.isIdleTimerDisabled = true
+            pageArrived()
         }
         .onDisappear {
             autoplayTask?.cancel()
+            settleTask?.cancel()
             UIApplication.shared.isIdleTimerDisabled = false
         }
         .onReceive(clock) { _ in elapsed = Date().timeIntervalSince(started) }
@@ -57,11 +72,69 @@ struct PresentationView: View {
     private func pageView(in size: CGSize) -> some View {
         let pageSize = design.size(for: page)
         let scale = min(size.width / max(pageSize.width, 1), size.height / max(pageSize.height, 1))
-        return PageRenderView(design: design, page: page)
-            .scaleEffect(scale)
-            .frame(width: pageSize.width * scale, height: pageSize.height * scale)
-            .position(x: size.width / 2, y: size.height / 2)
-            .accessibilityLabel("Page \(index + 1) of \(design.pages.count)")
+        let shown = page
+        let start = shownAt
+        let hold = holdSeconds(shown)
+        let plays = Self.moves(shown, in: design) && !reduceMotion
+        // The page's entrances play as it arrives, and a drifting photo
+        // drifts over its hold — the Android twin's presenter plays them too.
+        return TimelineView(.animation(minimumInterval: nil, paused: !plays || settled)) { context in
+            PageRenderView(design: design, page: shown)
+                .environment(\.animationTime, Self.clock(at: context.date, from: start, hold: hold, playing: plays))
+        }
+        .scaleEffect(scale)
+        .frame(width: pageSize.width * scale, height: pageSize.height * scale)
+        .position(x: size.width / 2, y: size.height / 2)
+        .accessibilityLabel("Page \(index + 1) of \(design.pages.count)")
+    }
+
+    /// The page's clock at `date`: seconds since it came up, and its hold;
+    /// none when it does not play.
+    private static func clock(at date: Date, from start: Date, hold: Double, playing: Bool) -> (time: Double, hold: Double)? {
+        guard playing else { return nil }
+        return (time: max(0, date.timeIntervalSince(start)), hold: hold)
+    }
+
+    /// Whether anything on the page moves: an entrance, a loop, a drift.
+    private static func moves(_ page: Page, in design: Design) -> Bool {
+        (design.masterElements(behind: page) + page.elements).contains { $0.animation != nil || $0.kenBurns != nil }
+    }
+
+    private func holdSeconds(_ page: Page) -> Double {
+        page.holdSeconds ?? design.motion?.secondsPerPage ?? MotionSettings().secondsPerPage
+    }
+
+    /// When the page's movement is over: its last entrance, or its hold for a
+    /// drift; never, for a loop.
+    private func motionEnd(_ page: Page) -> Double {
+        let elements = design.masterElements(behind: page) + page.elements
+        var end = elements.compactMap { $0.animation?.end }.max() ?? 0
+        if elements.contains(where: { $0.kenBurns != nil }) { end = max(end, holdSeconds(page)) }
+        return end
+    }
+
+    /// The page just came up: its clock starts, and stops once all of it is
+    /// at rest.
+    private func pageArrived() {
+        shownAt = Date()
+        settled = false
+        settleTask?.cancel()
+        let end = motionEnd(page)
+        guard end.isFinite else { return }
+        let showing = index
+        settleTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(end + 0.1))
+            guard !Task.isCancelled, showing == index else { return }
+            settled = true
+        }
+    }
+
+    /// How `page` gives way to the next: its own transition, else the
+    /// design's — a fade, or a cut with cross-fade off. The same rule the
+    /// video and the Android twin use.
+    private func transition(after page: Page) -> String {
+        if let own = page.transition, MovieExporter.transitions.contains(own) { return own }
+        return design.motion?.crossfade == false ? "cut" : "fade"
     }
 
     private var chrome: some View {
@@ -113,8 +186,34 @@ struct PresentationView: View {
     private func go(_ delta: Int) {
         let next = index + delta
         guard design.pages.indices.contains(next) else { return }
-        withAnimation(.easeInOut(duration: 0.25)) { index = next }
-        if autoplay { scheduleAdvance() }
+        // Going on, the page being left decides; going back, the page being
+        // returned to, played in reverse.
+        let via = transition(after: delta > 0 ? page : design.pages[next])
+        let animation: Animation?
+        switch via {
+        case "cut":
+            moving = .identity
+            animation = nil
+        case "slide" where !reduceMotion:
+            // Forward: the next page slides in from the right over this one,
+            // which goes once it is covered. Back: this one slides away to
+            // the right, showing the earlier page beneath.
+            moving = delta > 0
+                ? .asymmetric(insertion: .move(edge: .trailing),
+                              removal: .opacity.animation(.linear(duration: 0.01).delay(0.5)))
+                : .asymmetric(insertion: .identity, removal: .move(edge: .trailing))
+            animation = .easeOut(duration: 0.5)
+        default:
+            moving = .opacity
+            animation = .easeInOut(duration: 0.25)
+        }
+        // The transition is read when the views change, so it is set first,
+        // and the page moves on the next turn of the run loop.
+        DispatchQueue.main.async {
+            withAnimation(animation) { index = next }
+            pageArrived()
+            if autoplay { scheduleAdvance() }
+        }
     }
 
     /// Wait this page's own hold (or the document's), then move on; stop at

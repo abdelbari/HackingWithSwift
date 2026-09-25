@@ -88,4 +88,25 @@ final class RichTextTests: XCTestCase {
         let p = try XCTUnwrap(TextOutliner.path(for: plain)).boundingBoxOfPath
         XCTAssertGreaterThan(b.width, p.width)
     }
+
+    func testARevealCountsTheWordsAsTheyReadAndKeepsTheirStyle() {
+        // Every step of a typewriter on bold, italic and plain words reads as
+        // the words shown so far, styled, with no marker in sight — as the
+        // Android twin's test checks the same function.
+        let text = "**Sale** today, *only* __here__ ~~now~~"
+        let full = RichText.parse(text)
+        let plain = Array(full.plain)
+        for n in 0...plain.count {
+            let shown = RichText.revealed(text, count: n)
+            let parsed = RichText.parse(shown)
+            XCTAssertEqual(parsed.plain, String(plain.prefix(n)), "step \(n)")
+        }
+        XCTAssertEqual(RichText.revealed("**Sale** today", count: 2), "**Sa**")
+        XCTAssertEqual(RichText.revealed(text, count: plain.count), text)
+        XCTAssertEqual(RichText.revealed(text, count: 0), "")
+        XCTAssertEqual(RichText.revealed("\u{1F44B} hi", count: 1), "\u{1F44B}")
+        let bold = RichText.parse(RichText.revealed("**Sale** today", count: 3))
+        XCTAssertEqual(bold.runs.first?.style.bold, true)
+    }
 }
+

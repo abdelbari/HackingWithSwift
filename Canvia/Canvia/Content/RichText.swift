@@ -44,7 +44,14 @@ enum RichText {
     }
 
     static func parse(_ text: String) -> Parsed {
-        guard hasMarkup(text) else { return Parsed(plain: text, runs: []) }
+        parseMapped(text).parsed
+    }
+
+    /// The parse, with where each plain character came from in `text`, as
+    /// character offsets.
+    private static func parseMapped(_ text: String) -> (parsed: Parsed, rawAt: [Int]) {
+        guard hasMarkup(text) else { return (Parsed(plain: text, runs: []), Array(0..<text.count)) }
+        var rawAt: [Int] = []
         let chars = Array(text)
         var plain = ""
         var style = Style()
@@ -110,11 +117,67 @@ enum RichText {
                 }
             }
             plain.append(c)
+            rawAt.append(i)
             offset += String(c).utf16.count
             i += 1
         }
         closeRun()
-        return Parsed(plain: plain, runs: runs)
+        return (Parsed(plain: plain, runs: runs), rawAt)
+    }
+
+    /// The text with only its first `count` characters showing — counted as
+    /// they read, markers not counted — and the markers still round them, so a
+    /// typewriter on `**Sale** today` shows a bold "Sa", never "**Sa". The
+    /// text is cut just after the last character shown and the styles that
+    /// character is in are closed there; should the result not read back as
+    /// the same words in the same styles, the words are shown plain instead.
+    /// The Android twin's `RichText.revealed`, step for step.
+    static func revealed(_ text: String, count: Int) -> String {
+        let (full, rawAt) = parseMapped(text)
+        let plain = Array(full.plain)
+        guard count < plain.count else { return text }
+        guard count > 0 else { return "" }
+        let shown = String(plain.prefix(count))
+        guard !full.runs.isEmpty else { return shown }
+        let lastOffset = String(plain.prefix(count - 1)).utf16.count
+        let open = style(of: full.runs, at: lastOffset)
+        let chars = Array(text)
+        let head = String(chars[0...rawAt[count - 1]])
+        var body = head
+        while body.hasSuffix(" ") { body.removeLast() }
+        let spaces = String(repeating: " ", count: head.count - body.count)
+        func closers(_ italic: String) -> String {
+            var out = ""
+            if open.italic { out += italic }
+            if open.bold { out += "**" }
+            if open.underline { out += "__" }
+            if open.strike { out += "~~" }
+            return out
+        }
+        for italic in ["*", "_"] {
+            let candidate = body + closers(italic) + spaces
+            if reads(parse(candidate), as: shown, runs: full.runs) { return candidate }
+            if !open.italic { break }
+        }
+        return shown
+    }
+
+    private static func style(of runs: [Run], at offset: Int) -> Style {
+        runs.first { NSLocationInRange(offset, $0.range) }?.style ?? Style()
+    }
+
+    /// Whether `parsed` is `plain` with every character but trailing spaces
+    /// in the style `runs` give it there.
+    private static func reads(_ parsed: Parsed, as plain: String, runs: [Run]) -> Bool {
+        guard parsed.plain == plain else { return false }
+        var words = plain
+        while words.hasSuffix(" ") { words.removeLast() }
+        var offset = 0
+        for c in words {
+            if style(of: parsed.runs, at: offset) != style(of: runs, at: offset) { return false }
+            offset += String(c).utf16.count
+        }
+        return true
     }
 
     /// Whether a single marker later in the text can close an italic run:

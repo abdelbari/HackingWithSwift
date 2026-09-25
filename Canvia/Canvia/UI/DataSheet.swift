@@ -62,10 +62,12 @@ struct DataSheet: View {
     private func add() {
         let w = store.pageWidth, h = store.pageHeight
         let frame = CGRect(x: (w * 0.1).rounded(), y: (h * 0.2).rounded(), width: (w * 0.8).rounded(), height: (h * 0.6).rounded())
-        let palette = ColorTools.documentColors(store.design, limit: 8)
-        let colors = palette.count >= 2 ? palette : (ContentLibrary.palettes.first?.colors ?? ["#5a31f4"])
+        // The design's colours that show on this page, and labels in an ink
+        // that reads on it — as the Android twin chooses them.
+        let colors = DataGraphics.palette(for: store.design, page: store.page)
         let elements = mode == 0
-            ? DataGraphics.chart(kind, series: DataGraphics.parse(chartText), in: frame, palette: colors)
+            ? DataGraphics.chart(kind, series: DataGraphics.parse(chartText), in: frame, palette: colors,
+                                 ink: DataGraphics.ink(for: store.page))
             : DataGraphics.table(DataGraphics.parseTable(tableText), in: frame, accent: colors[0])
         guard !elements.isEmpty else { return }
         store.applyToPage { $0.elements.append(contentsOf: elements) }

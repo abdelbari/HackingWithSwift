@@ -138,4 +138,20 @@ final class DataGraphicsTests: XCTestCase {
         XCTAssertTrue(first.text.uppercased().contains("HELLO"), first.text)
         XCTAssertLessThan(first.box.minY, 0.5, "the word is in the top half, so the box origin must be too")
     }
+
+    func testAChartsColoursShowOnItsPageAndItsLabelsReadThere() {
+        var shape = Element.shape("rect")
+        shape.fill = .solid("#8b5cf6")
+        let white = Page(background: .color("#ffffff"), elements: [shape])
+        var design = Design()
+        design.pages = [white]
+        let palette = DataGraphics.palette(for: design, page: white)
+        // The page's own white is no series colour.
+        XCTAssertFalse(palette.contains("#ffffff"))
+        XCTAssertGreaterThanOrEqual(palette.count, 2)
+        let dark = Page(background: .color("#14322a"), elements: [])
+        XCTAssertEqual(DataGraphics.ink(for: dark), "#ffffff")
+        XCTAssertEqual(DataGraphics.ink(for: white), "#1f2430")
+    }
 }
+

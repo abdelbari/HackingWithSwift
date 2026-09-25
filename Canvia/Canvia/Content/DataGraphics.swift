@@ -42,6 +42,76 @@ enum DataGraphics {
         }
     }
 
+    /// The colours a chart or a table is drawn in: the design's own, counted
+    /// across every page — less the ones that would not show on this page
+    /// (its background, and anything near it) and the faint ones, such as a
+    /// table's hairlines — else the first palette, as far as it shows. The
+    /// Android twin's `paletteFor`, so the same data comes out in the same
+    /// colours on both phones.
+    static func palette(for design: Design, page: Page) -> [String] {
+        let background = backgroundColors(of: page).compactMap(rgb)
+        func shows(_ hex: String) -> Bool {
+            guard let c = rgb(hex), !isFaint(hex) else { return false }
+            return !background.contains { near($0, c) }
+        }
+        var own: [String] = []
+        for hex in ColorTools.documentColors(design, limit: 24) where shows(hex) {
+            let normal = normalised(hex)
+            if !own.contains(normal) { own.append(normal) }
+            if own.count == 8 { break }
+        }
+        if own.count >= 2 { return own }
+        let first = ContentLibrary.palettes.first?.colors ?? ["#5a31f4"]
+        let fallback = first.filter(shows)
+        return fallback.isEmpty ? first : fallback
+    }
+
+    /// Label ink that reads on the page: near-black on a light background,
+    /// white on a dark one.
+    static func ink(for page: Page) -> String {
+        let background = backgroundColors(of: page).compactMap(rgb)
+        guard !background.isEmpty else { return "#1f2430" }
+        let luma = background.map { (0.299 * Double($0.r) + 0.587 * Double($0.g) + 0.114 * Double($0.b)) / 255 }
+        return luma.reduce(0, +) / Double(luma.count) > 0.62 ? "#1f2430" : "#ffffff"
+    }
+
+    private static func backgroundColors(of page: Page) -> [String] {
+        switch page.background {
+        case .color(let c): return [c]
+        case .gradient(let p): return p.stops?.map(\.color) ?? [p.color].compactMap { $0 }
+        case .image: return []
+        }
+    }
+
+    private static func rgb(_ hex: String) -> (r: Int, g: Int, b: Int)? {
+        var digits = hex.trimmingCharacters(in: .whitespaces)
+        if digits.hasPrefix("#") { digits.removeFirst() }
+        if digits.count == 3 { digits = digits.map { "\($0)\($0)" }.joined() }
+        guard digits.count == 6 || digits.count == 8, let value = UInt64(digits.prefix(6), radix: 16) else { return nil }
+        return (Int((value >> 16) & 0xff), Int((value >> 8) & 0xff), Int(value & 0xff))
+    }
+
+    /// Mostly see-through: an alpha, in the eighth and ninth digits, under half.
+    private static func isFaint(_ hex: String) -> Bool {
+        var digits = hex.trimmingCharacters(in: .whitespaces)
+        if digits.hasPrefix("#") { digits.removeFirst() }
+        guard digits.count == 8, let alpha = UInt8(digits.suffix(2), radix: 16) else { return false }
+        return alpha < 0x80
+    }
+
+    /// Alike enough that one drawn on the other would hardly show — the
+    /// "redmean" distance, as the Android twin measures it.
+    private static func near(_ a: (r: Int, g: Int, b: Int), _ b: (r: Int, g: Int, b: Int)) -> Bool {
+        let rMean = Double(a.r + b.r) / 2
+        let dr = Double(a.r - b.r), dg = Double(a.g - b.g), db = Double(a.b - b.b)
+        return (2 + rMean / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rMean) / 256) * db * db < 6000
+    }
+
+    private static func normalised(_ hex: String) -> String {
+        guard let c = rgb(hex) else { return hex }
+        return String(format: "#%02x%02x%02x", c.r, c.g, c.b)
+    }
+
     /// Chart elements filling `frame`, grouped, coloured from `palette` in
     /// turn, labelled in `ink`.
     static func chart(_ kind: ChartKind, series: [Series], in frame: CGRect,

@@ -328,22 +328,47 @@ enum DesignLibrary {
         let mediaID: (String) -> String? = { src in
             src.hasPrefix("media:") ? String(src.dropFirst(6)) : nil
         }
-        for design in allDesigns() {
+        func keep(_ elements: [Element]) {
+            for el in elements {
+                if let src = el.src, let id = mediaID(src) { referenced.insert(id) }
+                // A shape filled with a photo uses it too.
+                if let src = el.fill?.src, let id = mediaID(src) { referenced.insert(id) }
+            }
+        }
+        // The designs, every version kept of them — a photo taken out of a
+        // design is still in its older versions, and restoring one must
+        // bring the photo back — and what the person keeps across designs:
+        // the brand's logos and the components' pictures.
+        for design in allDesigns() + allVersions() {
             for page in design.pages {
                 if case .image(let src) = page.background, let id = mediaID(src) {
                     referenced.insert(id)
                 }
-                for el in page.elements {
-                    if let src = el.src, let id = mediaID(src) { referenced.insert(id) }
-                }
+                keep(page.elements)
             }
         }
+        for src in BrandKit.load().logos { if let id = mediaID(src) { referenced.insert(id) } }
+        for component in Components.load() { keep(component.elements) }
         guard let files = try? FileManager.default.contentsOfDirectory(
             at: MediaStore.directory, includingPropertiesForKeys: nil) else { return }
         for url in files where MediaStore.extensions.contains(url.pathExtension) {
             let id = url.deletingPathExtension().lastPathComponent
             if !referenced.contains(id) {
                 try? FileManager.default.removeItem(at: url)
+            }
+        }
+    }
+
+    /// Every kept version of every design.
+    private static func allVersions() -> [Design] {
+        let root = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("history", isDirectory: true)
+        guard let dirs = try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil) else { return [] }
+        return dirs.flatMap { dir -> [Design] in
+            guard let files = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) else { return [] }
+            return files.filter { $0.pathExtension == "json" }.compactMap { url in
+                guard let data = try? Data(contentsOf: url) else { return nil }
+                return try? JSONDecoder().decode(Design.self, from: data)
             }
         }
     }
