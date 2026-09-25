@@ -31,6 +31,46 @@ final class BrandAndAuditTests: XCTestCase {
         XCTAssertThrowsError(try DesignPackage.import(Data("{}".utf8), mediaDirectory: dir))
     }
 
+    /// A design file exactly as the Android twin writes it — the same bytes
+    /// its own tests pin (core/src/test/resources/android-package.canvia.json
+    /// in canvacloneandroid). If either side changes the format, one of the two
+    /// tests fails before a real file does.
+    func testADesignFileFromTheAndroidTwinOpens() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let android = ##"{"design":{"createdAt":1727000000000,"guides":[],"height":1350.0,"id":"doc-golden","pages":[{"background":{"type":"gradient","value":{"angle":135.0,"kind":"gradient","stops":[{"color":"#ffe066","offset":0.0},{"color":"#ff6b6b","offset":1.0}]}},"elements":[{"fill":{"color":"#8b5cf6","kind":"solid"},"flipH":false,"flipV":false,"h":300.0,"id":"e-oval","locked":false,"opacity":1.0,"radius":0.0,"rotation":0.0,"shapeId":"circle","type":"shape","w":300.0,"x":100.0,"y":120.0},{"fill":{"color":"#1f2430","kind":"solid"},"flipH":false,"flipV":false,"h":200.0,"id":"e-rect","locked":false,"opacity":1.0,"radius":24.0,"rotation":12.0,"shapeId":"rect","type":"shape","w":500.0,"x":50.0,"y":700.0},{"align":"center","color":"#1f2430","flipH":false,"flipV":false,"fontFamily":"didone","fontSize":96.0,"fontWeight":700,"h":240.0,"id":"e-text","letterSpacing":0.0,"lineHeight":1.25,"locked":false,"opacity":1.0,"rotation":0.0,"text":"Hello from Android","type":"text","w":900.0,"x":90.0,"y":480.0},{"cropScale":1.5,"cropX":0.25,"cropY":0.5,"flipH":true,"flipV":false,"h":360.0,"id":"e-photo","locked":false,"opacity":1.0,"radius":0.0,"rotation":0.0,"src":"media:img-golden","type":"image","w":480.0,"x":300.0,"y":900.0},{"color":"#1f2430","dash":"dashed","flipH":false,"flipV":false,"h":8.0,"id":"e-line","locked":false,"opacity":1.0,"rotation":0.0,"thickness":4.0,"type":"line","w":400.0,"x":340.0,"y":1300.0},{"flipH":false,"flipV":false,"glyph":"⭐","h":120.0,"id":"e-star","locked":false,"opacity":1.0,"rotation":0.0,"type":"sticker","w":120.0,"x":900.0,"y":60.0}],"id":"page-1"},{"background":{"type":"image","value":"media:img-golden"},"elements":[],"id":"page-2"},{"background":{"type":"color","value":"#fafafa"},"elements":[],"height":1920.0,"id":"page-3","width":1080.0}],"title":"Golden","titleAuto":false,"updatedAt":1727000100000,"width":1080.0},"format":"canvia-package","media":{"img-golden":{"data":"/9j/4AAQSkZJRgAB","ext":"jpg"}},"version":1}"##
+        let d = try DesignPackage.import(Data(android.utf8), mediaDirectory: dir)
+        XCTAssertEqual(d.title, "Golden")
+        XCTAssertFalse(d.titleAuto)
+        XCTAssertEqual(d.pages.count, 3)
+
+        guard case .gradient(let paint) = d.pages[0].background else { return XCTFail("gradient background") }
+        XCTAssertEqual(paint.stops?.map(\.offset), [0, 1])
+        XCTAssertEqual(paint.stops?.first?.color, "#ffe066")
+
+        let els = d.pages[0].elements
+        XCTAssertEqual(els.map(\.type), [.shape, .shape, .text, .image, .line, .sticker])
+        XCTAssertEqual(els[0].shapeId, "circle", "Android's oval arrives as iOS's circle")
+        XCTAssertEqual(els[1].shapeId, "rect")
+        XCTAssertEqual(els[1].rotation, 12)
+        XCTAssertEqual(els[2].fontFamily, "didone")
+        XCTAssertEqual(els[2].fontWeight, 700)
+        XCTAssertEqual(els[3].cropScale, 1.5)
+        XCTAssertEqual(els[3].cropX, 0.25)
+        XCTAssertTrue(els[3].flipH)
+        XCTAssertEqual(els[4].dash, "dashed")
+        XCTAssertEqual(els[5].glyph, "⭐")
+
+        // The photo was stored under a fresh id, and both references moved to it.
+        let moved = try XCTUnwrap(els[3].src)
+        XCTAssertTrue(moved.hasPrefix("media:") && moved != "media:img-golden", moved)
+        guard case .image(let bg) = d.pages[1].background else { return XCTFail("image background") }
+        XCTAssertEqual(bg, moved)
+        XCTAssertEqual(d.pages[2].height, 1920)
+    }
+
     func testAnImportedMasterPageFollowsItsPageToItsNewId() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
