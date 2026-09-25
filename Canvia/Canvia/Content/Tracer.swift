@@ -58,6 +58,39 @@ enum Tracer {
                       color: color)
     }
 
+    /// The traced shape laid over the photo where its ink is: through the
+    /// fill or fit and the crop's zoom about its focus, mirrored and turned
+    /// with the photo — as the Android twin lays it.
+    static func shape(_ traced: Result, over el: Element, imageSize: CGSize) -> Element {
+        let sx = el.w / max(imageSize.width, 1), sy = el.h / max(imageSize.height, 1)
+        let base = el.cropFit == true ? min(sx, sy) : max(sx, sy)
+        let zoom = max(el.cropScale ?? 1, 0.01)
+        let picW = imageSize.width * base * zoom, picH = imageSize.height * base * zoom
+        var picX = -(picW - el.w) * (el.cropX ?? 0.5)
+        var picY = -(picH - el.h) * (el.cropY ?? 0.5)
+        if el.flipH { picX = el.w - (picX + picW) }
+        if el.flipV { picY = el.h - (picY + picH) }
+        let bx = el.flipH ? 1 - traced.bounds.maxX : traced.bounds.minX
+        let by = el.flipV ? 1 - traced.bounds.maxY : traced.bounds.minY
+        let w = max((picW * traced.bounds.width).rounded(), 4)
+        let h = max((picH * traced.bounds.height).rounded(), 4)
+        // The shape's centre, turned with the photo about the photo's centre.
+        let dx = picX + picW * bx + w / 2 - el.w / 2
+        let dy = picY + picH * by + h / 2 - el.h / 2
+        let a = el.rotation * .pi / 180
+        let cx = el.x + el.w / 2 + dx * cos(a) - dy * sin(a)
+        let cy = el.y + el.h / 2 + dx * sin(a) + dy * cos(a)
+        var shape = Element.shape("traced", w: w, h: h)
+        shape.x = (cx - w / 2).rounded()
+        shape.y = (cy - h / 2).rounded()
+        shape.rotation = el.rotation
+        shape.flipH = el.flipH
+        shape.flipV = el.flipV
+        shape.pathData = traced.pathData
+        shape.fill = .solid(traced.color)
+        return shape
+    }
+
     // MARK: sampling
 
     private static func sample(_ image: UIImage, maxEdge: Int, threshold: Double) -> (Mask, String)? {

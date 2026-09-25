@@ -294,18 +294,12 @@ struct ContextToolbar: View {
     /// path shape over the same spot, in the ink's own colour.
     private func traceImage(_ el: Element) {
         guard let image = PhotoLibrary.resolve(el.src) else { return }
-        let frame = el.frame
+        let size = image.size
         Task.detached(priority: .userInitiated) {
             let traced = Tracer.trace(image)
             await MainActor.run {
                 guard let traced else { return }
-                let w = (frame.width * traced.bounds.width).rounded(), h = (frame.height * traced.bounds.height).rounded()
-                var shape = Element.shape("traced", w: max(w, 4), h: max(h, 4))
-                shape.x = (frame.minX + frame.width * traced.bounds.minX).rounded()
-                shape.y = (frame.minY + frame.height * traced.bounds.minY).rounded()
-                shape.pathData = traced.pathData
-                shape.fill = .solid(traced.color)
-                store.add(shape, centered: false)
+                store.add(Tracer.shape(traced, over: el, imageSize: size), centered: false)
                 store.announce("Traced — a shape in the picture's colour")
             }
         }

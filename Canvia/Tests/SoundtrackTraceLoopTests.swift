@@ -131,6 +131,34 @@ final class SoundtrackTraceLoopTests: XCTestCase {
         XCTAssertNil(Tracer.trace(picture(40, transparent: false) { _ in }))
     }
 
+    func testATracedShapeLiesOverTheInkThroughCropFlipAndTurn() {
+        let traced = Tracer.Result(pathData: "M0 0Z", bounds: CGRect(x: 0.25, y: 0.5, width: 0.5, height: 0.25), color: "#000000")
+        var photo = Element.image("asset:x", w: 400, h: 200)
+        photo.x = 100; photo.y = 50
+        let size = CGSize(width: 800, height: 400)
+        var shape = Tracer.shape(traced, over: photo, imageSize: size)
+        XCTAssertEqual(shape.x, 200); XCTAssertEqual(shape.y, 150)
+        XCTAssertEqual(shape.w, 200); XCTAssertEqual(shape.h, 50)
+        // Mirrored with the photo: the ink's quarter-in from the left is now
+        // a quarter-in from the right, which for a centred box is the same.
+        photo.flipV = true
+        shape = Tracer.shape(traced, over: photo, imageSize: size)
+        XCTAssertEqual(shape.y, 100, "the lower band is now the upper one")
+        XCTAssertTrue(shape.flipV)
+        // Turned half about the photo's centre (300, 150).
+        photo.flipV = false
+        photo.rotation = 180
+        shape = Tracer.shape(traced, over: photo, imageSize: size)
+        XCTAssertEqual(shape.x, 200); XCTAssertEqual(shape.y, 100)
+        XCTAssertEqual(shape.rotation, 180)
+        // Zoomed 2x about the centre: the ink twice the size, still centred
+        // across.
+        photo.rotation = 0
+        photo.cropScale = 2
+        shape = Tracer.shape(traced, over: photo, imageSize: size)
+        XCTAssertEqual(shape.w, 400); XCTAssertEqual(shape.x, 100)
+    }
+
     func testSimplifyDropsCollinearCellCorners() {
         // Built in four steps: the older compiler cannot type one long
         // concatenation of mapped ranges in reasonable time.
