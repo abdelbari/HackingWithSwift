@@ -728,7 +728,8 @@ struct EditorView: View {
         guard !palettes.isEmpty else { return }
         let palette = palettes[paletteIndex % palettes.count]
         paletteIndex += 1
-        let colors = ColorTools.documentColors(store.design, limit: 24)
+        // Faint colours keep their place, as a theme leaves them.
+        let colors = ColorTools.documentColors(store.design, limit: 24).filter { !ContrastAudit.isFaint($0) }
         guard !colors.isEmpty else { return }
         store.applyToPage { page in
             ColorTools.shuffle(page: &page, docColors: colors, palette: palette.colors)

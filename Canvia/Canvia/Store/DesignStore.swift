@@ -980,7 +980,9 @@ final class DesignStore {
     static func themed(_ design: Design, palette: [String]?, pairing: FontPairing?) -> Design {
         var out = design
         if let palette, !palette.isEmpty {
-            let colors = ColorTools.documentColors(design, limit: 24)
+            // Faint colours — a chart's clear plot, a table's hairlines — keep
+            // their place: made opaque, a clear fill turned solid.
+            let colors = ColorTools.documentColors(design, limit: 24).filter { !ContrastAudit.isFaint($0) }
             if !colors.isEmpty {
                 for p in out.pages.indices {
                     ColorTools.shuffle(page: &out.pages[p], docColors: colors, palette: palette)

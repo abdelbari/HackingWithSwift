@@ -53,7 +53,7 @@ struct ContrastSheet: View {
     private func fix(_ f: ContrastAudit.Finding) {
         store.apply { design in
             if let i = design.pages[f.pageIndex].elements.firstIndex(where: { $0.id == f.elementId }) {
-                design.pages[f.pageIndex].elements[i].color = f.suggestion
+                design.pages[f.pageIndex].elements[i] = ContrastAudit.fixed(design.pages[f.pageIndex].elements[i], for: f)
             }
         }
         refresh()
@@ -64,7 +64,7 @@ struct ContrastSheet: View {
         store.apply { design in
             for f in all {
                 if let i = design.pages[f.pageIndex].elements.firstIndex(where: { $0.id == f.elementId }) {
-                    design.pages[f.pageIndex].elements[i].color = f.suggestion
+                    design.pages[f.pageIndex].elements[i] = ContrastAudit.fixed(design.pages[f.pageIndex].elements[i], for: f)
                 }
             }
         }

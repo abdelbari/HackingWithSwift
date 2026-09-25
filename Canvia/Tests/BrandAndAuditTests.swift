@@ -132,6 +132,42 @@ final class BrandAndAuditTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(ContrastAudit.ratio(findings[0].suggestion, "#ffffff"), 4.5, "the suggestion must pass")
     }
 
+    func testAClearFillIsLookedThroughAndAGradientCounts() {
+        var d = Design(title: "c", width: 800, height: 600)
+        var plot = Element.shape("rect", w: 800, h: 600); plot.fill = .solid("#00000000")
+        var label = Element.text("Sales", fontSize: 16, w: 300); label.color = "#1f2430"; label.y = 100
+        d.pages[0] = Page(background: .color("#ffffff"), elements: [plot, label])
+        XCTAssertEqual(ContrastAudit.backdrop(for: label, in: d.pages[0]), "#ffffff",
+                       "a chart's clear plot is no backdrop")
+        XCTAssertTrue(ContrastAudit.audit(d).isEmpty)
+
+        var band = Element.shape("rect", w: 800, h: 600)
+        band.fill = Paint(kind: "gradient", color: nil, angle: 90,
+                          stops: [GradientStop(offset: 0, color: "#101020"), GradientStop(offset: 1, color: "#303050")])
+        d.pages[0] = Page(background: .color("#ffffff"), elements: [band, label])
+        XCTAssertEqual(ContrastAudit.backdrop(for: label, in: d.pages[0]), "#101020")
+    }
+
+    func testFadedTextIsMeasuredAsDrawnAndTheFixMakesItRead() {
+        var d = Design(title: "c", width: 800, height: 600)
+        var faint = Element.text("Faint", fontSize: 16, w: 300); faint.color = "#ffffff"; faint.opacity = 0.4
+        d.pages[0] = Page(background: .color("#000000"), elements: [faint])
+        let findings = ContrastAudit.audit(d)
+        XCTAssertEqual(findings.count, 1, "white at 40% on black draws as about #666, 3.7:1")
+        let fixed = ContrastAudit.fixed(faint, for: findings[0])
+        XCTAssertEqual(fixed.opacity, 1)
+        d.pages[0].elements[0] = fixed
+        XCTAssertTrue(ContrastAudit.audit(d).isEmpty)
+    }
+
+    func testTheSuggestionAlwaysPasses() {
+        for back in ["#808080", "#16c79a", "#999999", "#777777", "#ff0000"] {
+            let ink = ContrastAudit.suggestion(on: back, need: 4.5)
+            XCTAssertGreaterThanOrEqual(ContrastAudit.ratio(ink, back), 4.5, "\(back) gets \(ink)")
+        }
+        XCTAssertEqual(ContrastAudit.suggestion(on: "#ffffff", need: 4.5), "#16181d")
+    }
+
     // MARK: alt text
 
     @MainActor
