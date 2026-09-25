@@ -15,6 +15,7 @@ struct CanviaApp: App {
         // Trash first, so what it empties is not still holding media.
         DesignLibrary.purgeTrash()
         DesignLibrary.pruneUnusedMedia()
+        DesignLibrary.pruneUnusedAudio()
         DesignLibrary.seedStartersIfNeeded()
         _editingStore = State(initialValue: Self.storeForLaunchArguments() ?? Self.storeForLaunchRequest())
     }

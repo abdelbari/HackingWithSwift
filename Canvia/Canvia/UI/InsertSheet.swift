@@ -193,7 +193,8 @@ struct InsertSheet: View {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 10)], spacing: 10) {
                         ForEach(shapes) { shape in
                             Button {
-                                let size = min(store.design.width, store.design.height) * 0.28
+                                // From this page's size — a page may have its own.
+                                let size = min(store.pageWidth, store.pageHeight) * 0.28
                                 store.add(.shape(shape.id, w: size, h: size))
                                 dismiss()
                             } label: {
@@ -257,7 +258,7 @@ struct InsertSheet: View {
 
     private func lineTile(_ icon: String, _ start: String?, _ end: String?) -> some View {
         Button {
-            var el = Element.line(w: store.design.width * 0.3)
+            var el = Element.line(w: store.pageWidth * 0.3)
             el.startCap = start ?? "none"
             el.endCap = end ?? "none"
             store.add(el)
@@ -419,7 +420,7 @@ struct InsertSheet: View {
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
             guard let text = try? String(contentsOf: url, encoding: .utf8),
                   let d = SVGPath.importFirstPath(fromSVG: text) else { return }
-            let size = min(store.design.width, store.design.height) * 0.4
+            let size = min(store.pageWidth, store.pageHeight) * 0.4
             var el = Element.shape("rect", w: size.rounded(), h: size.rounded())
             el.pathData = d
             el.radius = 0
@@ -438,9 +439,11 @@ struct InsertSheet: View {
                 HStack(spacing: 10) {
                     ForEach(PhotoGrids.layouts) { layout in
                         Button {
-                            let margin = (store.design.width * 0.04).rounded()
-                            let frames = PhotoGrids.elements(for: layout, width: store.design.width,
-                                                             height: store.design.height,
+                            // Laid out across this page, which may be a size
+                            // of its own, not the document's.
+                            let width = store.pageWidth, height = store.pageHeight
+                            let margin = (width * 0.04).rounded()
+                            let frames = PhotoGrids.elements(for: layout, width: width, height: height,
                                                              margin: margin, gutter: (margin / 2).rounded())
                             store.applyToPage { $0.elements.append(contentsOf: frames) }
                             store.selection = Set(frames.map(\.id))
@@ -725,14 +728,15 @@ struct InsertSheet: View {
                 return
             }
         }
-        let w = store.design.width * 0.5
+        // Half this page's width — a page may have its own size.
+        let w = store.pageWidth * 0.5
         let h = natural.width > 0 ? w * natural.height / natural.width : w * 0.75
         store.add(.image(src, w: w.rounded(), h: h.rounded()))
         if cascade > 0, let id = store.selection.first,
            let i = store.page.elements.firstIndex(where: { $0.id == id }) {
             // Part of the same add, so nudged in place rather than through
             // updateSelected, which would make the offset its own undo step.
-            let step = Double(cascade) * store.design.width * 0.04
+            let step = Double(cascade) * store.pageWidth * 0.04
             store.design.pages[store.pageIndex].elements[i].x += step
             store.design.pages[store.pageIndex].elements[i].y += step
         }
@@ -748,7 +752,7 @@ struct InsertSheet: View {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 52), spacing: 8)], spacing: 8) {
                         ForEach(group.emoji, id: \.self) { glyph in
                             Button {
-                                store.add(.sticker(glyph, size: min(store.design.width, store.design.height) * 0.18))
+                                store.add(.sticker(glyph, size: min(store.pageWidth, store.pageHeight) * 0.18))
                                 dismiss()
                             } label: {
                                 Text(glyph).font(.system(size: 34))

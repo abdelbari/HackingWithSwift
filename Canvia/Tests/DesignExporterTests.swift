@@ -402,6 +402,21 @@ final class ExportRangeTests: XCTestCase {
         XCTAssertNil(DesignExporter.selectionDesign(design: d, page: page, ids: []))
     }
 
+    /// A page with a size of its own gives it up: the selection's box is the
+    /// page now, and printing or rendering it must not fall back to the
+    /// page it came from.
+    func testASelectionFromAPageOfItsOwnSizeIsTheSizeOfItsBox() throws {
+        var a = Element.shape("rect", w: 40, h: 30); a.x = 100; a.y = 50; a.id = "a"
+        var page = Page(elements: [a])
+        page.width = 1080; page.height = 1920
+        var d = Design(title: "sel", width: 1000, height: 1000)
+        d.pages = [page]
+
+        let cropped = try XCTUnwrap(DesignExporter.selectionDesign(design: d, page: page, ids: ["a"]))
+        XCTAssertEqual(cropped.size(for: cropped.pages[0]), CGSize(width: 40, height: 30))
+        XCTAssertEqual(cropped.size(at: 0), CGSize(width: 40, height: 30))
+    }
+
     // MARK: transparency
 
     /// The corner of a transparent export has to be actually transparent, not

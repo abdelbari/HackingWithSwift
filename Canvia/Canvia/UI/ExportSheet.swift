@@ -341,7 +341,9 @@ struct ExportSheet: View {
             }
             exportButton("Print-ready PDF", subtitle: "Paper, bleed and crop marks as set", icon: "doc.badge.gearshape") {
                 let url = DesignExporter.fileURL(for: store.design, ext: "pdf", suffix: "-print")
-                try DesignExporter.exportPrintPDF(design: store.design, range: exportedRange, current: exportedPageIndex,
+                // The design the other formats render, so "Selection only"
+                // prints the selection rather than page 1 of the whole thing.
+                try DesignExporter.exportPrintPDF(design: exportedDesign, range: exportedRange, current: exportedPageIndex,
                                                   options: paper, to: url)
                 sharedURLs = [url]
                 exportedURL = url
@@ -432,19 +434,25 @@ struct ExportSheet: View {
     @ViewBuilder
     private func soundtrackRows(_ binding: Binding<MotionSettings>) -> some View {
         let current = binding.wrappedValue.soundtrack
+        // A design from the Android twin, or one sent over from another
+        // phone, brings the soundtrack's id but not the file, and the video
+        // is made without it. Shown as it is rather than as if it would play.
+        let here: Bool = AudioStore.url(for: current) != nil
         HStack {
-            Label(current.map(AudioStore.label) ?? "No soundtrack", systemImage: "music.note")
+            Label(soundtrackLabel(current, here: here), systemImage: "music.note")
                 .lineLimit(1)
             Spacer()
-            if let audioSeconds, current != nil {
+            if let audioSeconds, here {
                 Text(String(format: "%.0fs", audioSeconds)).font(.caption).foregroundStyle(.secondary)
             }
-            Button(current == nil ? "Choose…" : "Change…") { pickingAudio = true }
+            Button(here ? "Change…" : "Choose…") { pickingAudio = true }
                 .font(.callout)
-            if let id = current {
+            if current != nil {
+                // Only the design lets go of it. The file stays, because a
+                // duplicate, a saved version or the undo step can still point
+                // at it; the sweep at launch removes it once nothing does.
                 Button(role: .destructive) {
                     binding.wrappedValue.soundtrack = nil
-                    AudioStore.delete(id)
                     audioSeconds = nil
                 } label: { Image(systemName: "xmark.circle") }
                 .accessibilityLabel("Remove soundtrack")
@@ -454,7 +462,8 @@ struct ExportSheet: View {
             guard case .success(let url) = result else { return }
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            if let previous = current { AudioStore.delete(previous) }
+            // The one it replaces is left where it is, for the same reason
+            // as a removal: something else may still play it.
             guard let id = AudioStore.store(url) else { return }
             binding.wrappedValue.soundtrack = id
             Task { audioSeconds = await AudioStore.duration(of: id) }
@@ -462,7 +471,12 @@ struct ExportSheet: View {
         .task(id: current) {
             if let id = current { audioSeconds = await AudioStore.duration(of: id) }
         }
-        if current != nil {
+        if current != nil && !here {
+            Text("This music was chosen on another phone. Choose it again here to hear it in the video.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        if here {
             HStack {
                 Text("Volume")
                 Slider(value: Binding(get: { binding.wrappedValue.soundVolume ?? 1 },
@@ -472,6 +486,13 @@ struct ExportSheet: View {
                     .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }
         }
+    }
+
+    /// What the soundtrack row says: nothing chosen, the file's kind, or
+    /// that it was chosen on another phone and is not on this one.
+    private func soundtrackLabel(_ id: String?, here: Bool) -> String {
+        guard let id else { return "No soundtrack" }
+        return here ? AudioStore.label(for: id) : "Music from another phone"
     }
 
     private func exportButton(_ title: String, subtitle: String, icon: String,
@@ -541,13 +562,18 @@ struct ExportSheet: View {
     @MainActor
     private func printDesign() throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "pdf")
-        try DesignExporter.exportPrintPDF(design: store.design, range: exportedRange, current: exportedPageIndex,
+        // What the other formats render: the selection as a page of its own
+        // when "Selection only" is on. The range and index are that design's
+        // — with the whole design they pointed at page 1, not the selection.
+        let design = exportedDesign
+        try DesignExporter.exportPrintPDF(design: design, range: exportedRange, current: exportedPageIndex,
                                           options: paper, to: url)
 
         let info = UIPrintInfo.printInfo()
         info.outputType = .general
         info.jobName = store.design.title.isEmpty ? "Canvia design" : store.design.title
-        info.orientation = store.design.width > store.design.height ? .landscape : .portrait
+        let size = design.size(at: exportedPageIndex)
+        info.orientation = size.width > size.height ? .landscape : .portrait
 
         let controller = UIPrintInteractionController.shared
         controller.printInfo = info

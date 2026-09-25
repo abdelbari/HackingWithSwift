@@ -164,6 +164,11 @@ enum DesignExporter {
         var cropped = Design(title: design.title, width: box.width, height: box.height)
         cropped.id = design.id
         var only = page
+        // The box is the page's size now. A page with a size of its own
+        // would otherwise keep it, and render and print at that size with
+        // the selection in its top corner.
+        only.width = nil
+        only.height = nil
         only.elements = chosen.map { el in
             var moved = el
             moved.x -= box.minX

@@ -19,7 +19,7 @@ struct ContrastSheet: View {
                         HStack(spacing: 12) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 6).fill(Color(hex: f.backdrop))
-                                Text("Aa").font(.headline).foregroundStyle(Color(hex: store.element(f.elementId)?.color ?? "#000000"))
+                                Text("Aa").font(.headline).foregroundStyle(Color(hex: ink(of: f)))
                             }
                             .frame(width: 44, height: 36)
                             VStack(alignment: .leading, spacing: 2) {
@@ -49,6 +49,17 @@ struct ContrastSheet: View {
     }
 
     private func refresh() { findings = ContrastAudit.audit(store.design) }
+
+    /// The text's own colour, looked up on the finding's page: store.element
+    /// searches only the page on screen, so a finding on any other page
+    /// showed its swatch in black. Unset is the default ink the audit
+    /// measured.
+    private func ink(of f: ContrastAudit.Finding) -> String {
+        let pages = store.design.pages
+        guard pages.indices.contains(f.pageIndex) else { return "#1f2430" }
+        let el = pages[f.pageIndex].elements.first { $0.id == f.elementId }
+        return el?.color ?? "#1f2430"
+    }
 
     private func fix(_ f: ContrastAudit.Finding) {
         store.apply { design in

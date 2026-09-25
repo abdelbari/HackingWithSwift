@@ -334,7 +334,12 @@ enum DesignLibrary {
     /// removes its JSON and thumbnail but not the pictures it embedded, so
     /// Documents/media grows without bound. Only safe to run at launch, when
     /// no editor holds a design that has added media but not yet saved.
-    static func pruneUnusedMedia() {
+    static func pruneUnusedMedia(pasteboard: UIPasteboard = .general) {
+        // The candidates are listed before a single reference is read, so a
+        // photo stored while the references are being gathered is not among
+        // them and can never be taken for an orphan.
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: MediaStore.directory, includingPropertiesForKeys: nil) else { return }
         var referenced = Set<String>()
         let mediaID: (String) -> String? = { src in
             src.hasPrefix("media:") ? String(src.dropFirst(6)) : nil
@@ -346,28 +351,63 @@ enum DesignLibrary {
                 if let src = el.fill?.src, let id = mediaID(src) { referenced.insert(id) }
             }
         }
+        func keepPage(_ page: Page) {
+            if case .image(let src) = page.background, let id = mediaID(src) {
+                referenced.insert(id)
+            }
+            keep(page.elements)
+        }
         // The designs, every version kept of them — a photo taken out of a
         // design is still in its older versions, and restoring one must
         // bring the photo back — and what the person keeps across designs:
         // the brand's logos and the components' pictures.
         for design in allDesigns() + allVersions() {
-            for page in design.pages {
-                if case .image(let src) = page.background, let id = mediaID(src) {
-                    referenced.insert(id)
-                }
-                keep(page.elements)
-            }
+            for page in design.pages { keepPage(page) }
         }
         for src in BrandKit.load().logos { if let id = mediaID(src) { referenced.insert(id) } }
         for component in Components.load() { keep(component.elements) }
-        guard let files = try? FileManager.default.contentsOfDirectory(
-            at: MediaStore.directory, includingPropertiesForKeys: nil) else { return }
+        // And what was cut or copied but not yet pasted. The pasteboard
+        // outlives a launch, and a photo cut from a design is referenced
+        // nowhere else until it is pasted back; the Android twin keeps these
+        // too. Read only when our own types are there, so someone else's
+        // copied text never brings up the paste prompt.
+        if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
+            keep(elements)
+        }
+        if PageClipboard.hasPage(in: pasteboard), let payload = PageClipboard.paste(from: pasteboard) {
+            keepPage(payload.page)
+        }
         for url in files where MediaStore.extensions.contains(url.pathExtension) {
             let id = url.deletingPathExtension().lastPathComponent
             if !referenced.contains(id) {
                 try? FileManager.default.removeItem(at: url)
             }
         }
+    }
+
+    /// Delete soundtrack files no design plays any more.
+    ///
+    /// Removing or changing a design's soundtrack leaves its file behind: a
+    /// duplicate of the design, one of its saved versions or the undo step
+    /// may still name the same id, and deleting it there and then took the
+    /// music out of their videos without a word. At launch there is no undo
+    /// step left, so a file no saved, versioned or trashed design names can
+    /// go. Only safe at launch, for the same reason as the media sweep.
+    static func pruneUnusedAudio() {
+        // Listed first, as with the photos: a file stored while the designs
+        // are being read is not a candidate, so it is never taken for an
+        // orphan.
+        let stored = AudioStore.all()
+        guard !stored.isEmpty else { return }
+        let playing = soundtracks(in: allDesigns() + allVersions())
+        for id in stored where !playing.contains(id) {
+            AudioStore.delete(id)
+        }
+    }
+
+    /// The AudioStore ids these designs play under their videos.
+    static func soundtracks(in designs: [Design]) -> Set<String> {
+        Set(designs.compactMap { $0.motion?.soundtrack })
     }
 
     /// Every kept version of every design.

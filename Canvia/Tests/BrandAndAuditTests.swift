@@ -160,6 +160,32 @@ final class BrandAndAuditTests: XCTestCase {
         XCTAssertTrue(ContrastAudit.audit(d).isEmpty)
     }
 
+    /// A text centred exactly on a shape's right or bottom edge is over the
+    /// shape, as on Android — CGRect.contains leaves those two edges out.
+    func testATextCentredOnAShapesFarEdgeIsReadAgainstIt() {
+        var panel = Element.shape("rect", w: 400, h: 300); panel.fill = .solid("#000000")
+        // 200 wide and 20 tall (16 × 1.25), so x 300 and y 140 centre it on
+        // (400, 150): the panel's right edge.
+        var right = Element.text("Right edge", fontSize: 16, w: 200); right.x = 300; right.y = 140
+        // Centred on (200, 300): the bottom edge.
+        var bottom = Element.text("Bottom edge", fontSize: 16, w: 200); bottom.x = 100; bottom.y = 290
+        // One point past the right edge is off it.
+        var past = Element.text("Past it", fontSize: 16, w: 200); past.x = 301; past.y = 140
+        let page = Page(background: .color("#ffffff"), elements: [panel, right, bottom, past])
+        XCTAssertEqual(ContrastAudit.backdrop(for: right, in: page), "#000000")
+        XCTAssertEqual(ContrastAudit.backdrop(for: bottom, in: page), "#000000")
+        XCTAssertEqual(ContrastAudit.backdrop(for: past, in: page), "#ffffff")
+    }
+
+    func testAFindingListsTheWordsWithoutTheirMarkers() {
+        var d = Design(title: "c", width: 800, height: 600)
+        var offer = Element.text("  Save **50%** today\n", fontSize: 16, w: 300); offer.color = "#777777"
+        d.pages[0] = Page(background: .color("#ffffff"), elements: [offer])
+        let findings = ContrastAudit.audit(d)
+        XCTAssertEqual(findings.count, 1, "#777 on white at 16px is just under 4.5:1")
+        XCTAssertEqual(findings.first?.text, "Save 50% today", "the bold markers and the spaces round it are gone")
+    }
+
     func testTheSuggestionAlwaysPasses() {
         for back in ["#808080", "#16c79a", "#999999", "#777777", "#ff0000"] {
             let ink = ContrastAudit.suggestion(on: back, need: 4.5)

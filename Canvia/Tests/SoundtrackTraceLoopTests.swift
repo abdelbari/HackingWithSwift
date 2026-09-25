@@ -50,6 +50,51 @@ final class SoundtrackTraceLoopTests: XCTestCase {
         XCTAssertNil(old.soundtrack)
     }
 
+    func testSoundtracksAreGatheredFromEveryDesign() {
+        var a = Design(title: "a"); a.motion = MotionSettings(); a.motion?.soundtrack = "audio_a.m4a"
+        var b = Design(title: "b"); b.motion = MotionSettings(); b.motion?.soundtrack = "audio_b.mp3"
+        var silent = Design(title: "silent"); silent.motion = MotionSettings()
+        let still = Design(title: "still")
+        XCTAssertEqual(DesignLibrary.soundtracks(in: [a, b, silent, still, a]), ["audio_a.m4a", "audio_b.mp3"])
+        XCTAssertTrue(DesignLibrary.soundtracks(in: []).isEmpty)
+    }
+
+    /// Removing a soundtrack leaves its file, so the launch sweep has to keep
+    /// every one something can still play — a live design, a trashed one, a
+    /// saved version — and take only the file nothing names.
+    func testTheAudioSweepKeepsWhatAnyDesignVersionOrTrashedDesignPlays() throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("song-\(UUID()).m4a")
+        try Data([1, 2, 3, 4]).write(to: tmp)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        let live = try XCTUnwrap(AudioStore.store(tmp))
+        let trashed = try XCTUnwrap(AudioStore.store(tmp))
+        let versioned = try XCTUnwrap(AudioStore.store(tmp))
+        let orphan = try XCTUnwrap(AudioStore.store(tmp))
+        defer { for id in [live, trashed, versioned, orphan] { AudioStore.delete(id) } }
+
+        var playing = Design(title: "sweep: live")
+        playing.motion = MotionSettings(); playing.motion?.soundtrack = live
+        DesignLibrary.save(playing)
+        var binned = Design(title: "sweep: trashed")
+        binned.motion = MotionSettings(); binned.motion?.soundtrack = trashed
+        DesignLibrary.save(binned)
+        DesignLibrary.trash(id: binned.id)
+        // The music taken out since, but still in the version kept before.
+        var older = Design(title: "sweep: versioned")
+        older.motion = MotionSettings(); older.motion?.soundtrack = versioned
+        XCTAssertTrue(DesignLibrary.snapshot(older, force: true))
+        var now = older; now.motion = nil
+        DesignLibrary.save(now)
+        defer { for id in [playing.id, binned.id, older.id] { DesignLibrary.delete(id: id) } }
+
+        DesignLibrary.pruneUnusedAudio()
+
+        XCTAssertNotNil(AudioStore.url(for: live), "a live design's music was deleted")
+        XCTAssertNotNil(AudioStore.url(for: trashed), "a trashed design's music was deleted")
+        XCTAssertNotNil(AudioStore.url(for: versioned), "a saved version's music was deleted")
+        XCTAssertNil(AudioStore.url(for: orphan), "music nothing plays was kept forever")
+    }
+
     // MARK: right to left
 
     func testRightToLeftIsDecidedByTheFirstLetter() {

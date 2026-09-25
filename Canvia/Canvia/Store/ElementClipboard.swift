@@ -28,6 +28,12 @@ enum ElementClipboard {
         return elements
     }
 
+    /// Whether the pasteboard carries our own elements. Asking what types are
+    /// there brings up no paste prompt; reading another app's content does.
+    static func hasElements(in pasteboard: UIPasteboard = .general) -> Bool {
+        pasteboard.contains(pasteboardTypes: [type])
+    }
+
     /// Whether a paste has anything to offer: our elements, a picture, or text.
     static func hasContent(in pasteboard: UIPasteboard = .general) -> Bool {
         pasteboard.contains(pasteboardTypes: [type]) || pasteboard.hasImages || pasteboard.hasStrings

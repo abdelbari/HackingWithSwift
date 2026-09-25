@@ -156,4 +156,32 @@ final class MediaStoreTests: XCTestCase {
         XCTAssertTrue(fileExists(keptPNGID, ext: "png"), "referenced cutout was deleted")
         XCTAssertFalse(fileExists(orphanID, ext: "png"), "orphaned cutout was kept forever")
     }
+
+    /// A photo cut from a design lives only on the pasteboard until it is
+    /// pasted back, as an element or on a whole page — a launch in between
+    /// must not delete it. Once nothing holds it, not even the pasteboard,
+    /// it goes.
+    func testPruningKeepsPhotosWaitingOnThePasteboard() throws {
+        let cut = try XCTUnwrap(MediaStore.storeTransparent(cutoutImage()))
+        let orphan = try XCTUnwrap(MediaStore.storeTransparent(cutoutImage()))
+        let cutID = track(cut)
+        let orphanID = track(orphan)
+
+        let elements = UIPasteboard.withUniqueName()
+        defer { UIPasteboard.remove(withName: elements.name) }
+        ElementClipboard.write([Element.image(cut, w: 120, h: 80)], to: elements)
+        XCTAssertTrue(ElementClipboard.hasElements(in: elements))
+        DesignLibrary.pruneUnusedMedia(pasteboard: elements)
+        XCTAssertTrue(fileExists(cutID, ext: "png"), "a cut photo was deleted before it was pasted")
+        XCTAssertFalse(fileExists(orphanID, ext: "png"), "an orphan was kept")
+
+        let backdrop = try XCTUnwrap(MediaStore.storeTransparent(cutoutImage()))
+        let backdropID = track(backdrop)
+        let pages = UIPasteboard.withUniqueName()
+        defer { UIPasteboard.remove(withName: pages.name) }
+        PageClipboard.copy(Page(background: .image(backdrop)), width: 1080, height: 1080, to: pages)
+        DesignLibrary.pruneUnusedMedia(pasteboard: pages)
+        XCTAssertTrue(fileExists(backdropID, ext: "png"), "a copied page's background photo was deleted")
+        XCTAssertFalse(fileExists(cutID, ext: "png"), "a photo no longer on the pasteboard was kept")
+    }
 }

@@ -51,7 +51,15 @@ enum ContrastAudit {
         guard let index = page.elements.firstIndex(where: { $0.id == el.id }) else { return pageColor(page) }
         let centre = el.center
         for other in page.elements[..<index].reversed() where other.type == .shape || other.type == .image {
-            guard Geometry.aabb(other).contains(centre), other.opacity > 0.5 else { continue }
+            // Edges included, as on Android: CGRect.contains leaves out the
+            // right and bottom ones, so a text centred exactly on a shape's
+            // edge was read against the page here and the shape there.
+            // Plain comparisons rather than a closed range, which traps when
+            // a damaged document gives a box a NaN edge.
+            let box = Geometry.aabb(other)
+            let across: Bool = centre.x >= box.minX && centre.x <= box.maxX
+            let down: Bool = centre.y >= box.minY && centre.y <= box.maxY
+            guard across, down, other.opacity > 0.5 else { continue }
             if other.type == .image { return "#808080" }   // a photo: assume mid-grey
             guard let fill = other.fill else { continue }
             switch fill.kind {
@@ -135,8 +143,12 @@ enum ContrastAudit {
                 let r = ratio(drawn(ink, over: back, opacity: el.opacity), back)
                 let need = required(for: el)
                 if r < need {
+                    // The words as read, without the **bold** and _italic_
+                    // markers they are written with — as the Android twin
+                    // lists them.
+                    let words: String = RichText.strip(el.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
                     findings.append(Finding(pageIndex: p, elementId: el.id,
-                                            text: (el.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines),
+                                            text: words,
                                             ratio: r, required: need, backdrop: back,
                                             suggestion: suggestion(on: back, need: need)))
                 }
