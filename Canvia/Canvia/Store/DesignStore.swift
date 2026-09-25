@@ -642,11 +642,25 @@ final class DesignStore {
     /// A finished stroke in page units becomes one shape and one undo step;
     /// nothing is selected, so the next stroke starts clean.
     func finishStroke(_ points: [CGPoint]) {
+        if let tool = drawing, tool.pen == .eraser {
+            eraseStrokes(points, radius: Freehand.eraserRadius(tool))
+            return
+        }
         guard let tool = drawing, let el = Freehand.element(points: points, tool: tool) else { return }
         add(el, centered: false)
         selection.removeAll()
         if tipEvent == nil { tipEvent = .drewStroke }
         buzz(.stroke)
+    }
+
+    /// The strokes an eraser swept over go, all of them one undo step.
+    func eraseStrokes(_ points: [CGPoint], radius: Double) {
+        let gone = Freehand.erased(page.elements, path: points, radius: radius)
+        guard !gone.isEmpty else { return }
+        applyToPage { $0.elements.removeAll { gone.contains($0.id) } }
+        selection.removeAll()
+        buzz(.stroke)
+        announce(gone.count == 1 ? "Erased a stroke" : "Erased \(gone.count) strokes")
     }
 
     func announce(_ text: String) {

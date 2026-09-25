@@ -211,4 +211,40 @@ final class DrawingAndHomeTests: XCTestCase {
         e = HapticEvent(kind: .undo, serial: e.serial + 1)
         XCTAssertNotEqual(a, e)
     }
+
+    // MARK: pens
+
+    func testAHighlighterIsTheInkSeeThroughThreeTimesAsWideMultiplying() {
+        let tool = Freehand.Tool(color: "#f59e0b", width: 6, pen: .highlighter)
+        let el = Freehand.element(points: [CGPoint(x: 0, y: 0), CGPoint(x: 50, y: 10), CGPoint(x: 100, y: 0)], tool: tool)!
+        XCTAssertEqual(el.stroke, "#f59e0b73")
+        XCTAssertEqual(el.strokeWidth, 18)
+        XCTAssertEqual(el.blendMode, "multiply")
+        XCTAssertTrue(Freehand.isStroke(el))
+    }
+
+    func testAGlowHasAHaloOfItsInkAndAnEraserLaysNothingDown() {
+        let glow = Freehand.element(points: [CGPoint(x: 0, y: 0), CGPoint(x: 40, y: 40)],
+                                    tool: Freehand.Tool(color: "#22c55e", width: 4, pen: .glow))!
+        XCTAssertEqual(glow.shadow, Shadow(color: "#22c55e", opacity: 0.9, blur: 18, offsetX: 0, offsetY: 0))
+        XCTAssertNil(Freehand.element(points: [CGPoint(x: 0, y: 0), CGPoint(x: 40, y: 40)],
+                                      tool: Freehand.Tool(pen: .eraser)))
+    }
+
+    func testTheEraserTakesTheStrokesItPassesOverAndOnlyStrokes() {
+        let pen = Freehand.Tool(width: 4)
+        var across = Freehand.element(points: [CGPoint(x: 100, y: 100), CGPoint(x: 200, y: 100), CGPoint(x: 300, y: 100)], tool: pen)!
+        across.id = "across"
+        var far = Freehand.element(points: [CGPoint(x: 100, y: 400), CGPoint(x: 300, y: 400)], tool: pen)!
+        far.id = "far"
+        var locked = Freehand.element(points: [CGPoint(x: 100, y: 110), CGPoint(x: 300, y: 110)], tool: pen)!
+        locked.id = "locked"; locked.locked = true
+        var shape = Element.shape("rect"); shape.id = "rect"; shape.x = 150; shape.y = 50
+        let sweep = [CGPoint(x: 200, y: 60), CGPoint(x: 200, y: 140)]
+        XCTAssertEqual(Freehand.erased([across, far, locked, shape], path: sweep, radius: 8), ["across"],
+                       "a quick swipe crosses the stroke between two samples")
+        var turned = across; turned.rotation = 90
+        XCTAssertTrue(Freehand.erased([turned], path: [CGPoint(x: 150, y: 100)], radius: 4).isEmpty)
+        XCTAssertEqual(Freehand.erased([turned], path: [CGPoint(x: 200, y: 60)], radius: 8), ["across"])
+    }
 }

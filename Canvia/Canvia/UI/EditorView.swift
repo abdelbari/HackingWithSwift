@@ -409,6 +409,21 @@ struct EditorView: View {
     /// puts the pen away.
     private func drawingBar(_ tool: Freehand.Tool) -> some View {
         HStack(spacing: 10) {
+            // What the pen lays down — ink, a highlighter, a glow — or the
+            // eraser, which takes strokes away.
+            Menu {
+                ForEach(Freehand.Pen.allCases) { kind in
+                    Button {
+                        store.drawing?.pen = kind
+                    } label: {
+                        Label(kind.label, systemImage: tool.pen == kind ? "checkmark" : kind.symbol)
+                    }
+                }
+            } label: {
+                Image(systemName: tool.pen.symbol)
+                    .frame(width: 30, height: 30)
+            }
+            .accessibilityLabel("Pen, \(tool.pen.label)")
             ForEach(Freehand.colors, id: \.self) { hex in
                 Button {
                     store.drawing?.color = hex

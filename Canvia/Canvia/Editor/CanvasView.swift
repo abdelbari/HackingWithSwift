@@ -187,9 +187,7 @@ struct CanvasView: View {
         ZStack {
             Color.clear.contentShape(Rectangle())
             if !strokePoints.isEmpty {
-                Path(Freehand.cgPath(strokePoints))
-                    .stroke(Color(hex: tool.color),
-                            style: StrokeStyle(lineWidth: tool.width, lineCap: .round, lineJoin: .round))
+                livePen(tool)
             }
         }
         .frame(width: store.pageWidth, height: store.pageHeight)
@@ -206,6 +204,27 @@ struct CanvasView: View {
         )
         .accessibilityLabel("Drawing surface")
         .accessibilityHint("Drag to draw a stroke")
+    }
+
+    /// The stroke under the finger, as the finished one will be drawn: a
+    /// highlighter see-through and multiplying, a glow with its halo — or,
+    /// for the eraser, a soft grey trail as wide as it reaches.
+    @ViewBuilder
+    private func livePen(_ tool: Freehand.Tool) -> some View {
+        if tool.pen == .eraser {
+            Path { p in p.addLines(strokePoints) }
+                .stroke(Color.gray.opacity(0.3),
+                        style: StrokeStyle(lineWidth: Freehand.eraserRadius(tool) * 2, lineCap: .round, lineJoin: .round))
+        } else {
+            let glow: Shadow? = tool.pen == .glow ? Freehand.glow(of: tool) : nil
+            let halo: Color = glow.map { Color(hex: $0.color).opacity($0.opacity) } ?? .clear
+            let spread: Double = glow.map { $0.blur / 2 } ?? 0
+            Path(Freehand.cgPath(strokePoints))
+                .stroke(Color(hex: Freehand.drawnColor(tool)),
+                        style: StrokeStyle(lineWidth: Freehand.drawnWidth(tool), lineCap: .round, lineJoin: .round))
+                .blendMode(tool.pen == .highlighter ? .multiply : .normal)
+                .shadow(color: halo, radius: spread)
+        }
     }
 
     /// What a blank page said before this was: nothing. A white square and a

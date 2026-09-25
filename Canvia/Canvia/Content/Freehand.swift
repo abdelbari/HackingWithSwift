@@ -13,10 +13,59 @@ import UIKit
 
 enum Freehand {
 
+    /// What the pen lays down: ink; a highlighter — the ink see-through,
+    /// three times as wide, multiplying with what is under it as a real one
+    /// does; a glow — the ink with a halo of itself; and an eraser, which
+    /// lays nothing down and takes away the strokes it passes over. The
+    /// Android twin has the same four, and makes the same strokes.
+    enum Pen: String, CaseIterable, Identifiable {
+        case pen, highlighter, glow, eraser
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .pen: return "Pen"
+            case .highlighter: return "Highlighter"
+            case .glow: return "Glow"
+            case .eraser: return "Eraser"
+            }
+        }
+        var symbol: String {
+            switch self {
+            case .pen: return "pencil.tip"
+            case .highlighter: return "highlighter"
+            case .glow: return "sparkles"
+            case .eraser: return "eraser"
+            }
+        }
+    }
+
     struct Tool: Equatable {
         var color = "#1f2430"
         var width: Double = 6
+        var pen: Pen = .pen
     }
+
+    /// How see-through a highlighter's ink is, as the two hex digits added
+    /// to it.
+    static let highlighterAlpha = "73"
+
+    /// The width a stroke is drawn at: a highlighter's is three of the pen's.
+    static func drawnWidth(_ tool: Tool) -> Double { tool.pen == .highlighter ? tool.width * 3 : tool.width }
+
+    /// The ink a stroke is drawn in: a highlighter's made see-through.
+    static func drawnColor(_ tool: Tool) -> String {
+        guard tool.pen == .highlighter, tool.color.count == 7, tool.color.hasPrefix("#") else { return tool.color }
+        return tool.color + highlighterAlpha
+    }
+
+    /// A glow's halo: the ink itself, soft and all round.
+    static func glow(of tool: Tool) -> Shadow {
+        Shadow(color: tool.color, opacity: 0.9, blur: tool.width * 3 + 6, offsetX: 0, offsetY: 0)
+    }
+
+    /// How far an eraser reaches from the finger, in page units: twice the
+    /// size chosen, and never less than a fingertip's worth.
+    static func eraserRadius(_ tool: Tool) -> Double { max(tool.width * 2, 12) }
 
     static let widths: [Double] = [2, 4, 6, 10, 16, 24]
     static let colors: [String] = ["#1f2430", "#ffffff", "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899"]
@@ -90,8 +139,10 @@ enum Freehand {
     /// path data normalised into its box, stroked in the tool's colour with
     /// no fill.
     static func element(points raw: [CGPoint], tool: Tool) -> Element? {
+        guard tool.pen != .eraser else { return nil }
+        let width = drawnWidth(tool)
         let points = thinned(raw)
-        guard let box = bounds(of: points, width: tool.width) else { return nil }
+        guard let box = bounds(of: points, width: width) else { return nil }
         let unit = points.map { p in
             CGPoint(x: (p.x - box.minX) / box.width * 100, y: (p.y - box.minY) / box.height * 100)
         }
@@ -100,10 +151,93 @@ enum Freehand {
         e.y = box.minY
         e.pathData = pathData(unit)
         e.fill = Paint.clear
-        e.stroke = tool.color
-        e.strokeWidth = tool.width
+        e.stroke = drawnColor(tool)
+        e.strokeWidth = width
         e.radius = nil
+        if tool.pen == .highlighter { e.blendMode = "multiply" }
+        if tool.pen == .glow { e.shadow = glow(of: tool) }
         return e
+    }
+
+    /// The drawn strokes an eraser dragged along `path` (page units) touches:
+    /// any stroke whose line comes within `radius` of it, its own half-width
+    /// added. Only strokes, and none that is locked.
+    static func erased(_ elements: [Element], path: [CGPoint], radius: Double) -> Set<String> {
+        guard !path.isEmpty else { return [] }
+        let sweep: [CGPoint] = path.count == 1 ? [path[0], path[0]] : path
+        var out = Set<String>()
+        for el in elements where isStroke(el) && !el.locked {
+            let points = pagePoints(el)
+            guard !points.isEmpty else { continue }
+            let line: [CGPoint] = points.count == 1 ? [points[0], points[0]] : points
+            let reach: Double = radius + (el.strokeWidth ?? 0) / 2
+            var hit = false
+            outer: for i in 0..<(sweep.count - 1) {
+                for j in 0..<(line.count - 1) where segmentDistance(sweep[i], sweep[i + 1], line[j], line[j + 1]) <= reach {
+                    hit = true
+                    break outer
+                }
+            }
+            if hit { out.insert(el.id) }
+        }
+        return out
+    }
+
+    /// A stroke's points — every coordinate pair of its path — on the page:
+    /// out of the element's 0…100 box, flipped and turned as it is drawn.
+    static func pagePoints(_ el: Element) -> [CGPoint] {
+        guard let data = el.pathData else { return [] }
+        var numbers: [Double] = []
+        var current = ""
+        for ch in data {
+            if ch.isNumber || ch == "." || (ch == "-" && current.isEmpty) {
+                current.append(ch)
+            } else {
+                if let v = Double(current) { numbers.append(v) }
+                current = ch == "-" ? "-" : ""
+            }
+        }
+        if let v = Double(current) { numbers.append(v) }
+        let cx: Double = el.x + el.w / 2, cy: Double = el.y + el.h / 2
+        let turn: Double = el.rotation * .pi / 180
+        let c: Double = cos(turn), s: Double = sin(turn)
+        var out: [CGPoint] = []
+        var i = 0
+        while i + 1 < numbers.count {
+            var x: Double = el.x + numbers[i] / 100 * el.w
+            var y: Double = el.y + numbers[i + 1] / 100 * el.h
+            if el.flipH { x = 2 * cx - x }
+            if el.flipV { y = 2 * cy - y }
+            let dx: Double = x - cx, dy: Double = y - cy
+            out.append(CGPoint(x: cx + dx * c - dy * s, y: cy + dx * s + dy * c))
+            i += 2
+        }
+        return out
+    }
+
+    /// The least distance between two segments: none where they cross.
+    private static func segmentDistance(_ a: CGPoint, _ b: CGPoint, _ c: CGPoint, _ d: CGPoint) -> Double {
+        func cross(_ o: CGPoint, _ p: CGPoint, _ q: CGPoint) -> Double {
+            let first: Double = Double(p.x - o.x) * Double(q.y - o.y)
+            let second: Double = Double(p.y - o.y) * Double(q.x - o.x)
+            return first - second
+        }
+        let d1 = cross(c, d, a), d2 = cross(c, d, b), d3 = cross(a, b, c), d4 = cross(a, b, d)
+        let straddlesCD: Bool = (d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)
+        let straddlesAB: Bool = (d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)
+        if straddlesCD && straddlesAB { return 0 }
+        let first: Double = min(distance(a, c, d), distance(b, c, d))
+        let second: Double = min(distance(c, a, b), distance(d, a, b))
+        return min(first, second)
+    }
+
+    private static func distance(_ p: CGPoint, _ a: CGPoint, _ b: CGPoint) -> Double {
+        let dx: Double = Double(b.x - a.x), dy: Double = Double(b.y - a.y)
+        let length: Double = dx * dx + dy * dy
+        var t: Double = 0
+        if length > 0 { t = min(max((Double(p.x - a.x) * dx + Double(p.y - a.y) * dy) / length, 0), 1) }
+        let x: Double = Double(a.x) + t * dx, y: Double = Double(a.y) + t * dy
+        return hypot(Double(p.x) - x, Double(p.y) - y)
     }
 
     /// Whether an element is a drawn stroke: a path shape with no fill.
