@@ -68,6 +68,10 @@ enum PageClipboard {
             page.elements[i].h *= scale
             if let fs = page.elements[i].fontSize { page.elements[i].fontSize = fs * scale }
             if let t = page.elements[i].thickness { page.elements[i].thickness = max(1, t * scale) }
+            // The same rule resizing a design uses: every page-unit distance scales.
+            if let ls = page.elements[i].letterSpacing { page.elements[i].letterSpacing = ls * scale }
+            if let r = page.elements[i].radius { page.elements[i].radius = r * scale }
+            if let sw = page.elements[i].strokeWidth { page.elements[i].strokeWidth = sw * scale }
         }
         return page
     }

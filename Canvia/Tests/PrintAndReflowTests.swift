@@ -160,6 +160,27 @@ final class PrintAndReflowTests: XCTestCase {
         XCTAssertEqual(store.design.pages[0].elements[0].w, 100, accuracy: 0.01)
     }
 
+    @MainActor
+    func testResizingScalesEveryPageUnitAndMovesGuidesWithTheContent() {
+        // The rule the Android twin's PageResize follows too, so the same
+        // resize lands the same way on either phone.
+        var d = Design(title: "r", width: 1080, height: 1080)
+        var box = Element.shape("rect", w: 200, h: 100)
+        box.radius = 20
+        box.strokeWidth = 4
+        var text = Element.text("Hi", fontSize: 40, w: 400)
+        text.letterSpacing = 6
+        d.pages[0].elements = [box, text]
+        d.guides = [Guide(id: "h", vertical: false, position: 100)]
+        let store = DesignStore(design: d)
+        store.resizeDesign(width: 540, height: 960)
+        // Scale 0.5, and the 540-square content is centred 210 down.
+        XCTAssertEqual(store.design.guides[0].position, 100 * 0.5 + 210, accuracy: 0.001)
+        XCTAssertEqual(store.design.pages[0].elements[0].radius ?? 0, 10, accuracy: 0.001)
+        XCTAssertEqual(store.design.pages[0].elements[0].strokeWidth ?? 0, 2, accuracy: 0.001)
+        XCTAssertEqual(store.design.pages[0].elements[1].letterSpacing ?? 0, 3, accuracy: 0.001)
+    }
+
     // MARK: Spotlight
 
     func testSpotlightWordsAreDistinctLowercaseAndSkipOneLetterWords() {

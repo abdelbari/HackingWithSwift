@@ -1195,6 +1195,12 @@ final class DesignStore {
             e.h = el.h * s
             if let fs = el.fontSize { e.fontSize = fs * s }
             if let t = el.thickness { e.thickness = max(1, t * s) }
+            // Everything else measured in page units, so a resized design
+            // keeps its proportions — and before the text below is measured,
+            // which the spacing changes. The Android twin does the same.
+            if let ls = el.letterSpacing { e.letterSpacing = ls * s }
+            if let r = el.radius { e.radius = r * s }
+            if let sw = el.strokeWidth { e.strokeWidth = sw * s }
             if el.type == .text, rx > s {
                 e.w = min(el.w * rx, new.width)
                 e.h = FontLibrary.layoutHeight(for: e)
@@ -1223,6 +1229,9 @@ final class DesignStore {
             out.elements[i].h *= scale
             if let fs = out.elements[i].fontSize { out.elements[i].fontSize = fs * scale }
             if let t = out.elements[i].thickness { out.elements[i].thickness = max(1, t * scale) }
+            if let ls = out.elements[i].letterSpacing { out.elements[i].letterSpacing = ls * scale }
+            if let r = out.elements[i].radius { out.elements[i].radius = r * scale }
+            if let sw = out.elements[i].strokeWidth { out.elements[i].strokeWidth = sw * scale }
         }
         return out
     }
@@ -1264,6 +1273,16 @@ final class DesignStore {
         guard width != design.width || height != design.height || design.hasMixedPageSizes else { return }
         let new = CGSize(width: width, height: height)
         apply { d in
+            // Guides go where the content they line up goes: scaled with the
+            // page and centred with it. Left where they were, they sat on
+            // empty space after a change of shape.
+            let s = min(width / max(d.width, 1), height / max(d.height, 1))
+            let dx = (width - d.width * s) / 2, dy = (height - d.height * s) / 2
+            d.guides = d.guides.map { g in
+                var g2 = g
+                g2.position = g.position * s + (g.vertical ? dx : dy)
+                return g2
+            }
             for p in d.pages.indices {
                 d.pages[p] = Self.scaledPage(d.pages[p], from: d.size(for: d.pages[p]), to: new)
                 d.pages[p].width = nil
