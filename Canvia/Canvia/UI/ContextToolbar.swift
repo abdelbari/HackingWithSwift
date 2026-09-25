@@ -30,6 +30,9 @@ struct ContextToolbar: View {
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiate
     @State private var editingAlt = false
     @State private var altDraft = ""
+    @State private var editingLink = false
+    @State private var linkDraft = ""
+    @State private var linkUnread = false
     @State private var namingStyle = false
     @State private var styleName = ""
     @State private var styleVersion = 0
@@ -601,12 +604,59 @@ struct ContextToolbar: View {
         toolButton(anyUnlocked ? "lock.open" : "lock", anyUnlocked ? "Lock" : "Unlock") {
             store.toggleLockSelected()
         }
+        if let el = store.singleSelection, !el.locked { linkButton(el) }
         toolButton("plus.square.on.square", "Duplicate") { store.duplicateSelected() }
         if store.selection.count == 2 {
             toolButton("arrow.right", "Connect") { store.connectSelected() }
         }
         toolButton("square.2.layers.3d.top.filled", "Forward") { store.reorderSelected(.forward) }
         toolButton("square.2.layers.3d.bottom.filled", "Backward") { store.reorderSelected(.backward) }
+    }
+
+    /// A web address, email or phone number on the element: clickable in the
+    /// PDF and SVG, and opened by a tap in the presenter. Typed as people
+    /// type them, and read as the Android twin reads them (see Links).
+    private func linkButton(_ el: Element) -> some View {
+        let linked = el.link?.isEmpty == false
+        return Button {
+            linkDraft = el.link.map(Links.shown) ?? ""
+            linkUnread = false
+            editingLink = true
+        } label: {
+            toolLabel("link", linked ? "Linked" : "Link", active: linked)
+        }
+        .buttonStyle(ToolButtonStyle())
+        .alert(linked ? "Edit link" : "Link", isPresented: $editingLink) {
+            TextField("canvia.app", text: $linkDraft)
+                .keyboardType(.URL)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            Button("Save") { saveLink() }
+            if linked {
+                Button("Remove", role: .destructive) {
+                    store.updateSelected { $0.link = nil }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(linkUnread
+                 ? "That doesn't read as a link. Try a web address like canvia.app, an email address or a phone number."
+                 : "A web address, email or phone number. Clickable in a PDF, and opened by a tap in Present.")
+        }
+    }
+
+    /// Saves what was typed as a link, clears it when nothing was, and asks
+    /// again when it does not read as one.
+    private func saveLink() {
+        let draft = linkDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        if draft.isEmpty {
+            store.updateSelected { $0.link = nil }
+        } else if let url = Links.normalized(draft) {
+            store.updateSelected { $0.link = url }
+        } else {
+            linkUnread = true
+            editingLink = true
+        }
     }
 
     // MARK: helpers

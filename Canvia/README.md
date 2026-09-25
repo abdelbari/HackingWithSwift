@@ -143,6 +143,10 @@ duplicate / delete via long-press), and a template gallery.
 - Alt text on any element, read by VoiceOver and written as the SVG
   group's title; for photos, Suggest asks the on-device classifier for a
   first draft.
+- A link on any element — a web address, an email or a phone number,
+  typed as people type them ("canvia.app" becomes https) — clickable over
+  the element in the PDF and SVG, and opened by a tap in Present. The
+  Android twin reads and keeps links the same way (`Content/Links.swift`).
 - A brand kit — colours, a heading and body face, logos — kept across
   designs: first in every colour picker, a pairing in the theme sheet,
   and logos in the Photos tab.
@@ -396,7 +400,8 @@ with ⇧) to reorder layers, ⇧⌘L lock, ⌘E export, ⌘K crop, ⇧⌘P prese
 ⇧⌘N new page, ⌘/ help, arrows to nudge (⇧ for ten).
 
 **Present** — the design full screen from the menu: black surround,
-tap or swipe between pages, a clock, the page's notes for whoever holds
+tap or swipe between pages, a tap on a linked element to open its link,
+a clock, the page's notes for whoever holds
 the phone, and autoplay on each page's own timing. Every page can set
 its own hold and its transition to the next (fade, cut or slide) from
 its notes sheet; the video honours both.

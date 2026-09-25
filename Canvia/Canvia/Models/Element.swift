@@ -80,6 +80,9 @@ struct Element: Codable, Equatable, Identifiable {
     /// whenever either moves (see Connectors).
     var connectFrom: String?
     var connectTo: String?
+    /// A web address, mailto or tel link: clickable in the exported PDF and
+    /// SVG, and opened by a tap in the presenter (see Links).
+    var link: String?
 
     // shape
     var shapeId: String?
@@ -195,6 +198,7 @@ struct Element: Codable, Equatable, Identifiable {
         altText = try? c.decode(String.self, forKey: .altText)
         connectFrom = try? c.decode(String.self, forKey: .connectFrom)
         connectTo = try? c.decode(String.self, forKey: .connectTo)
+        link = try? c.decode(String.self, forKey: .link)
         shapeId = try? c.decode(String.self, forKey: .shapeId)
         pathData = try? c.decode(String.self, forKey: .pathData)
         fill = try? c.decode(Paint.self, forKey: .fill)
@@ -262,7 +266,7 @@ struct Element: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow, blendMode, altText
-        case connectFrom, connectTo
+        case connectFrom, connectTo, link
         case shapeId, pathData, fill, stroke, strokeWidth, radius, corners
         case text, fontFamily, fontSize, fontWeight, italic, underline, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical

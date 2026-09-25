@@ -305,9 +305,30 @@ enum DesignExporter {
                     let box = bounds(page)
                     ctx.beginPage(withBounds: box, pageInfo: [:])
                     draw(design: design, page: page, into: ctx.cgContext, fitting: box)
+                    linkAreas(of: page, in: design, onto: ctx.cgContext, pageHeight: box.height)
                 }
             }
         }
+    }
+
+    /// A linked element clickable over its area, as in Canva's PDFs and the
+    /// Android twin's. Given in the PDF's own space — points up from the
+    /// bottom of the page — with UIKit's flip taken off, so the rectangle
+    /// means the same however the context reads it.
+    private static func linkAreas(of page: Page, in design: Design, onto cg: CGContext, pageHeight: Double) {
+        let areas = Links.areas(design: design, page: page)
+        guard !areas.isEmpty else { return }
+        cg.saveGState()
+        cg.concatenate(cg.ctm.inverted())
+        for area in areas {
+            guard let target = URL(string: area.url) else { continue }
+            let rect = CGRect(x: area.rect.minX * pxToPt,
+                              y: pageHeight - area.rect.maxY * pxToPt,
+                              width: area.rect.width * pxToPt,
+                              height: area.rect.height * pxToPt)
+            cg.setURL(target as CFURL, for: rect)
+        }
+        cg.restoreGState()
     }
 
     /// A print-ready PDF on real paper: each design page fitted, at actual

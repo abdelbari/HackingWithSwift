@@ -3,8 +3,8 @@
 // A deck made in a design tool gets shown from the phone — held up in a
 // meeting, mirrored to a screen — and a scrollable editor with a toolbar is
 // not that. This is: black surround, the page fitted, tap or swipe to move,
-// a clock, the page's notes for the person holding the phone, and autoplay
-// on each page's own timing.
+// a tap on a linked element to open its link, a clock, the page's notes for
+// the person holding the phone, and autoplay on each page's own timing.
 
 import SwiftUI
 
@@ -28,6 +28,7 @@ struct PresentationView: View {
     @State private var settled = false
     @State private var settleTask: Task<Void, Never>?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.openURL) private var openURL
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     private var page: Page { design.pages[min(index, design.pages.count - 1)] }
@@ -47,7 +48,10 @@ struct PresentationView: View {
                         if value.translation.width < 0 { go(1) } else { go(-1) }
                     })
                     .onTapGesture { location in
-                        if location.x > geo.size.width * 0.66 { go(1) }
+                        // A linked element opens its link, as a click on it
+                        // does in the PDF.
+                        if let url = link(at: location, in: geo.size) { openURL(url) }
+                        else if location.x > geo.size.width * 0.66 { go(1) }
                         else if location.x < geo.size.width * 0.33 { go(-1) }
                         else { withAnimation { showingChrome.toggle() } }
                     }
@@ -86,6 +90,32 @@ struct PresentationView: View {
         .frame(width: pageSize.width * scale, height: pageSize.height * scale)
         .position(x: size.width / 2, y: size.height / 2)
         .accessibilityLabel("Page \(index + 1) of \(design.pages.count)")
+        .accessibilityActions {
+            ForEach(Self.links(on: shown, in: design), id: \.self) { url in
+                Button("Open \(Links.shown(url))") {
+                    if let target = URL(string: url) { openURL(target) }
+                }
+            }
+        }
+    }
+
+    /// The page's links, each once, in drawing order.
+    private static func links(on page: Page, in design: Design) -> [String] {
+        var seen = Set<String>()
+        return Links.areas(design: design, page: page).map(\.url).filter { seen.insert($0).inserted }
+    }
+
+    /// The link under `location`, in a view of `size` that fits the page as
+    /// pageView does; nil where there is none.
+    private func link(at location: CGPoint, in size: CGSize) -> URL? {
+        let pageSize = design.size(for: page)
+        let scale: CGFloat = min(size.width / max(pageSize.width, 1), size.height / max(pageSize.height, 1))
+        guard scale > 0 else { return nil }
+        let dx: CGFloat = (size.width - pageSize.width * scale) / 2
+        let dy: CGFloat = (size.height - pageSize.height * scale) / 2
+        let point = CGPoint(x: (location.x - dx) / scale, y: (location.y - dy) / scale)
+        guard let url = Links.at(design: design, page: page, point: point) else { return nil }
+        return URL(string: url)
     }
 
     /// The page's clock at `date`: seconds since it came up, and its hold;

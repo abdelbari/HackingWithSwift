@@ -82,7 +82,11 @@ enum SVGExporter {
         // An alt text becomes the group's title, which is what screen readers
         // and browsers read for an SVG element.
         let title = el.altText.map { "<title>\(escape($0))</title>" } ?? ""
-        return "<g\(attributes)>\(title)\(markup(el, index: index, defs: &defs))</g>"
+        let group = "<g\(attributes)>\(title)\(markup(el, index: index, defs: &defs))</g>"
+        // A link wraps the element, so a browser follows it on a click.
+        guard let link = el.link, !link.isEmpty else { return group }
+        let href = escape(link)
+        return "<a href=\"\(href)\" xlink:href=\"\(href)\">\(group)</a>"
     }
 
     /// feDropShadow, which every current renderer supports. stdDeviation is
