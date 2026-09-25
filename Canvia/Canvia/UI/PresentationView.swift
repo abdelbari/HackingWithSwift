@@ -125,9 +125,12 @@ struct PresentationView: View {
         return (time: max(0, date.timeIntervalSince(start)), hold: hold)
     }
 
-    /// Whether anything on the page moves: an entrance, a loop, a drift.
+    /// Whether anything on the page moves: an entrance, a loop, a drift, a
+    /// clip playing.
     private static func moves(_ page: Page, in design: Design) -> Bool {
-        (design.masterElements(behind: page) + page.elements).contains { $0.animation != nil || $0.kenBurns != nil }
+        (design.masterElements(behind: page) + page.elements).contains {
+            $0.animation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src)
+        }
     }
 
     private func holdSeconds(_ page: Page) -> Double {
@@ -135,9 +138,10 @@ struct PresentationView: View {
     }
 
     /// When the page's movement is over: its last entrance, or its hold for a
-    /// drift; never, for a loop.
+    /// drift; never, for a loop or a clip, which plays while the page is up.
     private func motionEnd(_ page: Page) -> Double {
         let elements = design.masterElements(behind: page) + page.elements
+        if elements.contains(where: { VideoStore.isVideo($0.src) }) { return .infinity }
         var end = elements.compactMap { $0.animation?.end }.max() ?? 0
         if elements.contains(where: { $0.kenBurns != nil }) { end = max(end, holdSeconds(page)) }
         return end

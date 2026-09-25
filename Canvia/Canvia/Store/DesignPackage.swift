@@ -1,4 +1,4 @@
-// A design as one file: the document plus every photo it uses.
+// A design as one file: the document plus every photo and clip it uses.
 //
 // The JSON on disk points at media by id, which means nothing outside this
 // app. A package inlines those files, so the design can be sent to someone,
@@ -24,6 +24,52 @@ enum DesignPackage {
         var version: Int = DesignPackage.version
         var design: Design
         var media: [String: Media]
+        /// The video clips the design shows, by id. Optional, so a file made
+        /// before clips travelled — or with none — still reads; the Android
+        /// twin writes and reads the same.
+        var videos: [String: Media]?
+    }
+
+    /// The longest clip a file carries, in bytes; a longer one travels as
+    /// its first frame, a still, so the design still looks as it did.
+    static let maxPackedVideoBytes = 30 * 1024 * 1024
+
+    /// Ids of the clips a design shows.
+    static func videoIDs(in design: Design) -> Set<String> {
+        var ids = Set<String>()
+        for page in design.pages {
+            for el in page.elements {
+                if let src = el.src, let parts = VideoStore.split(src) { ids.insert(parts.id) }
+            }
+        }
+        return ids
+    }
+
+    /// The design with each clip packed into `videos`, or — too long to
+    /// carry, or unreadable — replaced by its first frame packed as a photo.
+    static func packingVideos(_ design: Design, media: inout [String: Media], videos: inout [String: Media]) -> Design {
+        var stills: [String: String] = [:]
+        for id in videoIDs(in: design) {
+            guard let url = VideoStore.url(for: id) else { continue }
+            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? Int.max
+            if size <= maxPackedVideoBytes, let data = try? Data(contentsOf: url) {
+                videos[id] = Media(ext: url.pathExtension.lowercased(), data: data)
+            } else if let still = VideoStore.poster(id)?.jpegData(compressionQuality: 0.9) {
+                let newId = UID.make("img")
+                media[newId] = Media(ext: "jpg", data: still)
+                stills[id] = newId
+            }
+        }
+        guard !stills.isEmpty else { return design }
+        var out = design
+        for p in out.pages.indices {
+            for i in out.pages[p].elements.indices {
+                guard let src = out.pages[p].elements[i].src, let parts = VideoStore.split(src),
+                      let still = stills[parts.id] else { continue }
+                out.pages[p].elements[i].src = "media:\(still)"
+            }
+        }
+        return out
     }
 
     /// Ids of the media files a design references.
@@ -45,7 +91,9 @@ enum DesignPackage {
         // and exists nowhere else — not on the other platform, not on an
         // older install. The file carries it as a picture like any other,
         // under a fresh id, and only the exported copy is re-pointed.
-        let design = packingLibraryPhotos(design, into: &media)
+        var videos: [String: Media] = [:]
+        let withClips = packingVideos(design, media: &media, videos: &videos)
+        let design = packingLibraryPhotos(withClips, into: &media)
         for id in mediaIDs(in: design) {
             for ext in MediaStore.extensions {
                 let url = mediaDirectory.appendingPathComponent("\(id).\(ext)")
@@ -57,7 +105,7 @@ enum DesignPackage {
         }
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
-        return try encoder.encode(Package(design: design, media: media))
+        return try encoder.encode(Package(design: design, media: media, videos: videos.isEmpty ? nil : videos))
     }
 
     /// The design with every library photo (`asset:<id>`) that this app can
@@ -108,8 +156,19 @@ enum DesignPackage {
             try item.data.write(to: url)
             remap[oldId] = newId
         }
+        // Each clip under a fresh id too, its moments kept where a source
+        // carries one.
+        var clips: [String: String] = [:]
+        for (oldId, item) in package.videos ?? [:] {
+            if let newId = VideoStore.store(item.data, ext: item.ext) { clips[oldId] = newId }
+        }
         func rewrite(_ src: String?) -> String? {
-            guard let src, src.hasPrefix("media:"), let newId = remap[String(src.dropFirst(6))] else { return src }
+            guard let src else { return nil }
+            if let parts = VideoStore.split(src) {
+                guard let newId = clips[parts.id] else { return src }
+                return VideoStore.src(newId, at: parts.time)
+            }
+            guard src.hasPrefix("media:"), let newId = remap[String(src.dropFirst(6))] else { return src }
             return "media:\(newId)"
         }
         var design = package.design

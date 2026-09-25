@@ -53,4 +53,32 @@ final class VideoElementTests: XCTestCase {
         VideoStore.delete(id)
         XCTAssertNil(VideoStore.url(for: id))
     }
+
+    /// A clip travels in a design file, under "videos", and comes back as a
+    /// clip of its own under a fresh id, its moments kept — as the Android
+    /// twin writes and reads it.
+    func testAClipTravelsInADesignFile() throws {
+        let bytes = Data([0, 0, 0, 24, 102, 116, 121, 112])
+        let id = try XCTUnwrap(VideoStore.store(bytes, ext: "mp4"))
+        defer { VideoStore.delete(id) }
+        var design = Design(title: "clip", width: 320, height: 240)
+        design.pages[0].elements = [Element.image(VideoStore.src(id, at: nil), w: 160, h: 120),
+                                    Element.image(VideoStore.src(id, at: 1.25), w: 160, h: 120)]
+        let data = try DesignPackage.export(design)
+        let package = try JSONDecoder().decode(DesignPackage.Package.self, from: data)
+        XCTAssertEqual(package.videos?[id]?.data, bytes)
+        XCTAssertEqual(package.videos?[id]?.ext, "mp4")
+
+        let imported = try DesignPackage.import(data)
+        let sources = imported.pages[0].elements.compactMap(\.src)
+        let fresh = try XCTUnwrap(VideoStore.split(sources[0])?.id)
+        defer { VideoStore.delete(fresh) }
+        XCTAssertNotEqual(fresh, id)
+        XCTAssertEqual(sources, [VideoStore.src(fresh, at: nil), VideoStore.src(fresh, at: 1.25)])
+        XCTAssertEqual(try Data(contentsOf: try XCTUnwrap(VideoStore.url(for: fresh))), bytes)
+
+        // A design with no clips writes no "videos" at all.
+        let plain = try DesignPackage.export(Design(title: "plain", width: 100, height: 100))
+        XCTAssertFalse(String(decoding: plain, as: UTF8.self).contains("\"videos\""))
+    }
 }
