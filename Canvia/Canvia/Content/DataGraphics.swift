@@ -71,14 +71,24 @@ enum DataGraphics {
     static func ink(for page: Page) -> String {
         let background = backgroundColors(of: page).compactMap(rgb)
         guard !background.isEmpty else { return "#1f2430" }
-        let luma = background.map { (0.299 * Double($0.r) + 0.587 * Double($0.g) + 0.114 * Double($0.b)) / 255 }
-        return luma.reduce(0, +) / Double(luma.count) > 0.62 ? "#1f2430" : "#ffffff"
+        var total: Double = 0
+        for c in background {
+            let r: Double = 0.299 * Double(c.r)
+            let g: Double = 0.587 * Double(c.g)
+            let b: Double = 0.114 * Double(c.b)
+            total += (r + g + b) / 255
+        }
+        let average: Double = total / Double(background.count)
+        return average > 0.62 ? "#1f2430" : "#ffffff"
     }
 
     private static func backgroundColors(of page: Page) -> [String] {
         switch page.background {
         case .color(let c): return [c]
-        case .gradient(let p): return p.stops?.map(\.color) ?? [p.color].compactMap { $0 }
+        case .gradient(let p):
+            if let stops = p.stops { return stops.map { $0.color } }
+            if let color = p.color { return [color] }
+            return []
         case .image: return []
         }
     }
@@ -102,9 +112,14 @@ enum DataGraphics {
     /// Alike enough that one drawn on the other would hardly show — the
     /// "redmean" distance, as the Android twin measures it.
     private static func near(_ a: (r: Int, g: Int, b: Int), _ b: (r: Int, g: Int, b: Int)) -> Bool {
-        let rMean = Double(a.r + b.r) / 2
-        let dr = Double(a.r - b.r), dg = Double(a.g - b.g), db = Double(a.b - b.b)
-        return (2 + rMean / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rMean) / 256) * db * db < 6000
+        let rMean: Double = Double(a.r + b.r) / 2
+        let dr: Double = Double(a.r - b.r)
+        let dg: Double = Double(a.g - b.g)
+        let db: Double = Double(a.b - b.b)
+        let red: Double = (2 + rMean / 256) * dr * dr
+        let green: Double = 4 * dg * dg
+        let blue: Double = (2 + (255 - rMean) / 256) * db * db
+        return red + green + blue < 6000
     }
 
     private static func normalised(_ hex: String) -> String {
