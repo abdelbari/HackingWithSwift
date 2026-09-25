@@ -54,6 +54,21 @@ final class VideoElementTests: XCTestCase {
         XCTAssertNil(VideoStore.url(for: id))
     }
 
+    /// The launch sweep lets go of clips nothing shows, and keeps one cut
+    /// and waiting on the pasteboard.
+    func testTheSweepKeepsOnlyClipsSomethingShows() throws {
+        let bytes = Data([0, 0, 0, 24, 102, 116, 121, 112])
+        let kept = try XCTUnwrap(VideoStore.store(bytes, ext: "mp4"))
+        let orphan = try XCTUnwrap(VideoStore.store(bytes, ext: "mp4"))
+        defer { VideoStore.delete(kept); VideoStore.delete(orphan) }
+        let board = UIPasteboard.withUniqueName()
+        defer { UIPasteboard.remove(withName: board.name) }
+        ElementClipboard.write([Element.image(VideoStore.src(kept, at: nil), w: 160, h: 90)], to: board)
+        DesignLibrary.pruneUnusedVideos(pasteboard: board)
+        XCTAssertNotNil(VideoStore.url(for: kept), "a clip waiting on the pasteboard was deleted")
+        XCTAssertNil(VideoStore.url(for: orphan), "a clip nothing shows was kept")
+    }
+
     /// A clip travels in a design file, under "videos", and comes back as a
     /// clip of its own under a fresh id, its moments kept — as the Android
     /// twin writes and reads it.

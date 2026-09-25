@@ -405,6 +405,38 @@ enum DesignLibrary {
         }
     }
 
+    /// Delete clips no design shows any more.
+    ///
+    /// Deleting a clip's element, or its design, left the movie file behind
+    /// for good: nothing ever swept the clips. At launch a clip no saved,
+    /// versioned or trashed design shows — nor a component, nor what was cut
+    /// or copied but not yet pasted — can go. Listed first, as the photos
+    /// are, so a clip stored while the designs are being read is never taken
+    /// for an orphan.
+    static func pruneUnusedVideos(pasteboard: UIPasteboard = .general) {
+        let stored = VideoStore.all()
+        guard !stored.isEmpty else { return }
+        var shown = Set<String>()
+        func keep(_ elements: [Element]) {
+            for el in elements {
+                if let src = el.src, let parts = VideoStore.split(src) { shown.insert(parts.id) }
+            }
+        }
+        for design in allDesigns() + allVersions() {
+            for page in design.pages { keep(page.elements) }
+        }
+        for component in Components.load() { keep(component.elements) }
+        if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
+            keep(elements)
+        }
+        if PageClipboard.hasPage(in: pasteboard), let payload = PageClipboard.paste(from: pasteboard) {
+            keep(payload.page.elements)
+        }
+        for id in stored where !shown.contains(id) {
+            VideoStore.delete(id)
+        }
+    }
+
     /// The AudioStore ids these designs play under their videos.
     static func soundtracks(in designs: [Design]) -> Set<String> {
         Set(designs.compactMap { $0.motion?.soundtrack })
