@@ -207,7 +207,11 @@ struct TextElementView: View {
         if effect == .highlight {
             let highlight = UIColor(hex: color.isLight ? "#1f2430" : "#ffe066")
             cg.setFillColor(highlight.cgColor)
-            for line in lineFragments(text: text, attrs: attrs, width: size.width) {
+            // At the size the words are drawn (fitted type is not its stored
+            // size) and where they start in the box (vertically aligned text
+            // is not at the top).
+            for line in lineFragments(text: text, attrs: attrs, width: size.width,
+                                      pitch: fontSize * (el.lineHeight ?? 1.25), top: rect.minY) {
                 let pad = fontSize * 0.18
                 cg.fill(CGRect(x: line.rect.minX - pad, y: line.rect.minY,
                                width: line.rect.width + pad * 2, height: line.rect.height))
@@ -291,8 +295,14 @@ struct TextElementView: View {
             // and paint the gradient in the same flipped space.
             cg.translateBy(x: 0, y: size.height)
             cg.scaleBy(x: 1, y: -1)
-            cg.clip(to: rect, mask: cgMask)
-            Self.paintGradient(fill, in: cg, rect: rect, flipped: true)
+            // The mask was rendered over the whole box, so it clips over the
+            // whole box — into `rect` it was squashed when the text sat lower.
+            // The gradient spans the text's part of the box, which in this
+            // flipped space runs from the bottom up to where the words start.
+            cg.clip(to: CGRect(origin: .zero, size: size), mask: cgMask)
+            Self.paintGradient(fill, in: cg,
+                               rect: CGRect(x: 0, y: 0, width: size.width, height: size.height - rect.minY),
+                               flipped: true)
             cg.restoreGState()
         }
     }
@@ -432,19 +442,19 @@ struct TextElementView: View {
 
     /// Wrapped line rectangles via CoreText, for the highlight effect.
     private func lineFragments(text: String, attrs: [NSAttributedString.Key: Any],
-                               width: Double) -> [LineFragment] {
+                               width: Double, pitch: Double, top: Double) -> [LineFragment] {
         let attributed = NSAttributedString(string: text, attributes: attrs)
         let framesetter = CTFramesetterCreateWithAttributedString(attributed)
         let path = CGPath(rect: CGRect(x: 0, y: 0, width: width, height: 100000), transform: nil)
         let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: 0, length: 0), path, nil)
         guard let lines = CTFrameGetLines(frame) as? [CTLine], !lines.isEmpty else { return [] }
-        let lineHeight = (element.fontSize ?? 42) * (element.lineHeight ?? 1.25)
+        let lineHeight = pitch
         var fragments: [LineFragment] = []
         for (i, line) in lines.enumerated() {
             var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
             let lineWidth = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
             guard lineWidth > 0.5 else { continue }
-            let topY = Double(i) * lineHeight
+            let topY = top + Double(i) * lineHeight
             let alignedX: Double
             switch element.align ?? "center" {
             case "left": alignedX = 0

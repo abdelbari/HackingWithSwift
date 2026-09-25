@@ -181,6 +181,17 @@ final class PrintAndReflowTests: XCTestCase {
         XCTAssertEqual(store.design.pages[0].elements[1].letterSpacing ?? 0, 3, accuracy: 0.001)
     }
 
+    @MainActor
+    func testPerCornerRadiiScaleToo() {
+        var d = Design(title: "r", width: 1080, height: 1080)
+        var box = Element.shape("rect", w: 200, h: 200)
+        box.corners = [60, 0, 60, 0]
+        d.pages[0].elements = [box]
+        let store = DesignStore(design: d)
+        store.resizeDesign(width: 540, height: 540)
+        XCTAssertEqual(store.design.pages[0].elements[0].corners ?? [], [30, 0, 30, 0])
+    }
+
     // MARK: Spotlight
 
     func testSpotlightWordsAreDistinctLowercaseAndSkipOneLetterWords() {

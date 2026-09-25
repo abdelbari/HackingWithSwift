@@ -71,6 +71,7 @@ enum PageClipboard {
             // The same rule resizing a design uses: every page-unit distance scales.
             if let ls = page.elements[i].letterSpacing { page.elements[i].letterSpacing = ls * scale }
             if let r = page.elements[i].radius { page.elements[i].radius = r * scale }
+            if let c = page.elements[i].corners { page.elements[i].corners = c.map { $0 * scale } }
             if let sw = page.elements[i].strokeWidth { page.elements[i].strokeWidth = sw * scale }
         }
         return page

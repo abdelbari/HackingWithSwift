@@ -1200,6 +1200,7 @@ final class DesignStore {
             // which the spacing changes. The Android twin does the same.
             if let ls = el.letterSpacing { e.letterSpacing = ls * s }
             if let r = el.radius { e.radius = r * s }
+            if let c = el.corners { e.corners = c.map { $0 * s } }
             if let sw = el.strokeWidth { e.strokeWidth = sw * s }
             if el.type == .text, rx > s {
                 e.w = min(el.w * rx, new.width)
@@ -1231,6 +1232,7 @@ final class DesignStore {
             if let t = out.elements[i].thickness { out.elements[i].thickness = max(1, t * scale) }
             if let ls = out.elements[i].letterSpacing { out.elements[i].letterSpacing = ls * scale }
             if let r = out.elements[i].radius { out.elements[i].radius = r * scale }
+            if let c = out.elements[i].corners { out.elements[i].corners = c.map { $0 * scale } }
             if let sw = out.elements[i].strokeWidth { out.elements[i].strokeWidth = sw * scale }
         }
         return out
