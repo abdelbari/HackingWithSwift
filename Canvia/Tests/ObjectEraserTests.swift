@@ -31,6 +31,23 @@ final class ObjectEraserTests: XCTestCase {
         XCTAssertEqual(r.x, 200, accuracy: 0.01); XCTAssertEqual(r.y, 200, accuracy: 0.01)
     }
 
+    func testAFlippedPhotoMapsMirroredAndTheBrushIsInPixels() {
+        var el = Element.image("asset:x", w: 400, h: 200)
+        el.x = 100; el.y = 50
+        el.flipH = true
+        let size = CGSize(width: 800, height: 400)
+        // The frame's top-left shows the picture's top-right.
+        let p = ObjectEraser.imagePoint(CGPoint(x: 100, y: 50), element: el, imageSize: size)
+        XCTAssertEqual(p.x, 800, accuracy: 0.01); XCTAssertEqual(p.y, 0, accuracy: 0.01)
+        // Drawn at half size, so 40 page units are 80 pixels; twice as many
+        // for a picture fitted inside a frame half its shape.
+        XCTAssertEqual(ObjectEraser.brushPixels(40, element: el, imageSize: size), 80, accuracy: 1e-9)
+        el.h = 400; el.cropFit = true
+        XCTAssertEqual(ObjectEraser.brushPixels(40, element: el, imageSize: size), 80, accuracy: 1e-9)
+        el.cropFit = nil
+        XCTAssertEqual(ObjectEraser.brushPixels(40, element: el, imageSize: size), 40, accuracy: 1e-9)
+    }
+
     func testMaskPaintsTheStrokeWhiteWhereItGoes() throws {
         let mask = try XCTUnwrap(ObjectEraser.mask(size: CGSize(width: 100, height: 60), strokes: [[CGPoint(x: 10, y: 10), CGPoint(x: 90, y: 10)]], width: 8))
         var px = [UInt8](repeating: 0, count: 100 * 60)

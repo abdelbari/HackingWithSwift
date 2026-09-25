@@ -606,8 +606,7 @@ final class DesignStore {
         }
         // The brush in image pixels: the page-unit width through the same
         // scale the picture is shown at.
-        let shown = max(el.w / max(image.size.width, 1), el.h / max(image.size.height, 1)) * max(el.cropScale ?? 1, 0.01)
-        let width = max(4, eraserWidth / max(shown, 0.0001))
+        let width = ObjectEraser.brushPixels(eraserWidth, element: el, imageSize: image.size)
         eraserBusy = true
         Task.detached(priority: .userInitiated) { [weak self] in
             let result = ObjectEraser.erase(image, strokes: strokes, width: width)

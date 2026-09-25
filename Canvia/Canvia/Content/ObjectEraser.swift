@@ -18,9 +18,9 @@ import UIKit
 enum ObjectEraser {
 
     /// A finger stroke over an image element, mapped into the picture's own
-    /// pixels: undoes the element's rotation, the crop's zoom about its
-    /// focus, and the fill or fit placement. Straightening is ignored, so a
-    /// levelled photo's mask lands a little off along the tilt.
+    /// pixels: undoes the element's rotation and flip, the crop's zoom about
+    /// its focus, and the fill or fit placement. Straightening is ignored, so
+    /// a levelled photo's mask lands a little off along the tilt.
     static func imagePoint(_ page: CGPoint, element el: Element, imageSize: CGSize) -> CGPoint {
         let frameW = el.w, frameH = el.h
         guard frameW > 0, frameH > 0, imageSize.width > 0, imageSize.height > 0 else { return .zero }
@@ -28,7 +28,10 @@ enum ObjectEraser {
         let centre = CGPoint(x: el.x + frameW / 2, y: el.y + frameH / 2)
         let a = -el.rotation * .pi / 180
         let dx = page.x - centre.x, dy = page.y - centre.y
-        let local = CGPoint(x: dx * cos(a) - dy * sin(a) + frameW / 2, y: dx * sin(a) + dy * cos(a) + frameH / 2)
+        var local = CGPoint(x: dx * cos(a) - dy * sin(a) + frameW / 2, y: dx * sin(a) + dy * cos(a) + frameH / 2)
+        // A flipped photo is drawn mirrored about the frame's centre.
+        if el.flipH { local.x = frameW - local.x }
+        if el.flipV { local.y = frameH - local.y }
         // The picture as displayed: fit or fill, then offset by the focus.
         let fit = el.cropFit == true
         let scale = fit ? min(frameW / imageSize.width, frameH / imageSize.height)
@@ -43,6 +46,15 @@ enum ObjectEraser {
         let unzoomed = CGPoint(x: anchor.x + (local.x - anchor.x) / zoom, y: anchor.y + (local.y - anchor.y) / zoom)
         return CGPoint(x: (unzoomed.x - origin.x) / dispW * imageSize.width,
                        y: (unzoomed.y - origin.y) / dispH * imageSize.height)
+    }
+
+    /// A brush `width` in page units as picture pixels: through the scale
+    /// the picture is shown at, fitted or filling, zoom and all.
+    static func brushPixels(_ width: Double, element el: Element, imageSize: CGSize) -> Double {
+        let sx = el.w / max(imageSize.width, 1), sy = el.h / max(imageSize.height, 1)
+        let base = el.cropFit == true ? min(sx, sy) : max(sx, sy)
+        let shown = base * max(el.cropScale ?? 1, 0.01)
+        return max(4, width / max(shown, 0.0001))
     }
 
     /// Strokes in image pixels, each `width` pixels wide, painted into a
