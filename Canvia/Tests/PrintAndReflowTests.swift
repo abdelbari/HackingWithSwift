@@ -60,6 +60,29 @@ final class PrintAndReflowTests: XCTestCase {
         }
     }
 
+    func testATiledPosterMarksTheTrimOnlyOnTilesThatHoldItsCorners() {
+        let page = CGSize(width: 300, height: 100)
+        func tile(_ sourceX: Double) -> [(CGPoint, CGPoint)] {
+            PrintLayout.sheetMarks(sheet: CGRect(x: 20, y: 20, width: 110, height: 100),
+                                   source: CGRect(x: sourceX, y: 0, width: 110, height: 100),
+                                   page: page, bleed: 10)
+        }
+        // The left tile holds the two left corners: two marks at each.
+        XCTAssertEqual(tile(0).count, 4)
+        XCTAssertTrue(tile(0).allSatisfy { $0.0.x < 40 })
+        // A middle tile holds no corner, so it carries no mark.
+        XCTAssertEqual(tile(100).count, 0)
+        // The right tile's marks are at the trim (290 in the page), not the tile's edge.
+        let right = tile(190)
+        XCTAssertEqual(right.count, 4)
+        XCTAssertTrue(right.contains { $0.0.x == $0.1.x && $0.0.x == 120 })
+        // A page fitted whole keeps all eight, round its trim.
+        let whole = PrintLayout.sheetMarks(sheet: CGRect(x: 0, y: 0, width: 300, height: 100),
+                                           source: CGRect(x: 0, y: 0, width: 300, height: 100),
+                                           page: page, bleed: 10)
+        XCTAssertEqual(whole.count, 8)
+    }
+
     func testLandscapeSwapsTheSheet() {
         var o = PrintLayout.Options()
         o.paper = PrintLayout.papers[0]

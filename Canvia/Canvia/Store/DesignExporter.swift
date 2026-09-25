@@ -375,17 +375,18 @@ enum DesignExporter {
                                        y: placement.sheetRect.minY - placement.source.minY * scale)
                         cg.scaleBy(x: scale, y: scale)
                         // The page itself sits inside the bleed; the bleed is
-                        // the page's own edge colours stretched — drawn here
-                        // as the page scaled up by the bleed, the way a
+                        // the page's own edges carried out — drawn here as
+                        // the page enlarged evenly to cover it, the way a
                         // print shop's bleed is made when none was designed.
                         let bleedRect = CGRect(origin: .zero, size: pagePts)
                         draw(design: design, page: page, into: cg, fitting: bleedRect)
                         cg.restoreGState()
                         if options.cropMarks {
-                            let trimmed = placement.sheetRect.insetBy(dx: options.bleed * scale, dy: options.bleed * scale)
                             cg.setStrokeColor(gray: 0, alpha: 1)
                             cg.setLineWidth(0.5)
-                            for (a, b) in PrintLayout.cropMarkSegments(around: trimmed) {
+                            let marks = PrintLayout.sheetMarks(sheet: placement.sheetRect, source: placement.source,
+                                                               page: pagePts, bleed: options.bleed)
+                            for (a, b) in marks {
                                 cg.move(to: a); cg.addLine(to: b)
                             }
                             cg.strokePath()
@@ -405,9 +406,18 @@ enum DesignExporter {
             context.saveGState()
             // The view draws in the design's own units; scale that onto the
             // PDF page rather than resizing the view, so no layout depends on
-            // the output size.
-            context.scaleBy(x: bounds.width / max(size.width, 1),
-                            y: bounds.height / max(size.height, 1))
+            // the output size. Evenly, to cover `bounds`, and centred: a
+            // bleed wider on one side than the other in proportion never
+            // stretches the page, so a circle stays round. Cut at the page's
+            // edge, as the canvas cuts it — the Android twin draws the same.
+            let across = bounds.width / max(size.width, 1)
+            let down = bounds.height / max(size.height, 1)
+            let scale = max(across, down)
+            let dx = bounds.minX + (bounds.width - size.width * scale) / 2
+            let dy = bounds.minY + (bounds.height - size.height * scale) / 2
+            context.translateBy(x: dx, y: dy)
+            context.scaleBy(x: scale, y: scale)
+            context.clip(to: CGRect(origin: .zero, size: size))
             drawInContext(context)
             context.restoreGState()
         }

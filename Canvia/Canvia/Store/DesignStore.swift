@@ -287,7 +287,7 @@ final class DesignStore {
             if let mine = ElementClipboard.read() {
                 clipboard = mine
                 pasteCount = 0
-            } else if let stranger = ElementClipboard.foreign(designWidth: design.width) {
+            } else if let stranger = ElementClipboard.foreign(designWidth: pageWidth) {
                 add(stranger)
                 return
             }

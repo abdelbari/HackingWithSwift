@@ -93,6 +93,29 @@ enum PrintLayout {
         return out
     }
 
+    /// The crop marks one sheet carries: at the page's trim — the bled page
+    /// less its bleed — mapped onto the sheet, and on a tiled poster only at
+    /// the trim corners this tile holds, so an inner tile has none and no
+    /// mark lands on blank paper. The Android twin's `sheetMarks`.
+    static func sheetMarks(sheet: CGRect, source: CGRect, page: CGSize, bleed: Double) -> [(CGPoint, CGPoint)] {
+        let scale = sheet.width / max(source.width, 1)
+        let trim = CGRect(x: sheet.minX + (bleed - source.minX) * scale,
+                          y: sheet.minY + (bleed - source.minY) * scale,
+                          width: (page.width - 2 * bleed) * scale,
+                          height: (page.height - 2 * bleed) * scale)
+        let slack = 0.5
+        let reach = sheet.insetBy(dx: -slack, dy: -slack)
+        return cropMarkSegments(around: trim).filter { segment in
+            let (a, b) = segment
+            // Each mark starts a gap out from its corner, along its own line.
+            let across = a.y == b.y
+            let corner = across
+                ? CGPoint(x: a.x - (b.x > a.x ? 4 : -4), y: a.y)
+                : CGPoint(x: a.x, y: a.y - (b.y > a.y ? 4 : -4))
+            return corner.x >= reach.minX && corner.x <= reach.maxX && corner.y >= reach.minY && corner.y <= reach.maxY
+        }
+    }
+
     /// Crop marks: short lines outside each corner of `rect`, `gap` away.
     static func cropMarkSegments(around rect: CGRect, length: Double = 14, gap: Double = 4) -> [(CGPoint, CGPoint)] {
         var s: [(CGPoint, CGPoint)] = []
