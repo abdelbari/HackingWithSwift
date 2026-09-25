@@ -71,6 +71,27 @@ final class BrandAndAuditTests: XCTestCase {
         XCTAssertEqual(d.pages[2].height, 1920)
     }
 
+    func testALibraryPhotoTravelsAsAPictureInTheFile() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        // A library photo this app can draw, used twice, and an id it cannot.
+        let drawable = try XCTUnwrap(PhotoLibrary.photos.first?.id)
+        var d = Design(title: "Library", width: 400, height: 300)
+        d.pages[0].background = .image("asset:\(drawable)")
+        d.pages[0].elements = [Element.image("asset:\(drawable)"), Element.image("asset:sun")]
+        var media: [String: DesignPackage.Media] = [:]
+        let packed = DesignPackage.packingLibraryPhotos(d, into: &media)
+        XCTAssertEqual(media.count, 1, "one copy however often it is used")
+        let src = try XCTUnwrap(packed.pages[0].elements[0].src)
+        XCTAssertTrue(src.hasPrefix("media:"))
+        guard case .image(let bg) = packed.pages[0].background else { return XCTFail("image background") }
+        XCTAssertEqual(bg, src)
+        XCTAssertEqual(packed.pages[0].elements[1].src, "asset:sun", "an id the library cannot draw stays a reference")
+        XCTAssertEqual(d.pages[0].elements[0].src, "asset:\(drawable)", "the design itself is not changed")
+    }
+
     func testAnImportedMasterPageFollowsItsPageToItsNewId() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

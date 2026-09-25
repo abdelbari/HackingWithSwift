@@ -41,6 +41,11 @@ enum DesignPackage {
 
     static func export(_ design: Design, mediaDirectory: URL = MediaStore.directory) throws -> Data {
         var media: [String: Media] = [:]
+        // A photo from the app's own library is drawn by this app on demand
+        // and exists nowhere else — not on the other platform, not on an
+        // older install. The file carries it as a picture like any other,
+        // under a fresh id, and only the exported copy is re-pointed.
+        let design = packingLibraryPhotos(design, into: &media)
         for id in mediaIDs(in: design) {
             for ext in MediaStore.extensions {
                 let url = mediaDirectory.appendingPathComponent("\(id).\(ext)")
@@ -53,6 +58,37 @@ enum DesignPackage {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
         return try encoder.encode(Package(design: design, media: media))
+    }
+
+    /// The design with every library photo (`asset:<id>`) that this app can
+    /// draw replaced by a packed copy (`media:<new id>`), one copy per photo
+    /// however often it is used. A library id it cannot draw is left as it is.
+    static func packingLibraryPhotos(_ design: Design, into media: inout [String: Media]) -> Design {
+        var packed: [String: String] = [:]
+        func moved(_ src: String?) -> String? {
+            guard let src, src.hasPrefix("asset:") else { return src }
+            let assetId = String(src.dropFirst(6))
+            if let newId = packed[assetId] { return "media:\(newId)" }
+            guard let data = PhotoLibrary.image(id: assetId)?.jpegData(compressionQuality: 0.9) else { return src }
+            let newId = UID.make("img")
+            media[newId] = Media(ext: "jpg", data: data)
+            packed[assetId] = newId
+            return "media:\(newId)"
+        }
+        var out = design
+        for p in out.pages.indices {
+            if case .image(let src) = out.pages[p].background, let next = moved(src) {
+                out.pages[p].background = .image(next)
+            }
+            for i in out.pages[p].elements.indices {
+                out.pages[p].elements[i].src = moved(out.pages[p].elements[i].src)
+                if var fill = out.pages[p].elements[i].fill, fill.kind == "image" {
+                    fill.src = moved(fill.src)
+                    out.pages[p].elements[i].fill = fill
+                }
+            }
+        }
+        return out
     }
 
     enum ImportError: LocalizedError {
