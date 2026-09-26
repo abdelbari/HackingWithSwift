@@ -41,6 +41,10 @@ struct HomeView: View {
     @State private var filingInto: RecentDesign?
     @State private var newFolderName = ""
     @State private var touring = false
+    /// The design just moved to Recently deleted, while its Undo is on
+    /// offer.
+    @State private var justTrashed: RecentDesign?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openWindow) private var openWindow
     @Environment(\.supportsMultipleWindows) private var supportsMultipleWindows
 
@@ -92,6 +96,7 @@ struct HomeView: View {
         // Was a hardcoded near-white, which in dark mode left primary-coloured
         // text — white by then — on an almost white page.
         .background(Theme.workspace)
+        .overlay(alignment: .bottom) { trashedToast }
         .onAppear {
             reload()
             if Onboarding.needsTour { touring = true }
@@ -370,6 +375,54 @@ struct HomeView: View {
         .padding(.horizontal)
     }
 
+    // MARK: undo a delete
+
+    /// Stays until Undo, its close button, or the next delete replaces it,
+    /// as the Android twin's snackbar with an action does: a toast that
+    /// times out is gone before a screen reader has finished saying it.
+    @ViewBuilder
+    private var trashedToast: some View {
+        if let gone = justTrashed {
+            HStack(spacing: 12) {
+                Text("Moved “\(gone.title)” to Recently deleted")
+                    .font(.subheadline)
+                    .lineLimit(2)
+                Button("Undo") {
+                    DesignLibrary.restore(id: gone.id)
+                    hideTrashed()
+                    reload()
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.accent)
+                Button {
+                    hideTrashed()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel("Dismiss")
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(.regularMaterial, in: Capsule())
+            .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
+            .padding(.horizontal)
+            .padding(.bottom, 12)
+            .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    private func showTrashed(_ design: RecentDesign) {
+        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { justTrashed = design }
+        let said: String = "Moved “\(design.title)” to Recently deleted"
+        AccessibilityNotification.Announcement(said).post()
+    }
+
+    private func hideTrashed() {
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { justTrashed = nil }
+    }
+
     // MARK: hero
 
     private var hero: some View {
@@ -536,9 +589,11 @@ struct HomeView: View {
                     }
                     Button(role: .destructive) {
                         // To the trash, not gone: thirty days to change
-                        // your mind, in the section below.
+                        // your mind, in the section below — and Undo right
+                        // here for the change of mind that comes at once.
                         DesignLibrary.trash(id: recent.id)
                         reload()
+                        showTrashed(recent)
                     } label: { Label("Delete", systemImage: "trash") }
                 }
             }

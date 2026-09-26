@@ -29,7 +29,9 @@ width, the last four sizes made come back as chips, and the design is named
 for its size ("1600 × 900").
 Each design card says when it was last touched — "Just now", "12 minutes
 ago", "Yesterday", "3 days ago", "8 Sep" — in the Android twin's words, and
-so does Recently deleted ("Deleted yesterday").
+so does Recently deleted ("Deleted yesterday"). Deleting a design says
+"Moved “X” to Recently deleted" with an Undo that puts it straight back;
+it stays until used or closed (or the next delete), and VoiceOver hears it.
 
 **Editor**
 - Direct manipulation: tap to select, drag to move with magenta snap
