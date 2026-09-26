@@ -1079,8 +1079,11 @@ final class DesignStore {
         page.holdSeconds ?? design.motion?.secondsPerPage ?? MotionSettings().secondsPerPage
     }
 
+    /// Whether the page has anything to play — the master's elements behind
+    /// it included, as the video, Present and the Android twin count them,
+    /// so a page whose only motion is the master's still offers Play.
     var pageIsAnimated: Bool {
-        page.elements.contains { $0.animation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src) }
+        MovieExporter.isAnimated(page, in: design)
     }
 
     /// Play the page's entrances and drifts once, at 30 frames a second,
@@ -1088,13 +1091,26 @@ final class DesignStore {
     func playPreview() {
         previewTask?.cancel()
         let hold = pageHold
+        // The page being played. Once another is on screen — picked in the
+        // pages bar, or put there by a delete, an undo or a restored version
+        // — the preview is over: that page was never played, and drawing it
+        // at this one's clock would show its entrances already done.
+        let playing = page.id
         previewTask = Task { @MainActor in
-            var t = 0.0
-            while t <= hold {
+            // Timed by the clock rather than by counting passes: a pass that
+            // runs long — a busy page, a clip's frame being decoded — would
+            // otherwise play the page in slow motion and past its hold,
+            // where Present and the Android twin keep to real time.
+            let start = ContinuousClock.now
+            while page.id == playing {
+                let elapsed = ContinuousClock.now - start
+                let seconds = Double(elapsed.components.seconds)
+                let fraction = Double(elapsed.components.attoseconds) / 1e18
+                let t = seconds + fraction
+                if t > hold { break }
                 previewTime = t
                 try? await Task.sleep(for: .milliseconds(33))
                 guard !Task.isCancelled else { return }
-                t += 1.0 / 30
             }
             previewTime = nil
         }

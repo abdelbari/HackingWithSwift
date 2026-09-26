@@ -34,25 +34,76 @@ enum DesignPackage {
     /// its first frame, a still, so the design still looks as it did.
     static let maxPackedVideoBytes = 30 * 1024 * 1024
 
-    /// Ids of the clips a design shows.
+    /// The most a file carries of clips in all, in bytes. Past it the rest
+    /// travel as stills too: every clip goes in as base64, a third larger
+    /// again, and the Android twin turns away a design file over 200 MB —
+    /// six clips just under the single limit made a file it would not open,
+    /// even one it had written itself.
+    static let maxPackedVideoTotalBytes = 100 * 1024 * 1024
+
+    /// The clip types a file carries whole: ones both phones play. A WebM or
+    /// Matroska clip, which Android plays and AVFoundation cannot read,
+    /// travels as its first frame.
+    static let packableVideoTypes: Set<String> = ["mp4", "m4v", "mov", "3gp"]
+
+    /// Ids of the clips a design shows: on a photo, filling a shape, or
+    /// behind a page — each of which the file has to carry, as a clip or as
+    /// a still. Counted as the Android twin counts them, so the two phones
+    /// weigh the same clips against the total.
     static func videoIDs(in design: Design) -> Set<String> {
         var ids = Set<String>()
         for page in design.pages {
+            if case .image(let src) = page.background, let parts = VideoStore.split(src) { ids.insert(parts.id) }
             for el in page.elements {
                 if let src = el.src, let parts = VideoStore.split(src) { ids.insert(parts.id) }
+                if let fill = el.fill, fill.kind == "image", let src = fill.src, let parts = VideoStore.split(src) {
+                    ids.insert(parts.id)
+                }
             }
         }
         return ids
     }
 
+    /// Of the clips listed — each one's size in bytes and file type, by id —
+    /// the ones a file carries whole: taken in id order, each no longer than
+    /// `maxPackedVideoBytes` and of a packable type, while the running total
+    /// stays within `maxPackedVideoTotalBytes`. The Android twin chooses by
+    /// the same rule, so a design packs the same on either phone; the rest
+    /// travel as stills.
+    static func packedVideoIDs(_ clips: [String: (bytes: Int, ext: String)]) -> Set<String> {
+        var packed = Set<String>()
+        var total = 0
+        for id in clips.keys.sorted() {
+            guard let clip = clips[id] else { continue }
+            guard clip.bytes <= maxPackedVideoBytes,
+                  packableVideoTypes.contains(clip.ext.lowercased()) else { continue }
+            guard total + clip.bytes <= maxPackedVideoTotalBytes else { continue }
+            total += clip.bytes
+            packed.insert(id)
+        }
+        return packed
+    }
+
     /// The design with each clip packed into `videos`, or — too long to
-    /// carry, or unreadable — replaced by its first frame packed as a photo.
+    /// carry, past the total, of a type the other phone cannot play, or
+    /// unreadable — replaced by its first frame packed as a photo.
     static func packingVideos(_ design: Design, media: inout [String: Media], videos: inout [String: Media]) -> Design {
-        var stills: [String: String] = [:]
+        var files: [String: URL] = [:]
+        var clips: [String: (bytes: Int, ext: String)] = [:]
         for id in videoIDs(in: design) {
             guard let url = VideoStore.url(for: id) else { continue }
             let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? Int.max
-            if size <= maxPackedVideoBytes, let data = try? Data(contentsOf: url) {
+            files[id] = url
+            clips[id] = (bytes: size, ext: url.pathExtension.lowercased())
+        }
+        let whole = packedVideoIDs(clips)
+        var stills: [String: String] = [:]
+        for id in files.keys.sorted() {
+            guard let url = files[id] else { continue }
+            // Mapped rather than read: the clips a file carries can come to
+            // a hundred megabytes, and a mapped file's pages are the file's
+            // own rather than more of the app's memory.
+            if whole.contains(id), let data = try? Data(contentsOf: url, options: .mappedIfSafe) {
                 videos[id] = Media(ext: url.pathExtension.lowercased(), data: data)
             } else if let still = VideoStore.poster(id)?.jpegData(compressionQuality: 0.9) {
                 let newId = UID.make("img")
@@ -61,12 +112,27 @@ enum DesignPackage {
             }
         }
         guard !stills.isEmpty else { return design }
+        /// The still a clip source becomes; nil for anything else.
+        func still(_ src: String?) -> String? {
+            guard let src, let parts = VideoStore.split(src), let newId = stills[parts.id] else { return nil }
+            return "media:\(newId)"
+        }
         var out = design
         for p in out.pages.indices {
+            if case .image(let src) = out.pages[p].background, let moved = still(src) {
+                out.pages[p].background = .image(moved)
+            }
             for i in out.pages[p].elements.indices {
-                guard let src = out.pages[p].elements[i].src, let parts = VideoStore.split(src),
-                      let still = stills[parts.id] else { continue }
-                out.pages[p].elements[i].src = "media:\(still)"
+                if let moved = still(out.pages[p].elements[i].src) {
+                    out.pages[p].elements[i].src = moved
+                }
+                // A shape filled with a clip shows its still too, whether or
+                // not the element is itself a clip — left alone, the fill
+                // would point at a clip the file does not carry.
+                if var fill = out.pages[p].elements[i].fill, fill.kind == "image", let moved = still(fill.src) {
+                    fill.src = moved
+                    out.pages[p].elements[i].fill = fill
+                }
             }
         }
         return out
@@ -86,6 +152,13 @@ enum DesignPackage {
     }
 
     static func export(_ design: Design, mediaDirectory: URL = MediaStore.directory) throws -> Data {
+        try encode(contents(of: design, mediaDirectory: mediaDirectory))
+    }
+
+    /// Everything the file carries, gathered: the photos and clips read in,
+    /// library photos drawn and clips too big to carry turned to stills.
+    /// Stays where the caller is, since drawing a library photo does.
+    static func contents(of design: Design, mediaDirectory: URL = MediaStore.directory) -> Package {
         var media: [String: Media] = [:]
         // A photo from the app's own library is drawn by this app on demand
         // and exists nowhere else — not on the other platform, not on an
@@ -103,9 +176,16 @@ enum DesignPackage {
                 }
             }
         }
+        return Package(design: design, media: media, videos: videos.isEmpty ? nil : videos)
+    }
+
+    /// The file's bytes. The slow part of an export — every photo and clip
+    /// written out as base64 — and it touches nothing but the package, so
+    /// it can run away from the main actor.
+    static func encode(_ contents: Package) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
-        return try encoder.encode(Package(design: design, media: media, videos: videos.isEmpty ? nil : videos))
+        return try encoder.encode(contents)
     }
 
     /// The design with every library photo (`asset:<id>`) that this app can

@@ -161,16 +161,22 @@ enum MovieExporter {
 
     // MARK: frames
 
-    /// Whether a page has to be rendered frame by frame.
-    static func isAnimated(_ page: Page) -> Bool {
-        page.elements.contains { $0.animation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src) }
+    /// Whether a page has to be rendered frame by frame: anything on it
+    /// moves, or anything the master page draws behind it does. A master's
+    /// looping clip or pulsing logo plays through every page that shows it,
+    /// in Present and on the Android twin's video alike, so it has to here
+    /// too rather than sit on its first frame.
+    static func isAnimated(_ page: Page, in design: Design) -> Bool {
+        (design.masterElements(behind: page) + page.elements).contains {
+            $0.animation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src)
+        }
     }
 
     /// A page at a moment, for animated pages: the same render as the page
     /// bitmap, with the clock set.
     @MainActor
     static func animatedFrame(design: Design, page: Int, time: Double, hold: Double, size: CGSize) -> CGImage? {
-        guard design.pages.indices.contains(page), isAnimated(design.pages[page]) else { return nil }
+        guard design.pages.indices.contains(page), isAnimated(design.pages[page], in: design) else { return nil }
         return autoreleasepool { () -> CGImage? in
             let renderer = ImageRenderer(content: PageRenderView(design: design, page: design.pages[page])
                 .environment(\.animationTime, (time, hold)))
@@ -426,7 +432,7 @@ enum MovieExporter {
     @MainActor
     private static func animatedFrames(design: Design, size: CGSize, settings: Settings,
                                        timings: [Timing]) -> ((Int, Double, Double) -> CGImage?)? {
-        let animatedPages = design.pages.indices.filter { isAnimated(design.pages[$0]) }
+        let animatedPages = design.pages.indices.filter { isAnimated(design.pages[$0], in: design) }
         guard !animatedPages.isEmpty else { return nil }
         var cache: [Int: [CGImage]] = [:]
         for p in animatedPages where p < timings.count {

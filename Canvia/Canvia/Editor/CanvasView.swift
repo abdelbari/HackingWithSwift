@@ -89,6 +89,9 @@ struct CanvasView: View {
             // the opaque page sits above it in the ZStack.
             PageRenderView(design: store.design, page: store.page)
                 .environment(\.animationTime, store.previewTime.map { ($0, store.pageHold) })
+                // While Play runs, a clip shows the frames decoded so far
+                // rather than holding up the canvas for each one.
+                .environment(\.liveVideo, store.previewTime != nil)
                 // Carries the document edge in dark mode, where a shadow on a
                 // dark workspace is invisible.
                 .overlay(Rectangle().stroke(Theme.hairline, lineWidth: 1 * iz))

@@ -5,9 +5,16 @@
 // preview and the video export the element's source is stamped with the
 // moment — "video:<id>@1.25" — and resolves to that frame, looping over
 // the clip's length.
+//
+// A frame takes tens of milliseconds to decode. The video export waits for
+// each (`resolve`), so no frame of a movie is ever a stale one; what plays
+// live — Present, and Play in the editor — never waits (`peek`): it shows
+// the clip's latest frame while the next is decoded off the main thread,
+// and draws again when it lands, as the Android twin's presenter does.
 
 import AVFoundation
 import Foundation
+import Observation
 import UIKit
 
 enum VideoStore {
@@ -69,7 +76,15 @@ enum VideoStore {
 
     static func delete(_ id: String) {
         if let url = url(for: id) { try? FileManager.default.removeItem(at: url) }
+        lock.lock()
         durations.removeValue(forKey: id)
+        generators.removeValue(forKey: id)
+        lock.unlock()
+        liveLock.lock()
+        liveLengths.removeValue(forKey: id)
+        latest.removeValue(forKey: id)
+        wanted.removeValue(forKey: id)
+        liveLock.unlock()
         posters.removeObject(forKey: id as NSString)
     }
 
@@ -83,9 +98,13 @@ enum VideoStore {
 
     private static var durations: [String: Double] = [:]
     private static let posters = NSCache<NSString, UIImage>()
+    /// Held by what they cost, not only by how many: a frame can be 1920
+    /// pixels on its long side, some 8 MB, and 240 of those came to nearly
+    /// 2 GB before anything was let go.
     private static let frames: NSCache<NSString, UIImage> = {
         let c = NSCache<NSString, UIImage>()
         c.countLimit = 240
+        c.totalCostLimit = 150 * 1024 * 1024
         return c
     }()
     private static var generators: [String: AVAssetImageGenerator] = [:]
@@ -114,17 +133,22 @@ enum VideoStore {
         return g
     }
 
+    /// Where the frame at `time` is cached: to a hundredth of a second.
+    private static func frameKey(_ id: String, _ time: Double) -> NSString {
+        "\(id)@\(String(format: "%.2f", time))" as NSString
+    }
+
     /// The frame at `time`, synchronously; the same frame is asked for many
     /// times during a preview, so it is cached at a hundredth of a second.
     static func frame(_ id: String, at time: Double) -> UIImage? {
-        let key = "\(id)@\(String(format: "%.2f", time))" as NSString
+        let key = frameKey(id, time)
         if let hit = frames.object(forKey: key) { return hit }
         lock.lock(); defer { lock.unlock() }
         guard let g = generator(for: id) else { return nil }
         let cm = CMTime(seconds: max(0, time), preferredTimescale: 600)
         guard let cg = try? g.copyCGImage(at: cm, actualTime: nil) else { return nil }
         let image = UIImage(cgImage: cg)
-        frames.setObject(image, forKey: key)
+        frames.setObject(image, forKey: key, cost: cg.bytesPerRow * cg.height)
         return image
     }
 
@@ -137,11 +161,136 @@ enum VideoStore {
     }
 
     /// Resolves a "video:" source: the poster, or the frame at the stamped
-    /// moment, looped over the clip.
+    /// moment, looped over the clip. Decoded there and then if it has to be
+    /// — what an export needs, and never what plays live; see `peek`.
     static func resolve(_ src: String) -> UIImage? {
         guard let parts = split(src) else { return nil }
         guard let time = parts.time else { return poster(parts.id) }
         let looped = loopedTime(time, duration: duration(of: parts.id) ?? 0)
         return frame(parts.id, at: looped)
+    }
+
+    // MARK: playing live
+
+    /// Moves on each time a frame asked for by `peek` is ready, so the views
+    /// drawing clips live — which read it — draw again.
+    @Observable
+    final class Frames {
+        fileprivate(set) var version = 0
+    }
+
+    static let live = Frames()
+
+    /// Each clip's length as the live path knows it: read on the worker the
+    /// first time, never on the main thread; one that cannot be read is
+    /// taken as none, once, rather than tried again every frame.
+    private static var liveLengths: [String: Double] = [:]
+    /// The moment each clip last showed live, for the frames in between.
+    private static var latest: [String: Double] = [:]
+    /// A moment asked for: the page's time, not yet looped, or nil for the
+    /// clip at rest.
+    private struct Want { var time: Double? }
+    /// The latest moment asked for of each clip.
+    private static var wanted: [String: Want] = [:]
+    /// The clips with a decode waiting on the worker.
+    private static var queued = Set<String>()
+    /// Guards the four above; never held across a decode, so the main
+    /// thread never waits on one.
+    private static let liveLock = NSLock()
+    private static let worker = DispatchQueue(label: "canvia.video-frames", qos: .userInitiated)
+
+    /// What a "video:" source shows, without waiting: its frame if that has
+    /// been decoded, else the clip's latest frame shown, else its poster,
+    /// while the frame is decoded on a worker. Only the latest moment asked
+    /// for is decoded, so a clip that plays faster than frames decode skips
+    /// rather than falls behind. Nil until the clip has shown anything.
+    ///
+    /// The key names the picture actually returned — the source that
+    /// resolves to that same frame — for caches downstream: keyed by the
+    /// moment asked for, a filtered copy would keep a stale frame for good.
+    static func peek(_ source: String) -> (image: UIImage, key: String)? {
+        guard let parts = split(source) else { return nil }
+        let id = parts.id
+        let rest = VideoStore.src(id, at: nil)
+        guard let time = parts.time else {
+            if let poster = posters.object(forKey: id as NSString) { return (poster, rest) }
+            ask(id, Want(time: nil))
+            return nil
+        }
+        liveLock.lock()
+        let length = liveLengths[id]
+        liveLock.unlock()
+        // Until its length is known a playing clip cannot say which frame it
+        // is at, so it asks the worker rather than take its first frame for
+        // the answer.
+        if let length {
+            let at = loopedTime(time, duration: length)
+            if let hit = frames.object(forKey: frameKey(id, at)) {
+                liveLock.lock()
+                latest[id] = at
+                // Nothing older is worth decoding now.
+                wanted.removeValue(forKey: id)
+                liveLock.unlock()
+                return (hit, VideoStore.src(id, at: at))
+            }
+        }
+        ask(id, Want(time: time))
+        liveLock.lock()
+        let shown = latest[id]
+        liveLock.unlock()
+        if let shown, let image = frames.object(forKey: frameKey(id, shown)) {
+            return (image, VideoStore.src(id, at: shown))
+        }
+        if let poster = posters.object(forKey: id as NSString) { return (poster, rest) }
+        return nil
+    }
+
+    /// Records the moment wanted of clip `id`, and queues it on the worker
+    /// unless it is already waiting there.
+    private static func ask(_ id: String, _ want: Want) {
+        liveLock.lock()
+        wanted[id] = want
+        let start = queued.insert(id).inserted
+        liveLock.unlock()
+        if start { worker.async { VideoStore.decodeNext(id) } }
+    }
+
+    /// One frame of clip `id` — the latest moment asked for — on the worker;
+    /// then its turn passes on. A clip still asking goes to the back of the
+    /// queue, so two clips on a page take turns rather than one starving the
+    /// other.
+    private static func decodeNext(_ id: String) {
+        liveLock.lock()
+        let want = wanted.removeValue(forKey: id)
+        var length = liveLengths[id]
+        liveLock.unlock()
+        var landed = false
+        if let want {
+            if let time = want.time {
+                if length == nil {
+                    let read = duration(of: id) ?? 0
+                    liveLock.lock()
+                    liveLengths[id] = read
+                    liveLock.unlock()
+                    length = read
+                    landed = true
+                }
+                let at = loopedTime(time, duration: length ?? 0)
+                if frame(id, at: at) != nil {
+                    liveLock.lock()
+                    latest[id] = at
+                    liveLock.unlock()
+                    landed = true
+                }
+            } else if poster(id) != nil {
+                landed = true
+            }
+        }
+        liveLock.lock()
+        let more = wanted[id] != nil
+        if !more { queued.remove(id) }
+        liveLock.unlock()
+        if more { worker.async { VideoStore.decodeNext(id) } }
+        if landed { DispatchQueue.main.async { VideoStore.live.version &+= 1 } }
     }
 }

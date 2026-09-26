@@ -47,11 +47,92 @@ final class VideoElementTests: XCTestCase {
 
         var page = Page()
         page.elements = [Element.image(VideoStore.src(id, at: nil), w: 160, h: 120)]
-        XCTAssertTrue(MovieExporter.isAnimated(page), "a page with a clip renders frame by frame")
-        XCTAssertFalse(MovieExporter.isAnimated(Page(elements: [Element.image("media:x", w: 10, h: 10)])))
+        XCTAssertTrue(MovieExporter.isAnimated(page, in: d), "a page with a clip renders frame by frame")
+        XCTAssertFalse(MovieExporter.isAnimated(Page(elements: [Element.image("media:x", w: 10, h: 10)]), in: d))
+
+        // Played live, a frame is never waited for: something stands in at
+        // once, and the frame asked for arrives from the worker, drawing
+        // again through the version.
+        let rest = try XCTUnwrap(VideoStore.peek(VideoStore.src(id, at: nil)), "the poster is already decoded")
+        XCTAssertEqual(rest.key, VideoStore.src(id, at: nil))
+        let before = VideoStore.live.version
+        let stamped = VideoStore.src(id, at: 0.73)
+        XCTAssertNotNil(VideoStore.peek(stamped), "the poster stands in while the frame is decoded")
+        var landed: String?
+        for _ in 0..<150 where landed == nil {
+            try await Task.sleep(for: .milliseconds(20))
+            if let shown = VideoStore.peek(stamped), shown.key == stamped { landed = shown.key }
+        }
+        XCTAssertEqual(landed, stamped, "the frame asked for never arrived")
+        try await Task.sleep(for: .milliseconds(50))
+        XCTAssertGreaterThan(VideoStore.live.version, before, "nothing was told to draw again")
+        // Past the end, live as in an export, the clip loops round.
+        let length = try XCTUnwrap(VideoStore.duration(of: id))
+        let late = 0.73 + 2 * length
+        let looped = VideoStore.src(id, at: VideoStore.loopedTime(late, duration: length))
+        var tries = 0
+        while VideoStore.peek(VideoStore.src(id, at: late))?.key != looped && tries < 150 {
+            tries += 1
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertEqual(VideoStore.peek(VideoStore.src(id, at: late))?.key, looped, "past the end, the live clip did not loop")
 
         VideoStore.delete(id)
         XCTAssertNil(VideoStore.url(for: id))
+    }
+
+    /// A clip, or anything else moving, on the master page plays through
+    /// every page that shows the master: in the video, and as Play in the
+    /// editor — as Present and the Android twin already had it.
+    func testTheMastersMotionCountsOnEveryPageThatShowsIt() {
+        var d = Design(title: "master", width: 320, height: 240)
+        d.pages = [Page(elements: [Element.image(VideoStore.src("vid_master", at: nil), w: 160, h: 120)]),
+                   Page(elements: [Element.shape("rect", w: 40, h: 40)]), Page()]
+        XCTAssertFalse(MovieExporter.isAnimated(d.pages[1], in: d), "no master yet")
+        d.masterPageId = d.pages[0].id
+        XCTAssertTrue(MovieExporter.isAnimated(d.pages[1], in: d), "the master's clip plays behind page 2")
+        d.pages[2].usesMaster = false
+        XCTAssertFalse(MovieExporter.isAnimated(d.pages[2], in: d), "a page that opted out has nothing moving")
+
+        let store = DesignStore(design: d)
+        store.setPage(1)
+        XCTAssertTrue(store.pageIsAnimated, "Play is offered where the only motion is the master's")
+        store.setPage(2)
+        XCTAssertFalse(store.pageIsAnimated)
+    }
+
+    /// The preview keeps to the clock, not to how many passes it managed —
+    /// a pass held up plays on from the right moment rather than in slow
+    /// motion — and it is over once another page is on screen.
+    @MainActor
+    func testThePreviewKeepsTimeAndEndsWithItsPage() async throws {
+        var d = Design(title: "preview", width: 320, height: 240)
+        var moving = Element.shape("rect", w: 100, h: 100)
+        moving.animation = ElementAnimation(kind: "fade", delay: 0, duration: 1)
+        d.pages = [Page(elements: [moving]), Page(elements: [moving]), Page()]
+        d.pages[0].holdSeconds = 10
+        d.pages[1].holdSeconds = 10
+        let store = DesignStore(design: d)
+        store.playPreview()
+        try await Task.sleep(for: .milliseconds(50))
+        XCTAssertNotNil(store.previewTime, "the preview is playing")
+        // A pass that runs long: the main thread busy for 0.4 s.
+        let busy = Date()
+        while Date().timeIntervalSince(busy) < 0.4 {}
+        try await Task.sleep(for: .milliseconds(100))
+        let t = try XCTUnwrap(store.previewTime)
+        XCTAssertGreaterThan(t, 0.4, "the preview fell behind the clock: \(t)")
+
+        store.setPage(1)
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertNil(store.previewTime, "another page picked, the preview played on at the old page's clock")
+
+        store.playPreview()
+        try await Task.sleep(for: .milliseconds(50))
+        XCTAssertNotNil(store.previewTime)
+        store.deletePage()
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertNil(store.previewTime, "the page played was deleted, and the preview played on")
     }
 
     /// The launch sweep lets go of clips nothing shows, and keeps one cut
@@ -67,6 +148,133 @@ final class VideoElementTests: XCTestCase {
         DesignLibrary.pruneUnusedVideos(pasteboard: board)
         XCTAssertNotNil(VideoStore.url(for: kept), "a clip waiting on the pasteboard was deleted")
         XCTAssertNil(VideoStore.url(for: orphan), "a clip nothing shows was kept")
+    }
+
+    /// A clip that only fills a shape, or is only a brand logo, is still
+    /// shown — the sweep keeps it, as it keeps such photos, and as the
+    /// Android twin keeps both.
+    func testTheSweepKeepsClipsFillingShapesAndBrandLogos() throws {
+        let bytes = Data([0, 0, 0, 24, 102, 116, 121, 112])
+        let filling = try XCTUnwrap(VideoStore.store(bytes, ext: "mp4"))
+        let logo = try XCTUnwrap(VideoStore.store(bytes, ext: "mp4"))
+        let behind = try XCTUnwrap(VideoStore.store(bytes, ext: "mp4"))
+        let orphan = try XCTUnwrap(VideoStore.store(bytes, ext: "mp4"))
+        defer { for id in [filling, logo, behind, orphan] { VideoStore.delete(id) } }
+
+        var design = Design(title: "sweep: clip fill")
+        var shape = Element.shape("rect", w: 100, h: 100)
+        shape.fill = .image(VideoStore.src(filling, at: nil))
+        design.pages[0].elements = [shape]
+        // A page behind a clip, as a design from the Android twin can have.
+        design.pages[0].background = .image(VideoStore.src(behind, at: nil))
+        DesignLibrary.save(design)
+        defer { DesignLibrary.delete(id: design.id) }
+        let kit = BrandKit.load()
+        defer { kit.save() }
+        var withLogo = kit
+        withLogo.logos.append(VideoStore.src(logo, at: nil))
+        withLogo.save()
+        let board = UIPasteboard.withUniqueName()
+        defer { UIPasteboard.remove(withName: board.name) }
+
+        DesignLibrary.pruneUnusedVideos(pasteboard: board)
+
+        XCTAssertNotNil(VideoStore.url(for: filling), "a clip filling a shape was deleted")
+        XCTAssertNotNil(VideoStore.url(for: logo), "a brand logo's clip was deleted")
+        XCTAssertNotNil(VideoStore.url(for: behind), "a clip behind a page was deleted")
+        XCTAssertNil(VideoStore.url(for: orphan), "a clip nothing shows was kept")
+    }
+
+    /// Launch sweeps photos, soundtracks and clips over one read of the
+    /// library, and each keeps what it kept on its own.
+    func testTheLaunchSweepTakesEachKindOfOrphanAndKeepsTheRest() throws {
+        let bytes = Data([0, 0, 0, 24, 102, 116, 121, 112])
+        let clip = try XCTUnwrap(VideoStore.store(bytes, ext: "mp4"))
+        let strayClip = try XCTUnwrap(VideoStore.store(bytes, ext: "mp4"))
+        defer { for id in [clip, strayClip] { VideoStore.delete(id) } }
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 8, height: 8)).image { ctx in
+            UIColor.systemTeal.setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: 8, height: 8))
+        }
+        let photo = try XCTUnwrap(MediaStore.storeOpaque(image))
+        let strayPhoto = try XCTUnwrap(MediaStore.storeOpaque(image))
+        let photoID = String(photo.dropFirst(6)), strayPhotoID = String(strayPhoto.dropFirst(6))
+        defer { for id in [photoID, strayPhotoID] { MediaStore.delete(id) } }
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("song-\(UUID()).m4a")
+        try Data([1, 2, 3, 4]).write(to: tmp)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        let track = try XCTUnwrap(AudioStore.store(tmp))
+        let strayTrack = try XCTUnwrap(AudioStore.store(tmp))
+        defer { for id in [track, strayTrack] { AudioStore.delete(id) } }
+
+        var design = Design(title: "sweep: all three")
+        design.pages[0].elements = [Element.image(photo, w: 100, h: 100),
+                                    Element.image(VideoStore.src(clip, at: nil), w: 160, h: 90)]
+        design.motion = MotionSettings(); design.motion?.soundtrack = track
+        DesignLibrary.save(design)
+        defer { DesignLibrary.delete(id: design.id) }
+        let board = UIPasteboard.withUniqueName()
+        defer { UIPasteboard.remove(withName: board.name) }
+
+        DesignLibrary.pruneUnusedFiles(pasteboard: board)
+
+        XCTAssertNotNil(VideoStore.url(for: clip), "a clip in use was deleted")
+        XCTAssertNil(VideoStore.url(for: strayClip), "a clip nothing shows was kept")
+        func photoExists(_ id: String) -> Bool {
+            FileManager.default.fileExists(atPath: MediaStore.directory.appendingPathComponent("\(id).jpg").path)
+        }
+        XCTAssertTrue(photoExists(photoID), "a photo in use was deleted")
+        XCTAssertFalse(photoExists(strayPhotoID), "a photo nothing shows was kept")
+        XCTAssertNotNil(AudioStore.url(for: track), "a soundtrack in use was deleted")
+        XCTAssertNil(AudioStore.url(for: strayTrack), "a soundtrack nothing plays was kept")
+    }
+
+    /// Which clips a design file carries whole — the rule the Android twin
+    /// follows too, so either phone packs a design the same: in id order,
+    /// each within the single limit and of a type both phones play, while
+    /// the running total stays within the budget; the rest go as stills.
+    func testClipsArePackedInIdOrderWithinTheTotal() {
+        let mb = 1024 * 1024
+        let clips: [String: (bytes: Int, ext: String)] = [
+            "vid_h": (bytes: 31 * mb, ext: "mp4"),
+            "vid_g": (bytes: 1 * mb, ext: "webm"),
+            "vid_f": (bytes: 5 * mb, ext: "3gp"),
+            "vid_e": (bytes: 10 * mb, ext: "mp4"),
+            "vid_d": (bytes: 20 * mb, ext: "MOV"),
+            "vid_c": (bytes: 25 * mb, ext: "m4v"),
+            "vid_b": (bytes: 25 * mb, ext: "mov"),
+            "vid_a": (bytes: 25 * mb, ext: "mp4"),
+        ]
+        // a, b, c and d come to 95 MB; e would take it past 100, f just
+        // fits; g is a WebM, h is too long on its own.
+        XCTAssertEqual(DesignPackage.packedVideoIDs(clips), ["vid_a", "vid_b", "vid_c", "vid_d", "vid_f"])
+        XCTAssertEqual(DesignPackage.packedVideoIDs(["vid_x": (bytes: 30 * mb, ext: "mp4")]), ["vid_x"])
+        XCTAssertTrue(DesignPackage.packedVideoIDs(["vid_x": (bytes: 30 * mb + 1, ext: "mp4")]).isEmpty)
+        XCTAssertTrue(DesignPackage.packedVideoIDs(["vid_x": (bytes: 1, ext: "mkv")]).isEmpty)
+        XCTAssertTrue(DesignPackage.packedVideoIDs([:]).isEmpty)
+    }
+
+    /// A clip that only fills a shape travels too, and the fill comes back
+    /// pointing at the imported clip.
+    func testAClipFillingAShapeTravelsInADesignFile() throws {
+        let bytes = Data([0, 0, 0, 24, 102, 116, 121, 112])
+        let id = try XCTUnwrap(VideoStore.store(bytes, ext: "mp4"))
+        defer { VideoStore.delete(id) }
+        var design = Design(title: "clip fill", width: 320, height: 240)
+        var shape = Element.shape("rect", w: 100, h: 100)
+        shape.fill = .image(VideoStore.src(id, at: nil))
+        design.pages[0].elements = [shape]
+        XCTAssertEqual(DesignPackage.videoIDs(in: design), [id])
+        let data = try DesignPackage.export(design)
+        let package = try JSONDecoder().decode(DesignPackage.Package.self, from: data)
+        XCTAssertEqual(package.videos?[id]?.data, bytes)
+
+        let imported = try DesignPackage.import(data)
+        let fill = try XCTUnwrap(imported.pages[0].elements[0].fill?.src)
+        let fresh = try XCTUnwrap(VideoStore.split(fill)?.id)
+        defer { VideoStore.delete(fresh) }
+        XCTAssertNotEqual(fresh, id)
+        XCTAssertNotNil(VideoStore.url(for: fresh))
     }
 
     /// A clip travels in a design file, under "videos", and comes back as a

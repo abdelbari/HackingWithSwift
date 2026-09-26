@@ -135,7 +135,10 @@ duplicate / delete via long-press), and a template gallery.
 - A Canvia design file (.canvia.json) exports the document with every
   photo it uses inlined, and the home screen opens one back in — under
   a fresh id, with its photos stored afresh, so two imports never share
-  a file.
+  a file. Clips travel whole up to 30 MB each and 100 MB in all, taken
+  in id order, and only as MP4, M4V, MOV or 3GP; any other clip travels
+  as its first frame — the same choice the Android twin makes, so the
+  same design packs the same on either phone.
 - A contrast check across the document: every text against what is
   actually behind it (the topmost flat shape under it, or the page),
   WCAG AA thresholds by text size, and a one-tap fix to a colour that
@@ -390,8 +393,11 @@ at rest it shows the clip's first frame, so crop, filters, frames and
 every still export work as they do for a photo; when the page plays —
 the canvas preview, the MP4, the GIF — the element shows the frame at
 that moment, looping over the clip's length. A page with a clip renders
-frame by frame like an animated page. The clip's own sound is not
-carried; a soundtrack is.
+frame by frame like an animated page, and so does one whose master page
+carries a clip. Played live — Present, and Play in the editor — a clip
+never holds up the screen: it shows the latest frame decoded while the
+next is decoded off the main thread; the exports wait for every frame.
+The clip's own sound is not carried; a soundtrack is.
 
 **Keyboard** — with a hardware keyboard, the usual shortcuts, each with
 a title in the discoverability overlay: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, ⌘D

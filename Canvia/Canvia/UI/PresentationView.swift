@@ -85,6 +85,10 @@ struct PresentationView: View {
         return TimelineView(.animation(minimumInterval: nil, paused: !plays || settled)) { context in
             PageRenderView(design: design, page: shown)
                 .environment(\.animationTime, Self.clock(at: context.date, from: start, hold: hold, playing: plays))
+                // A clip plays from the frames decoded so far, never waiting
+                // on the next: this redraws every display frame, and a
+                // decode on the main thread each time made it stutter.
+                .environment(\.liveVideo, true)
         }
         .scaleEffect(scale)
         .frame(width: pageSize.width * scale, height: pageSize.height * scale)

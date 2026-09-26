@@ -308,7 +308,14 @@ struct ExportSheet: View {
             exportButton("Canvia design file", subtitle: "The design and its photos, to send or back up",
                          icon: "shippingbox") {
                 let url = DesignExporter.fileURL(for: store.design, ext: DesignPackage.ext)
-                try DesignPackage.export(store.design).write(to: url)
+                // Gathered here, where library photos are drawn; written out
+                // away from the main actor, since turning every photo and
+                // clip into base64 takes long enough, on a design with clips,
+                // to freeze the sheet.
+                let contents = DesignPackage.contents(of: store.design)
+                try await Task.detached(priority: .userInitiated) {
+                    try DesignPackage.encode(contents).write(to: url)
+                }.value
                 sharedURLs = [url]
                 exportedURL = url
             }

@@ -138,7 +138,11 @@ struct HomeView: View {
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
             do {
-                let design = try DesignPackage.import(try Data(contentsOf: url))
+                // Mapped rather than read in whole: a file carrying clips
+                // can run to a hundred megabytes and more, and mapped, its
+                // pages are the file's rather than the app's memory.
+                let data = try Data(contentsOf: url, options: .mappedIfSafe)
+                let design = try DesignPackage.import(data)
                 onOpen(design)
             } catch {
                 importError = error.localizedDescription

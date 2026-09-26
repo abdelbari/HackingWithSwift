@@ -328,6 +328,37 @@ enum DesignLibrary {
         try? FileManager.default.removeItem(at: historyDir(for: id))
     }
 
+    /// The launch sweep: photos, soundtracks and clips nothing uses any
+    /// more, with every design, trashed design and kept version read once
+    /// for all three. Each sweep used to read the whole library again for
+    /// itself — three full passes of decoding before the first frame, where
+    /// the Android twin makes one.
+    ///
+    /// Every store's candidates are still listed before a single design is
+    /// read, as each sweep always listed its own, so a file stored while the
+    /// designs are being read is never among them and can never be taken
+    /// for an orphan. Only safe at launch, for the reasons each sweep gives.
+    ///
+    /// On the main thread still: designs are saved in place, not swapped in
+    /// whole, so a design being saved while a sweep on another thread read
+    /// it could read as half a file — and every photo only it used would
+    /// look like an orphan.
+    static func pruneUnusedFiles(pasteboard: UIPasteboard = .general) {
+        let photos = mediaCandidates()
+        let tracks = AudioStore.all()
+        let clips = VideoStore.all()
+        guard photos?.isEmpty == false || !tracks.isEmpty || !clips.isEmpty else { return }
+        let designs = allDesigns() + allVersions()
+        if let photos { pruneUnusedMedia(photos, designs: designs, pasteboard: pasteboard) }
+        pruneUnusedAudio(tracks, designs: designs)
+        pruneUnusedVideos(clips, designs: designs, pasteboard: pasteboard)
+    }
+
+    /// The photo files there are, or nil when the folder cannot be read.
+    private static func mediaCandidates() -> [URL]? {
+        try? FileManager.default.contentsOfDirectory(at: MediaStore.directory, includingPropertiesForKeys: nil)
+    }
+
     /// Delete uploaded photos no design references any more.
     ///
     /// Media files outlive the designs that used them: deleting a design
@@ -338,8 +369,12 @@ enum DesignLibrary {
         // The candidates are listed before a single reference is read, so a
         // photo stored while the references are being gathered is not among
         // them and can never be taken for an orphan.
-        guard let files = try? FileManager.default.contentsOfDirectory(
-            at: MediaStore.directory, includingPropertiesForKeys: nil) else { return }
+        guard let files = mediaCandidates() else { return }
+        pruneUnusedMedia(files, designs: allDesigns() + allVersions(), pasteboard: pasteboard)
+    }
+
+    /// The photo sweep over `files`, listed before `designs` were read.
+    private static func pruneUnusedMedia(_ files: [URL], designs: [Design], pasteboard: UIPasteboard) {
         var referenced = Set<String>()
         let mediaID: (String) -> String? = { src in
             src.hasPrefix("media:") ? String(src.dropFirst(6)) : nil
@@ -361,7 +396,7 @@ enum DesignLibrary {
         // design is still in its older versions, and restoring one must
         // bring the photo back — and what the person keeps across designs:
         // the brand's logos and the components' pictures.
-        for design in allDesigns() + allVersions() {
+        for design in designs {
             for page in design.pages { keepPage(page) }
         }
         for src in BrandKit.load().logos { if let id = mediaID(src) { referenced.insert(id) } }
@@ -399,7 +434,13 @@ enum DesignLibrary {
         // orphan.
         let stored = AudioStore.all()
         guard !stored.isEmpty else { return }
-        let playing = soundtracks(in: allDesigns() + allVersions())
+        pruneUnusedAudio(stored, designs: allDesigns() + allVersions())
+    }
+
+    /// The soundtrack sweep over `stored`, listed before `designs` were read.
+    private static func pruneUnusedAudio(_ stored: [String], designs: [Design]) {
+        guard !stored.isEmpty else { return }
+        let playing = soundtracks(in: designs)
         for id in stored where !playing.contains(id) {
             AudioStore.delete(id)
         }
@@ -409,28 +450,50 @@ enum DesignLibrary {
     ///
     /// Deleting a clip's element, or its design, left the movie file behind
     /// for good: nothing ever swept the clips. At launch a clip no saved,
-    /// versioned or trashed design shows — nor a component, nor what was cut
-    /// or copied but not yet pasted — can go. Listed first, as the photos
-    /// are, so a clip stored while the designs are being read is never taken
-    /// for an orphan.
+    /// versioned or trashed design shows — nor a component, nor a brand
+    /// logo, nor what was cut or copied but not yet pasted — can go. Listed
+    /// first, as the photos are, so a clip stored while the designs are
+    /// being read is never taken for an orphan.
     static func pruneUnusedVideos(pasteboard: UIPasteboard = .general) {
         let stored = VideoStore.all()
         guard !stored.isEmpty else { return }
+        pruneUnusedVideos(stored, designs: allDesigns() + allVersions(), pasteboard: pasteboard)
+    }
+
+    /// The clip sweep over `stored`, listed before `designs` were read.
+    private static func pruneUnusedVideos(_ stored: [String], designs: [Design], pasteboard: UIPasteboard) {
+        guard !stored.isEmpty else { return }
         var shown = Set<String>()
+        // A clip shows as a photo, and also wherever a photo can: filling a
+        // shape — the colour sheet offers every clip as a Photo fill — or,
+        // in a design from the Android twin, behind a page. A text fill
+        // never draws a picture, but keeping its clip costs nothing.
+        func keepSource(_ src: String?) {
+            if let src, let parts = VideoStore.split(src) { shown.insert(parts.id) }
+        }
         func keep(_ elements: [Element]) {
             for el in elements {
-                if let src = el.src, let parts = VideoStore.split(src) { shown.insert(parts.id) }
+                keepSource(el.src)
+                keepSource(el.fill?.src)
+                keepSource(el.textFill?.src)
             }
         }
-        for design in allDesigns() + allVersions() {
-            for page in design.pages { keep(page.elements) }
+        func keepPage(_ page: Page) {
+            if case .image(let src) = page.background { keepSource(src) }
+            keep(page.elements)
+        }
+        for design in designs {
+            for page in design.pages { keepPage(page) }
         }
         for component in Components.load() { keep(component.elements) }
+        // The Brand kit offers a design's clips as logos, as it does its
+        // photos, and a logo outlives every design it came from.
+        for src in BrandKit.load().logos { keepSource(src) }
         if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
             keep(elements)
         }
         if PageClipboard.hasPage(in: pasteboard), let payload = PageClipboard.paste(from: pasteboard) {
-            keep(payload.page.elements)
+            keepPage(payload.page)
         }
         for id in stored where !shown.contains(id) {
             VideoStore.delete(id)

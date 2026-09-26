@@ -91,8 +91,8 @@ final class AnimationTests: XCTestCase {
         XCTAssertLessThan(settled.g, 60, "settled, the square is red: \(settled)")
         let rest = try centre(at: nil)
         XCTAssertLessThan(rest.g, 60, "with no clock the editor shows everything: \(rest)")
-        XCTAssertTrue(MovieExporter.isAnimated(d.pages[0]))
-        XCTAssertFalse(MovieExporter.isAnimated(Page()))
+        XCTAssertTrue(MovieExporter.isAnimated(d.pages[0], in: d))
+        XCTAssertFalse(MovieExporter.isAnimated(Page(), in: d))
     }
 
     // MARK: equal spacing

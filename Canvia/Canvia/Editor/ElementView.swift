@@ -23,6 +23,12 @@ import CoreGraphics
 /// becomes asynchronous, or a subview starts reading mutable state that is
 /// not part of `Element`, this view would keep showing a stale render and
 /// the conformance must go.
+///
+/// The one exception is a clip played live, which shows whatever frame has
+/// been decoded so far (`VideoStore.peek`). ImageElementView reads the
+/// store's frame version itself, so it is that view, not this one, that
+/// SwiftUI draws again when a frame lands, and this view's equality still
+/// holds.
 struct ElementView: View {
     let element: Element
     @Environment(\.animationTime) private var animationTime
@@ -497,10 +503,15 @@ struct TextElementView: View {
 
 struct ImageElementView: View {
     let element: Element
+    @Environment(\.liveVideo) private var liveVideo
 
     var body: some View {
+        // Resolved here, not inside the GeometryReader, so that a clip played
+        // live — whose frame version is read on the way — is watched by this
+        // view, and drawn again when its next frame lands.
+        let resolved = resolvedImage()
         GeometryReader { _ in
-            if let ui = resolvedImage() {
+            if let ui = resolved {
                 let frameW = element.w, frameH = element.h
                 // Fill covers the frame and crops; fit shows the whole picture
                 // and leaves the frame's remainder empty.
@@ -554,11 +565,27 @@ struct ImageElementView: View {
     }
 
     private func resolvedImage() -> UIImage? {
-        guard let base = PhotoLibrary.resolve(element.src) else { return nil }
+        let base: UIImage
+        let key: String
+        if liveVideo, let src = element.src, VideoStore.isVideo(src) {
+            // Played live, a clip never makes the screen wait for a frame to
+            // decode: it shows the latest it has, and the version read here
+            // brings the next one in when it is ready.
+            _ = VideoStore.live.version
+            guard let shown = VideoStore.peek(src) else { return nil }
+            base = shown.image
+            // Keyed by the frame shown, not the moment asked for, so a
+            // filtered copy is never kept of a stand-in frame.
+            key = shown.key
+        } else {
+            guard let image = PhotoLibrary.resolve(element.src) else { return nil }
+            base = image
+            key = element.src ?? ""
+        }
         let preset = ImageFilterPreset.from(element.filter)
         return ImageFilterEngine.apply(preset, adjustments: element.adjustments ?? .neutral,
                                        duotone: element.duotone,
-                                       to: base, cacheKey: element.src ?? "")
+                                       to: base, cacheKey: key)
     }
 }
 
