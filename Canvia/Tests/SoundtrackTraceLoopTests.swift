@@ -30,7 +30,10 @@ final class SoundtrackTraceLoopTests: XCTestCase {
         XCTAssertTrue(id.hasSuffix(".m4a"))
         XCTAssertNotNil(AudioStore.url(for: id))
         XCTAssertTrue(AudioStore.all().contains(id))
-        XCTAssertEqual(AudioStore.label(for: id), "Audio (M4A)")
+        // The music is named by its own file, as it was picked.
+        XCTAssertEqual(AudioStore.label(for: id), tmp.lastPathComponent)
+        // One kept without a name says what kind of file it is.
+        XCTAssertEqual(AudioStore.label(for: "audio-unnamed.m4a"), "Audio (M4A)")
         AudioStore.delete(id)
         XCTAssertNil(AudioStore.url(for: id))
         XCTAssertNil(AudioStore.url(for: nil))
