@@ -27,6 +27,9 @@ its range (40 to 4000) under each side and waits for both to be in it
 rather than clamping; 1:1, 4:5, 16:9 and 9:16 set the height from the
 width, the last four sizes made come back as chips, and the design is named
 for its size ("1600 × 900").
+Each design card says when it was last touched — "Just now", "12 minutes
+ago", "Yesterday", "3 days ago", "8 Sep" — in the Android twin's words, and
+so does Recently deleted ("Deleted yesterday").
 
 **Editor**
 - Direct manipulation: tap to select, drag to move with magenta snap

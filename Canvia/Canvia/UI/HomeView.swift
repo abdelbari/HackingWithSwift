@@ -343,7 +343,7 @@ struct HomeView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(entry.title).font(.subheadline.weight(.semibold)).lineLimit(1)
-                            Text("Deleted \(Date(timeIntervalSince1970: entry.updatedAt / 1000), style: .relative) ago")
+                            Text("Deleted \(RelativeTime.lowercasedFirst(RelativeTime.text(ms: entry.updatedAt)))")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -482,8 +482,7 @@ struct HomeView: View {
                             Text(recent.title)
                                 .font(.subheadline.weight(.semibold))
                                 .lineLimit(1)
-                            Text("\(Int(recent.width)) × \(Int(recent.height)) · \(recent.pages) page\(recent.pages > 1 ? "s" : "")"
-                                 + (folder == nil ? (recent.folder.map { " · \($0)" } ?? "") : ""))
+                            Text(caption(for: recent).shown)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
@@ -495,6 +494,7 @@ struct HomeView: View {
                     .shadow(color: .black.opacity(0.08), radius: 5, y: 2)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("\(recent.title), \(caption(for: recent).spoken)")
                 .contextMenu {
                     Button {
                         renameText = recent.title
@@ -544,6 +544,22 @@ struct HomeView: View {
             }
         }
         .padding(.horizontal)
+    }
+
+    /// Its size, then when it was last touched and how many pages — and
+    /// which folder, while every folder is showing. Heard as "1080 by 1920"
+    /// rather than a multiplication.
+    private func caption(for recent: RecentDesign) -> (shown: String, spoken: String) {
+        let w = Int(recent.width), h = Int(recent.height)
+        let when = RelativeTime.text(ms: recent.updatedAt)
+        let pages = RelativeTime.pages(recent.pages)
+        var shown = "\(w) × \(h) · \(when) · \(pages)"
+        var spoken = "\(w) by \(h), \(when), \(pages)"
+        if folder == nil, let name = recent.folder {
+            shown += " · \(name)"
+            spoken += ", in \(name)"
+        }
+        return (shown, spoken)
     }
 
     // MARK: templates
