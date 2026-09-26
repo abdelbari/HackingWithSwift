@@ -82,8 +82,17 @@ struct ColorPickerSheet: View {
                     // background too, whatever is selected. A caption over a
                     // photo in a colour from the photo is the whole trick of
                     // making the two look like one design.
-                    if !photoColors.isEmpty {
-                        section("From the photos", colors: photoColors)
+                    Group {
+                        if !photoColors.isEmpty {
+                            section("From the photos", colors: photoColors)
+                        }
+
+                        // The palette that best covers what is on the page
+                        // already, as the Android twin suggests it — a second
+                        // colour that belongs is the hard part.
+                        if let suggested = ColorTools.suggestedPalette(for: store.page) {
+                            section("Goes with these · \(suggested.name)", colors: suggested.colors)
+                        }
                     }
 
                     harmonySection
@@ -119,7 +128,9 @@ struct ColorPickerSheet: View {
                         photoFillSection(onPickGradient)
                     }
 
-                    ForEach(ContentLibrary.palettes) { palette in
+                    // By position: the library repeats a few palette ids, and
+                    // ForEach needs each row to be told apart.
+                    ForEach(Array(ContentLibrary.palettes.enumerated()), id: \.offset) { _, palette in
                         section(palette.name, colors: palette.colors)
                     }
                 }
@@ -176,7 +187,7 @@ struct ColorPickerSheet: View {
                                 .overlay(RoundedRectangle(cornerRadius: 7)
                                     .stroke(Theme.hairline, lineWidth: 1))
                         }
-                        .accessibilityLabel("\(kind.displayName) \(hex)")
+                        .accessibilityLabel("\(kind.displayName): \(ElementNames.colourName(hex))")
                     }
                 }
             }
@@ -270,9 +281,13 @@ struct ColorPickerSheet: View {
                                     Image(systemName: "checkmark")
                                         .fontWeight(.bold)
                                         .foregroundStyle(UIColor(hex: hex).isLight ? .black : .white)
+                                        .accessibilityHidden(true)
                                 }
                             }
                     }
+                    // Named in words, and the chosen one said to be chosen.
+                    .accessibilityLabel(ElementNames.spokenColour(hex))
+                    .accessibilityAddTraits(current?.lowercased() == hex.lowercased() ? .isSelected : [])
                 }
             }
         }

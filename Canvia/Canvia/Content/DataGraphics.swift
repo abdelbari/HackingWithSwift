@@ -112,14 +112,7 @@ enum DataGraphics {
     /// Alike enough that one drawn on the other would hardly show — the
     /// "redmean" distance, as the Android twin measures it.
     private static func near(_ a: (r: Int, g: Int, b: Int), _ b: (r: Int, g: Int, b: Int)) -> Bool {
-        let rMean: Double = Double(a.r + b.r) / 2
-        let dr: Double = Double(a.r - b.r)
-        let dg: Double = Double(a.g - b.g)
-        let db: Double = Double(a.b - b.b)
-        let red: Double = (2 + rMean / 256) * dr * dr
-        let green: Double = 4 * dg * dg
-        let blue: Double = (2 + (255 - rMean) / 256) * db * db
-        return red + green + blue < 6000
+        ColorTools.redmean(a, b) < 6000
     }
 
     private static func normalised(_ hex: String) -> String {

@@ -902,6 +902,8 @@ struct ContextToolbar: View {
             }
         }
         .buttonStyle(ToolButtonStyle())
+        // "Fill, dark blue": what it is now, in words.
+        .accessibilityValue(ElementNames.colourName(hex))
     }
 
     private func sliderControl(_ label: String, value: Double, in range: ClosedRange<Double>,

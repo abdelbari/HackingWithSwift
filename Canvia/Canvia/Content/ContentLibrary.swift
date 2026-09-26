@@ -323,6 +323,102 @@ enum ColorTools {
         return sorted.prefix(limit).map { $0.element }
     }
 
+    // MARK: a palette that goes with the page
+
+    /// Every colour a page paints with — the background, then each element
+    /// back to front — repeats kept, so a colour used more weighs more.
+    /// Text and lines give their colour; a shape its fill (every stop of a
+    /// gradient) and its border when it has one, which is all a drawing is.
+    static func pageColours(_ page: Page) -> [String] {
+        var out: [String] = []
+        switch page.background {
+        case .color(let c): out.append(c)
+        case .gradient(let p):
+            if let stops = p.stops { out += stops.map(\.color) } else if let c = p.color { out.append(c) }
+        case .image: break
+        }
+        for el in page.elements {
+            switch el.type {
+            case .text, .line:
+                if let c = el.color { out.append(c) }
+            case .shape:
+                if let fill = el.fill {
+                    switch fill.kind {
+                    case "gradient": out += (fill.stops ?? []).map(\.color)
+                    case "none": break
+                    default: if let c = fill.color { out.append(c) }
+                    }
+                }
+                if let stroke = el.stroke, (el.strokeWidth ?? 0) > 0 { out.append(stroke) }
+            case .image, .sticker:
+                break
+            }
+        }
+        return out
+    }
+
+    /// The palette that best covers what is already on the page: each
+    /// palette scored by how far every colour on the page is from that
+    /// palette's nearest colour, lowest total winning and the earlier on a
+    /// tie. Not the distance from the page's average colour — a navy and
+    /// coral poster averages to a mauve close to neither. A page with no
+    /// colour to go by gets the first palette. The Android twin's
+    /// Palettes.suggestFor, measure for measure.
+    static func suggestedPalette(for page: Page, from palettes: [Palette]) -> Palette? {
+        let used = pageColours(page).compactMap(rgb255)
+        guard let first = palettes.first else { return nil }
+        guard !used.isEmpty else { return first }
+        var best = first
+        var bestScore = Double.infinity
+        for palette in palettes {
+            let colours = palette.colors.compactMap(rgb255)
+            guard !colours.isEmpty else { continue }
+            var score: Double = 0
+            for u in used {
+                score += colours.map { redmean(u, $0) }.min() ?? 0
+            }
+            if score < bestScore {
+                bestScore = score
+                best = palette
+            }
+        }
+        return best
+    }
+
+    static func suggestedPalette(for page: Page) -> Palette? {
+        suggestedPalette(for: page, from: ContentLibrary.palettes)
+    }
+
+    /// "Redmean" distance, squared: RGB distance with each channel weighted
+    /// by how much the eye cares about it at that level of red — far closer
+    /// to what looks alike than plain RGB, for a few multiplications.
+    static func redmean(_ a: (r: Int, g: Int, b: Int), _ b: (r: Int, g: Int, b: Int)) -> Double {
+        let rMean: Double = Double(a.r + b.r) / 2
+        let dr: Double = Double(a.r - b.r)
+        let dg: Double = Double(a.g - b.g)
+        let db: Double = Double(a.b - b.b)
+        let red: Double = (2 + rMean / 256) * dr * dr
+        let green: Double = 4 * dg * dg
+        let blue: Double = (2 + (255 - rMean) / 256) * db * db
+        return red + green + blue
+    }
+
+    /// "#rgb", "#rrggbb" or "#rrggbbaa" (alpha last, ignored) in 0…255, or
+    /// nil for anything else.
+    static func rgb255(_ hex: String) -> (r: Int, g: Int, b: Int)? {
+        var digits = hex.trimmingCharacters(in: .whitespaces)
+        if digits.hasPrefix("#") { digits.removeFirst() }
+        guard digits.allSatisfy(\.isHexDigit) else { return nil }
+        switch digits.count {
+        case 3: digits = digits.map { "\($0)\($0)" }.joined()
+        case 6: break
+        case 8: digits = String(digits.prefix(6))
+        default: return nil
+        }
+        guard let value = Int(digits, radix: 16) else { return nil }
+        return ((value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff)
+    }
+
     private static func luminance(_ hex: String) -> Double {
         let ui = UIKitColorBox(hex)
         return 0.299 * ui.r + 0.587 * ui.g + 0.114 * ui.b

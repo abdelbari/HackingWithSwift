@@ -113,6 +113,13 @@ enum ElementNames {
         return light < 0.28 ? "dark \(family)" : light > 0.72 ? "light \(family)" : family
     }
 
+    /// A colour as a screen reader says a swatch: "Dark blue", not seven
+    /// syllables of hex. The Android twin's swatches say the same words.
+    static func spokenColour(_ hex: String?) -> String {
+        let name = colourName(hex)
+        return name.prefix(1).uppercased() + String(name.dropFirst())
+    }
+
     private static func withColour(_ hex: String?, _ noun: String) -> String {
         let phrase = rgb(hex) == nil ? noun : "\(colourName(hex)) \(noun)"
         return phrase.prefix(1).uppercased() + String(phrase.dropFirst())

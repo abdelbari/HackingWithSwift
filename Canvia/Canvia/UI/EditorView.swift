@@ -581,7 +581,7 @@ struct EditorView: View {
                     }
                 }
         }
-        .accessibilityLabel("Pen colour \(hex)")
+        .accessibilityLabel("\(ElementNames.spokenColour(hex)) ink")
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 

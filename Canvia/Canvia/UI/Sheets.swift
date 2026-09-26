@@ -83,6 +83,8 @@ struct BackgroundSheet: View {
                                     .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.black.opacity(0.12)))
                                     .frame(height: 40)
                             }
+                            .accessibilityLabel(ElementNames.spokenColour(hex))
+                            .accessibilityAddTraits(store.page.background == .color(hex) ? .isSelected : [])
                         }
                     }
 

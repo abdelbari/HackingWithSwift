@@ -66,7 +66,12 @@ for its size ("1600 × 900").
 - Color: recently used colours first, colour harmony derived from whatever
   is chosen (complementary, analogous, triadic, split, tetradic, and a
   tint/shade ramp), curated palettes, gradient presets, document colors,
-  background editor, ✨ Shuffle (luminance-ranked palette remap)
+  background editor, ✨ Shuffle (luminance-ranked palette remap). "Goes
+  with these · <palette>" suggests the palette that best covers the
+  page's colours (redmean distance, as on Android); the brand kit's colours
+  are the first palette in Document theme once it has two; and every
+  swatch is read aloud by name ("Dark blue", "Dark blue ink"), with the
+  chosen one marked selected
 - Pages: live-thumbnail strip, add / duplicate / reorder / delete (with a
   confirmation when the page is not empty), and per-page notes that are
   never drawn and so cannot reach an export

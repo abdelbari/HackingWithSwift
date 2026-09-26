@@ -28,6 +28,13 @@ struct BrandKit: Codable, Equatable {
                               fontSize: 18, letterSpacing: nil, text: "Brand body text"))
     }
 
+    /// The kit's colours as a palette for the theme sheet, in kit order —
+    /// first there, as on the Android twin — once there are two of them to
+    /// map a design onto.
+    var palette: Palette? {
+        colors.count >= 2 ? Palette(id: "brand-kit", name: "Brand kit", colors: colors) : nil
+    }
+
     static let limit = 12
 
     static var fileURL: URL {

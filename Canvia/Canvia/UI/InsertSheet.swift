@@ -806,6 +806,8 @@ private struct BackgroundInline: View {
                             .overlay(RoundedRectangle(cornerRadius: 9).stroke(.black.opacity(0.12)))
                             .frame(height: 40)
                     }
+                    .accessibilityLabel(ElementNames.spokenColour(hex))
+                    .accessibilityAddTraits(store.page.background == .color(hex) ? .isSelected : [])
                 }
             }
             Text("GRADIENTS").font(.system(size: 11, weight: .bold)).foregroundStyle(.secondary)

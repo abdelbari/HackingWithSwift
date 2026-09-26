@@ -23,7 +23,8 @@ struct BrandKitSheet: View {
                                 .contextMenu {
                                     Button("Remove", role: .destructive) { kit.colors.removeAll { $0 == hex } }
                                 }
-                                .accessibilityLabel("Brand colour \(hex)")
+                                .accessibilityLabel("\(ElementNames.spokenColour(hex)), brand colour")
+                                .accessibilityAction(named: "Remove") { kit.colors.removeAll { $0 == hex } }
                         }
                     }
                     ColorPicker("Add a colour", selection: $newColor, supportsOpacity: false)

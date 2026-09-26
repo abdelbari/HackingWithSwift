@@ -11,8 +11,23 @@ import SwiftUI
 struct ThemeSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
-    @State private var palette: Palette?
+    /// Which of `palettes` is chosen, by position: the library repeats a
+    /// few palette ids, so an id cannot tell two tiles apart.
+    @State private var paletteIndex: Int?
     @State private var pairing: FontPairing?
+    /// Read once as the sheet opens, not on every tap.
+    @State private var kit = BrandKit.load()
+
+    /// The brand kit's colours first, when it has two or more, then the
+    /// library's palettes.
+    private var palettes: [Palette] {
+        [kit.palette].compactMap { $0 } + ContentLibrary.palettes
+    }
+
+    private var palette: Palette? {
+        guard let paletteIndex, palettes.indices.contains(paletteIndex) else { return nil }
+        return palettes[paletteIndex]
+    }
 
     private var preview: Design {
         DesignStore.themed(store.design, palette: palette?.colors, pairing: pairing)
@@ -68,9 +83,10 @@ struct ThemeSheet: View {
 
     private var paletteGrid: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 10)], spacing: 10) {
-            ForEach(ContentLibrary.palettes) { p in
+            ForEach(Array(palettes.enumerated()), id: \.offset) { index, p in
+                let chosen = paletteIndex == index
                 Button {
-                    palette = palette?.id == p.id ? nil : p
+                    paletteIndex = chosen ? nil : index
                 } label: {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 0) {
@@ -84,20 +100,20 @@ struct ThemeSheet: View {
                     }
                     .padding(8)
                     .background(RoundedRectangle(cornerRadius: 10)
-                        .fill(palette?.id == p.id ? Theme.accentSubtle : Theme.card))
+                        .fill(chosen ? Theme.accentSubtle : Theme.card))
                     .overlay(RoundedRectangle(cornerRadius: 10)
-                        .stroke(palette?.id == p.id ? Theme.accent : Theme.hairline))
+                        .stroke(chosen ? Theme.accent : Theme.hairline))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(p.name)
-                .accessibilityAddTraits(palette?.id == p.id ? [.isSelected] : [])
+                .accessibilityLabel(p.id == "brand-kit" ? "Brand kit colours" : p.name)
+                .accessibilityAddTraits(chosen ? [.isSelected] : [])
             }
         }
     }
 
     private var pairingList: some View {
         VStack(spacing: 8) {
-            ForEach([BrandKit.load().pairing].compactMap { $0 } + ContentLibrary.pairings) { pr in
+            ForEach([kit.pairing].compactMap { $0 } + ContentLibrary.pairings) { pr in
                 Button {
                     pairing = pairing?.id == pr.id ? nil : pr
                 } label: {
