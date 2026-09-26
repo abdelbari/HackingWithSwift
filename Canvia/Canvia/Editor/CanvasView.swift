@@ -925,8 +925,10 @@ struct CanvasView: View {
 
     private func startTextEdit(_ el: Element) {
         store.beginGesture()
-        store.editingTextId = el.id
+        // Selected first: select() ends any typing, and set before it the
+        // editor was ended as soon as it began and never appeared.
         store.select(el.id)
+        store.editingTextId = el.id
         textFieldFocused = true
     }
 
