@@ -374,6 +374,12 @@ enum DesignExporter {
                         cg.translateBy(x: placement.sheetRect.minX - placement.source.minX * scale,
                                        y: placement.sheetRect.minY - placement.source.minY * scale)
                         cg.scaleBy(x: scale, y: scale)
+                        // Nothing past the bleed. The page enlarged evenly
+                        // runs past it on its long side, and a tile's source
+                        // reaches past the page's far edge, so without this
+                        // the last row or column of tiles printed artwork
+                        // beyond the bleed and under the crop marks.
+                        cg.clip(to: CGRect(origin: .zero, size: pagePts))
                         // The page itself sits inside the bleed; the bleed is
                         // the page's own edges carried out — drawn here as
                         // the page enlarged evenly to cover it, the way a

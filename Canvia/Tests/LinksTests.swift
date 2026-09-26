@@ -21,6 +21,51 @@ final class LinksTests: XCTestCase {
         XCTAssertEqual(Links.shown("https://canvia.app/pricing/"), "canvia.app/pricing")
     }
 
+    /// A scheme typed in capitals is kept in lower case, the rest as typed:
+    /// Android finds the app to open a link by its scheme, letter for letter.
+    /// The Android twin's LinksTest reads the same.
+    func testATypedSchemeIsKeptInLowerCase() {
+        XCTAssertEqual(Links.normalized("HTTPS://Canvia.app/Menu"), "https://Canvia.app/Menu")
+        XCTAssertEqual(Links.normalized("Http://canvia.app"), "http://canvia.app")
+        XCTAssertEqual(Links.normalized("Mailto:Hi@canvia.app"), "mailto:Hi@canvia.app")
+        XCTAssertEqual(Links.normalized("TEL:+441234567890"), "tel:+441234567890")
+        XCTAssertNil(Links.normalized("HTTPS://"))
+    }
+
+    /// Edit link starts from the link as stored, so saving it unchanged has
+    /// to give the same link back — http kept, the slash kept, a query kept.
+    func testAStoredLinkSavedUnchangedStaysTheSame() {
+        for stored in ["http://intranet.example.com", "http://example.com/menu/", "http://192.168.1.1",
+                       "http://localhost:3000", "mailto:a@b.co?subject=Hi", "tel:+441234567890"] {
+            XCTAssertEqual(Links.normalized(stored), stored)
+        }
+    }
+
+    /// Only the four kinds of link are followed. A design file can carry any
+    /// text as a link; a file: or javascript: one is not tapped in Present,
+    /// made clickable in the PDF or written into the SVG.
+    @MainActor
+    func testOnlyTheFourKindsOfLinkAreFollowed() {
+        XCTAssertEqual(Links.followable("https://canvia.app"), "https://canvia.app")
+        XCTAssertEqual(Links.followable("HTTP://canvia.app"), "HTTP://canvia.app")
+        XCTAssertEqual(Links.followable("mailto:hi@canvia.app"), "mailto:hi@canvia.app")
+        XCTAssertEqual(Links.followable("tel:+441234567890"), "tel:+441234567890")
+        XCTAssertNil(Links.followable("file:///private/var/menu.pdf"))
+        XCTAssertNil(Links.followable("javascript:alert(1)"))
+        XCTAssertNil(Links.followable("canvia.app"))
+        XCTAssertNil(Links.followable(""))
+        XCTAssertNil(Links.followable(nil))
+
+        var foreign = Element.shape("rect", w: 200, h: 200)
+        foreign.link = "javascript:alert(1)"
+        var design = Design(title: "Links", width: 400, height: 300)
+        design.pages = [Page(elements: [foreign])]
+        let page = design.pages[0]
+        XCTAssertNil(Links.at(design: design, page: page, point: CGPoint(x: 10, y: 10)))
+        XCTAssertTrue(Links.areas(design: design, page: page).isEmpty)
+        XCTAssertFalse(SVGExporter.svg(design: design, page: page).contains("<a "))
+    }
+
     func testATapFindsTheTopmostLinkedElementTurnedOrNot() {
         var under = Element.shape("rect", w: 200, h: 200)
         under.link = "https://under"

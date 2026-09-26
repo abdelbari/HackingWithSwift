@@ -105,13 +105,18 @@ enum PrintLayout {
                           height: (page.height - 2 * bleed) * scale)
         let slack = 0.5
         let reach = sheet.insetBy(dx: -slack, dy: -slack)
-        return cropMarkSegments(around: trim).filter { segment in
+        // Clear of the printed bleed, not only of the trim: 4 pt from the
+        // trim put every mark on the bleed's artwork, and from 18 pt of
+        // bleed wholly inside it, where on a dark page the cutter could not
+        // see it. The Android twin keeps the same gap.
+        let gap = bleed * scale + 4
+        return cropMarkSegments(around: trim, gap: gap).filter { segment in
             let (a, b) = segment
             // Each mark starts a gap out from its corner, along its own line.
             let across = a.y == b.y
             let corner = across
-                ? CGPoint(x: a.x - (b.x > a.x ? 4 : -4), y: a.y)
-                : CGPoint(x: a.x, y: a.y - (b.y > a.y ? 4 : -4))
+                ? CGPoint(x: a.x - (b.x > a.x ? gap : -gap), y: a.y)
+                : CGPoint(x: a.x, y: a.y - (b.y > a.y ? gap : -gap))
             return corner.x >= reach.minX && corner.x <= reach.maxX && corner.y >= reach.minY && corner.y <= reach.maxY
         }
     }

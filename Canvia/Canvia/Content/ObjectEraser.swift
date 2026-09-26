@@ -81,9 +81,15 @@ enum ObjectEraser {
         return ctx.makeImage()
     }
 
-    /// Grid of RGBA and a mask, both `w`×`h`, filled where the mask is set.
-    /// Returns the filled pixels. Exposed for tests; the peel is the whole
-    /// of the algorithm.
+    /// Grid of premultiplied RGBA and a mask, both `w`×`h`, filled where the
+    /// mask is set. Returns the filled pixels. Exposed for tests; the peel is
+    /// the whole of the algorithm.
+    ///
+    /// Alpha is averaged with the colour: a hole beside the clear parts of a
+    /// logo or a cutout stays as clear as they are. Made opaque, it came out
+    /// a black smudge, where the Android twin leaves it clear. Premultiplied,
+    /// each neighbour's colour is no more than its alpha, so the averages
+    /// stay a valid pixel.
     static func peelFill(pixels: inout [UInt8], masked: [Bool], width w: Int, height h: Int) {
         var hole = masked
         var remaining = hole.filter { $0 }.count
@@ -93,18 +99,20 @@ enum ObjectEraser {
             var changed = false
             for y in 0..<h {
                 for x in 0..<w where hole[y * w + x] {
-                    var r = 0, g = 0, b = 0, n = 0
+                    var r = 0, g = 0, b = 0, a = 0, n = 0
                     for dy in -1...1 {
                         for dx in -1...1 where dx != 0 || dy != 0 {
                             let nx = x + dx, ny = y + dy
                             guard nx >= 0, ny >= 0, nx < w, ny < h, !hole[ny * w + nx] else { continue }
                             let i = (ny * w + nx) * 4
-                            r += Int(pixels[i]); g += Int(pixels[i + 1]); b += Int(pixels[i + 2]); n += 1
+                            r += Int(pixels[i]); g += Int(pixels[i + 1]); b += Int(pixels[i + 2])
+                            a += Int(pixels[i + 3]); n += 1
                         }
                     }
                     guard n > 0 else { continue }
                     let i = (y * w + x) * 4
-                    pixels[i] = UInt8(r / n); pixels[i + 1] = UInt8(g / n); pixels[i + 2] = UInt8(b / n); pixels[i + 3] = 255
+                    pixels[i] = UInt8(r / n); pixels[i + 1] = UInt8(g / n); pixels[i + 2] = UInt8(b / n)
+                    pixels[i + 3] = UInt8(a / n)
                     next[y * w + x] = false
                     remaining -= 1
                     changed = true
@@ -116,7 +124,11 @@ enum ObjectEraser {
         }
     }
 
-    /// The picture with the masked region filled from its surroundings.
+    /// The picture with the masked region filled from its surroundings, or
+    /// nil when there is nothing to fill: no strokes, or strokes that miss
+    /// the picture — beside a fitted photo, or off it altogether. Handing
+    /// the picture back unchanged had it stored again as a new file, with
+    /// an undo step that changed nothing.
     static func erase(_ image: UIImage, strokes: [[CGPoint]], width: Double, feather: Double = 6) -> UIImage? {
         guard let cg = image.cgImage, !strokes.isEmpty,
               let maskImage = mask(size: CGSize(width: cg.width, height: cg.height), strokes: strokes, width: width) else { return nil }
@@ -145,7 +157,7 @@ enum ObjectEraser {
                 masked[y * w + x] = maskBytes[y * mbpr + x] > 127
             }
         }
-        guard masked.contains(true) else { return image }
+        guard masked.contains(true) else { return nil }
         peelFill(pixels: &pixels, masked: masked, width: w, height: h)
         for y in 0..<h { for x in 0..<w { for c in 0..<4 { colorBytes[y * bpr + x * 4 + c] = pixels[(y * w + x) * 4 + c] } } }
         guard let filledSmall = ctx.makeImage() else { return nil }

@@ -221,7 +221,10 @@ struct CanvasView: View {
         } else {
             let glow: Shadow? = tool.pen == .glow ? Freehand.glow(of: tool) : nil
             let halo: Color = glow.map { Color(hex: $0.color).opacity($0.opacity) } ?? .clear
-            let spread: Double = glow.map { $0.blur / 2 } ?? 0
+            // The full blur, as ElementView casts the finished stroke's
+            // shadow: at half of it the halo doubled the moment the finger
+            // lifted. (Half is the SVG's sigma, not a SwiftUI radius.)
+            let spread: Double = glow.map { $0.blur } ?? 0
             Path(Freehand.cgPath(strokePoints))
                 .stroke(Color(hex: Freehand.drawnColor(tool)),
                         style: StrokeStyle(lineWidth: Freehand.drawnWidth(tool), lineCap: .round, lineJoin: .round))

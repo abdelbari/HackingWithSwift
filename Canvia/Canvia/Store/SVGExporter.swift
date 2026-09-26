@@ -83,8 +83,9 @@ enum SVGExporter {
         // and browsers read for an SVG element.
         let title = el.altText.map { "<title>\(escape($0))</title>" } ?? ""
         let group = "<g\(attributes)>\(title)\(markup(el, index: index, defs: &defs))</g>"
-        // A link wraps the element, so a browser follows it on a click.
-        guard let link = el.link, !link.isEmpty else { return group }
+        // A link wraps the element, so a browser follows it on a click —
+        // one of the kinds a link is, never a script or a file.
+        guard let link = Links.followable(el.link) else { return group }
         let href = escape(link)
         return "<a href=\"\(href)\" xlink:href=\"\(href)\">\(group)</a>"
     }

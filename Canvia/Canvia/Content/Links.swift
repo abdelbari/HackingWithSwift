@@ -18,12 +18,18 @@ enum Links {
     /// What was typed, as a link a reader can follow, or nil when it is not
     /// one: an address with its scheme kept, a bare domain made https, an
     /// email address mailto and a phone number tel.
+    ///
+    /// A scheme typed in capitals — "HTTPS://", or "Mailto:" from a notes
+    /// app that capitalised it — is kept in lower case: Android matches a
+    /// link's scheme to the app that opens it letter for letter, so there
+    /// "Https://canvia.app" opened nothing. The rest is kept as typed.
     static func normalized(_ input: String) -> String? {
         let typed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         if typed.isEmpty || typed.contains(where: { $0.isWhitespace && $0 != " " }) { return nil }
         let lower = typed.lowercased()
         if let scheme = schemes.first(where: { lower.hasPrefix($0) }) {
-            return typed.count > scheme.count && !typed.contains(" ") ? typed : nil
+            guard typed.count > scheme.count, !typed.contains(" ") else { return nil }
+            return scheme + String(typed.dropFirst(scheme.count))
         }
         if typed.contains(" ") {
             return phone(typed, allowing: " +-().")
@@ -43,11 +49,22 @@ enum Links {
         return s.hasSuffix("/") ? String(s.dropLast()) : s
     }
 
+    /// The link, when it is one to follow: a web address, an email or a
+    /// phone number. Typing only ever makes those, but a design file from
+    /// anywhere can carry anything in `link` — a file: or javascript: one —
+    /// and none of that is opened in Present, made clickable in a PDF or
+    /// written into an SVG. The Android twin follows the same four.
+    static func followable(_ link: String?) -> String? {
+        guard let link, !link.isEmpty else { return nil }
+        let lower = link.lowercased()
+        return schemes.contains(where: { lower.hasPrefix($0) }) ? link : nil
+    }
+
     /// Every linked element on the page as drawn — the master's first — with
     /// its area on the page.
     static func areas(design: Design, page: Page) -> [(rect: CGRect, url: String)] {
         (design.masterElements(behind: page) + page.elements).compactMap { el in
-            guard let url = el.link, !url.isEmpty else { return nil }
+            guard let url = followable(el.link) else { return nil }
             return (Geometry.aabb(el), url)
         }
     }
@@ -57,9 +74,9 @@ enum Links {
     static func at(design: Design, page: Page, point: CGPoint) -> String? {
         let drawn = design.masterElements(behind: page) + page.elements
         let hit = drawn.last { el in
-            el.link?.isEmpty == false && Geometry.hits(el, point: point)
+            followable(el.link) != nil && Geometry.hits(el, point: point)
         }
-        return hit?.link
+        return followable(hit?.link)
     }
 
     // MARK: reading what is typed

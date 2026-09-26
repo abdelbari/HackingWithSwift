@@ -72,6 +72,48 @@ final class ObjectEraserTests: XCTestCase {
         XCTAssertEqual(pixels[centre], 10); XCTAssertEqual(pixels[centre + 1], 200)
     }
 
+    /// A hole among clear pixels stays clear: alpha is averaged with the
+    /// colour, as the Android twin's peel does, rather than made opaque —
+    /// which turned an erase beside a logo's clear surround black.
+    func testPeelFillKeepsAClearPictureClear() {
+        let w = 8, h = 8
+        var pixels = [UInt8](repeating: 0, count: w * h * 4)
+        var masked = [Bool](repeating: false, count: w * h)
+        for y in 2...5 {
+            for x in 2...5 {
+                masked[y * w + x] = true
+                pixels[(y * w + x) * 4] = 255; pixels[(y * w + x) * 4 + 3] = 255
+            }
+        }
+        ObjectEraser.peelFill(pixels: &pixels, masked: masked, width: w, height: h)
+        for y in 2...5 {
+            for x in 2...5 {
+                let i = (y * w + x) * 4
+                XCTAssertEqual(pixels[i + 3], 0, "the fill at \(x),\(y) is not clear")
+                XCTAssertEqual(pixels[i], 0)
+            }
+        }
+    }
+
+    /// Between an opaque pixel and a clear one the fill is half see-through,
+    /// and still a valid premultiplied pixel: no channel above its alpha.
+    func testPeelFillAveragesAlphaAtAnEdge() {
+        var pixels: [UInt8] = [100, 100, 100, 255, 255, 0, 0, 255, 0, 0, 0, 0]
+        ObjectEraser.peelFill(pixels: &pixels, masked: [false, true, false], width: 3, height: 1)
+        XCTAssertEqual(Array(pixels[4..<8]), [50, 50, 50, 127])
+    }
+
+    /// Strokes that miss the picture — beside a fitted photo, or off it —
+    /// erase nothing, and say so, rather than hand the picture back to be
+    /// stored again as if it had changed.
+    func testStrokesThatMissThePictureEraseNothing() {
+        let format = UIGraphicsImageRendererFormat(); format.scale = 1; format.opaque = true
+        let img = UIGraphicsImageRenderer(size: CGSize(width: 100, height: 100), format: format).image { ctx in
+            UIColor.systemTeal.setFill(); ctx.fill(CGRect(x: 0, y: 0, width: 100, height: 100))
+        }
+        XCTAssertNil(ObjectEraser.erase(img, strokes: [[CGPoint(x: -300, y: -300), CGPoint(x: -200, y: -300)]], width: 20))
+    }
+
     func testErasingARedSquareLeavesGreen() throws {
         let format = UIGraphicsImageRendererFormat(); format.scale = 1; format.opaque = true
         let img = UIGraphicsImageRenderer(size: CGSize(width: 200, height: 200), format: format).image { ctx in

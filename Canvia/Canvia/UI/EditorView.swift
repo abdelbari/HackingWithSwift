@@ -51,6 +51,8 @@ struct EditorView: View {
                 CanvasView(store: store)
                 if let tool = store.drawing {
                     drawingBar(tool)
+                        // Never quite to the screen's edges.
+                        .padding(.horizontal, 10)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.bottom, 14)
                 } else if store.erasing != nil {
@@ -424,23 +426,22 @@ struct EditorView: View {
                     .frame(width: 30, height: 30)
             }
             .accessibilityLabel("Pen, \(tool.pen.label)")
-            ForEach(Freehand.colors, id: \.self) { hex in
-                Button {
-                    store.drawing?.color = hex
-                } label: {
-                    Circle()
-                        .fill(Color(hex: hex))
-                        .frame(width: 22, height: 22)
-                        .overlay(Circle().stroke(Theme.hairline))
-                        .overlay {
-                            if tool.color == hex {
-                                Circle().stroke(Theme.accent, lineWidth: 2).padding(-3)
-                            }
-                        }
+            // Only the colours scroll. With the pen menu the bar came to some
+            // 446 pt, wider than any phone held upright, so Done was cut to
+            // an ellipsis and the ends ran off a 375 pt screen; now the pen,
+            // width, undo and Done stay put and the swatches take what room
+            // is left — all of them, where there is room for all.
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(Freehand.colors, id: \.self) { hex in
+                        swatch(hex, selected: tool.color == hex)
+                    }
                 }
-                .accessibilityLabel("Pen colour \(hex)")
-                .accessibilityAddTraits(tool.color == hex ? .isSelected : [])
+                // Room for the selected swatch's ring, which the scroll view
+                // would otherwise clip.
+                .padding(4)
             }
+            .frame(maxWidth: Self.swatchRowWidth)
             Menu {
                 ForEach(Freehand.widths, id: \.self) { w in
                     Button {
@@ -459,12 +460,39 @@ struct EditorView: View {
                 .accessibilityLabel("Undo stroke")
             Button("Done") { store.drawing = nil }
                 .fontWeight(.semibold)
+                .lineLimit(1)
+                .fixedSize()
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .background(.regularMaterial, in: Capsule())
         .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
         .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    /// Every pen colour side by side, with room for the ring round the one
+    /// chosen: as wide as the colours' scroll view ever needs to be.
+    private static let swatchRowWidth: CGFloat = {
+        let count = CGFloat(Freehand.colors.count)
+        return count * 22 + max(count - 1, 0) * 10 + 8
+    }()
+
+    private func swatch(_ hex: String, selected: Bool) -> some View {
+        Button {
+            store.drawing?.color = hex
+        } label: {
+            Circle()
+                .fill(Color(hex: hex))
+                .frame(width: 22, height: 22)
+                .overlay(Circle().stroke(Theme.hairline))
+                .overlay {
+                    if selected {
+                        Circle().stroke(Theme.accent, lineWidth: 2).padding(-3)
+                    }
+                }
+        }
+        .accessibilityLabel("Pen colour \(hex)")
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     /// Brush size, the strokes so far, and the two ways out.

@@ -83,6 +83,33 @@ final class PrintAndReflowTests: XCTestCase {
         XCTAssertEqual(whole.count, 8)
     }
 
+    /// The marks stand clear of the printed bleed: they start the bleed, at
+    /// the sheet's scale, plus 4 pt out from the trim — as the Android twin
+    /// draws them — so none is drawn over artwork, whatever the bleed.
+    func testCropMarksStartPastTheBleed() {
+        let page = CGSize(width: 300, height: 100)
+        let bleed = 10.0
+        for scale in [1.0, 2.0] {
+            let sheet = CGRect(x: 0, y: 0, width: page.width * scale, height: page.height * scale)
+            let marks = PrintLayout.sheetMarks(sheet: sheet, source: CGRect(origin: .zero, size: page),
+                                               page: page, bleed: bleed)
+            XCTAssertEqual(marks.count, 8)
+            let gap = bleed * scale + 4
+            let trim = sheet.insetBy(dx: bleed * scale, dy: bleed * scale)
+            for (a, b) in marks {
+                if a.y == b.y {
+                    let out = a.x < trim.minX ? trim.minX - a.x : a.x - trim.maxX
+                    XCTAssertEqual(out, gap, accuracy: 1e-9, "an across mark at \(a.x), scale \(scale)")
+                    XCTAssertFalse(sheet.contains(CGPoint(x: (a.x + b.x) / 2, y: a.y)), "a mark on the bleed")
+                } else {
+                    let out = a.y < trim.minY ? trim.minY - a.y : a.y - trim.maxY
+                    XCTAssertEqual(out, gap, accuracy: 1e-9, "a down mark at \(a.y), scale \(scale)")
+                    XCTAssertFalse(sheet.contains(CGPoint(x: a.x, y: (a.y + b.y) / 2)), "a mark on the bleed")
+                }
+            }
+        }
+    }
+
     func testLandscapeSwapsTheSheet() {
         var o = PrintLayout.Options()
         o.paper = PrintLayout.papers[0]

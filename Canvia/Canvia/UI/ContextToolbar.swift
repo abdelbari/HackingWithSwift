@@ -32,7 +32,6 @@ struct ContextToolbar: View {
     @State private var altDraft = ""
     @State private var editingLink = false
     @State private var linkDraft = ""
-    @State private var linkUnread = false
     @State private var namingStyle = false
     @State private var styleName = ""
     @State private var styleVersion = 0
@@ -613,8 +612,11 @@ struct ContextToolbar: View {
     private func linkButton(_ el: Element) -> some View {
         let linked = el.link?.isEmpty == false
         return Button {
-            linkDraft = el.link.map(Links.shown) ?? ""
-            linkUnread = false
+            // The link as stored, scheme and all. Its shortened label read
+            // back through `normalized` came out a different link — http
+            // made https, an address's trailing slash lost — or none at all,
+            // so saving an unchanged link could rewrite it or refuse it.
+            linkDraft = el.link ?? ""
             editingLink = true
         } label: {
             toolLabel("link", linked ? "Linked" : "Link", active: linked)
@@ -625,7 +627,12 @@ struct ContextToolbar: View {
                 .keyboardType(.URL)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+            // Save is off while what is typed reads as no link, as the
+            // Android twin's Done is, and the message below says why: an
+            // alert cannot ask again from its own button, so the typing was
+            // being dropped without a word.
             Button("Save") { saveLink() }
+                .disabled(linkUnreadable)
             if linked {
                 Button("Remove", role: .destructive) {
                     store.updateSelected { $0.link = nil }
@@ -633,23 +640,27 @@ struct ContextToolbar: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text(linkUnread
+            Text(linkUnreadable
                  ? "That doesn't read as a link. Try a web address like canvia.app, an email address or a phone number."
                  : "A web address, email or phone number. Clickable in a PDF, and opened by a tap in Present.")
         }
     }
 
-    /// Saves what was typed as a link, clears it when nothing was, and asks
-    /// again when it does not read as one.
+    /// Whether something is typed that does not read as a link. Nothing at
+    /// all is fine: saving it takes the link off.
+    private var linkUnreadable: Bool {
+        let draft = linkDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !draft.isEmpty && Links.normalized(draft) == nil
+    }
+
+    /// Saves what was typed as a link, or clears it when nothing was. Save
+    /// is off for anything else, so there is nothing else to handle.
     private func saveLink() {
         let draft = linkDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         if draft.isEmpty {
             store.updateSelected { $0.link = nil }
         } else if let url = Links.normalized(draft) {
             store.updateSelected { $0.link = url }
-        } else {
-            linkUnread = true
-            editingLink = true
         }
     }
 
