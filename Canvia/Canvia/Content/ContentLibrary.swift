@@ -208,6 +208,38 @@ enum ContentLibrary {
         }
     }
 
+    /// Templates whose page is exactly this size, in library order, and
+    /// only `category`'s when one is given. The size just named is the way
+    /// in, as on the Android twin: eighty-odd templates organised by the job
+    /// in hand never leave more than a screenful to choose from, and topic
+    /// becomes a filter inside that rather than the front door.
+    static func sizedTemplates(width: Double, height: Double, category: String?) -> [Template] {
+        templates.filter { t in
+            t.width == width && t.height == height && (category == nil || t.category == category)
+        }
+    }
+
+    static func sizedTemplates(for preset: SizePreset) -> [Template] {
+        sizedTemplates(width: preset.w, height: preset.h, category: nil)
+    }
+
+    /// How many ready-made starts each size has, by preset id: the line
+    /// under a size tile.
+    static let templateCounts: [String: Int] = Dictionary(
+        SizePreset.all.map { ($0.id, sizedTemplates(for: $0).count) },
+        uniquingKeysWith: { first, _ in first })
+
+    /// A size's topics, once each and alphabetical, for its chip row.
+    static func topics(in bucket: [Template]) -> [String] {
+        Array(Set(bucket.map(\.category))).sorted()
+    }
+
+    /// Whether a size has enough, and varied enough, templates for a topic
+    /// row to earn its space: more than eight, in more than one topic.
+    static func showsTopics(_ bucket: [Template]) -> Bool {
+        bucket.count > 8 && topics(in: bucket).count > 1
+    }
+
     static var shapeCategories: [String] {
         var seen: [String] = []
         for s in shapes where !seen.contains(s.category) { seen.append(s.category) }
@@ -236,6 +268,9 @@ struct SizePreset: Identifiable {
         .init(id: "insta-story", name: "Instagram Story", w: 1080, h: 1920, icon: "iphone"),
         .init(id: "presentation", name: "Presentation", w: 1920, h: 1080, icon: "display"),
         .init(id: "youtube-thumb", name: "YouTube Thumbnail", w: 1280, h: 720, icon: "play.rectangle"),
+        // Where the Android twin has it, and the size seven of the bundled
+        // templates were already made at with no tile to reach them by.
+        .init(id: "facebook-post", name: "Facebook Post", w: 1200, h: 630, icon: "rectangle"),
         .init(id: "poster", name: "Poster", w: 1587, h: 2245, icon: "doc.richtext"),
         .init(id: "flyer", name: "Flyer A5", w: 1240, h: 1748, icon: "doc"),
         .init(id: "a4", name: "A4 Document", w: 1240, h: 1754, icon: "doc.text"),

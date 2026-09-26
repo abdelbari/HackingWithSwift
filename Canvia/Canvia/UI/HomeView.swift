@@ -3,12 +3,30 @@
 
 import SwiftUI
 
+/// The sheets Home opens, one at a time: a size's starts, the sizes
+/// themselves, or a size of one's own.
+enum HomeSheet: Identifiable, Equatable {
+    case start(presetId: String)
+    case pickSize
+    case customSize
+
+    var id: String {
+        switch self {
+        case .start(let presetId): return "start-\(presetId)"
+        case .pickSize: return "pick-size"
+        case .customSize: return "custom-size"
+        }
+    }
+}
+
 struct HomeView: View {
     var onOpen: (Design) -> Void
 
     @State private var recents: [RecentDesign] = []
-    @State private var customW = "1080"
-    @State private var customH = "1080"
+    @State private var homeSheet: HomeSheet?
+    /// A design made in a sheet, opened once the sheet has gone rather than
+    /// from under it.
+    @State private var pendingOpen: Design?
     @State private var renaming: RecentDesign?
     @State private var renameText = ""
     @State private var query = ""
@@ -81,6 +99,9 @@ struct HomeView: View {
         .sheet(isPresented: $touring, onDismiss: { Onboarding.markSeen() }) {
             WelcomeTour { touring = false }
         }
+        .sheet(item: $homeSheet, onDismiss: afterSheet) { shown in
+            sheetView(shown)
+        }
         .alert("New folder", isPresented: Binding(
             get: { filingInto != nil },
             set: { if !$0 { filingInto = nil } })) {
@@ -110,6 +131,39 @@ struct HomeView: View {
             }
             Button("Cancel", role: .cancel) { renaming = nil }
         }
+    }
+
+    @ViewBuilder
+    private func sheetView(_ shown: HomeSheet) -> some View {
+        switch shown {
+        case .start(let presetId):
+            StartSheet(initialPresetId: presetId, onCreate: createFromSheet,
+                       onCustomSize: { homeSheet = .customSize })
+        case .pickSize:
+            StartSheet(initialPresetId: nil, onCreate: createFromSheet,
+                       onCustomSize: { homeSheet = .customSize })
+        case .customSize:
+            CustomSizeSheet(onCreate: createFromSheet)
+        }
+    }
+
+    /// A new design, under a name the shelf does not already have — "Poster",
+    /// then "Poster 2" — so no two cards read the same.
+    private func create(_ design: Design) {
+        var named = design
+        named.title = Titles.unique(design.title, taken: recents.map(\.title))
+        onOpen(named)
+    }
+
+    private func createFromSheet(_ design: Design) {
+        pendingOpen = design
+        homeSheet = nil
+    }
+
+    private func afterSheet() {
+        guard let design = pendingOpen else { return }
+        pendingOpen = nil
+        create(design)
     }
 
     private func reload() {
@@ -320,10 +374,13 @@ struct HomeView: View {
 
     private var hero: some View {
         VStack(spacing: 18) {
-            Text("Canvia")
-                .font(.largeTitle.weight(.heavy))
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 14) {
+                Text("Canvia")
+                    .font(.largeTitle.weight(.heavy))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                heroButton("New design", systemImage: "plus") { homeSheet = .pickSize }
+            }
 
             Text("What will you design today?")
                 .font(.title2.weight(.bold))
@@ -331,59 +388,27 @@ struct HomeView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
+                    // A size opens on its blank page and everything already
+                    // made at that size, rather than straight into an empty
+                    // page with no idea there was a head start on offer.
                     ForEach(SizePreset.all) { preset in
+                        let count = ContentLibrary.templateCounts[preset.id] ?? 0
                         Button {
-                            // Never a title already on the shelf.
-                            onOpen(Design(title: Titles.unique("Untitled \(preset.name)", taken: recents.map(\.title)),
-                                          width: preset.w, height: preset.h))
+                            homeSheet = .start(presetId: preset.id)
                         } label: {
-                            VStack(spacing: 8) {
-                                Image(systemName: preset.icon)
-                                    .font(.title2)
-                                Text(preset.name)
-                                    .font(.caption.weight(.bold))
-                                    .multilineTextAlignment(.center)
-                                Text("\(Int(preset.w)) × \(Int(preset.h))")
-                                    .font(.caption2)
-                                    .opacity(0.85)
-                            }
-                            .foregroundStyle(.white)
-                            // Relative styles above, so the tile has to grow
-                            // with them: a fixed 104pt box clipped the size
-                            // label off at the larger accessibility sizes.
-                            .frame(width: 108)
-                            .frame(minHeight: 104)
-                            .padding(.vertical, 8)
-                            .background(RoundedRectangle(cornerRadius: 14)
-                                .fill(.white.opacity(0.16))
-                                .overlay(RoundedRectangle(cornerRadius: 14)
-                                    .stroke(.white.opacity(0.25))))
+                            heroTile(systemImage: preset.icon, title: preset.name,
+                                     lines: ["\(Int(preset.w)) × \(Int(preset.h))", "\(count) ready-made"])
                         }
+                        .accessibilityLabel("\(preset.name), \(Int(preset.w)) by \(Int(preset.h)), \(count) ready-made designs")
                     }
+                    Button {
+                        homeSheet = .customSize
+                    } label: {
+                        heroTile(systemImage: "slider.horizontal.3", title: "Custom size", lines: ["Any dimensions"])
+                    }
+                    .accessibilityLabel("Custom size")
                 }
                 .padding(.horizontal, 2)
-            }
-
-            HStack(spacing: 8) {
-                sizeField("Width", text: $customW)
-                Text("×").foregroundStyle(.white)
-                sizeField("Height", text: $customH)
-                // White on the purple slab, not purple on purple: a brand
-                // -tinted button sits at 1.8:1 against the bottom of the
-                // gradient, which is under the 3:1 a control needs just to
-                // have a visible edge.
-                Button {
-                    let w = min(4000, max(40, Double(customW) ?? 1080))
-                    let h = min(4000, max(40, Double(customH) ?? 1080))
-                    onOpen(Design(title: Titles.unique("Untitled design", taken: recents.map(\.title)),
-                                  width: w, height: h))
-                } label: {
-                    Text("Create custom")
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Theme.brand)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.white)
             }
         }
         .padding(20)
@@ -392,17 +417,42 @@ struct HomeView: View {
         .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 26, bottomTrailingRadius: 26))
     }
 
-    /// The field is a fixed white pill, so it has to be told it is a light
-    /// surface. Without that its text took the app's appearance and went
-    /// white-on-white in dark mode: the size you had typed was invisible, and
-    /// so was the placeholder telling you what the box was for.
-    private func sizeField(_ prompt: String, text: Binding<String>) -> some View {
-        TextField(prompt, text: text)
-            .keyboardType(.numberPad)
-            .frame(width: 76)
-            .padding(8)
-            .background(.white, in: RoundedRectangle(cornerRadius: 9))
-            .environment(\.colorScheme, .light)
+    private func heroTile(systemImage: String, title: String, lines: [String]) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .font(.title2)
+            Text(title)
+                .font(.caption.weight(.bold))
+                .multilineTextAlignment(.center)
+            ForEach(lines, id: \.self) { line in
+                Text(line)
+                    .font(.caption2)
+                    .opacity(0.85)
+            }
+        }
+        .foregroundStyle(.white)
+        // Relative styles above, so the tile has to grow with them: a fixed
+        // 104pt box clipped the size label off at the larger accessibility
+        // sizes.
+        .frame(width: 108)
+        .frame(minHeight: 112)
+        .padding(.vertical, 8)
+        .background(RoundedRectangle(cornerRadius: 14)
+            .fill(.white.opacity(0.16))
+            .overlay(RoundedRectangle(cornerRadius: 14)
+                .stroke(.white.opacity(0.25))))
+    }
+
+    /// A round white-on-purple button in the hero's top row.
+    private func heroButton(_ label: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .background(.white.opacity(0.18), in: Circle())
+        }
+        .accessibilityLabel(label)
     }
 
     // MARK: recents
@@ -502,7 +552,7 @@ struct HomeView: View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
             ForEach(shownTemplates) { template in
                 Button {
-                    onOpen(template.instantiate())
+                    create(template.instantiate())
                 } label: {
                     VStack(alignment: .leading, spacing: 0) {
                         TemplateThumb(template: template)

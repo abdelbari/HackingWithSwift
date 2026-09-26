@@ -9,6 +9,7 @@ enum DesignSizeChoice: String, AppEnum {
     case instagramStory = "insta-story"
     case presentation
     case youtubeThumbnail = "youtube-thumb"
+    case facebookPost = "facebook-post"
     case poster
     case flyer
 
@@ -18,6 +19,7 @@ enum DesignSizeChoice: String, AppEnum {
         .instagramStory: "Instagram Story",
         .presentation: "Presentation",
         .youtubeThumbnail: "YouTube Thumbnail",
+        .facebookPost: "Facebook Post",
         .poster: "Poster",
         .flyer: "Flyer",
     ]

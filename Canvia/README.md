@@ -15,9 +15,18 @@ No packages to resolve, nothing to configure.
 
 ## What it does
 
-**Home** — size presets (Instagram post/story, presentation, poster, A4,
-business card, …), custom sizes, recent designs with thumbnails (rename /
-duplicate / delete via long-press), and a template gallery.
+**Home** — size presets (Instagram post/story, presentation, YouTube,
+Facebook post, poster, A4, business card, …), custom sizes, recent designs
+with thumbnails (rename / duplicate / delete via long-press), and a
+template gallery. A size opens on its start: a blank page of that size
+first, named after it ("Poster", then "Poster 2"), then every template made
+at exactly that size, with topic chips once a size has more than eight in
+more than one topic. Each size tile says how many ready-made starts it has,
+and the + in the hero opens the same sheet on the sizes. A custom size says
+its range (40 to 4000) under each side and waits for both to be in it
+rather than clamping; 1:1, 4:5, 16:9 and 9:16 set the height from the
+width, the last four sizes made come back as chips, and the design is named
+for its size ("1600 × 900").
 
 **Editor**
 - Direct manipulation: tap to select, drag to move with magenta snap
