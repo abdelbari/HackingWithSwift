@@ -26,6 +26,22 @@
 import SwiftUI
 import UIKit
 
+/// A change of view asked of the canvas. Counted, so asking for the same
+/// thing twice does it twice, and a canvas made afresh does not act on a
+/// request it never saw.
+struct CanvasRequest: Equatable {
+    enum Kind: Equatable {
+        /// The whole page, as a design opens.
+        case fit
+        /// This zoom, about the middle of the screen.
+        case zoom(Double)
+        /// Scroll just far enough that this box, in page units, is in sight.
+        case reveal(CGRect)
+    }
+    var kind: Kind
+    var serial: Int
+}
+
 struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     /// Size of the page in its own coordinate space.
     let contentSize: CGSize
@@ -45,6 +61,11 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     /// photo opening crop, a text box its editor — rather than the canvas
     /// zooming. Without it, double-tapping a photo zoomed the canvas as well.
     var claimsDoubleTap: (CGPoint) -> Bool = { _ in false }
+    /// The latest change of view asked for.
+    var request: CanvasRequest? = nil
+    /// Told the part of the page on screen, in page units, and the zoom that
+    /// fits the page, whenever either changes.
+    var onViewport: (CGRect, Double) -> Void = { _, _ in }
     @ViewBuilder var content: () -> Content
 
     func makeUIView(context: Context) -> UIScrollView {
@@ -131,6 +152,10 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             coordinator.fitToScreen(animated: false)
         }
         coordinator.centerContent()
+        if let request, request.serial != coordinator.handledRequest {
+            coordinator.handledRequest = request.serial
+            coordinator.perform(request.kind)
+        }
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -152,6 +177,8 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         /// True while updateUIView is running, so zoom changes it causes are
         /// published after the update rather than inside it.
         var isUpdating = false
+        /// The serial of the last change of view acted on.
+        var handledRequest = 0
         private var panOrigin: CGPoint = .zero
 
         init(_ parent: ZoomableCanvas) {
@@ -159,6 +186,8 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             self.host = UIHostingController(rootView: parent.content())
             self.contentSize = parent.contentSize
             self.fitToken = parent.fitToken
+            // A request made before this canvas existed is not for it.
+            self.handledRequest = parent.request?.serial ?? 0
             super.init()
             host.view.backgroundColor = .clear
         }
@@ -170,6 +199,59 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             // Writing through the binding on every frame of a pinch is what
             // keeps the selection handles the right size while zooming.
             publishZoom(Double(scrollView.zoomScale))
+            publishViewport()
+        }
+
+        func scrollViewDidScroll(_ scrollView: UIScrollView) {
+            publishViewport()
+        }
+
+        /// The part of the page on screen, and the zoom that fits it — for
+        /// the zoom pill and the Bring it back chip. Deferred out of an
+        /// update, as the zoom is.
+        private func publishViewport() {
+            guard let scroll = scrollView, scroll.bounds.width > 0, scroll.bounds.height > 0 else { return }
+            let visible = scroll.convert(scroll.bounds, to: host.view)
+            let fit = Double(Geometry.fitScale(content: contentSize, in: scroll.bounds.size))
+            guard isUpdating else {
+                parent.onViewport(visible, fit)
+                return
+            }
+            DispatchQueue.main.async { [weak self] in
+                self?.parent.onViewport(visible, fit)
+            }
+        }
+
+        /// Acts on a change of view asked for from outside.
+        func perform(_ kind: CanvasRequest.Kind) {
+            guard let scroll = scrollView, scroll.bounds.width > 0, scroll.bounds.height > 0 else { return }
+            switch kind {
+            case .fit:
+                fitToScreen(animated: true)
+            case .zoom(let wanted):
+                let target = min(max(CGFloat(wanted), scroll.minimumZoomScale), scroll.maximumZoomScale)
+                let visible = scroll.convert(scroll.bounds, to: host.view)
+                let size = CGSize(width: scroll.bounds.width / target, height: scroll.bounds.height / target)
+                scroll.zoom(to: CGRect(x: visible.midX - size.width / 2, y: visible.midY - size.height / 2,
+                                       width: size.width, height: size.height),
+                            animated: true)
+            case .reveal(let box):
+                // The least scroll that brings the box inside a margin of the
+                // edges — the bottom and right first, then the top and left,
+                // which win when the box is bigger than the screen. Never a
+                // zoom, and never a move when it is already in sight.
+                let r = scroll.convert(box, from: host.view)
+                let b = scroll.bounds
+                let margin: CGFloat = 24
+                var dx: CGFloat = 0, dy: CGFloat = 0
+                if r.maxY > b.maxY - margin { dy = b.maxY - margin - r.maxY }
+                if r.minY + dy < b.minY + margin { dy = b.minY + margin - r.minY }
+                if r.maxX > b.maxX - margin { dx = b.maxX - margin - r.maxX }
+                if r.minX + dx < b.minX + margin { dx = b.minX + margin - r.minX }
+                guard dx != 0 || dy != 0 else { return }
+                let offset = CGPoint(x: scroll.contentOffset.x - dx, y: scroll.contentOffset.y - dy)
+                scroll.setContentOffset(offset, animated: true)
+            }
         }
 
         /// Mirror the scroll view's scale outward.

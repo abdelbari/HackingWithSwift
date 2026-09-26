@@ -27,6 +27,14 @@ struct CanvasView: View {
         // once at grab time rather than rebuilt every frame.
         var snapX: [Double] = []
         var snapY: [Double] = []
+        /// The same lines with where each comes from, to name the guide.
+        var snapTagsX: [Geometry.SnapLine] = []
+        var snapTagsY: [Geometry.SnapLine] = []
+        /// The moving selection's box as it is now, while a move is under way.
+        var movedBox: CGRect?
+        /// Whether the finger has gone far enough for the ghost of where the
+        /// move began to show.
+        var ghost = false
         /// Union of the dragged elements' bounding boxes as they were at grab
         /// time. Moving does not change any element's size or rotation, so the
         /// union per frame is just this one translated — no need to look the
@@ -83,7 +91,13 @@ struct CanvasView: View {
             },
             onPencilTap: { store.toggleDrawing() },
             pinchZooms: store.cropping == nil,
-            claimsDoubleTap: { point in claimsDoubleTap(at: point) }
+            claimsDoubleTap: { point in claimsDoubleTap(at: point) },
+            request: store.canvasRequest,
+            onViewport: { visible, fit in
+                // Only real changes: every write redraws whatever reads it.
+                if store.viewport != visible { store.viewport = visible }
+                if store.fitZoom != fit { store.fitZoom = fit }
+            }
         ) {
             pageContent
                 .coordinateSpace(name: "page")
@@ -151,6 +165,10 @@ struct CanvasView: View {
                     .accessibilitySortPriority(Double(order.count - (order.firstIndex(of: el.id) ?? 0)))
             }
 
+            if let moved = gesture.movedBox, store.cropping == nil, store.previewTime == nil {
+                moveFurniture(moved)
+            }
+
             if store.cropping == nil {
                 SelectionOverlay(store: store,
                                  onHandleDrag: handleDrag,
@@ -181,6 +199,36 @@ struct CanvasView: View {
                 Rectangle().stroke(Theme.accent, lineWidth: 4 * iz).allowsHitTesting(false)
             }
         }
+    }
+
+    // MARK: move
+
+    /// While a selection moves: a faint dashed box where it started, once
+    /// the finger has travelled far enough for that to be somewhere else,
+    /// and every page edge it has crossed lit up — moving things off the
+    /// page is allowed, a bleed is a real choice, but it should never happen
+    /// unnoticed. Neither is ever part of the design.
+    private func moveFurniture(_ moved: CGRect) -> some View {
+        let start = gesture.dragUnion
+        let w = store.pageWidth, h = store.pageHeight
+        let showGhost = gesture.ghost
+        let edgeWidth = 2 * iz
+        let dash: [CGFloat] = [6 * iz, 6 * iz]
+        let ghostWidth = 1.4 * iz
+        return Canvas { context, _ in
+            if showGhost {
+                context.stroke(Path(start), with: .color(.black.opacity(0.2)),
+                               style: StrokeStyle(lineWidth: ghostWidth, dash: dash))
+            }
+            var edges = Path()
+            if moved.minX < 0 { edges.move(to: CGPoint(x: 0, y: 0)); edges.addLine(to: CGPoint(x: 0, y: h)) }
+            if moved.maxX > w { edges.move(to: CGPoint(x: w, y: 0)); edges.addLine(to: CGPoint(x: w, y: h)) }
+            if moved.minY < 0 { edges.move(to: CGPoint(x: 0, y: 0)); edges.addLine(to: CGPoint(x: w, y: 0)) }
+            if moved.maxY > h { edges.move(to: CGPoint(x: 0, y: h)); edges.addLine(to: CGPoint(x: w, y: h)) }
+            context.stroke(edges, with: .color(Theme.guide.opacity(0.6)), lineWidth: edgeWidth)
+        }
+        .frame(width: w, height: h)
+        .allowsHitTesting(false)
     }
 
     // MARK: crop
@@ -323,7 +371,7 @@ struct CanvasView: View {
         var grabbed: Handle?
         for handle in Handle.allCases {
             let at = Geometry.handlePoint(photo, handle)
-            let d = hypot(at.x - point.x, at.y - point.y)
+            let d = Double(hypot(at.x - point.x, at.y - point.y))
             if d < best {
                 best = d
                 grabbed = handle
@@ -672,11 +720,13 @@ struct CanvasView: View {
                         uniqueKeysWithValues: store.selectedElements
                             .filter { !$0.locked }
                             .map { ($0.id, CGPoint(x: $0.x, y: $0.y)) })
-                    let lines = Geometry.snapLines(design: store.design, page: store.page,
-                                                   excluding: Set(gesture.dragOriginals.keys),
-                                                   settings: store.snapping)
-                    gesture.snapX = lines.x
-                    gesture.snapY = lines.y
+                    let lines = Geometry.taggedSnapLines(design: store.design, page: store.page,
+                                                         excluding: Set(gesture.dragOriginals.keys),
+                                                         settings: store.snapping)
+                    gesture.snapTagsX = lines.x
+                    gesture.snapTagsY = lines.y
+                    gesture.snapX = lines.x.map(\.position)
+                    gesture.snapY = lines.y.map(\.position)
                     gesture.dragUnion = Geometry.union(
                         store.selectedElements.filter { !$0.locked }.map(Geometry.aabb))
                     gesture.siblingBoxes = store.page.elements
@@ -701,6 +751,10 @@ struct CanvasView: View {
                     dy += snap.dy
                     store.guideX = snap.guideX
                     store.guideY = snap.guideY
+                    let sourceX = Geometry.snapSource(at: snap.guideX, in: gesture.snapTagsX)
+                    let sourceY = Geometry.snapSource(at: snap.guideY, in: gesture.snapTagsY)
+                    if store.guideXSource != sourceX { store.guideXSource = sourceX }
+                    if store.guideYSource != sourceY { store.guideYSource = sourceY }
                     // Equal spacing: between two neighbours, land at the
                     // same distance from each and say what that distance is.
                     if store.snapping.toElements {
@@ -714,6 +768,13 @@ struct CanvasView: View {
                     }
                 }
 
+                // Where it is going, for the page edges it crosses, and — once
+                // the finger has really travelled — where it came from.
+                if !gesture.dragUnion.isEmpty {
+                    gesture.movedBox = gesture.dragUnion.offsetBy(dx: dx, dy: dy)
+                }
+                let travel = hypot(value.translation.width, value.translation.height) * store.zoom
+                if travel >= 14 && !gesture.ghost { gesture.ghost = true }
                 for i in store.design.pages[store.pageIndex].elements.indices {
                     let id = store.design.pages[store.pageIndex].elements[i].id
                     if let origin = gesture.dragOriginals[id] {
@@ -854,6 +915,8 @@ struct CanvasView: View {
         gesture = GestureState()
         store.guideX = nil
         store.guideY = nil
+        store.guideXSource = nil
+        store.guideYSource = nil
         store.badge = nil
         store.rotationSnapped = false
     }

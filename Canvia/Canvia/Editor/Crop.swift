@@ -47,12 +47,12 @@ enum Crop {
 
     /// The scale that makes an `image` just cover a `w` × `h` frame.
     static func cover(w: Double, h: Double, image: CGSize) -> Double {
-        max(w / image.width, h / image.height)
+        max(w / Double(image.width), h / Double(image.height))
     }
 
     /// The scale that makes the whole `image` just fit inside the frame.
     static func fit(w: Double, h: Double, image: CGSize) -> Double {
-        min(w / image.width, h / image.height)
+        min(w / Double(image.width), h / Double(image.height))
     }
 
     /// The picture before any flip, in frame coordinates.
@@ -62,8 +62,8 @@ enum Crop {
         // rule places it.
         let base = el.cropFit == true ? fit(w: el.w, h: el.h, image: image) : cover(w: el.w, h: el.h, image: image)
         let scale = base * max(1, el.cropScale ?? 1)
-        let w = image.width * scale
-        let h = image.height * scale
+        let w = Double(image.width) * scale
+        let h = Double(image.height) * scale
         let fx = min(max(el.cropX ?? 0.5, 0), 1)
         let fy = min(max(el.cropY ?? 0.5, 0), 1)
         return CGRect(x: -(w - el.w) * fx, y: -(h - el.h) * fy, width: w, height: h)
@@ -81,15 +81,17 @@ enum Crop {
     /// when the picture would not visibly move.
     static func withPicture(_ el: Element, image: CGSize, seen: CGRect) -> Element {
         guard image.width > 0, image.height > 0, el.w > 0, el.h > 0 else { return el }
+        let imageW = Double(image.width), imageH = Double(image.height)
         let cover = cover(w: el.w, h: el.h, image: image)
-        let scale = max(max(seen.width / image.width, seen.height / image.height), cover)
-        let w = image.width * scale
-        let h = image.height * scale
+        let wanted = max(Double(seen.width) / imageW, Double(seen.height) / imageH)
+        let scale = max(wanted, cover)
+        let w = imageW * scale
+        let h = imageH * scale
         // The lower bound through `min`: "just covers" can come out a hair
         // under the frame in floating point, and an empty range would pin
         // the picture to the wrong edge.
-        let left = clamp(seen.midX - w / 2, min(el.w - w, 0), 0)
-        let top = clamp(seen.midY - h / 2, min(el.h - h, 0), 0)
+        let left = clamp(Double(seen.midX) - w / 2, min(el.w - w, 0), 0)
+        let top = clamp(Double(seen.midY) - h / 2, min(el.h - h, 0), 0)
         let drawn = mirrored(el, CGRect(x: left, y: top, width: w, height: h))
         let before = drawnPicture(el, image: image)
         if abs(before.minX - drawn.minX) < same && abs(before.minY - drawn.minY) < same
@@ -101,8 +103,8 @@ enum Crop {
         let zoom = scale / cover
         var out = el
         out.cropScale = abs(zoom - 1) < epsilon ? 1 : zoom
-        out.cropX = overflowX > epsilon ? clamp(-drawn.minX / overflowX, 0, 1) : 0.5
-        out.cropY = overflowY > epsilon ? clamp(-drawn.minY / overflowY, 0, 1) : 0.5
+        out.cropX = overflowX > epsilon ? clamp(-Double(drawn.minX) / overflowX, 0, 1) : 0.5
+        out.cropY = overflowY > epsilon ? clamp(-Double(drawn.minY) / overflowY, 0, 1) : 0.5
         return out
     }
 
@@ -167,15 +169,18 @@ enum Crop {
         guard image.width > 0, image.height > 0 else { return el }
         let seen = picture(el, image: image)
         let p = toFrame(el, pointerPage)
+        let px = Double(p.x), py = Double(p.y)
+        let seenMinX = Double(seen.minX), seenMaxX = Double(seen.maxX)
+        let seenMinY = Double(seen.minY), seenMaxY = Double(seen.maxY)
         var left = 0.0, right = el.w, top = 0.0, bottom = el.h
         switch handle.unit.x {
-        case 0: left = max(min(p.x, right - min(minSize, right - seen.minX)), seen.minX)
-        case 1: right = min(max(p.x, left + min(minSize, seen.maxX - left)), seen.maxX)
+        case 0: left = max(min(px, right - min(minSize, right - seenMinX)), seenMinX)
+        case 1: right = min(max(px, left + min(minSize, seenMaxX - left)), seenMaxX)
         default: break
         }
         switch handle.unit.y {
-        case 0: top = max(min(p.y, bottom - min(minSize, bottom - seen.minY)), seen.minY)
-        case 1: bottom = min(max(p.y, top + min(minSize, seen.maxY - top)), seen.maxY)
+        case 0: top = max(min(py, bottom - min(minSize, bottom - seenMinY)), seenMinY)
+        case 1: bottom = min(max(py, top + min(minSize, seenMaxY - top)), seenMaxY)
         default: break
         }
         let w = right - left
@@ -188,7 +193,7 @@ enum Crop {
         framed.w = w
         framed.h = h
         // The same picture, measured from the new frame's corner.
-        let kept = CGRect(x: seen.minX - left, y: seen.minY - top, width: seen.width, height: seen.height)
+        let kept = CGRect(x: seenMinX - left, y: seenMinY - top, width: seen.width, height: seen.height)
         return withPicture(framed, image: image, seen: kept)
     }
 

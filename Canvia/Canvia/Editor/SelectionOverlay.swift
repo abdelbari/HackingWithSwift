@@ -23,7 +23,11 @@ struct SelectionOverlay: View {
             let selected = store.selectedElements
 
             ForEach(selected) { el in
-                outline(el, lineWidth: (selected.count > 1 ? 1 : 1.5) * weight)
+                if selected.count == 1 && el.locked {
+                    lockedOutline(el)
+                } else {
+                    outline(el, lineWidth: (selected.count > 1 ? 1 : 1.5) * weight)
+                }
             }
 
             if let el = store.singleSelection, !el.locked, store.editingTextId != el.id {
@@ -50,12 +54,65 @@ struct SelectionOverlay: View {
                     }
                     rotateHandle(for: box)
                 }
+                // How many, over the box — but not while a drag's readout is
+                // up there too.
+                if store.badge == nil {
+                    pill("\(selected.count) selected", colour: Theme.accent,
+                         at: CGPoint(x: bounds.midX, y: bounds.minY - 9 * iz), alignment: .bottom)
+                }
             }
 
             guides
             badgeView
         }
         .allowsHitTesting(!store.selection.isEmpty)
+    }
+
+    /// A locked element, selected on its own: a dashed outline, which says it
+    /// will not move, and a padlock at its corner, which says why — rather
+    /// than the solid outline that promised handles and then had none.
+    private func lockedOutline(_ el: Element) -> some View {
+        let dash: [CGFloat] = [7 * iz, 5 * iz]
+        let box = Geometry.aabb(el)
+        return ZStack {
+            ZStack {
+                RoundedRectangle(cornerRadius: 1 * iz)
+                    .stroke(Color.black.opacity(0.35), style: StrokeStyle(lineWidth: 3.5 * iz * weight, dash: dash))
+                RoundedRectangle(cornerRadius: 1 * iz)
+                    .stroke(Theme.accent, style: StrokeStyle(lineWidth: 1.5 * iz * weight, dash: dash))
+            }
+            .frame(width: el.w, height: el.h)
+            .rotationEffect(.degrees(el.rotation))
+            .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
+            Image(systemName: "lock.fill")
+                .font(.system(size: 11 * iz, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 22 * iz, height: 22 * iz)
+                .background(Circle().fill(Theme.accent))
+                .overlay(Circle().stroke(Color.black.opacity(0.35), lineWidth: 1 * iz))
+                .position(x: box.minX, y: box.minY)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    /// A small label on the canvas, the same size on screen at any zoom,
+    /// placed by one of its edges — `alignment` — at `point`.
+    private func pill(_ text: String, colour: Color, at point: CGPoint, alignment: Alignment) -> some View {
+        Color.clear
+            .frame(width: 0, height: 0)
+            .overlay(alignment: alignment) {
+                Text(text)
+                    .font(.system(size: 12.5 * iz, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .padding(.horizontal, 9 * iz)
+                    .padding(.vertical, 5.5 * iz)
+                    .background(Capsule().fill(colour))
+            }
+            .position(point)
+            .allowsHitTesting(false)
     }
 
     private func outline(_ el: Element, lineWidth: Double) -> some View {
@@ -130,22 +187,59 @@ struct SelectionOverlay: View {
 
     // MARK: guides + badge
 
+    /// Each snap line, named for what it lines the selection up with —
+    /// "Centre of the page", "Lined up with heading: SALE", "Your guide" —
+    /// at the end of the line away from the selection, so the label is never
+    /// under the finger. A guide of the person's own is teal, the rest
+    /// magenta, and the page's centre gets a dot where its lines cross.
     @ViewBuilder
     private var guides: some View {
+        let focus = store.selectionBox ?? CGRect(x: store.pageWidth / 2, y: store.pageHeight / 2, width: 0, height: 0)
+        let reach = 24 * iz
         if let x = store.guideX {
+            let source = store.guideXSource
+            let colour = source == .guide ? Theme.userGuide : Theme.guide
             Rectangle()
-                .fill(Theme.guide)
-                .frame(width: 1.5 * iz, height: store.pageHeight * 2)
+                .fill(colour)
+                .frame(width: 1.5 * iz, height: store.pageHeight + 2 * reach)
                 .position(x: x, y: store.pageHeight / 2)
                 .allowsHitTesting(false)
+            if let source {
+                let above = focus.midY >= store.pageHeight / 2
+                let gap: Double = reach + 9 * iz
+                let end: Double = above ? -gap : store.pageHeight + gap
+                let label = ElementNames.guideLabel(source, vertical: true, elements: store.page.elements)
+                pill(label, colour: colour, at: CGPoint(x: x, y: end), alignment: above ? .bottom : .top)
+            }
+            if source == .pageCentre { centreDot(colour) }
         }
         if let y = store.guideY {
+            let source = store.guideYSource
+            let colour = source == .guide ? Theme.userGuide : Theme.guide
             Rectangle()
-                .fill(Theme.guide)
-                .frame(width: store.pageWidth * 2, height: 1.5 * iz)
+                .fill(colour)
+                .frame(width: store.pageWidth + 2 * reach, height: 1.5 * iz)
                 .position(x: store.pageWidth / 2, y: y)
                 .allowsHitTesting(false)
+            if let source {
+                let right = focus.midX <= store.pageWidth / 2
+                let inset: Double = reach - 9 * iz
+                let end: Double = right ? store.pageWidth + inset : -inset
+                let label = ElementNames.guideLabel(source, vertical: false, elements: store.page.elements)
+                pill(label, colour: colour, at: CGPoint(x: end, y: y - 9 * iz),
+                     alignment: right ? .bottomTrailing : .bottomLeading)
+            }
+            if source == .pageCentre { centreDot(colour) }
         }
+    }
+
+    private func centreDot(_ colour: Color) -> some View {
+        Circle()
+            .fill(colour)
+            .overlay(Circle().stroke(Color.white, lineWidth: 2 * iz))
+            .frame(width: 9 * iz, height: 9 * iz)
+            .position(x: store.pageWidth / 2, y: store.pageHeight / 2)
+            .allowsHitTesting(false)
     }
 
     @ViewBuilder

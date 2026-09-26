@@ -41,6 +41,10 @@ enum Theme {
     /// Fixed in both appearances: it is drawn over the page, which has its own
     /// background, so there is no app appearance for it to adapt to.
     static let guide = Color(hex: "#ff2d9e")
+    /// A snap to a guide the person placed, told apart from the page's and
+    /// the elements' own lines: teal, as on the Android twin. Fixed for the
+    /// same reason as the magenta.
+    static let userGuide = Color(hex: "#14b8a6")
 
     /// The home hero. A tight indigo-to-violet ramp rather than a rainbow, so
     /// it reads as one deliberate colour, starting from the brand purple.

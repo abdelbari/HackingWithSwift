@@ -44,6 +44,13 @@ struct EditorView: View {
     /// The crop slider's end while it is being dragged, held still.
     @State private var cropCeiling = Crop.maxZoom
     @State private var cropSliding = false
+    /// Undo's rewind while it is held, whether one happened in this press,
+    /// and how often it has run out of steps (for the thud).
+    @State private var rewindTask: Task<Void, Never>?
+    @State private var rewound = false
+    /// Whether a finger is on Undo — reset by SwiftUI however the press ends.
+    @GestureState private var undoHeld = false
+    @State private var rewindExhausted = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -52,6 +59,7 @@ struct EditorView: View {
             if let tip { tipBanner(tip) }
             ZStack(alignment: .bottomTrailing) {
                 CanvasView(store: store)
+                    .overlay(alignment: .top) { CanvasChips(store: store) }
                 if let tool = store.drawing {
                     drawingBar(tool)
                         // Never quite to the screen's edges.
@@ -143,9 +151,10 @@ struct EditorView: View {
     /// in a background layer is the standard way to register shortcuts
     /// without drawing anything.
     ///
-    /// Deliberately not bound: plain Delete. The inline text editor is a
-    /// TextField, and a shortcut with no modifier would swallow backspace
-    /// while typing.
+    /// Plain Delete and Forward Delete remove the selection, as they do on
+    /// the Android twin and in every design tool — but only while nothing
+    /// is being typed: not in the inline text editor, the title, a sheet or
+    /// an alert, where a shortcut with no modifier would swallow backspace.
     private var keyboardCommands: some View {
         Group {
             if store.cropping != nil {
@@ -175,6 +184,10 @@ struct EditorView: View {
             // Arrow keys nudge a page unit, ten with Shift — only while no
             // text field has the keyboard, or the arrows would never reach
             // the caret.
+            if deleteKeysLive {
+                shortcut(.delete, [], "Delete") { store.deleteSelected() }
+                shortcut(.deleteForward, [], "Forward delete") { store.deleteSelected() }
+            }
             if store.editingTextId == nil && !titleFocused {
                 Group {
                     shortcut(.leftArrow, [], "Nudge left") { store.nudgeSelected(dx: -1, dy: 0) }
@@ -207,6 +220,62 @@ struct EditorView: View {
         }
     }
 
+    /// Whether plain Delete can safely mean "delete the selection": something
+    /// is selected, and no text field anywhere has the keyboard.
+    private var deleteKeysLive: Bool {
+        !store.selection.isEmpty && store.editingTextId == nil && !titleFocused && activeSheet == nil
+            && !namingComponent && !store.textFieldOpen && store.drawing == nil && store.erasing == nil
+    }
+
+    /// Undo, and — held — a rewind: after a moment it takes back a step
+    /// every eighth of a second for as long as the finger stays down, the
+    /// Android twin's pace, quickening after thirty, with a thud when there
+    /// is nothing left to take back. Each step lands on Redo as a tap's
+    /// would. A tap is still one Undo, and letting go of a rewind adds none.
+    private var undoButton: some View {
+        Button {
+            // The release that ends a rewind is not a tap.
+            if rewound { rewound = false; return }
+            store.undo()
+        } label: { Image(systemName: "arrow.uturn.backward") }
+            .disabled(!store.canUndo)
+            // Alongside the button's own tap: the finger landing starts the
+            // wait for a hold, and lifting ends the rewind.
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0).updating($undoHeld) { _, held, _ in held = true }
+            )
+            .onChange(of: undoHeld) { _, held in
+                if held {
+                    startRewind()
+                } else {
+                    rewindTask?.cancel()
+                    rewindTask = nil
+                    // After the release's own tap has been read and skipped.
+                    DispatchQueue.main.async { rewound = false }
+                }
+            }
+            .sensoryFeedback(.error, trigger: rewindExhausted)
+            .accessibilityLabel(store.canUndo ? "Undo" : "Undo, nothing to undo")
+            .accessibilityHint(store.canUndo ? "Hold to rewind" : "")
+    }
+
+    private func startRewind() {
+        rewound = false
+        rewindTask?.cancel()
+        rewindTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(400))
+            guard !Task.isCancelled else { return }
+            rewound = true
+            var steps = 0
+            while store.canUndo && !Task.isCancelled {
+                store.undo()
+                steps += 1
+                try? await Task.sleep(for: .milliseconds(steps < 30 ? 120 : 60))
+            }
+            if !Task.isCancelled { rewindExhausted += 1 }
+        }
+    }
+
     /// A zero-size button carrying a shortcut. It has a real title, unseen
     /// here, because holding ⌘ on an iPad lists every shortcut by the title
     /// of its button — an empty title made the list a column of blanks.
@@ -230,9 +299,7 @@ struct EditorView: View {
             }
             .accessibilityLabel("Home")
 
-            Button { store.undo() } label: { Image(systemName: "arrow.uturn.backward") }
-                .disabled(!store.canUndo)
-                .accessibilityLabel("Undo")
+            undoButton
             Button { store.redo() } label: { Image(systemName: "arrow.uturn.forward") }
                 .disabled(!store.canRedo)
                 .accessibilityLabel("Redo")

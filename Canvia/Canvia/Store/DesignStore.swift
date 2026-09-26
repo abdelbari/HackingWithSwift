@@ -31,7 +31,27 @@ final class DesignStore {
     // Transient overlay state during gestures.
     var guideX: Double?
     var guideY: Double?
+    /// What each snap guide lines the selection up with, for its label.
+    var guideXSource: Geometry.SnapSource?
+    var guideYSource: Geometry.SnapSource?
     var badge: String?
+
+    /// True while a text field outside the canvas — one of the toolbar's
+    /// alerts — has the keyboard, so plain keys are left to it.
+    var textFieldOpen = false
+
+    // The canvas's view of the page, mirrored from the scroll view: the part
+    // of the page on screen, in page units, and the zoom that fits it all.
+    // View state only — never saved.
+    var viewport: CGRect = .zero
+    var fitZoom: Double = 1
+    /// A change of view asked of the canvas: fit the page, zoom about the
+    /// middle of the screen, or bring a box into sight.
+    var canvasRequest: CanvasRequest?
+
+    func requestCanvas(_ kind: CanvasRequest.Kind) {
+        canvasRequest = CanvasRequest(kind: kind, serial: (canvasRequest?.serial ?? 0) + 1)
+    }
 
     /// When set, the next picked image replaces this element's source
     /// instead of inserting a new image.

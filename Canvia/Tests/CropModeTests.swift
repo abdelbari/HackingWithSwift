@@ -23,8 +23,8 @@ final class CropModeTests: XCTestCase {
 
     private func assertPoint(_ expected: CGPoint, _ actual: CGPoint, accuracy: Double = 1e-6,
                              file: StaticString = #filePath, line: UInt = #line) {
-        XCTAssertEqual(expected.x, actual.x, accuracy: accuracy, "x", file: file, line: line)
-        XCTAssertEqual(expected.y, actual.y, accuracy: accuracy, "y", file: file, line: line)
+        XCTAssertEqual(Double(expected.x), Double(actual.x), accuracy: accuracy, "x", file: file, line: line)
+        XCTAssertEqual(Double(expected.y), Double(actual.y), accuracy: accuracy, "y", file: file, line: line)
     }
 
     /// Where a point of the picture — as a fraction of it — lands on the page.
@@ -51,10 +51,10 @@ final class CropModeTests: XCTestCase {
         // Cover 2/3 then zoom 2: 533.33 x 400, overflowing 333.33 and 200.
         let dispW = 400.0 * (2.0 / 3.0), dispH = 300.0 * (2.0 / 3.0)
         let left0 = -(dispW - 200) * 0.25, top0 = -(dispH - 200) * 0.75
-        let anchor = CGPoint(x: 0.25 * 200, y: 0.75 * 200)
-        XCTAssertEqual(drawn.minX, anchor.x + (left0 - anchor.x) * 2, accuracy: 1e-9)
-        XCTAssertEqual(drawn.minY, anchor.y + (top0 - anchor.y) * 2, accuracy: 1e-9)
-        XCTAssertEqual(drawn.width, dispW * 2, accuracy: 1e-9)
+        let anchorX = 0.25 * 200.0, anchorY = 0.75 * 200.0
+        XCTAssertEqual(Double(drawn.minX), anchorX + (left0 - anchorX) * 2, accuracy: 1e-9)
+        XCTAssertEqual(Double(drawn.minY), anchorY + (top0 - anchorY) * 2, accuracy: 1e-9)
+        XCTAssertEqual(Double(drawn.width), dispW * 2, accuracy: 1e-9)
     }
 
     func testMovingFollowsTheFingerUntilAnEdgeReachesTheFrame() {

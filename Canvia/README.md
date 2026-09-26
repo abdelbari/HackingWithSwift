@@ -408,7 +408,18 @@ The clip's own sound is not carried; a soundtrack is.
 a title in the discoverability overlay: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, ⌘D
 duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and
 with ⇧) to reorder layers, ⇧⌘L lock, ⌘E export, ⌘K layers, ⇧⌘P present,
-⇧⌘N new page, ⌘/ help, arrows to nudge (⇧ for ten).
+⇧⌘N new page, ⌘/ help, arrows to nudge (⇧ for ten), Delete or ⌦ (or
+⌘⌫) to delete the selection when nothing is being typed.
+
+**On the canvas** — a pill at the top right reads Fit or the zoom as a
+percentage, and a tap goes between the whole page and actual size; Bring
+it back appears when the selection has scrolled out of sight. Snap lines
+say what they line up with ("Centre of the page", "Lined up with
+heading: SALE", "Your guide", in teal). While moving, a faint dashed box
+marks where the move began and the page edges it crosses light up. A
+locked element is outlined dashed with a padlock; a multi-selection says
+how many it holds. Hold Undo to rewind many steps. Position nudges by
+1, 10 or 100 with the box read out as it goes.
 
 **Present** — the design full screen from the menu: black surround,
 tap or swipe between pages, a tap on a linked element to open its link,

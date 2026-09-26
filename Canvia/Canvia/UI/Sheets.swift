@@ -600,6 +600,10 @@ struct CropSheet: View {
 struct PositionSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
+    /// How far one tap of an arrow moves the selection: 1 each time the
+    /// sheet opens, as on the Android twin, and never saved.
+    @State private var nudgeStep = 1.0
+    @State private var nudges = 0
 
     var body: some View {
         NavigationStack {
@@ -650,6 +654,7 @@ struct PositionSheet: View {
                         .disabled(store.unlockedSelectionCount < 2)
                     }
                 }
+                nudgeSection
                 Section("Flip") {
                     HStack {
                         orderButton("Horizontal", "arrow.left.and.right.righttriangle.left.righttriangle.right") {
@@ -700,6 +705,62 @@ struct PositionSheet: View {
         }
         .presentationDetents(sheetDetents)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+    }
+
+    /// Arrows that move the selection 1, 10 or 100 page units a tap, with
+    /// where it is and how big read out live: the precise move a finger
+    /// cannot make, and the only one for someone without a keyboard. Each
+    /// tap is its own Undo; locked elements stay put.
+    private var nudgeSection: some View {
+        Section {
+            Picker("Step", selection: $nudgeStep) {
+                Text("1").tag(1.0)
+                Text("10").tag(10.0)
+                Text("100").tag(100.0)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityLabel("Move by \(Int(nudgeStep)) at a time")
+            HStack {
+                nudgeButton("arrow.left", "left", dx: -1, dy: 0)
+                nudgeButton("arrow.right", "right", dx: 1, dy: 0)
+                nudgeButton("arrow.up", "up", dx: 0, dy: -1)
+                nudgeButton("arrow.down", "down", dx: 0, dy: 1)
+            }
+            .disabled(store.unlockedSelectionCount == 0)
+            .sensoryFeedback(.impact(weight: .light), trigger: nudges)
+        } header: {
+            HStack {
+                Text("Nudge")
+                Spacer()
+                if let readout = nudgeReadout {
+                    Text(readout).monospacedDigit()
+                }
+            }
+        }
+    }
+
+    /// "x, y  ·  w × h" of the selection's box, whole units, as the Android
+    /// twin reads it out.
+    private var nudgeReadout: String? {
+        guard let box = store.selectionBox else { return nil }
+        return "\(Int(box.minX)), \(Int(box.minY))  ·  \(Int(box.width)) × \(Int(box.height))"
+    }
+
+    private func nudgeButton(_ system: String, _ direction: String, dx: Double, dy: Double) -> some View {
+        Button {
+            store.nudgeSelected(dx: dx * nudgeStep, dy: dy * nudgeStep)
+            nudges += 1
+            // Where it went, said once, rather than every button renamed.
+            if let readout = nudgeReadout {
+                AccessibilityNotification.Announcement(readout).post()
+            }
+        } label: {
+            Image(systemName: system)
+                .font(.title3.weight(.semibold))
+                .frame(maxWidth: .infinity, minHeight: 44)
+        }
+        .buttonStyle(.bordered)
+        .accessibilityLabel("Nudge \(direction) \(Int(nudgeStep))")
     }
 
     private func orderButton(_ label: String, _ system: String, action: @escaping () -> Void) -> some View {

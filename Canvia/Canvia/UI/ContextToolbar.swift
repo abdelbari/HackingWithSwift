@@ -73,6 +73,10 @@ struct ContextToolbar: View {
         }
         .background(Theme.chrome)
         .overlay(alignment: .top) { Divider() }
+        // Its alerts type; the editor's plain Delete key must leave them be.
+        .onChange(of: editingAlt || editingLink || namingStyle) { _, open in
+            store.textFieldOpen = open
+        }
         .alert("Remove background",
                isPresented: Binding(get: { cutoutError != nil },
                                     set: { if !$0 { cutoutError = nil } })) {

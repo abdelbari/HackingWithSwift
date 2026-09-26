@@ -261,35 +261,80 @@ enum Geometry {
     /// switch is.
     static func snapLines(design: Design, page: Page, excluding ids: Set<String>,
                           settings: SnapSettings = SnapSettings()) -> (x: [Double], y: [Double]) {
-        var xs: [Double] = []
-        var ys: [Double] = []
+        let tagged = taggedSnapLines(design: design, page: page, excluding: ids, settings: settings)
+        return (tagged.x.map(\.position), tagged.y.map(\.position))
+    }
+
+    /// Where a snap line comes from, so the guide can say what it has lined
+    /// the selection up with.
+    enum SnapSource: Equatable {
+        case pageEdge, pageCentre, guide, grid, margin
+        case element(String)
+
+        /// Which of two lines in the same place names the guide: one placed
+        /// on purpose first, then another element, then the page's own lines
+        /// — as the Android twin, where the later of page, elements and
+        /// guides wins a tie.
+        var rank: Int {
+            switch self {
+            case .guide: return 0
+            case .element: return 1
+            case .pageCentre: return 2
+            case .pageEdge: return 3
+            case .margin: return 4
+            case .grid: return 5
+            }
+        }
+    }
+
+    struct SnapLine: Equatable {
+        var position: Double
+        var source: SnapSource
+    }
+
+    /// The snap lines, each with where it comes from.
+    static func taggedSnapLines(design: Design, page: Page, excluding ids: Set<String>,
+                                settings: SnapSettings = SnapSettings()) -> (x: [SnapLine], y: [SnapLine]) {
+        var xs: [SnapLine] = []
+        var ys: [SnapLine] = []
         let size = design.size(for: page)
         let pw = Double(size.width), ph = Double(size.height)
         if settings.toPage {
-            xs += [0, pw / 2, pw]
-            ys += [0, ph / 2, ph]
+            xs += [SnapLine(position: 0, source: .pageEdge), SnapLine(position: pw / 2, source: .pageCentre),
+                   SnapLine(position: pw, source: .pageEdge)]
+            ys += [SnapLine(position: 0, source: .pageEdge), SnapLine(position: ph / 2, source: .pageCentre),
+                   SnapLine(position: ph, source: .pageEdge)]
         }
         if settings.toElements {
             for el in page.elements where !ids.contains(el.id) {
                 let b = aabb(el)
-                xs.append(contentsOf: [b.minX, b.midX, b.maxX])
-                ys.append(contentsOf: [b.minY, b.midY, b.maxY])
+                xs += [b.minX, b.midX, b.maxX].map { SnapLine(position: $0, source: .element(el.id)) }
+                ys += [b.minY, b.midY, b.maxY].map { SnapLine(position: $0, source: .element(el.id)) }
             }
         }
         if settings.gridEnabled {
-            xs += gridLines(across: pw, spacing: settings.grid)
-            ys += gridLines(across: ph, spacing: settings.grid)
+            xs += gridLines(across: pw, spacing: settings.grid).map { SnapLine(position: $0, source: .grid) }
+            ys += gridLines(across: ph, spacing: settings.grid).map { SnapLine(position: $0, source: .grid) }
         }
         if settings.marginEnabled {
             let m = settings.marginInset(for: size)
-            xs += [m, pw - m]
-            ys += [m, ph - m]
+            xs += [SnapLine(position: m, source: .margin), SnapLine(position: pw - m, source: .margin)]
+            ys += [SnapLine(position: m, source: .margin), SnapLine(position: ph - m, source: .margin)]
         }
         // Guides are placed on purpose, so they snap whatever else is off.
         for guide in design.guides {
-            if guide.vertical { xs.append(guide.position) } else { ys.append(guide.position) }
+            let line = SnapLine(position: guide.position, source: .guide)
+            if guide.vertical { xs.append(line) } else { ys.append(line) }
         }
         return (xs, ys)
+    }
+
+    /// What the line at `position` — the one a snap landed on — is: of the
+    /// lines there, the one that best names it.
+    static func snapSource(at position: Double?, in lines: [SnapLine]) -> SnapSource? {
+        guard let position else { return nil }
+        return lines.filter { abs($0.position - position) < 1e-9 }
+            .min { $0.source.rank < $1.source.rank }?.source
     }
 
     /// 0, spacing, 2·spacing … up to and including the far edge.
