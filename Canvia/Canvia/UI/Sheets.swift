@@ -476,8 +476,10 @@ struct CropSheet: View {
             Form {
                 if let el = store.singleSelection {
                     Section("Zoom") {
+                        // As far in as crop mode goes, or further if a trim
+                        // has taken it there.
                         Slider(value: cropBinding(el.cropScale ?? 1) { v, e in e.cropScale = v },
-                               in: 1...3)
+                               in: 1...max(Crop.maxZoom, el.cropScale ?? 1))
                     }
                     Section("Horizontal focus") {
                         Slider(value: cropBinding(el.cropX ?? 0.5) { v, e in e.cropX = v }, in: 0...1)

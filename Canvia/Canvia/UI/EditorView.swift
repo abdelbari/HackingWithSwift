@@ -41,6 +41,9 @@ struct EditorView: View {
     @State private var namingComponent = false
     @State private var componentName = ""
     @State private var tipTask: Task<Void, Never>?
+    /// The crop slider's end while it is being dragged, held still.
+    @State private var cropCeiling = Crop.maxZoom
+    @State private var cropSliding = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -59,6 +62,11 @@ struct EditorView: View {
                     eraserBar
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.bottom, 14)
+                } else if store.cropping != nil {
+                    cropBar
+                        .padding(.horizontal, 10)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.bottom, 14)
                 } else {
                     insertButton
                         .padding(18)
@@ -69,11 +77,13 @@ struct EditorView: View {
             // different amount for a text selection than a shape one, so the
             // page jumped under your finger at the exact moment you were
             // trying to look at it.
+            // Still there in crop mode, so the canvas keeps its size, but
+            // resting: the crop bar is where the photo is worked then.
             ContextToolbar(store: store, activeSheet: $activeSheet)
                 .frame(height: store.selection.isEmpty ? 0 : nil)
-                .opacity(store.selection.isEmpty ? 0 : 1)
+                .opacity(store.selection.isEmpty ? 0 : store.cropping == nil ? 1 : 0.35)
                 .clipped()
-                .allowsHitTesting(!store.selection.isEmpty)
+                .allowsHitTesting(!store.selection.isEmpty && store.cropping == nil)
             PagesBar(store: store)
         }
         .background(keyboardCommands)
@@ -137,6 +147,19 @@ struct EditorView: View {
     /// TextField, and a shortcut with no modifier would swallow backspace
     /// while typing.
     private var keyboardCommands: some View {
+        Group {
+            if store.cropping != nil {
+                // Crop mode has its own two keys; the rest wait, since the
+                // photo is the only thing being worked.
+                shortcut(.return, [], "Done cropping") { store.finishCrop() }
+                shortcut(.escape, [], "Cancel crop") { store.cancelCrop() }
+            } else {
+                editingCommands
+            }
+        }
+    }
+
+    private var editingCommands: some View {
         Group {
             Group {
                 shortcut("z", [.command], "Undo") { store.undo() }
@@ -493,6 +516,64 @@ struct EditorView: View {
         }
         .accessibilityLabel("Pen colour \(hex)")
         .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    /// Crop mode's bar, in place of the insert button: how far in the
+    /// picture is, and the ways out. Done keeps the crop as one Undo, Cancel
+    /// puts the photo back as it was, Reset centres the picture and lets it
+    /// just cover the frame again, and More opens the sheet for straightening,
+    /// fit and the Ken Burns drift. The slider does what a pinch does, for
+    /// anyone who cannot pinch, and carries four moves for VoiceOver.
+    private var cropBar: some View {
+        let photo = store.cropElement
+        let zoom = max(1, photo?.cropScale ?? 1)
+        let percent = "\(Int((zoom * 100).rounded()))%"
+        // A trim can leave a picture further in than a zoom may take it; the
+        // slider's end moves out to meet it rather than snapping it back —
+        // but not mid-drag, when a moving range would pull the thumb about.
+        let ceiling = cropSliding ? cropCeiling : max(Crop.maxZoom, zoom)
+        return VStack(spacing: 6) {
+            HStack(spacing: 10) {
+                Text("Zoom").font(.subheadline.weight(.semibold))
+                Slider(value: Binding(get: { zoom }, set: { store.setCropZoom($0) }),
+                       in: 1...ceiling,
+                       onEditingChanged: { editing in
+                           if editing { cropCeiling = max(Crop.maxZoom, zoom) }
+                           cropSliding = editing
+                       })
+                .accessibilityLabel("Zoom the picture")
+                .accessibilityValue(percent)
+                .accessibilityAction(named: "Move the picture left") { store.nudgeCrop(dx: -1, dy: 0) }
+                .accessibilityAction(named: "Move the picture right") { store.nudgeCrop(dx: 1, dy: 0) }
+                .accessibilityAction(named: "Move the picture up") { store.nudgeCrop(dx: 0, dy: -1) }
+                .accessibilityAction(named: "Move the picture down") { store.nudgeCrop(dx: 0, dy: 1) }
+                Text(percent)
+                    .font(.subheadline.monospacedDigit())
+                    .frame(minWidth: 48, alignment: .trailing)
+                    .accessibilityHidden(true)
+            }
+            HStack(spacing: 12) {
+                Button("Cancel") { store.cancelCrop() }
+                Spacer(minLength: 0)
+                Button("Reset") { store.resetCrop() }
+                    .disabled(!(photo.map(Crop.isAdjusted) ?? false))
+                Spacer(minLength: 0)
+                Button {
+                    store.finishCrop()
+                    activeSheet = .crop
+                } label: { Image(systemName: "slider.horizontal.3").frame(width: 30, height: 30) }
+                    .accessibilityLabel("Straighten, fit and drift")
+                Button("Done") { store.finishCrop() }
+                    .fontWeight(.semibold)
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .frame(maxWidth: 440)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     /// Brush size, the strokes so far, and the two ways out.

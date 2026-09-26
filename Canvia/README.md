@@ -181,10 +181,15 @@ duplicate / delete via long-press), and a template gallery.
 - Reduce Motion drops the springs on toasts, tips and buttons; Increase
   Contrast thickens selection outlines; Differentiate Without Colour
   marks the current page with a check and active toggles with a bar.
-- A real crop: zoom and focus, a straighten slider (the picture turns
-  inside its frame and grows exactly enough to keep covering it), fill
-  or fit, the platform aspect presets, and Focus on the subject — Vision
-  saliency puts the focus where a person would look first.
+- A real crop, on the canvas: double-tap a photo (or tap Crop) and drag
+  the picture behind its frame, pinch it up to ten times, pull the
+  frame's brackets in to trim it — the whole picture shows faintly beyond
+  the frame, Done keeps it as one Undo and Cancel puts it back. The same
+  maths as the Android twin, writing the same crop fields. The crop sheet
+  keeps a straighten slider (the picture turns inside its frame and grows
+  exactly enough to keep covering it), fill or fit, the platform aspect
+  presets, and Focus on the subject — Vision saliency puts the focus
+  where a person would look first.
 - PDF import: each page rendered upright at import size and placed as a
   picture — one page onto this page, a document as new pages of its own.
 - Document theme: pick a palette and a type pairing, see page one
@@ -402,7 +407,7 @@ The clip's own sound is not carried; a soundtrack is.
 **Keyboard** — with a hardware keyboard, the usual shortcuts, each with
 a title in the discoverability overlay: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, ⌘D
 duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and
-with ⇧) to reorder layers, ⇧⌘L lock, ⌘E export, ⌘K crop, ⇧⌘P present,
+with ⇧) to reorder layers, ⇧⌘L lock, ⌘E export, ⌘K layers, ⇧⌘P present,
 ⇧⌘N new page, ⌘/ help, arrows to nudge (⇧ for ten).
 
 **Present** — the design full screen from the menu: black surround,

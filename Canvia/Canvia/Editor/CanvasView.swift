@@ -11,6 +11,9 @@ struct CanvasView: View {
     /// The stroke being drawn, in page units, while the pen is on.
     @State private var strokePoints: [CGPoint] = []
     @State private var dropTargeted = false
+    /// When a tap on the photo in crop mode last landed, for the double tap
+    /// that finishes it.
+    @State private var lastCropTap: Date?
     @FocusState private var textFieldFocused: Bool
 
     /// Inverse zoom: ornaments are drawn in page units but should
@@ -40,6 +43,29 @@ struct CanvasView: View {
         var groupBox: CGRect = .zero
         /// The rubber band, in page units, while one is being drawn.
         var marquee: CGRect?
+        /// What a finger in crop mode is working, from when it lands.
+        var crop: CropTouch?
+        /// A crop-mode pinch's magnification when last applied.
+        var cropPinch = 1.0
+    }
+
+    /// What a touch in crop mode landed on: one of the frame's brackets (the
+    /// photo as grabbed, and how far the finger is from the bracket, so the
+    /// edge does not jump to it), the picture, or anywhere else.
+    enum CropTouch {
+        case picture(last: CGPoint)
+        case frame(Handle, start: Element, grab: CGPoint)
+        case outside
+
+        var handle: Handle? {
+            if case .frame(let handle, _, _) = self { return handle }
+            return nil
+        }
+
+        var isWorking: Bool {
+            if case .outside = self { return false }
+            return true
+        }
     }
 
     var body: some View {
@@ -55,7 +81,9 @@ struct CanvasView: View {
                 commitTextEditIfAny()
                 store.select(nil)
             },
-            onPencilTap: { store.toggleDrawing() }
+            onPencilTap: { store.toggleDrawing() },
+            pinchZooms: store.cropping == nil,
+            claimsDoubleTap: { point in claimsDoubleTap(at: point) }
         ) {
             pageContent
                 .coordinateSpace(name: "page")
@@ -87,7 +115,7 @@ struct CanvasView: View {
             // Deselect (and commit any inline text edit) on the page surface
             // itself: the workspace-background tap can't fire here because
             // the opaque page sits above it in the ZStack.
-            PageRenderView(design: store.design, page: store.page)
+            PageRenderView(design: store.design, page: shownPage)
                 .environment(\.animationTime, store.previewTime.map { ($0, store.pageHold) })
                 // While Play runs, a clip shows the frames decoded so far
                 // rather than holding up the canvas for each one.
@@ -123,11 +151,13 @@ struct CanvasView: View {
                     .accessibilitySortPriority(Double(order.count - (order.firstIndex(of: el.id) ?? 0)))
             }
 
-            SelectionOverlay(store: store,
-                             onHandleDrag: handleDrag,
-                             onHandleEnd: { store.commit(); clearTransient() },
-                             onRotateDrag: rotateDrag,
-                             onRotateEnd: { store.commit(); clearTransient(); store.tipEvent = .rotated })
+            if store.cropping == nil {
+                SelectionOverlay(store: store,
+                                 onHandleDrag: handleDrag,
+                                 onHandleEnd: { store.commit(); clearTransient() },
+                                 onRotateDrag: rotateDrag,
+                                 onRotateEnd: { store.commit(); clearTransient(); store.tipEvent = .rotated })
+            }
 
             if let band = gesture.marquee { marqueeView(band) }
 
@@ -135,8 +165,12 @@ struct CanvasView: View {
                 inlineTextEditor(el)
             }
 
-            if let tool = store.drawing { drawingLayer(tool) }
-            if store.erasing != nil { eraserLayer }
+            // The modes that take the whole page's touches, over everything.
+            Group {
+                if let tool = store.drawing { drawingLayer(tool) }
+                if store.erasing != nil { eraserLayer }
+                if let crop = store.cropping, let photo = store.cropElement { cropLayer(photo, crop) }
+            }
         }
         // Pictures, text and links from other apps land where they are let go.
         .onDrop(of: CanvasDrop.types, isTargeted: $dropTargeted) { providers, location in
@@ -147,6 +181,220 @@ struct CanvasView: View {
                 Rectangle().stroke(Theme.accent, lineWidth: 4 * iz).allowsHitTesting(false)
             }
         }
+    }
+
+    // MARK: crop
+
+    /// The page as the canvas draws it. In crop mode the photo being cropped
+    /// is left out: the crop layer draws it over the dimmed page, whole.
+    private var shownPage: Page {
+        guard let crop = store.cropping else { return store.page }
+        var page = store.page
+        page.elements.removeAll { $0.id == crop.id }
+        return page
+    }
+
+    /// Whether a double tap here belongs to the page rather than to the
+    /// canvas's zoom: anywhere in crop mode, and on a photo or a text box.
+    private func claimsDoubleTap(at point: CGPoint) -> Bool {
+        if store.cropping != nil { return true }
+        guard let hit = store.page.elements.last(where: { Geometry.hits($0, point: point) }) else { return false }
+        return hit.type == .image || hit.type == .text
+    }
+
+    /// Crop mode over the page: the page dimmed, the whole picture faint
+    /// beyond the frame, the frame's part as it will look, and the frame's
+    /// brackets. One finger drags the picture or, from a bracket, trims the
+    /// frame; two pinch it; a tap anywhere else is Done. Straightening waits
+    /// while the picture is being placed, as it does on the Android twin,
+    /// and comes back when crop mode ends.
+    private func cropLayer(_ photo: Element, _ crop: CropSession) -> some View {
+        var level = photo
+        level.straighten = nil
+        return ZStack {
+            Color.black.opacity(0.45)
+            cropPicture(photo, crop)
+            ElementView(element: level)
+                .allowsHitTesting(false)
+            cropArt(photo, crop)
+        }
+        .frame(width: store.pageWidth, height: store.pageHeight)
+        .contentShape(Rectangle())
+        .gesture(cropDrag(crop))
+        .simultaneousGesture(cropPinchGesture)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Cropping the photo")
+        .accessibilityHint("Drag the picture to move it, pinch to zoom it, and pull the frame's corners and edges to trim it")
+    }
+
+    /// The whole picture, faint, where it lies behind and beyond the frame.
+    private func cropPicture(_ photo: Element, _ crop: CropSession) -> some View {
+        let drawn = Crop.drawnPicture(photo, image: crop.imageSize)
+        return ZStack {
+            if let ui = PhotoLibrary.resolve(photo.src) {
+                let shown = ImageFilterEngine.apply(ImageFilterPreset.from(photo.filter),
+                                                    adjustments: photo.adjustments ?? .neutral,
+                                                    duotone: photo.duotone, to: ui, cacheKey: photo.src ?? "")
+                Image(uiImage: shown)
+                    .resizable()
+                    .frame(width: drawn.width, height: drawn.height)
+                    .position(x: drawn.midX, y: drawn.midY)
+            }
+        }
+        .frame(width: photo.w, height: photo.h)
+        .opacity(0.43 * photo.opacity)
+        .scaleEffect(x: photo.flipH ? -1 : 1, y: photo.flipV ? -1 : 1)
+        .rotationEffect(.degrees(photo.rotation))
+        .position(x: photo.x + photo.w / 2, y: photo.y + photo.h / 2)
+        .allowsHitTesting(false)
+    }
+
+    /// The picture's outline, the frame, the thirds while a finger works it,
+    /// and a bracket at every corner and edge — the one being pulled in the
+    /// accent colour. All turned with the photo.
+    private func cropArt(_ photo: Element, _ crop: CropSession) -> some View {
+        let seen = Crop.picture(photo, image: crop.imageSize)
+        let held = gesture.crop?.handle
+        let working = gesture.crop?.isWorking ?? false
+        let hairline = 1 * iz
+        let bracketLength = 18 * iz
+        return Canvas { context, _ in
+            context.translateBy(x: photo.x + photo.w / 2, y: photo.y + photo.h / 2)
+            context.rotate(by: .degrees(photo.rotation))
+            context.translateBy(x: -photo.w / 2, y: -photo.h / 2)
+            let frame = CGRect(x: 0, y: 0, width: photo.w, height: photo.h)
+            context.stroke(Path(seen), with: .color(.white.opacity(0.6)), lineWidth: hairline)
+            context.stroke(Path(frame), with: .color(.white), lineWidth: hairline * 1.5)
+            if working {
+                context.stroke(Self.thirds(in: frame), with: .color(.white.opacity(0.5)), lineWidth: hairline)
+            }
+            for handle in Handle.allCases {
+                context.stroke(Self.bracket(handle, in: frame, length: bracketLength),
+                               with: .color(handle == held ? Theme.accent : .white),
+                               style: StrokeStyle(lineWidth: hairline * 3, lineCap: .round, lineJoin: .round))
+            }
+        }
+        .frame(width: store.pageWidth, height: store.pageHeight)
+        .allowsHitTesting(false)
+    }
+
+    /// Two lines across and two down, a third of the way in from each side.
+    private static func thirds(in frame: CGRect) -> Path {
+        var path = Path()
+        for i in 1...2 {
+            let x = frame.minX + frame.width * Double(i) / 3
+            let y = frame.minY + frame.height * Double(i) / 3
+            path.move(to: CGPoint(x: x, y: frame.minY))
+            path.addLine(to: CGPoint(x: x, y: frame.maxY))
+            path.move(to: CGPoint(x: frame.minX, y: y))
+            path.addLine(to: CGPoint(x: frame.maxX, y: y))
+        }
+        return path
+    }
+
+    /// An L at a corner, a short bar at the middle of an edge.
+    private static func bracket(_ handle: Handle, in frame: CGRect, length: Double) -> Path {
+        let u = handle.unit
+        let p = CGPoint(x: frame.minX + frame.width * u.x, y: frame.minY + frame.height * u.y)
+        let l = min(length, frame.width / 3, frame.height / 3)
+        var path = Path()
+        if handle.isCorner {
+            let sx: Double = u.x == 0 ? 1 : -1
+            let sy: Double = u.y == 0 ? 1 : -1
+            path.move(to: CGPoint(x: p.x + sx * l, y: p.y))
+            path.addLine(to: p)
+            path.addLine(to: CGPoint(x: p.x, y: p.y + sy * l))
+        } else if u.x == 0.5 {
+            path.move(to: CGPoint(x: p.x - l * 0.7, y: p.y))
+            path.addLine(to: CGPoint(x: p.x + l * 0.7, y: p.y))
+        } else {
+            path.move(to: CGPoint(x: p.x, y: p.y - l * 0.7))
+            path.addLine(to: CGPoint(x: p.x, y: p.y + l * 0.7))
+        }
+        return path
+    }
+
+    /// What a finger landing at `point` works: the nearest bracket within
+    /// reach, else the picture — anywhere on it, the part beyond the frame
+    /// included, since that is the part you can see you want to bring in —
+    /// else nothing of the photo's.
+    private func cropTouch(at point: CGPoint, photo: Element, crop: CropSession) -> CropTouch {
+        var best = Touch.pageUnits(22, zoom: store.zoom)
+        var grabbed: Handle?
+        for handle in Handle.allCases {
+            let at = Geometry.handlePoint(photo, handle)
+            let d = hypot(at.x - point.x, at.y - point.y)
+            if d < best {
+                best = d
+                grabbed = handle
+            }
+        }
+        if let handle = grabbed {
+            let at = Geometry.handlePoint(photo, handle)
+            return .frame(handle, start: photo, grab: CGPoint(x: at.x - point.x, y: at.y - point.y))
+        }
+        let local = Crop.toFrame(photo, point)
+        let frame = CGRect(x: 0, y: 0, width: photo.w, height: photo.h)
+        if frame.contains(local) || Crop.picture(photo, image: crop.imageSize).contains(local) {
+            return .picture(last: point)
+        }
+        return .outside
+    }
+
+    private func cropDrag(_ crop: CropSession) -> some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .named("page"))
+            .onChanged { value in
+                guard let photo = store.cropElement else { return }
+                if gesture.crop == nil {
+                    gesture.crop = cropTouch(at: value.startLocation, photo: photo, crop: crop)
+                }
+                switch gesture.crop {
+                case .some(.picture(let last)):
+                    store.moveCropPicture(by: CGPoint(x: value.location.x - last.x, y: value.location.y - last.y))
+                    gesture.crop = .picture(last: value.location)
+                case .some(.frame(let handle, let start, let grab)):
+                    let to = CGPoint(x: value.location.x + grab.x, y: value.location.y + grab.y)
+                    let smallest = max(Crop.minFrame, Touch.pageUnits(24, zoom: store.zoom))
+                    store.trimCrop(from: start, handle: handle, to: to, minSize: smallest)
+                default:
+                    break
+                }
+            }
+            .onEnded { value in
+                let touch = gesture.crop
+                gesture.crop = nil
+                store.badge = nil
+                let travel = hypot(value.translation.width, value.translation.height) * store.zoom
+                guard travel < Touch.dragSlop else { return }
+                if case .some(.outside) = touch {
+                    // A tap beside the photo is Done, as in every photo
+                    // editor — and a tap on something else selects it in the
+                    // same touch.
+                    store.finishCrop()
+                    let hit = store.page.elements.last { Geometry.hits($0, point: value.location) }
+                    store.select(hit?.id)
+                } else if let last = lastCropTap, Date().timeIntervalSince(last) < 0.3 {
+                    lastCropTap = nil
+                    store.finishCrop()
+                } else {
+                    lastCropTap = Date()
+                }
+            }
+    }
+
+    /// Two fingers in crop mode work the picture, not the canvas: spreading
+    /// them zooms it about where they landed.
+    private var cropPinchGesture: some Gesture {
+        MagnifyGesture(minimumScaleDelta: 0)
+            .onChanged { value in
+                let factor = Double(value.magnification) / max(gesture.cropPinch, 0.0001)
+                gesture.cropPinch = Double(value.magnification)
+                store.zoomCropPicture(by: factor, around: value.startLocation)
+            }
+            .onEnded { _ in
+                gesture.cropPinch = 1
+                store.badge = nil
+            }
     }
 
     // MARK: eraser
@@ -350,6 +598,11 @@ struct CanvasView: View {
             .onTapGesture(count: 2) {
                 if el.type == .text && !el.locked {
                     startTextEdit(el)
+                } else if el.type == .image {
+                    // A photo double-tapped opens crop, where the picture is
+                    // worked directly — or says why it cannot.
+                    commitTextEditIfAny()
+                    store.startCrop(el.id)
                 }
             }
             .onTapGesture {
@@ -364,7 +617,8 @@ struct CanvasView: View {
             .accessibilityLabel(CanvasAccessibility.label(for: el))
             .accessibilityValue(CanvasAccessibility.value(for: el, design: store.design))
             .accessibilityAddTraits(store.selection.contains(el.id) ? [.isButton, .isSelected] : .isButton)
-            .accessibilityHint(el.type == .text ? "Double tap to select; double tap and hold to edit" : "Double tap to select")
+            .accessibilityHint(el.type == .text ? "Double tap to select; double tap and hold to edit"
+                               : el.type == .image ? "Double tap to select; Crop is in the actions" : "Double tap to select")
             .accessibilityActions { accessibilityActions(for: el) }
     }
 
@@ -385,6 +639,9 @@ struct CanvasView: View {
         Button("Send backward") { store.select(el.id); store.reorderSelected(.backward) }
         if el.type == .text && !el.locked {
             Button("Edit text") { startTextEdit(el) }
+        }
+        if el.type == .image && !el.locked {
+            Button("Crop") { store.startCrop(el.id) }
         }
     }
 

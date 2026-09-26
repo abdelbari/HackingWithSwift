@@ -38,6 +38,13 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     let onBackgroundTap: () -> Void
     /// The Apple Pencil's double tap, when the user has it set to do anything.
     let onPencilTap: () -> Void
+    /// Whether two fingers work the canvas — pinch to zoom, drag to pan. Off
+    /// in crop mode, where a pinch zooms the picture instead.
+    var pinchZooms = true
+    /// Whether a double tap at this point on the page is the page's own — a
+    /// photo opening crop, a text box its editor — rather than the canvas
+    /// zooming. Without it, double-tapping a photo zoomed the canvas as well.
+    var claimsDoubleTap: (CGPoint) -> Bool = { _ in false }
     @ViewBuilder var content: () -> Content
 
     func makeUIView(context: Context) -> UIScrollView {
@@ -86,11 +93,13 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         let doubleTap = UITapGestureRecognizer(
             target: context.coordinator, action: #selector(Coordinator.handleDoubleTap(_:)))
         doubleTap.numberOfTapsRequired = 2
+        doubleTap.delegate = context.coordinator
         scroll.addGestureRecognizer(doubleTap)
         // A single tap should not wait on the double tap unless one is coming.
         backgroundTap.require(toFail: doubleTap)
 
         context.coordinator.scrollView = scroll
+        context.coordinator.doubleTap = doubleTap
         return scroll
     }
 
@@ -98,6 +107,8 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         let coordinator = context.coordinator
         coordinator.parent = self
         coordinator.host.rootView = content()
+        scroll.pinchGestureRecognizer?.isEnabled = pinchZooms
+        scroll.panGestureRecognizer.isEnabled = pinchZooms
         // Fitting below drives the scroll view, which calls back into
         // scrollViewDidZoom, which writes the zoom binding — a SwiftUI state
         // write in the middle of a SwiftUI update. See publishZoom.
@@ -134,6 +145,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         }
         let host: UIHostingController<Content>
         weak var scrollView: UIScrollView?
+        weak var doubleTap: UITapGestureRecognizer?
         var contentSize: CGSize = .zero
         var fitToken: String = ""
         var needsFit = true
@@ -250,10 +262,15 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
 
         /// The one-finger pan and the background tap belong to the workspace,
         /// not the page: refuse them when the touch lands on the page, so the
-        /// SwiftUI gestures inside keep working untouched.
+        /// SwiftUI gestures inside keep working untouched. The double tap
+        /// zooms anywhere, except where the page claims it for itself.
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                                shouldReceive touch: UITouch) -> Bool {
-            !host.view.bounds.contains(touch.location(in: host.view))
+            let point = touch.location(in: host.view)
+            if gestureRecognizer === doubleTap {
+                return !(host.view.bounds.contains(point) && parent.claimsDoubleTap(point))
+            }
+            return !host.view.bounds.contains(point)
         }
     }
 }

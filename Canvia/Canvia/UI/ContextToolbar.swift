@@ -492,7 +492,10 @@ struct ContextToolbar: View {
         cutoutButton(el)
         toolButton("square.on.circle", "Frame") { activeSheet = .frame }
         toolButton("camera.filters", "Filters") { activeSheet = .filters }
-        toolButton("crop", "Crop") { activeSheet = .crop }
+        // Crop mode, on the canvas: the picture dragged, pinched and trimmed
+        // where it sits. The sheet, for straightening, fit and the drift, is
+        // a tap away in crop mode's bar.
+        toolButton("crop", "Crop") { store.startCrop(el.id) }
         if VideoStore.isVideo(el.src) {
             // A clip: play the page to see it move; stills come from its poster.
             toolButton("play.circle", "Play") { store.playPreview() }

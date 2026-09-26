@@ -41,7 +41,7 @@ final class TipEngine {
                                 systemImage: "hand.draw"),
         .textAdded: Tip(id: "text", text: "Double-tap text to edit it in place. The Curve slider bends it; Effects and gradients are in the toolbar.",
                         systemImage: "textformat"),
-        .photoAdded: Tip(id: "photo", text: "Select the photo for Crop, Filters, a Frame in any shape, or Cut out to remove its background.",
+        .photoAdded: Tip(id: "photo", text: "Double-tap the photo to crop it where it sits. Select it for Filters, a Frame in any shape, or Cut out to remove its background.",
                          systemImage: "photo"),
         .multiSelected: Tip(id: "multi", text: "Several selected: drag a corner to resize them together, or Group them from the menu so they stay together.",
                             systemImage: "square.on.square"),

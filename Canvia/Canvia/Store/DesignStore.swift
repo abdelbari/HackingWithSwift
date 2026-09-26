@@ -10,7 +10,14 @@ import Observation
 final class DesignStore {
     var design: Design
     var pageIndex: Int = 0
-    var selection: Set<String> = []
+    var selection: Set<String> = [] {
+        // Crop mode works on one selected photo. Selecting anything else —
+        // another element, the page, another page — ends it, and the crop
+        // so far is kept, never dropped.
+        didSet {
+            if let crop = cropping, selection != [crop.id] { finishCrop() }
+        }
+    }
     var editingTextId: String?
     /// Mirrors the canvas scroll view's zoomScale, so selection handles can
     /// stay a constant size on screen. The scroll view owns pan entirely.
@@ -100,6 +107,17 @@ final class DesignStore {
         pending = nil
     }
 
+    /// Put the design back exactly as it was when the open gesture began,
+    /// recording nothing: what Cancel does in crop mode.
+    func revertGesture() {
+        guard let entry = pending else { return }
+        pending = nil
+        design = entry.design
+        pageIndex = min(entry.pageIndex, max(design.pages.count - 1, 0))
+        let ids = Set(page.elements.map(\.id))
+        selection = selection.intersection(ids)
+    }
+
     /// Mutate + record as one undo step.
     func apply(_ mutate: (inout Design) -> Void) {
         beginGesture()
@@ -155,6 +173,9 @@ final class DesignStore {
     var canRedo: Bool { !future.isEmpty }
 
     func undo() {
+        // A crop under way is kept as its own step first, so Undo takes back
+        // the crop rather than whatever came before it.
+        finishCrop()
         guard let entry = past.popLast() else { return }
         future.append(HistoryEntry(design: design, pageIndex: pageIndex))
         restore(entry)
@@ -162,6 +183,7 @@ final class DesignStore {
     }
 
     func redo() {
+        finishCrop()
         guard let entry = future.popLast() else { return }
         past.append(HistoryEntry(design: design, pageIndex: pageIndex))
         restore(entry)
@@ -547,6 +569,10 @@ final class DesignStore {
     var rotationSnapped = false
     /// The pen, while drawing mode is on: strokes become shape elements.
     var drawing: Freehand.Tool?
+    /// The photo in crop mode, and the size of its picture — see
+    /// CropMode.swift. Crop mode is one open step: everything done in it is
+    /// live, Done keeps it as a single Undo, and Cancel throws it away.
+    var cropping: CropSession?
     /// The image being erased from, while the eraser is out, and the
     /// strokes painted over it so far, in page units.
     var erasing: String?
