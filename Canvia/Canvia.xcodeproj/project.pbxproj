@@ -267,6 +267,7 @@
 				DEVELOPMENT_TEAM = BGQ797H72C;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Canvia-Info.plist";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Canvia listens while you dictate into a text element.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Canvia turns what you say into the words of a text element.";
@@ -301,6 +302,7 @@
 				DEVELOPMENT_TEAM = BGQ797H72C;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Canvia-Info.plist";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Canvia listens while you dictate into a text element.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Canvia turns what you say into the words of a text element.";

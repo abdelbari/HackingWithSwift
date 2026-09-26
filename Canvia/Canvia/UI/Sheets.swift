@@ -12,6 +12,56 @@ let sheetDetents: Set<PresentationDetent> = [.medium, .large]
 
 // MARK: - background
 
+/// The page's gradients, in the shape of your choosing — linear, radial or
+/// angular — as the Android twin offers them for a background. The shape
+/// only changes the tiles and the next tap; the background changes when a
+/// tile is tapped, and tapping the one already there records nothing. The
+/// current one wears a ring.
+struct BackgroundGradients: View {
+    @Bindable var store: DesignStore
+    var columns: [GridItem]
+    @State private var kind = "linear"
+
+    private var current: Paint? {
+        if case .gradient(let paint) = store.page.background { return paint }
+        return nil
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Picker("Gradient shape", selection: $kind) {
+                Text("Linear").tag("linear")
+                Text("Radial").tag("radial")
+                Text("Angular").tag("angular")
+            }
+            .pickerStyle(.segmented)
+            LazyVGrid(columns: columns, spacing: 10) {
+                ForEach(ContentLibrary.gradients) { preset in
+                    tile(preset)
+                }
+            }
+        }
+        .onAppear { kind = GradientPreset.kind(of: current) }
+    }
+
+    private func tile(_ preset: GradientPreset) -> some View {
+        let paint = preset.paint(kind: kind)
+        let chosen = GradientPreset.same(current, paint)
+        return Button {
+            guard !chosen else { return }
+            store.applyToPage { $0.background = .gradient(paint) }
+        } label: {
+            RoundedRectangle(cornerRadius: 9)
+                .fill(paint.gradientStyle())
+                .overlay(RoundedRectangle(cornerRadius: 9)
+                    .stroke(chosen ? Theme.accent : Color.black.opacity(0.12), lineWidth: chosen ? 3 : 1))
+                .frame(height: 40)
+        }
+        .accessibilityLabel("\(preset.name), \(kind) gradient")
+        .accessibilityAddTraits(chosen ? .isSelected : [])
+    }
+}
+
 struct BackgroundSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
@@ -37,20 +87,7 @@ struct BackgroundSheet: View {
                     }
 
                     Text("Gradients").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
-                    LazyVGrid(columns: columns, spacing: 10) {
-                        ForEach(ContentLibrary.gradients) { preset in
-                            Button {
-                                store.applyToPage { $0.background = .gradient(preset.paint) }
-                            } label: {
-                                let pts = preset.paint.unitPoints
-                                RoundedRectangle(cornerRadius: 9)
-                                    .fill(LinearGradient(
-                                        stops: preset.stops.map { .init(color: Color(hex: $0.color), location: $0.offset) },
-                                        startPoint: pts.start, endPoint: pts.end))
-                                    .frame(height: 40)
-                            }
-                        }
-                    }
+                    BackgroundGradients(store: store, columns: columns)
 
                     Text("Photos").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
                     LazyVGrid(columns: photoColumns, spacing: 10) {

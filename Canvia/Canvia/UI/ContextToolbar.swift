@@ -38,6 +38,14 @@ struct ContextToolbar: View {
     @Bindable var store: DesignStore
     @Binding var activeSheet: EditorSheet?
 
+    /// The border as a drag of its slider began, so going back to None puts
+    /// back what was there.
+    private struct BorderBefore {
+        var stroke: String?
+        var width: Double?
+    }
+    @State private var borderBefore: BorderBefore?
+
     @State private var cuttingOut = false
     @State private var dictationBase = ""
     @State private var cutoutError: String?
@@ -452,6 +460,8 @@ struct ContextToolbar: View {
             sliderControl("Width", value: el.strokeWidth ?? 4, in: 1...40) { v in
                 store.updateSelectedTransient { $0.strokeWidth = v }
             }
+        } else if !Freehand.isStroke(el) {
+            borderSlider(el)
         }
         if Freehand.isStroke(el) {
             toolButton("text.viewfinder", "To text") { store.strokesToText() }
@@ -461,6 +471,51 @@ struct ContextToolbar: View {
                 store.updateSelectedTransient { $0.radius = v; $0.corners = nil }
             }
             cornersMenu(el)
+        }
+    }
+
+    /// How wide a filled shape's border is — down to None, which takes it
+    /// off. The Border chip could colour one but never remove it, nor say
+    /// how thick it was. A whole drag is one Undo, and one that tries a
+    /// border and comes back to None leaves the shape as it was. The Android
+    /// twin's Border slider, to the same 40 and the same default ink.
+    private func borderSlider(_ el: Element) -> some View {
+        let width = el.strokeWidth ?? 0
+        let ceiling = max(40, width)
+        return VStack(spacing: 2) {
+            Slider(value: Binding(get: { width }, set: { setBorder($0, on: el) }),
+                   in: 0...ceiling,
+                   onEditingChanged: { editing in
+                       if editing {
+                           borderBefore = BorderBefore(stroke: el.stroke, width: el.strokeWidth)
+                       } else {
+                           store.commit()
+                           borderBefore = nil
+                       }
+                   })
+            .frame(width: 110)
+            .accessibilityLabel("Border")
+            .accessibilityValue(width < 0.5 ? "None" : "\(Int(width.rounded()))")
+            Text(width < 0.5 ? "Border None" : "Border \(Int(width.rounded()))")
+                .font(Theme.controlLabel)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+        }
+    }
+
+    private func setBorder(_ v: Double, on el: Element) {
+        let before = borderBefore ?? BorderBefore(stroke: el.stroke, width: el.strokeWidth)
+        store.updateSelectedTransient { e in
+            guard e.type == .shape, !Freehand.isStroke(e) else { return }
+            if v < 0.5 {
+                // None: a border that was there goes to 0; one that was not
+                // stays as it was, colour and all.
+                e.strokeWidth = (before.width ?? 0) > 0 ? 0 : before.width
+                e.stroke = before.stroke
+            } else {
+                e.strokeWidth = v
+                if e.stroke == nil { e.stroke = "#0d1216" }
+            }
         }
     }
 
@@ -569,20 +624,60 @@ struct ContextToolbar: View {
         } label: {
             Image(systemName: "line.horizontal.3")
         }
+        // Each end on its own — none, an arrow or a dot, nine ways — as the
+        // Android twin sets them, with the old pairs kept as quick picks.
         Menu {
-            Button("No caps") { store.updateSelected { $0.startCap = "none"; $0.endCap = "none" } }
-            Button("Arrow end →") { store.updateSelected { $0.startCap = "none"; $0.endCap = "arrow" } }
-            Button("Both arrows ↔") { store.updateSelected { $0.startCap = "arrow"; $0.endCap = "arrow" } }
-            Button("Dot ends") { store.updateSelected { $0.startCap = "dot"; $0.endCap = "dot" } }
+            Picker("Start", selection: capBinding(el, start: true)) {
+                ForEach(Self.lineEnds, id: \.key) { end in Text(end.name).tag(end.key) }
+            }
+            .pickerStyle(.menu)
+            Picker("End", selection: capBinding(el, start: false)) {
+                ForEach(Self.lineEnds, id: \.key) { end in Text(end.name).tag(end.key) }
+            }
+            .pickerStyle(.menu)
+            Section("Both ends") {
+                Button("No caps") { store.updateSelected { $0.startCap = "none"; $0.endCap = "none" } }
+                Button("Arrow end →") { store.updateSelected { $0.startCap = "none"; $0.endCap = "arrow" } }
+                Button("Both arrows ↔") { store.updateSelected { $0.startCap = "arrow"; $0.endCap = "arrow" } }
+                Button("Dot ends") { store.updateSelected { $0.startCap = "dot"; $0.endCap = "dot" } }
+            }
         } label: {
             Image(systemName: "arrow.left.and.right")
         }
+        .accessibilityLabel("Line ends")
+    }
+
+    /// The ends a line can have, as both phones write them.
+    static let lineEnds: [(key: String, name: String)] = [("none", "None"), ("arrow", "Arrow"), ("dot", "Dot")]
+
+    /// A line's end as one of those keys; anything else reads as none.
+    static func lineEnd(_ cap: String?) -> String {
+        lineEnds.contains { $0.key == cap } ? cap ?? "none" : "none"
+    }
+
+    /// One end of the selected line, changed on its own — and nothing
+    /// recorded when it is already that.
+    private func capBinding(_ el: Element, start: Bool) -> Binding<String> {
+        Binding(get: { Self.lineEnd(start ? el.startCap : el.endCap) },
+                set: { key in
+                    let lines = store.selectedElements.filter { $0.type == .line && !$0.locked }
+                    guard lines.contains(where: { Self.lineEnd(start ? $0.startCap : $0.endCap) != key }) else { return }
+                    store.updateSelected { e in
+                        guard e.type == .line else { return }
+                        if start { e.startCap = key } else { e.endCap = key }
+                    }
+                })
     }
 
     // MARK: universal
 
     @ViewBuilder
     private var universalControls: some View {
+        // Several things selected — a sticky group, a band's worth — recolour
+        // together, each its own way: text, lines, shapes and drawn strokes.
+        if store.selection.count > 1 && store.selectionTakesColour {
+            multiColourChip
+        }
         toolButton("square.3.layers.3d", "Position") { activeSheet = .position }
         toolButton("shadow", "Shadow") { activeSheet = .shadow }
         if let el = store.selectedElements.first { blendMenu(el); animateMenu(el) }
@@ -609,8 +704,25 @@ struct ContextToolbar: View {
         if store.selection.count == 2 {
             toolButton("arrow.right", "Connect") { store.connectSelected() }
         }
-        toolButton("square.2.layers.3d.top.filled", "Forward") { store.reorderSelected(.forward) }
-        toolButton("square.2.layers.3d.bottom.filled", "Backward") { store.reorderSelected(.backward) }
+        Group {
+            toolButton("square.2.layers.3d.top.filled", "Forward") { store.reorderSelected(.forward) }
+            toolButton("square.2.layers.3d.bottom.filled", "Backward") { store.reorderSelected(.backward) }
+        }
+    }
+
+    /// A colour chip with no one colour in it, since the selection has many.
+    private var multiColourChip: some View {
+        Button { activeSheet = .colorSelection } label: {
+            VStack(spacing: 3) {
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(AngularGradient(colors: [.red, .yellow, .green, .blue, .purple, .red], center: .center))
+                    .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.black.opacity(0.15)))
+                    .frame(width: 26, height: 26)
+                Text("Color").font(Theme.controlLabel)
+            }
+        }
+        .buttonStyle(ToolButtonStyle())
+        .accessibilityLabel("Color of everything selected")
     }
 
     /// A web address, email or phone number on the element: clickable in the

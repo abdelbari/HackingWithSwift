@@ -73,6 +73,34 @@ struct GradientPreset: Codable, Identifiable {
     var stops: [GradientStop]
 
     var paint: Paint { Paint(kind: "gradient", color: nil, angle: angle, stops: stops) }
+
+    /// The shapes a gradient comes in, in the order the pickers offer them.
+    static let kinds = ["linear", "radial", "angular"]
+
+    /// This preset in `kind`'s shape. Linear is written as no shape at all,
+    /// as both phones write it.
+    func paint(kind: String) -> Paint {
+        var p = paint
+        p.gradientKind = kind == "linear" ? nil : kind
+        return p
+    }
+
+    /// The shape a paint is in: linear when it names none, or one this app
+    /// does not know.
+    static func kind(of paint: Paint?) -> String {
+        let kind = paint?.gradientKind ?? "linear"
+        return kinds.contains(kind) ? kind : "linear"
+    }
+
+    /// Whether two gradients are the same one — kind, angle, shape and every
+    /// stop, colours compared ignoring case — so tapping the gradient already
+    /// there records nothing, as on the Android twin.
+    static func same(_ a: Paint?, _ b: Paint) -> Bool {
+        guard let a, a.kind == b.kind, a.angle == b.angle, kind(of: a) == kind(of: b) else { return false }
+        let sa = a.stops ?? [], sb = b.stops ?? []
+        guard sa.count == sb.count else { return false }
+        return zip(sa, sb).allSatisfy { $0.offset == $1.offset && $0.color.lowercased() == $1.color.lowercased() }
+    }
 }
 
 struct PairingSpec: Codable {

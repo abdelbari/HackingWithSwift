@@ -325,6 +325,76 @@ final class DesignStore {
     /// the unlocked subset or it offers controls that quietly do nothing.
     var unlockedSelectionCount: Int { selectedElements.filter { !$0.locked }.count }
     var canGroup: Bool { unlockedSelectionCount >= 2 }
+
+    // MARK: colour for a multi-selection
+
+    /// Whether anything selected takes a colour: an unlocked text, line or
+    /// shape. Photos and stickers keep their own.
+    var selectionTakesColour: Bool {
+        selectedElements.contains { !$0.locked && [.text, .line, .shape].contains($0.type) }
+    }
+
+    /// Whether anything selected takes a gradient: text, or a shape that is
+    /// not a drawn stroke. A line is one colour only.
+    var selectionTakesGradient: Bool {
+        selectedElements.contains { !$0.locked && Self.takesGradient($0) }
+    }
+
+    private static func takesGradient(_ el: Element) -> Bool {
+        el.type == .text || (el.type == .shape && !Freehand.isStroke(el))
+    }
+
+    /// One colour for everything selected, as the Android twin recolours a
+    /// multi-selection: text takes it as its colour (a gradient on its
+    /// letters cleared), a line as its colour, a drawn stroke as its ink,
+    /// any other shape as a solid fill. One step — and none when nothing
+    /// would change.
+    func recolourSelection(_ hex: String) {
+        let targets = selectedElements.filter { !$0.locked }
+        guard targets.contains(where: { Self.recoloured($0, to: hex) != $0 }) else { return }
+        updateSelected { $0 = Self.recoloured($0, to: hex) }
+    }
+
+    /// The same, live, for the colour wheel; the sheet commits when it closes.
+    func recolourSelectionTransient(_ hex: String) {
+        updateSelectedTransient { $0 = Self.recoloured($0, to: hex) }
+    }
+
+    /// A gradient for everything selected that takes one: a shape's fill,
+    /// a text's letters. One step, or none when nothing would change.
+    func recolourSelection(gradient paint: Paint) {
+        let targets = selectedElements.filter { !$0.locked }
+        guard targets.contains(where: { Self.withGradient($0, paint) != $0 }) else { return }
+        updateSelected { $0 = Self.withGradient($0, paint) }
+    }
+
+    /// `el` in colour `hex`, by what it is; unchanged when it already is —
+    /// compared ignoring case — or takes no colour.
+    static func recoloured(_ el: Element, to hex: String) -> Element {
+        func same(_ colour: String?) -> Bool { colour?.lowercased() == hex.lowercased() }
+        var e = el
+        switch el.type {
+        case .text:
+            if !(same(el.color) && el.textFill == nil) { e.color = hex; e.textFill = nil }
+        case .line:
+            if !same(el.color) { e.color = hex }
+        case .shape where Freehand.isStroke(el):
+            if !same(el.stroke) { e.stroke = hex }
+        case .shape:
+            if !(el.fill?.kind == "solid" && same(el.fill?.color)) { e.fill = .solid(hex) }
+        default:
+            break
+        }
+        return e
+    }
+
+    /// `el` with gradient `paint` where it takes one.
+    static func withGradient(_ el: Element, _ paint: Paint) -> Element {
+        guard takesGradient(el) else { return el }
+        var e = el
+        if el.type == .text { e.textFill = paint } else { e.fill = paint }
+        return e
+    }
     var canDistribute: Bool { unlockedSelectionCount >= 3 }
 
     func copySelected() {

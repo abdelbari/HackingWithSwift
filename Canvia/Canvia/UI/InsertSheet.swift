@@ -809,18 +809,7 @@ private struct BackgroundInline: View {
                 }
             }
             Text("GRADIENTS").font(.system(size: 11, weight: .bold)).foregroundStyle(.secondary)
-            LazyVGrid(columns: columns, spacing: 10) {
-                ForEach(ContentLibrary.gradients) { preset in
-                    Button { store.applyToPage { $0.background = .gradient(preset.paint) } } label: {
-                        let pts = preset.paint.unitPoints
-                        RoundedRectangle(cornerRadius: 9)
-                            .fill(LinearGradient(
-                                stops: preset.stops.map { .init(color: Color(hex: $0.color), location: $0.offset) },
-                                startPoint: pts.start, endPoint: pts.end))
-                            .frame(height: 40)
-                    }
-                }
-            }
+            BackgroundGradients(store: store, columns: columns)
             Text("PHOTOS").font(.system(size: 11, weight: .bold)).foregroundStyle(.secondary)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 10)], spacing: 10) {
                 ForEach(PhotoLibrary.photos) { photo in

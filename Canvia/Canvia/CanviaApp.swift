@@ -7,6 +7,8 @@ import SwiftUI
 @main
 struct CanviaApp: App {
     @State private var editingStore: DesignStore?
+    /// Why a design file handed to the app could not be opened.
+    @State private var openError: String?
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -19,6 +21,21 @@ struct CanviaApp: App {
         DesignLibrary.pruneUnusedFiles()
         DesignLibrary.seedStartersIfNeeded()
         _editingStore = State(initialValue: Self.storeForLaunchArguments() ?? Self.storeForLaunchRequest())
+    }
+
+    /// A design file handed to the app, opened as a new design in the
+    /// editor — the one open saves as it closes, as leaving it always does.
+    private func openDesignFile(_ url: URL) {
+        guard url.isFileURL else { return }
+        defer { DesignPackage.discardInboxCopy(url) }
+        do {
+            var design = try DesignPackage.importFile(at: url, taken: DesignLibrary.recents().map(\.title))
+            design.updatedAt = Date().timeIntervalSince1970 * 1000
+            DesignLibrary.save(design)
+            withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
+        } catch {
+            openError = error.localizedDescription
+        }
     }
 
     /// An App Intent's request, if one is waiting: a new design at a size,
@@ -95,6 +112,15 @@ struct CanviaApp: App {
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active, let store = Self.storeForLaunchRequest() else { return }
                 withAnimation(.snappy(duration: 0.28)) { editingStore = store }
+            }
+            // A design file tapped in Files, opened from Mail or shared from
+            // another app — at launch or while the app is open, once each.
+            .onOpenURL { url in openDesignFile(url) }
+            .alert("Couldn't open that file", isPresented: Binding(
+                get: { openError != nil }, set: { if !$0 { openError = nil } })) {
+                Button("OK") { openError = nil }
+            } message: {
+                Text(openError ?? "")
             }
         }
 

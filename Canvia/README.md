@@ -50,6 +50,10 @@ duplicate / delete via long-press), and a template gallery.
   warmth, sharpness, vignette) that compose on top of the preset rather
   than replacing it, cover-crop zoom + focus point, replace-in-place (swap the
   picture, keep the frame, radius and filter), corner radius, borders
+  (a Border slider on filled shapes, down to None), each end of a line
+  set on its own (none, arrow or dot), and one colour for a whole
+  multi-selection — text, lines, shapes and drawn strokes each take it
+  their own way
 - Color: recently used colours first, colour harmony derived from whatever
   is chosen (complementary, analogous, triadic, split, tetradic, and a
   tint/shade ramp), curated palettes, gradient presets, document colors,
@@ -136,7 +140,11 @@ duplicate / delete via long-press), and a template gallery.
 - A Canvia design file (.canvia.json) exports the document with every
   photo it uses inlined, and the home screen opens one back in — under
   a fresh id, with its photos stored afresh, so two imports never share
-  a file. Clips travel whole up to 30 MB each and 100 MB in all, taken
+  a file. A design file tapped in Files, opened from Mail or shared from
+  another app opens straight into the editor too, under a title the shelf
+  does not already have; what is inside decides, not the type it came
+  as, and the copy handed over is deleted once read. Clips travel whole
+  up to 30 MB each and 100 MB in all, taken
   in id order, and only as MP4, M4V, MOV or 3GP; any other clip travels
   as its first frame — the same choice the Android twin makes, so the
   same design packs the same on either phone.
@@ -230,11 +238,13 @@ duplicate / delete via long-press), and a template gallery.
 
 **Export** — PNG / JPEG at 1–3× or at an exact size: type the long edge
 in pixels, or pick a preset (Instagram post, Story, Full HD, 4K, A4 and
-Letter at 300 dpi) and the scale follows. The selection alone can be
-exported, cropped to its bounds, and any raster can be copied to the
-clipboard as PNG. A warning appears before the export when the output
-would be under 1080 px on the long side or a photo would be stretched
-past the pixels it has (this page or every page, one numbered
+Letter at 300 dpi), and every page comes out that long on its own
+longer side — a deck of mixed page sizes included, each page sized and
+held to the memory budget at its own size. The selection alone can be
+exported, cropped to its bounds, and the page on screen can be copied to
+the clipboard as PNG. A warning appears before the export when the output
+would be under 1080 px on the long side or a photo on any exported page
+would be stretched past the pixels it has (this page or every page, one numbered
 file each, with an optional transparent background that really removes
 the page's own), multi-page PDF and SVG, rendered with
 `ImageRenderer` from the very views the canvas shows, delivered through
@@ -434,7 +444,8 @@ how many it holds. Hold Undo to rewind many steps. Position nudges by
 **Present** — the design full screen from the menu: black surround,
 tap or swipe between pages, a tap on a linked element to open its link,
 a clock, the page's notes for whoever holds
-the phone, and autoplay on each page's own timing. Every page can set
+the phone, and autoplay on each page's own timing. VoiceOver has Next
+page and Previous page among the page's actions. Every page can set
 its own hold and its transition to the next (fade, cut or slide) from
 its notes sheet; the video honours both.
 

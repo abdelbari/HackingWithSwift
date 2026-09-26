@@ -60,11 +60,18 @@ enum DesignExporter {
     /// for more now quietly gets less rather than getting nothing.
     static let pixelBudget: Double = 32_000_000
 
-    /// The scale a request actually renders at, after the budget.
-    static func effectiveScale(design: Design, requested: Double) -> Double {
-        let area = max(design.width * design.height, 1)
+    /// The scale a request actually renders at, after the budget — for a
+    /// page of `size`. Every page is budgeted at its own size: a 4000 × 4000
+    /// page in a 1080 design, budgeted at 1080, came out at 144 megapixels.
+    static func effectiveScale(size: CGSize, requested: Double) -> Double {
+        let area = max(Double(size.width) * Double(size.height), 1)
         let ceiling = (pixelBudget / area).squareRoot()
         return min(max(requested, 0.01), ceiling)
+    }
+
+    /// The same for the design's own size.
+    static func effectiveScale(design: Design, requested: Double) -> Double {
+        effectiveScale(size: design.size, requested: requested)
     }
 
     static func effectiveScale(design: Design, requested: Int) -> Double {
@@ -73,10 +80,14 @@ enum DesignExporter {
 
     /// The exported image's size in pixels, which is what the user is really
     /// choosing when they pick a scale.
+    static func outputSize(size: CGSize, requested: Double) -> CGSize {
+        let scale = effectiveScale(size: size, requested: requested)
+        return CGSize(width: max(1, (Double(size.width) * scale).rounded()),
+                      height: max(1, (Double(size.height) * scale).rounded()))
+    }
+
     static func outputSize(design: Design, requested: Double) -> CGSize {
-        let scale = effectiveScale(design: design, requested: requested)
-        return CGSize(width: (design.width * scale).rounded(),
-                      height: (design.height * scale).rounded())
+        outputSize(size: design.size, requested: requested)
     }
 
     static func outputSize(design: Design, requested: Int) -> CGSize {
@@ -84,26 +95,39 @@ enum DesignExporter {
     }
 
     /// True when the budget, not the user, decided the scale.
+    static func isClamped(size: CGSize, requested: Double) -> Bool {
+        effectiveScale(size: size, requested: requested) < requested - 0.001
+    }
+
     static func isClamped(design: Design, requested: Double) -> Bool {
-        effectiveScale(design: design, requested: requested) < requested - 0.001
+        isClamped(size: design.size, requested: requested)
     }
 
     static func isClamped(design: Design, requested: Int) -> Bool {
         isClamped(design: design, requested: Double(requested))
     }
 
-    /// The scale that puts the design's longer side at `pixels`. Platforms
+    /// The scale that puts a page's longer side at `pixels`. Platforms
     /// specify sizes, not multipliers — "1080 wide", "4K" — so this is what
-    /// the size field and the presets resolve through.
-    static func scale(forLongEdge pixels: Double, design: Design) -> Double {
-        let edge = max(design.width, design.height, 1)
+    /// the size field and the presets resolve through; worked out for each
+    /// page at its own size, so every page of an export comes out that long.
+    static func scale(forLongEdge pixels: Double, size: CGSize) -> Double {
+        let edge = max(Double(size.width), Double(size.height), 1)
         return max(0.05, pixels / edge)
     }
 
+    static func scale(forLongEdge pixels: Double, design: Design) -> Double {
+        scale(forLongEdge: pixels, size: design.size)
+    }
+
     /// The longer side, in pixels, at the requested scale after the budget.
+    static func longEdge(size: CGSize, requested: Double) -> Double {
+        let out = outputSize(size: size, requested: requested)
+        return max(Double(out.width), Double(out.height))
+    }
+
     static func longEdge(design: Design, requested: Double) -> Double {
-        let size = outputSize(design: design, requested: requested)
-        return max(size.width, size.height)
+        longEdge(size: design.size, requested: requested)
     }
 
     /// A named output size. Long edge only: the short edge follows the
@@ -189,8 +213,12 @@ enum DesignExporter {
     /// at 4:2:0 chroma: about 0.55 bits per pixel at quality 0.5, scaling with
     /// roughly the square of quality.
     static func estimatedJPEGBytes(design: Design, requested: Double, quality: Double) -> Int {
-        let size = outputSize(design: design, requested: requested)
-        let pixels = size.width * size.height
+        estimatedJPEGBytes(size: design.size, requested: requested, quality: quality)
+    }
+
+    static func estimatedJPEGBytes(size pageSize: CGSize, requested: Double, quality: Double) -> Int {
+        let size = outputSize(size: pageSize, requested: requested)
+        let pixels = Double(size.width) * Double(size.height)
         let bitsPerPixel = 0.15 + 2.6 * pow(max(0, min(1, quality)), 2)
         return max(2_048, Int(pixels * bitsPerPixel / 8))
     }
@@ -207,7 +235,7 @@ enum DesignExporter {
         var rendered = page
         if transparent { rendered.background = .color("#00000000") }
         let renderer = ImageRenderer(content: PageRenderView(design: design, page: rendered))
-        renderer.scale = CGFloat(effectiveScale(design: design, requested: scale))
+        renderer.scale = CGFloat(effectiveScale(size: design.size(for: page), requested: scale))
         // Opaque unless asked otherwise: every page background is a
         // colour, a gradient, or an image over white, so compositing an
         // alpha channel is work both encoders would discard.
@@ -263,10 +291,14 @@ enum DesignExporter {
     /// Separate files rather than one strip: a page range exists so each page
     /// can be posted or sent on its own, and stitching them back apart is
     /// exactly the work this is meant to save.
+    ///
+    /// With a `longEdge` above 0, each page is scaled so its own longer side
+    /// is that many pixels — a deck of mixed sizes all come out 1080 on the
+    /// long side — and `scale` is ignored.
     @MainActor
     static func exportPages(design: Design, range: PageRange, current: Int,
-                            format: RasterFormat, scale: Double, quality: Double = 0.92,
-                            transparent: Bool = false,
+                            format: RasterFormat, scale: Double, longEdge: Double = 0,
+                            quality: Double = 0.92, transparent: Bool = false,
                             progress: ((Double) -> Void)? = nil) throws -> [URL] {
         let indices = range.indices(in: design, current: current)
         guard !indices.isEmpty else { throw ExportError.renderFailed }
@@ -280,8 +312,10 @@ enum DesignExporter {
             }
             let suffix = indices.count > 1 ? "-\(index + 1)" : ""
             let url = fileURL(for: design, ext: format.ext, suffix: suffix)
-            try exportRaster(design: design, page: design.pages[index], format: format,
-                             scale: scale, quality: quality, transparent: transparent, to: url)
+            let page = design.pages[index]
+            let pageScale = longEdge > 0 ? DesignExporter.scale(forLongEdge: longEdge, size: design.size(for: page)) : scale
+            try exportRaster(design: design, page: page, format: format,
+                             scale: pageScale, quality: quality, transparent: transparent, to: url)
             urls.append(url)
             progress?(Double(n + 1) / Double(indices.count))
         }

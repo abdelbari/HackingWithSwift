@@ -133,17 +133,13 @@ struct HomeView: View {
             Spacer()
         }
         .padding(.horizontal)
-        .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
+        // Any file, not only JSON: a design sent from Android can arrive as
+        // plain text or bare bytes, depending on the app it came through, so
+        // what is inside decides.
+        .fileImporter(isPresented: $importing, allowedContentTypes: [.json, .data]) { result in
             guard case .success(let url) = result else { return }
-            let scoped = url.startAccessingSecurityScopedResource()
-            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
             do {
-                // Mapped rather than read in whole: a file carrying clips
-                // can run to a hundred megabytes and more, and mapped, its
-                // pages are the file's rather than the app's memory.
-                let data = try Data(contentsOf: url, options: .mappedIfSafe)
-                let design = try DesignPackage.import(data)
-                onOpen(design)
+                onOpen(try DesignPackage.importFile(at: url, taken: recents.map(\.title)))
             } catch {
                 importError = error.localizedDescription
             }

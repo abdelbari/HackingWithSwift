@@ -221,7 +221,44 @@ enum DesignPackage {
 
     enum ImportError: LocalizedError {
         case notAPackage
-        var errorDescription: String? { "This file is not a Canvia design." }
+        case tooBig
+        var errorDescription: String? {
+            switch self {
+            case .notAPackage: return "This file is not a Canvia design."
+            case .tooBig: return "That design file is too big to open."
+            }
+        }
+    }
+
+    /// The largest design file either phone opens, as the Android twin draws
+    /// the line.
+    static let maxFileBytes = 200 * 1024 * 1024
+
+    /// A design file at `url` — picked in the app, or handed over by Files,
+    /// Mail or another app's share sheet — read in as a new design, named so
+    /// it repeats no title in `taken` ("Poster" beside a "Poster" becomes
+    /// "Poster 2"). What is inside decides, not the type it came as.
+    static func importFile(at url: URL, taken: [String]) throws -> Design {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+        guard size <= maxFileBytes else { throw ImportError.tooBig }
+        // Mapped rather than read in whole: a file carrying clips can run to
+        // a hundred megabytes and more, and mapped, its pages are the file's
+        // rather than the app's memory.
+        let data = try Data(contentsOf: url, options: .mappedIfSafe)
+        var design = try `import`(data)
+        design.title = Titles.unique(design.title, taken: taken)
+        return design
+    }
+
+    /// The copy the system puts in Documents/Inbox when a file is handed
+    /// over, deleted once it has been read in: it is not the app's to keep.
+    static func discardInboxCopy(_ url: URL) {
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let inbox = documents.appendingPathComponent("Inbox", isDirectory: true).resolvingSymlinksInPath().path
+        guard url.resolvingSymlinksInPath().path.hasPrefix(inbox + "/") else { return }
+        try? FileManager.default.removeItem(at: url)
     }
 
     /// The design inside, as a new document (new id, fresh media ids, the

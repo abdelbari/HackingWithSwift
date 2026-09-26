@@ -19,7 +19,7 @@ private struct AccentButtonStyle: ButtonStyle {
 }
 
 enum EditorSheet: String, Identifiable {
-    case insert, colorFill, colorText, colorLine, colorStroke, background
+    case insert, colorFill, colorText, colorLine, colorStroke, colorSelection, background
     case fonts, effects, spacing, filters, crop, position, layers, export, resize, find, frame, shadow
     case history, proofread, theme, help, contrast, brand
     var id: String { rawValue }
@@ -738,6 +738,14 @@ struct EditorView: View {
                                      if ($0.strokeWidth ?? 0) == 0 { $0.strokeWidth = 4 }
                                  }
                              })
+        case .colorSelection:
+            // Several things at once: each takes the colour its own way.
+            ColorPickerSheet(store: store, title: "Color",
+                             current: nil,
+                             allowGradients: store.selectionTakesGradient,
+                             onPick: { c in store.recolourSelection(c) },
+                             onPickGradient: { p in store.recolourSelection(gradient: p) },
+                             onPickTransient: { c in store.recolourSelectionTransient(c) })
         case .background:
             BackgroundSheet(store: store)
         case .fonts:

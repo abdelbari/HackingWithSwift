@@ -95,6 +95,13 @@ struct PresentationView: View {
         .position(x: size.width / 2, y: size.height / 2)
         .accessibilityLabel("Page \(index + 1) of \(design.pages.count)")
         .accessibilityActions {
+            // Turning the page without a swipe or a tap on its edge, for
+            // VoiceOver and Switch Control — the same turn, transition and
+            // autoplay a swipe gives. Both are always there, as on the
+            // Android twin; at either end the one that goes nowhere does
+            // nothing.
+            Button("Next page") { go(1) }
+            Button("Previous page") { go(-1) }
             ForEach(Self.links(on: shown, in: design), id: \.self) { url in
                 Button("Open \(Links.shown(url))") {
                     if let target = URL(string: url) { openURL(target) }

@@ -268,12 +268,14 @@ enum SVGExporter {
         case .color(let hex):
             return "<rect width=\"\(num(size.width))\" height=\"\(num(size.height))\" " +
                    "fill=\"\(escape(hex))\"/>"
-        case .gradient(let paint):
+        case .gradient(let paint) where paint.gradientKind != "angular":
             defs.append(gradientDef(id: "bg", paint: paint,
                                     width: size.width, height: size.height))
             return "<rect width=\"\(num(size.width))\" height=\"\(num(size.height))\" " +
                    "fill=\"url(#bg)\"/>"
-        case .image:
+        // SVG has no conic gradient, so an angular background ships as the
+        // pixels the canvas draws, as a picture background does.
+        case .gradient, .image:
             let renderer = ImageRenderer(content: PageBackgroundView(design: design, page: page))
             renderer.scale = bitmapScale
             renderer.isOpaque = true
@@ -343,6 +345,8 @@ private struct PageBackgroundView: View {
         Group {
             if case .image(let src) = page.background, let ui = PhotoLibrary.resolve(src) {
                 Image(uiImage: ui).resizable().aspectRatio(contentMode: .fill)
+            } else if case .gradient(let paint) = page.background {
+                paint.fillView()
             } else {
                 Color.white
             }

@@ -114,17 +114,23 @@ struct ExportSheet: View {
                 Text("3×").tag(3.0)
             }
             .pickerStyle(.segmented)
-            // The size people are actually told to produce. Typing 1080
-            // sets whatever scale puts the long side there.
+            // A multiplier chosen is what applies; a long edge typed, while
+            // it is there, wins.
+            .onChange(of: scale) { longEdgeText = "" }
+            // The size people are actually told to produce. Typing 1080 puts
+            // every exported page's long side there, each at its own size.
             HStack {
                 Text("Long edge")
                 Spacer()
-                TextField("px", text: $longEdgeText)
+                TextField(longEdgePlaceholder, text: $longEdgeText)
                     .keyboardType(.numberPad)
                     .multilineTextAlignment(.trailing)
                     .frame(width: 90)
-                    .onSubmit(applyLongEdge)
-                    .onChange(of: longEdgeText) { applyLongEdge() }
+                    .onChange(of: longEdgeText) {
+                        // Digits only, five at most, as the Android twin takes them.
+                        let digits = String(longEdgeText.filter(\.isNumber).prefix(5))
+                        if digits != longEdgeText { longEdgeText = digits }
+                    }
                 Text("px").foregroundStyle(.secondary)
                 Menu {
                     ForEach(DesignExporter.sizePresets) { preset in
@@ -154,10 +160,32 @@ struct ExportSheet: View {
         }
     }
 
-    private func applyLongEdge() {
-        guard let px = Double(longEdgeText.trimmingCharacters(in: .whitespaces)), px >= 16 else { return }
-        let next = DesignExporter.scale(forLongEdge: px, design: exportedDesign)
-        if abs(next - scale) > 0.0001 { scale = next }
+    /// The long edge typed, when it is one: a number of at least 16 pixels.
+    private var typedLongEdge: Double? {
+        guard let px = Double(longEdgeText), px >= 16 else { return nil }
+        return px
+    }
+
+    /// The scale page `index` of `design` is exported at: from the long edge
+    /// typed, at that page's own size, or else the multiplier.
+    private func pageScale(_ index: Int, in design: Design) -> Double {
+        guard let px = typedLongEdge else { return scale }
+        return DesignExporter.scale(forLongEdge: px, size: design.size(at: index))
+    }
+
+    /// The pages an export will write, of the design it renders.
+    private var exportedIndices: [Int] {
+        exportedRange.indices(in: exportedDesign, current: exportedPageIndex)
+    }
+
+    /// The page the size readout and warnings speak for: the one exported,
+    /// or the first of several.
+    private var shownIndex: Int { exportedIndices.first ?? 0 }
+
+    private var longEdgePlaceholder: String {
+        let design = exportedDesign
+        let edge = DesignExporter.longEdge(size: design.size(at: shownIndex), requested: scale)
+        return "\(Int(edge))"
     }
 
     /// A selection export is a one-page design, so it is always "this page"
@@ -184,20 +212,27 @@ struct ExportSheet: View {
     /// be stretched past the pixels it has.
     private var resolutionWarning: String? {
         let design = exportedDesign
-        let edge = DesignExporter.longEdge(design: design, requested: scale)
+        let shown = shownIndex
+        let edge = DesignExporter.longEdge(size: design.size(at: shown), requested: pageScale(shown, in: design))
         if edge < DesignExporter.softBelowLongEdge {
             return "Only \(Int(edge)) px on the long side — will look soft on most screens."
         }
-        let effective = DesignExporter.effectiveScale(design: design, requested: scale)
-        let upscaled = DesignExporter.upscaledImages(page: design.pages[0], scale: effective,
-                                                     pixelSize: { src in
-            PhotoLibrary.resolve(src).map { CGSize(width: $0.size.width * $0.scale,
-                                                    height: $0.size.height * $0.scale) }
-        })
-        guard !upscaled.isEmpty else { return nil }
-        return upscaled.count == 1
+        // Every page that goes out, each at the scale it will render at —
+        // not only the first page, which may not even be among them.
+        var blurry = 0
+        for index in exportedIndices {
+            let effective = DesignExporter.effectiveScale(size: design.size(at: index),
+                                                          requested: pageScale(index, in: design))
+            blurry += DesignExporter.upscaledImages(page: design.pages[index], scale: effective,
+                                                    pixelSize: { src in
+                PhotoLibrary.resolve(src).map { CGSize(width: $0.size.width * $0.scale,
+                                                        height: $0.size.height * $0.scale) }
+            }).count
+        }
+        guard blurry > 0 else { return nil }
+        return blurry == 1
             ? "One photo has fewer pixels than this size needs and will look blurry."
-            : "\(upscaled.count) photos have fewer pixels than this size needs and will look blurry."
+            : "\(blurry) photos have fewer pixels than this size needs and will look blurry."
     }
 
     private var jpegSection: some View {
@@ -207,7 +242,8 @@ struct ExportSheet: View {
         } header: {
             Text("JPEG quality")
         } footer: {
-            Text("\(percent)% — about \(estimatedSize). PNG and PDF are lossless and ignore this.")
+            let each = exportedIndices.count > 1 ? " a page" : ""
+            Text("\(percent)% — about \(estimatedSize)\(each). PNG and PDF are lossless and ignore this.")
         }
     }
 
@@ -291,7 +327,7 @@ struct ExportSheet: View {
         if let format {
             urls = try DesignExporter.exportPages(
                 design: exportedDesign, range: exportedRange, current: exportedPageIndex,
-                format: format, scale: scale, quality: jpegQuality,
+                format: format, scale: scale, longEdge: typedLongEdge ?? 0, quality: jpegQuality,
                 transparent: transparent && format == .png,
                 progress: { progress = $0 })
         } else {
@@ -328,11 +364,14 @@ struct ExportSheet: View {
         }
     }
 
+    /// The page on screen — or the selection, cut to its bounds — as one
+    /// image on the clipboard. It copied the first page whichever was open.
     @MainActor
     private func copyToClipboard() throws {
         let design = exportedDesign
-        guard let cg = DesignExporter.render(design: design, page: design.pages[0],
-                                             scale: scale, transparent: transparent)
+        let index = min(max(exportedPageIndex, 0), design.pages.count - 1)
+        guard let cg = DesignExporter.render(design: design, page: design.pages[index],
+                                             scale: pageScale(index, in: design), transparent: transparent)
         else { throw DesignExporter.ExportError.renderFailed }
         UIPasteboard.general.image = UIImage(cgImage: cg)
         copied = true
@@ -547,16 +586,28 @@ struct ExportSheet: View {
         .disabled(exporting)
     }
 
+    /// The pixel size of the page shown — each page is sized on its own, so
+    /// a deck of mixed sizes says so.
     private var sizeNote: String {
-        let size = DesignExporter.outputSize(design: exportedDesign, requested: scale)
-        let dims = "\(Int(size.width)) × \(Int(size.height)) px"
-        guard DesignExporter.isClamped(design: exportedDesign, requested: scale) else { return dims }
-        return dims + " — reduced from \(String(format: "%.1f", scale))× so the render fits in memory."
+        let design = exportedDesign
+        let pageSize = design.size(at: shownIndex)
+        let requested = pageScale(shownIndex, in: design)
+        let size = DesignExporter.outputSize(size: pageSize, requested: requested)
+        var note = "\(Int(size.width)) × \(Int(size.height)) px"
+        if DesignExporter.isClamped(size: pageSize, requested: requested) {
+            note += " — reduced from \(String(format: "%.1f", requested))× so the render fits in memory"
+        }
+        if exportedIndices.count > 1 && design.hasMixedPageSizes {
+            note += " for this page; each page at its own size"
+        }
+        return note + "."
     }
 
     private var estimatedSize: String {
-        let bytes = DesignExporter.estimatedJPEGBytes(design: exportedDesign,
-                                                      requested: scale, quality: jpegQuality)
+        let design = exportedDesign
+        let bytes = DesignExporter.estimatedJPEGBytes(size: design.size(at: shownIndex),
+                                                      requested: pageScale(shownIndex, in: design),
+                                                      quality: jpegQuality)
         return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
     }
 
@@ -564,7 +615,7 @@ struct ExportSheet: View {
     private func export(_ format: DesignExporter.RasterFormat) throws {
         let urls = try DesignExporter.exportPages(
             design: exportedDesign, range: exportedRange, current: exportedPageIndex,
-            format: format, scale: scale, quality: jpegQuality,
+            format: format, scale: scale, longEdge: typedLongEdge ?? 0, quality: jpegQuality,
             // JPEG has no alpha channel to be transparent in.
             transparent: transparent && format == .png,
             progress: { progress = $0 })
