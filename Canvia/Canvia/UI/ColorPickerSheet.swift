@@ -78,12 +78,12 @@ struct ColorPickerSheet: View {
                         section("Document colors", colors: docColors)
                     }
 
-                    // The photo's own colours, when there is a photo: the
-                    // selected picture, or the page's background picture. A
-                    // caption over a photo in a colour from the photo is the
-                    // whole trick of making the two look like one design.
+                    // The colours of the photos on the page — every one, the
+                    // background too, whatever is selected. A caption over a
+                    // photo in a colour from the photo is the whole trick of
+                    // making the two look like one design.
                     if !photoColors.isEmpty {
-                        section("From the photo", colors: photoColors)
+                        section("From the photos", colors: photoColors)
                     }
 
                     harmonySection
@@ -135,7 +135,16 @@ struct ColorPickerSheet: View {
         }
         .presentationDetents(sheetDetents)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-        .onAppear { photoColors = photoPalette }
+        // Read again when the page's photos change; the pictures load here
+        // and their colours are read off the main thread.
+        .task(id: PhotoPalette.sources(on: store.page)) {
+            let pictures = Array(PhotoPalette.sources(on: store.page).lazy
+                .compactMap { PhotoLibrary.resolve($0) }.prefix(4))
+            let colours = await Task.detached(priority: .userInitiated) {
+                PhotoPalette.fromPhotos(pictures)
+            }.value
+            photoColors = colours
+        }
         // Continuous picking runs through transient updates; record the whole
         // session as one undo step however the sheet closes.
         .onDisappear {
@@ -224,19 +233,6 @@ struct ColorPickerSheet: View {
                 }
             }
         }
-    }
-
-    private var photoPalette: [String] {
-        let src: String?
-        if let el = store.singleSelection, el.type == .image {
-            src = el.src
-        } else if case .image(let background) = store.page.background {
-            src = background
-        } else {
-            return []
-        }
-        guard let src, let image = PhotoLibrary.resolve(src) else { return [] }
-        return PhotoPalette.extract(from: image)
     }
 
     /// One place every swatch tap goes through, so nothing can pick a colour

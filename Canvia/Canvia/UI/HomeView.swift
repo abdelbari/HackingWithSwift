@@ -337,7 +337,8 @@ struct HomeView: View {
                 HStack(spacing: 12) {
                     ForEach(SizePreset.all) { preset in
                         Button {
-                            onOpen(Design(title: "Untitled \(preset.name)",
+                            // Never a title already on the shelf.
+                            onOpen(Design(title: Titles.unique("Untitled \(preset.name)", taken: recents.map(\.title)),
                                           width: preset.w, height: preset.h))
                         } label: {
                             VStack(spacing: 8) {
@@ -378,7 +379,8 @@ struct HomeView: View {
                 Button {
                     let w = min(4000, max(40, Double(customW) ?? 1080))
                     let h = min(4000, max(40, Double(customH) ?? 1080))
-                    onOpen(Design(title: "Untitled design", width: w, height: h))
+                    onOpen(Design(title: Titles.unique("Untitled design", taken: recents.map(\.title)),
+                                  width: w, height: h))
                 } label: {
                     Text("Create custom")
                         .fontWeight(.semibold)

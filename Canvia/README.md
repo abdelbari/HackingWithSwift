@@ -87,8 +87,9 @@ duplicate / delete via long-press), and a template gallery.
 - Photos import several at once (up to ten, landing as a cascade), keep
   their transparency when they have any — a PNG logo is stored as PNG,
   an opaque screenshot as the far smaller JPEG — and every colour picker
-  offers "From the photo": the six most prominent colours of the selected
-  picture or the page's background picture, read from its pixels.
+  offers "From the photos": up to eight colours read from the pixels of
+  every photo on the page, the background picture first, taken in turn so
+  each photo has its say.
 - Animation: any element can arrive — fade, rise, pop, slide from either
   side — and text can reveal by letter, by word, letter-pop or line-rise;
   Animate on the toolbar staggers a selection in layer order. One pure
@@ -170,8 +171,13 @@ duplicate / delete via long-press), and a template gallery.
   grouped, filled with Replace.
 - Copy and paste go through the system pasteboard too: elements survive
   switching designs or quitting, a copied text element pastes into other
-  apps as text, and a picture or text copied elsewhere pastes in as a
-  photo or a text element.
+  apps as text, without the asterisks and underscores that style it, and
+  a picture or text copied elsewhere pastes in as a photo or a text
+  element.
+- A design names itself: while its title is still the one the app gave
+  it, editing its headline — the biggest text on the first page — makes
+  that its name, in the same Undo; a name you type yourself stays. A new
+  design never repeats a title already on the shelf.
 - A help centre in the menu: searchable, offline, every topic with a
   "Show me" that opens the sheet it describes. Contextual tips under the
   top bar — first element, first text, first photo, first multi-selection,
@@ -304,7 +310,10 @@ other adjustments.
 **Connectors** — select two elements and Connect draws an arrow from the
 edge of one to the edge of the other that is laid again whenever either
 moves, resizes or is undone; delete an end and the arrow stays where it
-was as a plain line. Flow charts and org charts keep their arrows.
+was as a plain line. Flow charts and org charts keep their arrows — and
+so do their copies: duplicate, paste, a duplicated or pasted page and a
+component each join a copied arrow to the copies of its ends, letting go
+of an end that did not come along.
 
 **Siri and Shortcuts** — two App Intents: *New Design* at a chosen size
 (Instagram post or story, presentation, YouTube thumbnail, poster, flyer)
@@ -326,7 +335,8 @@ have no partner stay literal.
 export lays it under the picture, looped or trimmed to the video's length
 at a chosen volume, fading out over the last second. Audio lives in
 Documents/audio by id and is muxed with AVFoundation onto the finished
-video.
+video. The row shows the music's own file name, kept beside it on this
+phone, and a file with no sound in it is turned away.
 
 **Right to left** — a text whose first letter is Hebrew, Arabic or another
 right-to-left script lays out from the right, and its indents and list

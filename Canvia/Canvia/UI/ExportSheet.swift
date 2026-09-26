@@ -15,6 +15,7 @@ struct ExportSheet: View {
     @State private var copied = false
     @State private var paper = PrintLayout.Options()
     @State private var pickingAudio = false
+    @State private var audioRefused = false
     @State private var audioSeconds: Double?
     @State private var jpegQuality = 0.92
     @State private var transparent = false
@@ -471,12 +472,27 @@ struct ExportSheet: View {
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
             // The one it replaces is left where it is, for the same reason
             // as a removal: something else may still play it.
-            guard let id = AudioStore.store(url) else { return }
-            binding.wrappedValue.soundtrack = id
-            Task { audioSeconds = await AudioStore.duration(of: id) }
+            guard let id = AudioStore.store(url) else {
+                audioRefused = true
+                return
+            }
+            // Only music that plays becomes the soundtrack: a file with no
+            // sound in it would make a silent video without a word.
+            Task {
+                guard let seconds = await AudioStore.duration(of: id), seconds > 0 else {
+                    AudioStore.delete(id)
+                    audioRefused = true
+                    return
+                }
+                binding.wrappedValue.soundtrack = id
+                audioSeconds = seconds
+            }
         }
         .task(id: current) {
             if let id = current { audioSeconds = await AudioStore.duration(of: id) }
+        }
+        .alert("That file isn't music this phone can play", isPresented: $audioRefused) {
+            Button("OK", role: .cancel) {}
         }
         if current != nil && !here {
             Text("This music was chosen on another phone. Choose it again here to hear it in the video.")
@@ -495,8 +511,9 @@ struct ExportSheet: View {
         }
     }
 
-    /// What the soundtrack row says: nothing chosen, the file's kind, or
-    /// that it was chosen on another phone and is not on this one.
+    /// What the soundtrack row says: nothing chosen, the music's own name
+    /// (or its kind), or that it was chosen on another phone and is not on
+    /// this one.
     private func soundtrackLabel(_ id: String?, here: Bool) -> String {
         guard let id else { return "No soundtrack" }
         return here ? AudioStore.label(for: id) : "Music from another phone"

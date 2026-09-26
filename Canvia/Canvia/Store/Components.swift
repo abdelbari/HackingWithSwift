@@ -60,16 +60,18 @@ enum Components {
     }
 
     /// A copy of the component sized to `width` across (height follows),
-    /// placed with its top-left at `origin`, with fresh ids and one fresh
-    /// group so it moves as a unit.
+    /// placed with its top-left at `origin`, with fresh ids, one fresh group
+    /// so it moves as a unit, and arrows between its own elements joined to
+    /// their copies — an arrow to something that did not come along is
+    /// joined to nothing (see Copies).
     static func instance(of component: Component, width: Double, at origin: CGPoint) -> [Element] {
         guard component.width > 0, component.height > 0 else { return [] }
         let from = CGRect(x: 0, y: 0, width: component.width, height: component.height)
         let to = CGRect(x: origin.x, y: origin.y, width: width, height: width * component.height / component.width)
         let group = UID.make("grp")
-        return Geometry.scale(component.elements, from: from, to: to).map { el in
+        let scaled = Geometry.scale(component.elements, from: from, to: to)
+        return Copies.of(scaled, keepingLocks: true).map { el in
             var e = el
-            e.id = UID.make()
             e.group = group
             return e
         }

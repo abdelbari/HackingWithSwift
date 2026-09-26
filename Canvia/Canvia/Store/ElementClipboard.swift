@@ -15,9 +15,23 @@ enum ElementClipboard {
     static func write(_ elements: [Element], to pasteboard: UIPasteboard = .general) {
         guard let data = try? JSONEncoder().encode(elements) else { return }
         var item: [String: Any] = [type: data]
-        let text = elements.compactMap { $0.type == .text ? $0.text : nil }.joined(separator: "\n")
+        let text = plainText(of: elements)
         if !text.isEmpty { item["public.utf8-plain-text"] = text }
         pasteboard.items = [item]
+    }
+
+    /// The words of the text elements as another app should get them: the
+    /// style marks gone — "**SALE** today" pasted into Messages came out with
+    /// its asterisks — and blank ones left out, one text a line. Pasting back
+    /// into Canvia reads the elements themselves, so the styling survives
+    /// there. The Android twin copies the same words.
+    static func plainText(of elements: [Element]) -> String {
+        elements.compactMap { el -> String? in
+            guard el.type == .text, let text = el.text else { return nil }
+            let words = RichText.strip(text)
+            return words.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : words
+        }
+        .joined(separator: "\n")
     }
 
     /// Our own elements, if the pasteboard carries them.

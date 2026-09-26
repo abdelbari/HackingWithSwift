@@ -37,25 +37,12 @@ enum PageClipboard {
     }
 
     /// The page as it should land in a design of `width` × `height`: fresh
-    /// ids (a paste next to its source must not share them), and scaled to
+    /// ids (a paste next to its source must not share them), groups under
+    /// new keys and arrows joined to the copies (see Copies), and scaled to
     /// fit when the sizes differ, centred on the shorter axis — the same
     /// rule resizing a design uses, for the same reason.
     static func fitted(_ payload: Payload, width: Double, height: Double) -> Page {
-        var page = payload.page
-        page.id = UID.make("page")
-        page.elements = page.elements.map { el in
-            var e = el
-            e.id = UID.make()
-            return e
-        }
-        // Groups keep their members together, under new keys.
-        var groups: [String: String] = [:]
-        for i in page.elements.indices {
-            if let g = page.elements[i].group {
-                if groups[g] == nil { groups[g] = UID.make("grp") }
-                page.elements[i].group = groups[g]
-            }
-        }
+        var page = Copies.of(payload.page)
         guard payload.width > 0, payload.height > 0,
               payload.width != width || payload.height != height else { return page }
         let scale = min(width / payload.width, height / payload.height)

@@ -14,6 +14,42 @@ import UIKit
 
 enum PhotoPalette {
 
+    /// The photos on a page, for its "From the photos" swatches: the
+    /// background picture first, then every photo in drawing order — not a
+    /// code, which is black and white by design — each once. Every photo on
+    /// the page, whatever is selected, as the Android twin gathers them.
+    static func sources(on page: Page) -> [String] {
+        var out: [String] = []
+        if case .image(let src) = page.background { out.append(src) }
+        for el in page.elements where el.type == .image {
+            guard let src = el.src, CodeGenerator.payload(from: src) == nil else { continue }
+            out.append(src)
+        }
+        var seen = Set<String>()
+        return out.filter { seen.insert($0).inserted }
+    }
+
+    /// Several photos' palettes as one row: the first colour of each, then
+    /// the second of each, and so on — so every photo gets a say before any
+    /// gets two — each colour once, up to `limit`.
+    static func merged(_ palettes: [[String]], limit: Int = 8) -> [String] {
+        var out: [String] = []
+        var seen = Set<String>()
+        let longest = palettes.map(\.count).max() ?? 0
+        for i in 0..<longest {
+            for palette in palettes where i < palette.count {
+                if seen.insert(palette[i]).inserted { out.append(palette[i]) }
+                if out.count == limit { return out }
+            }
+        }
+        return out
+    }
+
+    /// Up to eight colours drawn from the first four `images`.
+    static func fromPhotos(_ images: [UIImage]) -> [String] {
+        merged(images.prefix(4).map { extract(from: $0) })
+    }
+
     /// Up to `count` colours, most prominent first, each at least `minDistance`
     /// apart (in 0…255 RGB units, Euclidean) from every colour before it.
     static func extract(from image: UIImage, count: Int = 6,

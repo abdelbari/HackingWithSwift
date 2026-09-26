@@ -71,8 +71,13 @@ final class DesignStore {
 
     var onCommit: (() -> Void)?
 
+    /// The first page's words, by element, as of the last step: what tells
+    /// an edit to the headline from the headline becoming another text.
+    @ObservationIgnored private var lastWords: [String: String] = [:]
+
     init(design: Design) {
         self.design = design
+        self.lastWords = Self.words(of: design)
     }
 
     var page: Page {
@@ -114,12 +119,40 @@ final class DesignStore {
         guard let entry = pending else { return }
         // Connectors follow their ends as part of the same step.
         Connectors.resolve(in: &design)
+        // And a design still named by the app takes its headline as its name,
+        // in this same step, so one Undo takes back the words and the name.
+        adoptHeadline()
+        lastWords = Self.words(of: design)
         past.append(entry)
         if past.count > historyLimit { past.removeFirst() }
         future.removeAll()
         pending = nil
         design.updatedAt = Date().timeIntervalSince1970 * 1000
         onCommit?()
+    }
+
+    /// While the title is still the app's, the design is named after its
+    /// headline — but only when this step changed the headline's own words:
+    /// not when another text became the headline, by a delete, a resize or a
+    /// reorder, when the name would come from words nobody typed. Nor when
+    /// the edit was to a line of the headline the title does not come from.
+    private func adoptHeadline() {
+        guard design.titleAuto, let head = Titles.headlineElement(design),
+              let before = lastWords[head.id], before != head.text,
+              let title = Titles.title(from: head) else { return }
+        var old = head
+        old.text = before
+        guard title != Titles.title(from: old), title != design.title else { return }
+        design.title = title
+    }
+
+    /// Every text on the first page, by element.
+    private static func words(of design: Design) -> [String: String] {
+        var words: [String: String] = [:]
+        for el in design.pages.first?.elements ?? [] {
+            if let text = el.text { words[el.id] = text }
+        }
+        return words
     }
 
     /// End a gesture that changed nothing, without recording history.
@@ -212,6 +245,9 @@ final class DesignStore {
 
     private func restore(_ entry: HistoryEntry) {
         design = entry.design
+        // An undone step brings words back rather than typing them: it never
+        // renames the design.
+        lastWords = Self.words(of: design)
         pageIndex = min(entry.pageIndex, design.pages.count - 1)
         let ids = Set(page.elements.map(\.id))
         selection = selection.intersection(ids)
@@ -274,24 +310,12 @@ final class DesignStore {
     }
 
     func duplicateSelected() {
-        let copies = Self.remapGroups(selectedElements.filter { !$0.locked }.map { $0.duplicated() })
+        let copies = Copies.of(selectedElements.filter { !$0.locked }, offset: 24)
         guard !copies.isEmpty else { return }
         applyToPage { $0.elements.append(contentsOf: copies) }
         selection = Set(copies.map(\.id))
     }
 
-    /// Copies must not stay welded to the source's group: re-key each source
-    /// group, preserving grouping *within* the copies.
-    private static func remapGroups(_ elements: [Element]) -> [Element] {
-        var map: [String: String] = [:]
-        return elements.map { element in
-            guard let group = element.group else { return element }
-            if map[group] == nil { map[group] = UID.make("grp") }
-            var copy = element
-            copy.group = map[group]
-            return copy
-        }
-    }
 
     // MARK: clipboard
 
@@ -338,11 +362,7 @@ final class DesignStore {
         pasteCount += 1
         // Copies arrive unlocked: locked is a property of the original, and a
         // pasted element the user cannot move, edit or delete is a dead end.
-        let copies = Self.remapGroups(clipboard.map { element -> Element in
-            var copy = element.duplicated(offset: 24 * Double(pasteCount))
-            copy.locked = false
-            return copy
-        })
+        let copies = Copies.of(clipboard, offset: 24 * Double(pasteCount))
         applyToPage { $0.elements.append(contentsOf: copies) }
         selection = Set(copies.map(\.id))
     }
@@ -961,13 +981,7 @@ final class DesignStore {
     }
 
     func duplicatePage() {
-        var copy = page
-        copy.id = UID.make("page")
-        copy.elements = copy.elements.map {
-            var el = $0
-            el.id = UID.make()
-            return el
-        }
+        let copy = Copies.of(page)
         apply { $0.pages.insert(copy, at: pageIndex + 1) }
         pageIndex += 1
         selection.removeAll()
@@ -1019,10 +1033,7 @@ final class DesignStore {
             for p in d.pages {
                 out.append(p)
                 if ids.contains(p.id) {
-                    var copy = p
-                    copy.id = UID.make("page")
-                    copy.elements = copy.elements.map { var el = $0; el.id = UID.make(); return el }
-                    out.append(copy)
+                    out.append(Copies.of(p))
                 }
             }
             d.pages = out
