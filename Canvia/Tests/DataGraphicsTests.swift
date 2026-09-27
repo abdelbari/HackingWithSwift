@@ -93,7 +93,7 @@ final class DataGraphicsTests: XCTestCase {
         var el = Element.shape("rect", w: 100, h: 100)
         el.pathData = "M0 0 L100 0 L50 100 Z"   // a triangle
         XCTAssertEqual(ContentLibrary.shape(for: el).path, el.pathData)
-        XCTAssertEqual(CanvasAccessibility.label(for: el), "Custom shape")
+        XCTAssertEqual(CanvasAccessibility.label(for: el), "Purple custom shape")
         var d = Design(title: "p", width: 200, height: 200)
         d.pages[0].elements = [el]
         let svg = SVGExporter.svg(design: d, page: d.pages[0])

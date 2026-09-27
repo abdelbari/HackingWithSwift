@@ -116,8 +116,9 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   templates, sorts by last edited, name or page count, and keeps deleted
   designs in a Recently deleted section for thirty days, with Restore
   and Delete forever. Their photos and version history wait with them.
-- VoiceOver on the canvas: every element is named (what it is, and what
-  it says if it is text), valued (where and how big, in percentages of
+- VoiceOver on the canvas: every element is named as the Layers sheet
+  and the snap guides name it — "Heading: SALE", "Red oval", "Blue line",
+  "QR code", "Empty photo frame" — or by its alt text, valued (where and how big, in percentages of
   the page, plus rotation and lock) and carries actions — add to or
   remove from the selection, move in four directions, duplicate, delete,
   layer order, edit text — so the whole page can be arranged without a
@@ -163,8 +164,9 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   design and everything snaps to them. An eyedropper in every colour
   picker samples any colour from the rendered design.
 - Saved, linked text styles: name a look ("Heading", "Price"), apply it
-  to any text from the Styles menu, and update it from one element to
-  change every element that follows it, on every page, as one undo step.
+  to any text from the Styles popover — each style shown in its own face,
+  the one followed ticked — and update it from one element to change
+  every element that follows it, on every page, as one undo step.
 - Favourites: star any shape, photo, sticker or template (press and hold)
   and it leads its tab; components: save a selection under a name and
   drop it into any design at half the page's width, grouped, with fresh
@@ -203,11 +205,18 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
 - Text boxes: auto-fit sizes the type to fill the box you draw; vertical
   alignment (top, middle, bottom) places shorter text in a taller box;
   shrink-to-fit closes the box onto its text. Justified alignment and
-  paragraph spacing join the type controls.
+  paragraph spacing join the type controls. The spacing sliders read out
+  their values — letter spacing as a share of the type size, over a range
+  that grows with it; line spacing 0.70–2.50; paragraph spacing "None" or
+  "0.4 em" — and fitting, vertical alignment, drop caps, curves and paths
+  wait, with a word why, where they would change nothing. Every type
+  control says its name and state to VoiceOver ("Align, Center", "Type
+  size, 42", "Curve, 45", "Neon effect, selected").
 - Pattern fills — stripes, dots, checks, grid, zigzag, crosshatch — drawn
   procedurally in any two colours so they stay sharp at every zoom and
   export, and photo fills that pour a picture into any shape; both from
-  the fill colour picker, both usable as page backgrounds.
+  the fill colour picker, both usable as page backgrounds. Text takes
+  colours and gradients only, since it never draws a pattern or a photo.
 - Photo grids: six layouts of empty frames (2 across, 3 across, 2 by 2,
   1 + 2, 1 over 3, 3 by 3) flush to the margins and one gutter apart,
   grouped, filled with Replace.

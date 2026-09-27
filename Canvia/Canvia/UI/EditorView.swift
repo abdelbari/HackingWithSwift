@@ -744,6 +744,7 @@ struct EditorView: View {
             ColorPickerSheet(store: store, title: "Text color",
                              current: store.singleSelection?.color,
                              allowGradients: true,
+                             allowPatterns: false,
                              onPick: { c in store.updateSelected { $0.color = c; $0.textFill = nil } },
                              onPickGradient: { p in store.updateSelected { $0.textFill = p } },
                              onPickTransient: { c in

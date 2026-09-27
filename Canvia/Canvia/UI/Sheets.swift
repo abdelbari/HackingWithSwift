@@ -153,6 +153,8 @@ struct FontSheet: View {
                         }
                     }
                     .foregroundStyle(.primary)
+                    .accessibilityLabel("\(stack.name) font")
+                    .accessibilityAddTraits(store.singleSelection?.fontFamily == stack.key ? .isSelected : [])
                 }
             }
             .navigationTitle("Fonts")
@@ -191,6 +193,8 @@ struct EffectsSheet: View {
                                     .stroke(active ? Theme.accent : .clear, lineWidth: 2)))
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel("\(effect.displayName) effect")
+                        .accessibilityAddTraits(active ? .isSelected : [])
                     }
                 }
                 .padding()
@@ -220,65 +224,18 @@ struct EffectsSheet: View {
 struct SpacingSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
+    /// The letter-spacing slider's ends, worked out once per box and size
+    /// so they never move under a drag, and what they were worked out for.
+    @State private var letterRange: ClosedRange<Double>?
+    @State private var letterRangeFor = ""
+    @State private var letterSliding = false
 
     var body: some View {
         NavigationStack {
             Form {
                 if let el = store.singleSelection {
-                    Section("Line height") {
-                        Slider(value: transientBinding(el.lineHeight ?? 1.25) { v, e in e.lineHeight = v },
-                               in: 0.8...2.4, step: 0.05)
-                    }
-                    Section("Letter spacing") {
-                        Slider(value: transientBinding(el.letterSpacing ?? 0) { v, e in e.letterSpacing = v },
-                               in: -2...20, step: 0.5)
-                    }
-                    Section {
-                        Slider(value: transientBinding(el.paragraphSpacing ?? 0) { v, e in
-                            e.paragraphSpacing = v < 0.01 ? nil : v
-                        }, in: 0...2, step: 0.1)
-                    } header: {
-                        Text("Paragraph spacing")
-                    } footer: {
-                        Text("Extra space after each line break, in ems.")
-                    }
-                    Section {
-                        Picker("Vertical alignment", selection: Binding(
-                            get: { el.vAlign ?? "top" },
-                            set: { v in store.updateSelected { $0.vAlign = v == "top" ? nil : v } })) {
-                            Text("Top").tag("top")
-                            Text("Middle").tag("middle")
-                            Text("Bottom").tag("bottom")
-                        }
-                        .pickerStyle(.segmented)
-                        Toggle("Auto-fit text to the box", isOn: Binding(
-                            get: { el.fitText == true },
-                            set: { on in
-                                store.updateSelected {
-                                    if on {
-                                        $0.fitText = true
-                                    } else {
-                                        // Keep the size it had fitted to, so
-                                        // turning it off changes nothing visible.
-                                        $0.fontSize = FontLibrary.fittingFontSize(for: $0)
-                                        $0.fitText = nil
-                                    }
-                                }
-                            }))
-                        Button("Shrink the box to the text") { store.shrinkWrapText() }
-                        Toggle("Drop cap", isOn: Binding(
-                            get: { el.dropCap == true },
-                            set: { on in
-                                store.updateSelected {
-                                    $0.dropCap = on ? true : nil
-                                    $0.h = FontLibrary.layoutHeight(for: $0)
-                                }
-                            }))
-                    } header: {
-                        Text("Text box")
-                    } footer: {
-                        Text("With auto-fit on, drag the box and the type resizes to fill it; the alignment places shorter text within a taller box.")
-                    }
+                    spacingSections(el)
+                    textBoxSection(el)
                 }
             }
             .navigationTitle("Spacing")
@@ -293,6 +250,122 @@ struct SpacingSheet: View {
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
         .onDisappear {
             if store.hasPendingChanges { store.commit() }
+        }
+    }
+
+    /// What the letter-spacing range is worked out for: the box, its stored
+    /// size and whether the type is fitted — not the fitted size itself,
+    /// which letter spacing changes as it is dragged.
+    private func letterKey(_ el: Element) -> String {
+        "\(el.id)|\(el.fontSize ?? 42)|\(el.fitText == true)"
+    }
+
+    /// Line height, letter spacing and paragraph spacing, each with its
+    /// value beside it and spoken, in the Android twin's words and ranges.
+    @ViewBuilder
+    private func spacingSections(_ el: Element) -> some View {
+        let size = FontLibrary.effectiveFontSize(for: el)
+        let tracking = el.letterSpacing ?? 0
+        let key = letterKey(el)
+        let fresh = TypeReadouts.letterSpacingRange(size: size, current: tracking)
+        let range = letterRangeFor == key ? (letterRange ?? fresh) : fresh
+        let lineHeight = el.lineHeight ?? 1.25
+        let paragraph = min(el.paragraphSpacing ?? 0, TypeReadouts.paragraphSpacingRange.upperBound)
+        Section("Line height") {
+            valueSlider("Line height", value: lineHeight, in: TypeReadouts.lineHeightRange,
+                        readout: TypeReadouts.lineHeight(lineHeight)) { v, e in e.lineHeight = v }
+        }
+        Section("Letter spacing") {
+            valueSlider("Letter spacing", value: tracking,
+                        in: min(range.lowerBound, tracking)...max(range.upperBound, tracking),
+                        readout: TypeReadouts.letterSpacing(tracking, size: size),
+                        sliding: $letterSliding) { v, e in e.letterSpacing = v }
+        }
+        .onChange(of: key, initial: true) { _, next in
+            guard !letterSliding else { return }
+            letterRangeFor = next
+            letterRange = fresh
+        }
+        Section {
+            valueSlider("Paragraph spacing", value: paragraph, in: TypeReadouts.paragraphSpacingRange,
+                        readout: TypeReadouts.paragraphSpacing(paragraph)) { v, e in
+                e.paragraphSpacing = v < 0.01 ? nil : v
+            }
+        } header: {
+            Text("Paragraph spacing")
+        } footer: {
+            Text("Extra space after each line break, in ems.")
+        }
+    }
+
+    /// Fit, vertical alignment, shrink-to-fit and the drop cap. Fitting and
+    /// placing mean nothing to words bent round a curve, set along a path or
+    /// stood in columns, and a drop cap nothing to a list or a curve, so
+    /// those wait — offered still to turn off when they are on.
+    private func textBoxSection(_ el: Element) -> some View {
+        let bent = TextOutliner.followsAPath(el)
+        let capped = el.dropCap == true
+        return Section {
+            Picker("Vertical alignment", selection: Binding(
+                get: { el.vAlign ?? "top" },
+                set: { v in store.updateSelected { $0.vAlign = v == "top" ? nil : v } })) {
+                Text("Top").tag("top")
+                Text("Middle").tag("middle")
+                Text("Bottom").tag("bottom")
+            }
+            .pickerStyle(.segmented)
+            .disabled(bent)
+            Toggle("Auto-fit text to the box", isOn: Binding(
+                get: { el.fitText == true },
+                set: { on in
+                    store.updateSelected {
+                        if on {
+                            $0.fitText = true
+                        } else {
+                            // Keep the size it had fitted to, so
+                            // turning it off changes nothing visible.
+                            $0.fontSize = FontLibrary.fittingFontSize(for: $0)
+                            $0.fitText = nil
+                        }
+                    }
+                }))
+            .disabled(bent && el.fitText != true)
+            Button("Shrink the box to the text") { store.shrinkWrapText() }
+            Toggle("Drop cap", isOn: Binding(
+                get: { capped },
+                set: { on in
+                    store.updateSelected {
+                        $0.dropCap = on ? true : nil
+                        $0.h = FontLibrary.layoutHeight(for: $0)
+                    }
+                }))
+            .disabled(!capped && (FontLibrary.isList(el) || el.curve != nil))
+        } header: {
+            Text("Text box")
+        } footer: {
+            Text(bent
+                 ? "Fitting and alignment wait while the words follow a curve, a path or stand in columns."
+                 : "With auto-fit on, drag the box and the type resizes to fill it; the alignment places shorter text within a taller box.")
+        }
+    }
+
+    /// A slider with its value beside it, named and valued for VoiceOver,
+    /// and one undo step per drag.
+    private func valueSlider(_ name: String, value: Double, in range: ClosedRange<Double>, readout: String,
+                             sliding: Binding<Bool>? = nil,
+                             _ set: @escaping (Double, inout Element) -> Void) -> some View {
+        HStack(spacing: 12) {
+            Slider(value: transientBinding(value, set), in: range, onEditingChanged: { editing in
+                sliding?.wrappedValue = editing
+                if !editing { store.commit() }
+            })
+            .accessibilityLabel(name)
+            .accessibilityValue(readout)
+            Text(readout)
+                .font(.subheadline.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(minWidth: 56, alignment: .trailing)
+                .accessibilityHidden(true)
         }
     }
 
@@ -884,14 +957,10 @@ struct LayersSheet: View {
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
     }
 
+    /// The name VoiceOver and the snap guides use too: "Heading: SALE",
+    /// "Red oval", "QR code" — as the Android twin's Layers panel.
     private func layerName(_ el: Element) -> String {
-        switch el.type {
-        case .text: return String((el.text ?? "Text").split(separator: "\n").first ?? "Text")
-        case .shape: return ContentLibrary.shape(el.shapeId).name
-        case .image: return "Image"
-        case .sticker: return "Sticker \(el.glyph ?? "")"
-        case .line: return "Line"
-        }
+        ElementNames.name(of: el)
     }
 
     @ViewBuilder
