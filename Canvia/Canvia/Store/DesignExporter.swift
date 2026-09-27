@@ -320,6 +320,10 @@ enum DesignExporter {
             urls.append(url)
             progress?(Double(n + 1) / Double(indices.count))
         }
+        do { try await pacer.finish() } catch {
+            for url in urls { try? FileManager.default.removeItem(at: url) }
+            throw error
+        }
         return urls
     }
 
@@ -358,6 +362,14 @@ enum DesignExporter {
             try await Task.sleep(nanoseconds: 1_000_000)
             last = Date()
         }
+
+        /// The last pause, always taken: a Cancel tapped while the last page
+        /// drew — on a one-page export, the only one — lands here, before
+        /// the file is handed on to be shared or printed, not after.
+        func finish() async throws {
+            try await Task.sleep(nanoseconds: 1_000_000)
+            try Task.checkCancellation()
+        }
     }
 
     // MARK: pdf
@@ -392,6 +404,7 @@ enum DesignExporter {
                 }
                 progress?(Double(n + 1) / Double(indices.count))
             }
+            try await pacer.finish()
             writer.close()
         } catch {
             writer.close()
@@ -478,6 +491,7 @@ enum DesignExporter {
                     progress?(Double(done) / Double(total))
                 }
             }
+            try await pacer.finish()
             writer.close()
         } catch {
             writer.close()

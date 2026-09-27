@@ -345,6 +345,18 @@ enum MovieExporter {
         let pages = try await pageImages(design: design, size: size, pacer: &pacer)
         guard !pages.isEmpty else { throw MovieError.nothingToRender }
 
+        let timings = timeline(design: design, settings: settings)
+        let total = timings.last?.end ?? 1
+        // Animated pages are rendered ahead, one bitmap per frame, since the
+        // writer callback runs off the main actor where SwiftUI cannot draw
+        // — before the writer opens, so a Cancel meanwhile leaves no file to
+        // clean up, and counted in the progress, which sat at 0% through it.
+        let ahead = Double(animatedFrameCount(design: design, timings: timings))
+        let share = ahead / (ahead + Double(total))
+        let frames = try await animatedFrames(design: design, size: size, settings: settings,
+                                              timings: timings, pacer: &pacer,
+                                              progress: { progress?(share * $0) })
+
         let writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
         let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
             AVVideoCodecKey: AVVideoCodecType.h264,
@@ -366,12 +378,6 @@ enum MovieExporter {
         }
         writer.startSession(atSourceTime: .zero)
 
-        let timings = timeline(design: design, settings: settings)
-        let total = timings.last?.end ?? 1
-        // Animated pages are rendered ahead, one bitmap per frame, since the
-        // writer callback runs off the main actor where SwiftUI cannot draw.
-        let frames = try await animatedFrames(design: design, size: size, settings: settings,
-                                              timings: timings, pacer: &pacer)
         let state = WriteState()
         let queue = DispatchQueue(label: "canvia.movie.write")
 
@@ -409,7 +415,7 @@ enum MovieExporter {
                         return
                     }
                     state.index += 1
-                    progress?(Double(state.index) / Double(total))
+                    progress?(share + (1 - share) * Double(state.index) / Double(total))
                 }
             }
             }
@@ -478,6 +484,14 @@ enum MovieExporter {
         return buffer
     }
 
+    /// How many frames `animatedFrames` renders ahead: every frame of every
+    /// animated page.
+    static func animatedFrameCount(design: Design, timings: [Timing]) -> Int {
+        design.pages.indices
+            .filter { $0 < timings.count && isAnimated(design.pages[$0], in: design) }
+            .reduce(0) { $0 + timings[$1].frames }
+    }
+
     /// Every frame of every animated page, pre-rendered, keyed by page then
     /// frame within the page. Static pages have no entry.
     ///
@@ -486,9 +500,12 @@ enum MovieExporter {
     @MainActor
     private static func animatedFrames(design: Design, size: CGSize, settings: Settings,
                                        timings: [Timing],
-                                       pacer: inout DesignExporter.Pacer) async throws -> ((Int, Double, Double) -> CGImage?)? {
+                                       pacer: inout DesignExporter.Pacer,
+                                       progress: ((Double) -> Void)? = nil) async throws -> ((Int, Double, Double) -> CGImage?)? {
         let animatedPages = design.pages.indices.filter { isAnimated(design.pages[$0], in: design) }
         guard !animatedPages.isEmpty else { return nil }
+        let count = max(1, animatedFrameCount(design: design, timings: timings))
+        var done = 0
         var cache: [Int: [CGImage]] = [:]
         for p in animatedPages where p < timings.count {
             let t = timings[p]
@@ -500,6 +517,8 @@ enum MovieExporter {
                                              hold: hold, size: size) {
                     frames.append(frame)
                 }
+                done += 1
+                progress?(Double(done) / Double(count))
             }
             cache[p] = frames
         }
@@ -549,8 +568,12 @@ enum MovieExporter {
 
         let timings = timeline(design: design, settings: gifSettings)
         let total = timings.last?.end ?? 1
+        // The frames rendered ahead count in the progress, as the MP4's do.
+        let ahead = Double(animatedFrameCount(design: design, timings: timings))
+        let share = ahead / (ahead + Double(total))
         let frames = try await animatedFrames(design: design, size: size, settings: gifSettings,
-                                              timings: timings, pacer: &pacer)
+                                              timings: timings, pacer: &pacer,
+                                              progress: { progress?(share * $0) })
         guard let destination = CGImageDestinationCreateWithURL(
             url as CFURL, UTType.gif.identifier as CFString, total, nil) else {
             throw MovieError.writerFailed("no GIF destination")
@@ -588,7 +611,13 @@ enum MovieExporter {
                 }
                 CGImageDestinationAddImage(destination, frame, frameProperties)
             }
-            progress?(Double(index + 1) / Double(total))
+            progress?(share + (1 - share) * Double(index + 1) / Double(total))
+        }
+        // A Cancel tapped while the last frame drew is seen before the file
+        // is finished and handed on.
+        do { try await pacer.finish() } catch {
+            try? FileManager.default.removeItem(at: url)
+            throw error
         }
         guard CGImageDestinationFinalize(destination) else {
             throw MovieError.writerFailed("the GIF would not finalise")

@@ -153,6 +153,7 @@ final class DesignStore {
             pending = nil
             return
         }
+        historyVersion += 1
         // And a design still named by the app takes its headline as its name,
         // in this same step, so one Undo takes back the words and the name.
         adoptHeadline()
@@ -199,6 +200,7 @@ final class DesignStore {
     func revertGesture() {
         guard let entry = pending else { return }
         pending = nil
+        historyVersion += 1
         design = entry.design
         pageIndex = min(entry.pageIndex, max(design.pages.count - 1, 0))
         let ids = Set(page.elements.map(\.id))
@@ -291,6 +293,11 @@ final class DesignStore {
     }
 
     var canUndo: Bool { !past.isEmpty }
+
+    /// Moves with every step recorded, undone, redone or thrown away. An
+    /// Undo offered in a toast is only honest while this is what it was
+    /// when the offer was made, as on the Android twin.
+    private(set) var historyVersion = 0
     var canRedo: Bool { !future.isEmpty }
 
     func undo() {
@@ -322,6 +329,7 @@ final class DesignStore {
     }
 
     private func restore(_ entry: HistoryEntry) {
+        historyVersion += 1
         design = entry.design
         // An undone step brings words back rather than typing them: it never
         // renames the design.

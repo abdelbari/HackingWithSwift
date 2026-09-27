@@ -37,10 +37,13 @@ struct EditorView: View {
     @State private var saveTask: Task<Void, Never>?
     @State private var paletteIndex = 0
     @FocusState private var titleFocused: Bool
+    @Environment(\.scenePhase) private var scenePhase
     @State private var titleBeforeEdit = ""
     @State private var toast: String?
     /// Whether the toast on screen offers Undo.
     @State private var toastUndoes = true
+    /// The history's step when the toast offered its Undo.
+    @State private var toastVersion = 0
     @State private var toastTask: Task<Void, Never>?
     @State private var tip: Tip?
     @State private var presenting = false
@@ -104,6 +107,12 @@ struct EditorView: View {
         }
         .background(keyboardCommands)
         .overlay(alignment: .bottom) { undoToast }
+        // A toast's Undo is withdrawn once anything else is done, as the
+        // Android twin's snackbar is: held open for VoiceOver, it would
+        // otherwise take back a later edit than the one it names.
+        .onChange(of: store.historyVersion) { _, version in
+            if toast != nil && toastUndoes && version != toastVersion { dismissToast() }
+        }
         .onChange(of: store.announcement) { _, text in
             guard let text else { return }
             store.announcement = nil
@@ -153,6 +162,12 @@ struct EditorView: View {
         .onAppear {
             store.onCommit = { scheduleSave() }
         }
+        // Into the background, the design is saved as it stands — notes or
+        // words still being typed included, whose steps are not closed yet
+        // and so have not been saved; the system may end the app there.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { saveDocument() }
+        }
         .onDisappear {
             // The voice and the microphone belong to this design: leaving it
             // stops both, as the Android twin's editor releases its reader.
@@ -160,6 +175,7 @@ struct EditorView: View {
             if Dictation.shared.isListening { Dictation.shared.stop() }
             store.finishDictation()
             store.endTextEdit()
+            closeRename()
             saveNow()
         }
         // The design being edited, for Siri suggestions and Handoff.
@@ -334,6 +350,7 @@ struct EditorView: View {
     private var topBar: some View {
         HStack(spacing: 10) {
             Button {
+                closeRename()
                 saveNow()
                 onHome()
             } label: {
@@ -423,6 +440,18 @@ struct EditorView: View {
             $0.title = renamed
             $0.titleAuto = false                // a person chose this name
         }
+        // Finished: the focus change that follows finds nothing more to do.
+        titleBeforeEdit = renamed
+    }
+
+    /// A rename still being typed, finished before the design is saved and
+    /// left: a button tap does not end the title's focus, so without this
+    /// Home saved the raw words — an empty name, or one the headline would
+    /// later write over.
+    private func closeRename() {
+        guard titleFocused else { return }
+        finishRename()
+        titleFocused = false
     }
 
     private var overflowMenu: some View {
@@ -910,7 +939,9 @@ struct EditorView: View {
                     .lineLimit(1)
                 if toastUndoes {
                     Button("Undo") {
-                        store.undo()
+                        // Only while what it names is still the newest step:
+                        // after anything else, Undo would take back that.
+                        if store.historyVersion == toastVersion && !store.hasPendingChanges { store.undo() }
                         dismissToast()
                     }
                     .font(.subheadline.weight(.semibold))
@@ -1004,9 +1035,13 @@ struct EditorView: View {
     private func show(toast text: String, undoable: Bool) {
         toastTask?.cancel()
         toastUndoes = undoable
+        toastVersion = store.historyVersion
         withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { toast = text }
         AccessibilityNotification.Announcement(undoable ? "\(text). Undo available." : text).post()
-        guard let seconds = ToastTiming.undoToast(voiceOver: UIAccessibility.isVoiceOverRunning || UIAccessibility.isSwitchControlRunning) else {
+        // Held open only when there is an Undo to reach; a toast with none
+        // goes in the usual time.
+        let assisted = UIAccessibility.isVoiceOverRunning || UIAccessibility.isSwitchControlRunning
+        guard let seconds = ToastTiming.undoToast(voiceOver: undoable && assisted) else {
             toastTask = nil
             return
         }

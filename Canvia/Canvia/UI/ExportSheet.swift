@@ -74,7 +74,12 @@ struct ExportSheet: View {
             .navigationTitle("Export")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+                // Closing stops an export under way: finished after the sheet
+                // had gone, it would pop a share sheet or the print dialog
+                // from nowhere, as on the Android twin.
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { exportTask?.cancel(); dismiss() }
+                }
             }
             .sheet(item: Binding(
                 get: { exportedURL.map(ShareURL.init) },
@@ -88,6 +93,10 @@ struct ExportSheet: View {
                 if let progress { progressCard(progress) }
             }
         }
+        // While the progress card is up, Cancel or Close is the way out, not
+        // a swipe; and however the sheet goes, the export goes with it.
+        .interactiveDismissDisabled(exporting)
+        .onDisappear { exportTask?.cancel() }
         .presentationDetents([.medium])
     }
 
@@ -292,9 +301,12 @@ struct ExportSheet: View {
         let pdfSubtitle = pages == 1
             ? "Print-ready document, vector"
             : (pageRange == .all ? "All \(pages) pages, vector" : "Page \(store.pageIndex + 1) only, vector")
-        let jpegSubtitle = "Current page, about \(estimatedSize)"
+        // PNG and JPEG write a file a page, so they follow it too.
+        let count = exportedIndices.count
+        let what = count > 1 ? "\(count) pages, one file each" : "Current page"
+        let jpegSubtitle = "\(what), about \(estimatedSize)\(count > 1 ? " a page" : "")"
         return Section("Format") {
-            exportButton("PNG", subtitle: "Current page, best for sharing", icon: "photo") {
+            exportButton("PNG", subtitle: "\(what), best for sharing", icon: "photo") {
                 try await export(.png)
             }
             exportButton("JPEG", subtitle: jpegSubtitle, icon: "photo.fill") {
@@ -747,6 +759,8 @@ struct ExportSheet: View {
         info.jobName = store.design.title.isEmpty ? "Canvia design" : store.design.title
         let size = design.size(at: exportedPageIndex)
         info.orientation = size.width > size.height ? .landscape : .portrait
+        // Cancelled while the last sheet was drawn: no dialog from nowhere.
+        try Task.checkCancellation()
 
         let controller = UIPrintInteractionController.shared
         controller.printInfo = info
