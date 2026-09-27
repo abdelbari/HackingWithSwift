@@ -182,7 +182,8 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   Android twin reads and keeps links the same way (`Content/Links.swift`).
 - A brand kit — colours, a heading and body face, logos — kept across
   designs: first in every colour picker, a pairing in the theme sheet,
-  and logos in the Photos tab.
+  and logos in the Photos tab. Every change is kept as it is made, so the
+  sheet can be swiped away; QR codes are not offered as logos.
 - Tidy up: a messy selection into a row, a column or a grid with equal
   gaps, one undo step. Arrow keys nudge the selection a unit (ten with
   Shift), and the Position sheet edits a multi-selection's box by number —
