@@ -61,7 +61,7 @@ enum PhotoFrames {
     /// crop reset as Replace resets it. A photo that is itself a frame or a
     /// cell swaps — it takes the frame's picture, or is left empty, and goes
     /// back to `home`, where it was before the drag — so a grid's cells trade
-    /// places; a free photo is used up. nil when there is no such drop to
+    /// pictures; a free photo is used up. nil when there is no such drop to
     /// make, and the drag is an ordinary move.
     static func dropped(_ elements: [Element], dragged: String, onto target: String,
                         home: CGPoint) -> [Element]? {

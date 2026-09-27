@@ -168,9 +168,9 @@ struct BackgroundYourPhotos: View {
         loading = true
         let store = self.store
         Task {
-            let src = await Self.stored(item)
+            let saved = await Self.stored(item)
             loading = false
-            guard let src else {
+            guard let src = saved else {
                 store.buzz(.reject)
                 store.announce("Couldn't open that photo", undoable: false)
                 return

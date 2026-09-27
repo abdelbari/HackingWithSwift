@@ -1,7 +1,7 @@
 // The page's background from your own pictures, and back out again: a photo
 // on the page made the background, and a background picture detached as a
 // photo to move, crop and frame like any other. As the Android twin does
-// both, so a design made either way opens the same on either phone.
+// both.
 
 import SwiftUI
 import UIKit
@@ -47,8 +47,8 @@ extension DesignStore {
             buzz(.reject)
             return
         }
-        let picture: String? = Self.hasLook(photo) ? Self.bakedPicture(photo) : src
-        guard let picture else {
+        let shown: String? = Self.hasLook(photo) ? Self.bakedPicture(photo) : src
+        guard let picture = shown else {
             buzz(.reject)
             announce("Couldn't make that photo the background", undoable: false)
             return
