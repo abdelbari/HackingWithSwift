@@ -466,7 +466,7 @@ next is decoded off the main thread; the exports wait for every frame.
 The clip's own sound is not carried; a soundtrack is.
 
 **Keyboard** — with a hardware keyboard, the usual shortcuts, each with
-a title in the discoverability overlay: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, ⌘D
+a title in the discoverability overlay: ⌘Z / ⇧⌘Z (or ⌘Y), ⌘C / ⌘X / ⌘V, ⌘D
 duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and
 with ⇧) to reorder layers, ⇧⌘L lock, ⌘E export, ⌘K layers, ⇧⌘P present,
 ⇧⌘N new page, ⌘/ help, arrows to nudge (⇧ for ten), Delete or ⌦ (or

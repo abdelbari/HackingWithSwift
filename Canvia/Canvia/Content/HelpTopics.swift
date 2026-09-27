@@ -68,7 +68,7 @@ enum HelpTopics {
                   body: "Snapping to the page, to other elements and to a grid each have a switch under Snapping in the menu. A snap line says what it has lined things up with — the centre of the page, another element, your own guide. The grid can be shown on the canvas; it is never exported. Position has arrows that nudge by 1, 10 or 100.",
                   keywords: ["grid", "guide", "align", "nudge", "centre"], opens: nil),
         HelpTopic(id: "keyboard", title: "Keyboard shortcuts",
-                  body: "With a hardware keyboard: ⌘Z undo, ⇧⌘Z redo, ⌘C/⌘X/⌘V copy, cut, paste, ⌘D duplicate, ⌘A select all, ⌘G group, ⌘F find, ⌘E export.",
+                  body: "With a hardware keyboard: ⌘Z undo, ⇧⌘Z or ⌘Y redo, ⌘C/⌘X/⌘V copy, cut, paste, ⌘D duplicate, ⌘A select all, ⌘G group, ⌘F find, ⌘E export.",
                   keywords: ["shortcut", "ipad", "command"], opens: nil),
         HelpTopic(id: "voiceover", title: "VoiceOver and accessibility",
                   body: "Every element on the canvas is named and can be moved, duplicated, deleted or reordered from the VoiceOver actions rotor. Reduce Motion, Increase Contrast and Differentiate Without Colour are honoured.",

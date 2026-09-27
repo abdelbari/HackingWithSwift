@@ -178,6 +178,9 @@ struct EditorView: View {
             Group {
                 shortcut("z", [.command], "Undo") { store.undo() }
                 shortcut("z", [.command, .shift], "Redo") { store.redo() }
+                // As well as ⇧⌘Z: the redo a keyboard used to Windows or
+                // Android reaches for, as the Android twin takes Ctrl+Y.
+                shortcut("y", [.command], "Redo") { store.redo() }
                 shortcut("c", [.command], "Copy") { store.copySelected() }
                 shortcut("x", [.command], "Cut") { store.cutSelected() }
                 shortcut("v", [.command], "Paste") { store.paste() }
