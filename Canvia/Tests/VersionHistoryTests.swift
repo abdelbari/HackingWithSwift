@@ -93,7 +93,7 @@ final class VersionHistoryTests: XCTestCase {
         let store = DesignStore(design: design)
         store.selection = [store.page.elements[0].id]
         store.deleteSelected()
-        XCTAssertEqual(store.announcement, "Deleted 1 element")
+        XCTAssertEqual(store.announcement, "Deleted")
     }
 
     // MARK: photos

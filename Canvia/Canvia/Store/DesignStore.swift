@@ -402,14 +402,19 @@ final class DesignStore {
 
     func deleteSelected() {
         // Only unlocked elements go; committing when nothing can be removed
-        // would push a history entry identical to the previous one.
+        // would push a history entry identical to the previous one. A
+        // refusal is felt, as on the Android twin, rather than silent.
         let ids = Set(selectedElements.filter { !$0.locked }.map(\.id))
-        guard !ids.isEmpty else { return }
+        guard !ids.isEmpty else {
+            if !selection.isEmpty { buzz(.reject) }
+            return
+        }
         applyToPage { page in
             page.elements.removeAll { ids.contains($0.id) }
         }
         selection.subtract(ids)   // anything locked stays selected, visibly
-        announce(ids.count == 1 ? "Deleted 1 element" : "Deleted \(ids.count) elements")
+        // The Android twin's words, so both phones say the same.
+        announce(ids.count == 1 ? "Deleted" : "Deleted \(ids.count) things")
     }
 
     func duplicateSelected() {
@@ -506,17 +511,27 @@ final class DesignStore {
         clipboard = selected
         pasteCount = 0
         ElementClipboard.write(selected)
+        buzz(.tick)
+        announce(selected.count == 1 ? "Copied" : "Copied \(selected.count) things", undoable: false)
     }
 
     func cutSelected() {
         // Symmetric with deleteSelected: cut takes exactly what it removes,
         // so a locked element is never both left behind and on the clipboard.
         let removable = selectedElements.filter { !$0.locked }
-        guard !removable.isEmpty else { return }
+        guard !removable.isEmpty else {
+            if !selection.isEmpty { buzz(.reject) }
+            return
+        }
         clipboard = removable
         pasteCount = 0
         ElementClipboard.write(removable)
-        deleteSelected()
+        let ids = Set(removable.map(\.id))
+        applyToPage { page in
+            page.elements.removeAll { ids.contains($0.id) }
+        }
+        selection.subtract(ids)
+        announce(ids.count == 1 ? "Cut" : "Cut \(ids.count) things")
     }
 
     func paste() {
@@ -531,7 +546,11 @@ final class DesignStore {
                 return
             }
         }
-        guard !clipboard.isEmpty else { return }
+        guard !clipboard.isEmpty else {
+            buzz(.reject)
+            announce("Nothing to paste", undoable: false)
+            return
+        }
         pasteCount += 1
         // Copies arrive unlocked: locked is a property of the original, and a
         // pasted element the user cannot move, edit or delete is a dead end.
@@ -1127,6 +1146,7 @@ final class DesignStore {
     func copyStyle() {
         guard let el = singleSelection else { return }
         copiedStyle = Self.style(of: el)
+        buzz(.tick)
     }
 
     func pasteStyle() {
@@ -1146,6 +1166,8 @@ final class DesignStore {
     }
 
     func flipSelected(horizontal: Bool) {
+        guard unlockedSelectionCount > 0 else { return }
+        buzz(.tick)
         updateSelected { el in
             if horizontal { el.flipH.toggle() } else { el.flipV.toggle() }
         }
@@ -1401,6 +1423,7 @@ final class DesignStore {
 
     func addGuide(vertical: Bool, at position: Double) {
         apply { $0.guides.append(Guide(vertical: vertical, position: position)) }
+        buzz(.confirm)
     }
 
     /// Slide a guide while dragging; commit() when the finger lifts.
@@ -1413,7 +1436,9 @@ final class DesignStore {
     }
 
     func removeGuide(_ id: String) {
+        guard design.guides.contains(where: { $0.id == id }) else { return }
         apply { $0.guides.removeAll { $0.id == id } }
+        buzz(.tick)
     }
 
     func clearGuides() {

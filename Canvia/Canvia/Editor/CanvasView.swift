@@ -43,6 +43,9 @@ struct CanvasView: View {
         /// Sibling boxes at grab time, for equal-spacing hints.
         var siblingBoxes: [CGRect] = []
         var resizeOriginal: Element?
+        /// The picture's size in pixels when a photo's side is grabbed, so
+        /// the side trims the frame across a picture that stays put.
+        var resizeImage: CGSize?
         var rotateCenter: CGPoint?
         var rotateOffset: Double = 0
         /// A multi-selection being resized or rotated as one: the members
@@ -643,7 +646,23 @@ struct CanvasView: View {
             .onLongPressGesture(minimumDuration: 0.5) { store.removeGuide(guide.id) }
             .position(x: guide.vertical ? guide.position : w / 2, y: guide.vertical ? h / 2 : guide.position)
             .accessibilityLabel(guide.vertical ? "Vertical guide at \(Int(guide.position))" : "Horizontal guide at \(Int(guide.position))")
-            .accessibilityHint("Drag to move, press and hold to remove")
+            .accessibilityHint("Drag to move, press and hold to remove; or use the actions to move or remove it")
+            .accessibilityActions { guideActions(guide) }
+    }
+
+    /// A guide moved a step or taken away without a drag, for VoiceOver and
+    /// Switch Control — the Android twin's guide actions. Each is one step.
+    @ViewBuilder
+    private func guideActions(_ guide: Guide) -> some View {
+        let step = CanvasAccessibility.nudge(for: store.design)
+        Button(guide.vertical ? "Move left" : "Move up") { nudgeGuide(guide, by: -step) }
+        Button(guide.vertical ? "Move right" : "Move down") { nudgeGuide(guide, by: step) }
+        Button("Remove guide") { store.removeGuide(guide.id) }
+    }
+
+    private func nudgeGuide(_ guide: Guide, by step: Double) {
+        store.moveGuideTransient(guide.id, to: guide.position + step)
+        store.commit()
     }
 
     /// The safe area as a dashed inset. Like the grid, never exported.
@@ -677,7 +696,9 @@ struct CanvasView: View {
             }
             .onTapGesture {
                 commitTextEditIfAny()
-                store.select(el.id)
+                // A second tap on a member of the selected group takes just
+                // that member; otherwise the tap takes the element's group.
+                if !store.selectMember(el.id) { store.select(el.id) }
             }
             .onLongPressGesture(minimumDuration: 0.4) {
                 store.select(el.id, additive: true)
@@ -697,6 +718,11 @@ struct CanvasView: View {
     @ViewBuilder
     private func accessibilityActions(for el: Element) -> some View {
         let step = CanvasAccessibility.nudge(for: store.design)
+        // The long press's own job: a selection built one element at a time,
+        // to group, align or tidy. Offered on locked things too.
+        Button(store.selection.contains(el.id) ? "Remove from selection" : "Add to selection") {
+            store.select(el.id, additive: true)
+        }
         if !el.locked {
             Button("Move left") { nudge(el, dx: -step, dy: 0) }
             Button("Move right") { nudge(el, dx: step, dy: 0) }
@@ -760,6 +786,8 @@ struct CanvasView: View {
                 }
                 var dx = value.location.x - value.startLocation.x
                 var dy = value.location.y - value.startLocation.y
+                var gapX: Double?
+                var gapY: Double?
 
                 // Snap the union of moved boxes against page + siblings.
                 // Translating the grab-time union is exact, not an
@@ -781,16 +809,19 @@ struct CanvasView: View {
                     if store.guideXSource != sourceX { store.guideXSource = sourceX }
                     if store.guideYSource != sourceY { store.guideYSource = sourceY }
                     // Equal spacing: between two neighbours, land at the
-                    // same distance from each and say what that distance is.
+                    // same distance from each and say what that distance is —
+                    // on an axis no line is holding (a grid line gives way),
+                    // so the two never pull the box between them.
                     if store.snapping.toElements {
                         let even = Geometry.equalGap(moving: gesture.dragUnion.offsetBy(dx: dx, dy: dy),
                                                      siblings: gesture.siblingBoxes, threshold: 6 / store.zoom)
-                        dx += even.dx
-                        dy += even.dy
-                        if let g = even.gapX ?? even.gapY {
-                            store.badge = "↔ \(Int(g))"
-                        }
+                        gapX = (snap.guideX == nil || sourceX == .grid) ? even.gapX : nil
+                        gapY = (snap.guideY == nil || sourceY == .grid) ? even.gapY : nil
+                        if gapX != nil { dx += even.dx }
+                        if gapY != nil { dy += even.dy }
                     }
+                    let spaced = gapX != nil || gapY != nil
+                    if store.spacingSnapped != spaced { store.spacingSnapped = spaced }
                 }
 
                 // Where it is going, for the page edges it crosses, and — once
@@ -807,12 +838,12 @@ struct CanvasView: View {
                         store.design.pages[store.pageIndex].elements[i].y = origin.y + dy
                     }
                 }
-                // Report the element the user actually grabbed: Dictionary
-                // ordering is undefined, so keys.first would flicker between
-                // members of a multi-element drag. An equal-spacing badge,
-                // set above, takes precedence: it is the rarer, more useful fact.
-                if let moved = store.element(el.id), store.badge?.hasPrefix("↔") != true {
-                    store.badge = "\(Int(moved.x)), \(Int(moved.y))"
+                // Where the moving box is, each axis a guide holds marked,
+                // and any gap made equal — as the Android twin reads it.
+                if let moved = gesture.movedBox {
+                    store.setBadge(Readouts.move(x: moved.minX, y: moved.minY,
+                                                 heldX: store.guideX != nil, heldY: store.guideY != nil,
+                                                 gapX: gapX, gapY: gapY))
                 }
             }
             .onEnded { value in
@@ -841,8 +872,12 @@ struct CanvasView: View {
             store.beginGesture()
             gesture.resizeOriginal = selected
             gesture.dragActive = true
+            store.canvasTouchActive = true
+            gesture.resizeImage = selected.type == .image && !handle.isCorner
+                ? PhotoLibrary.resolve(selected.src)?.size : nil
         }
         guard let original = gesture.resizeOriginal else { return }
+        if trimPhoto(original, handle: handle, to: location) { return }
         let proportional = original.type != .line && handle.isCorner
         let minSize = original.type == .text ? 12.0 : 8.0
         let next = Geometry.resize(original, handle: handle, to: location,
@@ -854,8 +889,11 @@ struct CanvasView: View {
             case .text:
                 el.y = next.minY
                 if handle.isCorner {
+                    // The type scales with the box, and its tracking with it,
+                    // so a spaced-out headline keeps its proportions.
                     let scale = next.width / original.w
                     el.fontSize = max(6, (original.fontSize ?? 42) * scale)
+                    el.letterSpacing = original.letterSpacing.map { $0 * scale }
                     el.h = next.height
                 } else if el.fitText == true || el.vAlign != nil {
                     // The box is the design here; the type follows it.
@@ -872,8 +910,29 @@ struct CanvasView: View {
             }
         }
         if let el = store.singleSelection {
-            store.badge = "\(Int(el.w)) × \(Int(el.h))"
+            // Scaling type is changing its size, and that is the number worth
+            // reading; everything else is the box.
+            store.badge = el.type == .text && handle.isCorner
+                ? Readouts.typeSize(FontLibrary.effectiveFontSize(for: el))
+                : "\(Int(el.w)) × \(Int(el.h))"
         }
+    }
+
+    /// A photo's side trims its frame across a picture that stays where it
+    /// is on the page, as crop mode's brackets do and as on the Android twin
+    /// — rather than squashing the picture into the new shape. Not for a
+    /// photo shown whole or straightened, or one whose picture cannot be
+    /// read: those stretch as before. True when it trimmed.
+    private func trimPhoto(_ original: Element, handle: Handle, to location: CGPoint) -> Bool {
+        guard original.type == .image, !handle.isCorner, original.cropFit != true,
+              (original.straighten ?? 0) == 0, let image = gesture.resizeImage,
+              image.width > 0, image.height > 0 else { return false }
+        let trimmed = Crop.trimmed(original, image: image, handle: handle, to: location, minSize: 8)
+        store.updateSelectedTransient { el in
+            if el.id == trimmed.id { el = trimmed }
+        }
+        store.badge = "\(Int(trimmed.w)) × \(Int(trimmed.h))"
+        return true
     }
 
     /// Resize a multi-selection from a corner of its box: the box resizes
@@ -885,6 +944,7 @@ struct CanvasView: View {
             guard !members.isEmpty else { return }
             store.beginGesture()
             gesture.dragActive = true
+            store.canvasTouchActive = true
             gesture.groupOriginals = members
             gesture.groupBox = Geometry.union(members.map(Geometry.aabb))
         }
@@ -900,6 +960,7 @@ struct CanvasView: View {
             guard !members.isEmpty else { return }
             store.beginGesture()
             gesture.dragActive = true
+            store.canvasTouchActive = true
             gesture.groupOriginals = members
             gesture.groupBox = Geometry.union(members.map(Geometry.aabb))
             gesture.rotateCenter = CGPoint(x: gesture.groupBox.midX, y: gesture.groupBox.midY)
@@ -908,10 +969,12 @@ struct CanvasView: View {
         guard let center = gesture.rotateCenter else { return }
         var delta = Geometry.angle(from: center, to: location) - gesture.rotateOffset
         delta = (delta.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
+        let free = delta
         delta = Geometry.snapAngle(delta, step: 45, threshold: 4)
+        store.rotationSnapped = delta != free
         store.replaceTransient(Geometry.rotate(gesture.groupOriginals, around: center,
                                                by: (delta * 10).rounded() / 10))
-        store.badge = "\(Int(delta))°"
+        store.setBadge(Readouts.angle(delta, snapped: delta != free))
     }
 
     private func rotateDrag(_ location: CGPoint) {
@@ -923,6 +986,7 @@ struct CanvasView: View {
         if gesture.rotateCenter == nil || !gesture.dragActive {
             store.beginGesture()
             gesture.dragActive = true
+            store.canvasTouchActive = true
             gesture.rotateCenter = selected.center
             gesture.rotateOffset = Geometry.angle(from: selected.center, to: location) - selected.rotation
         }
@@ -933,7 +997,8 @@ struct CanvasView: View {
         angle = Geometry.snapAngle(angle, step: 45, threshold: 4)
         store.rotationSnapped = angle != raw
         store.updateSelectedTransient { $0.rotation = (angle * 10).rounded() / 10 }
-        store.badge = "\(Int(angle))°"
+        // The digits turn guide-coloured while the angle is held on a snap.
+        store.setBadge(Readouts.angle(angle, snapped: store.rotationSnapped))
     }
 
     private func clearTransient() {

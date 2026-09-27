@@ -34,11 +34,17 @@ so does Recently deleted ("Deleted yesterday"). Deleting a design says
 it stays until used or closed (or the next delete), and VoiceOver hears it.
 
 **Editor**
-- Direct manipulation: tap to select, drag to move with magenta snap
-  guides (page edges/centers + sibling edges/centers), rotation-aware
-  corner/edge resize handles (corners keep aspect; text corners scale the
-  font), rotate handle with 45° snapping and live angle badge, long-press
-  for multi-select, pinch to zoom, drag empty canvas to pan
+- Direct manipulation: tap to select (tap a member of a selected group to
+  take just that member), drag to move with magenta snap guides (page
+  edges/centers + sibling edges/centers), rotation-aware corner/edge resize
+  handles (corners keep aspect; text corners scale the font and its
+  tracking and read "Size 42.5"; a photo's sides trim its frame across a
+  picture that stays put; stickers and QR codes scale from corners only),
+  every handle offered at any size — on a small or zoomed-out element the
+  ring stands off the outline so neighbours stay a finger apart, a touch
+  takes the nearest, and the body still moves it — rotate handle with 45°
+  snapping and a live angle badge, long-press for multi-select, pinch to
+  zoom, drag empty canvas to pan
 - Content: 44 shapes (one SVG-path library parsed with full arc support),
   lines with caps and dashes, emoji stickers, 20 procedurally drawn
   photos, photo-library imports, QR codes generated from a link or any
@@ -112,9 +118,10 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   and Delete forever. Their photos and version history wait with them.
 - VoiceOver on the canvas: every element is named (what it is, and what
   it says if it is text), valued (where and how big, in percentages of
-  the page, plus rotation and lock) and carries actions — move in four
-  directions, duplicate, delete, layer order, edit text — so the whole
-  page can be arranged without a drag.
+  the page, plus rotation and lock) and carries actions — add to or
+  remove from the selection, move in four directions, duplicate, delete,
+  layer order, edit text — so the whole page can be arranged without a
+  drag. Guides can be moved a step or removed from their actions too.
 - Photos import several at once (up to ten, landing as a cascade), keep
   their transparency when they have any — a PNG logo is stored as PNG,
   an opaque screenshot as the far smaller JPEG — and every colour picker
@@ -343,9 +350,12 @@ bottom, left to right — the same order VoiceOver takes the canvas in),
 pictures by their alt text and page-number tokens resolved. Leaving the
 design stops it.
 
-**Haptics** — selection, snapping to guides and to 45° rotation, undo and
-redo, grouping, a new page and each drawn stroke are each felt, once,
-through `.sensoryFeedback`. A Vibration switch (Home's ⋯ menu, and the
+**Haptics** — selection, snapping to guides, to equal spacing and to 45°
+rotation, undo and redo, grouping, a new page, each drawn stroke, adding
+and removing a guide, copy, flip, copy style, and a delete or cut refused
+because everything is locked are each felt, once, through
+`.sensoryFeedback`. Copy, cut and paste say what happened ("Copied 2
+things", "Cut", "Nothing to paste"), as delete does ("Deleted"). A Vibration switch (Home's ⋯ menu, and the
 editor's More menu beside Snapping) turns all of it off at once; it is on
 until turned off, one setting for the app, and the system's own haptics
 switch still applies on top.
@@ -496,7 +506,10 @@ deselect — or, while typing in place, to finish typing.
 percentage, and a tap goes between the whole page and actual size; Bring
 it back appears when the selection has scrolled out of sight. Snap lines
 say what they line up with ("Centre of the page", "Lined up with
-heading: SALE", "Your guide", in teal). While moving, a faint dashed box
+heading: SALE", "Your guide", in teal). While moving, the badge reads
+"x 120  ·  y 48" with a dot on each axis a guide holds and any equal gap
+("↔ 24", "↕ 24") in the guide colour, and a snapped angle turns that
+colour too. A faint dashed box
 marks where the move began and the page edges it crosses light up. A
 locked element is outlined dashed with a padlock; a multi-selection says
 how many it holds. Hold Undo to rewind many steps. Position nudges by
