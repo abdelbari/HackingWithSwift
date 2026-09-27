@@ -13,6 +13,18 @@ struct SelectionOverlay: View {
 
     @Environment(\.colorSchemeContrast) private var contrast
 
+    /// The handle a finger is working, where it took it relative to the
+    /// handle, and the ring's outset then — held for the whole drag, since
+    /// recomputed live the ring would slide in as the element grows and the
+    /// handle would crawl out from under the thumb.
+    private struct Held {
+        var grab: HandleGrab
+        var offset: CGPoint
+        var outsetX: Double
+        var outsetY: Double
+    }
+    @State private var held: Held?
+
     private var iz: Double { 1 / max(store.zoom, 0.01) }
     /// Increase Contrast: heavier outlines, since a one-point accent line
     /// over a busy photo is exactly what that setting is asking to fix.
@@ -31,8 +43,7 @@ struct SelectionOverlay: View {
             }
 
             if let el = store.singleSelection, !el.locked, store.editingTextId != el.id {
-                handles(for: el)
-                rotateHandle(for: el)
+                handleRing(for: el, handles: Touch.handleSet(for: el))
             }
 
             if selected.count > 1 {
@@ -47,12 +58,7 @@ struct SelectionOverlay: View {
                 // Corners only: a uniform scale is the only one that keeps
                 // rotated members exact (see Geometry.scale).
                 if selected.contains(where: { !$0.locked }) {
-                    let box = Geometry.boxElement(bounds)
-                    ForEach(Touch.handleSet(for: box, zoom: store.zoom).filter(\.isCorner),
-                            id: \.rawValue) { handle in
-                        handleDot(handle, el: box)
-                    }
-                    rotateHandle(for: box)
+                    handleRing(for: Geometry.boxElement(bounds), handles: [.nw, .ne, .se, .sw])
                 }
                 // How many, over the box — but not while a drag's readout is
                 // up there too.
@@ -128,18 +134,56 @@ struct SelectionOverlay: View {
 
     // MARK: handles
 
-    private func handles(for el: Element) -> some View {
-        // Adaptive: on a small or zoomed-out element the expanded touch
-        // targets tile the whole interior, so selecting something would take
-        // away the ability to drag it. See Touch.handleSet.
-        let handleSet = Touch.handleSet(for: el, zoom: store.zoom)
-        return ForEach(handleSet, id: \.rawValue) { handle in
-            handleDot(handle, el: el)
+    /// The ring's outset on each axis, in page units: held while a handle is
+    /// being dragged, otherwise what the element's size on screen needs.
+    private func outsets(for el: Element) -> (x: Double, y: Double) {
+        if let held { return (held.outsetX, held.outsetY) }
+        return (Touch.handleOutset(side: el.w, zoom: store.zoom),
+                Touch.handleOutset(side: el.h, zoom: store.zoom))
+    }
+
+    /// Where the rotate handle sits: below the bottom edge — and below the
+    /// ring, when it stands off a small element — turned with the element.
+    private func rotatePoint(_ el: Element, outsetY: Double) -> CGPoint {
+        Geometry.rotate(CGPoint(x: el.x + el.w / 2, y: el.y + el.h + outsetY + 28 * iz),
+                        around: el.center, degrees: el.rotation)
+    }
+
+    /// Every handle the element offers, at any size or zoom. On a small or
+    /// zoomed-out element the ring stands off the outline, joined to it by a
+    /// short leader, so neighbouring handles stay a finger apart — as on the
+    /// Android twin, where the old answer of hiding handles left a small
+    /// element resizable only by numbers. One touch area takes them all and
+    /// hands a touch to the nearest handle; see Touch.grab.
+    private func handleRing(for el: Element, handles: [Handle]) -> some View {
+        let out = outsets(for: el)
+        let rotateAt = rotatePoint(el, outsetY: out.y)
+        return ZStack {
+            if out.x > 0 || out.y > 0 { leaders(el, handles: handles, outsetX: out.x, outsetY: out.y) }
+            ForEach(handles, id: \.rawValue) { handle in
+                handleDot(handle, at: Geometry.handlePoint(el, handle, outsetX: out.x, outsetY: out.y))
+            }
+            rotateGlyph(el, at: rotateAt)
+            touchArea(el, handles: handles, outsetX: out.x, outsetY: out.y, rotateAt: rotateAt)
         }
     }
 
-    private func handleDot(_ handle: Handle, el: Element) -> some View {
-        let point = Geometry.handlePoint(el, handle)
+    /// Faint ticks from the outline out to each handle standing off it.
+    private func leaders(_ el: Element, handles: [Handle], outsetX: Double, outsetY: Double) -> some View {
+        let width = 1 * iz
+        return Canvas { context, _ in
+            var path = Path()
+            for handle in handles {
+                path.move(to: Geometry.handlePoint(el, handle))
+                path.addLine(to: Geometry.handlePoint(el, handle, outsetX: outsetX, outsetY: outsetY))
+            }
+            context.stroke(path, with: .color(Theme.accent.opacity(0.55)), lineWidth: width)
+        }
+        .frame(width: store.pageWidth, height: store.pageHeight)
+        .allowsHitTesting(false)
+    }
+
+    private func handleDot(_ handle: Handle, at point: CGPoint) -> some View {
         let size = (handle.isCorner ? 11.0 : 9.0) * iz
         return Circle()
             .fill(Color.white)
@@ -148,27 +192,14 @@ struct SelectionOverlay: View {
             // beads sitting on top of the design rather than part of the tool.
             .overlay(Circle().stroke(Theme.accent.opacity(0.9), lineWidth: 1 * iz))
             .frame(width: size, height: size)
-            // Generous invisible touch target around the visible dot.
-            .contentShape(Circle().inset(by: -10 * iz))
-            // Gesture BEFORE position: .position() wraps the view in a
-            // parent-sized container, so a gesture attached after it would
-            // hit-test across the whole canvas instead of just this handle.
-            .gesture(
-                DragGesture(minimumDistance: 1, coordinateSpace: .named("page"))
-                    .onChanged { value in onHandleDrag(handle, value.location) }
-                    .onEnded { _ in onHandleEnd() }
-            )
             .position(point)
+            .allowsHitTesting(false)
     }
 
-    private func rotateHandle(for el: Element) -> some View {
-        // Below the bottom edge of the (rotated) element.
-        let bottomCenter = Geometry.rotate(
-            CGPoint(x: el.x + el.w / 2, y: el.y + el.h + 28 * iz),
-            around: el.center, degrees: el.rotation)
+    private func rotateGlyph(_ el: Element, at point: CGPoint) -> some View {
         // Was arrow.triangle.2.circlepath — the refresh/sync glyph, so the
         // control for rotating your text read as a reload button.
-        return Image(systemName: "arrow.clockwise")
+        Image(systemName: "arrow.clockwise")
             .font(.system(size: 11 * iz, weight: .semibold))
             .foregroundStyle(Theme.accent)
             // Track the element's angle, so the affordance says which way is up.
@@ -176,13 +207,79 @@ struct SelectionOverlay: View {
             .frame(width: 24 * iz, height: 24 * iz)
             .background(Circle().fill(Color.white)
                 .overlay(Circle().stroke(Theme.accent.opacity(0.9), lineWidth: 1 * iz)))
-            .contentShape(Circle().inset(by: -12 * iz))
+            .position(point)
+            .allowsHitTesting(false)
+    }
+
+    /// The one place the handles take touches: a circle of reach round each
+    /// handle and the rotate handle, less the element's body except right
+    /// by a handle — so a touch on a small element's body still moves it.
+    /// Everywhere else falls through to the elements beneath.
+    private func touchArea(_ el: Element, handles: [Handle], outsetX: Double, outsetY: Double,
+                           rotateAt: CGPoint) -> some View {
+        let reach = Touch.pageUnits(Touch.handleReach, zoom: store.zoom)
+        let inside = Touch.pageUnits(Touch.handleReachInside, zoom: store.zoom)
+        let points = handles.map { Geometry.handlePoint(el, $0, outsetX: outsetX, outsetY: outsetY) }
+        let zone = Self.touchZone(el, points: points, rotateAt: rotateAt, reach: reach, inside: inside)
+        return Color.clear
+            .frame(width: store.pageWidth, height: store.pageHeight)
+            .contentShape(Path(zone))
             .gesture(
                 DragGesture(minimumDistance: 1, coordinateSpace: .named("page"))
-                    .onChanged { value in onRotateDrag(value.location) }
-                    .onEnded { _ in onRotateEnd() }
+                    .onChanged { value in
+                        if held == nil {
+                            guard let grab = Touch.grab(at: value.startLocation, el: el, handles: handles,
+                                                        outsetX: outsetX, outsetY: outsetY, rotateAt: rotateAt,
+                                                        reach: reach, inside: inside) else { return }
+                            // Against the handle on the outline, not the one
+                            // drawn off it, so the first frame neither jumps
+                            // the edge to the finger nor grows the element by
+                            // the outset.
+                            var offset = CGPoint.zero
+                            if case .resize(let handle) = grab {
+                                let edge = Geometry.handlePoint(el, handle)
+                                offset = CGPoint(x: edge.x - value.startLocation.x, y: edge.y - value.startLocation.y)
+                            }
+                            held = Held(grab: grab, offset: offset, outsetX: outsetX, outsetY: outsetY)
+                        }
+                        guard let held else { return }
+                        switch held.grab {
+                        case .resize(let handle):
+                            onHandleDrag(handle, CGPoint(x: value.location.x + held.offset.x,
+                                                         y: value.location.y + held.offset.y))
+                        case .rotate:
+                            onRotateDrag(value.location)
+                        }
+                    }
+                    .onEnded { _ in
+                        let grab = held?.grab
+                        held = nil
+                        switch grab {
+                        case .some(.resize): onHandleEnd()
+                        case .some(.rotate): onRotateEnd()
+                        case .none: break
+                        }
+                    }
             )
-            .position(bottomCenter)
+    }
+
+    /// The handles' touch area as a path, in page units.
+    private static func touchZone(_ el: Element, points: [CGPoint], rotateAt: CGPoint,
+                                  reach: Double, inside: Double) -> CGPath {
+        let far = CGMutablePath()
+        let near = CGMutablePath()
+        for p in points + [rotateAt] {
+            far.addEllipse(in: CGRect(x: p.x - reach, y: p.y - reach, width: reach * 2, height: reach * 2))
+        }
+        for p in points {
+            near.addEllipse(in: CGRect(x: p.x - inside, y: p.y - inside, width: inside * 2, height: inside * 2))
+        }
+        let c = el.center
+        var turn = CGAffineTransform(translationX: c.x, y: c.y)
+            .rotated(by: CGFloat(el.rotation * .pi / 180))
+            .translatedBy(x: -c.x, y: -c.y)
+        let body = CGPath(rect: el.frame, transform: &turn)
+        return far.subtracting(body).union(near)
     }
 
     // MARK: guides + badge
@@ -246,7 +343,7 @@ struct SelectionOverlay: View {
     private var badgeView: some View {
         if let badge = store.badge, let el = store.selectedElements.first {
             let box = Geometry.union(store.selectedElements.map(Geometry.aabb))
-            Text(badge)
+            badgeText(badge)
                 .font(.system(size: 12 * iz, weight: .semibold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 8 * iz)
@@ -255,6 +352,16 @@ struct SelectionOverlay: View {
                 .position(x: box.midX, y: box.maxY + 22 * iz)
                 .allowsHitTesting(false)
                 .id(el.id)
+        }
+    }
+
+    /// The badge's words, with a snapped axis, an equal gap or a held angle
+    /// picked out in the guide colour — when the runs set with it are still
+    /// the badge's; a plain badge set elsewhere is drawn plain.
+    private func badgeText(_ badge: String) -> Text {
+        guard let runs = store.badgeRuns, Readouts.text(runs) == badge else { return Text(badge) }
+        return runs.reduce(Text("")) { line, run in
+            line + Text(run.text).foregroundColor(run.accent ? Theme.guide : .white)
         }
     }
 }

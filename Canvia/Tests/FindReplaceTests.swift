@@ -183,4 +183,16 @@ final class FindReplaceTests: XCTestCase {
         s.pasteStyle()
         XCTAssertFalse(s.canUndo)
     }
+
+    // MARK: the sheet's words
+
+    func testTheSummarySaysHowManyAndOnHowManyPages() {
+        let s = store([["Acme quarterly, Acme"], ["Prepared for Acme"], ["Nothing here"]])
+        let found = s.matches(for: "Acme")
+        XCTAssertEqual(FindReplaceSheet.summary(needle: "Acme", matches: found, replaced: nil), "3 found on 2 pages")
+        XCTAssertEqual(FindReplaceSheet.summary(needle: "Acme", matches: Array(found.prefix(2)), replaced: nil),
+                       "2 found on 1 page")
+        XCTAssertEqual(FindReplaceSheet.summary(needle: "Zed", matches: [], replaced: nil), "Not found in this design.")
+        XCTAssertEqual(FindReplaceSheet.summary(needle: "Acme", matches: found, replaced: 3), "Replaced 3 occurrences.")
+    }
 }

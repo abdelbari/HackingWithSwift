@@ -45,4 +45,50 @@ final class ProofreaderTests: XCTestCase {
         XCTAssertEqual(Proofreader.replacing(NSRange(location: 40, length: 3), in: "short", with: "x"), "short",
                        "an out-of-range fix is a no-op, not a crash")
     }
+
+    // MARK: style marks
+
+    /// A misspelling at plain characters `from..<to` of the only box.
+    private func miss(_ stored: String, _ from: Int, _ to: Int, _ word: String) -> (Design, Proofreader.Misspelling) {
+        let d = design([[stored]])
+        let (plain, rawAt) = RichText.mapped(stored)
+        let lower = plain.index(plain.startIndex, offsetBy: from)
+        let upper = plain.index(plain.startIndex, offsetBy: to)
+        let range = Proofreader.storedRange(NSRange(lower..<upper, in: plain), plain: plain, rawAt: rawAt, in: stored)!
+        let m = Proofreader.Misspelling(pageIndex: 0, elementId: d.pages[0].elements[0].id, range: range,
+                                        word: String(plain[lower..<upper]), suggestions: [])
+        return (d, m)
+    }
+
+    private func fix(_ stored: String, _ from: Int, _ to: Int, _ word: String) -> String? {
+        let (d, m) = miss(stored, from, to, word)
+        return Proofreader.fixed(d, m, with: word)?.pages[0].elements[0].text
+    }
+
+    func testAWordIsReadAcrossStyleMarks() throws {
+        try XCTSkipUnless(english, "no English dictionary in this environment")
+        let found = Proofreader.misspellings(in: design([["Big **sael** today"]]), language: "en_US")
+        XCTAssertEqual(found.map(\.word), ["sael"])
+        XCTAssertEqual(found.first?.range, NSRange(location: 6, length: 4), "placed where it is stored")
+        let split = Proofreader.misspellings(in: design([["Say he**llo** now"]]), language: "en_US")
+        XCTAssertTrue(split.isEmpty, "he**llo** is one word, hello: \(split.map(\.word))")
+    }
+
+    func testAFixKeepsTheStylesAndRefusesAStaleRow() {
+        let (d, m) = miss("Big **sael** today", 4, 8, "sale")
+        XCTAssertEqual(m.range, NSRange(location: 6, length: 4))
+        let fixed = Proofreader.fixed(d, m, with: "sale")
+        XCTAssertEqual(fixed?.pages[0].elements[0].text, "Big **sale** today")
+        XCTAssertNil(Proofreader.fixed(fixed!, m, with: "sale"), "the word is no longer there")
+    }
+
+    func testMarksMoveAsTheAndroidTwinMovesThem() {
+        XCTAssertEqual(fix("he**lo** there", 0, 4, "hello"), "**hello** there")
+        XCTAssertEqual(fix("he**lo world**", 0, 4, "hello"), "**hello world**")
+        XCTAssertEqual(fix("**big he**lo", 4, 8, "hello"), "**big hello**")
+        XCTAssertEqual(fix("he__lo world__", 0, 4, "hello"), "__hello world__")
+        XCTAssertEqual(fix("he~~lo world~~", 0, 4, "hello"), "~~hello world~~")
+        XCTAssertEqual(fix("_Photo_**grahpy studio**", 0, 11, "Photography"), "_**Photography_ studio**")
+        XCTAssertEqual(fix("**Photo***grahpy studio*", 0, 11, "Photography"), "***Photography** studio*")
+    }
 }

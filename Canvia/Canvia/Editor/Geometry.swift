@@ -23,32 +23,77 @@ enum Touch {
         screenPoints / max(zoom, 0.05)
     }
 
-    /// Which resize handles are usable on this element at this zoom.
-    ///
-    /// Handles carry a touch target far larger than the dot that is drawn, so
-    /// on a small or zoomed-out element the eight of them tile the whole
-    /// interior and the element can no longer be dragged at all — selecting
-    /// something took away your ability to move it. Drop to corners when the
-    /// box is tight, and to none when it is tiny: the Position sheet still
-    /// resizes precisely, and being able to move the element matters more.
-    static func handleSet(for el: Element, zoom: Double) -> [Handle] {
-        let screenW = el.w * zoom
-        let screenH = el.h * zoom
-        let shortest = min(screenW, screenH)
-        if shortest < 60 { return [] }
-        let full: [Handle]
+    /// Neighbouring handles along an edge are never closer than this on
+    /// screen, the Android twin's HANDLE_MIN_GAP: on a small or zoomed-out
+    /// element the ring of handles stands off the outline to keep them apart.
+    static let handleMinGap = 17.0
+    /// How far from a handle, on screen, a finger still takes it.
+    static let handleReach = 22.0
+    /// Inside the element a handle reaches only this far, so a touch on the
+    /// body of a small element still moves it rather than resizing it.
+    static let handleReachInside = 8.0
+
+    /// The resize handles an element offers, whatever its size on screen —
+    /// they stand off a small element rather than vanish from it (see
+    /// handleOutset). A line stretches along its length; a text box follows
+    /// its words, so its top and bottom are not the user's to drag unless the
+    /// type is fitted to the box or aligned in it; a sticker and a QR code
+    /// only scale, from their corners — a code's sides would cut into its
+    /// finder squares — as on the Android twin.
+    static func handleSet(for el: Element) -> [Handle] {
+        let corners: [Handle] = [.nw, .ne, .se, .sw]
         switch el.type {
-        case .line: full = [.e, .w]
-        // A text box follows its text, so its top and bottom edges are not
-        // the user's to drag — unless the text is fitted to the box or
-        // aligned within it, when the box is the thing being designed.
-        case .text: full = (el.fitText == true || el.vAlign != nil) ? Handle.allCases : [.nw, .ne, .se, .sw, .e, .w]
-        default: full = Handle.allCases
+        case .line: return [.e, .w]
+        case .text: return (el.fitText == true || el.vAlign != nil) ? Handle.allCases : [.nw, .ne, .se, .sw, .e, .w]
+        case .sticker: return corners
+        case .image:
+            if let src = el.src, CodeGenerator.payload(from: src) != nil { return corners }
+            return Handle.allCases
+        case .shape: return Handle.allCases
         }
-        // Edge handles sit between the corners; below this the two collide.
-        if shortest < 120 { return full.filter(\.isCorner).isEmpty ? full : full.filter(\.isCorner) }
-        return full
     }
+
+    /// How far, in page units, the handle ring stands off an axis `side`
+    /// page units long, so that the handles along it — corner, middle,
+    /// corner — sit handleMinGap apart on screen. None once the element is
+    /// big enough: a poster's handles sit exactly on its outline.
+    static func handleOutset(side: Double, zoom: Double) -> Double {
+        let z = max(zoom, 0.05)
+        return max(0, handleMinGap - side * z / 2) / z
+    }
+
+    /// What a touch on the selection's handles takes: the NEAREST offered
+    /// handle within reach — not the first, since on a small element the
+    /// reaches overlap — or the rotate handle when that is nearer. Inside
+    /// the element a handle reaches only handleReachInside, so the body
+    /// still moves. Distances are in page units; `reach` and `inside` too.
+    static func grab(at point: CGPoint, el: Element, handles: [Handle],
+                     outsetX: Double, outsetY: Double, rotateAt: CGPoint?,
+                     reach: Double, inside: Double) -> HandleGrab? {
+        let local = el.rotation == 0 ? point : Geometry.rotate(point, around: el.center, degrees: -el.rotation)
+        let onBody = el.frame.contains(local)
+        var best = reach
+        var found: HandleGrab?
+        if let rotateAt {
+            let d = Double(hypot(rotateAt.x - point.x, rotateAt.y - point.y))
+            if d <= best { best = d; found = .rotate }
+        }
+        for handle in handles {
+            let at = Geometry.handlePoint(el, handle, outsetX: outsetX, outsetY: outsetY)
+            let d = Double(hypot(at.x - point.x, at.y - point.y))
+            if d < best && (!onBody || d <= inside) {
+                best = d
+                found = .resize(handle)
+            }
+        }
+        return found
+    }
+}
+
+/// What a finger on the selection's handles is working.
+enum HandleGrab: Equatable {
+    case resize(Handle)
+    case rotate
 }
 
 enum Handle: String, CaseIterable {
@@ -100,6 +145,18 @@ enum Geometry {
         let local = CGPoint(x: el.x + el.w * u.x, y: el.y + el.h * u.y)
         guard el.rotation != 0 else { return local }
         return rotate(local, around: el.center, degrees: el.rotation)
+    }
+
+    /// The same, pushed out along the element's own axes by an outset in
+    /// page units — where the handle is drawn on a small element, off its
+    /// outline (see Touch.handleOutset).
+    static func handlePoint(_ el: Element, _ handle: Handle, outsetX: Double, outsetY: Double) -> CGPoint {
+        let u = handle.unit
+        let sx = (u.x - 0.5) * 2, sy = (u.y - 0.5) * 2
+        let c = el.center
+        let local = CGPoint(x: c.x + sx * (el.w / 2 + outsetX), y: c.y + sy * (el.h / 2 + outsetY))
+        guard el.rotation != 0 else { return local }
+        return rotate(local, around: c, degrees: el.rotation)
     }
 
     /// Resize keeping the opposite anchor fixed in canvas space.

@@ -56,7 +56,7 @@ extension DesignStore {
         drawing = nil
         cancelErasing()
         stopPreview()
-        editingTextId = nil
+        endTextEdit()
         // Whatever was under way is its own step, not the start of the crop.
         if hasPendingChanges { commit() }
         // Just this photo, even when it belongs to a group: it is the one

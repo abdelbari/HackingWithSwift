@@ -457,28 +457,67 @@ final class TouchTests: XCTestCase {
         }
     }
 
-    func testHandlesVanishOnTinyElements() {
-        // 62pt on screen: eight 34pt targets would cover the whole element.
-        XCTAssertTrue(Touch.handleSet(for: shape(w: 200, h: 200), zoom: 0.2).isEmpty)
+    /// Handles no longer vanish from a small element: the ring stands off
+    /// it instead, far enough that neighbours are a finger apart.
+    func testSmallElementsKeepEveryHandle() {
+        XCTAssertEqual(Set(Touch.handleSet(for: shape(w: 200, h: 200))), Set(Handle.allCases))
+        let side = 200.0, zoom = 0.2   // 40pt on screen
+        let outset = Touch.handleOutset(side: side, zoom: zoom)
+        // Corner to middle along an edge is half the outset side, on screen.
+        let spacing = (side / 2 + outset) * zoom
+        XCTAssertEqual(spacing, Touch.handleMinGap, accuracy: 0.001)
     }
 
-    func testHandlesDropToCornersWhenTight() {
-        let handles = Touch.handleSet(for: shape(w: 200, h: 200), zoom: 0.5)
-        XCTAssertFalse(handles.isEmpty)
-        XCTAssertTrue(handles.allSatisfy(\.isCorner), "edge handles crowd a 100pt box")
+    func testNoOutsetOnRoomyElements() {
+        XCTAssertEqual(Touch.handleOutset(side: 400, zoom: 1), 0)
+        XCTAssertEqual(Touch.handleOutset(side: 34, zoom: 1), 0, accuracy: 0.0001)
+        XCTAssertGreaterThan(Touch.handleOutset(side: 20, zoom: 1), 0)
     }
 
-    func testHandlesFullSetWhenRoomy() {
-        let handles = Touch.handleSet(for: shape(w: 400, h: 400), zoom: 1.0)
-        XCTAssertEqual(Set(handles), Set(Handle.allCases))
+    func testOutsetHandlesFollowTheElementsAxes() {
+        var el = shape(w: 20, h: 20)
+        el.x = 100; el.y = 100
+        let p = Geometry.handlePoint(el, .se, outsetX: 5, outsetY: 5)
+        XCTAssertEqual(p.x, 125, accuracy: 0.001)
+        XCTAssertEqual(p.y, 125, accuracy: 0.001)
+        el.rotation = 90
+        let turned = Geometry.handlePoint(el, .e, outsetX: 5, outsetY: 0)
+        XCTAssertEqual(turned.x, 110, accuracy: 0.001, "east turns to south about the centre")
+        XCTAssertEqual(turned.y, 125, accuracy: 0.001)
     }
 
-    /// A line only ever resizes along its length, at any size that shows handles.
+    /// A line only ever resizes along its length.
     func testLineKeepsOnlyEndHandles() {
-        let line = shape(w: 600, h: 8, type: .line)
-        XCTAssertEqual(Set(Touch.handleSet(for: line, zoom: 1.0)), [])
-        let tall = shape(w: 600, h: 200, type: .line)
-        XCTAssertTrue(Touch.handleSet(for: tall, zoom: 1.0).allSatisfy { $0 == .e || $0 == .w })
+        XCTAssertEqual(Set(Touch.handleSet(for: shape(w: 600, h: 8, type: .line))), [.e, .w])
+    }
+
+    /// Stickers and QR codes scale from their corners; a photo's sides trim.
+    func testStickersAndCodesOfferCornersOnly() {
+        let corners: Set<Handle> = [.nw, .ne, .se, .sw]
+        XCTAssertEqual(Set(Touch.handleSet(for: Element.sticker("🎉"))), corners)
+        let code = Element.image(CodeGenerator.source(for: "https://canvia.app"))
+        XCTAssertEqual(Set(Touch.handleSet(for: code)), corners)
+        XCTAssertEqual(Set(Touch.handleSet(for: Element.image("asset:x"))), Set(Handle.allCases))
+    }
+
+    /// The nearest handle wins, not the first in the list; the body of the
+    /// element keeps its touches away from the handles.
+    func testGrabTakesTheNearestHandleAndLeavesTheBody() {
+        var el = shape(w: 20, h: 20)
+        el.x = 100; el.y = 100
+        let o = Touch.handleOutset(side: 20, zoom: 1)
+        let handles = Touch.handleSet(for: el)
+        let top = Geometry.handlePoint(el, .n, outsetX: o, outsetY: o)
+        let grab = Touch.grab(at: CGPoint(x: top.x + 1, y: top.y - 2), el: el, handles: handles,
+                              outsetX: o, outsetY: o, rotateAt: nil, reach: 22, inside: 8)
+        XCTAssertEqual(grab, .resize(.n))
+        let middle = Touch.grab(at: el.center, el: el, handles: handles,
+                                outsetX: o, outsetY: o, rotateAt: nil, reach: 22, inside: 8)
+        XCTAssertNil(middle, "the middle of a small element moves it")
+        let below = CGPoint(x: el.center.x, y: el.y + el.h + o + 28)
+        let spun = Touch.grab(at: CGPoint(x: below.x, y: below.y + 3), el: el, handles: handles,
+                              outsetX: o, outsetY: o, rotateAt: below, reach: 22, inside: 8)
+        XCTAssertEqual(spun, .rotate)
     }
 }
 

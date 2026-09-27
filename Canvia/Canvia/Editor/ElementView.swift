@@ -221,7 +221,7 @@ struct TextElementView: View {
         }
         // Fitted text is measured at the size that fills the box.
         if el.fitText == true { el.fontSize = FontLibrary.fittingFontSize(for: el) }
-        var attrs = FontLibrary.attributes(for: el)
+        let attrs = FontLibrary.attributes(for: el)
         let fontSize = el.fontSize ?? 42
         let color = UIColor(hex: el.color ?? "#1f2430")
         // Vertical alignment: the text's own height against the box's.
@@ -240,7 +240,7 @@ struct TextElementView: View {
             // At the size the words are drawn (fitted type is not its stored
             // size) and where they start in the box (vertically aligned text
             // is not at the top).
-            for line in lineFragments(text: text, attrs: attrs, width: size.width,
+            for line in lineFragments(el, width: size.width,
                                       pitch: fontSize * (el.lineHeight ?? 1.25), top: rect.minY) {
                 let pad = fontSize * 0.18
                 cg.fill(CGRect(x: line.rect.minX - pad, y: line.rect.minY,
@@ -269,39 +269,41 @@ struct TextElementView: View {
             return
         }
 
+        // Every effect starts from the words as drawn, inline bold, italic,
+        // underline and strike included, and lays its own colour or stroke
+        // over every run — so a **bold** word stays bold in outline, splice
+        // and echo, as the Android twin draws them from one layout.
+        let styled = FontLibrary.attributedString(for: el)
+        func over(_ extra: [NSAttributedString.Key: Any]) -> NSAttributedString {
+            let copy = NSMutableAttributedString(attributedString: styled)
+            copy.addAttributes(extra, range: NSRange(location: 0, length: copy.length))
+            return copy
+        }
         switch effect {
         case .outline:
-            attrs[.strokeColor] = color
-            attrs[.strokeWidth] = NSNumber(value: max(2.5, fontSize * 0.035) / fontSize * 100)
-            attrs[.foregroundColor] = UIColor.clear
-            NSAttributedString(string: text, attributes: attrs).draw(in: rect)
+            over([.strokeColor: color,
+                  .strokeWidth: NSNumber(value: max(2.5, fontSize * 0.035) / fontSize * 100),
+                  .foregroundColor: UIColor.clear]).draw(in: rect)
         case .splice:
-            var shadowAttrs = attrs
-            shadowAttrs[.foregroundColor] = color.withAlphaComponent(0.45)
             let offset = fontSize * 0.08
-            NSAttributedString(string: text, attributes: shadowAttrs)
+            over([.foregroundColor: color.withAlphaComponent(0.45)])
                 .draw(in: rect.offsetBy(dx: offset, dy: offset))
-            attrs[.strokeColor] = color
-            attrs[.strokeWidth] = NSNumber(value: max(2.5, fontSize * 0.03) / fontSize * 100)
-            attrs[.foregroundColor] = UIColor.clear
-            NSAttributedString(string: text, attributes: attrs).draw(in: rect)
+            over([.strokeColor: color,
+                  .strokeWidth: NSNumber(value: max(2.5, fontSize * 0.03) / fontSize * 100),
+                  .foregroundColor: UIColor.clear]).draw(in: rect)
         case .glitch:
-            var cyan = attrs, pink = attrs
-            cyan[.foregroundColor] = UIColor(hex: "#00e5ff").withAlphaComponent(0.85)
-            pink[.foregroundColor] = UIColor(hex: "#ff2d78").withAlphaComponent(0.85)
             let offset = fontSize * 0.06
-            NSAttributedString(string: text, attributes: cyan).draw(in: rect.offsetBy(dx: offset, dy: 0))
-            NSAttributedString(string: text, attributes: pink).draw(in: rect.offsetBy(dx: -offset, dy: 0))
-            NSAttributedString(string: text, attributes: attrs).draw(in: rect)
+            over([.foregroundColor: UIColor(hex: "#00e5ff").withAlphaComponent(0.85)])
+                .draw(in: rect.offsetBy(dx: offset, dy: 0))
+            over([.foregroundColor: UIColor(hex: "#ff2d78").withAlphaComponent(0.85)])
+                .draw(in: rect.offsetBy(dx: -offset, dy: 0))
+            styled.draw(in: rect)
         case .neon:
             // Multiple passes deepen the glow.
-            let str = FontLibrary.attributedString(for: el)
-            str.draw(in: rect)
-            str.draw(in: rect)
+            styled.draw(in: rect)
+            styled.draw(in: rect)
         default:
-            // Plain, shadow and lift carry the inline styles; the effects
-            // above draw the letters as strokes and doubles and stay plain.
-            FontLibrary.attributedString(for: el).draw(in: rect)
+            styled.draw(in: rect)
         }
 
         // A gradient fill is painted through the letters after the fact: the
@@ -312,10 +314,10 @@ struct TextElementView: View {
         if let fill = el.textFill, fill.kind == "gradient",
            [.none, .shadow, .lift, .neon, .highlight].contains(effect) {
             let renderer = UIGraphicsImageRenderer(size: size)
-            var maskAttrs = attrs
-            maskAttrs[.foregroundColor] = UIColor.black
+            // The letters as drawn, bold runs and all, so the gradient
+            // lands on exactly the glyphs above.
             let mask = renderer.image { _ in
-                NSAttributedString(string: text, attributes: maskAttrs).draw(in: rect)
+                over([.foregroundColor: UIColor.black]).draw(in: rect)
             }
             guard let cgMask = mask.cgImage else { return }
             cg.saveGState()
@@ -470,29 +472,40 @@ struct TextElementView: View {
         var rect: CGRect
     }
 
-    /// Wrapped line rectangles via CoreText, for the highlight effect.
-    private func lineFragments(text: String, attrs: [NSAttributedString.Key: Any],
-                               width: Double, pitch: Double, top: Double) -> [LineFragment] {
-        let attributed = NSAttributedString(string: text, attributes: attrs)
+    /// Wrapped line rectangles for the highlight effect, from the very
+    /// string that is drawn — inline bold and all — framed at the box's
+    /// width: each line from where CoreText sets it (indents, a list's
+    /// hanging marker and the alignment all in its origin) to the end of
+    /// its ink, and a justified line that is not a paragraph's last across
+    /// the whole box — as the Android twin spans each bar from its layout's
+    /// line left to line right.
+    private func lineFragments(_ el: Element, width: Double, pitch: Double, top: Double) -> [LineFragment] {
+        let attributed = FontLibrary.attributedString(for: el)
         let framesetter = CTFramesetterCreateWithAttributedString(attributed)
         let path = CGPath(rect: CGRect(x: 0, y: 0, width: width, height: 100000), transform: nil)
         let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: 0, length: 0), path, nil)
         guard let lines = CTFrameGetLines(frame) as? [CTLine], !lines.isEmpty else { return [] }
-        let lineHeight = pitch
+        var origins = [CGPoint](repeating: .zero, count: lines.count)
+        CTFrameGetLineOrigins(frame, CFRange(location: 0, length: 0), &origins)
+        let string = attributed.string as NSString
+        // Paragraph spacing, as FontLibrary sets it: after each line break.
+        let gap = (el.fontSize ?? 42) * max(0, el.paragraphSpacing ?? 0)
+        let justified = el.align == "justify"
+        var paragraphsAbove = 0
         var fragments: [LineFragment] = []
         for (i, line) in lines.enumerated() {
+            let range = CTLineGetStringRange(line)
+            let end = range.location + range.length
+            let endsParagraph = end >= string.length || (end > 0 && string.character(at: end - 1) == 10)
+            let topY = top + Double(i) * pitch + Double(paragraphsAbove) * gap
+            if endsParagraph { paragraphsAbove += 1 }
             var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
-            let lineWidth = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
-            guard lineWidth > 0.5 else { continue }
-            let topY = top + Double(i) * lineHeight
-            let alignedX: Double
-            switch element.align ?? "center" {
-            case "left": alignedX = 0
-            case "right": alignedX = width - lineWidth
-            default: alignedX = (width - lineWidth) / 2
-            }
-            fragments.append(LineFragment(rect: CGRect(
-                x: alignedX, y: topY, width: lineWidth, height: lineHeight)))
+            let full = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
+            let inked = full - CTLineGetTrailingWhitespaceWidth(line)
+            guard inked > 0.5 else { continue }
+            let x = Double(origins[i].x)
+            let lineWidth = justified && !endsParagraph ? max(inked, width - x) : inked
+            fragments.append(LineFragment(rect: CGRect(x: x, y: topY, width: lineWidth, height: pitch)))
         }
         return fragments
     }

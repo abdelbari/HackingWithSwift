@@ -12,25 +12,18 @@ import Foundation
 
 enum CanvasAccessibility {
 
+    /// Alt text when there is some; "Empty text" for a box with no words;
+    /// otherwise the same name the Layers sheet and the snap guides use —
+    /// "Heading: SALE", "Red oval", "Blue line", "QR code", "Empty photo
+    /// frame" — as the Android twin names its TalkBack nodes.
     static func label(for el: Element) -> String {
         if let alt = el.altText?.trimmingCharacters(in: .whitespacesAndNewlines), !alt.isEmpty {
             return alt
         }
-        switch el.type {
-        case .text:
-            let body = (el.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            if body.isEmpty { return "Empty text" }
-            let clipped = body.count > 80 ? String(body.prefix(80)) + "…" : body
-            return "Text: \(clipped)"
-        case .shape:
-            return el.pathData == nil ? "\(ContentLibrary.shape(el.shapeId).name) shape" : "Custom shape"
-        case .image:
-            return el.maskShapeId == nil ? "Photo" : "Photo in a \(ContentLibrary.shape(el.maskShapeId).name) frame"
-        case .sticker:
-            return "Sticker \(el.glyph ?? "")"
-        case .line:
-            return "Line"
+        if el.type == .text, RichText.strip(el.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "Empty text"
         }
+        return ElementNames.name(of: el)
     }
 
     /// Position and size as percentages of the page: "at 12% across, 40%

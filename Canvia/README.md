@@ -34,11 +34,17 @@ so does Recently deleted ("Deleted yesterday"). Deleting a design says
 it stays until used or closed (or the next delete), and VoiceOver hears it.
 
 **Editor**
-- Direct manipulation: tap to select, drag to move with magenta snap
-  guides (page edges/centers + sibling edges/centers), rotation-aware
-  corner/edge resize handles (corners keep aspect; text corners scale the
-  font), rotate handle with 45° snapping and live angle badge, long-press
-  for multi-select, pinch to zoom, drag empty canvas to pan
+- Direct manipulation: tap to select (tap a member of a selected group to
+  take just that member), drag to move with magenta snap guides (page
+  edges/centers + sibling edges/centers), rotation-aware corner/edge resize
+  handles (corners keep aspect; text corners scale the font and its
+  tracking and read "Size 42.5"; a photo's sides trim its frame across a
+  picture that stays put; stickers and QR codes scale from corners only),
+  every handle offered at any size — on a small or zoomed-out element the
+  ring stands off the outline so neighbours stay a finger apart, a touch
+  takes the nearest, and the body still moves it — rotate handle with 45°
+  snapping and a live angle badge, long-press for multi-select, pinch to
+  zoom, drag empty canvas to pan
 - Content: 44 shapes (one SVG-path library parsed with full arc support),
   lines with caps and dashes, emoji stickers, 20 procedurally drawn
   photos, photo-library imports, QR codes generated from a link or any
@@ -48,12 +54,20 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   library is generated from the Android twin's `templates/` specs)
 - Text: curved text on an arc from -180° to 180° (glyphs placed along one
   circle whose radius the line's own width fixes, so letters keep their
-  size rather than being squashed to fit), inline editing (double-tap),
+  size rather than being squashed to fit), inline editing (double-tap) in a
+  field set exactly as the words are drawn — fitted size, tracking, line
+  pitch, underline, justification, top/middle/bottom — with the box itself
+  hidden meanwhile and kept above the keyboard as it grows; however typing
+  ends (a tap elsewhere, Done, Escape, a Layers row, a page change) it is
+  its own undo step and an emptied box goes; changing the font, weight,
+  slant, alignment or path measures the box again,
   12 font personalities mapped to fonts
   that ship with iOS (Didot, Rockwell, Futura Condensed ExtraBold, Menlo,
   Snell Roundhand, …), 8 text effects (shadow, lift, hollow, splice, neon,
   echo, highlight) drawn through one CoreText pipeline shared by canvas,
-  thumbnails and export
+  thumbnails and export — inline bold and italic words keep their style
+  under every effect, and highlight bars sit behind each line as it is
+  set, indents, list markers and justification included
 - Photo frames: any library shape clips a photo — circle, star, blob,
   speech bubble — applying one squares the box about its centre, because
   the library's paths stretch onto the element and a circle on a 4:3 photo
@@ -85,10 +99,14 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
 - Undo/redo with gesture coalescing (a whole drag is one step), autosave,
   lock, opacity, duplicate, align / distribute / flip / exact-position
   sheet, layers sheet with drag reorder
-- Find and replace across every page, with a live match count and
-  replace-all as a single undo step; and a spelling check across the
-  document through the system dictionary, each mistake with its
-  suggestions a tap away (acronyms, hashtags and addresses left alone)
+- Find and replace across every page, with a live count ("12 found on 3
+  pages", spoken to VoiceOver as it changes), the count on the Replace all
+  button, and replace-all as a single undo step, felt; and a spelling
+  check across the document through the system dictionary, reading each
+  box as it reads so "he**llo**" is one word, each mistake with its
+  suggestions a tap away (or "No suggestions"), a fix keeping the word's
+  inline styles and refused if the word has since changed (acronyms,
+  hashtags and addresses left alone)
 - Bulleted, numbered and lettered lists with hanging indents, and up to
   four indent levels on any paragraph
 - Gradient text: any gradient from the colour picker fills the letters,
@@ -107,11 +125,13 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   templates — sorts by last edited, name or page count, and keeps deleted
   designs in a Recently deleted section for thirty days, with Restore
   and Delete forever. Their photos and version history wait with them.
-- VoiceOver on the canvas: every element is named (what it is, and what
-  it says if it is text), valued (where and how big, in percentages of
-  the page, plus rotation and lock) and carries actions — move in four
-  directions, duplicate, delete, layer order, edit text — so the whole
-  page can be arranged without a drag.
+- VoiceOver on the canvas: every element is named as the Layers sheet
+  and the snap guides name it — "Heading: SALE", "Red oval", "Blue line",
+  "QR code", "Empty photo frame" — or by its alt text, valued (where and how big, in percentages of
+  the page, plus rotation and lock) and carries actions — add to or
+  remove from the selection, move in four directions, duplicate, delete,
+  layer order, edit text — so the whole page can be arranged without a
+  drag. Guides can be moved a step or removed from their actions too.
 - Photos import several at once (up to ten, landing as a cascade), keep
   their transparency when they have any — a PNG logo is stored as PNG,
   an opaque screenshot as the far smaller JPEG — and every colour picker
@@ -153,8 +173,9 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   design and everything snaps to them. An eyedropper in every colour
   picker samples any colour from the rendered design.
 - Saved, linked text styles: name a look ("Heading", "Price"), apply it
-  to any text from the Styles menu, and update it from one element to
-  change every element that follows it, on every page, as one undo step.
+  to any text from the Styles popover — each style shown in its own face,
+  the one followed ticked — and update it from one element to change
+  every element that follows it, on every page, as one undo step.
 - Favourites: star any shape, photo, sticker or template (press and hold)
   and it leads its tab; components: save a selection under a name and
   drop it into any design at half the page's width, grouped, with fresh
@@ -198,11 +219,18 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
 - Text boxes: auto-fit sizes the type to fill the box you draw; vertical
   alignment (top, middle, bottom) places shorter text in a taller box;
   shrink-to-fit closes the box onto its text. Justified alignment and
-  paragraph spacing join the type controls.
+  paragraph spacing join the type controls. The spacing sliders read out
+  their values — letter spacing as a share of the type size, over a range
+  that grows with it; line spacing 0.70–2.50; paragraph spacing "None" or
+  "0.4 em" — and fitting, vertical alignment, drop caps, curves and paths
+  wait, with a word why, where they would change nothing. Every type
+  control says its name and state to VoiceOver ("Align, Center", "Type
+  size, 42", "Curve, 45", "Neon effect, selected").
 - Pattern fills — stripes, dots, checks, grid, zigzag, crosshatch — drawn
   procedurally in any two colours so they stay sharp at every zoom and
   export, and photo fills that pour a picture into any shape; both from
-  the fill colour picker, both usable as page backgrounds.
+  the fill colour picker, both usable as page backgrounds. Text takes
+  colours and gradients only, since it never draws a pattern or a photo.
 - Photo grids: six layouts of empty frames (2 across, 3 across, 2 by 2,
   1 + 2, 1 over 3, 3 by 3) flush to the margins and one gutter apart,
   grouped, filled with Replace.
@@ -271,7 +299,7 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   something changed, thirty deep. Restoring one is a single undo step
   and the current state is kept as a version first, so it is never a
   one-way door.
-- An undo toast after the edits people regret — delete, delete page,
+- An undo toast after the edits people regret — delete, cut, delete page,
   replace all, restore, resize — naming what just happened with an Undo
   button and a close button on it, gone after four seconds; read out by
   VoiceOver, and kept up until closed while it runs, so its Undo can be
@@ -279,6 +307,8 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
 - Under the design's name in the top bar, the page's own size and where
   it sits: "1080 × 1920 · Page 2 of 5". A name emptied out, here or in
   Rename on Home, keeps the old one.
+- A sheet rising over the canvas keeps the selection in the half still
+  showing, by the least pan — and so does picking something while it is up.
 - Top-bar overflow menu: layers, page background, find and replace,
   version history, copy and paste style, copy / cut / paste,
   select all, and group / ungroup (grouping is sticky multi-selection —
@@ -364,11 +394,15 @@ picture on this page or one page each.
 
 **Read aloud** — the menu reads the page in reading order (rows top to
 bottom, left to right — the same order VoiceOver takes the canvas in),
-pictures by their alt text and page-number tokens resolved.
+pictures by their alt text and page-number tokens resolved. Leaving the
+design stops it.
 
-**Haptics** — selection, snapping to guides and to 45° rotation, undo and
-redo, grouping, a new page and each drawn stroke are each felt, once,
-through `.sensoryFeedback`. A Vibration switch (Home's ⋯ menu, and the
+**Haptics** — selection, snapping to guides, to equal spacing and to 45°
+rotation, undo and redo, grouping, a new page, each drawn stroke, adding
+and removing a guide, copy, flip, copy style, and a delete or cut refused
+because everything is locked are each felt, once, through
+`.sensoryFeedback`. Copy, cut and paste say what happened ("Copied 2
+things", "Cut", "Nothing to paste"), as delete does ("Deleted"). A Vibration switch (Home's ⋯ menu, and the
 editor's More menu beside Snapping) turns all of it off at once; it is on
 until turned off, one setting for the app, and the system's own haptics
 switch still applies on top.
@@ -483,9 +517,11 @@ shaped unlike the frame on black. Resizing the whole design brings every
 page to the new size.
 
 **Dictation** — a microphone on the text toolbar (where speech
-recognition is available) appends what you say to the selected text as
-the words arrive, on-device where the system allows, and records the
-change when you stop. The keyboard's own microphone works in the inline
+recognition is available, and the text is unlocked) appends what you say
+to that text as the words arrive, on-device where the system allows, and
+records the change when you stop. The words go only into the box
+dictation began on: selecting anything else, or leaving the design, stops
+the microphone. The keyboard's own microphone works in the inline
 editor as well, and on iPad so does Scribble.
 
 **Handwriting to text** — select drawn strokes and *To text* renders them
@@ -513,13 +549,17 @@ a title in the discoverability overlay: ⌘Z / ⇧⌘Z (or ⌘Y), ⌘C / ⌘X / 
 duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and
 with ⇧) to reorder layers, ⇧⌘L lock, ⌘E export, ⌘K layers, ⇧⌘P present,
 ⇧⌘N new page, ⌘/ help, arrows to nudge (⇧ for ten), Delete or ⌦ (or
-⌘⌫) to delete the selection when nothing is being typed.
+⌘⌫) to delete the selection when nothing is being typed, and Escape to
+deselect — or, while typing in place, to finish typing.
 
 **On the canvas** — a pill at the top right reads Fit or the zoom as a
 percentage, and a tap goes between the whole page and actual size; Bring
 it back appears when the selection has scrolled out of sight. Snap lines
 say what they line up with ("Centre of the page", "Lined up with
-heading: SALE", "Your guide", in teal). While moving, a faint dashed box
+heading: SALE", "Your guide", in teal). While moving, the badge reads
+"x 120  ·  y 48" with a dot on each axis a guide holds and any equal gap
+("↔ 24", "↕ 24") in the guide colour, and a snapped angle turns that
+colour too. A faint dashed box
 marks where the move began and the page edges it crosses light up. A
 locked element is outlined dashed with a padlock; a multi-selection says
 how many it holds. Hold Undo to rewind many steps. Position nudges by

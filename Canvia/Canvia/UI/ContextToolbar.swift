@@ -36,6 +36,7 @@ struct ContextToolbar: View {
     @State private var namingStyle = false
     @State private var styleName = ""
     @State private var styleVersion = 0
+    @State private var showingStyles = false
     @Bindable var store: DesignStore
     @Binding var activeSheet: EditorSheet?
 
@@ -86,6 +87,15 @@ struct ContextToolbar: View {
         .onChange(of: editingAlt || editingLink || namingStyle) { _, open in
             store.textFieldOpen = open
         }
+        // Dictation belongs to the one text box it began on: once anything
+        // else is selected, or the microphone stops by itself, it is over.
+        .onChange(of: store.selection) { _, selection in
+            if let target = store.dictationTarget, selection != [target] { endDictation() }
+        }
+        .onChange(of: Dictation.shared.isListening) { _, listening in
+            if !listening { store.finishDictation() }
+        }
+        .onDisappear { endDictation() }
         .alert("Remove background",
                isPresented: Binding(get: { cutoutError != nil },
                                     set: { if !$0 { cutoutError = nil } })) {
@@ -155,53 +165,74 @@ struct ContextToolbar: View {
                     if e.vertical == true, e.h < (e.fontSize ?? 42) * 4 { e.h = (e.fontSize ?? 42) * 4 }
                 }
             }
-            toolButton(alignIcon(el.align), "Align") {
-                store.updateSelected { e in
-                    switch e.align ?? "center" {
-                    case "left": e.align = "center"
-                    case "center": e.align = "right"
-                    case "right": e.align = "justify"
-                    default: e.align = "left"
-                    }
-                }
-            }
+            alignButton(el)
             listMenu(el)
             toolButton("decrease.indent", "Outdent") { indent(el, by: -1) }
                 .disabled(FontLibrary.indentLevel(of: el) == 0)
+                .accessibilityValue("Level \(FontLibrary.indentLevel(of: el))")
             toolButton("increase.indent", "Indent") { indent(el, by: 1) }
                 .disabled(FontLibrary.indentLevel(of: el) >= FontLibrary.maxIndent)
+                .accessibilityValue("Level \(FontLibrary.indentLevel(of: el))")
         }
         HStack(spacing: 14) {
             stylesMenu(el)
             toolButton("wand.and.stars", "Effects") { activeSheet = .effects }
             toolButton("arrow.up.and.down.text.horizontal", "Spacing") { activeSheet = .spacing }
-            pathMenu(el)
-            if Dictation.isAvailable { dictateButton(el) }
-            sliderControl("Curve", value: el.curve ?? 0, in: -180...180) { degrees in
-                store.updateSelectedTransient { curve(&$0, to: degrees) }
+            if Dictation.isAvailable && !el.locked { dictateButton(el) }
+            if el.vertical == true {
+                // A curve or a path cannot bend words stood in columns; say
+                // so rather than offer controls that change nothing.
+                Text("A curve or a path waits while the words stand in columns.")
+                    .font(Theme.controlLabel)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+                    .frame(width: 150, alignment: .leading)
+            } else {
+                pathMenu(el)
+                sliderControl("Curve", value: el.curve ?? 0, in: -180...180) { degrees in
+                    store.updateSelectedTransient { curve(&$0, to: degrees) }
+                }
             }
         }
     }
 
-    /// Speak, and the words append to the selected text as they arrive;
-    /// tap again to stop, which is when the change is recorded.
+    /// Left, centre, right, justify in turn — and which it is now, for
+    /// VoiceOver, which otherwise heard only "Align".
+    private func alignButton(_ el: Element) -> some View {
+        toolButton(alignIcon(el.align), "Align") {
+            store.updateSelected { e in
+                switch e.align ?? "center" {
+                case "left": e.align = "center"
+                case "center": e.align = "right"
+                case "right": e.align = "justify"
+                default: e.align = "left"
+                }
+            }
+        }
+        .accessibilityValue(TypeReadouts.alignment(el.align))
+    }
+
+    /// Speak, and the words append to this text as they arrive; tap again
+    /// to stop, which is when the change is recorded. The words go into the
+    /// box dictation began on and nowhere else — select anything else and
+    /// the microphone stops, as the Android twin's does.
     private func dictateButton(_ el: Element) -> some View {
-        let listening = Dictation.shared.isListening
+        let listening = Dictation.shared.isListening && store.dictationTarget == el.id
         return toolButton(listening ? "mic.fill" : "mic", listening ? "Stop" : "Dictate") {
             if listening {
-                Dictation.shared.stop()
-                store.commit()
+                endDictation()
                 return
             }
+            endDictation()
             dictationBase = el.text ?? ""
             let base = dictationBase
+            let target = el.id
+            store.dictationTarget = target
             Dictation.shared.start { spoken, isFinal in
                 Task { @MainActor in
-                    store.updateSelectedTransient { e in
-                        e.text = Dictation.merge(base, spoken)
-                        e.h = FontLibrary.layoutHeight(for: e)
-                    }
-                    if isFinal { store.commit() }
+                    guard store.dictationTarget == target else { return }
+                    store.dictate(Dictation.merge(base, spoken))
+                    if isFinal { store.finishDictation() }
                 }
             }
         }
@@ -334,41 +365,25 @@ struct ContextToolbar: View {
     }
 
     /// Saved, linked text styles: apply one, save the current look as one,
-    /// or push this element's look back into the style it follows.
+    /// or push this element's look back into the style it follows. A
+    /// popover rather than a menu, because a menu sets every row in the
+    /// system font and each style is shown here in its own face — "Heading"
+    /// looks like a heading — as the Android twin's style chips are.
     private func stylesMenu(_ el: Element) -> some View {
         let styles = TextStyles.load()
         let followed = styles.first { $0.id == el.textStyleId }
-        return Menu {
-            if styles.isEmpty {
-                Text("No saved styles yet")
-            }
-            ForEach(styles) { style in
-                Button {
-                    store.applyTextStyle(style)
-                    styleVersion += 1
-                } label: {
-                    Label(style.name, systemImage: style.id == el.textStyleId ? "checkmark" : "textformat")
-                }
-            }
-            Divider()
-            Button {
-                styleName = ""
-                namingStyle = true
-            } label: { Label("Save this look as a style…", systemImage: "plus") }
-            if let followed {
-                Button {
-                    store.updateTextStyle(followed.id, from: el)
-                    styleVersion += 1
-                } label: { Label("Update “\(followed.name)” from this text", systemImage: "arrow.triangle.2.circlepath") }
-                Button(role: .destructive) {
-                    TextStyles.remove(followed.id)
-                    styleVersion += 1
-                } label: { Label("Delete “\(followed.name)”", systemImage: "trash") }
-            }
+        return Button {
+            showingStyles = true
         } label: {
             toolLabel("character.textbox", "Styles", active: followed != nil)
         }
+        .buttonStyle(ToolButtonStyle())
+        .accessibilityValue(followed?.name ?? "None")
         .id(styleVersion)
+        .popover(isPresented: $showingStyles) {
+            stylesList(el, styles: styles, followed: followed)
+                .presentationCompactAdaptation(.popover)
+        }
         .alert("Name this style", isPresented: $namingStyle) {
             TextField("Heading, Caption, Price…", text: $styleName)
             Button("Save") {
@@ -379,6 +394,82 @@ struct ContextToolbar: View {
                 styleVersion += 1
             }
             Button("Cancel", role: .cancel) {}
+        }
+    }
+
+    private func stylesList(_ el: Element, styles: [TextStyle], followed: TextStyle?) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if styles.isEmpty {
+                Text("No saved styles yet")
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(styles) { style in styleRow(style, followed: style.id == followed?.id) }
+                    }
+                }
+                .frame(maxHeight: 300)
+            }
+            Divider()
+            styleActions(el, followed: followed)
+        }
+        .frame(minWidth: 260)
+        .padding(.vertical, 6)
+    }
+
+    private func styleRow(_ style: TextStyle, followed: Bool) -> some View {
+        Button {
+            store.applyTextStyle(style)
+            styleVersion += 1
+            showingStyles = false
+        } label: {
+            HStack {
+                Text(style.name)
+                    .font(FontLibrary.font(family: style.style.fontFamily, size: 17,
+                                           weight: style.style.fontWeight ?? 400,
+                                           italic: style.style.italic ?? false))
+                    .lineLimit(1)
+                Spacer(minLength: 12)
+                if followed { Image(systemName: "checkmark").foregroundStyle(Theme.accent) }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(followed ? .isSelected : [])
+    }
+
+    @ViewBuilder
+    private func styleActions(_ el: Element, followed: TextStyle?) -> some View {
+        Button {
+            showingStyles = false
+            styleName = ""
+            // After the popover has gone, or the alert is never shown.
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(350))
+                namingStyle = true
+            }
+        } label: { Label("Save this look as a style…", systemImage: "plus") }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+        if let followed {
+            Button {
+                store.updateTextStyle(followed.id, from: el)
+                styleVersion += 1
+                showingStyles = false
+            } label: { Label("Update “\(followed.name)” from this text", systemImage: "arrow.triangle.2.circlepath") }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+            Button(role: .destructive) {
+                TextStyles.remove(followed.id)
+                styleVersion += 1
+                showingStyles = false
+            } label: { Label("Delete “\(followed.name)”", systemImage: "trash") }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
         }
     }
 
@@ -405,6 +496,8 @@ struct ContextToolbar: View {
                 : el.listStyle == "letter" ? "character" : "list.bullet"
             toolLabel(icon, "List", active: FontLibrary.isList(el))
         }
+        .accessibilityLabel("List")
+        .accessibilityValue(TypeReadouts.listStyle(el.listStyle))
     }
 
     private func indent(_ el: Element, by delta: Int) {
@@ -439,17 +532,32 @@ struct ContextToolbar: View {
         el.y = centre.y - el.h / 2
     }
 
+    /// Two steps of two points. To VoiceOver it is one adjustable control,
+    /// "Type size, 42", that swipes up and down — the iPhone's own way to
+    /// read and change a number, rather than two bare "minus" and "plus".
     private func fontSizeStepper(_ el: Element) -> some View {
         HStack(spacing: 4) {
             Button { bumpFontSize(-2) } label: { Image(systemName: "minus") }
+                .accessibilityLabel("Smaller type")
             Text("\(Int(el.fontSize ?? 42))")
                 .font(.system(size: 14, weight: .semibold))
                 .frame(minWidth: 34)
             Button { bumpFontSize(2) } label: { Image(systemName: "plus") }
+                .accessibilityLabel("Larger type")
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
         .background(Capsule().fill(Color(.systemGray6)))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Type size")
+        .accessibilityValue("\(Int(el.fontSize ?? 42))")
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: bumpFontSize(2)
+            case .decrement: bumpFontSize(-2)
+            @unknown default: break
+            }
+        }
     }
 
     @ViewBuilder
@@ -856,6 +964,12 @@ struct ContextToolbar: View {
         }
     }
 
+    /// Stops the microphone and records what it wrote as one step.
+    private func endDictation() {
+        if Dictation.shared.isListening { Dictation.shared.stop() }
+        store.finishDictation()
+    }
+
     private func toolButton(_ system: String, _ label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 3) {
@@ -928,18 +1042,26 @@ struct ContextToolbar: View {
                 if !editing { store.commit() }
             })
             .frame(width: 110)
+            // Named and valued, so VoiceOver reads "Curve, 45" rather than a
+            // bare percentage of the track.
+            .accessibilityLabel(label)
+            .accessibilityValue(readoutValue(label, value))
             Text(readout(label, value))
                 .font(Theme.controlLabel)
                 .monospacedDigit()
                 .contentTransition(.numericText())
+                .accessibilityHidden(true)
         }
     }
 
     /// "Round" tells you nothing; "Round 24" is a control.
     private func readout(_ label: String, _ value: Double) -> String {
-        label == "Opacity"
-            ? "\(label) \(Int((value * 100).rounded()))%"
-            : "\(label) \(Int(value.rounded()))"
+        "\(label) \(readoutValue(label, value))"
+    }
+
+    /// The number alone: "40%" for opacity, "24" for the rest.
+    private func readoutValue(_ label: String, _ value: Double) -> String {
+        label == "Opacity" ? "\(Int((value * 100).rounded()))%" : "\(Int(value.rounded()))"
     }
 
     private func alignIcon(_ align: String?) -> String {

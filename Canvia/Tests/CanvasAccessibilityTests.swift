@@ -8,20 +8,26 @@ final class CanvasAccessibilityTests: XCTestCase {
     private let design = Design(title: "a11y", width: 1000, height: 500)
 
     func testEachKindHasAName() {
-        XCTAssertEqual(CanvasAccessibility.label(for: Element.text("Summer sale")), "Text: Summer sale")
+        XCTAssertEqual(CanvasAccessibility.label(for: Element.text("Summer sale", fontSize: 24)), "Text: Summer sale")
+        XCTAssertEqual(CanvasAccessibility.label(for: Element.text("SALE", fontSize: 96)), "Heading: SALE")
         XCTAssertEqual(CanvasAccessibility.label(for: Element.text("   ")), "Empty text")
-        XCTAssertTrue(CanvasAccessibility.label(for: Element.shape("rect")).hasSuffix(" shape"))
+        var oval = Element.shape("circle")
+        oval.fill = .solid("#ff0000")
+        XCTAssertEqual(CanvasAccessibility.label(for: oval), "Red circle")
         XCTAssertEqual(CanvasAccessibility.label(for: Element.image("asset:x")), "Photo")
+        let code = Element.image(CodeGenerator.source(for: "https://canvia.app"))
+        XCTAssertEqual(CanvasAccessibility.label(for: code), "QR code")
         XCTAssertEqual(CanvasAccessibility.label(for: Element.sticker("🎉")), "Sticker 🎉")
-        var line = Element(); line.type = .line
-        XCTAssertEqual(CanvasAccessibility.label(for: line), "Line")
+        var line = Element.line()
+        line.color = "#0000ff"
+        XCTAssertEqual(CanvasAccessibility.label(for: line), "Blue line")
     }
 
     func testLongTextIsClipped() {
         let long = String(repeating: "a", count: 200)
-        let label = CanvasAccessibility.label(for: Element.text(long))
-        XCTAssertTrue(label.hasSuffix("…"))
-        XCTAssertLessThan(label.count, 100)
+        let label = CanvasAccessibility.label(for: Element.text(long, fontSize: 24))
+        XCTAssertTrue(label.hasPrefix("Text: "))
+        XCTAssertLessThan(label.count, 40)
     }
 
     func testTheValueIsInPercentagesOfThePage() {

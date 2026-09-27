@@ -122,10 +122,20 @@ struct EditorView: View {
         .feel(.alignment, trigger: SnapSignal(x: store.guideX, y: store.guideY))
         .feel(.impact(weight: .heavy), trigger: store.page.elements.count)
         .feel(trigger: store.rotationSnapped) { _, snapped in snapped ? .alignment : nil }
+        .feel(trigger: store.spacingSnapped) { _, spaced in spaced ? .alignment : nil }
         .feel(trigger: store.haptic) { _, event in event.feedback }
         .background(Theme.workspace)
         .sheet(item: $activeSheet) { sheet in
             sheetView(sheet)
+        }
+        // A sheet rises over the lower half of the canvas: the selection is
+        // kept in the half still showing — as the sheet opens, and as the
+        // selection changes under it, a Layers row picked, say.
+        .onChange(of: activeSheet) { _, sheet in
+            if sheet != nil { revealSelection() }
+        }
+        .onChange(of: store.selection) { _, _ in
+            if activeSheet != nil { revealSelection() }
         }
         .fullScreenCover(isPresented: $presenting) {
             PresentationView(design: store.design, startPage: store.pageIndex)
@@ -144,6 +154,12 @@ struct EditorView: View {
             store.onCommit = { scheduleSave() }
         }
         .onDisappear {
+            // The voice and the microphone belong to this design: leaving it
+            // stops both, as the Android twin's editor releases its reader.
+            ReadAloud.shared.stop()
+            if Dictation.shared.isListening { Dictation.shared.stop() }
+            store.finishDictation()
+            store.endTextEdit()
             saveNow()
         }
         // The design being edited, for Siri suggestions and Handoff.
@@ -191,7 +207,13 @@ struct EditorView: View {
                 shortcut("d", [.command], "Duplicate") { store.duplicateSelected() }
                 shortcut("a", [.command], "Select all") { store.selectAll() }
                 shortcut(.delete, [.command], "Delete") { store.deleteSelected() }
-                shortcut(.escape, [], "Deselect") { store.select(nil) }
+                // While typing in place, Escape is Done: the typing kept as
+                // its own step, an emptied box removed, the box still chosen.
+                if store.editingTextId != nil {
+                    shortcut(.escape, [], "Done typing") { store.endTextEdit() }
+                } else {
+                    shortcut(.escape, [], "Deselect") { store.select(nil) }
+                }
             }
             // Arrow keys nudge a page unit, ten with Shift — only while no
             // text field has the keyboard, or the arrows would never reach
@@ -751,6 +773,7 @@ struct EditorView: View {
             ColorPickerSheet(store: store, title: "Text color",
                              current: store.singleSelection?.color,
                              allowGradients: true,
+                             allowPatterns: false,
                              onPick: { c in store.updateSelected { $0.color = c; $0.textFill = nil } },
                              onPickGradient: { p in store.updateSelected { $0.textFill = p } },
                              onPickTransient: { c in
@@ -928,6 +951,16 @@ struct EditorView: View {
         tipTask?.cancel()
         tipTask = nil
         withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { tip = nil }
+    }
+
+    /// Keeps the selection in the part of the canvas a medium sheet leaves
+    /// showing, by the least pan — never while a finger is on the canvas,
+    /// never while typing (which keeps its own box above the keyboard), and
+    /// not at all when it is already in sight. The Android twin's
+    /// keepSelectionVisible.
+    private func revealSelection() {
+        guard !store.canvasTouchActive, store.editingTextId == nil, let box = store.selectionBox else { return }
+        store.requestCanvas(.reveal(box, covered: 0.5))
     }
 
     /// Read out as it arrives — "Deleted page 3" means nothing to someone

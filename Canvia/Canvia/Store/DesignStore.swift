@@ -16,9 +16,20 @@ final class DesignStore {
         // so far is kept, never dropped.
         didSet {
             if let crop = cropping, selection != [crop.id] { finishCrop() }
+            // Typing in place ends however the box stops being selected —
+            // a Layers row, a page change, a lock — as its own step, and an
+            // emptied box goes with it. The Android twin's selection watcher.
+            if let id = editingTextId, !selection.contains(id) { endTextEdit() }
         }
     }
     var editingTextId: String?
+    /// The text box dictation writes into while the microphone is on. Its
+    /// words go there and nowhere else, whatever is selected meanwhile.
+    var dictationTarget: String?
+    /// True while a finger is working the canvas — a move, a band, a handle.
+    /// Keeping the selection in view waits for it to lift, so the page never
+    /// slides out from under a drag.
+    var canvasTouchActive = false
     /// Mirrors the canvas scroll view's zoomScale, so selection handles can
     /// stay a constant size on screen. The scroll view owns pan entirely.
     var zoom: Double = 1
@@ -35,6 +46,15 @@ final class DesignStore {
     var guideXSource: Geometry.SnapSource?
     var guideYSource: Geometry.SnapSource?
     var badge: String?
+    /// The badge in parts, when some are to be picked out in the guide
+    /// colour; see setBadge.
+    var badgeRuns: [BadgeRun]?
+
+    /// The badge from parts: the words as `badge`, the parts for drawing.
+    func setBadge(_ runs: [BadgeRun]) {
+        badgeRuns = runs
+        badge = Readouts.text(runs)
+    }
 
     /// True while a text field outside the canvas — one of the toolbar's
     /// alerts — has the keyboard, so plain keys are left to it.
@@ -186,14 +206,39 @@ final class DesignStore {
     }
 
     /// Mutate every selected, unlocked element + record one undo step.
+    /// A text whose type changed — face, weight, slant, alignment, spacing,
+    /// path — is measured again, so its box keeps hugging its words, as the
+    /// Android twin's text panel remeasures every style change.
     func updateSelected(_ mutate: (inout Element) -> Void) {
         guard !selection.isEmpty else { return }
         applyToPage { page in
             for i in page.elements.indices
             where self.selection.contains(page.elements[i].id) && !page.elements[i].locked {
+                let before = page.elements[i]
                 mutate(&page.elements[i])
+                page.elements[i] = Self.remeasured(page.elements[i], was: before)
             }
         }
+    }
+
+    /// `el` with its box height measured again when it is a text whose
+    /// typography changed and whose height the edit did not set itself.
+    /// layoutHeight keeps fitted, aligned, vertical and path boxes at their
+    /// own size, so only a plain box snaps to its words.
+    static func remeasured(_ el: Element, was before: Element) -> Element {
+        guard el.type == .text, el.h == before.h, typographyChanged(el, from: before) else { return el }
+        var out = el
+        out.h = FontLibrary.layoutHeight(for: el)
+        return out
+    }
+
+    private static func typographyChanged(_ a: Element, from b: Element) -> Bool {
+        a.fontFamily != b.fontFamily || a.fontWeight != b.fontWeight || a.italic != b.italic
+            || a.underline != b.underline || a.align != b.align || a.textPath != b.textPath
+            || a.letterSpacing != b.letterSpacing || a.lineHeight != b.lineHeight
+            || a.paragraphSpacing != b.paragraphSpacing || a.fontSize != b.fontSize
+            || a.listStyle != b.listStyle || a.indent != b.indent || a.vertical != b.vertical
+            || a.dropCap != b.dropCap || a.effect != b.effect || a.text != b.text
     }
 
     /// Transient variant for continuous controls; call commit() on release.
@@ -249,17 +294,19 @@ final class DesignStore {
         // renames the design.
         lastWords = Self.words(of: design)
         pageIndex = min(entry.pageIndex, design.pages.count - 1)
-        let ids = Set(page.elements.map(\.id))
-        selection = selection.intersection(ids)
+        // Before the selection changes, so ending the typing records nothing:
+        // the step it would record has just been undone.
         editingTextId = nil
         pending = nil
+        let ids = Set(page.elements.map(\.id))
+        selection = selection.intersection(ids)
         onCommit?()
     }
 
     // MARK: selection
 
     func select(_ id: String?, additive: Bool = false) {
-        editingTextId = nil
+        endTextEdit()
         guard let id else {
             selection.removeAll()
             return
@@ -276,6 +323,62 @@ final class DesignStore {
             selection = ids
         }
         if selection.count >= 2 { tipEvent = .multiSelected }
+    }
+
+    /// A tap on one member of a group that is already selected goes inside
+    /// it, as in Canva and on the Android twin: the first tap takes the
+    /// group, the next the thing tapped. A drag still moves the whole group.
+    /// True when the tap was taken that way.
+    @discardableResult
+    func selectMember(_ id: String) -> Bool {
+        guard selection.count > 1, selection.contains(id), element(id)?.group != nil else { return false }
+        endTextEdit()
+        selection = [id]
+        return true
+    }
+
+    // MARK: typing in place
+
+    /// Typing in place is over, however it ended: the box stops being
+    /// edited, a box left empty is removed, and the typing is its own undo
+    /// step. Every way out comes through here, as on the Android twin.
+    func endTextEdit() {
+        guard let id = editingTextId else { return }
+        editingTextId = nil
+        for p in design.pages.indices {
+            guard let i = design.pages[p].elements.firstIndex(where: { $0.id == id }) else { continue }
+            let words = design.pages[p].elements[i].text ?? ""
+            if words.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                beginGesture()
+                design.pages[p].elements.remove(at: i)
+                if selection.contains(id) { selection.remove(id) }
+            }
+        }
+        commit()
+    }
+
+    // MARK: dictation
+
+    /// Dictated words for the dictation's own text box: written there, and
+    /// only while it is still an unlocked text on this page. False when they
+    /// had nowhere to go.
+    @discardableResult
+    func dictate(_ words: String) -> Bool {
+        guard let id = dictationTarget,
+              let i = design.pages[pageIndex].elements.firstIndex(where: { $0.id == id }),
+              design.pages[pageIndex].elements[i].type == .text,
+              !design.pages[pageIndex].elements[i].locked else { return false }
+        beginGesture()
+        design.pages[pageIndex].elements[i].text = words
+        design.pages[pageIndex].elements[i].h = FontLibrary.layoutHeight(for: design.pages[pageIndex].elements[i])
+        return true
+    }
+
+    /// Dictation is over: what it wrote is one undo step.
+    func finishDictation() {
+        guard dictationTarget != nil else { return }
+        dictationTarget = nil
+        commit()
     }
 
     // MARK: element commands
@@ -299,14 +402,19 @@ final class DesignStore {
 
     func deleteSelected() {
         // Only unlocked elements go; committing when nothing can be removed
-        // would push a history entry identical to the previous one.
+        // would push a history entry identical to the previous one. A
+        // refusal is felt, as on the Android twin, rather than silent.
         let ids = Set(selectedElements.filter { !$0.locked }.map(\.id))
-        guard !ids.isEmpty else { return }
+        guard !ids.isEmpty else {
+            if !selection.isEmpty { buzz(.reject) }
+            return
+        }
         applyToPage { page in
             page.elements.removeAll { ids.contains($0.id) }
         }
         selection.subtract(ids)   // anything locked stays selected, visibly
-        announce(ids.count == 1 ? "Deleted 1 element" : "Deleted \(ids.count) elements")
+        // The Android twin's words, so both phones say the same.
+        announce(ids.count == 1 ? "Deleted" : "Deleted \(ids.count) things")
     }
 
     func duplicateSelected() {
@@ -403,17 +511,27 @@ final class DesignStore {
         clipboard = selected
         pasteCount = 0
         ElementClipboard.write(selected)
+        buzz(.tick)
+        announce(selected.count == 1 ? "Copied" : "Copied \(selected.count) things", undoable: false)
     }
 
     func cutSelected() {
         // Symmetric with deleteSelected: cut takes exactly what it removes,
         // so a locked element is never both left behind and on the clipboard.
         let removable = selectedElements.filter { !$0.locked }
-        guard !removable.isEmpty else { return }
+        guard !removable.isEmpty else {
+            if !selection.isEmpty { buzz(.reject) }
+            return
+        }
         clipboard = removable
         pasteCount = 0
         ElementClipboard.write(removable)
-        deleteSelected()
+        let ids = Set(removable.map(\.id))
+        applyToPage { page in
+            page.elements.removeAll { ids.contains($0.id) }
+        }
+        selection.subtract(ids)
+        announce(ids.count == 1 ? "Cut" : "Cut \(ids.count) things")
     }
 
     func paste() {
@@ -428,7 +546,11 @@ final class DesignStore {
                 return
             }
         }
-        guard !clipboard.isEmpty else { return }
+        guard !clipboard.isEmpty else {
+            buzz(.reject)
+            announce("Nothing to paste", undoable: false)
+            return
+        }
         pasteCount += 1
         // Copies arrive unlocked: locked is a property of the original, and a
         // pasted element the user cannot move, edit or delete is a dead end.
@@ -438,14 +560,14 @@ final class DesignStore {
     }
 
     func selectAll() {
-        editingTextId = nil
+        endTextEdit()
         selection = Set(page.elements.filter { !$0.locked }.map(\.id))
     }
 
     /// Rubber-band selection: everything the rectangle touches, with sticky
     /// groups expanded so a band across one member takes the whole group.
     func select(within rect: CGRect) {
-        editingTextId = nil
+        endTextEdit()
         var ids = Set(Geometry.intersecting(page.elements, rect).map(\.id))
         let groups = Set(page.elements.filter { ids.contains($0.id) }.compactMap(\.group))
         for el in page.elements where el.group.map(groups.contains) == true {
@@ -681,6 +803,8 @@ final class DesignStore {
     var haptic = HapticEvent(kind: .undo, serial: 0)
     /// True while a rotation drag sits on a 45° snap.
     var rotationSnapped = false
+    /// True while a move sits at an equal gap between two neighbours.
+    var spacingSnapped = false
     /// The pen, while drawing mode is on: strokes become shape elements.
     var drawing: Freehand.Tool?
     /// The photo in crop mode, and the size of its picture — see
@@ -696,7 +820,7 @@ final class DesignStore {
 
     func beginErasing(_ id: String) {
         drawing = nil
-        editingTextId = nil
+        endTextEdit()
         selection = [id]
         erasing = id
         eraserStrokes = []
@@ -770,7 +894,7 @@ final class DesignStore {
 
     func toggleDrawing() {
         if drawing == nil {
-            editingTextId = nil
+            endTextEdit()
             selection.removeAll()
             drawing = Freehand.Tool()
         } else {
@@ -1022,6 +1146,7 @@ final class DesignStore {
     func copyStyle() {
         guard let el = singleSelection else { return }
         copiedStyle = Self.style(of: el)
+        buzz(.tick)
     }
 
     func pasteStyle() {
@@ -1030,6 +1155,8 @@ final class DesignStore {
     }
 
     func toggleLockSelected() {
+        // A box being typed in cannot be locked mid-word.
+        endTextEdit()
         let anyUnlocked = selectedElements.contains { !$0.locked }
         applyToPage { page in
             for i in page.elements.indices where self.selection.contains(page.elements[i].id) {
@@ -1039,6 +1166,8 @@ final class DesignStore {
     }
 
     func flipSelected(horizontal: Bool) {
+        guard unlockedSelectionCount > 0 else { return }
+        buzz(.tick)
         updateSelected { el in
             if horizontal { el.flipH.toggle() } else { el.flipV.toggle() }
         }
@@ -1294,6 +1423,7 @@ final class DesignStore {
 
     func addGuide(vertical: Bool, at position: Double) {
         apply { $0.guides.append(Guide(vertical: vertical, position: position)) }
+        buzz(.confirm)
     }
 
     /// Slide a guide while dragging; commit() when the finger lifts.
@@ -1306,7 +1436,9 @@ final class DesignStore {
     }
 
     func removeGuide(_ id: String) {
+        guard design.guides.contains(where: { $0.id == id }) else { return }
         apply { $0.guides.removeAll { $0.id == id } }
+        buzz(.tick)
     }
 
     func clearGuides() {
@@ -1338,9 +1470,9 @@ final class DesignStore {
 
     func setPage(_ index: Int) {
         guard index >= 0 && index < design.pages.count && index != pageIndex else { return }
+        endTextEdit()
         pageIndex = index
         selection.removeAll()
-        editingTextId = nil
     }
 
     /// One page reflowed from one size to another: every element keeps its

@@ -16,6 +16,11 @@ struct ColorPickerSheet: View {
     var title: String
     var current: String?
     var allowGradients = false
+    /// Whether patterns and photo fills are offered; by default wherever
+    /// gradients are. Text draws gradients through its letters but never a
+    /// pattern or a photo, so its colour sheet offers neither — as on the
+    /// Android twin.
+    var allowPatterns: Bool?
     var onPick: (String) -> Void
     var onPickGradient: ((Paint) -> Void)?
     /// Continuous variant for the system ColorPicker, which updates its
@@ -123,7 +128,7 @@ struct ColorPickerSheet: View {
                         }
                     }
 
-                    if allowGradients, let onPickGradient {
+                    if allowPatterns ?? allowGradients, let onPickGradient {
                         patternsSection(onPickGradient)
                         photoFillSection(onPickGradient)
                     }
