@@ -219,11 +219,11 @@ struct HomeView: View {
         reloads += 1
         let generation = reloads
         Task { @MainActor in
-            let read = await Task.detached(priority: .userInitiated) {
-                (shelf: DesignLibrary.shelf(), trashed: DesignLibrary.trashed())
+            let (shelf, binned) = await Task.detached(priority: .userInitiated) { () -> (DesignLibrary.Shelf, [RecentDesign]) in
+                (DesignLibrary.shelf(), DesignLibrary.trashed())
             }.value
             guard generation == reloads else { return }
-            show(read.shelf, trashed: read.trashed)
+            show(shelf, trashed: binned)
         }
     }
 
