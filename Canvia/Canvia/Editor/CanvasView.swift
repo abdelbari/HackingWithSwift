@@ -504,6 +504,9 @@ struct CanvasView: View {
         )
         .accessibilityLabel("Eraser")
         .accessibilityHint("Drag over what should go, then tap Erase")
+        // A stroke a two-finger pan cut short never ended; putting the
+        // eraser away takes its stub with it.
+        .onDisappear { strokePoints = []; strokeStart = nil }
     }
 
     // MARK: drawing
@@ -536,6 +539,9 @@ struct CanvasView: View {
         )
         .accessibilityLabel("Drawing surface")
         .accessibilityHint("Drag to draw a stroke")
+        // A stroke a two-finger pan cut short never ended; putting the pen
+        // away takes its stub with it.
+        .onDisappear { strokePoints = []; strokeStart = nil }
     }
 
     /// The stroke under the finger, as the finished one will be drawn: a
