@@ -689,7 +689,7 @@ enum DesignLibrary {
             guard var design = load(version: version) else { continue }
             design.id = id
             guard save(design) else { return nil }
-            try? FileManager.default.removeItem(at: thumbsDir.appendingPathComponent("\(id).jpg"))
+            try? FileManager.default.removeItem(at: thumbnailURL(for: id))
             return design
         }
         return nil
