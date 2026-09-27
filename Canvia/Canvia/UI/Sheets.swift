@@ -752,7 +752,10 @@ struct PositionSheet: View {
                         orderButton("To back", "square.3.layers.3d.bottom.filled") { store.reorderSelected(.back) }
                     }
                 }
-                Section(store.selection.count > 1 ? "Align selection" : "Align to page") {
+                // One thing, or one group as a single box, lines up with the
+                // page; several with each other — and the heading says which,
+                // in the Android twin's words.
+                Section(store.alignsToPage ? "Line up with the page" : "Line up with each other") {
                     HStack {
                         orderButton("Left", "align.horizontal.left") { store.alignSelected(.left) }
                         orderButton("Center", "align.horizontal.center") { store.alignSelected(.centerX) }
@@ -763,6 +766,15 @@ struct PositionSheet: View {
                         orderButton("Middle", "align.vertical.center") { store.alignSelected(.centerY) }
                         orderButton("Bottom", "align.vertical.bottom") { store.alignSelected(.bottom) }
                     }
+                    // Several things centred as one box, keeping their places
+                    // relative to each other.
+                    Button {
+                        store.centreOnPage()
+                    } label: {
+                        Label("Centre on page", systemImage: "plus.viewfinder")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .disabled(store.unlockedSelectionCount == 0)
                 }
                 if store.selection.count >= 3 {
                     Section("Distribute evenly") {
