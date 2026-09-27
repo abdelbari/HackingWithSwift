@@ -332,6 +332,14 @@ steps, "Show the editor's tips again" (one tap, then "Tips will show again
 in the editor"), "Show the welcome tour again", and a line on where your
 work lives. The editor's searchable help ends with the same tips reset.
 
+**Quick actions** — press and hold the app icon for New post, New story and
+the two most recently touched designs (iOS shows four at most; Android's
+launcher lists three). A new design is named after its size and never
+repeats a name on the shelf; a design that has gone since says "That design
+isn't here any more". The list follows the shelf each time Home reloads.
+Actions and Siri's intents share one LaunchRequest hand-off, and a design
+opened over another closes the first, which saves it.
+
 **Home** — templates browse by category from a row of chips; designs can be
 filed into folders from their context menu (folder chips appear when one
 exists) and filing is not an edit, so the order stays. The first launch

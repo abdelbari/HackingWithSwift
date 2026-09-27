@@ -56,6 +56,43 @@ final class HomeShelfTests: XCTestCase {
         XCTAssertTrue(Haptics.isOn(defaults))
     }
 
+    // MARK: quick actions
+
+    private func recent(_ id: String, _ title: String, at: Double) -> RecentDesign {
+        RecentDesign(id: id, title: title, width: 1080, height: 1080, pages: 1, updatedAt: at, thumbnail: nil)
+    }
+
+    /// New post, New story, then the two most recently touched designs.
+    func testQuickActionsStartOrPickUp() {
+        let items = QuickActions.items(recents: [recent("a", "Old", at: 1), recent("b", "  ", at: 3),
+                                                 recent("c", "Newest", at: 5)])
+        XCTAssertEqual(items.map(\.title), ["New post", "New story", "Newest", "Untitled design"])
+        XCTAssertEqual(items.map(\.type), [QuickActions.newType, QuickActions.newType,
+                                           QuickActions.openType, QuickActions.openType])
+        XCTAssertEqual(items[1].info[QuickActions.presetKey], "insta-story")
+        XCTAssertEqual(items[2].info[QuickActions.designKey], "c")
+        XCTAssertEqual(QuickActions.items(recents: []).count, 2)
+    }
+
+    /// A new design at the size, named after it; an open for a safe id only;
+    /// nothing for an action this app does not know.
+    func testAQuickActionBecomesALaunchRequest() throws {
+        XCTAssertEqual(QuickActions.request(type: QuickActions.newType, info: [QuickActions.presetKey: "insta-story"]),
+                       .newDesign(width: 1080, height: 1920, title: "Instagram Story"))
+        XCTAssertEqual(QuickActions.request(type: QuickActions.newType, info: [:]),
+                       .newDesign(width: 1080, height: 1080, title: "Instagram Post"))
+        let first = try XCTUnwrap(SizePreset.all.first)
+        XCTAssertEqual(QuickActions.request(type: QuickActions.newType, info: [QuickActions.presetKey: "billboard"]),
+                       .newDesign(width: first.w, height: first.h, title: first.name))
+        XCTAssertEqual(QuickActions.request(type: QuickActions.openType, info: [QuickActions.designKey: "doc_ab-12"]),
+                       .open(id: "doc_ab-12"))
+        XCTAssertNil(QuickActions.request(type: QuickActions.openType, info: [QuickActions.designKey: "../secrets"]))
+        XCTAssertNil(QuickActions.request(type: QuickActions.openType, info: [:]))
+        XCTAssertNil(QuickActions.request(type: "app.canvia.dance", info: [:]))
+        XCTAssertFalse(QuickActions.isSafeId("é"))
+        XCTAssertFalse(QuickActions.isSafeId(""))
+    }
+
     func testPagesAndMidSentence() {
         XCTAssertEqual(RelativeTime.pages(1), "1 page")
         XCTAssertEqual(RelativeTime.pages(4), "4 pages")

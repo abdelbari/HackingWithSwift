@@ -190,6 +190,9 @@ struct HomeView: View {
     private func reload() {
         recents = DesignLibrary.recents()
         trashed = DesignLibrary.trashed()
+        // The icon's quick actions follow the shelf, so a deleted design
+        // drops out of them.
+        QuickActions.publish(recents: recents)
         // A folder exists while something is in it: when its last design
         // goes, the shelf shows everything again rather than nothing.
         if let f = folder, !DesignLibrary.folders(in: recents).contains(f) { folder = nil }

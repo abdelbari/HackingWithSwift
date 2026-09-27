@@ -6,9 +6,14 @@ import SwiftUI
 
 @main
 struct CanviaApp: App {
+    /// Hands the window scene a delegate that hears Home Screen quick
+    /// actions.
+    @UIApplicationDelegateAdaptor(CanviaAppDelegate.self) private var appDelegate
     @State private var editingStore: DesignStore?
     /// Why a design file handed to the app could not be opened.
     @State private var openError: String?
+    /// A quick action or Siri asked for a design that has since gone.
+    @State private var designMissing = false
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -38,19 +43,36 @@ struct CanviaApp: App {
         }
     }
 
-    /// An App Intent's request, if one is waiting: a new design at a size,
-    /// or one of the library's designs.
+    /// An App Intent's or a quick action's request, if one is waiting: a
+    /// new design at a size, or one of the library's designs.
     private static func storeForLaunchRequest() -> DesignStore? {
         guard let request = LaunchRequest.take() else { return nil }
+        return store(for: request)
+    }
+
+    private static func store(for request: LaunchRequest.Request) -> DesignStore? {
         switch request {
         case .newDesign(let w, let h, let title):
-            var design = Design(title: title, width: w, height: h)
+            // Never a name already on the shelf: "Instagram Post 2".
+            var design = Design(title: Titles.unique(title, taken: DesignLibrary.recents().map(\.title)),
+                                width: w, height: h)
             design.updatedAt = Date().timeIntervalSince1970 * 1000
             DesignLibrary.save(design)
             return DesignStore(design: design)
         case .open(let id):
             return DesignLibrary.load(id: id).map { DesignStore(design: $0) }
         }
+    }
+
+    /// Serve a waiting request with the app in front. A design asked for by
+    /// id that is no longer on the shelf says so rather than doing nothing.
+    private func serveLaunchRequest() {
+        guard let request = LaunchRequest.take() else { return }
+        guard let store = Self.store(for: request) else {
+            if case .open = request { designMissing = true }
+            return
+        }
+        withAnimation(.snappy(duration: 0.28)) { editingStore = store }
     }
 
     /// `-canviaOpenTemplate <n>` opens straight into the editor on template n.
@@ -80,6 +102,10 @@ struct CanviaApp: App {
                     EditorView(store: store) {
                         withAnimation(.snappy(duration: 0.28)) { editingStore = nil }
                     }
+                    // A new identity for each design, so one opened over
+                    // another (from Siri or a quick action) closes the first
+                    // — which saves it — rather than swapping it out unsaved.
+                    .id(ObjectIdentifier(store))
                     // The transition was declared here from the start but had
                     // never played: neither assignment to editingStore was
                     // animated, so opening and closing a design just snapped.
@@ -108,10 +134,18 @@ struct CanviaApp: App {
                       let design = DesignLibrary.load(id: id) else { return }
                 withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
             }
-            // An intent that ran while the app was already open.
+            // An intent or quick action that ran while the app was already
+            // open.
             .onChange(of: scenePhase) { _, phase in
-                guard phase == .active, let store = Self.storeForLaunchRequest() else { return }
-                withAnimation(.snappy(duration: 0.28)) { editingStore = store }
+                guard phase == .active else { return }
+                serveLaunchRequest()
+            }
+            // A quick action can arrive after the scene is already active.
+            .onReceive(NotificationCenter.default.publisher(for: QuickActions.requested)) { _ in
+                serveLaunchRequest()
+            }
+            .alert("That design isn't here any more", isPresented: $designMissing) {
+                Button("OK") { designMissing = false }
             }
             // A design file tapped in Files, opened from Mail or shared from
             // another app — at launch or while the app is open, once each.
