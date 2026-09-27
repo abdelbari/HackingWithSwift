@@ -935,13 +935,22 @@ struct CanvasView: View {
             store.canvasTouchActive = true
             gesture.resizeImage = selected.type == .image && !handle.isCorner
                 ? PhotoLibrary.resolve(selected.src)?.size : nil
+            // The lines a move snaps to, read once: nothing else moves while
+            // the handle is held.
+            let lines = Geometry.taggedSnapLines(design: store.design, page: store.page,
+                                                 excluding: [selected.id], settings: store.snapping)
+            gesture.snapTagsX = lines.x
+            gesture.snapTagsY = lines.y
+            gesture.snapX = lines.x.map(\.position)
+            gesture.snapY = lines.y.map(\.position)
         }
         guard let original = gesture.resizeOriginal else { return }
         if trimPhoto(original, handle: handle, to: location) { return }
         let proportional = original.type != .line && handle.isCorner
         let minSize = original.type == .text ? 12.0 : 8.0
-        let next = Geometry.resize(original, handle: handle, to: location,
-                                   proportional: proportional, minSize: minSize)
+        let next = snapped(Geometry.resize(original, handle: handle, to: location,
+                                           proportional: proportional, minSize: minSize),
+                           original: original, handle: handle, proportional: proportional, minSize: minSize)
         store.updateSelectedTransient { el in
             el.x = next.minX
             el.w = next.width
@@ -987,12 +996,57 @@ struct CanvasView: View {
         guard original.type == .image, !handle.isCorner, original.cropFit != true,
               (original.straighten ?? 0) == 0, let image = gesture.resizeImage,
               image.width > 0, image.height > 0 else { return false }
-        let trimmed = Crop.trimmed(original, image: image, handle: handle, to: location, minSize: 8)
+        var trimmed = Crop.trimmed(original, image: image, handle: handle, to: location, minSize: 8)
+        // The side snaps as any side does: the finger is taken on by the
+        // snap's correction and the frame trimmed again, so the picture still
+        // stays put. Held short of the line by the picture's own edge, it is
+        // not on the line, and no guide says it is.
+        let target = snapped(trimmed.frame, original: original, handle: handle, proportional: false, minSize: 8)
+        if target != trimmed.frame {
+            let u = handle.unit
+            let dx = u.x == 0 ? target.minX - trimmed.frame.minX : (u.x == 1 ? target.maxX - trimmed.frame.maxX : 0)
+            let dy = u.y == 0 ? target.minY - trimmed.frame.minY : (u.y == 1 ? target.maxY - trimmed.frame.maxY : 0)
+            trimmed = Crop.trimmed(original, image: image, handle: handle,
+                                   to: CGPoint(x: location.x + dx, y: location.y + dy), minSize: 8)
+            if !Self.same(trimmed.frame, target) { showGuides(Geometry.ResizeSnap(box: target)) }
+        }
         store.updateSelectedTransient { el in
             if el.id == trimmed.id { el = trimmed }
         }
         store.badge = "\(Int(trimmed.w)) × \(Int(trimmed.h))"
         return true
+    }
+
+    /// A resized box with its moving edges snapped to the lines a move snaps
+    /// to (Geometry.snapResize), at a move's reach, and the guides shown as a
+    /// move shows them. An element turned off the square is left as it is:
+    /// its edges do not run along the lines.
+    private func snapped(_ box: CGRect, original: Element, handle: Handle,
+                         proportional: Bool, minSize: Double) -> CGRect {
+        var snap = Geometry.ResizeSnap(box: box)
+        if original.rotation.truncatingRemainder(dividingBy: 360) == 0 {
+            snap = Geometry.snapResize(box, handle: handle, xLines: gesture.snapX, yLines: gesture.snapY,
+                                       threshold: 6 / store.zoom, proportional: proportional, minSize: minSize)
+        }
+        showGuides(snap)
+        return snap.box
+    }
+
+    /// The snap guides a resize is holding, each named for what it lines up
+    /// with, as a move's are.
+    private func showGuides(_ snap: Geometry.ResizeSnap) {
+        store.guideX = snap.guideX
+        store.guideY = snap.guideY
+        let sourceX = Geometry.snapSource(at: snap.guideX, in: gesture.snapTagsX)
+        let sourceY = Geometry.snapSource(at: snap.guideY, in: gesture.snapTagsY)
+        if store.guideXSource != sourceX { store.guideXSource = sourceX }
+        if store.guideYSource != sourceY { store.guideYSource = sourceY }
+    }
+
+    /// Two boxes the same to within half a page unit.
+    private static func same(_ a: CGRect, _ b: CGRect) -> Bool {
+        abs(a.minX - b.minX) < 0.5 && abs(a.minY - b.minY) < 0.5
+            && abs(a.maxX - b.maxX) < 0.5 && abs(a.maxY - b.maxY) < 0.5
     }
 
     /// Resize a multi-selection from a corner of its box: the box resizes

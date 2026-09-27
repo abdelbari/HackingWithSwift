@@ -276,6 +276,85 @@ enum Geometry {
         return result
     }
 
+    struct ResizeSnap {
+        var box: CGRect
+        var guideX: Double?
+        var guideY: Double?
+    }
+
+    /// A box being resized from `handle`, its moving edges pulled onto the
+    /// nearest of the lines a move snaps to, within `threshold`, while the
+    /// edges across from them stay put. A side moves one edge; a free corner
+    /// moves two, one on each axis, and each snaps. A corner that keeps the
+    /// shape (`proportional`) snaps on one axis only — whichever needs the
+    /// smaller correction — and the other follows through the shape. A snap
+    /// that would take either side under `minSize`, or turn the box inside
+    /// out, is not made. The box is an unturned element's: turned, its edges
+    /// do not run along the lines.
+    static func snapResize(_ box: CGRect, handle: Handle, xLines: [Double], yLines: [Double],
+                           threshold: Double, proportional: Bool, minSize: Double) -> ResizeSnap {
+        let u = handle.unit
+        // The fixed edge on each axis, and which way from it the moving one
+        // lies: +1 when the handle is on the far side, -1 on the near side,
+        // 0 when the handle moves no edge on that axis.
+        let fixedX = Double(u.x == 0 ? box.maxX : box.minX)
+        let fixedY = Double(u.y == 0 ? box.maxY : box.minY)
+        let width = Double(box.width), height = Double(box.height)
+        let sx: Double = u.x == 0.5 ? 0 : (u.x == 1 ? 1 : -1)
+        let sy: Double = u.y == 0.5 ? 0 : (u.y == 1 ? 1 : -1)
+
+        /// The line nearest the moving edge, within reach, that leaves the
+        /// side at least `minSize` long; nil when there is none.
+        func nearest(_ lines: [Double], fixed: Double, side: Double, sign: Double) -> Double? {
+            guard sign != 0 else { return nil }
+            let edge = fixed + sign * side
+            var best: Double?
+            for line in lines where abs(line - edge) <= threshold && (line - fixed) * sign >= minSize {
+                if let found = best, abs(found - edge) <= abs(line - edge) { continue }
+                best = line
+            }
+            return best
+        }
+
+        /// The box with sides `w` × `h`, grown from the fixed edges.
+        func placed(_ w: Double, _ h: Double) -> CGRect {
+            let x: Double = sx < 0 ? fixedX - w : (sx > 0 ? fixedX : Double(box.minX))
+            let y: Double = sy < 0 ? fixedY - h : (sy > 0 ? fixedY : Double(box.minY))
+            return CGRect(x: x, y: y, width: w, height: h)
+        }
+
+        var result = ResizeSnap(box: box)
+        let lineX = nearest(xLines, fixed: fixedX, side: width, sign: sx)
+        let lineY = nearest(yLines, fixed: fixedY, side: height, sign: sy)
+
+        if proportional && sx != 0 && sy != 0 {
+            guard width > 0, height > 0 else { return result }
+            let ratio = width / height
+            let edgeX = fixedX + sx * width, edgeY = fixedY + sy * height
+            let byX: Double = lineX.map { abs($0 - edgeX) } ?? .infinity
+            let byY: Double = lineY.map { abs($0 - edgeY) } ?? .infinity
+            if let lx = lineX, byX <= byY {
+                let w = (lx - fixedX) * sx
+                guard w / ratio >= minSize else { return result }
+                result.box = placed(w, w / ratio)
+                result.guideX = lx
+            } else if let ly = lineY {
+                let h = (ly - fixedY) * sy
+                guard h * ratio >= minSize else { return result }
+                result.box = placed(h * ratio, h)
+                result.guideY = ly
+            }
+            return result
+        }
+
+        let w: Double = lineX.map { ($0 - fixedX) * sx } ?? width
+        let h: Double = lineY.map { ($0 - fixedY) * sy } ?? height
+        result.box = placed(w, h)
+        result.guideX = lineX
+        result.guideY = lineY
+        return result
+    }
+
     struct EqualGap {
         var dx: Double = 0
         var dy: Double = 0
