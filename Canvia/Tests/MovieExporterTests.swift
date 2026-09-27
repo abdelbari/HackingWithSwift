@@ -237,12 +237,12 @@ final class MovieExporterTests: XCTestCase {
     }
 
     @MainActor
-    func testTheGIFReportsProgressUpToOne() throws {
+    func testTheGIFReportsProgressUpToOne() async throws {
         let url = destination("gif")
         var settings = MovieExporter.Settings()
         settings.secondsPerPage = 0.5
         var values: [Double] = []
-        try MovieExporter.exportGIF(design: design(pages: 2), settings: settings, to: url,
+        try await MovieExporter.exportGIF(design: design(pages: 2), settings: settings, to: url,
                                     progress: { values.append($0) })
         let plan = MovieExporter.gifPlan(design: design(pages: 2), settings: settings)
         XCTAssertEqual(values.count, MovieExporter.frameCount(pages: 2, settings: {
@@ -259,11 +259,11 @@ final class MovieExporterTests: XCTestCase {
     }
 
     @MainActor
-    func testTheGIFHasAFrameForEveryFrame() throws {
+    func testTheGIFHasAFrameForEveryFrame() async throws {
         let url = destination("gif")
         var settings = MovieExporter.Settings()
         settings.secondsPerPage = 0.5
-        try MovieExporter.exportGIF(design: design(pages: 2), settings: settings, to: url)
+        try await MovieExporter.exportGIF(design: design(pages: 2), settings: settings, to: url)
 
         let source = try XCTUnwrap(CGImageSourceCreateWithURL(url as CFURL, nil))
         XCTAssertEqual(CGImageSourceGetType(source) as String?, "com.compuserve.gif")
@@ -273,10 +273,15 @@ final class MovieExporterTests: XCTestCase {
     }
 
     @MainActor
-    func testAnEmptyDesignRefusesRatherThanWritingAnEmptyFile() {
+    func testAnEmptyDesignRefusesRatherThanWritingAnEmptyFile() async {
         var d = design(pages: 1)
         d.pages = []
-        XCTAssertThrowsError(try MovieExporter.exportGIF(design: d, to: destination("gif")))
+        do {
+            try await MovieExporter.exportGIF(design: d, to: destination("gif"))
+            XCTFail("an empty design wrote a GIF")
+        } catch {
+            // Refused, as it should be.
+        }
     }
 
     // MARK: calibration

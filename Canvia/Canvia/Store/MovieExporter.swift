@@ -114,6 +114,11 @@ enum MovieExporter {
         timeline(design: design, settings: settings).last?.end ?? 1
     }
 
+    /// How long the film runs, in seconds: every page at its own hold.
+    static func seconds(design: Design, settings: Settings) -> Double {
+        Double(frameCount(design: design, settings: settings)) / Double(max(settings.fps, 1))
+    }
+
     /// The page a frame belongs to, and how far through it.
     static func locate(frame index: Int, in timings: [Timing]) -> (page: Int, progress: Double, remaining: Int) {
         guard !timings.isEmpty else { return (0, 0, 1) }
@@ -214,6 +219,25 @@ enum MovieExporter {
         }
     }
 
+    /// The same, a page at a time with a pause between pages, so the sheet
+    /// stays live and a Cancel lands before the frames are written.
+    @MainActor
+    private static func pageImages(design: Design, size: CGSize,
+                                   pacer: inout DesignExporter.Pacer) async throws -> [CGImage] {
+        var images: [CGImage] = []
+        for page in design.pages {
+            try await pacer.breathe()
+            let image = autoreleasepool { () -> CGImage? in
+                let renderer = ImageRenderer(content: PageRenderView(design: design, page: page))
+                renderer.scale = renderScale(for: design.size(for: page), in: size)
+                renderer.isOpaque = true
+                return renderer.cgImage
+            }
+            if let image { images.append(image) }
+        }
+        return images
+    }
+
     /// Draw one frame of the sequence into `context`.
     ///
     /// Split out and given no dependency on AVFoundation so the frame maths —
@@ -297,15 +321,24 @@ enum MovieExporter {
 
     // MARK: mp4
 
+    /// What came of a video export besides the file.
+    struct Outcome: Equatable {
+        /// The design has music, but it could not be put under the picture,
+        /// so the video is silent — said, rather than failing the export.
+        var musicLost = false
+    }
+
     /// Progress is reported as a fraction of frames written, from the writer's
     /// own queue. Cancelling the surrounding task stops the writer at the next
     /// frame, discards the partial file and throws CancellationError.
     @MainActor
+    @discardableResult
     static func exportMP4(design: Design, settings: Settings = Settings(), to url: URL,
-                          progress: (@Sendable (Double) -> Void)? = nil) async throws {
+                          progress: (@Sendable (Double) -> Void)? = nil) async throws -> Outcome {
         try? FileManager.default.removeItem(at: url)
         let size = videoSize(for: design, maxEdge: settings.maxEdge)
-        let pages = pageImages(design: design, size: size)
+        var pacer = DesignExporter.Pacer()
+        let pages = try await pageImages(design: design, size: size, pacer: &pacer)
         guard !pages.isEmpty else { throw MovieError.nothingToRender }
 
         let writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
@@ -333,7 +366,8 @@ enum MovieExporter {
         let total = timings.last?.end ?? 1
         // Animated pages are rendered ahead, one bitmap per frame, since the
         // writer callback runs off the main actor where SwiftUI cannot draw.
-        let frames = animatedFrames(design: design, size: size, settings: settings, timings: timings)
+        let frames = try await animatedFrames(design: design, size: size, settings: settings,
+                                              timings: timings, pacer: &pacer)
         let state = WriteState()
         let queue = DispatchQueue(label: "canvia.movie.write")
 
@@ -397,13 +431,26 @@ enum MovieExporter {
         }
 
         // The soundtrack goes under the finished picture: muxed into a
-        // sibling file, which then takes the video's place.
-        if let audio = AudioStore.url(for: settings.soundtrack) {
-            let withSound = url.deletingPathExtension().appendingPathExtension("sound.mp4")
+        // sibling file, which then takes the video's place. Music that will
+        // not go in costs the music, not the video: the picture is kept,
+        // silent, and the outcome says so — as on the Android twin.
+        guard let audio = AudioStore.url(for: settings.soundtrack) else { return Outcome() }
+        let withSound = url.deletingPathExtension().appendingPathExtension("sound.mp4")
+        do {
             try await Soundtrack.mux(video: url, audio: audio, volume: settings.soundVolume, to: withSound)
             try Task.checkCancellation()
             try FileManager.default.removeItem(at: url)
             try FileManager.default.moveItem(at: withSound, to: url)
+            return Outcome()
+        } catch {
+            try? FileManager.default.removeItem(at: withSound)
+            if error is CancellationError || Task.isCancelled {
+                try? FileManager.default.removeItem(at: url)
+                throw CancellationError()
+            }
+            // The silent picture is only there if the swap never started.
+            guard FileManager.default.fileExists(atPath: url.path) else { throw error }
+            return Outcome(musicLost: true)
         }
     }
 
@@ -429,18 +476,28 @@ enum MovieExporter {
 
     /// Every frame of every animated page, pre-rendered, keyed by page then
     /// frame within the page. Static pages have no entry.
+    ///
+    /// Rendered with a pause every so often, so the sheet stays live while a
+    /// page full of motion is drawn frame by frame.
     @MainActor
     private static func animatedFrames(design: Design, size: CGSize, settings: Settings,
-                                       timings: [Timing]) -> ((Int, Double, Double) -> CGImage?)? {
+                                       timings: [Timing],
+                                       pacer: inout DesignExporter.Pacer) async throws -> ((Int, Double, Double) -> CGImage?)? {
         let animatedPages = design.pages.indices.filter { isAnimated(design.pages[$0], in: design) }
         guard !animatedPages.isEmpty else { return nil }
         var cache: [Int: [CGImage]] = [:]
         for p in animatedPages where p < timings.count {
             let t = timings[p]
             let hold = Double(t.frames) / Double(max(settings.fps, 1))
-            cache[p] = (0..<t.frames).compactMap { f in
-                animatedFrame(design: design, page: p, time: Double(f) / Double(max(settings.fps, 1)), hold: hold, size: size)
+            var frames: [CGImage] = []
+            for f in 0..<t.frames {
+                try await pacer.breathe()
+                if let frame = animatedFrame(design: design, page: p, time: Double(f) / Double(max(settings.fps, 1)),
+                                             hold: hold, size: size) {
+                    frames.append(frame)
+                }
             }
+            cache[p] = frames
         }
         return { page, seconds, _ in
             guard let frames = cache[page], !frames.isEmpty else { return nil }
@@ -468,10 +525,12 @@ enum MovieExporter {
     // MARK: gif
 
     /// A GIF at the video's frame rate would be tens of megabytes, so it gets
-    /// its own: fewer frames a second and a smaller frame.
+    /// its own: fewer frames a second and a smaller frame. Drawn on the main
+    /// actor with a pause every so often, so the progress bar moves and a
+    /// Cancel stops it between frames, leaving no file behind.
     @MainActor
     static func exportGIF(design: Design, settings: Settings = Settings(), to url: URL,
-                          progress: ((Double) -> Void)? = nil) throws {
+                          progress: ((Double) -> Void)? = nil) async throws {
         // Sized to a budget and paced at a rate the format can state
         // exactly; see gifPlan.
         let plan = gifPlan(design: design, settings: settings)
@@ -480,12 +539,14 @@ enum MovieExporter {
         gifSettings.maxEdge = min(settings.maxEdge, plan.maxEdge)
 
         let size = videoSize(for: design, maxEdge: gifSettings.maxEdge)
-        let pages = pageImages(design: design, size: size)
+        var pacer = DesignExporter.Pacer()
+        let pages = try await pageImages(design: design, size: size, pacer: &pacer)
         guard !pages.isEmpty else { throw MovieError.nothingToRender }
 
         let timings = timeline(design: design, settings: gifSettings)
         let total = timings.last?.end ?? 1
-        let frames = animatedFrames(design: design, size: size, settings: gifSettings, timings: timings)
+        let frames = try await animatedFrames(design: design, size: size, settings: gifSettings,
+                                              timings: timings, pacer: &pacer)
         guard let destination = CGImageDestinationCreateWithURL(
             url as CFURL, UTType.gif.identifier as CFString, total, nil) else {
             throw MovieError.writerFailed("no GIF destination")
@@ -503,9 +564,9 @@ enum MovieExporter {
         for index in 0..<total {
             // Between frames, not mid-frame: a frame takes milliseconds and a
             // half-drawn one is never written.
-            if Task.isCancelled {
+            do { try await pacer.breathe() } catch {
                 try? FileManager.default.removeItem(at: url)
-                throw CancellationError()
+                throw error
             }
             try autoreleasepool {
                 guard let context = CGContext(

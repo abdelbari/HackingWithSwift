@@ -135,12 +135,12 @@ final class StyleAndExportParityTests: XCTestCase {
     /// With a long edge, every page of a mixed deck comes out that long on
     /// its own longer side.
     @MainActor
-    func testALongEdgeAppliesToEveryPageAtItsOwnSize() throws {
+    func testALongEdgeAppliesToEveryPageAtItsOwnSize() async throws {
         var design = Design(title: "mixed", width: 100, height: 50)
         var tall = Page()
         tall.width = 40; tall.height = 80
         design.pages = [Page(), tall]
-        let urls = try DesignExporter.exportPages(design: design, range: .all, current: 0,
+        let urls = try await DesignExporter.exportPages(design: design, range: .all, current: 0,
                                                   format: .png, scale: 1, longEdge: 200)
         written = urls
         let sizes = try urls.map { url -> CGSize in

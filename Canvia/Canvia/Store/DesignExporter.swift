@@ -299,16 +299,17 @@ enum DesignExporter {
     static func exportPages(design: Design, range: PageRange, current: Int,
                             format: RasterFormat, scale: Double, longEdge: Double = 0,
                             quality: Double = 0.92, transparent: Bool = false,
-                            progress: ((Double) -> Void)? = nil) throws -> [URL] {
+                            progress: ((Double) -> Void)? = nil) async throws -> [URL] {
         let indices = range.indices(in: design, current: current)
         guard !indices.isEmpty else { throw ExportError.renderFailed }
         var urls: [URL] = []
+        var pacer = Pacer()
         for (n, index) in indices.enumerated() {
             // A page is the unit: a cancelled export leaves no half-written
             // file behind, and nothing from the pages it had finished either.
-            if Task.isCancelled {
+            do { try await pacer.breathe() } catch {
                 for url in urls { try? FileManager.default.removeItem(at: url) }
-                throw CancellationError()
+                throw error
             }
             let suffix = indices.count > 1 ? "-\(index + 1)" : ""
             let url = fileURL(for: design, ext: format.ext, suffix: suffix)
@@ -322,31 +323,80 @@ enum DesignExporter {
         return urls
     }
 
+    // MARK: pacing
+
+    /// Lets the screen move during a long export. Pages and frames are drawn
+    /// on the main actor, because ImageRenderer walks a SwiftUI view there;
+    /// drawn back to back, the progress bar froze and Cancel could not be
+    /// tapped until the whole file was written. Between pages the export
+    /// steps aside for a moment — a thirtieth of a second at most apart, so a
+    /// three-hundred-frame GIF is not slowed by three hundred pauses — and a
+    /// Cancel lands there.
+    struct Pacer {
+        /// How long the work may run before it steps aside again.
+        var interval: TimeInterval = 1.0 / 30.0
+        /// The distant past, so the first call always steps aside: the
+        /// progress card is drawn before the first page, not after it.
+        private(set) var last = Date.distantPast
+
+        init(interval: TimeInterval = 1.0 / 30.0) {
+            self.interval = interval
+        }
+
+        /// True when the work has run long enough since the last pause.
+        static func isDue(since last: Date, now: Date, interval: TimeInterval) -> Bool {
+            now.timeIntervalSince(last) >= interval
+        }
+
+        /// Throws CancellationError once the export has been cancelled.
+        mutating func breathe() async throws {
+            try Task.checkCancellation()
+            guard Pacer.isDue(since: last, now: Date(), interval: interval) else { return }
+            // A sleep rather than Task.yield: a yield on the main actor can
+            // be picked straight back up before the run loop draws or reads
+            // a touch; a sleep lets it turn once.
+            try await Task.sleep(nanoseconds: 1_000_000)
+            last = Date()
+        }
+    }
+
     // MARK: pdf
 
     /// Page units are pixels at 96dpi; PDF works in points at 72.
     static let pxToPt = 72.0 / 96.0
 
+    /// The PDF, written a page at a time with `progress` after each, and a
+    /// pause between pages so the sheet stays live and Cancel works. A
+    /// cancelled PDF is deleted rather than left short.
     @MainActor
     static func exportPDF(design: Design, range: PageRange = .all, current: Int = 0,
-                          to url: URL) throws {
+                          to url: URL, progress: ((Double) -> Void)? = nil) async throws {
         let indices = range.indices(in: design, current: current)
+        guard !indices.isEmpty else { throw ExportError.renderFailed }
         func bounds(_ page: Page) -> CGRect {
             let size = design.size(for: page)
             return CGRect(x: 0, y: 0, width: Double(size.width) * pxToPt, height: Double(size.height) * pxToPt)
         }
-        let first = bounds(design.pages[indices.first ?? 0])
-        try UIGraphicsPDFRenderer(bounds: first).writePDF(to: url) { ctx in
-            for page in indices.map({ design.pages[$0] }) {
-                autoreleasepool {
-                    // Each page at its own size: a deck can mix a slide and a
-                    // handout.
-                    let box = bounds(page)
-                    ctx.beginPage(withBounds: box, pageInfo: [:])
-                    draw(design: design, page: page, into: ctx.cgContext, fitting: box)
-                    linkAreas(of: page, in: design, onto: ctx.cgContext, pageHeight: box.height)
+        let writer = try PDFWriter(url: url, bounds: bounds(design.pages[indices[0]]))
+        var pacer = Pacer()
+        do {
+            for (n, index) in indices.enumerated() {
+                try await pacer.breathe()
+                // Each page at its own size: a deck can mix a slide and a
+                // handout.
+                let page = design.pages[index]
+                let box = bounds(page)
+                writer.page(box) { cg in
+                    draw(design: design, page: page, into: cg, fitting: box)
+                    linkAreas(of: page, in: design, onto: cg, pageHeight: box.height)
                 }
+                progress?(Double(n + 1) / Double(indices.count))
             }
+            writer.close()
+        } catch {
+            writer.close()
+            try? FileManager.default.removeItem(at: url)
+            throw error
         }
     }
 
@@ -370,70 +420,151 @@ enum DesignExporter {
         cg.restoreGState()
     }
 
+    /// Where each piece of a page goes on the paper: one sheet for fitted
+    /// or actual size, several for tiles.
+    static func placements(pagePoints pagePts: CGSize,
+                           options: PrintLayout.Options) -> [(sheetRect: CGRect, source: CGRect)] {
+        switch options.fit {
+        case .fit:
+            return [(PrintLayout.fitRect(page: pagePts, in: options.printable),
+                     CGRect(origin: .zero, size: pagePts))]
+        case .actual:
+            let r = CGRect(x: options.printable.midX - pagePts.width / 2,
+                           y: options.printable.midY - pagePts.height / 2,
+                           width: pagePts.width, height: pagePts.height)
+            return [(r, CGRect(origin: .zero, size: pagePts))]
+        case .tile:
+            return PrintLayout.tiles(page: pagePts, printable: options.printable.size,
+                                     overlap: options.overlap).map { tile in
+                (CGRect(origin: options.printable.origin, size: tile.size), tile)
+            }
+        }
+    }
+
+    /// How many sheets of paper the pages will take.
+    static func sheetCount(design: Design, indices: [Int], options: PrintLayout.Options) -> Int {
+        indices.reduce(0) { total, index in
+            let pagePts = PrintLayout.pagePoints(size: design.size(at: index), bleed: options.bleed)
+            return total + placements(pagePoints: pagePts, options: options).count
+        }
+    }
+
     /// A print-ready PDF on real paper: each design page fitted, at actual
     /// size, or tiled across sheets; with optional bleed and crop marks.
+    /// Written a sheet at a time, with `progress` after each and a pause
+    /// between them, so a forty-sheet tiled poster can be watched and
+    /// cancelled; a cancelled PDF is deleted.
     @MainActor
     static func exportPrintPDF(design: Design, range: PageRange = .all, current: Int = 0,
-                               options: PrintLayout.Options, to url: URL) throws {
+                               options: PrintLayout.Options, to url: URL,
+                               progress: ((Double) -> Void)? = nil) async throws {
         let sheet = CGRect(origin: .zero, size: options.sheet)
         let indices = range.indices(in: design, current: current)
-        try UIGraphicsPDFRenderer(bounds: sheet).writePDF(to: url) { ctx in
+        guard !indices.isEmpty else { throw ExportError.renderFailed }
+        let total = max(1, sheetCount(design: design, indices: indices, options: options))
+        let writer = try PDFWriter(url: url, bounds: sheet)
+        var pacer = Pacer()
+        var done = 0
+        do {
             for page in indices.map({ design.pages[$0] }) {
                 let pagePts = PrintLayout.pagePoints(size: design.size(for: page), bleed: options.bleed)
-                let placements: [(sheetRect: CGRect, source: CGRect)]
-                switch options.fit {
-                case .fit:
-                    placements = [(PrintLayout.fitRect(page: pagePts, in: options.printable),
-                                   CGRect(origin: .zero, size: pagePts))]
-                case .actual:
-                    let r = CGRect(x: options.printable.midX - pagePts.width / 2,
-                                   y: options.printable.midY - pagePts.height / 2,
-                                   width: pagePts.width, height: pagePts.height)
-                    placements = [(r, CGRect(origin: .zero, size: pagePts))]
-                case .tile:
-                    placements = PrintLayout.tiles(page: pagePts, printable: options.printable.size,
-                                                   overlap: options.overlap).map { tile in
-                        (CGRect(origin: options.printable.origin, size: tile.size), tile)
+                for placement in placements(pagePoints: pagePts, options: options) {
+                    try await pacer.breathe()
+                    writer.page(sheet) { cg in
+                        drawSheet(design: design, page: page, pagePoints: pagePts,
+                                  placement: placement, options: options, into: cg)
                     }
-                }
-                for placement in placements {
-                    autoreleasepool {
-                        ctx.beginPage()
-                        let cg = ctx.cgContext
-                        cg.saveGState()
-                        // Show only this piece of the page.
-                        cg.clip(to: placement.sheetRect)
-                        // Map the source region of the (bled) page onto the sheet rect.
-                        let scale = placement.sheetRect.width / max(placement.source.width, 1)
-                        cg.translateBy(x: placement.sheetRect.minX - placement.source.minX * scale,
-                                       y: placement.sheetRect.minY - placement.source.minY * scale)
-                        cg.scaleBy(x: scale, y: scale)
-                        // Nothing past the bleed. The page enlarged evenly
-                        // runs past it on its long side, and a tile's source
-                        // reaches past the page's far edge, so without this
-                        // the last row or column of tiles printed artwork
-                        // beyond the bleed and under the crop marks.
-                        cg.clip(to: CGRect(origin: .zero, size: pagePts))
-                        // The page itself sits inside the bleed; the bleed is
-                        // the page's own edges carried out — drawn here as
-                        // the page enlarged evenly to cover it, the way a
-                        // print shop's bleed is made when none was designed.
-                        let bleedRect = CGRect(origin: .zero, size: pagePts)
-                        draw(design: design, page: page, into: cg, fitting: bleedRect)
-                        cg.restoreGState()
-                        if options.cropMarks {
-                            cg.setStrokeColor(gray: 0, alpha: 1)
-                            cg.setLineWidth(0.5)
-                            let marks = PrintLayout.sheetMarks(sheet: placement.sheetRect, source: placement.source,
-                                                               page: pagePts, bleed: options.bleed)
-                            for (a, b) in marks {
-                                cg.move(to: a); cg.addLine(to: b)
-                            }
-                            cg.strokePath()
-                        }
-                    }
+                    done += 1
+                    progress?(Double(done) / Double(total))
                 }
             }
+            writer.close()
+        } catch {
+            writer.close()
+            try? FileManager.default.removeItem(at: url)
+            throw error
+        }
+    }
+
+    /// One sheet of a print PDF: its piece of the page, and the crop marks.
+    @MainActor
+    private static func drawSheet(design: Design, page: Page, pagePoints pagePts: CGSize,
+                                  placement: (sheetRect: CGRect, source: CGRect),
+                                  options: PrintLayout.Options, into cg: CGContext) {
+        cg.saveGState()
+        // Show only this piece of the page.
+        cg.clip(to: placement.sheetRect)
+        // Map the source region of the (bled) page onto the sheet rect.
+        let scale = placement.sheetRect.width / max(placement.source.width, 1)
+        cg.translateBy(x: placement.sheetRect.minX - placement.source.minX * scale,
+                       y: placement.sheetRect.minY - placement.source.minY * scale)
+        cg.scaleBy(x: scale, y: scale)
+        // Nothing past the bleed. The page enlarged evenly
+        // runs past it on its long side, and a tile's source
+        // reaches past the page's far edge, so without this
+        // the last row or column of tiles printed artwork
+        // beyond the bleed and under the crop marks.
+        cg.clip(to: CGRect(origin: .zero, size: pagePts))
+        // The page itself sits inside the bleed; the bleed is
+        // the page's own edges carried out — drawn here as
+        // the page enlarged evenly to cover it, the way a
+        // print shop's bleed is made when none was designed.
+        let bleedRect = CGRect(origin: .zero, size: pagePts)
+        draw(design: design, page: page, into: cg, fitting: bleedRect)
+        cg.restoreGState()
+        if options.cropMarks {
+            cg.setStrokeColor(gray: 0, alpha: 1)
+            cg.setLineWidth(0.5)
+            let marks = PrintLayout.sheetMarks(sheet: placement.sheetRect, source: placement.source,
+                                               page: pagePts, bleed: options.bleed)
+            for (a, b) in marks {
+                cg.move(to: a); cg.addLine(to: b)
+            }
+            cg.strokePath()
+        }
+    }
+
+    /// A PDF written a page at a time, so an export can step aside between
+    /// pages — UIGraphicsPDFRenderer takes every page in one closure and
+    /// gives nowhere to pause. Each page is set up as that renderer sets its
+    /// pages up: origin at the top left, y running down, and the context
+    /// current for UIKit drawing while the page is drawn, so everything
+    /// drawn into it lands where it did before.
+    @MainActor
+    final class PDFWriter {
+        private let context: CGContext
+        private var closed = false
+
+        init(url: URL, bounds: CGRect) throws {
+            try? FileManager.default.removeItem(at: url)
+            var box = bounds
+            guard let context = CGContext(url as CFURL, mediaBox: &box, nil) else {
+                throw ExportError.encodeFailed
+            }
+            self.context = context
+        }
+
+        /// One page of `box` (in points), drawn by `body`.
+        func page(_ box: CGRect, body: (CGContext) -> Void) {
+            var media = box
+            let mediaData = Data(bytes: &media, count: MemoryLayout<CGRect>.size)
+            let info = [kCGPDFContextMediaBox as String: mediaData] as CFDictionary
+            context.beginPDFPage(info)
+            context.saveGState()
+            context.translateBy(x: 0, y: box.height)
+            context.scaleBy(x: 1, y: -1)
+            UIGraphicsPushContext(context)
+            autoreleasepool { body(context) }
+            UIGraphicsPopContext()
+            context.restoreGState()
+            context.endPDFPage()
+        }
+
+        /// Finishes the file. Safe to call twice.
+        func close() {
+            guard !closed else { return }
+            closed = true
+            context.closePDF()
         }
     }
 

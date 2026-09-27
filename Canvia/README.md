@@ -285,13 +285,22 @@ bitmaps, and everything streams to disk rather than being assembled in
 memory. The scale picker shows the pixel size it will actually produce,
 including when a 32-megapixel cap is what decided it.
 
-Every export shows how far along it is — a page at a time for rasters,
-a frame at a time for the video — with a Cancel button that stops the
-writer at the next frame and leaves no partial file behind.
+Every export shows how far along it is — a page at a time for rasters
+and PDFs, a sheet at a time for the print PDF, a frame at a time for the
+video and the GIF — with a Cancel button that stops at the next page,
+sheet or frame and leaves no partial file behind. Pages and frames are
+drawn on the main actor, which steps aside every thirtieth of a second
+so the bar moves and Cancel can be tapped. The PDF row says which pages
+it will hold ("All 4 pages" or "Page 2 only"), following the page choice.
 
-**Save to Photos** — PNG (this page or the selected range) or the MP4
-straight into the photo library with add-only permission, no share
-sheet in the way.
+**Save to Photos** — PNG or JPEG (this page or the selected range, JPEG
+at the quality set above) or the MP4 straight into the photo library
+with add-only permission, no share sheet in the way. Each file is counted
+as it goes in: "Saved to your photos", "Saved 3 of 5 photos", "Saved 5
+photos", or "Couldn't save to your photos" — and after a Cancel, what
+went in is still said. When the person has already given Canvia full
+access to the library in Settings, saves are filed in a "Canvia" album;
+full access is never asked for just to make one.
 
 **Print** — AirPrint, through the same vector PDF the export writes, so
 what reaches the printer is the document rather than a picture of it.
@@ -394,7 +403,10 @@ export lays it under the picture, looped or trimmed to the video's length
 at a chosen volume, fading out over the last second. Audio lives in
 Documents/audio by id and is muxed with AVFoundation onto the finished
 video. The row shows the music's own file name, kept beside it on this
-phone, and a file with no sound in it is turned away.
+phone, and a file with no sound in it is turned away. A volume drag is
+one Undo. Music that can't be mixed in costs the music, not the video:
+the picture is kept, silent, and the sheet says "Couldn't add the music,
+so it has none."
 
 **Right to left** — a text whose first letter is Hebrew, Arabic or another
 right-to-left script lays out from the right, and its indents and list
@@ -501,7 +513,8 @@ its notes sheet; the video honours both.
 it exports as one: each page holds for 2.5 seconds with a slow push in
 and a cross-fade into the next (hold time, frame rate, push-in and fade
 are settings saved with the design, and each page can override its hold
-and transition). The GIF is sized to an 8 MB budget — the largest frame
+and transition; the length the sheet states counts each page's own hold,
+and the note says whether the music is on this phone). The GIF is sized to an 8 MB budget — the largest frame
 and the higher of two frame rates that fit — and paced at 20 or 10 fps,
 the rates a GIF can state exactly, written frame by frame with AVAssetWriter
 (video) and ImageIO (GIF). No network, no account, no codec licence.

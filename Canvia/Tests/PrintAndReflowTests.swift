@@ -127,15 +127,15 @@ final class PrintAndReflowTests: XCTestCase {
     }
 
     @MainActor
-    func testPrintPDFWritesOnePageForFitAndManyForTiles() throws {
+    func testPrintPDFWritesOnePageForFitAndManyForTiles() async throws {
         var d = Design(title: "p", width: 4000, height: 3000)
         d.pages[0].elements = [.shape("rect", w: 500, h: 500)]
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("print-\(UUID()).pdf")
         var o = PrintLayout.Options()
-        try DesignExporter.exportPrintPDF(design: d, options: o, to: url)
+        try await DesignExporter.exportPrintPDF(design: d, options: o, to: url)
         XCTAssertEqual(CGPDFDocument(url as CFURL)?.numberOfPages, 1)
         o.fit = .tile
-        try DesignExporter.exportPrintPDF(design: d, options: o, to: url)
+        try await DesignExporter.exportPrintPDF(design: d, options: o, to: url)
         // 3000×2250pt onto 559×806 printable: many sheets.
         XCTAssertGreaterThan(CGPDFDocument(url as CFURL)?.numberOfPages ?? 0, 6)
         try? FileManager.default.removeItem(at: url)

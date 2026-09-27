@@ -82,13 +82,13 @@ final class MixedPageSizeTests: XCTestCase {
     }
 
     @MainActor
-    func testTheSVGAndPDFKeepEachPagesShape() throws {
+    func testTheSVGAndPDFKeepEachPagesShape() async throws {
         var d = design()
         d.pages[1].width = 1080; d.pages[1].height = 1920
         let svg = SVGExporter.svg(design: d, page: d.pages[1])
         XCTAssertTrue(svg.contains("width=\"1080\" height=\"1920\""), svg.prefix(200).description)
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("mixed-\(UUID()).pdf")
-        try DesignExporter.exportPDF(design: d, to: url)
+        try await DesignExporter.exportPDF(design: d, to: url)
         defer { try? FileManager.default.removeItem(at: url) }
         let pdf = try XCTUnwrap(CGPDFDocument(url as CFURL))
         XCTAssertEqual(pdf.numberOfPages, 3)
