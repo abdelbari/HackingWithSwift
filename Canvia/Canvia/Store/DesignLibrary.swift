@@ -30,11 +30,16 @@ enum DesignLibrary {
         return dir
     }
 
+    /// Writes the design whole or not at all, and says which. Written in
+    /// place, a save the phone ran out of room for, or was killed during,
+    /// left half a file where the design had been — and the design with it
+    /// gone. Atomic, the new file is written beside the old and swapped in
+    /// only once it is complete, so a failed save leaves the last good one.
     @discardableResult
     static func save(_ design: Design) -> Bool {
         do {
             let data = try JSONEncoder().encode(design)
-            try data.write(to: designsDir.appendingPathComponent("\(design.id).json"))
+            try data.write(to: designsDir.appendingPathComponent("\(design.id).json"), options: .atomic)
             SpotlightIndexer.index(design)
             return true
         } catch {
@@ -44,7 +49,7 @@ enum DesignLibrary {
 
     static func saveThumbnail(_ image: UIImage, for id: String) {
         guard let data = image.jpegData(compressionQuality: 0.7) else { return }
-        try? data.write(to: thumbsDir.appendingPathComponent("\(id).jpg"))
+        try? data.write(to: thumbsDir.appendingPathComponent("\(id).jpg"), options: .atomic)
     }
 
     static func load(id: String) -> Design? {
@@ -291,7 +296,9 @@ enum DesignLibrary {
             if let last = try? Data(contentsOf: latest.url), last == data { return false }
         }
         let name = String(format: "%.3f", now.timeIntervalSince1970)
-        guard (try? data.write(to: dir.appendingPathComponent("\(name).json"))) != nil else {
+        // Whole or not at all, as a save is: a version is what a damaged
+        // design is restored from.
+        guard (try? data.write(to: dir.appendingPathComponent("\(name).json"), options: .atomic)) != nil else {
             return false
         }
         // Oldest out once past the limit.
@@ -339,10 +346,10 @@ enum DesignLibrary {
     /// designs are being read is never among them and can never be taken
     /// for an orphan. Only safe at launch, for the reasons each sweep gives.
     ///
-    /// On the main thread still: designs are saved in place, not swapped in
-    /// whole, so a design being saved while a sweep on another thread read
-    /// it could read as half a file — and every photo only it used would
-    /// look like an orphan.
+    /// On the main thread still. Designs are swapped in whole now, so none
+    /// can be read as half a file; but a sweep on another thread could still
+    /// read a design's old file while the editor saves a photo into its new
+    /// one, and take that photo for an orphan.
     static func pruneUnusedFiles(pasteboard: UIPasteboard = .general) {
         let photos = mediaCandidates()
         let tracks = AudioStore.all()
