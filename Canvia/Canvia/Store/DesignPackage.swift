@@ -238,7 +238,10 @@ enum DesignPackage {
     /// Mail or another app's share sheet — read in as a new design, named so
     /// it repeats no title in `taken` ("Poster" beside a "Poster" becomes
     /// "Poster 2"). What is inside decides, not the type it came as.
-    static func importFile(at url: URL, taken: [String]) throws -> Design {
+    ///
+    /// `normalize: false` leaves the text boxes unmeasured, for a caller off
+    /// the main thread: the type measurer's caches are the main thread's.
+    static func importFile(at url: URL, taken: [String], normalize: Bool = true) throws -> Design {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
@@ -247,8 +250,22 @@ enum DesignPackage {
         // a hundred megabytes and more, and mapped, its pages are the file's
         // rather than the app's memory.
         let data = try Data(contentsOf: url, options: .mappedIfSafe)
-        var design = try `import`(data)
+        var design = try `import`(data, normalize: normalize)
         design.title = Titles.unique(design.title, taken: taken)
+        return design
+    }
+
+    /// importFile, away from the main thread: decoding a package of up to
+    /// 200 MB and writing out every photo and clip in it takes long enough
+    /// to freeze the screen that asked for it.
+    /// The text boxes are measured back on the main actor, where the type
+    /// measurer keeps its caches.
+    @MainActor
+    static func importFileInBackground(at url: URL, taken: [String]) async throws -> Design {
+        var design = try await Task.detached(priority: .userInitiated) {
+            try DesignPackage.importFile(at: url, taken: taken, normalize: false)
+        }.value
+        design.normalizeTextHeights()
         return design
     }
 
@@ -263,7 +280,8 @@ enum DesignPackage {
 
     /// The design inside, as a new document (new id, fresh media ids, the
     /// title marked as imported so it is not mistaken for the original).
-    static func `import`(_ data: Data, mediaDirectory: URL = MediaStore.directory) throws -> Design {
+    static func `import`(_ data: Data, mediaDirectory: URL = MediaStore.directory,
+                         normalize: Bool = true) throws -> Design {
         guard let package = try? JSONDecoder().decode(Package.self, from: data),
               package.format == format else { throw ImportError.notAPackage }
         var remap: [String: String] = [:]
@@ -312,7 +330,7 @@ enum DesignPackage {
         if let master = design.masterPageId {
             design.masterPageId = pageIds[master]
         }
-        design.normalizeTextHeights()
+        if normalize { design.normalizeTextHeights() }
         return design
     }
 }
