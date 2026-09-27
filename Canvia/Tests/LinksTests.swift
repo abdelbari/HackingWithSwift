@@ -93,7 +93,7 @@ final class LinksTests: XCTestCase {
     /// The link is clickable over the element's area in the PDF, measured in
     /// points from the page's top-left as PDFKit reports it flipped.
     @MainActor
-    func testThePDFCarriesTheLinkOverTheElement() throws {
+    func testThePDFCarriesTheLinkOverTheElement() async throws {
         var design = Design(title: "Links", width: 800, height: 600)
         var el = Element.shape("rect", w: 200, h: 100)
         el.x = 80; el.y = 40
@@ -101,7 +101,7 @@ final class LinksTests: XCTestCase {
         design.pages = [Page(elements: [el])]
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("links-\(UUID().uuidString).pdf")
         defer { try? FileManager.default.removeItem(at: url) }
-        try DesignExporter.exportPDF(design: design, to: url)
+        try await DesignExporter.exportPDF(design: design, to: url)
         let page = try XCTUnwrap(PDFDocument(url: url)?.page(at: 0))
         let link = try XCTUnwrap(page.annotations.first { $0.url != nil })
         XCTAssertEqual(link.url?.absoluteString, "https://canvia.app")

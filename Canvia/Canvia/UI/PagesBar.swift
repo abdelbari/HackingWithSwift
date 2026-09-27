@@ -51,10 +51,14 @@ struct PagesBar: View {
                     .disabled(!store.hasPageOnClipboard)
                 } label: { Image(systemName: "plus.square.on.square") }
                     .accessibilityLabel("Duplicate, copy or paste page")
+                // Said as what they do to the page: the symbols alone read
+                // as "Back" and "Forward", which sound like navigation.
                 Button { store.movePage(by: -1) } label: { Image(systemName: "chevron.left") }
                     .disabled(store.pageIndex == 0)
+                    .accessibilityLabel("Move page left")
                 Button { store.movePage(by: 1) } label: { Image(systemName: "chevron.right") }
                     .disabled(store.pageIndex >= store.design.pages.count - 1)
+                    .accessibilityLabel("Move page right")
                 Button { editingNotes = true } label: {
                     Image(systemName: (store.page.notes?.isEmpty == false)
                           ? "note.text" : "note")
@@ -71,6 +75,7 @@ struct PagesBar: View {
                     }
                 } label: { Image(systemName: "trash") }
                     .disabled(store.design.pages.count <= 1)
+                    .accessibilityLabel("Delete page \(store.pageIndex + 1)")
             }
             .font(.system(size: 15))
             .padding(.trailing, 12)
@@ -137,9 +142,19 @@ struct PagesBar: View {
 /// Notes about a page rather than on it: what to say over this slide, what
 /// the client asked for, which photo still needs replacing. Never rendered,
 /// so they cannot leak into an export.
+///
+/// Typing a note is one Undo, as on the Android twin: the keystrokes change
+/// the page without recording, and the step is closed once — on Done, when
+/// the sheet goes, or before another setting here makes a step of its own.
+/// Each keystroke used to be a step, so Undo took a note back a letter at a
+/// time and pushed everything older out of the history.
 private struct PageNotesSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
+    /// The notes as the sheet found them, to tell a real edit from typing
+    /// that ended where it began.
+    @State private var notesBefore: String?
+    @State private var typing = false
 
     var body: some View {
         NavigationStack {
@@ -147,29 +162,30 @@ private struct PageNotesSheet: View {
                 Section("Notes") {
                     TextEditor(text: Binding(
                         get: { store.page.notes ?? "" },
-                        set: { text in
-                            store.applyToPage { $0.notes = text.isEmpty ? nil : text }
-                        }))
+                        set: { text in typeNotes(text) }))
                     .frame(minHeight: 120)
                 }
                 Section {
                     let hold = store.page.holdSeconds ?? store.design.motion?.secondsPerPage ?? MotionSettings().secondsPerPage
                     Stepper(value: Binding(
                         get: { hold },
-                        set: { v in store.applyToPage { $0.holdSeconds = v } }),
+                        set: { v in finishNotes(); store.applyToPage { $0.holdSeconds = v } }),
                             in: MotionSettings.secondsRange, step: 0.5) {
                         Text("Hold \(String(format: "%.1f", hold))s" + (store.page.holdSeconds == nil ? " (document setting)" : ""))
                     }
                     Picker("Transition to the next page", selection: Binding(
                         get: { store.page.transition ?? "default" },
-                        set: { v in store.applyToPage { $0.transition = v == "default" ? nil : v } })) {
+                        set: { v in finishNotes(); store.applyToPage { $0.transition = v == "default" ? nil : v } })) {
                         Text("Document setting").tag("default")
                         Text("Fade").tag("fade")
                         Text("Cut").tag("cut")
                         Text("Slide").tag("slide")
                     }
                     if store.page.holdSeconds != nil {
-                        Button("Use the document's timing") { store.applyToPage { $0.holdSeconds = nil } }
+                        Button("Use the document's timing") {
+                            finishNotes()
+                            store.applyToPage { $0.holdSeconds = nil }
+                        }
                     }
                 } header: {
                     Text("In video and presentation")
@@ -178,10 +194,40 @@ private struct PageNotesSheet: View {
                 .navigationTitle("Page \(store.pageIndex + 1)")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") {
+                            finishNotes()
+                            dismiss()
+                        }
+                    }
                 }
         }
         .presentationDetents([.medium])
+        .onDisappear { finishNotes() }
+    }
+
+    /// A keystroke: the page changes, and the step stays open.
+    private func typeNotes(_ text: String) {
+        if !typing {
+            notesBefore = store.page.notes
+            typing = true
+        }
+        store.beginGesture()
+        let index = store.pageIndex
+        guard store.design.pages.indices.contains(index) else { return }
+        store.design.pages[index].notes = text.isEmpty ? nil : text
+    }
+
+    /// Close the typing as one step — or as none, when the note ended as it
+    /// began.
+    private func finishNotes() {
+        guard typing else { return }
+        typing = false
+        if store.page.notes == notesBefore {
+            store.endGesture()
+        } else {
+            store.commit()
+        }
     }
 }
 

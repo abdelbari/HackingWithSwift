@@ -81,7 +81,7 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   chosen one marked selected
 - Pages: live-thumbnail strip, add / duplicate / reorder / delete (with a
   confirmation when the page is not empty), and per-page notes that are
-  never drawn and so cannot reach an export
+  never drawn and so cannot reach an export; typing a note is one Undo
 - Undo/redo with gesture coalescing (a whole drag is one step), autosave,
   lock, opacity, duplicate, align / distribute / flip / exact-position
   sheet, layers sheet with drag reorder
@@ -97,11 +97,14 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   position or content, and never across element kinds — pasting a text
   style onto a rectangle changes nothing about the rectangle
 - A page organizer: every page as a list with drag handles, multi-select
-  to duplicate or delete (never the last page), tap to jump. Pages copy
+  to duplicate or delete (never the last page), tap to jump; VoiceOver
+  hears each row whole (page, current, element count, notes). Pages copy
   and paste across designs and across launches through the system
-  pasteboard, scaled to fit a differently sized design.
+  pasteboard, scaled to fit a differently sized design; a copy says
+  "Page copied" with a tap of haptics, and a paste is felt.
 - The home screen searches designs (title, loosely; size, exactly) and
-  templates, sorts by last edited, name or page count, and keeps deleted
+  templates — the search is there even on an empty shelf, which still has
+  templates — sorts by last edited, name or page count, and keeps deleted
   designs in a Recently deleted section for thirty days, with Restore
   and Delete forever. Their photos and version history wait with them.
 - VoiceOver on the canvas: every element is named (what it is, and what
@@ -157,14 +160,19 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   drop it into any design at half the page's width, grouped, with fresh
   ids. Both live with the person, not the design.
 - Two sample designs on the very first launch — once, ever — so the home
-  screen is not a blank space with a purple hero on top of it.
+  screen is not a blank space with a purple hero on top of it. Their
+  thumbnails are rendered as they are seeded, and any design that reaches
+  the shelf without a picture (a file from the Android twin) gets one on
+  Home, so no card is a grey box.
 - A Canvia design file (.canvia.json) exports the document with every
   photo it uses inlined, and the home screen opens one back in — under
   a fresh id, with its photos stored afresh, so two imports never share
   a file. A design file tapped in Files, opened from Mail or shared from
   another app opens straight into the editor too, under a title the shelf
   does not already have; what is inside decides, not the type it came
-  as, and the copy handed over is deleted once read. Clips travel whole
+  as, and the copy handed over is deleted once read. The file is read and
+  its photos and clips written out off the main thread, under an
+  "Opening the design…" card, so a clip-heavy file never freezes Home. Clips travel whole
   up to 30 MB each and 100 MB in all, taken
   in id order, and only as MP4, M4V, MOV or 3GP; any other clip travels
   as its first frame — the same choice the Android twin makes, so the
@@ -211,8 +219,12 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   "Show me" that opens the sheet it describes. Contextual tips under the
   top bar — first element, first text, first photo, first multi-selection,
   a crowded page — each once per install and never two within a minute.
-  Real empty states: an empty Layers sheet, a search with no results, a
-  home screen with nothing on it yet, all say so.
+  Pages and Snapping have a "Show me" too (the page organiser; the
+  snapping, grid, margin and guide settings as a sheet). Tips are read
+  out by VoiceOver as they arrive, and stay thirty seconds rather than
+  nine while it runs. Real empty states: an empty Layers sheet, a search
+  with no results, a home screen with nothing on it yet (with a "Show
+  me" into the starts for an Instagram post), all say so.
 - Reduce Motion drops the springs on toasts, tips and buttons; Increase
   Contrast thickens selection outlines; Differentiate Without Colour
   marks the current page with a check and active toggles with a bar.
@@ -260,8 +272,13 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   and the current state is kept as a version first, so it is never a
   one-way door.
 - An undo toast after the edits people regret — delete, delete page,
-  replace all, restore — naming what just happened with an Undo button
-  on it, gone after four seconds.
+  replace all, restore, resize — naming what just happened with an Undo
+  button and a close button on it, gone after four seconds; read out by
+  VoiceOver, and kept up until closed while it runs, so its Undo can be
+  reached.
+- Under the design's name in the top bar, the page's own size and where
+  it sits: "1080 × 1920 · Page 2 of 5". A name emptied out, here or in
+  Rename on Home, keeps the old one.
 - Top-bar overflow menu: layers, page background, find and replace,
   version history, copy and paste style, copy / cut / paste,
   select all, and group / ungroup (grouping is sticky multi-selection —
@@ -280,18 +297,31 @@ would be stretched past the pixels it has (this page or every page, one numbered
 file each, with an optional transparent background that really removes
 the page's own), multi-page PDF and SVG, rendered with
 `ImageRenderer` from the very views the canvas shows, delivered through
-the share sheet. PDF pages are written as vectors, not page-sized
+the share sheet. Files are named after the design as the Android twin
+names them — letters and digits in any script, a run of spaces one
+hyphen ("Q3 / report" is "Q3-report"), sixty characters at most,
+"design" when nothing is left, and a page number only when more than one
+file is written. PDF pages are written as vectors, not page-sized
 bitmaps, and everything streams to disk rather than being assembled in
 memory. The scale picker shows the pixel size it will actually produce,
 including when a 32-megapixel cap is what decided it.
 
-Every export shows how far along it is — a page at a time for rasters,
-a frame at a time for the video — with a Cancel button that stops the
-writer at the next frame and leaves no partial file behind.
+Every export shows how far along it is — a page at a time for rasters
+and PDFs, a sheet at a time for the print PDF, a frame at a time for the
+video and the GIF — with a Cancel button that stops at the next page,
+sheet or frame and leaves no partial file behind. Pages and frames are
+drawn on the main actor, which steps aside every thirtieth of a second
+so the bar moves and Cancel can be tapped. The PDF row says which pages
+it will hold ("All 4 pages" or "Page 2 only"), following the page choice.
 
-**Save to Photos** — PNG (this page or the selected range) or the MP4
-straight into the photo library with add-only permission, no share
-sheet in the way.
+**Save to Photos** — PNG or JPEG (this page or the selected range, JPEG
+at the quality set above) or the MP4 straight into the photo library
+with add-only permission, no share sheet in the way. Each file is counted
+as it goes in: "Saved to your photos", "Saved 3 of 5 photos", "Saved 5
+photos", or "Couldn't save to your photos" — and after a Cancel, what
+went in is still said. When the person has already given Canvia full
+access to the library in Settings, saves are filed in a "Canvia" album;
+full access is never asked for just to make one.
 
 **Print** — AirPrint, through the same vector PDF the export writes, so
 what reaches the printer is the document rather than a picture of it.
@@ -307,7 +337,10 @@ its relative position on each axis independently — a footer stays at
 the foot of a much taller story, a right-aligned logo stays at the right
 edge — while sizes scale by the smaller ratio so nothing stretches, and
 text boxes widen to use a wider page. Guides move with the page. One
-undo step.
+undo step, offered back in a toast ("Resized to 1080 × 1920") for Scale
+too. A custom size is checked as typed: each side 40 to 4000, said under
+the fields, and the button reads "Resize to W × H" only once both sides
+are in range — nothing typed is clamped into a size nobody asked for.
 
 **Spotlight** — every design is indexed with its title, the words typed
 into it and its thumbnail, so searching the phone for "bake sale" finds
@@ -394,7 +427,10 @@ export lays it under the picture, looped or trimmed to the video's length
 at a chosen volume, fading out over the last second. Audio lives in
 Documents/audio by id and is muxed with AVFoundation onto the finished
 video. The row shows the music's own file name, kept beside it on this
-phone, and a file with no sound in it is turned away.
+phone, and a file with no sound in it is turned away. A volume drag is
+one Undo. Music that can't be mixed in costs the music, not the video:
+the picture is kept, silent, and the sheet says "Couldn't add the music,
+so it has none."
 
 **Right to left** — a text whose first letter is Hebrew, Arabic or another
 right-to-left script lays out from the right, and its indents and list
@@ -490,9 +526,11 @@ how many it holds. Hold Undo to rewind many steps. Position nudges by
 1, 10 or 100 with the box read out as it goes.
 
 **Present** — the design full screen from the menu: black surround,
-tap or swipe between pages, a tap on a linked element to open its link,
-a clock, the page's notes for whoever holds
-the phone, and autoplay on each page's own timing. VoiceOver has Next
+tap or swipe between pages, a tap on a linked element to open its link
+(and "No app here opens …" when nothing on the phone takes it), a clock,
+the page's notes for whoever holds the phone (the Notes button dimmed,
+and read as "Notes, none for this page", when the page has none), and
+autoplay on each page's own timing. VoiceOver has Next
 page and Previous page among the page's actions. Every page can set
 its own hold and its transition to the next (fade, cut or slide) from
 its notes sheet; the video honours both.
@@ -501,7 +539,8 @@ its notes sheet; the video honours both.
 it exports as one: each page holds for 2.5 seconds with a slow push in
 and a cross-fade into the next (hold time, frame rate, push-in and fade
 are settings saved with the design, and each page can override its hold
-and transition). The GIF is sized to an 8 MB budget — the largest frame
+and transition; the length the sheet states counts each page's own hold,
+and the note says whether the music is on this phone). The GIF is sized to an 8 MB budget — the largest frame
 and the higher of two frame rates that fit — and paced at 20 or 10 fps,
 the rates a GIF can state exactly, written frame by frame with AVAssetWriter
 (video) and ImageIO (GIF). No network, no account, no codec licence.

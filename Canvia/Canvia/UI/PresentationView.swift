@@ -29,6 +29,9 @@ struct PresentationView: View {
     @State private var settleTask: Task<Void, Never>?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openURL) private var openURL
+    /// Said for a moment when a link has no app here to open it.
+    @State private var linkRefused: String?
+    @State private var refusedTask: Task<Void, Never>?
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     private var page: Page { design.pages[min(index, design.pages.count - 1)] }
@@ -50,12 +53,13 @@ struct PresentationView: View {
                     .onTapGesture { location in
                         // A linked element opens its link, as a click on it
                         // does in the PDF.
-                        if let url = link(at: location, in: geo.size) { openURL(url) }
+                        if let url = link(at: location, in: geo.size) { open(url) }
                         else if location.x > geo.size.width * 0.66 { go(1) }
                         else if location.x < geo.size.width * 0.33 { go(-1) }
                         else { withAnimation { showingChrome.toggle() } }
                     }
                 if showingChrome { chrome }
+                if let linkRefused { refusedNote(linkRefused) }
             }
         }
         .statusBarHidden(true)
@@ -104,10 +108,58 @@ struct PresentationView: View {
             Button("Previous page") { go(-1) }
             ForEach(Self.links(on: shown, in: design), id: \.self) { url in
                 Button("Open \(Links.shown(url))") {
-                    if let target = URL(string: url) { openURL(target) }
+                    if let target = URL(string: url) { open(target) }
                 }
             }
         }
+    }
+
+    /// Follow a link — and when nothing on this phone takes it (a phone
+    /// number on an iPad, a scheme no app handles), say so rather than do
+    /// nothing, as the Android twin does.
+    private func open(_ url: URL) {
+        openURL(url) { accepted in
+            guard !accepted else { return }
+            let said = Self.refusedText(url.absoluteString)
+            AccessibilityNotification.Announcement(said).post()
+            refusedTask?.cancel()
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { linkRefused = said }
+            refusedTask = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(3))
+                guard !Task.isCancelled else { return }
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { linkRefused = nil }
+            }
+        }
+    }
+
+    private var hasNotes: Bool { page.notes?.isEmpty == false }
+
+    /// The Notes button, as VoiceOver says it.
+    static func notesLabel(hasNotes: Bool) -> String {
+        hasNotes ? "Notes" : "Notes, none for this page"
+    }
+
+    /// "No app here opens example.com/menu" — the link as the page shows it.
+    static func refusedText(_ url: String) -> String {
+        "No app here opens \(Links.shown(url))"
+    }
+
+    private func refusedNote(_ text: String) -> some View {
+        VStack {
+            Spacer()
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(.white)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color.white.opacity(0.18), in: Capsule())
+                .padding(.bottom, 40)
+                .padding(.horizontal, 24)
+        }
+        .allowsHitTesting(false)
+        .transition(.opacity)
     }
 
     /// The page's links, each once, in drawing order.
@@ -198,9 +250,14 @@ struct PresentationView: View {
                 } label: { Image(systemName: autoplay ? "pause.fill" : "play.fill").padding(10) }
                     .accessibilityLabel(autoplay ? "Pause autoplay" : "Autoplay")
                 Button { showingNotes.toggle() } label: {
-                    Image(systemName: (page.notes?.isEmpty == false) ? "note.text" : "note").padding(10)
+                    // A blank note, dimmed, when this page has none — as on
+                    // the Android twin — so the button says so before it is
+                    // pressed.
+                    Image(systemName: hasNotes ? "note.text" : "note")
+                        .opacity(hasNotes ? 1 : 0.5)
+                        .padding(10)
                 }
-                .accessibilityLabel("Notes")
+                .accessibilityLabel(Self.notesLabel(hasNotes: hasNotes))
             }
             .foregroundStyle(.white)
             .background(.black.opacity(0.35))

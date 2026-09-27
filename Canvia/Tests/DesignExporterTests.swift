@@ -129,9 +129,9 @@ final class DesignExporterTests: XCTestCase {
     }
 
     @MainActor
-    func testExportsEveryPageToThePDF() throws {
+    func testExportsEveryPageToThePDF() async throws {
         let url = destination("pdf")
-        try DesignExporter.exportPDF(design: design(pages: 3), to: url)
+        try await DesignExporter.exportPDF(design: design(pages: 3), to: url)
         let pdf = try XCTUnwrap(CGPDFDocument(url as CFURL))
         XCTAssertEqual(pdf.numberOfPages, 3)
     }
@@ -140,9 +140,9 @@ final class DesignExporterTests: XCTestCase {
     /// 200x120 design is a 150x90pt page. Getting this wrong prints at the
     /// wrong physical size, which is the one thing a PDF is for.
     @MainActor
-    func testPDFPageUsesPointsNotPixels() throws {
+    func testPDFPageUsesPointsNotPixels() async throws {
         let url = destination("pdf")
-        try DesignExporter.exportPDF(design: design(width: 200, height: 120), to: url)
+        try await DesignExporter.exportPDF(design: design(width: 200, height: 120), to: url)
         let pdf = try XCTUnwrap(CGPDFDocument(url as CFURL))
         let box = try XCTUnwrap(pdf.page(at: 1)).getBoxRect(.mediaBox)
         XCTAssertEqual(box.width, 150, accuracy: 0.5)
@@ -157,9 +157,9 @@ final class DesignExporterTests: XCTestCase {
     /// bitmap to pass a size check while being exactly what the test is
     /// supposed to catch.
     @MainActor
-    func testPDFPagesAreDrawnAsVectors() throws {
+    func testPDFPagesAreDrawnAsVectors() async throws {
         let url = destination("pdf")
-        try DesignExporter.exportPDF(design: design(width: 2000, height: 1200), to: url)
+        try await DesignExporter.exportPDF(design: design(width: 2000, height: 1200), to: url)
         let pdf = try XCTUnwrap(CGPDFDocument(url as CFURL))
         let page = try XCTUnwrap(pdf.page(at: 1))
         XCTAssertEqual(imageCount(in: page), 0)
@@ -168,12 +168,12 @@ final class DesignExporterTests: XCTestCase {
     /// Images placed on a page still travel as images, so the check above is
     /// measuring something rather than always returning zero.
     @MainActor
-    func testPDFCarriesRealImagesAsImages() throws {
+    func testPDFCarriesRealImagesAsImages() async throws {
         let photo = try XCTUnwrap(PhotoLibrary.photos.first)
         var d = design(width: 400, height: 300)
         d.pages[0].background = .image("asset:\(photo.id)")
         let url = destination("pdf")
-        try DesignExporter.exportPDF(design: d, to: url)
+        try await DesignExporter.exportPDF(design: d, to: url)
         let pdf = try XCTUnwrap(CGPDFDocument(url as CFURL))
         let page = try XCTUnwrap(pdf.page(at: 1))
         XCTAssertGreaterThan(imageCount(in: page), 0)
@@ -296,8 +296,8 @@ final class ExportRangeTests: XCTestCase {
 
     /// One file per page, numbered — the point of a range is that each page
     /// can be sent on its own.
-    func testAllPagesProducesOneNumberedFileEach() throws {
-        let urls = try DesignExporter.exportPages(design: design(pages: 3), range: .all,
+    func testAllPagesProducesOneNumberedFileEach() async throws {
+        let urls = try await DesignExporter.exportPages(design: design(pages: 3), range: .all,
                                                   current: 0, format: .png, scale: 1)
         written = urls
         XCTAssertEqual(urls.count, 3)
@@ -308,9 +308,9 @@ final class ExportRangeTests: XCTestCase {
         }
     }
 
-    func testARangeReportsAPageAtATime() throws {
+    func testARangeReportsAPageAtATime() async throws {
         var seen: [Double] = []
-        let urls = try DesignExporter.exportPages(design: design(pages: 4), range: .all,
+        let urls = try await DesignExporter.exportPages(design: design(pages: 4), range: .all,
                                                   current: 0, format: .png, scale: 1,
                                                   progress: { seen.append($0) })
         written = urls
@@ -318,18 +318,18 @@ final class ExportRangeTests: XCTestCase {
     }
 
     /// A single page keeps the plain name: "poster.png", not "poster-1.png".
-    func testASinglePageIsNotNumbered() throws {
-        let urls = try DesignExporter.exportPages(design: design(pages: 3), range: .current,
+    func testASinglePageIsNotNumbered() async throws {
+        let urls = try await DesignExporter.exportPages(design: design(pages: 3), range: .current,
                                                   current: 1, format: .png, scale: 1)
         written = urls
         XCTAssertEqual(urls.count, 1)
         XCTAssertFalse(urls[0].lastPathComponent.contains("-"), urls[0].lastPathComponent)
     }
 
-    func testThePDFCoversOnlyTheChosenRange() throws {
+    func testThePDFCoversOnlyTheChosenRange() async throws {
         let url = DesignExporter.fileURL(for: design(pages: 4), ext: "pdf")
         written = [url]
-        try DesignExporter.exportPDF(design: design(pages: 4), range: .current, current: 2, to: url)
+        try await DesignExporter.exportPDF(design: design(pages: 4), range: .current, current: 2, to: url)
         let pdf = try XCTUnwrap(CGPDFDocument(url as CFURL))
         XCTAssertEqual(pdf.numberOfPages, 1)
     }

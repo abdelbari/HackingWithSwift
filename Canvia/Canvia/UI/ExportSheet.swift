@@ -21,7 +21,21 @@ struct ExportSheet: View {
     @State private var transparent = false
     @State private var pageRange = RangeChoice.current
     @State private var sharedURLs: [URL] = []
-    @State private var savedToPhotos: String?
+    /// What the last save to Photos came to, and whether anything went in.
+    @State private var photosNote: PhotosNote?
+    @State private var photosFormat = DesignExporter.RasterFormat.png
+    /// Said under Motion when a video's music could not be put in.
+    @State private var musicNote: String?
+    /// The volume while its slider is dragged; written to the design once,
+    /// when the drag ends, so a drag is one Undo.
+    @State private var dragVolume: Double?
+    /// What the progress card says is happening.
+    @State private var workingLabel = "Rendering"
+
+    private struct PhotosNote: Equatable {
+        var text: String
+        var ok: Bool
+    }
 
     private enum RangeChoice: String, CaseIterable, Identifiable {
         case current, all
@@ -84,7 +98,7 @@ struct ExportSheet: View {
     private func progressCard(_ fraction: Double) -> some View {
         VStack(spacing: 14) {
             ProgressView(value: fraction) {
-                Text("Rendering… \(Int((fraction * 100).rounded()))%")
+                Text("\(workingLabel)… \(Int((fraction * 100).rounded()))%")
                     .font(.subheadline.weight(.semibold))
             }
             .progressViewStyle(.linear)
@@ -273,19 +287,21 @@ struct ExportSheet: View {
     }
 
     private var formatSection: some View {
-        let pdfSubtitle = store.design.pages.count > 1
-            ? "All \(store.design.pages.count) pages, vector"
-            : "Print-ready document, vector"
+        // Said from the page choice above, which the PDF follows.
+        let pages = store.design.pages.count
+        let pdfSubtitle = pages == 1
+            ? "Print-ready document, vector"
+            : (pageRange == .all ? "All \(pages) pages, vector" : "Page \(store.pageIndex + 1) only, vector")
         let jpegSubtitle = "Current page, about \(estimatedSize)"
         return Section("Format") {
             exportButton("PNG", subtitle: "Current page, best for sharing", icon: "photo") {
-                try export(.png)
+                try await export(.png)
             }
             exportButton("JPEG", subtitle: jpegSubtitle, icon: "photo.fill") {
-                try export(.jpeg)
+                try await export(.jpeg)
             }
-            exportButton("PDF", subtitle: pdfSubtitle, icon: "doc.richtext") {
-                try exportPDF()
+            exportButton("PDF", subtitle: pdfSubtitle, icon: "doc.richtext", working: "Making the PDF") {
+                try await exportPDF()
             }
             exportButton("SVG", subtitle: "Current page, editable vectors",
                          icon: "scribble.variable") {
@@ -295,49 +311,87 @@ struct ExportSheet: View {
     }
 
     private var photosSection: some View {
-        Section {
-            exportButton("PNG to Photos", subtitle: photosSubtitle, icon: "photo.badge.plus") {
-                try await saveToPhotos(.png)
+        let kind = photosFormat == .png ? "PNG" : "JPEG"
+        return Section {
+            // The same two picture formats the share rows make: a JPEG for
+            // a photo-heavy post, a PNG for flat colour or a clear
+            // background. The quality above applies to the JPEG.
+            Picker("Picture format", selection: $photosFormat) {
+                Text("PNG").tag(DesignExporter.RasterFormat.png)
+                Text("JPEG").tag(DesignExporter.RasterFormat.jpeg)
             }
-            exportButton("Video to Photos", subtitle: movieSubtitle, icon: "film.stack") {
+            .pickerStyle(.segmented)
+            exportButton("\(kind) to Photos", subtitle: photosSubtitle, icon: "photo.badge.plus",
+                         working: "Saving to your photos") {
+                try await saveToPhotos(photosFormat)
+            }
+            exportButton("Video to Photos", subtitle: movieSubtitle, icon: "film.stack",
+                         working: "Rendering the video") {
                 try await saveToPhotos(nil)
             }
         } header: {
             Text("Photos")
         } footer: {
-            if let savedToPhotos {
-                Label(savedToPhotos, systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
+            if let photosNote {
+                Label(photosNote.text, systemImage: photosNote.ok ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                    .foregroundStyle(photosNote.ok ? Color.green : Color.red)
             }
         }
     }
 
     private var photosSubtitle: String {
-        pageRange == .current || store.design.pages.count == 1
-            ? "Current page, straight into your library"
-            : "Selected pages, one photo each"
+        let count = exportedIndices.count
+        let each = count > 1 ? "\(count) pages, one photo each" : "Current page, straight into your library"
+        return photosFormat == .jpeg ? "\(each), about \(estimatedSize)\(count > 1 ? " a page" : "")" : each
     }
 
     /// Render, then hand the files to Photos rather than the share sheet.
-    /// `nil` means the movie.
+    /// `nil` means the movie. Each picture is counted as it goes in, and
+    /// what went in is said even after a Cancel.
     @MainActor
     private func saveToPhotos(_ format: DesignExporter.RasterFormat?) async throws {
-        savedToPhotos = nil
-        let urls: [URL]
-        if let format {
-            urls = try DesignExporter.exportPages(
-                design: exportedDesign, range: exportedRange, current: exportedPageIndex,
-                format: format, scale: scale, longEdge: typedLongEdge ?? 0, quality: jpegQuality,
-                transparent: transparent && format == .png,
-                progress: { progress = $0 })
-        } else {
-            let url = DesignExporter.fileURL(for: store.design, ext: "mp4")
-            try await MovieExporter.exportMP4(design: store.design, settings: MovieExporter.Settings(store.design.motion),
-                                              to: url, progress: report)
-            urls = [url]
+        photosNote = nil
+        guard let format else {
+            try await saveMovieToPhotos()
+            return
         }
-        try await PhotoSaver.save(urls)
-        savedToPhotos = urls.count == 1 ? "Saved to Photos" : "Saved \(urls.count) photos"
+        let urls = try await DesignExporter.exportPages(
+            design: exportedDesign, range: exportedRange, current: exportedPageIndex,
+            format: format, scale: scale, longEdge: typedLongEdge ?? 0, quality: jpegQuality,
+            // JPEG has no alpha channel to be transparent in.
+            transparent: transparent && format == .png,
+            progress: { progress = $0 })
+        let outcome = try await PhotoSaver.save(urls)
+        if let message = outcome.message {
+            photosNote = PhotosNote(text: message, ok: outcome.anySaved)
+            announce(message)
+        }
+    }
+
+    /// The video into Photos. Music that would not go in leaves a silent
+    /// video, and says so.
+    @MainActor
+    private func saveMovieToPhotos() async throws {
+        let url = DesignExporter.fileURL(for: store.design, ext: "mp4")
+        let movie = try await MovieExporter.exportMP4(design: store.design,
+                                                      settings: MovieExporter.Settings(store.design.motion),
+                                                      to: url, progress: report)
+        let outcome = try await PhotoSaver.save([url])
+        if outcome.cancelled && !outcome.anySaved { return }
+        var text = outcome.anySaved ? "Saved the video to your photos." : "Couldn't save to your photos."
+        if movie.musicLost { text += " " + Self.musicLostNote }
+        photosNote = PhotosNote(text: text, ok: outcome.anySaved)
+        announce(text)
+    }
+
+    /// Said when a video's music could not be mixed in, as the Android twin
+    /// says it.
+    static let musicLostNote = "Couldn't add the music, so it has none."
+
+    /// VoiceOver hears the outcome of a save; the footer it lands in is
+    /// easily missed from the button that was pressed.
+    private func announce(_ text: String) {
+        UIAccessibility.post(notification: .announcement, argument: text)
     }
 
     private var clipboardSection: some View {
@@ -383,15 +437,18 @@ struct ExportSheet: View {
 
     private var printSection: some View {
         Section {
-            exportButton("Send to a printer", subtitle: "AirPrint, on the paper layout below", icon: "printer") {
-                try printDesign()
+            exportButton("Send to a printer", subtitle: "AirPrint, on the paper layout below", icon: "printer",
+                         working: "Preparing to print") {
+                try await printDesign()
             }
-            exportButton("Print-ready PDF", subtitle: "Paper, bleed and crop marks as set", icon: "doc.badge.gearshape") {
+            exportButton("Print-ready PDF", subtitle: "Paper, bleed and crop marks as set", icon: "doc.badge.gearshape",
+                         working: "Making the print PDF") {
                 let url = DesignExporter.fileURL(for: store.design, ext: "pdf", suffix: "-print")
                 // The design the other formats render, so "Selection only"
                 // prints the selection rather than page 1 of the whole thing.
-                try DesignExporter.exportPrintPDF(design: exportedDesign, range: exportedRange, current: exportedPageIndex,
-                                                  options: paper, to: url)
+                try await DesignExporter.exportPrintPDF(design: exportedDesign, range: exportedRange,
+                                                        current: exportedPageIndex, options: paper, to: url,
+                                                        progress: { progress = $0 })
                 sharedURLs = [url]
                 exportedURL = url
             }
@@ -432,27 +489,42 @@ struct ExportSheet: View {
     }
 
     private var motionSection: some View {
-        let hold = String(format: "%.1f", MovieExporter.Settings(store.design.motion).secondsPerPage)
-        return Section {
-            exportButton("MP4 video", subtitle: movieSubtitle, icon: "film") {
+        Section {
+            exportButton("MP4 video", subtitle: movieSubtitle, icon: "film", working: "Rendering the video") {
                 try await exportMovie()
             }
-            exportButton("Animated GIF", subtitle: movieSubtitle, icon: "square.stack.3d.down.right") {
-                try exportGIF()
+            exportButton("Animated GIF", subtitle: movieSubtitle, icon: "square.stack.3d.down.right",
+                         working: "Rendering the GIF") {
+                try await exportGIF()
             }
             DisclosureGroup("Motion settings") { motionSettings }
         } header: {
             Text("Motion")
         } footer: {
-            Text(motionNote(hold: hold))
+            VStack(alignment: .leading, spacing: 4) {
+                if let musicNote {
+                    Label(musicNote, systemImage: "speaker.slash.fill")
+                        .foregroundStyle(.orange)
+                }
+                Text(motionNote)
+            }
         }
     }
 
-    private func motionNote(hold: String) -> String {
+    /// How it moves, as the Android twin says it: each page's hold (a page
+    /// with a time of its own keeps it), the push in, the fade or cut, and
+    /// whether the music under it is on this phone.
+    private var motionNote: String {
         let m = store.design.motion ?? MotionSettings()
-        var note = "Each page holds for \(hold)s"
-        if m.movement { note += " with a slow push in" }
-        note += m.crossfade ? " and a cross-fade between pages." : ", cutting between pages."
+        let settings = MovieExporter.Settings(store.design.motion)
+        var note = "Each page holds \(String(format: "%.1f", settings.secondsPerPage))s unless it has its own time"
+        if m.movement { note += ", with a slow push in" }
+        note += m.crossfade ? ", and fades into the next." : ", and cuts to the next."
+        if m.soundtrack != nil {
+            note += AudioStore.url(for: m.soundtrack) != nil
+                ? " The video has music under it."
+                : " The music was chosen on another phone and isn't on this one."
+        }
         return note
     }
 
@@ -539,14 +611,30 @@ struct ExportSheet: View {
                 .foregroundStyle(.secondary)
         }
         if here {
-            HStack {
-                Text("Volume")
-                Slider(value: Binding(get: { binding.wrappedValue.soundVolume ?? 1 },
-                                      set: { binding.wrappedValue.soundVolume = $0 == 1 ? nil : $0 }),
-                       in: 0...1)
-                Text("\(Int(((binding.wrappedValue.soundVolume ?? 1) * 100).rounded()))%")
-                    .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-            }
+            volumeRow(binding)
+        }
+    }
+
+    /// The music's volume. The slider moves a value of its own while it is
+    /// dragged, and the design takes it once, when the finger lifts — every
+    /// frame of a drag was an Undo step of its own.
+    private func volumeRow(_ binding: Binding<MotionSettings>) -> some View {
+        let saved = binding.wrappedValue.soundVolume ?? 1
+        let shown = dragVolume ?? saved
+        return HStack {
+            Text("Volume")
+            Slider(value: Binding(get: { dragVolume ?? saved }, set: { dragVolume = $0 }),
+                   in: 0...1,
+                   onEditingChanged: { editing in
+                       guard !editing, let volume = dragVolume else { return }
+                       dragVolume = nil
+                       if volume != saved {
+                           binding.wrappedValue.soundVolume = volume == 1 ? nil : volume
+                       }
+                   })
+            .accessibilityLabel("Soundtrack volume")
+            Text("\(Int((shown * 100).rounded()))%")
+                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
         }
     }
 
@@ -558,15 +646,16 @@ struct ExportSheet: View {
         return here ? AudioStore.label(for: id) : "Music from another phone"
     }
 
-    private func exportButton(_ title: String, subtitle: String, icon: String,
+    private func exportButton(_ title: String, subtitle: String, icon: String, working: String = "Rendering",
                               action: @escaping @MainActor () async throws -> Void) -> some View {
         Button {
             progress = 0
+            workingLabel = working
             errorMessage = nil
-            // Render on the main actor after the progress card appears. Async
-            // because a video is written frame by frame and takes seconds —
-            // the raster paths are synchronous and satisfy this signature
-            // unchanged.
+            musicNote = nil
+            // Render on the main actor after the progress card appears. Every
+            // long path steps aside between pages or frames, so the bar moves
+            // and Cancel can be tapped while it works.
             exportTask = Task { @MainActor in
                 defer { progress = nil; exportTask = nil }
                 do { try await action() }
@@ -612,8 +701,8 @@ struct ExportSheet: View {
     }
 
     @MainActor
-    private func export(_ format: DesignExporter.RasterFormat) throws {
-        let urls = try DesignExporter.exportPages(
+    private func export(_ format: DesignExporter.RasterFormat) async throws {
+        let urls = try await DesignExporter.exportPages(
             design: exportedDesign, range: exportedRange, current: exportedPageIndex,
             format: format, scale: scale, longEdge: typedLongEdge ?? 0, quality: jpegQuality,
             // JPEG has no alpha channel to be transparent in.
@@ -623,26 +712,28 @@ struct ExportSheet: View {
         exportedURL = urls.first
     }
 
+    /// The film's length from its timeline, so a page with a hold of its
+    /// own counts at that hold.
     private var movieSubtitle: String {
         let pages = store.design.pages.count
-        let seconds = Double(pages) * MovieExporter.Settings(store.design.motion).secondsPerPage
-        return pages > 1
-            ? "All \(pages) pages, \(String(format: "%.0f", seconds))s"
-            : "One page, \(String(format: "%.0f", seconds))s"
+        let settings = MovieExporter.Settings(store.design.motion)
+        let seconds = MovieExporter.seconds(design: store.design, settings: settings)
+        let length = String(format: "%.0f", max(1, seconds))
+        return pages > 1 ? "All \(pages) pages, \(length)s" : "One page, \(length)s"
     }
 
     /// Printing goes through the same vector PDF the export does, so what
     /// comes out of the printer is the document rather than a picture of it —
     /// text stays text at the printer's own resolution.
     @MainActor
-    private func printDesign() throws {
+    private func printDesign() async throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "pdf")
         // What the other formats render: the selection as a page of its own
         // when "Selection only" is on. The range and index are that design's
         // — with the whole design they pointed at page 1, not the selection.
         let design = exportedDesign
-        try DesignExporter.exportPrintPDF(design: design, range: exportedRange, current: exportedPageIndex,
-                                          options: paper, to: url)
+        try await DesignExporter.exportPrintPDF(design: design, range: exportedRange, current: exportedPageIndex,
+                                                options: paper, to: url, progress: { progress = $0 })
 
         let info = UIPrintInfo.printInfo()
         info.outputType = .general
@@ -674,16 +765,23 @@ struct ExportSheet: View {
     @MainActor
     private func exportMovie() async throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "mp4")
-        try await MovieExporter.exportMP4(design: store.design, settings: MovieExporter.Settings(store.design.motion),
-                                              to: url, progress: report)
+        let movie = try await MovieExporter.exportMP4(design: store.design,
+                                                      settings: MovieExporter.Settings(store.design.motion),
+                                                      to: url, progress: report)
+        // The picture is kept when the music will not go under it; the
+        // sheet says so beside the share, as the Android twin toasts it.
+        if movie.musicLost {
+            musicNote = Self.musicLostNote
+            announce(Self.musicLostNote)
+        }
         sharedURLs = [url]
         exportedURL = url
     }
 
     @MainActor
-    private func exportGIF() throws {
+    private func exportGIF() async throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "gif")
-        try MovieExporter.exportGIF(design: store.design, settings: MovieExporter.Settings(store.design.motion),
+        try await MovieExporter.exportGIF(design: store.design, settings: MovieExporter.Settings(store.design.motion),
                                     to: url, progress: { progress = $0 })
         sharedURLs = [url]
         exportedURL = url
@@ -699,10 +797,10 @@ struct ExportSheet: View {
     }
 
     @MainActor
-    private func exportPDF() throws {
+    private func exportPDF() async throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "pdf")
-        try DesignExporter.exportPDF(design: store.design, range: pageRange.exportRange,
-                                     current: store.pageIndex, to: url)
+        try await DesignExporter.exportPDF(design: store.design, range: pageRange.exportRange,
+                                           current: store.pageIndex, to: url, progress: { progress = $0 })
         sharedURLs = [url]
         exportedURL = url
     }

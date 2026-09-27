@@ -12,6 +12,8 @@ struct CanviaApp: App {
     @State private var editingStore: DesignStore?
     /// Why a design file handed to the app could not be opened.
     @State private var openError: String?
+    /// A design file handed over, while it is being read in.
+    @State private var openingFile = false
     /// A quick action or Siri asked for a design that has since gone.
     @State private var designMissing = false
     @Environment(\.scenePhase) private var scenePhase
@@ -24,22 +26,37 @@ struct CanviaApp: App {
         // of the library rather than one each.
         DesignLibrary.purgeTrash()
         DesignLibrary.pruneUnusedFiles()
-        DesignLibrary.seedStartersIfNeeded()
+        // The samples with their pictures, so the first Home shows two
+        // finished designs rather than two grey boxes. An App is made on
+        // the main thread, where ImageRenderer draws.
+        let samples = DesignLibrary.seedStartersIfNeeded()
+        MainActor.assumeIsolated {
+            for sample in samples { DesignLibrary.writeThumbnail(for: sample) }
+        }
         _editingStore = State(initialValue: Self.storeForLaunchArguments() ?? Self.storeForLaunchRequest())
     }
 
     /// A design file handed to the app, opened as a new design in the
     /// editor — the one open saves as it closes, as leaving it always does.
+    /// Read in away from the main thread, under an "Opening the design…"
+    /// card, since a file with clips in it takes a while.
     private func openDesignFile(_ url: URL) {
         guard url.isFileURL else { return }
-        defer { DesignPackage.discardInboxCopy(url) }
-        do {
-            var design = try DesignPackage.importFile(at: url, taken: DesignLibrary.recents().map(\.title))
-            design.updatedAt = Date().timeIntervalSince1970 * 1000
-            DesignLibrary.save(design)
-            withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
-        } catch {
-            openError = error.localizedDescription
+        let taken = DesignLibrary.recents().map(\.title)
+        openingFile = true
+        Task { @MainActor in
+            defer {
+                openingFile = false
+                DesignPackage.discardInboxCopy(url)
+            }
+            do {
+                var design = try await DesignPackage.importFileInBackground(at: url, taken: taken)
+                design.updatedAt = Date().timeIntervalSince1970 * 1000
+                DesignLibrary.save(design)
+                withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
+            } catch {
+                openError = error.localizedDescription
+            }
         }
     }
 
@@ -150,6 +167,7 @@ struct CanviaApp: App {
             // A design file tapped in Files, opened from Mail or shared from
             // another app — at launch or while the app is open, once each.
             .onOpenURL { url in openDesignFile(url) }
+            .overlay { if openingFile { OpeningDesignCard() } }
             .alert("Couldn't open that file", isPresented: Binding(
                 get: { openError != nil }, set: { if !$0 { openError = nil } })) {
                 Button("OK") { openError = nil }

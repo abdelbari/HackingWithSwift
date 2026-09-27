@@ -42,6 +42,9 @@ struct HomeView: View {
     @State private var importing = false
     @State private var favoritesVersion = 0
     @State private var importError: String?
+    /// A design file being read in, while the "Opening the design…" card
+    /// is up.
+    @State private var openingFile = false
     @State private var templateCategory: String?
     @State private var folder: String?
     @State private var filingInto: RecentDesign?
@@ -58,9 +61,9 @@ struct HomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 hero
-                if !recents.isEmpty || !trashed.isEmpty {
-                    searchBar
-                }
+                // Always there: it finds templates as well as designs, and
+                // an empty shelf still has templates to search.
+                searchBar
                 if recents.isEmpty && trashed.isEmpty {
                     firstRunCard
                 }
@@ -103,6 +106,7 @@ struct HomeView: View {
         // text — white by then — on an almost white page.
         .background(Theme.workspace)
         .overlay(alignment: .bottom) { trashedToast }
+        .overlay { if openingFile { OpeningDesignCard() } }
         .onAppear {
             reload()
             if Onboarding.needsTour { touring = true }
@@ -131,8 +135,12 @@ struct HomeView: View {
             set: { if !$0 { renaming = nil } })) {
             TextField("Name", text: $renameText)
             Button("Save") {
-                if let target = renaming, var design = DesignLibrary.load(id: target.id) {
-                    design.title = renameText.trimmingCharacters(in: .whitespaces)
+                // A name emptied out keeps the old one, as on the Android
+                // twin: a card with no title, and exports named "design",
+                // are not what clearing the field meant.
+                let name = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !name.isEmpty, let target = renaming, var design = DesignLibrary.load(id: target.id) {
+                    design.title = name
                     design.titleAuto = false
                     design.updatedAt = Date().timeIntervalSince1970 * 1000
                     DesignLibrary.save(design)
@@ -189,6 +197,12 @@ struct HomeView: View {
 
     private func reload() {
         recents = DesignLibrary.recents()
+        // A design that reached the shelf without being opened here — a
+        // file from the Android twin, a sample whose picture was not
+        // written — gets its picture now rather than showing a grey box.
+        if DesignLibrary.fillMissingThumbnails(recents) {
+            recents = DesignLibrary.recents()
+        }
         trashed = DesignLibrary.trashed()
         // The icon's quick actions follow the shelf, so a deleted design
         // drops out of them.
@@ -216,10 +230,18 @@ struct HomeView: View {
         // what is inside decides.
         .fileImporter(isPresented: $importing, allowedContentTypes: [.json, .data]) { result in
             guard case .success(let url) = result else { return }
-            do {
-                onOpen(try DesignPackage.importFile(at: url, taken: recents.map(\.title)))
-            } catch {
-                importError = error.localizedDescription
+            // Read, and its photos and clips written out, away from the
+            // main thread: a clip-heavy file runs to a hundred megabytes and
+            // more, and Home froze with no sign of why while it went in.
+            let taken = recents.map(\.title)
+            openingFile = true
+            Task { @MainActor in
+                defer { openingFile = false }
+                do {
+                    onOpen(try await DesignPackage.importFileInBackground(at: url, taken: taken))
+                } catch {
+                    importError = error.localizedDescription
+                }
             }
         }
         .alert("Couldn't open that file", isPresented: Binding(
@@ -306,6 +328,12 @@ struct HomeView: View {
                 Text("Pick a size above or a template below to start. Everything saves itself.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                // A way in from the card itself, as the Android twin's empty
+                // shelf has: the starts for the most-made size.
+                Button("Show me") { homeSheet = .start(presetId: "insta-post") }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
+                    .padding(.top, 4)
             }
         }
         .padding(14)

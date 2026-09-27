@@ -92,6 +92,19 @@ struct PageOrganizerSheet: View {
             Spacer()
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Page \(index + 1)\(index == store.pageIndex ? ", current" : "")")
+        // The whole row, as it reads to the eye: which page, whether it is
+        // the one on screen, how much is on it and its notes. A label of
+        // "Page 3, current" alone replaced the rest.
+        .accessibilityLabel(Self.spokenRow(number: index + 1, current: index == store.pageIndex,
+                                           elements: page.elements.count, notes: page.notes))
+    }
+
+    /// What VoiceOver says for a page's row, as the Android twin's reads.
+    static func spokenRow(number: Int, current: Bool, elements: Int, notes: String?) -> String {
+        var label = "Page \(number)"
+        if current { label += ", current" }
+        label += elements == 1 ? ", 1 element" : ", \(elements) elements"
+        if let notes, !notes.isEmpty { label += ", " + notes }
+        return label
     }
 }
