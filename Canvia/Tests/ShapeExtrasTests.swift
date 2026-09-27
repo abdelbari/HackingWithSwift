@@ -104,7 +104,8 @@ final class ShapeExtrasTests: XCTestCase {
         // A single rounded corner: one curve, three sharp corners.
         let curves = svg.components(separatedBy: "C").count - 1 + svg.components(separatedBy: "Q").count - 1
         XCTAssertGreaterThan(curves, 0)
-        XCTAssertTrue(svg.contains("L100 100") || svg.contains("100 100"), svg)
+        // At the element's size: the square corners are its own.
+        XCTAssertTrue(svg.contains("200 100"), svg)
     }
 
     // MARK: drop caps
