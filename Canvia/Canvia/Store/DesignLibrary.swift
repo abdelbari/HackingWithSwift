@@ -356,12 +356,16 @@ enum DesignLibrary {
     /// can be read as half a file; but a sweep on another thread could still
     /// read a design's old file while the editor saves a photo into its new
     /// one, and take that photo for an orphan.
+    ///
+    /// Not at all while any design or version no longer reads: what a
+    /// damaged design uses cannot be known, and its photos have to still be
+    /// there when it is restored from a version.
     static func pruneUnusedFiles(pasteboard: UIPasteboard = .general) {
         let photos = mediaCandidates()
         let tracks = AudioStore.all()
         let clips = VideoStore.all()
         guard photos?.isEmpty == false || !tracks.isEmpty || !clips.isEmpty else { return }
-        let designs = allDesigns() + allVersions()
+        guard let designs = everyDesign() else { return }
         if let photos { pruneUnusedMedia(photos, designs: designs, pasteboard: pasteboard) }
         pruneUnusedAudio(tracks, designs: designs)
         pruneUnusedVideos(clips, designs: designs, pasteboard: pasteboard)
@@ -382,8 +386,8 @@ enum DesignLibrary {
         // The candidates are listed before a single reference is read, so a
         // photo stored while the references are being gathered is not among
         // them and can never be taken for an orphan.
-        guard let files = mediaCandidates() else { return }
-        pruneUnusedMedia(files, designs: allDesigns() + allVersions(), pasteboard: pasteboard)
+        guard let files = mediaCandidates(), let designs = everyDesign() else { return }
+        pruneUnusedMedia(files, designs: designs, pasteboard: pasteboard)
     }
 
     /// The photo sweep over `files`, listed before `designs` were read.
@@ -446,8 +450,8 @@ enum DesignLibrary {
         // are being read is not a candidate, so it is never taken for an
         // orphan.
         let stored = AudioStore.all()
-        guard !stored.isEmpty else { return }
-        pruneUnusedAudio(stored, designs: allDesigns() + allVersions())
+        guard !stored.isEmpty, let designs = everyDesign() else { return }
+        pruneUnusedAudio(stored, designs: designs)
     }
 
     /// The soundtrack sweep over `stored`, listed before `designs` were read.
@@ -469,8 +473,8 @@ enum DesignLibrary {
     /// being read is never taken for an orphan.
     static func pruneUnusedVideos(pasteboard: UIPasteboard = .general) {
         let stored = VideoStore.all()
-        guard !stored.isEmpty else { return }
-        pruneUnusedVideos(stored, designs: allDesigns() + allVersions(), pasteboard: pasteboard)
+        guard !stored.isEmpty, let designs = everyDesign() else { return }
+        pruneUnusedVideos(stored, designs: designs, pasteboard: pasteboard)
     }
 
     /// The clip sweep over `stored`, listed before `designs` were read.
@@ -518,31 +522,71 @@ enum DesignLibrary {
         Set(designs.compactMap { $0.motion?.soundtrack })
     }
 
-    /// Every kept version of every design.
-    private static func allVersions() -> [Design] {
+    /// Every design, live and trashed, and every kept version of each — or
+    /// nil when any of their files no longer reads, and so what it uses
+    /// cannot be known. Each sweep keeps what these use.
+    private static func everyDesign() -> [Design]? {
+        guard let designs = allDesigns(), let versions = allVersions() else { return nil }
+        return designs + versions
+    }
+
+    /// Every kept version of every design, or nil when one does not read.
+    private static func allVersions() -> [Design]? {
         let root = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("history", isDirectory: true)
         guard let dirs = try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil) else { return [] }
-        return dirs.flatMap { dir -> [Design] in
-            guard let files = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) else { return [] }
-            return files.filter { $0.pathExtension == "json" }.compactMap { url in
-                guard let data = try? Data(contentsOf: url) else { return nil }
-                return try? JSONDecoder().decode(Design.self, from: data)
-            }
+        var versions: [Design] = []
+        for dir in dirs {
+            guard let files = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) else { continue }
+            guard let read = decodeAll(files.filter { $0.pathExtension == "json" }) else { return nil }
+            versions += read
         }
+        return versions
     }
 
     /// Live and trashed both: a design in the trash can come back, and its
-    /// photos have to still be there when it does.
-    private static func allDesigns() -> [Design] {
-        [designsDir, trashDir].flatMap { dir -> [Design] in
+    /// photos have to still be there when it does. Nil when one does not
+    /// read.
+    private static func allDesigns() -> [Design]? {
+        var designs: [Design] = []
+        for dir in [designsDir, trashDir] {
             guard let files = try? FileManager.default.contentsOfDirectory(
-                at: dir, includingPropertiesForKeys: nil) else { return [] }
-            return files.filter { isDesignFile($0) }.compactMap { url in
-                guard let data = try? Data(contentsOf: url) else { return nil }
-                return try? JSONDecoder().decode(Design.self, from: data)
-            }
+                at: dir, includingPropertiesForKeys: nil) else { continue }
+            guard let read = decodeAll(files.filter { isDesignFile($0) }) else { return nil }
+            designs += read
         }
+        return designs
+    }
+
+    /// The designs in these files, or nil at the first that does not read.
+    private static func decodeAll(_ files: [URL]) -> [Design]? {
+        var designs: [Design] = []
+        for url in files {
+            guard let data = try? Data(contentsOf: url),
+                  let design = try? JSONDecoder().decode(Design.self, from: data) else { return nil }
+            designs.append(design)
+        }
+        return designs
+    }
+
+    // MARK: damaged designs
+
+    /// Brings a design whose file no longer reads back from the newest of
+    /// its versions that does, under the same id, so its card is the
+    /// design again. Its old picture goes with the damaged file, as it may
+    /// show something the version does not. Nil when no version reads, or
+    /// the design could not be written.
+    @discardableResult
+    static func restoreLastVersion(of id: String) -> Design? {
+        // Newest first, and only those that read.
+        for version in versions(for: id) {
+            guard var design = load(version: version) else { continue }
+            design.id = id
+            guard save(design) else { return nil }
+            try? FileManager.default.removeItem(at: thumbsDir.appendingPathComponent("\(id).jpg"))
+            return design
+        }
+        return nil
     }
 
     /// The designs on the shelf, most recently edited first; see shelf().
