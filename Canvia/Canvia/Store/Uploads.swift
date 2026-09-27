@@ -121,9 +121,10 @@ enum Uploads {
     }
 
     /// What deleting an upload says when designs use it: "Used in 3
-    /// designs. It stays in them.", "1 design" for one, as on Android.
+    /// designs. It stays in them.", or "Used in 1 design. It stays in it." for
+    /// one, as on Android.
     static func usedInNote(_ designs: Int) -> String {
-        "Used in \(designs) \(designs == 1 ? "design" : "designs"). It stays in them."
+        designs == 1 ? "Used in 1 design. It stays in it." : "Used in \(designs) designs. It stays in them."
     }
 
     // MARK: the file

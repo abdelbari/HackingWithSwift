@@ -140,7 +140,7 @@ final class UploadsTests: XCTestCase {
     }
 
     func testTheDeleteQuestionSaysHowManyDesigns() {
-        XCTAssertEqual(Uploads.usedInNote(1), "Used in 1 design. It stays in them.")
+        XCTAssertEqual(Uploads.usedInNote(1), "Used in 1 design. It stays in it.")
         XCTAssertEqual(Uploads.usedInNote(4), "Used in 4 designs. It stays in them.")
     }
 
