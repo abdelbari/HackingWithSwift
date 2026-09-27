@@ -484,7 +484,34 @@ underlined or struck through by writing them the way a message would:
 markers are stripped for display and measurement; the styled words are
 drawn on the canvas, outlined as bold or italic glyphs in the SVG, and
 carried into the PDF. Markers that would split a word (snake_case, 2*3) or
-have no partner stay literal.
+have no partner stay literal. While a box is typed in, the bar over the
+keyboard has Bold, Italic, Underline and Strikethrough beside Done: they
+put the markers round the words chosen — hard against the words, a line
+at a time, italics on whole words — or take them off when every word
+chosen has the style already, and the same words stay chosen. With nothing
+chosen, the first three style the whole box.
+
+**Capitals** — the aA toggle beside Bold, Italic and Underline sets a text
+in capitals wherever it is drawn or measured: the canvas, thumbnails,
+PNG and JPEG, PDF, the SVG's outlines, print, video and GIF, curved, path
+and vertical text. The words are kept as typed, so it turns off cleanly;
+the markers are read first and each styled run is uppercased on its own,
+so a bold word stays bold where a letter grows (ß to SS). Copy style and
+saved text styles carry it; Read aloud, find and replace and the spelling
+check use the words as typed, and so does the field while the box is typed
+in. Stored as an optional `"uppercase": true`, as the Android twin keeps
+it.
+
+**Type size** — tap the number between the size control's − and + to type
+a size on the number pad, or pick one of 8 to 200 from the list under it:
+whole points from 6 to 500, the box fitted to it again, one Undo.
+
+**Several texts** — select several text boxes, or a group of nothing but
+text, and the text controls come up for all of them: font, size, bold,
+italic, underline, capitals, alignment and colour change every unlocked
+one in one step, each box measured again. Where they differ the size says
+"Mixed" and the rest say so to VoiceOver; a switch turns its style on for
+all of them unless every one has it, when it turns it off.
 
 **Soundtrack** — Motion settings take a music file from Files; the MP4
 export lays it under the picture, looped or trimmed to the video's length

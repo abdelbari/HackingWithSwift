@@ -37,6 +37,7 @@ enum TextStyles {
         var s = DesignStore.Style(opacity: 1)
         s.color = style.color; s.fontFamily = style.fontFamily; s.fontSize = style.fontSize
         s.fontWeight = style.fontWeight; s.italic = style.italic; s.underline = style.underline
+        s.uppercase = style.uppercase
         s.align = style.align; s.lineHeight = style.lineHeight; s.letterSpacing = style.letterSpacing
         s.listStyle = style.listStyle; s.indent = style.indent; s.textFill = style.textFill
         s.vAlign = style.vAlign; s.paragraphSpacing = style.paragraphSpacing

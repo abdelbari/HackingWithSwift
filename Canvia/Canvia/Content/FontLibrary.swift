@@ -88,6 +88,7 @@ enum FontLibrary {
         let typography: TypographyKey
         let text: String?
         let listStyle: String?
+        let uppercase: Bool
         let width: Double
     }
 
@@ -227,21 +228,28 @@ enum FontLibrary {
     /// the document's page count when the caller knows them; left as they
     /// are when it does not, so measuring is honest about the width. Inline
     /// style markers (**bold** and the like) are stripped: this is what is
-    /// measured and what plain drawing shows.
+    /// measured and what plain drawing shows — in capitals, when the box is
+    /// set in them.
     static func displayText(for el: Element, pageNumber: Int?, pageCount: Int?) -> String {
-        RichText.strip(markedDisplayText(for: el, pageNumber: pageNumber, pageCount: pageCount))
+        let plain = RichText.strip(markedDisplayText(for: el, pageNumber: pageNumber, pageCount: pageCount))
+        return el.uppercase == true ? plain.uppercased() : plain
     }
 
     /// The text as drawn with its inline styles applied: the plain display
     /// text with bold, italic, underline and strike runs on top of the
-    /// element's own attributes.
+    /// element's own attributes. In capitals the markers are read first and
+    /// each run uppercased on its own, so a styled word keeps its style
+    /// however much a letter grows.
     static func attributedString(for el: Element) -> NSAttributedString {
         let marked = markedDisplayText(for: el, pageNumber: nil, pageCount: nil)
         let base = attributes(for: el)
-        guard RichText.hasMarkup(marked) else { return NSAttributedString(string: marked, attributes: base) }
+        let capitals = el.uppercase == true
+        guard RichText.hasMarkup(marked) else {
+            return NSAttributedString(string: capitals ? marked.uppercased() : marked, attributes: base)
+        }
         let size = el.fontSize ?? 42
         let weight = el.fontWeight ?? 400
-        return RichText.attributed(marked, base: base) { bold, italic in
+        return RichText.attributed(marked, base: base, uppercase: capitals) { bold, italic in
             uiFont(family: el.fontFamily, size: size,
                    weight: bold ? (weight >= 700 ? 900 : 700) : weight,
                    italic: italic || el.italic == true)
@@ -403,7 +411,7 @@ enum FontLibrary {
     /// Natural height of a text element at its wrap width, ignoring any curve.
     static func measuredHeight(for el: Element) -> Double {
         let key = MeasureKey(typography: TypographyKey(el), text: el.text,
-                             listStyle: el.listStyle, width: el.w)
+                             listStyle: el.listStyle, uppercase: el.uppercase == true, width: el.w)
         return memoized(key, &heightCache) { measure(el) }
     }
 
