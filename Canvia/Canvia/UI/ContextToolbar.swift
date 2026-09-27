@@ -486,7 +486,8 @@ struct ContextToolbar: View {
             // stopped it being a stroke — as the Android twin, one slot.
             colorChip(el.stroke ?? "#0d1216", "Colour") { activeSheet = .colorStroke }
         } else {
-            colorChip(el.fill?.primaryColor ?? "#8b5cf6", "Fill") { activeSheet = .colorFill }
+            colorChip(el.fill?.primaryColor ?? "#8b5cf6", "Fill",
+                      spoken: FillChoices.spokenFill(el.fill)) { activeSheet = .colorFill }
             colorChip(el.stroke ?? "#0d1216", "Border") { activeSheet = .colorStroke }
         }
         if el.fill?.kind == "none" {
@@ -1002,7 +1003,8 @@ struct ContextToolbar: View {
         .accessibilityAddTraits(active ? [.isSelected] : [])
     }
 
-    private func colorChip(_ hex: String, _ label: String, action: @escaping () -> Void) -> some View {
+    private func colorChip(_ hex: String, _ label: String, spoken: String? = nil,
+                           action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 3) {
                 RoundedRectangle(cornerRadius: 7)
@@ -1013,8 +1015,9 @@ struct ContextToolbar: View {
             }
         }
         .buttonStyle(ToolButtonStyle())
-        // "Fill, dark blue": what it is now, in words.
-        .accessibilityValue(ElementNames.colourName(hex))
+        // "Fill, dark blue": what it is now, in words — or "photo", "red
+        // pattern", "no fill" when it is not one colour.
+        .accessibilityValue(spoken ?? ElementNames.colourName(hex))
     }
 
     private func sliderControl(_ label: String, value: Double, in range: ClosedRange<Double>,

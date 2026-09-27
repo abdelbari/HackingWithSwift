@@ -138,6 +138,7 @@ final class MediaContentParityTests: XCTestCase {
 
     // MARK: photos and drawing
 
+    @MainActor
     private func storeWithPhoto(locked: Bool) -> (DesignStore, String) {
         var design = Design(title: "D", width: 400, height: 400)
         var photo = Element.image("asset:sun")
@@ -146,6 +147,7 @@ final class MediaContentParityTests: XCTestCase {
         return (DesignStore(design: design), photo.id)
     }
 
+    @MainActor
     func testTheEraserIsRefusedOnALockedPhoto() {
         let (store, id) = storeWithPhoto(locked: true)
         store.beginErasing(id)
@@ -156,6 +158,7 @@ final class MediaContentParityTests: XCTestCase {
         XCTAssertEqual(open.erasing, other)
     }
 
+    @MainActor
     func testThePenIsRememberedBetweenDrawingSessions() {
         let (store, _) = storeWithPhoto(locked: false)
         store.toggleDrawing()
@@ -243,5 +246,62 @@ final class MediaContentParityTests: XCTestCase {
         XCTAssertNil(photo.straighten)
         XCTAssertEqual(photo.cropScale, 2)
         XCTAssertEqual(photo.radius, 12)
+    }
+
+    // MARK: matched with the Android side's own round
+
+    func testTheTableSummaryUsesSingularWords() {
+        XCTAssertEqual(DataGraphics.tableSummary([]), "Nothing to tabulate yet.")
+        XCTAssertEqual(DataGraphics.tableSummary([["a"]]), "1 row × 1 column; the first row is the header.")
+        XCTAssertEqual(DataGraphics.tableSummary([["a", "b", "c"], ["d"], ["e", "f"]]),
+                       "3 rows × 3 columns; the first row is the header.")
+    }
+
+    func testFaintColoursAreLeftOutOfTheDesignsColours() {
+        var d = Design(title: "D", width: 100, height: 100)
+        var wash = Element.shape("rect")
+        wash.fill = .solid("#00000033")
+        var a = Element.shape("rect")
+        a.fill = .solid("#ff0000")
+        d.pages[0].elements = [wash, wash, wash, a]
+        XCTAssertEqual(ColorTools.documentColors(d, limit: 1), ["#ff0000"])
+    }
+
+    func testPhotoFillsLeaveOutCodesAndSayWhichPictureTheyAre() {
+        var d = Design(title: "D", width: 100, height: 100)
+        d.pages[0].elements = [Element.image("media:a"), Element.image(CodeGenerator.source(for: "hi")),
+                               Element.image("media:b"), Element.image("media:a")]
+        let sources = FillChoices.photoFillSources(d)
+        XCTAssertEqual(Array(sources.suffix(2)), ["media:a", "media:b"])
+        XCTAssertEqual(FillChoices.photoFillLabel("media:b", sources: sources),
+                       "Fill with photo 2 of 2 from this design")
+        XCTAssertEqual(FillChoices.photoFillLabel("media:z", sources: sources), "Fill with photo")
+        if let first = PhotoLibrary.photos.first {
+            XCTAssertEqual(FillChoices.photoFillLabel("asset:\(first.id)", sources: sources), "Fill with \(first.name)")
+        }
+    }
+
+    func testAFillThatIsNotOneColourIsSaidForWhatItIs() {
+        XCTAssertEqual(FillChoices.spokenFill(.image("asset:sun")), "photo")
+        XCTAssertEqual(FillChoices.spokenFill(.clear), "no fill")
+        XCTAssertNil(FillChoices.spokenFill(.solid("#ff0000")))
+        XCTAssertTrue(FillChoices.spokenFill(.pattern("dots", color: "#ff0000", secondary: "#ffffff"))?
+            .hasSuffix(" pattern") ?? false)
+    }
+
+    func testTheLoupeGoesBelowTheFingerWhenThereIsNoRoomAbove() {
+        let size = CGSize(width: 300, height: 400)
+        XCTAssertEqual(Eyedropper.loupeCentre(for: CGPoint(x: 150, y: 200), in: size), CGPoint(x: 150, y: 160))
+        XCTAssertEqual(Eyedropper.loupeCentre(for: CGPoint(x: 150, y: 10), in: size), CGPoint(x: 150, y: 50))
+        XCTAssertEqual(Eyedropper.loupeCentre(for: CGPoint(x: 2, y: 10), in: size).x, 22)
+    }
+
+    @MainActor
+    func testConnectingTheWrongSelectionIsRefused() {
+        let (store, id) = storeWithPhoto(locked: false)
+        store.selection = [id]
+        store.connectSelected()
+        XCTAssertEqual(store.haptic.kind, .reject)
+        XCTAssertEqual(store.page.elements.count, 1)
     }
 }

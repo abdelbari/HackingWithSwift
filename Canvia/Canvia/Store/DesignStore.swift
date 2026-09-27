@@ -210,7 +210,11 @@ final class DesignStore {
     /// Joins the two selected elements with an arrow that follows them.
     func connectSelected() {
         let ordered = page.elements.filter { selection.contains($0.id) }
-        guard ordered.count == 2 else { return }
+        guard ordered.count == 2 else {
+            buzz(.reject)
+            announce("Select two things to connect", undoable: false)
+            return
+        }
         var line = Element.line(w: 100)
         line.connectFrom = ordered[0].id
         line.connectTo = ordered[1].id

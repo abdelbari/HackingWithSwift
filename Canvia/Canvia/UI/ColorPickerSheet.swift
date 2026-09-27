@@ -223,12 +223,7 @@ struct ColorPickerSheet: View {
 
     /// The library's photos, and any the document already uses, as fills.
     private func photoFillSection(_ pick: @escaping (Paint) -> Void) -> some View {
-        var sources = PhotoLibrary.photos.prefix(8).map { "asset:\($0.id)" }
-        for page in store.design.pages {
-            for el in page.elements where el.type == .image {
-                if let src = el.src, !sources.contains(src) { sources.append(src) }
-            }
-        }
+        let sources = FillChoices.photoFillSources(store.design)
         return VStack(alignment: .leading, spacing: 8) {
             Text("Photo fill").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
             LazyVGrid(columns: columns, spacing: 10) {
@@ -251,7 +246,7 @@ struct ColorPickerSheet: View {
                         .clipShape(RoundedRectangle(cornerRadius: 9))
                         .overlay { if chosen { chosenRing(true) } }
                     }
-                    .accessibilityLabel("Fill with photo")
+                    .accessibilityLabel(FillChoices.photoFillLabel(src, sources: sources))
                     .accessibilityAddTraits(chosen ? .isSelected : [])
                 }
             }

@@ -51,7 +51,7 @@ struct DataSheet: View {
                         if let refusal {
                             Text(refusal).foregroundStyle(Color(.systemRed))
                         } else {
-                            Text(rows.isEmpty ? "Nothing to tabulate yet." : "\(rows.count) rows × \(rows.map(\.count).max() ?? 0) columns; the first row is the header.")
+                            Text(DataGraphics.tableSummary(rows))
                         }
                     }
                 }

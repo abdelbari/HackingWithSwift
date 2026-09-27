@@ -163,7 +163,8 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
 - Guides: add vertical and horizontal guides from the Snapping menu, drag
   them into place, press and hold to remove; they are saved with the
   design and everything snaps to them. An eyedropper in every colour
-  picker samples any colour from the rendered design.
+  picker samples any colour from the rendered design, its loupe above
+  the finger, or below it when there is no room above.
 - Saved, linked text styles: name a look ("Heading", "Price"), apply it
   to any text from the Styles menu, and update it from one element to
   change every element that follows it, on every page, as one undo step.
@@ -213,8 +214,11 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   paragraph spacing join the type controls.
 - Pattern fills — stripes, dots, checks, grid, zigzag, crosshatch — drawn
   procedurally in any two colours so they stay sharp at every zoom and
-  export, and photo fills that pour a picture into any shape; both from
-  the fill colour picker, both usable as page backgrounds.
+  export, and photo fills that pour a picture into any shape (the first
+  eight built-in pictures, then the design's own, QR codes left out, each
+  named for VoiceOver); both from the fill colour picker, both usable as
+  page backgrounds. "In this design" leaves out faint colours, and a
+  Fill chip whose fill is not one colour says so ("photo", "no fill").
 - Photo grids: six layouts of empty frames (2 across, 3 across, 2 by 2,
   1 + 2, 1 over 3, 3 by 3) flush to the margins and one gutter apart,
   grouped, filled with Replace.

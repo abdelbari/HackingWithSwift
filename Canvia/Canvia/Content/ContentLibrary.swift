@@ -378,7 +378,10 @@ enum ColorTools {
             if ca != cb { return ca > cb }
             return a.offset < b.offset
         }
-        return sorted.prefix(limit).map { $0.element }
+        // Faint colours — below half alpha, a wash rather than a colour —
+        // are left out before the limit is taken, as on the Android twin,
+        // so they never crowd a solid one out of "In this design".
+        return sorted.map { $0.element }.filter { !ContrastAudit.isFaint($0) }.prefix(limit).map { $0 }
     }
 
     // MARK: a palette that goes with the page

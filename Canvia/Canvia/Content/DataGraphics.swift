@@ -249,6 +249,18 @@ enum DataGraphics {
 
     /// Rows of cells as text; the first row is the header. Cells are
     /// separated by commas or tabs.
+    /// What the table typed so far comes to, under the box it is typed in:
+    /// "3 rows × 4 columns; the first row is the header." — the widest row
+    /// counting — with "row" and "column" singular when there is one, as
+    /// the Android twin says it.
+    static func tableSummary(_ rows: [[String]]) -> String {
+        guard !rows.isEmpty else { return "Nothing to tabulate yet." }
+        let columns = rows.map(\.count).max() ?? 0
+        let r = rows.count == 1 ? "1 row" : "\(rows.count) rows"
+        let c = columns == 1 ? "1 column" : "\(columns) columns"
+        return "\(r) × \(c); the first row is the header."
+    }
+
     static func parseTable(_ text: String) -> [[String]] {
         text.components(separatedBy: .newlines)
             .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }

@@ -36,7 +36,7 @@ struct EyedropperSheet: View {
                                 .frame(width: 44, height: 44)
                                 .overlay(Circle().stroke(.white, lineWidth: 3))
                                 .shadow(radius: 4)
-                                .position(x: point.x, y: max(point.y - 40, 22))
+                                .position(Eyedropper.loupeCentre(for: point, in: size))
                                 .allowsHitTesting(false)
                         }
                     }

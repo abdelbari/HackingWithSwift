@@ -986,21 +986,28 @@ struct InsertSheet: View {
                 if !group.emoji.isEmpty {
                     sectionHeader(group.name)
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 52), spacing: 8)], spacing: 8) {
-                        ForEach(group.emoji, id: \.self) { glyph in
-                            Button {
-                                store.add(.sticker(glyph, size: min(store.pageWidth, store.pageHeight) * 0.18))
-                                dismiss()
-                            } label: {
-                                Text(glyph).font(.system(size: 34))
-                                    .frame(width: 52, height: 52)
-                            }
-                            .contextMenu { favoriteButton("sticker", glyph) }
-                        }
+                        ForEach(group.emoji, id: \.self) { glyph in stickerTile(glyph) }
                     }
                 }
             }
         }
         .padding()
+    }
+
+    /// An emoji, read by VoiceOver by its own name, starred as the other
+    /// tiles are.
+    private func stickerTile(_ glyph: String) -> some View {
+        let starred = Favorites.isFavorite("sticker", glyph)
+        return Button {
+            store.add(.sticker(glyph, size: min(store.pageWidth, store.pageHeight) * 0.18))
+            dismiss()
+        } label: {
+            Text(glyph).font(.system(size: 34))
+                .frame(width: 52, height: 52)
+                .overlay(alignment: .topTrailing) { if starred { starBadge.scaleEffect(0.8) } }
+        }
+        .accessibilityValue(starred ? "Favourite" : "")
+        .contextMenu { favoriteButton("sticker", glyph) }
     }
 
     /// Sticker search matches on the group name — the glyphs themselves carry
