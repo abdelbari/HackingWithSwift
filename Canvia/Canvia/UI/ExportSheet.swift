@@ -22,6 +22,11 @@ struct ExportSheet: View {
     @State private var pageRange = RangeChoice.current
     @State private var sharedURLs: [URL] = []
     @State private var savedToPhotos: String?
+    /// The last video was made without its soundtrack, which failed to mix.
+    @State private var musicLost = false
+    /// The soundtrack volume while its slider is dragged, written to the
+    /// design once when the drag ends, so one drag is one Undo.
+    @State private var volumeDraft: Double?
 
     private enum RangeChoice: String, CaseIterable, Identifiable {
         case current, all
@@ -332,12 +337,14 @@ struct ExportSheet: View {
                 progress: { progress = $0 })
         } else {
             let url = DesignExporter.fileURL(for: store.design, ext: "mp4")
-            try await MovieExporter.exportMP4(design: store.design, settings: MovieExporter.Settings(store.design.motion),
-                                              to: url, progress: report)
+            musicLost = try await MovieExporter.exportMP4(design: store.design,
+                                                          settings: MovieExporter.Settings(store.design.motion),
+                                                          to: url, progress: report)
             urls = [url]
         }
         try await PhotoSaver.save(urls)
-        savedToPhotos = urls.count == 1 ? "Saved to Photos" : "Saved \(urls.count) photos"
+        savedToPhotos = (urls.count == 1 ? "Saved to Photos" : "Saved \(urls.count) photos")
+            + (format == nil && musicLost ? Self.musicLostNote : "")
     }
 
     private var clipboardSection: some View {
@@ -444,7 +451,13 @@ struct ExportSheet: View {
         } header: {
             Text("Motion")
         } footer: {
-            Text(motionNote(hold: hold))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(motionNote(hold: hold))
+                if musicLost {
+                    Label("The last video" + Self.musicLostNote, systemImage: "speaker.slash")
+                        .foregroundStyle(.orange)
+                }
+            }
         }
     }
 
@@ -453,6 +466,13 @@ struct ExportSheet: View {
         var note = "Each page holds for \(hold)s"
         if m.movement { note += " with a slow push in" }
         note += m.crossfade ? " and a cross-fade between pages." : ", cutting between pages."
+        // Whether there will be music, said where it is always seen, not
+        // only inside the folded settings — as on the Android twin.
+        if m.soundtrack != nil {
+            note += AudioStore.url(for: m.soundtrack) != nil
+                ? " The video has music under it."
+                : " The music was chosen on another phone and isn't on this one."
+        }
         return note
     }
 
@@ -539,14 +559,37 @@ struct ExportSheet: View {
                 .foregroundStyle(.secondary)
         }
         if here {
-            HStack {
-                Text("Volume")
-                Slider(value: Binding(get: { binding.wrappedValue.soundVolume ?? 1 },
-                                      set: { binding.wrappedValue.soundVolume = $0 == 1 ? nil : $0 }),
-                       in: 0...1)
-                Text("\(Int(((binding.wrappedValue.soundVolume ?? 1) * 100).rounded()))%")
-                    .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            volumeRow(binding)
+        }
+    }
+
+    /// The soundtrack's volume. Held here while dragged and written once
+    /// on release, so a drag is one Undo, not dozens; VoiceOver's swipes
+    /// write a tenth at a time.
+    private func volumeRow(_ binding: Binding<MotionSettings>) -> some View {
+        let stored = binding.wrappedValue.soundVolume ?? 1
+        let shown = volumeDraft ?? stored
+        let percent = "\(Int((shown * 100).rounded()))%"
+        func write(_ v: Double) { binding.wrappedValue.soundVolume = v == 1 ? nil : v }
+        return HStack {
+            Text("Volume")
+                .accessibilityHidden(true)
+            Slider(value: Binding(get: { volumeDraft ?? stored }, set: { volumeDraft = $0 }),
+                   in: 0...1,
+                   onEditingChanged: { editing in
+                       guard !editing, let v = volumeDraft else { return }
+                       volumeDraft = nil
+                       if v != stored { write(v) }
+                   })
+            .accessibilityLabel("Soundtrack volume")
+            .accessibilityValue(percent)
+            .accessibilityAdjustableAction { direction in
+                let step = direction == .increment ? 0.1 : -0.1
+                write(min(1, max(0, ((stored + step) * 10).rounded() / 10)))
             }
+            Text(percent)
+                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                .accessibilityHidden(true)
         }
     }
 
@@ -671,11 +714,16 @@ struct ExportSheet: View {
             .first { $0.isKeyWindow }
     }
 
+    /// Said when a video had to be made without its music, in the Android
+    /// twin's words.
+    static let musicLostNote = " Couldn't add the music, so it has none."
+
     @MainActor
     private func exportMovie() async throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "mp4")
-        try await MovieExporter.exportMP4(design: store.design, settings: MovieExporter.Settings(store.design.motion),
-                                              to: url, progress: report)
+        musicLost = try await MovieExporter.exportMP4(design: store.design,
+                                                      settings: MovieExporter.Settings(store.design.motion),
+                                                      to: url, progress: report)
         sharedURLs = [url]
         exportedURL = url
     }

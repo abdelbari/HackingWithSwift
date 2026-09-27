@@ -300,9 +300,14 @@ enum MovieExporter {
     /// Progress is reported as a fraction of frames written, from the writer's
     /// own queue. Cancelling the surrounding task stops the writer at the next
     /// frame, discards the partial file and throws CancellationError.
+    ///
+    /// Returns whether the soundtrack was meant to go under the picture and
+    /// could not be mixed in: the picture is kept without it, rather than
+    /// nothing, as the Android twin keeps it, and the caller says so.
     @MainActor
+    @discardableResult
     static func exportMP4(design: Design, settings: Settings = Settings(), to url: URL,
-                          progress: (@Sendable (Double) -> Void)? = nil) async throws {
+                          progress: (@Sendable (Double) -> Void)? = nil) async throws -> Bool {
         try? FileManager.default.removeItem(at: url)
         let size = videoSize(for: design, maxEdge: settings.maxEdge)
         let pages = pageImages(design: design, size: size)
@@ -398,12 +403,30 @@ enum MovieExporter {
 
         // The soundtrack goes under the finished picture: muxed into a
         // sibling file, which then takes the video's place.
-        if let audio = AudioStore.url(for: settings.soundtrack) {
-            let withSound = url.deletingPathExtension().appendingPathExtension("sound.mp4")
+        guard let audio = AudioStore.url(for: settings.soundtrack) else { return false }
+        let withSound = url.deletingPathExtension().appendingPathExtension("sound.mp4")
+        do {
             try await Soundtrack.mux(video: url, audio: audio, volume: settings.soundVolume, to: withSound)
             try Task.checkCancellation()
             try FileManager.default.removeItem(at: url)
             try FileManager.default.moveItem(at: withSound, to: url)
+            return false
+        } catch is CancellationError {
+            try? FileManager.default.removeItem(at: withSound)
+            try? FileManager.default.removeItem(at: url)
+            throw CancellationError()
+        } catch {
+            // The picture without the music, rather than nothing. Only the
+            // mixed sibling is thrown away — unless the swap itself failed
+            // after the silent video was removed, when the mixed one is all
+            // there is and takes its place if it can.
+            if FileManager.default.fileExists(atPath: url.path) {
+                try? FileManager.default.removeItem(at: withSound)
+            } else {
+                try FileManager.default.moveItem(at: withSound, to: url)
+                return false
+            }
+            return true
         }
     }
 

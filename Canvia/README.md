@@ -408,7 +408,10 @@ export lays it under the picture, looped or trimmed to the video's length
 at a chosen volume, fading out over the last second. Audio lives in
 Documents/audio by id and is muxed with AVFoundation onto the finished
 video. The row shows the music's own file name, kept beside it on this
-phone, and a file with no sound in it is turned away.
+phone, and a file with no sound in it is turned away. The Motion footer
+says whether the video will have music; a volume drag is one Undo; and a
+soundtrack that fails to mix leaves the video without it, said, rather
+than no video at all.
 
 **Right to left** — a text whose first letter is Hebrew, Arabic or another
 right-to-left script lays out from the right, and its indents and list
