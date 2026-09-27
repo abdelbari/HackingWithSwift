@@ -769,10 +769,6 @@ struct ExportSheet: View {
             .first { $0.isKeyWindow }
     }
 
-    /// Said when a video had to be made without its music, in the Android
-    /// twin's words.
-    static let musicLostNote = " Couldn't add the music, so it has none."
-
     @MainActor
     private func exportMovie() async throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "mp4")
