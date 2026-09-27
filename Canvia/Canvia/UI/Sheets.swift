@@ -65,40 +65,12 @@ struct BackgroundGradients: View {
 struct BackgroundSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
-    private let columns = [GridItem(.adaptive(minimum: 40), spacing: 10)]
-    private let photoColumns = [GridItem(.adaptive(minimum: 90), spacing: 10)]
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Solid colours").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
-                    LazyVGrid(columns: columns, spacing: 10) {
-                        ForEach(ContentLibrary.defaultSwatches, id: \.self) { hex in
-                            Button {
-                                store.applyToPage { $0.background = .color(hex) }
-                            } label: {
-                                RoundedRectangle(cornerRadius: 9)
-                                    .fill(Color(hex: hex))
-                                    .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.black.opacity(0.12)))
-                                    .frame(height: 40)
-                            }
-                            .accessibilityLabel(ElementNames.spokenColour(hex))
-                            .accessibilityAddTraits(store.page.background == .color(hex) ? .isSelected : [])
-                        }
-                    }
-
-                    Text("Gradients").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
-                    BackgroundGradients(store: store, columns: columns)
-
-                    Text("Photos").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
-                    LazyVGrid(columns: photoColumns, spacing: 10) {
-                        ForEach(PhotoLibrary.photos) { photo in
-                            BackgroundPhotoTile(store: store, photo: photo)
-                        }
-                    }
-                }
-                .padding()
+                BackgroundChoices(store: store)
+                    .padding()
             }
             .navigationTitle("Background")
             .navigationBarTitleDisplayMode(.inline)

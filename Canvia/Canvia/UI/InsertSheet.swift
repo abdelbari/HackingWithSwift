@@ -1033,8 +1033,9 @@ struct InsertSheet: View {
         }
     }
 
+    /// The Background sheet's choices, the same here as there.
     private var backgroundNote: some View {
-        BackgroundInline(store: store)
+        BackgroundChoices(store: store)
             .padding()
     }
 
@@ -1043,37 +1044,6 @@ struct InsertSheet: View {
             .font(.system(size: 11, weight: .bold))
             .foregroundStyle(.secondary)
             .padding(.top, 8)
-    }
-}
-
-/// Inline background section for the insert sheet's last tab.
-private struct BackgroundInline: View {
-    @Bindable var store: DesignStore
-    private let columns = [GridItem(.adaptive(minimum: 40), spacing: 10)]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("BACKGROUND COLOUR").font(.system(size: 11, weight: .bold)).foregroundStyle(.secondary)
-            LazyVGrid(columns: columns, spacing: 10) {
-                ForEach(ContentLibrary.defaultSwatches, id: \.self) { hex in
-                    Button { store.applyToPage { $0.background = .color(hex) } } label: {
-                        RoundedRectangle(cornerRadius: 9).fill(Color(hex: hex))
-                            .overlay(RoundedRectangle(cornerRadius: 9).stroke(.black.opacity(0.12)))
-                            .frame(height: 40)
-                    }
-                    .accessibilityLabel(ElementNames.spokenColour(hex))
-                    .accessibilityAddTraits(store.page.background == .color(hex) ? .isSelected : [])
-                }
-            }
-            Text("GRADIENTS").font(.system(size: 11, weight: .bold)).foregroundStyle(.secondary)
-            BackgroundGradients(store: store, columns: columns)
-            Text("PHOTOS").font(.system(size: 11, weight: .bold)).foregroundStyle(.secondary)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 10)], spacing: 10) {
-                ForEach(PhotoLibrary.photos) { photo in
-                    BackgroundPhotoTile(store: store, photo: photo)
-                }
-            }
-        }
     }
 }
 
