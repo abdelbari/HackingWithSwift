@@ -37,6 +37,17 @@ enum CodeGenerator {
         source.hasPrefix(prefix) ? String(source.dropFirst(prefix.count)) : nil
     }
 
+    /// Why `text` cannot be a code — nothing to encode, or more than a code
+    /// holds — or nil when it can. Said under the field while a code is
+    /// edited in place, which keeps the last good code until then, in the
+    /// Android twin's words. Not trimmed: a code scans as exactly what was
+    /// typed.
+    static func problem(with text: String) -> String? {
+        if text.isEmpty { return "A code needs a link or some words; it keeps the last until then." }
+        if modules(for: text) == nil { return "Too long for a QR code; it keeps the last that fitted." }
+        return nil
+    }
+
     /// Generated codes are small and cheap, but they are re-resolved on every
     /// canvas render, so they are worth keeping.
     private static let cache: NSCache<NSString, UIImage> = {

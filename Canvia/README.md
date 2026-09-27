@@ -231,6 +231,11 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   the first N of M pages". Replacing a photo with a PDF page draws only
   that page. Refusals elsewhere (crop, erase, handwriting) no longer offer
   an Undo that would take back something unrelated.
+- A QR code's words are edited where it sits: Edit code (in place of
+  Erase, which would only stop it scanning) opens a field that rewrites
+  the code as you type, keeping size, place, turn and frame. While the
+  field is empty or holds more than a code carries it says so and keeps the
+  last good code; the whole edit is one Undo.
 - Document theme: pick a palette and a type pairing, see page one
   wearing them, apply to every page as one undo step — colours remapped
   by luminance rank, headings (32 px and up) and body text given the

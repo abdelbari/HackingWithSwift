@@ -29,6 +29,7 @@ private struct ToolButtonStyle: ButtonStyle {
 struct ContextToolbar: View {
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiate
     @State private var editingAlt = false
+    @State private var editingCode = false
     @State private var altDraft = ""
     @State private var editingLink = false
     @State private var linkDraft = ""
@@ -558,6 +559,13 @@ struct ContextToolbar: View {
         if VideoStore.isVideo(el.src) {
             // A clip: play the page to see it move; stills come from its poster.
             toolButton("play.circle", "Play") { store.playPreview() }
+        } else if let payload = CodeGenerator.payload(from: el.src ?? "") {
+            // A code's words, changed where it sits — erasing part of a code
+            // only stops it scanning, so that is not offered.
+            toolButton("qrcode", "Edit code") { editingCode = true }
+                .sheet(isPresented: $editingCode) {
+                    QRCodeSheet(store: store, id: el.id, payload: payload)
+                }
         } else {
             toolButton("eraser", "Erase") { store.beginErasing(el.id) }
         }

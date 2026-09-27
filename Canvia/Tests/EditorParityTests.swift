@@ -1,5 +1,5 @@
-// PDFs that say what became of them, and the rest of the editor's parity
-// with the Android twin: a code edited in place, ⌘Y.
+// PDFs that say what became of them, and a code edited in place — the
+// editor's parity with the Android twin.
 
 import XCTest
 import UIKit
@@ -54,6 +54,19 @@ final class EditorParityTests: XCTestCase {
         XCTAssertEqual(PDFImporter.summary(brought: 60, total: 75), "Brought in the first 60 of 75 pages")
         XCTAssertEqual(PDFImporter.summary(brought: 1, total: 2), "Brought in the first 1 of 2 pages",
                        "said whenever fewer came in than the document has")
+    }
+
+    // MARK: a code edited in place
+
+    /// Anything that makes a code is taken as typed; nothing, or more than
+    /// a code holds, says why and keeps the last code.
+    func testACodeSaysWhyItCannotBeMade() {
+        XCTAssertNil(CodeGenerator.problem(with: "https://example.com/menu"))
+        XCTAssertNil(CodeGenerator.problem(with: " spaced "), "not trimmed: it scans as typed")
+        XCTAssertEqual(CodeGenerator.problem(with: ""),
+                       "A code needs a link or some words; it keeps the last until then.")
+        XCTAssertEqual(CodeGenerator.problem(with: String(repeating: "x", count: 4000)),
+                       "Too long for a QR code; it keeps the last that fitted.")
     }
 
     /// A refusal carries no Undo; an edit's toast does.
