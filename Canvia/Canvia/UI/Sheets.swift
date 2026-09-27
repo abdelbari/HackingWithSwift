@@ -72,7 +72,7 @@ struct BackgroundSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Solid colors").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
+                    Text("Solid colours").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
                     LazyVGrid(columns: columns, spacing: 10) {
                         ForEach(ContentLibrary.defaultSwatches, id: \.self) { hex in
                             Button {
@@ -94,11 +94,7 @@ struct BackgroundSheet: View {
                     Text("Photos").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
                     LazyVGrid(columns: photoColumns, spacing: 10) {
                         ForEach(PhotoLibrary.photos) { photo in
-                            Button {
-                                store.applyToPage { $0.background = .image("asset:\(photo.id)") }
-                            } label: {
-                                photoThumb(photo.id)
-                            }
+                            BackgroundPhotoTile(store: store, photo: photo)
                         }
                     }
                 }
@@ -112,6 +108,31 @@ struct BackgroundSheet: View {
         }
         .presentationDetents(sheetDetents)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+    }
+}
+
+/// One of the library's pictures as the page's background: named for
+/// VoiceOver, ringed when it is the one behind the page, and not applied
+/// again when it already is — as the Android twin's backdrop tiles.
+struct BackgroundPhotoTile: View {
+    @Bindable var store: DesignStore
+    let photo: PhotoDef
+
+    var body: some View {
+        let chosen = store.page.background == .image("asset:\(photo.id)")
+        Button {
+            guard !chosen else { return }
+            store.applyToPage { $0.background = .image("asset:\(photo.id)") }
+        } label: {
+            photoThumb(photo.id)
+                .overlay {
+                    if chosen {
+                        RoundedRectangle(cornerRadius: 9).stroke(Theme.accent, lineWidth: 3)
+                    }
+                }
+        }
+        .accessibilityLabel("Background \(photo.name)")
+        .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 }
 

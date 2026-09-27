@@ -9,6 +9,8 @@ struct DataSheet: View {
     @State private var kind = DataGraphics.ChartKind.column
     @State private var chartText = "Spring, 40\nSummer, 65\nAutumn, 30\nWinter, 20"
     @State private var tableText = "Item, Qty, Price\nCoffee, 2, 3.50\nBagel, 1, 2.25\nJuice, 3, 4.00"
+    /// Why the last Add drew nothing, until the data or the kind changes.
+    @State private var refusal: String?
 
     var body: some View {
         NavigationStack {
@@ -31,7 +33,11 @@ struct DataSheet: View {
                         Text("One line per value: label, number")
                     } footer: {
                         let n = DataGraphics.parse(chartText).count
-                        Text(n == 0 ? "No numbers found yet." : (n == 1 ? "1 value" : "\(n) values") + " — coloured from the document's palette.")
+                        if let refusal {
+                            Text(refusal).foregroundStyle(Color(.systemRed))
+                        } else {
+                            Text(n == 0 ? "No numbers found yet." : (n == 1 ? "1 value" : "\(n) values") + " — coloured from the document's palette.")
+                        }
                     }
                 } else {
                     Section {
@@ -42,7 +48,11 @@ struct DataSheet: View {
                         Text("One row per line, cells separated by commas or tabs")
                     } footer: {
                         let rows = DataGraphics.parseTable(tableText)
-                        Text(rows.isEmpty ? "Nothing to tabulate yet." : "\(rows.count) rows × \(rows.map(\.count).max() ?? 0) columns; the first row is the header.")
+                        if let refusal {
+                            Text(refusal).foregroundStyle(Color(.systemRed))
+                        } else {
+                            Text(rows.isEmpty ? "Nothing to tabulate yet." : "\(rows.count) rows × \(rows.map(\.count).max() ?? 0) columns; the first row is the header.")
+                        }
                     }
                 }
             }
@@ -51,15 +61,28 @@ struct DataSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") { add(); dismiss() }
+                    // Kept open with a word when there turns out to be
+                    // nothing to draw — a pie of zeros — as on the Android twin.
+                    Button("Add") {
+                        if add() { dismiss() } else {
+                            store.buzz(.reject)
+                            refusal = mode == 0 ? "Nothing to draw: type some values, or values above zero."
+                                : "Nothing to set: type some rows."
+                        }
+                    }
                         .disabled(mode == 0 ? DataGraphics.parse(chartText).isEmpty : DataGraphics.parseTable(tableText).isEmpty)
                 }
             }
         }
         .presentationDetents([.large])
+        .onChange(of: chartText) { refusal = nil }
+        .onChange(of: tableText) { refusal = nil }
+        .onChange(of: kind) { refusal = nil }
+        .onChange(of: mode) { refusal = nil }
     }
 
-    private func add() {
+    @discardableResult
+    private func add() -> Bool {
         let w = store.pageWidth, h = store.pageHeight
         let frame = CGRect(x: (w * 0.1).rounded(), y: (h * 0.2).rounded(), width: (w * 0.8).rounded(), height: (h * 0.6).rounded())
         // The design's colours that show on this page, and labels in an ink
@@ -69,8 +92,9 @@ struct DataSheet: View {
             ? DataGraphics.chart(kind, series: DataGraphics.parse(chartText), in: frame, palette: colors,
                                  ink: DataGraphics.ink(for: store.page))
             : DataGraphics.table(DataGraphics.parseTable(tableText), in: frame, accent: colors[0])
-        guard !elements.isEmpty else { return }
+        guard !elements.isEmpty else { return false }
         store.applyToPage { $0.elements.append(contentsOf: elements) }
         store.selection = Set(elements.map(\.id))
+        return true
     }
 }

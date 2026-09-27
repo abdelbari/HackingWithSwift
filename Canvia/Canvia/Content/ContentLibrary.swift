@@ -33,9 +33,17 @@ struct Template: Codable, Identifiable {
     /// axes, so applying a tall template to a wide canvas (or vice versa)
     /// keeps every element on the page instead of spilling off the bottom.
     func makePage(for design: Design) -> Page {
-        let scale = min(design.width / width, design.height / height)
-        let dx = (design.width - width * scale) / 2
-        let dy = (design.height - height * scale) / 2
+        makePage(width: design.width, height: design.height)
+    }
+
+    /// The same, onto a page of this size — the page's own, which in a
+    /// design of mixed sizes need not be the document's. As the Android
+    /// twin's instantiate(width, height).
+    func makePage(width pageWidth: Double, height pageHeight: Double) -> Page {
+        guard width > 0, height > 0 else { return Page(background: background) }
+        let scale = min(pageWidth / width, pageHeight / height)
+        let dx = (pageWidth - width * scale) / 2
+        let dy = (pageHeight - height * scale) / 2
         return makePage(scale: scale, dx: dx, dy: dy)
     }
 
@@ -51,6 +59,10 @@ struct Template: Codable, Identifiable {
             if el.type == .text, let fs = el.fontSize { el.fontSize = fs * scale }
             if el.type == .text, let ls = el.letterSpacing { el.letterSpacing = ls * scale }
             if el.type == .line, let t = el.thickness { el.thickness = max(1, t * scale) }
+            // Rounding scales with the box it rounds, as on the Android twin,
+            // so a card is as round on either phone and both write the same
+            // radius. Per-corner radii are left as they are on both.
+            if let r = el.radius { el.radius = r * scale }
             // Measure after scaling: the spec carries no height, and the
             // decoder's line-count estimate ignores leading and wrapping.
             if el.type == .text { el.h = FontLibrary.layoutHeight(for: el) }
@@ -219,6 +231,29 @@ enum ContentLibrary {
         }
     }
 
+    /// The editor's Templates tab: those made for this page's size lead,
+    /// and every size (fitted to the page) is shown once asked for — or
+    /// from the start when nothing is made for it. Found by name or kind.
+    /// As the Android twin's TemplatesPanel.
+    static func editorTemplates(width: Double, height: Double, everySize: Bool,
+                                matching query: String) -> [Template] {
+        let exact = sizedTemplates(width: width, height: height, category: nil)
+        let pool = everySize || exact.isEmpty ? templates : exact
+        let needle = query.trimmingCharacters(in: .whitespaces)
+        guard !needle.isEmpty else { return pool }
+        return pool.filter {
+            $0.name.localizedCaseInsensitiveContains(needle) || $0.category.localizedCaseInsensitiveContains(needle)
+        }
+    }
+
+    /// The line over the editor's templates: what a tap will do, and why
+    /// every size is there when none is made for this one.
+    static func editorTemplatesNote(exactCount: Int) -> String {
+        exactCount == 0
+            ? "Nothing is made for this exact size, so every template is fitted to it. It replaces this page; Undo brings it back."
+            : "Replaces what is on this page. Undo brings it back."
+    }
+
     static func sizedTemplates(for preset: SizePreset) -> [Template] {
         sizedTemplates(width: preset.w, height: preset.h, category: nil)
     }
@@ -238,6 +273,26 @@ enum ContentLibrary {
     /// row to earn its space: more than eight, in more than one topic.
     static func showsTopics(_ bucket: [Template]) -> Bool {
         bucket.count > 8 && topics(in: bucket).count > 1
+    }
+
+    /// What each shape category is called where people see it, as the
+    /// Android twin names its groups — a search for "badge" or "speech"
+    /// should find the whole group, and a header should read as words.
+    static let shapeGroupNames: [String: String] = [
+        "Basic": "Basic shapes", "Stars": "Stars and badges", "Arrows": "Arrows",
+        "Callouts": "Speech and labels", "Symbols": "Symbols", "Blobs": "Blobs", "Decor": "Decorative",
+    ]
+
+    static func shapeGroupName(_ category: String) -> String {
+        shapeGroupNames[category] ?? category
+    }
+
+    /// Whether a shape answers a search: by its own name or its group's.
+    static func shape(_ shape: ShapeDef, matches query: String) -> Bool {
+        let needle = query.trimmingCharacters(in: .whitespaces)
+        return needle.isEmpty
+            || shape.name.localizedCaseInsensitiveContains(needle)
+            || shapeGroupName(shape.category).localizedCaseInsensitiveContains(needle)
     }
 
     static var shapeCategories: [String] {

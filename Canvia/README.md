@@ -45,7 +45,11 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   text (regenerated from the document, so they stay editable and nothing
   is stored), 102 complete templates that apply into any canvas size —
   every size has its own, logos and quote cards included (the shared
-  library is generated from the Android twin's `templates/` specs)
+  library is generated from the Android twin's `templates/` specs). In
+  the editor, those made for this page's size lead, with every size a
+  chip away; a template is fitted to the page's own size (corner rounding
+  scaled with it, as on Android) and replaces it as one step the toast
+  can undo
 - Text: curved text on an arc from -180° to 180° (glyphs placed along one
   circle whose radius the line's own width fixes, so letters keep their
   size rather than being squashed to fit), inline editing (double-tap),
@@ -152,10 +156,14 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
 - Saved, linked text styles: name a look ("Heading", "Price"), apply it
   to any text from the Styles menu, and update it from one element to
   change every element that follows it, on every page, as one undo step.
-- Favourites: star any shape, photo, sticker or template (press and hold)
-  and it leads its tab; components: save a selection under a name and
-  drop it into any design at half the page's width, grouped, with fresh
-  ids. Both live with the person, not the design.
+- Favourites: star any shape, photo, upload, sticker or template (press
+  and hold) and it leads its tab with a star on it; components: save a
+  selection under a name and drop it into any design at half the page's
+  width, grouped, with fresh ids — each shown with its piece count, and
+  deleting one asks first. Both live with the person, not the design.
+  Every tile in Add is named for VoiceOver (a shape, a line's ends, an
+  artwork's name and kind, "Uploaded picture 3 of 12"), and Replace rings
+  the picture already in the frame.
 - Two sample designs on the very first launch — once, ever — so the home
   screen is not a blank space with a purple hero on top of it.
 - A Canvia design file (.canvia.json) exports the document with every

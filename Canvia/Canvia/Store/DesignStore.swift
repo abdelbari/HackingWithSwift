@@ -1165,7 +1165,12 @@ final class DesignStore {
     /// Save the selection as a component, keeping nothing locked in it.
     @discardableResult
     func saveSelectionAsComponent(named name: String) -> Component? {
-        Components.add(named: name, from: selectedElements)
+        let saved = Components.add(named: name, from: selectedElements)
+        if let saved {
+            buzz(.confirm)
+            announce("Saved \u{201C}\(saved.name)\u{201D} to Components", undoable: false)
+        }
+        return saved
     }
 
     /// Drop a component onto the page at half its width, centred.

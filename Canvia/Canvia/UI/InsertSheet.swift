@@ -17,6 +17,13 @@ struct InsertSheet: View {
     /// Bumped when a favourite is toggled, so the tab re-reads the set.
     @State private var favoritesVersion = 0
     @State private var qrPayload = ""
+    /// Every template, fitted to this page, rather than only those made for
+    /// its size.
+    @State private var everySizeTemplates = false
+    /// The component whose deletion is being asked about.
+    @State private var removingComponent: Component?
+    /// The words typed for a code are more than a code holds.
+    @State private var qrTooLong = false
     @FocusState private var qrFocused: Bool
 
     private let tabs = ["Templates", "Elements", "Text", "Photos", "Stickers", "Background"]
@@ -75,48 +82,70 @@ struct InsertSheet: View {
             let items = pickedItems
             guard !items.isEmpty else { return }
             pickedItems = []
-            // Capture the replace target now: loading is async, and the sheet
-            // (and with it store.replaceTargetId) may be gone by the time it
-            // finishes — the pick should still replace, not insert a stray.
-            let target = store.replaceTargetId
-            Task {
-                // Several at once land as a cascade, each a step down and
-                // right from the last, so ten photos are ten visible photos
-                // and not one photo ten deep.
-                var placed = 0
-                for item in items {
-                    guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
-                    // A clip: stored whole, shown by its poster frame, played
-                    // on the page preview and in the video export.
-                    if let movie = item.supportedContentTypes.first(where: { $0.conforms(to: .movie) }) {
-                        let ext = movie.preferredFilenameExtension ?? "mov"
-                        let stored = await Task.detached(priority: .userInitiated) { () -> (src: String, natural: CGSize)? in
-                            guard let id = VideoStore.store(data, ext: ext), let poster = VideoStore.poster(id) else { return nil }
-                            return (VideoStore.src(id, at: nil), poster.size)
-                        }.value
-                        guard let stored else { continue }
-                        insertImage(stored.src, natural: stored.natural, replacing: nil, cascade: placed)
-                        placed += 1
-                        continue
-                    }
-                    // Decoding, scaling, re-encoding and the file write all
-                    // happen off the main actor, where a full-resolution
-                    // camera photo's decode belongs.
-                    let stored = await Task.detached(priority: .userInitiated) {
-                        () -> (src: String, natural: CGSize)? in
-                        guard let prepared = ImageDownsampler.prepare(data),
-                              let src = MediaStore.store(prepared) else { return nil }
-                        return (src, prepared.natural)
-                    }.value
-                    guard let stored else { continue }
-                    insertImage(stored.src, natural: stored.natural,
-                                replacing: placed == 0 ? target : nil,
-                                cascade: placed)
-                    placed += 1
-                }
-                if placed > 0 { dismiss() }
-            }
+            bringIn(items)
         }
+    }
+
+    /// Photos and clips from the library, onto the page or into the frame
+    /// being replaced. A clip takes a while to copy, so that is said first;
+    /// what could not be read is counted and said at the end, as the Android
+    /// twin says it, rather than the sheet just staying open.
+    private func bringIn(_ items: [PhotosPickerItem]) {
+        // Capture the replace target now: loading is async, and the sheet
+        // (and with it store.replaceTargetId) may be gone by the time it
+        // finishes — the pick should still replace, not insert a stray.
+        let target = store.replaceTargetId
+        let store = self.store
+        if items.contains(where: { item in item.supportedContentTypes.contains { $0.conforms(to: .movie) } }) {
+            store.announce("Bringing them in…", undoable: false)
+        }
+        Task {
+            // Several at once land as a cascade, each a step down and
+            // right from the last, so ten photos are ten visible photos
+            // and not one photo ten deep.
+            var placed = 0
+            for item in items {
+                guard let stored = await load(item) else { continue }
+                insertImage(stored.src, natural: stored.natural,
+                            replacing: placed == 0 && !stored.isVideo ? target : nil,
+                            cascade: placed)
+                placed += 1
+            }
+            let missed = items.count - placed
+            if placed == 0 {
+                store.buzz(.reject)
+                store.announce(target != nil ? "Couldn't open that photo"
+                               : items.count == 1 ? "Couldn't open that" : "Couldn't open those",
+                               undoable: false)
+            } else if missed > 0 {
+                store.buzz(.reject)
+                store.announce(missed == 1 ? "One couldn't be opened" : "\(missed) couldn't be opened",
+                               undoable: false)
+            } else if target == nil {
+                store.buzz(.confirm)
+            }
+            // Out of the way either way, so what was said is seen.
+            dismiss()
+        }
+    }
+
+    /// One picked item stored: a clip whole, shown by its poster frame, or
+    /// a picture decoded, scaled and re-encoded — all off the main actor,
+    /// where a full-resolution camera photo's decode belongs.
+    private func load(_ item: PhotosPickerItem) async -> (src: String, natural: CGSize, isVideo: Bool)? {
+        guard let data = try? await item.loadTransferable(type: Data.self) else { return nil }
+        if let movie = item.supportedContentTypes.first(where: { $0.conforms(to: .movie) }) {
+            let ext = movie.preferredFilenameExtension ?? "mov"
+            return await Task.detached(priority: .userInitiated) { () -> (src: String, natural: CGSize, isVideo: Bool)? in
+                guard let id = VideoStore.store(data, ext: ext), let poster = VideoStore.poster(id) else { return nil }
+                return (VideoStore.src(id, at: nil), poster.size, true)
+            }.value
+        }
+        return await Task.detached(priority: .userInitiated) { () -> (src: String, natural: CGSize, isVideo: Bool)? in
+            guard let prepared = ImageDownsampler.prepare(data),
+                  let src = MediaStore.store(prepared) else { return nil }
+            return (src, prepared.natural, false)
+        }.value
     }
 
     /// A search that finds nothing on this tab says so, rather than showing
@@ -124,9 +153,13 @@ struct InsertSheet: View {
     private var nothingMatches: Bool {
         guard !search.isEmpty else { return false }
         switch tab {
-        case "Templates": return filteredTemplates.isEmpty
+        // Nothing of any size: those of other sizes are a chip away, so
+        // only a search nothing at all answers is said to be empty.
+        case "Templates":
+            return ContentLibrary.editorTemplates(width: store.pageWidth, height: store.pageHeight,
+                                                  everySize: true, matching: search).isEmpty
         case "Elements":
-            return !ContentLibrary.shapes.contains { $0.name.localizedCaseInsensitiveContains(search) }
+            return !ContentLibrary.shapes.contains { ContentLibrary.shape($0, matches: search) }
         case "Photos": return filteredPhotos.isEmpty
         case "Stickers": return filteredStickerGroups.allSatisfy { $0.emoji.isEmpty }
         default: return false
@@ -135,35 +168,70 @@ struct InsertSheet: View {
 
     // MARK: templates
 
+    /// Those made for this page's size lead; the rest, fitted to it, are a
+    /// chip away. A tap starts the page over from the template, as one Undo.
     private var templatesGrid: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 12)], spacing: 12) {
-            ForEach(favoritesFirst(filteredTemplates, kind: "template", id: \.id)) { template in
-                Button {
-                    let page = template.makePage(for: store.design)
-                    store.applyToPage { current in
-                        current.background = page.background
-                        current.elements = page.elements
-                    }
-                    store.selection.removeAll()
-                    dismiss()
-                } label: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        TemplateThumb(template: template)
-                        Text(template.name).font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.primary)
-                    }
+        VStack(alignment: .leading, spacing: 10) {
+            if !exactTemplates.isEmpty {
+                Toggle("Every size, fitted to this page", isOn: $everySizeTemplates)
+                    .toggleStyle(.button)
+                    .tint(Theme.accent)
+                    .font(.subheadline)
+            }
+            Text(filteredTemplates.isEmpty
+                 ? "No template is called that, or is of that kind."
+                 : ContentLibrary.editorTemplatesNote(exactCount: exactTemplates.count))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 12)], spacing: 12) {
+                ForEach(favoritesFirst(filteredTemplates, kind: "template", id: \.id)) { template in
+                    templateTile(template)
                 }
             }
         }
         .padding()
     }
 
-    private var filteredTemplates: [Template] {
-        guard !search.isEmpty else { return ContentLibrary.templates }
-        return ContentLibrary.templates.filter {
-            $0.name.localizedCaseInsensitiveContains(search) ||
-            $0.category.localizedCaseInsensitiveContains(search)
+    private func templateTile(_ template: Template) -> some View {
+        let starred = Favorites.isFavorite("template", template.id)
+        return Button {
+            startOver(from: template)
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                TemplateThumb(template: template)
+                    .overlay(alignment: .topTrailing) { if starred { starBadge } }
+                Text(template.name).font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.primary)
+            }
         }
+        .accessibilityLabel(starred ? "\(template.name), favourite" : template.name)
+        .contextMenu { favoriteButton("template", template.id) }
+    }
+
+    /// The page's background and every element give way to the template's,
+    /// fitted to this page's own size — which in a design of mixed sizes
+    /// need not be the document's — as one step the toast can take back.
+    private func startOver(from template: Template) {
+        let page = template.makePage(width: store.pageWidth, height: store.pageHeight)
+        store.applyToPage { current in
+            current.background = page.background
+            current.elements = page.elements
+        }
+        store.selection.removeAll()
+        store.buzz(.confirm)
+        store.announce("Started over from \u{201C}\(template.name)\u{201D}")
+        dismiss()
+    }
+
+    /// Templates made for exactly this page's size.
+    private var exactTemplates: [Template] {
+        ContentLibrary.sizedTemplates(width: store.pageWidth, height: store.pageHeight, category: nil)
+    }
+
+    private var filteredTemplates: [Template] {
+        ContentLibrary.editorTemplates(width: store.pageWidth, height: store.pageHeight,
+                                       everySize: everySizeTemplates, matching: search)
     }
 
     // MARK: shapes + lines
@@ -174,38 +242,23 @@ struct InsertSheet: View {
             qrRow
             sectionHeader("Lines")
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 10)], spacing: 10) {
-                lineTile("line.diagonal", nil, nil)
-                lineTile("arrow.right", nil, "arrow")
-                lineTile("arrow.left.and.right", "arrow", "arrow")
-                lineTile("ellipsis", "dot", "dot")
+                lineTile("Line", "line.diagonal", nil, nil)
+                lineTile("Arrow", "arrow.right", nil, "arrow")
+                lineTile("Double arrow", "arrow.left.and.right", "arrow", "arrow")
+                lineTile("Dot ends", "ellipsis", "dot", "dot")
             }
             dataRow
             svgImportRow
             componentsSection
-            let starred = Favorites.ids(of: "shape").compactMap { ContentLibrary.shapeMap[$0] }
+            let starred = search.isEmpty ? Favorites.ids(of: "shape").compactMap { ContentLibrary.shapeMap[$0] } : []
             ForEach(["Favourites"] + ContentLibrary.shapeCategories, id: \.self) { category in
                 let shapes = category == "Favourites" ? starred : ContentLibrary.shapes.filter {
-                    $0.category == category &&
-                    (search.isEmpty || $0.name.localizedCaseInsensitiveContains(search))
+                    $0.category == category && ContentLibrary.shape($0, matches: search)
                 }
                 if !shapes.isEmpty {
-                    sectionHeader(category)
+                    sectionHeader(category == "Favourites" ? category : ContentLibrary.shapeGroupName(category))
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 10)], spacing: 10) {
-                        ForEach(shapes) { shape in
-                            Button {
-                                // From this page's size — a page may have its own.
-                                let size = min(store.pageWidth, store.pageHeight) * 0.28
-                                store.add(.shape(shape.id, w: size, h: size))
-                                dismiss()
-                            } label: {
-                                LibraryShape(definition: shape, cornerRadius: 0)
-                                    .fill(Color(hex: "#545d6b"))
-                                    .padding(8)
-                                    .frame(width: 64, height: 64)
-                                    .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
-                            }
-                            .contextMenu { favoriteButton("shape", shape.id) }
-                        }
+                        ForEach(shapes) { shape in shapeTile(shape) }
                     }
                 }
             }
@@ -213,38 +266,74 @@ struct InsertSheet: View {
         .padding()
     }
 
+    private func shapeTile(_ shape: ShapeDef) -> some View {
+        let starred = Favorites.isFavorite("shape", shape.id)
+        return Button {
+            // From this page's size — a page may have its own.
+            let size = min(store.pageWidth, store.pageHeight) * 0.28
+            store.add(.shape(shape.id, w: size, h: size))
+            dismiss()
+        } label: {
+            LibraryShape(definition: shape, cornerRadius: 0)
+                .fill(Color(hex: "#545d6b"))
+                .padding(8)
+                .frame(width: 64, height: 64)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
+                .overlay(alignment: .topTrailing) { if starred { starBadge } }
+        }
+        .accessibilityLabel(starred ? "\(shape.name), favourite" : shape.name)
+        .contextMenu { favoriteButton("shape", shape.id) }
+    }
+
     /// A code is generated from its payload every time it is drawn, so the
     /// element's source is the payload itself and there is nothing to store.
     private var qrRow: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "qrcode")
-                .font(.title2)
-                .frame(width: 44, height: 44)
-                .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 10) {
+                Image(systemName: "qrcode")
+                    .font(.title2)
+                    .frame(width: 44, height: 44)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
 
-            TextField("Link or text", text: $qrPayload)
-                .textFieldStyle(.roundedBorder)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .keyboardType(.URL)
-                .submitLabel(.done)
-                .focused($qrFocused)
-                .onSubmit { addQRCode() }
+                TextField("Link or text", text: $qrPayload)
+                    .textFieldStyle(.roundedBorder)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.URL)
+                    .submitLabel(.done)
+                    .focused($qrFocused)
+                    .onSubmit { addQRCode() }
+                    .onChange(of: qrPayload) { qrTooLong = false }
 
-            Button("Add", action: addQRCode)
-                .buttonStyle(.borderedProminent)
-                .tint(Theme.accent)
-                .disabled(trimmedQRPayload.isEmpty)
+                Button("Add", action: addQRCode)
+                    .buttonStyle(.borderedProminent)
+                    .tint(Theme.accent)
+                    .disabled(trimmedQRPayload.isEmpty || qrTooLong)
+            }
+            if qrTooLong {
+                Text(Self.qrTooLongMessage)
+                    .font(.footnote)
+                    .foregroundStyle(Color(.systemRed))
+            }
         }
     }
+
+    static let qrTooLongMessage = "That is too long for a QR code."
 
     private var trimmedQRPayload: String {
         qrPayload.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// More than a code holds is refused, as the Android twin refuses it,
+    /// with the words kept to shorten — never a blank code on the page.
     private func addQRCode() {
         let payload = trimmedQRPayload
         guard !payload.isEmpty else { return }
+        guard CodeGenerator.modules(for: payload) != nil else {
+            qrTooLong = true
+            store.buzz(.reject)
+            return
+        }
         qrFocused = false
         // Square, because a QR code that is not square has been stretched and
         // no longer scans.
@@ -256,7 +345,9 @@ struct InsertSheet: View {
         dismiss()
     }
 
-    private func lineTile(_ icon: String, _ start: String?, _ end: String?) -> some View {
+    /// A line with its ends, named under the tile as the Android twin's
+    /// line presets are, so it can be told apart by eye and by VoiceOver.
+    private func lineTile(_ name: String, _ icon: String, _ start: String?, _ end: String?) -> some View {
         Button {
             var el = Element.line(w: store.pageWidth * 0.3)
             el.startCap = start ?? "none"
@@ -264,11 +355,21 @@ struct InsertSheet: View {
             store.add(el)
             dismiss()
         } label: {
-            Image(systemName: icon)
-                .font(.system(size: 20))
-                .frame(width: 64, height: 64)
-                .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 20))
+                    .frame(width: 64, height: 52)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
+                Text(name)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
         }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(name)
+        .accessibilityAddTraits(.isButton)
     }
 
     // MARK: text
@@ -366,39 +467,82 @@ struct InsertSheet: View {
     /// deletable — the pile that used to be invisible.
     @ViewBuilder
     private var uploadsSection: some View {
-        let uploads = MediaStore.all()
+        let uploads = favoritesFirst(MediaStore.all(), kind: "upload", id: { $0 })
         if !uploads.isEmpty {
             sectionHeader("Your uploads")
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
-                ForEach(favoritesFirst(uploads, kind: "upload", id: { $0 }), id: \.self) { id in
-                    Button {
-                        let natural = MediaStore.load(id)?.size ?? CGSize(width: 4, height: 3)
-                        insertImage("media:\(id)", natural: natural)
-                        dismiss()
-                    } label: {
-                        Group {
-                            if let ui = MediaStore.load(id) {
-                                Image(uiImage: PhotoLibrary.preview(ui, key: "media:\(id)"))
-                                    .resizable().aspectRatio(contentMode: .fill)
-                            } else {
-                                Color(.systemGray5)
-                            }
-                        }
-                        .frame(height: 72)
-                        .frame(maxWidth: .infinity)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    }
-                    .accessibilityLabel("Uploaded picture")
-                    .contextMenu {
-                        favoriteButton("upload", id)
-                        Button(role: .destructive) {
-                            MediaStore.delete(id)
-                            favoritesVersion += 1
-                        } label: { Label("Delete upload", systemImage: "trash") }
-                    }
+                ForEach(Array(uploads.enumerated()), id: \.element) { index, id in
+                    uploadTile(id, index: index, count: uploads.count)
                 }
             }
         }
+    }
+
+    private func uploadTile(_ id: String, index: Int, count: Int) -> some View {
+        let src = "media:\(id)"
+        let starred = Favorites.isFavorite("upload", id)
+        let inFrame = src == replaceSource
+        return Button {
+            pickLibraryPicture(src, natural: MediaStore.load(id)?.size ?? CGSize(width: 4, height: 3))
+        } label: {
+            Group {
+                if let ui = MediaStore.load(id) {
+                    Image(uiImage: PhotoLibrary.preview(ui, key: src))
+                        .resizable().aspectRatio(contentMode: .fill)
+                } else {
+                    Color(.systemGray5)
+                }
+            }
+            .frame(height: 72)
+            .frame(maxWidth: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay { if inFrame { currentRing(cornerRadius: 10) } }
+            .overlay(alignment: .topTrailing) { if starred { starBadge } }
+        }
+        .accessibilityLabel(AddSheetNames.picture(AddSheetNames.upload(index, of: count),
+                                              starred: starred, inFrame: inFrame))
+        .contextMenu {
+            favoriteButton("upload", id)
+            Button(role: .destructive) {
+                MediaStore.delete(id)
+                favoritesVersion += 1
+            } label: { Label("Delete upload", systemImage: "trash") }
+        }
+    }
+
+    /// The picture in the frame being replaced, if Replace opened the sheet.
+    private var replaceSource: String? {
+        store.replaceTargetId.flatMap { store.element($0) }?.src
+    }
+
+    /// A tile from the library, uploads or logos: put on the page, or into
+    /// the frame being replaced — where the picture already there changes
+    /// nothing, so the sheet just closes.
+    private func pickLibraryPicture(_ src: String, natural: CGSize) {
+        if src == replaceSource {
+            store.replaceTargetId = nil
+            dismiss()
+            return
+        }
+        insertImage(src, natural: natural)
+        dismiss()
+    }
+
+    /// The ring round the picture already in the frame being replaced.
+    private func currentRing(cornerRadius: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: cornerRadius).stroke(Theme.accent, lineWidth: 3)
+    }
+
+    /// A small star on a starred tile, so what was starred shows and not
+    /// only leads the order.
+    private var starBadge: some View {
+        Image(systemName: "star.fill")
+            .font(.system(size: 10, weight: .bold))
+            .foregroundStyle(.yellow)
+            .padding(4)
+            .background(Circle().fill(Color.black.opacity(0.55)))
+            .padding(4)
+            .accessibilityHidden(true)
     }
 
     // MARK: svg
@@ -418,13 +562,19 @@ struct InsertSheet: View {
             guard case .success(let url) = result else { return }
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            guard let text = try? String(contentsOf: url, encoding: .utf8),
-                  let d = SVGPath.importFirstPath(fromSVG: text) else { return }
+            guard let d = SVGPath.importFirstPath(fromFileAt: url) else {
+                // Said, and out of the way, as the Android twin refuses it.
+                store.buzz(.reject)
+                store.announce("No shape to take from that file", undoable: false)
+                dismiss()
+                return
+            }
             let size = min(store.pageWidth, store.pageHeight) * 0.4
             var el = Element.shape("rect", w: size.rounded(), h: size.rounded())
             el.pathData = d
             el.radius = 0
             store.add(el)
+            store.buzz(.confirm)
             dismiss()
         }
     }
@@ -600,25 +750,8 @@ struct InsertSheet: View {
             if !logos.isEmpty {
                 sectionHeader("Brand logos")
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
-                    ForEach(logos, id: \.self) { src in
-                        Button {
-                            let natural = PhotoLibrary.resolve(src)?.size ?? CGSize(width: 4, height: 3)
-                            insertImage(src, natural: natural)
-                            dismiss()
-                        } label: {
-                            Group {
-                                if let ui = PhotoLibrary.resolve(src) {
-                                    Image(uiImage: PhotoLibrary.preview(ui, key: src))
-                                        .resizable().aspectRatio(contentMode: .fit)
-                                } else {
-                                    Color(.systemGray5)
-                                }
-                            }
-                            .frame(height: 72)
-                            .frame(maxWidth: .infinity)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
-                        }
-                        .accessibilityLabel("Brand logo")
+                    ForEach(Array(logos.enumerated()), id: \.element) { index, src in
+                        logoTile(src, index: index, count: logos.count)
                     }
                 }
             }
@@ -633,19 +766,54 @@ struct InsertSheet: View {
                     .padding(10)
                     .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
             }
+            let photos = favoritesFirst(filteredPhotos, kind: "photo", id: \.id)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
-                ForEach(favoritesFirst(filteredPhotos, kind: "photo", id: \.id)) { photo in
-                    Button {
-                        insertImage("asset:\(photo.id)", natural: PhotoLibrary.size)
-                        dismiss()
-                    } label: {
-                        photoThumb(photo.id)
-                    }
-                    .contextMenu { favoriteButton("photo", photo.id) }
+                ForEach(Array(photos.enumerated()), id: \.element.id) { index, photo in
+                    artworkTile(photo, index: index, count: photos.count)
                 }
             }
         }
         .padding()
+    }
+
+    private func logoTile(_ src: String, index: Int, count: Int) -> some View {
+        let inFrame = src == replaceSource
+        return Button {
+            pickLibraryPicture(src, natural: PhotoLibrary.resolve(src)?.size ?? CGSize(width: 4, height: 3))
+        } label: {
+            Group {
+                if let ui = PhotoLibrary.resolve(src) {
+                    Image(uiImage: PhotoLibrary.preview(ui, key: src))
+                        .resizable().aspectRatio(contentMode: .fit)
+                } else {
+                    Color(.systemGray5)
+                }
+            }
+            .frame(height: 72)
+            .frame(maxWidth: .infinity)
+            .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
+            .overlay { if inFrame { currentRing(cornerRadius: 10) } }
+        }
+        .accessibilityLabel(AddSheetNames.picture(AddSheetNames.logo(index, of: count), starred: false, inFrame: inFrame))
+    }
+
+    /// One of the built-in pictures, named with its kind and place, starred
+    /// and ringed as the uploads are.
+    private func artworkTile(_ photo: PhotoDef, index: Int, count: Int) -> some View {
+        let src = "asset:\(photo.id)"
+        let starred = Favorites.isFavorite("photo", photo.id)
+        let inFrame = src == replaceSource
+        return Button {
+            pickLibraryPicture(src, natural: PhotoLibrary.size)
+        } label: {
+            photoThumb(photo.id)
+                .overlay { if inFrame { currentRing(cornerRadius: 9) } }
+                .overlay(alignment: .topTrailing) { if starred { starBadge } }
+        }
+        .accessibilityLabel(AddSheetNames.picture(
+            AddSheetNames.artwork(photo, index, of: count),
+            starred: starred, inFrame: inFrame))
+        .contextMenu { favoriteButton("photo", photo.id) }
     }
 
     // MARK: favourites
@@ -688,31 +856,61 @@ struct InsertSheet: View {
 
     // MARK: components
 
+    /// Always headed, so the feature can be found before it is used; each
+    /// with its piece count, and deleting one — from every design's Add
+    /// sheet, with no Undo — asks first, as on the Android twin.
     @ViewBuilder
     private var componentsSection: some View {
         let components = Components.load()
-        if !components.isEmpty {
-            sectionHeader("Components")
+        sectionHeader("Components")
+        if components.isEmpty {
+            Text("Select what you build again and again — a footer, a price tag — and choose More ▸ Save selection as component.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
-                ForEach(components) { component in
-                    Button {
-                        store.insertComponent(component)
-                        dismiss()
-                    } label: {
-                        VStack(spacing: 4) {
-                            componentThumb(component)
-                            Text(component.name).font(.caption2).lineLimit(1)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .contextMenu {
-                        Button(role: .destructive) {
-                            Components.remove(component.id)
-                            favoritesVersion += 1
-                        } label: { Label("Delete component", systemImage: "trash") }
-                    }
-                }
+                ForEach(components) { component in componentTile(component) }
             }
+            .confirmationDialog(removingComponent.map { "Delete \u{201C}\($0.name)\u{201D}?" } ?? "",
+                                isPresented: Binding(get: { removingComponent != nil },
+                                                     set: { if !$0 { removingComponent = nil } }),
+                                titleVisibility: .visible,
+                                presenting: removingComponent) { component in
+                Button("Delete", role: .destructive) {
+                    Components.remove(component.id)
+                    removingComponent = nil
+                    favoritesVersion += 1
+                }
+                Button("Cancel", role: .cancel) { removingComponent = nil }
+            } message: { _ in
+                Text("Copies already in designs stay as they are.")
+            }
+        }
+    }
+
+    private func componentTile(_ component: Component) -> some View {
+        let count = component.elements.count
+        let pieces = count == 1 ? "1 piece" : "\(count) pieces"
+        return Button {
+            store.insertComponent(component)
+            dismiss()
+        } label: {
+            VStack(spacing: 2) {
+                componentThumb(component)
+                Text(component.name).font(.caption2).lineLimit(1)
+                Text(pieces).font(.caption2).foregroundStyle(.secondary)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(component.name), \(pieces)")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction(named: "Delete") { removingComponent = component }
+        .contextMenu {
+            Button(role: .destructive) {
+                removingComponent = component
+            } label: { Label("Delete component…", systemImage: "trash") }
         }
     }
 
@@ -739,19 +937,30 @@ struct InsertSheet: View {
     private func insertImage(_ src: String, natural: CGSize, replacing: String? = nil,
                              cascade: Int = 0) {
         // Replace mode swaps the source in place, keeping the frame, corner
-        // radius and filter — only the crop is reset for the new picture.
+        // radius and filter. The crop and the straighten are reset, so the
+        // new picture comes in level, centred and covering the frame — as
+        // the Android twin's Crop.replaced leaves it.
         if let targetId = replacing ?? store.replaceTargetId {
             store.replaceTargetId = nil
-            if store.page.elements.contains(where: { $0.id == targetId && $0.type == .image }) {
+            if let target = store.element(targetId), target.type == .image {
+                // Locked means kept as it is, whichever way the new picture
+                // arrived.
+                guard !target.locked else {
+                    store.buzz(.reject)
+                    store.announce("This photo is locked. Tap Unlock to replace it.", undoable: false)
+                    return
+                }
                 store.applyToPage { page in
                     if let i = page.elements.firstIndex(where: { $0.id == targetId }) {
                         page.elements[i].src = src
                         page.elements[i].cropScale = 1
                         page.elements[i].cropX = 0.5
                         page.elements[i].cropY = 0.5
+                        page.elements[i].straighten = nil
                     }
                 }
                 store.selection = [targetId]
+                store.buzz(.confirm)
                 return
             }
         }
@@ -825,7 +1034,7 @@ private struct BackgroundInline: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("BACKGROUND COLOR").font(.system(size: 11, weight: .bold)).foregroundStyle(.secondary)
+            Text("BACKGROUND COLOUR").font(.system(size: 11, weight: .bold)).foregroundStyle(.secondary)
             LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(ContentLibrary.defaultSwatches, id: \.self) { hex in
                     Button { store.applyToPage { $0.background = .color(hex) } } label: {
@@ -842,9 +1051,7 @@ private struct BackgroundInline: View {
             Text("PHOTOS").font(.system(size: 11, weight: .bold)).foregroundStyle(.secondary)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 10)], spacing: 10) {
                 ForEach(PhotoLibrary.photos) { photo in
-                    Button { store.applyToPage { $0.background = .image("asset:\(photo.id)") } } label: {
-                        photoThumb(photo.id)
-                    }
+                    BackgroundPhotoTile(store: store, photo: photo)
                 }
             }
         }
