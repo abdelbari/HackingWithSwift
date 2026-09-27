@@ -48,6 +48,20 @@ enum CustomSizes {
         return value
     }
 
+    /// Both sides as typed, when both are in range; nil otherwise.
+    static func size(width: String, height: String) -> (width: Double, height: Double)? {
+        guard let w = side(width), let h = side(height) else { return nil }
+        return (w, h)
+    }
+
+    /// What Resize's custom button says: the size it will make, or, until
+    /// both sides are in range, the range to type — as the Android twin's
+    /// Resize button reads.
+    static func resizeTitle(width: String, height: String) -> String {
+        guard let size = size(width: width, height: height) else { return "Enter a size from \(rangeText)" }
+        return "Resize to \(Int(size.width)) × \(Int(size.height))"
+    }
+
     /// The height a ratio gives the width in the field — 1080 when the
     /// field holds nothing — truncated as the Android twin truncates it,
     /// and not clamped: a ratio that runs past the range says so under the

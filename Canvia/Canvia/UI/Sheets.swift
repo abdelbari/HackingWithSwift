@@ -923,6 +923,51 @@ struct LayersSheet: View {
 
 // MARK: - resize design
 
+/// A size typed for Resize: checked against the range the app makes, said
+/// under the fields, and applied only when both sides are in it — as the
+/// custom-size sheet on Home checks it, and as the Android twin's Resize
+/// does. It used to clamp whatever was typed, and make a size nobody asked
+/// for.
+private struct ResizeCustomSection: View {
+    @Binding var customW: String
+    @Binding var customH: String
+    let onResize: (Double, Double) -> Void
+
+    var body: some View {
+        let size = CustomSizes.size(width: customW, height: customH)
+        let typedWrong = !customW.isEmpty && CustomSizes.side(customW) == nil
+            || !customH.isEmpty && CustomSizes.side(customH) == nil
+        return Section {
+            HStack {
+                TextField("Width", text: $customW).keyboardType(.numberPad)
+                Text("×")
+                TextField("Height", text: $customH).keyboardType(.numberPad)
+                Text("px").foregroundStyle(.secondary)
+            }
+            Button(CustomSizes.resizeTitle(width: customW, height: customH)) {
+                guard let size else { return }
+                onResize(size.width, size.height)
+            }
+            .fontWeight(.semibold)
+            .disabled(size == nil)
+        } header: {
+            Text("Custom")
+        } footer: {
+            Text(typedWrong ? CustomSizes.outOfRangeText : "Each side \(CustomSizes.rangeText) pixels.")
+                .foregroundStyle(typedWrong ? Color(.systemRed) : Color.secondary)
+        }
+        // Digits only, five at most, however they arrive.
+        .onChange(of: customW) { _, typed in
+            let clean = CustomSizes.digits(typed)
+            if clean != typed { customW = clean }
+        }
+        .onChange(of: customH) { _, typed in
+            let clean = CustomSizes.digits(typed)
+            if clean != typed { customH = clean }
+        }
+    }
+}
+
 struct ResizeSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
@@ -985,19 +1030,9 @@ struct ResizeSheet: View {
                         .foregroundStyle(.primary)
                     }
                 }
-                Section("Custom") {
-                    HStack {
-                        TextField("Width", text: $customW).keyboardType(.numberPad)
-                        Text("×")
-                        TextField("Height", text: $customH).keyboardType(.numberPad)
-                        Button("Apply") {
-                            let w = min(4000, max(40, Double(customW) ?? store.pageWidth))
-                            let h = min(4000, max(40, Double(customH) ?? store.pageHeight))
-                            resize(w, h)
-                            dismiss()
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
+                ResizeCustomSection(customW: $customW, customH: $customH) { w, h in
+                    resize(w, h)
+                    dismiss()
                 }
             }
             .navigationTitle("Resize design")

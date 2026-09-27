@@ -1316,8 +1316,12 @@ final class DesignStore {
 
     // MARK: page clipboard
 
+    /// Copying changes nothing on screen, so it is said and felt — as on
+    /// the Android twin — rather than the menu closing on nothing.
     func copyPage() {
         PageClipboard.copy(page, width: pageWidth, height: pageHeight)
+        announce("Page copied", undoable: false)
+        buzz(.confirm)
     }
 
     var hasPageOnClipboard: Bool { PageClipboard.hasPage() }
@@ -1329,6 +1333,7 @@ final class DesignStore {
         apply { $0.pages.insert(landed, at: pageIndex + 1) }
         pageIndex += 1
         selection.removeAll()
+        buzz(.confirm)
     }
 
     func setPage(_ index: Int) {
@@ -1432,6 +1437,7 @@ final class DesignStore {
         let next = Self.reflowed(design, width: width, height: height)
         apply { $0 = next }
         announce("Reflowed to \(Int(width)) × \(Int(height))")
+        buzz(.confirm)
     }
 
     /// Uniformly rescale all content to a new canvas size. Scaling to *fit*
@@ -1459,6 +1465,10 @@ final class DesignStore {
             d.width = width
             d.height = height
         }
+        // Said with its Undo, as Reflow and a one-page resize are: every
+        // page of the design just changed at once.
+        announce("Resized to \(Int(width)) × \(Int(height))")
+        buzz(.confirm)
     }
 
     /// This page alone takes a new size — a story after a square post — with
@@ -1478,5 +1488,6 @@ final class DesignStore {
             d.pages[index] = pg
         }
         announce("This page is now \(Int(width)) × \(Int(height))")
+        buzz(.confirm)
     }
 }

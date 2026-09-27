@@ -81,7 +81,7 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   chosen one marked selected
 - Pages: live-thumbnail strip, add / duplicate / reorder / delete (with a
   confirmation when the page is not empty), and per-page notes that are
-  never drawn and so cannot reach an export
+  never drawn and so cannot reach an export; typing a note is one Undo
 - Undo/redo with gesture coalescing (a whole drag is one step), autosave,
   lock, opacity, duplicate, align / distribute / flip / exact-position
   sheet, layers sheet with drag reorder
@@ -97,9 +97,11 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   position or content, and never across element kinds — pasting a text
   style onto a rectangle changes nothing about the rectangle
 - A page organizer: every page as a list with drag handles, multi-select
-  to duplicate or delete (never the last page), tap to jump. Pages copy
+  to duplicate or delete (never the last page), tap to jump; VoiceOver
+  hears each row whole (page, current, element count, notes). Pages copy
   and paste across designs and across launches through the system
-  pasteboard, scaled to fit a differently sized design.
+  pasteboard, scaled to fit a differently sized design; a copy says
+  "Page copied" with a tap of haptics, and a paste is felt.
 - The home screen searches designs (title, loosely; size, exactly) and
   templates, sorts by last edited, name or page count, and keeps deleted
   designs in a Recently deleted section for thirty days, with Restore
@@ -316,7 +318,10 @@ its relative position on each axis independently — a footer stays at
 the foot of a much taller story, a right-aligned logo stays at the right
 edge — while sizes scale by the smaller ratio so nothing stretches, and
 text boxes widen to use a wider page. Guides move with the page. One
-undo step.
+undo step, offered back in a toast ("Resized to 1080 × 1920") for Scale
+too. A custom size is checked as typed: each side 40 to 4000, said under
+the fields, and the button reads "Resize to W × H" only once both sides
+are in range — nothing typed is clamped into a size nobody asked for.
 
 **Spotlight** — every design is indexed with its title, the words typed
 into it and its thumbnail, so searching the phone for "bake sale" finds
