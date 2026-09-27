@@ -1,6 +1,7 @@
 // Things dropped onto the page from other apps — a photo from Photos or
 // Files, a passage from Notes, a link from Safari — land where the finger
-// let go, as the elements the Add sheet would have made.
+// let go, as the elements the Add sheet would have made; a photo let go over
+// a frame goes into the frame.
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -60,6 +61,15 @@ enum CanvasDrop {
                 taken += 1
                 loadPicture(provider) { stored in
                     guard let stored else { tally.finished(landed: false); return }
+                    // Let go over a frame or a grid's cell, the picture goes
+                    // into it rather than onto the page beside it.
+                    if let target = PhotoFrames.target(at: at, in: store.page.elements, excluding: nil),
+                       store.replacePicture(target.id, with: stored.src) {
+                        store.selection = [target.id]
+                        store.tipEvent = .dropped
+                        tally.finished(landed: true)
+                        return
+                    }
                     let frame = imageFrame(natural: stored.natural, page: page, at: at)
                     var el = Element.image(stored.src, w: frame.width, h: frame.height)
                     el.x = frame.minX; el.y = frame.minY

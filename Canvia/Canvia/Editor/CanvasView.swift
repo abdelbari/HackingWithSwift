@@ -46,6 +46,11 @@ struct CanvasView: View {
         var dragUnion: CGRect = .zero
         /// Sibling boxes at grab time, for equal-spacing hints.
         var siblingBoxes: [CGRect] = []
+        /// The photo being moved, when it is one photo or clip that can go
+        /// into a frame (PhotoFrames.canDrop).
+        var framePhoto: String?
+        /// The frame under the finger it would go into, lit up while it is.
+        var frameTarget: String?
         var resizeOriginal: Element?
         /// The picture's size in pixels when a photo's side is grabbed, so
         /// the side trims the frame across a picture that stays put.
@@ -230,7 +235,8 @@ struct CanvasView: View {
     /// the finger has travelled far enough for that to be somewhere else,
     /// and every page edge it has crossed lit up — moving things off the
     /// page is allowed, a bleed is a real choice, but it should never happen
-    /// unnoticed. Neither is ever part of the design.
+    /// unnoticed. A photo over a frame lights the frame up, as the place it
+    /// will go if let go. None of it is ever part of the design.
     private func moveFurniture(_ moved: CGRect) -> some View {
         let start = gesture.dragUnion
         let w = store.pageWidth, h = store.pageHeight
@@ -238,7 +244,13 @@ struct CanvasView: View {
         let edgeWidth = 2 * iz
         let dash: [CGFloat] = [6 * iz, 6 * iz]
         let ghostWidth = 1.4 * iz
+        let frame = gesture.frameTarget.flatMap { store.element($0) }.map(Self.outline)
+        let frameWidth = 3 * iz
         return Canvas { context, _ in
+            if let frame {
+                context.fill(frame, with: .color(Theme.accent.opacity(0.14)))
+                context.stroke(frame, with: .color(Theme.accent), lineWidth: frameWidth)
+            }
             if showGhost {
                 context.stroke(Path(start), with: .color(.black.opacity(0.2)),
                                style: StrokeStyle(lineWidth: ghostWidth, dash: dash))
@@ -252,6 +264,15 @@ struct CanvasView: View {
         }
         .frame(width: w, height: h)
         .allowsHitTesting(false)
+    }
+
+    /// An element's box, turned with it, in page units.
+    private static func outline(_ el: Element) -> Path {
+        let c = el.center
+        let turn = CGAffineTransform(translationX: c.x, y: c.y)
+            .rotated(by: CGFloat(el.rotation * .pi / 180))
+            .translatedBy(x: -c.x, y: -c.y)
+        return Path(el.frame).applying(turn)
     }
 
     // MARK: crop
@@ -801,6 +822,11 @@ struct CanvasView: View {
                     gesture.siblingBoxes = store.page.elements
                         .filter { gesture.dragOriginals[$0.id] == nil }
                         .map(Geometry.aabb)
+                    // One photo on its own may be going into a frame.
+                    if gesture.dragOriginals.count == 1, let id = gesture.dragOriginals.keys.first,
+                       let photo = store.element(id), PhotoFrames.canDrop(photo) {
+                        gesture.framePhoto = id
+                    }
                 }
                 var dx = value.location.x - value.startLocation.x
                 var dy = value.location.y - value.startLocation.y
@@ -847,6 +873,12 @@ struct CanvasView: View {
                 if !gesture.dragUnion.isEmpty {
                     gesture.movedBox = gesture.dragUnion.offsetBy(dx: dx, dy: dy)
                 }
+                // The frame under the finger, lit up: let go there, the photo
+                // goes into it.
+                if let photo = gesture.framePhoto {
+                    let over = store.frameDropTarget(at: value.location, dragging: photo)
+                    if gesture.frameTarget != over { gesture.frameTarget = over }
+                }
                 let travel = hypot(value.translation.width, value.translation.height) * store.zoom
                 if travel >= 14 && !gesture.ghost { gesture.ghost = true }
                 for i in store.design.pages[store.pageIndex].elements.indices {
@@ -870,12 +902,22 @@ struct CanvasView: View {
                 // or undo fills up with steps that changed nothing.
                 let moved = hypot(value.translation.width, value.translation.height) * store.zoom
                 if gesture.dragActive && moved >= Touch.tapSlop {
-                    store.commit()
+                    // Let go over a frame, the photo goes into it — the move
+                    // and the drop one step; anywhere else it is a move.
+                    if !dropIntoFrame(at: value.location) { store.commit() }
                 } else {
                     store.endGesture()
                 }
                 clearTransient()
             }
+    }
+
+    /// The photo being moved goes into the frame under `point`, if there is
+    /// one; see DesignStore.dropIntoFrame. True when it did.
+    private func dropIntoFrame(at point: CGPoint) -> Bool {
+        guard let photo = gesture.framePhoto, let home = gesture.dragOriginals[photo],
+              let frame = store.frameDropTarget(at: point, dragging: photo) else { return false }
+        return store.dropIntoFrame(photo, onto: frame, home: home)
     }
 
     // MARK: resize / rotate (called from the overlay)
