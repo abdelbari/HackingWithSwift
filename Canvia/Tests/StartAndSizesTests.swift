@@ -58,6 +58,28 @@ final class StartAndSizesTests: XCTestCase {
         XCTAssertEqual(Set(ids).count, ids.count, "two sizes share an id")
     }
 
+    /// Every size opens on at least three ready-made starts, as on Android:
+    /// logos and quote cards now have their own, not a blank page alone.
+    func testEverySizeHasTemplatesToStartFrom() {
+        for size in SizePreset.all {
+            XCTAssertGreaterThanOrEqual(ContentLibrary.templateCounts[size.id] ?? 0, 3, "\(size.name) has too few templates")
+        }
+    }
+
+    /// A logo sits on one flat colour, so exporting it with a clear
+    /// background leaves the mark alone.
+    func testLogosSitOnAFlatColour() throws {
+        let logos = ContentLibrary.sizedTemplates(for: try preset("logo"))
+        XCTAssertGreaterThanOrEqual(logos.count, 8)
+        for logo in logos {
+            XCTAssertTrue(logo.id.hasPrefix("logo-"), logo.id)
+            if case .color = logo.background {} else { XCTFail("\(logo.id) is not on a flat colour") }
+        }
+        let quotes = ContentLibrary.sizedTemplates(for: try preset("quote-card"))
+        XCTAssertGreaterThanOrEqual(quotes.count, 7)
+        XCTAssertTrue(quotes.contains { $0.id == "golden-hour-quote" })
+    }
+
     /// A4 is the size its templates were made at (300 dpi, as on Android),
     /// so its tile opens on them rather than on a blank page alone.
     func testA4OpensOnItsTemplates() throws {

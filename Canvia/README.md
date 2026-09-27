@@ -43,7 +43,9 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   lines with caps and dashes, emoji stickers, 20 procedurally drawn
   photos, photo-library imports, QR codes generated from a link or any
   text (regenerated from the document, so they stay editable and nothing
-  is stored), 8 complete templates that apply into any canvas size
+  is stored), 102 complete templates that apply into any canvas size —
+  every size has its own, logos and quote cards included (the shared
+  library is generated from the Android twin's `templates/` specs)
 - Text: curved text on an arc from -180° to 180° (glyphs placed along one
   circle whose radius the line's own width fixes, so letters keep their
   size rather than being squashed to fit), inline editing (double-tap),
