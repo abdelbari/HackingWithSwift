@@ -608,16 +608,31 @@ enum DesignExporter {
     /// A temporary file named after the design, so the share sheet offers
     /// something recognisable rather than "file.png".
     static func fileURL(for design: Design, ext: String, suffix: String = "") -> URL {
-        // Keep word characters, spaces and hyphens; drop everything else.
-        // \\w already covers digits and underscore, and the hyphen is escaped
-        // rather than left next to a class shorthand where an engine has to
-        // guess whether it meant a range.
-        let name = design.title
-            .replacingOccurrences(of: "[^\\w\\- ]", with: "", options: .regularExpression)
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(fileBaseName(design.title))\(suffix).\(ext)")
+    }
+
+    /// The longest name an export takes from a title, in characters.
+    static let maxNameLength = 60
+
+    /// What an exported file is called, before its page number and
+    /// extension — the same name on both phones. Letters and digits of any
+    /// script are kept ("Café menu" is "Café-menu", a Japanese title stays
+    /// Japanese), with combining marks, underscores and hyphens; anything
+    /// else goes, the ends are trimmed, and a run of spaces is one hyphen:
+    /// "Q3 / report" is "Q3-report", not "Q3--report". Nothing left is
+    /// "design". Cut at sixty characters, never through a letter.
+    static func fileBaseName(_ title: String) -> String {
+        let kept = title
+            .replacingOccurrences(of: "[^\\p{L}\\p{M}\\p{Nd}\\p{Nl}\\p{Pc}\\u200C\\u200D \\-]", with: "",
+                                  options: .regularExpression)
             .trimmingCharacters(in: .whitespaces)
-            .replacingOccurrences(of: " ", with: "-")
-        let base = name.isEmpty ? "design" : name
-        return FileManager.default.temporaryDirectory
-            .appendingPathComponent("\(base)\(suffix).\(ext)")
+            .replacingOccurrences(of: " +", with: "-", options: .regularExpression)
+        guard !kept.isEmpty else { return "design" }
+        let scalars = kept.unicodeScalars
+        guard scalars.count > maxNameLength else { return kept }
+        var cut = String(String.UnicodeScalarView(scalars.prefix(maxNameLength)))
+        while cut.hasSuffix("-") { cut.removeLast() }
+        return cut.isEmpty ? "design" : cut
     }
 }

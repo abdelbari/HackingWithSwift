@@ -132,6 +132,13 @@ struct PresentationView: View {
         }
     }
 
+    private var hasNotes: Bool { page.notes?.isEmpty == false }
+
+    /// The Notes button, as VoiceOver says it.
+    static func notesLabel(hasNotes: Bool) -> String {
+        hasNotes ? "Notes" : "Notes, none for this page"
+    }
+
     /// "No app here opens example.com/menu" — the link as the page shows it.
     static func refusedText(_ url: String) -> String {
         "No app here opens \(Links.shown(url))"
@@ -243,9 +250,14 @@ struct PresentationView: View {
                 } label: { Image(systemName: autoplay ? "pause.fill" : "play.fill").padding(10) }
                     .accessibilityLabel(autoplay ? "Pause autoplay" : "Autoplay")
                 Button { showingNotes.toggle() } label: {
-                    Image(systemName: (page.notes?.isEmpty == false) ? "note.text" : "note").padding(10)
+                    // A blank note, dimmed, when this page has none — as on
+                    // the Android twin — so the button says so before it is
+                    // pressed.
+                    Image(systemName: hasNotes ? "note.text" : "note")
+                        .opacity(hasNotes ? 1 : 0.5)
+                        .padding(10)
                 }
-                .accessibilityLabel("Notes")
+                .accessibilityLabel(Self.notesLabel(hasNotes: hasNotes))
             }
             .foregroundStyle(.white)
             .background(.black.opacity(0.35))

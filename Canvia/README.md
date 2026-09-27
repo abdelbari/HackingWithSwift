@@ -297,7 +297,11 @@ would be stretched past the pixels it has (this page or every page, one numbered
 file each, with an optional transparent background that really removes
 the page's own), multi-page PDF and SVG, rendered with
 `ImageRenderer` from the very views the canvas shows, delivered through
-the share sheet. PDF pages are written as vectors, not page-sized
+the share sheet. Files are named after the design as the Android twin
+names them — letters and digits in any script, a run of spaces one
+hyphen ("Q3 / report" is "Q3-report"), sixty characters at most,
+"design" when nothing is left, and a page number only when more than one
+file is written. PDF pages are written as vectors, not page-sized
 bitmaps, and everything streams to disk rather than being assembled in
 memory. The scale picker shows the pixel size it will actually produce,
 including when a 32-megapixel cap is what decided it.
@@ -523,8 +527,10 @@ how many it holds. Hold Undo to rewind many steps. Position nudges by
 
 **Present** — the design full screen from the menu: black surround,
 tap or swipe between pages, a tap on a linked element to open its link
-(and "No app here opens …" when nothing on the phone takes it), a clock, the page's notes for whoever holds
-the phone, and autoplay on each page's own timing. VoiceOver has Next
+(and "No app here opens …" when nothing on the phone takes it), a clock,
+the page's notes for whoever holds the phone (the Notes button dimmed,
+and read as "Notes, none for this page", when the page has none), and
+autoplay on each page's own timing. VoiceOver has Next
 page and Previous page among the page's actions. Every page can set
 its own hold and its transition to the next (fade, cut or slide) from
 its notes sheet; the video honours both.

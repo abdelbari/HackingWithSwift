@@ -138,6 +138,42 @@ final class ExportProgressTests: XCTestCase {
         XCTAssertEqual(MovieExporter.seconds(design: d, settings: settings), 10, accuracy: 0.001)
     }
 
+    // MARK: file names
+
+    func testAFileIsNamedAsTheAndroidTwinNamesItInAnyScript() {
+        XCTAssertEqual(DesignExporter.fileBaseName("Poster"), "Poster")
+        XCTAssertEqual(DesignExporter.fileBaseName("  Café menu! "), "Café-menu")
+        XCTAssertEqual(DesignExporter.fileBaseName("日本語のポスター"), "日本語のポスター")
+        XCTAssertEqual(DesignExporter.fileBaseName("قائمة الطعام"), "قائمة-الطعام")
+        XCTAssertEqual(DesignExporter.fileBaseName("Cafe\u{0301}"), "Cafe\u{0301}")
+        XCTAssertEqual(DesignExporter.fileBaseName("a_b-c 2"), "a_b-c-2")
+    }
+
+    func testARunOfSpacesIsOneHyphen() {
+        XCTAssertEqual(DesignExporter.fileBaseName("Q3 / report"), "Q3-report")
+        let url = DesignExporter.fileURL(for: Design(title: "Q3 / report", width: 10, height: 10), ext: "png")
+        XCTAssertEqual(url.lastPathComponent, "Q3-report.png")
+    }
+
+    func testATitleWithNothingToKeepIsCalledDesign() {
+        XCTAssertEqual(DesignExporter.fileBaseName(""), "design")
+        XCTAssertEqual(DesignExporter.fileBaseName("  ★ !? "), "design")
+    }
+
+    func testALongTitleIsCutNeverThroughALetter() {
+        XCTAssertEqual(DesignExporter.fileBaseName(String(repeating: "x", count: 100)).count, 60)
+        let wide = String(repeating: "\u{20000}", count: 70)
+        XCTAssertEqual(DesignExporter.fileBaseName(wide).unicodeScalars.count, 60)
+    }
+
+    // MARK: Present
+
+    @MainActor
+    func testTheNotesButtonSaysWhenAPageHasNone() {
+        XCTAssertEqual(PresentationView.notesLabel(hasNotes: true), "Notes")
+        XCTAssertEqual(PresentationView.notesLabel(hasNotes: false), "Notes, none for this page")
+    }
+
     // MARK: Photos wording
 
     func testOnePhotoSaved() {
