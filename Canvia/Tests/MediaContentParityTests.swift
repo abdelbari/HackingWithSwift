@@ -263,7 +263,8 @@ final class MediaContentParityTests: XCTestCase {
         wash.fill = .solid("#00000033")
         var a = Element.shape("rect")
         a.fill = .solid("#ff0000")
-        d.pages[0].elements = [wash, wash, wash, a]
+        // Red twice, so it outranks the page's white; the wash, three times, would outrank both.
+        d.pages[0].elements = [wash, wash, wash, a, a]
         XCTAssertEqual(ColorTools.documentColors(d, limit: 1), ["#ff0000"])
     }
 
