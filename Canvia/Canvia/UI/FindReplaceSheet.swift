@@ -41,7 +41,9 @@ struct FindReplaceSheet: View {
                 }
 
                 Section {
-                    Button("Replace all") {
+                    // How many it will change, on the button that changes
+                    // them, as on the Android twin.
+                    Button(matches.isEmpty ? "Replace all" : "Replace all \(matches.count)") {
                         replacedCount = store.replaceAll(needle, with: replacement,
                                                          caseSensitive: caseSensitive)
                     }
@@ -83,19 +85,31 @@ struct FindReplaceSheet: View {
             }
             .onAppear { needleFocused = true }
             .onChange(of: needle) { replacedCount = nil }
+            // The count spoken as it changes, once typing pauses, so a
+            // VoiceOver user hears what the footer shows.
+            .task(id: summary) {
+                try? await Task.sleep(for: .milliseconds(600))
+                guard !Task.isCancelled, !needle.isEmpty else { return }
+                AccessibilityNotification.Announcement(summary).post()
+            }
+            .feel(trigger: replacedCount) { _, count in count != nil ? .success : nil }
         }
         .presentationDetents([.medium, .large])
     }
 
     private var summary: String {
-        if let replacedCount {
-            return replacedCount == 1 ? "Replaced 1 occurrence." : "Replaced \(replacedCount) occurrences."
+        Self.summary(needle: needle, matches: matches, replaced: replacedCount)
+    }
+
+    /// "12 found on 3 pages", in the Android twin's words; what was replaced
+    /// once it has been.
+    static func summary(needle: String, matches: [DesignStore.TextMatch], replaced: Int?) -> String {
+        if let replaced {
+            return replaced == 1 ? "Replaced 1 occurrence." : "Replaced \(replaced) occurrences."
         }
         if needle.isEmpty { return "Searches the text on every page." }
-        switch matches.count {
-        case 0: return "No matches."
-        case 1: return "1 match."
-        default: return "\(matches.count) matches."
-        }
+        if matches.isEmpty { return "Not found in this design." }
+        let pages = Set(matches.map(\.pageIndex)).count
+        return "\(matches.count) found on \(pages == 1 ? "1 page" : "\(pages) pages")"
     }
 }

@@ -47,6 +47,14 @@ enum RichText {
         parseMapped(text).parsed
     }
 
+    /// The words as they read, and for each of their characters where it is
+    /// stored in `text`, as character offsets — what the spelling check
+    /// reads, so "he**llo**" is one word. The Android twin's `mapped`.
+    static func mapped(_ text: String) -> (plain: String, rawAt: [Int]) {
+        let (parsed, rawAt) = parseMapped(text)
+        return (parsed.plain, rawAt)
+    }
+
     /// The parse, with where each plain character came from in `text`, as
     /// character offsets.
     private static func parseMapped(_ text: String) -> (parsed: Parsed, rawAt: [Int]) {

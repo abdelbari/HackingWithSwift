@@ -7,13 +7,20 @@ struct ProofreadSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var found: [Proofreader.Misspelling] = []
     @State private var ignored: Set<String> = []
+    /// Fixes made, so each is felt.
+    @State private var fixes = 0
 
     private var shown: [Proofreader.Misspelling] { found.filter { !ignored.contains($0.word.lowercased()) } }
 
     var body: some View {
         NavigationStack {
             Group {
-                if shown.isEmpty {
+                if shown.isEmpty && !found.isEmpty {
+                    // Words were found, and every one has been let be.
+                    ContentUnavailableView("Nothing left to look at.",
+                                           systemImage: "checkmark.seal",
+                                           description: Text("Every word found has been ignored."))
+                } else if shown.isEmpty {
                     ContentUnavailableView("No spelling mistakes found",
                                            systemImage: "checkmark.seal",
                                            description: Text("Every word in the document is in the dictionary."))
@@ -31,6 +38,11 @@ struct ProofreadSheet: View {
                             }
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
+                                    if miss.suggestions.isEmpty {
+                                        Text("No suggestions")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
                                     ForEach(miss.suggestions, id: \.self) { suggestion in
                                         Button(suggestion) { fix(miss, with: suggestion) }
                                             .buttonStyle(.bordered)
@@ -54,22 +66,20 @@ struct ProofreadSheet: View {
         }
         .presentationDetents(sheetDetents)
         .onAppear { refresh() }
+        .feel(.success, trigger: fixes)
     }
 
     private func refresh() {
         found = Proofreader.misspellings(in: store.design)
     }
 
-    /// Replace the word and re-run: the ranges after it have moved.
+    /// Replace the word, style marks kept, and re-run: the ranges after it
+    /// have moved. A row gone stale — the word edited meanwhile — changes
+    /// nothing and is simply read again.
     private func fix(_ miss: Proofreader.Misspelling, with replacement: String) {
-        store.apply { design in
-            guard design.pages.indices.contains(miss.pageIndex),
-                  let i = design.pages[miss.pageIndex].elements.firstIndex(where: { $0.id == miss.elementId }),
-                  let text = design.pages[miss.pageIndex].elements[i].text else { return }
-            design.pages[miss.pageIndex].elements[i].text =
-                Proofreader.replacing(miss.range, in: text, with: replacement)
-            design.pages[miss.pageIndex].elements[i].h =
-                FontLibrary.layoutHeight(for: design.pages[miss.pageIndex].elements[i])
+        if let next = Proofreader.fixed(store.design, miss, with: replacement) {
+            store.apply { $0 = next }
+            fixes += 1
         }
         refresh()
     }

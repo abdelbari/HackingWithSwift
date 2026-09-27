@@ -65,7 +65,9 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   that ship with iOS (Didot, Rockwell, Futura Condensed ExtraBold, Menlo,
   Snell Roundhand, …), 8 text effects (shadow, lift, hollow, splice, neon,
   echo, highlight) drawn through one CoreText pipeline shared by canvas,
-  thumbnails and export
+  thumbnails and export — inline bold and italic words keep their style
+  under every effect, and highlight bars sit behind each line as it is
+  set, indents, list markers and justification included
 - Photo frames: any library shape clips a photo — circle, star, blob,
   speech bubble — applying one squares the box about its centre, because
   the library's paths stretch onto the element and a circle on a 4:3 photo
@@ -97,10 +99,14 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
 - Undo/redo with gesture coalescing (a whole drag is one step), autosave,
   lock, opacity, duplicate, align / distribute / flip / exact-position
   sheet, layers sheet with drag reorder
-- Find and replace across every page, with a live match count and
-  replace-all as a single undo step; and a spelling check across the
-  document through the system dictionary, each mistake with its
-  suggestions a tap away (acronyms, hashtags and addresses left alone)
+- Find and replace across every page, with a live count ("12 found on 3
+  pages", spoken to VoiceOver as it changes), the count on the Replace all
+  button, and replace-all as a single undo step, felt; and a spelling
+  check across the document through the system dictionary, reading each
+  box as it reads so "he**llo**" is one word, each mistake with its
+  suggestions a tap away (or "No suggestions"), a fix keeping the word's
+  inline styles and refused if the word has since changed (acronyms,
+  hashtags and addresses left alone)
 - Bulleted, numbered and lettered lists with hanging indents, and up to
   four indent levels on any paragraph
 - Gradient text: any gradient from the colour picker fills the letters,
