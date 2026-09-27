@@ -50,6 +50,11 @@ struct HomeView: View {
     @State private var sort = DesignLibrary.Sort.recent
     @State private var trashed: [RecentDesign] = []
     @State private var showingTrash = false
+    /// The design in Recently deleted whose deletion for good is being
+    /// asked about.
+    @State private var deletingForever: RecentDesign?
+    /// Emptying Recently deleted is being asked about.
+    @State private var emptyingTrash = false
     @State private var importing = false
     @State private var favoritesVersion = 0
     @State private var importError: String?
@@ -429,14 +434,17 @@ struct HomeView: View {
                         }
                         .buttonStyle(.bordered)
                         Button(role: .destructive) {
-                            DesignLibrary.deleteTrashed(id: entry.id)
-                            reload()
+                            deletingForever = entry
                         } label: { Image(systemName: "trash") }
                         .accessibilityLabel("Delete forever")
                     }
                 }
                 Text("Designs in the trash are removed after 30 days.")
                     .font(.caption).foregroundStyle(.secondary)
+                Button("Empty Recently deleted", role: .destructive) { emptyingTrash = true }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.red)
+                    .padding(.top, 4)
             }
             .padding(.top, 8)
         } label: {
@@ -444,6 +452,35 @@ struct HomeView: View {
                 .font(.title3.weight(.bold))
         }
         .padding(.horizontal)
+        // Asked first, both: there is no coming back from either, and the
+        // one design's bin sat a finger's width from its Restore.
+        .confirmationDialog(deletingForever.map { "Delete “\($0.title)” forever?" } ?? "",
+                            isPresented: Binding(get: { deletingForever != nil },
+                                                 set: { if !$0 { deletingForever = nil } }),
+                            titleVisibility: .visible) {
+            Button("Delete forever", role: .destructive) {
+                if let entry = deletingForever {
+                    DesignLibrary.deleteTrashed(id: entry.id)
+                    if justTrashed?.id == entry.id { hideTrashed() }
+                }
+                deletingForever = nil
+                reload()
+            }
+            Button("Cancel", role: .cancel) { deletingForever = nil }
+        } message: {
+            Text(DesignLibrary.cannotBeUndone)
+        }
+        .confirmationDialog(DesignLibrary.emptyTrashQuestion(count: trashed.count),
+                            isPresented: $emptyingTrash, titleVisibility: .visible) {
+            Button("Delete forever", role: .destructive) {
+                DesignLibrary.emptyTrash()
+                hideTrashed()
+                reload()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(DesignLibrary.cannotBeUndone)
+        }
     }
 
     // MARK: undo a delete

@@ -63,6 +63,22 @@ final class LibraryTests: XCTestCase {
         XCTAssertFalse(DesignLibrary.recents().contains { $0.id == d.id })
     }
 
+    /// Asked with the count first, as the Android twin asks it.
+    func testEmptyingTheTrashAsksWithTheCount() {
+        XCTAssertEqual(DesignLibrary.emptyTrashQuestion(count: 1), "Delete 1 design forever?")
+        XCTAssertEqual(DesignLibrary.emptyTrashQuestion(count: 3), "Delete 3 designs forever?")
+        XCTAssertEqual(DesignLibrary.cannotBeUndone, "This can't be undone.")
+    }
+
+    func testEmptyingTheTrashTakesOnlyWhatIsInIt() {
+        let a = saved("One"), b = saved("Two"), kept = saved("Kept")
+        DesignLibrary.trash(id: a.id)
+        DesignLibrary.trash(id: b.id)
+        DesignLibrary.emptyTrash()
+        XCTAssertFalse(DesignLibrary.trashed().contains { [a.id, b.id].contains($0.id) })
+        XCTAssertTrue(DesignLibrary.recents().contains { $0.id == kept.id })
+    }
+
     // MARK: search and sort
 
     private func recent(_ title: String, pages: Int = 1, width: Double = 1080, at: Double) -> RecentDesign {

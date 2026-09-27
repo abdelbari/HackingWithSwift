@@ -166,6 +166,14 @@ enum DesignLibrary {
         for entry in trashed() { deleteTrashed(id: entry.id) }
     }
 
+    /// What emptying Recently deleted asks first, as the Android twin asks
+    /// it: "Delete 3 designs forever?", then `cannotBeUndone`.
+    static func emptyTrashQuestion(count: Int) -> String {
+        "Delete \(count) \(count == 1 ? "design" : "designs") forever?"
+    }
+
+    static let cannotBeUndone = "This can't be undone."
+
     // MARK: search and sort
 
     enum Sort: String, CaseIterable, Identifiable {
