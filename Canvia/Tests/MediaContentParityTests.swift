@@ -135,4 +135,43 @@ final class MediaContentParityTests: XCTestCase {
         try Data((svg + padding).utf8).write(to: big)
         XCTAssertNil(SVGPath.importFirstPath(fromFileAt: big))
     }
+
+    // MARK: photos and drawing
+
+    private func storeWithPhoto(locked: Bool) -> (DesignStore, String) {
+        var design = Design(title: "D", width: 400, height: 400)
+        var photo = Element.image("asset:sun")
+        photo.locked = locked
+        design.pages[0].elements = [photo]
+        return (DesignStore(design: design), photo.id)
+    }
+
+    func testTheEraserIsRefusedOnALockedPhoto() {
+        let (store, id) = storeWithPhoto(locked: true)
+        store.beginErasing(id)
+        XCTAssertNil(store.erasing)
+        XCTAssertEqual(store.haptic.kind, .reject)
+        let (open, other) = storeWithPhoto(locked: false)
+        open.beginErasing(other)
+        XCTAssertEqual(open.erasing, other)
+    }
+
+    func testThePenIsRememberedBetweenDrawingSessions() {
+        let (store, _) = storeWithPhoto(locked: false)
+        store.toggleDrawing()
+        store.drawing?.pen = .highlighter
+        store.drawing?.width = 24
+        store.drawing?.color = "#e5484d"
+        store.toggleDrawing()
+        XCTAssertNil(store.drawing)
+        store.toggleDrawing()
+        XCTAssertEqual(store.drawing, Freehand.Tool(color: "#e5484d", width: 24, pen: .highlighter))
+    }
+
+    func testTheDrawingHintFollowsThePen() {
+        XCTAssertEqual(Freehand.Pen.pen.hint, "One finger draws, two move the page")
+        XCTAssertEqual(Freehand.Pen.eraser.hint, "Drag over strokes to take them away")
+        XCTAssertFalse(Freehand.Pen.eraser.hasInk)
+        XCTAssertTrue(Freehand.Pen.highlighter.hasInk)
+    }
 }

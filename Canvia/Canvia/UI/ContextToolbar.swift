@@ -122,7 +122,11 @@ struct ContextToolbar: View {
         switch el.type {
         case .text: textControls(el)
         case .shape: shapeControls(el)
-        case .image: imageControls(el)
+        case .image:
+            // A locked photo is kept as it is: one line says how to change
+            // that, in place of tools that could only do nothing. The Lock
+            // switch among the universal controls stays.
+            if el.locked { lockedPhotoNote } else { imageControls(el) }
         case .line: lineControls(el)
         case .sticker: EmptyView()
         }
@@ -310,8 +314,13 @@ struct ContextToolbar: View {
         Task.detached(priority: .userInitiated) {
             let traced = Tracer.trace(image)
             await MainActor.run {
-                guard let traced else { return }
+                guard let traced else {
+                    store.buzz(.reject)
+                    store.announce("Nothing in the picture to trace", undoable: false)
+                    return
+                }
                 store.add(Tracer.shape(traced, over: el, imageSize: size), centered: false)
+                store.buzz(.confirm)
                 store.announce("Traced — a shape in the picture's colour")
             }
         }
@@ -323,12 +332,26 @@ struct ContextToolbar: View {
         let frame = el.frame
         Task.detached(priority: .userInitiated) {
             let payload = TextRecognizer.codePayload(in: image)
+            let fits = payload.map { CodeGenerator.modules(for: $0) != nil } ?? false
             await MainActor.run {
-                guard let payload else { return }
+                guard let payload else {
+                    store.buzz(.reject)
+                    store.announce("No code found in this picture", undoable: false)
+                    return
+                }
+                // A code read from a print can hold more than a code drawn
+                // here can: refused, rather than a blank code on the page.
+                guard fits else {
+                    store.buzz(.reject)
+                    store.announce("That code holds more than a QR code can", undoable: false)
+                    return
+                }
                 let side = min(frame.width, frame.height) * 0.6
                 var code = Element.image(CodeGenerator.source(for: payload), w: side.rounded(), h: side.rounded())
                 code.x = (frame.midX - side / 2).rounded(); code.y = (frame.midY - side / 2).rounded()
                 store.add(code, centered: false)
+                store.buzz(.confirm)
+                store.announce("Read the code — here it is, clean")
             }
         }
     }
@@ -454,8 +477,15 @@ struct ContextToolbar: View {
 
     @ViewBuilder
     private func shapeControls(_ el: Element) -> some View {
-        colorChip(el.fill?.primaryColor ?? "#8b5cf6", "Fill") { activeSheet = .colorFill }
-        colorChip(el.stroke ?? "#0d1216", "Border") { activeSheet = .colorStroke }
+        if Freehand.isStroke(el) {
+            // A drawing has one colour, its ink. A Fill chip showed a colour
+            // it does not have, and picking one filled the scribble in and
+            // stopped it being a stroke — as the Android twin, one slot.
+            colorChip(el.stroke ?? "#0d1216", "Colour") { activeSheet = .colorStroke }
+        } else {
+            colorChip(el.fill?.primaryColor ?? "#8b5cf6", "Fill") { activeSheet = .colorFill }
+            colorChip(el.stroke ?? "#0d1216", "Border") { activeSheet = .colorStroke }
+        }
         if el.fill?.kind == "none" {
             // A drawn stroke or an outline: its width is what there is to set.
             sliderControl("Width", value: el.strokeWidth ?? 4, in: 1...40) { v in
@@ -545,6 +575,16 @@ struct ContextToolbar: View {
             toolLabel("rectangle.tophalf.inset.filled", "Corners", active: el.corners != nil)
         }
         .disabled(r <= 0 && el.corners == nil)
+    }
+
+    private var lockedPhotoNote: some View {
+        Label("This photo is locked. Tap Unlock to edit it.", systemImage: "lock")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: 220, alignment: .leading)
+            .frame(minHeight: Touch.minTarget)
     }
 
     @ViewBuilder
@@ -823,6 +863,11 @@ struct ContextToolbar: View {
     /// neural-engine pass is still tens of milliseconds more than a frame.
     private func removeBackground(_ el: Element) {
         guard !cuttingOut else { return }
+        guard !el.locked else {
+            store.buzz(.reject)
+            store.announce("This photo is locked. Tap Unlock to edit it.", undoable: false)
+            return
+        }
         cuttingOut = true
         let id = el.id
         let src = el.src
@@ -844,6 +889,12 @@ struct ContextToolbar: View {
             case .failure(let error):
                 cutoutError = error.localizedDescription
             case .success(let newSrc):
+                // Locked while the cutout ran: kept as it is.
+                if store.element(id)?.locked == true {
+                    store.buzz(.reject)
+                    store.announce("This photo is locked. Tap Unlock to edit it.", undoable: false)
+                    return
+                }
                 // Committed through the page so it lands in undo as one step,
                 // and addressed by id rather than by selection: the cutout
                 // finishes asynchronously and the selection may have moved on.

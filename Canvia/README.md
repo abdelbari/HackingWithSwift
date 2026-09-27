@@ -327,12 +327,17 @@ surface: a finger or an Apple Pencil stroke is thinned, smoothed through
 quadratic curves and kept as an ordinary shape element with no fill — so
 it is moved, rotated, recoloured and exported as a real path like anything
 else, one undo step per stroke. A floating bar sets the pen's colour and
-width; the Width slider on a selected stroke changes it afterwards.
+width, with a line over it on how the pen in hand is used (the eraser,
+having no ink, offers no colours); the pen is picked up again as it was
+put away for as long as the editor is open. A selected stroke has one
+Colour chip, its ink, and the Width slider changes it afterwards.
 
 **Drag and drop** — pictures, text and links dragged from other apps land
-where they are let go: a photo at up to half the page's width, text as a
-left-aligned box, a link as its address. The page outlines itself while
-something hovers over it.
+where they are let go: a photo at up to half the page's width (stored as
+the photo picker stores it, so a see-through logo stays see-through),
+text as a left-aligned box, a link as its address. The page outlines
+itself while something hovers over it, and a drop with nothing it can
+use says so; so does ⌘V with nothing to paste.
 
 **Scan a document** — the Photos tab of Add opens the document camera on
 devices that have one; the deskewed pages come in the way a PDF's do, one
@@ -414,7 +419,8 @@ the outline of its ink (its opaque part, or its dark part when it has no
 transparency), simplifies and smooths it, and drops a path shape in the
 ink's own colour over the same spot — holes and all, wound so a nonzero
 fill keeps them open. A signature, a logo or a cut-out becomes a shape
-that scales cleanly and takes any fill.
+that scales cleanly and takes any fill. A picture with nothing to trace,
+or no code to read, says so.
 
 **Loops** — Animate offers Pulse, Wiggle, Bounce and Spin: moves that
 never settle, for stickers and badges, on the canvas preview and in the
@@ -445,6 +451,11 @@ stores the result as a new picture, one undo step. Strokes are mapped
 through the element's rotation, crop zoom and fill/fit placement into the
 picture's own pixels. Skies, walls and tabletops come out clean; busy
 backgrounds come out as a smudge, as the honest tools on a phone do.
+Cancel waits while it works, so a result never lands after it.
+
+**Locked photos** — a locked photo's toolbar says it is locked and how to
+unlock it, in place of tools that could only do nothing; Erase, Cut out
+and Replace refuse it with a word.
 
 **Mixed page sizes** — a page can have a size of its own: the Resize sheet
 applies to the whole design or to this page only, reflowing or scaling the

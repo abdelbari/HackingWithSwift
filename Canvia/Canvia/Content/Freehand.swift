@@ -29,6 +29,13 @@ enum Freehand {
             case .eraser: return "Eraser"
             }
         }
+        /// How the pen is used, in a line over the drawing bar — the
+        /// Android twin's words.
+        var hint: String {
+            self == .eraser ? "Drag over strokes to take them away" : "One finger draws, two move the page"
+        }
+        /// Whether it lays down ink, and so has an ink to choose.
+        var hasInk: Bool { self != .eraser }
         var symbol: String {
             switch self {
             case .pen: return "pencil.tip"
