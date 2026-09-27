@@ -461,8 +461,9 @@ final class TouchTests: XCTestCase {
     /// it instead, far enough that neighbours are a finger apart.
     func testSmallElementsKeepEveryHandle() {
         XCTAssertEqual(Set(Touch.handleSet(for: shape(w: 200, h: 200))), Set(Handle.allCases))
-        let side = 200.0, zoom = 0.2   // 40pt on screen
+        let side = 100.0, zoom = 0.2   // 20pt on screen: handles would be 10pt apart
         let outset = Touch.handleOutset(side: side, zoom: zoom)
+        XCTAssertGreaterThan(outset, 0)
         // Corner to middle along an edge is half the outset side, on screen.
         let spacing = (side / 2 + outset) * zoom
         XCTAssertEqual(spacing, Touch.handleMinGap, accuracy: 0.001)

@@ -227,7 +227,7 @@ final class MovieExporterTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(120))
         task.cancel()
         do {
-            try await task.value
+            _ = try await task.value
             XCTFail("a cancelled export finished")
         } catch is CancellationError {
             XCTAssertFalse(FileManager.default.fileExists(atPath: url.path), "the partial file was left behind")
