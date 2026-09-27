@@ -9,6 +9,7 @@
 
 import XCTest
 import CoreGraphics
+import CoreText
 @testable import Canvia
 
 final class TextOutlinerTests: XCTestCase {
@@ -21,6 +22,34 @@ final class TextOutlinerTests: XCTestCase {
         el.fontSize = size
         el.h = FontLibrary.measuredHeight(for: el)
         return el
+    }
+
+    /// An underline is kept in the outlines, as the canvas draws it: the
+    /// letters of "HAM" have no descenders, so only the rule reaches below
+    /// the baseline.
+    func testUnderlineIsKeptInTheOutlines() throws {
+        let plain = text("HAM")
+        var underlined = plain
+        underlined.underline = true
+        let bare = try XCTUnwrap(TextOutliner.path(for: plain)).boundingBox
+        let ruled = try XCTUnwrap(TextOutliner.path(for: underlined)).boundingBox
+        XCTAssertGreaterThan(ruled.maxY, bare.maxY + 1, "the underline is missing from the outlines")
+    }
+
+    /// A struck-out word keeps its line: "I      I" with the strike across the
+    /// gap covers a point between the letters that plain text leaves empty.
+    func testStrikethroughIsKeptInTheOutlines() throws {
+        let plain = text("I      I")
+        let struck = text("~~I      I~~")
+        let bare = try XCTUnwrap(TextOutliner.path(for: plain))
+        let ruled = try XCTUnwrap(TextOutliner.path(for: struck))
+        let box = bare.boundingBox
+        let font = CTFontCreateWithName(FontLibrary.uiFont(family: nil, size: 40, weight: 400, italic: false).fontName as CFString, 40, nil)
+        // Half the x-height above the baseline, which sits at the bottom of
+        // the capitals' box.
+        let probe = CGPoint(x: box.midX, y: box.maxY - CTFontGetXHeight(font) / 2)
+        XCTAssertFalse(bare.contains(probe))
+        XCTAssertTrue(ruled.contains(probe), "the strikethrough is missing from the outlines")
     }
 
     func testOutliningProducesAPath() throws {

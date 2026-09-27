@@ -359,4 +359,21 @@ final class SVGExporterTests: XCTestCase {
         XCTAssertTrue(svg.contains("x=\"30\""))
         XCTAssertTrue(isWellFormed(svg))
     }
+
+    /// A picture keeps room for what the canvas draws past its box: half a
+    /// border, and the lean of a shaped outline — as the Android twin pads
+    /// the same pictures. A plain photo and a sticker keep their box.
+    func testPicturesArePaddedForTheirBorder() {
+        XCTAssertEqual(SVGExporter.overflow(Element.image("media:a", w: 200, h: 150)), 0)
+        var sticker = Element()
+        sticker.type = .sticker
+        sticker.w = 80; sticker.h = 80
+        XCTAssertEqual(SVGExporter.overflow(sticker), 0)
+        var bordered = Element.image("media:a", w: 200, h: 150)
+        bordered.stroke = "#000000"
+        bordered.strokeWidth = 10
+        XCTAssertEqual(SVGExporter.overflow(bordered), 5, accuracy: 1e-9)
+        bordered.maskShapeId = "circle"
+        XCTAssertEqual(SVGExporter.overflow(bordered), 5 + 200 * 0.035, accuracy: 1e-9)
+    }
 }

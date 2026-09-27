@@ -133,7 +133,7 @@ struct LibraryShape: Shape {
         }
         if definition.rectLike == true && cornerRadius > 0 {
             let r = min(cornerRadius, rect.width / 2, rect.height / 2)
-            return Path(roundedRect: rect, cornerRadius: r)
+            return Path(roundedRect: rect, cornerRadius: r, style: .circular)
         }
         return Path(SVGPath.scaledPath(definition.path, to: rect.size))
     }

@@ -193,15 +193,55 @@ enum TextOutliner {
                                           italic: el.italic ?? false)
 
         let combined = CGMutablePath()
+        let rules = CGMutablePath()
         for (index, line) in lines.enumerated() {
             let lineOrigin = origins[index]
             guard let runs = CTLineGetGlyphRuns(line) as? [CTRun] else { continue }
             for run in runs {
                 appendGlyphs(of: run, lineOrigin: lineOrigin, boxHeight: el.h,
                              fallback: declared, to: combined)
+                appendRules(of: run, lineOrigin: lineOrigin, boxHeight: el.h,
+                            fallback: declared, to: rules)
             }
         }
-        return combined.isEmpty ? nil : combined
+        if combined.isEmpty { return nil }
+        // Underlines and strikethroughs are kept, as the canvas draws them
+        // and as the Android twin's outlines keep them: a struck-out price
+        // is not a price. Joined to the letters, so a rule crossing one
+        // never cuts a hole through it.
+        return rules.isEmpty ? combined : combined.union(rules)
+    }
+
+    /// The underline and strikethrough a run carries, as filled bars under
+    /// and through its letters, at the face's own underline position and
+    /// thickness — the strike halfway up the lower-case letters.
+    private static func appendRules(of run: CTRun, lineOrigin: CGPoint, boxHeight: Double,
+                                    fallback: UIFont, to rules: CGMutablePath) {
+        let count = CTRunGetGlyphCount(run)
+        guard count > 0 else { return }
+        let attributes = CTRunGetAttributes(run) as? [String: Any] ?? [:]
+        let underlined = (attributes[NSAttributedString.Key.underlineStyle.rawValue] as? Int ?? 0) != 0
+        let struck = (attributes[NSAttributedString.Key.strikethroughStyle.rawValue] as? Int ?? 0) != 0
+        guard underlined || struck else { return }
+        let uiFont = attributes[kCTFontAttributeName as String] as? UIFont ?? fallback
+        let font = CTFontCreateWithName(uiFont.fontName as CFString, uiFont.pointSize, nil)
+        var first = CGPoint.zero
+        CTRunGetPositions(run, CFRange(location: 0, length: 1), &first)
+        let width = CTRunGetTypographicBounds(run, CFRange(location: 0, length: 0), nil, nil, nil)
+        guard width > 0 else { return }
+        let x = Double(lineOrigin.x + first.x)
+        let baseline = boxHeight - Double(lineOrigin.y + first.y)
+        let thickness = max(1, Double(CTFontGetUnderlineThickness(font)))
+        if underlined {
+            // The position is below the baseline, negative in CoreText's
+            // y-up space, and names the rule's centre.
+            let centre = baseline - Double(CTFontGetUnderlinePosition(font))
+            rules.addRect(CGRect(x: x, y: centre - thickness / 2, width: width, height: thickness))
+        }
+        if struck {
+            let centre = baseline - Double(CTFontGetXHeight(font)) / 2
+            rules.addRect(CGRect(x: x, y: centre - thickness / 2, width: width, height: thickness))
+        }
     }
 
     private static func appendGlyphs(of run: CTRun, lineOrigin: CGPoint, boxHeight: Double,

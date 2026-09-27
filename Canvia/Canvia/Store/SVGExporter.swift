@@ -276,28 +276,46 @@ enum SVGExporter {
 
     /// Images and stickers travel as bitmaps, rendered through the same views
     /// the canvas draws, so crop, filter, corner radius and emoji colour are
-    /// whatever the editor showed rather than a second interpretation of it.
+    /// whatever the editor showed rather than a second interpretation of it —
+    /// with room round it for what the canvas draws past the box
+    /// (`overflow`), or half a border would be cut away.
     @MainActor
     private static func bitmapMarkup(_ el: Element) -> String {
         guard el.w > 0, el.h > 0 else { return "" }
         var upright = el
-        // The group already carries rotation, flip and opacity; baking them
-        // into the bitmap as well would apply each of them twice.
+        // The group already carries rotation, flip, opacity, the shadow and
+        // the blend; baking them into the bitmap as well would apply each of
+        // them twice — a shadow under the shadow.
         upright.rotation = 0
         upright.flipH = false
         upright.flipV = false
         upright.opacity = 1
+        upright.shadow = nil
+        upright.blendMode = nil
         upright.x = 0
         upright.y = 0
 
-        let renderer = ImageRenderer(content: ElementView(element: upright))
+        let pad = overflow(el)
+        let renderer = ImageRenderer(content: ElementView(element: upright).padding(CGFloat(pad)))
         renderer.scale = bitmapScale
         renderer.isOpaque = false
         guard let image = renderer.uiImage, let data = image.pngData() else { return "" }
         let uri = "data:image/png;base64," + data.base64EncodedString()
-        return "<image x=\"\(num(el.x))\" y=\"\(num(el.y))\" " +
-               "width=\"\(num(el.w))\" height=\"\(num(el.h))\" " +
+        return "<image x=\"\(num(el.x - pad))\" y=\"\(num(el.y - pad))\" " +
+               "width=\"\(num(el.w + 2 * pad))\" height=\"\(num(el.h + 2 * pad))\" " +
                "preserveAspectRatio=\"none\" xlink:href=\"\(uri)\"/>"
+    }
+
+    /// How far past its box the canvas draws an element that goes out as a
+    /// picture: half its border, which is centred on the frame, and for a
+    /// shape or a photo in a shaped frame the 3.5% a few library outlines
+    /// lean past their box by — as the Android twin pads the same pictures.
+    static func overflow(_ el: Element) -> Double {
+        guard el.type == .shape || el.type == .image else { return 0 }
+        var border = 0.0
+        if el.stroke != nil, let width = el.strokeWidth, width > 0 { border = width / 2 }
+        let lean = (el.type == .shape || el.maskShapeId != nil) ? max(el.w, el.h) * 0.035 : 0
+        return border + lean
     }
 
     // MARK: background

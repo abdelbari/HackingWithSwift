@@ -17,7 +17,7 @@ struct FrameShape: Shape {
     func path(in rect: CGRect) -> Path {
         guard let definition else {
             let r = max(0, min(cornerRadius, rect.width / 2, rect.height / 2))
-            return Path(roundedRect: rect, cornerRadius: r)
+            return Path(roundedRect: rect, cornerRadius: r, style: .circular)
         }
         return LibraryShape(definition: definition, cornerRadius: cornerRadius).path(in: rect)
     }
