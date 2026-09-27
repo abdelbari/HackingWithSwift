@@ -54,12 +54,14 @@ enum ElementClipboard {
     }
 
     /// Something from another app as an element: a picture becomes a photo
-    /// (stored like an import), text becomes a text element. Half the
-    /// design's width, so it lands visible and not enormous.
+    /// (stored like an import, and kept among your uploads), text becomes a
+    /// text element. Half the design's width, so it lands visible and not
+    /// enormous.
     static func foreign(from pasteboard: UIPasteboard = .general, designWidth: Double) -> Element? {
         if pasteboard.hasImages, let image = pasteboard.image,
            let data = image.pngData(), let prepared = ImageDownsampler.prepare(data),
            let src = MediaStore.store(prepared) {
+            Uploads.record(source: src)
             let w = (designWidth * 0.5).rounded()
             let h = prepared.natural.width > 0
                 ? (w * prepared.natural.height / prepared.natural.width).rounded() : w

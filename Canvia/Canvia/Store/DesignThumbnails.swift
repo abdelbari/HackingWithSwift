@@ -42,7 +42,8 @@ extension DesignLibrary {
     @discardableResult
     static func fillMissingThumbnails(_ recents: [RecentDesign]) -> Bool {
         var wrote = false
-        for recent in recents where recent.thumbnail == nil && !thumbnailTried.contains(recent.id) {
+        for recent in recents where recent.thumbnailStamp == nil && !recent.damaged
+            && !thumbnailTried.contains(recent.id) {
             thumbnailTried.insert(recent.id)
             guard let design = load(id: recent.id) else { continue }
             writeThumbnail(for: design)
@@ -54,4 +55,96 @@ extension DesignLibrary {
     /// Ids tried this launch.
     @MainActor
     private static var thumbnailTried: Set<String> = []
+
+    // MARK: on the cards
+
+    /// Where a design's picture is kept: beside the shelf, or in the trash
+    /// with the design.
+    static func thumbnailURL(for id: String, trashed: Bool = false) -> URL {
+        (trashed ? trashDir : thumbsDir).appendingPathComponent("\(id).jpg")
+    }
+
+    /// When each design's picture was last written, in epoch milliseconds,
+    /// by design id, from one listing of the folder rather than a look at
+    /// each file.
+    static func thumbnailStamps(trashed: Bool) -> [String: Double] {
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: trashed ? trashDir : thumbsDir, includingPropertiesForKeys: [.contentModificationDateKey]) else { return [:] }
+        var stamps: [String: Double] = [:]
+        for url in files where url.pathExtension == "jpg" {
+            let date = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+            stamps[url.deletingPathExtension().lastPathComponent] = (date?.timeIntervalSince1970 ?? 0) * 1000
+        }
+        return stamps
+    }
+
+    /// Pictures already read, by design and when each was written, so a
+    /// card scrolled back to, or Home shown again, draws at once.
+    private static let cardImages: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 120
+        return cache
+    }()
+
+    private static func cardImageKey(_ id: String, stamp: Double, trashed: Bool) -> NSString {
+        "\(trashed ? "trash" : "shelf")/\(id)@\(stamp)" as NSString
+    }
+
+    /// The card's picture if it has been read already.
+    static func cachedCardImage(for id: String, stamp: Double, trashed: Bool) -> UIImage? {
+        cardImages.object(forKey: cardImageKey(id, stamp: stamp, trashed: trashed))
+    }
+
+    /// The card's picture, read and decoded off the main thread.
+    static func cardImage(for id: String, stamp: Double, trashed: Bool) async -> UIImage? {
+        let key = cardImageKey(id, stamp: stamp, trashed: trashed)
+        if let hit = cardImages.object(forKey: key) { return hit }
+        let url = thumbnailURL(for: id, trashed: trashed)
+        let image = await Task.detached(priority: .userInitiated) { () -> UIImage? in
+            guard let data = try? Data(contentsOf: url), let image = UIImage(data: data) else { return nil }
+            // Decoded here rather than at its first draw, on the main thread.
+            return image.preparingForDisplay() ?? image
+        }.value
+        if let image { cardImages.setObject(image, forKey: key) }
+        return image
+    }
+}
+
+/// A design's picture on its card: read from disk as the card first shows,
+/// not every card's before Home can draw, and grey until then or when there
+/// is none.
+struct ShelfThumbnail: View {
+    let id: String
+    /// When the picture was written; a new one is read when it changes.
+    let stamp: Double?
+    var trashed = false
+    @State private var image: UIImage?
+
+    init(id: String, stamp: Double?, trashed: Bool = false) {
+        self.id = id
+        self.stamp = stamp
+        self.trashed = trashed
+        _image = State(initialValue: stamp.flatMap {
+            DesignLibrary.cachedCardImage(for: id, stamp: $0, trashed: trashed)
+        })
+    }
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                Color(.systemGray5)
+            }
+        }
+        .task(id: stamp) {
+            guard let stamp else {
+                image = nil
+                return
+            }
+            image = await DesignLibrary.cardImage(for: id, stamp: stamp, trashed: trashed)
+        }
+    }
 }

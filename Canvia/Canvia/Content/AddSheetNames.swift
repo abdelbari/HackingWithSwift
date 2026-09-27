@@ -20,6 +20,19 @@ enum AddSheetNames {
         "Uploaded picture \(index + 1) of \(count)"
     }
 
+    static func uploadedVideo(_ index: Int, of count: Int) -> String {
+        "Uploaded video \(index + 1) of \(count)"
+    }
+
+    /// A song by its own name and its place, then whether it is starred and
+    /// whether it is the design's soundtrack already.
+    static func music(_ name: String, _ index: Int, of count: Int, starred: Bool, playing: Bool) -> String {
+        var label = "\(name), music \(index + 1) of \(count)"
+        if starred { label += ", favourite" }
+        if playing { label += ", this design's soundtrack" }
+        return label
+    }
+
     static func logo(_ index: Int, of count: Int) -> String {
         "Brand logo \(index + 1) of \(count)"
     }

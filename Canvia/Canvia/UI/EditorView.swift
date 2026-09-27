@@ -62,11 +62,19 @@ struct EditorView: View {
     /// Whether a finger is on Undo — reset by SwiftUI however the press ends.
     @GestureState private var undoHeld = false
     @State private var rewindExhausted = 0
+    /// Set while the design on screen could not be written, and cleared by
+    /// the next save that could.
+    @State private var saveFailed = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// What the banner says while saves are failing; the Android twin says
+    /// the same.
+    static let saveFailedMessage = "Couldn't save your changes. Your phone may be out of space. Canvia will keep trying."
 
     var body: some View {
         VStack(spacing: 0) {
             topBar
+            if saveFailed { saveFailedBanner }
             if let tip { tipBanner(tip) }
             ZStack(alignment: .bottomTrailing) {
                 CanvasView(store: store)
@@ -972,6 +980,47 @@ struct EditorView: View {
         }
     }
 
+    // MARK: saving
+
+    /// Up for as long as the design on screen is not safely on disk, and
+    /// gone with the first save that goes through — the next edit's, or
+    /// Try again's. Where tips go, under the top bar, so it never covers
+    /// the page; a tip that arrives meanwhile shows under it.
+    private var saveFailedBanner: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+                .padding(.top, 1)
+                .accessibilityHidden(true)
+            Text(Self.saveFailedMessage)
+                .font(.footnote)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            Button("Try again") { saveDocument() }
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Theme.accent)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Color.orange.opacity(0.14))
+        .overlay(alignment: .bottom) { Divider() }
+        .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
+        .accessibilityElement(children: .contain)
+    }
+
+    /// Shows or clears the banner as the last save went. Said as it
+    /// arrives, as a tip is, since a failed save changes nothing on screen;
+    /// only when it changes, so a banner already up is not read out again
+    /// at every failed save.
+    @MainActor
+    private func noteSave(succeeded: Bool) {
+        guard succeeded == saveFailed else { return }
+        withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85)) {
+            saveFailed = !succeeded
+        }
+        if !succeeded { AccessibilityNotification.Announcement(Self.saveFailedMessage).post() }
+    }
+
     // MARK: tips
 
     /// One line under the top bar, with a way to close it, gone on its own
@@ -1127,7 +1176,10 @@ struct EditorView: View {
         // or a stale task can resurrect a design deleted after leaving.
         saveTask?.cancel()
         saveTask = nil
-        DesignLibrary.save(store.design)
+        // Said, not swallowed: out of space, every save failed in silence
+        // and the design came back hours old at the next launch. The
+        // banner stays until one goes through; the next edit tries again.
+        noteSave(succeeded: DesignLibrary.save(store.design))
         // Rate-limited inside, so this is free most of the time.
         DesignLibrary.snapshot(store.design)
     }

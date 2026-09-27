@@ -139,6 +139,16 @@ final class DesignStore {
     /// True while an open gesture holds a pre-mutation snapshot.
     var hasPendingChanges: Bool { pending != nil }
 
+    /// The design as it stands, first, then every state Undo or Redo can
+    /// return to: what still holds a photo taken out of it since it opened.
+    var statesInHistory: [Design] {
+        var states = [design]
+        if let pending { states.append(pending.design) }
+        states += past.map(\.design)
+        states += future.map(\.design)
+        return states
+    }
+
     func commit() {
         // Without a beginGesture() snapshot there is no pre-mutation state to
         // record — pushing the current design would make undo a no-op.

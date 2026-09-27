@@ -111,7 +111,9 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   never drawn and so cannot reach an export; typing a note is one Undo
 - Undo/redo with gesture coalescing (a whole drag is one step), autosave,
   lock, opacity, duplicate, align / distribute / flip / exact-position
-  sheet, layers sheet with drag reorder
+  sheet, layers sheet with drag reorder. Saves land whole or not at all,
+  and one that fails — the phone out of space — puts a banner up ("Couldn't
+  save your changes…", with Try again) until a save goes through.
 - Find and replace across every page, with a live count ("12 found on 3
   pages", spoken to VoiceOver as it changes), the count on the Replace all
   button, and replace-all as a single undo step, felt; and a spelling
@@ -137,7 +139,12 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   templates — the search is there even on an empty shelf, which still has
   templates — sorts by last edited, name or page count, and keeps deleted
   designs in a Recently deleted section for thirty days, with Restore
-  and Delete forever. Their photos and version history wait with them.
+  and Delete forever (asked first), and Empty Recently deleted. Their
+  photos and version history wait with them. A design file that no
+  longer reads is a "Damaged design" card, restored from its newest
+  version that does, or deleted; nothing is swept while one is there.
+  Home reads each design's summary from designs/shelf.json, off the main
+  thread, and each card's picture only as the card shows.
 - VoiceOver on the canvas: every element is named as the Layers sheet
   and the snap guides name it — "Heading: SALE", "Red oval", "Blue line",
   "QR code", "Empty photo frame" — or by its alt text, valued (where and how big, in percentages of
@@ -167,8 +174,12 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   slider keeps it. Every toolbar, photo, shadow and crop slider is named
   for VoiceOver with the number it shows; lines weigh up to 60. Drop caps: the first
   letter three lines deep with the paragraph wrapping around it.
-- Your uploads: every picture ever imported, newest first, in the Photos
-  tab — insert again, star, or delete. Custom shapes from an SVG file:
+- Your uploads: every photo, video and song brought in — picked, dropped,
+  pasted, or chosen as a soundtrack — listed in uploads.json and never
+  swept, in Photos, Videos and Music segments of the Photos tab, newest
+  first: insert again (a video as a clip, a song as the soundtrack),
+  star, or delete, which asks first and says how many designs keep it.
+  Custom shapes from an SVG file:
   the first path, relative commands and smooth curves included, fitted
   into the library's box.
 - Charts and tables from typed data: bars, columns, pie, donut or line

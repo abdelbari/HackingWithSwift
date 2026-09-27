@@ -99,8 +99,8 @@ enum CanvasDrop {
     /// storing as the photo picker's: PNG when it has see-through parts, so
     /// a logo dragged in from Files or Safari keeps its clear surround, and
     /// no wider than the picker would keep it. A provider with no data
-    /// falls back to its UIImage, stored with its alpha. `done` runs on the
-    /// main actor.
+    /// falls back to its UIImage, stored with its alpha. Either is kept
+    /// among your uploads. `done` runs on the main actor.
     private static func loadPicture(_ provider: NSItemProvider,
                                     done: @escaping @MainActor ((src: String, natural: CGSize)?) -> Void) {
         if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
@@ -108,6 +108,7 @@ enum CanvasDrop {
                 // Called off the main thread, where the decode belongs.
                 var stored: (src: String, natural: CGSize)?
                 if let data, let prepared = ImageDownsampler.prepare(data), let src = MediaStore.store(prepared) {
+                    Uploads.record(source: src)
                     stored = (src, prepared.natural)
                 }
                 let result = stored
@@ -118,6 +119,7 @@ enum CanvasDrop {
         provider.loadObject(ofClass: UIImage.self) { object, _ in
             var stored: (src: String, natural: CGSize)?
             if let image = object as? UIImage, let src = MediaStore.storeTransparent(image) {
+                Uploads.record(source: src)
                 stored = (src, image.size)
             }
             let result = stored

@@ -25,6 +25,17 @@ struct HomeView: View {
     var onOpen: (Design) -> Void
 
     @State private var recents: [RecentDesign] = []
+    /// Design files that no longer read, each shown as a card of its own.
+    @State private var damaged: [RecentDesign] = []
+    /// The damaged design whose deletion is being asked about.
+    @State private var deletingDamaged: RecentDesign?
+    /// No version of a damaged design could be read.
+    @State private var restoreFailed = false
+    /// Whether the shelf has been read yet, so the first-run card does not
+    /// flash up over a shelf that is still being read.
+    @State private var loaded = false
+    /// Counts the shelf's reads, so only the latest one is shown.
+    @State private var reloads = 0
     @State private var homeSheet: HomeSheet?
     /// A design made in a sheet, opened once the sheet has gone rather than
     /// from under it.
@@ -39,6 +50,11 @@ struct HomeView: View {
     @State private var sort = DesignLibrary.Sort.recent
     @State private var trashed: [RecentDesign] = []
     @State private var showingTrash = false
+    /// The design in Recently deleted whose deletion for good is being
+    /// asked about.
+    @State private var deletingForever: RecentDesign?
+    /// Emptying Recently deleted is being asked about.
+    @State private var emptyingTrash = false
     @State private var importing = false
     @State private var favoritesVersion = 0
     @State private var importError: String?
@@ -64,11 +80,11 @@ struct HomeView: View {
                 // Always there: it finds templates as well as designs, and
                 // an empty shelf still has templates to search.
                 searchBar
-                if recents.isEmpty && trashed.isEmpty {
+                if loaded && recents.isEmpty && damaged.isEmpty && trashed.isEmpty {
                     firstRunCard
                 }
                 importRow
-                if !recents.isEmpty {
+                if !recents.isEmpty || !damaged.isEmpty {
                     HStack {
                         Text("Recent designs")
                             .font(.title3.weight(.bold))
@@ -195,21 +211,39 @@ struct HomeView: View {
         create(design)
     }
 
+    /// The shelf and the trash, read off the main thread — every design
+    /// used to be decoded on it, and every card's picture built, each time
+    /// Home appeared — and shown when they land. Only the latest read is
+    /// shown, so one begun before a rename cannot land after it.
     private func reload() {
-        recents = DesignLibrary.recents()
-        // A design that reached the shelf without being opened here — a
-        // file from the Android twin, a sample whose picture was not
-        // written — gets its picture now rather than showing a grey box.
-        if DesignLibrary.fillMissingThumbnails(recents) {
-            recents = DesignLibrary.recents()
+        reloads += 1
+        let generation = reloads
+        Task { @MainActor in
+            let (shelf, binned) = await Task.detached(priority: .userInitiated) { () -> (DesignLibrary.Shelf, [RecentDesign]) in
+                (DesignLibrary.shelf(), DesignLibrary.trashed())
+            }.value
+            guard generation == reloads else { return }
+            show(shelf, trashed: binned)
         }
-        trashed = DesignLibrary.trashed()
+    }
+
+    private func show(_ shelf: DesignLibrary.Shelf, trashed: [RecentDesign]) {
+        recents = shelf.designs
+        damaged = shelf.damaged
+        self.trashed = trashed
+        loaded = true
         // The icon's quick actions follow the shelf, so a deleted design
         // drops out of them.
         QuickActions.publish(recents: recents)
         // A folder exists while something is in it: when its last design
         // goes, the shelf shows everything again rather than nothing.
         if let f = folder, !DesignLibrary.folders(in: recents).contains(f) { folder = nil }
+        // A design that reached the shelf without being opened here — a
+        // file from the Android twin, a sample whose picture was not
+        // written — gets its picture now rather than showing a grey box,
+        // and the shelf is read again for its card to find it. Each design
+        // is tried once a launch, so this does not go round again.
+        if DesignLibrary.fillMissingThumbnails(recents) { reload() }
     }
 
     /// A design file made by Export on another device (or this one, as a
@@ -252,8 +286,9 @@ struct HomeView: View {
         }
     }
 
+    /// The designs to show, damaged ones among them in their place.
     private var shownRecents: [RecentDesign] {
-        DesignLibrary.filter(recents, query: query, sort: sort, folder: folder)
+        DesignLibrary.filter(recents + damaged, query: query, sort: sort, folder: folder)
     }
 
     private var folders: [String] { DesignLibrary.folders(in: recents) }
@@ -384,15 +419,9 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(trashed) { entry in
                     HStack(spacing: 12) {
-                        Group {
-                            if let thumb = entry.thumbnail {
-                                Image(uiImage: thumb).resizable().aspectRatio(contentMode: .fill)
-                            } else {
-                                Color(.systemGray5)
-                            }
-                        }
-                        .frame(width: 56, height: 42)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        ShelfThumbnail(id: entry.id, stamp: entry.thumbnailStamp, trashed: true)
+                            .frame(width: 56, height: 42)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(entry.title).font(.subheadline.weight(.semibold)).lineLimit(1)
                             Text("Deleted \(RelativeTime.lowercasedFirst(RelativeTime.text(ms: entry.updatedAt)))")
@@ -405,14 +434,17 @@ struct HomeView: View {
                         }
                         .buttonStyle(.bordered)
                         Button(role: .destructive) {
-                            DesignLibrary.deleteTrashed(id: entry.id)
-                            reload()
+                            deletingForever = entry
                         } label: { Image(systemName: "trash") }
                         .accessibilityLabel("Delete forever")
                     }
                 }
                 Text("Designs in the trash are removed after 30 days.")
                     .font(.caption).foregroundStyle(.secondary)
+                Button("Empty Recently deleted", role: .destructive) { emptyingTrash = true }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.red)
+                    .padding(.top, 4)
             }
             .padding(.top, 8)
         } label: {
@@ -420,6 +452,41 @@ struct HomeView: View {
                 .font(.title3.weight(.bold))
         }
         .padding(.horizontal)
+        // Asked first, both: there is no coming back from either, and the
+        // one design's bin sat a finger's width from its Restore.
+        .confirmationDialog(deleteForeverQuestion,
+                            isPresented: Binding(get: { deletingForever != nil },
+                                                 set: { if !$0 { deletingForever = nil } }),
+                            titleVisibility: .visible) {
+            Button("Delete forever", role: .destructive) {
+                if let entry = deletingForever {
+                    DesignLibrary.deleteTrashed(id: entry.id)
+                    if justTrashed?.id == entry.id { hideTrashed() }
+                }
+                deletingForever = nil
+                reload()
+            }
+            Button("Cancel", role: .cancel) { deletingForever = nil }
+        } message: {
+            Text(DesignLibrary.cannotBeUndone)
+        }
+        .confirmationDialog(DesignLibrary.emptyTrashQuestion(count: trashed.count),
+                            isPresented: $emptyingTrash, titleVisibility: .visible) {
+            Button("Delete forever", role: .destructive) {
+                DesignLibrary.emptyTrash()
+                hideTrashed()
+                reload()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(DesignLibrary.cannotBeUndone)
+        }
+    }
+
+    /// What deleting one design for good asks first.
+    private var deleteForeverQuestion: String {
+        guard let entry = deletingForever else { return "" }
+        return "Delete “\(entry.title)” forever?"
     }
 
     // MARK: undo a delete
@@ -571,92 +638,160 @@ struct HomeView: View {
     private var recentsGrid: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
             ForEach(shownRecents) { recent in
-                Button {
-                    if let design = DesignLibrary.load(id: recent.id) {
-                        onOpen(design)
-                    }
-                } label: {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Group {
-                            if let thumb = recent.thumbnail {
-                                Image(uiImage: thumb)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                            } else {
-                                Color(.systemGray5)
-                            }
-                        }
-                        .frame(height: 120)
-                        .clipped()
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(recent.title)
-                                .font(.subheadline.weight(.semibold))
-                                .lineLimit(1)
-                            Text(caption(for: recent).shown)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-                        .padding(10)
-                    }
-                    .background(Theme.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .shadow(color: .black.opacity(0.08), radius: 5, y: 2)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(recent.title), \(caption(for: recent).spoken)")
-                .contextMenu {
-                    Button {
-                        renameText = recent.title
-                        renaming = recent
-                    } label: { Label("Rename", systemImage: "pencil") }
-                    Button {
-                        if var design = DesignLibrary.load(id: recent.id) {
-                            let sourceId = design.id
-                            design.id = UID.make("doc")
-                            design.title += " (copy)"
-                            design.updatedAt = Date().timeIntervalSince1970 * 1000
-                            DesignLibrary.save(design)
-                            DesignLibrary.copyThumbnail(from: sourceId, to: design.id)
-                            reload()
-                        }
-                    } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
-                    Menu {
-                        ForEach(folders.filter { $0 != recent.folder }, id: \.self) { name in
-                            Button(name) {
-                                DesignLibrary.move(id: recent.id, toFolder: name)
-                                reload()
-                            }
-                        }
-                        Button {
-                            newFolderName = ""
-                            filingInto = recent
-                        } label: { Label("New folder…", systemImage: "folder.badge.plus") }
-                        if recent.folder != nil {
-                            Button(role: .destructive) {
-                                DesignLibrary.move(id: recent.id, toFolder: nil)
-                                reload()
-                            } label: { Label("Remove from folder", systemImage: "folder.badge.minus") }
-                        }
-                    } label: { Label("Move to folder", systemImage: "folder") }
-                    if supportsMultipleWindows {
-                        Button {
-                            openWindow(value: recent.id)
-                        } label: { Label("Open in new window", systemImage: "macwindow.badge.plus") }
-                    }
-                    Button(role: .destructive) {
-                        // To the trash, not gone: thirty days to change
-                        // your mind, in the section below — and Undo right
-                        // here for the change of mind that comes at once.
-                        DesignLibrary.trash(id: recent.id)
-                        reload()
-                        showTrashed(recent)
-                    } label: { Label("Delete", systemImage: "trash") }
+                if recent.damaged {
+                    damagedCard(recent)
+                } else {
+                    designCard(recent)
                 }
             }
         }
         .padding(.horizontal)
+        .confirmationDialog("Delete this damaged design?", isPresented: Binding(
+            get: { deletingDamaged != nil }, set: { if !$0 { deletingDamaged = nil } }),
+                            titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                if let entry = deletingDamaged { DesignLibrary.delete(id: entry.id) }
+                deletingDamaged = nil
+                reload()
+            }
+            Button("Cancel", role: .cancel) { deletingDamaged = nil }
+        } message: {
+            Text("It can't be opened, so it can't go to Recently deleted. This can't be undone.")
+        }
+        .alert("No version to restore", isPresented: $restoreFailed) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("No earlier version of this design can be opened.")
+        }
+    }
+
+    private func designCard(_ recent: RecentDesign) -> some View {
+        Button {
+            if let design = DesignLibrary.load(id: recent.id) {
+                onOpen(design)
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 0) {
+                ShelfThumbnail(id: recent.id, stamp: recent.thumbnailStamp)
+                    .frame(height: 120)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(recent.title)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                    Text(caption(for: recent).shown)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                .padding(10)
+            }
+            .background(Theme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .shadow(color: .black.opacity(0.08), radius: 5, y: 2)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(recent.title), \(caption(for: recent).spoken)")
+        .contextMenu {
+            Button {
+                renameText = recent.title
+                renaming = recent
+            } label: { Label("Rename", systemImage: "pencil") }
+            Button {
+                if var design = DesignLibrary.load(id: recent.id) {
+                    let sourceId = design.id
+                    design.id = UID.make("doc")
+                    design.title += " (copy)"
+                    design.updatedAt = Date().timeIntervalSince1970 * 1000
+                    DesignLibrary.save(design)
+                    DesignLibrary.copyThumbnail(from: sourceId, to: design.id)
+                    reload()
+                }
+            } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
+            Menu {
+                ForEach(folders.filter { $0 != recent.folder }, id: \.self) { name in
+                    Button(name) {
+                        DesignLibrary.move(id: recent.id, toFolder: name)
+                        reload()
+                    }
+                }
+                Button {
+                    newFolderName = ""
+                    filingInto = recent
+                } label: { Label("New folder…", systemImage: "folder.badge.plus") }
+                if recent.folder != nil {
+                    Button(role: .destructive) {
+                        DesignLibrary.move(id: recent.id, toFolder: nil)
+                        reload()
+                    } label: { Label("Remove from folder", systemImage: "folder.badge.minus") }
+                }
+            } label: { Label("Move to folder", systemImage: "folder") }
+            if supportsMultipleWindows {
+                Button {
+                    openWindow(value: recent.id)
+                } label: { Label("Open in new window", systemImage: "macwindow.badge.plus") }
+            }
+            Button(role: .destructive) {
+                // To the trash, not gone: thirty days to change
+                // your mind, in the section below — and Undo right
+                // here for the change of mind that comes at once.
+                DesignLibrary.trash(id: recent.id)
+                reload()
+                showTrashed(recent)
+            } label: { Label("Delete", systemImage: "trash") }
+        }
+    }
+
+    /// A design file that no longer reads, among the designs rather than
+    /// left out of them without a word, as it used to be: brought back from
+    /// its newest version that still reads, or deleted.
+    private func damagedCard(_ entry: RecentDesign) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ZStack {
+                Color(.systemGray5)
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.largeTitle)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(height: 120)
+            .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(entry.title)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                Text("This design can't be opened.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Restore last version") { restoreDamaged(entry) }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
+                Button("Delete", role: .destructive) { deletingDamaged = entry }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.red)
+            }
+            .padding(10)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.card)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .shadow(color: .black.opacity(0.08), radius: 5, y: 2)
+        .accessibilityElement(children: .contain)
+    }
+
+    /// The newest version that reads comes back under the same id, and the
+    /// card is the design again, with a fresh picture.
+    private func restoreDamaged(_ entry: RecentDesign) {
+        guard let design = DesignLibrary.restoreLastVersion(of: entry.id) else {
+            restoreFailed = true
+            return
+        }
+        DesignLibrary.writeThumbnail(for: design)
+        let said: String = "Restored “\(design.title)”"
+        AccessibilityNotification.Announcement(said).post()
+        reload()
     }
 
     /// Its size, then when it was last touched and how many pages — and

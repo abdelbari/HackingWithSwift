@@ -600,13 +600,15 @@ struct ExportSheet: View {
                 return
             }
             // Only music that plays becomes the soundtrack: a file with no
-            // sound in it would make a silent video without a word.
+            // sound in it would make a silent video without a word. Music
+            // that plays is kept among your uploads, to choose again.
             Task {
                 guard let seconds = await AudioStore.duration(of: id), seconds > 0 else {
                     AudioStore.delete(id)
                     audioRefused = true
                     return
                 }
+                Uploads.record(id, kind: .audio)
                 binding.wrappedValue.soundtrack = id
                 audioSeconds = seconds
             }

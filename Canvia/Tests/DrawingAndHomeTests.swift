@@ -152,7 +152,7 @@ final class DrawingAndHomeTests: XCTestCase {
 
     private func recent(_ title: String, folder: String?) -> RecentDesign {
         RecentDesign(id: UID.make("doc"), title: title, width: 100, height: 100, pages: 1,
-                     updatedAt: 0, thumbnail: nil, folder: folder)
+                     updatedAt: 0, folder: folder)
     }
 
     func testFolderListAndFilter() {
