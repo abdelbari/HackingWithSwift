@@ -48,7 +48,7 @@ struct ContextToolbar: View {
     @State private var borderBefore: BorderBefore?
     /// Which corners round, read as a Round drag began and held through it
     /// (the outer nil: no drag under way).
-    @State private var heldCorners: CornerPatterns.Pattern??
+    @State private var heldCorners: CornerPatterns.Pattern?? = nil
 
     @State private var cuttingOut = false
     @State private var dictationBase = ""
