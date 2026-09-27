@@ -86,6 +86,15 @@ struct ContextToolbar: View {
         .onChange(of: editingAlt || editingLink || namingStyle) { _, open in
             store.textFieldOpen = open
         }
+        // Dictation belongs to the one text box it began on: once anything
+        // else is selected, or the microphone stops by itself, it is over.
+        .onChange(of: store.selection) { _, selection in
+            if let target = store.dictationTarget, selection != [target] { endDictation() }
+        }
+        .onChange(of: Dictation.shared.isListening) { _, listening in
+            if !listening { store.finishDictation() }
+        }
+        .onDisappear { endDictation() }
         .alert("Remove background",
                isPresented: Binding(get: { cutoutError != nil },
                                     set: { if !$0 { cutoutError = nil } })) {
@@ -176,32 +185,34 @@ struct ContextToolbar: View {
             toolButton("wand.and.stars", "Effects") { activeSheet = .effects }
             toolButton("arrow.up.and.down.text.horizontal", "Spacing") { activeSheet = .spacing }
             pathMenu(el)
-            if Dictation.isAvailable { dictateButton(el) }
+            if Dictation.isAvailable && !el.locked { dictateButton(el) }
             sliderControl("Curve", value: el.curve ?? 0, in: -180...180) { degrees in
                 store.updateSelectedTransient { curve(&$0, to: degrees) }
             }
         }
     }
 
-    /// Speak, and the words append to the selected text as they arrive;
-    /// tap again to stop, which is when the change is recorded.
+    /// Speak, and the words append to this text as they arrive; tap again
+    /// to stop, which is when the change is recorded. The words go into the
+    /// box dictation began on and nowhere else — select anything else and
+    /// the microphone stops, as the Android twin's does.
     private func dictateButton(_ el: Element) -> some View {
-        let listening = Dictation.shared.isListening
+        let listening = Dictation.shared.isListening && store.dictationTarget == el.id
         return toolButton(listening ? "mic.fill" : "mic", listening ? "Stop" : "Dictate") {
             if listening {
-                Dictation.shared.stop()
-                store.commit()
+                endDictation()
                 return
             }
+            endDictation()
             dictationBase = el.text ?? ""
             let base = dictationBase
+            let target = el.id
+            store.dictationTarget = target
             Dictation.shared.start { spoken, isFinal in
                 Task { @MainActor in
-                    store.updateSelectedTransient { e in
-                        e.text = Dictation.merge(base, spoken)
-                        e.h = FontLibrary.layoutHeight(for: e)
-                    }
-                    if isFinal { store.commit() }
+                    guard store.dictationTarget == target else { return }
+                    store.dictate(Dictation.merge(base, spoken))
+                    if isFinal { store.finishDictation() }
                 }
             }
         }
@@ -854,6 +865,12 @@ struct ContextToolbar: View {
                 }
             }
         }
+    }
+
+    /// Stops the microphone and records what it wrote as one step.
+    private func endDictation() {
+        if Dictation.shared.isListening { Dictation.shared.stop() }
+        store.finishDictation()
     }
 
     private func toolButton(_ system: String, _ label: String, action: @escaping () -> Void) -> some View {

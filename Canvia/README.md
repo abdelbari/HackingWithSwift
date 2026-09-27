@@ -48,7 +48,13 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   library is generated from the Android twin's `templates/` specs)
 - Text: curved text on an arc from -180° to 180° (glyphs placed along one
   circle whose radius the line's own width fixes, so letters keep their
-  size rather than being squashed to fit), inline editing (double-tap),
+  size rather than being squashed to fit), inline editing (double-tap) in a
+  field set exactly as the words are drawn — fitted size, tracking, line
+  pitch, underline, justification, top/middle/bottom — with the box itself
+  hidden meanwhile and kept above the keyboard as it grows; however typing
+  ends (a tap elsewhere, Done, Escape, a Layers row, a page change) it is
+  its own undo step and an emptied box goes; changing the font, weight,
+  slant, alignment or path measures the box again,
   12 font personalities mapped to fonts
   that ship with iOS (Didot, Rockwell, Futura Condensed ExtraBold, Menlo,
   Snell Roundhand, …), 8 text effects (shadow, lift, hollow, splice, neon,
@@ -259,9 +265,12 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   something changed, thirty deep. Restoring one is a single undo step
   and the current state is kept as a version first, so it is never a
   one-way door.
-- An undo toast after the edits people regret — delete, delete page,
+- An undo toast after the edits people regret — delete, cut, delete page,
   replace all, restore — naming what just happened with an Undo button
-  on it, gone after four seconds.
+  and a close button on it, spoken by VoiceOver ("… Undo available"), gone
+  after four seconds, or ten with VoiceOver or Switch Control on.
+- A sheet rising over the canvas keeps the selection in the half still
+  showing, by the least pan — and so does picking something while it is up.
 - Top-bar overflow menu: layers, page background, find and replace,
   version history, copy and paste style, copy / cut / paste,
   select all, and group / ungroup (grouping is sticky multi-selection —
@@ -331,7 +340,8 @@ picture on this page or one page each.
 
 **Read aloud** — the menu reads the page in reading order (rows top to
 bottom, left to right — the same order VoiceOver takes the canvas in),
-pictures by their alt text and page-number tokens resolved.
+pictures by their alt text and page-number tokens resolved. Leaving the
+design stops it.
 
 **Haptics** — selection, snapping to guides and to 45° rotation, undo and
 redo, grouping, a new page and each drawn stroke are each felt, once,
@@ -447,9 +457,11 @@ shaped unlike the frame on black. Resizing the whole design brings every
 page to the new size.
 
 **Dictation** — a microphone on the text toolbar (where speech
-recognition is available) appends what you say to the selected text as
-the words arrive, on-device where the system allows, and records the
-change when you stop. The keyboard's own microphone works in the inline
+recognition is available, and the text is unlocked) appends what you say
+to that text as the words arrive, on-device where the system allows, and
+records the change when you stop. The words go only into the box
+dictation began on: selecting anything else, or leaving the design, stops
+the microphone. The keyboard's own microphone works in the inline
 editor as well, and on iPad so does Scribble.
 
 **Handwriting to text** — select drawn strokes and *To text* renders them
@@ -477,7 +489,8 @@ a title in the discoverability overlay: ⌘Z / ⇧⌘Z (or ⌘Y), ⌘C / ⌘X / 
 duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and
 with ⇧) to reorder layers, ⇧⌘L lock, ⌘E export, ⌘K layers, ⇧⌘P present,
 ⇧⌘N new page, ⌘/ help, arrows to nudge (⇧ for ten), Delete or ⌦ (or
-⌘⌫) to delete the selection when nothing is being typed.
+⌘⌫) to delete the selection when nothing is being typed, and Escape to
+deselect — or, while typing in place, to finish typing.
 
 **On the canvas** — a pill at the top right reads Fit or the zoom as a
 percentage, and a tap goes between the whole page and actual size; Bring

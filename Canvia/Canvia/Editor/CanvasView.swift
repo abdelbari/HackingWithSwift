@@ -4,6 +4,7 @@
 // runs in the "page" coordinate space so zoom never affects it.
 
 import SwiftUI
+import UIKit
 
 struct CanvasView: View {
     @Bindable var store: DesignStore
@@ -14,7 +15,6 @@ struct CanvasView: View {
     /// When a tap on the photo in crop mode last landed, for the double tap
     /// that finishes it.
     @State private var lastCropTap: Date?
-    @FocusState private var textFieldFocused: Bool
 
     /// Inverse zoom: ornaments are drawn in page units but should
     /// stay a constant size on screen.
@@ -104,6 +104,22 @@ struct CanvasView: View {
                 .frame(width: store.pageWidth, height: store.pageHeight)
         }
         .ignoresSafeArea(.keyboard)
+        // Typing in place stays above the keyboard: when it starts, when the
+        // keyboard arrives or changes, and as the box grows line by line.
+        .onChange(of: typingBox) { _, _ in revealTyping() }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { _ in
+            revealTyping()
+        }
+    }
+
+    /// The box being typed in, as it is now.
+    private var typingBox: CGRect? {
+        store.editingTextId.flatMap { store.element($0) }.map(Geometry.aabb)
+    }
+
+    private func revealTyping() {
+        guard let box = typingBox else { return }
+        store.requestCanvas(.reveal(box, typing: true))
     }
 
     // MARK: page + overlay
@@ -234,11 +250,13 @@ struct CanvasView: View {
     // MARK: crop
 
     /// The page as the canvas draws it. In crop mode the photo being cropped
-    /// is left out: the crop layer draws it over the dimmed page, whole.
+    /// is left out: the crop layer draws it over the dimmed page, whole. So
+    /// is a text box being typed in, so its words show once, in the field.
     private var shownPage: Page {
-        guard let crop = store.cropping else { return store.page }
+        let hidden = [store.cropping?.id, store.editingTextId].compactMap { $0 }
+        guard !hidden.isEmpty else { return store.page }
         var page = store.page
-        page.elements.removeAll { $0.id == crop.id }
+        page.elements.removeAll { hidden.contains($0.id) }
         return page
     }
 
@@ -556,7 +574,10 @@ struct CanvasView: View {
         DragGesture(minimumDistance: Touch.pageUnits(Touch.dragSlop, zoom: store.zoom),
                     coordinateSpace: .named("page"))
             .onChanged { value in
-                if gesture.marquee == nil { commitTextEditIfAny() }
+                if gesture.marquee == nil {
+                    commitTextEditIfAny()
+                    store.canvasTouchActive = true
+                }
                 let band = CGRect(
                     x: min(value.startLocation.x, value.location.x),
                     y: min(value.startLocation.y, value.location.y),
@@ -569,6 +590,7 @@ struct CanvasView: View {
             }
             .onEnded { _ in
                 gesture.marquee = nil
+                store.canvasTouchActive = false
             }
     }
 
@@ -714,8 +736,11 @@ struct CanvasView: View {
                 guard !el.locked, store.editingTextId != el.id else { return }
                 if !gesture.dragActive {
                     gesture.dragActive = true
-                    store.beginGesture()
+                    store.canvasTouchActive = true
+                    // Selected before the step opens: selecting ends any typing
+                    // as its own step, which must not swallow this move's.
                     if !store.selection.contains(el.id) { store.select(el.id) }
+                    store.beginGesture()
                     gesture.dragOriginals = Dictionary(
                         uniqueKeysWithValues: store.selectedElements
                             .filter { !$0.locked }
@@ -918,54 +943,49 @@ struct CanvasView: View {
         store.guideXSource = nil
         store.guideYSource = nil
         store.badge = nil
+        store.badgeRuns = nil
         store.rotationSnapped = false
+        store.spacingSnapped = false
+        store.canvasTouchActive = false
     }
 
     // MARK: inline text editing
 
     private func startTextEdit(_ el: Element) {
-        store.beginGesture()
-        // Selected first: select() ends any typing, and set before it the
-        // editor was ended as soon as it began and never appeared.
+        // Selected first: select() ends any typing as its own step, and the
+        // step for this typing opens after it.
         store.select(el.id)
+        store.beginGesture()
         store.editingTextId = el.id
-        textFieldFocused = true
     }
 
     func commitTextEditIfAny() {
-        guard let id = store.editingTextId else { return }
-        store.editingTextId = nil
-        textFieldFocused = false
-        // Delete empty text elements on exit (Canva behavior).
-        if let el = store.element(id), (el.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            store.design.pages[store.pageIndex].elements.removeAll { $0.id == id }
-            store.selection.remove(id)
-        }
-        store.commit()
+        store.endTextEdit()
     }
 
-    @ViewBuilder
+    /// Typing in place: a field set exactly as the words are drawn — the
+    /// drawn size, tracking, line pitch, underline and alignment — over the
+    /// box, which the page leaves out meanwhile so the words show once. The
+    /// words sit top, middle or bottom as the box places them.
     private func inlineTextEditor(_ el: Element) -> some View {
-        let binding = Binding<String>(
-            get: { store.element(el.id)?.text ?? "" },
-            set: { newValue in
-                store.beginGesture()
-                if let i = store.design.pages[store.pageIndex].elements.firstIndex(where: { $0.id == el.id }) {
-                    store.design.pages[store.pageIndex].elements[i].text = newValue
-                    let h = FontLibrary.layoutHeight(for: store.design.pages[store.pageIndex].elements[i])
-                    store.design.pages[store.pageIndex].elements[i].h = h
-                }
-            })
-        TextField("", text: binding, axis: .vertical)
-            .focused($textFieldFocused)
-            .font(FontLibrary.font(family: el.fontFamily, size: el.fontSize ?? 42,
-                                          weight: el.fontWeight ?? 400, italic: el.italic ?? false))
-            .foregroundStyle(Color(hex: el.color ?? "#1f2430"))
-            .multilineTextAlignment(el.align == "left" ? .leading : el.align == "right" ? .trailing : .center)
+        let sits: Alignment = el.vAlign == "middle" ? .center : el.vAlign == "bottom" ? .bottom : .top
+        let id = el.id
+        return InlineTextField(element: el,
+                               onChange: { typeInline(id, $0) },
+                               onDone: { commitTextEditIfAny() })
             .frame(width: el.w)
-            .background(Color.white.opacity(0.65))
+            .frame(width: el.w, height: el.h, alignment: sits)
+            .overlay(Rectangle().stroke(Theme.accent, lineWidth: 1 * iz).allowsHitTesting(false))
             .rotationEffect(.degrees(el.rotation))
             .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
-            .onSubmit { commitTextEditIfAny() }
+    }
+
+    private func typeInline(_ id: String, _ words: String) {
+        store.beginGesture()
+        guard let i = store.design.pages[store.pageIndex].elements.firstIndex(where: { $0.id == id }),
+              store.design.pages[store.pageIndex].elements[i].text != words else { return }
+        store.design.pages[store.pageIndex].elements[i].text = words
+        let h = FontLibrary.layoutHeight(for: store.design.pages[store.pageIndex].elements[i])
+        store.design.pages[store.pageIndex].elements[i].h = h
     }
 }

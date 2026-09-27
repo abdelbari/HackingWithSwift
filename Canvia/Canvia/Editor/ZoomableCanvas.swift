@@ -35,8 +35,12 @@ struct CanvasRequest: Equatable {
         case fit
         /// This zoom, about the middle of the screen.
         case zoom(Double)
-        /// Scroll just far enough that this box, in page units, is in sight.
-        case reveal(CGRect)
+        /// Scroll just far enough that this box, in page units, is in sight —
+        /// in the part of the canvas still showing when the bottom
+        /// `covered` fraction of the window is under a sheet, and above the
+        /// keyboard when one is up. While `typing`, the box's foot wins over
+        /// its head, so the line being typed is the one kept in view.
+        case reveal(CGRect, covered: Double = 0, typing: Bool = false)
     }
     var kind: Kind
     var serial: Int
@@ -180,6 +184,8 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         /// The serial of the last change of view acted on.
         var handledRequest = 0
         private var panOrigin: CGPoint = .zero
+        /// Where the keyboard is, in screen coordinates, while one is up.
+        private var keyboard: CGRect?
 
         init(_ parent: ZoomableCanvas) {
             self.parent = parent
@@ -190,6 +196,21 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             self.handledRequest = parent.request?.serial ?? 0
             super.init()
             host.view.backgroundColor = .clear
+            // Selector observers: the centre holds them weakly, so there is
+            // nothing to remove when the canvas goes.
+            let centre = NotificationCenter.default
+            centre.addObserver(self, selector: #selector(keyboardWillChange(_:)),
+                               name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+            centre.addObserver(self, selector: #selector(keyboardWillHide(_:)),
+                               name: UIResponder.keyboardWillHideNotification, object: nil)
+        }
+
+        @objc private func keyboardWillChange(_ note: Notification) {
+            keyboard = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
+        }
+
+        @objc private func keyboardWillHide(_ note: Notification) {
+            keyboard = nil
         }
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? { host.view }
@@ -235,23 +256,48 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
                 scroll.zoom(to: CGRect(x: visible.midX - size.width / 2, y: visible.midY - size.height / 2,
                                        width: size.width, height: size.height),
                             animated: true)
-            case .reveal(let box):
+            case .reveal(let box, let covered, let typing):
                 // The least scroll that brings the box inside a margin of the
-                // edges — the bottom and right first, then the top and left,
-                // which win when the box is bigger than the screen. Never a
-                // zoom, and never a move when it is already in sight.
+                // edges of what is still showing — the bottom and right
+                // first, then the top and left, which win when the box is
+                // bigger than that; while typing, the top first and the
+                // bottom winning. Never a zoom, and never a move when it is
+                // already in sight.
                 let r = scroll.convert(box, from: host.view)
-                let b = scroll.bounds
+                let b = visibleBounds(of: scroll, covered: covered)
                 let margin: CGFloat = 24
+                guard b.height > margin * 2 else { return }
                 var dx: CGFloat = 0, dy: CGFloat = 0
-                if r.maxY > b.maxY - margin { dy = b.maxY - margin - r.maxY }
-                if r.minY + dy < b.minY + margin { dy = b.minY + margin - r.minY }
+                if typing {
+                    if r.minY < b.minY + margin { dy = b.minY + margin - r.minY }
+                    if r.maxY + dy > b.maxY - margin { dy = b.maxY - margin - r.maxY }
+                } else {
+                    if r.maxY > b.maxY - margin { dy = b.maxY - margin - r.maxY }
+                    if r.minY + dy < b.minY + margin { dy = b.minY + margin - r.minY }
+                }
                 if r.maxX > b.maxX - margin { dx = b.maxX - margin - r.maxX }
                 if r.minX + dx < b.minX + margin { dx = b.minX + margin - r.minX }
                 guard dx != 0 || dy != 0 else { return }
                 let offset = CGPoint(x: scroll.contentOffset.x - dx, y: scroll.contentOffset.y - dy)
                 scroll.setContentOffset(offset, animated: true)
             }
+        }
+
+        /// The scroll view's bounds, less what a sheet over the bottom
+        /// `covered` fraction of the window hides, and less the keyboard.
+        private func visibleBounds(of scroll: UIScrollView, covered: Double) -> CGRect {
+            var b = scroll.bounds
+            var bottom = b.maxY
+            if covered > 0, let window = scroll.window {
+                let top = CGPoint(x: 0, y: window.bounds.height * CGFloat(1 - min(max(covered, 0), 1)))
+                bottom = min(bottom, scroll.convert(top, from: window).y)
+            }
+            if let keyboard, let screen = scroll.window?.screen {
+                let local = scroll.convert(keyboard, from: screen.coordinateSpace)
+                if local.intersects(b) { bottom = min(bottom, local.minY) }
+            }
+            b.size.height = max(bottom - b.minY, 0)
+            return b
         }
 
         /// Mirror the scroll view's scale outward.

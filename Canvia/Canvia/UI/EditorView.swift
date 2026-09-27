@@ -118,10 +118,20 @@ struct EditorView: View {
         .feel(.alignment, trigger: SnapSignal(x: store.guideX, y: store.guideY))
         .feel(.impact(weight: .heavy), trigger: store.page.elements.count)
         .feel(trigger: store.rotationSnapped) { _, snapped in snapped ? .alignment : nil }
+        .feel(trigger: store.spacingSnapped) { _, spaced in spaced ? .alignment : nil }
         .feel(trigger: store.haptic) { _, event in event.feedback }
         .background(Theme.workspace)
         .sheet(item: $activeSheet) { sheet in
             sheetView(sheet)
+        }
+        // A sheet rises over the lower half of the canvas: the selection is
+        // kept in the half still showing — as the sheet opens, and as the
+        // selection changes under it, a Layers row picked, say.
+        .onChange(of: activeSheet) { _, sheet in
+            if sheet != nil { revealSelection() }
+        }
+        .onChange(of: store.selection) { _, _ in
+            if activeSheet != nil { revealSelection() }
         }
         .fullScreenCover(isPresented: $presenting) {
             PresentationView(design: store.design, startPage: store.pageIndex)
@@ -140,6 +150,12 @@ struct EditorView: View {
             store.onCommit = { scheduleSave() }
         }
         .onDisappear {
+            // The voice and the microphone belong to this design: leaving it
+            // stops both, as the Android twin's editor releases its reader.
+            ReadAloud.shared.stop()
+            if Dictation.shared.isListening { Dictation.shared.stop() }
+            store.finishDictation()
+            store.endTextEdit()
             saveNow()
         }
         // The design being edited, for Siri suggestions and Handoff.
@@ -187,7 +203,13 @@ struct EditorView: View {
                 shortcut("d", [.command], "Duplicate") { store.duplicateSelected() }
                 shortcut("a", [.command], "Select all") { store.selectAll() }
                 shortcut(.delete, [.command], "Delete") { store.deleteSelected() }
-                shortcut(.escape, [], "Deselect") { store.select(nil) }
+                // While typing in place, Escape is Done: the typing kept as
+                // its own step, an emptied box removed, the box still chosen.
+                if store.editingTextId != nil {
+                    shortcut(.escape, [], "Done typing") { store.endTextEdit() }
+                } else {
+                    shortcut(.escape, [], "Deselect") { store.select(nil) }
+                }
             }
             // Arrow keys nudge a page unit, ten with Shift — only while no
             // text field has the keyboard, or the arrows would never reach
@@ -825,6 +847,14 @@ struct EditorView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.accent)
                 }
+                Button {
+                    dismissToast()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel("Dismiss")
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
@@ -834,7 +864,8 @@ struct EditorView: View {
             // live at the bottom of the stack.
             .padding(.bottom, store.selection.isEmpty ? 96 : 150)
             .transition(.move(edge: .bottom).combined(with: .opacity))
-            .accessibilityElement(children: .combine)
+            // Contained, not combined, so Undo and Dismiss can each be reached.
+            .accessibilityElement(children: .contain)
         }
     }
 
@@ -881,12 +912,28 @@ struct EditorView: View {
         withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { tip = nil }
     }
 
+    /// Keeps the selection in the part of the canvas a medium sheet leaves
+    /// showing, by the least pan — never while a finger is on the canvas,
+    /// never while typing (which keeps its own box above the keyboard), and
+    /// not at all when it is already in sight. The Android twin's
+    /// keepSelectionVisible.
+    private func revealSelection() {
+        guard !store.canvasTouchActive, store.editingTextId == nil, let box = store.selectionBox else { return }
+        store.requestCanvas(.reveal(box, covered: 0.5))
+    }
+
     private func show(toast text: String, undoable: Bool) {
         toastTask?.cancel()
         toastUndoes = undoable
         withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { toast = text }
+        // Said aloud, with the way back when there is one — VoiceOver users
+        // were never told a delete had happened.
+        AccessibilityNotification.Announcement(undoable ? "\(text). Undo available" : text).post()
+        // Long enough to reach the Undo with VoiceOver or Switch Control.
+        let assisted = UIAccessibility.isVoiceOverRunning || UIAccessibility.isSwitchControlRunning
+        let hold = assisted ? 10 : 4
         toastTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(4))
+            try? await Task.sleep(for: .seconds(hold))
             guard !Task.isCancelled else { return }
             dismissToast()
         }
