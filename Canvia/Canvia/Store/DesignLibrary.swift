@@ -399,50 +399,69 @@ enum DesignLibrary {
     }
 
     /// The photo sweep over `files`, listed before `designs` were read.
+    /// Your uploads stay, used or not, and so does anything starred: they
+    /// are in the Add sheet to use again.
     private static func pruneUnusedMedia(_ files: [URL], designs: [Design], pasteboard: UIPasteboard) {
-        var referenced = Set<String>()
-        let mediaID: (String) -> String? = { src in
-            src.hasPrefix("media:") ? String(src.dropFirst(6)) : nil
-        }
-        func keep(_ elements: [Element]) {
-            for el in elements {
-                if let src = el.src, let id = mediaID(src) { referenced.insert(id) }
-                // A shape filled with a photo uses it too.
-                if let src = el.fill?.src, let id = mediaID(src) { referenced.insert(id) }
-            }
-        }
-        func keepPage(_ page: Page) {
-            if case .image(let src) = page.background, let id = mediaID(src) {
-                referenced.insert(id)
-            }
-            keep(page.elements)
-        }
         // The designs, every version kept of them — a photo taken out of a
         // design is still in its older versions, and restoring one must
-        // bring the photo back — and what the person keeps across designs:
-        // the brand's logos and the components' pictures.
-        for design in designs {
-            for page in design.pages { keepPage(page) }
-        }
-        for src in BrandKit.load().logos { if let id = mediaID(src) { referenced.insert(id) } }
-        for component in Components.load() { keep(component.elements) }
-        // And what was cut or copied but not yet pasted. The pasteboard
-        // outlives a launch, and a photo cut from a design is referenced
-        // nowhere else until it is pasted back; the Android twin keeps these
-        // too. Read only when our own types are there, so someone else's
-        // copied text never brings up the paste prompt.
-        if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
-            keep(elements)
-        }
-        if PageClipboard.hasPage(in: pasteboard), let payload = PageClipboard.paste(from: pasteboard) {
-            keepPage(payload.page)
-        }
+        // bring the photo back — and what is kept outside them.
+        let referenced = photos(in: designs).union(photosKeptOutsideDesigns(pasteboard: pasteboard))
+        let kept = Uploads.kept()
         for url in files where MediaStore.extensions.contains(url.pathExtension) {
             let id = url.deletingPathExtension().lastPathComponent
-            if !referenced.contains(id) {
+            if !referenced.contains(id) && !kept.contains(id) {
                 try? FileManager.default.removeItem(at: url)
             }
         }
+    }
+
+    /// The MediaStore id a "media:" source shows.
+    private static func photoID(_ src: String?) -> String? {
+        guard let src, src.hasPrefix("media:") else { return nil }
+        return String(src.dropFirst(6))
+    }
+
+    private static func collectPhotos(in elements: [Element], into found: inout Set<String>) {
+        for el in elements {
+            if let id = photoID(el.src) { found.insert(id) }
+            // A shape filled with a photo uses it too.
+            if let id = photoID(el.fill?.src) { found.insert(id) }
+        }
+    }
+
+    private static func collectPhotos(on page: Page, into found: inout Set<String>) {
+        if case .image(let src) = page.background, let id = photoID(src) { found.insert(id) }
+        collectPhotos(in: page.elements, into: &found)
+    }
+
+    /// The photos these designs show — as a picture, filling a shape, or
+    /// behind a page — by MediaStore id.
+    static func photos(in designs: [Design]) -> Set<String> {
+        var found = Set<String>()
+        for design in designs {
+            for page in design.pages { collectPhotos(on: page, into: &found) }
+        }
+        return found
+    }
+
+    /// The photos kept outside the designs: what the person keeps across
+    /// them — the brand's logos and the components' pictures — and what was
+    /// cut or copied but not yet pasted. The pasteboard outlives a launch,
+    /// and a photo cut from a design is referenced nowhere else until it is
+    /// pasted back; the Android twin keeps these too. Read only when our own
+    /// types are there, so someone else's copied text never brings up the
+    /// paste prompt.
+    static func photosKeptOutsideDesigns(pasteboard: UIPasteboard) -> Set<String> {
+        var found = Set<String>()
+        for src in BrandKit.load().logos { if let id = photoID(src) { found.insert(id) } }
+        for component in Components.load() { collectPhotos(in: component.elements, into: &found) }
+        if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
+            collectPhotos(in: elements, into: &found)
+        }
+        if PageClipboard.hasPage(in: pasteboard), let payload = PageClipboard.paste(from: pasteboard) {
+            collectPhotos(on: payload.page, into: &found)
+        }
+        return found
     }
 
     /// Delete soundtrack files no design plays any more.
@@ -462,11 +481,13 @@ enum DesignLibrary {
         pruneUnusedAudio(stored, designs: designs)
     }
 
-    /// The soundtrack sweep over `stored`, listed before `designs` were read.
+    /// The soundtrack sweep over `stored`, listed before `designs` were
+    /// read. Music brought in stays, as the photos do.
     private static func pruneUnusedAudio(_ stored: [String], designs: [Design]) {
         guard !stored.isEmpty else { return }
         let playing = soundtracks(in: designs)
-        for id in stored where !playing.contains(id) {
+        let kept = Uploads.kept()
+        for id in stored where !playing.contains(id) && !kept.contains(id) {
             AudioStore.delete(id)
         }
     }
@@ -486,48 +507,125 @@ enum DesignLibrary {
     }
 
     /// The clip sweep over `stored`, listed before `designs` were read.
+    /// Clips brought in stay, as the photos do.
     private static func pruneUnusedVideos(_ stored: [String], designs: [Design], pasteboard: UIPasteboard) {
         guard !stored.isEmpty else { return }
-        var shown = Set<String>()
-        // A clip shows as a photo, and also wherever a photo can: filling a
-        // shape — the colour sheet offers every clip as a Photo fill — or,
-        // in a design from the Android twin, behind a page. A text fill
-        // never draws a picture, but keeping its clip costs nothing.
-        func keepSource(_ src: String?) {
-            if let src, let parts = VideoStore.split(src) { shown.insert(parts.id) }
-        }
-        func keep(_ elements: [Element]) {
-            for el in elements {
-                keepSource(el.src)
-                keepSource(el.fill?.src)
-                keepSource(el.textFill?.src)
-            }
-        }
-        func keepPage(_ page: Page) {
-            if case .image(let src) = page.background { keepSource(src) }
-            keep(page.elements)
-        }
-        for design in designs {
-            for page in design.pages { keepPage(page) }
-        }
-        for component in Components.load() { keep(component.elements) }
-        // The Brand kit offers a design's clips as logos, as it does its
-        // photos, and a logo outlives every design it came from.
-        for src in BrandKit.load().logos { keepSource(src) }
-        if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
-            keep(elements)
-        }
-        if PageClipboard.hasPage(in: pasteboard), let payload = PageClipboard.paste(from: pasteboard) {
-            keepPage(payload.page)
-        }
-        for id in stored where !shown.contains(id) {
+        let shown = clips(in: designs).union(clipsKeptOutsideDesigns(pasteboard: pasteboard))
+        let kept = Uploads.kept()
+        for id in stored where !shown.contains(id) && !kept.contains(id) {
             VideoStore.delete(id)
         }
+    }
+
+    /// The VideoStore id a "video:" source shows, at any moment.
+    private static func clipID(_ src: String?) -> String? {
+        src.flatMap { VideoStore.split($0)?.id }
+    }
+
+    /// A clip shows as a photo, and also wherever a photo can: filling a
+    /// shape — the colour sheet offers every clip as a Photo fill — or, in a
+    /// design from the Android twin, behind a page. A text fill never draws
+    /// a picture, but keeping its clip costs nothing.
+    private static func collectClips(in elements: [Element], into found: inout Set<String>) {
+        for el in elements {
+            for src in [el.src, el.fill?.src, el.textFill?.src] {
+                if let id = clipID(src) { found.insert(id) }
+            }
+        }
+    }
+
+    private static func collectClips(on page: Page, into found: inout Set<String>) {
+        if case .image(let src) = page.background, let id = clipID(src) { found.insert(id) }
+        collectClips(in: page.elements, into: &found)
+    }
+
+    /// The clips these designs show, by VideoStore id.
+    static func clips(in designs: [Design]) -> Set<String> {
+        var found = Set<String>()
+        for design in designs {
+            for page in design.pages { collectClips(on: page, into: &found) }
+        }
+        return found
+    }
+
+    /// The clips kept outside the designs: in a component, as a brand logo —
+    /// the Brand kit offers a design's clips as logos, as it does its
+    /// photos, and a logo outlives every design it came from — or cut or
+    /// copied but not yet pasted.
+    static func clipsKeptOutsideDesigns(pasteboard: UIPasteboard) -> Set<String> {
+        var found = Set<String>()
+        for component in Components.load() { collectClips(in: component.elements, into: &found) }
+        for src in BrandKit.load().logos { if let id = clipID(src) { found.insert(id) } }
+        if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
+            collectClips(in: elements, into: &found)
+        }
+        if PageClipboard.hasPage(in: pasteboard), let payload = PageClipboard.paste(from: pasteboard) {
+            collectClips(on: payload.page, into: &found)
+        }
+        return found
     }
 
     /// The AudioStore ids these designs play under their videos.
     static func soundtracks(in designs: [Design]) -> Set<String> {
         Set(designs.compactMap { $0.motion?.soundtrack })
+    }
+
+    // MARK: uploads in use
+
+    /// What deleting an upload would mean: how many designs, on the shelf
+    /// or in Recently deleted, use it, and whether any design, kept version
+    /// or step Undo can go back to still holds its file.
+    struct UploadUse: Equatable, Sendable {
+        var designs: Int
+        var held: Bool
+    }
+
+    /// Whether this design shows the upload, or plays it.
+    static func uses(_ design: Design, upload id: String, kind: Uploads.Kind) -> Bool {
+        switch kind {
+        case .image: return photos(in: [design]).contains(id)
+        case .video: return clips(in: [design]).contains(id)
+        case .audio: return design.motion?.soundtrack == id
+        }
+    }
+
+    /// Every design is read for this, and every version, so it belongs off
+    /// the main thread. `editing` is the design open in the editor, as it
+    /// stands and as undo and redo can bring it back: counted as it is on
+    /// screen rather than as last saved, and holding what it held. A design
+    /// or version that does not read may hold it too, so then it is held.
+    static func use(ofUpload id: String, kind: Uploads.Kind, editing: [Design] = []) -> UploadUse {
+        var byID: [String: Design] = [:]
+        var unreadable = false
+        for dir in [designsDir, trashDir] {
+            let files = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
+            for url in files where isDesignFile(url) {
+                guard let data = try? Data(contentsOf: url),
+                      let design = try? JSONDecoder().decode(Design.self, from: data) else {
+                    unreadable = true
+                    continue
+                }
+                if byID[design.id] == nil || dir == designsDir { byID[design.id] = design }
+            }
+        }
+        if let open = editing.first { byID[open.id] = open }
+        let count = byID.values.filter { uses($0, upload: id, kind: kind) }.count
+        guard count == 0, !unreadable else { return UploadUse(designs: count, held: true) }
+        guard let versions = allVersions() else { return UploadUse(designs: 0, held: true) }
+        let held = (versions + editing).contains { uses($0, upload: id, kind: kind) }
+        return UploadUse(designs: 0, held: held)
+    }
+
+    /// Whether anything kept outside the designs holds an upload: a brand
+    /// logo, a component, or what was cut or copied. On the main thread,
+    /// where the pasteboard is read.
+    static func uploadKeptOutsideDesigns(_ id: String, kind: Uploads.Kind,
+                                         pasteboard: UIPasteboard = .general) -> Bool {
+        switch kind {
+        case .image: return photosKeptOutsideDesigns(pasteboard: pasteboard).contains(id)
+        case .video: return clipsKeptOutsideDesigns(pasteboard: pasteboard).contains(id)
+        case .audio: return false
+        }
     }
 
     /// Every design, live and trashed, and every kept version of each — or

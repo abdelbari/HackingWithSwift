@@ -23,8 +23,11 @@ struct CanviaApp: App {
         // media that hasn't been saved yet, so it's the safe time to sweep.
         // Trash first, so what it empties is not still holding media. The
         // photos, soundtracks and clips are swept together, over one read
-        // of the library rather than one each.
+        // of the library rather than one each. Your uploads are listed
+        // first — everything already stored, the first time — as the sweep
+        // never takes one.
         DesignLibrary.purgeTrash()
+        Uploads.seedIfNeeded()
         DesignLibrary.pruneUnusedFiles()
         // The samples with their pictures, so the first Home shows two
         // finished designs rather than two grey boxes. An App is made on

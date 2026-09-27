@@ -131,19 +131,22 @@ struct InsertSheet: View {
 
     /// One picked item stored: a clip whole, shown by its poster frame, or
     /// a picture decoded, scaled and re-encoded — all off the main actor,
-    /// where a full-resolution camera photo's decode belongs.
+    /// where a full-resolution camera photo's decode belongs. Either is
+    /// kept among your uploads, to use again.
     private func load(_ item: PhotosPickerItem) async -> (src: String, natural: CGSize, isVideo: Bool)? {
         guard let data = try? await item.loadTransferable(type: Data.self) else { return nil }
         if let movie = item.supportedContentTypes.first(where: { $0.conforms(to: .movie) }) {
             let ext = movie.preferredFilenameExtension ?? "mov"
             return await Task.detached(priority: .userInitiated) { () -> (src: String, natural: CGSize, isVideo: Bool)? in
                 guard let id = VideoStore.store(data, ext: ext), let poster = VideoStore.poster(id) else { return nil }
+                Uploads.record(id, kind: .video)
                 return (VideoStore.src(id, at: nil), poster.size, true)
             }.value
         }
         return await Task.detached(priority: .userInitiated) { () -> (src: String, natural: CGSize, isVideo: Bool)? in
             guard let prepared = ImageDownsampler.prepare(data),
                   let src = MediaStore.store(prepared) else { return nil }
+            Uploads.record(source: src)
             return (src, prepared.natural, false)
         }.value
     }
@@ -463,18 +466,69 @@ struct InsertSheet: View {
 
     // MARK: uploads
 
-    /// Every picture ever imported, newest first, insertable again and
-    /// deletable — the pile that used to be invisible.
+    /// Which of your uploads shows: photos, videos or music.
+    @State private var uploadKind = Uploads.Kind.image
+    /// The upload whose deletion is being asked about, with what deleting
+    /// it would mean.
+    @State private var deletingUpload: UploadDeletion?
+
+    private struct UploadDeletion {
+        var id: String
+        var kind: Uploads.Kind
+        var use: DesignLibrary.UploadUse
+    }
+
+    /// Everything brought in — photos, videos and music — newest first,
+    /// starred first, to use again or let go: the pile that used to be
+    /// invisible. Replacing a picture, the photos only; a clip or a song
+    /// cannot go in its frame.
     @ViewBuilder
     private var uploadsSection: some View {
-        let uploads = favoritesFirst(MediaStore.all(), kind: "upload", id: { $0 })
-        if !uploads.isEmpty {
+        let kind = isReplacing ? Uploads.Kind.image : uploadKind
+        let entries = Uploads.all()
+        let shown = favoritesFirst(entries.filter { $0.kind == kind }.map(\.id), kind: "upload", id: { $0 })
+        let offered = isReplacing ? !shown.isEmpty : !entries.isEmpty
+        if offered {
             sectionHeader("Your uploads")
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
-                ForEach(Array(uploads.enumerated()), id: \.element) { index, id in
-                    uploadTile(id, index: index, count: uploads.count)
+            if !isReplacing { uploadKindPicker }
+            if shown.isEmpty {
+                Text(Self.noUploadsNote(kind))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else if kind == .audio {
+                VStack(spacing: 0) {
+                    ForEach(Array(shown.enumerated()), id: \.element) { index, id in
+                        musicRow(id, index: index, count: shown.count)
+                    }
+                }
+            } else {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
+                    ForEach(Array(shown.enumerated()), id: \.element) { index, id in
+                        if kind == .video {
+                            videoTile(id, index: index, count: shown.count)
+                        } else {
+                            uploadTile(id, index: index, count: shown.count)
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    private var uploadKindPicker: some View {
+        Picker("Uploads", selection: $uploadKind) {
+            Text("Photos").tag(Uploads.Kind.image)
+            Text("Videos").tag(Uploads.Kind.video)
+            Text("Music").tag(Uploads.Kind.audio)
+        }
+        .pickerStyle(.segmented)
+    }
+
+    private static func noUploadsNote(_ kind: Uploads.Kind) -> String {
+        switch kind {
+        case .image: return "Photos you add show here."
+        case .video: return "Videos you add show here."
+        case .audio: return "Music you choose for a video shows here."
         }
     }
 
@@ -503,11 +557,135 @@ struct InsertSheet: View {
                                               starred: starred, inFrame: inFrame))
         .contextMenu {
             favoriteButton("upload", id)
-            Button(role: .destructive) {
-                MediaStore.delete(id)
-                favoritesVersion += 1
-            } label: { Label("Delete upload", systemImage: "trash") }
+            deleteUploadButton(id, kind: .image)
         }
+    }
+
+    /// A clip brought in, shown by its first frame. A tap puts it on the
+    /// page as a clip, as bringing it in did.
+    private func videoTile(_ id: String, index: Int, count: Int) -> some View {
+        let starred = Favorites.isFavorite("upload", id)
+        return Button {
+            insertClip(id)
+        } label: {
+            ClipPoster(id: id)
+                .frame(height: 72)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay {
+                    Image(systemName: "play.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(.white)
+                        .shadow(radius: 2)
+                }
+                .overlay(alignment: .topTrailing) { if starred { starBadge } }
+        }
+        .accessibilityLabel(AddSheetNames.picture(AddSheetNames.uploadedVideo(index, of: count),
+                                                  starred: starred, inFrame: false))
+        .contextMenu {
+            favoriteButton("upload", id)
+            deleteUploadButton(id, kind: .video)
+        }
+    }
+
+    /// A clip from your uploads onto the page, half the page wide at its
+    /// own shape, as importing it put it there.
+    private func insertClip(_ id: String) {
+        let store = self.store
+        Task {
+            let natural = await Task.detached(priority: .userInitiated) { VideoStore.poster(id)?.size }.value
+            guard let natural else {
+                store.buzz(.reject)
+                store.announce("Couldn't open that", undoable: false)
+                return
+            }
+            insertImage(VideoStore.src(id, at: nil), natural: natural)
+            store.buzz(.confirm)
+            dismiss()
+        }
+    }
+
+    /// A song brought in, by its own name. A tap makes it the design's
+    /// soundtrack, as choosing it under Export does; the one playing now is
+    /// ticked.
+    private func musicRow(_ id: String, index: Int, count: Int) -> some View {
+        let starred = Favorites.isFavorite("upload", id)
+        let playing = store.design.motion?.soundtrack == id
+        let name = AudioStore.label(for: id)
+        return Button {
+            chooseSoundtrack(id)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "music.note")
+                    .foregroundStyle(Theme.accent)
+                    .frame(width: 34, height: 34)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Theme.accentSubtle))
+                Text(name)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                if starred {
+                    Image(systemName: "star.fill").font(.caption).foregroundStyle(.yellow)
+                }
+                if playing {
+                    Image(systemName: "checkmark").foregroundStyle(Theme.accent)
+                }
+            }
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(AddSheetNames.music(name, index, of: count, starred: starred, playing: playing))
+        .contextMenu {
+            favoriteButton("upload", id)
+            deleteUploadButton(id, kind: .audio)
+        }
+    }
+
+    /// The design's soundtrack, as one Undo, said, and the sheet out of the
+    /// way.
+    private func chooseSoundtrack(_ id: String) {
+        var motion = store.design.motion ?? MotionSettings()
+        motion.soundtrack = id
+        store.apply { $0.motion = motion }
+        store.buzz(.confirm)
+        store.announce("Soundtrack: \(AudioStore.label(for: id))")
+        dismiss()
+    }
+
+    private func deleteUploadButton(_ id: String, kind: Uploads.Kind) -> some View {
+        Button(role: .destructive) {
+            askToDelete(id, kind: kind)
+        } label: { Label("Delete upload", systemImage: "trash") }
+    }
+
+    /// Asked first, saying how many designs use it: found before the
+    /// question is put, off the main thread, as every design is read for it.
+    private func askToDelete(_ id: String, kind: Uploads.Kind) {
+        let editing = store.statesInHistory
+        Task {
+            let use = await Task.detached(priority: .userInitiated) {
+                DesignLibrary.use(ofUpload: id, kind: kind, editing: editing)
+            }.value
+            deletingUpload = UploadDeletion(id: id, kind: kind, use: use)
+        }
+    }
+
+    /// Off the list, and unstarred, either way. The file goes too when
+    /// nothing holds it — no design, version, logo, component, pasteboard,
+    /// nor any step Undo can go back to; otherwise it stays in the designs
+    /// that show it, and the launch sweep takes it once nothing does.
+    private func deleteUpload(_ deletion: UploadDeletion) {
+        Uploads.remove(deletion.id)
+        // The sweep keeps whatever is starred, list or not.
+        if Favorites.isFavorite("upload", deletion.id) { Favorites.toggle("upload", deletion.id) }
+        if !deletion.use.held && !DesignLibrary.uploadKeptOutsideDesigns(deletion.id, kind: deletion.kind) {
+            switch deletion.kind {
+            case .image: MediaStore.delete(deletion.id)
+            case .video: VideoStore.delete(deletion.id)
+            case .audio: AudioStore.delete(deletion.id)
+            }
+        }
+        favoritesVersion += 1
     }
 
     /// The picture in the frame being replaced, if Replace opened the sheet.
@@ -774,6 +952,16 @@ struct InsertSheet: View {
             }
         }
         .padding()
+        .confirmationDialog("Delete this upload?", isPresented: Binding(
+            get: { deletingUpload != nil }, set: { if !$0 { deletingUpload = nil } }),
+                            titleVisibility: .visible, presenting: deletingUpload) { deletion in
+            Button("Delete", role: .destructive) { deleteUpload(deletion) }
+            Button("Cancel", role: .cancel) {}
+        } message: { deletion in
+            if deletion.use.designs > 0 {
+                Text(Uploads.usedInNote(deletion.use.designs))
+            }
+        }
     }
 
     private func logoTile(_ src: String, index: Int, count: Int) -> some View {
@@ -1116,5 +1304,30 @@ enum TemplateThumbCache {
         let image = renderer.uiImage
         if let image { cache.setObject(image, forKey: key) }
         return image
+    }
+}
+
+/// A clip's first frame for its tile, decoded off the main thread: a row of
+/// clips each decoding there held the sheet up as it opened.
+private struct ClipPoster: View {
+    let id: String
+    @State private var poster: UIImage?
+
+    var body: some View {
+        Group {
+            if let poster {
+                Image(uiImage: poster)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                Color(.systemGray5)
+            }
+        }
+        .task(id: id) {
+            let id = self.id
+            poster = await Task.detached(priority: .userInitiated) { () -> UIImage? in
+                VideoStore.poster(id).map { PhotoLibrary.preview($0, key: VideoStore.src(id, at: nil)) }
+            }.value
+        }
     }
 }
