@@ -36,3 +36,42 @@ struct HapticEvent: Equatable {
         }
     }
 }
+
+/// The app's own Vibration switch, as the Android twin has one: on unless
+/// turned off, one setting for the whole app — never part of a design —
+/// and on top of the system's own haptics switch, which still applies.
+enum Haptics {
+    static let key = "canvia.haptics"
+
+    static func isOn(_ defaults: UserDefaults) -> Bool {
+        defaults.object(forKey: key) as? Bool ?? true
+    }
+}
+
+/// `.sensoryFeedback`, except when Vibration is off. Read as each event
+/// happens, so the switch takes effect at once, everywhere.
+struct FeltFeedback<T: Equatable>: ViewModifier {
+    let trigger: T
+    let feedback: (T, T) -> SensoryFeedback?
+    @AppStorage(Haptics.key) private var on = true
+
+    func body(content: Content) -> some View {
+        let on = self.on
+        let feedback = self.feedback
+        return content.sensoryFeedback(trigger: trigger) { old, new in
+            on ? feedback(old, new) : nil
+        }
+    }
+}
+
+extension View {
+    /// A feeling for every change of `trigger`, when Vibration is on.
+    func feel<T: Equatable>(_ feedback: SensoryFeedback, trigger: T) -> some View {
+        modifier(FeltFeedback(trigger: trigger, feedback: { _, _ in feedback }))
+    }
+
+    /// A feeling chosen from the change, or none, when Vibration is on.
+    func feel<T: Equatable>(trigger: T, _ feedback: @escaping (T, T) -> SensoryFeedback?) -> some View {
+        modifier(FeltFeedback(trigger: trigger, feedback: feedback))
+    }
+}

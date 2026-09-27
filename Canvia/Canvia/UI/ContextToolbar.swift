@@ -20,7 +20,7 @@ private struct ToolButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.92 : 1)
             .animation(reduceMotion ? nil : .spring(response: 0.22, dampingFraction: 0.7),
                        value: configuration.isPressed)
-            .sensoryFeedback(trigger: configuration.isPressed) { _, pressed in
+            .feel(trigger: configuration.isPressed) { _, pressed in
                 pressed ? .impact(weight: .light) : nil
             }
     }
@@ -105,7 +105,7 @@ struct ContextToolbar: View {
             .foregroundStyle(.red)
         }
         .buttonStyle(ToolButtonStyle())
-        .sensoryFeedback(.impact(weight: .medium), trigger: store.selection)
+        .feel(.impact(weight: .medium), trigger: store.selection)
     }
 
     /// A sticker selection emits nothing, which would leave a stray leading

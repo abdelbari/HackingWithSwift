@@ -9,12 +9,14 @@ enum HomeSheet: Identifiable, Equatable {
     case start(presetId: String)
     case pickSize
     case customSize
+    case help
 
     var id: String {
         switch self {
         case .start(let presetId): return "start-\(presetId)"
         case .pickSize: return "pick-size"
         case .customSize: return "custom-size"
+        case .help: return "help"
         }
     }
 }
@@ -27,6 +29,10 @@ struct HomeView: View {
     /// A design made in a sheet, opened once the sheet has gone rather than
     /// from under it.
     @State private var pendingOpen: Design?
+    /// Asked for from the help sheet: the tour, once that sheet has gone.
+    @State private var replayTour = false
+    /// The Vibration switch, shared with the editor.
+    @AppStorage(Haptics.key) private var haptics = true
     @State private var renaming: RecentDesign?
     @State private var renameText = ""
     @State private var query = ""
@@ -149,6 +155,11 @@ struct HomeView: View {
                        onCustomSize: { homeSheet = .customSize })
         case .customSize:
             CustomSizeSheet(onCreate: createFromSheet)
+        case .help:
+            HowCanviaWorksSheet {
+                replayTour = true
+                homeSheet = nil
+            }
         }
     }
 
@@ -166,6 +177,11 @@ struct HomeView: View {
     }
 
     private func afterSheet() {
+        if replayTour {
+            replayTour = false
+            Onboarding.reset(.standard)
+            touring = true
+        }
         guard let design = pendingOpen else { return }
         pendingOpen = nil
         create(design)
@@ -427,12 +443,21 @@ struct HomeView: View {
 
     private var hero: some View {
         VStack(spacing: 18) {
-            HStack(spacing: 14) {
+            HStack(spacing: 8) {
                 Text("Canvia")
                     .font(.largeTitle.weight(.heavy))
                     .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 heroButton("New design", systemImage: "plus") { homeSheet = .pickSize }
+                heroButton("How Canvia works", systemImage: "questionmark") { homeSheet = .help }
+                Menu {
+                    Toggle(isOn: $haptics) { Label("Vibration", systemImage: "iphone.radiowaves.left.and.right") }
+                } label: {
+                    heroCircle("ellipsis")
+                }
+                .accessibilityLabel("More")
             }
 
             Text("What will you design today?")
@@ -498,14 +523,16 @@ struct HomeView: View {
 
     /// A round white-on-purple button in the hero's top row.
     private func heroButton(_ label: String, systemImage: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: 44, height: 44)
-                .background(.white.opacity(0.18), in: Circle())
-        }
-        .accessibilityLabel(label)
+        Button(action: action) { heroCircle(systemImage) }
+            .accessibilityLabel(label)
+    }
+
+    private func heroCircle(_ systemImage: String) -> some View {
+        Image(systemName: systemImage)
+            .font(.title3.weight(.semibold))
+            .foregroundStyle(.white)
+            .frame(width: 44, height: 44)
+            .background(.white.opacity(0.18), in: Circle())
     }
 
     // MARK: recents

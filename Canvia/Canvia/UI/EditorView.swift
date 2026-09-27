@@ -38,6 +38,8 @@ struct EditorView: View {
     @State private var toastTask: Task<Void, Never>?
     @State private var tip: Tip?
     @State private var presenting = false
+    /// The Vibration switch, shared with Home.
+    @AppStorage(Haptics.key) private var haptics = true
     @State private var namingComponent = false
     @State private var componentName = ""
     @State private var tipTask: Task<Void, Never>?
@@ -109,11 +111,12 @@ struct EditorView: View {
         .animation(.spring(response: 0.30, dampingFraction: 0.86),
                    value: store.selection.isEmpty)
         // The whole point of a design tool is that it answers your hands.
-        .sensoryFeedback(.selection, trigger: store.selection)
-        .sensoryFeedback(.alignment, trigger: SnapSignal(x: store.guideX, y: store.guideY))
-        .sensoryFeedback(.impact(weight: .heavy), trigger: store.page.elements.count)
-        .sensoryFeedback(.alignment, trigger: store.rotationSnapped) { _, snapped in snapped }
-        .sensoryFeedback(trigger: store.haptic) { _, event in event.feedback }
+        // All of it through the Vibration switch.
+        .feel(.selection, trigger: store.selection)
+        .feel(.alignment, trigger: SnapSignal(x: store.guideX, y: store.guideY))
+        .feel(.impact(weight: .heavy), trigger: store.page.elements.count)
+        .feel(trigger: store.rotationSnapped) { _, snapped in snapped ? .alignment : nil }
+        .feel(trigger: store.haptic) { _, event in event.feedback }
         .background(Theme.workspace)
         .sheet(item: $activeSheet) { sheet in
             sheetView(sheet)
@@ -254,7 +257,7 @@ struct EditorView: View {
                     DispatchQueue.main.async { rewound = false }
                 }
             }
-            .sensoryFeedback(.error, trigger: rewindExhausted)
+            .feel(.error, trigger: rewindExhausted)
             .accessibilityLabel(store.canUndo ? "Undo" : "Undo, nothing to undo")
             .accessibilityHint(store.canUndo ? "Hold to rewind" : "")
     }
@@ -443,6 +446,7 @@ struct EditorView: View {
                 } label: { Label("Save selection as component…", systemImage: "square.grid.3x1.folder.badge.plus") }
                     .disabled(store.selection.isEmpty)
                 snappingMenu
+                Toggle(isOn: $haptics) { Label("Vibration", systemImage: "iphone.radiowaves.left.and.right") }
             }
 
             Section {

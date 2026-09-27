@@ -322,7 +322,15 @@ pictures by their alt text and page-number tokens resolved.
 
 **Haptics** — selection, snapping to guides and to 45° rotation, undo and
 redo, grouping, a new page and each drawn stroke are each felt, once,
-through `.sensoryFeedback`.
+through `.sensoryFeedback`. A Vibration switch (Home's ⋯ menu, and the
+editor's More menu beside Snapping) turns all of it off at once; it is on
+until turned off, one setting for the app, and the system's own haptics
+switch still applies on top.
+
+**Help from Home** — the ? in the hero opens "How Canvia works": three
+steps, "Show the editor's tips again" (one tap, then "Tips will show again
+in the editor"), "Show the welcome tour again", and a line on where your
+work lives. The editor's searchable help ends with the same tips reset.
 
 **Home** — templates browse by category from a row of chips; designs can be
 filed into folders from their context menu (folder chips appear when one

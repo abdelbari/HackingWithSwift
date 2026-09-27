@@ -766,7 +766,7 @@ struct PositionSheet: View {
                 nudgeButton("arrow.down", "down", dx: 0, dy: 1)
             }
             .disabled(store.unlockedSelectionCount == 0)
-            .sensoryFeedback(.impact(weight: .light), trigger: nudges)
+            .feel(.impact(weight: .light), trigger: nudges)
         } header: {
             HStack {
                 Text("Nudge")

@@ -44,6 +44,18 @@ final class HomeShelfTests: XCTestCase {
         XCTAssertEqual(said(try date(2026, 3, 16, 23), at: early), "2 days ago")
     }
 
+    /// On until turned off, as the Android twin's switch starts.
+    func testVibrationIsOnUntilTurnedOff() throws {
+        let name = "haptics-\(UUID())"
+        defer { UserDefaults.standard.removePersistentDomain(forName: name) }
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
+        XCTAssertTrue(Haptics.isOn(defaults))
+        defaults.set(false, forKey: Haptics.key)
+        XCTAssertFalse(Haptics.isOn(defaults))
+        defaults.set(true, forKey: Haptics.key)
+        XCTAssertTrue(Haptics.isOn(defaults))
+    }
+
     func testPagesAndMidSentence() {
         XCTAssertEqual(RelativeTime.pages(1), "1 page")
         XCTAssertEqual(RelativeTime.pages(4), "4 pages")
