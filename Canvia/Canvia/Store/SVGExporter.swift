@@ -76,7 +76,7 @@ enum SVGExporter {
         attributes += BlendModes.svgStyle(el.blendMode)
         if let shadow = el.shadow {
             let id = "shadow\(index)"
-            defs.append(shadowDef(id: id, shadow: shadow))
+            defs.append(shadowDef(id: id, shadow: shadow, element: el))
             attributes += " filter=\"url(#\(id))\""
         }
         // An alt text becomes the group's title, which is what screen readers
@@ -94,10 +94,16 @@ enum SVGExporter {
     /// half the blur radius: SwiftUI's radius is the full extent of the blur,
     /// SVG's is the Gaussian sigma, and half is the conventional match.
     ///
-    /// The filter region is widened well past the element's box, because the
-    /// default 10% margin clips a large soft shadow at a hard straight edge.
-    private static func shadowDef(id: String, shadow: Shadow) -> String {
-        "<filter id=\"\(id)\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\">" +
+    /// The filter region is the element's box in its own space, widened by
+    /// the shadow's reach (three deviations, plus its offset, plus an
+    /// arrowhead past a line's box) and never by less than 64 — not a share
+    /// of the box, which for a flat line has no height at all (a filter with
+    /// no room draws nothing), and for a heading is too little for its glow.
+    static func shadowDef(id: String, shadow: Shadow, element el: Element) -> String {
+        let ends: Double = el.type == .line ? arrowSize(el.thickness ?? 4) : 0
+        let pad: Double = max(64, shadow.blur * 1.5 + max(abs(shadow.offsetX), abs(shadow.offsetY)) + ends)
+        return "<filter id=\"\(id)\" filterUnits=\"userSpaceOnUse\" x=\"\(num(el.x - pad))\" y=\"\(num(el.y - pad))\" " +
+        "width=\"\(num(el.w + 2 * pad))\" height=\"\(num(el.h + 2 * pad))\">" +
         "<feDropShadow dx=\"\(num(shadow.offsetX))\" dy=\"\(num(shadow.offsetY))\" " +
         "stdDeviation=\"\(num(shadow.blur / 2))\" flood-color=\"\(escape(shadow.color))\" " +
         "flood-opacity=\"\(num(shadow.opacity))\"/></filter>"
@@ -124,30 +130,33 @@ enum SVGExporter {
         if el.fill?.kind == "gradient", el.fill?.gradientKind == "angular" {
             return bitmapMarkup(el)
         }
+        // At the element's own size, placed at its corner: the library draws
+        // in a 100-unit box, and scaling that box onto the element in the
+        // file would stretch the outline with it — a non-scaling stroke is no
+        // cure, since it keeps its width on the screen rather than the page,
+        // and a program that ignores it stretches the width by the box.
         let definition = ContentLibrary.shape(for: el)
-        var d = definition.path
+        let d: String
         if definition.rectLike == true, let corners = el.corners, corners.count == 4,
            corners.contains(where: { $0 > 0 }), el.w > 0, el.h > 0 {
-            // Per-corner radii: the exact path, in the 100-unit box, with
-            // each radius scaled per axis like the uniform case below.
-            var into = CGAffineTransform(scaleX: 100 / el.w, y: 100 / el.h)
+            // Per-corner radii: the exact path, at the element's size.
             let path = LibraryShape.roundedRect(CGRect(x: 0, y: 0, width: el.w, height: el.h), corners: corners)
-            d = TextOutliner.svgPathData(path.copy(using: &into) ?? path)
+            d = TextOutliner.svgPathData(path)
         } else if definition.rectLike == true, let radius = el.radius, radius > 0, el.w > 0, el.h > 0 {
-            // The library path is drawn in a 100x100 box and scaled onto the
-            // element, so the corner radius has to be expressed in that box —
-            // and separately per axis, or a wide box gets round corners on one
-            // side and oval ones on the other.
-            let rx = min(radius, el.w / 2) * (100 / el.w)
-            let ry = min(radius, el.h / 2) * (100 / el.h)
-            d = roundedRectPath(rx: rx, ry: ry)
+            // Clamped once, to half the shorter side, as the canvas does: a
+            // pill resized shorter keeps round ends rather than oval ones.
+            d = roundedRectPath(width: el.w, height: el.h, radius: min(radius, el.w / 2, el.h / 2))
+        } else {
+            // The library's path, or a drawn one, read as the canvas reads
+            // it (arcs as cubics) and taken across by each side.
+            d = TextOutliner.svgPathData(SVGPath.scaledPath(definition.path, to: CGSize(width: el.w, height: el.h)))
         }
 
         let fill = el.fill ?? .solid("#8b5cf6")
         let paint: String
         if fill.kind == "gradient", let stops = fill.stops, !stops.isEmpty {
             let id = "grad\(index)"
-            defs.append(gradientDef(id: id, paint: fill, width: el.w, height: el.h))
+            defs.append(gradientDef(id: id, paint: fill, left: 0, top: 0, width: el.w, height: el.h))
             paint = "url(#\(id))"
         } else if fill.kind == "none" {
             paint = "none"
@@ -157,37 +166,46 @@ enum SVGExporter {
 
         var stroke = ""
         if let color = el.stroke, let width = el.strokeWidth, width > 0 {
-            // Non-scaling, because the group below scales a 100-unit box onto
-            // the element: a plain stroke-width would come out stretched by
-            // the same factor, and differently on each axis.
             stroke = " stroke=\"\(escape(color))\" stroke-width=\"\(num(width))\"" +
-                     " vector-effect=\"non-scaling-stroke\" stroke-linejoin=\"round\" stroke-linecap=\"round\""
+                     " stroke-linejoin=\"round\" stroke-linecap=\"round\""
         }
 
-        let sx = el.w / 100, sy = el.h / 100
-        return "<g transform=\"translate(\(num(el.x)) \(num(el.y))) scale(\(num(sx)) \(num(sy)))\">" +
+        return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" +
                "<path d=\"\(d)\" fill=\"\(paint)\"\(stroke)/></g>"
     }
 
-    private static func roundedRectPath(rx: Double, ry: Double) -> String {
-        "M\(num(rx)),0H\(num(100 - rx))A\(num(rx)),\(num(ry)) 0 0 1 100,\(num(ry))" +
-        "V\(num(100 - ry))A\(num(rx)),\(num(ry)) 0 0 1 \(num(100 - rx)),100" +
-        "H\(num(rx))A\(num(rx)),\(num(ry)) 0 0 1 0,\(num(100 - ry))" +
-        "V\(num(ry))A\(num(rx)),\(num(ry)) 0 0 1 \(num(rx)),0Z"
+    /// A `width` x `height` rectangle with round corners of `radius`.
+    private static func roundedRectPath(width w: Double, height h: Double, radius r: Double) -> String {
+        let arc = "A\(num(r)),\(num(r)) 0 0 1"
+        return "M\(num(r)),0H\(num(w - r))\(arc) \(num(w)),\(num(r))" +
+        "V\(num(h - r))\(arc) \(num(w - r)),\(num(h))" +
+        "H\(num(r))\(arc) 0,\(num(h - r))" +
+        "V\(num(r))\(arc) \(num(r)),0Z"
     }
 
     private static func textMarkup(_ el: Element, index: Int, defs: inout [String]) -> String {
-        guard let path = TextOutliner.path(for: el) else { return "" }
+        // Straight lines as the canvas sets them: at the size that fits a
+        // fitted box, and from where a vertically aligned box starts them —
+        // which is also where gradient letters are painted from.
+        let top = min(max(textTop(el), 0), el.h)
+        var drawn = el
+        if el.fitText == true, !TextOutliner.followsAPath(el) {
+            drawn.fontSize = FontLibrary.fittingFontSize(for: el)
+        }
+        guard let outline = TextOutliner.path(for: drawn) else { return "" }
+        var shift = CGAffineTransform(translationX: 0, y: CGFloat(top))
+        let path: CGPath = top > 0 ? (outline.copy(using: &shift) ?? outline) : outline
         let d = TextOutliner.svgPathData(path)
         guard !d.isEmpty else { return "" }
         let paint: String
         if let fill = el.textFill, fill.kind == "gradient", let stops = fill.stops, !stops.isEmpty {
-            // userSpaceOnUse over the element's box rather than the path's
-            // bounding box: the letters' own box is shorter than the element
-            // and varies with the text, and the canvas paints the gradient
-            // across the element.
+            // userSpaceOnUse over the text's part of the box rather than the
+            // path's bounding box: the letters' own box is smaller than the
+            // element and varies with the text, and the canvas paints the
+            // gradient from where the words start down to the box's foot.
             let id = "textgrad\(index)"
-            defs.append(gradientDef(id: id, paint: fill, width: el.w, height: el.h))
+            defs.append(gradientDef(id: id, paint: fill, left: 0, top: top, width: el.w,
+                                    height: el.h - top, circular: true))
             paint = "url(#\(id))"
         } else {
             paint = escape(el.color ?? "#1f2430")
@@ -196,38 +214,61 @@ enum SVGExporter {
                "<path d=\"\(d)\" fill=\"\(paint)\" fill-rule=\"nonzero\"/></g>"
     }
 
+    /// How far past a text box's top its lines start, as the canvas sets
+    /// them: vertically aligned in the box at the size it is drawn at. None
+    /// for text round a curve, along a path or down a column.
+    static func textTop(_ el: Element) -> Double {
+        if TextOutliner.followsAPath(el) { return 0 }
+        var drawn = el
+        if el.fitText == true { drawn.fontSize = FontLibrary.fittingFontSize(for: el) }
+        let slack: Double = max(0, el.h - FontLibrary.measuredHeight(for: drawn))
+        switch el.vAlign {
+        case "middle": return slack / 2
+        case "bottom": return slack
+        default: return 0
+        }
+    }
+
+    /// A line's arrowhead length for its thickness, as LineElementView draws it.
+    static func arrowSize(_ thickness: Double) -> Double { max(thickness * 3, 10) }
+
+    /// A line as LineElementView draws it: round-capped, dashed 3:2 or dotted
+    /// every 2.2 of its thickness, stopping short of an arrowhead whose tip
+    /// is the line's end, and dots a thickness in from the ends.
     private static func lineMarkup(_ el: Element) -> String {
         let y = el.y + el.h / 2
-        let width = max(el.thickness ?? 4, 0.5)
+        let t: Double = max(el.thickness ?? 4, 0.5)
+        let arrow = arrowSize(t)
+        let x1: Double = el.x + (el.startCap == "arrow" ? arrow * 0.9 : 0)
+        let x2: Double = el.x + el.w - (el.endCap == "arrow" ? arrow * 0.9 : 0)
         var dash = ""
         switch el.dash {
-        case "dashed": dash = " stroke-dasharray=\"\(num(width * 3)) \(num(width * 2))\""
-        case "dotted": dash = " stroke-dasharray=\"0 \(num(width * 2))\" stroke-linecap=\"round\""
-        default: dash = " stroke-linecap=\"round\""
+        case "dashed": dash = " stroke-dasharray=\"\(num(t * 3)) \(num(t * 2))\""
+        case "dotted": dash = " stroke-dasharray=\"0 \(num(t * 2.2))\""
+        default: dash = ""
         }
         let stroke = escape(el.color ?? "#1f2430")
-        var markup = "<line x1=\"\(num(el.x))\" y1=\"\(num(y))\" " +
-                     "x2=\"\(num(el.x + el.w))\" y2=\"\(num(y))\" " +
-                     "stroke=\"\(stroke)\" stroke-width=\"\(num(width))\"\(dash)/>"
-        markup += capMarkup(el.startCap, at: CGPoint(x: el.x, y: y), pointingLeft: true,
-                            width: width, color: stroke)
-        markup += capMarkup(el.endCap, at: CGPoint(x: el.x + el.w, y: y), pointingLeft: false,
-                            width: width, color: stroke)
+        var markup = "<line x1=\"\(num(x1))\" y1=\"\(num(y))\" " +
+                     "x2=\"\(num(x2))\" y2=\"\(num(y))\" " +
+                     "stroke=\"\(stroke)\" stroke-width=\"\(num(t))\" stroke-linecap=\"round\"\(dash)/>"
+        markup += capMarkup(el.startCap, x: el.x, y: y, atStart: true, thickness: t, color: stroke)
+        markup += capMarkup(el.endCap, x: el.x + el.w, y: y, atStart: false, thickness: t, color: stroke)
         return markup
     }
 
-    private static func capMarkup(_ cap: String?, at point: CGPoint, pointingLeft: Bool,
-                                  width: Double, color: String) -> String {
+    private static func capMarkup(_ cap: String?, x: Double, y: Double, atStart: Bool,
+                                  thickness t: Double, color: String) -> String {
         switch cap {
         case "arrow":
-            let size = width * 3.2
-            let tipX = point.x + (pointingLeft ? -size : size)
-            return "<path d=\"M\(num(tipX)) \(num(point.y))" +
-                   "L\(num(point.x)) \(num(point.y - size * 0.55))" +
-                   "L\(num(point.x)) \(num(point.y + size * 0.55))Z\" fill=\"\(color)\"/>"
+            let arrow = arrowSize(t)
+            let back: Double = x + (atStart ? arrow : -arrow)
+            return "<path d=\"M\(num(x)) \(num(y))" +
+                   "L\(num(back)) \(num(y - arrow * 0.6))" +
+                   "L\(num(back)) \(num(y + arrow * 0.6))Z\" fill=\"\(color)\"/>"
         case "dot":
-            return "<circle cx=\"\(num(point.x))\" cy=\"\(num(point.y))\" " +
-                   "r=\"\(num(width * 1.4))\" fill=\"\(color)\"/>"
+            let cx: Double = x + (atStart ? t : -t)
+            return "<circle cx=\"\(num(cx))\" cy=\"\(num(y))\" " +
+                   "r=\"\(num(max(t * 1.4, 5)))\" fill=\"\(color)\"/>"
         default:
             return ""
         }
@@ -269,7 +310,7 @@ enum SVGExporter {
             return "<rect width=\"\(num(size.width))\" height=\"\(num(size.height))\" " +
                    "fill=\"\(escape(hex))\"/>"
         case .gradient(let paint) where paint.gradientKind != "angular":
-            defs.append(gradientDef(id: "bg", paint: paint,
+            defs.append(gradientDef(id: "bg", paint: paint, left: 0, top: 0,
                                     width: size.width, height: size.height))
             return "<rect width=\"\(num(size.width))\" height=\"\(num(size.height))\" " +
                    "fill=\"url(#bg)\"/>"
@@ -289,30 +330,35 @@ enum SVGExporter {
         }
     }
 
-    /// A linear gradient in objectBoundingBox units, matching the CSS angle
-    /// convention the model stores (0 degrees points up, 90 to the right).
-    ///
-    /// Bounding-box units stretch with the box, so the direction vector has to
-    /// be divided by the box's own dimensions or a gradient on a wide element
-    /// comes out at the wrong angle.
-    private static func gradientDef(id: String, paint: Paint,
-                                    width: Double, height: Double) -> String {
-        let stopsMarkup = (paint.stops ?? []).map {
-            "<stop offset=\"\(num($0.offset))\" stop-color=\"\(escape($0.color))\"/>"
-        }.joined()
-        if paint.gradientKind == "radial" {
-            return "<radialGradient id=\"\(id)\" cx=\"0.5\" cy=\"0.5\" r=\"0.5\">\(stopsMarkup)</radialGradient>"
-        }
-        let radians = ((paint.angle ?? 0) - 90) * .pi / 180
-        let dx = cos(radians), dy = sin(radians)
-        let length = abs(width * dx) + abs(height * dy)
-        let ux = width > 0 ? (dx * length) / (2 * width) : 0
-        let uy = height > 0 ? (dy * length) / (2 * height) : 0
+    /// A gradient as the canvas paints it over the box at (`left`, `top`),
+    /// `width` x `height`, in the space of whatever it fills: linear along
+    /// the CSS angle the model stores (0 degrees up, 90 to the right) from
+    /// one side of the box to the other, as a SwiftUI LinearGradient's unit
+    /// points land on the box — its bands square to that line on the page,
+    /// not in a unit square stretched onto the box; radial from the centre
+    /// out to the ellipse through the four sides, as EllipticalGradient
+    /// draws it, or with `circular` — letters — to the circle through the
+    /// longer side, where an angular fill is painted linear too.
+    static func gradientDef(id: String, paint: Paint, left: Double, top: Double,
+                            width: Double, height: Double, circular: Bool = false) -> String {
         let stops = (paint.stops ?? []).map {
             "<stop offset=\"\(num($0.offset))\" stop-color=\"\(escape($0.color))\"/>"
         }.joined()
-        return "<linearGradient id=\"\(id)\" x1=\"\(num(0.5 - ux))\" y1=\"\(num(0.5 - uy))\" " +
-               "x2=\"\(num(0.5 + ux))\" y2=\"\(num(0.5 + uy))\">\(stops)</linearGradient>"
+        if paint.gradientKind == "radial" {
+            let cx = num(left + width / 2), cy = num(top + height / 2)
+            if circular {
+                return "<radialGradient id=\"\(id)\" gradientUnits=\"userSpaceOnUse\" cx=\"\(cx)\" cy=\"\(cy)\" " +
+                       "r=\"\(num(max(width, height) / 2))\">\(stops)</radialGradient>"
+            }
+            return "<radialGradient id=\"\(id)\" gradientUnits=\"userSpaceOnUse\" cx=\"0\" cy=\"0\" r=\"1\" " +
+                   "gradientTransform=\"translate(\(cx) \(cy)) scale(\(num(width / 2)) \(num(height / 2)))\">" +
+                   "\(stops)</radialGradient>"
+        }
+        let pts = paint.unitPoints
+        let x1: Double = left + width * Double(pts.start.x), y1: Double = top + height * Double(pts.start.y)
+        let x2: Double = left + width * Double(pts.end.x), y2: Double = top + height * Double(pts.end.y)
+        return "<linearGradient id=\"\(id)\" gradientUnits=\"userSpaceOnUse\" " +
+               "x1=\"\(num(x1))\" y1=\"\(num(y1))\" x2=\"\(num(x2))\" y2=\"\(num(y2))\">\(stops)</linearGradient>"
     }
 
     // MARK: helpers
@@ -326,8 +372,19 @@ enum SVGExporter {
         return String(rounded)
     }
 
+    /// Text made safe inside markup and inside a quoted attribute — and first
+    /// rid of what XML cannot hold at all, escaped or not: control characters
+    /// but tab and the line ends (a pasted soft line break is U+000B), and
+    /// U+FFFE and U+FFFF. One of those anywhere and no reader opens the file.
     static func escape(_ text: String) -> String {
-        text.replacingOccurrences(of: "&", with: "&amp;")
+        var kept = String.UnicodeScalarView()
+        for scalar in text.unicodeScalars {
+            let v: UInt32 = scalar.value
+            if v == 0x9 || v == 0xA || v == 0xD || (v >= 0x20 && v != 0xFFFE && v != 0xFFFF) {
+                kept.append(scalar)
+            }
+        }
+        return String(kept).replacingOccurrences(of: "&", with: "&amp;")
             .replacingOccurrences(of: "<", with: "&lt;")
             .replacingOccurrences(of: ">", with: "&gt;")
             .replacingOccurrences(of: "\"", with: "&quot;")
