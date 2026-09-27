@@ -35,6 +35,8 @@ struct EditorView: View {
     @FocusState private var titleFocused: Bool
     @State private var titleBeforeEdit = ""
     @State private var toast: String?
+    /// Whether the toast on screen offers Undo.
+    @State private var toastUndoes = true
     @State private var toastTask: Task<Void, Never>?
     @State private var tip: Tip?
     @State private var presenting = false
@@ -101,7 +103,7 @@ struct EditorView: View {
         .onChange(of: store.announcement) { _, text in
             guard let text else { return }
             store.announcement = nil
-            show(toast: text)
+            show(toast: text, undoable: store.announcementUndoes)
         }
         .onChange(of: store.tipEvent) { _, event in
             guard let event else { return }
@@ -812,12 +814,14 @@ struct EditorView: View {
                 Text(toast)
                     .font(.subheadline)
                     .lineLimit(1)
-                Button("Undo") {
-                    store.undo()
-                    dismissToast()
+                if toastUndoes {
+                    Button("Undo") {
+                        store.undo()
+                        dismissToast()
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
                 }
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.accent)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
@@ -874,8 +878,9 @@ struct EditorView: View {
         withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { tip = nil }
     }
 
-    private func show(toast text: String) {
+    private func show(toast text: String, undoable: Bool) {
         toastTask?.cancel()
+        toastUndoes = undoable
         withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { toast = text }
         toastTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(4))

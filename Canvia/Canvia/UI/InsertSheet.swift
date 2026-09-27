@@ -478,25 +478,52 @@ struct InsertSheet: View {
     // MARK: pdf
 
     /// One page becomes a picture on this page; several become pages of
-    /// their own after it, each picture fitted to the page.
+    /// their own after it, each picture fitted to the page. It says what
+    /// happened either way: locked, unreadable, or how many pages came in.
     private func importPDF(_ url: URL) {
         let scoped = url.startAccessingSecurityScopedResource()
         let data = try? Data(contentsOf: url)
         if scoped { url.stopAccessingSecurityScopedResource() }
-        guard let data else { return }
         let target = store.replaceTargetId
+        let store = self.store
+        // Out of the way first, so what it says next is seen rather than
+        // hidden behind the sheet.
+        dismiss()
+        guard let data else {
+            store.buzz(.reject)
+            store.announce("Couldn't open that PDF", undoable: false)
+            return
+        }
+        store.announce("Opening the PDF…", undoable: false)
+        // A replace has one slot, so one page is all that is drawn.
+        let limit = target == nil ? PDFImporter.maxPages : 1
         Task {
             // Each page stored as it is rendered, so only one is in memory.
-            let (stored, total) = await Task.detached(priority: .userInitiated) { () -> ([(src: String, natural: CGSize)], Int) in
+            let (stored, outcome) = await Task.detached(priority: .userInitiated) { () -> ([(src: String, natural: CGSize)], PDFImporter.Outcome) in
                 var stored: [(src: String, natural: CGSize)] = []
-                let total = PDFImporter.forEachPage(of: data) { image in
+                let outcome = PDFImporter.forEachPage(of: data, limit: limit) { image in
                     if let src = MediaStore.storeOpaque(image) { stored.append((src, image.size)) }
                 }
-                return (stored, total)
+                return (stored, outcome)
             }.value
-            insertPictures(stored, replacing: target)
-            if target == nil, total > stored.count, stored.count > 1 {
-                store.announce("Brought in the first \(stored.count) of \(total) pages")
+            switch outcome {
+            case .locked:
+                store.buzz(.reject)
+                store.announce("That PDF is locked with a password", undoable: false)
+            case .unreadable:
+                store.buzz(.reject)
+                store.announce("Couldn't open that PDF", undoable: false)
+            case .pages(_, let total):
+                guard !stored.isEmpty else {
+                    store.buzz(.reject)
+                    store.announce("Couldn't open that PDF", undoable: false)
+                    return
+                }
+                insertPictures(stored, replacing: target)
+                store.buzz(.confirm)
+                if target == nil, let said = PDFImporter.summary(brought: stored.count, total: total) {
+                    store.announce(said)
+                }
             }
         }
     }

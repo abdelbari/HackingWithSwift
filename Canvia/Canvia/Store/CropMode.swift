@@ -38,19 +38,19 @@ extension DesignStore {
         if cropping != nil { return true }
         guard let photo = element(id), photo.type == .image else { return false }
         if photo.locked {
-            announce("This photo is locked. Tap Unlock to crop it.")
+            announce("This photo is locked. Tap Unlock to crop it.", undoable: false)
             return false
         }
         if let src = photo.src, CodeGenerator.payload(from: src) != nil {
-            announce("A QR code is used whole, so it can't be cropped.")
+            announce("A QR code is used whole, so it can't be cropped.", undoable: false)
             return false
         }
         guard photo.src != nil else {
-            announce("This frame is empty. Tap Replace to put a photo in it.")
+            announce("This frame is empty. Tap Replace to put a photo in it.", undoable: false)
             return false
         }
         guard let image = PhotoLibrary.resolve(photo.src), image.size.width > 0, image.size.height > 0 else {
-            announce("This photo can't be opened, so it can't be cropped.")
+            announce("This photo can't be opened, so it can't be cropped.", undoable: false)
             return false
         }
         drawing = nil

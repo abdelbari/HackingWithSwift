@@ -669,6 +669,10 @@ final class DesignStore {
     /// A one-line description of something just done that undo can reverse,
     /// for the toast to show. Cleared by the view once shown.
     var announcement: String?
+    /// Whether that toast offers Undo. Not for a refusal, or for something
+    /// still under way: there Undo would take back whatever was done last,
+    /// which has nothing to do with the message.
+    var announcementUndoes = true
 
     /// Something just happened that a first-timer might want a word about.
     /// The editor hands it to TipEngine, which decides whether to say it.
@@ -710,7 +714,7 @@ final class DesignStore {
             await MainActor.run {
                 guard let self else { return }
                 let text = lines.map(\.text).joined(separator: "\n")
-                guard !text.isEmpty else { self.announce("No words were recognised in the strokes"); return }
+                guard !text.isEmpty else { self.announce("No words were recognised in the strokes", undoable: false); return }
                 let frame = rendered.frame
                 let size = max(12, (frame.height / Double(max(lines.count, 1)) * 0.6).rounded())
                 var el = Element.text(text, fontSize: size, w: max(60, frame.width.rounded()))
@@ -752,7 +756,7 @@ final class DesignStore {
                 guard let self else { return }
                 self.eraserBusy = false
                 defer { self.cancelErasing() }
-                guard let src else { self.announce("Nothing to erase there"); return }
+                guard let src else { self.announce("Nothing to erase there", undoable: false); return }
                 self.selection = [id]
                 self.updateSelected { $0.src = src }
                 self.announce("Erased — Undo brings it back")
@@ -798,7 +802,8 @@ final class DesignStore {
         announce(gone.count == 1 ? "Erased a stroke" : "Erased \(gone.count) strokes")
     }
 
-    func announce(_ text: String) {
+    func announce(_ text: String, undoable: Bool = true) {
+        announcementUndoes = undoable
         announcement = text
     }
 

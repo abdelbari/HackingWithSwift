@@ -225,6 +225,12 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   where a person would look first.
 - PDF import: each page rendered upright at import size and placed as a
   picture — one page onto this page, a document as new pages of its own.
+  It says what happened, in the Android twin's words: "Opening the PDF…",
+  then "That PDF is locked with a password" or "Couldn't open that PDF"
+  (with an error tap and no Undo), or "Brought in N pages" / "Brought in
+  the first N of M pages". Replacing a photo with a PDF page draws only
+  that page. Refusals elsewhere (crop, erase, handwriting) no longer offer
+  an Undo that would take back something unrelated.
 - Document theme: pick a palette and a type pairing, see page one
   wearing them, apply to every page as one undo step — colours remapped
   by luminance rank, headings (32 px and up) and body text given the

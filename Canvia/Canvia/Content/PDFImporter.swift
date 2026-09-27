@@ -29,20 +29,49 @@ enum PDFImporter {
     /// in memory while it is stored.
     static let maxPages = 60
 
+    /// What reading a PDF came to, as the Android twin tells them apart:
+    /// pages, a password it cannot open, or not a PDF this phone can read.
+    enum Outcome: Equatable {
+        /// How many pages were rendered, of how many the document has.
+        case pages(rendered: Int, total: Int)
+        case locked
+        case unreadable
+    }
+
     /// Each of the first `limit` pages rendered and handed to `body` in turn,
-    /// so only one is held at a time; the document's page count, or 0 when
-    /// it is not a PDF.
+    /// so only one is held at a time. A PDF locked with a password is found
+    /// out before anything is drawn — a locked document gives no pages, which
+    /// used to look like an empty one — and one whose every page fails to
+    /// draw counts as unreadable.
     @discardableResult
     static func forEachPage(of data: Data, limit: Int = maxPages, maxEdge: CGFloat = 1600,
-                            _ body: (UIImage) -> Void) -> Int {
+                            _ body: (UIImage) -> Void) -> Outcome {
         guard let provider = CGDataProvider(data: data as CFData),
-              let document = CGPDFDocument(provider), document.numberOfPages > 0 else { return 0 }
+              let document = CGPDFDocument(provider) else { return .unreadable }
+        // An empty user password is how most "protected" PDFs open: they
+        // only restrict printing or copying.
+        if document.isEncrypted && !document.isUnlocked && !document.unlockWithPassword("") { return .locked }
+        guard document.numberOfPages > 0 else { return .unreadable }
+        var rendered = 0
         for index in 1...min(document.numberOfPages, max(limit, 1)) {
             autoreleasepool {
-                if let page = document.page(at: index), let image = render(page, maxEdge: maxEdge) { body(image) }
+                if let page = document.page(at: index), let image = render(page, maxEdge: maxEdge) {
+                    body(image)
+                    rendered += 1
+                }
             }
         }
-        return document.numberOfPages
+        return rendered == 0 ? .unreadable : .pages(rendered: rendered, total: document.numberOfPages)
+    }
+
+    /// What to say once a PDF's pages are in: nothing for a single page;
+    /// how many when several came; and when fewer came than the document
+    /// has — cut at the limit, or pages that would not draw — the first
+    /// how many of how many, as the Android twin says it.
+    static func summary(brought: Int, total: Int) -> String? {
+        if total > brought { return "Brought in the first \(brought) of \(total) pages" }
+        if brought > 1 { return "Brought in \(brought) pages" }
+        return nil
     }
 
     private static func render(_ page: CGPDFPage, maxEdge: CGFloat) -> UIImage? {
