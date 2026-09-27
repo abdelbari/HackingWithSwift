@@ -16,11 +16,11 @@ struct ColorPickerSheet: View {
     var title: String
     var current: String?
     var allowGradients = false
-    /// Whether patterns and photo fills are offered; by default wherever
-    /// gradients are. Text draws gradients through its letters but never a
-    /// pattern or a photo, so its colour sheet offers neither — as on the
-    /// Android twin.
-    var allowPatterns: Bool?
+    /// Patterns and photo fills, which only a shape draws.
+    var allowPatterns = false
+    /// The fill there now, when it is a gradient, a pattern or a photo, so
+    /// its tile is ringed and tapping it again records nothing.
+    var currentPaint: Paint?
     var onPick: (String) -> Void
     var onPickGradient: ((Paint) -> Void)?
     /// Continuous variant for the system ColorPicker, which updates its
@@ -40,7 +40,7 @@ struct ColorPickerSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    ColorPicker("Custom color", selection: $custom, supportsOpacity: false)
+                    ColorPicker("A colour of your own", selection: $custom, supportsOpacity: false)
                         .onChange(of: custom) {
                             let hex = UIColor(custom).hexString
                             if let onPickTransient { onPickTransient(hex) } else { onPick(hex) }
@@ -58,7 +58,7 @@ struct ColorPickerSheet: View {
                         Button {
                             eyedropping = true
                         } label: {
-                            Label("Pick a colour from the design", systemImage: "eyedropper")
+                            Label("Pick from the page", systemImage: "eyedropper")
                                 .frame(maxWidth: .infinity)
                                 .padding(10)
                                 .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
@@ -69,7 +69,7 @@ struct ColorPickerSheet: View {
 
                         let brand = BrandKit.load().colors
                         if !brand.isEmpty {
-                            section("Brand", colors: brand)
+                            section("Brand colours", colors: brand)
                         }
                     }
 
@@ -80,7 +80,7 @@ struct ColorPickerSheet: View {
 
                     let docColors = ColorTools.documentColors(store.design)
                     if !docColors.isEmpty {
-                        section("Document colors", colors: docColors)
+                        section("In this design", colors: docColors)
                     }
 
                     // The colours of the photos on the page — every one, the
@@ -102,7 +102,7 @@ struct ColorPickerSheet: View {
 
                     harmonySection
 
-                    section("Default colors", colors: ContentLibrary.defaultSwatches)
+                    section("Default colours", colors: ContentLibrary.defaultSwatches)
 
                     if allowGradients, let onPickGradient {
                         Text("Gradients").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
@@ -114,21 +114,12 @@ struct ColorPickerSheet: View {
                         .pickerStyle(.segmented)
                         LazyVGrid(columns: columns, spacing: 10) {
                             ForEach(ContentLibrary.gradients) { preset in
-                                var paint = preset.paint
-                                let _ = { paint.gradientKind = gradientKind == "linear" ? nil : gradientKind }()
-                                Button {
-                                    onPickGradient(paint)
-                                } label: {
-                                    RoundedRectangle(cornerRadius: 9)
-                                        .fill(paint.gradientStyle())
-                                        .frame(height: 40)
-                                }
-                                .accessibilityLabel("\(preset.name) \(gradientKind) gradient")
+                                gradientTile(preset, pick: onPickGradient)
                             }
                         }
                     }
 
-                    if allowPatterns ?? allowGradients, let onPickGradient {
+                    if allowGradients, allowPatterns, let onPickGradient {
                         patternsSection(onPickGradient)
                         photoFillSection(onPickGradient)
                     }
@@ -151,6 +142,9 @@ struct ColorPickerSheet: View {
         }
         .presentationDetents(sheetDetents)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        .onAppear {
+            if currentPaint?.kind == "gradient" { gradientKind = GradientPreset.kind(of: currentPaint) }
+        }
         // Read again when the page's photos change; the pictures load here
         // and their colours are read off the main thread.
         .task(id: PhotoPalette.sources(on: store.page)) {
@@ -174,7 +168,7 @@ struct ColorPickerSheet: View {
     @ViewBuilder
     private var harmonySection: some View {
         let seed = current ?? UIColor(custom).hexString
-        Text("Goes with \(seed)")
+        Text("Goes with this colour")
             .font(.footnote.weight(.bold))
             .foregroundStyle(.secondary)
         VStack(alignment: .leading, spacing: 8) {
@@ -209,13 +203,19 @@ struct ColorPickerSheet: View {
             LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(Patterns.names, id: \.self) { name in
                     let paint = Paint.pattern(name, color: ink, secondary: "#ffffff", scale: 12)
-                    Button { pick(paint) } label: {
+                    let chosen = FillChoices.isPattern(currentPaint, named: name)
+                    Button {
+                        guard !chosen else { return }
+                        pick(paint)
+                        store.buzz(.tick)
+                    } label: {
                         PatternFill(paint: paint)
                             .frame(height: 40)
                             .clipShape(RoundedRectangle(cornerRadius: 9))
-                            .overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.hairline))
+                            .overlay(chosenRing(chosen))
                     }
                     .accessibilityLabel("\(Patterns.displayName(name)) pattern")
+                    .accessibilityAddTraits(chosen ? .isSelected : [])
                 }
             }
         }
@@ -223,17 +223,17 @@ struct ColorPickerSheet: View {
 
     /// The library's photos, and any the document already uses, as fills.
     private func photoFillSection(_ pick: @escaping (Paint) -> Void) -> some View {
-        var sources = PhotoLibrary.photos.prefix(8).map { "asset:\($0.id)" }
-        for page in store.design.pages {
-            for el in page.elements where el.type == .image {
-                if let src = el.src, !sources.contains(src) { sources.append(src) }
-            }
-        }
+        let sources = FillChoices.photoFillSources(store.design)
         return VStack(alignment: .leading, spacing: 8) {
             Text("Photo fill").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
             LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(sources, id: \.self) { src in
-                    Button { pick(.image(src)) } label: {
+                    let chosen = FillChoices.isPhoto(currentPaint, src: src)
+                    Button {
+                        guard !chosen else { return }
+                        pick(.image(src))
+                        store.buzz(.tick)
+                    } label: {
                         Group {
                             if let ui = PhotoLibrary.resolve(src) {
                                 Image(uiImage: PhotoLibrary.preview(ui, key: src))
@@ -244,8 +244,10 @@ struct ColorPickerSheet: View {
                         }
                         .frame(height: 40)
                         .clipShape(RoundedRectangle(cornerRadius: 9))
+                        .overlay { if chosen { chosenRing(true) } }
                     }
-                    .accessibilityLabel("Fill with photo")
+                    .accessibilityLabel(FillChoices.photoFillLabel(src, sources: sources))
+                    .accessibilityAddTraits(chosen ? .isSelected : [])
                 }
             }
         }
@@ -255,7 +257,33 @@ struct ColorPickerSheet: View {
     /// without it landing in the recents.
     private func choose(_ hex: String) {
         RecentColors.record(hex)
+        // Felt when it changes something, as on the Android twin.
+        if current?.lowercased() != hex.lowercased() { store.buzz(.tick) }
         onPick(hex)
+    }
+
+    /// One of the gradients, in the shape chosen above: ringed when it is
+    /// the fill there now, and then a tap records nothing.
+    private func gradientTile(_ preset: GradientPreset, pick: @escaping (Paint) -> Void) -> some View {
+        let paint = preset.paint(kind: gradientKind)
+        let chosen = FillChoices.isGradient(currentPaint, paint)
+        return Button {
+            guard !chosen else { return }
+            pick(paint)
+            store.buzz(.tick)
+        } label: {
+            RoundedRectangle(cornerRadius: 9)
+                .fill(paint.gradientStyle())
+                .frame(height: 40)
+                .overlay(chosenRing(chosen))
+        }
+        .accessibilityLabel("\(preset.name) \(gradientKind) gradient")
+        .accessibilityAddTraits(chosen ? .isSelected : [])
+    }
+
+    private func chosenRing(_ chosen: Bool) -> some View {
+        RoundedRectangle(cornerRadius: 9)
+            .stroke(chosen ? Theme.accent : Theme.hairline, lineWidth: chosen ? 3 : 1)
     }
 
     private func gradientFill(_ preset: GradientPreset) -> LinearGradient {

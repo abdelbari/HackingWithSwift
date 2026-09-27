@@ -23,6 +23,8 @@ struct SnapSignal: Equatable {
 /// Discrete things worth feeling. The serial makes every event a change,
 /// so two deletes in a row both tap.
 struct HapticEvent: Equatable {
+    /// `tick` is a restyle that took — a swatch, gradient, pattern or line
+    /// style that changed something — as the Android twin's Feel.Tick.
     enum Kind: Equatable { case undo, redo, grouped, pageAdded, stroke, confirm, reject, tick }
     var kind: Kind
     var serial: Int

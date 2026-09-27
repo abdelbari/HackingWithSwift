@@ -201,4 +201,13 @@ final class ImageDownsamplerTests: XCTestCase {
     func testPrepareRejectsNonImageData() {
         XCTAssertNil(ImageDownsampler.prepare(Data("not an image".utf8)))
     }
+
+    /// Kept at 2048 on the long side, as the Android twin keeps them.
+    func testImportsAreKeptAt2048OnTheLongSide() throws {
+        XCTAssertEqual(ImageDownsampler.keptEdge, 2048)
+        let prepared = try XCTUnwrap(ImageDownsampler.prepare(jpeg(width: 3000, height: 1500)))
+        XCTAssertEqual(prepared.image.size, CGSize(width: 2048, height: 1024))
+        let small = try XCTUnwrap(ImageDownsampler.prepare(jpeg(width: 1000, height: 500)))
+        XCTAssertEqual(small.image.size, CGSize(width: 1000, height: 500), "whole when smaller")
+    }
 }

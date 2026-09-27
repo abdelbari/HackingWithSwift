@@ -7,6 +7,8 @@ struct BrandKitSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var kit = BrandKit.load()
     @State private var newColor = Color.blue
+    /// The logos there when the sheet opened, listed even once switched off.
+    @State private var openedWithLogos = BrandKit.load().logos
 
     private let columns = [GridItem(.adaptive(minimum: 40), spacing: 10)]
 
@@ -54,25 +56,14 @@ struct BrandKitSheet: View {
                 }
 
                 Section {
-                    let candidates = store.design.pages.flatMap { $0.elements }
-                        .filter { $0.type == .image }.compactMap(\.src)
-                    if candidates.isEmpty && kit.logos.isEmpty {
+                    let candidates = BrandKit.logoCandidates(openedWith: openedWithLogos, current: kit.logos,
+                                                             design: store.design)
+                    if candidates.isEmpty {
                         Text("Add a picture to the design, then mark it here as a logo.")
                             .foregroundStyle(.secondary)
                     }
-                    ForEach(Array(Set(kit.logos + candidates)).sorted(), id: \.self) { src in
-                        HStack {
-                            if let ui = PhotoLibrary.resolve(src) {
-                                Image(uiImage: PhotoLibrary.preview(ui, key: src))
-                                    .resizable().aspectRatio(contentMode: .fit).frame(width: 44, height: 44)
-                            }
-                            Toggle("Logo", isOn: Binding(
-                                get: { kit.logos.contains(src) },
-                                set: { on in
-                                    if on { if !kit.logos.contains(src) { kit.logos.append(src) } }
-                                    else { kit.logos.removeAll { $0 == src } }
-                                }))
-                        }
+                    ForEach(Array(candidates.enumerated()), id: \.element) { index, src in
+                        logoRow(src, index: index, count: candidates.count)
                     }
                 } header: {
                     Text("Logos")
@@ -84,10 +75,32 @@ struct BrandKitSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { kit.save(); dismiss() }
+                    Button("Done") { dismiss() }
                 }
             }
         }
         .presentationDetents([.large])
+        // Every change kept as it is made, as on the Android twin, so the
+        // sheet can be swiped away as well as closed with Done.
+        .onChange(of: kit) { _, changed in changed.save() }
+    }
+
+    /// One switch per picture, told apart by its place in the list — the
+    /// picture is all that differs, and VoiceOver cannot see it.
+    private func logoRow(_ src: String, index: Int, count: Int) -> some View {
+        HStack {
+            if let ui = PhotoLibrary.resolve(src) {
+                Image(uiImage: PhotoLibrary.preview(ui, key: src))
+                    .resizable().aspectRatio(contentMode: .fit).frame(width: 44, height: 44)
+                    .accessibilityHidden(true)
+            }
+            Toggle("Picture \(index + 1)", isOn: Binding(
+                get: { kit.logos.contains(src) },
+                set: { on in
+                    if on { if !kit.logos.contains(src) { kit.logos.append(src) } }
+                    else { kit.logos.removeAll { $0 == src } }
+                }))
+            .accessibilityLabel("Picture \(index + 1) of \(count), a brand logo")
+        }
     }
 }

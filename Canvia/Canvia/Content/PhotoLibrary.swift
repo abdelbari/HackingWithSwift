@@ -363,11 +363,20 @@ enum PhotoLibrary {
 // MARK: user media store
 
 enum MediaStore {
+    // Bounded by bytes as well as count: a picture kept at 2048 px is some
+    // 17 MB decoded, so 32 of them alone could reach half a gigabyte.
     private static let memory: NSCache<NSString, UIImage> = {
         let c = NSCache<NSString, UIImage>()
         c.countLimit = 32
+        c.totalCostLimit = 256 * 1024 * 1024
         return c
     }()
+
+    /// Into the cache at its decoded size in bytes, so the byte bound holds.
+    private static func remember(_ image: UIImage, _ id: String) {
+        let pixels = image.size.width * image.scale * image.size.height * image.scale
+        memory.setObject(image, forKey: id as NSString, cost: Int(pixels * 4))
+    }
 
     /// What we write, in the order load() looks for them. JPEG for
     /// photographs; PNG when the picture has to keep an alpha channel, which
@@ -394,7 +403,7 @@ enum MediaStore {
             try prepared.encoded.write(to: url)
             // NSCache is thread-safe, so seeding it from a background task is
             // fine and saves the first draw a round trip to disk.
-            memory.setObject(prepared.image, forKey: id as NSString)
+            remember(prepared.image, id)
             return "media:\(id)"
         } catch {
             return nil
@@ -429,7 +438,7 @@ enum MediaStore {
         let id = UID.make("img")
         do {
             try data.write(to: directory.appendingPathComponent("\(id).jpg"))
-            memory.setObject(image, forKey: id as NSString)
+            remember(image, id)
             return "media:\(id)"
         } catch {
             return nil
@@ -443,7 +452,7 @@ enum MediaStore {
         let url = directory.appendingPathComponent("\(id).png")
         do {
             try data.write(to: url)
-            memory.setObject(image, forKey: id as NSString)
+            remember(image, id)
             return "media:\(id)"
         } catch {
             return nil
@@ -456,7 +465,7 @@ enum MediaStore {
             let url = directory.appendingPathComponent("\(id).\(ext)")
             guard let data = try? Data(contentsOf: url),
                   let img = UIImage(data: data) else { continue }
-            memory.setObject(img, forKey: id as NSString)
+            remember(img, id)
             return img
         }
         return nil

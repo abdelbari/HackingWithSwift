@@ -331,6 +331,10 @@ enum MovieExporter {
     /// Progress is reported as a fraction of frames written, from the writer's
     /// own queue. Cancelling the surrounding task stops the writer at the next
     /// frame, discards the partial file and throws CancellationError.
+    ///
+    /// Returns whether the soundtrack was meant to go under the picture and
+    /// could not be mixed in: the picture is kept without it, rather than
+    /// nothing, as the Android twin keeps it, and the caller says so.
     @MainActor
     @discardableResult
     static func exportMP4(design: Design, settings: Settings = Settings(), to url: URL,

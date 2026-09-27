@@ -72,7 +72,7 @@ struct BackgroundSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Solid colors").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
+                    Text("Solid colours").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
                     LazyVGrid(columns: columns, spacing: 10) {
                         ForEach(ContentLibrary.defaultSwatches, id: \.self) { hex in
                             Button {
@@ -94,11 +94,7 @@ struct BackgroundSheet: View {
                     Text("Photos").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
                     LazyVGrid(columns: photoColumns, spacing: 10) {
                         ForEach(PhotoLibrary.photos) { photo in
-                            Button {
-                                store.applyToPage { $0.background = .image("asset:\(photo.id)") }
-                            } label: {
-                                photoThumb(photo.id)
-                            }
+                            BackgroundPhotoTile(store: store, photo: photo)
                         }
                     }
                 }
@@ -112,6 +108,31 @@ struct BackgroundSheet: View {
         }
         .presentationDetents(sheetDetents)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+    }
+}
+
+/// One of the library's pictures as the page's background: named for
+/// VoiceOver, ringed when it is the one behind the page, and not applied
+/// again when it already is — as the Android twin's backdrop tiles.
+struct BackgroundPhotoTile: View {
+    @Bindable var store: DesignStore
+    let photo: PhotoDef
+
+    var body: some View {
+        let chosen = store.page.background == .image("asset:\(photo.id)")
+        Button {
+            guard !chosen else { return }
+            store.applyToPage { $0.background = .image("asset:\(photo.id)") }
+        } label: {
+            photoThumb(photo.id)
+                .overlay {
+                    if chosen {
+                        RoundedRectangle(cornerRadius: 9).stroke(Theme.accent, lineWidth: 3)
+                    }
+                }
+        }
+        .accessibilityLabel("Background \(photo.name)")
+        .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 }
 
@@ -396,6 +417,7 @@ struct FiltersSheet: View {
                     presetGrid
                     duotoneRow
                     adjustmentDials
+                    resetAllButton
                 }
                 .padding()
             }
@@ -425,8 +447,20 @@ struct FiltersSheet: View {
                         .stroke(active ? Theme.accent : .clear, lineWidth: 2))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("\(preset.displayName) filter")
+                .accessibilityAddTraits(active ? .isSelected : [])
             }
         }
+    }
+
+    /// Every look taken off in one step — filter, dials, duotone,
+    /// straighten and show-whole — leaving where the photo sits alone.
+    private var resetAllButton: some View {
+        Button("Reset photo edits") {
+            store.updateSelected { PhotoEdits.reset(&$0) }
+        }
+        .frame(maxWidth: .infinity)
+        .disabled(!(store.singleSelection.map(PhotoEdits.any) ?? false))
     }
 
     /// Two colours a photo is mapped onto by luminance — the one treatment
@@ -477,6 +511,8 @@ struct FiltersSheet: View {
                 .stroke(active ? Theme.accent : .clear, lineWidth: 2))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(tone == nil ? "No duotone" : "\(name) duotone")
+        .accessibilityAddTraits(active ? .isSelected : [])
     }
 
     /// A preset is a look you pick; these are the dials you turn afterwards.
@@ -529,14 +565,18 @@ struct FiltersSheet: View {
     private func dial(_ label: String, _ key: WritableKeyPath<Adjustments, Double>,
                       in range: ClosedRange<Double>) -> some View {
         let current = store.singleSelection?.adjustments ?? .neutral
+        let readout = String(format: "%+.0f", current[keyPath: key] * 100)
         return VStack(alignment: .leading, spacing: 2) {
             HStack {
                 Text(label).font(.subheadline)
                 Spacer()
-                Text(String(format: "%+.0f", current[keyPath: key] * 100))
+                Text(readout)
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
+            // The slider itself carries the name and the number shown, so
+            // VoiceOver says "Brightness, +20" rather than a bare percentage.
+            .accessibilityHidden(true)
             Slider(value: Binding(
                 get: { current[keyPath: key] },
                 set: { value in
@@ -551,6 +591,8 @@ struct FiltersSheet: View {
             ), in: range, onEditingChanged: { editing in
                 if !editing { store.commit() }
             })
+            .accessibilityLabel(label)
+            .accessibilityValue(readout)
         }
     }
 
@@ -592,17 +634,25 @@ struct CropSheet: View {
                         // has taken it there.
                         Slider(value: cropBinding(el.cropScale ?? 1) { v, e in e.cropScale = v },
                                in: 1...max(Crop.maxZoom, el.cropScale ?? 1))
+                        .accessibilityLabel("Zoom")
+                        .accessibilityValue(Self.percent(el.cropScale ?? 1))
                     }
                     Section("Horizontal focus") {
                         Slider(value: cropBinding(el.cropX ?? 0.5) { v, e in e.cropX = v }, in: 0...1)
+                            .accessibilityLabel("Horizontal focus")
+                            .accessibilityValue(Self.percent(el.cropX ?? 0.5))
                     }
                     Section("Vertical focus") {
                         Slider(value: cropBinding(el.cropY ?? 0.5) { v, e in e.cropY = v }, in: 0...1)
+                            .accessibilityLabel("Vertical focus")
+                            .accessibilityValue(Self.percent(el.cropY ?? 0.5))
                     }
                     Section {
                         Slider(value: cropBinding(el.straighten ?? 0) { v, e in
                             e.straighten = abs(v) < 0.05 ? nil : v
                         }, in: -45...45)
+                        .accessibilityLabel("Straighten")
+                        .accessibilityValue("\(String(format: "%.1f", el.straighten ?? 0))°")
                     } header: {
                         Text("Straighten")
                     } footer: {
@@ -655,6 +705,8 @@ struct CropSheet: View {
             if store.hasPendingChanges { store.commit() }
         }
     }
+
+    static func percent(_ value: Double) -> String { "\(Int((value * 100).rounded()))%" }
 
     private func cropBinding(_ value: Double,
                              _ set: @escaping (Double, inout Element) -> Void) -> Binding<Double> {

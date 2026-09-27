@@ -255,7 +255,11 @@ final class DesignStore {
     /// Joins the two selected elements with an arrow that follows them.
     func connectSelected() {
         let ordered = page.elements.filter { selection.contains($0.id) }
-        guard ordered.count == 2 else { return }
+        guard ordered.count == 2 else {
+            buzz(.reject)
+            announce("Select two things to connect", undoable: false)
+            return
+        }
         var line = Element.line(w: 100)
         line.connectFrom = ordered[0].id
         line.connectTo = ordered[1].id
@@ -547,8 +551,11 @@ final class DesignStore {
             }
         }
         guard !clipboard.isEmpty else {
+            // Said, as the Android twin says it: from the keyboard there is
+            // no greyed-out menu item to tell you.
             buzz(.reject)
-            announce("Nothing to paste", undoable: false)
+            announce(UIPasteboard.general.hasImages ? "Couldn't paste that picture" : "Nothing to paste",
+                     undoable: false)
             return
         }
         pasteCount += 1
@@ -806,7 +813,11 @@ final class DesignStore {
     /// True while a move sits at an equal gap between two neighbours.
     var spacingSnapped = false
     /// The pen, while drawing mode is on: strokes become shape elements.
-    var drawing: Freehand.Tool?
+    var drawing: Freehand.Tool? {
+        didSet { if let drawing { lastPen = drawing } }
+    }
+    /// The last pen used, so the next drawing session picks it up again.
+    @ObservationIgnored private var lastPen = Freehand.Tool()
     /// The photo in crop mode, and the size of its picture — see
     /// CropMode.swift. Crop mode is one open step: everything done in it is
     /// live, Done keeps it as a single Undo, and Cancel throws it away.
@@ -819,6 +830,11 @@ final class DesignStore {
     var eraserBusy = false
 
     func beginErasing(_ id: String) {
+        if element(id)?.locked == true {
+            buzz(.reject)
+            announce("This photo is locked. Tap Unlock to edit it.", undoable: false)
+            return
+        }
         drawing = nil
         endTextEdit()
         selection = [id]
@@ -879,10 +895,26 @@ final class DesignStore {
             await MainActor.run {
                 guard let self else { return }
                 self.eraserBusy = false
+                // Cancelled, or another photo taken up, while it worked:
+                // the result is dropped rather than written over the choice.
+                guard self.erasing == id else { return }
                 defer { self.cancelErasing() }
-                guard let src else { self.announce("Nothing to erase there", undoable: false); return }
+                guard let now = self.element(id) else {
+                    self.buzz(.reject)
+                    self.announce("The photo is no longer on this page", undoable: false)
+                    return
+                }
+                // Locked meanwhile: kept as it is, and nothing said to have
+                // been erased.
+                guard !now.locked else { return }
+                guard let src else {
+                    self.buzz(.reject)
+                    self.announce("Nothing to erase there", undoable: false)
+                    return
+                }
                 self.selection = [id]
                 self.updateSelected { $0.src = src }
+                self.buzz(.confirm)
                 self.announce("Erased — Undo brings it back")
             }
         }
@@ -896,7 +928,9 @@ final class DesignStore {
         if drawing == nil {
             endTextEdit()
             selection.removeAll()
-            drawing = Freehand.Tool()
+            // The pen as it was last put away — ink, width and kind — for
+            // as long as the editor is open, as on the Android twin.
+            drawing = lastPen
         } else {
             drawing = nil
         }
@@ -1294,7 +1328,12 @@ final class DesignStore {
     /// Save the selection as a component, keeping nothing locked in it.
     @discardableResult
     func saveSelectionAsComponent(named name: String) -> Component? {
-        Components.add(named: name, from: selectedElements)
+        let saved = Components.add(named: name, from: selectedElements)
+        if let saved {
+            buzz(.confirm)
+            announce("Saved \u{201C}\(saved.name)\u{201D} to Components", undoable: false)
+        }
+        return saved
     }
 
     /// Drop a component onto the page at half its width, centred.

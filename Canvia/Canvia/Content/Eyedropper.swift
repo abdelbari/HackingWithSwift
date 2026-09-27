@@ -9,6 +9,18 @@ import UIKit
 
 enum Eyedropper {
 
+    /// Where the loupe showing the sampled colour sits: above the finger,
+    /// so the finger does not hide it, or below it when there is no room
+    /// above — never pinned under the fingertip at the top edge — and kept
+    /// inside the picture across. As the Android twin places it.
+    static func loupeCentre(for point: CGPoint, in size: CGSize,
+                            offset: CGFloat = 40, radius: CGFloat = 22) -> CGPoint {
+        let above = point.y - offset
+        let y = above >= radius ? above : min(point.y + offset, max(size.height - radius, radius))
+        let x = min(max(point.x, radius), max(size.width - radius, radius))
+        return CGPoint(x: x, y: y)
+    }
+
     /// The colour at a unit point of the image, as a hex string. Alpha is
     /// ignored: a picked colour is a paint, and paints are opaque.
     static func color(in image: CGImage, at unit: CGPoint) -> String? {

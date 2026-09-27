@@ -143,6 +143,20 @@ enum SVGPath {
         return TextOutliner.svgPathData(fitted)
     }
 
+    /// The largest SVG file read for a shape, as on the Android twin:
+    /// anything bigger is a picture, not an outline, and is taken as none.
+    static let maxImportBytes = 4 * 1024 * 1024
+
+    /// The first path in the SVG file at `url`, or nil when the file is too
+    /// big, cannot be read, or has none.
+    static func importFirstPath(fromFileAt url: URL) -> String? {
+        let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+        guard size <= maxImportBytes,
+              let data = try? Data(contentsOf: url), data.count <= maxImportBytes,
+              let text = String(data: data, encoding: .utf8) else { return nil }
+        return importFirstPath(fromSVG: text)
+    }
+
     /// The first path in an SVG document, as normalised path data.
     static func importFirstPath(fromSVG text: String) -> String? {
         guard let range = text.range(of: #"<path[^>]*\sd\s*=\s*"([^"]*)""#, options: .regularExpression) else { return nil }

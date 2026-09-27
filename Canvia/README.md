@@ -47,11 +47,16 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   zoom, drag empty canvas to pan
 - Content: 44 shapes (one SVG-path library parsed with full arc support),
   lines with caps and dashes, emoji stickers, 20 procedurally drawn
-  photos, photo-library imports, QR codes generated from a link or any
+  photos, photo-library imports (kept at 2048 px on the long side, or
+  whole when smaller, as on Android), QR codes generated from a link or any
   text (regenerated from the document, so they stay editable and nothing
   is stored), 102 complete templates that apply into any canvas size —
   every size has its own, logos and quote cards included (the shared
-  library is generated from the Android twin's `templates/` specs)
+  library is generated from the Android twin's `templates/` specs). In
+  the editor, those made for this page's size lead, with every size a
+  chip away; a template is fitted to the page's own size (corner rounding
+  scaled with it, as on Android) and replaces it as one step the toast
+  can undo
 - Text: curved text on an arc from -180° to 180° (glyphs placed along one
   circle whose radius the line's own width fixes, so letters keep their
   size rather than being squashed to fit), inline editing (double-tap) in a
@@ -78,16 +83,24 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   colours, offered from the document's own palette first), plus six
   free-hand dials (brightness, contrast, saturation,
   warmth, sharpness, vignette) that compose on top of the preset rather
-  than replacing it, cover-crop zoom + focus point, replace-in-place (swap the
-  picture, keep the frame, radius and filter), corner radius, borders
+  than replacing it, and one Reset photo edits that takes the whole look
+  off (filter, dials, duotone, straighten, show-whole) and leaves the
+  crop, cover-crop zoom + focus point, replace-in-place (swap the
+  picture, keep the frame, radius and filter; the new one comes in level
+  and centred), corner radius, borders
   (a Border slider on filled shapes, down to None), each end of a line
   set on its own (none, arrow or dot), and one colour for a whole
   multi-selection — text, lines, shapes and drawn strokes each take it
   their own way
-- Color: recently used colours first, colour harmony derived from whatever
+- Colour: recently used colours first, colour harmony derived from whatever
   is chosen (complementary, analogous, triadic, split, tetradic, and a
-  tint/shade ramp), curated palettes, gradient presets, document colors,
-  background editor, ✨ Shuffle (luminance-ranked palette remap). "Goes
+  tint/shade ramp), curated palettes, gradient presets, the colours in
+  this design, background editor, ✨ Shuffle (luminance-ranked palette
+  remap, naming the palette it applied). The picker's headings are the
+  Android twin's ("Brand colours", "In this design", "Default colours", "A
+  colour of your own"); the gradient, pattern or photo fill already there
+  is ringed, text is offered colours and gradients only (the fills it
+  draws), and a swatch or style that changes something is felt. "Goes
   with these · <palette>" suggests the palette that best covers the
   page's colours (redmean distance, as on Android); the brand kit's colours
   are the first palette in Document theme once it has two; and every
@@ -149,7 +162,10 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
 - Radial and angular gradients beside linear, on shapes, text and page
   backgrounds (radial reaches the SVG; angular ships as pixels, since SVG
   has no conic gradient). Per-corner radii on rectangles — top only,
-  bottom only, opposite corners — exact in the SVG. Drop caps: the first
+  bottom only, opposite corners — exact in the SVG; the Corners menu
+  ticks the pattern in use and offers one from square, and the Round
+  slider keeps it. Every toolbar, photo, shadow and crop slider is named
+  for VoiceOver with the number it shows; lines weigh up to 60. Drop caps: the first
   letter three lines deep with the paragraph wrapping around it.
 - Your uploads: every picture ever imported, newest first, in the Photos
   tab — insert again, star, or delete. Custom shapes from an SVG file:
@@ -171,15 +187,20 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
 - Guides: add vertical and horizontal guides from the Snapping menu, drag
   them into place, press and hold to remove; they are saved with the
   design and everything snaps to them. An eyedropper in every colour
-  picker samples any colour from the rendered design.
+  picker samples any colour from the rendered design, its loupe above
+  the finger, or below it when there is no room above.
 - Saved, linked text styles: name a look ("Heading", "Price"), apply it
   to any text from the Styles popover — each style shown in its own face,
   the one followed ticked — and update it from one element to change
   every element that follows it, on every page, as one undo step.
-- Favourites: star any shape, photo, sticker or template (press and hold)
-  and it leads its tab; components: save a selection under a name and
-  drop it into any design at half the page's width, grouped, with fresh
-  ids. Both live with the person, not the design.
+- Favourites: star any shape, photo, upload, sticker or template (press
+  and hold) and it leads its tab with a star on it; components: save a
+  selection under a name and drop it into any design at half the page's
+  width, grouped, with fresh ids — each shown with its piece count, and
+  deleting one asks first. Both live with the person, not the design.
+  Every tile in Add is named for VoiceOver (a shape, a line's ends, an
+  artwork's name and kind, "Uploaded picture 3 of 12"), and Replace rings
+  the picture already in the frame.
 - Two sample designs on the very first launch — once, ever — so the home
   screen is not a blank space with a purple hero on top of it. Their
   thumbnails are rendered as they are seeded, and any design that reaches
@@ -211,7 +232,8 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   Android twin reads and keeps links the same way (`Content/Links.swift`).
 - A brand kit — colours, a heading and body face, logos — kept across
   designs: first in every colour picker, a pairing in the theme sheet,
-  and logos in the Photos tab.
+  and logos in the Photos tab. Every change is kept as it is made, so the
+  sheet can be swiped away; QR codes are not offered as logos.
 - Tidy up: a messy selection into a row, a column or a grid with equal
   gaps, one undo step. Arrow keys nudge the selection a unit (ten with
   Shift), and the Position sheet edits a multi-selection's box by number —
@@ -228,9 +250,12 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   size, 42", "Curve, 45", "Neon effect, selected").
 - Pattern fills — stripes, dots, checks, grid, zigzag, crosshatch — drawn
   procedurally in any two colours so they stay sharp at every zoom and
-  export, and photo fills that pour a picture into any shape; both from
-  the fill colour picker, both usable as page backgrounds. Text takes
-  colours and gradients only, since it never draws a pattern or a photo.
+  export, and photo fills that pour a picture into any shape (the first
+  eight built-in pictures, then the design's own, QR codes left out, each
+  named for VoiceOver); both from the fill colour picker, both usable as
+  page backgrounds. "In this design" leaves out faint colours, and a
+  Fill chip whose fill is not one colour says so ("photo", "no fill"). Text takes colours
+  and gradients only, since it never draws a pattern or a photo.
 - Photo grids: six layouts of empty frames (2 across, 3 across, 2 by 2,
   1 + 2, 1 over 3, 3 by 3) flush to the margins and one gutter apart,
   grouped, filled with Replace.
@@ -381,12 +406,17 @@ surface: a finger or an Apple Pencil stroke is thinned, smoothed through
 quadratic curves and kept as an ordinary shape element with no fill — so
 it is moved, rotated, recoloured and exported as a real path like anything
 else, one undo step per stroke. A floating bar sets the pen's colour and
-width; the Width slider on a selected stroke changes it afterwards.
+width, with a line over it on how the pen in hand is used (the eraser,
+having no ink, offers no colours); the pen is picked up again as it was
+put away for as long as the editor is open. A selected stroke has one
+Colour chip, its ink, and the Width slider changes it afterwards.
 
 **Drag and drop** — pictures, text and links dragged from other apps land
-where they are let go: a photo at up to half the page's width, text as a
-left-aligned box, a link as its address. The page outlines itself while
-something hovers over it.
+where they are let go: a photo at up to half the page's width (stored as
+the photo picker stores it, so a see-through logo stays see-through),
+text as a left-aligned box, a link as its address. The page outlines
+itself while something hovers over it, and a drop with nothing it can
+use says so; so does ⌘V with nothing to paste.
 
 **Scan a document** — the Photos tab of Add opens the document camera on
 devices that have one; the deskewed pages come in the way a PDF's do, one
@@ -461,8 +491,8 @@ export lays it under the picture, looped or trimmed to the video's length
 at a chosen volume, fading out over the last second. Audio lives in
 Documents/audio by id and is muxed with AVFoundation onto the finished
 video. The row shows the music's own file name, kept beside it on this
-phone, and a file with no sound in it is turned away. A volume drag is
-one Undo. Music that can't be mixed in costs the music, not the video:
+phone, and a file with no sound in it is turned away. The Motion footer
+says whether the video will have music, and a volume drag is one Undo. Music that can't be mixed in costs the music, not the video:
 the picture is kept, silent, and the sheet says "Couldn't add the music,
 so it has none."
 
@@ -475,7 +505,8 @@ the outline of its ink (its opaque part, or its dark part when it has no
 transparency), simplifies and smooths it, and drops a path shape in the
 ink's own colour over the same spot — holes and all, wound so a nonzero
 fill keeps them open. A signature, a logo or a cut-out becomes a shape
-that scales cleanly and takes any fill.
+that scales cleanly and takes any fill. A picture with nothing to trace,
+or no code to read, says so.
 
 **Loops** — Animate offers Pulse, Wiggle, Bounce and Spin: moves that
 never settle, for stickers and badges, on the canvas preview and in the
@@ -506,6 +537,11 @@ stores the result as a new picture, one undo step. Strokes are mapped
 through the element's rotation, crop zoom and fill/fit placement into the
 picture's own pixels. Skies, walls and tabletops come out clean; busy
 backgrounds come out as a smudge, as the honest tools on a phone do.
+Cancel waits while it works, so a result never lands after it.
+
+**Locked photos** — a locked photo's toolbar says it is locked and how to
+unlock it, in place of tools that could only do nothing; Erase, Cut out
+and Replace refuse it with a word.
 
 **Mixed page sizes** — a page can have a size of its own: the Resize sheet
 applies to the whole design or to this page only, reflowing or scaling the

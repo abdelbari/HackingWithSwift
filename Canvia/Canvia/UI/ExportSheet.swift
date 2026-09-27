@@ -615,26 +615,33 @@ struct ExportSheet: View {
         }
     }
 
-    /// The music's volume. The slider moves a value of its own while it is
-    /// dragged, and the design takes it once, when the finger lifts — every
-    /// frame of a drag was an Undo step of its own.
+    /// The soundtrack's volume. Held here while dragged and written once
+    /// on release, so a drag is one Undo, not dozens; VoiceOver's swipes
+    /// write a tenth at a time.
     private func volumeRow(_ binding: Binding<MotionSettings>) -> some View {
-        let saved = binding.wrappedValue.soundVolume ?? 1
-        let shown = dragVolume ?? saved
+        let stored = binding.wrappedValue.soundVolume ?? 1
+        let shown = dragVolume ?? stored
+        let percent = "\(Int((shown * 100).rounded()))%"
+        func write(_ v: Double) { binding.wrappedValue.soundVolume = v == 1 ? nil : v }
         return HStack {
             Text("Volume")
-            Slider(value: Binding(get: { dragVolume ?? saved }, set: { dragVolume = $0 }),
+                .accessibilityHidden(true)
+            Slider(value: Binding(get: { dragVolume ?? stored }, set: { dragVolume = $0 }),
                    in: 0...1,
                    onEditingChanged: { editing in
-                       guard !editing, let volume = dragVolume else { return }
+                       guard !editing, let v = dragVolume else { return }
                        dragVolume = nil
-                       if volume != saved {
-                           binding.wrappedValue.soundVolume = volume == 1 ? nil : volume
-                       }
+                       if v != stored { write(v) }
                    })
             .accessibilityLabel("Soundtrack volume")
-            Text("\(Int((shown * 100).rounded()))%")
+            .accessibilityValue(percent)
+            .accessibilityAdjustableAction { direction in
+                let step = direction == .increment ? 0.1 : -0.1
+                write(min(1, max(0, ((stored + step) * 10).rounded() / 10)))
+            }
+            Text(percent)
                 .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                .accessibilityHidden(true)
         }
     }
 
@@ -761,6 +768,10 @@ struct ExportSheet: View {
             .flatMap(\.windows)
             .first { $0.isKeyWindow }
     }
+
+    /// Said when a video had to be made without its music, in the Android
+    /// twin's words.
+    static let musicLostNote = " Couldn't add the music, so it has none."
 
     @MainActor
     private func exportMovie() async throws {

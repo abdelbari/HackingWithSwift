@@ -354,7 +354,7 @@ struct EditorView: View {
             }
 
             Button { shuffleColors() } label: { Image(systemName: "sparkles") }
-                .accessibilityLabel("Shuffle colors")
+                .accessibilityLabel("Shuffle colours")
             Button { activeSheet = .resize } label: { Image(systemName: "aspectratio") }
                 .accessibilityLabel("Resize design")
             Button { activeSheet = .export } label: {
@@ -560,6 +560,21 @@ struct EditorView: View {
     /// Undo takes back the last stroke; the pencil in the top bar (or Done)
     /// puts the pen away.
     private func drawingBar(_ tool: Freehand.Tool) -> some View {
+        VStack(spacing: 6) {
+            // How the pen in hand is used, over the bar rather than in it:
+            // the capsule has no room left on a phone held upright.
+            Text(tool.pen.hint)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(.regularMaterial, in: Capsule())
+            drawingControls(tool)
+        }
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    private func drawingControls(_ tool: Freehand.Tool) -> some View {
         HStack(spacing: 10) {
             // What the pen lays down — ink, a highlighter, a glow — or the
             // eraser, which takes strokes away.
@@ -581,17 +596,20 @@ struct EditorView: View {
             // an ellipsis and the ends ran off a 375 pt screen; now the pen,
             // width, undo and Done stay put and the swatches take what room
             // is left — all of them, where there is room for all.
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(Freehand.colors, id: \.self) { hex in
-                        swatch(hex, selected: tool.color == hex)
+            // The eraser has no ink, so no inks are offered with it.
+            if tool.pen.hasInk {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(Freehand.colors, id: \.self) { hex in
+                            swatch(hex, selected: tool.color == hex)
+                        }
                     }
+                    // Room for the selected swatch's ring, which the scroll
+                    // view would otherwise clip.
+                    .padding(4)
                 }
-                // Room for the selected swatch's ring, which the scroll view
-                // would otherwise clip.
-                .padding(4)
+                .frame(maxWidth: Self.swatchRowWidth)
             }
-            .frame(maxWidth: Self.swatchRowWidth)
             Menu {
                 ForEach(Freehand.widths, id: \.self) { w in
                     Button {
@@ -617,7 +635,6 @@ struct EditorView: View {
         .padding(.vertical, 8)
         .background(.regularMaterial, in: Capsule())
         .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
-        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     /// Every pen colour side by side, with room for the ring round the one
@@ -718,14 +735,17 @@ struct EditorView: View {
             Button {
                 if !store.eraserStrokes.isEmpty { store.eraserStrokes.removeLast() }
             } label: { Image(systemName: "arrow.uturn.backward").frame(width: 30, height: 30) }
-                .disabled(store.eraserStrokes.isEmpty)
+                .disabled(store.eraserStrokes.isEmpty || store.eraserBusy)
                 .accessibilityLabel("Undo stroke")
+            // Not while it works: the result would land after a Cancel.
             Button("Cancel") { store.cancelErasing() }
+                .disabled(store.eraserBusy)
             Button {
                 store.applyEraser()
             } label: {
                 if store.eraserBusy {
                     ProgressView()
+                        .accessibilityLabel("Erasing")
                 } else {
                     Text("Erase").fontWeight(.semibold)
                 }
@@ -761,31 +781,36 @@ struct EditorView: View {
         case .insert:
             InsertSheet(store: store)
         case .colorFill:
-            ColorPickerSheet(store: store, title: "Fill color",
+            ColorPickerSheet(store: store, title: "Fill colour",
                              current: store.singleSelection?.fill?.primaryColor,
                              allowGradients: true,
+                             allowPatterns: true,
+                             currentPaint: store.singleSelection?.fill,
                              onPick: { c in store.updateSelected { $0.fill = .solid(c) } },
                              onPickGradient: { p in store.updateSelected { $0.fill = p } },
                              onPickTransient: { c in store.updateSelectedTransient { $0.fill = .solid(c) } })
         case .colorText:
             // A gradient on text is a fill, not a colour, so it lives in its
             // own field; picking a plain colour clears it.
-            ColorPickerSheet(store: store, title: "Text color",
+            // Colours and gradients only: text draws no pattern or photo.
+            ColorPickerSheet(store: store, title: "Text colour",
                              current: store.singleSelection?.color,
                              allowGradients: true,
                              allowPatterns: false,
+                             currentPaint: store.singleSelection?.textFill,
                              onPick: { c in store.updateSelected { $0.color = c; $0.textFill = nil } },
                              onPickGradient: { p in store.updateSelected { $0.textFill = p } },
                              onPickTransient: { c in
                                  store.updateSelectedTransient { $0.color = c; $0.textFill = nil }
                              })
         case .colorLine:
-            ColorPickerSheet(store: store, title: "Line color",
+            ColorPickerSheet(store: store, title: "Line colour",
                              current: store.singleSelection?.color,
                              onPick: { c in store.updateSelected { $0.color = c } },
                              onPickTransient: { c in store.updateSelectedTransient { $0.color = c } })
         case .colorStroke:
-            ColorPickerSheet(store: store, title: "Border color",
+            ColorPickerSheet(store: store,
+                             title: store.singleSelection.map(Freehand.isStroke) == true ? "Ink colour" : "Border colour",
                              current: store.singleSelection?.stroke,
                              onPick: { c in
                                  store.updateSelected {
@@ -801,9 +826,10 @@ struct EditorView: View {
                              })
         case .colorSelection:
             // Several things at once: each takes the colour its own way.
-            ColorPickerSheet(store: store, title: "Color",
+            ColorPickerSheet(store: store, title: "Colour",
                              current: nil,
                              allowGradients: store.selectionTakesGradient,
+                             allowPatterns: FillChoices.offersPatterns(for: store.selectedElements),
                              onPick: { c in store.recolourSelection(c) },
                              onPickGradient: { p in store.recolourSelection(gradient: p) },
                              onPickTransient: { c in store.recolourSelectionTransient(c) })
@@ -1035,6 +1061,9 @@ struct EditorView: View {
         store.applyToPage { page in
             ColorTools.shuffle(page: &page, docColors: colors, palette: palette.colors)
         }
+        // Which palette it was, said and felt, as on the Android twin.
+        store.buzz(.confirm)
+        store.announce("Colours: \(palette.name)")
     }
 
     private func scheduleSave() {
