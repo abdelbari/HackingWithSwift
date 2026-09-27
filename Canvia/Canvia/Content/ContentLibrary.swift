@@ -273,7 +273,10 @@ struct SizePreset: Identifiable {
         .init(id: "facebook-post", name: "Facebook Post", w: 1200, h: 630, icon: "rectangle"),
         .init(id: "poster", name: "Poster", w: 1587, h: 2245, icon: "doc.richtext"),
         .init(id: "flyer", name: "Flyer A5", w: 1240, h: 1748, icon: "doc"),
-        .init(id: "a4", name: "A4 Document", w: 1240, h: 1754, icon: "doc.text"),
+        // A4 at 300 dpi, the size the bundled A4 templates (a resume, a
+        // certificate, a menu, an invoice, a travel plan) were made at and
+        // the Android twin's; at 150 dpi the tile opened on no templates.
+        .init(id: "a4", name: "A4 Document", w: 2480, h: 3508, icon: "doc.text"),
         .init(id: "business-card", name: "Business Card", w: 1050, h: 600, icon: "person.crop.rectangle"),
         .init(id: "quote-card", name: "Quote Card", w: 1440, h: 1080, icon: "quote.opening"),
         .init(id: "logo", name: "Logo", w: 800, h: 800, icon: "seal"),

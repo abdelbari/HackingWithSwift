@@ -58,6 +58,15 @@ final class StartAndSizesTests: XCTestCase {
         XCTAssertEqual(Set(ids).count, ids.count, "two sizes share an id")
     }
 
+    /// A4 is the size its templates were made at (300 dpi, as on Android),
+    /// so its tile opens on them rather than on a blank page alone.
+    func testA4OpensOnItsTemplates() throws {
+        let a4 = try preset("a4")
+        XCTAssertEqual(a4.w, 2480)
+        XCTAssertEqual(a4.h, 3508)
+        XCTAssertGreaterThanOrEqual(ContentLibrary.templateCounts["a4"] ?? 0, 5)
+    }
+
     /// Topics once each and alphabetical, and a row of them only for more
     /// than eight templates in more than one topic.
     func testATopicRowOnlyWhenItHelps() throws {
