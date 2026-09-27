@@ -1,29 +1,36 @@
 // Persistence: designs are JSON files in Documents/designs, thumbnails are
-// JPEGs in Documents/thumbs. The recents list is derived from the files.
+// JPEGs in Documents/thumbs. The recents list is derived from the files,
+// through the summaries DesignShelf keeps of them.
 
 import UIKit
 
-struct RecentDesign: Identifiable {
+struct RecentDesign: Identifiable, Sendable {
     var id: String
     var title: String
     var width: Double
     var height: Double
     var pages: Int
     var updatedAt: Double
-    var thumbnail: UIImage?
     var folder: String? = nil
+    /// When the card's picture was last written, in epoch milliseconds, or
+    /// nil when there is none. The picture itself is read as its card
+    /// shows, not with the list: building every one up front was most of
+    /// what Home did each time it appeared.
+    var thumbnailStamp: Double? = nil
+    /// A design file that no longer reads as a design.
+    var damaged = false
 }
 
 enum DesignLibrary {
 
-    private static var designsDir: URL {
+    static var designsDir: URL {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("designs", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
 
-    private static var thumbsDir: URL {
+    static var thumbsDir: URL {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("thumbs", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -94,7 +101,7 @@ enum DesignLibrary {
     /// two taps from "Rename" in the same menu.
     static let trashRetention: TimeInterval = 30 * 24 * 3600
 
-    private static var trashDir: URL {
+    static var trashDir: URL {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("trash", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -129,19 +136,18 @@ enum DesignLibrary {
     static func trashed() -> [RecentDesign] {
         guard let files = try? FileManager.default.contentsOfDirectory(
             at: trashDir, includingPropertiesForKeys: [.contentModificationDateKey]) else { return [] }
+        let stamps = thumbnailStamps(trashed: true)
         var result: [RecentDesign] = []
         for url in files where url.pathExtension == "json" {
             guard let data = try? Data(contentsOf: url),
                   let design = try? JSONDecoder().decode(Design.self, from: data) else { continue }
             let deleted = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?
                 .contentModificationDate ?? Date()
-            let thumb = (try? Data(contentsOf: trashDir.appendingPathComponent("\(design.id).jpg")))
-                .flatMap(UIImage.init(data:))
             result.append(RecentDesign(
                 id: design.id, title: design.title,
                 width: design.width, height: design.height,
                 pages: design.pages.count, updatedAt: deleted.timeIntervalSince1970 * 1000,
-                thumbnail: thumb))
+                thumbnailStamp: stamps[design.id]))
         }
         return result.sorted { $0.updatedAt > $1.updatedAt }
     }
@@ -532,28 +538,15 @@ enum DesignLibrary {
         [designsDir, trashDir].flatMap { dir -> [Design] in
             guard let files = try? FileManager.default.contentsOfDirectory(
                 at: dir, includingPropertiesForKeys: nil) else { return [] }
-            return files.filter { $0.pathExtension == "json" }.compactMap { url in
+            return files.filter { isDesignFile($0) }.compactMap { url in
                 guard let data = try? Data(contentsOf: url) else { return nil }
                 return try? JSONDecoder().decode(Design.self, from: data)
             }
         }
     }
 
+    /// The designs on the shelf, most recently edited first; see shelf().
     static func recents() -> [RecentDesign] {
-        guard let files = try? FileManager.default.contentsOfDirectory(
-            at: designsDir, includingPropertiesForKeys: nil) else { return [] }
-        var result: [RecentDesign] = []
-        for url in files where url.pathExtension == "json" {
-            guard let data = try? Data(contentsOf: url),
-                  let design = try? JSONDecoder().decode(Design.self, from: data) else { continue }
-            let thumbURL = thumbsDir.appendingPathComponent("\(design.id).jpg")
-            let thumb = (try? Data(contentsOf: thumbURL)).flatMap(UIImage.init(data:))
-            result.append(RecentDesign(
-                id: design.id, title: design.title,
-                width: design.width, height: design.height,
-                pages: design.pages.count, updatedAt: design.updatedAt,
-                thumbnail: thumb, folder: design.folder))
-        }
-        return result.sorted { $0.updatedAt > $1.updatedAt }
+        shelf().designs
     }
 }

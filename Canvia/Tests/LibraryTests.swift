@@ -67,7 +67,7 @@ final class LibraryTests: XCTestCase {
 
     private func recent(_ title: String, pages: Int = 1, width: Double = 1080, at: Double) -> RecentDesign {
         RecentDesign(id: UID.make("doc"), title: title, width: width, height: 1080,
-                     pages: pages, updatedAt: at, thumbnail: nil)
+                     pages: pages, updatedAt: at)
     }
 
     func testSearchMatchesTitlesLooselyAndSizesExactly() {

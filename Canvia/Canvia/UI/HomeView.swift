@@ -25,6 +25,11 @@ struct HomeView: View {
     var onOpen: (Design) -> Void
 
     @State private var recents: [RecentDesign] = []
+    /// Whether the shelf has been read yet, so the first-run card does not
+    /// flash up over a shelf that is still being read.
+    @State private var loaded = false
+    /// Counts the shelf's reads, so only the latest one is shown.
+    @State private var reloads = 0
     @State private var homeSheet: HomeSheet?
     /// A design made in a sheet, opened once the sheet has gone rather than
     /// from under it.
@@ -64,7 +69,7 @@ struct HomeView: View {
                 // Always there: it finds templates as well as designs, and
                 // an empty shelf still has templates to search.
                 searchBar
-                if recents.isEmpty && trashed.isEmpty {
+                if loaded && recents.isEmpty && trashed.isEmpty {
                     firstRunCard
                 }
                 importRow
@@ -195,21 +200,38 @@ struct HomeView: View {
         create(design)
     }
 
+    /// The shelf and the trash, read off the main thread — every design
+    /// used to be decoded on it, and every card's picture built, each time
+    /// Home appeared — and shown when they land. Only the latest read is
+    /// shown, so one begun before a rename cannot land after it.
     private func reload() {
-        recents = DesignLibrary.recents()
-        // A design that reached the shelf without being opened here — a
-        // file from the Android twin, a sample whose picture was not
-        // written — gets its picture now rather than showing a grey box.
-        if DesignLibrary.fillMissingThumbnails(recents) {
-            recents = DesignLibrary.recents()
+        reloads += 1
+        let generation = reloads
+        Task { @MainActor in
+            let read = await Task.detached(priority: .userInitiated) {
+                (shelf: DesignLibrary.shelf(), trashed: DesignLibrary.trashed())
+            }.value
+            guard generation == reloads else { return }
+            show(read.shelf, trashed: read.trashed)
         }
-        trashed = DesignLibrary.trashed()
+    }
+
+    private func show(_ shelf: DesignLibrary.Shelf, trashed: [RecentDesign]) {
+        recents = shelf.designs
+        self.trashed = trashed
+        loaded = true
         // The icon's quick actions follow the shelf, so a deleted design
         // drops out of them.
         QuickActions.publish(recents: recents)
         // A folder exists while something is in it: when its last design
         // goes, the shelf shows everything again rather than nothing.
         if let f = folder, !DesignLibrary.folders(in: recents).contains(f) { folder = nil }
+        // A design that reached the shelf without being opened here — a
+        // file from the Android twin, a sample whose picture was not
+        // written — gets its picture now rather than showing a grey box,
+        // and the shelf is read again for its card to find it. Each design
+        // is tried once a launch, so this does not go round again.
+        if DesignLibrary.fillMissingThumbnails(recents) { reload() }
     }
 
     /// A design file made by Export on another device (or this one, as a
@@ -384,15 +406,9 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(trashed) { entry in
                     HStack(spacing: 12) {
-                        Group {
-                            if let thumb = entry.thumbnail {
-                                Image(uiImage: thumb).resizable().aspectRatio(contentMode: .fill)
-                            } else {
-                                Color(.systemGray5)
-                            }
-                        }
-                        .frame(width: 56, height: 42)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        ShelfThumbnail(id: entry.id, stamp: entry.thumbnailStamp, trashed: true)
+                            .frame(width: 56, height: 42)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(entry.title).font(.subheadline.weight(.semibold)).lineLimit(1)
                             Text("Deleted \(RelativeTime.lowercasedFirst(RelativeTime.text(ms: entry.updatedAt)))")
@@ -577,17 +593,10 @@ struct HomeView: View {
                     }
                 } label: {
                     VStack(alignment: .leading, spacing: 0) {
-                        Group {
-                            if let thumb = recent.thumbnail {
-                                Image(uiImage: thumb)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                            } else {
-                                Color(.systemGray5)
-                            }
-                        }
-                        .frame(height: 120)
-                        .clipped()
+                        ShelfThumbnail(id: recent.id, stamp: recent.thumbnailStamp)
+                            .frame(height: 120)
+                            .frame(maxWidth: .infinity)
+                            .clipped()
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text(recent.title)

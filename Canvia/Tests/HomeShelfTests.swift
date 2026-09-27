@@ -59,7 +59,7 @@ final class HomeShelfTests: XCTestCase {
     // MARK: quick actions
 
     private func recent(_ id: String, _ title: String, at: Double) -> RecentDesign {
-        RecentDesign(id: id, title: title, width: 1080, height: 1080, pages: 1, updatedAt: at, thumbnail: nil)
+        RecentDesign(id: id, title: title, width: 1080, height: 1080, pages: 1, updatedAt: at)
     }
 
     /// New post, New story, then the two most recently touched designs.
