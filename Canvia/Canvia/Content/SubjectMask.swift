@@ -4,7 +4,7 @@
 // needs no server and no subscription: Vision has shipped a foreground
 // instance segmenter since iOS 17, the same model the Photos app lifts a
 // subject with. It runs on the neural engine in well under a second for the
-// 1600pt images we store.
+// 2048 px images we keep.
 //
 // The output keeps the source's full extent rather than cropping to the
 // subject (croppedToInstancesExtent: false), so the cutout drops into the

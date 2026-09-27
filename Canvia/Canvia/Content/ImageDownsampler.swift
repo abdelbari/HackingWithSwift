@@ -10,7 +10,7 @@
 //
 // ImageIO can scale during decode instead: CGImageSourceCreateThumbnailAtIndex
 // reads the source progressively and never materialises the full bitmap. At
-// the 1600pt edge we store, peak allocation is under 10 MB regardless of what
+// the 2048 px edge we keep, peak allocation is about 17 MB regardless of what
 // the camera produced.
 
 import CoreGraphics
@@ -18,6 +18,11 @@ import ImageIO
 import UIKit
 
 enum ImageDownsampler {
+
+    /// The long side an imported picture is kept at, in pixels — whole when
+    /// it is smaller. The Android twin keeps the same 2048, so a photo put in
+    /// on either phone is the same picture in a design sent to the other.
+    static let keptEdge: CGFloat = 2048
 
     /// The picture's size *as displayed*, in pixels, read from the header
     /// alone — no decode.
@@ -77,7 +82,7 @@ enum ImageDownsampler {
         let natural: CGSize
     }
 
-    static func prepare(_ data: Data, maxEdge: CGFloat = 1600,
+    static func prepare(_ data: Data, maxEdge: CGFloat = keptEdge,
                         quality: CGFloat = 0.85) -> Prepared? {
         autoreleasepool {
             guard let image = downsample(data, maxEdge: maxEdge) else { return nil }

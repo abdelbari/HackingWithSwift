@@ -41,7 +41,8 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   for multi-select, pinch to zoom, drag empty canvas to pan
 - Content: 44 shapes (one SVG-path library parsed with full arc support),
   lines with caps and dashes, emoji stickers, 20 procedurally drawn
-  photos, photo-library imports, QR codes generated from a link or any
+  photos, photo-library imports (kept at 2048 px on the long side, or
+  whole when smaller, as on Android), QR codes generated from a link or any
   text (regenerated from the document, so they stay editable and nothing
   is stored), 102 complete templates that apply into any canvas size —
   every size has its own, logos and quote cards included (the shared
