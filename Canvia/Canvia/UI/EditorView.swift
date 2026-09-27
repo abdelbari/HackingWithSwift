@@ -196,11 +196,20 @@ struct EditorView: View {
     private var editingCommands: some View {
         Group {
             Group {
-                shortcut("z", [.command], "Undo") { store.undo() }
-                shortcut("z", [.command, .shift], "Redo") { store.redo() }
-                // As well as ⇧⌘Z: the redo a keyboard used to Windows or
-                // Android reaches for, as the Android twin takes Ctrl+Y.
-                shortcut("y", [.command], "Redo") { store.redo() }
+                if store.erasing != nil {
+                    // Under the eraser, ⌘Z takes back the last stroke painted,
+                    // as the eraser bar's Undo does; the design behind it is
+                    // left alone until the eraser is put down, as on Android.
+                    shortcut("z", [.command], "Undo stroke") {
+                        if !store.eraserBusy, !store.eraserStrokes.isEmpty { store.eraserStrokes.removeLast() }
+                    }
+                } else {
+                    shortcut("z", [.command], "Undo") { store.undo() }
+                    shortcut("z", [.command, .shift], "Redo") { store.redo() }
+                    // As well as ⇧⌘Z: the redo a keyboard used to Windows or
+                    // Android reaches for, as the Android twin takes Ctrl+Y.
+                    shortcut("y", [.command], "Redo") { store.redo() }
+                }
                 shortcut("c", [.command], "Copy") { store.copySelected() }
                 shortcut("x", [.command], "Cut") { store.cutSelected() }
                 shortcut("v", [.command], "Paste") { store.paste() }

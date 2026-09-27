@@ -152,7 +152,10 @@ struct ContextToolbar: View {
     private func textControls(_ el: Element) -> some View {
         HStack(spacing: 14) {
             toolButton("textformat", "Font") { activeSheet = .fonts }
-            colorChip(el.color ?? "#1f2430", "Colour") { activeSheet = .colorText }
+            // Gradient letters are not their plain colour underneath: the chip
+            // shows and says the gradient, as the Fill chip does a shape's.
+            colorChip(el.textFill?.primaryColor ?? el.color ?? "#1f2430", "Colour",
+                      spoken: FillChoices.spokenFill(el.textFill)) { activeSheet = .colorText }
             fontSizeStepper(el)
         }
         HStack(spacing: 14) {

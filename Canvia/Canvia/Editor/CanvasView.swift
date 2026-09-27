@@ -948,8 +948,15 @@ struct CanvasView: View {
             gesture.groupOriginals = members
             gesture.groupBox = Geometry.union(members.map(Geometry.aabb))
         }
+        // The floor is on the long side only: a row of lines is as short as
+        // a line, and 8 on that side kept it from ever shrinking (and made a
+        // thinner one jump up on the first move). Each member keeps its own
+        // minimum as it scales.
+        let long = max(gesture.groupBox.width, gesture.groupBox.height)
+        let short = min(gesture.groupBox.width, gesture.groupBox.height)
+        let floor = long > 0 && short > 0 ? 8 * short / long : 8
         let box = Geometry.resize(Geometry.boxElement(gesture.groupBox), handle: handle,
-                                  to: location, proportional: true, minSize: 8)
+                                  to: location, proportional: true, minSize: floor)
         store.replaceTransient(Geometry.scale(gesture.groupOriginals, from: gesture.groupBox, to: box))
         store.badge = "\(Int(box.width)) × \(Int(box.height))"
     }
