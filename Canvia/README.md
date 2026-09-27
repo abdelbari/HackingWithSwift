@@ -103,7 +103,8 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   pasteboard, scaled to fit a differently sized design; a copy says
   "Page copied" with a tap of haptics, and a paste is felt.
 - The home screen searches designs (title, loosely; size, exactly) and
-  templates, sorts by last edited, name or page count, and keeps deleted
+  templates — the search is there even on an empty shelf, which still has
+  templates — sorts by last edited, name or page count, and keeps deleted
   designs in a Recently deleted section for thirty days, with Restore
   and Delete forever. Their photos and version history wait with them.
 - VoiceOver on the canvas: every element is named (what it is, and what
@@ -159,14 +160,19 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   drop it into any design at half the page's width, grouped, with fresh
   ids. Both live with the person, not the design.
 - Two sample designs on the very first launch — once, ever — so the home
-  screen is not a blank space with a purple hero on top of it.
+  screen is not a blank space with a purple hero on top of it. Their
+  thumbnails are rendered as they are seeded, and any design that reaches
+  the shelf without a picture (a file from the Android twin) gets one on
+  Home, so no card is a grey box.
 - A Canvia design file (.canvia.json) exports the document with every
   photo it uses inlined, and the home screen opens one back in — under
   a fresh id, with its photos stored afresh, so two imports never share
   a file. A design file tapped in Files, opened from Mail or shared from
   another app opens straight into the editor too, under a title the shelf
   does not already have; what is inside decides, not the type it came
-  as, and the copy handed over is deleted once read. Clips travel whole
+  as, and the copy handed over is deleted once read. The file is read and
+  its photos and clips written out off the main thread, under an
+  "Opening the design…" card, so a clip-heavy file never freezes Home. Clips travel whole
   up to 30 MB each and 100 MB in all, taken
   in id order, and only as MP4, M4V, MOV or 3GP; any other clip travels
   as its first frame — the same choice the Android twin makes, so the
@@ -213,8 +219,12 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   "Show me" that opens the sheet it describes. Contextual tips under the
   top bar — first element, first text, first photo, first multi-selection,
   a crowded page — each once per install and never two within a minute.
-  Real empty states: an empty Layers sheet, a search with no results, a
-  home screen with nothing on it yet, all say so.
+  Pages and Snapping have a "Show me" too (the page organiser; the
+  snapping, grid, margin and guide settings as a sheet). Tips are read
+  out by VoiceOver as they arrive, and stay thirty seconds rather than
+  nine while it runs. Real empty states: an empty Layers sheet, a search
+  with no results, a home screen with nothing on it yet (with a "Show
+  me" into the starts for an Instagram post), all say so.
 - Reduce Motion drops the springs on toasts, tips and buttons; Increase
   Contrast thickens selection outlines; Differentiate Without Colour
   marks the current page with a check and active toggles with a bar.
@@ -262,8 +272,13 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   and the current state is kept as a version first, so it is never a
   one-way door.
 - An undo toast after the edits people regret — delete, delete page,
-  replace all, restore — naming what just happened with an Undo button
-  on it, gone after four seconds.
+  replace all, restore, resize — naming what just happened with an Undo
+  button and a close button on it, gone after four seconds; read out by
+  VoiceOver, and kept up until closed while it runs, so its Undo can be
+  reached.
+- Under the design's name in the top bar, the page's own size and where
+  it sits: "1080 × 1920 · Page 2 of 5". A name emptied out, here or in
+  Rename on Home, keeps the old one.
 - Top-bar overflow menu: layers, page background, find and replace,
   version history, copy and paste style, copy / cut / paste,
   select all, and group / ungroup (grouping is sticky multi-selection —
@@ -507,8 +522,8 @@ how many it holds. Hold Undo to rewind many steps. Position nudges by
 1, 10 or 100 with the box read out as it goes.
 
 **Present** — the design full screen from the menu: black surround,
-tap or swipe between pages, a tap on a linked element to open its link,
-a clock, the page's notes for whoever holds
+tap or swipe between pages, a tap on a linked element to open its link
+(and "No app here opens …" when nothing on the phone takes it), a clock, the page's notes for whoever holds
 the phone, and autoplay on each page's own timing. VoiceOver has Next
 page and Previous page among the page's actions. Every page can set
 its own hold and its transition to the next (fade, cut or slide) from

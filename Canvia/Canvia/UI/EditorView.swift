@@ -3,6 +3,7 @@
 // Autosaves after every commit (debounced).
 
 import SwiftUI
+import UIKit
 
 /// The app's primary action had no pressed state at all: tapping it changed
 /// nothing until the sheet arrived, which on a slow frame reads as a button
@@ -22,6 +23,9 @@ enum EditorSheet: String, Identifiable {
     case insert, colorFill, colorText, colorLine, colorStroke, colorSelection, background
     case fonts, effects, spacing, filters, crop, position, layers, export, resize, find, frame, shadow
     case history, proofread, theme, help, contrast, brand
+    /// Opened by Help's "Show me": the page organiser, and the snapping
+    /// switches as a sheet (a Menu cannot be opened from code).
+    case pages, snapping
     var id: String { rawValue }
 }
 
@@ -314,29 +318,7 @@ struct EditorView: View {
 
             Spacer()
 
-            TextField("Untitled design", text: $store.design.title)
-                .multilineTextAlignment(.center)
-                .font(.system(size: 15, weight: .semibold))
-                .frame(maxWidth: 180)
-                .focused($titleFocused)
-                // Record the rename atomically when editing ends. Holding the
-                // store's single pending slot for the whole session was
-                // fragile: any other commit while the keyboard was still up
-                // consumed it, so the rename reached neither undo nor autosave.
-                .onChange(of: titleFocused) { _, focused in
-                    if focused {
-                        titleBeforeEdit = store.design.title
-                    } else {
-                        let renamed = store.design.title
-                        guard renamed != titleBeforeEdit else { return }
-                        store.design.title = titleBeforeEdit    // rewind…
-                        store.apply {                           // …and apply as one step
-                            $0.title = renamed
-                            $0.titleAuto = false                // a person chose this name
-                        }
-                    }
-                }
-                .onSubmit { titleFocused = false }
+            titleField
 
             Spacer()
 
@@ -363,6 +345,53 @@ struct EditorView: View {
         .padding(.vertical, 10)
         .background(Theme.chrome)
         .overlay(alignment: .bottom) { Divider() }
+    }
+
+    /// The name, and under it the page's own size and where it sits in the
+    /// deck — "1080 × 1920 · Page 2 of 5", as the Android twin's top bar
+    /// reads — so the size of the thing being made is always in sight.
+    private var titleField: some View {
+        VStack(spacing: 1) {
+            TextField("Untitled design", text: $store.design.title)
+                .multilineTextAlignment(.center)
+                .font(.system(size: 15, weight: .semibold))
+                .focused($titleFocused)
+                // Record the rename atomically when editing ends. Holding the
+                // store's single pending slot for the whole session was
+                // fragile: any other commit while the keyboard was still up
+                // consumed it, so the rename reached neither undo nor autosave.
+                .onChange(of: titleFocused) { _, focused in
+                    if focused {
+                        titleBeforeEdit = store.design.title
+                    } else {
+                        finishRename()
+                    }
+                }
+                .onSubmit { titleFocused = false }
+            Text(EditorCaption.text(width: store.pageWidth, height: store.pageHeight,
+                                    page: store.pageIndex, of: store.design.pages.count))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: 180)
+    }
+
+    /// A rename ends: trimmed, and recorded as one step — or undone without
+    /// a step when nothing is left of it, since a design with no name shows
+    /// as a blank card on Home and exports as "design". The Android twin
+    /// keeps the old name the same way.
+    private func finishRename() {
+        guard let renamed = EditorCaption.renamed(store.design.title, was: titleBeforeEdit) else {
+            store.design.title = titleBeforeEdit
+            return
+        }
+        store.design.title = titleBeforeEdit    // rewind…
+        store.apply {                           // …and apply as one step
+            $0.title = renamed
+            $0.titleAuto = false                // a person chose this name
+        }
     }
 
     private var overflowMenu: some View {
@@ -791,6 +820,10 @@ struct EditorView: View {
             ContrastSheet(store: store)
         case .brand:
             BrandKitSheet(store: store)
+        case .pages:
+            PageOrganizerSheet(store: store)
+        case .snapping:
+            SnappingSheet(store: store)
         case .help:
             // The help sheet is itself presented; the one it opens has to
             // wait for it to be gone, or SwiftUI drops the second present.
@@ -825,6 +858,16 @@ struct EditorView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.accent)
                 }
+                // A way to close it: with VoiceOver on it stays until it is
+                // closed, as Home's Recently deleted toast does.
+                Button {
+                    dismissToast()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel("Dismiss")
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
@@ -834,7 +877,9 @@ struct EditorView: View {
             // live at the bottom of the stack.
             .padding(.bottom, store.selection.isEmpty ? 96 : 150)
             .transition(.move(edge: .bottom).combined(with: .opacity))
-            .accessibilityElement(children: .combine)
+            // Children kept apart, so Undo and Dismiss are each reachable;
+            // the words are read out as the toast arrives.
+            .accessibilityElement(children: .contain)
         }
     }
 
@@ -865,11 +910,15 @@ struct EditorView: View {
         .accessibilityElement(children: .combine)
     }
 
+    /// Read out as it arrives, as the Android twin's tip is a live region,
+    /// and held longer while VoiceOver runs.
     private func show(tip next: Tip) {
         tipTask?.cancel()
         withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85)) { tip = next }
+        AccessibilityNotification.Announcement(next.text).post()
+        let seconds = ToastTiming.tip(voiceOver: UIAccessibility.isVoiceOverRunning)
         tipTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(9))
+            try? await Task.sleep(for: .seconds(seconds))
             guard !Task.isCancelled else { return }
             dismissTip()
         }
@@ -881,12 +930,20 @@ struct EditorView: View {
         withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { tip = nil }
     }
 
+    /// Read out as it arrives — "Deleted page 3" means nothing to someone
+    /// who cannot see it appear — and kept up until closed while VoiceOver
+    /// runs, so its Undo can be reached.
     private func show(toast text: String, undoable: Bool) {
         toastTask?.cancel()
         toastUndoes = undoable
         withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { toast = text }
+        AccessibilityNotification.Announcement(undoable ? "\(text). Undo available." : text).post()
+        guard let seconds = ToastTiming.undoToast(voiceOver: UIAccessibility.isVoiceOverRunning) else {
+            toastTask = nil
+            return
+        }
         toastTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(4))
+            try? await Task.sleep(for: .seconds(seconds))
             guard !Task.isCancelled else { return }
             dismissToast()
         }
@@ -979,14 +1036,6 @@ struct EditorView: View {
         saveDocument()
         // Leaving the editor is a moment worth keeping whatever the timer says.
         DesignLibrary.snapshot(store.design, force: true)
-        let design = store.design
-        let renderer = ImageRenderer(content: PageRenderView(design: design, page: design.pages[0]))
-        renderer.scale = 300 / max(design.size(at: 0).width, 1)
-        // The alpha channel is discarded by jpegData when the thumbnail is
-        // written, so compositing it is wasted work.
-        renderer.isOpaque = true
-        if let ui = renderer.uiImage {
-            DesignLibrary.saveThumbnail(ui, for: design.id)
-        }
+        DesignLibrary.writeThumbnail(for: store.design)
     }
 }
