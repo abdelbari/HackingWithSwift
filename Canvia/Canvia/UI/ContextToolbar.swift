@@ -37,6 +37,8 @@ struct ContextToolbar: View {
     @State private var styleName = ""
     @State private var styleVersion = 0
     @State private var showingStyles = false
+    /// The size control's number was tapped: a size to type or pick.
+    @State private var enteringSize = false
     @Bindable var store: DesignStore
     @Binding var activeSheet: EditorSheet?
 
@@ -64,6 +66,9 @@ struct ContextToolbar: View {
                     if let el = store.singleSelection, hasTypeControls(el) {
                         typeControls(el)
                         Divider().frame(height: 24).padding(.horizontal, 6)
+                    } else if store.textSelection != nil {
+                        multiTextControls
+                        Divider().frame(height: 24).padding(.horizontal, 6)
                     }
                     universalControls
                 }
@@ -88,8 +93,9 @@ struct ContextToolbar: View {
         }
         .background(Theme.chrome)
         .overlay(alignment: .top) { Divider() }
-        // Its alerts type; the editor's plain Delete key must leave them be.
-        .onChange(of: editingAlt || editingLink || namingStyle) { _, open in
+        // Its alerts and the size field type; the editor's plain Delete key
+        // must leave them be.
+        .onChange(of: editingAlt || editingLink || namingStyle || enteringSize) { _, open in
             store.textFieldOpen = open
         }
         // Dictation belongs to the one text box it began on: once anything
@@ -154,24 +160,9 @@ struct ContextToolbar: View {
     // exactly on that ceiling — the next control added would fail to build.
     @ViewBuilder
     private func textControls(_ el: Element) -> some View {
+        typeBasics
         HStack(spacing: 14) {
-            toolButton("textformat", "Font") { activeSheet = .fonts }
-            // Gradient letters are not their plain colour underneath: the chip
-            // shows and says the gradient, as the Fill chip does a shape's.
-            colorChip(el.textFill?.primaryColor ?? el.color ?? "#1f2430", "Colour",
-                      spoken: FillChoices.spokenFill(el.textFill)) { activeSheet = .colorText }
-            fontSizeStepper(el)
-        }
-        HStack(spacing: 14) {
-            toggle("bold", "Bold", active: (el.fontWeight ?? 400) >= 700) {
-                store.updateSelected { $0.fontWeight = ($0.fontWeight ?? 400) >= 700 ? 400 : 700 }
-            }
-            toggle("italic", "Italic", active: el.italic == true) {
-                store.updateSelected { $0.italic = !($0.italic ?? false) }
-            }
-            toggle("underline", "Underline", active: el.underline == true) {
-                store.updateSelected { $0.underline = !($0.underline ?? false) }
-            }
+            styleToggles
             toggle("text.justify.leading", "Vertical", active: el.vertical == true) {
                 store.updateSelected { e in
                     e.vertical = e.vertical == true ? nil : true
@@ -179,7 +170,7 @@ struct ContextToolbar: View {
                     if e.vertical == true, e.h < (e.fontSize ?? 42) * 4 { e.h = (e.fontSize ?? 42) * 4 }
                 }
             }
-            alignButton(el)
+            alignButton
             listMenu(el)
             toolButton("decrease.indent", "Outdent") { indent(el, by: -1) }
                 .disabled(FontLibrary.indentLevel(of: el) == 0)
@@ -210,20 +201,77 @@ struct ContextToolbar: View {
         }
     }
 
+    /// Several texts, or a group of nothing but text: the type they can
+    /// share, set on every one at once and each box measured again, with
+    /// "Mixed" wherever they differ. Lists, effects, curves and the rest
+    /// stay one box's.
+    @ViewBuilder
+    private var multiTextControls: some View {
+        typeBasics
+        HStack(spacing: 14) {
+            styleToggles
+            alignButton
+        }
+    }
+
+    /// Face, colour and size, for one text or several.
+    private var typeBasics: some View {
+        HStack(spacing: 14) {
+            let family = store.sharedText { $0.fontFamily ?? "sans" }
+            toolButton("textformat", "Font") { activeSheet = .fonts }
+                .accessibilityValue(family.map { FontLibrary.stack($0).name } ?? TypeReadouts.mixed)
+            textColourChip
+            fontSizeStepper
+        }
+    }
+
+    /// Gradient letters are not their plain colour underneath: the chip
+    /// shows and says the gradient, as the Fill chip does a shape's. Texts
+    /// in different colours get the chip in every colour.
+    @ViewBuilder
+    private var textColourChip: some View {
+        let colour = store.sharedText { $0.color ?? "#1f2430" }
+        let fill = store.sharedText { $0.textFill }
+        if let colour, let fill {
+            colorChip(fill?.primaryColor ?? colour, "Colour",
+                      spoken: FillChoices.spokenFill(fill)) { activeSheet = .colorText }
+        } else {
+            mixedChip("Colour") { activeSheet = .colorText }
+                .accessibilityValue(TypeReadouts.mixed)
+        }
+    }
+
+    /// Bold, italic, underline and capitals, for every text selected: on for
+    /// all of them, or off for all when every one has it already. Capitals
+    /// have no symbol; "aA" says what they do.
+    @ViewBuilder
+    private var styleToggles: some View {
+        styleToggle(.bold, "Bold", glyph: Image(systemName: "bold"))
+        styleToggle(.italic, "Italic", glyph: Image(systemName: "italic"))
+        styleToggle(.underline, "Underline", glyph: Image(systemName: "underline"))
+        styleToggle(.uppercase, "Uppercase", glyph: Text(verbatim: "aA"))
+    }
+
+    private func styleToggle<Glyph: View>(_ style: TextToggle, _ name: String, glyph: Glyph) -> some View {
+        let shared = store.sharedText { style.isOn($0) }
+        return toggle(glyph: glyph, name, active: shared == true, mixed: shared == nil) {
+            store.toggleText(style)
+        }
+    }
+
     /// Left, centre, right, justify in turn — and which it is now, for
-    /// VoiceOver, which otherwise heard only "Align".
-    private func alignButton(_ el: Element) -> some View {
-        toolButton(alignIcon(el.align), "Align") {
+    /// VoiceOver, which otherwise heard only "Align". Several texts aligned
+    /// differently all go to the first.
+    private var alignButton: some View {
+        let shared = store.sharedText { $0.align ?? "center" }
+        return toolButton(alignIcon(shared), "Align") {
+            let next = shared.map { TypeReadouts.nextAlignment(after: $0) } ?? "left"
             store.updateSelected { e in
-                switch e.align ?? "center" {
-                case "left": e.align = "center"
-                case "center": e.align = "right"
-                case "right": e.align = "justify"
-                default: e.align = "left"
-                }
+                guard e.type == .text else { return }
+                e.align = next
             }
         }
-        .accessibilityValue(TypeReadouts.alignment(el.align))
+        .accessibilityValue(shared.map { TypeReadouts.alignment($0) } ?? TypeReadouts.mixed)
     }
 
     /// Speak, and the words append to this text as they arrive; tap again
@@ -459,7 +507,8 @@ struct ContextToolbar: View {
             showingStyles = false
         } label: {
             HStack {
-                Text(style.name)
+                // In capitals when the style sets them.
+                Text(style.style.uppercase == true ? style.name.uppercased() : style.name)
                     .font(FontLibrary.font(family: style.style.fontFamily, size: 17,
                                            weight: style.style.fontWeight ?? 400,
                                            italic: style.style.italic ?? false))
@@ -565,16 +614,31 @@ struct ContextToolbar: View {
         el.y = centre.y - el.h / 2
     }
 
-    /// Two steps of two points. To VoiceOver it is one adjustable control,
-    /// "Type size, 42", that swipes up and down — the iPhone's own way to
-    /// read and change a number, rather than two bare "minus" and "plus".
-    private func fontSizeStepper(_ el: Element) -> some View {
-        HStack(spacing: 4) {
+    /// Two steps of two points, and the number between them, which takes a
+    /// size typed or picked from a list — 24 exactly, rather than nine taps.
+    /// To VoiceOver it is one adjustable control, "Type size, 42", that
+    /// swipes up and down — the iPhone's own way to read and change a
+    /// number, rather than two bare "minus" and "plus" — with typing a size
+    /// among its actions. Texts at different sizes read "Mixed".
+    private var fontSizeStepper: some View {
+        let size = store.sharedText { $0.fontSize ?? 42 }
+        let readout = TypeReadouts.fontSize(size)
+        return HStack(spacing: 4) {
             Button { bumpFontSize(-2) } label: { Image(systemName: "minus") }
                 .accessibilityLabel("Smaller type")
-            Text("\(Int(el.fontSize ?? 42))")
-                .font(.system(size: 14, weight: .semibold))
-                .frame(minWidth: 34)
+            Button { enteringSize = true } label: {
+                Text(readout)
+                    .font(.system(size: 14, weight: .semibold))
+                    .monospacedDigit()
+                    .frame(minWidth: 34)
+            }
+            .popover(isPresented: $enteringSize) {
+                TypeSizeEntry(current: size) { typed in
+                    store.setFontSize(typed)
+                    enteringSize = false
+                }
+                .presentationCompactAdaptation(.popover)
+            }
             Button { bumpFontSize(2) } label: { Image(systemName: "plus") }
                 .accessibilityLabel("Larger type")
         }
@@ -583,7 +647,7 @@ struct ContextToolbar: View {
         .background(Capsule().fill(Color(.systemGray6)))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Type size")
-        .accessibilityValue("\(Int(el.fontSize ?? 42))")
+        .accessibilityValue(readout)
         .accessibilityAdjustableAction { direction in
             switch direction {
             case .increment: bumpFontSize(2)
@@ -591,6 +655,7 @@ struct ContextToolbar: View {
             @unknown default: break
             }
         }
+        .accessibilityAction(named: "Type a size") { enteringSize = true }
     }
 
     @ViewBuilder
@@ -911,7 +976,8 @@ struct ContextToolbar: View {
     private var universalControls: some View {
         // Several things selected — a sticky group, a band's worth — recolour
         // together, each its own way: text, lines, shapes and drawn strokes.
-        if store.selection.count > 1 && store.selectionTakesColour {
+        // Several texts have the text controls' own Colour chip.
+        if store.selection.count > 1 && store.selectionTakesColour && store.textSelection == nil {
             multiColourChip
         }
         toolButton("square.3.layers.3d", "Position") { activeSheet = .position }
@@ -948,17 +1014,22 @@ struct ContextToolbar: View {
 
     /// A colour chip with no one colour in it, since the selection has many.
     private var multiColourChip: some View {
-        Button { activeSheet = .colorSelection } label: {
+        mixedChip("Colour") { activeSheet = .colorSelection }
+            .accessibilityLabel("Colour of everything selected")
+    }
+
+    /// A chip in every colour, for things selected in more than one.
+    private func mixedChip(_ label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
             VStack(spacing: 3) {
                 RoundedRectangle(cornerRadius: 7)
                     .fill(AngularGradient(colors: [.red, .yellow, .green, .blue, .purple, .red], center: .center))
                     .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.black.opacity(0.15)))
                     .frame(width: 26, height: 26)
-                Text("Colour").font(Theme.controlLabel)
+                Text(label).font(Theme.controlLabel)
             }
         }
         .buttonStyle(ToolButtonStyle())
-        .accessibilityLabel("Colour of everything selected")
     }
 
     /// A web address, email or phone number on the element: clickable in the
@@ -1121,12 +1192,25 @@ struct ContextToolbar: View {
 
     private func toggle(_ system: String, _ name: String, active: Bool,
                         action: @escaping () -> Void) -> some View {
+        toggle(glyph: Image(systemName: system), name, active: active, action: action)
+    }
+
+    /// A toggle with any face. `mixed`: some of the texts selected have it
+    /// and some not — a dashed ring, and "Mixed" to VoiceOver.
+    private func toggle<Glyph: View>(glyph: Glyph, _ name: String, active: Bool, mixed: Bool = false,
+                                     action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: system)
+            glyph
                 .font(.system(size: 16, weight: .semibold))
                 .frame(width: 32, height: 32)
                 .background(RoundedRectangle(cornerRadius: 8)
                     .fill(active ? Theme.accentSubtle : Color.clear))
+                .overlay {
+                    if mixed {
+                        RoundedRectangle(cornerRadius: 8)
+                            .strokeBorder(Theme.accent.opacity(0.6), style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                    }
+                }
                 .foregroundStyle(active ? Theme.accent : Color.primary)
                 // Differentiate Without Colour: "on" is also a bar under
                 // the glyph, not only a tint.
@@ -1140,6 +1224,7 @@ struct ContextToolbar: View {
         // The only icon-only control in the bar; the rest carry a visible
         // text label that VoiceOver can already read.
         .accessibilityLabel(name)
+        .accessibilityValue(mixed ? TypeReadouts.mixed : "")
         .accessibilityAddTraits(active ? [.isSelected] : [])
     }
 
@@ -1227,9 +1312,79 @@ struct ContextToolbar: View {
     }
 
     private func bumpFontSize(_ delta: Double) {
+        let range = TypeReadouts.sizeRange
         store.updateSelected { el in
-            el.fontSize = min(500, max(6, (el.fontSize ?? 42) + delta))
+            guard el.type == .text else { return }
+            el.fontSize = min(range.upperBound, max(range.lowerBound, (el.fontSize ?? 42) + delta))
             el.h = FontLibrary.layoutHeight(for: el)
         }
+    }
+}
+
+/// A type size typed on the number pad, or one of the usual ones picked: in
+/// whole points from 6 to 500, for every text selected, each box fitted to
+/// it again — as the Android twin's size readout opens.
+private struct TypeSizeEntry: View {
+    /// The size now; nil when the texts selected differ.
+    let current: Double?
+    var onSet: (Double) -> Void
+    @State private var draft: String
+    @FocusState private var typing: Bool
+
+    init(current: Double?, onSet: @escaping (Double) -> Void) {
+        self.current = current
+        self.onSet = onSet
+        _draft = State(initialValue: current.map { "\(Int($0))" } ?? "")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                TextField("Size", text: $draft)
+                    .keyboardType(.numberPad)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 17, weight: .semibold).monospacedDigit())
+                    .frame(width: 96)
+                    .focused($typing)
+                    .onSubmit(useTyped)
+                    .accessibilityLabel("Type size")
+                Button("Set", action: useTyped)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(TypeReadouts.typedSize(draft) == nil)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(TypeReadouts.presetSizes, id: \.self) { size in
+                        presetRow(size)
+                    }
+                }
+            }
+            .frame(maxHeight: 280)
+        }
+        .frame(minWidth: 200)
+        .onAppear { typing = true }
+    }
+
+    private func presetRow(_ size: Double) -> some View {
+        Button { onSet(size) } label: {
+            HStack {
+                Text("\(Int(size))").monospacedDigit()
+                Spacer(minLength: 12)
+                if size == current { Image(systemName: "checkmark").foregroundStyle(Theme.accent) }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(size == current ? .isSelected : [])
+    }
+
+    private func useTyped() {
+        guard let size = TypeReadouts.typedSize(draft) else { return }
+        onSet(size)
     }
 }

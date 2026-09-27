@@ -129,6 +129,8 @@ struct FontSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        // The face every text selected shares; none is ticked when they differ.
+        let current = store.sharedText { $0.fontFamily ?? "sans" }
         NavigationStack {
             List {
                 ForEach(FontLibrary.stacks) { stack in
@@ -140,14 +142,14 @@ struct FontSheet: View {
                             Text(stack.name)
                                 .font(FontLibrary.font(family: stack.key, size: 20, weight: 500, italic: false))
                             Spacer()
-                            if store.singleSelection?.fontFamily == stack.key {
+                            if current == stack.key {
                                 Image(systemName: "checkmark").foregroundStyle(Theme.accent)
                             }
                         }
                     }
                     .foregroundStyle(.primary)
                     .accessibilityLabel("\(stack.name) font")
-                    .accessibilityAddTraits(store.singleSelection?.fontFamily == stack.key ? .isSelected : [])
+                    .accessibilityAddTraits(current == stack.key ? .isSelected : [])
                 }
             }
             .navigationTitle("Fonts")

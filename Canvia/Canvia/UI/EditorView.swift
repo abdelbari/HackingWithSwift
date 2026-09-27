@@ -839,11 +839,12 @@ struct EditorView: View {
             // A gradient on text is a fill, not a colour, so it lives in its
             // own field; picking a plain colour clears it.
             // Colours and gradients only: text draws no pattern or photo.
+            // Several texts ring what they share, and nothing when they differ.
             ColorPickerSheet(store: store, title: "Text colour",
-                             current: store.singleSelection?.color,
+                             current: store.sharedText { $0.color ?? "#1f2430" },
                              allowGradients: true,
                              allowPatterns: false,
-                             currentPaint: store.singleSelection?.textFill,
+                             currentPaint: store.sharedText { $0.textFill } ?? nil,
                              onPick: { c in store.updateSelected { $0.color = c; $0.textFill = nil } },
                              onPickGradient: { p in store.updateSelected { $0.textFill = p } },
                              onPickTransient: { c in

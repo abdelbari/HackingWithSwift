@@ -43,6 +43,55 @@ enum TypeReadouts {
         }
     }
 
+    /// Left, centre, right, justify and round again: the Align button's turn.
+    static func nextAlignment(after align: String?) -> String {
+        switch align ?? "center" {
+        case "left": return "center"
+        case "center": return "right"
+        case "right": return "justify"
+        default: return "left"
+        }
+    }
+
+    // MARK: type size
+
+    /// How small and how large type is set.
+    static let sizeRange: ClosedRange<Double> = 6...500
+
+    /// The sizes listed under the typed one, as the Android twin lists them.
+    static let presetSizes: [Double] = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56,
+                                        64, 72, 80, 96, 120, 144, 200]
+
+    /// A size in whole points, inside the range.
+    static func wholeSize(_ size: Double) -> Double {
+        min(sizeRange.upperBound, max(sizeRange.lowerBound, size.rounded()))
+    }
+
+    /// A size as typed — "24", " 36 ", "12.5" — in whole points inside the
+    /// range; nil when what is typed is not a number.
+    static func typedSize(_ typed: String) -> Double? {
+        let number = typed.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+        guard let value = Double(number), value.isFinite else { return nil }
+        return wholeSize(value)
+    }
+
+    /// The size the size control shows: whole points, or "Mixed".
+    static func fontSize(_ size: Double?) -> String {
+        size.map { "\(Int($0))" } ?? mixed
+    }
+
+    // MARK: several texts
+
+    /// What a control says where the texts selected differ.
+    static let mixed = "Mixed"
+
+    /// The one value every item has, or nil when they differ or there are
+    /// none.
+    static func shared<T: Equatable>(_ values: [T]) -> T? {
+        guard let first = values.first, values.allSatisfy({ $0 == first }) else { return nil }
+        return first
+    }
+
     /// The list style as the List menu names it.
     static func listStyle(_ style: String?) -> String {
         switch style {

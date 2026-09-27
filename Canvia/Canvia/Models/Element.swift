@@ -105,6 +105,9 @@ struct Element: Codable, Equatable, Identifiable {
     var fontWeight: Int?
     var italic: Bool?
     var underline: Bool?
+    /// Every letter drawn and measured as a capital; the words are kept as
+    /// typed, so turning it off gives them back. nil is as typed.
+    var uppercase: Bool?
     var align: String?
     var lineHeight: Double?
     var letterSpacing: Double?
@@ -212,6 +215,7 @@ struct Element: Codable, Equatable, Identifiable {
         fontWeight = try? c.decode(Int.self, forKey: .fontWeight)
         italic = try? c.decode(Bool.self, forKey: .italic)
         underline = try? c.decode(Bool.self, forKey: .underline)
+        uppercase = try? c.decode(Bool.self, forKey: .uppercase)
         align = try? c.decode(String.self, forKey: .align)
         lineHeight = try? c.decode(Double.self, forKey: .lineHeight)
         letterSpacing = try? c.decode(Double.self, forKey: .letterSpacing)
@@ -268,7 +272,7 @@ struct Element: Codable, Equatable, Identifiable {
         case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow, blendMode, altText
         case connectFrom, connectTo, link
         case shapeId, pathData, fill, stroke, strokeWidth, radius, corners
-        case text, fontFamily, fontSize, fontWeight, italic, underline, align
+        case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, kenBurns
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit

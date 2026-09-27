@@ -29,7 +29,12 @@ final class ReadAloud: NSObject, AVSpeechSynthesizerDelegate {
             guard let el = byId[id] else { continue }
             switch el.type {
             case .text:
-                let text = FontLibrary.displayText(for: el, pageNumber: number, pageCount: design.pages.count)
+                // The words as typed, as find and replace and the spelling
+                // check read them, not in the capitals a box may draw them
+                // in: a voice can take a word in capitals for letters to spell.
+                var typed = el
+                typed.uppercase = nil
+                let text = FontLibrary.displayText(for: typed, pageNumber: number, pageCount: design.pages.count)
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                 if !text.isEmpty { parts.append(text) }
             case .image:

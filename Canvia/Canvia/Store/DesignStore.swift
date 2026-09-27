@@ -265,7 +265,8 @@ final class DesignStore {
 
     private static func typographyChanged(_ a: Element, from b: Element) -> Bool {
         a.fontFamily != b.fontFamily || a.fontWeight != b.fontWeight || a.italic != b.italic
-            || a.underline != b.underline || a.align != b.align || a.textPath != b.textPath
+            || a.underline != b.underline || a.uppercase != b.uppercase
+            || a.align != b.align || a.textPath != b.textPath
             || a.letterSpacing != b.letterSpacing || a.lineHeight != b.lineHeight
             || a.paragraphSpacing != b.paragraphSpacing || a.fontSize != b.fontSize
             || a.listStyle != b.listStyle || a.indent != b.indent || a.vertical != b.vertical
@@ -1183,6 +1184,7 @@ final class DesignStore {
         var fontWeight: Int?
         var italic: Bool?
         var underline: Bool?
+        var uppercase: Bool?
         var align: String?
         var lineHeight: Double?
         var letterSpacing: Double?
@@ -1214,7 +1216,8 @@ final class DesignStore {
               corners: el.corners, dropCap: el.dropCap,
               color: el.color, fontFamily: el.fontFamily, fontSize: el.fontSize,
               fontWeight: el.fontWeight, italic: el.italic, underline: el.underline,
-              align: el.align, lineHeight: el.lineHeight, letterSpacing: el.letterSpacing,
+              uppercase: el.uppercase, align: el.align,
+              lineHeight: el.lineHeight, letterSpacing: el.letterSpacing,
               listStyle: el.listStyle, indent: el.indent, textFill: el.textFill,
               vAlign: el.vAlign, paragraphSpacing: el.paragraphSpacing,
               effect: el.effect, curve: el.curve, filter: el.filter,
@@ -1248,6 +1251,7 @@ final class DesignStore {
             el.fontWeight = style.fontWeight
             el.italic = style.italic
             el.underline = style.underline
+            el.uppercase = style.uppercase
             el.align = style.align
             el.lineHeight = style.lineHeight
             el.letterSpacing = style.letterSpacing
