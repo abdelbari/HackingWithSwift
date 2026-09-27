@@ -22,6 +22,8 @@ struct SelectionOverlay: View {
         var offset: CGPoint
         var outsetX: Double
         var outsetY: Double
+        /// Where the touch that took it began.
+        var start: CGPoint
     }
     @State private var held: Held?
 
@@ -138,15 +140,40 @@ struct SelectionOverlay: View {
     /// being dragged, otherwise what the element's size on screen needs.
     private func outsets(for el: Element) -> (x: Double, y: Double) {
         if let held { return (held.outsetX, held.outsetY) }
-        return (Touch.handleOutset(side: el.w, zoom: store.zoom),
-                Touch.handleOutset(side: el.h, zoom: store.zoom))
+        let x = Touch.handleOutset(side: el.w, zoom: store.zoom)
+        let y = Touch.handleOutset(side: el.h, zoom: store.zoom)
+        // Only the page takes a touch: a handle pushed past its edge would be
+        // drawn where no finger can work it. Near an edge the ring stands off
+        // only as far as keeps every handle on the page — on one axis, or on
+        // neither, the handles then on the outline.
+        for (ox, oy) in [(x, y), (x, 0), (0, y)] where ringFits(el, ox, oy) { return (ox, oy) }
+        return ringFits(el, 0, 0) ? (0, 0) : (x, y)
+    }
+
+    /// The page, a hair wider, so a handle exactly on its edge counts.
+    private var reachablePage: CGRect {
+        CGRect(x: 0, y: 0, width: store.pageWidth, height: store.pageHeight).insetBy(dx: -0.5, dy: -0.5)
+    }
+
+    private func ringFits(_ el: Element, _ outsetX: Double, _ outsetY: Double) -> Bool {
+        let page = reachablePage
+        return Handle.allCases.allSatisfy {
+            page.contains(Geometry.handlePoint(el, $0, outsetX: outsetX, outsetY: outsetY))
+        }
     }
 
     /// Where the rotate handle sits: below the bottom edge — and below the
-    /// ring, when it stands off a small element — turned with the element.
+    /// ring, when it stands off a small element — turned with the element;
+    /// above the top edge instead when below is off the page, where no
+    /// finger could reach it.
     private func rotatePoint(_ el: Element, outsetY: Double) -> CGPoint {
-        Geometry.rotate(CGPoint(x: el.x + el.w / 2, y: el.y + el.h + outsetY + 28 * iz),
-                        around: el.center, degrees: el.rotation)
+        let below = Geometry.rotate(CGPoint(x: el.x + el.w / 2, y: el.y + el.h + outsetY + 28 * iz),
+                                    around: el.center, degrees: el.rotation)
+        let page = reachablePage
+        guard !page.contains(below) else { return below }
+        let above = Geometry.rotate(CGPoint(x: el.x + el.w / 2, y: el.y - outsetY - 28 * iz),
+                                    around: el.center, degrees: el.rotation)
+        return page.contains(above) ? above : below
     }
 
     /// Every handle the element offers, at any size or zoom. On a small or
@@ -227,6 +254,15 @@ struct SelectionOverlay: View {
             .gesture(
                 DragGesture(minimumDistance: 1, coordinateSpace: .named("page"))
                     .onChanged { value in
+                        // A drag the system cancelled — a call, Notification
+                        // Center — never ends: a touch that starts somewhere
+                        // else is a new one, so the old handle is let go and
+                        // its step closed first, never worked again with a
+                        // stale grip.
+                        if let old = held, old.start != value.startLocation {
+                            held = nil
+                            end(old.grab)
+                        }
                         if held == nil {
                             guard let grab = Touch.grab(at: value.startLocation, el: el, handles: handles,
                                                         outsetX: outsetX, outsetY: outsetY, rotateAt: rotateAt,
@@ -240,7 +276,8 @@ struct SelectionOverlay: View {
                                 let edge = Geometry.handlePoint(el, handle)
                                 offset = CGPoint(x: edge.x - value.startLocation.x, y: edge.y - value.startLocation.y)
                             }
-                            held = Held(grab: grab, offset: offset, outsetX: outsetX, outsetY: outsetY)
+                            held = Held(grab: grab, offset: offset, outsetX: outsetX, outsetY: outsetY,
+                                        start: value.startLocation)
                         }
                         guard let held else { return }
                         switch held.grab {
@@ -254,13 +291,16 @@ struct SelectionOverlay: View {
                     .onEnded { _ in
                         let grab = held?.grab
                         held = nil
-                        switch grab {
-                        case .some(.resize): onHandleEnd()
-                        case .some(.rotate): onRotateEnd()
-                        case .none: break
-                        }
+                        if let grab { end(grab) }
                     }
             )
+    }
+
+    private func end(_ grab: HandleGrab) {
+        switch grab {
+        case .resize: onHandleEnd()
+        case .rotate: onRotateEnd()
+        }
     }
 
     /// The handles' touch area as a path, in page units.

@@ -197,7 +197,10 @@ struct ColorPickerSheet: View {
     /// it; the colour swatches above keep working on it afterwards, since a
     /// pattern's foreground is the paint's colour.
     private func patternsSection(_ pick: @escaping (Paint) -> Void) -> some View {
-        let ink = current ?? UIColor(custom).hexString
+        // With no one current colour — several things selected — the ink is
+        // the Android twin's dark one: the untouched wheel's white made six
+        // blank tiles and a white-on-white fill.
+        let ink = current ?? currentPaint?.color ?? "#1f2430"
         return VStack(alignment: .leading, spacing: 8) {
             Text("Patterns").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
             LazyVGrid(columns: columns, spacing: 10) {

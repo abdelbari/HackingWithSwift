@@ -108,6 +108,10 @@ final class MediaContentParityTests: XCTestCase {
         XCTAssertEqual(list, ["media:old", "media:photo", "media:logo"])
         let again = BrandKit.logoCandidates(openedWith: ["media:logo"], current: ["media:logo"], design: design)
         XCTAssertEqual(again, ["media:logo", "media:photo"], "each picture once")
+        // A picture switched on stays where it was, so the next tap in the
+        // same place does not land on another.
+        let switchedOn = BrandKit.logoCandidates(openedWith: [], current: ["media:logo"], design: design)
+        XCTAssertEqual(switchedOn, ["media:photo", "media:logo"])
     }
 
     // MARK: add sheet names
@@ -227,6 +231,18 @@ final class MediaContentParityTests: XCTestCase {
     func testOnlyShapesAreOfferedPatterns() {
         XCTAssertFalse(FillChoices.offersPatterns(for: [Element.text("Hi")]))
         XCTAssertTrue(FillChoices.offersPatterns(for: [Element.text("Hi"), Element.shape("rect")]))
+        var locked = Element.shape("rect")
+        locked.locked = true
+        XCTAssertFalse(FillChoices.offersPatterns(for: [Element.text("Hi"), locked]),
+                       "a locked shape takes nothing, so it is no reason to offer them")
+    }
+
+    func testTextTakesAGradientButNotAPatternOrAPhoto() {
+        let text = Element.text("Hi")
+        XCTAssertEqual(DesignStore.withGradient(text, .pattern("dots", color: "#000000", secondary: "#ffffff")), text)
+        XCTAssertEqual(DesignStore.withGradient(text, .image("asset:sun")), text)
+        let rect = Element.shape("rect")
+        XCTAssertEqual(DesignStore.withGradient(rect, .image("asset:sun")).fill?.kind, "image")
     }
 
     func testResetPhotoEditsTakesOffTheLookAndKeepsTheCrop() {

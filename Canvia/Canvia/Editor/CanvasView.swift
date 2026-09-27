@@ -11,6 +11,10 @@ struct CanvasView: View {
     @State private var gesture = GestureState()
     /// The stroke being drawn, in page units, while the pen is on.
     @State private var strokePoints: [CGPoint] = []
+    /// Where the stroke under way began. A drag the canvas's two-finger pan
+    /// cancels never ends, so a new touch — a new start — begins a stroke
+    /// afresh rather than joining the one cut short with a straight jump.
+    @State private var strokeStart: CGPoint?
     @State private var dropTargeted = false
     /// When a tap on the photo in crop mode last landed, for the double tap
     /// that finishes it.
@@ -486,12 +490,16 @@ struct CanvasView: View {
         .gesture(
             DragGesture(minimumDistance: 0, coordinateSpace: .named("page"))
                 .onChanged { value in
-                    if strokePoints.isEmpty { strokePoints = [value.startLocation] }
+                    if strokePoints.isEmpty || strokeStart != value.startLocation {
+                        strokeStart = value.startLocation
+                        strokePoints = [value.startLocation]
+                    }
                     strokePoints.append(value.location)
                 }
                 .onEnded { _ in
                     store.eraserStrokes.append(Freehand.thinned(strokePoints))
                     strokePoints = []
+                    strokeStart = nil
                 }
         )
         .accessibilityLabel("Eraser")
@@ -514,12 +522,16 @@ struct CanvasView: View {
         .gesture(
             DragGesture(minimumDistance: 0, coordinateSpace: .named("page"))
                 .onChanged { value in
-                    if strokePoints.isEmpty { strokePoints = [value.startLocation] }
+                    if strokePoints.isEmpty || strokeStart != value.startLocation {
+                        strokeStart = value.startLocation
+                        strokePoints = [value.startLocation]
+                    }
                     strokePoints.append(value.location)
                 }
                 .onEnded { _ in
                     store.finishStroke(strokePoints)
                     strokePoints = []
+                    strokeStart = nil
                 }
         )
         .accessibilityLabel("Drawing surface")
@@ -1024,9 +1036,12 @@ struct CanvasView: View {
     // MARK: inline text editing
 
     private func startTextEdit(_ el: Element) {
-        // Selected first: select() ends any typing as its own step, and the
-        // step for this typing opens after it.
-        store.select(el.id)
+        // Any typing before is ended as its own step, and the step for this
+        // typing opens after it. Only this box is selected, even inside a
+        // group, as on the Android twin: its text controls show while it is
+        // typed, and a group corner or Delete never works the whole group.
+        store.endTextEdit()
+        store.selection = [el.id]
         store.beginGesture()
         store.editingTextId = el.id
     }
@@ -1047,6 +1062,11 @@ struct CanvasView: View {
                                onDone: { commitTextEditIfAny() })
             .frame(width: el.w)
             .frame(width: el.w, height: el.h, alignment: sits)
+            // The whole box is the field's: the field is only as tall as its
+            // words, and a tap above or below words set in the middle or at
+            // the foot fell through to the box and ended the typing. Behind
+            // the field, so the field's own taps still place the caret.
+            .background(Color.clear.contentShape(Rectangle()).onTapGesture {})
             .overlay(Rectangle().stroke(Theme.accent, lineWidth: 1 * iz).allowsHitTesting(false))
             .rotationEffect(.degrees(el.rotation))
             .position(x: el.x + el.w / 2, y: el.y + el.h / 2)

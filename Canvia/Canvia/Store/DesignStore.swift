@@ -16,10 +16,16 @@ final class DesignStore {
         // so far is kept, never dropped.
         didSet {
             if let crop = cropping, selection != [crop.id] { finishCrop() }
-            // Typing in place ends however the box stops being selected —
-            // a Layers row, a page change, a lock — as its own step, and an
-            // emptied box goes with it. The Android twin's selection watcher.
-            if let id = editingTextId, !selection.contains(id) { endTextEdit() }
+            // Typing in place ends however the box stops being the one thing
+            // selected — a Layers row, a page change, a lock, its group taken
+            // whole — as its own step, and an emptied box goes with it. The
+            // Android twin's selection watcher.
+            if let id = editingTextId, selection != [id] { endTextEdit() }
+            // Dictation belongs to the box it began on: selecting anything
+            // else ends it here and now, as its own step, before whatever did
+            // the selecting opens one, so a drag that began with the
+            // selection is never folded into the dictated words.
+            if let target = dictationTarget, selection != [target] { endDictation() }
         }
     }
     var editingTextId: String?
@@ -139,6 +145,14 @@ final class DesignStore {
         guard let entry = pending else { return }
         // Connectors follow their ends as part of the same step.
         Connectors.resolve(in: &design)
+        // A step that changed nothing — a text box opened and left as it
+        // was, a crop opened and closed untouched — would be an Undo that
+        // visibly does nothing, and would wipe Redo; it is closed without
+        // being recorded, as on the Android twin.
+        if entry.design == design && entry.pageIndex == pageIndex {
+            pending = nil
+            return
+        }
         // And a design still named by the app takes its headline as its name,
         // in this same step, so one Undo takes back the words and the name.
         adoptHeadline()
@@ -193,6 +207,11 @@ final class DesignStore {
 
     /// Mutate + record as one undo step.
     func apply(_ mutate: (inout Design) -> Void) {
+        // Words being typed or dictated are a step of their own: a command
+        // while they are open — Delete, Duplicate, Bold — closes them first,
+        // so one Undo takes back one or the other and the words are never
+        // lost with it, as the Android twin's edit() does.
+        if pending != nil && (editingTextId != nil || dictationTarget != nil) { commit() }
         beginGesture()
         mutate(&design)
         commit()
@@ -275,9 +294,10 @@ final class DesignStore {
     var canRedo: Bool { !future.isEmpty }
 
     func undo() {
-        // A crop under way is kept as its own step first, so Undo takes back
-        // the crop rather than whatever came before it.
-        finishCrop()
+        // Typing, dictation or a crop under way is kept as its own step
+        // first, so Undo takes back that rather than whatever came before
+        // it — and the words typed are never thrown away with that step.
+        closeOpenSteps()
         guard let entry = past.popLast() else { return }
         future.append(HistoryEntry(design: design, pageIndex: pageIndex))
         restore(entry)
@@ -285,11 +305,20 @@ final class DesignStore {
     }
 
     func redo() {
-        finishCrop()
+        closeOpenSteps()
         guard let entry = future.popLast() else { return }
         past.append(HistoryEntry(design: design, pageIndex: pageIndex))
         restore(entry)
         buzz(.redo)
+    }
+
+    /// Whatever is still open — typing, dictation, a crop, a slider's step
+    /// — closed as its own step, as the Android twin does before Undo.
+    private func closeOpenSteps() {
+        endTextEdit()
+        endDictation()
+        finishCrop()
+        commit()
     }
 
     private func restore(_ entry: HistoryEntry) {
@@ -298,8 +327,8 @@ final class DesignStore {
         // renames the design.
         lastWords = Self.words(of: design)
         pageIndex = min(entry.pageIndex, design.pages.count - 1)
-        // Before the selection changes, so ending the typing records nothing:
-        // the step it would record has just been undone.
+        // Undo and Redo close any typing first; this only makes sure a box
+        // being typed into is not ended by the selection below as a step.
         editingTextId = nil
         pending = nil
         let ids = Set(page.elements.map(\.id))
@@ -376,6 +405,13 @@ final class DesignStore {
         design.pages[pageIndex].elements[i].text = words
         design.pages[pageIndex].elements[i].h = FontLibrary.layoutHeight(for: design.pages[pageIndex].elements[i])
         return true
+    }
+
+    /// The microphone stopped, and what it wrote kept as one step.
+    func endDictation() {
+        guard dictationTarget != nil else { return }
+        if Dictation.shared.isListening { Dictation.shared.stop() }
+        finishDictation()
     }
 
     /// Dictation is over: what it wrote is one undo step.
@@ -504,7 +540,15 @@ final class DesignStore {
     static func withGradient(_ el: Element, _ paint: Paint) -> Element {
         guard takesGradient(el) else { return el }
         var e = el
-        if el.type == .text { e.textFill = paint } else { e.fill = paint }
+        if el.type == .text {
+            // Letters draw a gradient and nothing else: a pattern or a photo
+            // fill picked for a mixed selection is the shapes', and on the
+            // text would be saved and never shown.
+            guard paint.kind == "gradient" else { return el }
+            e.textFill = paint
+        } else {
+            e.fill = paint
+        }
         return e
     }
     var canDistribute: Bool { unlockedSelectionCount >= 3 }

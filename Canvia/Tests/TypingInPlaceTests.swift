@@ -76,13 +76,71 @@ final class TypingInPlaceTests: XCTestCase {
         s.select(spoken.id)
         s.dictationTarget = spoken.id
         XCTAssertTrue(s.dictate("Dear friends"))
+        // Selecting anything else ends it, as its own step, there and then;
+        // words recognised late go nowhere.
         s.select(other.id)
-        XCTAssertTrue(s.dictate("Dear friends and family"))
-        XCTAssertEqual(s.element(other.id)?.text, "Other", "the newly selected text is left alone")
-        XCTAssertEqual(s.element(spoken.id)?.text, "Dear friends and family")
-        s.finishDictation()
         XCTAssertNil(s.dictationTarget)
+        XCTAssertFalse(s.hasPendingChanges, "the dictation was closed before anything else could join it")
+        XCTAssertFalse(s.dictate("Dear friends and family"))
+        XCTAssertEqual(s.element(other.id)?.text, "Other", "the newly selected text is left alone")
+        XCTAssertEqual(s.element(spoken.id)?.text, "Dear friends")
+        s.undo()
+        XCTAssertEqual(s.element(spoken.id)?.text, "Dear", "the dictation was one step")
+    }
+
+    // MARK: Undo and commands while typing
+
+    func testUndoWhileTypingTakesBackOnlyTheTyping() {
+        let s = store([])
+        let heading = Element.text("Heading")
+        s.add(heading)
+        type(s, "Summer Sale", into: heading.id)
+        s.undo()
+        XCTAssertNil(s.editingTextId)
+        XCTAssertEqual(s.element(heading.id)?.text, "Heading", "the heading stays; only the words go")
+        s.redo()
+        XCTAssertEqual(s.element(heading.id)?.text, "Summer Sale")
+    }
+
+    func testACommandWhileTypingIsAStepOfItsOwn() {
+        let text = Element.text("Hello")
+        let s = store([text])
+        type(s, "Hello there", into: text.id)
+        s.duplicateSelected()
+        XCTAssertEqual(s.page.elements.count, 2)
+        s.undo()
+        XCTAssertEqual(s.page.elements.count, 1, "Undo takes back the duplicate")
+        XCTAssertEqual(s.element(text.id)?.text, "Hello there", "and keeps the words typed")
+    }
+
+    func testOpeningABoxAndLeavingItRecordsNothing() {
+        let text = Element.text("Hello")
+        let s = store([text])
+        s.select(text.id)
+        s.updateSelected { $0.fontSize = 60 }
+        s.undo()
+        XCTAssertTrue(s.canRedo)
+        type(s, "Hello", into: text.id)
+        s.endTextEdit()
+        XCTAssertTrue(s.canRedo, "a visit that changed nothing keeps Redo")
+        XCTAssertFalse(s.canUndo)
+    }
+
+    func testSelectingMoreThanTheBoxBeingTypedInEndsTheTyping() {
+        var a = Element.text("Title"), b = Element.shape("rect")
+        a.group = "g"; b.group = "g"
+        let s = store([a, b])
+        // Typing is into the one text, even inside a group, as the canvas
+        // starts it...
+        s.selection = [a.id]
+        s.beginGesture()
+        s.editingTextId = a.id
+        s.design.pages[0].elements[0].text = "Title!"
+        // ...and taking the group whole ends it, as its own step.
+        s.selection = [a.id, b.id]
+        XCTAssertNil(s.editingTextId)
         XCTAssertFalse(s.hasPendingChanges)
+        XCTAssertEqual(s.element(a.id)?.text, "Title!")
     }
 
     func testDictationNeverWritesIntoAShapeOrALockedText() {

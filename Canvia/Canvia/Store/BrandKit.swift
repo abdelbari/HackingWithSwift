@@ -54,15 +54,17 @@ struct BrandKit: Codable, Equatable {
 
     /// The pictures the Logos list offers, once each: the logos the sheet
     /// opened with — kept listed when switched off, so a slip can be taken
-    /// back — then any since added, then this design's pictures. Codes are
-    /// not logos. As the Android twin lists them.
+    /// back — then this design's pictures, then any other logo since added.
+    /// A picture switched on stays where it was, so the next tap in the same
+    /// place never lands on another. Codes are not logos. As the Android
+    /// twin lists them.
     static func logoCandidates(openedWith: [String], current: [String], design: Design) -> [String] {
         let pictures = design.pages.flatMap(\.elements)
             .filter { $0.type == .image }
             .compactMap(\.src)
             .filter { CodeGenerator.payload(from: $0) == nil }
         var seen = Set<String>()
-        return (openedWith + current + pictures).filter { seen.insert($0).inserted }
+        return (openedWith + pictures + current).filter { seen.insert($0).inserted }
     }
 
     mutating func addColor(_ hex: String) {

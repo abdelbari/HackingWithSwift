@@ -47,6 +47,8 @@ struct ContextToolbar: View {
         var width: Double?
     }
     @State private var borderBefore: BorderBefore?
+    /// The reach of the slider being dragged, held for the whole drag.
+    @State private var heldReach: HeldReach?
     /// Which corners round, read as a Round drag began and held through it
     /// (the outer nil: no drag under way).
     @State private var heldCorners: CornerPatterns.Pattern?? = nil
@@ -91,12 +93,14 @@ struct ContextToolbar: View {
             store.textFieldOpen = open
         }
         // Dictation belongs to the one text box it began on: once anything
-        // else is selected, or the microphone stops by itself, it is over.
-        .onChange(of: store.selection) { _, selection in
-            if let target = store.dictationTarget, selection != [target] { endDictation() }
-        }
+        // else is selected (the store sees to that), or the microphone stops
+        // by itself, it is over — and it never began if the microphone or
+        // speech was refused, so the box is not left waiting for it.
         .onChange(of: Dictation.shared.isListening) { _, listening in
             if !listening { store.finishDictation() }
+        }
+        .onChange(of: Dictation.shared.error) { _, error in
+            if error != nil && !Dictation.shared.isListening { store.finishDictation() }
         }
         .onDisappear { endDictation() }
         .alert("Remove background",
@@ -602,8 +606,14 @@ struct ContextToolbar: View {
             colorChip(el.stroke ?? "#0d1216", "Border") { activeSheet = .colorStroke }
         }
         if el.fill?.kind == "none" {
-            // A drawn stroke or an outline: its width is what there is to set.
-            sliderControl("Width", value: el.strokeWidth ?? 4, in: 1...40) { v in
+            // A drawn stroke or an outline: its width is what there is to set,
+            // to 40 as on the Android twin, and further when it already is —
+            // a highlighter stroke is 48 or 72 — so it is not snapped thinner
+            // on the first touch.
+            let width = el.strokeWidth ?? 4
+            let widthReach = reach("Width", 1...40, width)
+            sliderControl("Width", value: width, in: widthReach,
+                          onEditing: { holdReach("Width", widthReach, $0) }) { v in
                 store.updateSelectedTransient { $0.strokeWidth = v }
             }
         } else if !Freehand.isStroke(el) {
@@ -634,11 +644,12 @@ struct ContextToolbar: View {
     /// twin's Border slider, to the same 40 and the same default ink.
     private func borderSlider(_ el: Element) -> some View {
         let width = el.strokeWidth ?? 0
-        let ceiling = max(40, width)
+        let border = reach("Border", 0...40, width)
         return VStack(spacing: 2) {
             Slider(value: Binding(get: { width }, set: { setBorder($0, on: el) }),
-                   in: 0...ceiling,
+                   in: border,
                    onEditingChanged: { editing in
+                       holdReach("Border", border, editing)
                        if editing {
                            borderBefore = BorderBefore(stroke: el.stroke, width: el.strokeWidth)
                        } else {
@@ -783,7 +794,10 @@ struct ContextToolbar: View {
         colorChip(el.color ?? "#1f2430", "Colour") { activeSheet = .colorLine }
         // To 60, as on the Android twin, and further when a line already is,
         // so it is shown as it is and not snapped thinner on first touch.
-        sliderControl("Weight", value: el.thickness ?? 4, in: 1...max(60, el.thickness ?? 4)) { v in
+        let weight = el.thickness ?? 4
+        let weightReach = reach("Weight", 1...60, weight)
+        sliderControl("Weight", value: weight, in: weightReach,
+                      onEditing: { holdReach("Weight", weightReach, $0) }) { v in
             store.updateSelectedTransient {
                 $0.thickness = v
                 $0.h = max(8, v)
@@ -1073,8 +1087,7 @@ struct ContextToolbar: View {
 
     /// Stops the microphone and records what it wrote as one step.
     private func endDictation() {
-        if Dictation.shared.isListening { Dictation.shared.stop() }
-        store.finishDictation()
+        store.endDictation()
     }
 
     private func toolButton(_ system: String, _ label: String, action: @escaping () -> Void) -> some View {
@@ -1135,6 +1148,25 @@ struct ContextToolbar: View {
         // "Fill, dark blue": what it is now, in words — or "photo", "red
         // pattern", "no fill" when it is not one colour.
         .accessibilityValue(spoken ?? ElementNames.colourName(hex))
+    }
+
+    struct HeldReach {
+        var label: String
+        var range: ClosedRange<Double>
+    }
+
+    /// A slider's reach: `base`, out to the value it holds, so the value is
+    /// shown as it is and not snapped on the first touch — and, while that
+    /// slider is dragged, the reach it had when the drag began: one worked
+    /// out afresh from the value on every frame shrank under the thumb as
+    /// it was dragged down. As the Android twin's tracks only widen.
+    private func reach(_ label: String, _ base: ClosedRange<Double>, _ value: Double) -> ClosedRange<Double> {
+        if let held = heldReach, held.label == label { return held.range }
+        return min(base.lowerBound, value)...max(base.upperBound, value)
+    }
+
+    private func holdReach(_ label: String, _ range: ClosedRange<Double>, _ editing: Bool) {
+        heldReach = editing ? HeldReach(label: label, range: range) : nil
     }
 
     private func sliderControl(_ label: String, value: Double, in range: ClosedRange<Double>,

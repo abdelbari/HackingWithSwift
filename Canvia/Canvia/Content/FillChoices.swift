@@ -24,7 +24,8 @@ enum FillChoices {
     /// draws them. Text draws a colour or a gradient and nothing else, so
     /// offering it a pattern saved a fill that never showed.
     static func offersPatterns(for elements: [Element]) -> Bool {
-        elements.contains { $0.type == .shape && !Freehand.isStroke($0) }
+        // A locked shape takes nothing, so it is not a reason to offer them.
+        elements.contains { !$0.locked && $0.type == .shape && !Freehand.isStroke($0) }
     }
 
     // MARK: photo fills

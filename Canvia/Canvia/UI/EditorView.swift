@@ -187,7 +187,13 @@ struct EditorView: View {
                 // photo is the only thing being worked.
                 shortcut(.return, [], "Done cropping") { store.finishCrop() }
                 shortcut(.escape, [], "Cancel crop") { store.cancelCrop() }
-            } else {
+            } else if store.editingTextId != nil {
+                // While words are typed in place, the ⌘ keys are the text's —
+                // ⌘A selects its words, ⌘V pastes text, ⌘Z takes back typing —
+                // as on the Android twin. Escape is Done: the typing kept as
+                // its own step, an emptied box removed, the box still chosen.
+                shortcut(.escape, [], "Done typing") { store.endTextEdit() }
+            } else if !titleFocused && !store.textFieldOpen {
                 editingCommands
             }
         }
@@ -216,13 +222,7 @@ struct EditorView: View {
                 shortcut("d", [.command], "Duplicate") { store.duplicateSelected() }
                 shortcut("a", [.command], "Select all") { store.selectAll() }
                 shortcut(.delete, [.command], "Delete") { store.deleteSelected() }
-                // While typing in place, Escape is Done: the typing kept as
-                // its own step, an emptied box removed, the box still chosen.
-                if store.editingTextId != nil {
-                    shortcut(.escape, [], "Done typing") { store.endTextEdit() }
-                } else {
-                    shortcut(.escape, [], "Deselect") { store.select(nil) }
-                }
+                shortcut(.escape, [], "Deselect") { store.select(nil) }
             }
             // Arrow keys nudge a page unit, ten with Shift — only while no
             // text field has the keyboard, or the arrows would never reach
@@ -1000,13 +1000,13 @@ struct EditorView: View {
 
     /// Read out as it arrives — "Deleted page 3" means nothing to someone
     /// who cannot see it appear — and kept up until closed while VoiceOver
-    /// runs, so its Undo can be reached.
+    /// or Switch Control runs, so its Undo can be reached.
     private func show(toast text: String, undoable: Bool) {
         toastTask?.cancel()
         toastUndoes = undoable
         withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { toast = text }
         AccessibilityNotification.Announcement(undoable ? "\(text). Undo available." : text).post()
-        guard let seconds = ToastTiming.undoToast(voiceOver: UIAccessibility.isVoiceOverRunning) else {
+        guard let seconds = ToastTiming.undoToast(voiceOver: UIAccessibility.isVoiceOverRunning || UIAccessibility.isSwitchControlRunning) else {
             toastTask = nil
             return
         }
