@@ -775,9 +775,19 @@ struct ContextToolbar: View {
         } message: {
             Text("Read by VoiceOver and written into SVG exports. Suggest asks the on-device classifier for a first draft.")
         }
-        toolButton("arrow.2.squarepath", "Replace") {
-            store.replaceTargetId = el.id
-            activeSheet = .insert
+        // Grouped, which changes nothing on screen: a ViewBuilder block takes
+        // at most ten children, and the image controls sit close to that.
+        Group {
+            toolButton("arrow.2.squarepath", "Replace") {
+                store.replaceTargetId = el.id
+                activeSheet = .insert
+            }
+            // The photo behind the whole page instead, as it shows here.
+            if DesignStore.canBecomeBackground(el) {
+                toolButton("rectangle.inset.filled", "Use as background") {
+                    store.useAsBackground(el.id)
+                }
+            }
         }
         // Hidden behind a frame: a corner radius on a star means nothing, and
         // a slider whose range is derived from the box looks broken when the

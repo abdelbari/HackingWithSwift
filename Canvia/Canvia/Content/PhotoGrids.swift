@@ -3,7 +3,8 @@
 // A collage is three photos in a row far more often than it is anything
 // clever, and placing three frames by hand — same size, even gaps, flush to
 // the margins — is ten minutes of nudging. A layout is those frames in one
-// tap; the photos go in with Replace.
+// tap; the photos go in by being dragged onto the cells, picked while the
+// grid is selected, or with Replace (see PhotoFrames).
 
 import Foundation
 

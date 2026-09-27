@@ -727,24 +727,64 @@ final class DesignStore {
 
     enum AlignMode { case left, centerX, right, top, centerY, bottom }
 
+    /// Whether Position's align buttons line the selection up with the page
+    /// rather than with each other: one thing on its own, or one sticky
+    /// group, which lines up as a single box.
+    var alignsToPage: Bool { unlockedSelectionCount <= 1 || selectionIsGrouped }
+
     func alignSelected(_ mode: AlignMode) {
         let selected = selectedElements.filter { !$0.locked }
         guard !selected.isEmpty else { return }
-        let bounds: CGRect = selected.count == 1
-            ? CGRect(origin: .zero, size: pageSize)
-            : Geometry.union(selected.map(Geometry.aabb))
+        let pageBox = CGRect(origin: .zero, size: pageSize)
+        // One sticky group lines up with the page as one box, every member
+        // moved by the same offset: aligned one by one, a grid's cells would
+        // all pile up against the same edge.
+        if selectionIsGrouped {
+            let shift = Self.alignShift(Geometry.union(selected.map(Geometry.aabb)), to: pageBox, mode)
+            let ids = Set(selected.map(\.id))
+            applyToPage { page in
+                for i in page.elements.indices where ids.contains(page.elements[i].id) {
+                    page.elements[i].x += shift.x
+                    page.elements[i].y += shift.y
+                }
+            }
+            return
+        }
+        let bounds: CGRect = selected.count == 1 ? pageBox : Geometry.union(selected.map(Geometry.aabb))
         applyToPage { page in
             for i in page.elements.indices where self.selection.contains(page.elements[i].id) && !page.elements[i].locked {
-                let box = Geometry.aabb(page.elements[i])
-                var dx = 0.0, dy = 0.0
-                switch mode {
-                case .left: dx = bounds.minX - box.minX
-                case .centerX: dx = bounds.midX - box.midX
-                case .right: dx = bounds.maxX - box.maxX
-                case .top: dy = bounds.minY - box.minY
-                case .centerY: dy = bounds.midY - box.midY
-                case .bottom: dy = bounds.maxY - box.maxY
-                }
+                let shift = Self.alignShift(Geometry.aabb(page.elements[i]), to: bounds, mode)
+                page.elements[i].x += shift.x
+                page.elements[i].y += shift.y
+            }
+        }
+    }
+
+    /// How far `box` moves to line up with `bounds` by `mode`.
+    private static func alignShift(_ box: CGRect, to bounds: CGRect, _ mode: AlignMode) -> CGPoint {
+        switch mode {
+        case .left: return CGPoint(x: bounds.minX - box.minX, y: 0)
+        case .centerX: return CGPoint(x: bounds.midX - box.midX, y: 0)
+        case .right: return CGPoint(x: bounds.maxX - box.maxX, y: 0)
+        case .top: return CGPoint(x: 0, y: bounds.minY - box.minY)
+        case .centerY: return CGPoint(x: 0, y: bounds.midY - box.midY)
+        case .bottom: return CGPoint(x: 0, y: bounds.maxY - box.maxY)
+        }
+    }
+
+    /// The selection's unlocked things centred on the page, as one step: one
+    /// thing by its own turned bounds, several by the box round them, so they
+    /// keep their places relative to each other — the Android twin's
+    /// centreOnPage.
+    func centreOnPage() {
+        let members = selectedElements.filter { !$0.locked }
+        guard !members.isEmpty else { return }
+        let box = Geometry.union(members.map(Geometry.aabb))
+        let dx = (pageWidth - box.width) / 2 - box.minX
+        let dy = (pageHeight - box.height) / 2 - box.minY
+        let ids = Set(members.map(\.id))
+        applyToPage { page in
+            for i in page.elements.indices where ids.contains(page.elements[i].id) {
                 page.elements[i].x += dx
                 page.elements[i].y += dy
             }

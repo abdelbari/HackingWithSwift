@@ -207,6 +207,18 @@ enum Crop {
         return out
     }
 
+    /// A new picture in the same frame — or none, an empty frame — centred,
+    /// covering it and level. The frame is what the layout depends on, so a
+    /// replacement keeps it, with its corners, look and border: what Replace
+    /// does, and a picture dropped or picked into a frame, as the Android
+    /// twin's Crop.replaced.
+    static func replaced(_ el: Element, src: String?) -> Element {
+        var out = reset(el)
+        out.src = src
+        out.straighten = nil
+        return out
+    }
+
     /// Whether the picture has been moved or zoomed from centred and covering.
     static func isAdjusted(_ el: Element) -> Bool {
         abs((el.cropScale ?? 1) - 1) > 1e-6 || abs((el.cropX ?? 0.5) - 0.5) > 1e-6

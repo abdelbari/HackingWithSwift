@@ -86,30 +86,40 @@ struct InsertSheet: View {
         }
     }
 
-    /// Photos and clips from the library, onto the page or into the frame
-    /// being replaced. A clip takes a while to copy, so that is said first;
-    /// what could not be read is counted and said at the end, as the Android
-    /// twin says it, rather than the sheet just staying open.
+    /// Photos and clips from the library: into the frame being replaced, into
+    /// the selection's empty frames — a grid's cells in reading order — or
+    /// onto the page, whatever the frames do not take. A clip takes a while
+    /// to copy, so that is said first; what could not be read is counted and
+    /// said at the end, as the Android twin says it, rather than the sheet
+    /// just staying open.
     private func bringIn(_ items: [PhotosPickerItem]) {
-        // Capture the replace target now: loading is async, and the sheet
-        // (and with it store.replaceTargetId) may be gone by the time it
-        // finishes — the pick should still replace, not insert a stray.
+        // Capture the replace target and the frames now: loading is async,
+        // and the sheet (and with it store.replaceTargetId) may be gone by
+        // the time it finishes — the pick should still go where it was
+        // meant to, not insert a stray.
         let target = store.replaceTargetId
+        let emptyFrames = target == nil ? store.framesToFill : []
         let store = self.store
         if items.contains(where: { item in item.supportedContentTypes.contains { $0.conforms(to: .movie) } }) {
             store.announce("Bringing them in…", undoable: false)
         }
         Task {
-            // Several at once land as a cascade, each a step down and
-            // right from the last, so ten photos are ten visible photos
-            // and not one photo ten deep.
+            // Those the frames do not take land as a cascade, each a step
+            // down and right from the last, so ten photos are ten visible
+            // photos and not one photo ten deep.
+            var frames = emptyFrames
             var placed = 0
+            var added = 0
             for item in items {
                 guard let stored = await load(item) else { continue }
-                insertImage(stored.src, natural: stored.natural,
-                            replacing: placed == 0 && !stored.isVideo ? target : nil,
-                            cascade: placed)
                 placed += 1
+                if placed == 1, let target {
+                    insertImage(stored.src, natural: stored.natural, replacing: target)
+                    continue
+                }
+                if !frames.isEmpty, store.replacePicture(frames.removeFirst(), with: stored.src) { continue }
+                insertImage(stored.src, natural: stored.natural, cascade: added)
+                added += 1
             }
             let missed = items.count - placed
             if placed == 0 {
@@ -702,7 +712,7 @@ struct InsertSheet: View {
             dismiss()
             return
         }
-        insertImage(src, natural: natural)
+        place(src, natural: natural)
         dismiss()
     }
 
@@ -759,7 +769,8 @@ struct InsertSheet: View {
 
     // MARK: layouts
 
-    /// Grid layouts: empty frames in one tap, filled with Replace.
+    /// Grid layouts: empty frames in one tap, filled by photos dragged onto
+    /// them, picked while the grid is selected, or with Replace.
     private var layoutsRow: some View {
         VStack(alignment: .leading, spacing: 6) {
             sectionHeader("Photo grids")
@@ -872,8 +883,10 @@ struct InsertSheet: View {
     /// several become pages of their own after it, each fitted to the page.
     private func insertPictures(_ stored: [(src: String, natural: CGSize)], replacing target: String?) {
         guard !stored.isEmpty else { return }
-        if stored.count == 1 || target != nil {
+        if let target {
             insertImage(stored[0].src, natural: stored[0].natural, replacing: target)
+        } else if stored.count == 1 {
+            place(stored[0].src, natural: stored[0].natural)
         } else {
             let w = store.design.width, h = store.design.height
             let pages = stored.map { item -> Page in
@@ -895,11 +908,12 @@ struct InsertSheet: View {
 
     private var photosGrid: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // One when replacing — a replace has one slot to fill.
+            // One when replacing — a replace has one slot to fill — and a
+            // clip may fill it, so a frame or a grid's cell can hold one.
             Group {
                 PhotosPicker(selection: $pickedItems,
                              maxSelectionCount: store.replaceTargetId == nil ? 10 : 1,
-                             matching: store.replaceTargetId == nil ? .any(of: [.images, .videos]) : .images) {
+                             matching: .any(of: [.images, .videos])) {
                     Label(store.replaceTargetId == nil ? "Add photos or video" : "Choose a replacement",
                           systemImage: "photo.badge.plus")
                         .frame(maxWidth: .infinity)
@@ -1122,31 +1136,29 @@ struct InsertSheet: View {
         }
     }
 
+    /// One picture from the sheet — a tile, a PDF's page, a scan — into the
+    /// frame being replaced, else into the first of the selection's empty
+    /// frames, else onto the page.
+    private func place(_ src: String, natural: CGSize) {
+        if store.replaceTargetId == nil, let frame = store.framesToFill.first,
+           store.replacePicture(frame, with: src) {
+            store.buzz(.confirm)
+            return
+        }
+        insertImage(src, natural: natural)
+    }
+
     private func insertImage(_ src: String, natural: CGSize, replacing: String? = nil,
                              cascade: Int = 0) {
         // Replace mode swaps the source in place, keeping the frame, corner
         // radius and filter. The crop and the straighten are reset, so the
         // new picture comes in level, centred and covering the frame — as
-        // the Android twin's Crop.replaced leaves it.
+        // the Android twin's Crop.replaced leaves it. Locked means kept as it
+        // is, whichever way the new picture arrived.
         if let targetId = replacing ?? store.replaceTargetId {
             store.replaceTargetId = nil
-            if let target = store.element(targetId), target.type == .image {
-                // Locked means kept as it is, whichever way the new picture
-                // arrived.
-                guard !target.locked else {
-                    store.buzz(.reject)
-                    store.announce("This photo is locked. Tap Unlock to replace it.", undoable: false)
-                    return
-                }
-                store.applyToPage { page in
-                    if let i = page.elements.firstIndex(where: { $0.id == targetId }) {
-                        page.elements[i].src = src
-                        page.elements[i].cropScale = 1
-                        page.elements[i].cropX = 0.5
-                        page.elements[i].cropY = 0.5
-                        page.elements[i].straighten = nil
-                    }
-                }
+            if store.element(targetId)?.type == .image {
+                guard store.replacePicture(targetId, with: src) else { return }
                 store.selection = [targetId]
                 store.buzz(.confirm)
                 return
@@ -1209,8 +1221,9 @@ struct InsertSheet: View {
         }
     }
 
+    /// The Background sheet's choices, the same here as there.
     private var backgroundNote: some View {
-        BackgroundInline(store: store)
+        BackgroundChoices(store: store)
             .padding()
     }
 
@@ -1219,37 +1232,6 @@ struct InsertSheet: View {
             .font(.system(size: 11, weight: .bold))
             .foregroundStyle(.secondary)
             .padding(.top, 8)
-    }
-}
-
-/// Inline background section for the insert sheet's last tab.
-private struct BackgroundInline: View {
-    @Bindable var store: DesignStore
-    private let columns = [GridItem(.adaptive(minimum: 40), spacing: 10)]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("BACKGROUND COLOUR").font(.system(size: 11, weight: .bold)).foregroundStyle(.secondary)
-            LazyVGrid(columns: columns, spacing: 10) {
-                ForEach(ContentLibrary.defaultSwatches, id: \.self) { hex in
-                    Button { store.applyToPage { $0.background = .color(hex) } } label: {
-                        RoundedRectangle(cornerRadius: 9).fill(Color(hex: hex))
-                            .overlay(RoundedRectangle(cornerRadius: 9).stroke(.black.opacity(0.12)))
-                            .frame(height: 40)
-                    }
-                    .accessibilityLabel(ElementNames.spokenColour(hex))
-                    .accessibilityAddTraits(store.page.background == .color(hex) ? .isSelected : [])
-                }
-            }
-            Text("GRADIENTS").font(.system(size: 11, weight: .bold)).foregroundStyle(.secondary)
-            BackgroundGradients(store: store, columns: columns)
-            Text("PHOTOS").font(.system(size: 11, weight: .bold)).foregroundStyle(.secondary)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 10)], spacing: 10) {
-                ForEach(PhotoLibrary.photos) { photo in
-                    BackgroundPhotoTile(store: store, photo: photo)
-                }
-            }
-        }
     }
 }
 
