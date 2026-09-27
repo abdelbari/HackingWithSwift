@@ -154,7 +154,7 @@ enum Uploads {
     /// The entries this version can use; one of a kind it does not know is
     /// left in the file but not offered.
     private static func entries(in raw: [[String: Any]]) -> [Entry] {
-        raw.compactMap { item in
+        raw.compactMap { item -> Entry? in
             guard let id = item["id"] as? String, !id.isEmpty,
                   let name = item["kind"] as? String, let kind = Kind(rawValue: name) else { return nil }
             let added = (item["added"] as? NSNumber)?.doubleValue ?? 0

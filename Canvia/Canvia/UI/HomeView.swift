@@ -454,7 +454,7 @@ struct HomeView: View {
         .padding(.horizontal)
         // Asked first, both: there is no coming back from either, and the
         // one design's bin sat a finger's width from its Restore.
-        .confirmationDialog(deletingForever.map { "Delete “\($0.title)” forever?" } ?? "",
+        .confirmationDialog(deleteForeverQuestion,
                             isPresented: Binding(get: { deletingForever != nil },
                                                  set: { if !$0 { deletingForever = nil } }),
                             titleVisibility: .visible) {
@@ -481,6 +481,12 @@ struct HomeView: View {
         } message: {
             Text(DesignLibrary.cannotBeUndone)
         }
+    }
+
+    /// What deleting one design for good asks first.
+    private var deleteForeverQuestion: String {
+        guard let entry = deletingForever else { return "" }
+        return "Delete “\(entry.title)” forever?"
     }
 
     // MARK: undo a delete
