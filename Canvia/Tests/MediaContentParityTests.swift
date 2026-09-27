@@ -174,4 +174,74 @@ final class MediaContentParityTests: XCTestCase {
         XCTAssertFalse(Freehand.Pen.eraser.hasInk)
         XCTAssertTrue(Freehand.Pen.highlighter.hasInk)
     }
+
+    // MARK: corners
+
+    func testARoundDragKeepsWhichCornersRound() {
+        var card = Element.shape("rect", w: 200, h: 100)
+        card.radius = 10
+        card.corners = [10, 10, 0, 0]
+        let held = CornerPatterns.pattern(of: card)
+        XCTAssertEqual(held?.name, "Top only")
+        // Through zero and back: the pattern read as the drag began is kept.
+        CornerPatterns.setRadius(0, keeping: held, on: &card)
+        CornerPatterns.setRadius(24, keeping: held, on: &card)
+        XCTAssertEqual(card.radius, 24)
+        XCTAssertEqual(card.corners ?? [], [24, 24, 0, 0])
+    }
+
+    func testAPatternCanBeChosenFromSquare() {
+        var card = Element.shape("rect", w: 200, h: 100)
+        XCTAssertNil(CornerPatterns.pattern(of: card))
+        CornerPatterns.apply(CornerPatterns.choices[2], to: &card)
+        XCTAssertEqual(card.radius ?? 0, 20, accuracy: 0.001, "a fifth of the shorter side")
+        XCTAssertEqual(card.corners ?? [], [0, 0, 20, 20])
+        CornerPatterns.apply(CornerPatterns.choices[0], to: &card)
+        XCTAssertNil(card.corners, "all corners is the plain radius")
+        XCTAssertEqual(CornerPatterns.pattern(of: card)?.name, "All corners")
+    }
+
+    func testRadiiOfTheirOwnAreNoPattern() {
+        var card = Element.shape("rect", w: 200, h: 100)
+        card.corners = [10, 20, 0, 0]
+        XCTAssertNil(CornerPatterns.pattern(of: card))
+    }
+
+    // MARK: fills and photo edits
+
+    func testTheFillThereNowIsRecognised() {
+        let pattern = Paint.pattern("dots", color: "#000000", secondary: "#ffffff")
+        XCTAssertTrue(FillChoices.isPattern(pattern, named: "dots"))
+        XCTAssertFalse(FillChoices.isPattern(pattern, named: "stripes"))
+        XCTAssertTrue(FillChoices.isPhoto(.image("asset:sun"), src: "asset:sun"))
+        XCTAssertFalse(FillChoices.isPhoto(.solid("#000000"), src: "asset:sun"))
+        if let preset = ContentLibrary.gradients.first {
+            XCTAssertTrue(FillChoices.isGradient(preset.paint(kind: "radial"), preset.paint(kind: "radial")))
+            XCTAssertFalse(FillChoices.isGradient(preset.paint(kind: "linear"), preset.paint(kind: "radial")))
+        }
+    }
+
+    func testOnlyShapesAreOfferedPatterns() {
+        XCTAssertFalse(FillChoices.offersPatterns(for: [Element.text("Hi")]))
+        XCTAssertTrue(FillChoices.offersPatterns(for: [Element.text("Hi"), Element.shape("rect")]))
+    }
+
+    func testResetPhotoEditsTakesOffTheLookAndKeepsTheCrop() {
+        var photo = Element.image("asset:sun")
+        XCTAssertFalse(PhotoEdits.any(photo))
+        photo.filter = "vivid"
+        photo.duotone = Duotone.presets.first?.tone
+        photo.straighten = 4
+        photo.cropFit = true
+        photo.cropScale = 2
+        photo.radius = 12
+        XCTAssertTrue(PhotoEdits.any(photo))
+        PhotoEdits.reset(&photo)
+        XCTAssertFalse(PhotoEdits.any(photo))
+        XCTAssertNil(photo.filter)
+        XCTAssertNil(photo.duotone)
+        XCTAssertNil(photo.straighten)
+        XCTAssertEqual(photo.cropScale, 2)
+        XCTAssertEqual(photo.radius, 12)
+    }
 }

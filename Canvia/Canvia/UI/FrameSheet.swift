@@ -29,7 +29,7 @@ struct FrameSheet: View {
                     ForEach(ContentLibrary.shapeCategories, id: \.self) { category in
                         let shapes = ContentLibrary.shapes.filter { $0.category == category }
                         if !shapes.isEmpty {
-                            Text(category)
+                            Text(ContentLibrary.shapeGroupName(category))
                                 .font(.footnote.weight(.bold))
                                 .foregroundStyle(.secondary)
                             LazyVGrid(columns: columns, spacing: 10) {
@@ -65,6 +65,8 @@ struct FrameSheet: View {
                 .background(selection(active: current == nil))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("No frame")
+        .accessibilityAddTraits(current == nil ? .isSelected : [])
     }
 
     private func tile(_ shape: ShapeDef) -> some View {
@@ -79,6 +81,8 @@ struct FrameSheet: View {
                 .background(selection(active: current == shape.id))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("\(shape.name) frame")
+        .accessibilityAddTraits(current == shape.id ? .isSelected : [])
     }
 
     private func selection(active: Bool) -> some View {

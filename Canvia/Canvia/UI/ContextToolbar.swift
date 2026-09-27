@@ -46,6 +46,9 @@ struct ContextToolbar: View {
         var width: Double?
     }
     @State private var borderBefore: BorderBefore?
+    /// Which corners round, read as a Round drag began and held through it
+    /// (the outer nil: no drag under way).
+    @State private var heldCorners: CornerPatterns.Pattern??
 
     @State private var cuttingOut = false
     @State private var dictationBase = ""
@@ -139,7 +142,7 @@ struct ContextToolbar: View {
     private func textControls(_ el: Element) -> some View {
         HStack(spacing: 14) {
             toolButton("textformat", "Font") { activeSheet = .fonts }
-            colorChip(el.color ?? "#1f2430", "Color") { activeSheet = .colorText }
+            colorChip(el.color ?? "#1f2430", "Colour") { activeSheet = .colorText }
             fontSizeStepper(el)
         }
         HStack(spacing: 14) {
@@ -498,8 +501,15 @@ struct ContextToolbar: View {
             toolButton("text.viewfinder", "To text") { store.strokesToText() }
         }
         if ContentLibrary.shape(el.shapeId).rectLike == true && el.pathData == nil {
-            sliderControl("Round", value: el.radius ?? 0, in: 0...(min(el.w, el.h) / 2)) { v in
-                store.updateSelectedTransient { $0.radius = v; $0.corners = nil }
+            // Which corners round is read once, as the drag starts, and kept
+            // through it: a Top only rounding stays top only, and a drag
+            // through zero does not lose it — as on the Android twin.
+            sliderControl("Round", value: el.radius ?? 0, in: 0...(min(el.w, el.h) / 2),
+                          onEditing: { editing in
+                              heldCorners = editing ? .some(CornerPatterns.pattern(of: el)) : nil
+                          }) { v in
+                let pattern = heldCorners ?? CornerPatterns.pattern(of: el)
+                store.updateSelectedTransient { CornerPatterns.setRadius(v, keeping: pattern, on: &$0) }
             }
             cornersMenu(el)
         }
@@ -551,30 +561,30 @@ struct ContextToolbar: View {
     }
 
     /// Which corners the rounding applies to. The slider sets how much;
-    /// this sets where, as the patterns people actually use.
+    /// this sets where, as the patterns people actually use — the current
+    /// one ticked, and any of them from square, at a fifth of the shorter
+    /// side.
     private func cornersMenu(_ el: Element) -> some View {
-        let r = el.radius ?? 0
-        let patterns: [(String, [Double])] = [
-            ("All corners", [r, r, r, r]), ("Top only", [r, r, 0, 0]), ("Bottom only", [0, 0, r, r]),
-            ("Left only", [r, 0, 0, r]), ("Right only", [0, r, r, 0]), ("Opposite corners", [r, 0, r, 0]),
-        ]
+        let current = CornerPatterns.pattern(of: el)
         return Menu {
-            ForEach(patterns, id: \.0) { name, radii in
-                Button(name) {
-                    store.updateSelected { e in
-                        e.corners = name == "All corners" ? nil : radii
-                        if e.radius == nil || e.radius == 0 { e.radius = min(e.w, e.h) * 0.2 }
-                        if e.corners != nil {
-                            let rr = e.radius ?? 0
-                            e.corners = radii.map { $0 > 0 ? rr : 0 }
-                        }
+            ForEach(CornerPatterns.choices, id: \.name) { pattern in
+                Button {
+                    guard pattern != current else { return }
+                    store.updateSelected { CornerPatterns.apply(pattern, to: &$0) }
+                    store.buzz(.tick)
+                } label: {
+                    if pattern == current {
+                        Label(pattern.name, systemImage: "checkmark")
+                    } else {
+                        Text(pattern.name)
                     }
                 }
             }
         } label: {
             toolLabel("rectangle.tophalf.inset.filled", "Corners", active: el.corners != nil)
         }
-        .disabled(r <= 0 && el.corners == nil)
+        .accessibilityLabel("Corners")
+        .accessibilityValue(current?.name ?? "Square")
     }
 
     private var lockedPhotoNote: some View {
@@ -658,20 +668,16 @@ struct ContextToolbar: View {
 
     @ViewBuilder
     private func lineControls(_ el: Element) -> some View {
-        colorChip(el.color ?? "#1f2430", "Color") { activeSheet = .colorLine }
-        sliderControl("Weight", value: el.thickness ?? 4, in: 1...30) { v in
+        colorChip(el.color ?? "#1f2430", "Colour") { activeSheet = .colorLine }
+        // To 60, as on the Android twin, and further when a line already is,
+        // so it is shown as it is and not snapped thinner on first touch.
+        sliderControl("Weight", value: el.thickness ?? 4, in: 1...max(60, el.thickness ?? 4)) { v in
             store.updateSelectedTransient {
                 $0.thickness = v
                 $0.h = max(8, v)
             }
         }
-        Menu {
-            ForEach(["solid", "dashed", "dotted"], id: \.self) { dash in
-                Button(dash.capitalized) { store.updateSelected { $0.dash = dash } }
-            }
-        } label: {
-            Image(systemName: "line.horizontal.3")
-        }
+        dashMenu(el)
         // Each end on its own — none, an arrow or a dot, nine ways — as the
         // Android twin sets them, with the old pairs kept as quick picks.
         Menu {
@@ -684,15 +690,60 @@ struct ContextToolbar: View {
             }
             .pickerStyle(.menu)
             Section("Both ends") {
-                Button("No caps") { store.updateSelected { $0.startCap = "none"; $0.endCap = "none" } }
-                Button("Arrow end →") { store.updateSelected { $0.startCap = "none"; $0.endCap = "arrow" } }
-                Button("Both arrows ↔") { store.updateSelected { $0.startCap = "arrow"; $0.endCap = "arrow" } }
-                Button("Dot ends") { store.updateSelected { $0.startCap = "dot"; $0.endCap = "dot" } }
+                Button("No caps") { setEnds("none", "none") }
+                Button("Arrow end →") { setEnds("none", "arrow") }
+                Button("Both arrows ↔") { setEnds("arrow", "arrow") }
+                Button("Dot ends") { setEnds("dot", "dot") }
             }
         } label: {
-            Image(systemName: "arrow.left.and.right")
+            toolLabel("arrow.left.and.right", "Ends")
         }
         .accessibilityLabel("Line ends")
+    }
+
+    /// Solid, dashed or dotted: captioned like the rest of the bar, the
+    /// current one ticked, and choosing it again records nothing.
+    private func dashMenu(_ el: Element) -> some View {
+        let current = Self.dashStyle(el.dash)
+        return Menu {
+            ForEach(Self.dashStyles, id: \.self) { dash in
+                Button {
+                    guard dash != current else { return }
+                    store.updateSelected { $0.dash = dash }
+                    store.buzz(.tick)
+                } label: {
+                    if dash == current {
+                        Label(dash.capitalized, systemImage: "checkmark")
+                    } else {
+                        Text(dash.capitalized)
+                    }
+                }
+            }
+        } label: {
+            toolLabel("line.3.horizontal.decrease", "Dash", active: current != "solid")
+        }
+        .accessibilityLabel("Dash")
+        .accessibilityValue(current.capitalized)
+    }
+
+    static let dashStyles = ["solid", "dashed", "dotted"]
+
+    /// A line's dash as one of those; none, or anything else, is solid.
+    static func dashStyle(_ dash: String?) -> String {
+        dashStyles.contains(dash ?? "") ? dash ?? "solid" : "solid"
+    }
+
+    /// Both ends at once, and nothing recorded when they already are.
+    private func setEnds(_ start: String, _ end: String) {
+        let lines = store.selectedElements.filter { $0.type == .line && !$0.locked }
+        guard lines.contains(where: { Self.lineEnd($0.startCap) != start || Self.lineEnd($0.endCap) != end })
+        else { return }
+        store.updateSelected { e in
+            guard e.type == .line else { return }
+            e.startCap = start
+            e.endCap = end
+        }
+        store.buzz(.tick)
     }
 
     /// The ends a line can have, as both phones write them.
@@ -714,6 +765,7 @@ struct ContextToolbar: View {
                         guard e.type == .line else { return }
                         if start { e.startCap = key } else { e.endCap = key }
                     }
+                    store.buzz(.tick)
                 })
     }
 
@@ -766,11 +818,11 @@ struct ContextToolbar: View {
                     .fill(AngularGradient(colors: [.red, .yellow, .green, .blue, .purple, .red], center: .center))
                     .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.black.opacity(0.15)))
                     .frame(width: 26, height: 26)
-                Text("Color").font(Theme.controlLabel)
+                Text("Colour").font(Theme.controlLabel)
             }
         }
         .buttonStyle(ToolButtonStyle())
-        .accessibilityLabel("Color of everything selected")
+        .accessibilityLabel("Colour of everything selected")
     }
 
     /// A web address, email or phone number on the element: clickable in the
@@ -966,6 +1018,7 @@ struct ContextToolbar: View {
     }
 
     private func sliderControl(_ label: String, value: Double, in range: ClosedRange<Double>,
+                               onEditing: ((Bool) -> Void)? = nil,
                                onChange: @escaping (Double) -> Void) -> some View {
         // A zero-length range makes Slider divide by zero; corner-radius
         // bounds derive from element size, so keep a floor.
@@ -976,21 +1029,30 @@ struct ContextToolbar: View {
                 get: { value },
                 set: { onChange($0) }
             ), in: safe, onEditingChanged: { editing in
+                onEditing?(editing)
                 if !editing { store.commit() }
             })
             .frame(width: 110)
+            // Named, with the number shown beside it, so VoiceOver says
+            // "Round, 24" rather than an unnamed percentage.
+            .accessibilityLabel(label)
+            .accessibilityValue(Self.readoutValue(label, value))
             Text(readout(label, value))
                 .font(Theme.controlLabel)
                 .monospacedDigit()
                 .contentTransition(.numericText())
+                .accessibilityHidden(true)
         }
     }
 
     /// "Round" tells you nothing; "Round 24" is a control.
     private func readout(_ label: String, _ value: Double) -> String {
-        label == "Opacity"
-            ? "\(label) \(Int((value * 100).rounded()))%"
-            : "\(label) \(Int(value.rounded()))"
+        "\(label) \(Self.readoutValue(label, value))"
+    }
+
+    /// The number a slider shows: a percentage for opacity, else whole.
+    static func readoutValue(_ label: String, _ value: Double) -> String {
+        label == "Opacity" ? "\(Int((value * 100).rounded()))%" : "\(Int(value.rounded()))"
     }
 
     private func alignIcon(_ align: String?) -> String {

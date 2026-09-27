@@ -68,16 +68,24 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   colours, offered from the document's own palette first), plus six
   free-hand dials (brightness, contrast, saturation,
   warmth, sharpness, vignette) that compose on top of the preset rather
-  than replacing it, cover-crop zoom + focus point, replace-in-place (swap the
-  picture, keep the frame, radius and filter), corner radius, borders
+  than replacing it, and one Reset photo edits that takes the whole look
+  off (filter, dials, duotone, straighten, show-whole) and leaves the
+  crop, cover-crop zoom + focus point, replace-in-place (swap the
+  picture, keep the frame, radius and filter; the new one comes in level
+  and centred), corner radius, borders
   (a Border slider on filled shapes, down to None), each end of a line
   set on its own (none, arrow or dot), and one colour for a whole
   multi-selection — text, lines, shapes and drawn strokes each take it
   their own way
-- Color: recently used colours first, colour harmony derived from whatever
+- Colour: recently used colours first, colour harmony derived from whatever
   is chosen (complementary, analogous, triadic, split, tetradic, and a
-  tint/shade ramp), curated palettes, gradient presets, document colors,
-  background editor, ✨ Shuffle (luminance-ranked palette remap). "Goes
+  tint/shade ramp), curated palettes, gradient presets, the colours in
+  this design, background editor, ✨ Shuffle (luminance-ranked palette
+  remap, naming the palette it applied). The picker's headings are the
+  Android twin's ("Brand colours", "In this design", "Default colours", "A
+  colour of your own"); the gradient, pattern or photo fill already there
+  is ringed, text is offered colours and gradients only (the fills it
+  draws), and a swatch or style that changes something is felt. "Goes
   with these · <palette>" suggests the palette that best covers the
   page's colours (redmean distance, as on Android); the brand kit's colours
   are the first palette in Document theme once it has two; and every
@@ -130,7 +138,10 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
 - Radial and angular gradients beside linear, on shapes, text and page
   backgrounds (radial reaches the SVG; angular ships as pixels, since SVG
   has no conic gradient). Per-corner radii on rectangles — top only,
-  bottom only, opposite corners — exact in the SVG. Drop caps: the first
+  bottom only, opposite corners — exact in the SVG; the Corners menu
+  ticks the pattern in use and offers one from square, and the Round
+  slider keeps it. Every toolbar, photo, shadow and crop slider is named
+  for VoiceOver with the number it shows; lines weigh up to 60. Drop caps: the first
   letter three lines deep with the paragraph wrapping around it.
 - Your uploads: every picture ever imported, newest first, in the Photos
   tab — insert again, star, or delete. Custom shapes from an SVG file:

@@ -64,6 +64,8 @@ struct ShadowSheet: View {
                 .stroke(active ? Theme.accent : .clear, lineWidth: 2))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(shadow == nil ? "No shadow" : "\(name) shadow")
+        .accessibilityAddTraits(active ? .isSelected : [])
     }
 
     private var dials: some View {
@@ -83,6 +85,7 @@ struct ShadowSheet: View {
                         store.updateSelectedTransient { $0.shadow?.color = hex }
                     }), supportsOpacity: false)
                     .labelsHidden()
+                    .accessibilityLabel("Shadow colour")
             }
         }
     }
@@ -96,12 +99,16 @@ struct ShadowSheet: View {
                 Spacer()
                 Text(format(value)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }
+            // Named and read out on the slider itself, not beside it.
+            .accessibilityHidden(true)
             Slider(value: Binding(
                 get: { value },
                 set: { v in store.updateSelectedTransient { $0.shadow?[keyPath: key] = v } }
             ), in: range, onEditingChanged: { editing in
                 if !editing { store.commit() }
             })
+            .accessibilityLabel("Shadow \(label.lowercased())")
+            .accessibilityValue(format(value))
         }
     }
 }

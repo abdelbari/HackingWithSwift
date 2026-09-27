@@ -730,30 +730,35 @@ struct EditorView: View {
         case .insert:
             InsertSheet(store: store)
         case .colorFill:
-            ColorPickerSheet(store: store, title: "Fill color",
+            ColorPickerSheet(store: store, title: "Fill colour",
                              current: store.singleSelection?.fill?.primaryColor,
                              allowGradients: true,
+                             allowPatterns: true,
+                             currentPaint: store.singleSelection?.fill,
                              onPick: { c in store.updateSelected { $0.fill = .solid(c) } },
                              onPickGradient: { p in store.updateSelected { $0.fill = p } },
                              onPickTransient: { c in store.updateSelectedTransient { $0.fill = .solid(c) } })
         case .colorText:
             // A gradient on text is a fill, not a colour, so it lives in its
             // own field; picking a plain colour clears it.
-            ColorPickerSheet(store: store, title: "Text color",
+            // Colours and gradients only: text draws no pattern or photo.
+            ColorPickerSheet(store: store, title: "Text colour",
                              current: store.singleSelection?.color,
                              allowGradients: true,
+                             currentPaint: store.singleSelection?.textFill,
                              onPick: { c in store.updateSelected { $0.color = c; $0.textFill = nil } },
                              onPickGradient: { p in store.updateSelected { $0.textFill = p } },
                              onPickTransient: { c in
                                  store.updateSelectedTransient { $0.color = c; $0.textFill = nil }
                              })
         case .colorLine:
-            ColorPickerSheet(store: store, title: "Line color",
+            ColorPickerSheet(store: store, title: "Line colour",
                              current: store.singleSelection?.color,
                              onPick: { c in store.updateSelected { $0.color = c } },
                              onPickTransient: { c in store.updateSelectedTransient { $0.color = c } })
         case .colorStroke:
-            ColorPickerSheet(store: store, title: "Border color",
+            ColorPickerSheet(store: store,
+                             title: store.singleSelection.map(Freehand.isStroke) == true ? "Ink colour" : "Border colour",
                              current: store.singleSelection?.stroke,
                              onPick: { c in
                                  store.updateSelected {
@@ -769,9 +774,10 @@ struct EditorView: View {
                              })
         case .colorSelection:
             // Several things at once: each takes the colour its own way.
-            ColorPickerSheet(store: store, title: "Color",
+            ColorPickerSheet(store: store, title: "Colour",
                              current: nil,
                              allowGradients: store.selectionTakesGradient,
+                             allowPatterns: FillChoices.offersPatterns(for: store.selectedElements),
                              onPick: { c in store.recolourSelection(c) },
                              onPickGradient: { p in store.recolourSelection(gradient: p) },
                              onPickTransient: { c in store.recolourSelectionTransient(c) })

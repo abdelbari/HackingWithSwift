@@ -16,6 +16,28 @@ enum ImageFilterPreset: String, CaseIterable, Identifiable {
     }
 }
 
+/// Every edit made to how a photo looks — filter, dials and curve,
+/// duotone, straighten and show-whole — as one thing to see or take off,
+/// as the Android twin's "Reset photo edits". The crop, frame, corners and
+/// Ken Burns drift are where the photo sits, not how it looks, and stay.
+enum PhotoEdits {
+    static func any(_ el: Element) -> Bool {
+        ImageFilterPreset.from(el.filter) != .none
+            || !(el.adjustments?.isNeutral ?? true)
+            || el.duotone != nil
+            || (el.straighten ?? 0) != 0
+            || el.cropFit == true
+    }
+
+    static func reset(_ el: inout Element) {
+        el.filter = nil
+        el.adjustments = nil
+        el.duotone = nil
+        el.straighten = nil
+        el.cropFit = nil
+    }
+}
+
 /// Free-hand adjustments on top of a preset.
 ///
 /// One struct rather than six fields on Element: a preset is a look someone
