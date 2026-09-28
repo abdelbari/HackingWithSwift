@@ -63,6 +63,7 @@ struct PresentationView: View {
             }
         }
         .statusBarHidden(true)
+        .background(keyCommands)
         .onAppear {
             index = min(max(startPage, 0), design.pages.count - 1)
             started = Date()
@@ -280,6 +281,38 @@ struct PresentationView: View {
         }
     }
 
+    /// A keyboard, or the clicker a presenter holds — which sends Page Down
+    /// and Page Up, or the arrows — turns the pages with the same transition
+    /// and autoplay a swipe gives, and Escape ends the presentation, as on
+    /// the Android twin.
+    private var keyCommands: some View {
+        Group {
+            Group {
+                key(.rightArrow, "Next page") { go(1) }
+                key(.downArrow, "Next page") { go(1) }
+                key(.pageDown, "Next page") { go(1) }
+                key(.space, "Next page") { go(1) }
+                key(.return, "Next page") { go(1) }
+            }
+            Group {
+                key(.leftArrow, "Previous page") { go(-1) }
+                key(.upArrow, "Previous page") { go(-1) }
+                key(.pageUp, "Previous page") { go(-1) }
+                key(.home, "First page") { go(-index) }
+                key(.end, "Last page") { go(design.pages.count - 1 - index) }
+            }
+            key(.escape, "End presentation") { dismiss() }
+        }
+    }
+
+    private func key(_ key: KeyEquivalent, _ title: String, action: @escaping () -> Void) -> some View {
+        Button(title, action: action)
+            .keyboardShortcut(key, modifiers: [])
+            .frame(width: 0, height: 0)
+            .opacity(0)
+            .accessibilityHidden(true)
+    }
+
     private var timeString: String {
         let s = Int(elapsed)
         return String(format: "%d:%02d", s / 60, s % 60)
@@ -287,7 +320,7 @@ struct PresentationView: View {
 
     private func go(_ delta: Int) {
         let next = index + delta
-        guard design.pages.indices.contains(next) else { return }
+        guard delta != 0, design.pages.indices.contains(next) else { return }
         // Going on, the page being left decides; going back, the page being
         // returned to, played in reverse.
         let via = transition(after: delta > 0 ? page : design.pages[next])
