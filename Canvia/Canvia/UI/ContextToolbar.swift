@@ -687,6 +687,10 @@ struct ContextToolbar: View {
         if Freehand.isStroke(el) {
             toolButton("text.viewfinder", "To text") { store.strokesToText() }
         }
+        // Another shape in its place, keeping its size, colours and effects.
+        if DesignStore.swapsShape(el) {
+            toolButton("square.on.circle", "Shape") { activeSheet = .shapes }
+        }
         if ContentLibrary.shape(el.shapeId).rectLike == true && el.pathData == nil {
             // Which corners round is read once, as the drag starts, and kept
             // through it: a Top only rounding stays top only, and a drag
