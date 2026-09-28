@@ -146,7 +146,16 @@ enum VideoStore {
         lock.lock(); defer { lock.unlock() }
         guard let g = generator(for: id) else { return nil }
         let cm = CMTime(seconds: max(0, time), preferredTimescale: 600)
-        guard let cg = try? g.copyCGImage(at: cm, actualTime: nil) else { return nil }
+        var read = try? g.copyCGImage(at: cm, actualTime: nil)
+        if read == nil {
+            // A generator can fail once and then read the same frame — its
+            // decoder taken back under memory pressure, on a busy simulator
+            // especially — so a fresh one is tried before a blank frame goes
+            // into a preview or an export.
+            generators[id] = nil
+            read = try? generator(for: id)?.copyCGImage(at: cm, actualTime: nil)
+        }
+        guard let cg = read else { return nil }
         let image = UIImage(cgImage: cg)
         frames.setObject(image, forKey: key, cost: cg.bytesPerRow * cg.height)
         return image
