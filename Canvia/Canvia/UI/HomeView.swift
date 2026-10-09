@@ -395,7 +395,7 @@ struct HomeView: View {
     /// Every design in the folder filed under the new name, and the folder
     /// still the one shown — or, onto a folder already there, asked first.
     private func renameFolder(_ from: String, to: String) {
-        guard let plan = DesignLibrary.renamePlan(recents, from: from, to: to), plan.name != from else { return }
+        guard let plan = DesignLibrary.renamePlan(recents, from: from, to: to) else { return }
         if plan.merges { merging = plan } else { applyRename(plan) }
     }
 

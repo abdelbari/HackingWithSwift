@@ -41,8 +41,9 @@ final class FoldersAndSelectTests: XCTestCase {
         XCTAssertEqual(plan?.ids, ["a", "b", "d"])
         // Exactly the same name only: another case is a folder of its own.
         XCTAssertEqual(DesignLibrary.renamePlan(shelf, from: "Trips", to: "work")?.merges, false)
-        // Its own name is no merge.
-        XCTAssertEqual(DesignLibrary.renamePlan(shelf, from: "Trips", to: "Trips")?.merges, false)
+        // Its own name is no rename at all, even with spaces around it.
+        XCTAssertNil(DesignLibrary.renamePlan(shelf, from: "Trips", to: "Trips"))
+        XCTAssertNil(DesignLibrary.renamePlan(shelf, from: "Trips", to: " Trips "))
     }
 
     func testFolderNameIsTrimmedAndBlankIsNone() {

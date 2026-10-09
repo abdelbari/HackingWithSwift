@@ -29,12 +29,13 @@ extension DesignLibrary {
     }
 
     /// What renaming the folder `from` to `to` would do, or nil when `to`
-    /// is no name for a folder: blank, or past `folderNameLimit`. A folder
-    /// of the same name, exactly, is a merge.
+    /// is no name for a folder — blank, or past `folderNameLimit` — or is
+    /// the folder's own, so Rename has nothing to do. A folder of the same
+    /// name, exactly, is a merge.
     static func renamePlan(_ designs: [RecentDesign], from: String, to: String) -> FolderRename? {
-        guard let name = folderName(to), name.utf16.count <= folderNameLimit else { return nil }
+        guard let name = folderName(to), name.utf16.count <= folderNameLimit, name != from else { return nil }
         let ids = designs.filter { $0.folder == from }.map(\.id)
-        let merges = name != from && designs.contains { $0.folder == name }
+        let merges = designs.contains { $0.folder == name }
         return FolderRename(ids: ids, name: name, merges: merges)
     }
 
