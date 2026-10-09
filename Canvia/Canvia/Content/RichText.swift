@@ -438,9 +438,10 @@ enum RichText {
     /// The plain text with the base attributes, and each run's style on top;
     /// in capitals when `uppercase`, each run still on its own words. Then
     /// the colours and sizes on words, `spans` over the plain text before
-    /// capitals (see Spans): a colour in place of the base one, and a size
-    /// as the run's own font scaled. Every line keeps the box's own pitch,
-    /// larger words or not, as the Android twin sets them.
+    /// capitals (see Spans): a colour in place of the base one, a size as
+    /// the run's own font scaled, and the lines of a paragraph with larger
+    /// words in it given room for them (makeRoom), as the Android twin sets
+    /// them.
     static func attributed(_ marked: String, base: [NSAttributedString.Key: Any], uppercase: Bool = false,
                            spans: [TextSpan] = [],
                            font: (_ bold: Bool, _ italic: Bool) -> UIFont) -> NSAttributedString {
@@ -473,9 +474,25 @@ enum RichText {
                     guard let font = value as? UIFont else { return }
                     out.addAttribute(.font, value: font.withSize(font.pointSize * scale), range: part)
                 }
+                if scale > 1 { makeRoom(in: out, for: range, scale: scale) }
             }
         }
         return out
+    }
+
+    /// The lines of the paragraphs `range` is in allowed to grow to fit
+    /// words `scale` times the size: each line its own height, at least the
+    /// pitch and at most the pitch times the paragraph's largest scale. A
+    /// paragraph with no larger word keeps the pitch exactly. As the Android
+    /// twin's ExactLineHeight sets them.
+    static func makeRoom(in out: NSMutableAttributedString, for range: NSRange, scale: Double) {
+        let paragraphs = (out.string as NSString).paragraphRange(for: range)
+        out.enumerateAttribute(.paragraphStyle, in: paragraphs) { value, part, _ in
+            guard let style = value as? NSParagraphStyle, style.maximumLineHeight > 0,
+                  let roomier = style.mutableCopy() as? NSMutableParagraphStyle else { return }
+            roomier.maximumLineHeight = max(style.maximumLineHeight, style.minimumLineHeight * scale)
+            out.addAttribute(.paragraphStyle, value: roomier.copy(), range: part)
+        }
     }
 
     // MARK: words as they read, and as they are typed

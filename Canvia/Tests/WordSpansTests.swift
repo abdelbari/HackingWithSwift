@@ -381,13 +381,25 @@ final class WordSpansTests: XCTestCase {
         XCTAssertGreaterThan(FontLibrary.naturalWidth(for: el), 0)
     }
 
-    func testLargerWordsKeepTheLinePitchAsOnAndroid() {
-        // Set tighter than the face's own lines: none of them grows.
+    func testALineWithALargerWordGrowsAsOnAndroid() {
+        // A paragraph with an A+ word has room for it: each line its own
+        // height, from the pitch up to the pitch times the scale. A paragraph
+        // without one stays at the pitch, as the Android twin sets them.
         var el = Element.text("Big sale\nsoon", fontSize: 40, w: 1000)
-        el.lineHeight = 0.9
         let plain = FontLibrary.measuredHeight(for: el)
         el.setSpans([span(4, 8, scale: Spans.larger)])
-        XCTAssertEqual(FontLibrary.measuredHeight(for: el), plain, accuracy: 0.5, "every line still 36 apart")
+        let grown = FontLibrary.measuredHeight(for: el)
+        XCTAssertGreaterThan(grown, plain + 0.5, "the 50pt word does not run into the line above")
+        XCTAssertLessThanOrEqual(grown, plain + 50 * (Spans.larger - 1) + 0.5, "at most the pitch times the scale")
+
+        // Set tighter than the face's own lines: only the paragraph with the
+        // larger word grows, and only to 36 × 1.25.
+        el.setSpans([])
+        el.lineHeight = 0.9
+        let tight = FontLibrary.measuredHeight(for: el)
+        el.setSpans([span(4, 8, scale: Spans.larger)])
+        XCTAssertEqual(FontLibrary.measuredHeight(for: el) - tight, 36 * (Spans.larger - 1), accuracy: 1,
+                       "\"soon\" is still 36 below")
     }
 
     func testADropCapKeepsTheWordsColoursAndSizes() throws {

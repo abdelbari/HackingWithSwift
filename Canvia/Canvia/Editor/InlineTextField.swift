@@ -301,6 +301,7 @@ struct InlineTextField: UIViewRepresentable {
                     }
                     if let scale = span.scale, let font {
                         storage.addAttribute(.font, value: font.withSize(font.pointSize * scale), range: range)
+                        if scale > 1 { RichText.makeRoom(in: storage, for: range, scale: scale) }
                     }
                 }
             }
