@@ -224,6 +224,7 @@ struct TextElementView: View {
         let attrs = FontLibrary.attributes(for: el)
         let fontSize = el.fontSize ?? 42
         let color = UIColor(hex: el.color ?? "#1f2430")
+        let fx = TextEffect.resolve(el.effect, fontSize: fontSize, ink: el.color ?? "#1f2430")
         // Vertical alignment: the text's own height against the box's.
         let measured = FontLibrary.measuredHeight(for: el)
         let slack = max(0, size.height - measured)
@@ -235,32 +236,26 @@ struct TextElementView: View {
 
         // Highlight bars behind each wrapped line.
         if effect == .highlight {
-            let highlight = UIColor(hex: color.isLight ? "#1f2430" : "#ffe066")
-            cg.setFillColor(highlight.cgColor)
+            cg.setFillColor(UIColor(hex: fx.color).withAlphaComponent(fx.alpha).cgColor)
             // At the size the words are drawn (fitted type is not its stored
             // size) and where they start in the box (vertically aligned text
             // is not at the top).
             for line in lineFragments(el, width: size.width,
                                       pitch: fontSize * (el.lineHeight ?? 1.25), top: rect.minY) {
-                let pad = fontSize * 0.18
-                cg.fill(CGRect(x: line.rect.minX - pad, y: line.rect.minY,
-                               width: line.rect.width + pad * 2, height: line.rect.height))
+                let bar = CGRect(x: line.rect.minX - fx.pad, y: line.rect.minY,
+                                 width: line.rect.width + fx.pad * 2, height: line.rect.height)
+                // CoreGraphics refuses a corner wider than half the bar.
+                let radius = min(fx.radius(barHeight: bar.height), bar.width / 2, bar.height / 2)
+                if radius > 0 {
+                    cg.addPath(CGPath(roundedRect: bar, cornerWidth: radius, cornerHeight: radius, transform: nil))
+                    cg.fillPath()
+                } else {
+                    cg.fill(bar)
+                }
             }
         }
 
-        switch effect {
-        case .shadow:
-            cg.setShadow(offset: CGSize(width: fontSize * 0.06, height: fontSize * 0.06),
-                         blur: fontSize * 0.12, color: UIColor.black.withAlphaComponent(0.55).cgColor)
-        case .lift:
-            cg.setShadow(offset: CGSize(width: 0, height: fontSize * 0.18),
-                         blur: fontSize * 0.5, color: UIColor.black.withAlphaComponent(0.35).cgColor)
-        case .neon:
-            cg.setShadow(offset: .zero, blur: fontSize * 0.35,
-                         color: color.withAlphaComponent(0.85).cgColor)
-        default:
-            break
-        }
+        if fx.casts { Self.castShadow(fx, in: cg) }
 
         // A drop cap: the letter, then the rest framed around it. Only the
         // plain effect, since the letter and body are drawn as two runs.
@@ -271,33 +266,24 @@ struct TextElementView: View {
 
         // Every effect starts from the words as drawn, inline bold, italic,
         // underline and strike included, and lays its own colour or stroke
-        // over every run — so a **bold** word stays bold in outline, splice
-        // and echo, as the Android twin draws them from one layout.
+        // over every run — so a **bold** word stays bold in outline, splice,
+        // echo and glitch, as the Android twin draws them from one layout.
         let styled = FontLibrary.attributedString(for: el)
         func over(_ extra: [NSAttributedString.Key: Any]) -> NSAttributedString {
             let copy = NSMutableAttributedString(attributedString: styled)
             copy.addAttributes(extra, range: NSRange(location: 0, length: copy.length))
             return copy
         }
+        // The copies splice, glitch and echo lay behind the letters.
+        for copy in fx.copies {
+            over([.foregroundColor: UIColor(hex: copy.color).withAlphaComponent(copy.alpha)])
+                .draw(in: rect.offsetBy(dx: copy.dx, dy: copy.dy))
+        }
         switch effect {
-        case .outline:
+        case .outline, .splice:
             over([.strokeColor: color,
-                  .strokeWidth: NSNumber(value: max(2.5, fontSize * 0.035) / fontSize * 100),
+                  .strokeWidth: NSNumber(value: fx.stroke / fontSize * 100),
                   .foregroundColor: UIColor.clear]).draw(in: rect)
-        case .splice:
-            let offset = fontSize * 0.08
-            over([.foregroundColor: color.withAlphaComponent(0.45)])
-                .draw(in: rect.offsetBy(dx: offset, dy: offset))
-            over([.strokeColor: color,
-                  .strokeWidth: NSNumber(value: max(2.5, fontSize * 0.03) / fontSize * 100),
-                  .foregroundColor: UIColor.clear]).draw(in: rect)
-        case .glitch:
-            let offset = fontSize * 0.06
-            over([.foregroundColor: UIColor(hex: "#00e5ff").withAlphaComponent(0.85)])
-                .draw(in: rect.offsetBy(dx: offset, dy: 0))
-            over([.foregroundColor: UIColor(hex: "#ff2d78").withAlphaComponent(0.85)])
-                .draw(in: rect.offsetBy(dx: -offset, dy: 0))
-            styled.draw(in: rect)
         case .neon:
             // Multiple passes deepen the glow.
             styled.draw(in: rect)
@@ -405,11 +391,17 @@ struct TextElementView: View {
                               options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
     }
 
+    /// The shadow, lift or glow the letters cast, as the effect resolved it.
+    static func castShadow(_ fx: ResolvedEffect, in cg: CGContext) {
+        cg.setShadow(offset: CGSize(width: fx.dx, height: fx.dy), blur: fx.blur,
+                     color: UIColor(hex: fx.color).withAlphaComponent(fx.alpha).cgColor)
+    }
+
     /// Curved text is drawn from its outlines rather than by NSAttributedString,
     /// because there is no attributed-string way to bend a baseline. The
     /// effects that survive that are the ones a filled path can carry — the
     /// shadows and the glow; outline and splice become a stroke on the same
-    /// path, and glitch becomes two offset fills.
+    /// path at the effect's thickness, and glitch and echo become offset fills.
     private func drawCurvedText(_ resolved: Element, in cg: CGContext, size: CGSize, effect: TextEffect) {
         var el = resolved
         el.w = size.width
@@ -417,34 +409,24 @@ struct TextElementView: View {
         guard let path = TextOutliner.path(for: el) else { return }
         let fontSize = el.fontSize ?? 42
         let color = UIColor(hex: el.color ?? "#1f2430")
+        let fx = TextEffect.resolve(el.effect, fontSize: fontSize, ink: el.color ?? "#1f2430")
 
-        switch effect {
-        case .shadow:
-            cg.setShadow(offset: CGSize(width: fontSize * 0.06, height: fontSize * 0.06),
-                         blur: fontSize * 0.12, color: UIColor.black.withAlphaComponent(0.55).cgColor)
-        case .lift:
-            cg.setShadow(offset: CGSize(width: 0, height: fontSize * 0.18),
-                         blur: fontSize * 0.5, color: UIColor.black.withAlphaComponent(0.35).cgColor)
-        case .neon:
-            cg.setShadow(offset: .zero, blur: fontSize * 0.35,
-                         color: color.withAlphaComponent(0.85).cgColor)
-        default:
-            break
-        }
+        if fx.casts { Self.castShadow(fx, in: cg) }
 
         switch effect {
         case .outline, .splice:
             cg.addPath(path)
             cg.setStrokeColor(color.cgColor)
-            cg.setLineWidth(max(2.5, fontSize * 0.035))
+            cg.setLineWidth(TextEffect.outlineStroke(fontSize: fontSize,
+                                                     thickness: TextEffect.value(el.effect, .thickness, for: effect)))
             cg.setLineJoin(.round)
             cg.strokePath()
-        case .glitch:
-            for (dx, tint) in [(fontSize * 0.06, "#00e5ff"), (-fontSize * 0.06, "#ff2d78")] {
+        case .glitch, .echo:
+            for copy in fx.copies {
                 cg.saveGState()
-                cg.translateBy(x: dx, y: 0)
+                cg.translateBy(x: copy.dx, y: copy.dy)
                 cg.addPath(path)
-                cg.setFillColor(UIColor(hex: tint).withAlphaComponent(0.85).cgColor)
+                cg.setFillColor(UIColor(hex: copy.color).withAlphaComponent(copy.alpha).cgColor)
                 cg.fillPath()
                 cg.restoreGState()
             }
