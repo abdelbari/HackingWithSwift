@@ -97,6 +97,10 @@ final class DesignStore {
     private var future: [HistoryEntry] = []
     private var pending: HistoryEntry?
     private let historyLimit = 100
+    /// The shape being typed in, as it was before the typing began: what a
+    /// shape left with no words goes back to, though a style pressed while
+    /// typing has closed the step it began in — as on the Android twin.
+    @ObservationIgnored private var typedShapeBefore: Element?
 
     var onCommit: (() -> Void)?
 
@@ -409,7 +413,9 @@ final class DesignStore {
             if words.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 beginGesture()
                 if design.pages[p].elements[i].type == .shape {
-                    let before = pending?.design.pages.flatMap(\.elements).first { $0.id == id }
+                    let before = typedShapeBefore?.id == id
+                        ? typedShapeBefore
+                        : pending?.design.pages.flatMap(\.elements).first { $0.id == id }
                     design.pages[p].elements[i] = ShapeText.withoutWords(design.pages[p].elements[i], was: before)
                 } else {
                     design.pages[p].elements.remove(at: i)
@@ -417,6 +423,7 @@ final class DesignStore {
                 }
             }
         }
+        typedShapeBefore = nil
         commit()
     }
 
@@ -432,6 +439,7 @@ final class DesignStore {
         selection = [id]
         beginGesture()
         editingTextId = id
+        typedShapeBefore = design.pages[pageIndex].elements.first { $0.id == id && $0.type == .shape }
         guard let i = design.pages[pageIndex].elements.firstIndex(where: { $0.id == id }),
               ShapeText.takesText(design.pages[pageIndex].elements[i]),
               (design.pages[pageIndex].elements[i].text ?? "").isEmpty else { return }
