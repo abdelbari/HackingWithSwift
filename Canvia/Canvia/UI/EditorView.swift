@@ -905,8 +905,10 @@ struct EditorView: View {
                                  }
                              })
         case .colorWords:
-            // The words chosen while typing, from the bar's colour well.
-            ColorPickerSheet(store: store, title: "Word colour",
+            // The words chosen while typing, from the bar's colour well:
+            // the text colour sheet's title, as Android has no heading of
+            // its own for them, and the note both phones show.
+            ColorPickerSheet(store: store, title: "Text colour",
                              current: store.wordColour,
                              note: DesignStore.wordColourNote,
                              onPick: { c in store.colourWords(c) },
