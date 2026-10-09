@@ -246,6 +246,10 @@ struct Element: Codable, Equatable, Identifiable {
     /// shapes the library does not have: chart slices, traced outlines,
     /// imported paths. When set it wins over shapeId.
     var pathData: String?
+    /// The icon from the icon library this shape was put on as (see
+    /// IconLibrary): what it is named by. The path draws it; an id this
+    /// build does not know is just a custom shape.
+    var iconId: String?
     var fill: Paint?
     var stroke: String?
     var strokeWidth: Double?
@@ -363,6 +367,7 @@ struct Element: Codable, Equatable, Identifiable {
         link = try? c.decode(String.self, forKey: .link)
         shapeId = try? c.decode(String.self, forKey: .shapeId)
         pathData = try? c.decode(String.self, forKey: .pathData)
+        iconId = try? c.decode(String.self, forKey: .iconId)
         fill = try? c.decode(Paint.self, forKey: .fill)
         stroke = try? c.decode(String.self, forKey: .stroke)
         strokeWidth = try? c.decode(Double.self, forKey: .strokeWidth)
@@ -431,7 +436,7 @@ struct Element: Codable, Equatable, Identifiable {
     private enum CodingKeys: String, CodingKey {
         case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow, blendMode, altText
         case connectFrom, connectTo, link
-        case shapeId, pathData, fill, stroke, strokeWidth, radius, corners
+        case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, kenBurns
