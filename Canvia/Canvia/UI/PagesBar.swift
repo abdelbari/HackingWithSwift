@@ -49,8 +49,16 @@ struct PagesBar: View {
                         Label("Paste page after", systemImage: "doc.on.clipboard")
                     }
                     .disabled(!store.hasPageOnClipboard)
+                    // Hiding the only page would leave nothing to present;
+                    // a lone page already hidden can still be shown again.
+                    if store.design.pages.count > 1 || store.page.hidden == true {
+                        Button { store.setPageHidden(store.page.hidden != true) } label: {
+                            Label(store.page.hidden == true ? "Show page" : "Hide page",
+                                  systemImage: store.page.hidden == true ? "eye" : "eye.slash")
+                        }
+                    }
                 } label: { Image(systemName: "plus.square.on.square") }
-                    .accessibilityLabel("Duplicate, copy or paste page")
+                    .accessibilityLabel(pageMenuLabel)
                 // Said as what they do to the page: the symbols alone read
                 // as "Back" and "Forward", which sound like navigation.
                 Button { store.movePage(by: -1) } label: { Image(systemName: "chevron.left") }
@@ -100,6 +108,12 @@ struct PagesBar: View {
         }
     }
 
+    /// The page menu as VoiceOver says it: what is in it.
+    private var pageMenuLabel: String {
+        if store.page.hidden == true { return "Duplicate, copy, paste or show page" }
+        return store.design.pages.count > 1 ? "Duplicate, copy, paste or hide page" : "Duplicate, copy or paste page"
+    }
+
     private func pageThumb(index: Int, page: Page) -> some View {
         let pageSize = store.design.size(for: page)
         let aspect = pageSize.width / max(pageSize.height, 1)
@@ -109,14 +123,22 @@ struct PagesBar: View {
             PageThumbnail(design: store.design, page: page)
                 .frame(width: 56 * aspect, height: 56)
                 .clipped()
+                // A hidden page is faded, and its number carries the eye
+                // struck through, as on the Android twin — beside the number
+                // rather than in a corner of its own, which a story-shaped
+                // thumbnail has no room for.
+                .opacity(page.hidden == true ? 0.4 : 1)
                 .overlay(alignment: .topLeading) {
-                    Text("\(index + 1)")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))
-                        .padding(2)
+                    HStack(spacing: 2) {
+                        Text("\(index + 1)")
+                        if page.hidden == true { Image(systemName: "eye.slash") }
+                    }
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
+                    .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))
+                    .padding(2)
                 }
                 .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -135,7 +157,17 @@ struct PagesBar: View {
                 }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Page \(index + 1)\(index == store.pageIndex ? ", current" : "")")
+        .accessibilityLabel(Self.spokenThumb(number: index + 1, current: index == store.pageIndex,
+                                             hidden: page.hidden == true))
+    }
+
+    /// What VoiceOver says for a page's thumbnail: which page, whether it is
+    /// the one on screen, and whether it is hidden.
+    static func spokenThumb(number: Int, current: Bool, hidden: Bool) -> String {
+        var label = "Page \(number)"
+        if current { label += ", current" }
+        if hidden { label += ", hidden" }
+        return label
     }
 }
 

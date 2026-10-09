@@ -152,6 +152,11 @@ struct Page: Codable, Equatable, Identifiable {
     /// page after a square post. nil is the document's size.
     var width: Double?
     var height: Double?
+    /// Left out of Present and of "All pages" in an export; nil is shown.
+    /// The page is still edited, saved, numbered and drawn as a master like
+    /// any other — only showing it is skipped. Never false: shown is nil, so
+    /// the key is written only when true, as `usesMaster` only when false.
+    var hidden: Bool?
 
     init(id: String = UID.make("page"), background: Background = .color("#ffffff"),
          elements: [Element] = [], notes: String? = nil) {
@@ -172,10 +177,29 @@ struct Page: Codable, Equatable, Identifiable {
         usesMaster = try? c.decode(Bool.self, forKey: .usesMaster)
         width = try? c.decode(Double.self, forKey: .width)
         height = try? c.decode(Double.self, forKey: .height)
+        hidden = (try? c.decode(Bool.self, forKey: .hidden)) == true ? true : nil
+    }
+
+    /// As the synthesised encoder wrote it, except that `hidden` is written
+    /// only when true — a page shown reads exactly as it did before pages
+    /// could be hidden, on this phone and the Android twin alike.
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(background, forKey: .background)
+        try c.encode(elements, forKey: .elements)
+        try c.encodeIfPresent(notes, forKey: .notes)
+        try c.encodeIfPresent(holdSeconds, forKey: .holdSeconds)
+        try c.encodeIfPresent(transition, forKey: .transition)
+        try c.encodeIfPresent(usesMaster, forKey: .usesMaster)
+        try c.encodeIfPresent(width, forKey: .width)
+        try c.encodeIfPresent(height, forKey: .height)
+        if hidden == true { try c.encode(true, forKey: .hidden) }
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, background, elements, notes, holdSeconds, transition, usesMaster, width, height
+        case hidden
     }
 }
 
@@ -245,6 +269,11 @@ struct Design: Codable, Equatable, Identifiable {
 
     /// Whether any page has a size of its own.
     var hasMixedPageSizes: Bool { pages.contains { $0.width != nil || $0.height != nil } }
+
+    /// The pages Present shows and "All pages" exports, by index, in order:
+    /// every page not hidden. By index rather than as a filtered copy, so a
+    /// hidden master page still draws behind the pages that use it.
+    var visiblePageIndices: [Int] { pages.indices.filter { pages[$0].hidden != true } }
 
     init(title: String = "Untitled design", width: Double = 1080, height: Double = 1080) {
         self.title = title
