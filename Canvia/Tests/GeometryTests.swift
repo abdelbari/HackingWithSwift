@@ -177,6 +177,7 @@ final class ElementEqualityTests: XCTestCase {
             ("blendMode", { $0.blendMode = "multiply" }),
             ("altText", { $0.altText = "A dog" }),
             ("pathData", { $0.pathData = "M0 0 L100 100" }),
+            ("iconId", { $0.iconId = "favorite" }),
             ("corners", { $0.corners = [10, 0, 10, 0] }),
             ("dropCap", { $0.dropCap = true }),
             ("animation", { $0.animation = ElementAnimation(kind: "rise", delay: 0.2, duration: 0.5) }),

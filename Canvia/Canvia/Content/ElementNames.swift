@@ -24,6 +24,8 @@ enum ElementNames {
             // Coloured, because "Oval" and "Oval" are the two circles behind
             // the heading, and "Red oval" and "Teal oval" are not.
             let colour = colours(of: el).first { !isFaint($0) }
+            // Named for what it shows, as the icons tab names it.
+            if let icon = IconLibrary.icon(of: el) { return "\(icon.name) icon" }
             if Freehand.isStroke(el) { return withColour(el.stroke, "drawing") }
             if el.pathData != nil {
                 if isFaint(el.fill?.color) && el.stroke != nil { return withColour(el.stroke, "line") }
