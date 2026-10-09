@@ -85,6 +85,15 @@ extension DesignStore {
         }
     }
 
+    /// A style put on words from the bar over the keyboard while they are
+    /// typed: a step of its own, between the words typed before it and
+    /// after, so each press is one Undo, as on the Android twin.
+    func styleWhileTyping(_ change: () -> Void) {
+        commit()
+        change()
+        commit()
+    }
+
     /// Every selected, unlocked text at one type size, in whole points from
     /// 6 to 500, each box measured again to fit. One step.
     func setFontSize(_ size: Double) {

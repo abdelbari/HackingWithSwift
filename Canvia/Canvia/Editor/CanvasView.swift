@@ -1168,7 +1168,8 @@ struct CanvasView: View {
         return InlineTextField(element: el,
                                onChange: { typeInline(id, $0) },
                                onDone: { commitTextEditIfAny() },
-                               onToggle: { store.toggleText($0) })
+                               onToggle: { store.toggleText($0) },
+                               onStyled: { store.styleWhileTyping($0) })
             .frame(width: el.w)
             .frame(width: el.w, height: el.h, alignment: sits)
             // The whole box is the field's: the field is only as tall as its
