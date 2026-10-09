@@ -135,6 +135,10 @@ struct HomeView: View {
         .background(Theme.workspace)
         .safeAreaInset(edge: .top, spacing: 0) { if selecting { selectTopBar } }
         .safeAreaInset(edge: .bottom, spacing: 0) { if selecting { selectBar } }
+        // The bar's count, heard as each pick changes it.
+        .onChange(of: picked) {
+            if selecting { AccessibilityNotification.Announcement("\(pickedDesigns.count) selected").post() }
+        }
         .overlay(alignment: .bottom) { trashedToast }
         .overlay { if openingFile { OpeningDesignCard() } }
         .onAppear {
