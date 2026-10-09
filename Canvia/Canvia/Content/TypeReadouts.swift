@@ -75,9 +75,10 @@ enum TypeReadouts {
         return wholeSize(value)
     }
 
-    /// The size the size control shows: whole points, or "Mixed".
+    /// The size the size control shows: the nearest whole point, as on the
+    /// Android twin, or "Mixed".
     static func fontSize(_ size: Double?) -> String {
-        size.map { "\(Int($0))" } ?? mixed
+        size.map { "\(Int($0.rounded()))" } ?? mixed
     }
 
     // MARK: several texts

@@ -1338,7 +1338,7 @@ private struct TypeSizeEntry: View {
     init(current: Double?, onSet: @escaping (Double) -> Void) {
         self.current = current
         self.onSet = onSet
-        _draft = State(initialValue: current.map { "\(Int($0))" } ?? "")
+        _draft = State(initialValue: current.map { "\(Int($0.rounded()))" } ?? "")
     }
 
     var body: some View {

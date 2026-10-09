@@ -62,10 +62,14 @@ extension DesignStore {
         return chosen
     }
 
-    /// What every selected text reads for `value`, or nil when they differ:
-    /// what the controls show, or "Mixed".
+    /// What every selected text a change will reach reads for `value` — the
+    /// unlocked ones, or all of them when every one is locked — or nil when
+    /// they differ: what the controls show, or "Mixed". As on the Android
+    /// twin.
     func sharedText<T: Equatable>(_ value: (Element) -> T) -> T? {
-        TypeReadouts.shared(selectedElements.filter { $0.type == .text }.map(value))
+        let texts = selectedElements.filter { $0.type == .text }
+        let reached = texts.filter { !$0.locked }
+        return TypeReadouts.shared((reached.isEmpty ? texts : reached).map(value))
     }
 
     /// Bold, italic, underline or capitals on for every selected, unlocked
