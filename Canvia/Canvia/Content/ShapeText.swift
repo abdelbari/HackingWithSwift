@@ -94,6 +94,10 @@ enum ShapeTextInsets {
 
 enum ShapeText {
 
+    /// What the Text sheet and panel say under Add words, on both phones,
+    /// while a shape has none.
+    static let wordsNote = "Words sit inside the shape. Add words here, or double tap the shape, to type them on it."
+
     /// The ink on a light fill, and on a dark one.
     static let darkInk = "#1f2430"
     static let lightInk = "#ffffff"
