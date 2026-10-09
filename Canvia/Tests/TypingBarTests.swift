@@ -114,11 +114,14 @@ final class TypingBarTests: XCTestCase {
         XCTAssertNil(TextToggle(.strike), "no box is struck through as a whole")
     }
 
+    /// What the buttons on a field's bar are called.
+    @MainActor
+    private func labels(_ field: InlineTextField) -> [String] {
+        (field.makeCoordinator().typingBar().items ?? []).compactMap { $0.accessibilityLabel }
+    }
+
     @MainActor
     func testAShapesWordsHaveNoWordColourOrSizes() {
-        func labels(_ field: InlineTextField) -> [String] {
-            (field.makeCoordinator().typingBar().items ?? []).compactMap { $0.accessibilityLabel }
-        }
         let box = InlineTextField(element: .text("Big sale"), onChange: { _ in }, onDone: {})
         XCTAssertTrue(labels(box).contains("Larger"), "a text box's bar has A+")
         let shape = InlineTextField(element: ShapeText.textElement(for: .shape("rect")),
