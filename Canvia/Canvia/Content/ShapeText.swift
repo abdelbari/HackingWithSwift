@@ -98,11 +98,12 @@ enum ShapeText {
     static let darkInk = "#1f2430"
     static let lightInk = "#ffffff"
 
-    /// Whether a shape takes words: any shape but a drawn stroke and a line
-    /// drawn as a path with no fill (a line chart's), which are lines, not
-    /// areas. Photos, frames, QR codes and lines are other kinds altogether.
+    /// Whether a shape takes words: any shape but a photo poured into one (a
+    /// photo frame), a drawn stroke and a line drawn as a path with no fill
+    /// (a line chart's), which are lines, not areas. Photos, frames, QR codes
+    /// and lines are other kinds altogether.
     static func takesText(_ el: Element) -> Bool {
-        guard el.type == .shape, !Freehand.isStroke(el) else { return false }
+        guard el.type == .shape, el.fill?.kind != "image", !Freehand.isStroke(el) else { return false }
         if el.pathData?.isEmpty == false, el.stroke != nil, ContrastAudit.isFaint(el.fill?.color ?? "") {
             return false
         }

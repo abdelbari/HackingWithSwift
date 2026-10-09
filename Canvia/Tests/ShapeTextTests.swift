@@ -152,6 +152,11 @@ final class ShapeTextTests: XCTestCase {
         chartLine.fill = .solid("#00000000")
         chartLine.stroke = "#ff0000"
         XCTAssertFalse(ShapeText.takesText(chartLine), "a line drawn as a path")
+        var frame = Element.shape("star-5")
+        frame.fill = .image("asset:beach")
+        frame.text = "SALE"
+        XCTAssertFalse(ShapeText.takesText(frame), "a photo poured into a shape")
+        XCTAssertNil(ShapeText.words(of: frame))
         XCTAssertFalse(ShapeText.takesText(Element.image("asset:x")))
         XCTAssertFalse(ShapeText.takesText(Element.line()))
     }
