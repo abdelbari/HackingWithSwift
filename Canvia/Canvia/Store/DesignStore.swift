@@ -1540,8 +1540,9 @@ final class DesignStore {
         }
     }
 
-    /// The selected clip's trim, speed and loop, as one undo step. A clip
-    /// at all the defaults keeps none, so its file has no `clip` key.
+    /// The selected clip's trim, speed, loop, volume and mute, as one undo
+    /// step. A clip at all the defaults keeps none, so its file has no
+    /// `clip` key.
     func setClip(_ clip: ClipPlayback) {
         updateSelected { el in
             guard VideoStore.isVideo(el.src) else { return }

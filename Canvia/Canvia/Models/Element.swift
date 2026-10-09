@@ -158,11 +158,12 @@ struct Shadow: Codable, Equatable, Hashable {
     }
 }
 
-/// How a video clip plays: the part of the file it shows, how fast, and
-/// whether it goes round again — trimmed and timed without touching the
-/// file. Written as the element's `clip` object, each field only when it is
-/// not its default, and the object only when one is not; a partial or odd
-/// object still reads, every field it lacks or cannot give at its default.
+/// How a video clip plays: the part of the file it shows, how fast,
+/// whether it goes round again and how loud — trimmed and timed without
+/// touching the file. Written as the element's `clip` object, each field
+/// only when it is not its default, and the object only when one is not; a
+/// partial or odd object still reads, every field it lacks or cannot give at
+/// its default.
 struct ClipPlayback: Codable, Equatable, Hashable {
     /// Seconds into the file where the clip starts.
     var start: Double = 0
@@ -172,6 +173,10 @@ struct ClipPlayback: Codable, Equatable, Hashable {
     var speed: Double = 1
     /// Round again from the start at the end; off holds the last frame.
     var loop: Bool = true
+    /// The clip's own sound, 0...1, as written; it is heard within that.
+    var volume: Double = 1
+    /// Silent wherever it plays, the video included.
+    var muted: Bool = false
 
     /// What the Clip sheet offers.
     static let speeds: [Double] = [0.5, 1, 1.5, 2]
@@ -186,13 +191,21 @@ struct ClipPlayback: Codable, Equatable, Hashable {
     /// The rate the clip plays at: `speed` kept within `speedRange`.
     var playbackSpeed: Double { min(max(speed, Self.speedRange.lowerBound), Self.speedRange.upperBound) }
 
-    private enum CodingKeys: String, CodingKey { case start, end, speed, loop }
+    /// Whether the clip is heard as it plays: not muted, not silent, and at
+    /// its own speed — a sped-up clip's sound is left out for now, as on
+    /// the Android twin.
+    var sounds: Bool { !muted && volume > 0 && speed == 1 }
 
-    init(start: Double = 0, end: Double? = nil, speed: Double = 1, loop: Bool = true) {
+    private enum CodingKeys: String, CodingKey { case start, end, speed, loop, volume, muted }
+
+    init(start: Double = 0, end: Double? = nil, speed: Double = 1, loop: Bool = true,
+         volume: Double = 1, muted: Bool = false) {
         self.start = start
         self.end = end
         self.speed = speed
         self.loop = loop
+        self.volume = volume
+        self.muted = muted
     }
 
     init(from decoder: Decoder) throws {
@@ -201,6 +214,8 @@ struct ClipPlayback: Codable, Equatable, Hashable {
         end = try? c.decodeIfPresent(Double.self, forKey: .end)
         speed = (try? c.decodeIfPresent(Double.self, forKey: .speed)) ?? 1
         loop = (try? c.decodeIfPresent(Bool.self, forKey: .loop)) ?? true
+        volume = (try? c.decodeIfPresent(Double.self, forKey: .volume)) ?? 1
+        muted = (try? c.decodeIfPresent(Bool.self, forKey: .muted)) ?? false
     }
 
     func encode(to encoder: Encoder) throws {
@@ -209,6 +224,8 @@ struct ClipPlayback: Codable, Equatable, Hashable {
         try c.encodeIfPresent(end, forKey: .end)
         if speed != 1 { try c.encode(speed, forKey: .speed) }
         if !loop { try c.encode(false, forKey: .loop) }
+        if volume != 1 { try c.encode(volume, forKey: .volume) }
+        if muted { try c.encode(true, forKey: .muted) }
     }
 }
 
@@ -323,7 +340,7 @@ struct Element: Codable, Equatable, Identifiable {
     /// Fit the whole picture inside the frame (letterboxed) instead of
     /// filling the frame and cropping. nil is fill.
     var cropFit: Bool?
-    /// For a clip ("video:" source): its trim, speed and loop. Never a
+    /// For a clip ("video:" source): its trim, speed, loop and sound. Never a
     /// clip at all its defaults — that is nil, and no key in the file.
     var clip: ClipPlayback?
 

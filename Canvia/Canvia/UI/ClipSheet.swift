@@ -1,10 +1,10 @@
-// A clip's trim, speed and loop.
+// A clip's trim, speed, loop and sound.
 //
-// The part of the file a clip plays, how fast, and whether it goes round
-// again — kept on the element, the file left as it is, so a trim can always
-// be taken back out. Each change is one undo step: a slider's when it is let
-// go, not one for every frame of the drag. The Android twin's PhotoPanel
-// Clip section sets the same `clip` object.
+// The part of the file a clip plays, how fast, whether it goes round again
+// and how loud — kept on the element, the file left as it is, so a trim can
+// always be taken back out. Each change is one undo step: a slider's when it
+// is let go, not one for every frame of the drag. The Android twin's
+// PhotoPanel Clip section sets the same `clip` object.
 
 import SwiftUI
 
@@ -17,6 +17,8 @@ struct ClipSheet: View {
     /// Where a trim slider is while it is dragged; written when let go.
     @State private var draftStart: Double?
     @State private var draftEnd: Double?
+    /// Where the Volume slider is while it is dragged; written when let go.
+    @State private var draftVolume: Double?
 
     private var element: Element? {
         guard let el = store.singleSelection, VideoStore.isVideo(el.src) else { return nil }
@@ -42,6 +44,7 @@ struct ClipSheet: View {
                         .pickerStyle(.segmented)
                         .labelsHidden()
                     }
+                    soundSection(clip)
                     Section {
                         Toggle("Loop", isOn: Binding(
                             get: { clip.loop },
@@ -96,6 +99,56 @@ struct ClipSheet: View {
         } else if length == nil {
             Section { ProgressView() }
         }
+    }
+
+    /// The clip's own sound as its page plays: Volume, held here while
+    /// dragged and written once on release — VoiceOver's swipes a tenth at a
+    /// time — and Mute. A clip at another speed is heard at no speed for
+    /// now, and says so, as on the Android twin.
+    private func soundSection(_ clip: ClipPlayback) -> some View {
+        let stored = min(max(clip.volume, 0), 1)
+        let percent = Self.percentLabel(draftVolume ?? stored)
+        return Section {
+            HStack {
+                Text("Volume")
+                    .accessibilityHidden(true)
+                Slider(value: Binding(get: { draftVolume ?? stored }, set: { draftVolume = $0 }), in: 0...1,
+                       onEditingChanged: { editing in if !editing { commitVolume(stored) } })
+                .accessibilityLabel("Volume")
+                .accessibilityValue(percent)
+                .accessibilityAdjustableAction { direction in
+                    let step = direction == .increment ? 0.1 : -0.1
+                    write { $0.volume = min(1, max(0, ((stored + step) * 10).rounded() / 10)) }
+                }
+                Text(percent)
+                    .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+            }
+            Toggle("Mute", isOn: Binding(
+                get: { clip.muted },
+                set: { on in write { $0.muted = on } }))
+        } header: {
+            Text("Sound")
+        } footer: {
+            if clip.speed != 1 { Text(Self.speedSoundNote) }
+        }
+    }
+
+    /// Said under Sound while the clip plays at another speed.
+    static let speedSoundNote = "Sound plays at 1× only"
+
+    /// A volume as the Clip sheet shows it: "0%" to "100%".
+    static func percentLabel(_ volume: Double) -> String {
+        "\(Int((min(max(volume, 0), 1) * 100).rounded()))%"
+    }
+
+    /// The volume dragged to, written as one step, kept to the hundredth
+    /// the readout shows; nothing when it was let go where it was.
+    private func commitVolume(_ stored: Double) {
+        guard let volume = draftVolume else { return }
+        draftVolume = nil
+        let kept = (min(max(volume, 0), 1) * 100).rounded() / 100
+        if kept != stored { write { $0.volume = kept } }
     }
 
     private func trimSlider(_ label: String, value: Double, length: Double,
