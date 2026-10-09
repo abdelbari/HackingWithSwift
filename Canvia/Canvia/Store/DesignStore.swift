@@ -255,11 +255,12 @@ final class DesignStore {
     /// `el` with its box height measured again when it is a text whose
     /// typography changed and whose height the edit did not set itself.
     /// layoutHeight keeps fitted, aligned, vertical and path boxes at their
-    /// own size, so only a plain box snaps to its words.
+    /// own size, so only a plain box snaps to its words. A shape's words
+    /// grow it when they no longer fit, and never shrink it.
     static func remeasured(_ el: Element, was before: Element) -> Element {
-        guard el.type == .text, el.h == before.h, typographyChanged(el, from: before) else { return el }
+        guard ShapeText.carriesWords(el), el.h == before.h, typographyChanged(el, from: before) else { return el }
         var out = el
-        out.h = FontLibrary.layoutHeight(for: el)
+        out.h = ShapeText.heightForWords(el)
         return out
     }
 
@@ -393,7 +394,8 @@ final class DesignStore {
 
     /// Typing in place is over, however it ended: the box stops being
     /// edited, a box left empty is removed, and the typing is its own undo
-    /// step. Every way out comes through here, as on the Android twin.
+    /// step. Every way out comes through here, as on the Android twin. A
+    /// shape left with no words stays, its words gone (ShapeText.withoutWords).
     func endTextEdit() {
         guard let id = editingTextId else { return }
         editingTextId = nil
@@ -402,11 +404,44 @@ final class DesignStore {
             let words = design.pages[p].elements[i].text ?? ""
             if words.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 beginGesture()
-                design.pages[p].elements.remove(at: i)
-                if selection.contains(id) { selection.remove(id) }
+                if design.pages[p].elements[i].type == .shape {
+                    let before = pending?.design.pages.flatMap(\.elements).first { $0.id == id }
+                    design.pages[p].elements[i] = ShapeText.withoutWords(design.pages[p].elements[i], was: before)
+                } else {
+                    design.pages[p].elements.remove(at: i)
+                    if selection.contains(id) { selection.remove(id) }
+                }
             }
         }
         commit()
+    }
+
+    /// Typing in place begins in a text box or a shape. Any typing before
+    /// is ended as its own step, and the step for this typing opens after
+    /// it. Only this box is selected, even inside a group, as on the Android
+    /// twin: its text controls show while it is typed, and a group corner or
+    /// Delete never works the whole group. A shape given its first words
+    /// takes their look in this same step (ShapeText.starting), so starting,
+    /// typing and leaving are one Undo.
+    func startTyping(_ id: String) {
+        endTextEdit()
+        selection = [id]
+        beginGesture()
+        editingTextId = id
+        guard let i = design.pages[pageIndex].elements.firstIndex(where: { $0.id == id }),
+              ShapeText.takesText(design.pages[pageIndex].elements[i]),
+              (design.pages[pageIndex].elements[i].text ?? "").isEmpty else { return }
+        design.pages[pageIndex].elements[i] = ShapeText.starting(design.pages[pageIndex].elements[i])
+    }
+
+    /// The words typed in place, into the open step: a text box measured
+    /// to them, a shape grown down when they need more room than it has.
+    func typeWords(_ words: String, into id: String) {
+        beginGesture()
+        guard let i = design.pages[pageIndex].elements.firstIndex(where: { $0.id == id }),
+              design.pages[pageIndex].elements[i].text != words else { return }
+        design.pages[pageIndex].elements[i].text = words
+        design.pages[pageIndex].elements[i].h = ShapeText.heightForWords(design.pages[pageIndex].elements[i])
     }
 
     // MARK: dictation

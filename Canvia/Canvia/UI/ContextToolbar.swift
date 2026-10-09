@@ -687,6 +687,11 @@ struct ContextToolbar: View {
         if Freehand.isStroke(el) {
             toolButton("text.viewfinder", "To text") { store.strokesToText() }
         }
+        // Words in the shape: their face, size, colour and style, and a way
+        // in to type them, as a double tap on the shape is.
+        if ShapeText.takesText(el) && !el.locked {
+            toolButton("character.textbox", "Text") { activeSheet = .shapeText }
+        }
         // Another shape in its place, keeping its size, colours and effects.
         // Not for a locked one, which it could not change, as on the Android
         // twin.

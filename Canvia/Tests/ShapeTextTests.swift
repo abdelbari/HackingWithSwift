@@ -1,6 +1,6 @@
 // Text inside shapes: the text-safe boxes, the first words' ink and size,
-// the shape growing for its words, the file keys and the SVG — the numbers
-// the same as the Android twin's.
+// the shape growing for its words, the file keys, typing as one step, and
+// the SVG — the numbers the same as the Android twin's.
 
 import XCTest
 import UIKit
@@ -153,6 +153,55 @@ final class ShapeTextTests: XCTestCase {
         XCTAssertFalse(ShapeText.takesText(chartLine), "a line drawn as a path")
         XCTAssertFalse(ShapeText.takesText(Element.image("asset:x")))
         XCTAssertFalse(ShapeText.takesText(Element.line()))
+    }
+
+    // MARK: typing
+
+    private func store(_ elements: [Element]) -> DesignStore {
+        var design = Design(title: "shape text", width: 1000, height: 1000)
+        design.pages[0].elements = elements
+        return DesignStore(design: design)
+    }
+
+    func testStartingTypingAndLeavingAreOneStep() {
+        let shape = Element.shape("rect", w: 200, h: 200)
+        let s = store([shape])
+        s.startTyping(shape.id)
+        XCTAssertEqual(s.editingTextId, shape.id)
+        XCTAssertEqual(s.element(shape.id)?.color, "#ffffff", "the first words' ink is set as typing starts")
+        s.typeWords("S", into: shape.id)
+        s.typeWords("SALE", into: shape.id)
+        s.endTextEdit()
+        XCTAssertEqual(s.element(shape.id)?.text, "SALE")
+        XCTAssertEqual(s.element(shape.id)?.fontSize, 36)
+        XCTAssertFalse(s.hasPendingChanges)
+        s.undo()
+        XCTAssertEqual(s.element(shape.id), shape, "one Undo takes back the words and their look")
+    }
+
+    func testAShapeLeftWithoutWordsStaysAsItWas() {
+        let shape = Element.shape("circle")
+        let s = store([shape])
+        s.startTyping(shape.id)
+        s.typeWords("  ", into: shape.id)
+        s.endTextEdit()
+        XCTAssertEqual(s.element(shape.id), shape, "not removed, and nothing to undo")
+        XCTAssertFalse(s.canUndo)
+    }
+
+    func testTypingGrowsTheShapeAndRemovingWordsNeverShrinksIt() {
+        let shape = Element.shape("rect", w: 200, h: 60)
+        let s = store([shape])
+        s.startTyping(shape.id)
+        s.typeWords("One\nTwo\nThree\nFour", into: shape.id)
+        let grown = s.element(shape.id)?.h ?? 0
+        XCTAssertGreaterThan(grown, 60, "four lines do not fit 60 high")
+        XCTAssertEqual(s.element(shape.id)?.y, shape.y, "grown down: its top stays")
+        s.typeWords("One", into: shape.id)
+        XCTAssertEqual(s.element(shape.id)?.h, grown)
+        s.endTextEdit()
+        s.undo()
+        XCTAssertEqual(s.element(shape.id)?.h, 60, "the growth is in the typing's step")
     }
 
     // MARK: export
