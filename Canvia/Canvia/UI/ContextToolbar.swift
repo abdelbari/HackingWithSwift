@@ -181,8 +181,9 @@ struct ContextToolbar: View {
         }
         HStack(spacing: 14) {
             stylesMenu(el)
-            // Only when some words have a colour or a size of their own.
-            if !el.liveSpans.isEmpty {
+            // Only when some words have a colour or a size of their own, and
+            // not for a locked box, which it cannot change — as on Android.
+            if !el.liveSpans.isEmpty && !el.locked {
                 toolButton("eraser", "Clear word colours and sizes") { store.clearWordStyles() }
             }
             toolButton("wand.and.stars", "Effects") { activeSheet = .effects }
