@@ -39,8 +39,10 @@ final class ShapeTextTests: XCTestCase {
         XCTAssertEqual(ShapeTextInsets.inset(of: custom), ShapeTextInsets.fallback)
         var rect = Element.shape("rect", w: 200, h: 100)
         XCTAssertEqual(ShapeText.box(for: rect), CGRect(x: 16, y: 8, width: 168, height: 84))
-        rect.stroke = "#000000"
         rect.strokeWidth = 4
+        XCTAssertEqual(ShapeText.box(for: rect), CGRect(x: 20, y: 12, width: 160, height: 76),
+                       "the stroke width, with or without a stroke colour")
+        rect.stroke = "#000000"
         XCTAssertEqual(ShapeText.box(for: rect), CGRect(x: 20, y: 12, width: 160, height: 76))
     }
 

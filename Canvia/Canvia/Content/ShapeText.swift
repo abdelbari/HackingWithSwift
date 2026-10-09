@@ -177,10 +177,10 @@ enum ShapeText {
 
     // MARK: layout
 
-    /// The width a border takes off each side of the words' box.
+    /// The width a border takes off each side of the words' box: the
+    /// stroke width, set or not a stroke colour, as on Android.
     static func borderInset(_ el: Element) -> Double {
-        guard el.stroke != nil, let width = el.strokeWidth, width > 0 else { return 0 }
-        return width
+        max(el.strokeWidth ?? 0, 0)
     }
 
     /// Where the words are set, in the shape's own unflipped box: its
