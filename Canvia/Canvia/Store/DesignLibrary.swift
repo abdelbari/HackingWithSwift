@@ -133,16 +133,25 @@ enum DesignLibrary {
 
     /// What is in the trash, most recently deleted first. `updatedAt` on
     /// each entry is the deletion time, which is what the list shows.
+    /// A design that no longer reads is listed too, as on the shelf, so it
+    /// can be restored and mended from a version, or purged with the rest.
     static func trashed() -> [RecentDesign] {
         guard let files = try? FileManager.default.contentsOfDirectory(
             at: trashDir, includingPropertiesForKeys: [.contentModificationDateKey]) else { return [] }
         let stamps = thumbnailStamps(trashed: true)
         var result: [RecentDesign] = []
         for url in files where url.pathExtension == "json" {
-            guard let data = try? Data(contentsOf: url),
-                  let design = try? JSONDecoder().decode(Design.self, from: data) else { continue }
             let deleted = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?
                 .contentModificationDate ?? Date()
+            guard let data = try? Data(contentsOf: url),
+                  let design = try? JSONDecoder().decode(Design.self, from: data) else {
+                let id = url.deletingPathExtension().lastPathComponent
+                result.append(RecentDesign(
+                    id: id, title: damagedTitle, width: 0, height: 0, pages: 0,
+                    updatedAt: deleted.timeIntervalSince1970 * 1000,
+                    thumbnailStamp: stamps[id], damaged: true))
+                continue
+            }
             result.append(RecentDesign(
                 id: design.id, title: design.title,
                 width: design.width, height: design.height,
@@ -680,14 +689,16 @@ enum DesignLibrary {
     /// Brings a design whose file no longer reads back from the newest of
     /// its versions that does, under the same id, so its card is the
     /// design again. Its old picture goes with the damaged file, as it may
-    /// show something the version does not. Nil when no version reads, or
-    /// the design could not be written.
+    /// show something the version does not. Edited now, as the Android twin
+    /// stamps it, so it sorts first among the designs. Nil when no version
+    /// reads, or the design could not be written.
     @discardableResult
-    static func restoreLastVersion(of id: String) -> Design? {
+    static func restoreLastVersion(of id: String, now: Date = Date()) -> Design? {
         // Newest first, and only those that read.
         for version in versions(for: id) {
             guard var design = load(version: version) else { continue }
             design.id = id
+            design.updatedAt = now.timeIntervalSince1970 * 1000
             guard save(design) else { return nil }
             try? FileManager.default.removeItem(at: thumbnailURL(for: id))
             return design
