@@ -1498,6 +1498,9 @@ final class DesignStore {
     /// Seconds into the current page while a preview plays; nil at rest.
     var previewTime: Double?
     private var previewTask: Task<Void, Never>?
+    /// What is heard while the preview plays: the page's clips, and the
+    /// music from where the page comes in the video.
+    private let previewSound = PageSound(presenting: false)
 
     var pageHold: Double {
         page.holdSeconds ?? design.motion?.secondsPerPage ?? MotionSettings().secondsPerPage
@@ -1511,7 +1514,9 @@ final class DesignStore {
     }
 
     /// Play the page's entrances and drifts once, at 30 frames a second,
-    /// then settle. Scrub by setting previewTime directly.
+    /// then settle. Scrub by setting previewTime directly. Its clips are
+    /// heard, and the music from where the page comes in the video, for
+    /// the page's hold.
     func playPreview() {
         previewTask?.cancel()
         let hold = pageHold
@@ -1520,6 +1525,10 @@ final class DesignStore {
         // — the preview is over: that page was never played, and drawing it
         // at this one's clock would show its entrances already done.
         let playing = page.id
+        let since = Date()
+        previewSound.stop()
+        previewSound.page(AudioMix.clips(design: design, page: page), since: since)
+        previewSound.music(design: design, offset: AudioMix.pageStart(design: design, index: pageIndex), since: since)
         previewTask = Task { @MainActor in
             // Timed by the clock rather than by counting passes: a pass that
             // runs long — a busy page, a clip's frame being decoded — would
@@ -1537,11 +1546,13 @@ final class DesignStore {
                 guard !Task.isCancelled else { return }
             }
             previewTime = nil
+            previewSound.stop()
         }
     }
 
-    /// The selected clip's trim, speed and loop, as one undo step. A clip
-    /// at all the defaults keeps none, so its file has no `clip` key.
+    /// The selected clip's trim, speed, loop, volume and mute, as one undo
+    /// step. A clip at all the defaults keeps none, so its file has no
+    /// `clip` key.
     func setClip(_ clip: ClipPlayback) {
         updateSelected { el in
             guard VideoStore.isVideo(el.src) else { return }
@@ -1561,6 +1572,7 @@ final class DesignStore {
         previewTask?.cancel()
         previewTask = nil
         previewTime = nil
+        previewSound.stop()
     }
 
     /// Give every selected element an entrance, staggered in layer order so

@@ -30,6 +30,20 @@ enum AudioStore {
         }
     }
 
+    /// Writes music that arrived in a design file in under a fresh id, as
+    /// a file of type `ext` — letters and digits only, m4a when it names
+    /// none — and returns the id. The design carries no name for it.
+    static func store(_ data: Data, ext: String) -> String? {
+        let clean = String(ext.lowercased().filter { $0.isASCII && ($0.isLetter || $0.isNumber) }.prefix(5))
+        let id = UID.make("audio") + "." + (clean.isEmpty ? "m4a" : clean)
+        do {
+            try data.write(to: directory.appendingPathComponent(id))
+            return id
+        } catch {
+            return nil
+        }
+    }
+
     /// Where a soundtrack's original file name is kept.
     private static func nameFile(for id: String) -> URL {
         directory.appendingPathComponent(id + nameSuffix)

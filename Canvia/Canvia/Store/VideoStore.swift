@@ -179,6 +179,18 @@ enum VideoStore {
         return seconds
     }
 
+    /// The clip's length in seconds when it has sound to hear; nil for one
+    /// filmed without, or one that cannot be read. Read without blocking,
+    /// for the sound that plays live and the video's mix.
+    static func soundLength(of id: String) async -> Double? {
+        guard let url = url(for: id) else { return nil }
+        let asset = AVURLAsset(url: url)
+        guard let tracks = try? await asset.loadTracks(withMediaType: .audio), !tracks.isEmpty,
+              let duration = try? await asset.load(.duration), duration.isNumeric,
+              duration.seconds > 0.01 else { return nil }
+        return duration.seconds
+    }
+
     private static func generator(for id: String) -> AVAssetImageGenerator? {
         if let g = generators[id] { return g }
         guard let url = url(for: id) else { return nil }

@@ -6,6 +6,9 @@
 // a tap on a linked element to open its link, a clock, the page's notes for
 // the person holding the phone, and autoplay on each page's own timing.
 // Hidden pages are stepped over, and left out of the count.
+// The clips on the page are heard while it is up, and the music runs on
+// under the whole talk from where the first page comes in the video, fading
+// out as it ends; a speaker button turns the sound off for this talk.
 
 import SwiftUI
 
@@ -33,6 +36,19 @@ struct PresentationView: View {
     /// Said for a moment when a link has no app here to open it.
     @State private var linkRefused: String?
     @State private var refusedTask: Task<Void, Never>?
+    @Environment(\.scenePhase) private var scenePhase
+    /// What is heard: the page's clips from when it came up, the music from
+    /// `musicFrom` seconds into the video when the talk began.
+    @State private var sound = PageSound(presenting: true)
+    /// Off for this talk only.
+    @State private var soundOn = true
+    /// Whether the design has anything to hear on this phone, so the
+    /// speaker button is only there when it does something.
+    @State private var heard = false
+    @State private var musicFrom = 0.0
+    /// Gone to the background, where the sound stopped, to start again on
+    /// the way back.
+    @State private var away = false
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     private var page: Page { design.pages[min(index, design.pages.count - 1)] }
@@ -71,15 +87,29 @@ struct PresentationView: View {
             let asked = min(max(startPage, 0), design.pages.count - 1)
             index = PageVisibility.start(at: asked, in: design.visiblePageIndices) ?? asked
             started = Date()
+            musicFrom = AudioMix.pageStart(design: design, index: index)
             UIApplication.shared.isIdleTimerDisabled = true
             pageArrived()
         }
         .onDisappear {
             autoplayTask?.cancel()
             settleTask?.cancel()
+            sound.stop(fade: true)
             UIApplication.shared.isIdleTimerDisabled = false
         }
         .onReceive(clock) { _ in elapsed = Date().timeIntervalSince(started) }
+        .task { heard = await PageSound.heard(in: design) }
+        // Silent in the background; on the way back the page's clips start
+        // again from its clock, and the music from the talk's.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background {
+                away = true
+                sound.stop()
+            } else if phase == .active, away {
+                away = false
+                startSound()
+            }
+        }
     }
 
     private func pageView(in size: CGSize) -> some View {
@@ -231,11 +261,12 @@ struct PresentationView: View {
     }
 
     /// The page just came up: its clock starts, and stops once all of it is
-    /// at rest.
+    /// at rest; its clips are heard from now, the music playing on.
     private func pageArrived() {
         shownAt = Date()
         settled = false
         settleTask?.cancel()
+        startSound()
         let end = motionEnd(page)
         guard end.isFinite else { return }
         let showing = index
@@ -244,6 +275,17 @@ struct PresentationView: View {
             guard !Task.isCancelled, showing == index else { return }
             settled = true
         }
+    }
+
+    /// The sound with the page's clock: the clips of the page up, the music
+    /// on from where it is in the talk; none with the sound off.
+    private func startSound() {
+        guard soundOn else {
+            sound.stop()
+            return
+        }
+        sound.music(design: design, offset: musicFrom, since: started)
+        sound.page(AudioMix.clips(design: design, page: page), since: shownAt)
     }
 
     /// How `page` gives way to the next: its own transition, else the
@@ -264,6 +306,15 @@ struct PresentationView: View {
                     .font(.system(.body, design: .monospaced))
                     .accessibilityLabel("Elapsed \(timeString)")
                 Spacer()
+                if heard {
+                    Button {
+                        soundOn.toggle()
+                        startSound()
+                    } label: {
+                        Image(systemName: soundOn ? "speaker.wave.2.fill" : "speaker.slash.fill").padding(10)
+                    }
+                    .accessibilityLabel(soundOn ? "Sound on" : "Sound off")
+                }
                 Button {
                     autoplay.toggle()
                     if autoplay { scheduleAdvance() } else { autoplayTask?.cancel() }
