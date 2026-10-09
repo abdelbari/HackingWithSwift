@@ -56,11 +56,12 @@ enum VideoStore {
 
     /// Where a stamped moment falls in a clip `duration` long. A stamp has
     /// been through `clipTime` already, so it is taken as it is, kept within
-    /// the clip; one past the end can only have been stamped before the
-    /// clip's length was known, and loops over the whole file.
+    /// the clip — its hundredths can round it a little past the end. One
+    /// further past the end can only have been stamped before the clip's
+    /// length was known, and loops over the whole file.
     static func stampedTime(_ t: Double, duration: Double) -> Double {
         guard duration > 0.01 else { return 0 }
-        if t > duration { return loopedTime(t, duration: duration) }
+        if t > duration + 0.01 { return loopedTime(t, duration: duration) }
         return min(max(0, t), duration - 0.01)
     }
 

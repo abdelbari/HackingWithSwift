@@ -42,6 +42,7 @@ final class ClipPlaybackTests: XCTestCase {
     func testAStampedTimeIsTakenAsItIs() {
         XCTAssertEqual(VideoStore.stampedTime(4, duration: 10), 4, accuracy: 0.0001)
         XCTAssertEqual(VideoStore.stampedTime(10, duration: 10), 9.99, accuracy: 0.0001, "kept within the clip")
+        XCTAssertEqual(VideoStore.stampedTime(10.00, duration: 9.9963), 9.9863, accuracy: 0.0001, "rounded past the end, held on the last frame")
         XCTAssertEqual(VideoStore.stampedTime(13, duration: 10), 3, accuracy: 0.0001, "past the end, it loops")
         XCTAssertEqual(VideoStore.stampedTime(-1, duration: 10), 0, accuracy: 0.0001)
         XCTAssertEqual(VideoStore.stampedTime(3, duration: 0), 0)
