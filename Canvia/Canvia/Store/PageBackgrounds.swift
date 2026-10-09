@@ -40,19 +40,42 @@ extension DesignStore {
 
     /// Photo `id` becomes the page's background and leaves the page, as one
     /// step. A photo with a look is baked first, so the background shows
-    /// what the photo showed.
+    /// what the photo showed: drawn here, then encoded and written off the
+    /// main actor, as the Android twin bakes it, and made the background
+    /// only if the photo is still on this page and may still become it.
+    /// Returns the baking, when there is one, for a caller to wait on.
     @MainActor
-    func useAsBackground(_ id: String) {
+    @discardableResult
+    func useAsBackground(_ id: String) -> Task<Void, Never>? {
         guard let photo = element(id), Self.canBecomeBackground(photo), let src = photo.src else {
             buzz(.reject)
-            return
+            return nil
         }
-        let shown: String? = Self.hasLook(photo) ? Self.bakedPicture(photo) : src
-        guard let picture = shown else {
+        guard Self.hasLook(photo) else {
+            takeAsBackground(id, picture: src)
+            return nil
+        }
+        guard let image = Self.bakedImage(photo) else {
             buzz(.reject)
             announce("Couldn't make that photo the background", undoable: false)
-            return
+            return nil
         }
+        return Task { @MainActor in
+            let stored = await Task.detached(priority: .userInitiated) { DesignStore.storeBaked(image) }.value
+            // The photo may have gone meanwhile, or the page with it; it is
+            // this photo, on this page, that becomes the background.
+            guard let picture = stored, let now = self.element(id), DesignStore.canBecomeBackground(now) else {
+                self.buzz(.reject)
+                self.announce("Couldn't make that photo the background", undoable: false)
+                return
+            }
+            self.takeAsBackground(id, picture: picture)
+        }
+    }
+
+    /// Photo `id` off the page and `picture` behind it, as one step.
+    @MainActor
+    private func takeAsBackground(_ id: String, picture: String) {
         applyToPage { page in
             page.elements.removeAll { $0.id == id }
             page.background = .image(picture)
@@ -78,13 +101,13 @@ extension DesignStore {
     }
 
     /// The photo drawn as it shows on the page — its look, crop, frame,
-    /// flips, straightening and corners — and stored as a new picture; not
-    /// where it sits, its turn, fade, shadow, blend or border, which belong
-    /// to the element and not to the picture. Drawn through the canvas's own
-    /// view, as the SVG export draws a picture, so it is what the editor
-    /// showed. nil when the picture cannot be read or stored.
+    /// flips, straightening and corners — as a new picture to store (see
+    /// storeBaked); not where it sits, its turn, fade, shadow, blend or
+    /// border, which belong to the element and not to the picture. Drawn
+    /// through the canvas's own view, as the SVG export draws a picture, so
+    /// it is what the editor showed. nil when the picture cannot be read.
     @MainActor
-    static func bakedPicture(_ el: Element) -> String? {
+    static func bakedImage(_ el: Element) -> UIImage? {
         guard el.w > 0, el.h > 0, let picture = PhotoLibrary.resolve(el.src) else { return nil }
         var upright = el
         upright.x = 0
@@ -98,7 +121,13 @@ extension DesignStore {
         let renderer = ImageRenderer(content: ElementView(element: upright).frame(width: el.w, height: el.h))
         renderer.scale = bakeScale(el, picture: picture.size)
         renderer.isOpaque = false
-        guard let image = renderer.uiImage, let cg = image.cgImage else { return nil }
+        return renderer.uiImage
+    }
+
+    /// A baked picture stored, off the main actor, where its encode and
+    /// write belong; nil when it cannot be.
+    static func storeBaked(_ image: UIImage) -> String? {
+        guard let cg = image.cgImage else { return nil }
         // A frame's shape or round corners leave the corners clear, which
         // only PNG keeps; anything square goes as a photograph.
         return ImageDownsampler.hasTransparentPixels(cg)
