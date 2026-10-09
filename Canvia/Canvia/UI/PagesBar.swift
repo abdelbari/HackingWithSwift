@@ -170,7 +170,7 @@ private struct PageNotesSheet: View {
                     Stepper(value: Binding(
                         get: { hold },
                         set: { v in finishNotes(); store.applyToPage { $0.holdSeconds = v } }),
-                            in: MotionSettings.secondsRange, step: 0.5) {
+                            in: MotionSettings.pageHoldRange, step: 0.5) {
                         Text("Hold \(String(format: "%.1f", hold))s" + (store.page.holdSeconds == nil ? " (document setting)" : ""))
                     }
                     Picker("Transition to the next page", selection: Binding(

@@ -115,4 +115,76 @@ final class ClipPlaybackTests: XCTestCase {
         let back = try JSONDecoder().decode(Element.self, from: JSONEncoder().encode(el))
         XCTAssertEqual(back.clip, el.clip)
     }
+
+    // MARK: store
+
+    @MainActor
+    func testEachClipChangeIsOneStepAndTheDefaultsRemoveTheKey() throws {
+        var design = Design(title: "clip", width: 1000, height: 1000)
+        let clip = Element.image(VideoStore.src("vid_1", at: nil), w: 320, h: 180)
+        let photo = Element.image("media:img_1", w: 320, h: 180)
+        design.pages[0].elements = [clip, photo]
+        let s = DesignStore(design: design)
+        s.select(clip.id)
+        s.setClip(ClipPlayback(start: 2, end: 6, speed: 2))
+        XCTAssertEqual(s.element(clip.id)?.clip, ClipPlayback(start: 2, end: 6, speed: 2))
+        s.setClip(ClipPlayback(start: 2, end: 6, speed: 2, loop: false))
+        XCTAssertEqual(s.element(clip.id)?.clip?.loop, false)
+        s.undo()
+        XCTAssertEqual(s.element(clip.id)?.clip?.loop, true, "one step for the loop")
+        s.setClip(ClipPlayback())
+        XCTAssertNil(s.element(clip.id)?.clip, "every default is no clip at all")
+        XCTAssertFalse(try hasClipKey(try XCTUnwrap(s.element(clip.id))))
+        s.undo()
+        XCTAssertEqual(s.element(clip.id)?.clip, ClipPlayback(start: 2, end: 6, speed: 2))
+
+        // A photo has no clip to set, and nothing is recorded for it.
+        s.select(photo.id)
+        let steps = s.historyVersion
+        s.setClip(ClipPlayback(start: 1))
+        XCTAssertNil(s.element(photo.id)?.clip)
+        XCTAssertEqual(s.historyVersion, steps)
+    }
+
+    func testAPageCanHoldForAMinute() {
+        XCTAssertEqual(MotionSettings.pageHoldRange.upperBound, 60)
+        XCTAssertEqual(MotionSettings.secondsRange.upperBound, 10, "the document's seconds per page stays at ten")
+        var d = Design(title: "long", width: 320, height: 240)
+        d.pages[0].holdSeconds = 60
+        let timeline = MovieExporter.timeline(design: d, settings: MovieExporter.Settings(d.motion))
+        XCTAssertEqual(timeline.first?.frames, 60 * MovieExporter.Settings(d.motion).fps)
+    }
+
+    /// A real clip: the page fits it, and at rest a trimmed clip draws the
+    /// frame at its start.
+    @MainActor
+    func testFitPageToClipAndTheTrimmedPoster() async throws {
+        var d = Design(title: "clip", width: 320, height: 240)
+        d.pages[0].background = .color("#2040ff")
+        var m = MotionSettings(); m.secondsPerPage = 2; m.fps = 24; m.movement = false; m.crossfade = false
+        d.motion = m
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("clip-\(UUID()).mp4")
+        try await MovieExporter.exportMP4(design: d, settings: MovieExporter.Settings(d.motion), to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let id = try XCTUnwrap(VideoStore.store(try Data(contentsOf: url), ext: "mp4"))
+        defer { VideoStore.delete(id) }
+        let length = try XCTUnwrap(VideoStore.duration(of: id))
+
+        var design = Design(title: "fit", width: 1000, height: 1000)
+        var el = Element.image(VideoStore.src(id, at: nil), w: 320, h: 240)
+        el.clip = ClipPlayback(start: 0.5, speed: 2)
+        design.pages[0].elements = [el]
+        let s = DesignStore(design: design)
+        s.select(el.id)
+        s.fitPageToClip()
+        let expected = VideoStore.fitHold(ClipPlayback(start: 0.5, speed: 2), duration: length)
+        XCTAssertEqual(s.page.holdSeconds ?? 0, expected, accuracy: 0.0001)
+        XCTAssertEqual(expected, 0.75, accuracy: 0.11)
+        s.undo()
+        XCTAssertNil(s.page.holdSeconds, "one step")
+
+        XCTAssertNotNil(VideoStore.resolve(VideoStore.src(id, at: 0.5)), "the frame at the start")
+        XCTAssertNotNil(VideoStore.resolve(VideoStore.src(id, at: length + 0.3)), "a stamp past the end loops")
+        XCTAssertEqual(s.element(el.id)?.src, VideoStore.src(id, at: nil), "the saved source is never stamped")
+    }
 }
