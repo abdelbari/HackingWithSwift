@@ -363,6 +363,15 @@ final class WordSpansTests: XCTestCase {
         XCTAssertGreaterThan(FontLibrary.naturalWidth(for: el), 0)
     }
 
+    func testLargerWordsKeepTheLinePitchAsOnAndroid() {
+        // Set tighter than the face's own lines: none of them grows.
+        var el = Element.text("Big sale\nsoon", fontSize: 40, w: 1000)
+        el.lineHeight = 0.9
+        let plain = FontLibrary.measuredHeight(for: el)
+        el.setSpans([span(4, 8, scale: Spans.larger)])
+        XCTAssertEqual(FontLibrary.measuredHeight(for: el), plain, accuracy: 0.5, "every line still 36 apart")
+    }
+
     func testAPageTokensColourStaysOnItsNumber() {
         var el = Element.text("Page {page} of {pages}")
         el.setSpans([span(5, 11, red)])
