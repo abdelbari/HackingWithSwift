@@ -200,6 +200,7 @@ struct EffectsSheet: View {
     private func tile(_ effect: TextEffect) -> some View {
         let active = current == effect
         return Button {
+            settleColour()
             store.updateSelected {
                 guard $0.effect?.type != effect.rawValue else { return }
                 $0.effect = TextEffectSpec(type: effect.rawValue)
@@ -237,6 +238,7 @@ struct EffectsSheet: View {
                 Text("Adjust").font(.headline)
                 Spacer()
                 Button("Reset") {
+                    settleColour()
                     store.updateSelected { el in
                         guard TextEffect.from(el.effect) == effect, let type = el.effect?.type else { return }
                         el.effect = TextEffectSpec(type: type)
@@ -255,6 +257,13 @@ struct EffectsSheet: View {
                 colorRow("Second colour", of: effect, second: true)
             }
         }
+    }
+
+    /// A colour picked a moment ago, closed as a step of its own: the
+    /// picker never says when it is done, so the next control does it
+    /// rather than fold the colour into its own Undo.
+    private func settleColour() {
+        if store.hasPendingChanges { store.commit() }
     }
 
     /// Every selected, unlocked text with this effect, changed while a
@@ -282,7 +291,7 @@ struct EffectsSheet: View {
                 get: { value },
                 set: { v in live(effect) { $0.adjust(param, to: v) } }
             ), in: param.range, step: 1, onEditingChanged: { editing in
-                if !editing { store.commit() }
+                if editing { settleColour() } else { store.commit() }
             })
             .accessibilityLabel("\(effect.displayName) \(param.label.lowercased())")
             .accessibilityValue(readout)
@@ -304,6 +313,7 @@ struct EffectsSheet: View {
                 Toggle("Auto", isOn: Binding(
                     get: { held == nil },
                     set: { on in
+                        settleColour()
                         store.updateSelected { el in
                             guard TextEffect.from(el.effect) == effect else { return }
                             el.effect?.setColor(on ? nil : shown)
