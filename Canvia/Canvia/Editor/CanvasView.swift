@@ -1188,7 +1188,7 @@ struct CanvasView: View {
         store.beginGesture()
         guard let i = store.design.pages[store.pageIndex].elements.firstIndex(where: { $0.id == id }),
               store.design.pages[store.pageIndex].elements[i].text != words else { return }
-        store.design.pages[store.pageIndex].elements[i].text = words
+        store.design.pages[store.pageIndex].elements[i].setText(words)
         let h = FontLibrary.layoutHeight(for: store.design.pages[store.pageIndex].elements[i])
         store.design.pages[store.pageIndex].elements[i].h = h
     }

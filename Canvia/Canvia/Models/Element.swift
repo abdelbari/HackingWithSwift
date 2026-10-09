@@ -303,6 +303,12 @@ struct Element: Codable, Equatable, Identifiable {
     /// Characters stacked top to bottom in columns that run right to left,
     /// the way Japanese and Chinese are set on a poster.
     var vertical: Bool?
+    /// Colours and sizes on chosen words, in offsets into the words as they
+    /// read (see Spans); nil when there are none.
+    var spans: [TextSpan]?
+    /// The words as they read when `spans` were made: spans made for other
+    /// words are ignored, and not kept.
+    var spansText: String?
 
     // image
     var src: String?
@@ -393,6 +399,13 @@ struct Element: Codable, Equatable, Identifiable {
         curve = try? c.decode(Double.self, forKey: .curve)
         textPath = try? c.decode(String.self, forKey: .textPath)
         vertical = try? c.decode(Bool.self, forKey: .vertical)
+        // Spans made for other words than these — the words changed by a
+        // build that does not carry them along — are left behind.
+        let madeFor = try? c.decode(String.self, forKey: .spansText)
+        let live = Spans.live(try? c.decode([TextSpan].self, forKey: .spans), madeFor: madeFor,
+                              plain: RichText.strip(text ?? ""))
+        spans = live.isEmpty ? nil : live
+        spansText = live.isEmpty ? nil : madeFor
         src = try? c.decode(String.self, forKey: .src)
         filter = try? c.decode(String.self, forKey: .filter)
         maskShapeId = try? c.decode(String.self, forKey: .maskShapeId)
@@ -434,6 +447,7 @@ struct Element: Codable, Equatable, Identifiable {
         case shapeId, pathData, fill, stroke, strokeWidth, radius, corners
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
+        case spans, spansText
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, kenBurns
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit, clip
         case glyph

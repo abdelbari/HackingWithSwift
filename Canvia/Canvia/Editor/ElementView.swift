@@ -40,10 +40,9 @@ struct ElementView: View {
     /// known: what a reveal counts and cuts, so the words that appear are the
     /// words that stay — as the Android twin reveals them.
     private var resolved: Element {
-        guard let pageNumber, let raw = element.text, raw.contains("{page") else { return element }
+        guard let pageNumber, element.text?.contains("{page") == true else { return element }
         var el = element
-        el.text = raw.replacingOccurrences(of: "{page}", with: String(pageNumber.number))
-            .replacingOccurrences(of: "{pages}", with: String(pageNumber.count))
+        el.fillPageTokens(number: pageNumber.number, count: pageNumber.count)
         return el
     }
 
@@ -68,7 +67,7 @@ struct ElementView: View {
                 el.fontSize = FontLibrary.fittingFontSize(for: resolved)
                 el.fitText = nil
             }
-            el.text = RichText.revealed(text, count: n)
+            el.setText(RichText.revealed(text, count: n))
         }
         if let clock = animationTime, let drift = el.kenBurns, el.type == .image {
             let crop = drift.crop(from: el, fraction: clock.hold > 0 ? clock.time / clock.hold : 0)
@@ -219,9 +218,8 @@ struct TextElementView: View {
         var el = element
         let effect = TextEffect.from(el.effect)
         // Page tokens resolve here, where the page is known.
-        if let pageNumber, let raw = el.text, raw.contains("{page") {
-            el.text = raw.replacingOccurrences(of: "{page}", with: String(pageNumber.number))
-                .replacingOccurrences(of: "{pages}", with: String(pageNumber.count))
+        if let pageNumber {
+            el.fillPageTokens(number: pageNumber.number, count: pageNumber.count)
         }
         let text = FontLibrary.displayText(for: el)
         guard !text.isEmpty else { return }
@@ -279,22 +277,42 @@ struct TextElementView: View {
         // underline and strike included, and lays its own colour or stroke
         // over every run — so a **bold** word stays bold in outline, splice,
         // echo and glitch, as the Android twin draws them from one layout.
+        // Words in a colour of their own keep it through the effects: the
+        // hollow letters are stroked in it, and Auto copies follow it.
         let styled = FontLibrary.attributedString(for: el)
+        let whole = NSRange(location: 0, length: styled.length)
         func over(_ extra: [NSAttributedString.Key: Any]) -> NSAttributedString {
             let copy = NSMutableAttributedString(attributedString: styled)
-            copy.addAttributes(extra, range: NSRange(location: 0, length: copy.length))
+            copy.addAttributes(extra, range: whole)
             return copy
         }
+        /// The letters, each in its own colour turned `alpha` see-through.
+        func faded(_ alpha: Double) -> NSAttributedString {
+            let copy = NSMutableAttributedString(attributedString: styled)
+            styled.enumerateAttribute(.foregroundColor, in: whole) { value, part, _ in
+                let ink = value as? UIColor ?? color
+                copy.addAttribute(.foregroundColor, value: ink.withAlphaComponent(alpha), range: part)
+            }
+            return copy
+        }
+        // Splice's and echo's copies follow the letters' colour unless they
+        // have one of their own.
+        let copiesFollow = (effect == .splice || effect == .echo) && el.effect?.color == nil
         // The copies splice, glitch and echo lay behind the letters.
         for copy in fx.copies {
-            over([.foregroundColor: UIColor(hex: copy.color).withAlphaComponent(copy.alpha)])
-                .draw(in: rect.offsetBy(dx: copy.dx, dy: copy.dy))
+            let drawn = copiesFollow ? faded(copy.alpha)
+                : over([.foregroundColor: UIColor(hex: copy.color).withAlphaComponent(copy.alpha)])
+            drawn.draw(in: rect.offsetBy(dx: copy.dx, dy: copy.dy))
         }
         switch effect {
         case .outline, .splice:
-            over([.strokeColor: color,
-                  .strokeWidth: NSNumber(value: fx.stroke / fontSize * 100),
-                  .foregroundColor: UIColor.clear]).draw(in: rect)
+            let hollow = NSMutableAttributedString(attributedString: styled)
+            styled.enumerateAttribute(.foregroundColor, in: whole) { value, part, _ in
+                hollow.addAttribute(.strokeColor, value: value as? UIColor ?? color, range: part)
+            }
+            hollow.addAttributes([.strokeWidth: NSNumber(value: fx.stroke / fontSize * 100),
+                                  .foregroundColor: UIColor.clear], range: whole)
+            hollow.draw(in: rect)
         case .neon:
             // Multiple passes deepen the glow.
             styled.draw(in: rect)
@@ -417,37 +435,50 @@ struct TextElementView: View {
         var el = resolved
         el.w = size.width
         el.h = size.height
-        guard let path = TextOutliner.path(for: el) else { return }
+        // The glyphs by the colour each word is set in; the box's own first.
+        guard let outlines = TextOutliner.inkedPaths(for: el) else { return }
+        let path = outlines.whole, parts = outlines.parts
         let fontSize = el.fontSize ?? 42
-        let color = UIColor(hex: el.color ?? "#1f2430")
-        let fx = TextEffect.resolve(el.effect, fontSize: fontSize, ink: el.color ?? "#1f2430")
+        let ink = el.color ?? "#1f2430"
+        let fx = TextEffect.resolve(el.effect, fontSize: fontSize, ink: ink)
+        func fillParts(alpha: Double = 1) {
+            for part in parts {
+                cg.addPath(part.path)
+                cg.setFillColor(UIColor(hex: part.color ?? ink).withAlphaComponent(alpha).cgColor)
+                cg.fillPath()
+            }
+        }
 
         if fx.casts { Self.castShadow(fx, in: cg) }
 
         switch effect {
         case .outline, .splice:
-            cg.addPath(path)
-            cg.setStrokeColor(color.cgColor)
             cg.setLineWidth(TextEffect.outlineStroke(fontSize: fontSize,
                                                      thickness: TextEffect.value(el.effect, .thickness, for: effect)))
             cg.setLineJoin(.round)
-            cg.strokePath()
+            for part in parts {
+                cg.addPath(part.path)
+                cg.setStrokeColor(UIColor(hex: part.color ?? ink).cgColor)
+                cg.strokePath()
+            }
         case .glitch, .echo:
+            // Echo's Auto copies follow each word's colour, as on a line.
+            let copiesFollow = effect == .echo && el.effect?.color == nil
             for copy in fx.copies {
                 cg.saveGState()
                 cg.translateBy(x: copy.dx, y: copy.dy)
-                cg.addPath(path)
-                cg.setFillColor(UIColor(hex: copy.color).withAlphaComponent(copy.alpha).cgColor)
-                cg.fillPath()
+                if copiesFollow {
+                    fillParts(alpha: copy.alpha)
+                } else {
+                    cg.addPath(path)
+                    cg.setFillColor(UIColor(hex: copy.color).withAlphaComponent(copy.alpha).cgColor)
+                    cg.fillPath()
+                }
                 cg.restoreGState()
             }
-            cg.addPath(path)
-            cg.setFillColor(color.cgColor)
-            cg.fillPath()
+            fillParts()
         default:
-            cg.addPath(path)
-            cg.setFillColor(color.cgColor)
-            cg.fillPath()
+            fillParts()
             // The outline is a path, so the gradient clips to it directly —
             // no mask, no flip; the path is already in this context's space.
             if let fill = el.textFill, fill.kind == "gradient" {

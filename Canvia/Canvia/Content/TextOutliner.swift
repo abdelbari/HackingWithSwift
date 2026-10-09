@@ -27,16 +27,104 @@ enum TextOutliner {
     static let straightBelowDegrees = 1.0
 
     static func path(for el: Element) -> CGPath? {
+        ink(for: el)?.joined
+    }
+
+    /// The same glyphs, whole and apart by the colour each word is set in
+    /// (see Spans): nil for the element's own, which comes first when it is
+    /// there. One part, in nil, when no word has a colour of its own.
+    static func inkedPaths(for el: Element) -> (whole: CGPath, parts: [InkedPath])? {
+        guard let ink = ink(for: el), let whole = ink.joined else { return nil }
+        return (whole, ink.parts)
+    }
+
+    /// Glyphs in one colour.
+    struct InkedPath {
+        /// "#rrggbb", or nil for the element's own colour.
+        var color: String?
+        var path: CGPath
+    }
+
+    private static func ink(for el: Element) -> Ink? {
         if el.vertical == true {
-            return verticalPath(for: el)
+            return verticalInk(for: el)
         }
         if let data = el.textPath, !data.isEmpty {
-            return pathText(for: el, data: data)
+            return pathTextInk(for: el, data: data)
         }
         if let degrees = el.curve, abs(degrees) >= straightBelowDegrees {
-            return curvedPath(for: el, degrees: degrees)
+            return curvedInk(for: el, degrees: degrees)
         }
-        return straightPath(for: el)
+        return straightInk(for: el)
+    }
+
+    /// Glyph outlines as they are gathered: all together, and apart by the
+    /// colour each was set in — with the underlines and strikes, which are
+    /// joined to the letters at the end.
+    private final class Ink {
+        let all = CGMutablePath()
+        let allRules = CGMutablePath()
+        private var glyphs: [(color: String?, path: CGMutablePath)] = []
+        private var rules: [(color: String?, path: CGMutablePath)] = []
+
+        var isEmpty: Bool { all.isEmpty }
+
+        func add(_ glyph: CGPath, transform: CGAffineTransform, color: String?) {
+            all.addPath(glyph, transform: transform)
+            Self.part(color, in: &glyphs).addPath(glyph, transform: transform)
+        }
+
+        func addRule(_ rect: CGRect, color: String?) {
+            allRules.addRect(rect)
+            Self.part(color, in: &rules).addRect(rect)
+        }
+
+        private static func part(_ color: String?, in parts: inout [(color: String?, path: CGMutablePath)]) -> CGMutablePath {
+            if let found = parts.first(where: { $0.color == color }) { return found.path }
+            let path = CGMutablePath()
+            parts.append((color: color, path: path))
+            return path
+        }
+
+        /// Everything, as one path.
+        var joined: CGPath? {
+            if all.isEmpty { return nil }
+            return allRules.isEmpty ? all : all.union(allRules)
+        }
+
+        /// By colour, the element's own first.
+        var parts: [InkedPath] {
+            let colours = (glyphs.map(\.color) + rules.map(\.color)).reduce(into: [String?]()) { seen, colour in
+                if !seen.contains(colour) { seen.append(colour) }
+            }
+            let ordered = colours.filter { $0 == nil } + colours.filter { $0 != nil }
+            return ordered.compactMap { colour -> InkedPath? in
+                let letters = glyphs.first { $0.color == colour }?.path
+                let rule = rules.first { $0.color == colour }?.path
+                switch (letters, rule) {
+                case let (letters?, rule?): return InkedPath(color: colour, path: letters.union(rule))
+                case let (letters?, nil): return InkedPath(color: colour, path: letters)
+                case let (nil, rule?): return InkedPath(color: colour, path: rule)
+                case (nil, nil): return nil
+                }
+            }
+        }
+
+        /// The same outlines moved by `transform`.
+        func transformed(_ transform: CGAffineTransform) -> Ink {
+            let out = Ink()
+            out.all.addPath(all, transform: transform)
+            out.allRules.addPath(allRules, transform: transform)
+            for part in glyphs { Self.part(part.color, in: &out.glyphs).addPath(part.path, transform: transform) }
+            for part in rules { Self.part(part.color, in: &out.rules).addPath(part.path, transform: transform) }
+            return out
+        }
+    }
+
+    /// The span colour a run of glyphs was set in, or nil for the element's.
+    private static func colour(of run: CTRun) -> String? {
+        let attributes = CTRunGetAttributes(run) as? [String: Any]
+        return attributes?[Spans.colourKey.rawValue] as? String
     }
 
     /// Whether the text is drawn as glyph outlines on a curve or a path
@@ -52,15 +140,14 @@ enum TextOutliner {
     /// path when it is shorter than the path and runs off the end when it is
     /// longer, so a box that is too small says so rather than squeezing.
     static func pathText(for el: Element, data: String) -> CGPath? {
-        let flat = FontLibrary.displayText(for: el)
-            .components(separatedBy: "\n")
-            .joined(separator: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !flat.isEmpty, el.w > 0, el.h > 0 else { return nil }
+        pathTextInk(for: el, data: data)?.joined
+    }
+
+    private static func pathTextInk(for el: Element, data: String) -> Ink? {
+        guard let attributed = flatLine(for: el), el.w > 0, el.h > 0 else { return nil }
         let walker = PathWalker(SVGPath.scaledPath(data, to: CGSize(width: el.w, height: el.h)))
         guard walker.length > 1 else { return nil }
 
-        let attributed = NSAttributedString(string: flat, attributes: FontLibrary.attributes(for: el))
         let line = CTLineCreateWithAttributedString(attributed)
         let width = CTLineGetTypographicBounds(line, nil, nil, nil)
         guard width > 0.5, let runs = CTLineGetGlyphRuns(line) as? [CTRun] else { return nil }
@@ -68,13 +155,14 @@ enum TextOutliner {
         let declared = FontLibrary.uiFont(family: el.fontFamily, size: el.fontSize ?? 42,
                                           weight: el.fontWeight ?? 400, italic: el.italic ?? false)
 
-        let combined = CGMutablePath()
+        let ink = Ink()
         for run in runs {
             let count = CTRunGetGlyphCount(run)
             guard count > 0 else { continue }
             let attributes = CTRunGetAttributes(run) as? [String: Any]
             let uiFont = attributes?[kCTFontAttributeName as String] as? UIFont ?? declared
             let font = CTFontCreateWithName(uiFont.fontName as CFString, uiFont.pointSize, nil)
+            let tint = colour(of: run)
             var glyphs = [CGGlyph](repeating: 0, count: count)
             var positions = [CGPoint](repeating: .zero, count: count)
             var advances = [CGSize](repeating: .zero, count: count)
@@ -90,10 +178,29 @@ enum TextOutliner {
                     .rotated(by: here.angle)
                     .translatedBy(x: -advances[i].width / 2, y: 0)
                     .scaledBy(x: 1, y: -1)
-                combined.addPath(glyph, transform: transform)
+                ink.add(glyph, transform: transform, color: tint)
             }
         }
-        return combined.isEmpty ? nil : combined
+        return ink.isEmpty ? nil : ink
+    }
+
+    /// The words on one line, for a curve or a path: the lines joined by
+    /// spaces and the ends trimmed, in the box's type and the colours set on
+    /// words — never their sizes, which a curve does not take.
+    private static func flatLine(for el: Element) -> NSAttributedString? {
+        let joined = FontLibrary.displayText(for: el)
+            .components(separatedBy: "\n")
+            .joined(separator: " ")
+        let flat = joined.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !flat.isEmpty else { return nil }
+        let attributed = NSMutableAttributedString(string: flat, attributes: FontLibrary.attributes(for: el))
+        let colours = FontLibrary.displayColours(for: el)
+        if !colours.isEmpty {
+            // Moved back by the spaces trimmed from the start.
+            let lead = (joined as NSString).range(of: flat).location
+            FontLibrary.colourWords(attributed, colours, shift: -lead)
+        }
+        return attributed
     }
 
     /// Vertical writing: each character upright, stacked down a column at
@@ -101,6 +208,10 @@ enum TextOutliner {
     /// new column at every newline or when the box runs out. Latin letters
     /// stack upright too, the way a shop sign does.
     static func verticalPath(for el: Element) -> CGPath? {
+        verticalInk(for: el)?.joined
+    }
+
+    private static func verticalInk(for el: Element) -> Ink? {
         let text = FontLibrary.displayText(for: el)
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, el.w > 0, el.h > 0 else { return nil }
         let size = el.fontSize ?? 42
@@ -109,11 +220,22 @@ enum TextOutliner {
         let attrs = FontLibrary.attributes(for: el)
         let declared = FontLibrary.uiFont(family: el.fontFamily, size: size,
                                           weight: el.fontWeight ?? 400, italic: el.italic ?? false)
+        // Each character with where it is in the text, for its colour.
+        let colours = FontLibrary.displayColours(for: el)
+        func colour(at offset: Int) -> String? {
+            colours.first { $0.start <= offset && offset < $0.end }?.color
+        }
         // Columns: split at newlines, then at the box's height.
         let perColumn = max(1, Int(el.h / step))
-        var columns: [[Character]] = []
+        var columns: [[(char: Character, color: String?)]] = []
+        var offset = 0
         for paragraph in text.components(separatedBy: "\n") {
-            let chars = Array(paragraph)
+            var chars: [(char: Character, color: String?)] = []
+            for ch in paragraph {
+                chars.append((char: ch, color: colour(at: offset)))
+                offset += String(ch).utf16.count
+            }
+            offset += 1
             if chars.isEmpty { columns.append([]); continue }
             var i = 0
             while i < chars.count {
@@ -124,7 +246,7 @@ enum TextOutliner {
         // Columns run from the right; the block is centred across the box.
         let blockWidth = Double(columns.count) * columnWidth
         let rightEdge = el.w / 2 + blockWidth / 2
-        let combined = CGMutablePath()
+        let ink = Ink()
         for (c, column) in columns.enumerated() {
             let centreX = rightEdge - (Double(c) + 0.5) * columnWidth
             let columnHeight = Double(column.count) * step
@@ -134,8 +256,8 @@ enum TextOutliner {
             case "bottom": top = el.h - columnHeight
             default: top = 0
             }
-            for (r, ch) in column.enumerated() where ch != " " {
-                let line = CTLineCreateWithAttributedString(NSAttributedString(string: String(ch), attributes: attrs))
+            for (r, entry) in column.enumerated() where entry.char != " " {
+                let line = CTLineCreateWithAttributedString(NSAttributedString(string: String(entry.char), attributes: attrs))
                 var ascent: CGFloat = 0, descent: CGFloat = 0
                 let advance = CTLineGetTypographicBounds(line, &ascent, &descent, nil)
                 guard let runs = CTLineGetGlyphRuns(line) as? [CTRun] else { continue }
@@ -156,15 +278,15 @@ enum TextOutliner {
                         guard let glyph = CTFontCreatePathForGlyph(font, glyphs[i], nil) else { continue }
                         let transform = CGAffineTransform(translationX: centreX - advance / 2 + positions[i].x, y: baselineY)
                             .scaledBy(x: 1, y: -1)
-                        combined.addPath(glyph, transform: transform)
+                        ink.add(glyph, transform: transform, color: entry.color)
                     }
                 }
             }
         }
-        return combined.isEmpty ? nil : combined
+        return ink.isEmpty ? nil : ink
     }
 
-    private static func straightPath(for el: Element) -> CGPath? {
+    private static func straightInk(for el: Element) -> Ink? {
         let text = FontLibrary.displayText(for: el)
         guard !text.isEmpty, el.w > 0, el.h > 0 else { return nil }
 
@@ -192,31 +314,29 @@ enum TextOutliner {
                                           weight: el.fontWeight ?? 400,
                                           italic: el.italic ?? false)
 
-        let combined = CGMutablePath()
-        let rules = CGMutablePath()
+        let ink = Ink()
         for (index, line) in lines.enumerated() {
             let lineOrigin = origins[index]
             guard let runs = CTLineGetGlyphRuns(line) as? [CTRun] else { continue }
             for run in runs {
                 appendGlyphs(of: run, lineOrigin: lineOrigin, boxHeight: el.h,
-                             fallback: declared, to: combined)
+                             fallback: declared, to: ink)
                 appendRules(of: run, lineOrigin: lineOrigin, boxHeight: el.h,
-                            fallback: declared, to: rules)
+                            fallback: declared, to: ink)
             }
         }
-        if combined.isEmpty { return nil }
         // Underlines and strikethroughs are kept, as the canvas draws them
         // and as the Android twin's outlines keep them: a struck-out price
         // is not a price. Joined to the letters, so a rule crossing one
         // never cuts a hole through it.
-        return rules.isEmpty ? combined : combined.union(rules)
+        return ink.isEmpty ? nil : ink
     }
 
     /// The underline and strikethrough a run carries, as filled bars under
     /// and through its letters, at the face's own underline position and
     /// thickness — the strike halfway up the lower-case letters.
     private static func appendRules(of run: CTRun, lineOrigin: CGPoint, boxHeight: Double,
-                                    fallback: UIFont, to rules: CGMutablePath) {
+                                    fallback: UIFont, to ink: Ink) {
         let count = CTRunGetGlyphCount(run)
         guard count > 0 else { return }
         let attributes = CTRunGetAttributes(run) as? [String: Any] ?? [:]
@@ -232,20 +352,21 @@ enum TextOutliner {
         let x = Double(lineOrigin.x + first.x)
         let baseline = boxHeight - Double(lineOrigin.y + first.y)
         let thickness = max(1, Double(CTFontGetUnderlineThickness(font)))
+        let tint = colour(of: run)
         if underlined {
             // The position is below the baseline, negative in CoreText's
             // y-up space, and names the rule's centre.
             let centre = baseline - Double(CTFontGetUnderlinePosition(font))
-            rules.addRect(CGRect(x: x, y: centre - thickness / 2, width: width, height: thickness))
+            ink.addRule(CGRect(x: x, y: centre - thickness / 2, width: width, height: thickness), color: tint)
         }
         if struck {
             let centre = baseline - Double(CTFontGetXHeight(font)) / 2
-            rules.addRect(CGRect(x: x, y: centre - thickness / 2, width: width, height: thickness))
+            ink.addRule(CGRect(x: x, y: centre - thickness / 2, width: width, height: thickness), color: tint)
         }
     }
 
     private static func appendGlyphs(of run: CTRun, lineOrigin: CGPoint, boxHeight: Double,
-                                     fallback: UIFont, to combined: CGMutablePath) {
+                                     fallback: UIFont, to ink: Ink) {
         let count = CTRunGetGlyphCount(run)
         guard count > 0 else { return }
         let attributes = CTRunGetAttributes(run) as? [String: Any]
@@ -260,6 +381,7 @@ enum TextOutliner {
         let range = CFRange(location: 0, length: count)
         CTRunGetGlyphs(run, range, &glyphs)
         CTRunGetPositions(run, range, &positions)
+        let tint = colour(of: run)
 
         for i in 0..<count {
             guard let glyph = CTFontCreatePathForGlyph(font, glyphs[i], nil) else { continue }
@@ -269,7 +391,7 @@ enum TextOutliner {
             let x = lineOrigin.x + positions[i].x
             let y = boxHeight - (lineOrigin.y + positions[i].y)
             let transform = CGAffineTransform(translationX: x, y: y).scaledBy(x: 1, y: -1)
-            combined.addPath(glyph, transform: transform)
+            ink.add(glyph, transform: transform, color: tint)
         }
     }
 
@@ -285,14 +407,12 @@ enum TextOutliner {
     /// baseline bends, which is what makes it read as type on a curve rather
     /// than as type that has been squashed.
     static func curvedPath(for el: Element, degrees: Double) -> CGPath? {
-        let flat = FontLibrary.displayText(for: el)
-            .components(separatedBy: "\n")
-            .joined(separator: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !flat.isEmpty, el.w > 0, el.h > 0 else { return nil }
+        curvedInk(for: el, degrees: degrees)?.joined
+    }
 
-        let attributed = NSAttributedString(string: flat,
-                                            attributes: FontLibrary.attributes(for: el))
+    private static func curvedInk(for el: Element, degrees: Double) -> Ink? {
+        guard let attributed = flatLine(for: el), el.w > 0, el.h > 0 else { return nil }
+
         let line = CTLineCreateWithAttributedString(attributed)
         let width = CTLineGetTypographicBounds(line, nil, nil, nil)
         guard width > 0.5, let runs = CTLineGetGlyphRuns(line) as? [CTRun] else { return nil }
@@ -304,13 +424,14 @@ enum TextOutliner {
                                           weight: el.fontWeight ?? 400,
                                           italic: el.italic ?? false)
 
-        let combined = CGMutablePath()
+        let ink = Ink()
         for run in runs {
             let count = CTRunGetGlyphCount(run)
             guard count > 0 else { continue }
             let attributes = CTRunGetAttributes(run) as? [String: Any]
             let uiFont = attributes?[kCTFontAttributeName as String] as? UIFont ?? declared
             let font = CTFontCreateWithName(uiFont.fontName as CFString, uiFont.pointSize, nil)
+            let tint = colour(of: run)
 
             var glyphs = [CGGlyph](repeating: 0, count: count)
             var positions = [CGPoint](repeating: .zero, count: count)
@@ -332,19 +453,19 @@ enum TextOutliner {
                     .rotated(by: angle)
                     .translatedBy(x: -advances[i].width / 2, y: 0)
                     .scaledBy(x: 1, y: -1)
-                combined.addPath(glyph, transform: transform)
+                ink.add(glyph, transform: transform, color: tint)
             }
         }
-        guard !combined.isEmpty else { return nil }
+        guard !ink.isEmpty else { return nil }
 
         // Centre the arc in the element's box. Its own bounds are the only
         // honest anchor: where the apex lands depends on the angle, and a
         // fixed offset would slide the text off a steeply curved element.
-        let bounds = combined.boundingBoxOfPath
-        var centring = CGAffineTransform(
+        let bounds = ink.all.boundingBoxOfPath
+        let centring = CGAffineTransform(
             translationX: (el.w - bounds.width) / 2 - bounds.minX,
             y: (el.h - bounds.height) / 2 - bounds.minY)
-        return combined.copy(using: &centring)
+        return ink.transformed(centring)
     }
 
     /// The box a curved element needs. Bending a line of text makes it both

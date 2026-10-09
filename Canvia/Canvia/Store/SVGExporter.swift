@@ -40,9 +40,8 @@ enum SVGExporter {
         let drawn = design.masterElements(behind: page) + page.elements
         for (index, el) in drawn.enumerated() {
             var resolved = el
-            if el.type == .text, let raw = el.text, raw.contains("{page") {
-                resolved.text = raw.replacingOccurrences(of: "{page}", with: String(number))
-                    .replacingOccurrences(of: "{pages}", with: String(design.pages.count))
+            if el.type == .text {
+                resolved.fillPageTokens(number: number, count: design.pages.count)
             }
             body.append(elementGroup(resolved, index: index, defs: &defs))
         }
@@ -192,11 +191,21 @@ enum SVGExporter {
         if el.fitText == true, !TextOutliner.followsAPath(el) {
             drawn.fontSize = FontLibrary.fittingFontSize(for: el)
         }
-        guard let outline = TextOutliner.path(for: drawn) else { return "" }
+        guard let outlines = TextOutliner.inkedPaths(for: drawn) else { return "" }
         var shift = CGAffineTransform(translationX: 0, y: CGFloat(top))
-        let path: CGPath = top > 0 ? (outline.copy(using: &shift) ?? outline) : outline
-        let d = TextOutliner.svgPathData(path)
+        func data(_ outline: CGPath) -> String {
+            TextOutliner.svgPathData(top > 0 ? (outline.copy(using: &shift) ?? outline) : outline)
+        }
+        let d = data(outlines.whole)
         guard !d.isEmpty else { return "" }
+        let gradient = el.textFill?.kind == "gradient" && !(el.textFill?.stops ?? []).isEmpty
+        if !gradient, outlines.parts.contains(where: { $0.color != nil }) {
+            // Words in colours of their own: a path for each colour.
+            let paths = outlines.parts.map { part in
+                "<path d=\"\(data(part.path))\" fill=\"\(escape(part.color ?? el.color ?? "#1f2430"))\" fill-rule=\"nonzero\"/>"
+            }
+            return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + paths.joined() + "</g>"
+        }
         let paint: String
         if let fill = el.textFill, fill.kind == "gradient", let stops = fill.stops, !stops.isEmpty {
             // userSpaceOnUse over the text's part of the box rather than the

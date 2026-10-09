@@ -90,6 +90,8 @@ enum FontLibrary {
         let listStyle: String?
         let uppercase: Bool
         let width: Double
+        let spans: [TextSpan]?
+        let spansText: String?
     }
 
     private struct FontKey: Hashable {
@@ -240,16 +242,19 @@ enum FontLibrary {
     /// element's own attributes. In capitals the markers are read first and
     /// each run uppercased on its own, so a styled word keeps its style
     /// however much a letter grows.
+    /// Words in a colour or a size of their own (see Spans) are set so on
+    /// top — in capitals, moved as the runs are.
     static func attributedString(for el: Element) -> NSAttributedString {
         let marked = markedDisplayText(for: el, pageNumber: nil, pageCount: nil)
         let base = attributes(for: el)
         let capitals = el.uppercase == true
-        guard RichText.hasMarkup(marked) else {
+        let spans = displaySpans(for: el, marked: marked)
+        guard RichText.hasMarkup(marked) || !spans.isEmpty else {
             return NSAttributedString(string: capitals ? marked.uppercased() : marked, attributes: base)
         }
         let size = el.fontSize ?? 42
         let weight = el.fontWeight ?? 400
-        return RichText.attributed(marked, base: base, uppercase: capitals) { bold, italic in
+        return RichText.attributed(marked, base: base, uppercase: capitals, spans: spans) { bold, italic in
             uiFont(family: el.fontFamily, size: size,
                    weight: bold ? (weight >= 700 ? 900 : 700) : weight,
                    italic: italic || el.italic == true)
@@ -262,14 +267,89 @@ enum FontLibrary {
         if let pageNumber { raw = raw.replacingOccurrences(of: "{page}", with: String(pageNumber)) }
         if let pageCount { raw = raw.replacingOccurrences(of: "{pages}", with: String(pageCount)) }
         guard isList(el) else { return raw }
+        let lines = raw.components(separatedBy: "\n")
+        return zip(listPrefixes(for: el, lines: lines), lines).map { $0 + $1 }.joined(separator: "\n")
+    }
+
+    /// The marker each line of a list starts with, by line: none for a
+    /// blank one, which is not counted.
+    private static func listPrefixes(for el: Element, lines: [String]) -> [String] {
         var n = 0
-        return raw.components(separatedBy: "\n")
-            .map { line in
-                guard !line.trimmingCharacters(in: .whitespaces).isEmpty else { return line }
-                n += 1
-                return (listMarker(style: el.listStyle, index: n) ?? "") + line
+        return lines.map { line in
+            guard !line.trimmingCharacters(in: .whitespaces).isEmpty else { return "" }
+            n += 1
+            return listMarker(style: el.listStyle, index: n) ?? ""
+        }
+    }
+
+    // MARK: colours and sizes on words
+
+    /// The element's colours and sizes on words, moved from the words as
+    /// they read onto the display text before capitals — past a list's
+    /// markers, a line at a time. Colours are left out while the letters
+    /// are a gradient, which they would not show through. None when the
+    /// words do not read as the spans expect.
+    static func displaySpans(for el: Element, marked: String) -> [TextSpan] {
+        var spans = el.liveSpans
+        guard !spans.isEmpty else { return [] }
+        if el.textFill?.kind == "gradient" {
+            spans = Spans.normalised(spans.map { TextSpan(start: $0.start, end: $0.end, scale: $0.scale) })
+            guard !spans.isEmpty else { return [] }
+        }
+        guard isList(el) else { return spans }
+        // Each line moves along by the markers before it, its own included.
+        let typed = RichText.strip(el.text ?? "").components(separatedBy: "\n")
+        let raw = (el.text ?? "").components(separatedBy: "\n")
+        guard typed.count == raw.count else { return [] }
+        let prefixes = listPrefixes(for: el, lines: raw)
+        guard zip(prefixes, typed).map({ $0 + $1 }).joined(separator: "\n") == RichText.strip(marked) else { return [] }
+        var pieces: [TextSpan] = []
+        var lineStart = 0, shift = 0
+        for (prefix, line) in zip(prefixes, typed) {
+            shift += prefix.utf16.count
+            // The line and the break after it.
+            let next = lineStart + line.utf16.count + 1
+            for span in spans where span.start < next && span.end > lineStart {
+                var piece = span
+                piece.start = max(span.start, lineStart) + shift
+                piece.end = min(span.end, next) + shift
+                pieces.append(piece)
             }
-            .joined(separator: "\n")
+            lineStart = next
+        }
+        return Spans.normalised(pieces)
+    }
+
+    /// The colours on words over the display text itself, capitals and all:
+    /// what text round a curve, along a path or down a column is drawn in.
+    /// Sizes are left out there, where the letters keep the box's size.
+    static func displayColours(for el: Element) -> [TextSpan] {
+        let marked = markedDisplayText(for: el, pageNumber: nil, pageCount: nil)
+        let colours = displaySpans(for: el, marked: marked).compactMap { span -> TextSpan? in
+            span.color.map { TextSpan(start: span.start, end: span.end, color: $0) }
+        }
+        guard !colours.isEmpty else { return [] }
+        guard el.uppercase == true else { return colours }
+        let capitals = RichText.inCapitals(RichText.Parsed(plain: RichText.strip(marked), runs: []), spans: colours)
+        return capitals.parsed.plain == displayText(for: el) ? capitals.spans : []
+    }
+
+    /// `text` with the colours of `spans` on it, each moved by `shift`.
+    static func colourWords(_ text: NSMutableAttributedString, _ spans: [TextSpan], shift: Int = 0) {
+        for span in spans {
+            guard let color = span.color else { continue }
+            let start = max(span.start + shift, 0), end = min(span.end + shift, text.length)
+            guard end > start else { continue }
+            let range = NSRange(location: start, length: end - start)
+            text.addAttribute(.foregroundColor, value: UIColor(hex: color), range: range)
+            text.addAttribute(Spans.colourKey, value: color, range: range)
+        }
+    }
+
+    /// Whether some words are set larger or smaller than the box's type,
+    /// so measuring has to take them in.
+    static func hasSizedWords(_ el: Element) -> Bool {
+        el.liveSpans.contains { $0.scale != nil }
     }
 
     /// One indent level, in ems.
@@ -355,6 +435,9 @@ enum FontLibrary {
     /// The width the longest word needs at this size — the point below which
     /// a box does not narrow the text, it breaks it.
     static func naturalWidth(for el: Element) -> Double {
+        if hasSizedWords(el) {
+            return widest(attributedString(for: el), splitAtSpaces: true)
+        }
         let attrs = attributes(for: el)
         let words = displayText(for: el).split(whereSeparator: { $0 == " " || $0 == "\n" })
         return words.reduce(0.0) { widest, word in
@@ -364,10 +447,34 @@ enum FontLibrary {
 
     /// The width of the widest line, so a box can shrink onto its text.
     static func lineWidth(for el: Element) -> Double {
+        if hasSizedWords(el) {
+            return widest(attributedString(for: el), splitAtSpaces: false)
+        }
         let attrs = attributes(for: el)
         return displayText(for: el).components(separatedBy: "\n").reduce(0.0) { widest, line in
             max(widest, ceil(NSAttributedString(string: line, attributes: attrs).size().width))
         }
+    }
+
+    /// The widest line of `text` as it is set — or, splitting at spaces
+    /// too, its widest word — sized words and all.
+    private static func widest(_ text: NSAttributedString, splitAtSpaces: Bool) -> Double {
+        let ns = text.string as NSString
+        var widest = 0.0
+        var start = 0
+        func close(at end: Int) {
+            if end > start {
+                let width = text.attributedSubstring(from: NSRange(location: start, length: end - start)).size().width
+                widest = max(widest, ceil(width))
+            }
+            start = end + 1
+        }
+        for i in 0..<ns.length {
+            let unit = ns.character(at: i)
+            if unit == 10 || (splitAtSpaces && unit == 32) { close(at: i) }
+        }
+        close(at: ns.length)
+        return widest
     }
 
     // MARK: drop caps
@@ -411,7 +518,8 @@ enum FontLibrary {
     /// Natural height of a text element at its wrap width, ignoring any curve.
     static func measuredHeight(for el: Element) -> Double {
         let key = MeasureKey(typography: TypographyKey(el), text: el.text,
-                             listStyle: el.listStyle, uppercase: el.uppercase == true, width: el.w)
+                             listStyle: el.listStyle, uppercase: el.uppercase == true, width: el.w,
+                             spans: el.spans, spansText: el.spansText)
         return memoized(key, &heightCache) { measure(el) }
     }
 
@@ -431,8 +539,9 @@ enum FontLibrary {
             let below = ceil(overflowLines * narrow / el.w) * line
             return ceil(layout.capRect.height + below)
         }
-        let attrs = attributes(for: el)
-        let str = NSAttributedString(string: displayText(for: el), attributes: attrs)
+        // Words set larger or smaller are measured as they are drawn.
+        let str = hasSizedWords(el) ? attributedString(for: el)
+            : NSAttributedString(string: displayText(for: el), attributes: attributes(for: el))
         let bounds = str.boundingRect(
             with: CGSize(width: el.w, height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading],
