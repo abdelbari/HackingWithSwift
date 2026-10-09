@@ -1,4 +1,5 @@
-// A design as one file: the document plus every photo and clip it uses.
+// A design as one file: the document plus every photo and clip it uses,
+// and its music.
 //
 // The JSON on disk points at media by id, which means nothing outside this
 // app. A package inlines those files, so the design can be sent to someone,
@@ -28,6 +29,11 @@ enum DesignPackage {
         /// before clips travelled — or with none — still reads; the Android
         /// twin writes and reads the same.
         var videos: [String: Media]?
+        /// The soundtrack, by the id the design's `motion.soundtrack` names,
+        /// when it is small enough and of a type both phones play
+        /// (Soundtrack.packs). Optional like `videos`, so older files read,
+        /// and older readers pass over it.
+        var audio: [String: Media]?
     }
 
     /// The longest clip a file carries, in bytes; a longer one travels as
@@ -176,7 +182,19 @@ enum DesignPackage {
                 }
             }
         }
-        return Package(design: design, media: media, videos: videos.isEmpty ? nil : videos)
+        return Package(design: design, media: media, videos: videos.isEmpty ? nil : videos,
+                       audio: packedAudio(of: design))
+    }
+
+    /// The design's music, packed, when it is on this phone and travels;
+    /// otherwise none, and the design names music only the phone it was
+    /// chosen on has, as it always did.
+    static func packedAudio(of design: Design) -> [String: Media]? {
+        guard let id = design.motion?.soundtrack, let url = AudioStore.url(for: id) else { return nil }
+        let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+        let ext = url.pathExtension.lowercased()
+        guard Soundtrack.packs(bytes: size, ext: ext), let data = try? Data(contentsOf: url) else { return nil }
+        return [id: Media(ext: ext, data: data)]
     }
 
     /// The file's bytes. The slow part of an export — every photo and clip
@@ -297,6 +315,12 @@ enum DesignPackage {
         for (oldId, item) in package.videos ?? [:] {
             if let newId = VideoStore.store(item.data, ext: item.ext) { clips[oldId] = newId }
         }
+        // The music under a fresh id too, the design's soundtrack pointed
+        // at it.
+        var music: [String: String] = [:]
+        for (oldId, item) in package.audio ?? [:] {
+            if let newId = AudioStore.store(item.data, ext: item.ext) { music[oldId] = newId }
+        }
         func rewrite(_ src: String?) -> String? {
             guard let src else { return nil }
             if let parts = VideoStore.split(src) {
@@ -329,6 +353,9 @@ enum DesignPackage {
         // it, or an imported design silently loses its master.
         if let master = design.masterPageId {
             design.masterPageId = pageIds[master]
+        }
+        if let old = design.motion?.soundtrack, let moved = music[old] {
+            design.motion?.soundtrack = moved
         }
         if normalize { design.normalizeTextHeights() }
         return design

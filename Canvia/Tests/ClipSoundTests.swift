@@ -1,7 +1,8 @@
 // Sound: each clip's volume and mute in its `clip` JSON, the mix of clips
 // and music in the video (AudioMix.plan, the same table as the Android
 // twin's), where the music starts in Play, the clips a page is heard with,
-// and the video carrying a clip's sound.
+// the soundtrack travelling in a design file, and the video carrying a
+// clip's sound.
 
 import AVFoundation
 import XCTest
@@ -181,6 +182,79 @@ final class ClipSoundTests: XCTestCase {
         XCTAssertEqual(s.element(clip.id)?.clip, ClipPlayback(volume: 0.4), "one step for the mute")
         s.undo()
         XCTAssertNil(s.element(clip.id)?.clip, "one step for the volume")
+    }
+
+    // MARK: the design file
+
+    func testMusicTravelsWhenItIsSmallEnoughAndOfATypeBothPhonesPlay() {
+        let mb = 1024 * 1024
+        XCTAssertTrue(Soundtrack.packs(bytes: 20 * mb, ext: "MP3"))
+        XCTAssertTrue(Soundtrack.packs(bytes: mb, ext: "wav"))
+        XCTAssertTrue(Soundtrack.packs(bytes: mb, ext: "aac"))
+        XCTAssertFalse(Soundtrack.packs(bytes: 20 * mb + 1, ext: "m4a"))
+        XCTAssertFalse(Soundtrack.packs(bytes: mb, ext: "ogg"))
+        XCTAssertFalse(Soundtrack.packs(bytes: 0, ext: "m4a"))
+    }
+
+    func testTheSoundtrackTravelsUnderAudioAndComesBackAsTheDesignsMusic() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("pkg-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let song = dir.appendingPathComponent("Song.m4a")
+        let bytes = Data((0..<5000).map { UInt8(truncatingIfNeeded: $0 * 7) })
+        try bytes.write(to: song)
+        let id = try XCTUnwrap(AudioStore.store(song))
+        defer { AudioStore.delete(id) }
+
+        var d = Design(title: "Scored", width: 400, height: 300)
+        var m = MotionSettings(); m.soundtrack = id; m.soundVolume = 0.5
+        d.motion = m
+        let data = try DesignPackage.export(d, mediaDirectory: dir)
+        let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let audio = try XCTUnwrap(object["audio"] as? [String: Any])
+        let packed = try XCTUnwrap(audio[id] as? [String: Any])
+        XCTAssertEqual(packed["ext"] as? String, "m4a")
+        XCTAssertEqual((packed["data"] as? String).flatMap { Data(base64Encoded: $0) }, bytes)
+
+        // Stored under a fresh id, the design's soundtrack points at it, its
+        // volume kept.
+        let back = try DesignPackage.import(data, mediaDirectory: dir)
+        let moved = try XCTUnwrap(back.motion?.soundtrack)
+        defer { AudioStore.delete(moved) }
+        XCTAssertNotEqual(moved, id)
+        XCTAssertEqual(try Data(contentsOf: try XCTUnwrap(AudioStore.url(for: moved))), bytes)
+        XCTAssertEqual(back.motion?.soundVolume, 0.5)
+
+        // No music, or music not on this phone, writes no "audio".
+        let plain = try JSONSerialization.jsonObject(with: DesignPackage.export(Design(title: "Quiet"), mediaDirectory: dir)) as? [String: Any]
+        XCTAssertNil(plain?["audio"])
+        var elsewhere = d
+        elsewhere.motion?.soundtrack = "audio_elsewhere.m4a"
+        let away = try DesignPackage.import(try DesignPackage.export(elsewhere, mediaDirectory: dir), mediaDirectory: dir)
+        XCTAssertEqual(away.motion?.soundtrack, "audio_elsewhere.m4a", "music that did not travel is left as it was")
+    }
+
+    /// A file written by the Android twin, music first as the sorted keys
+    /// put it, opens with its music; the file type it names is kept to
+    /// letters and digits.
+    func testADesignFileWithMusicFromAndroidOpens() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("pkg-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var d = Design(title: "From Android", width: 400, height: 300)
+        var m = MotionSettings(); m.soundtrack = "audio-1.m4a"
+        d.motion = m
+        let design = try JSONSerialization.jsonObject(with: JSONEncoder().encode(d))
+        let file: [String: Any] = [
+            "audio": ["audio-1.m4a": ["data": "AQID", "ext": "../m4a"]],
+            "design": design, "format": "canvia-package", "media": [String: Any](), "version": 1,
+        ]
+        let back = try DesignPackage.import(try JSONSerialization.data(withJSONObject: file), mediaDirectory: dir)
+        let moved = try XCTUnwrap(back.motion?.soundtrack)
+        defer { AudioStore.delete(moved) }
+        XCTAssertTrue(moved.hasSuffix(".m4a"), moved)
+        XCTAssertFalse(moved.contains("/"))
+        XCTAssertEqual(try Data(contentsOf: try XCTUnwrap(AudioStore.url(for: moved))), Data([1, 2, 3]))
     }
 
     // MARK: the video

@@ -40,6 +40,19 @@ enum Soundtrack {
         return Plan(segments: segments, fadeOut: fadeOut)
     }
 
+    /// The longest music a design file carries, in bytes; longer music
+    /// stays on the phone it was chosen on.
+    static let maxPackedBytes = 20 * 1024 * 1024
+
+    /// The music types a design file carries — ones both phones play.
+    static let packable: Set<String> = ["m4a", "mp3", "aac", "wav"]
+
+    /// Whether music `bytes` long, of file type `ext`, travels in a design
+    /// file — the Android twin's rule too, so either phone packs the same.
+    static func packs(bytes: Int, ext: String) -> Bool {
+        bytes > 0 && bytes <= maxPackedBytes && packable.contains(ext.lowercased())
+    }
+
     /// One stretch's level on its track, from `start` to `end` in the
     /// video: its gain from where it begins, falling across whatever part of
     /// the fade it is under.
