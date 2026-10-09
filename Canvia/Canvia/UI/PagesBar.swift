@@ -225,8 +225,27 @@ private struct PageNotesSheet: View {
                         set: { v in finishTyping(); store.applyToPage { $0.transition = v == "default" ? nil : v } })) {
                         Text("Document setting").tag("default")
                         Text("Fade").tag("fade")
-                        Text("Cut").tag("cut")
                         Text("Slide").tag("slide")
+                        Text("Push").tag("push")
+                        Text("Wipe").tag("wipe")
+                        Text("Circle").tag("circle")
+                        Text("Zoom").tag("zoom")
+                        Text("Cut").tag("cut")
+                    }
+                    Picker("Length", selection: Binding(
+                        get: { PageTransitions.lengthName(store.page.transitionSeconds) },
+                        set: { name in
+                            finishTyping()
+                            let seconds = PageTransitions.lengths.first { $0.name == name }?.seconds
+                            store.applyToPage { $0.transitionSeconds = seconds }
+                        })) {
+                        ForEach(PageTransitions.lengths.map { $0.name }, id: \.self) { name in
+                            Text(name).tag(name)
+                        }
+                    }
+                    Button("Apply to all pages") {
+                        finishTyping()
+                        store.applyTransitionToAllPages()
                     }
                     if store.page.holdSeconds != nil {
                         Button("Use the document's timing") {

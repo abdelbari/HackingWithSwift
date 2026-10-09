@@ -1464,6 +1464,18 @@ final class DesignStore {
         applyToPage { $0.hidden = hidden ? true : nil }
     }
 
+    /// This page's transition and its length given to every page, hidden
+    /// ones too, as one undo step.
+    func applyTransitionToAllPages() {
+        let transition = page.transition, seconds = page.transitionSeconds
+        apply { d in
+            for i in d.pages.indices {
+                d.pages[i].transition = transition
+                d.pages[i].transitionSeconds = seconds
+            }
+        }
+    }
+
     /// Hide or show several pages in one undo step, as the organizer picks
     /// them.
     func setPagesHidden(_ ids: Set<String>, hidden: Bool) {
