@@ -269,12 +269,23 @@ enum RichText {
     /// and the runs moved to match, so a letter that grows — ß to SS — pushes
     /// the words after it along rather than out of their styles.
     static func inCapitals(_ parsed: Parsed) -> Parsed {
+        inCapitals(parsed, spans: []).parsed
+    }
+
+    /// The same, with colours and sizes on words (see Spans) over the plain
+    /// text: their ends are cut at too, and they move with the capitals as
+    /// the runs do — the Android twin maps them the same way.
+    static func inCapitals(_ parsed: Parsed, spans: [TextSpan]) -> (parsed: Parsed, spans: [TextSpan]) {
         let ns = parsed.plain as NSString
         var cuts: Set<Int> = [0]
         cuts.insert(ns.length)
         for run in parsed.runs {
             cuts.insert(run.range.location)
             cuts.insert(NSMaxRange(run.range))
+        }
+        for span in spans {
+            cuts.insert(min(max(span.start, 0), ns.length))
+            cuts.insert(min(max(span.end, 0), ns.length))
         }
         let sorted = cuts.sorted()
         var plain = ""
@@ -289,7 +300,16 @@ enum RichText {
             let end = moved[NSMaxRange(run.range)] ?? start
             return Run(range: NSRange(location: start, length: end - start), style: run.style)
         }
-        return Parsed(plain: plain, runs: runs)
+        let shifted = spans.compactMap { span -> TextSpan? in
+            let start = moved[min(max(span.start, 0), ns.length)] ?? 0
+            let end = moved[min(max(span.end, 0), ns.length)] ?? start
+            guard end > start else { return nil }
+            var out = span
+            out.start = start
+            out.end = end
+            return out
+        }
+        return (Parsed(plain: plain, runs: runs), shifted)
     }
 
     // MARK: the typing bar
@@ -416,10 +436,21 @@ enum RichText {
     }
 
     /// The plain text with the base attributes, and each run's style on top;
-    /// in capitals when `uppercase`, each run still on its own words.
+    /// in capitals when `uppercase`, each run still on its own words. Then
+    /// the colours and sizes on words, `spans` over the plain text before
+    /// capitals (see Spans): a colour in place of the base one, and a size
+    /// as the run's own font scaled. Every line keeps the box's own pitch,
+    /// larger words or not, as the Android twin sets them.
     static func attributed(_ marked: String, base: [NSAttributedString.Key: Any], uppercase: Bool = false,
+                           spans: [TextSpan] = [],
                            font: (_ bold: Bool, _ italic: Bool) -> UIFont) -> NSAttributedString {
-        let parsed = uppercase ? inCapitals(parse(marked)) : parse(marked)
+        var parsed = parse(marked)
+        var spans = spans
+        if uppercase {
+            let capitals = inCapitals(parsed, spans: spans)
+            parsed = capitals.parsed
+            spans = capitals.spans
+        }
         let out = NSMutableAttributedString(string: parsed.plain, attributes: base)
         for run in parsed.runs {
             var attrs: [NSAttributedString.Key: Any] = [:]
@@ -427,6 +458,73 @@ enum RichText {
             if run.style.underline { attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue }
             if run.style.strike { attrs[.strikethroughStyle] = NSUnderlineStyle.single.rawValue }
             out.addAttributes(attrs, range: run.range)
+        }
+        let length = out.length
+        for span in spans {
+            let start = min(max(span.start, 0), length), end = min(span.end, length)
+            guard end > start else { continue }
+            let range = NSRange(location: start, length: end - start)
+            if let color = span.color {
+                out.addAttribute(.foregroundColor, value: UIColor(hex: color), range: range)
+                out.addAttribute(Spans.colourKey, value: color, range: range)
+            }
+            if let scale = span.scale {
+                out.enumerateAttribute(.font, in: range) { value, part, _ in
+                    guard let font = value as? UIFont else { return }
+                    out.addAttribute(.font, value: font.withSize(font.pointSize * scale), range: part)
+                }
+            }
+        }
+        return out
+    }
+
+    // MARK: words as they read, and as they are typed
+
+    /// For each UTF-16 unit of the words as they read, where it is stored in
+    /// `text`, as a UTF-16 offset: what takes colours and sizes, counted in
+    /// the words as they read, onto the words as typed, markers and all —
+    /// and a choice made among the typed words back again.
+    static func typedUnits(_ text: String) -> [Int] {
+        let scan = parseMapped(text)
+        let chars = Array(text)
+        var startOf: [Int] = []
+        var offset = 0
+        for c in chars {
+            startOf.append(offset)
+            offset += String(c).utf16.count
+        }
+        var out: [Int] = []
+        for at in scan.rawAt {
+            let units = String(chars[at]).utf16.count
+            for k in 0..<units { out.append(startOf[at] + k) }
+        }
+        return out
+    }
+
+    /// The words chosen by UTF-16 range `selection` of `text`, as a range of
+    /// the words as they read; nil when it takes in none of them — nothing
+    /// chosen, or only markers.
+    static func plainRange(of selection: NSRange, in text: String) -> NSRange? {
+        guard selection.location != NSNotFound, selection.length > 0 else { return nil }
+        let units = typedUnits(text)
+        let inside = units.indices.filter { NSLocationInRange(units[$0], selection) }
+        guard let first = inside.first, let last = inside.last else { return nil }
+        return NSRange(location: first, length: last + 1 - first)
+    }
+
+    /// Where `range` of the words as they read is stored in the typed text
+    /// whose `typedUnits` are `units`: one range for each stretch the
+    /// markers do not break.
+    static func typedRanges(of range: NSRange, units: [Int]) -> [NSRange] {
+        var out: [NSRange] = []
+        let end = min(NSMaxRange(range), units.count)
+        var u = max(0, range.location)
+        while u < end {
+            let from = units[u]
+            var to = from + 1
+            u += 1
+            while u < end, units[u] == to { to += 1; u += 1 }
+            out.append(NSRange(location: from, length: to - from))
         }
         return out
     }

@@ -20,7 +20,7 @@ private struct AccentButtonStyle: ButtonStyle {
 }
 
 enum EditorSheet: String, Identifiable {
-    case insert, colorFill, colorText, colorLine, colorStroke, colorSelection, background
+    case insert, colorFill, colorText, colorLine, colorStroke, colorSelection, colorWords, background
     case fonts, effects, spacing, filters, crop, position, layers, export, resize, find, frame, shadow
     case history, proofread, theme, help, contrast, brand, shapes, clip, shapeText
     /// Opened by Help's "Show me": the page organiser, and the snapping
@@ -150,6 +150,11 @@ struct EditorView: View {
         // selection changes under it, a Layers row picked, say.
         .onChange(of: activeSheet) { _, sheet in
             if sheet != nil { revealSelection() }
+            if sheet != .colorWords, store.wordColourTarget != nil { store.wordColourTarget = nil }
+        }
+        // The typing bar's colour well asks for the colour sheet.
+        .onChange(of: store.wordColourTarget) { _, target in
+            if target != nil { activeSheet = .colorWords }
         }
         .onChange(of: store.selection) { _, _ in
             if activeSheet != nil { revealSelection() }
@@ -908,6 +913,15 @@ struct EditorView: View {
                                      if ($0.strokeWidth ?? 0) == 0 { $0.strokeWidth = 4 }
                                  }
                              })
+        case .colorWords:
+            // The words chosen while typing, from the bar's colour well:
+            // the text colour sheet's title, as Android has no heading of
+            // its own for them, and the note both phones show.
+            ColorPickerSheet(store: store, title: "Text colour",
+                             current: store.wordColour,
+                             note: DesignStore.wordColourNote,
+                             onPick: { c in store.colourWords(c) },
+                             onPickTransient: { c in store.colourWordsTransient(c) })
         case .colorSelection:
             // Several things at once: each takes the colour its own way.
             ColorPickerSheet(store: store, title: "Colour",

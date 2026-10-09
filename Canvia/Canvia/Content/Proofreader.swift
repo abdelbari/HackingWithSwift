@@ -170,7 +170,7 @@ enum Proofreader {
         let reads = String(rawAt.indices.filter { (start..<end).contains(rawAt[$0]) }.map { letters[$0] })
         guard reads == m.word else { return nil }
         var out = design
-        out.pages[m.pageIndex].elements[i].text = replacing(m, in: text, with: replacement)
+        out.pages[m.pageIndex].elements[i].setText(replacing(m, in: text, with: replacement))
         out.pages[m.pageIndex].elements[i].h = ShapeText.heightForWords(out.pages[m.pageIndex].elements[i])
         return out
     }

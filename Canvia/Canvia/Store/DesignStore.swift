@@ -29,6 +29,9 @@ final class DesignStore {
         }
     }
     var editingTextId: String?
+    /// The words the colour sheet is open for, from the typing bar's colour
+    /// well (see WordStyles).
+    var wordColourTarget: WordRange?
     /// The text box dictation writes into while the microphone is on. Its
     /// words go there and nowhere else, whatever is selected meanwhile.
     var dictationTarget: String?
@@ -272,6 +275,7 @@ final class DesignStore {
             || a.paragraphSpacing != b.paragraphSpacing || a.fontSize != b.fontSize
             || a.listStyle != b.listStyle || a.indent != b.indent || a.vertical != b.vertical
             || a.dropCap != b.dropCap || a.effect != b.effect || a.text != b.text
+            || a.spans != b.spans
     }
 
     /// Transient variant for continuous controls; call commit() on release.
@@ -440,7 +444,7 @@ final class DesignStore {
         beginGesture()
         guard let i = design.pages[pageIndex].elements.firstIndex(where: { $0.id == id }),
               design.pages[pageIndex].elements[i].text != words else { return }
-        design.pages[pageIndex].elements[i].text = words
+        design.pages[pageIndex].elements[i].setText(words)
         design.pages[pageIndex].elements[i].h = ShapeText.heightForWords(design.pages[pageIndex].elements[i])
     }
 
@@ -456,7 +460,7 @@ final class DesignStore {
               design.pages[pageIndex].elements[i].type == .text,
               !design.pages[pageIndex].elements[i].locked else { return false }
         beginGesture()
-        design.pages[pageIndex].elements[i].text = words
+        design.pages[pageIndex].elements[i].setText(words)
         design.pages[pageIndex].elements[i].h = FontLibrary.layoutHeight(for: design.pages[pageIndex].elements[i])
         return true
     }
@@ -1183,7 +1187,17 @@ final class DesignStore {
                     let replaced = body.replacingOccurrences(of: needle, with: replacement,
                                                              options: options)
                     guard replaced != body else { continue }
-                    design.pages[p].elements[i].text = replaced
+                    if design.pages[p].elements[i].liveSpans.isEmpty {
+                        design.pages[p].elements[i].text = replaced
+                    } else {
+                        // One occurrence at a time, the last first, so the
+                        // colours and sizes on the words between them stay
+                        // on those words.
+                        for found in Self.occurrences(of: needle, in: body, options: options).reversed() {
+                            let now = (design.pages[p].elements[i].text ?? "") as NSString
+                            design.pages[p].elements[i].setText(now.replacingCharacters(in: found, with: replacement))
+                        }
+                    }
                     design.pages[p].elements[i].h =
                         ShapeText.heightForWords(design.pages[p].elements[i])
                 }
@@ -1191,6 +1205,21 @@ final class DesignStore {
         }
         announce(total == 1 ? "Replaced 1 occurrence" : "Replaced \(total) occurrences")
         return total
+    }
+
+    /// Where `needle` is in `body`, as UTF-16 ranges, one after another
+    /// without overlapping — the ones replacingOccurrences replaces.
+    static func occurrences(of needle: String, in body: String, options: String.CompareOptions) -> [NSRange] {
+        let ns = body as NSString
+        var found: [NSRange] = []
+        var from = 0
+        while from < ns.length {
+            let hit = ns.range(of: needle, options: options, range: NSRange(location: from, length: ns.length - from))
+            guard hit.location != NSNotFound, hit.length > 0 else { break }
+            found.append(hit)
+            from = NSMaxRange(hit)
+        }
+        return found
     }
 
     /// Show a match: switch to its page and select its element.
