@@ -162,35 +162,27 @@ struct FontSheet: View {
 
 // MARK: - text effects
 
+/// The effects as tiles, and under them the chosen one's settings: sliders
+/// that draw live and are one Undo per drag, its colours, and Reset. Another
+/// effect starts from its own defaults; tapping the one on keeps its settings.
 struct EffectsSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
     private let columns = [GridItem(.adaptive(minimum: 76), spacing: 12)]
 
+    private var spec: TextEffectSpec? { store.singleSelection?.effect }
+    private var current: TextEffect { TextEffect.from(spec) }
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(TextEffect.allCases) { effect in
-                        let active = TextEffect.from(store.singleSelection?.effect) == effect
-                        Button {
-                            store.updateSelected { $0.effect = TextEffectSpec(type: effect.rawValue) }
-                        } label: {
-                            VStack(spacing: 6) {
-                                effectPreview(effect)
-                                    .frame(width: 64, height: 44)
-                                Text(effect.displayName).font(.system(size: 11))
-                            }
-                            .padding(8)
-                            .background(RoundedRectangle(cornerRadius: 10)
-                                .fill(Color(.systemGray6))
-                                .overlay(RoundedRectangle(cornerRadius: 10)
-                                    .stroke(active ? Theme.accent : .clear, lineWidth: 2)))
+                VStack(alignment: .leading, spacing: 16) {
+                    LazyVGrid(columns: columns, spacing: 12) {
+                        ForEach(TextEffect.allCases) { effect in
+                            tile(effect)
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("\(effect.displayName) effect")
-                        .accessibilityAddTraits(active ? .isSelected : [])
                     }
+                    if current != .none { settings(current) }
                 }
                 .padding()
             }
@@ -200,8 +192,34 @@ struct EffectsSheet: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents(sheetDetents)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        .onDisappear { if store.hasPendingChanges { store.commit() } }
+    }
+
+    private func tile(_ effect: TextEffect) -> some View {
+        let active = current == effect
+        return Button {
+            settleColour()
+            store.updateSelected {
+                guard $0.effect?.type != effect.rawValue else { return }
+                $0.effect = TextEffectSpec(type: effect.rawValue)
+            }
+        } label: {
+            VStack(spacing: 6) {
+                effectPreview(effect)
+                    .frame(width: 64, height: 44)
+                Text(effect.displayName).font(.system(size: 11))
+            }
+            .padding(8)
+            .background(RoundedRectangle(cornerRadius: 10)
+                .fill(Color(.systemGray6))
+                .overlay(RoundedRectangle(cornerRadius: 10)
+                    .stroke(active ? Theme.accent : .clear, lineWidth: 2)))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(effect.displayName) effect")
+        .accessibilityAddTraits(active ? .isSelected : [])
     }
 
     private func effectPreview(_ effect: TextEffect) -> some View {
@@ -211,6 +229,109 @@ struct EffectsSheet: View {
         el.effect = TextEffectSpec(type: effect.rawValue)
         el.h = 44
         return TextElementView(element: el)
+    }
+
+    /// The chosen effect's sliders and colours, in the Android twin's words.
+    private func settings(_ effect: TextEffect) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Adjust").font(.headline)
+                Spacer()
+                Button("Reset") {
+                    settleColour()
+                    store.updateSelected { el in
+                        guard TextEffect.from(el.effect) == effect, let type = el.effect?.type else { return }
+                        el.effect = TextEffectSpec(type: type)
+                    }
+                }
+                .font(.callout)
+                .disabled(spec?.isAtDefaults ?? true)
+            }
+            ForEach(effect.params) { param in
+                dial(param, of: effect)
+            }
+            if effect.takesColor {
+                colorRow("Colour", of: effect, second: false)
+            }
+            if effect.defaultColor2 != nil {
+                colorRow("Second colour", of: effect, second: true)
+            }
+        }
+    }
+
+    /// A colour picked a moment ago, closed as a step of its own: the
+    /// picker never says when it is done, so the next control does it
+    /// rather than fold the colour into its own Undo.
+    private func settleColour() {
+        if store.hasPendingChanges { store.commit() }
+    }
+
+    /// Every selected, unlocked text with this effect, changed while a
+    /// control moves; the store's commit makes it one step.
+    private func live(_ effect: TextEffect, _ change: (inout TextEffectSpec) -> Void) {
+        store.updateSelectedTransient { el in
+            guard TextEffect.from(el.effect) == effect, var next = el.effect else { return }
+            change(&next)
+            el.effect = next
+        }
+    }
+
+    private func dial(_ param: TextEffectParam, of effect: TextEffect) -> some View {
+        let value = TextEffect.value(spec, param, for: effect)
+        let readout = param == .direction ? "\(Int(value.rounded()))°" : "\(Int(value.rounded()))"
+        return VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(param.label).font(.subheadline)
+                Spacer()
+                Text(readout).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            }
+            // Named and read out on the slider itself, not beside it.
+            .accessibilityHidden(true)
+            Slider(value: Binding(
+                get: { value },
+                set: { v in live(effect) { $0.adjust(param, to: v) } }
+            ), in: param.range, step: 1, onEditingChanged: { editing in
+                if editing { settleColour() } else { store.commit() }
+            })
+            .accessibilityLabel("\(effect.displayName) \(param.label.lowercased())")
+            .accessibilityValue(readout)
+        }
+    }
+
+    /// A colour of the effect's own (shadow, glitch), or one that follows
+    /// the text until Auto is turned off (splice, echo, highlight).
+    private func colorRow(_ label: String, of effect: TextEffect, second: Bool) -> some View {
+        let held = second ? spec?.color2 : spec?.color
+        let optional = !second && effect.defaultColor == nil
+        let ink = store.singleSelection?.color ?? "#1f2430"
+        let auto = effect == .highlight ? TextEffect.highlightHex(for: ink) : ink
+        let shown = held ?? (second ? effect.defaultColor2 : effect.defaultColor) ?? auto
+        return HStack {
+            Text(label).font(.subheadline)
+            Spacer()
+            if optional {
+                Toggle("Auto", isOn: Binding(
+                    get: { held == nil },
+                    set: { on in
+                        settleColour()
+                        store.updateSelected { el in
+                            guard TextEffect.from(el.effect) == effect else { return }
+                            el.effect?.setColor(on ? nil : shown)
+                        }
+                    }))
+                    .fixedSize()
+                    .accessibilityLabel("Automatic \(effect.displayName.lowercased()) colour")
+            }
+            ColorPicker("", selection: Binding(
+                get: { Color(hex: shown) },
+                set: { color in
+                    let hex = UIColor(color).hexString
+                    live(effect) { $0.setColor(hex, second: second) }
+                }), supportsOpacity: false)
+                .labelsHidden()
+                .disabled(optional && held == nil)
+                .accessibilityLabel("\(effect.displayName) \(label.lowercased())")
+        }
     }
 }
 

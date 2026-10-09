@@ -10,8 +10,110 @@ enum ElementType: String, Codable {
     case shape, text, image, sticker, line
 }
 
+/// A text effect and its settings. Every setting is optional and absent
+/// means the type's default (see TextEffect.defaultValue), so a design from
+/// before the settings draws as it did; one at its default is never written.
+/// Settings another type does not use are kept and ignored when drawing.
 struct TextEffectSpec: Codable, Equatable, Hashable {
-    var type: String = "none"     // none|shadow|lift|outline|splice|neon|glitch|highlight
+    var type: String = "none"     // none|shadow|lift|outline|splice|echo|neon|glitch|highlight
+    var offset: Double?           // 0–100
+    var direction: Double?        // degrees −180…180; 0 points right, 90 down
+    var blur: Double?             // 0–100
+    var transparency: Double?     // 0–100
+    var intensity: Double?        // 0–100
+    var thickness: Double?        // 0–100
+    var roundness: Double?        // 0–100
+    var spread: Double?           // 0–100
+    var color: String?            // "#rrggbb"
+    var color2: String?           // "#rrggbb", glitch's second copy
+}
+
+extension TextEffectSpec {
+    private enum CodingKeys: String, CodingKey {
+        case type, offset, direction, blur, transparency, intensity, thickness, roundness, spread, color, color2
+    }
+
+    // Each key on its own, so one bad value loses that setting, never the
+    // effect or the design.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        type = (try? c.decode(String.self, forKey: .type)) ?? "none"
+        offset = try? c.decodeIfPresent(Double.self, forKey: .offset)
+        direction = try? c.decodeIfPresent(Double.self, forKey: .direction)
+        blur = try? c.decodeIfPresent(Double.self, forKey: .blur)
+        transparency = try? c.decodeIfPresent(Double.self, forKey: .transparency)
+        intensity = try? c.decodeIfPresent(Double.self, forKey: .intensity)
+        thickness = try? c.decodeIfPresent(Double.self, forKey: .thickness)
+        roundness = try? c.decodeIfPresent(Double.self, forKey: .roundness)
+        spread = try? c.decodeIfPresent(Double.self, forKey: .spread)
+        color = try? c.decodeIfPresent(String.self, forKey: .color)
+        color2 = try? c.decodeIfPresent(String.self, forKey: .color2)
+    }
+
+    /// The type, then only the settings that differ from the type's default.
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(type, forKey: .type)
+        let effect = TextEffect(rawValue: type)
+        for param in TextEffectParam.allCases {
+            guard let value = self[param], let key = CodingKeys(rawValue: param.rawValue) else { continue }
+            if let effect, effect.defaultValue(param) == value { continue }
+            try c.encode(value, forKey: key)
+        }
+        if let color, color.lowercased() != effect?.defaultColor?.lowercased() {
+            try c.encode(color, forKey: .color)
+        }
+        if let color2, color2.lowercased() != effect?.defaultColor2?.lowercased() {
+            try c.encode(color2, forKey: .color2)
+        }
+    }
+
+    /// Every setting at its type's default: nothing but the type is held.
+    var isAtDefaults: Bool { self == TextEffectSpec(type: type) }
+
+    /// A setting moved in whole steps; at its type's default it is left out.
+    mutating func adjust(_ param: TextEffectParam, to value: Double) {
+        let whole = value.rounded()
+        self[param] = whole == TextEffect(rawValue: type)?.defaultValue(param) ? nil : whole
+    }
+
+    /// The colour, or glitch's second, as hex; nil (or the type's own
+    /// colour) leaves it out, which for splice, echo and highlight is Auto.
+    mutating func setColor(_ hex: String?, second: Bool = false) {
+        let effect = TextEffect(rawValue: type)
+        let own = second ? effect?.defaultColor2 : effect?.defaultColor
+        var kept = hex
+        if let hex, hex.lowercased() == own?.lowercased() { kept = nil }
+        if second { color2 = kept } else { color = kept }
+    }
+
+    /// One numeric setting, by name.
+    subscript(param: TextEffectParam) -> Double? {
+        get {
+            switch param {
+            case .offset: return offset
+            case .direction: return direction
+            case .blur: return blur
+            case .transparency: return transparency
+            case .intensity: return intensity
+            case .thickness: return thickness
+            case .roundness: return roundness
+            case .spread: return spread
+            }
+        }
+        set {
+            switch param {
+            case .offset: offset = newValue
+            case .direction: direction = newValue
+            case .blur: blur = newValue
+            case .transparency: transparency = newValue
+            case .intensity: intensity = newValue
+            case .thickness: thickness = newValue
+            case .roundness: roundness = newValue
+            case .spread: spread = newValue
+            }
+        }
+    }
 }
 
 /// A drop shadow or glow behind any element.
