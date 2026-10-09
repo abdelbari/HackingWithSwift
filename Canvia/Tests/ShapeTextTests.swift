@@ -191,6 +191,35 @@ final class ShapeTextTests: XCTestCase {
         XCTAssertFalse(String(decoding: try JSONEncoder().encode(old), as: UTF8.self).contains("\"text\""))
     }
 
+    func testWordsOfOnlySpacesReturnsOrMarksAreNone() {
+        // The same rows as the Android twin's ShapeTextTest: nothing to draw,
+        // so nothing to grow for and no type controls.
+        for blank in ["", " ", "   ", "\n\n\n\n", " \n\t ", "****"] {
+            var shape = Element.shape("rect")
+            shape.text = blank
+            XCTAssertNil(ShapeText.words(of: shape), "\"\(blank)\"")
+            XCTAssertEqual(ShapeText.grownHeight(for: shape), shape.h, "\"\(blank)\"")
+        }
+        var worded = Element.shape("rect")
+        worded.text = "\nSALE\n"
+        XCTAssertNotNil(ShapeText.words(of: worded))
+        worded.text = "**SALE**"
+        XCTAssertNotNil(ShapeText.words(of: worded))
+    }
+
+    func testAVAlignTheAppsDoNotKnowIsMiddled() {
+        // As the Android twin's ShapeText.box: top and bottom are kept, and
+        // anything else, none included, is the middle.
+        var shape = Element.shape("rect")
+        shape.text = "SALE"
+        for (asked, drawn) in [("top", "top"), ("bottom", "bottom"), ("middle", "middle"), ("center", "middle"), ("", "middle")] {
+            shape.vAlign = asked
+            XCTAssertEqual(ShapeText.textElement(for: shape).vAlign, drawn, asked)
+        }
+        shape.vAlign = nil
+        XCTAssertEqual(ShapeText.textElement(for: shape).vAlign, "middle")
+    }
+
     // MARK: which shapes
 
     func testStrokesAndLinesTakeNoWords() {

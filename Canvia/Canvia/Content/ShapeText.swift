@@ -117,7 +117,8 @@ enum ShapeText {
     }
 
     /// The words a shape has to draw, style marks and all; nil when it has
-    /// none, or cannot take any.
+    /// none — only spaces, returns or style marks count as none, as the
+    /// Android twin's ShapeText.hasText counts them — or cannot take any.
     static func words(of el: Element) -> String? {
         guard takesText(el), let text = el.text,
               !RichText.strip(text).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
@@ -221,7 +222,9 @@ enum ShapeText {
         t.lineHeight = el.lineHeight
         t.letterSpacing = el.letterSpacing
         t.color = el.color ?? defaultInk(for: el.fill)
-        t.vAlign = el.vAlign ?? "middle"
+        // Top and bottom as the shape says; anything else, an unknown
+        // value from another tool included, middled — as on Android.
+        t.vAlign = el.vAlign == "top" || el.vAlign == "bottom" ? el.vAlign : "middle"
         t.x = el.x + Double(b.minX)
         t.y = el.y + Double(b.minY)
         t.w = Double(b.width)
