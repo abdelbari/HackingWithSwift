@@ -3,8 +3,9 @@
 // "video:<id>". At rest that resolves to the clip's poster frame, so crop,
 // filters, frames and every still export work unchanged; during the page
 // preview and the video export the element's source is stamped with the
-// moment — "video:<id>@1.25" — and resolves to that frame, looping over
-// the clip's length.
+// moment in the clip — "video:<id>@1.25", where its trim, speed and loop
+// (`clipTime`) put the page's time — and resolves to that frame. A clip
+// trimmed to start later shows the frame at its start at rest too.
 //
 // A frame takes tens of milliseconds to decode. The video export waits for
 // each (`resolve`), so no frame of a movie is ever a stale one; what plays
@@ -51,6 +52,50 @@ enum VideoStore {
         guard duration > 0.01 else { return 0 }
         let m = t.truncatingRemainder(dividingBy: duration)
         return m < 0 ? m + duration : m
+    }
+
+    /// Where a stamped moment falls in a clip `duration` long. A stamp has
+    /// been through `clipTime` already, so it is taken as it is, kept within
+    /// the clip; one past the end can only have been stamped before the
+    /// clip's length was known, and loops over the whole file.
+    static func stampedTime(_ t: Double, duration: Double) -> Double {
+        guard duration > 0.01 else { return 0 }
+        if t > duration { return loopedTime(t, duration: duration) }
+        return min(max(0, t), duration - 0.01)
+    }
+
+    /// The moment in the file a clip shows `pageTime` seconds into its page:
+    /// from its start, at its speed, round again or held on its last frame
+    /// at its end. With no end and no known length it runs on from the
+    /// start, and the store loops it over the file until the length is in.
+    static func clipTime(_ pageTime: Double, clip: ClipPlayback, duration: Double?) -> Double {
+        let start = max(0, clip.start)
+        let local = max(pageTime, 0) * clip.playbackSpeed
+        let end = min(clip.end ?? .infinity, duration ?? .infinity)
+        guard end.isFinite else { return start + local }
+        guard end - start > 0.01 else { return start }
+        if clip.loop { return start + local.truncatingRemainder(dividingBy: end - start) }
+        return min(start + local, end - 0.01)
+    }
+
+    /// The page hold that plays the clip through once: its trimmed length at
+    /// its speed, to a tenth of a second, within the half second to the
+    /// minute a page's hold can be.
+    static func fitHold(_ clip: ClipPlayback, duration: Double) -> Double {
+        let end = min(clip.end ?? duration, duration)
+        let seconds = ((end - max(0, clip.start)) / clip.playbackSpeed * 10).rounded() / 10
+        return min(max(seconds, MotionSettings.pageHoldRange.lowerBound), MotionSettings.pageHoldRange.upperBound)
+    }
+
+    /// A moment in a clip as the Clip sheet shows it: "m:ss.s".
+    static func timeLabel(_ seconds: Double) -> String {
+        let tenths = Int((max(0, seconds) * 10).rounded())
+        return String(format: "%d:%02d.%d", tenths / 600, tenths / 10 % 60, tenths % 10)
+    }
+
+    /// A clip's trim as the Clip sheet shows it: "0:02.0 – 0:06.0".
+    static func rangeLabel(_ start: Double, _ end: Double) -> String {
+        "\(timeLabel(start)) – \(timeLabel(end))"
     }
 
     // MARK: files
@@ -170,13 +215,12 @@ enum VideoStore {
     }
 
     /// Resolves a "video:" source: the poster, or the frame at the stamped
-    /// moment, looped over the clip. Decoded there and then if it has to be
+    /// moment (see `stampedTime`). Decoded there and then if it has to be
     /// — what an export needs, and never what plays live; see `peek`.
     static func resolve(_ src: String) -> UIImage? {
         guard let parts = split(src) else { return nil }
         guard let time = parts.time else { return poster(parts.id) }
-        let looped = loopedTime(time, duration: duration(of: parts.id) ?? 0)
-        return frame(parts.id, at: looped)
+        return frame(parts.id, at: stampedTime(time, duration: duration(of: parts.id) ?? 0))
     }
 
     // MARK: playing live
@@ -196,8 +240,8 @@ enum VideoStore {
     private static var liveLengths: [String: Double] = [:]
     /// The moment each clip last showed live, for the frames in between.
     private static var latest: [String: Double] = [:]
-    /// A moment asked for: the page's time, not yet looped, or nil for the
-    /// clip at rest.
+    /// A moment asked for: the stamped time, not yet kept within the clip,
+    /// or nil for the clip at rest.
     private struct Want { var time: Double? }
     /// The latest moment asked for of each clip.
     private static var wanted: [String: Want] = [:]
@@ -207,6 +251,15 @@ enum VideoStore {
     /// thread never waits on one.
     private static let liveLock = NSLock()
     private static let worker = DispatchQueue(label: "canvia.video-frames", qos: .userInitiated)
+
+    /// The clip's length as the live path has read it, without reading it:
+    /// nil until it has, and for a clip whose length cannot be read — what
+    /// a clip playing live is timed by, as the main thread never waits.
+    static func knownLength(_ id: String) -> Double? {
+        liveLock.lock(); defer { liveLock.unlock() }
+        guard let length = liveLengths[id], length > 0.01 else { return nil }
+        return length
+    }
 
     /// What a "video:" source shows, without waiting: its frame if that has
     /// been decoded, else the clip's latest frame shown, else its poster,
@@ -233,7 +286,7 @@ enum VideoStore {
         // is at, so it asks the worker rather than take its first frame for
         // the answer.
         if let length {
-            let at = loopedTime(time, duration: length)
+            let at = stampedTime(time, duration: length)
             if let hit = frames.object(forKey: frameKey(id, at)) {
                 liveLock.lock()
                 latest[id] = at
@@ -284,7 +337,7 @@ enum VideoStore {
                     length = read
                     landed = true
                 }
-                let at = loopedTime(time, duration: length ?? 0)
+                let at = stampedTime(time, duration: length ?? 0)
                 if frame(id, at: at) != nil {
                     liveLock.lock()
                     latest[id] = at

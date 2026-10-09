@@ -56,6 +56,57 @@ struct Shadow: Codable, Equatable, Hashable {
     }
 }
 
+/// How a video clip plays: the part of the file it shows, how fast, and
+/// whether it goes round again — trimmed and timed without touching the
+/// file. Written as the element's `clip` object, each field only when it is
+/// not its default, and the object only when one is not; a partial or odd
+/// object still reads, every field it lacks or cannot give at its default.
+struct ClipPlayback: Codable, Equatable, Hashable {
+    /// Seconds into the file where the clip starts.
+    var start: Double = 0
+    /// Seconds into the file where it stops; nil is the file's own end.
+    var end: Double?
+    /// The rate, as written; playback reads it within `speedRange`.
+    var speed: Double = 1
+    /// Round again from the start at the end; off holds the last frame.
+    var loop: Bool = true
+
+    /// What the Clip sheet offers.
+    static let speeds: [Double] = [0.5, 1, 1.5, 2]
+    /// What a reader plays any speed at, however far out the file has it.
+    static let speedRange = 0.25...4.0
+
+    var isDefault: Bool { self == ClipPlayback() }
+
+    /// The rate the clip plays at: `speed` kept within `speedRange`.
+    var playbackSpeed: Double { min(max(speed, Self.speedRange.lowerBound), Self.speedRange.upperBound) }
+
+    private enum CodingKeys: String, CodingKey { case start, end, speed, loop }
+
+    init(start: Double = 0, end: Double? = nil, speed: Double = 1, loop: Bool = true) {
+        self.start = start
+        self.end = end
+        self.speed = speed
+        self.loop = loop
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        start = (try? c.decodeIfPresent(Double.self, forKey: .start)) ?? 0
+        end = try? c.decodeIfPresent(Double.self, forKey: .end)
+        speed = (try? c.decodeIfPresent(Double.self, forKey: .speed)) ?? 1
+        loop = (try? c.decodeIfPresent(Bool.self, forKey: .loop)) ?? true
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        if start != 0 { try c.encode(start, forKey: .start) }
+        try c.encodeIfPresent(end, forKey: .end)
+        if speed != 1 { try c.encode(speed, forKey: .speed) }
+        if !loop { try c.encode(false, forKey: .loop) }
+    }
+}
+
 struct Element: Codable, Equatable, Identifiable {
     var id: String = UID.make()
     var type: ElementType = .shape
@@ -167,6 +218,9 @@ struct Element: Codable, Equatable, Identifiable {
     /// Fit the whole picture inside the frame (letterboxed) instead of
     /// filling the frame and cropping. nil is fill.
     var cropFit: Bool?
+    /// For a clip ("video:" source): its trim, speed and loop. Never a
+    /// clip at all its defaults — that is nil, and no key in the file.
+    var clip: ClipPlayback?
 
     // sticker
     var glyph: String?
@@ -244,6 +298,7 @@ struct Element: Codable, Equatable, Identifiable {
         cropY = try? c.decode(Double.self, forKey: .cropY)
         straighten = try? c.decode(Double.self, forKey: .straighten)
         cropFit = try? c.decode(Bool.self, forKey: .cropFit)
+        clip = (try? c.decode(ClipPlayback.self, forKey: .clip)).flatMap { $0.isDefault ? nil : $0 }
         glyph = try? c.decode(String.self, forKey: .glyph)
         thickness = try? c.decode(Double.self, forKey: .thickness)
         dash = try? c.decode(String.self, forKey: .dash)
@@ -275,7 +330,7 @@ struct Element: Codable, Equatable, Identifiable {
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, kenBurns
-        case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit
+        case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit, clip
         case glyph
         case thickness, dash, startCap, endCap
     }
