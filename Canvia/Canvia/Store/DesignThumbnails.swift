@@ -24,15 +24,22 @@ extension DesignLibrary {
     /// Render page one of `design` and keep it as the design's thumbnail.
     @MainActor
     static func writeThumbnail(for design: Design) {
-        guard let first = design.pages.first else { return }
+        if let image = thumbnailImage(for: design) {
+            saveThumbnail(image, for: design.id)
+        }
+    }
+
+    /// Page one of `design` at the thumbnail's width, as its card shows it;
+    /// a kept version's row in Version history draws with this too.
+    @MainActor
+    static func thumbnailImage(for design: Design) -> UIImage? {
+        guard let first = design.pages.first else { return nil }
         let renderer = ImageRenderer(content: PageRenderView(design: design, page: first))
         renderer.scale = CGFloat(thumbnailScale(pageWidth: Double(design.size(at: 0).width)))
         // The alpha channel is discarded by jpegData when the thumbnail is
         // written, so compositing it is wasted work.
         renderer.isOpaque = true
-        if let image = renderer.uiImage {
-            saveThumbnail(image, for: design.id)
-        }
+        return renderer.uiImage
     }
 
     /// Designs on the shelf with no thumbnail get one. Each is tried once a

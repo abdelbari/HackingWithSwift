@@ -1,5 +1,6 @@
-// Folders renamed and deleted as a whole, and Select on Home over the
-// designs on show — the same cases as the Android twin's.
+// Folders renamed and deleted as a whole, Select on Home over the designs on
+// show, and a kept version saved as a copy — the same cases as the Android
+// twin's.
 
 import XCTest
 @testable import Canvia
@@ -86,5 +87,38 @@ final class FoldersAndSelectTests: XCTestCase {
     func testOnlyPickedDesignsOnShowAreActedOn() {
         let shown = DesignLibrary.filter(shelf, query: "", sort: .name, folder: "Trips")
         XCTAssertEqual(DesignLibrary.picked(["a", "c", "d"], among: shown).map(\.id), ["a", "d"])
+    }
+
+    // MARK: copy of a version
+
+    func testCopyOfVersionTitle() {
+        XCTAssertEqual(DesignLibrary.versionCopyTitle("Poster", date: "3 Oct 2026, 14:05"),
+                       "Poster (version from 3 Oct 2026, 14:05)")
+        XCTAssertEqual(DesignLibrary.versionCopyTitle(Design().title, date: "3 Oct 2026, 14:05"),
+                       "Untitled design (version from 3 Oct 2026, 14:05)")
+        XCTAssertEqual(DesignLibrary.versionCopyTitle("  ", date: "3 Oct 2026, 14:05"),
+                       "Untitled design (version from 3 Oct 2026, 14:05)")
+    }
+
+    func testCopyOfVersionIsANewDesignInTheSameFolder() throws {
+        var design = Design(title: "Poster", width: 400, height: 300)
+        design.pages[0].elements = [Element.text("kept", fontSize: 24, w: 200)]
+        design.folder = "Old"
+        XCTAssertTrue(DesignLibrary.save(design))
+        XCTAssertTrue(DesignLibrary.snapshot(design, force: true))
+        defer { DesignLibrary.delete(id: design.id) }
+        let version = try XCTUnwrap(DesignLibrary.versions(for: design.id).first)
+        let kept = try XCTUnwrap(DesignLibrary.load(version: version))
+
+        let copy = try XCTUnwrap(DesignLibrary.saveCopy(of: kept, savedAt: version.savedAt, folder: "Now"))
+        defer { DesignLibrary.delete(id: copy.id) }
+        XCTAssertNotEqual(copy.id, design.id)
+        XCTAssertEqual(copy.title, "Poster (version from \(DesignLibrary.versionCopyDate(version.savedAt)))")
+        XCTAssertEqual(copy.folder, "Now")
+        XCTAssertEqual(copy.pages[0].elements.first?.text, "kept")
+        XCTAssertEqual(DesignLibrary.load(id: copy.id)?.title, copy.title)
+        // The design it was kept of is as it was.
+        XCTAssertEqual(DesignLibrary.load(id: design.id)?.title, "Poster")
+        XCTAssertEqual(DesignLibrary.load(id: design.id)?.folder, "Old")
     }
 }
