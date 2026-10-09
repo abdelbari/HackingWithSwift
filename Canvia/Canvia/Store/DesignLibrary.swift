@@ -210,8 +210,7 @@ enum DesignLibrary {
     @discardableResult
     static func move(id: String, toFolder folder: String?) -> Bool {
         guard var design = load(id: id) else { return false }
-        let name = folder?.trimmingCharacters(in: .whitespaces)
-        design.folder = (name?.isEmpty ?? true) ? nil : name
+        design.folder = folderName(folder)
         return save(design)
     }
 
@@ -274,7 +273,7 @@ enum DesignLibrary {
 
     /// One saved state of a design, kept so an edit made an hour ago can be
     /// walked back after undo has long since been pushed off the stack.
-    struct Version: Identifiable, Equatable {
+    struct Version: Identifiable, Equatable, Sendable {
         var id: String { url.lastPathComponent }
         var url: URL
         var savedAt: Date
@@ -366,6 +365,35 @@ enum DesignLibrary {
               var design = try? JSONDecoder().decode(Design.self, from: data) else { return nil }
         design.normalizeTextHeights()
         return design
+    }
+
+    /// What a copy of a kept version is called: "Poster (version from
+    /// 3 Oct 2026, 14:05)", `date` being when the version was kept.
+    static func versionCopyTitle(_ title: String, date: String) -> String {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return "\(trimmed.isEmpty ? "Untitled design" : trimmed) (version from \(date))"
+    }
+
+    /// When a version was kept, as its copy's title says it: the phone's
+    /// medium date and short time.
+    static func versionCopyDate(_ date: Date) -> String {
+        DateFormatter.localizedString(from: date, dateStyle: .medium, timeStyle: .short)
+    }
+
+    /// A kept version saved as a design of its own, beside the one it was
+    /// kept of, which is left as it is: a fresh id, made now, a title that
+    /// says which version it was, and the folder that design is in now. Nil
+    /// when it could not be written.
+    @discardableResult
+    static func saveCopy(of version: Design, savedAt: Date, folder: String?, now: Date = Date()) -> Design? {
+        var copy = version
+        copy.id = UID.make("doc")
+        copy.title = versionCopyTitle(version.title, date: versionCopyDate(savedAt))
+        copy.titleAuto = false
+        copy.folder = folder
+        copy.createdAt = now.timeIntervalSince1970 * 1000
+        copy.updatedAt = copy.createdAt
+        return save(copy) ? copy : nil
     }
 
     static func clearVersions(for id: String) {
