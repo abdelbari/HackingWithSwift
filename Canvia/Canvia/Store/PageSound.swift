@@ -217,6 +217,9 @@ final class PageSound {
         // it is kept.
         guard holdsSession, music == nil, clips.isEmpty, !musicLoading else { return }
         holdsSession = false
+        // Dictation took the session while this held it: it is dictation's
+        // now, and dictation lets it go when it stops.
+        guard !Dictation.shared.isListening else { return }
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
