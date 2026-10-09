@@ -83,10 +83,10 @@ enum TextEffect: String, CaseIterable, Identifiable {
     }
     var defaultColor2: String? { self == .glitch ? "#ff2d78" : nil }
 
-    /// A setting as drawn: the stored value, else the default, kept in range.
+    /// A setting as drawn: the stored value as it is, else the default —
+    /// not kept in range, so a file draws the same on the Android twin.
     static func value(_ spec: TextEffectSpec?, _ param: TextEffectParam, for effect: TextEffect) -> Double {
-        let raw = spec?[param] ?? effect.defaultValue(param) ?? 0
-        return min(param.range.upperBound, max(param.range.lowerBound, raw))
+        spec?[param] ?? effect.defaultValue(param) ?? 0
     }
 
     /// The hollow letters' stroke at a thickness: a curve's splice draws

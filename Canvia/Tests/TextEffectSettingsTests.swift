@@ -164,6 +164,18 @@ final class TextEffectSettingsTests: XCTestCase {
         XCTAssertEqual(TextEffect.resolve(spec, fontSize: 100, ink: "#000000").blur, 12, accuracy: 0.001)
     }
 
+    func testASettingPastTheSliderIsDrawnAsItIs() throws {
+        // As on the Android twin, which keeps no setting in range.
+        let lift = try resolve(#"{"type":"lift","intensity":150}"#, fontSize: 50)
+        XCTAssertEqual(lift.dy, 27, accuracy: 0.001)
+        XCTAssertEqual(lift.blur, 75, accuracy: 0.001)
+        XCTAssertEqual(lift.alpha, 1, accuracy: 0.001)
+
+        let up = try resolve(#"{"type":"shadow","direction":270}"#)
+        XCTAssertEqual(up.dx, 0, accuracy: 0.01)
+        XCTAssertEqual(up.dy, -8.49, accuracy: 0.01)
+    }
+
     func testAnUnknownTypeDrawsAsNoneAndKeepsItsName() throws {
         let spec = try JSONDecoder().decode(TextEffectSpec.self,
                                             from: Data(#"{"type":"sparkle","offset":20}"#.utf8))
