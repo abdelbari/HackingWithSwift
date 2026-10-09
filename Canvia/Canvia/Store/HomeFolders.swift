@@ -1,7 +1,7 @@
 // Folders as a whole, and Select on Home: what renaming a folder moves, and
-// which of the designs on show a Select picks. A folder is still only the
-// `folder` each design is filed under, so renaming or emptying one moves its
-// designs, one by one, with move(id:toFolder:). The Android twin's Shelf
+// which designs a Select picks. A folder is still only the `folder` each
+// design is filed under, so renaming or emptying one moves its designs, one
+// by one, with move(id:toFolder:). The Android twin's Shelf
 // (core/content/Shelf.kt) by the same rules.
 
 import Foundation
@@ -39,11 +39,11 @@ extension DesignLibrary {
 
     // MARK: select
 
-    /// The designs picked that are on show — in the folder, and matching
-    /// the search — in the order shown. Only those are moved, duplicated or
-    /// deleted: one picked and then searched out of sight is left alone.
-    static func picked(_ picked: Set<String>, among shown: [RecentDesign]) -> [RecentDesign] {
-        shown.filter { picked.contains($0.id) }
+    /// The designs picked among `shelf`, in its order: what Move,
+    /// Duplicate and Delete act on, whether on show or filtered out of
+    /// sight. One picked that is no longer there is passed by.
+    static func picked(_ picked: Set<String>, among shelf: [RecentDesign]) -> [RecentDesign] {
+        shelf.filter { picked.contains($0.id) }
     }
 
     /// Whether every design on show is picked, so the bar offers

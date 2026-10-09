@@ -84,9 +84,11 @@ final class FoldersAndSelectTests: XCTestCase {
         XCTAssertFalse(DesignLibrary.allPicked([], among: []))
     }
 
-    func testOnlyPickedDesignsOnShowAreActedOn() {
-        let shown = DesignLibrary.filter(shelf, query: "", sort: .name, folder: "Trips")
-        XCTAssertEqual(DesignLibrary.picked(["a", "c", "d"], among: shown).map(\.id), ["a", "d"])
+    func testEveryPickedDesignIsActedOnShownOrNot() {
+        // "c" is in Work, out of sight while Trips is shown, and still taken;
+        // "gone" is no longer on the shelf.
+        let all = DesignLibrary.filter(shelf, query: "", sort: .name, folder: nil)
+        XCTAssertEqual(DesignLibrary.picked(["a", "c", "d", "gone"], among: all).map(\.id), ["a", "d", "c"])
     }
 
     // MARK: copy of a version

@@ -899,9 +899,10 @@ struct HomeView: View {
         if picked.contains(recent.id) { picked.remove(recent.id) } else { picked.insert(recent.id) }
     }
 
-    /// The designs picked that are on show, which the bar acts on.
-    private var pickedShown: [RecentDesign] {
-        DesignLibrary.picked(picked, among: shownRecents)
+    /// Every design picked that is still on the shelf, which the bar acts
+    /// on: one picked and then filtered out of sight goes with the rest.
+    private var pickedDesigns: [RecentDesign] {
+        DesignLibrary.picked(picked, among: DesignLibrary.filter(recents + damaged, query: "", sort: sort, folder: nil))
     }
 
     /// Heard on each card in Select; nothing outside it.
@@ -957,7 +958,7 @@ struct HomeView: View {
     /// Under the shelf while selecting: how many are picked, and what can
     /// be done with them all at once.
     private var selectBar: some View {
-        let chosen = pickedShown
+        let chosen = pickedDesigns
         let said = "\(chosen.count) selected"
         return HStack(spacing: 18) {
             Text(said)
