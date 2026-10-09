@@ -90,15 +90,18 @@ final class ShapeTextTests: XCTestCase {
     // MARK: growing
 
     func testAShapeGrowsDownJustEnoughForItsWords() {
-        XCTAssertEqual(ShapeText.grownHeight(height: 100, insetHeight: 84, border: 0, wordsHeight: 50), 100,
+        // 200 tall keeps 168 for words.
+        XCTAssertEqual(ShapeText.grownHeight(height: 200, insetHeight: 84, border: 0, wordsHeight: 100), 200, accuracy: 1e-9,
                        "words that fit leave it be")
-        XCTAssertEqual(ShapeText.grownHeight(height: 100, insetHeight: 84, border: 0, wordsHeight: 84), 100)
-        XCTAssertEqual(ShapeText.grownHeight(height: 100, insetHeight: 84, border: 0, wordsHeight: 100), 120,
-                       "100 / 0.84 is 119.05, up to 120")
-        XCTAssertEqual(ShapeText.grownHeight(height: 100, insetHeight: 84, border: 4, wordsHeight: 80), 105,
-                       "(80 + 8) / 0.84 is 104.76, up to 105")
-        XCTAssertEqual(ShapeText.grownHeight(height: 200, insetHeight: 40, border: 0, wordsHeight: 100), 250)
-        XCTAssertEqual(ShapeText.grownHeight(height: 300, insetHeight: 84, border: 0, wordsHeight: 10), 300,
+        XCTAssertEqual(ShapeText.grownHeight(height: 200, insetHeight: 84, border: 0, wordsHeight: 168), 200, accuracy: 1e-9)
+        XCTAssertEqual(ShapeText.grownHeight(height: 200, insetHeight: 84, border: 0, wordsHeight: 210), 250, accuracy: 1e-9)
+        // A border of 4 keeps 8 more.
+        XCTAssertEqual(ShapeText.grownHeight(height: 200, insetHeight: 84, border: 4, wordsHeight: 160), 200, accuracy: 1e-9)
+        XCTAssertEqual(ShapeText.grownHeight(height: 200, insetHeight: 84, border: 4, wordsHeight: 202), 250, accuracy: 1e-9)
+        // A circle's words have 70.8 of each hundred.
+        XCTAssertEqual(ShapeText.grownHeight(height: 200, insetHeight: ShapeTextInsets.inset(for: "circle").h,
+                                             border: 0, wordsHeight: 212.4), 300, accuracy: 1e-9)
+        XCTAssertEqual(ShapeText.grownHeight(height: 400, insetHeight: 84, border: 0, wordsHeight: 10), 400, accuracy: 1e-9,
                        "never shrinks")
     }
 

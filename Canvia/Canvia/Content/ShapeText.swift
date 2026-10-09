@@ -237,8 +237,9 @@ enum ShapeText {
     static func grownHeight(height: Double, insetHeight: Double, border: Double, wordsHeight: Double) -> Double {
         guard insetHeight > 0 else { return height }
         let room = height * insetHeight / 100 - 2 * border
-        guard wordsHeight > room else { return height }
-        return max(height, ((wordsHeight + 2 * border) * 100 / insetHeight).rounded(.up))
+        // Below a rounding error, words fit.
+        guard wordsHeight > room + 1e-6 else { return height }
+        return max(height, (wordsHeight + 2 * border) * 100 / insetHeight)
     }
 
     /// The shape's height for the words it has now, as typing leaves it.
