@@ -29,6 +29,9 @@ final class DesignStore {
         }
     }
     var editingTextId: String?
+    /// The words the colour sheet is open for, from the typing bar's colour
+    /// well (see WordStyles).
+    var wordColourTarget: WordRange?
     /// The text box dictation writes into while the microphone is on. Its
     /// words go there and nowhere else, whatever is selected meanwhile.
     var dictationTarget: String?

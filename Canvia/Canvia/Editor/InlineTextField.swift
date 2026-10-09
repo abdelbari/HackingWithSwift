@@ -13,6 +13,10 @@
 // them, or take them off (RichText.toggling). With nothing chosen, the
 // first three style the whole box, as its own controls do. A box set in
 // capitals is still typed as its words are kept: the capitals are drawn.
+//
+// Beside them a colour well and A− and A+ colour the words chosen, or set
+// them a step smaller or larger (see Spans) — only with words chosen — and
+// the field shows the words in those colours and sizes as they are typed.
 
 import SwiftUI
 import UIKit
@@ -28,6 +32,11 @@ struct InlineTextField: UIViewRepresentable {
     var onToggle: (TextToggle) -> Void = { _ in }
     /// Runs a style the bar puts on the words as a step of its own.
     var onStyled: (() -> Void) -> Void = { $0() }
+    /// The colour well, for the words chosen: a range of the words as they
+    /// read.
+    var onWordColour: (NSRange) -> Void = { _ in }
+    /// A− or A+ for the words chosen, and what their size is multiplied by.
+    var onWordScale: (NSRange, Double) -> Void = { _, _ in }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -86,6 +95,12 @@ struct InlineTextField: UIViewRepresentable {
         private var look = ""
         /// The bar's style buttons, in RichText.Mark's order.
         private var styleItems: [UIBarButtonItem] = []
+        /// The colour well, A− and A+, for the words chosen.
+        private var wordItems: [UIBarButtonItem] = []
+        /// The colours and sizes the words are shown in now, and the words
+        /// they were put on.
+        private var painted: [TextSpan] = []
+        private var paintedWords = ""
 
         init(_ parent: InlineTextField) {
             self.parent = parent
@@ -100,15 +115,26 @@ struct InlineTextField: UIViewRepresentable {
             guard view.markedTextRange == nil else { return }
             let words = el.text ?? ""
             let signature = InlineTextField.signature(drawn)
+            let spans = InlineTextField.shownSpans(el)
             // The bar's buttons follow the box's own bold and the rest.
             defer { refreshStyles(view) }
-            guard view.text != words || signature != look else { return }
-            look = signature
-            let kept = view.selectedRange
-            view.attributedText = NSAttributedString(string: words, attributes: attrs)
-            let length = (words as NSString).length
-            let start = min(kept.location, length)
-            view.selectedRange = NSRange(location: start, length: min(kept.length, length - start))
+            // Painted again after every change of the words, too: a letter
+            // typed just after a coloured word picks up its colour in the
+            // field, and is put back as the canvas will draw it.
+            let repaint = spans != painted || (!spans.isEmpty && words != paintedWords)
+            guard view.text != words || signature != look || repaint else { return }
+            if view.text != words || signature != look {
+                look = signature
+                let kept = view.selectedRange
+                view.attributedText = NSAttributedString(string: words, attributes: attrs)
+                let length = (words as NSString).length
+                let start = min(kept.location, length)
+                view.selectedRange = NSRange(location: start, length: min(kept.length, length - start))
+            }
+            guard !spans.isEmpty || !painted.isEmpty else { return }
+            painted = spans
+            paintedWords = words
+            InlineTextField.paint(view.textStorage, words: words, spans: spans, attrs: attrs)
         }
 
         func textViewDidChange(_ textView: UITextView) {
@@ -121,7 +147,8 @@ struct InlineTextField: UIViewRepresentable {
         }
 
         /// A bar over the keyboard: Bold, Italic, Underline and
-        /// Strikethrough for the words chosen, and Done, the plainest way out.
+        /// Strikethrough for the words chosen, their colour and A− and A+,
+        /// and Done, the plainest way out.
         func typingBar() -> UIToolbar {
             let bar = UIToolbar(frame: CGRect(x: 0, y: 0, width: 320, height: 44))
             styleItems = RichText.Mark.allCases.enumerated().map { entry -> UIBarButtonItem in
@@ -132,14 +159,45 @@ struct InlineTextField: UIViewRepresentable {
                 item.accessibilityLabel = face.name
                 return item
             }
+            let well = UIBarButtonItem(image: UIImage(systemName: "circle.fill"), style: .plain,
+                                       target: self, action: #selector(colourWords))
+            well.accessibilityLabel = "Word colour"
+            let smaller = UIBarButtonItem(title: "A−", style: .plain, target: self, action: #selector(sizeWords(_:)))
+            smaller.tag = 0
+            smaller.accessibilityLabel = "Smaller words"
+            let larger = UIBarButtonItem(title: "A+", style: .plain, target: self, action: #selector(sizeWords(_:)))
+            larger.tag = 1
+            larger.accessibilityLabel = "Larger words"
+            wordItems = [well, smaller, larger]
             let done = UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(finish))
-            bar.items = styleItems + [UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil), done]
+            bar.items = styleItems + wordItems
+                + [UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil), done]
             bar.sizeToFit()
             return bar
         }
 
         @objc private func finish() {
             parent.onDone()
+        }
+
+        /// The words chosen, as a range of the words as they read; nil with
+        /// none chosen.
+        private func chosenWords(_ view: UITextView) -> NSRange? {
+            guard view.markedTextRange == nil else { return nil }
+            return RichText.plainRange(of: view.selectedRange, in: view.text ?? "")
+        }
+
+        /// The colour sheet, for the words chosen.
+        @objc private func colourWords() {
+            guard let view, let range = chosenWords(view) else { return }
+            parent.onWordColour(range)
+        }
+
+        /// A− or A+: the words chosen a step smaller or larger, as a step of
+        /// their own; the same words stay chosen.
+        @objc private func sizeWords(_ sender: UIBarButtonItem) {
+            guard let view, let range = chosenWords(view) else { return }
+            parent.onWordScale(range, sender.tag == 0 ? Spans.smaller : Spans.larger)
         }
 
         /// The words chosen marked in the style, or unmarked when they all
@@ -184,6 +242,19 @@ struct InlineTextField: UIViewRepresentable {
             let words = view.text ?? ""
             let chosen = view.selectedRange
             let all = NSRange(location: 0, length: (words as NSString).length)
+            // The colour well and the sizes, only with words chosen; the well
+            // in the colour they share.
+            let picked = chosenWords(view)
+            for item in wordItems { item.isEnabled = picked != nil }
+            if let well = wordItems.first {
+                let el = parent.element
+                var hex: String?
+                if let picked {
+                    let shared = Spans.colour(of: el.liveSpans, in: picked)
+                    if shared.shared { hex = shared.color ?? el.color ?? "#1f2430" }
+                }
+                well.tintColor = hex.map { UIColor(hex: $0) } ?? .label
+            }
             for (item, mark) in zip(styleItems, RichText.Mark.allCases) {
                 let on: Bool
                 if chosen.length > 0 {
@@ -197,6 +268,40 @@ struct InlineTextField: UIViewRepresentable {
                 item.accessibilityTraits = on ? [.button, .selected] : .button
             }
         }
+    }
+
+    /// The colours and sizes the field shows the words in: the element's,
+    /// less the colours while its letters are a gradient, as on the canvas.
+    static func shownSpans(_ el: Element) -> [TextSpan] {
+        let spans = el.liveSpans
+        guard el.textFill?.kind == "gradient" else { return spans }
+        return Spans.normalised(spans.map { TextSpan(start: $0.start, end: $0.end, scale: $0.scale) })
+    }
+
+    /// The typed words, markers and all, in `attrs`, with the colours and
+    /// sizes of `spans` — counted in the words as they read — on the letters
+    /// they belong to.
+    static func paint(_ storage: NSTextStorage, words: String, spans: [TextSpan],
+                      attrs: [NSAttributedString.Key: Any]) {
+        let whole = NSRange(location: 0, length: storage.length)
+        storage.beginEditing()
+        storage.setAttributes(attrs, range: whole)
+        if !spans.isEmpty, storage.length == (words as NSString).length {
+            let units = RichText.typedUnits(words)
+            let font = attrs[.font] as? UIFont
+            for span in spans {
+                for range in RichText.typedRanges(of: span.range, units: units) {
+                    if let color = span.color {
+                        storage.addAttribute(.foregroundColor, value: UIColor(hex: color), range: range)
+                    }
+                    if let scale = span.scale, let font {
+                        storage.addAttribute(.font, value: font.withSize(font.pointSize * scale), range: range)
+                        if scale > 1 { RichText.makeRoom(in: storage, for: range, scale: scale) }
+                    }
+                }
+            }
+        }
+        storage.endEditing()
     }
 
     /// The bar's face for each style.

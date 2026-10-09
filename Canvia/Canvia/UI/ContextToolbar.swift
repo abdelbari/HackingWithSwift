@@ -181,6 +181,10 @@ struct ContextToolbar: View {
         }
         HStack(spacing: 14) {
             stylesMenu(el)
+            // Only when some words have a colour or a size of their own.
+            if !el.liveSpans.isEmpty {
+                toolButton("eraser", "Clear word colours and sizes") { store.clearWordStyles() }
+            }
             toolButton("wand.and.stars", "Effects") { activeSheet = .effects }
             toolButton("arrow.up.and.down.text.horizontal", "Spacing") { activeSheet = .spacing }
             if Dictation.isAvailable && !el.locked { dictateButton(el) }
