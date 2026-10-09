@@ -210,8 +210,7 @@ enum DesignLibrary {
     @discardableResult
     static func move(id: String, toFolder folder: String?) -> Bool {
         guard var design = load(id: id) else { return false }
-        let name = folder?.trimmingCharacters(in: .whitespaces)
-        design.folder = (name?.isEmpty ?? true) ? nil : name
+        design.folder = folderName(folder)
         return save(design)
     }
 

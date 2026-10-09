@@ -63,12 +63,24 @@ struct HomeView: View {
     @State private var openingFile = false
     @State private var templateCategory: String?
     @State private var folder: String?
-    @State private var filingInto: RecentDesign?
+    /// The designs a new folder is being named for.
+    @State private var filingInto: [String] = []
     @State private var newFolderName = ""
+    /// The folder whose new name is being typed.
+    @State private var renamingFolder: String?
+    @State private var folderRenameText = ""
+    /// A rename onto a folder already there, while the merge is asked about.
+    @State private var merging: DesignLibrary.FolderRename?
+    /// The folder whose deletion is being asked about.
+    @State private var deletingFolder: String?
+    /// Select on Home: tapping a card picks it rather than opening it.
+    @State private var selecting = false
+    /// The ids picked in Select.
+    @State private var picked: Set<String> = []
     @State private var touring = false
-    /// The design just moved to Recently deleted, while its Undo is on
-    /// offer.
-    @State private var justTrashed: RecentDesign?
+    /// The designs just moved to Recently deleted, all at once, while their
+    /// one Undo is on offer.
+    @State private var justTrashed: [RecentDesign] = []
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openWindow) private var openWindow
     @Environment(\.supportsMultipleWindows) private var supportsMultipleWindows
@@ -121,6 +133,8 @@ struct HomeView: View {
         // Was a hardcoded near-white, which in dark mode left primary-coloured
         // text — white by then — on an almost white page.
         .background(Theme.workspace)
+        .safeAreaInset(edge: .top, spacing: 0) { if selecting { selectTopBar } }
+        .safeAreaInset(edge: .bottom, spacing: 0) { if selecting { selectBar } }
         .overlay(alignment: .bottom) { trashedToast }
         .overlay { if openingFile { OpeningDesignCard() } }
         .onAppear {
@@ -134,17 +148,15 @@ struct HomeView: View {
             sheetView(shown)
         }
         .alert("New folder", isPresented: Binding(
-            get: { filingInto != nil },
-            set: { if !$0 { filingInto = nil } })) {
+            get: { !filingInto.isEmpty },
+            set: { if !$0 { filingInto = [] } })) {
             TextField("Folder name", text: $newFolderName)
             Button("Move") {
-                if let target = filingInto {
-                    DesignLibrary.move(id: target.id, toFolder: newFolderName)
-                    reload()
-                }
-                filingInto = nil
+                move(filingInto, to: newFolderName)
+                filingInto = []
             }
-            Button("Cancel", role: .cancel) { filingInto = nil }
+            .disabled((DesignLibrary.folderName(newFolderName)?.count ?? 0) > DesignLibrary.folderNameLimit)
+            Button("Cancel", role: .cancel) { filingInto = [] }
         }
         .alert("Rename design", isPresented: Binding(
             get: { renaming != nil },
@@ -326,9 +338,80 @@ struct HomeView: View {
                     chip(name, selected: folder == name, systemImage: "folder") {
                         folder = folder == name ? nil : name
                     }
+                    .contextMenu {
+                        Button {
+                            folderRenameText = name
+                            renamingFolder = name
+                        } label: { Label("Rename folder…", systemImage: "pencil") }
+                        Button(role: .destructive) {
+                            deletingFolder = name
+                        } label: { Label("Delete folder…", systemImage: "trash") }
+                    }
                 }
             }
             .padding(.horizontal)
+        }
+        .alert("Rename folder", isPresented: Binding(
+            get: { renamingFolder != nil },
+            set: { if !$0 { renamingFolder = nil } })) {
+            TextField("Folder name", text: $folderRenameText)
+            Button("Rename") {
+                if let from = renamingFolder { renameFolder(from, to: folderRenameText) }
+                renamingFolder = nil
+            }
+            // Blank, or past forty characters, is no name for a folder.
+            .disabled(DesignLibrary.renamePlan(recents, from: renamingFolder ?? "", to: folderRenameText) == nil)
+            Button("Cancel", role: .cancel) { renamingFolder = nil }
+        }
+        .alert("Merge into ‘\(merging?.name ?? "")’?", isPresented: Binding(
+            get: { merging != nil },
+            set: { if !$0 { merging = nil } })) {
+            Button("Merge") {
+                if let plan = merging { applyRename(plan) }
+                merging = nil
+            }
+            Button("Cancel", role: .cancel) { merging = nil }
+        }
+        .confirmationDialog("Delete ‘\(deletingFolder ?? "")’?", isPresented: Binding(
+            get: { deletingFolder != nil },
+            set: { if !$0 { deletingFolder = nil } }),
+                            titleVisibility: .visible) {
+            Button("Keep the designs") {
+                if let name = deletingFolder { deleteFolder(name, trashingDesigns: false) }
+                deletingFolder = nil
+            }
+            Button("Delete the designs too", role: .destructive) {
+                if let name = deletingFolder { deleteFolder(name, trashingDesigns: true) }
+                deletingFolder = nil
+            }
+            Button("Cancel", role: .cancel) { deletingFolder = nil }
+        }
+    }
+
+    /// Every design in the folder filed under the new name, and the folder
+    /// still the one shown — or, onto a folder already there, asked first.
+    private func renameFolder(_ from: String, to: String) {
+        guard let plan = DesignLibrary.renamePlan(recents, from: from, to: to), plan.name != from else { return }
+        if plan.merges { merging = plan } else { applyRename(plan) }
+    }
+
+    private func applyRename(_ plan: DesignLibrary.FolderRename) {
+        for id in plan.ids { DesignLibrary.move(id: id, toFolder: plan.name) }
+        folder = plan.name
+        reload()
+    }
+
+    /// The folder goes, its designs either out of any folder or to
+    /// Recently deleted with one Undo for them all; the shelf shows
+    /// everything again.
+    private func deleteFolder(_ name: String, trashingDesigns: Bool) {
+        let inFolder = recents.filter { $0.folder == name }
+        folder = nil
+        if trashingDesigns {
+            trash(inFolder)
+        } else {
+            for design in inFolder { DesignLibrary.move(id: design.id, toFolder: nil) }
+            reload()
         }
     }
 
@@ -461,7 +544,12 @@ struct HomeView: View {
             Button("Delete forever", role: .destructive) {
                 if let entry = deletingForever {
                     DesignLibrary.deleteTrashed(id: entry.id)
-                    if justTrashed?.id == entry.id { hideTrashed() }
+                    // Gone for good is past undoing; the rest still come
+                    // back with Undo.
+                    if justTrashed.contains(where: { $0.id == entry.id }) {
+                        justTrashed.removeAll { $0.id == entry.id }
+                        if justTrashed.isEmpty { hideTrashed() }
+                    }
                 }
                 deletingForever = nil
                 reload()
@@ -496,13 +584,13 @@ struct HomeView: View {
     /// times out is gone before a screen reader has finished saying it.
     @ViewBuilder
     private var trashedToast: some View {
-        if let gone = justTrashed {
+        if !justTrashed.isEmpty {
             HStack(spacing: 12) {
-                Text("Moved “\(gone.title)” to Recently deleted")
+                Text(Self.trashedText(justTrashed))
                     .font(.subheadline)
                     .lineLimit(2)
                 Button("Undo") {
-                    DesignLibrary.restore(id: gone.id)
+                    for gone in justTrashed { DesignLibrary.restore(id: gone.id) }
                     hideTrashed()
                     reload()
                 }
@@ -527,14 +615,30 @@ struct HomeView: View {
         }
     }
 
-    private func showTrashed(_ design: RecentDesign) {
-        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { justTrashed = design }
-        let said: String = "Moved “\(design.title)” to Recently deleted"
-        AccessibilityNotification.Announcement(said).post()
+    private func showTrashed(_ designs: [RecentDesign]) {
+        guard !designs.isEmpty else { return }
+        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { justTrashed = designs }
+        AccessibilityNotification.Announcement(Self.trashedText(designs)).post()
     }
 
     private func hideTrashed() {
-        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { justTrashed = nil }
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { justTrashed = [] }
+    }
+
+    /// What the toast says: the design by name, or how many went at once.
+    private static func trashedText(_ designs: [RecentDesign]) -> String {
+        if designs.count == 1, let gone = designs.first { return "Moved “\(gone.title)” to Recently deleted" }
+        return "Moved \(designs.count) designs to Recently deleted"
+    }
+
+    /// To the trash, not gone: thirty days to change your mind, in the
+    /// section below — and one Undo right here for the change of mind that
+    /// comes at once, however many went.
+    private func trash(_ designs: [RecentDesign]) {
+        guard !designs.isEmpty else { return }
+        for design in designs { DesignLibrary.trash(id: design.id) }
+        reload()
+        showTrashed(designs)
     }
 
     // MARK: hero
@@ -548,6 +652,16 @@ struct HomeView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                if !selecting && (!recents.isEmpty || !damaged.isEmpty) {
+                    Button { startSelecting() } label: {
+                        Text("Select")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 14)
+                            .frame(height: 44)
+                            .background(.white.opacity(0.18), in: Capsule())
+                    }
+                }
                 heroButton("New design", systemImage: "plus") { homeSheet = .pickSize }
                 heroButton("How Canvia works", systemImage: "questionmark") { homeSheet = .help }
                 Menu {
@@ -639,7 +753,7 @@ struct HomeView: View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
             ForEach(shownRecents) { recent in
                 if recent.damaged {
-                    damagedCard(recent)
+                    if selecting { pickableDamagedCard(recent) } else { damagedCard(recent) }
                 } else {
                     designCard(recent)
                 }
@@ -652,11 +766,7 @@ struct HomeView: View {
             Button("Delete", role: .destructive) {
                 // To the trash with its versions, as any design goes, so a
                 // version can still mend it if it is restored.
-                if let entry = deletingDamaged {
-                    DesignLibrary.trash(id: entry.id)
-                    reload()
-                    showTrashed(entry)
-                }
+                if let entry = deletingDamaged { trash([entry]) }
                 deletingDamaged = nil
             }
             Button("Cancel", role: .cancel) { deletingDamaged = nil }
@@ -672,7 +782,9 @@ struct HomeView: View {
 
     private func designCard(_ recent: RecentDesign) -> some View {
         Button {
-            if let design = DesignLibrary.load(id: recent.id) {
+            if selecting {
+                toggle(recent)
+            } else if let design = DesignLibrary.load(id: recent.id) {
                 onOpen(design)
             }
         } label: {
@@ -696,56 +808,194 @@ struct HomeView: View {
             .background(Theme.card)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .shadow(color: .black.opacity(0.08), radius: 5, y: 2)
+            .overlay(alignment: .topTrailing) { if selecting { checkCircle(picked.contains(recent.id)) } }
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(recent.title), \(caption(for: recent).spoken)")
+        .accessibilityValue(pickedValue(recent))
         .contextMenu {
-            Button {
-                renameText = recent.title
-                renaming = recent
-            } label: { Label("Rename", systemImage: "pencil") }
-            Button {
-                if var design = DesignLibrary.load(id: recent.id) {
-                    let sourceId = design.id
-                    design.id = UID.make("doc")
-                    design.title += " (copy)"
-                    design.updatedAt = Date().timeIntervalSince1970 * 1000
-                    DesignLibrary.save(design)
-                    DesignLibrary.copyThumbnail(from: sourceId, to: design.id)
-                    reload()
-                }
-            } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
-            Menu {
-                ForEach(folders.filter { $0 != recent.folder }, id: \.self) { name in
-                    Button(name) {
-                        DesignLibrary.move(id: recent.id, toFolder: name)
-                        reload()
-                    }
-                }
+            if !selecting {
                 Button {
-                    newFolderName = ""
-                    filingInto = recent
-                } label: { Label("New folder…", systemImage: "folder.badge.plus") }
-                if recent.folder != nil {
-                    Button(role: .destructive) {
-                        DesignLibrary.move(id: recent.id, toFolder: nil)
-                        reload()
-                    } label: { Label("Remove from folder", systemImage: "folder.badge.minus") }
-                }
-            } label: { Label("Move to folder", systemImage: "folder") }
-            if supportsMultipleWindows {
+                    renameText = recent.title
+                    renaming = recent
+                } label: { Label("Rename", systemImage: "pencil") }
                 Button {
-                    openWindow(value: recent.id)
-                } label: { Label("Open in new window", systemImage: "macwindow.badge.plus") }
+                    duplicate([recent])
+                } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
+                Menu {
+                    moveItems([recent])
+                } label: { Label("Move to folder", systemImage: "folder") }
+                if supportsMultipleWindows {
+                    Button {
+                        openWindow(value: recent.id)
+                    } label: { Label("Open in new window", systemImage: "macwindow.badge.plus") }
+                }
+                Button(role: .destructive) {
+                    trash([recent])
+                } label: { Label("Delete", systemImage: "trash") }
             }
+        }
+    }
+
+    /// Where `designs` can be filed: each folder — but the one they are
+    /// all in already — a new one, or out of their folders.
+    @ViewBuilder
+    private func moveItems(_ designs: [RecentDesign]) -> some View {
+        let ids = designs.map(\.id)
+        let current = Set(designs.map(\.folder))
+        ForEach(folders.filter { !(current.count == 1 && current.contains($0)) }, id: \.self) { name in
+            Button(name) { move(ids, to: name) }
+        }
+        Button {
+            newFolderName = ""
+            filingInto = ids
+        } label: { Label("New folder…", systemImage: "folder.badge.plus") }
+        if designs.contains(where: { $0.folder != nil }) {
             Button(role: .destructive) {
-                // To the trash, not gone: thirty days to change
-                // your mind, in the section below — and Undo right
-                // here for the change of mind that comes at once.
-                DesignLibrary.trash(id: recent.id)
-                reload()
-                showTrashed(recent)
-            } label: { Label("Delete", systemImage: "trash") }
+                move(ids, to: nil)
+            } label: { Label("Remove from folder", systemImage: "folder.badge.minus") }
+        }
+    }
+
+    /// Files the designs under `folder`, or out of any for nil or blank;
+    /// a design that no longer reads stays where it is.
+    private func move(_ ids: [String], to folder: String?) {
+        for id in ids { DesignLibrary.move(id: id, toFolder: folder) }
+        stopSelecting()
+        reload()
+    }
+
+    /// Each design copied whole under a fresh id, its picture with it.
+    /// One that no longer reads has nothing to copy.
+    private func duplicate(_ designs: [RecentDesign]) {
+        for recent in designs where !recent.damaged {
+            guard var design = DesignLibrary.load(id: recent.id) else { continue }
+            let sourceId = design.id
+            design.id = UID.make("doc")
+            design.title += " (copy)"
+            design.updatedAt = Date().timeIntervalSince1970 * 1000
+            DesignLibrary.save(design)
+            DesignLibrary.copyThumbnail(from: sourceId, to: design.id)
+        }
+        stopSelecting()
+        reload()
+    }
+
+    // MARK: select
+
+    private func startSelecting() {
+        picked = []
+        hideTrashed()
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { selecting = true }
+    }
+
+    private func stopSelecting() {
+        guard selecting else { return }
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { selecting = false }
+        picked = []
+    }
+
+    private func toggle(_ recent: RecentDesign) {
+        if picked.contains(recent.id) { picked.remove(recent.id) } else { picked.insert(recent.id) }
+    }
+
+    /// The designs picked that are on show, which the bar acts on.
+    private var pickedShown: [RecentDesign] {
+        DesignLibrary.picked(picked, among: shownRecents)
+    }
+
+    /// Heard on each card in Select; nothing outside it.
+    private func pickedValue(_ recent: RecentDesign) -> String {
+        guard selecting else { return "" }
+        return picked.contains(recent.id) ? "selected" : "not selected"
+    }
+
+    /// A damaged card in Select, picked by a tap anywhere on it, as a
+    /// design's is: for Move and Delete, though Duplicate passes it by.
+    private func pickableDamagedCard(_ entry: RecentDesign) -> some View {
+        Button { toggle(entry) } label: {
+            damagedCard(entry)
+                .overlay(alignment: .topTrailing) { checkCircle(picked.contains(entry.id)) }
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(entry.title), This design can't be opened.")
+        .accessibilityValue(pickedValue(entry))
+        .accessibilityAddTraits(.isButton)
+    }
+
+    /// Filled when the card is picked.
+    private func checkCircle(_ on: Bool) -> some View {
+        Image(systemName: on ? "checkmark.circle.fill" : "circle")
+            .font(.title2)
+            .symbolRenderingMode(.palette)
+            .foregroundStyle(Color.white, Theme.accent)
+            .shadow(color: .black.opacity(0.25), radius: 2)
+            .padding(8)
+            .accessibilityHidden(true)
+    }
+
+    /// Over the shelf while selecting: all or none of the designs on show,
+    /// and the way out.
+    private var selectTopBar: some View {
+        let all = DesignLibrary.allPicked(picked, among: shownRecents)
+        return HStack {
+            Button(all ? "Deselect all" : "Select all") {
+                picked = DesignLibrary.togglingAll(picked, among: shownRecents)
+            }
+            .disabled(shownRecents.isEmpty)
+            Spacer()
+            Button("Done") { stopSelecting() }
+                .fontWeight(.semibold)
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+        .background(.bar)
+        .transition(.opacity)
+    }
+
+    /// Under the shelf while selecting: how many are picked, and what can
+    /// be done with them all at once.
+    private var selectBar: some View {
+        let chosen = pickedShown
+        let said = "\(chosen.count) selected"
+        return HStack(spacing: 18) {
+            Text(said)
+                .font(.subheadline.weight(.semibold))
+            Spacer()
+            Menu {
+                moveItems(chosen)
+            } label: {
+                barLabel("Move to folder…", systemImage: "folder")
+            }
+            .disabled(chosen.isEmpty)
+            .accessibilityLabel("Move to folder…")
+            Button { duplicate(chosen) } label: {
+                barLabel("Duplicate", systemImage: "plus.square.on.square")
+            }
+            .disabled(!chosen.contains { !$0.damaged })
+            .accessibilityLabel("Duplicate")
+            Button(role: .destructive) {
+                let gone = chosen
+                stopSelecting()
+                trash(gone)
+            } label: {
+                barLabel("Delete", systemImage: "trash")
+            }
+            .disabled(chosen.isEmpty)
+            .accessibilityLabel("Delete")
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(.bar)
+        .accessibilityElement(children: .contain)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    private func barLabel(_ title: String, systemImage: String) -> some View {
+        VStack(spacing: 2) {
+            Image(systemName: systemImage).font(.body)
+            Text(title).font(.caption2)
         }
     }
 
@@ -770,12 +1020,15 @@ struct HomeView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                Button("Restore last version") { restoreDamaged(entry) }
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.accent)
-                Button("Delete", role: .destructive) { deletingDamaged = entry }
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.red)
+                // In Select the whole card picks it instead.
+                if !selecting {
+                    Button("Restore last version") { restoreDamaged(entry) }
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
+                    Button("Delete", role: .destructive) { deletingDamaged = entry }
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.red)
+                }
             }
             .padding(10)
         }

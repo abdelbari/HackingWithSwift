@@ -1,0 +1,90 @@
+// Folders renamed and deleted as a whole, and Select on Home over the
+// designs on show — the same cases as the Android twin's.
+
+import XCTest
+@testable import Canvia
+
+final class FoldersAndSelectTests: XCTestCase {
+
+    private func recent(_ id: String, _ title: String, folder: String?) -> RecentDesign {
+        RecentDesign(id: id, title: title, width: 100, height: 100, pages: 1, updatedAt: 0, folder: folder)
+    }
+
+    private var shelf: [RecentDesign] {
+        [recent("a", "Beach", folder: "Trips"), recent("b", "Hike", folder: "Trips"),
+         recent("c", "Work poster", folder: "Work"), recent("d", "Ski", folder: "Trips"),
+         recent("e", "Loose", folder: nil)]
+    }
+
+    // MARK: rename folder
+
+    func testRenameMovesExactlyTheFoldersDesigns() {
+        let plan = DesignLibrary.renamePlan(shelf, from: "Trips", to: "  Holidays ")
+        XCTAssertEqual(plan?.ids, ["a", "b", "d"])
+        XCTAssertEqual(plan?.name, "Holidays")
+        XCTAssertEqual(plan?.merges, false)
+    }
+
+    func testRenameToABlankOrOverlongNameIsRejected() {
+        XCTAssertNil(DesignLibrary.renamePlan(shelf, from: "Trips", to: "   "))
+        XCTAssertNil(DesignLibrary.renamePlan(shelf, from: "Trips", to: String(repeating: "x", count: 41)))
+        XCTAssertNotNil(DesignLibrary.renamePlan(shelf, from: "Trips", to: String(repeating: "x", count: 40)))
+    }
+
+    func testRenameOntoAnotherFolderIsAMerge() {
+        let plan = DesignLibrary.renamePlan(shelf, from: "Trips", to: " Work")
+        XCTAssertEqual(plan?.merges, true)
+        XCTAssertEqual(plan?.ids, ["a", "b", "d"])
+        // Exactly the same name only: another case is a folder of its own.
+        XCTAssertEqual(DesignLibrary.renamePlan(shelf, from: "Trips", to: "work")?.merges, false)
+        // Its own name is no merge.
+        XCTAssertEqual(DesignLibrary.renamePlan(shelf, from: "Trips", to: "Trips")?.merges, false)
+    }
+
+    func testFolderNameIsTrimmedAndBlankIsNone() {
+        XCTAssertEqual(DesignLibrary.folderName("  Clients "), "Clients")
+        XCTAssertNil(DesignLibrary.folderName("   "))
+        XCTAssertNil(DesignLibrary.folderName(nil))
+    }
+
+    func testRenamingRefilesTheDesignsOnDisk() throws {
+        var one = Design(title: "one", width: 100, height: 100)
+        one.folder = "Trips"
+        var two = Design(title: "two", width: 100, height: 100)
+        two.folder = "Trips"
+        XCTAssertTrue(DesignLibrary.save(one))
+        XCTAssertTrue(DesignLibrary.save(two))
+        defer {
+            DesignLibrary.delete(id: one.id)
+            DesignLibrary.delete(id: two.id)
+        }
+        let plan = try XCTUnwrap(DesignLibrary.renamePlan(
+            [recent(one.id, "one", folder: "Trips"), recent(two.id, "two", folder: "Trips")],
+            from: "Trips", to: "Holidays"))
+        for id in plan.ids { XCTAssertTrue(DesignLibrary.move(id: id, toFolder: plan.name)) }
+        XCTAssertEqual(DesignLibrary.load(id: one.id)?.folder, "Holidays")
+        XCTAssertEqual(DesignLibrary.load(id: two.id)?.folder, "Holidays")
+    }
+
+    // MARK: select
+
+    func testSelectAllPicksOnlyTheDesignsOnShow() {
+        let shown = DesignLibrary.filter(shelf, query: "", sort: .name, folder: "Trips")
+        var picked = DesignLibrary.togglingAll([], among: shown)
+        XCTAssertEqual(picked, ["a", "b", "d"])
+        XCTAssertTrue(DesignLibrary.allPicked(picked, among: shown))
+        // A search narrows what Select all takes.
+        let searched = DesignLibrary.filter(shelf, query: "ski", sort: .name, folder: nil)
+        XCTAssertEqual(DesignLibrary.togglingAll([], among: searched), ["d"])
+        // Deselect all lets go of the shown ones only.
+        picked.insert("e")
+        XCTAssertFalse(DesignLibrary.allPicked(picked, among: DesignLibrary.filter(shelf, query: "", sort: .name, folder: nil)))
+        XCTAssertEqual(DesignLibrary.togglingAll(picked, among: shown), ["e"])
+        XCTAssertFalse(DesignLibrary.allPicked([], among: []))
+    }
+
+    func testOnlyPickedDesignsOnShowAreActedOn() {
+        let shown = DesignLibrary.filter(shelf, query: "", sort: .name, folder: "Trips")
+        XCTAssertEqual(DesignLibrary.picked(["a", "c", "d"], among: shown).map(\.id), ["a", "d"])
+    }
+}
