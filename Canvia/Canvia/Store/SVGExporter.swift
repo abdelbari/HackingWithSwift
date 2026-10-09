@@ -10,7 +10,8 @@
 //   text               glyph outlines, not <text>. Canvia's faces ship with
 //                      iOS and do not exist on the machine opening the file,
 //                      so <text> would render in whatever a browser
-//                      substitutes — which is to say, not the design
+//                      substitutes — which is to say, not the design. A
+//                      shape's words too, in its text-safe box
 //   images, stickers   embedded bitmaps, rendered through the very views the
 //                      canvas uses, so crop, filter, corner radius and emoji
 //                      colour come out exactly as they look in the editor
@@ -40,7 +41,7 @@ enum SVGExporter {
         let drawn = design.masterElements(behind: page) + page.elements
         for (index, el) in drawn.enumerated() {
             var resolved = el
-            if el.type == .text, let raw = el.text, raw.contains("{page") {
+            if ShapeText.carriesWords(el), let raw = el.text, raw.contains("{page") {
                 resolved.text = raw.replacingOccurrences(of: "{page}", with: String(number))
                     .replacingOccurrences(of: "{pages}", with: String(design.pages.count))
             }
@@ -112,7 +113,12 @@ enum SVGExporter {
     @MainActor
     private static func markup(_ el: Element, index: Int, defs: inout [String]) -> String {
         switch el.type {
-        case .shape: return shapeMarkup(el, index: index, defs: &defs)
+        case .shape:
+            // The shape without its words, which a shape sent as a picture
+            // would otherwise bake in, and then the words as outlines.
+            var bare = el
+            bare.text = nil
+            return shapeMarkup(bare, index: index, defs: &defs) + shapeWordsMarkup(el, index: index, defs: &defs)
         case .text: return textMarkup(el, index: index, defs: &defs)
         case .line: return lineMarkup(el)
         case .image, .sticker: return bitmapMarkup(el)
@@ -212,6 +218,20 @@ enum SVGExporter {
         }
         return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" +
                "<path d=\"\(d)\" fill=\"\(paint)\" fill-rule=\"nonzero\"/></g>"
+    }
+
+    /// A shape's words as glyph outlines, set in its text-safe box as the
+    /// canvas sets them, and turned back inside the group's flip about that
+    /// box, so they read the right way round in a flipped shape.
+    private static func shapeWordsMarkup(_ el: Element, index: Int, defs: inout [String]) -> String {
+        guard ShapeText.words(of: el) != nil else { return "" }
+        let words = ShapeText.textElement(for: el)
+        let outline = textMarkup(words, index: index, defs: &defs)
+        guard !outline.isEmpty, el.flipH || el.flipV else { return outline }
+        let cx = words.x + words.w / 2, cy = words.y + words.h / 2
+        return "<g transform=\"translate(\(num(cx)) \(num(cy))) " +
+               "scale(\(el.flipH ? -1 : 1) \(el.flipV ? -1 : 1)) " +
+               "translate(\(num(-cx)) \(num(-cy)))\">\(outline)</g>"
     }
 
     /// How far past a text box's top its lines start, as the canvas sets

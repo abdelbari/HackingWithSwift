@@ -56,8 +56,9 @@ struct Template: Codable, Identifiable {
             el.y = el.y * scale + dy
             el.w *= scale
             el.h *= scale
-            if el.type == .text, let fs = el.fontSize { el.fontSize = fs * scale }
-            if el.type == .text, let ls = el.letterSpacing { el.letterSpacing = ls * scale }
+            // A shape's words scale with it, as a text box's do.
+            if ShapeText.carriesWords(el), let fs = el.fontSize { el.fontSize = fs * scale }
+            if ShapeText.carriesWords(el), let ls = el.letterSpacing { el.letterSpacing = ls * scale }
             if el.type == .line, let t = el.thickness { el.thickness = max(1, t * scale) }
             // Rounding scales with the box it rounds, as on the Android twin,
             // so a card is as round on either phone and both write the same

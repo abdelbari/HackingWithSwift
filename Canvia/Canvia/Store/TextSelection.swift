@@ -65,22 +65,22 @@ extension DesignStore {
     /// What every selected text a change will reach reads for `value` — the
     /// unlocked ones, or all of them when every one is locked — or nil when
     /// they differ: what the controls show, or "Mixed". As on the Android
-    /// twin.
+    /// twin. A shape's words count as a text (ShapeText.carriesWords).
     func sharedText<T: Equatable>(_ value: (Element) -> T) -> T? {
-        let texts = selectedElements.filter { $0.type == .text }
+        let texts = selectedElements.filter(ShapeText.carriesWords)
         let reached = texts.filter { !$0.locked }
         return TypeReadouts.shared((reached.isEmpty ? texts : reached).map(value))
     }
 
     /// Bold, italic, underline or capitals on for every selected, unlocked
-    /// text — or off for all of them when every one has it already. One
-    /// step, each box measured again.
+    /// text, a shape's words among them — or off for all of them when every
+    /// one has it already. One step, each box measured again.
     func toggleText(_ toggle: TextToggle) {
-        let texts = selectedElements.filter { $0.type == .text && !$0.locked }
+        let texts = selectedElements.filter { ShapeText.carriesWords($0) && !$0.locked }
         guard !texts.isEmpty else { return }
         let on = !texts.allSatisfy { toggle.isOn($0) }
         updateSelected { el in
-            guard el.type == .text else { return }
+            guard ShapeText.carriesWords(el) else { return }
             toggle.apply(on, to: &el)
         }
     }
@@ -95,13 +95,14 @@ extension DesignStore {
     }
 
     /// Every selected, unlocked text at one type size, in whole points from
-    /// 6 to 500, each box measured again to fit. One step.
+    /// 6 to 500, each box measured again to fit — a shape grown for its
+    /// words when they need it. One step.
     func setFontSize(_ size: Double) {
         let size = TypeReadouts.wholeSize(size)
         updateSelected { el in
-            guard el.type == .text else { return }
+            guard ShapeText.carriesWords(el) else { return }
             el.fontSize = size
-            el.h = FontLibrary.layoutHeight(for: el)
+            el.h = ShapeText.heightForWords(el)
         }
     }
 }

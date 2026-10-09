@@ -1,6 +1,6 @@
-// The page, spoken: every text element in reading order, and pictures by
-// their alt text. For proofing a poster by ear, and for anyone who would
-// rather listen.
+// The page, spoken: every text element and the words in shapes, in reading
+// order, and pictures by their alt text. For proofing a poster by ear, and
+// for anyone who would rather listen.
 
 import AVFoundation
 import Foundation
@@ -28,7 +28,8 @@ final class ReadAloud: NSObject, AVSpeechSynthesizerDelegate {
         for id in order {
             guard let el = byId[id] else { continue }
             switch el.type {
-            case .text:
+            case .text, .shape:
+                guard ShapeText.carriesWords(el) else { break }
                 // The words as typed, as find and replace and the spelling
                 // check read them, not in the capitals a box may draw them
                 // in: a voice can take a word in capitals for letters to spell.

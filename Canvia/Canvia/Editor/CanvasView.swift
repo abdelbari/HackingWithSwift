@@ -208,7 +208,7 @@ struct CanvasView: View {
             if let band = gesture.marquee { marqueeView(band) }
 
             if let id = store.editingTextId, let el = store.element(id) {
-                inlineTextEditor(el)
+                if el.type == .shape { shapeTextEditor(el) } else { inlineTextEditor(el) }
             }
 
             // The modes that take the whole page's touches, over everything.
@@ -279,21 +279,26 @@ struct CanvasView: View {
 
     /// The page as the canvas draws it. In crop mode the photo being cropped
     /// is left out: the crop layer draws it over the dimmed page, whole. So
-    /// is a text box being typed in, so its words show once, in the field.
+    /// is a text box being typed in, so its words show once, in the field —
+    /// and a shape being typed in is drawn without its words.
     private var shownPage: Page {
         let hidden = [store.cropping?.id, store.editingTextId].compactMap { $0 }
         guard !hidden.isEmpty else { return store.page }
         var page = store.page
-        page.elements.removeAll { hidden.contains($0.id) }
+        if let id = store.editingTextId, let i = page.elements.firstIndex(where: { $0.id == id && $0.type == .shape }) {
+            page.elements[i].text = nil
+        }
+        page.elements.removeAll { hidden.contains($0.id) && $0.type != .shape }
         return page
     }
 
     /// Whether a double tap here belongs to the page rather than to the
-    /// canvas's zoom: anywhere in crop mode, and on a photo or a text box.
+    /// canvas's zoom: anywhere in crop mode, and on a photo, a text box or a
+    /// shape that takes words.
     private func claimsDoubleTap(at point: CGPoint) -> Bool {
         if store.cropping != nil { return true }
         guard let hit = store.page.elements.last(where: { Geometry.hits($0, point: point) }) else { return false }
-        return hit.type == .image || hit.type == .text
+        return hit.type == .image || ShapeText.carriesWords(hit)
     }
 
     /// Crop mode over the page: the page dimmed, the whole picture faint
@@ -726,7 +731,8 @@ struct CanvasView: View {
             .rotationEffect(.degrees(el.rotation))
             .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
             .onTapGesture(count: 2) {
-                if el.type == .text && !el.locked {
+                // A shape double-tapped is typed in, as a text box is.
+                if ShapeText.carriesWords(el) && !el.locked {
                     startTextEdit(el)
                 } else if el.type == .image {
                     // A photo double-tapped opens crop, where the picture is
@@ -774,7 +780,7 @@ struct CanvasView: View {
         }
         Button("Bring forward") { store.select(el.id); store.reorderSelected(.forward) }
         Button("Send backward") { store.select(el.id); store.reorderSelected(.backward) }
-        if el.type == .text && !el.locked {
+        if ShapeText.carriesWords(el) && !el.locked {
             Button("Edit text") { startTextEdit(el) }
         }
         if el.type == .image && !el.locked {
@@ -1146,14 +1152,7 @@ struct CanvasView: View {
     // MARK: inline text editing
 
     private func startTextEdit(_ el: Element) {
-        // Any typing before is ended as its own step, and the step for this
-        // typing opens after it. Only this box is selected, even inside a
-        // group, as on the Android twin: its text controls show while it is
-        // typed, and a group corner or Delete never works the whole group.
-        store.endTextEdit()
-        store.selection = [el.id]
-        store.beginGesture()
-        store.editingTextId = el.id
+        store.startTyping(el.id)
     }
 
     func commitTextEditIfAny() {
@@ -1184,12 +1183,33 @@ struct CanvasView: View {
             .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
     }
 
+    /// Typing in a shape: the same field, as wide as the shape's text-safe
+    /// box and set in it top, middle or bottom, over the shape — which the
+    /// page draws meanwhile without its words. It turns with the shape, and
+    /// sits in the box the shape's flip puts it in, the right way round.
+    private func shapeTextEditor(_ el: Element) -> some View {
+        let words = ShapeText.textElement(for: el)
+        let box = ShapeText.shownBox(for: el)
+        let sits: Alignment = words.vAlign == "top" ? .top : words.vAlign == "bottom" ? .bottom : .center
+        let id = el.id
+        return InlineTextField(element: words,
+                               onChange: { typeInline(id, $0) },
+                               onDone: { commitTextEditIfAny() },
+                               onToggle: { store.toggleText($0) },
+                               onStyled: { store.styleWhileTyping($0) })
+            .frame(width: box.width)
+            .frame(width: box.width, height: box.height, alignment: sits)
+            .overlay(Rectangle().stroke(Theme.accent, lineWidth: 1 * iz).allowsHitTesting(false))
+            .position(x: box.midX, y: box.midY)
+            .frame(width: el.w, height: el.h)
+            // The whole shape is the field's, as a text box is: a tap on it
+            // outside the words keeps the typing going.
+            .background(Color.clear.contentShape(Rectangle()).onTapGesture {})
+            .rotationEffect(.degrees(el.rotation))
+            .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
+    }
+
     private func typeInline(_ id: String, _ words: String) {
-        store.beginGesture()
-        guard let i = store.design.pages[store.pageIndex].elements.firstIndex(where: { $0.id == id }),
-              store.design.pages[store.pageIndex].elements[i].text != words else { return }
-        store.design.pages[store.pageIndex].elements[i].text = words
-        let h = FontLibrary.layoutHeight(for: store.design.pages[store.pageIndex].elements[i])
-        store.design.pages[store.pageIndex].elements[i].h = h
+        store.typeWords(words, into: id)
     }
 }
