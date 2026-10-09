@@ -47,12 +47,10 @@ struct ClipSheet: View {
                             get: { clip.loop },
                             set: { on in write { $0.loop = on } }))
                         Button("Fit page to clip") { store.fitPageToClip() }
-                            .disabled((length ?? 0) <= 0.01)
+                            .disabled((length ?? 0) <= ClipPlayback.minLength)
                         Button { store.playPreview() } label: {
                             Label("Play", systemImage: "play.circle")
                         }
-                    } footer: {
-                        Text("Fit page to clip holds this page for as long as the clip plays, once.")
                     }
                 }
             }
@@ -70,16 +68,18 @@ struct ClipSheet: View {
         }
     }
 
-    /// Start and End, each its own slider over the whole file, kept a tenth
-    /// of a second apart, with the trim read out above them.
+    /// Start and End, each its own slider over the whole file, kept
+    /// `ClipPlayback.minLength` apart, with the trim read out above them.
+    /// A clip whose length cannot be read, or is no longer than that, has
+    /// none, as on the Android twin.
     @ViewBuilder
     private func trimSection(_ clip: ClipPlayback) -> some View {
-        Section("Trim") {
-            if let length, length > 0.2 {
+        if let length, length > ClipPlayback.minLength {
+            Section {
                 let start = draftStart ?? min(max(0, clip.start), length)
                 let end = draftEnd ?? min(clip.end ?? length, length)
                 HStack {
-                    Text("Plays")
+                    Text("Trim")
                     Spacer()
                     Text(VideoStore.rangeLabel(start, end))
                         .monospacedDigit()
@@ -87,17 +87,14 @@ struct ClipSheet: View {
                 }
                 .accessibilityElement(children: .combine)
                 trimSlider("Start", value: start, length: length,
-                           set: { draftStart = max(0, min($0, end - 0.1)) },
+                           set: { draftStart = max(0, min($0, end - ClipPlayback.minLength)) },
                            done: { commitTrim(clip, length: length) })
                 trimSlider("End", value: end, length: length,
-                           set: { draftEnd = min(length, max($0, start + 0.1)) },
+                           set: { draftEnd = min(length, max($0, start + ClipPlayback.minLength)) },
                            done: { commitTrim(clip, length: length) })
-            } else if length == nil {
-                ProgressView()
-            } else {
-                Text("This clip's length cannot be read, so it cannot be trimmed.")
-                    .foregroundStyle(.secondary)
             }
+        } else if length == nil {
+            Section { ProgressView() }
         }
     }
 

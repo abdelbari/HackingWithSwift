@@ -73,6 +73,9 @@ struct ClipPlayback: Codable, Equatable, Hashable {
 
     /// What the Clip sheet offers.
     static let speeds: [Double] = [0.5, 1, 1.5, 2]
+    /// The shortest a trim leaves a clip, in seconds; a clip no longer than
+    /// this cannot be trimmed.
+    static let minLength = 0.1
     /// What a reader plays any speed at, however far out the file has it.
     static let speedRange = 0.25...4.0
 
