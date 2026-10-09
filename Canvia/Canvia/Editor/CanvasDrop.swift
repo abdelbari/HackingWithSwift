@@ -33,6 +33,16 @@ enum CanvasDrop {
         return r
     }
 
+    /// The frame or grid cell a dropped picture goes into: the one under
+    /// `point`, unless this drop has already filled it, when the picture
+    /// goes on the page beside it rather than over the one before, as on
+    /// the Android twin.
+    static func pictureTarget(at point: CGPoint, in elements: [Element], filled: Set<String>) -> Element? {
+        guard let target = PhotoFrames.target(at: point, in: elements, excluding: nil),
+              !filled.contains(target.id) else { return nil }
+        return target
+    }
+
     static func textElement(_ string: String, page: CGSize, at point: CGPoint) -> Element {
         let size = max(18, (page.width * 0.04).rounded())
         var el = Element.text(string.trimmingCharacters(in: .whitespacesAndNewlines), fontSize: size, w: (page.width * 0.6).rounded())
@@ -63,8 +73,9 @@ enum CanvasDrop {
                     guard let stored else { tally.finished(landed: false); return }
                     // Let go over a frame or a grid's cell, the picture goes
                     // into it rather than onto the page beside it.
-                    if let target = PhotoFrames.target(at: at, in: store.page.elements, excluding: nil),
+                    if let target = pictureTarget(at: at, in: store.page.elements, filled: tally.filled),
                        store.replacePicture(target.id, with: stored.src) {
+                        tally.filled.insert(target.id)
                         store.selection = [target.id]
                         store.tipEvent = .dropped
                         tally.finished(landed: true)
@@ -141,6 +152,8 @@ enum CanvasDrop {
     @MainActor
     private final class Tally {
         let store: DesignStore
+        /// The frames this drop has put a picture in.
+        var filled: Set<String> = []
         private var expected: Int?
         private var finishedCount = 0
         private var landedCount = 0
