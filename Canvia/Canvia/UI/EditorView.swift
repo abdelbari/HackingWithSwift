@@ -157,6 +157,11 @@ struct EditorView: View {
         .fullScreenCover(isPresented: $presenting) {
             PresentationView(design: store.design, startPage: store.pageIndex)
         }
+        // A page playing in place stops as the talk begins, so the two are
+        // never heard at once.
+        .onChange(of: presenting) { _, on in
+            if on { store.stopPreview() }
+        }
         .alert("Name this component", isPresented: $namingComponent) {
             TextField("Footer, Price tag, Call-out…", text: $componentName)
             Button("Save") {
@@ -174,13 +179,17 @@ struct EditorView: View {
         // words still being typed included, whose steps are not closed yet
         // and so have not been saved; the system may end the app there.
         .onChange(of: scenePhase) { _, phase in
-            if phase == .background { saveDocument() }
+            guard phase == .background else { return }
+            saveDocument()
+            // A page playing in place falls silent, and stops.
+            store.stopPreview()
         }
         .onDisappear {
             // The voice and the microphone belong to this design: leaving it
             // stops both, as the Android twin's editor releases its reader.
             ReadAloud.shared.stop()
             if Dictation.shared.isListening { Dictation.shared.stop() }
+            store.stopPreview()
             store.finishDictation()
             store.endTextEdit()
             closeRename()

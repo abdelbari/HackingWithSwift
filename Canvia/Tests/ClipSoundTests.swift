@@ -1,8 +1,9 @@
 // Sound: each clip's volume and mute in its `clip` JSON, the mix of clips
 // and music in the video (AudioMix.plan, the same table as the Android
-// twin's), where the music starts in Play, and the clips a page is heard
-// with.
+// twin's), where the music starts in Play, the clips a page is heard with,
+// and the video carrying a clip's sound.
 
+import AVFoundation
 import XCTest
 @testable import Canvia
 
@@ -180,5 +181,79 @@ final class ClipSoundTests: XCTestCase {
         XCTAssertEqual(s.element(clip.id)?.clip, ClipPlayback(volume: 0.4), "one step for the mute")
         s.undo()
         XCTAssertNil(s.element(clip.id)?.clip, "one step for the volume")
+    }
+
+    // MARK: the video
+
+    /// One second of a tone as a WAV file.
+    private func tone(seconds: Double, rate: Int = 44_100) -> Data {
+        var pcm = Data()
+        for i in 0..<Int(seconds * Double(rate)) {
+            let v = Int16(sin(Double(i) * 2 * .pi * 440 / Double(rate)) * 8000)
+            withUnsafeBytes(of: v.littleEndian) { pcm.append(contentsOf: $0) }
+        }
+        var d = Data()
+        func text(_ s: String) { d.append(contentsOf: Array(s.utf8)) }
+        func u32(_ v: UInt32) { withUnsafeBytes(of: v.littleEndian) { d.append(contentsOf: $0) } }
+        func u16(_ v: UInt16) { withUnsafeBytes(of: v.littleEndian) { d.append(contentsOf: $0) } }
+        text("RIFF"); u32(UInt32(36 + pcm.count)); text("WAVE")
+        text("fmt "); u32(16); u16(1); u16(1); u32(UInt32(rate)); u32(UInt32(rate * 2)); u16(2); u16(16)
+        text("data"); u32(UInt32(pcm.count))
+        d.append(pcm)
+        return d
+    }
+
+    private func audioTracks(_ url: URL) async throws -> Int {
+        try await AVURLAsset(url: url).loadTracks(withMediaType: .audio).count
+    }
+
+    /// A clip's own sound goes into the video, music or none; muted, it
+    /// does not.
+    @MainActor
+    func testAClipsSoundIsInTheVideoWithoutASoundtrack() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("sound-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let wav = dir.appendingPathComponent("tone.wav")
+        try tone(seconds: 1).write(to: wav)
+        let music = try XCTUnwrap(AudioStore.store(wav))
+        defer { AudioStore.delete(music) }
+
+        // A clip with sound in it: a second of video with the tone under it.
+        var scored = Design(title: "scored", width: 320, height: 240)
+        var m = MotionSettings(); m.secondsPerPage = 1; m.fps = 24; m.movement = false; m.crossfade = false
+        var withMusic = m
+        withMusic.soundtrack = music
+        scored.motion = withMusic
+        let made = dir.appendingPathComponent("made.mp4")
+        let first = try await MovieExporter.exportMP4(design: scored, settings: MovieExporter.Settings(scored.motion), to: made)
+        XCTAssertFalse(first.musicLost)
+        let madeTracks = try await audioTracks(made)
+        XCTAssertEqual(madeTracks, 1)
+        let id = try XCTUnwrap(VideoStore.store(try Data(contentsOf: made), ext: "mp4"))
+        defer { VideoStore.delete(id) }
+        let length = await VideoStore.soundLength(of: id)
+        XCTAssertNotNil(length)
+
+        // On a page with no music, the video has its sound.
+        var film = Design(title: "film", width: 320, height: 240)
+        film.motion = m
+        film.pages[0].elements = [Element.image(VideoStore.src(id, at: nil), w: 320, h: 240)]
+        let heard = dir.appendingPathComponent("heard.mp4")
+        let outcome = try await MovieExporter.exportMP4(design: film, settings: MovieExporter.Settings(film.motion), to: heard)
+        XCTAssertFalse(outcome.musicLost)
+        let heardTracks = try await audioTracks(heard)
+        XCTAssertEqual(heardTracks, 1)
+        let presentable = await PageSound.heard(in: film)
+        XCTAssertTrue(presentable, "the speaker button shows")
+
+        // Muted, the clip is silent and the video has no sound at all.
+        film.pages[0].elements[0].clip = ClipPlayback(muted: true)
+        let silent = dir.appendingPathComponent("silent.mp4")
+        try await MovieExporter.exportMP4(design: film, settings: MovieExporter.Settings(film.motion), to: silent)
+        let silentTracks = try await audioTracks(silent)
+        XCTAssertEqual(silentTracks, 0)
+        let quiet = await PageSound.heard(in: film)
+        XCTAssertFalse(quiet, "nothing to hear, no speaker button")
     }
 }
