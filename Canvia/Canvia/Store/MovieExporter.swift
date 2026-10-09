@@ -89,16 +89,26 @@ enum MovieExporter {
         var end: Int { start + frames }
     }
 
-    /// Each page's own hold and transition, falling back to the document's.
-    static func timeline(design: Design, settings: Settings) -> [Timing] {
+    /// Each page's own hold and transition, falling back to the document's,
+    /// for the pages in `pages` — the design's indices, in the order they
+    /// play. Taken by index rather than from a filtered copy of the design,
+    /// so a hidden master page still draws behind the pages that show it.
+    static func timeline(design: Design, pages: [Int], settings: Settings) -> [Timing] {
         var start = 0
-        return design.pages.map { page in
+        return pages.map { index in
+            let page = design.pages[index]
             let seconds = min(max(page.holdSeconds ?? settings.secondsPerPage, 0.1), 60)
             let frames = max(1, Int((seconds * Double(settings.fps)).rounded()))
             let transition = page.transition ?? (settings.crossfade > 0 ? "fade" : "cut")
             defer { start += frames }
             return Timing(start: start, frames: frames, transition: transition)
         }
+    }
+
+    /// The pages not hidden, which are what a video plays, as Present
+    /// shows them.
+    static func timeline(design: Design, settings: Settings) -> [Timing] {
+        timeline(design: design, pages: design.visiblePageIndices, settings: settings)
     }
 
     /// Uniform timings for a page count, which is what the settings alone
@@ -114,7 +124,7 @@ enum MovieExporter {
         timeline(design: design, settings: settings).last?.end ?? 1
     }
 
-    /// How long the film runs, in seconds: every page at its own hold.
+    /// How long the film runs, in seconds: every page shown at its own hold.
     static func seconds(design: Design, settings: Settings) -> Double {
         Double(frameCount(design: design, settings: settings)) / Double(max(settings.fps, 1))
     }
@@ -204,13 +214,15 @@ enum MovieExporter {
         return CGRect(x: (size.width - w) / 2, y: (size.height - h) / 2, width: w, height: h)
     }
 
-    /// One bitmap per page, at the output size. Rendered once and reused for
-    /// every frame of that page — re-rendering the SwiftUI tree seventy-five
-    /// times per page would take longer than the encode.
+    /// One bitmap per page shown, at the output size, in the order they
+    /// play. Rendered once and reused for every frame of that page —
+    /// re-rendering the SwiftUI tree seventy-five times per page would take
+    /// longer than the encode.
     @MainActor
     static func pageImages(design: Design, size: CGSize) -> [CGImage] {
-        design.pages.compactMap { page in
-            autoreleasepool { () -> CGImage? in
+        design.visiblePageIndices.compactMap { index -> CGImage? in
+            let page = design.pages[index]
+            return autoreleasepool { () -> CGImage? in
                 let renderer = ImageRenderer(content: PageRenderView(design: design, page: page))
                 renderer.scale = renderScale(for: design.size(for: page), in: size)
                 renderer.isOpaque = true
@@ -222,11 +234,12 @@ enum MovieExporter {
     /// The same, a page at a time with a pause between pages, so the sheet
     /// stays live and a Cancel lands before the frames are written.
     @MainActor
-    private static func pageImages(design: Design, size: CGSize,
+    private static func pageImages(design: Design, pages indices: [Int], size: CGSize,
                                    pacer: inout DesignExporter.Pacer) async throws -> [CGImage] {
         var images: [CGImage] = []
-        for page in design.pages {
+        for index in indices {
             try await pacer.breathe()
+            let page = design.pages[index]
             let image = autoreleasepool { () -> CGImage? in
                 let renderer = ImageRenderer(content: PageRenderView(design: design, page: page))
                 renderer.scale = renderScale(for: design.size(for: page), in: size)
@@ -342,18 +355,21 @@ enum MovieExporter {
         try? FileManager.default.removeItem(at: url)
         let size = videoSize(for: design, maxEdge: settings.maxEdge)
         var pacer = DesignExporter.Pacer()
-        let pages = try await pageImages(design: design, size: size, pacer: &pacer)
+        // The pages Present shows: hidden ones are left out of the video,
+        // and so of the length its music is fitted to.
+        let shown = design.visiblePageIndices
+        let pages = try await pageImages(design: design, pages: shown, size: size, pacer: &pacer)
         guard !pages.isEmpty else { throw MovieError.nothingToRender }
 
-        let timings = timeline(design: design, settings: settings)
+        let timings = timeline(design: design, pages: shown, settings: settings)
         let total = timings.last?.end ?? 1
         // Animated pages are rendered ahead, one bitmap per frame, since the
         // writer callback runs off the main actor where SwiftUI cannot draw
         // — before the writer opens, so a Cancel meanwhile leaves no file to
         // clean up, and counted in the progress, which sat at 0% through it.
-        let ahead = Double(animatedFrameCount(design: design, timings: timings))
+        let ahead = Double(animatedFrameCount(design: design, pages: shown, timings: timings))
         let share = ahead / (ahead + Double(total))
-        let frames = try await animatedFrames(design: design, size: size, settings: settings,
+        let frames = try await animatedFrames(design: design, pages: shown, size: size, settings: settings,
                                               timings: timings, pacer: &pacer,
                                               progress: { progress?(share * $0) })
 
@@ -485,35 +501,38 @@ enum MovieExporter {
     }
 
     /// How many frames `animatedFrames` renders ahead: every frame of every
-    /// animated page.
-    static func animatedFrameCount(design: Design, timings: [Timing]) -> Int {
-        design.pages.indices
-            .filter { $0 < timings.count && isAnimated(design.pages[$0], in: design) }
+    /// animated page among `pages`, whose timings are `timings`.
+    static func animatedFrameCount(design: Design, pages: [Int], timings: [Timing]) -> Int {
+        timings.indices
+            .filter { $0 < pages.count && isAnimated(design.pages[pages[$0]], in: design) }
             .reduce(0) { $0 + timings[$1].frames }
     }
 
-    /// Every frame of every animated page, pre-rendered, keyed by page then
+    /// Every frame of every animated page, pre-rendered, keyed by its place
+    /// in the sequence (`pages` holds the design's index for each place) then
     /// frame within the page. Static pages have no entry.
     ///
     /// Rendered with a pause every so often, so the sheet stays live while a
     /// page full of motion is drawn frame by frame.
     @MainActor
-    private static func animatedFrames(design: Design, size: CGSize, settings: Settings,
+    private static func animatedFrames(design: Design, pages: [Int], size: CGSize, settings: Settings,
                                        timings: [Timing],
                                        pacer: inout DesignExporter.Pacer,
                                        progress: ((Double) -> Void)? = nil) async throws -> ((Int, Double, Double) -> CGImage?)? {
-        let animatedPages = design.pages.indices.filter { isAnimated(design.pages[$0], in: design) }
-        guard !animatedPages.isEmpty else { return nil }
-        let count = max(1, animatedFrameCount(design: design, timings: timings))
+        let animatedPlaces = timings.indices.filter {
+            $0 < pages.count && isAnimated(design.pages[pages[$0]], in: design)
+        }
+        guard !animatedPlaces.isEmpty else { return nil }
+        let count = max(1, animatedFrameCount(design: design, pages: pages, timings: timings))
         var done = 0
         var cache: [Int: [CGImage]] = [:]
-        for p in animatedPages where p < timings.count {
+        for p in animatedPlaces {
             let t = timings[p]
             let hold = Double(t.frames) / Double(max(settings.fps, 1))
             var frames: [CGImage] = []
             for f in 0..<t.frames {
                 try await pacer.breathe()
-                if let frame = animatedFrame(design: design, page: p, time: Double(f) / Double(max(settings.fps, 1)),
+                if let frame = animatedFrame(design: design, page: pages[p], time: Double(f) / Double(max(settings.fps, 1)),
                                              hold: hold, size: size) {
                     frames.append(frame)
                 }
@@ -563,15 +582,17 @@ enum MovieExporter {
 
         let size = videoSize(for: design, maxEdge: gifSettings.maxEdge)
         var pacer = DesignExporter.Pacer()
-        let pages = try await pageImages(design: design, size: size, pacer: &pacer)
+        // The pages shown, as the video plays them.
+        let shown = design.visiblePageIndices
+        let pages = try await pageImages(design: design, pages: shown, size: size, pacer: &pacer)
         guard !pages.isEmpty else { throw MovieError.nothingToRender }
 
-        let timings = timeline(design: design, settings: gifSettings)
+        let timings = timeline(design: design, pages: shown, settings: gifSettings)
         let total = timings.last?.end ?? 1
         // The frames rendered ahead count in the progress, as the MP4's do.
-        let ahead = Double(animatedFrameCount(design: design, timings: timings))
+        let ahead = Double(animatedFrameCount(design: design, pages: shown, timings: timings))
         let share = ahead / (ahead + Double(total))
-        let frames = try await animatedFrames(design: design, size: size, settings: gifSettings,
+        let frames = try await animatedFrames(design: design, pages: shown, size: size, settings: gifSettings,
                                               timings: timings, pacer: &pacer,
                                               progress: { progress?(share * $0) })
         guard let destination = CGImageDestinationCreateWithURL(

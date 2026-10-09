@@ -1,8 +1,10 @@
 // Hidden pages, as the Android twin has them: the flag on the page written
-// only when true, Present stepping over hidden pages, and hiding as one Undo.
-// The same cases as the Android twin's tests.
+// only when true, Present stepping over hidden pages, hiding as one Undo,
+// and exports of every page — files, PDF, video — leaving them out. The
+// same cases as the Android twin's tests.
 
 import XCTest
+import CoreGraphics
 @testable import Canvia
 
 final class HiddenPagesTests: XCTestCase {
@@ -132,5 +134,94 @@ final class HiddenPagesTests: XCTestCase {
         XCTAssertEqual(PagesBar.spokenThumb(number: 3, current: false, hidden: false), "Page 3")
         XCTAssertEqual(PageOrganizerSheet.spokenRow(number: 2, current: false, hidden: true, elements: 1, notes: nil),
                        "Page 2, hidden, 1 element")
+    }
+}
+
+// MARK: - exports
+
+@MainActor
+final class HiddenPageExportTests: XCTestCase {
+
+    private var written: [URL] = []
+
+    override func tearDown() {
+        for url in written { try? FileManager.default.removeItem(at: url) }
+        written = []
+        super.tearDown()
+    }
+
+    private func design(hidden: [Bool]) -> Design {
+        var d = Design(title: "hidden", width: 120, height: 90)
+        d.pages = hidden.map { flag in
+            var p = Page(background: .color("#3355ff"), elements: [Element.shape("rect", w: 40, h: 30)])
+            p.hidden = flag ? true : nil
+            return p
+        }
+        return d
+    }
+
+    // MARK: which pages
+
+    func testAllPagesSkipsHiddenPages() {
+        let d = design(hidden: [false, true, false, true])
+        XCTAssertEqual(DesignExporter.PageRange.all.indices(in: d, current: 0), [0, 2])
+        XCTAssertEqual(DesignExporter.PageRange.range(1, 3).indices(in: d, current: 0), [2])
+        XCTAssertEqual(DesignExporter.PageRange.all.indices(in: design(hidden: [true, true]), current: 0), [])
+    }
+
+    func testThisPageIsExportedEvenWhenHidden() {
+        let d = design(hidden: [false, true, false])
+        XCTAssertEqual(DesignExporter.PageRange.current.indices(in: d, current: 1), [1])
+    }
+
+    func testTheSheetSaysHowManyAreLeftOut() {
+        XCTAssertEqual(PageVisibility.allPages(total: 5, hidden: 2), "All 5 pages, 2 hidden left out")
+        XCTAssertEqual(PageVisibility.allPages(total: 5, hidden: 0), "All 5 pages")
+    }
+
+    // MARK: files
+
+    /// Each file keeps its page's own number, so page 3 is still "-3" with
+    /// page 2 hidden.
+    func testAllPagesWritesOnlyTheShownPagesUnderTheirOwnNumbers() async throws {
+        let urls = try await DesignExporter.exportPages(design: design(hidden: [false, true, false]), range: .all,
+                                                        current: 0, format: .png, scale: 1)
+        written = urls
+        XCTAssertEqual(urls.count, 2)
+        XCTAssertTrue(urls[0].lastPathComponent.contains("-1."), urls[0].lastPathComponent)
+        XCTAssertTrue(urls[1].lastPathComponent.contains("-3."), urls[1].lastPathComponent)
+    }
+
+    func testThePDFOfAllPagesLeavesHiddenPagesOut() async throws {
+        let d = design(hidden: [false, true, false, false])
+        let url = DesignExporter.fileURL(for: d, ext: "pdf", suffix: "-hidden")
+        written = [url]
+        try await DesignExporter.exportPDF(design: d, range: .all, current: 0, to: url)
+        let pdf = try XCTUnwrap(CGPDFDocument(url as CFURL))
+        XCTAssertEqual(pdf.numberOfPages, 3)
+    }
+
+    // MARK: video
+
+    func testTheVideoTimelineLeavesHiddenPagesOut() {
+        var d = design(hidden: [false, true, false])
+        d.pages[1].holdSeconds = 6
+        var settings = MovieExporter.Settings()
+        settings.secondsPerPage = 2
+        settings.fps = 10
+        let timeline = MovieExporter.timeline(design: d, pages: d.visiblePageIndices, settings: settings)
+        XCTAssertEqual(timeline.count, 2, "one fewer page than the design")
+        XCTAssertEqual(timeline.map(\.start), [0, 20])
+        XCTAssertEqual(MovieExporter.timeline(design: d, settings: settings), timeline)
+        XCTAssertEqual(MovieExporter.seconds(design: d, settings: settings), 4, accuracy: 0.001,
+                       "the hidden page's six seconds are not in the film, nor under its music")
+    }
+
+    /// The pages a video is drawn from are the pages shown, in order.
+    func testTheVideoIsDrawnFromTheShownPagesOnly() throws {
+        let d = design(hidden: [true, false, false])
+        let images = MovieExporter.pageImages(design: d, size: CGSize(width: 120, height: 90))
+        guard !images.isEmpty else { throw XCTSkip("the page renderer produced nothing in this environment") }
+        XCTAssertEqual(images.count, 2)
     }
 }

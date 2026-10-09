@@ -271,9 +271,11 @@ struct ExportSheet: View {
     }
 
     private var pagesSection: some View {
-        let note = pageRange == .all
-            ? "One file per page, numbered — so each can be posted on its own."
-            : "Page \(store.pageIndex + 1) only."
+        var note = "Page \(store.pageIndex + 1) only."
+        if pageRange == .all {
+            note = "One file per page, numbered — so each can be posted on its own."
+            if hiddenPages > 0 { note = allPagesText + ". " + note }
+        }
         return Section {
             Picker("Pages", selection: $pageRange) {
                 ForEach(RangeChoice.allCases) { Text($0.label).tag($0) }
@@ -300,19 +302,22 @@ struct ExportSheet: View {
         let pages = store.design.pages.count
         let pdfSubtitle = pages == 1
             ? "Print-ready document, vector"
-            : (pageRange == .all ? "All \(pages) pages, vector" : "Page \(store.pageIndex + 1) only, vector")
+            : (pageRange == .all ? "\(allPagesText), vector" : "Page \(store.pageIndex + 1) only, vector")
         // PNG and JPEG write a file a page, so they follow it too.
         let count = exportedIndices.count
-        let what = count > 1 ? "\(count) pages, one file each" : "Current page"
+        let what = count > 1 ? "\(count) pages, one file each" : onePageText
         let jpegSubtitle = "\(what), about \(estimatedSize)\(count > 1 ? " a page" : "")"
         return Section("Format") {
-            exportButton("PNG", subtitle: "\(what), best for sharing", icon: "photo") {
+            exportButton("PNG", subtitle: "\(what), best for sharing", icon: "photo",
+                         unavailable: leftOut(exportedIndices)) {
                 try await export(.png)
             }
-            exportButton("JPEG", subtitle: jpegSubtitle, icon: "photo.fill") {
+            exportButton("JPEG", subtitle: jpegSubtitle, icon: "photo.fill",
+                         unavailable: leftOut(exportedIndices)) {
                 try await export(.jpeg)
             }
-            exportButton("PDF", subtitle: pdfSubtitle, icon: "doc.richtext", working: "Making the PDF") {
+            exportButton("PDF", subtitle: pdfSubtitle, icon: "doc.richtext", working: "Making the PDF",
+                         unavailable: leftOut(pdfIndices)) {
                 try await exportPDF()
             }
             exportButton("SVG", subtitle: "Current page, editable vectors",
@@ -334,11 +339,11 @@ struct ExportSheet: View {
             }
             .pickerStyle(.segmented)
             exportButton("\(kind) to Photos", subtitle: photosSubtitle, icon: "photo.badge.plus",
-                         working: "Saving to your photos") {
+                         working: "Saving to your photos", unavailable: leftOut(exportedIndices)) {
                 try await saveToPhotos(photosFormat)
             }
             exportButton("Video to Photos", subtitle: movieSubtitle, icon: "film.stack",
-                         working: "Rendering the video") {
+                         working: "Rendering the video", unavailable: leftOut(store.design.visiblePageIndices)) {
                 try await saveToPhotos(nil)
             }
         } header: {
@@ -353,7 +358,7 @@ struct ExportSheet: View {
 
     private var photosSubtitle: String {
         let count = exportedIndices.count
-        let each = count > 1 ? "\(count) pages, one photo each" : "Current page, straight into your library"
+        let each = count > 1 ? "\(count) pages, one photo each" : "\(onePageText), straight into your library"
         return photosFormat == .jpeg ? "\(each), about \(estimatedSize)\(count > 1 ? " a page" : "")" : each
     }
 
@@ -450,11 +455,11 @@ struct ExportSheet: View {
     private var printSection: some View {
         Section {
             exportButton("Send to a printer", subtitle: "AirPrint, on the paper layout below", icon: "printer",
-                         working: "Preparing to print") {
+                         working: "Preparing to print", unavailable: leftOut(exportedIndices)) {
                 try await printDesign()
             }
             exportButton("Print-ready PDF", subtitle: "Paper, bleed and crop marks as set", icon: "doc.badge.gearshape",
-                         working: "Making the print PDF") {
+                         working: "Making the print PDF", unavailable: leftOut(exportedIndices)) {
                 let url = DesignExporter.fileURL(for: store.design, ext: "pdf", suffix: "-print")
                 // The design the other formats render, so "Selection only"
                 // prints the selection rather than page 1 of the whole thing.
@@ -502,11 +507,12 @@ struct ExportSheet: View {
 
     private var motionSection: some View {
         Section {
-            exportButton("MP4 video", subtitle: movieSubtitle, icon: "film", working: "Rendering the video") {
+            exportButton("MP4 video", subtitle: movieSubtitle, icon: "film", working: "Rendering the video",
+                         unavailable: leftOut(store.design.visiblePageIndices)) {
                 try await exportMovie()
             }
             exportButton("Animated GIF", subtitle: movieSubtitle, icon: "square.stack.3d.down.right",
-                         working: "Rendering the GIF") {
+                         working: "Rendering the GIF", unavailable: leftOut(store.design.visiblePageIndices)) {
                 try await exportGIF()
             }
             DisclosureGroup("Motion settings") { motionSettings }
@@ -667,7 +673,11 @@ struct ExportSheet: View {
         return here ? AudioStore.label(for: id) : "Music from another phone"
     }
 
+    /// A row that makes something. `unavailable`, when set, is why it cannot
+    /// now — every page it would make is hidden — said in place of its
+    /// subtitle, with the row disabled.
     private func exportButton(_ title: String, subtitle: String, icon: String, working: String = "Rendering",
+                              unavailable: String? = nil,
                               action: @escaping @MainActor () async throws -> Void) -> some View {
         Button {
             progress = 0
@@ -688,12 +698,39 @@ struct ExportSheet: View {
                 Image(systemName: icon).frame(width: 30)
                 VStack(alignment: .leading) {
                     Text(title).fontWeight(.semibold)
-                    Text(subtitle).font(.footnote).foregroundStyle(.secondary)
+                    Text(unavailable ?? subtitle).font(.footnote).foregroundStyle(.secondary)
                 }
             }
         }
         .foregroundStyle(.primary)
-        .disabled(exporting)
+        .disabled(exporting || unavailable != nil)
+    }
+
+    /// How many pages are hidden, and so left out of "All pages" and the
+    /// video.
+    private var hiddenPages: Int { store.design.pages.count - store.design.visiblePageIndices.count }
+
+    /// "All 5 pages", or "All 5 pages, 2 hidden left out", as the Android
+    /// twin says it.
+    private var allPagesText: String {
+        PageVisibility.allPages(total: store.design.pages.count, hidden: hiddenPages)
+    }
+
+    /// What a one-page export is of: the page on screen — or, when the rest
+    /// of "All pages" is hidden, the one page left.
+    private var onePageText: String {
+        if let only = exportedIndices.first, only != exportedPageIndex { return "Page \(only + 1)" }
+        return "Current page"
+    }
+
+    /// The pages the PDF row writes, which follow the page choice alone.
+    private var pdfIndices: [Int] {
+        pageRange.exportRange.indices(in: store.design, current: store.pageIndex)
+    }
+
+    /// Said on a row whose pages are all hidden, in place of what it makes.
+    private func leftOut(_ indices: [Int]) -> String? {
+        indices.isEmpty ? PageVisibility.everyPageHidden : nil
     }
 
     /// The pixel size of the page shown — each page is sized on its own, so
@@ -734,13 +771,13 @@ struct ExportSheet: View {
     }
 
     /// The film's length from its timeline, so a page with a hold of its
-    /// own counts at that hold.
+    /// own counts at that hold, and a hidden page not at all.
     private var movieSubtitle: String {
         let pages = store.design.pages.count
         let settings = MovieExporter.Settings(store.design.motion)
         let seconds = MovieExporter.seconds(design: store.design, settings: settings)
         let length = String(format: "%.0f", max(1, seconds))
-        return pages > 1 ? "All \(pages) pages, \(length)s" : "One page, \(length)s"
+        return pages > 1 ? "\(allPagesText), \(length)s" : "One page, \(length)s"
     }
 
     /// Printing goes through the same vector PDF the export does, so what

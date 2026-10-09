@@ -267,9 +267,11 @@ enum DesignExporter {
 
     /// Which pages an export covers.
     enum PageRange: Equatable {
+        /// The page on screen — even a hidden one, since it was asked for.
         case current
+        /// Every page not hidden.
         case all
-        /// Zero-based, inclusive.
+        /// Zero-based, inclusive; hidden pages in it are left out too.
         case range(Int, Int)
 
         func indices(in design: Design, current: Int) -> [Int] {
@@ -277,11 +279,11 @@ enum DesignExporter {
             guard last >= 0 else { return [] }
             switch self {
             case .current: return [min(max(current, 0), last)]
-            case .all: return Array(0...last)
+            case .all: return design.visiblePageIndices
             case .range(let from, let to):
                 let lower = min(max(min(from, to), 0), last)
                 let upper = min(max(max(from, to), 0), last)
-                return Array(lower...upper)
+                return Array(lower...upper).filter { design.pages[$0].hidden != true }
             }
         }
     }
