@@ -255,6 +255,16 @@ final class WordSpansTests: XCTestCase {
         XCTAssertNil(s.element(text.id)?.spans)
     }
 
+    func testTheBoxsOwnColourGivesTheWordsBackToIt() {
+        var text = Element.text("Big sale")
+        text.setSpans([span(4, 8, red)])
+        let s = store([text])
+        s.select(text.id)
+        s.chooseWordColour(text.id, range: NSRange(location: 4, length: 4))
+        s.colourWords("#1F2430")
+        XCTAssertNil(s.element(text.id)?.spans, "no colour of their own, so they follow the box")
+    }
+
     func testGradientLettersExplainRatherThanColourWords() {
         var text = Element.text("Big sale")
         text.textFill = Paint(kind: "gradient", color: nil, angle: 90,

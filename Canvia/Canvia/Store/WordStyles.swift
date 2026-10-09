@@ -42,13 +42,16 @@ extension DesignStore {
     }
 
     /// The words the sheet is open for in `hex`, as one step — after any
-    /// drag of the colour wheel before it, closed as a step of its own.
+    /// drag of the colour wheel before it, closed as a step of its own. The
+    /// box's own colour takes the words' own away, so they follow the box
+    /// again, as on the Android twin.
     func colourWords(_ hex: String) {
         guard let target = wordColourTarget else { return }
         commit()
         updateSelected { el in
             guard el.id == target.id else { return }
-            Self.restyleWords(&el, target.range) { Spans.colouring($0, range: $1, color: hex) }
+            let own = Self.wordHex(hex, in: el)
+            Self.restyleWords(&el, target.range) { Spans.colouring($0, range: $1, color: own) }
         }
     }
 
@@ -58,8 +61,14 @@ extension DesignStore {
         guard let target = wordColourTarget else { return }
         updateSelectedTransient { el in
             guard el.id == target.id else { return }
-            Self.restyleWords(&el, target.range) { Spans.colouring($0, range: $1, color: hex) }
+            let own = Self.wordHex(hex, in: el)
+            Self.restyleWords(&el, target.range) { Spans.colouring($0, range: $1, color: own) }
         }
+    }
+
+    /// `hex` as the words' own colour: none when it is the box's.
+    static func wordHex(_ hex: String, in el: Element) -> String? {
+        hex.lowercased() == el.color?.lowercased() ? nil : hex
     }
 
     /// A− or A+: the words in `range` of box `id` a step smaller or larger,
