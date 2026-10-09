@@ -4,7 +4,7 @@
 // line on its own says only that something was decided. The names are the
 // Android twin's (core/content/ElementNames.kt), word for word, so a guide
 // reads the same on either phone: a heading or text by its words, a shape by
-// its colour and kind, a photo by its frame.
+// its colour and kind and then any words it carries, a photo by its frame.
 
 import Foundation
 
@@ -27,9 +27,9 @@ enum ElementNames {
             if Freehand.isStroke(el) { return withColour(el.stroke, "drawing") }
             if el.pathData != nil {
                 if isFaint(el.fill?.color) && el.stroke != nil { return withColour(el.stroke, "line") }
-                return withColour(colour, "custom shape")
+                return withWords(el, withColour(colour, "custom shape"))
             }
-            return withColour(colour, ContentLibrary.shape(el.shapeId).name.lowercased())
+            return withWords(el, withColour(colour, ContentLibrary.shape(el.shapeId).name.lowercased()))
         case .image:
             let frame = el.maskShapeId.map { ContentLibrary.shape($0).name.lowercased() }
             if let src = el.src, CodeGenerator.payload(from: src) != nil { return "QR code" }
@@ -118,6 +118,14 @@ enum ElementNames {
     static func spokenColour(_ hex: String?) -> String {
         let name = colourName(hex)
         return name.prefix(1).uppercased() + String(name.dropFirst())
+    }
+
+    /// A shape's name, then the words it carries: "Red circle: SALE".
+    private static func withWords(_ el: Element, _ name: String) -> String {
+        guard let text = ShapeText.words(of: el) else { return name }
+        let words = RichText.strip(text).replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespaces)
+        return "\(name): \(words.prefix(snippet))"
     }
 
     private static func withColour(_ hex: String?, _ noun: String) -> String {

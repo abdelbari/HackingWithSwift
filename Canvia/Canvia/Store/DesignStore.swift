@@ -1127,7 +1127,8 @@ final class DesignStore {
         var preview: String
     }
 
-    /// Every occurrence of `needle` across every page, in reading order.
+    /// Every occurrence of `needle` across every page, in reading order:
+    /// in text boxes, and in the words shapes carry.
     ///
     /// Pure and non-mutating, so the sheet can show a live count while typing
     /// without touching the document or the undo stack.
@@ -1135,7 +1136,7 @@ final class DesignStore {
         guard !needle.isEmpty else { return [] }
         var found: [TextMatch] = []
         for (index, page) in design.pages.enumerated() {
-            for element in page.elements where element.type == .text {
+            for element in page.elements where ShapeText.carriesWords(element) {
                 let body = element.text ?? ""
                 guard !body.isEmpty else { continue }
                 let options: String.CompareOptions = caseSensitive ? [.literal] : [.caseInsensitive]
@@ -1177,14 +1178,14 @@ final class DesignStore {
         apply { design in
             for p in design.pages.indices {
                 for i in design.pages[p].elements.indices
-                where design.pages[p].elements[i].type == .text {
+                where ShapeText.carriesWords(design.pages[p].elements[i]) {
                     guard let body = design.pages[p].elements[i].text, !body.isEmpty else { continue }
                     let replaced = body.replacingOccurrences(of: needle, with: replacement,
                                                              options: options)
                     guard replaced != body else { continue }
                     design.pages[p].elements[i].text = replaced
                     design.pages[p].elements[i].h =
-                        FontLibrary.layoutHeight(for: design.pages[p].elements[i])
+                        ShapeText.heightForWords(design.pages[p].elements[i])
                 }
             }
         }

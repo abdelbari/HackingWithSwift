@@ -19,10 +19,11 @@ enum Proofreader {
     }
 
     /// Every word the checker does not know, in reading order: page by page,
-    /// element by element, left to right. Words that are not words —
-    /// numbers, hashtags, addresses, SHOUTED acronyms — are left alone. Each
-    /// box is read as it reads, style marks left out, so "he**llo**" is one
-    /// word, and each word found is placed back where it is stored.
+    /// element by element — text boxes and the words in shapes — left to
+    /// right. Words that are not words — numbers, hashtags, addresses,
+    /// SHOUTED acronyms — are left alone. Each box is read as it reads,
+    /// style marks left out, so "he**llo**" is one word, and each word found
+    /// is placed back where it is stored.
     static func misspellings(in design: Design, language: String = Locale.current.identifier,
                              maxSuggestions: Int = 4) -> [Misspelling] {
         let checker = UITextChecker()
@@ -30,7 +31,7 @@ enum Proofreader {
             : (UITextChecker.availableLanguages.first ?? "en_US")
         var found: [Misspelling] = []
         for (p, page) in design.pages.enumerated() {
-            for el in page.elements where el.type == .text {
+            for el in page.elements where ShapeText.carriesWords(el) {
                 guard let text = el.text, !text.isEmpty else { continue }
                 let (plain, rawAt) = RichText.mapped(text)
                 let ns = plain as NSString
@@ -153,9 +154,10 @@ enum Proofreader {
         return out
     }
 
-    /// The design with one misspelling fixed and its box measured again —
-    /// or nil when the word no longer reads where it was found, so a stale
-    /// row never rewrites the wrong letters.
+    /// The design with one misspelling fixed and its box measured again — a
+    /// shape grown when its words need it — or nil when the word no longer
+    /// reads where it was found, so a stale row never rewrites the wrong
+    /// letters.
     static func fixed(_ design: Design, _ m: Misspelling, with replacement: String) -> Design? {
         guard design.pages.indices.contains(m.pageIndex),
               let i = design.pages[m.pageIndex].elements.firstIndex(where: { $0.id == m.elementId }),
@@ -169,7 +171,7 @@ enum Proofreader {
         guard reads == m.word else { return nil }
         var out = design
         out.pages[m.pageIndex].elements[i].text = replacing(m, in: text, with: replacement)
-        out.pages[m.pageIndex].elements[i].h = FontLibrary.layoutHeight(for: out.pages[m.pageIndex].elements[i])
+        out.pages[m.pageIndex].elements[i].h = ShapeText.heightForWords(out.pages[m.pageIndex].elements[i])
         return out
     }
 }

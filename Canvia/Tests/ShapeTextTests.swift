@@ -1,6 +1,7 @@
 // Text inside shapes: the text-safe boxes, the first words' ink and size,
 // the shape growing for its words, the file keys, typing as one step, and
-// the SVG — the numbers the same as the Android twin's.
+// the words reaching find and replace, read aloud, names and the SVG — the
+// numbers the same as the Android twin's.
 
 import XCTest
 import UIKit
@@ -202,6 +203,23 @@ final class ShapeTextTests: XCTestCase {
         s.endTextEdit()
         s.undo()
         XCTAssertEqual(s.element(shape.id)?.h, 60, "the growth is in the typing's step")
+    }
+
+    // MARK: where the words are read
+
+    func testFindReplaceReadAloudAndNamesIncludeShapeWords() {
+        var shape = Element.shape("circle")
+        shape.fill = .solid("#ff0000")
+        shape.text = "Big SALE"
+        XCTAssertEqual(ElementNames.name(of: shape), "Red circle: Big SALE")
+        var design = Design(title: "names", width: 1000, height: 1000)
+        design.pages[0].elements = [shape]
+        XCTAssertEqual(ReadAloud.script(for: design.pages[0], in: design), "Big SALE.")
+        let s = DesignStore(design: design)
+        XCTAssertEqual(s.matches(for: "sale").count, 1)
+        XCTAssertEqual(s.replaceAll("SALE", with: "deal"), 1)
+        XCTAssertEqual(s.element(shape.id)?.text, "Big deal")
+        XCTAssertEqual(s.element(shape.id)?.h, shape.h, "words that fit leave the shape's size alone")
     }
 
     // MARK: export
