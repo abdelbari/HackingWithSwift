@@ -49,7 +49,7 @@ struct BrandKit: Codable, Equatable {
     }
 
     func save(to url: URL = BrandKit.fileURL) {
-        if let data = try? JSONEncoder().encode(self) { try? data.write(to: url) }
+        if let data = try? JSONEncoder().encode(self) { try? data.write(to: url, options: .atomic) }
     }
 
     /// The pictures the Logos list offers, once each: the logos the sheet

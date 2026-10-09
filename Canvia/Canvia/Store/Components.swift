@@ -29,7 +29,7 @@ enum Components {
     }
 
     static func save(_ list: [Component], to url: URL = fileURL) {
-        if let data = try? JSONEncoder().encode(list) { try? data.write(to: url) }
+        if let data = try? JSONEncoder().encode(list) { try? data.write(to: url, options: .atomic) }
     }
 
     /// The elements moved so their union sits at the origin.
