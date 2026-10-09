@@ -107,9 +107,11 @@ final class FoldersAndSelectTests: XCTestCase {
     }
 
     func testCopyOfVersionIsANewDesignInTheSameFolder() throws {
+        let started = Date().timeIntervalSince1970 * 1000
         var design = Design(title: "Poster", width: 400, height: 300)
         design.pages[0].elements = [Element.text("kept", fontSize: 24, w: 200)]
         design.folder = "Old"
+        design.createdAt = started - 3 * 86_400_000
         XCTAssertTrue(DesignLibrary.save(design))
         XCTAssertTrue(DesignLibrary.snapshot(design, force: true))
         defer { DesignLibrary.delete(id: design.id) }
@@ -121,6 +123,8 @@ final class FoldersAndSelectTests: XCTestCase {
         XCTAssertNotEqual(copy.id, design.id)
         XCTAssertEqual(copy.title, "Poster (version from \(DesignLibrary.versionCopyDate(version.savedAt)))")
         XCTAssertEqual(copy.folder, "Now")
+        // Made now, as Android's copy is, not three days ago with the design.
+        XCTAssertGreaterThanOrEqual(copy.createdAt, started)
         XCTAssertEqual(copy.pages[0].elements.first?.text, "kept")
         XCTAssertEqual(DesignLibrary.load(id: copy.id)?.title, copy.title)
         // The design it was kept of is as it was.

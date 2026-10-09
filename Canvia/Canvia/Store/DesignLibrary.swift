@@ -381,9 +381,9 @@ enum DesignLibrary {
     }
 
     /// A kept version saved as a design of its own, beside the one it was
-    /// kept of, which is left as it is: a fresh id, a title that says which
-    /// version it was, and the folder that design is in now. Nil when it
-    /// could not be written.
+    /// kept of, which is left as it is: a fresh id, made now, a title that
+    /// says which version it was, and the folder that design is in now. Nil
+    /// when it could not be written.
     @discardableResult
     static func saveCopy(of version: Design, savedAt: Date, folder: String?, now: Date = Date()) -> Design? {
         var copy = version
@@ -391,7 +391,8 @@ enum DesignLibrary {
         copy.title = versionCopyTitle(version.title, date: versionCopyDate(savedAt))
         copy.titleAuto = false
         copy.folder = folder
-        copy.updatedAt = now.timeIntervalSince1970 * 1000
+        copy.createdAt = now.timeIntervalSince1970 * 1000
+        copy.updatedAt = copy.createdAt
         return save(copy) ? copy : nil
     }
 
