@@ -206,7 +206,12 @@ struct EditorView: View {
     /// an alert, where a shortcut with no modifier would swallow backspace.
     private var keyboardCommands: some View {
         Group {
-            if store.cropping != nil {
+            if presenting {
+                // None while presenting, as on the Android twin: the slides
+                // take their own keys, and a ⌘ key or Delete that fell
+                // through to here would edit the design out of sight.
+                EmptyView()
+            } else if store.cropping != nil {
                 // Crop mode has its own two keys; the rest wait, since the
                 // photo is the only thing being worked.
                 shortcut(.return, [], "Done cropping") { store.finishCrop() }
@@ -469,6 +474,10 @@ struct EditorView: View {
             // sections draw the same separators for free.
             Section {
                 Button {
+                    // A crop or typing under way is kept as its own step
+                    // first, as on the Android twin.
+                    store.finishCrop()
+                    store.endTextEdit()
                     presenting = true
                 } label: { Label("Present", systemImage: "play.rectangle") }
 
