@@ -908,6 +908,7 @@ struct EditorView: View {
             // The words chosen while typing, from the bar's colour well.
             ColorPickerSheet(store: store, title: "Word colour",
                              current: store.wordColour,
+                             note: DesignStore.wordColourNote,
                              onPick: { c in store.colourWords(c) },
                              onPickTransient: { c in store.colourWordsTransient(c) })
         case .colorSelection:

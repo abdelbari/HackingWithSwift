@@ -15,6 +15,9 @@ struct ColorPickerSheet: View {
     @Bindable var store: DesignStore
     var title: String
     var current: String?
+    /// A line over the choices saying what they will colour, when that is
+    /// not the whole of what is selected — the words chosen in a text box.
+    var note: String? = nil
     var allowGradients = false
     /// Patterns and photo fills, which only a shape draws.
     var allowPatterns = false
@@ -40,16 +43,23 @@ struct ColorPickerSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    ColorPicker("A colour of your own", selection: $custom, supportsOpacity: false)
-                        .onChange(of: custom) {
-                            let hex = UIColor(custom).hexString
-                            if let onPickTransient { onPickTransient(hex) } else { onPick(hex) }
+                    Group {
+                        if let note {
+                            Text(note)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
                         }
-                        // Recorded when the picker closes, not on every drag
-                        // tick: a slow sweep through the colour wheel would
-                        // otherwise fill the recents with eighteen shades of
-                        // the same green.
-                        .onDisappear { RecentColors.record(UIColor(custom).hexString) }
+                        ColorPicker("A colour of your own", selection: $custom, supportsOpacity: false)
+                            .onChange(of: custom) {
+                                let hex = UIColor(custom).hexString
+                                if let onPickTransient { onPickTransient(hex) } else { onPick(hex) }
+                            }
+                            // Recorded when the picker closes, not on every drag
+                            // tick: a slow sweep through the colour wheel would
+                            // otherwise fill the recents with eighteen shades of
+                            // the same green.
+                            .onDisappear { RecentColors.record(UIColor(custom).hexString) }
+                    }
 
                     // Recents first: the colour you used thirty seconds ago is
                     // the one you are most likely to want again, and it was

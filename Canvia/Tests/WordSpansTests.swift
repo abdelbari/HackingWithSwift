@@ -19,71 +19,97 @@ final class WordSpansTests: XCTestCase {
 
     // MARK: the shared test vectors
 
-    /// One row of the table the Android twin runs too, row for row: the
-    /// words before and after, the spans made for the words before, and the
-    /// spans Spans.remap gives after. A row whose words do not change is the
-    /// spans tidied.
+    /// One row of the table the Android twin runs too, row for row: spans
+    /// made for `spansText`, the words edited from `old` to `new`, and the
+    /// spans Spans.remap gives over the box's live spans, as every edit runs
+    /// them. A row whose words do not change is the spans tidied.
     private struct Vector {
         var name: String
+        var spansText: String
         var old: String
         var new: String
         var spans: [TextSpan]
         var expected: [TextSpan]
     }
 
-    // The table's own colours, as the Android twin writes them.
-    private func r(_ start: Int, _ end: Int) -> TextSpan { span(start, end, "#e11d48") }
-    private func b(_ start: Int, _ end: Int) -> TextSpan { span(start, end, "#2563eb") }
+    private func r(_ start: Int, _ end: Int) -> TextSpan { span(start, end, red) }
+    private func b(_ start: Int, _ end: Int) -> TextSpan { span(start, end, blue) }
 
+    // The same rows, strings, spans and expected spans as the Android twin's
+    // SpansTest table, in the same order. Typed in, words take a span only
+    // strictly inside it; typed over letters all in one span, they take it,
+    // its ends included (Canva keeps the colour of a word typed over).
     private var vectors: [Vector] {
-        [
-            Vector(name: "typing inside a span extends it", old: "red car", new: "reed car",
-                   spans: [r(0, 3)], expected: [r(0, 4)]),
-            Vector(name: "typing at a span's end does not extend it", old: "red car", new: "redx car",
+        let many = String(repeating: "x", count: 300)
+        return [
+            Vector(name: "typing inside a span extends it", spansText: "big sale today", old: "big sale today", new: "big saale today",
+                   spans: [r(4, 8)], expected: [r(4, 9)]),
+            Vector(name: "typing at a span's end does not extend it", spansText: "big sale today", old: "big sale today", new: "big sales today",
+                   spans: [r(4, 8)], expected: [r(4, 8)]),
+            Vector(name: "typing at a span's start does not extend it", spansText: "big sale", old: "big sale", new: "big Xsale",
+                   spans: [r(4, 8)], expected: [r(5, 9)]),
+            Vector(name: "typing before a span shifts it", spansText: "big sale", old: "big sale", new: "a big sale",
+                   spans: [r(4, 8)], expected: [r(6, 10)]),
+            Vector(name: "typing after a span leaves it", spansText: "red car", old: "red car", new: "red cars",
                    spans: [r(0, 3)], expected: [r(0, 3)]),
-            Vector(name: "typing at a span's start moves it", old: "red car", new: "red xcar",
-                   spans: [b(4, 7)], expected: [b(5, 8)]),
-            Vector(name: "typing before a span moves it", old: "red car", new: "a red car",
-                   spans: [b(4, 7)], expected: [b(6, 9)]),
-            Vector(name: "typing after a span leaves it", old: "red car", new: "red cars",
-                   spans: [r(0, 3)], expected: [r(0, 3)]),
-            Vector(name: "deleting inside a span shrinks it", old: "crimson", new: "crson",
+            Vector(name: "deleting inside a span shrinks it", spansText: "crimson", old: "crimson", new: "crson",
                    spans: [r(0, 7)], expected: [r(0, 5)]),
-            Vector(name: "deleting across a span's start clips it", old: "red car", new: "rear",
-                   spans: [b(4, 7)], expected: [b(2, 4)]),
-            Vector(name: "deleting across a span's end clips it", old: "red car", new: "rar",
+            Vector(name: "deleting across a span's start clips it", spansText: "big sale today", old: "big sale today", new: "bile today",
+                   spans: [r(4, 8)], expected: [r(2, 4)]),
+            Vector(name: "deleting across a span's end clips it", spansText: "red car", old: "red car", new: "rar",
                    spans: [r(0, 3)], expected: [r(0, 1)]),
-            Vector(name: "deleting a whole span removes it", old: "red car", new: "red ",
-                   spans: [b(4, 7)], expected: []),
-            Vector(name: "replacing words inside a span keeps it", old: "big red sale", new: "big rose sale",
+            Vector(name: "deleting a whole span removes it", spansText: "big sale today", old: "big sale today", new: "big  today",
+                   spans: [r(4, 8)], expected: []),
+            Vector(name: "replacing letters strictly inside a span keeps it", spansText: "big sale today", old: "big sale today", new: "big sole today",
+                   spans: [r(4, 8)], expected: [r(4, 8)]),
+            Vector(name: "replacing letters up to a span's end keeps it", spansText: "big red sale", old: "big red sale", new: "big rose sale",
                    spans: [r(4, 7)], expected: [r(4, 8)]),
-            Vector(name: "a misspelling corrected keeps its span", old: "teh car", new: "the car",
+            Vector(name: "a misspelling corrected at a span's start keeps it", spansText: "teh car", old: "teh car", new: "the car",
                    spans: [r(0, 3)], expected: [r(0, 3)]),
-            Vector(name: "words typed over a whole span take it", old: "red car", new: "blue car",
+            Vector(name: "words typed over a whole span take it", spansText: "red car", old: "red car", new: "blue car",
                    spans: [r(0, 3)], expected: [r(0, 4)]),
-            Vector(name: "replacing text that spans two spans clips both", old: "red blue", new: "reXlue",
-                   spans: [r(0, 3), b(4, 8)], expected: [r(0, 2), b(3, 6)]),
-            Vector(name: "adjacent identical spans merge", old: "redblue", new: "redblue",
-                   spans: [r(0, 3), r(3, 7)], expected: [r(0, 7)]),
-            Vector(name: "overlapping spans: the later wins", old: "abcdef", new: "abcdef",
+            Vector(name: "replacing text across two spans clips both", spansText: "red blue", old: "red blue", new: "reXue",
+                   spans: [r(0, 3), b(4, 8)], expected: [r(0, 2), b(3, 5)]),
+            Vector(name: "spans past the end are cut to it", spansText: "red car", old: "red car", new: "red",
+                   spans: [r(0, 7)], expected: [r(0, 3)]),
+            Vector(name: "adjacent identical spans merge", spansText: "abcdef", old: "abcdef", new: "abcdef",
+                   spans: [r(0, 2), r(2, 4)], expected: [r(0, 4)]),
+            Vector(name: "overlapping input is resolved last-wins", spansText: "abcdef", old: "abcdef", new: "abcdef",
                    spans: [r(0, 5), b(2, 4)], expected: [r(0, 2), b(2, 4), r(4, 5)]),
-            Vector(name: "a size and a colour are kept apart", old: "big sale", new: "big sale",
-                   spans: [span(0, 3, scale: 1.25), span(4, 8, "#e11d48", scale: 0.8)],
-                   expected: [span(0, 3, scale: 1.25), span(4, 8, "#e11d48", scale: 0.8)]),
-            Vector(name: "a size of 1, a blank colour and an empty stretch say nothing", old: "abcdef", new: "abcdef",
+            Vector(name: "more than 100 spans are truncated", spansText: many, old: many, new: many,
+                   spans: (0..<150).map { r(2 * $0, 2 * $0 + 1) }, expected: (0..<100).map { r(2 * $0, 2 * $0 + 1) }),
+            Vector(name: "spans made for other words are ignored", spansText: "old words", old: "new words", new: "new words!",
+                   spans: [r(0, 3)], expected: []),
+            Vector(name: "a size of 1, a blank colour and an empty stretch say nothing", spansText: "abcdef", old: "abcdef", new: "abcdef",
                    spans: [span(0, 2, scale: 1), span(2, 3, ""), r(4, 4)], expected: []),
-            Vector(name: "a size is held between 0.3 and 4", old: "abcdef", new: "abcdef",
+            Vector(name: "a size is held between 0.3 and 4", spansText: "abcdef", old: "abcdef", new: "abcdef",
                    spans: [span(0, 2, scale: 9), span(2, 4, scale: 0.1)],
                    expected: [span(0, 2, scale: 4), span(2, 4, scale: 0.3)]),
-            Vector(name: "spans past the end are cut to it", old: "red car", new: "red",
-                   spans: [r(0, 7)], expected: [r(0, 3)]),
+            Vector(name: "a size and a colour are kept apart", spansText: "big sale", old: "big sale", new: "big sale",
+                   spans: [span(0, 3, scale: 1.25), span(4, 8, red, scale: 0.8)],
+                   expected: [span(0, 3, scale: 1.25), span(4, 8, red, scale: 0.8)]),
+            Vector(name: "offsets are UTF-16 units", spansText: "\u{1F600} ok", old: "\u{1F600} ok", new: "a\u{1F600} ok",
+                   spans: [r(0, 2)], expected: [r(1, 3)]),
+            Vector(name: "a face typed before a coloured face stays plain",
+                   spansText: "\u{1F600}", old: "\u{1F600}", new: "\u{1F603}\u{1F600}",
+                   spans: [r(0, 2)], expected: [r(2, 4)]),
+            Vector(name: "a face retyped with the letter after it never leaves half a face coloured",
+                   spansText: "a\u{1F600}bc", old: "a\u{1F600}bc", new: "a\u{1F603}xc",
+                   spans: [r(0, 3), b(4, 5)], expected: [r(0, 1), b(4, 5)]),
+            Vector(name: "a face changed in its first half never leaves half a face coloured",
+                   spansText: "a\u{1F514}c", old: "a\u{1F514}c", new: "x\u{1F914}c",
+                   spans: [b(1, 4)], expected: [b(3, 4)]),
+            Vector(name: "a face typed inside a run of faces takes its colour",
+                   spansText: "\u{1F600}\u{1F600}", old: "\u{1F600}\u{1F600}", new: "\u{1F600}\u{1F603}\u{1F600}",
+                   spans: [r(0, 4)], expected: [r(0, 6)]),
         ]
     }
 
     func testTheSharedVectors() {
-        XCTAssertEqual(vectors.count, 19)
+        XCTAssertEqual(vectors.count, 27)
         for v in vectors {
-            XCTAssertEqual(Spans.remap(v.old, v.new, v.spans), v.expected, v.name)
+            let live = Spans.live(v.spans, madeFor: v.spansText, plain: v.old)
+            XCTAssertEqual(Spans.remap(v.old, v.new, live), v.expected, v.name)
         }
     }
 
@@ -94,14 +120,6 @@ final class WordSpansTests: XCTestCase {
         XCTAssertEqual(kept.count, Spans.maxCount)
         XCTAssertEqual(kept.last?.start, 198)
         XCTAssertEqual(Spans.normalised(many).count, Spans.maxCount)
-    }
-
-    func testACharacterKeptInTwoHalvesIsNeverSplit() {
-        // One face for another: the edit is the whole face, never half of
-        // it, so a coloured face stays coloured and its neighbours as they were.
-        XCTAssertEqual(Spans.remap("a😀bc", "a😃bc", [r(1, 3), b(4, 5)]), [r(1, 3), b(4, 5)])
-        // Typed inside a coloured run of faces, the new face takes the colour.
-        XCTAssertEqual(Spans.remap("😀😀", "😀😃😀", [r(0, 4)]), [r(0, 6)])
     }
 
     func testSpansMadeForOtherWordsAreIgnored() {

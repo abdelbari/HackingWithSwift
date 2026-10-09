@@ -12,8 +12,8 @@
 // Every change to the words moves the spans with them (remap): text typed
 // strictly inside a coloured word, or over letters all in it, takes its
 // colour, text typed at either end does not, and a word deleted takes its
-// colour with it. The Android twin runs the same rules over the same test
-// vectors.
+// colour with it. The Android twin runs the same rules over the same table
+// of test vectors, row for row.
 
 import Foundation
 import UIKit
@@ -75,10 +75,11 @@ enum Spans {
     static let colourKey = NSAttributedString.Key("CanviaSpanColour")
 
     /// The spans when they were made for `plain`, the words as they read
-    /// now; none when they were made for other words.
+    /// now, tidied and cut to its length as on the Android twin; none when
+    /// they were made for other words.
     static func live(_ spans: [TextSpan]?, madeFor spansText: String?, plain: String) -> [TextSpan] {
         guard let spans, !spans.isEmpty, spansText == plain else { return [] }
-        return normalised(spans)
+        return clipped(normalised(spans), to: plain.utf16.count)
     }
 
     /// The spans tidied: sorted, none overlapping — where two overlap, the
@@ -122,9 +123,11 @@ enum Spans {
     /// rest is the edit. A span before it stays and one after it moves by
     /// the change in length. Text put in strictly inside a span — not at
     /// either of its ends — takes that span's colour and size, and so does
-    /// text put in over letters that were all in one span, as a misspelling
-    /// corrected or a word typed over. A span the edit overlaps otherwise
-    /// loses what was taken out, and one taken out whole goes.
+    /// text put in over letters that were all in one span, its ends
+    /// included, as a misspelling corrected or a word typed over: Canva
+    /// keeps the colour of a word typed over, the same as typing inside it.
+    /// A span the edit overlaps otherwise loses what was taken out, and one
+    /// taken out whole goes. The Android twin's `remap`, rule for rule.
     static func remap(_ oldPlain: String, _ newPlain: String, _ spans: [TextSpan]) -> [TextSpan] {
         let old = Array(oldPlain.utf16), new = Array(newPlain.utf16)
         guard old != new else { return clipped(normalised(spans), to: new.count) }
@@ -139,6 +142,8 @@ enum Spans {
         let from = prefix, to = old.count - suffix
         let delta = new.count - old.count
         let moved = spans.flatMap { span -> [TextSpan] in
+            // Typed in: only strictly inside. Typed over: every letter
+            // replaced was in this span.
             let takes = from == to ? span.start < from && span.end > to : span.start <= from && span.end >= to
             var out = span
             if takes {
