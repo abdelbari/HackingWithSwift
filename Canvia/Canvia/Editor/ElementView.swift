@@ -527,16 +527,25 @@ struct TextElementView: View {
         // Paragraph spacing, as FontLibrary sets it: after each line break.
         let gap = (el.fontSize ?? 42) * max(0, el.paragraphSpacing ?? 0)
         let justified = el.align == "justify"
-        var paragraphsAbove = 0
+        var lineTop = top
         var fragments: [LineFragment] = []
         for (i, line) in lines.enumerated() {
             let range = CTLineGetStringRange(line)
             let end = range.location + range.length
             let endsParagraph = end >= string.length || (end > 0 && string.character(at: end - 1) == 10)
-            let topY = top + Double(i) * pitch + Double(paragraphsAbove) * gap
-            if endsParagraph { paragraphsAbove += 1 }
+            let topY = lineTop
             var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
             let full = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
+            // Each line the pitch, unless its paragraph has room for a larger
+            // word (RichText.makeRoom): then its own height, up to that room —
+            // so the lines below a grown one start where they are drawn, as
+            // the Android twin takes each bar's top from its layout.
+            let style = range.location < attributed.length
+                ? attributed.attribute(.paragraphStyle, at: range.location, effectiveRange: nil) as? NSParagraphStyle
+                : nil
+            let room = max(pitch, Double(style?.maximumLineHeight ?? 0))
+            lineTop += min(max(Double(ascent + descent + leading), pitch), room)
+            if endsParagraph { lineTop += gap }
             let inked = full - CTLineGetTrailingWhitespaceWidth(line)
             guard inked > 0.5 else { continue }
             let x = Double(origins[i].x)

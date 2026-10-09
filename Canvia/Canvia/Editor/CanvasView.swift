@@ -293,12 +293,13 @@ struct CanvasView: View {
     }
 
     /// Whether a double tap here belongs to the page rather than to the
-    /// canvas's zoom: anywhere in crop mode, and on a photo, a text box or a
-    /// shape that takes words.
+    /// canvas's zoom: anywhere in crop mode, and on a photo, a text box or an
+    /// unlocked shape that takes words — a locked one zooms, as on the
+    /// Android twin.
     private func claimsDoubleTap(at point: CGPoint) -> Bool {
         if store.cropping != nil { return true }
         guard let hit = store.page.elements.last(where: { Geometry.hits($0, point: point) }) else { return false }
-        return hit.type == .image || ShapeText.carriesWords(hit)
+        return hit.type == .image || hit.type == .text || (ShapeText.takesText(hit) && !hit.locked)
     }
 
     /// Crop mode over the page: the page dimmed, the whole picture faint
@@ -1198,7 +1199,8 @@ struct CanvasView: View {
                                onChange: { typeInline(id, $0) },
                                onDone: { commitTextEditIfAny() },
                                onToggle: { store.toggleText($0) },
-                               onStyled: { store.styleWhileTyping($0) })
+                               onStyled: { store.styleWhileTyping($0) },
+                               wordStyles: false)
             .frame(width: box.width)
             .frame(width: box.width, height: box.height, alignment: sits)
             .overlay(Rectangle().stroke(Theme.accent, lineWidth: 1 * iz).allowsHitTesting(false))

@@ -113,4 +113,23 @@ final class TypingBarTests: XCTestCase {
         XCTAssertEqual(TextToggle(.underline), .underline)
         XCTAssertNil(TextToggle(.strike), "no box is struck through as a whole")
     }
+
+    /// What the buttons on a field's bar are called.
+    @MainActor
+    private func labels(_ field: InlineTextField) -> [String] {
+        (field.makeCoordinator().typingBar().items ?? []).compactMap { $0.accessibilityLabel }
+    }
+
+    @MainActor
+    func testAShapesWordsHaveNoWordColourOrSizes() {
+        let box = InlineTextField(element: .text("Big sale"), onChange: { _ in }, onDone: {})
+        XCTAssertTrue(labels(box).contains("Larger"), "a text box's bar has A+")
+        let shape = InlineTextField(element: ShapeText.textElement(for: .shape("rect")),
+                                    onChange: { _ in }, onDone: {}, wordStyles: false)
+        let shown = labels(shape)
+        XCTAssertTrue(shown.contains("Bold"))
+        for gone in ["Colour of the selected words", "Smaller", "Larger"] {
+            XCTAssertFalse(shown.contains(gone), "\(gone) is not on a shape's bar, as on the Android twin")
+        }
+    }
 }

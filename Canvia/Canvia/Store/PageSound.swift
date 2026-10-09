@@ -100,6 +100,12 @@ final class PageSound {
     private var musicLoading = false
     private var ticker: Task<Void, Never>?
     private var holdsSession = false
+    /// The phone has one session for every PageSound: how many hold it, and
+    /// how many of those are presentations, so one letting go never stops
+    /// another still playing — as each Android twin keeps its own focus.
+    /// Main actor use only.
+    private static var holders = 0
+    private static var presenters = 0
 
     static func time(_ seconds: Double) -> CMTime { CMTime(seconds: seconds, preferredTimescale: 600) }
 
@@ -206,10 +212,12 @@ final class PageSound {
     /// for a presentation. Left alone while dictation has the microphone.
     private func takeSession() {
         guard !holdsSession, !Dictation.shared.isListening else { return }
-        let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(presenting ? .playback : .ambient)
-        try? session.setActive(true)
         holdsSession = true
+        PageSound.holders += 1
+        if presenting { PageSound.presenters += 1 }
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(PageSound.presenters > 0 ? .playback : .ambient)
+        try? session.setActive(true)
     }
 
     private func letGo() {
@@ -217,10 +225,19 @@ final class PageSound {
         // it is kept.
         guard holdsSession, music == nil, clips.isEmpty, !musicLoading else { return }
         holdsSession = false
+        PageSound.holders -= 1
+        if presenting { PageSound.presenters -= 1 }
         // Dictation took the session while this held it: it is dictation's
         // now, and dictation lets it go when it stops.
         guard !Dictation.shared.isListening else { return }
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        let session = AVAudioSession.sharedInstance()
+        // Another still plays — Play started while Present faded out — so the
+        // session stays, shared again once no presentation holds it.
+        guard PageSound.holders == 0 else {
+            if PageSound.presenters == 0 { try? session.setCategory(.ambient) }
+            return
+        }
+        try? session.setActive(false, options: .notifyOthersOnDeactivation)
     }
 
     /// Whether anything in `design` is heard on this phone: its music, or a

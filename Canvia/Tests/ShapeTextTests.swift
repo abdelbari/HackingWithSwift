@@ -279,6 +279,24 @@ final class ShapeTextTests: XCTestCase {
         XCTAssertFalse(s.canUndo)
     }
 
+    func testAShapeStyledThenLeftWithoutWordsKeepsOnlyTheStyle() {
+        // Bold pressed with nothing typed closes the step the first words'
+        // look began in; leaving still takes that look back, as on Android.
+        let shape = Element.shape("rect", w: 200, h: 200)
+        let s = store([shape])
+        s.startTyping(shape.id)
+        s.toggleText(.bold)
+        s.endTextEdit()
+        let left = s.element(shape.id)
+        XCTAssertNil(left?.text)
+        XCTAssertEqual(left?.fontWeight, 700, "the bold pressed stays")
+        XCTAssertEqual(left?.fontFamily, shape.fontFamily)
+        XCTAssertEqual(left?.fontSize, shape.fontSize)
+        XCTAssertEqual(left?.align, shape.align)
+        XCTAssertEqual(left?.vAlign, shape.vAlign)
+        XCTAssertEqual(left?.color, shape.color)
+    }
+
     func testTypingGrowsTheShapeAndRemovingWordsNeverShrinksIt() {
         let shape = Element.shape("rect", w: 200, h: 60)
         let s = store([shape])

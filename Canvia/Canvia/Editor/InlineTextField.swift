@@ -17,6 +17,8 @@
 // Beside them a colour well and A- and A+ colour the words chosen, or set
 // them a step smaller or larger (see Spans) — only with words chosen — and
 // the field shows the words in those colours and sizes as they are typed.
+// A shape's words take none, so its bar leaves them out, as the Android
+// twin's bar keeps them off.
 
 import SwiftUI
 import UIKit
@@ -37,6 +39,9 @@ struct InlineTextField: UIViewRepresentable {
     var onWordColour: (NSRange) -> Void = { _ in }
     /// A- or A+ for the words chosen, and what their size is multiplied by.
     var onWordScale: (NSRange, Double) -> Void = { _, _ in }
+    /// Whether the bar has the colour well and A- and A+: not for a shape's
+    /// words, which take no colours or sizes of their own.
+    var wordStyles = true
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -168,7 +173,7 @@ struct InlineTextField: UIViewRepresentable {
             let larger = UIBarButtonItem(title: "A+", style: .plain, target: self, action: #selector(sizeWords(_:)))
             larger.tag = 1
             larger.accessibilityLabel = "Larger"
-            wordItems = [well, smaller, larger]
+            wordItems = parent.wordStyles ? [well, smaller, larger] : []
             let done = UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(finish))
             bar.items = styleItems + wordItems
                 + [UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil), done]
@@ -296,6 +301,7 @@ struct InlineTextField: UIViewRepresentable {
                     }
                     if let scale = span.scale, let font {
                         storage.addAttribute(.font, value: font.withSize(font.pointSize * scale), range: range)
+                        if scale > 1 { RichText.makeRoom(in: storage, for: range, scale: scale) }
                     }
                 }
             }
