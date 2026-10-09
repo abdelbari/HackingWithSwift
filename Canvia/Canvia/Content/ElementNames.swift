@@ -4,7 +4,8 @@
 // line on its own says only that something was decided. The names are the
 // Android twin's (core/content/ElementNames.kt), word for word, so a guide
 // reads the same on either phone: a heading or text by its words, a shape by
-// its colour and kind and then any words it carries, a photo by its frame.
+// its colour and kind or, when it carries words, by its kind and them, a
+// photo by its frame.
 
 import Foundation
 
@@ -27,9 +28,10 @@ enum ElementNames {
             if Freehand.isStroke(el) { return withColour(el.stroke, "drawing") }
             if el.pathData != nil {
                 if isFaint(el.fill?.color) && el.stroke != nil { return withColour(el.stroke, "line") }
-                return withWords(el, withColour(colour, "custom shape"))
+                return withWords(el, "custom shape") ?? withColour(colour, "custom shape")
             }
-            return withWords(el, withColour(colour, ContentLibrary.shape(el.shapeId).name.lowercased()))
+            let noun = ContentLibrary.shape(el.shapeId).name.lowercased()
+            return withWords(el, noun) ?? withColour(colour, noun)
         case .image:
             let frame = el.maskShapeId.map { ContentLibrary.shape($0).name.lowercased() }
             if let src = el.src, CodeGenerator.payload(from: src) != nil { return "QR code" }
@@ -120,12 +122,13 @@ enum ElementNames {
         return name.prefix(1).uppercased() + String(name.dropFirst())
     }
 
-    /// A shape's name, then the words it carries: "Red circle: SALE".
-    private static func withWords(_ el: Element, _ name: String) -> String {
-        guard let text = ShapeText.words(of: el) else { return name }
+    /// A shape with words named by them, as a text box is, after its kind
+    /// and not its colour: "Circle: SALE". Nil when it has none.
+    private static func withWords(_ el: Element, _ noun: String) -> String? {
+        guard let text = ShapeText.words(of: el) else { return nil }
         let words = RichText.strip(text).replacingOccurrences(of: "\n", with: " ")
             .trimmingCharacters(in: .whitespaces)
-        return "\(name): \(words.prefix(snippet))"
+        return noun.prefix(1).uppercased() + String(noun.dropFirst()) + ": \(words.prefix(snippet))"
     }
 
     private static func withColour(_ hex: String?, _ noun: String) -> String {

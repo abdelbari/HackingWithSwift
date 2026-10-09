@@ -221,7 +221,12 @@ final class ShapeTextTests: XCTestCase {
         var shape = Element.shape("circle")
         shape.fill = .solid("#ff0000")
         shape.text = "Big SALE"
-        XCTAssertEqual(ElementNames.name(of: shape), "Red circle: Big SALE")
+        XCTAssertEqual(ElementNames.name(of: shape), "Circle: Big SALE")
+        var bubble = Element.shape("speech")
+        bubble.text = "Hello\n**there**"
+        XCTAssertEqual(ElementNames.name(of: bubble), "Speech bubble: Hello there")
+        bubble.text = "  "
+        XCTAssertEqual(ElementNames.name(of: bubble), "Purple speech bubble", "blank words name it as before")
         var design = Design(title: "names", width: 1000, height: 1000)
         design.pages[0].elements = [shape]
         XCTAssertEqual(ReadAloud.script(for: design.pages[0], in: design), "Big SALE.")
