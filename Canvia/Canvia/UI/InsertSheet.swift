@@ -26,7 +26,10 @@ struct InsertSheet: View {
     @State private var qrTooLong = false
     @FocusState private var qrFocused: Bool
 
-    private let tabs = ["Templates", "Elements", "Icons", "Text", "Photos", "Stickers", "Background"]
+    // Six at most: a segmented control gives each the same width, and a
+    // seventh cuts the longer names short on a small phone. Icons are a
+    // section of Elements for that reason.
+    private let tabs = ["Templates", "Elements", "Text", "Photos", "Stickers", "Background"]
 
     private var isReplacing: Bool { store.replaceTargetId != nil }
 
@@ -49,7 +52,6 @@ struct InsertSheet: View {
                         switch tab {
                         case "Templates": templatesGrid
                         case "Elements": elementsGrid
-                        case "Icons": iconsGrid
                         case "Text": textList
                         case "Photos": photosGrid
                         case "Stickers": stickersGrid
@@ -59,7 +61,7 @@ struct InsertSheet: View {
                 }
             }
             .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always),
-                        prompt: tab == "Icons" ? Text("Search icons") : nil)
+                        prompt: tab == "Elements" ? Text("Search shapes and icons") : nil)
             .navigationTitle(isReplacing ? "Replace image" : "Add to design")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -175,7 +177,7 @@ struct InsertSheet: View {
                                                   everySize: true, matching: search).isEmpty
         case "Elements":
             return !ContentLibrary.shapes.contains { ContentLibrary.shape($0, matches: search) }
-        case "Icons": return IconLibrary.search(search).isEmpty
+                && IconLibrary.search(search).isEmpty
         case "Photos": return filteredPhotos.isEmpty
         case "Stickers": return filteredStickerGroups.allSatisfy { $0.emoji.isEmpty }
         default: return false
@@ -278,6 +280,7 @@ struct InsertSheet: View {
                     }
                 }
             }
+            iconsSection
         }
         .padding()
     }
@@ -390,25 +393,31 @@ struct InsertSheet: View {
 
     // MARK: icons
 
-    /// A heading and one row a category, as the Android twin lays them out;
-    /// while nothing is searched, starred icons lead in a row of their own.
-    private var iconsGrid: some View {
-        var groups = IconLibrary.grouped(search)
-        let starred = Favorites.ids(of: "icon").compactMap { IconLibrary.icon($0) }
-        if search.trimmingCharacters(in: .whitespaces).isEmpty && !starred.isEmpty {
-            groups.insert(IconGroup(category: "Favourites", icons: starred), at: 0)
-        }
-        return LazyVStack(alignment: .leading, spacing: 8) {
-            ForEach(groups) { group in
-                sectionHeader(group.category)
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 10) {
-                        ForEach(group.icons) { icon in iconTile(icon) }
-                    }
+    /// Below the shapes, a heading and one row a category, as the Android
+    /// twin lays them out. Headed as icons, since the shapes have an Arrows
+    /// and a Symbols of their own.
+    private var iconsSection: some View {
+        ForEach(iconGroups) { group in
+            sectionHeader(group.category)
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 10) {
+                    ForEach(group.icons) { icon in iconTile(icon) }
                 }
             }
         }
-        .padding()
+    }
+
+    /// Those the search finds, by category; while nothing is searched,
+    /// starred icons lead in a row of their own.
+    private var iconGroups: [IconGroup] {
+        var groups = IconLibrary.grouped(search).map {
+            IconGroup(category: "Icons \u{00B7} \($0.category)", icons: $0.icons)
+        }
+        let starred = Favorites.ids(of: "icon").compactMap { IconLibrary.icon($0) }
+        if search.trimmingCharacters(in: .whitespaces).isEmpty && !starred.isEmpty {
+            groups.insert(IconGroup(category: "Favourite icons", icons: starred), at: 0)
+        }
+        return groups
     }
 
     /// An icon drawn from its own path, read by its name, and starred as the

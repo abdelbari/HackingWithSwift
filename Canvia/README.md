@@ -58,10 +58,11 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   scaled with it, as on Android) and replaces it as one step the toast
   can undo
 - Icons: 567 of Google's Material icons (filled) in 18 categories, in
-  the Add sheet's own Icons tab — a heading and a row a category, found
-  by name, id or tag, starred icons leading. A tap puts one in the middle
-  of the page, 160 points square, in the brand kit's first colour or ink
-  that reads on the page, as one Undo. It is a shape drawn from its own
+  the Add sheet's Elements tab below the shapes (a seventh tab would cut
+  the tab names short on a small phone) — a heading and a row a category,
+  found by name, id or tag, starred icons leading. A tap puts one in the
+  middle of the page, 160 points square, in the brand kit's first colour
+  or ink that reads on the page, as one Undo. It is a shape drawn from its own
   path data, so it recolours, takes a border and shadow and exports like
   any other, and keeps `iconId` to be named by ("Favourite icon").
   `Content/Icons.json` is the Android twin's resource byte for byte,
