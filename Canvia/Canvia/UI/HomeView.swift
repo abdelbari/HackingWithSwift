@@ -159,7 +159,7 @@ struct HomeView: View {
                 move(filingInto, to: newFolderName)
                 filingInto = []
             }
-            .disabled((DesignLibrary.folderName(newFolderName)?.count ?? 0) > DesignLibrary.folderNameLimit)
+            .disabled((DesignLibrary.folderName(newFolderName)?.utf16.count ?? 0) > DesignLibrary.folderNameLimit)
             Button("Cancel", role: .cancel) { filingInto = [] }
         }
         .alert("Rename design", isPresented: Binding(

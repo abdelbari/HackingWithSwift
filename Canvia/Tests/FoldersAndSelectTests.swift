@@ -30,6 +30,9 @@ final class FoldersAndSelectTests: XCTestCase {
         XCTAssertNil(DesignLibrary.renamePlan(shelf, from: "Trips", to: "   "))
         XCTAssertNil(DesignLibrary.renamePlan(shelf, from: "Trips", to: String(repeating: "x", count: 41)))
         XCTAssertNotNil(DesignLibrary.renamePlan(shelf, from: "Trips", to: String(repeating: "x", count: 40)))
+        // Counted in UTF-16 units, as Android counts: 21 emoji are 42.
+        XCTAssertNil(DesignLibrary.renamePlan(shelf, from: "Trips", to: String(repeating: "😀", count: 21)))
+        XCTAssertNotNil(DesignLibrary.renamePlan(shelf, from: "Trips", to: String(repeating: "😀", count: 20)))
     }
 
     func testRenameOntoAnotherFolderIsAMerge() {
