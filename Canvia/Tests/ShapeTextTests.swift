@@ -13,14 +13,62 @@ final class ShapeTextTests: XCTestCase {
     // MARK: insets
 
     func testTheInsetsTableIsTheAndroidTwins() {
-        XCTAssertEqual(ShapeTextInsets.inset(for: "rect"), ShapeTextInset(x: 8, y: 8, w: 84, h: 84))
-        XCTAssertEqual(ShapeTextInsets.inset(for: "circle"), ShapeTextInset(x: 14.6, y: 14.6, w: 70.8, h: 70.8))
-        XCTAssertEqual(ShapeTextInsets.inset(for: "triangle"), ShapeTextInset(x: 27.5, y: 45, w: 45, h: 55))
-        XCTAssertEqual(ShapeTextInsets.inset(for: "diamond"), ShapeTextInset(x: 25, y: 25, w: 50, h: 50))
-        XCTAssertEqual(ShapeTextInsets.inset(for: "star-5"), ShapeTextInset(x: 30, y: 30, w: 40, h: 40))
-        XCTAssertEqual(ShapeTextInsets.inset(for: "speech"), ShapeTextInset(x: 8, y: 8, w: 84, h: 54))
+        // Every shape, number for number with the Android twin's table.
+        let android: [String: ShapeTextInset] = [
+            "rect": ShapeTextInset(x: 8, y: 8, w: 84, h: 84),
+            "circle": ShapeTextInset(x: 14.6, y: 14.6, w: 70.8, h: 70.8),
+            "triangle": ShapeTextInset(x: 27.5, y: 45, w: 45, h: 55),
+            "triangle-down": ShapeTextInset(x: 27.5, y: 0, w: 45, h: 55),
+            "diamond": ShapeTextInset(x: 25, y: 25, w: 50, h: 50),
+            "pentagon": ShapeTextInset(x: 20, y: 30, w: 60, h: 55),
+            "hexagon": ShapeTextInset(x: 20, y: 15, w: 60, h: 70),
+            "octagon": ShapeTextInset(x: 18, y: 18, w: 64, h: 64),
+            "semicircle": ShapeTextInset(x: 20, y: 62, w: 60, h: 32),
+            "quarter": ShapeTextInset(x: 5, y: 35, w: 60, h: 60),
+            "parallelogram": ShapeTextInset(x: 25, y: 8, w: 50, h: 84),
+            "trapezoid": ShapeTextInset(x: 20, y: 8, w: 60, h: 84),
+            "star-5": ShapeTextInset(x: 30, y: 30, w: 40, h: 40),
+            "star-4": ShapeTextInset(x: 30, y: 30, w: 40, h: 40),
+            "star-6": ShapeTextInset(x: 30, y: 30, w: 40, h: 40),
+            "star-8": ShapeTextInset(x: 30, y: 30, w: 40, h: 40),
+            "seal": ShapeTextInset(x: 30, y: 30, w: 40, h: 40),
+            "burst-16": ShapeTextInset(x: 30, y: 30, w: 40, h: 40),
+            "arrow-right": ShapeTextInset(x: 8, y: 30, w: 72, h: 40),
+            "arrow-left": ShapeTextInset(x: 20, y: 30, w: 72, h: 40),
+            "arrow-up": ShapeTextInset(x: 30, y: 20, w: 40, h: 72),
+            "arrow-down": ShapeTextInset(x: 30, y: 8, w: 40, h: 72),
+            "arrow-double": ShapeTextInset(x: 20, y: 38, w: 60, h: 24),
+            "chevron": ShapeTextInset(x: 30, y: 8, w: 40, h: 84),
+            "speech": ShapeTextInset(x: 8, y: 8, w: 84, h: 54),
+            "thought": ShapeTextInset(x: 14.6, y: 10.2, w: 70.8, h: 49.6),
+            "ribbon": ShapeTextInset(x: 15, y: 24, w: 70, h: 52),
+            "banner": ShapeTextInset(x: 8, y: 8, w: 84, h: 62),
+            "tag": ShapeTextInset(x: 30, y: 20, w: 62, h: 60),
+            "plaque": ShapeTextInset(x: 8, y: 22, w: 84, h: 56),
+            "heart": ShapeTextInset(x: 20, y: 20, w: 60, h: 40),
+            "cross": ShapeTextInset(x: 8, y: 35, w: 84, h: 30),
+            "lightning": ShapeTextInset(x: 30, y: 40, w: 40, h: 18),
+            "moon": ShapeTextInset(x: 10, y: 30, w: 35, h: 40),
+            "drop": ShapeTextInset(x: 15, y: 50, w: 70, h: 35),
+            "shield": ShapeTextInset(x: 15, y: 15, w: 70, h: 60),
+            "blob-round": ShapeTextInset(x: 15, y: 15, w: 70, h: 70),
+            "blob-elongated": ShapeTextInset(x: 15, y: 15, w: 70, h: 70),
+            "blob-trilobe": ShapeTextInset(x: 15, y: 15, w: 70, h: 70),
+            "blob-bean": ShapeTextInset(x: 15, y: 15, w: 70, h: 70),
+            "sparkle-4pt": ShapeTextInset(x: 30, y: 30, w: 40, h: 40),
+            "flower-6": ShapeTextInset(x: 25, y: 25, w: 50, h: 50),
+            "squircle": ShapeTextInset(x: 12, y: 12, w: 76, h: 76),
+            "scallop-12": ShapeTextInset(x: 18, y: 18, w: 64, h: 64),
+        ]
+        for (id, inset) in android {
+            XCTAssertEqual(ShapeTextInsets.inset(for: id), inset, id)
+        }
+        XCTAssertEqual(ShapeTextInsets.table.count, android.count)
+        XCTAssertEqual(ShapeTextInsets.inset(for: nil), ShapeTextInset(x: 8, y: 8, w: 84, h: 84),
+                       "no id is the rectangle it is drawn as")
         XCTAssertEqual(ShapeTextInsets.inset(for: "no-such-shape"), ShapeTextInset(x: 15, y: 15, w: 70, h: 70),
                        "a shape this build does not know is 15% in")
+        XCTAssertEqual(ShapeTextInsets.inset(for: ""), ShapeTextInsets.fallback)
     }
 
     func testEveryLibraryShapeHasABoxInsideItsOwn() {
@@ -59,6 +107,8 @@ final class ShapeTextTests: XCTestCase {
         XCTAssertEqual(ShapeText.defaultInk(for: .solid("#ffe066")), "#1f2430")
         XCTAssertEqual(ShapeText.defaultInk(for: .solid("#1f2430")), "#ffffff")
         XCTAssertEqual(ShapeText.defaultInk(for: nil), "#ffffff", "the default violet is dark")
+        XCTAssertEqual(ShapeText.defaultInk(for: Paint(kind: "solid", color: nil, angle: nil, stops: nil)), "#ffffff",
+                       "a solid fill with no colour is the default violet")
         let light = Paint(kind: "gradient", color: nil, angle: 90,
                           stops: [GradientStop(offset: 0, color: "#ffffff"), GradientStop(offset: 1, color: "#000000")])
         XCTAssertEqual(ShapeText.defaultInk(for: light), "#1f2430", "a gradient by its first stop")
