@@ -93,6 +93,36 @@ final class DataSafetyTests: XCTestCase {
         XCTAssertTrue(DesignLibrary.shelf().damaged.contains { $0.id == d.id })
     }
 
+    /// Edited when it was restored, as on the Android twin, so its card
+    /// says so and sorts first rather than among older designs.
+    func testARestoredDesignIsEditedNow() throws {
+        var d = saved("Restored")
+        d.updatedAt = 1_600_000_000_000
+        XCTAssertTrue(DesignLibrary.snapshot(d, force: true))
+        try damage(d.id)
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let restored = try XCTUnwrap(DesignLibrary.restoreLastVersion(of: d.id, now: now))
+        XCTAssertEqual(restored.updatedAt, 1_800_000_000_000)
+        XCTAssertEqual(DesignLibrary.shelf().designs.first { $0.id == d.id }?.updatedAt, 1_800_000_000_000)
+    }
+
+    /// Deleted, a damaged design goes to Recently deleted with its versions,
+    /// as on the Android twin, so it can still come back and be mended.
+    func testADamagedDesignGoesToRecentlyDeleted() throws {
+        let d = saved("Soon damaged")
+        XCTAssertTrue(DesignLibrary.snapshot(d, force: true))
+        try damage(d.id)
+        DesignLibrary.trash(id: d.id)
+        let entry = try XCTUnwrap(DesignLibrary.trashed().first { $0.id == d.id },
+                                  "a damaged design was left out of Recently deleted")
+        XCTAssertEqual(entry.title, DesignLibrary.damagedTitle)
+        XCTAssertTrue(entry.damaged)
+
+        DesignLibrary.restore(id: d.id)
+        XCTAssertTrue(DesignLibrary.shelf().damaged.contains { $0.id == d.id })
+        XCTAssertEqual(DesignLibrary.restoreLastVersion(of: d.id)?.title, "Soon damaged")
+    }
+
     // MARK: no sweep while something is damaged
 
     private func orphanPhoto() throws -> URL {
@@ -121,7 +151,10 @@ final class DataSafetyTests: XCTestCase {
         XCTAssertFalse(exists(orphan), "the sweep never came back")
     }
 
-    func testNothingIsSweptWhileAVersionIsDamaged() throws {
+    /// A version that no longer reads can never be restored, so it keeps
+    /// nothing for itself: the sweep goes on, and the version is left to age
+    /// out of its history with the others.
+    func testAVersionThatDoesNotReadDoesNotStopTheSweep() throws {
         let board = UIPasteboard.withUniqueName()
         defer { UIPasteboard.remove(withName: board.name) }
         let orphan = try orphanPhoto()
@@ -131,9 +164,7 @@ final class DataSafetyTests: XCTestCase {
         let version = try XCTUnwrap(DesignLibrary.versions(for: d.id).first)
         try Data("{\"pages\": [".utf8).write(to: version.url)
         DesignLibrary.pruneUnusedMedia(pasteboard: board)
-        XCTAssertTrue(exists(orphan), "swept while a version could not be read")
-        DesignLibrary.delete(id: d.id)
-        DesignLibrary.pruneUnusedMedia(pasteboard: board)
-        XCTAssertFalse(exists(orphan))
+        XCTAssertFalse(exists(orphan), "a version that cannot be read stopped the sweep")
+        XCTAssertTrue(exists(version.url), "the sweep deleted a version")
     }
 }

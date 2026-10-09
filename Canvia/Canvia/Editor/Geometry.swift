@@ -289,8 +289,8 @@ enum Geometry {
     /// shape (`proportional`) snaps on one axis only — whichever needs the
     /// smaller correction — and the other follows through the shape. A snap
     /// that would take either side under `minSize`, or turn the box inside
-    /// out, is not made. The box is an unturned element's: turned, its edges
-    /// do not run along the lines.
+    /// out, is not made. The box is an unturned element's: one turned is
+    /// snapped through snapTurnedResize.
     static func snapResize(_ box: CGRect, handle: Handle, xLines: [Double], yLines: [Double],
                            threshold: Double, proportional: Bool, minSize: Double) -> ResizeSnap {
         let u = handle.unit
@@ -353,6 +353,39 @@ enum Geometry {
         result.guideX = lineX
         result.guideY = lineY
         return result
+    }
+
+    /// snapResize for an element turned a whole number of quarter turns,
+    /// as the Android twin snaps one: `box` is its own frame, turned
+    /// `rotation` degrees about its centre. The handle is taken to where
+    /// the turn points it, the frame's bounds on the page snap from there,
+    /// and the bounds are made the element's frame again about the same
+    /// centre. Nil for one turned off the square: its edges do not run
+    /// along the lines.
+    static func snapTurnedResize(_ box: CGRect, rotation: Double, handle: Handle,
+                                 xLines: [Double], yLines: [Double],
+                                 threshold: Double, proportional: Bool, minSize: Double) -> ResizeSnap? {
+        let turn = (rotation.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
+        let quarters = (turn / 90).rounded()
+        guard abs(turn - quarters * 90) <= 1e-6 else { return nil }
+        let turns = Int(quarters) % 4
+        // A quarter turn clockwise points the right side down, and so on.
+        var dx = handle.unit.x - 0.5, dy = handle.unit.y - 0.5
+        for _ in 0..<turns { (dx, dy) = (-dy, dx) }
+        let point = CGPoint(x: dx + 0.5, y: dy + 0.5)
+        guard let turned = Handle.allCases.first(where: { $0.unit == point }) else { return nil }
+        // Half a turn leaves the bounds the frame itself.
+        guard turns % 2 == 1 else {
+            return snapResize(box, handle: turned, xLines: xLines, yLines: yLines,
+                              threshold: threshold, proportional: proportional, minSize: minSize)
+        }
+        let bounds = CGRect(x: box.midX - box.height / 2, y: box.midY - box.width / 2,
+                            width: box.height, height: box.width)
+        var snap = snapResize(bounds, handle: turned, xLines: xLines, yLines: yLines,
+                              threshold: threshold, proportional: proportional, minSize: minSize)
+        let w = snap.box.height, h = snap.box.width
+        snap.box = CGRect(x: snap.box.midX - w / 2, y: snap.box.midY - h / 2, width: w, height: h)
+        return snap
     }
 
     struct EqualGap {

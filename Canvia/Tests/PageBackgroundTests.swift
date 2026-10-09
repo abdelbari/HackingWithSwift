@@ -86,17 +86,32 @@ final class PageBackgroundTests: XCTestCase {
 
     /// A photo with a look goes behind the page as it showed: a new picture
     /// of its own, never the plain one it was drawn from.
-    func testAPhotoWithALookIsBakedIntoAPictureOfItsOwn() throws {
+    func testAPhotoWithALookIsBakedIntoAPictureOfItsOwn() async throws {
         var el = Element.image("asset:mesh-sunset", w: 300, h: 200)
         el.flipH = true
         el.radius = 40
         let s = store([el])
-        s.useAsBackground(el.id)
+        let baking = try XCTUnwrap(s.useAsBackground(el.id), "a photo with a look is baked off the main actor")
+        await baking.value
         guard case .image(let src) = s.page.background else { return XCTFail("no picture behind the page") }
         stored.append(src)
         XCTAssertTrue(src.hasPrefix("media:"))
         let picture = try XCTUnwrap(PhotoLibrary.resolve(src))
         XCTAssertEqual(picture.size.width / picture.size.height, 1.5, accuracy: 0.02)
+        XCTAssertTrue(s.page.elements.isEmpty)
+    }
+
+    /// Baked off the main actor, the photo is looked for again when the
+    /// picture is ready: gone from the page meanwhile, nothing goes behind it.
+    func testAPhotoGoneWhileBakingDoesNotBecomeTheBackground() async throws {
+        var el = Element.image("asset:mesh-sunset", w: 300, h: 200)
+        el.flipH = true
+        let s = store([el])
+        let baking = try XCTUnwrap(s.useAsBackground(el.id))
+        s.selection = [el.id]
+        s.deleteSelected()
+        await baking.value
+        XCTAssertEqual(s.page.background, .color("#ffffff"))
         XCTAssertTrue(s.page.elements.isEmpty)
     }
 

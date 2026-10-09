@@ -15,12 +15,19 @@ enum PhotoFrames {
     /// Whether a picture can be put into `el`: an unlocked image that is an
     /// empty frame, or has a frame's shape, or is a cell of a grid — grouped
     /// with at least one other image. A plain free photo is not one, or
-    /// every photo dragged across another would swallow it.
+    /// every photo dragged across another would swallow it. Nor is a code,
+    /// which a picture would replace, and a code grouped with a logo does
+    /// not make the logo a cell, as on the Android twin.
     static func isFrameLike(_ el: Element, among elements: [Element]) -> Bool {
-        guard el.type == .image, !el.locked else { return false }
+        guard el.type == .image, !el.locked, !isCode(el) else { return false }
         if isEmpty(el) || el.maskShapeId != nil { return true }
         guard let group = el.group else { return false }
-        return elements.contains { $0.id != el.id && $0.type == .image && $0.group == group }
+        return elements.contains { $0.id != el.id && $0.type == .image && !isCode($0) && $0.group == group }
+    }
+
+    /// Whether `el` is a code, whose source is its payload.
+    private static func isCode(_ el: Element) -> Bool {
+        CodeGenerator.payload(from: el.src ?? "") != nil
     }
 
     /// A frame with no picture in it yet.

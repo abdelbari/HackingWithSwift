@@ -680,21 +680,14 @@ struct InsertSheet: View {
         }
     }
 
-    /// Off the list, and unstarred, either way. The file goes too when
-    /// nothing holds it — no design, version, logo, component, pasteboard,
-    /// nor any step Undo can go back to; otherwise it stays in the designs
-    /// that show it, and the launch sweep takes it once nothing does.
+    /// Off the list, and unstarred. The file stays in the designs that show
+    /// it, and the launch sweep takes it once nothing does, as on the
+    /// Android twin: another window may hold it in a step Undo can go back
+    /// to, or in a change not yet saved, which nothing here can see.
     private func deleteUpload(_ deletion: UploadDeletion) {
         Uploads.remove(deletion.id)
         // The sweep keeps whatever is starred, list or not.
         if Favorites.isFavorite("upload", deletion.id) { Favorites.toggle("upload", deletion.id) }
-        if !deletion.use.held && !DesignLibrary.uploadKeptOutsideDesigns(deletion.id, kind: deletion.kind) {
-            switch deletion.kind {
-            case .image: MediaStore.delete(deletion.id)
-            case .video: VideoStore.delete(deletion.id)
-            case .audio: AudioStore.delete(deletion.id)
-            }
-        }
         favoritesVersion += 1
     }
 

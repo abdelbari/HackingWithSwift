@@ -113,6 +113,30 @@ final class TypingInPlaceTests: XCTestCase {
         XCTAssertEqual(s.element(text.id)?.text, "Hello there", "and keeps the words typed")
     }
 
+    /// A style from the bar over the keyboard is a step of its own between
+    /// the words typed before and after it, as on the Android twin.
+    func testAStyleWhileTypingIsAStepOfItsOwn() {
+        let text = Element.text("Hello")
+        let s = store([text])
+        type(s, "Hello there", into: text.id)
+        // As the field hands each change over: into the step that is open,
+        // or a new one.
+        s.styleWhileTyping {
+            s.beginGesture()
+            s.design.pages[0].elements[0].text = "**Hello** there"
+        }
+        XCTAssertFalse(s.hasPendingChanges)
+        XCTAssertEqual(s.editingTextId, text.id, "still typing")
+        s.beginGesture()
+        s.design.pages[0].elements[0].text = "**Hello** there now"
+        s.undo()
+        XCTAssertEqual(s.element(text.id)?.text, "**Hello** there", "Undo takes back only the words after the style")
+        s.undo()
+        XCTAssertEqual(s.element(text.id)?.text, "Hello there", "then the style")
+        s.undo()
+        XCTAssertEqual(s.element(text.id)?.text, "Hello")
+    }
+
     func testOpeningABoxAndLeavingItRecordsNothing() {
         let text = Element.text("Hello")
         let s = store([text])

@@ -51,6 +51,20 @@ final class CollageTests: XCTestCase {
         XCTAssertFalse(PhotoFrames.isFrameLike(a, among: [a, caption]))
     }
 
+    /// A code grouped with a logo is not a frame, so a picture let go over
+    /// it cannot replace it, and the logo is not a cell for being with it.
+    func testACodeGroupedWithALogoIsNotAFrame() {
+        var code = photo(CodeGenerator.source(for: "https://example.com"))
+        var logo = photo("asset:mesh-sunset", x: 120)
+        code.group = "grp_1"; logo.group = "grp_1"
+        let dragged = photo("asset:mesh-ocean", x: 400)
+        let page = [code, logo, dragged]
+        XCTAssertFalse(PhotoFrames.isFrameLike(code, among: page))
+        XCTAssertFalse(PhotoFrames.isFrameLike(logo, among: page))
+        XCTAssertNil(PhotoFrames.target(at: CGPoint(x: 50, y: 50), in: page, excluding: dragged.id))
+        XCTAssertNil(PhotoFrames.dropped(page, dragged: dragged.id, onto: code.id, home: .zero))
+    }
+
     func testALockedFrameOrAShapeIsNotAFrame() {
         var locked = photo(nil)
         locked.locked = true
@@ -174,6 +188,18 @@ final class CollageTests: XCTestCase {
         XCTAssertNil(s.frameDropTarget(at: CGPoint(x: 350, y: 350), dragging: code.id))
         XCTAssertEqual(s.frameDropTarget(at: CGPoint(x: 350, y: 350), dragging: dragged.id), empty.id)
         XCTAssertFalse(s.canUndo)
+    }
+
+    /// Pictures dropped from another app together on one cell: the first
+    /// fills it, and the rest go on the page beside it rather than over it.
+    func testACellADropHasFilledTakesNoMoreOfIt() {
+        var a = photo("asset:mesh-ocean", w: 400, h: 400), b = photo("asset:mesh-candy", x: 500)
+        a.group = "grp_1"; b.group = "grp_1"
+        let page = [a, b]
+        let at = CGPoint(x: 50, y: 50)
+        XCTAssertEqual(CanvasDrop.pictureTarget(at: at, in: page, filled: [])?.id, a.id)
+        XCTAssertNil(CanvasDrop.pictureTarget(at: at, in: page, filled: [a.id]))
+        XCTAssertNil(CanvasDrop.pictureTarget(at: CGPoint(x: 450, y: 450), in: page, filled: []))
     }
 
     // MARK: picking

@@ -79,6 +79,7 @@ enum VideoStore {
         lock.lock()
         durations.removeValue(forKey: id)
         generators.removeValue(forKey: id)
+        decoded.remove(id)
         lock.unlock()
         liveLock.lock()
         liveLengths.removeValue(forKey: id)
@@ -108,6 +109,9 @@ enum VideoStore {
         return c
     }()
     private static var generators: [String: AVAssetImageGenerator] = [:]
+    /// The clips a frame has been read from, which a failed read is tried
+    /// again for: one that never decodes pays for one read a frame, not two.
+    private static var decoded = Set<String>()
     private static let lock = NSLock()
 
     /// The clip's length in seconds, or nil when it cannot be read.
@@ -147,15 +151,18 @@ enum VideoStore {
         guard let g = generator(for: id) else { return nil }
         let cm = CMTime(seconds: max(0, time), preferredTimescale: 600)
         var read = try? g.copyCGImage(at: cm, actualTime: nil)
-        if read == nil {
+        if read == nil, decoded.contains(id) {
             // A generator can fail once and then read the same frame — its
             // decoder taken back under memory pressure, on a busy simulator
             // especially — so a fresh one is tried before a blank frame goes
-            // into a preview or an export.
+            // into a preview or an export. A time the fresh one cannot read
+            // either, past the clip's end say, keeps the warmed generator.
             generators[id] = nil
             read = try? generator(for: id)?.copyCGImage(at: cm, actualTime: nil)
+            if read == nil { generators[id] = g }
         }
         guard let cg = read else { return nil }
+        decoded.insert(id)
         let image = UIImage(cgImage: cg)
         frames.setObject(image, forKey: key, cost: cg.bytesPerRow * cg.height)
         return image

@@ -28,7 +28,7 @@ enum TextStyles {
     }
 
     static func save(_ styles: [TextStyle], to url: URL = fileURL) {
-        if let data = try? JSONEncoder().encode(styles) { try? data.write(to: url) }
+        if let data = try? JSONEncoder().encode(styles) { try? data.write(to: url, options: .atomic) }
     }
 
     /// Only what a text style is: the type, its colour and effects. Nothing

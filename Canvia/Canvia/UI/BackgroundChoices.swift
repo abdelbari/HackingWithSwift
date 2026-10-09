@@ -180,11 +180,15 @@ struct BackgroundYourPhotos: View {
         }
     }
 
+    /// Kept among your uploads, as a photo picked in the Add sheet is, so
+    /// the launch sweep never takes it once the background changes.
     private static func stored(_ item: PhotosPickerItem) async -> String? {
         guard let data = try? await item.loadTransferable(type: Data.self) else { return nil }
         return await Task.detached(priority: .userInitiated) { () -> String? in
-            guard let prepared = ImageDownsampler.prepare(data) else { return nil }
-            return MediaStore.store(prepared)
+            guard let prepared = ImageDownsampler.prepare(data),
+                  let src = MediaStore.store(prepared) else { return nil }
+            Uploads.record(source: src)
+            return src
         }.value
     }
 }

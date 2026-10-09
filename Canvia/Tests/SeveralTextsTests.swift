@@ -104,6 +104,36 @@ final class SeveralTextsTests: XCTestCase {
         XCTAssertNil(TypeReadouts.shared([String]()))
     }
 
+    /// A size made fractional by a corner drag reads as its nearest whole
+    /// point, as on the Android twin; one a hair from another is still not
+    /// the same size.
+    func testAFractionalSizeReadsRounded() {
+        XCTAssertEqual(TypeReadouts.fontSize(47.6), "48")
+        XCTAssertEqual(TypeReadouts.fontSize(47.4), "47")
+        let a = Element.text("One", fontSize: 47.6), b = Element.text("Two", fontSize: 48)
+        let s = store([a, b])
+        s.selection = [a.id, b.id]
+        XCTAssertNil(s.sharedText { $0.fontSize ?? 42 })
+    }
+
+    /// The readouts are the texts a change will reach: a locked box is left
+    /// out, unless every one is locked, as on the Android twin.
+    func testReadoutsLeaveOutALockedBox() {
+        var title = Element.text("Title", fontSize: 24), caption = Element.text("Caption", fontSize: 36)
+        title.fontWeight = 700
+        title.locked = true
+        let s = store([title, caption])
+        s.selection = [title.id, caption.id]
+        XCTAssertEqual(s.sharedText { $0.fontSize ?? 42 }, 36)
+        XCTAssertEqual(s.sharedText { TextToggle.bold.isOn($0) }, false)
+
+        var lockedCaption = caption
+        lockedCaption.locked = true
+        let all = store([title, lockedCaption])
+        all.selection = [title.id, lockedCaption.id]
+        XCTAssertNil(all.sharedText { $0.fontSize ?? 42 }, "every one locked, all of them are read")
+    }
+
     func testAlignmentGoesRound() {
         XCTAssertEqual(TypeReadouts.nextAlignment(after: "left"), "center")
         XCTAssertEqual(TypeReadouts.nextAlignment(after: "center"), "right")

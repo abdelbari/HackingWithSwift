@@ -94,6 +94,33 @@ final class ResizeSnapTests: XCTestCase {
         XCTAssertEqual(snap.box.height, 103)
     }
 
+    /// Turned a quarter, a side snaps the edge the turn has put it on, as on
+    /// the Android twin: the right side of a box turned 90° is its bottom on
+    /// the page, and its left side, at the top, stays put. Turned off the
+    /// square, nothing snaps.
+    func testAQuarterTurnedSideSnapsTheEdgeItMovesOnThePage() throws {
+        // 200 × 100 about (200, 150): on the page, 150 to 250 across and 50
+        // to 250 down.
+        let frame = CGRect(x: 100, y: 100, width: 200, height: 100)
+        let snap = try XCTUnwrap(Geometry.snapTurnedResize(frame, rotation: 90, handle: .e, xLines: [], yLines: [253],
+                                                           threshold: 6, proportional: false, minSize: 8))
+        XCTAssertEqual(snap.guideY, 253)
+        XCTAssertNil(snap.guideX)
+        XCTAssertEqual(snap.box.width, 203, accuracy: 1e-9)
+        XCTAssertEqual(snap.box.height, 100, accuracy: 1e-9)
+        XCTAssertEqual(snap.box.midX, 200, accuracy: 1e-9)
+        XCTAssertEqual(snap.box.midY, 151.5, accuracy: 1e-9)
+
+        let up = try XCTUnwrap(Geometry.snapTurnedResize(frame, rotation: -90, handle: .e, xLines: [], yLines: [47],
+                                                         threshold: 6, proportional: false, minSize: 8))
+        XCTAssertEqual(up.guideY, 47, "turned back a quarter, the right side is the top")
+        let half = try XCTUnwrap(Geometry.snapTurnedResize(frame, rotation: 180, handle: .e, xLines: [97], yLines: [],
+                                                           threshold: 6, proportional: false, minSize: 8))
+        XCTAssertEqual(half.box, CGRect(x: 97, y: 100, width: 203, height: 100), "turned half, the right side is the left")
+        XCTAssertNil(Geometry.snapTurnedResize(frame, rotation: 30, handle: .e, xLines: [], yLines: [253],
+                                               threshold: 6, proportional: false, minSize: 8))
+    }
+
     /// The lines are a move's: the page, other elements, the grid.
     func testAResizeSnapsToAnotherElementsEdge() {
         let other = box(500, 0, 100, 100)

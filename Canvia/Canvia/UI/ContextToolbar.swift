@@ -688,7 +688,9 @@ struct ContextToolbar: View {
             toolButton("text.viewfinder", "To text") { store.strokesToText() }
         }
         // Another shape in its place, keeping its size, colours and effects.
-        if DesignStore.swapsShape(el) {
+        // Not for a locked one, which it could not change, as on the Android
+        // twin.
+        if DesignStore.swapsShape(el) && !el.locked {
             toolButton("square.on.circle", "Shape") { activeSheet = .shapes }
         }
         if ContentLibrary.shape(el.shapeId).rectLike == true && el.pathData == nil {
@@ -1338,7 +1340,7 @@ private struct TypeSizeEntry: View {
     init(current: Double?, onSet: @escaping (Double) -> Void) {
         self.current = current
         self.onSet = onSet
-        _draft = State(initialValue: current.map { "\(Int($0))" } ?? "")
+        _draft = State(initialValue: current.map { "\(Int($0.rounded()))" } ?? "")
     }
 
     var body: some View {

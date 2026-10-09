@@ -650,13 +650,18 @@ struct HomeView: View {
             get: { deletingDamaged != nil }, set: { if !$0 { deletingDamaged = nil } }),
                             titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
-                if let entry = deletingDamaged { DesignLibrary.delete(id: entry.id) }
+                // To the trash with its versions, as any design goes, so a
+                // version can still mend it if it is restored.
+                if let entry = deletingDamaged {
+                    DesignLibrary.trash(id: entry.id)
+                    reload()
+                    showTrashed(entry)
+                }
                 deletingDamaged = nil
-                reload()
             }
             Button("Cancel", role: .cancel) { deletingDamaged = nil }
         } message: {
-            Text("It can't be opened, so it can't go to Recently deleted. This can't be undone.")
+            Text("It goes to Recently deleted, where it is kept for 30 days.")
         }
         .alert("No version to restore", isPresented: $restoreFailed) {
             Button("OK", role: .cancel) {}

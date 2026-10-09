@@ -61,6 +61,22 @@ final class VersionHistoryTests: XCTestCase {
         XCTAssertEqual(DesignLibrary.load(version: versions[0])?.title, "title \(limit + 4)")
     }
 
+    /// One cut short, as versions written in place could be, ages out with
+    /// the rest by the time in its name rather than staying for good.
+    func testAVersionThatDoesNotReadAgesOut() throws {
+        XCTAssertTrue(DesignLibrary.snapshot(design, force: true, now: at(1)))
+        let dir = try XCTUnwrap(DesignLibrary.versions(for: design.id).first).url.deletingLastPathComponent()
+        let cutShort = dir.appendingPathComponent(String(format: "%.3f", at(0).timeIntervalSince1970) + ".json")
+        try Data("{\"pages\": [".utf8).write(to: cutShort)
+        let limit = DesignLibrary.versionLimit
+        for i in 2...limit {
+            design.title = "title \(i)"
+            XCTAssertTrue(DesignLibrary.snapshot(design, force: true, now: at(Double(i))))
+        }
+        XCTAssertFalse(FileManager.default.fileExists(atPath: cutShort.path), "a version that does not read was kept for good")
+        XCTAssertEqual(DesignLibrary.versions(for: design.id).count, limit)
+    }
+
     func testRestoreIsOneUndoStepAndKeepsTheId() {
         let store = DesignStore(design: design)
         XCTAssertTrue(DesignLibrary.snapshot(design, now: at(0)))

@@ -133,16 +133,25 @@ enum DesignLibrary {
 
     /// What is in the trash, most recently deleted first. `updatedAt` on
     /// each entry is the deletion time, which is what the list shows.
+    /// A design that no longer reads is listed too, as on the shelf, so it
+    /// can be restored and mended from a version, or purged with the rest.
     static func trashed() -> [RecentDesign] {
         guard let files = try? FileManager.default.contentsOfDirectory(
             at: trashDir, includingPropertiesForKeys: [.contentModificationDateKey]) else { return [] }
         let stamps = thumbnailStamps(trashed: true)
         var result: [RecentDesign] = []
         for url in files where url.pathExtension == "json" {
-            guard let data = try? Data(contentsOf: url),
-                  let design = try? JSONDecoder().decode(Design.self, from: data) else { continue }
             let deleted = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?
                 .contentModificationDate ?? Date()
+            guard let data = try? Data(contentsOf: url),
+                  let design = try? JSONDecoder().decode(Design.self, from: data) else {
+                let id = url.deletingPathExtension().lastPathComponent
+                result.append(RecentDesign(
+                    id: id, title: damagedTitle, width: 0, height: 0, pages: 0,
+                    updatedAt: deleted.timeIntervalSince1970 * 1000,
+                    thumbnailStamp: stamps[id], damaged: true))
+                continue
+            }
             result.append(RecentDesign(
                 id: design.id, title: design.title,
                 width: design.width, height: design.height,
@@ -315,12 +324,26 @@ enum DesignLibrary {
         guard (try? data.write(to: dir.appendingPathComponent("\(name).json"), options: .atomic)) != nil else {
             return false
         }
-        // Oldest out once past the limit.
-        let all = versions(for: design.id)
-        for stale in all.dropFirst(versionLimit) {
-            try? FileManager.default.removeItem(at: stale.url)
+        // Oldest out once past the limit, by the time in each name, as the
+        // Android twin does: a version that no longer reads ages out with
+        // the rest rather than staying for good.
+        for stale in versionFiles(in: dir).dropFirst(versionLimit) {
+            try? FileManager.default.removeItem(at: stale)
         }
         return true
+    }
+
+    /// The version files in a history folder, newest first by the time in
+    /// their names, whether or not they still read.
+    private static func versionFiles(in dir: URL) -> [URL] {
+        let files = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
+        return files.compactMap { url -> (url: URL, stamp: Double)? in
+            guard url.pathExtension == "json",
+                  let stamp = Double(url.deletingPathExtension().lastPathComponent) else { return nil }
+            return (url, stamp)
+        }
+        .sorted { $0.stamp > $1.stamp }
+        .map { $0.url }
     }
 
     /// Newest first.
@@ -365,9 +388,10 @@ enum DesignLibrary {
     /// read a design's old file while the editor saves a photo into its new
     /// one, and take that photo for an orphan.
     ///
-    /// Not at all while any design or version no longer reads: what a
+    /// Not at all while any design, live or trashed, no longer reads: what a
     /// damaged design uses cannot be known, and its photos have to still be
-    /// there when it is restored from a version.
+    /// there when it is restored from a version. A version that no longer
+    /// reads is passed over, as it can never be restored.
     static func pruneUnusedFiles(pasteboard: UIPasteboard = .general) {
         let photos = mediaCandidates()
         let tracks = AudioStore.all()
@@ -593,7 +617,8 @@ enum DesignLibrary {
     /// the main thread. `editing` is the design open in the editor, as it
     /// stands and as undo and redo can bring it back: counted as it is on
     /// screen rather than as last saved, and holding what it held. A design
-    /// or version that does not read may hold it too, so then it is held.
+    /// that does not read may hold it too, so then it is held; a version
+    /// that does not read can never come back, so holds nothing.
     static func use(ofUpload id: String, kind: Uploads.Kind, editing: [Design] = []) -> UploadUse {
         var byID: [String: Design] = [:]
         var unreadable = false
@@ -611,8 +636,7 @@ enum DesignLibrary {
         if let open = editing.first { byID[open.id] = open }
         let count = byID.values.filter { uses($0, upload: id, kind: kind) }.count
         guard count == 0, !unreadable else { return UploadUse(designs: count, held: true) }
-        guard let versions = allVersions() else { return UploadUse(designs: 0, held: true) }
-        let held = (versions + editing).contains { uses($0, upload: id, kind: kind) }
+        let held = (allVersions() + editing).contains { uses($0, upload: id, kind: kind) }
         return UploadUse(designs: 0, held: held)
     }
 
@@ -629,23 +653,27 @@ enum DesignLibrary {
     }
 
     /// Every design, live and trashed, and every kept version of each — or
-    /// nil when any of their files no longer reads, and so what it uses
+    /// nil when a design's file no longer reads, and so what it uses
     /// cannot be known. Each sweep keeps what these use.
     private static func everyDesign() -> [Design]? {
-        guard let designs = allDesigns(), let versions = allVersions() else { return nil }
-        return designs + versions
+        guard let designs = allDesigns() else { return nil }
+        return designs + allVersions()
     }
 
-    /// Every kept version of every design, or nil when one does not read.
-    private static func allVersions() -> [Design]? {
+    /// Every kept version of every design that still reads. One that does
+    /// not can never be restored, so what it used is not kept for it, and
+    /// it ages out of its history as the others do.
+    private static func allVersions() -> [Design] {
         let root = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("history", isDirectory: true)
         guard let dirs = try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil) else { return [] }
         var versions: [Design] = []
         for dir in dirs {
             guard let files = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) else { continue }
-            guard let read = decodeAll(files.filter { $0.pathExtension == "json" }) else { return nil }
-            versions += read
+            versions += files.filter { $0.pathExtension == "json" }.compactMap { url -> Design? in
+                guard let data = try? Data(contentsOf: url) else { return nil }
+                return try? JSONDecoder().decode(Design.self, from: data)
+            }
         }
         return versions
     }
@@ -680,14 +708,16 @@ enum DesignLibrary {
     /// Brings a design whose file no longer reads back from the newest of
     /// its versions that does, under the same id, so its card is the
     /// design again. Its old picture goes with the damaged file, as it may
-    /// show something the version does not. Nil when no version reads, or
-    /// the design could not be written.
+    /// show something the version does not. Edited now, as the Android twin
+    /// stamps it, so it sorts first among the designs. Nil when no version
+    /// reads, or the design could not be written.
     @discardableResult
-    static func restoreLastVersion(of id: String) -> Design? {
+    static func restoreLastVersion(of id: String, now: Date = Date()) -> Design? {
         // Newest first, and only those that read.
         for version in versions(for: id) {
             guard var design = load(version: version) else { continue }
             design.id = id
+            design.updatedAt = now.timeIntervalSince1970 * 1000
             guard save(design) else { return nil }
             try? FileManager.default.removeItem(at: thumbnailURL(for: id))
             return design

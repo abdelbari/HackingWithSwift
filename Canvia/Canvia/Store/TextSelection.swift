@@ -62,10 +62,14 @@ extension DesignStore {
         return chosen
     }
 
-    /// What every selected text reads for `value`, or nil when they differ:
-    /// what the controls show, or "Mixed".
+    /// What every selected text a change will reach reads for `value` — the
+    /// unlocked ones, or all of them when every one is locked — or nil when
+    /// they differ: what the controls show, or "Mixed". As on the Android
+    /// twin.
     func sharedText<T: Equatable>(_ value: (Element) -> T) -> T? {
-        TypeReadouts.shared(selectedElements.filter { $0.type == .text }.map(value))
+        let texts = selectedElements.filter { $0.type == .text }
+        let reached = texts.filter { !$0.locked }
+        return TypeReadouts.shared((reached.isEmpty ? texts : reached).map(value))
     }
 
     /// Bold, italic, underline or capitals on for every selected, unlocked
@@ -79,6 +83,15 @@ extension DesignStore {
             guard el.type == .text else { return }
             toggle.apply(on, to: &el)
         }
+    }
+
+    /// A style put on words from the bar over the keyboard while they are
+    /// typed: a step of its own, between the words typed before it and
+    /// after, so each press is one Undo, as on the Android twin.
+    func styleWhileTyping(_ change: () -> Void) {
+        commit()
+        change()
+        commit()
     }
 
     /// Every selected, unlocked text at one type size, in whole points from

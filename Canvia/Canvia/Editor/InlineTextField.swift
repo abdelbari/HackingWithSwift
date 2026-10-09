@@ -26,6 +26,8 @@ struct InlineTextField: UIViewRepresentable {
     /// Bold, italic or underline for the whole box: its bar's button with
     /// nothing chosen.
     var onToggle: (TextToggle) -> Void = { _ in }
+    /// Runs a style the bar puts on the words as a step of its own.
+    var onStyled: (() -> Void) -> Void = { $0() }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -162,13 +164,16 @@ struct InlineTextField: UIViewRepresentable {
             }
             // Replaced as an edit, so the text's own Undo (⌘Z, a shake) takes
             // the markers back; the caret goes before the letter it was before.
-            if let all = view.textRange(from: view.beginningOfDocument, to: view.endOfDocument) {
-                view.replace(all, withText: result.text)
+            // In the design it is a step of its own, as each press is.
+            parent.onStyled {
+                if let all = view.textRange(from: view.beginningOfDocument, to: view.endOfDocument) {
+                    view.replace(all, withText: result.text)
+                }
+                view.selectedRange = chosen.length > 0
+                    ? result.selection
+                    : NSRange(location: RichText.caret(at: chosen.location, from: words, to: result.text), length: 0)
+                parent.onChange(result.text)
             }
-            view.selectedRange = chosen.length > 0
-                ? result.selection
-                : NSRange(location: RichText.caret(at: chosen.location, from: words, to: result.text), length: 0)
-            parent.onChange(result.text)
             refreshStyles(view)
         }
 
