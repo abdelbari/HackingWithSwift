@@ -1,4 +1,4 @@
-// Every page at once: drag to reorder, select several to duplicate or
+// Every page at once: drag to reorder, select several to duplicate, hide or
 // delete, tap one to go there.
 //
 // The bottom bar shows a strip of thumbnails and moves a page one step at a
@@ -47,6 +47,16 @@ struct PageOrganizerSheet: View {
                     } label: { Label("Go to page", systemImage: "arrow.right.circle") }
                         .disabled(selected.count != 1)
                     Spacer()
+                    // Show when every page picked is hidden; otherwise Hide,
+                    // which hides the rest of them too.
+                    Button {
+                        store.setPagesHidden(selected, hidden: !selectionHidden)
+                        selected = []
+                    } label: {
+                        Label(selectionHidden ? "Show" : "Hide", systemImage: selectionHidden ? "eye" : "eye.slash")
+                    }
+                        .disabled(selected.isEmpty)
+                    Spacer()
                     Button(role: .destructive) {
                         confirmingDelete = true
                     } label: { Label("Delete", systemImage: "trash") }
@@ -65,20 +75,41 @@ struct PageOrganizerSheet: View {
         .presentationDetents([.large])
     }
 
+    /// Whether every page picked is hidden, so the bar offers Show.
+    private var selectionHidden: Bool {
+        let picked = store.design.pages.filter { selected.contains($0.id) }
+        return !picked.isEmpty && picked.allSatisfy { $0.hidden == true }
+    }
+
     private func row(index: Int, page: Page) -> some View {
         let pageSize = store.design.size(for: page)
         let aspect = pageSize.width / max(pageSize.height, 1)
         return HStack(spacing: 14) {
             PageThumbnail(design: store.design, page: page)
                 .frame(width: 72 * min(aspect, 1.8), height: 72)
+                // Faded with the eye struck through when hidden, as in the
+                // pages bar.
+                .opacity(page.hidden == true ? 0.4 : 1)
+                .overlay(alignment: .topLeading) {
+                    if page.hidden == true {
+                        Image(systemName: "eye.slash")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))
+                            .padding(3)
+                    }
+                }
                 .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 6))
                 .overlay(RoundedRectangle(cornerRadius: 6)
                     .stroke(index == store.pageIndex ? Theme.accent : Color(.systemGray4),
                             lineWidth: index == store.pageIndex ? 2 : 1))
             VStack(alignment: .leading, spacing: 3) {
-                Text("Page \(index + 1)")
+                Text(PageTitles.named(index + 1, title: page.title))
                     .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
                 Text(page.elements.count == 1 ? "1 element" : "\(page.elements.count) elements")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -92,17 +123,21 @@ struct PageOrganizerSheet: View {
             Spacer()
         }
         .accessibilityElement(children: .combine)
-        // The whole row, as it reads to the eye: which page, whether it is
-        // the one on screen, how much is on it and its notes. A label of
-        // "Page 3, current" alone replaced the rest.
-        .accessibilityLabel(Self.spokenRow(number: index + 1, current: index == store.pageIndex,
+        // The whole row, as it reads to the eye: which page and its title,
+        // whether it is the one on screen, how much is on it and its notes.
+        // A label of "Page 3, current" alone replaced the rest.
+        .accessibilityLabel(Self.spokenRow(number: index + 1, title: page.title,
+                                           current: index == store.pageIndex, hidden: page.hidden == true,
                                            elements: page.elements.count, notes: page.notes))
     }
 
     /// What VoiceOver says for a page's row, as the Android twin's reads.
-    static func spokenRow(number: Int, current: Bool, elements: Int, notes: String?) -> String {
+    static func spokenRow(number: Int, title: String?, current: Bool, hidden: Bool = false,
+                          elements: Int, notes: String?) -> String {
         var label = "Page \(number)"
+        if let title = title.flatMap(PageTitles.kept) { label += ", " + title }
         if current { label += ", current" }
+        if hidden { label += ", hidden" }
         label += elements == 1 ? ", 1 element" : ", \(elements) elements"
         if let notes, !notes.isEmpty { label += ", " + notes }
         return label

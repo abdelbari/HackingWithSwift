@@ -1384,6 +1384,24 @@ final class DesignStore {
         }
     }
 
+    /// Hide the page on screen from Present and from "All pages" in an
+    /// export, or show it again, as one undo step. It stays where it is, to
+    /// be edited like any other.
+    func setPageHidden(_ hidden: Bool) {
+        applyToPage { $0.hidden = hidden ? true : nil }
+    }
+
+    /// Hide or show several pages in one undo step, as the organizer picks
+    /// them.
+    func setPagesHidden(_ ids: Set<String>, hidden: Bool) {
+        guard design.pages.contains(where: { ids.contains($0.id) }) else { return }
+        apply { d in
+            for i in d.pages.indices where ids.contains(d.pages[i].id) {
+                d.pages[i].hidden = hidden ? true : nil
+            }
+        }
+    }
+
     // MARK: document theme
 
     /// Text at or above this size is a heading and takes the pairing's

@@ -49,8 +49,16 @@ struct PagesBar: View {
                         Label("Paste page after", systemImage: "doc.on.clipboard")
                     }
                     .disabled(!store.hasPageOnClipboard)
+                    // Hiding the only page would leave nothing to present;
+                    // a lone page already hidden can still be shown again.
+                    if store.design.pages.count > 1 || store.page.hidden == true {
+                        Button { store.setPageHidden(store.page.hidden != true) } label: {
+                            Label(store.page.hidden == true ? "Show page" : "Hide page",
+                                  systemImage: store.page.hidden == true ? "eye" : "eye.slash")
+                        }
+                    }
                 } label: { Image(systemName: "plus.square.on.square") }
-                    .accessibilityLabel("Duplicate, copy or paste page")
+                    .accessibilityLabel(pageMenuLabel)
                 // Said as what they do to the page: the symbols alone read
                 // as "Back" and "Forward", which sound like navigation.
                 Button { store.movePage(by: -1) } label: { Image(systemName: "chevron.left") }
@@ -63,7 +71,7 @@ struct PagesBar: View {
                     Image(systemName: (store.page.notes?.isEmpty == false)
                           ? "note.text" : "note")
                 }
-                .accessibilityLabel("Page notes")
+                .accessibilityLabel("Page title and notes")
                 Button(role: .destructive) {
                     // A page can hold an hour's work and the bin is next to
                     // the arrows. Undo covers it, but only if you notice
@@ -100,6 +108,12 @@ struct PagesBar: View {
         }
     }
 
+    /// The page menu as VoiceOver says it: what is in it.
+    private var pageMenuLabel: String {
+        if store.page.hidden == true { return "Duplicate, copy, paste or show page" }
+        return store.design.pages.count > 1 ? "Duplicate, copy, paste or hide page" : "Duplicate, copy or paste page"
+    }
+
     private func pageThumb(index: Int, page: Page) -> some View {
         let pageSize = store.design.size(for: page)
         let aspect = pageSize.width / max(pageSize.height, 1)
@@ -109,14 +123,22 @@ struct PagesBar: View {
             PageThumbnail(design: store.design, page: page)
                 .frame(width: 56 * aspect, height: 56)
                 .clipped()
+                // A hidden page is faded, and its number carries the eye
+                // struck through, as on the Android twin — beside the number
+                // rather than in a corner of its own, which a story-shaped
+                // thumbnail has no room for.
+                .opacity(page.hidden == true ? 0.4 : 1)
                 .overlay(alignment: .topLeading) {
-                    Text("\(index + 1)")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))
-                        .padding(2)
+                    HStack(spacing: 2) {
+                        Text("\(index + 1)")
+                        if page.hidden == true { Image(systemName: "eye.slash") }
+                    }
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
+                    .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))
+                    .padding(2)
                 }
                 .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -135,19 +157,31 @@ struct PagesBar: View {
                 }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Page \(index + 1)\(index == store.pageIndex ? ", current" : "")")
+        .accessibilityLabel(Self.spokenThumb(number: index + 1, title: page.title,
+                                             current: index == store.pageIndex, hidden: page.hidden == true))
+    }
+
+    /// What VoiceOver says for a page's thumbnail: which page and its title,
+    /// whether it is the one on screen, and whether it is hidden.
+    static func spokenThumb(number: Int, title: String?, current: Bool, hidden: Bool) -> String {
+        var label = "Page \(number)"
+        if let title = title.flatMap(PageTitles.kept) { label += ", " + title }
+        if current { label += ", current" }
+        if hidden { label += ", hidden" }
+        return label
     }
 }
 
 /// Notes about a page rather than on it: what to say over this slide, what
-/// the client asked for, which photo still needs replacing. Never rendered,
-/// so they cannot leak into an export.
+/// the client asked for, which photo still needs replacing — and the page's
+/// title. Never rendered, so they cannot leak into an export.
 ///
 /// Typing a note is one Undo, as on the Android twin: the keystrokes change
 /// the page without recording, and the step is closed once — on Done, when
 /// the sheet goes, or before another setting here makes a step of its own.
 /// Each keystroke used to be a step, so Undo took a note back a letter at a
-/// time and pushed everything older out of the history.
+/// time and pushed everything older out of the history. A title typed is one
+/// Undo the same way, and a step apart from the notes.
 private struct PageNotesSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
@@ -155,10 +189,23 @@ private struct PageNotesSheet: View {
     /// that ended where it began.
     @State private var notesBefore: String?
     @State private var typing = false
+    /// The title as typed, spaces and all: the page keeps it trimmed, which
+    /// read back into the field would eat the space before the next word.
+    @State private var titleText = ""
+    @State private var titleBefore: String?
+    @State private var typingTitle = false
 
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    TextField("Title", text: $titleText, prompt: Text("Intro, Agenda, Thank you…"))
+                        .onChange(of: titleText) { typeTitle() }
+                } header: {
+                    Text("Title")
+                } footer: {
+                    Text("Names the page in the page list, Find and Present. Never on the page or in an export.")
+                }
                 Section("Notes") {
                     TextEditor(text: Binding(
                         get: { store.page.notes ?? "" },
@@ -169,13 +216,13 @@ private struct PageNotesSheet: View {
                     let hold = store.page.holdSeconds ?? store.design.motion?.secondsPerPage ?? MotionSettings().secondsPerPage
                     Stepper(value: Binding(
                         get: { hold },
-                        set: { v in finishNotes(); store.applyToPage { $0.holdSeconds = v } }),
+                        set: { v in finishTyping(); store.applyToPage { $0.holdSeconds = v } }),
                             in: MotionSettings.secondsRange, step: 0.5) {
                         Text("Hold \(String(format: "%.1f", hold))s" + (store.page.holdSeconds == nil ? " (document setting)" : ""))
                     }
                     Picker("Transition to the next page", selection: Binding(
                         get: { store.page.transition ?? "default" },
-                        set: { v in finishNotes(); store.applyToPage { $0.transition = v == "default" ? nil : v } })) {
+                        set: { v in finishTyping(); store.applyToPage { $0.transition = v == "default" ? nil : v } })) {
                         Text("Document setting").tag("default")
                         Text("Fade").tag("fade")
                         Text("Cut").tag("cut")
@@ -183,7 +230,7 @@ private struct PageNotesSheet: View {
                     }
                     if store.page.holdSeconds != nil {
                         Button("Use the document's timing") {
-                            finishNotes()
+                            finishTyping()
                             store.applyToPage { $0.holdSeconds = nil }
                         }
                     }
@@ -191,24 +238,67 @@ private struct PageNotesSheet: View {
                     Text("In video and presentation")
                 }
             }
-                .navigationTitle("Page \(store.pageIndex + 1)")
+                .navigationTitle(PageTitles.named(store.pageIndex + 1, title: store.page.title))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") {
-                            finishNotes()
+                            finishTyping()
                             dismiss()
                         }
                     }
                 }
         }
         .presentationDetents([.medium])
-        .onDisappear { finishNotes() }
+        .onAppear { titleText = store.page.title ?? "" }
+        .onDisappear { finishTyping() }
+    }
+
+    /// A keystroke in the title: cut at the cap, and the page given the title
+    /// trimmed, with the step left open. The field showing the page's own
+    /// title, as it does when the sheet opens, is no edit at all.
+    private func typeTitle() {
+        let capped = String(titleText.prefix(PageTitles.maxLength))
+        // Cut back, which comes round here again with the shorter text.
+        guard capped == titleText else { titleText = capped; return }
+        let title = PageTitles.cleaned(capped)
+        guard typingTitle || title != store.page.title else { return }
+        if !typingTitle {
+            // The notes are a step of their own.
+            finishNotes()
+            titleBefore = store.page.title
+            typingTitle = true
+        }
+        store.beginGesture()
+        let index = store.pageIndex
+        guard store.design.pages.indices.contains(index) else { return }
+        store.design.pages[index].title = title
+    }
+
+    /// Close the title's typing as one step, or as none when it ended as it
+    /// began.
+    private func finishTitle() {
+        guard typingTitle else { return }
+        typingTitle = false
+        if store.page.title == titleBefore {
+            store.endGesture()
+        } else {
+            store.commit()
+        }
+    }
+
+    /// Whatever is being typed, closed: before another setting here makes a
+    /// step of its own, and when the sheet goes.
+    private func finishTyping() {
+        finishTitle()
+        finishNotes()
     }
 
     /// A keystroke: the page changes, and the step stays open.
     private func typeNotes(_ text: String) {
         if !typing {
+            // The title is a step of its own.
+            finishTitle()
             notesBefore = store.page.notes
             typing = true
         }

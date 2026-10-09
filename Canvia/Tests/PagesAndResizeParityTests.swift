@@ -69,11 +69,11 @@ final class PagesAndResizeParityTests: XCTestCase {
 
     @MainActor
     func testAPageRowReadsWhole() {
-        XCTAssertEqual(PageOrganizerSheet.spokenRow(number: 3, current: true, elements: 4, notes: "Thank the team"),
+        XCTAssertEqual(PageOrganizerSheet.spokenRow(number: 3, title: nil, current: true, elements: 4, notes: "Thank the team"),
                        "Page 3, current, 4 elements, Thank the team")
-        XCTAssertEqual(PageOrganizerSheet.spokenRow(number: 1, current: false, elements: 1, notes: nil),
+        XCTAssertEqual(PageOrganizerSheet.spokenRow(number: 1, title: nil, current: false, elements: 1, notes: nil),
                        "Page 1, 1 element")
-        XCTAssertEqual(PageOrganizerSheet.spokenRow(number: 2, current: false, elements: 0, notes: ""),
+        XCTAssertEqual(PageOrganizerSheet.spokenRow(number: 2, title: nil, current: false, elements: 0, notes: ""),
                        "Page 2, 0 elements")
     }
 }

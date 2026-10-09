@@ -285,11 +285,24 @@ struct EditorView: View {
                 shortcut("f", [.command], "Find and replace") { activeSheet = .find }
                 shortcut("e", [.command], "Export") { activeSheet = .export }
                 shortcut("k", [.command], "Layers") { activeSheet = .layers }
-                shortcut("p", [.command, .shift], "Present") { presenting = true }
+                shortcut("p", [.command, .shift], "Present") { present() }
                 shortcut("/", [.command], "Help") { activeSheet = .help }
                 shortcut("n", [.command, .shift], "New page") { store.addPage() }
             }
         }
+    }
+
+    /// Whether there is nothing for Present to show.
+    private var everyPageHidden: Bool { store.design.visiblePageIndices.isEmpty }
+
+    /// Present from the keyboard — or, with every page hidden, say why not,
+    /// as the menu item does.
+    private func present() {
+        guard !everyPageHidden else {
+            store.announce(PageVisibility.everyPageHidden, undoable: false)
+            return
+        }
+        presenting = true
     }
 
     /// Whether plain Delete can safely mean "delete the selection": something
@@ -479,7 +492,13 @@ struct EditorView: View {
                     store.finishCrop()
                     store.endTextEdit()
                     presenting = true
-                } label: { Label("Present", systemImage: "play.rectangle") }
+                } label: {
+                    Label("Present", systemImage: "play.rectangle")
+                    // Under the item, why it cannot be chosen.
+                    if everyPageHidden { Text(PageVisibility.everyPageHidden) }
+                }
+                .disabled(everyPageHidden)
+                .accessibilityHint(everyPageHidden ? PageVisibility.everyPageHidden : "")
 
                 Button {
                     if ReadAloud.shared.isSpeaking {

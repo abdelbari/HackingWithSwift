@@ -5,6 +5,7 @@
 // not that. This is: black surround, the page fitted, tap or swipe to move,
 // a tap on a linked element to open its link, a clock, the page's notes for
 // the person holding the phone, and autoplay on each page's own timing.
+// Hidden pages are stepped over, and left out of the count.
 
 import SwiftUI
 
@@ -65,7 +66,10 @@ struct PresentationView: View {
         .statusBarHidden(true)
         .background(keyCommands)
         .onAppear {
-            index = min(max(startPage, 0), design.pages.count - 1)
+            // A hidden page is not shown: Present starts at the next page
+            // that is, or the one before when none after it is.
+            let asked = min(max(startPage, 0), design.pages.count - 1)
+            index = PageVisibility.start(at: asked, in: design.visiblePageIndices) ?? asked
             started = Date()
             UIApplication.shared.isIdleTimerDisabled = true
             pageArrived()
@@ -98,7 +102,7 @@ struct PresentationView: View {
         .scaleEffect(scale)
         .frame(width: pageSize.width * scale, height: pageSize.height * scale)
         .position(x: size.width / 2, y: size.height / 2)
-        .accessibilityLabel("Page \(index + 1) of \(design.pages.count)")
+        .accessibilityLabel(spokenPlace)
         .accessibilityActions {
             // Turning the page without a swipe or a tap on its edge, for
             // VoiceOver and Switch Control — the same turn, transition and
@@ -134,6 +138,21 @@ struct PresentationView: View {
     }
 
     private var hasNotes: Bool { page.notes?.isEmpty == false }
+
+    /// Where the page showing sits among the pages shown, hidden pages not
+    /// counted: "2 / 5" when the second of five pages shown is up.
+    private var place: (number: Int, count: Int) {
+        let visible = design.visiblePageIndices
+        guard let at = visible.firstIndex(of: index) else { return (index + 1, design.pages.count) }
+        return (at + 1, visible.count)
+    }
+
+    /// The page as VoiceOver says it: "Page 2 of 5", and its title.
+    private var spokenPlace: String {
+        var label = "Page \(place.number) of \(place.count)"
+        if let title = page.title.flatMap(PageTitles.kept) { label += ", " + title }
+        return label
+    }
 
     /// The Notes button, as VoiceOver says it.
     static func notesLabel(hasNotes: Bool) -> String {
@@ -274,7 +293,10 @@ struct PresentationView: View {
                 .frame(maxHeight: 160)
                 .background(.black.opacity(0.6))
             }
-            Text("\(index + 1) / \(design.pages.count)")
+            // The page's title beside the count — for the presenter, never
+            // on the page itself.
+            Text(PageTitles.counter(place.number, of: place.count, title: page.title))
+                .lineLimit(1)
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.white.opacity(0.8))
                 .padding(6)
@@ -298,8 +320,8 @@ struct PresentationView: View {
                 key(.leftArrow, "Previous page") { go(-1) }
                 key(.upArrow, "Previous page") { go(-1) }
                 key(.pageUp, "Previous page") { go(-1) }
-                key(.home, "First page") { go(-index) }
-                key(.end, "Last page") { go(design.pages.count - 1 - index) }
+                key(.home, "First page") { turn(to: design.visiblePageIndices.first) }
+                key(.end, "Last page") { turn(to: design.visiblePageIndices.last) }
             }
             key(.escape, "End presentation") { dismiss() }
         }
@@ -318,12 +340,22 @@ struct PresentationView: View {
         return String(format: "%d:%02d", s / 60, s % 60)
     }
 
+    /// One page on, or one back, among the pages shown: a hidden page is
+    /// stepped over.
     private func go(_ delta: Int) {
-        let next = index + delta
-        guard delta != 0, design.pages.indices.contains(next) else { return }
+        let visible = design.visiblePageIndices
+        turn(to: delta > 0 ? PageVisibility.next(after: index, in: visible)
+                           : PageVisibility.previous(before: index, in: visible))
+    }
+
+    /// Turn to page `target`, by index; nowhere when it is nil or the page
+    /// already up.
+    private func turn(to target: Int?) {
+        guard let next = target, next != index, design.pages.indices.contains(next) else { return }
+        let forward = next > index
         // Going on, the page being left decides; going back, the page being
         // returned to, played in reverse.
-        let via = transition(after: delta > 0 ? page : design.pages[next])
+        let via = transition(after: forward ? page : design.pages[next])
         let animation: Animation?
         switch via {
         case "cut":
@@ -333,7 +365,7 @@ struct PresentationView: View {
             // Forward: the next page slides in from the right over this one,
             // which goes once it is covered. Back: this one slides away to
             // the right, showing the earlier page beneath.
-            moving = delta > 0
+            moving = forward
                 ? .asymmetric(insertion: .move(edge: .trailing),
                               removal: .opacity.animation(.linear(duration: 0.01).delay(0.5)))
                 : .asymmetric(insertion: .identity, removal: .move(edge: .trailing))
@@ -352,14 +384,18 @@ struct PresentationView: View {
     }
 
     /// Wait this page's own hold (or the document's), then move on; stop at
-    /// the last page rather than looping back to a title slide.
+    /// the last page shown rather than looping back to a title slide.
     private func scheduleAdvance() {
         autoplayTask?.cancel()
         let hold = page.holdSeconds ?? design.motion?.secondsPerPage ?? MotionSettings().secondsPerPage
         autoplayTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(max(hold, 0.5)))
             guard !Task.isCancelled, autoplay else { return }
-            if index + 1 < design.pages.count { go(1) } else { autoplay = false }
+            if PageVisibility.next(after: index, in: design.visiblePageIndices) != nil {
+                go(1)
+            } else {
+                autoplay = false
+            }
         }
     }
 }
