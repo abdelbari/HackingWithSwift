@@ -1,9 +1,9 @@
 // Favourites: the library items a person reaches for again and again.
 //
-// Any shape, template, photo, sticker or gradient can be starred; starred
-// items lead their tab. A flat set of keys in UserDefaults — "shape:heart",
-// "sticker:🎉" — because a favourite is a pointer to a library item, not a
-// copy of it.
+// Any shape, icon, template, photo, sticker or gradient can be starred;
+// starred items lead their tab. A flat set of keys in UserDefaults —
+// "shape:heart", "sticker:🎉" — because a favourite is a pointer to a library
+// item, not a copy of it.
 
 import Foundation
 

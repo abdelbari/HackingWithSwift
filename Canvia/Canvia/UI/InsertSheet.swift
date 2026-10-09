@@ -1,5 +1,5 @@
-// Insert sheet: templates, shapes, lines, text presets & pairings, photos,
-// stickers, and photo-library uploads.
+// Insert sheet: templates, shapes, lines, icons, text presets & pairings,
+// photos, stickers, and photo-library uploads.
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -26,7 +26,7 @@ struct InsertSheet: View {
     @State private var qrTooLong = false
     @FocusState private var qrFocused: Bool
 
-    private let tabs = ["Templates", "Elements", "Text", "Photos", "Stickers", "Background"]
+    private let tabs = ["Templates", "Elements", "Icons", "Text", "Photos", "Stickers", "Background"]
 
     private var isReplacing: Bool { store.replaceTargetId != nil }
 
@@ -49,6 +49,7 @@ struct InsertSheet: View {
                         switch tab {
                         case "Templates": templatesGrid
                         case "Elements": elementsGrid
+                        case "Icons": iconsGrid
                         case "Text": textList
                         case "Photos": photosGrid
                         case "Stickers": stickersGrid
@@ -57,7 +58,8 @@ struct InsertSheet: View {
                     }
                 }
             }
-            .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always))
+            .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always),
+                        prompt: tab == "Icons" ? Text("Search icons") : nil)
             .navigationTitle(isReplacing ? "Replace image" : "Add to design")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -173,6 +175,7 @@ struct InsertSheet: View {
                                                   everySize: true, matching: search).isEmpty
         case "Elements":
             return !ContentLibrary.shapes.contains { ContentLibrary.shape($0, matches: search) }
+        case "Icons": return IconLibrary.search(search).isEmpty
         case "Photos": return filteredPhotos.isEmpty
         case "Stickers": return filteredStickerGroups.allSatisfy { $0.emoji.isEmpty }
         default: return false
@@ -383,6 +386,56 @@ struct InsertSheet: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(name)
         .accessibilityAddTraits(.isButton)
+    }
+
+    // MARK: icons
+
+    /// A heading and one row a category, as the Android twin lays them out;
+    /// while nothing is searched, starred icons lead in a row of their own.
+    private var iconsGrid: some View {
+        var groups = IconLibrary.grouped(search)
+        let starred = Favorites.ids(of: "icon").compactMap { IconLibrary.icon($0) }
+        if search.trimmingCharacters(in: .whitespaces).isEmpty && !starred.isEmpty {
+            groups.insert(IconGroup(category: "Favourites", icons: starred), at: 0)
+        }
+        return LazyVStack(alignment: .leading, spacing: 8) {
+            ForEach(groups) { group in
+                sectionHeader(group.category)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: 10) {
+                        ForEach(group.icons) { icon in iconTile(icon) }
+                    }
+                }
+            }
+        }
+        .padding()
+    }
+
+    /// An icon drawn from its own path, read by its name, and starred as the
+    /// shapes are.
+    private func iconTile(_ icon: IconDef) -> some View {
+        let starred = Favorites.isFavorite("icon", icon.id)
+        return Button {
+            addIcon(icon)
+        } label: {
+            LibraryShape(definition: icon.shape, cornerRadius: 0)
+                .fill(Color(hex: "#545d6b"))
+                .padding(14)
+                .frame(width: 64, height: 64)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
+                .overlay(alignment: .topTrailing) { if starred { starBadge } }
+        }
+        .accessibilityLabel(starred ? "\(icon.name), favourite" : icon.name)
+        .contextMenu { favoriteButton("icon", icon.id) }
+    }
+
+    /// In the middle of this page — a page may have a size of its own — in
+    /// the brand kit's first colour, or ink that reads on the page, and
+    /// selected: one Undo, as on the Android twin.
+    private func addIcon(_ icon: IconDef) {
+        let fill = IconLibrary.fill(for: store.page, brandColours: BrandKit.load().colors)
+        store.add(IconLibrary.element(icon, pageWidth: store.pageWidth, pageHeight: store.pageHeight, fill: fill))
+        dismiss()
     }
 
     // MARK: text
