@@ -781,9 +781,7 @@ struct CanvasView: View {
         Button("Bring forward") { store.select(el.id); store.reorderSelected(.forward) }
         Button("Send backward") { store.select(el.id); store.reorderSelected(.backward) }
         if ShapeText.carriesWords(el) && !el.locked {
-            Button(el.type == .shape && ShapeText.words(of: el) == nil ? "Add text" : "Edit text") {
-                startTextEdit(el)
-            }
+            Button("Edit text") { startTextEdit(el) }
         }
         if el.type == .image && !el.locked {
             Button("Crop") { store.startCrop(el.id) }
