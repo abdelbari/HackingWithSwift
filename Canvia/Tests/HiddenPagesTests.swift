@@ -130,9 +130,10 @@ final class HiddenPagesTests: XCTestCase {
 
     @MainActor
     func testAHiddenPageSaysSo() {
-        XCTAssertEqual(PagesBar.spokenThumb(number: 2, current: true, hidden: true), "Page 2, current, hidden")
-        XCTAssertEqual(PagesBar.spokenThumb(number: 3, current: false, hidden: false), "Page 3")
-        XCTAssertEqual(PageOrganizerSheet.spokenRow(number: 2, current: false, hidden: true, elements: 1, notes: nil),
+        XCTAssertEqual(PagesBar.spokenThumb(number: 2, title: nil, current: true, hidden: true), "Page 2, current, hidden")
+        XCTAssertEqual(PagesBar.spokenThumb(number: 3, title: nil, current: false, hidden: false), "Page 3")
+        XCTAssertEqual(PageOrganizerSheet.spokenRow(number: 2, title: nil, current: false, hidden: true,
+                                                    elements: 1, notes: nil),
                        "Page 2, hidden, 1 element")
     }
 }

@@ -102,7 +102,7 @@ struct PresentationView: View {
         .scaleEffect(scale)
         .frame(width: pageSize.width * scale, height: pageSize.height * scale)
         .position(x: size.width / 2, y: size.height / 2)
-        .accessibilityLabel("Page \(place.number) of \(place.count)")
+        .accessibilityLabel(spokenPlace)
         .accessibilityActions {
             // Turning the page without a swipe or a tap on its edge, for
             // VoiceOver and Switch Control — the same turn, transition and
@@ -145,6 +145,13 @@ struct PresentationView: View {
         let visible = design.visiblePageIndices
         guard let at = visible.firstIndex(of: index) else { return (index + 1, design.pages.count) }
         return (at + 1, visible.count)
+    }
+
+    /// The page as VoiceOver says it: "Page 2 of 5", and its title.
+    private var spokenPlace: String {
+        var label = "Page \(place.number) of \(place.count)"
+        if let title = page.title.flatMap(PageTitles.kept) { label += ", " + title }
+        return label
     }
 
     /// The Notes button, as VoiceOver says it.
@@ -286,7 +293,10 @@ struct PresentationView: View {
                 .frame(maxHeight: 160)
                 .background(.black.opacity(0.6))
             }
-            Text("\(place.number) / \(place.count)")
+            // The page's title beside the count — for the presenter, never
+            // on the page itself.
+            Text(PageTitles.counter(place.number, of: place.count, title: page.title))
+                .lineLimit(1)
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.white.opacity(0.8))
                 .padding(6)

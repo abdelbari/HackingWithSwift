@@ -157,6 +157,11 @@ struct Page: Codable, Equatable, Identifiable {
     /// any other — only showing it is skipped. Never false: shown is nil, so
     /// the key is written only when true, as `usesMaster` only when false.
     var hidden: Bool?
+    /// The page's own name — "Intro", "Agenda" — for finding it in a long
+    /// deck; nil is untitled. Like the notes, never drawn on the page and
+    /// never in an export. Kept trimmed and at most PageTitles.maxLength
+    /// characters by the sheet that edits it.
+    var title: String?
 
     init(id: String = UID.make("page"), background: Background = .color("#ffffff"),
          elements: [Element] = [], notes: String? = nil) {
@@ -178,11 +183,13 @@ struct Page: Codable, Equatable, Identifiable {
         width = try? c.decode(Double.self, forKey: .width)
         height = try? c.decode(Double.self, forKey: .height)
         hidden = (try? c.decode(Bool.self, forKey: .hidden)) == true ? true : nil
+        title = (try? c.decode(String.self, forKey: .title)).flatMap(PageTitles.kept)
     }
 
     /// As the synthesised encoder wrote it, except that `hidden` is written
-    /// only when true — a page shown reads exactly as it did before pages
-    /// could be hidden, on this phone and the Android twin alike.
+    /// only when true and `title` only when there is one — a page shown and
+    /// untitled reads exactly as it did before either existed, on this phone
+    /// and the Android twin alike.
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)
@@ -195,11 +202,12 @@ struct Page: Codable, Equatable, Identifiable {
         try c.encodeIfPresent(width, forKey: .width)
         try c.encodeIfPresent(height, forKey: .height)
         if hidden == true { try c.encode(true, forKey: .hidden) }
+        if let title = title.flatMap(PageTitles.kept) { try c.encode(title, forKey: .title) }
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, background, elements, notes, holdSeconds, transition, usesMaster, width, height
-        case hidden
+        case hidden, title
     }
 }
 

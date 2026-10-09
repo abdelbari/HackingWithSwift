@@ -64,7 +64,7 @@ struct FindReplaceSheet: View {
                                     Text(match.preview)
                                         .lineLimit(1)
                                         .foregroundStyle(.primary)
-                                    Text("Page \(match.pageIndex + 1)")
+                                    Text(PageTitles.named(match.pageIndex + 1, title: pageTitle(match.pageIndex)))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -99,6 +99,11 @@ struct FindReplaceSheet: View {
 
     private var summary: String {
         Self.summary(needle: needle, matches: matches, replaced: replacedCount)
+    }
+
+    /// The title of page `index`, to name a match's page by.
+    private func pageTitle(_ index: Int) -> String? {
+        store.design.pages.indices.contains(index) ? store.design.pages[index].title : nil
     }
 
     /// "12 found on 3 pages", in the Android twin's words; what was replaced

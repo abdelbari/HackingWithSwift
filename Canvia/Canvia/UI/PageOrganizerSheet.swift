@@ -107,8 +107,9 @@ struct PageOrganizerSheet: View {
                     .stroke(index == store.pageIndex ? Theme.accent : Color(.systemGray4),
                             lineWidth: index == store.pageIndex ? 2 : 1))
             VStack(alignment: .leading, spacing: 3) {
-                Text("Page \(index + 1)")
+                Text(PageTitles.named(index + 1, title: page.title))
                     .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
                 Text(page.elements.count == 1 ? "1 element" : "\(page.elements.count) elements")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -122,18 +123,19 @@ struct PageOrganizerSheet: View {
             Spacer()
         }
         .accessibilityElement(children: .combine)
-        // The whole row, as it reads to the eye: which page, whether it is
-        // the one on screen, how much is on it and its notes. A label of
-        // "Page 3, current" alone replaced the rest.
-        .accessibilityLabel(Self.spokenRow(number: index + 1, current: index == store.pageIndex,
-                                           hidden: page.hidden == true,
+        // The whole row, as it reads to the eye: which page and its title,
+        // whether it is the one on screen, how much is on it and its notes.
+        // A label of "Page 3, current" alone replaced the rest.
+        .accessibilityLabel(Self.spokenRow(number: index + 1, title: page.title,
+                                           current: index == store.pageIndex, hidden: page.hidden == true,
                                            elements: page.elements.count, notes: page.notes))
     }
 
     /// What VoiceOver says for a page's row, as the Android twin's reads.
-    static func spokenRow(number: Int, current: Bool, hidden: Bool = false,
+    static func spokenRow(number: Int, title: String?, current: Bool, hidden: Bool = false,
                           elements: Int, notes: String?) -> String {
         var label = "Page \(number)"
+        if let title = title.flatMap(PageTitles.kept) { label += ", " + title }
         if current { label += ", current" }
         if hidden { label += ", hidden" }
         label += elements == 1 ? ", 1 element" : ", \(elements) elements"
