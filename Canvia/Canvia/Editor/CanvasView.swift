@@ -1198,7 +1198,8 @@ struct CanvasView: View {
                                onChange: { typeInline(id, $0) },
                                onDone: { commitTextEditIfAny() },
                                onToggle: { store.toggleText($0) },
-                               onStyled: { store.styleWhileTyping($0) })
+                               onStyled: { store.styleWhileTyping($0) },
+                               wordStyles: false)
             .frame(width: box.width)
             .frame(width: box.width, height: box.height, alignment: sits)
             .overlay(Rectangle().stroke(Theme.accent, lineWidth: 1 * iz).allowsHitTesting(false))
