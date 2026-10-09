@@ -64,7 +64,7 @@ enum Spans {
     static let maxCount = 100
     /// How far a word's size reaches from the box's.
     static let scaleRange = 0.3...4.0
-    /// What A− and A+ on the typing bar multiply a word's size by.
+    /// What A- and A+ on the typing bar multiply a word's size by.
     static let smaller = 0.8
     static let larger = 1.25
     /// A size this close to the box's own is the box's own.

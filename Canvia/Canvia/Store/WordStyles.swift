@@ -1,6 +1,6 @@
 // Colours and sizes on chosen words, from the bar over the keyboard while a
 // box is typed in: its colour well opens the colour sheet for the words
-// chosen, and A− and A+ set them a step smaller or larger. Each is a step of
+// chosen, and A- and A+ set them a step smaller or larger. Each is a step of
 // its own, between the words typed before it and after, as on the Android
 // twin; and the Text controls take every colour and size off the words at
 // once. The words themselves are in Spans.
@@ -17,7 +17,7 @@ extension DesignStore {
 
     /// What the colour well says on letters filled with a gradient, which
     /// colours on words would not show through.
-    static let gradientWordsNote = "Word colours don't show on gradient text. Give the text a plain colour first."
+    static let gradientWordsNote = "Gradient letters colour every word. Choose a colour for the text to colour words on their own."
 
     /// The colour well: the typing so far kept as its own step, and the
     /// colour sheet asked for the words chosen — or, on gradient letters,
@@ -71,7 +71,7 @@ extension DesignStore {
         hex.lowercased() == el.color?.lowercased() ? nil : hex
     }
 
-    /// A− or A+: the words in `range` of box `id` a step smaller or larger,
+    /// A- or A+: the words in `range` of box `id` a step smaller or larger,
     /// as one step, the box measured again.
     func scaleWords(_ id: String, range: NSRange, by factor: Double) {
         guard range.length > 0 else { return }

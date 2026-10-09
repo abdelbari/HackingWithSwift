@@ -14,7 +14,7 @@
 // first three style the whole box, as its own controls do. A box set in
 // capitals is still typed as its words are kept: the capitals are drawn.
 //
-// Beside them a colour well and A− and A+ colour the words chosen, or set
+// Beside them a colour well and A- and A+ colour the words chosen, or set
 // them a step smaller or larger (see Spans) — only with words chosen — and
 // the field shows the words in those colours and sizes as they are typed.
 
@@ -35,7 +35,7 @@ struct InlineTextField: UIViewRepresentable {
     /// The colour well, for the words chosen: a range of the words as they
     /// read.
     var onWordColour: (NSRange) -> Void = { _ in }
-    /// A− or A+ for the words chosen, and what their size is multiplied by.
+    /// A- or A+ for the words chosen, and what their size is multiplied by.
     var onWordScale: (NSRange, Double) -> Void = { _, _ in }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -95,7 +95,7 @@ struct InlineTextField: UIViewRepresentable {
         private var look = ""
         /// The bar's style buttons, in RichText.Mark's order.
         private var styleItems: [UIBarButtonItem] = []
-        /// The colour well, A− and A+, for the words chosen.
+        /// The colour well, A- and A+, for the words chosen.
         private var wordItems: [UIBarButtonItem] = []
         /// The colours and sizes the words are shown in now, and the words
         /// they were put on.
@@ -147,7 +147,7 @@ struct InlineTextField: UIViewRepresentable {
         }
 
         /// A bar over the keyboard: Bold, Italic, Underline and
-        /// Strikethrough for the words chosen, their colour and A− and A+,
+        /// Strikethrough for the words chosen, their colour and A- and A+,
         /// and Done, the plainest way out.
         func typingBar() -> UIToolbar {
             let bar = UIToolbar(frame: CGRect(x: 0, y: 0, width: 320, height: 44))
@@ -161,13 +161,13 @@ struct InlineTextField: UIViewRepresentable {
             }
             let well = UIBarButtonItem(image: UIImage(systemName: "circle.fill"), style: .plain,
                                        target: self, action: #selector(colourWords))
-            well.accessibilityLabel = "Word colour"
-            let smaller = UIBarButtonItem(title: "A−", style: .plain, target: self, action: #selector(sizeWords(_:)))
+            well.accessibilityLabel = "Colour of the selected words"
+            let smaller = UIBarButtonItem(title: "A-", style: .plain, target: self, action: #selector(sizeWords(_:)))
             smaller.tag = 0
-            smaller.accessibilityLabel = "Smaller words"
+            smaller.accessibilityLabel = "Smaller"
             let larger = UIBarButtonItem(title: "A+", style: .plain, target: self, action: #selector(sizeWords(_:)))
             larger.tag = 1
-            larger.accessibilityLabel = "Larger words"
+            larger.accessibilityLabel = "Larger"
             wordItems = [well, smaller, larger]
             let done = UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(finish))
             bar.items = styleItems + wordItems
@@ -193,7 +193,7 @@ struct InlineTextField: UIViewRepresentable {
             parent.onWordColour(range)
         }
 
-        /// A− or A+: the words chosen a step smaller or larger, as a step of
+        /// A- or A+: the words chosen a step smaller or larger, as a step of
         /// their own; the same words stay chosen.
         @objc private func sizeWords(_ sender: UIBarButtonItem) {
             guard let view, let range = chosenWords(view) else { return }
