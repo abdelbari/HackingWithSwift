@@ -44,11 +44,13 @@ struct ClipSheet: View {
                         .pickerStyle(.segmented)
                         .labelsHidden()
                     }
-                    soundSection(clip)
                     Section {
                         Toggle("Loop", isOn: Binding(
                             get: { clip.loop },
                             set: { on in write { $0.loop = on } }))
+                    }
+                    soundSection(clip)
+                    Section {
                         Button("Fit page to clip") { store.fitPageToClip() }
                             .disabled((length ?? 0) <= ClipPlayback.minLength)
                         Button { store.playPreview() } label: {
@@ -103,8 +105,9 @@ struct ClipSheet: View {
 
     /// The clip's own sound as its page plays: Volume, held here while
     /// dragged and written once on release — VoiceOver's swipes a tenth at a
-    /// time — and Mute. A clip at another speed is heard at no speed for
-    /// now, and says so, as on the Android twin.
+    /// time — and Mute, after Loop with no heading of their own. A clip at
+    /// another speed is heard at no speed for now, and says so, as on the
+    /// Android twin.
     private func soundSection(_ clip: ClipPlayback) -> some View {
         let stored = min(max(clip.volume, 0), 1)
         let percent = Self.percentLabel(draftVolume ?? stored)
@@ -127,14 +130,12 @@ struct ClipSheet: View {
             Toggle("Mute", isOn: Binding(
                 get: { clip.muted },
                 set: { on in write { $0.muted = on } }))
-        } header: {
-            Text("Sound")
         } footer: {
             if clip.speed != 1 { Text(Self.speedSoundNote) }
         }
     }
 
-    /// Said under Sound while the clip plays at another speed.
+    /// Said under Volume and Mute while the clip plays at another speed.
     static let speedSoundNote = "Sound plays at 1× only"
 
     /// A volume as the Clip sheet shows it: "0%" to "100%".
