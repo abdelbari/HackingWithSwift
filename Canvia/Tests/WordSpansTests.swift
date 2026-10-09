@@ -19,72 +19,112 @@ final class WordSpansTests: XCTestCase {
 
     // MARK: the shared test vectors
 
-    /// One row: spans made for `spansText`, the words edited from `old` to
-    /// `new`, and the spans that come out — Spans.remap over Spans.live, as
-    /// every edit runs them. A row whose words do not change is the spans
-    /// tidied (Spans.normalised). The Android twin runs the same rows.
+    /// One row of the table the Android twin runs too, row for row: the
+    /// words before and after, the spans made for the words before, and the
+    /// spans Spans.remap gives after. A row whose words do not change is the
+    /// spans tidied.
     private struct Vector {
         var name: String
-        var spansText: String
         var old: String
         var new: String
         var spans: [TextSpan]
         var expected: [TextSpan]
     }
 
+    // The table's own colours, as the Android twin writes them.
+    private func r(_ start: Int, _ end: Int) -> TextSpan { span(start, end, "#e11d48") }
+    private func b(_ start: Int, _ end: Int) -> TextSpan { span(start, end, "#2563eb") }
+
     private var vectors: [Vector] {
-        let many = String(repeating: "x", count: 300)
-        return [
-            Vector(name: "typing inside a span extends it",
-                   spansText: "big sale today", old: "big sale today", new: "big saale today",
-                   spans: [span(4, 8, red)], expected: [span(4, 9, red)]),
-            Vector(name: "typing at a span's end does not extend it",
-                   spansText: "big sale today", old: "big sale today", new: "big sales today",
-                   spans: [span(4, 8, red)], expected: [span(4, 8, red)]),
-            Vector(name: "typing at a span's start does not extend it",
-                   spansText: "big sale", old: "big sale", new: "big Xsale",
-                   spans: [span(4, 8, red)], expected: [span(5, 9, red)]),
-            Vector(name: "typing before a span shifts it",
-                   spansText: "big sale", old: "big sale", new: "a big sale",
-                   spans: [span(4, 8, red)], expected: [span(6, 10, red)]),
-            Vector(name: "deleting across a span's start clips it",
-                   spansText: "big sale today", old: "big sale today", new: "bile today",
-                   spans: [span(4, 8, red)], expected: [span(2, 4, red)]),
-            Vector(name: "deleting a whole span removes it",
-                   spansText: "big sale today", old: "big sale today", new: "big  today",
-                   spans: [span(4, 8, red)], expected: []),
-            Vector(name: "replacing text across two spans clips both",
-                   spansText: "red blue", old: "red blue", new: "reXue",
-                   spans: [span(0, 3, red), span(4, 8, blue)], expected: [span(0, 2, red), span(3, 5, blue)]),
-            Vector(name: "adjacent identical spans merge",
-                   spansText: "abcdef", old: "abcdef", new: "abcdef",
-                   spans: [span(0, 2, red), span(2, 4, red)], expected: [span(0, 4, red)]),
-            Vector(name: "overlapping input is resolved last-wins",
-                   spansText: "abcdef", old: "abcdef", new: "abcdef",
-                   spans: [span(0, 4, red), span(2, 6, blue)], expected: [span(0, 2, red), span(2, 6, blue)]),
-            Vector(name: "more than 100 spans are truncated",
-                   spansText: many, old: many, new: many,
-                   spans: (0..<150).map { span(2 * $0, 2 * $0 + 1, red) },
-                   expected: (0..<100).map { span(2 * $0, 2 * $0 + 1, red) }),
-            Vector(name: "spans made for other words are ignored",
-                   spansText: "old words", old: "new words", new: "new words!",
-                   spans: [span(0, 3, red)], expected: []),
-            Vector(name: "a size of 1 is none, and sizes keep within 0.3 to 4",
-                   spansText: "abc", old: "abc", new: "abc",
-                   spans: [span(0, 1, scale: 1), span(1, 2, scale: 9), span(2, 3, scale: 0.1)],
-                   expected: [span(1, 2, scale: 4), span(2, 3, scale: 0.3)]),
-            Vector(name: "offsets are UTF-16 units",
-                   spansText: "😀 ok", old: "😀 ok", new: "a😀 ok",
-                   spans: [span(0, 2, red)], expected: [span(1, 3, red)]),
+        [
+            Vector(name: "typing inside a span extends it", old: "red car", new: "reed car",
+                   spans: [r(0, 3)], expected: [r(0, 4)]),
+            Vector(name: "typing at a span's end does not extend it", old: "red car", new: "redx car",
+                   spans: [r(0, 3)], expected: [r(0, 3)]),
+            Vector(name: "typing at a span's start moves it", old: "red car", new: "red xcar",
+                   spans: [b(4, 7)], expected: [b(5, 8)]),
+            Vector(name: "typing before a span moves it", old: "red car", new: "a red car",
+                   spans: [b(4, 7)], expected: [b(6, 9)]),
+            Vector(name: "typing after a span leaves it", old: "red car", new: "red cars",
+                   spans: [r(0, 3)], expected: [r(0, 3)]),
+            Vector(name: "deleting inside a span shrinks it", old: "crimson", new: "crson",
+                   spans: [r(0, 7)], expected: [r(0, 5)]),
+            Vector(name: "deleting across a span's start clips it", old: "red car", new: "rear",
+                   spans: [b(4, 7)], expected: [b(2, 4)]),
+            Vector(name: "deleting across a span's end clips it", old: "red car", new: "rar",
+                   spans: [r(0, 3)], expected: [r(0, 1)]),
+            Vector(name: "deleting a whole span removes it", old: "red car", new: "red ",
+                   spans: [b(4, 7)], expected: []),
+            Vector(name: "replacing words inside a span keeps it", old: "big red sale", new: "big rose sale",
+                   spans: [r(4, 7)], expected: [r(4, 8)]),
+            Vector(name: "a misspelling corrected keeps its span", old: "teh car", new: "the car",
+                   spans: [r(0, 3)], expected: [r(0, 3)]),
+            Vector(name: "words typed over a whole span take it", old: "red car", new: "blue car",
+                   spans: [r(0, 3)], expected: [r(0, 4)]),
+            Vector(name: "replacing text that spans two spans clips both", old: "red blue", new: "reXlue",
+                   spans: [r(0, 3), b(4, 8)], expected: [r(0, 2), b(3, 6)]),
+            Vector(name: "adjacent identical spans merge", old: "redblue", new: "redblue",
+                   spans: [r(0, 3), r(3, 7)], expected: [r(0, 7)]),
+            Vector(name: "overlapping spans: the later wins", old: "abcdef", new: "abcdef",
+                   spans: [r(0, 5), b(2, 4)], expected: [r(0, 2), b(2, 4), r(4, 5)]),
+            Vector(name: "a size and a colour are kept apart", old: "big sale", new: "big sale",
+                   spans: [span(0, 3, scale: 1.25), span(4, 8, "#e11d48", scale: 0.8)],
+                   expected: [span(0, 3, scale: 1.25), span(4, 8, "#e11d48", scale: 0.8)]),
+            Vector(name: "a size of 1, a blank colour and an empty stretch say nothing", old: "abcdef", new: "abcdef",
+                   spans: [span(0, 2, scale: 1), span(2, 3, ""), r(4, 4)], expected: []),
+            Vector(name: "a size is held between 0.3 and 4", old: "abcdef", new: "abcdef",
+                   spans: [span(0, 2, scale: 9), span(2, 4, scale: 0.1)],
+                   expected: [span(0, 2, scale: 4), span(2, 4, scale: 0.3)]),
+            Vector(name: "spans past the end are cut to it", old: "red car", new: "red",
+                   spans: [r(0, 7)], expected: [r(0, 3)]),
         ]
     }
 
     func testTheSharedVectors() {
-        XCTAssertGreaterThanOrEqual(vectors.count, 10)
+        XCTAssertEqual(vectors.count, 19)
         for v in vectors {
-            let live = Spans.live(v.spans, madeFor: v.spansText, plain: v.old)
-            XCTAssertEqual(Spans.remap(v.old, v.new, live), v.expected, v.name)
+            XCTAssertEqual(Spans.remap(v.old, v.new, v.spans), v.expected, v.name)
         }
+    }
+
+    func testMoreThanAHundredSpansKeepTheFirstHundred() {
+        let words = String(repeating: "a", count: 300)
+        let many = (0..<150).map { $0 % 2 == 0 ? r(2 * $0, 2 * $0 + 1) : b(2 * $0, 2 * $0 + 1) }
+        let kept = Spans.remap(words, words, many)
+        XCTAssertEqual(kept.count, Spans.maxCount)
+        XCTAssertEqual(kept.last?.start, 198)
+        XCTAssertEqual(Spans.normalised(many).count, Spans.maxCount)
+    }
+
+    func testACharacterKeptInTwoHalvesIsNeverSplit() {
+        // One face for another: the edit is the whole face, never half of
+        // it, so a coloured face stays coloured and its neighbours as they were.
+        XCTAssertEqual(Spans.remap("a😀bc", "a😃bc", [r(1, 3), b(4, 5)]), [r(1, 3), b(4, 5)])
+        // Typed inside a coloured run of faces, the new face takes the colour.
+        XCTAssertEqual(Spans.remap("😀😀", "😀😃😀", [r(0, 4)]), [r(0, 6)])
+    }
+
+    func testSpansMadeForOtherWordsAreIgnored() {
+        XCTAssertEqual(Spans.live([r(0, 3)], madeFor: "old words", plain: "new words"), [])
+        XCTAssertEqual(Spans.live([r(0, 3)], madeFor: "new words", plain: "new words"), [r(0, 3)])
+    }
+
+    func testAPlusAndAMinusMultiplyTheSizeAndBackAt1ThereIsNone() {
+        let sale = NSRange(location: 4, length: 4)
+        let bigger = Spans.scaling([], range: sale, by: Spans.larger)
+        XCTAssertEqual(bigger, [span(4, 8, scale: 1.25)])
+        let twice = Spans.scaling(bigger, range: sale, by: Spans.larger)
+        XCTAssertEqual(twice, [span(4, 8, scale: 1.5625)])
+        // To four places, so three steps down undo three steps up.
+        let thrice = Spans.scaling(twice, range: sale, by: Spans.larger)
+        XCTAssertEqual(thrice, [span(4, 8, scale: 1.9531)])
+        var back = thrice
+        for _ in 0..<3 { back = Spans.scaling(back, range: sale, by: Spans.smaller) }
+        XCTAssertEqual(back, [])
+        // Held at the ends.
+        var big: [TextSpan] = []
+        for _ in 0..<10 { big = Spans.scaling(big, range: NSRange(location: 0, length: 3), by: Spans.larger) }
+        XCTAssertEqual(big.first?.scale, Spans.scaleRange.upperBound)
     }
 
     // MARK: the file

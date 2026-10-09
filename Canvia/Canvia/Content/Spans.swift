@@ -10,9 +10,10 @@
 // on the wrong letters — and dropped when the design is next saved.
 //
 // Every change to the words moves the spans with them (remap): text typed
-// strictly inside a coloured word takes its colour, text typed at either end
-// does not, and a word deleted takes its colour with it. The Android twin
-// runs the same rules over the same test vectors.
+// strictly inside a coloured word, or over letters all in it, takes its
+// colour, text typed at either end does not, and a word deleted takes its
+// colour with it. The Android twin runs the same rules over the same test
+// vectors.
 
 import Foundation
 import UIKit
@@ -66,6 +67,8 @@ enum Spans {
     /// What A− and A+ on the typing bar multiply a word's size by.
     static let smaller = 0.8
     static let larger = 1.25
+    /// A size this close to the box's own is the box's own.
+    static let scaleTolerance = 1e-9
 
     /// The attribute the drawn words carry their span's colour in, as hex,
     /// so outlines can be gathered by the colour each word is set in.
@@ -80,16 +83,20 @@ enum Spans {
 
     /// The spans tidied: sorted, none overlapping — where two overlap, the
     /// later in the list wins — each with a colour or a size other than the
-    /// box's own, sizes kept within `scaleRange`, neighbours alike joined
-    /// into one, and no more than `maxCount`.
+    /// box's own (a blank colour, or a size of 1, is none), sizes kept
+    /// within `scaleRange`, neighbours alike joined into one, and no more
+    /// than `maxCount`.
     static func normalised(_ spans: [TextSpan]) -> [TextSpan] {
         let tidy = spans.compactMap { span -> TextSpan? in
             var out = span
             out.start = max(0, span.start)
-            if let color = span.color, color.isEmpty { out.color = nil }
+            if let color = span.color {
+                let trimmed = color.trimmingCharacters(in: .whitespacesAndNewlines)
+                out.color = trimmed.isEmpty ? nil : trimmed
+            }
             if let scale = span.scale {
                 let kept = scale.isFinite ? min(max(scale, scaleRange.lowerBound), scaleRange.upperBound) : 1
-                out.scale = kept == 1 ? nil : kept
+                out.scale = abs(kept - 1) <= scaleTolerance ? nil : kept
             }
             guard out.end > out.start, out.color != nil || out.scale != nil else { return nil }
             return out
@@ -111,32 +118,51 @@ enum Spans {
 
     /// The spans moved from `oldPlain` onto `newPlain`, the same words
     /// edited once. What the two share at the start and then at the end is
-    /// kept; the rest is the edit. Spans after it move by the change in
-    /// length, spans across its ends are cut back to it, and a span wholly
-    /// inside what was taken out goes. Text put in strictly inside a span —
-    /// not at either of its ends — takes that span's colour and size.
+    /// kept — never between the halves of a character kept in two — and the
+    /// rest is the edit. A span before it stays and one after it moves by
+    /// the change in length. Text put in strictly inside a span — not at
+    /// either of its ends — takes that span's colour and size, and so does
+    /// text put in over letters that were all in one span, as a misspelling
+    /// corrected or a word typed over. A span the edit overlaps otherwise
+    /// loses what was taken out, and one taken out whole goes.
     static func remap(_ oldPlain: String, _ newPlain: String, _ spans: [TextSpan]) -> [TextSpan] {
         let old = Array(oldPlain.utf16), new = Array(newPlain.utf16)
         guard old != new else { return clipped(normalised(spans), to: new.count) }
+        let shorter = min(old.count, new.count)
         var prefix = 0
-        while prefix < old.count, prefix < new.count, old[prefix] == new[prefix] { prefix += 1 }
+        while prefix < shorter, old[prefix] == new[prefix] { prefix += 1 }
+        if prefix > 0, UTF16.isLeadSurrogate(old[prefix - 1]) { prefix -= 1 }
         var suffix = 0
-        while suffix < old.count - prefix, suffix < new.count - prefix,
-              old[old.count - 1 - suffix] == new[new.count - 1 - suffix] { suffix += 1 }
-        // The edit: old[prefix..<removedEnd] became new[prefix..<insertedEnd].
-        let removedEnd = old.count - suffix
-        let insertedEnd = new.count - suffix
+        while suffix < shorter - prefix, old[old.count - 1 - suffix] == new[new.count - 1 - suffix] { suffix += 1 }
+        if suffix > 0, UTF16.isTrailSurrogate(old[old.count - suffix]) { suffix -= 1 }
+        // The edit: old[from..<to] became new[from..<to + delta].
+        let from = prefix, to = old.count - suffix
         let delta = new.count - old.count
-        let moved = spans.compactMap { span -> TextSpan? in
-            let start = span.start < prefix ? span.start
-                : span.start >= removedEnd ? span.start + delta : insertedEnd
-            let end = span.end <= prefix ? span.end
-                : span.end > removedEnd ? span.end + delta : prefix
-            guard end > start else { return nil }
+        let moved = spans.flatMap { span -> [TextSpan] in
+            let takes = from == to ? span.start < from && span.end > to : span.start <= from && span.end >= to
             var out = span
-            out.start = start
-            out.end = end
-            return out
+            if takes {
+                out.end = span.end + delta
+                return [out]
+            }
+            if span.end <= from { return [span] }
+            if span.start >= to {
+                out.start = span.start + delta
+                out.end = span.end + delta
+                return [out]
+            }
+            var pieces: [TextSpan] = []
+            if span.start < from {
+                out.end = from
+                pieces.append(out)
+            }
+            if span.end > to {
+                var after = span
+                after.start = to + delta
+                after.end = span.end + delta
+                pieces.append(after)
+            }
+            return pieces
         }
         return clipped(normalised(moved), to: new.count)
     }
@@ -177,11 +203,12 @@ enum Spans {
     }
 
     /// The words in `range` a step smaller or larger: each one's size times
-    /// `factor`, to a thousandth, so going back up a step it came down
-    /// returns it to the box's own size, and no size is kept then.
+    /// `factor`, to four places as on the Android twin, so going back down
+    /// the steps it went up returns it to the box's own size, and no size is
+    /// kept then.
     static func scaling(_ spans: [TextSpan], range: NSRange, by factor: Double) -> [TextSpan] {
         restyled(spans, range) { span in
-            span.scale = (((span.scale ?? 1) * factor) * 1000).rounded() / 1000
+            span.scale = (((span.scale ?? 1) * factor) * 10_000).rounded() / 10_000
         }
     }
 
