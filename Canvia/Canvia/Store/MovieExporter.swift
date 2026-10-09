@@ -336,8 +336,9 @@ enum MovieExporter {
 
     /// What came of a video export besides the file.
     struct Outcome: Equatable {
-        /// The design has music, but it could not be put under the picture,
-        /// so the video is silent — said, rather than failing the export.
+        /// The design has music or clip sound, but some of it could not be
+        /// put under the picture, so the video is without it — said, rather
+        /// than failing the export.
         var musicLost = false
     }
 
@@ -345,9 +346,10 @@ enum MovieExporter {
     /// own queue. Cancelling the surrounding task stops the writer at the next
     /// frame, discards the partial file and throws CancellationError.
     ///
-    /// Returns whether the soundtrack was meant to go under the picture and
-    /// could not be mixed in: the picture is kept without it, rather than
-    /// nothing, as the Android twin keeps it, and the caller says so.
+    /// Returns whether sound — the soundtrack, or a clip's own — was meant
+    /// to go under the picture and could not be mixed in: the picture is
+    /// kept without it, rather than nothing, as the Android twin keeps it,
+    /// and the caller says so.
     @MainActor
     @discardableResult
     static func exportMP4(design: Design, settings: Settings = Settings(), to url: URL,
@@ -356,7 +358,8 @@ enum MovieExporter {
         let size = videoSize(for: design, maxEdge: settings.maxEdge)
         var pacer = DesignExporter.Pacer()
         // The pages Present shows: hidden ones are left out of the video,
-        // and so of the length its music is fitted to.
+        // and so of the length its music is fitted to, and their clips out
+        // of its sound.
         let shown = design.visiblePageIndices
         let pages = try await pageImages(design: design, pages: shown, size: size, pacer: &pacer)
         guard !pages.isEmpty else { throw MovieError.nothingToRender }
@@ -456,18 +459,21 @@ enum MovieExporter {
             throw MovieError.writerFailed(writer.error?.localizedDescription ?? "the writer stopped early")
         }
 
-        // The soundtrack goes under the finished picture: muxed into a
-        // sibling file, which then takes the video's place. Music that will
-        // not go in costs the music, not the video: the picture is kept,
-        // silent, and the outcome says so — as on the Android twin.
-        guard let audio = AudioStore.url(for: settings.soundtrack) else { return Outcome() }
+        // The sound goes under the finished picture — each clip's own on its
+        // page, and the music (AudioMix.plan) — muxed into a sibling file,
+        // which then takes the video's place. Sound that will not go in
+        // costs the sound, not the video: the picture is kept, with what
+        // would go in or silent, and the outcome says so — as on the
+        // Android twin.
+        let mix = await soundMix(design: design, pages: shown, timings: timings, settings: settings)
+        guard !mix.segments.isEmpty else { return Outcome(musicLost: mix.lost) }
         let withSound = url.deletingPathExtension().appendingPathExtension("sound.mp4")
         do {
-            try await Soundtrack.mux(video: url, audio: audio, volume: settings.soundVolume, to: withSound)
+            let whole = try await Soundtrack.mux(video: url, segments: mix.segments, sources: mix.sources, to: withSound)
             try Task.checkCancellation()
             try FileManager.default.removeItem(at: url)
             try FileManager.default.moveItem(at: withSound, to: url)
-            return Outcome()
+            return Outcome(musicLost: mix.lost || !whole)
         } catch {
             try? FileManager.default.removeItem(at: withSound)
             if error is CancellationError || Task.isCancelled {
@@ -478,6 +484,39 @@ enum MovieExporter {
             guard FileManager.default.fileExists(atPath: url.path) else { throw error }
             return Outcome(musicLost: true)
         }
+    }
+
+    /// What is heard under the video of `pages` (the design's indices, as
+    /// they play, timed by `timings`): the plan, the file each of its
+    /// sources is read from, and whether music there was could not be read.
+    /// A clip filmed without sound, or not on this phone, is silent, and
+    /// music this phone does not have — chosen on another — is no music.
+    @MainActor
+    static func soundMix(design: Design, pages: [Int], timings: [Timing],
+                         settings: Settings) async -> (segments: [AudioMix.Segment], sources: [String: URL], lost: Bool) {
+        let clipsByPage = pages.map { AudioMix.clips(design: design, page: design.pages[$0]) }
+        var sources: [String: URL] = [:]
+        var durations: [String: Double] = [:]
+        var lost = false
+        var seen = Set<String>()
+        for clip in clipsByPage.joined() where seen.insert(clip.source).inserted {
+            guard let file = VideoStore.url(for: clip.source),
+                  let seconds = await VideoStore.soundLength(of: clip.source) else { continue }
+            durations[clip.source] = seconds
+            sources[clip.source] = file
+        }
+        var music: AudioMix.Music?
+        if let id = settings.soundtrack, let file = AudioStore.url(for: id) {
+            if let seconds = await AudioStore.duration(of: id), seconds > 0 {
+                music = AudioMix.Music(source: id, duration: seconds, volume: settings.soundVolume)
+                sources[id] = file
+            } else {
+                lost = true
+            }
+        }
+        let segments = AudioMix.plan(timeline: timings, fps: settings.fps, clipsByPage: clipsByPage,
+                                     clipDurations: durations, soundtrack: music)
+        return (segments, sources, lost)
     }
 
     /// Mutable state shared with the writer's callback, which is invoked
