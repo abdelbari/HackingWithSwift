@@ -372,6 +372,20 @@ final class WordSpansTests: XCTestCase {
         XCTAssertEqual(FontLibrary.measuredHeight(for: el), plain, accuracy: 0.5, "every line still 36 apart")
     }
 
+    func testADropCapKeepsTheWordsColoursAndSizes() throws {
+        var el = Element.text("Sale on now", fontSize: 40, w: 400)
+        el.dropCap = true
+        el.setSpans([span(0, 4, red), span(8, 11, blue, scale: 2)])
+        let layout = try XCTUnwrap(FontLibrary.dropCapLayout(for: el))
+        let text = FontLibrary.dropCapText(for: el, layout)
+        XCTAssertEqual(text.body.string, "ale on now", "past the cap's letter")
+        XCTAssertEqual(text.capColour?.hexString, red, "the cap in the colour of the word it starts")
+        XCTAssertEqual((text.body.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? UIColor)?.hexString, red)
+        let font = try XCTUnwrap(text.body.attribute(.font, at: 7, effectiveRange: nil) as? UIFont)
+        XCTAssertEqual(font.pointSize, 80, accuracy: 0.01)
+        XCTAssertEqual((text.body.attribute(.foregroundColor, at: 7, effectiveRange: nil) as? UIColor)?.hexString, blue)
+    }
+
     func testAPageTokensColourStaysOnItsNumber() {
         var el = Element.text("Page {page} of {pages}")
         el.setSpans([span(5, 11, red)])

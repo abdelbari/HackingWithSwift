@@ -366,6 +366,10 @@ struct TextElementView: View {
         capAttrs[.font] = FontLibrary.uiFont(family: el.fontFamily, size: layout.capFontSize,
                                              weight: el.fontWeight ?? 400, italic: el.italic ?? false)
         capAttrs[.paragraphStyle] = nil
+        // The cap in the colour of the word it starts; the body with every
+        // word's own colour and size, as the Android twin draws them.
+        let text = FontLibrary.dropCapText(for: el, layout)
+        if let colour = text.capColour { capAttrs[.foregroundColor] = colour }
         let cap = NSAttributedString(string: layout.letter, attributes: capAttrs)
         let capSize = cap.size()
         // Sit the cap's baseline on the third line's baseline.
@@ -373,9 +377,8 @@ struct TextElementView: View {
         let capTop = rect.minY + line * FontLibrary.dropCapLines - capSize.height
         cap.draw(at: CGPoint(x: rect.minX, y: capTop))
 
-        guard !layout.rest.isEmpty else { return }
-        let body = NSAttributedString(string: layout.rest, attributes: attrs)
-        let framesetter = CTFramesetterCreateWithAttributedString(body)
+        guard text.body.length > 0 else { return }
+        let framesetter = CTFramesetterCreateWithAttributedString(text.body)
         // CoreText frames in a y-up space: build the path in the flipped
         // frame and draw with the context flipped to match.
         let frame = CGMutablePath()
