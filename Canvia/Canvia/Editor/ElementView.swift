@@ -195,6 +195,15 @@ struct ShapeElementView: View {
             if let stroke = element.stroke, let sw = element.strokeWidth, sw > 0 {
                 shape.stroke(Color(hex: stroke), style: StrokeStyle(lineWidth: sw, lineCap: .round, lineJoin: .round))
             }
+            // Its words, over the fill and the border, set in its text-safe
+            // box as a text box sets them. Turned back where the shape is
+            // flipped, so they read the right way round wherever it points.
+            if ShapeText.words(of: element) != nil {
+                let box = ShapeText.box(for: element)
+                TextElementView(element: ShapeText.textElement(for: element))
+                    .scaleEffect(x: element.flipH ? -1 : 1, y: element.flipV ? -1 : 1)
+                    .position(x: box.midX, y: box.midY)
+            }
         }
     }
 }
