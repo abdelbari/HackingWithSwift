@@ -25,7 +25,8 @@ import CoreGraphics
 /// the conformance must go.
 ///
 /// The one exception is a clip played live, which shows whatever frame has
-/// been decoded so far (`VideoStore.peek`). ImageElementView reads the
+/// been decoded so far (`VideoStore.peek`), at a moment timed by the
+/// clip's length once the live path has read it. ImageElementView reads the
 /// store's frame version itself, so it is that view, not this one, that
 /// SwiftUI draws again when a frame lands, and this view's equality still
 /// holds.
@@ -33,6 +34,7 @@ struct ElementView: View {
     let element: Element
     @Environment(\.animationTime) private var animationTime
     @Environment(\.pageNumber) private var pageNumber
+    @Environment(\.liveVideo) private var liveVideo
 
     /// The element with "{page}" and "{pages}" filled in, where the page is
     /// known: what a reveal counts and cuts, so the words that appear are the
@@ -72,9 +74,18 @@ struct ElementView: View {
             let crop = drift.crop(from: el, fraction: clock.hold > 0 ? clock.time / clock.hold : 0)
             el.cropScale = crop.scale; el.cropX = crop.x; el.cropY = crop.y
         }
-        // A clip shows the frame at this moment while the page plays.
-        if let clock = animationTime, let src = el.src, let parts = VideoStore.split(src), parts.time == nil {
-            el.src = VideoStore.src(parts.id, at: clock.time)
+        // A clip shows the frame its trim, speed and loop put at this moment
+        // while the page plays, timed by the length already known when it
+        // plays live and by the length read there and then in a video; and
+        // at rest, the frame at its start.
+        if let src = el.src, let parts = VideoStore.split(src), parts.time == nil {
+            let clip = el.clip ?? ClipPlayback()
+            if let clock = animationTime {
+                let length = liveVideo ? VideoStore.knownLength(parts.id) : VideoStore.duration(of: parts.id)
+                el.src = VideoStore.src(parts.id, at: VideoStore.clipTime(clock.time, clip: clip, duration: length))
+            } else {
+                el.src = VideoStore.atRest(el)
+            }
         }
         return el
     }

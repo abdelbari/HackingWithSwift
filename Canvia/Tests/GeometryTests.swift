@@ -186,6 +186,7 @@ final class ElementEqualityTests: XCTestCase {
             ("fitText", { $0.fitText = true }),
             ("paragraphSpacing", { $0.paragraphSpacing = 0.5 }),
             ("cropFit", { $0.cropFit = true }),
+            ("clip", { $0.clip = ClipPlayback(start: 2) }),
             ("textFill", { $0.textFill = Paint(kind: "gradient", color: nil, angle: 90,
                                                 stops: [GradientStop(offset: 0, color: "#ff0000"),
                                                         GradientStop(offset: 1, color: "#0000ff")]) }),

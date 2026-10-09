@@ -235,6 +235,9 @@ struct MotionSettings: Codable, Equatable {
 
     static let fpsChoices = [24, 30, 60]
     static let secondsRange = 0.5...10.0
+    /// A page's own hold can be longer than the document's, to play a clip
+    /// on it through.
+    static let pageHoldRange = 0.5...60.0
 }
 
 struct Design: Codable, Equatable, Identifiable {

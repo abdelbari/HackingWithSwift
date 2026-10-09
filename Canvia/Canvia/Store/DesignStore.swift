@@ -1540,6 +1540,23 @@ final class DesignStore {
         }
     }
 
+    /// The selected clip's trim, speed and loop, as one undo step. A clip
+    /// at all the defaults keeps none, so its file has no `clip` key.
+    func setClip(_ clip: ClipPlayback) {
+        updateSelected { el in
+            guard VideoStore.isVideo(el.src) else { return }
+            el.clip = clip.isDefault ? nil : clip
+        }
+    }
+
+    /// The page's own hold set to play the selected clip through once, as
+    /// one undo step; nothing for a clip whose length cannot be read.
+    func fitPageToClip() {
+        guard let el = singleSelection, let id = el.src.flatMap({ VideoStore.split($0)?.id }),
+              let length = VideoStore.duration(of: id), length > 0.01 else { return }
+        applyToPage { $0.holdSeconds = VideoStore.fitHold(el.clip ?? ClipPlayback(), duration: length) }
+    }
+
     func stopPreview() {
         previewTask?.cancel()
         previewTask = nil

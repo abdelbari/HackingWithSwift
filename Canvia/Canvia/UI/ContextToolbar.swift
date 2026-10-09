@@ -801,8 +801,9 @@ struct ContextToolbar: View {
         // a tap away in crop mode's bar.
         toolButton("crop", "Crop") { store.startCrop(el.id) }
         if VideoStore.isVideo(el.src) {
-            // A clip: play the page to see it move; stills come from its poster.
-            toolButton("play.circle", "Play") { store.playPreview() }
+            // A clip: its trim, speed and loop, and Play to see it move;
+            // stills come from the frame at its start.
+            toolButton("film", "Clip") { activeSheet = .clip }
         } else if let payload = CodeGenerator.payload(from: el.src ?? "") {
             // A code's words, changed where it sits — erasing part of a code
             // only stops it scanning, so that is not offered.

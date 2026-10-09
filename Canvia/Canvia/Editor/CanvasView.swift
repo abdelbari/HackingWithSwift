@@ -324,11 +324,13 @@ struct CanvasView: View {
     /// The whole picture, faint, where it lies behind and beyond the frame.
     private func cropPicture(_ photo: Element, _ crop: CropSession) -> some View {
         let drawn = Crop.drawnPicture(photo, image: crop.imageSize)
+        // A trimmed clip shows the frame at its start, as the frame does.
+        let src = VideoStore.atRest(photo)
         return ZStack {
-            if let ui = PhotoLibrary.resolve(photo.src) {
+            if let ui = PhotoLibrary.resolve(src) {
                 let shown = ImageFilterEngine.apply(ImageFilterPreset.from(photo.filter),
                                                     adjustments: photo.adjustments ?? .neutral,
-                                                    duotone: photo.duotone, to: ui, cacheKey: photo.src ?? "")
+                                                    duotone: photo.duotone, to: ui, cacheKey: src ?? "")
                 Image(uiImage: shown)
                     .resizable()
                     .frame(width: drawn.width, height: drawn.height)
