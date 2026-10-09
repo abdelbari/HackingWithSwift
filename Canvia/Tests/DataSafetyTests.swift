@@ -151,7 +151,10 @@ final class DataSafetyTests: XCTestCase {
         XCTAssertFalse(exists(orphan), "the sweep never came back")
     }
 
-    func testNothingIsSweptWhileAVersionIsDamaged() throws {
+    /// A version that no longer reads can never be restored, so it keeps
+    /// nothing for itself: the sweep goes on, and the version is left to age
+    /// out of its history with the others.
+    func testAVersionThatDoesNotReadDoesNotStopTheSweep() throws {
         let board = UIPasteboard.withUniqueName()
         defer { UIPasteboard.remove(withName: board.name) }
         let orphan = try orphanPhoto()
@@ -161,9 +164,7 @@ final class DataSafetyTests: XCTestCase {
         let version = try XCTUnwrap(DesignLibrary.versions(for: d.id).first)
         try Data("{\"pages\": [".utf8).write(to: version.url)
         DesignLibrary.pruneUnusedMedia(pasteboard: board)
-        XCTAssertTrue(exists(orphan), "swept while a version could not be read")
-        DesignLibrary.delete(id: d.id)
-        DesignLibrary.pruneUnusedMedia(pasteboard: board)
-        XCTAssertFalse(exists(orphan))
+        XCTAssertFalse(exists(orphan), "a version that cannot be read stopped the sweep")
+        XCTAssertTrue(exists(version.url), "the sweep deleted a version")
     }
 }
