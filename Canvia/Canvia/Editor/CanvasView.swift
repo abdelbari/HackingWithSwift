@@ -1003,11 +1003,16 @@ struct CanvasView: View {
         // not on the line, and no guide says it is.
         let target = snapped(trimmed.frame, original: original, handle: handle, proportional: false, minSize: 8)
         if target != trimmed.frame {
-            let u = handle.unit
-            let dx = u.x == 0 ? target.minX - trimmed.frame.minX : (u.x == 1 ? target.maxX - trimmed.frame.maxX : 0)
-            let dy = u.y == 0 ? target.minY - trimmed.frame.minY : (u.y == 1 ? target.maxY - trimmed.frame.maxY : 0)
+            // How far the snap moves the handle, on the page, so a photo
+            // turned a quarter is taken on along the way it now faces.
+            var aimed = trimmed
+            aimed.x = target.minX
+            aimed.y = target.minY
+            aimed.w = target.width
+            aimed.h = target.height
+            let to = Geometry.handlePoint(aimed, handle), from = Geometry.handlePoint(trimmed, handle)
             trimmed = Crop.trimmed(original, image: image, handle: handle,
-                                   to: CGPoint(x: location.x + dx, y: location.y + dy), minSize: 8)
+                                   to: CGPoint(x: location.x + to.x - from.x, y: location.y + to.y - from.y), minSize: 8)
             if !Self.same(trimmed.frame, target) { showGuides(Geometry.ResizeSnap(box: target)) }
         }
         store.updateSelectedTransient { el in
@@ -1019,15 +1024,16 @@ struct CanvasView: View {
 
     /// A resized box with its moving edges snapped to the lines a move snaps
     /// to (Geometry.snapResize), at a move's reach, and the guides shown as a
-    /// move shows them. An element turned off the square is left as it is:
-    /// its edges do not run along the lines.
+    /// move shows them. An element turned a quarter, a half or three
+    /// quarters snaps the edges the turn has put square to the page, as on
+    /// the Android twin; one turned off the square is left as it is: its
+    /// edges do not run along the lines.
     private func snapped(_ box: CGRect, original: Element, handle: Handle,
                          proportional: Bool, minSize: Double) -> CGRect {
-        var snap = Geometry.ResizeSnap(box: box)
-        if original.rotation.truncatingRemainder(dividingBy: 360) == 0 {
-            snap = Geometry.snapResize(box, handle: handle, xLines: gesture.snapX, yLines: gesture.snapY,
-                                       threshold: 6 / store.zoom, proportional: proportional, minSize: minSize)
-        }
+        let snap = Geometry.snapTurnedResize(box, rotation: original.rotation, handle: handle,
+                                             xLines: gesture.snapX, yLines: gesture.snapY,
+                                             threshold: 6 / store.zoom, proportional: proportional,
+                                             minSize: minSize) ?? Geometry.ResizeSnap(box: box)
         showGuides(snap)
         return snap.box
     }
