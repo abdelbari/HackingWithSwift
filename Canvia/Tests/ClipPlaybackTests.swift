@@ -48,6 +48,17 @@ final class ClipPlaybackTests: XCTestCase {
         XCTAssertEqual(VideoStore.stampedTime(3, duration: 0), 0)
     }
 
+    /// At rest a clip trimmed to start later shows the frame at its start;
+    /// an untrimmed clip, a stamped one and a photo are left as they are.
+    func testAtRestShowsTheTrimmedStart() throws {
+        XCTAssertEqual(VideoStore.atRest(try clipElement("{\"start\": 2}")), "video:vid_1@2.00")
+        XCTAssertEqual(VideoStore.atRest(try clipElement(nil)), "video:vid_1")
+        var stamped = try clipElement("{\"start\": 2}")
+        stamped.src = "video:vid_1@3.00"
+        XCTAssertEqual(VideoStore.atRest(stamped), "video:vid_1@3.00")
+        XCTAssertEqual(VideoStore.atRest(Element.image("photo_1")), "photo_1")
+    }
+
     func testTrimLabels() {
         XCTAssertEqual(VideoStore.rangeLabel(2, 6), "0:02.0 – 0:06.0")
         XCTAssertEqual(VideoStore.timeLabel(65.25), "1:05.3")

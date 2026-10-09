@@ -572,7 +572,7 @@ struct FiltersSheet: View {
 
     private func filterPreview(_ preset: ImageFilterPreset) -> some View {
         Group {
-            if let src = store.singleSelection?.src,
+            if let src = store.singleSelection.flatMap(VideoStore.atRest),
                let full = PhotoLibrary.resolve(src) {
                 // Filter a small copy: ten full-size variants of a 1200x900
                 // artwork would be ~43 MB for a row of 76pt thumbnails.
@@ -1009,7 +1009,7 @@ struct LayersSheet: View {
                 .fill(Color(hex: el.fill?.primaryColor ?? "#888888"))
                 .frame(width: 28, height: 28)
         case .image:
-            if let ui = PhotoLibrary.resolve(el.src) {
+            if let ui = PhotoLibrary.resolve(VideoStore.atRest(el)) {
                 Image(uiImage: ui).resizable().aspectRatio(contentMode: .fill)
                     .frame(width: 28, height: 28).clipShape(RoundedRectangle(cornerRadius: 6))
             } else {

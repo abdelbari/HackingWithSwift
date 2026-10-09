@@ -46,6 +46,14 @@ enum VideoStore {
         return prefix + id + "@" + String(format: "%.2f", time)
     }
 
+    /// The source an element shows at rest: a clip trimmed to start later
+    /// shows the frame at its start; any other source is as it is.
+    static func atRest(_ el: Element) -> String? {
+        guard let raw = el.src, let parts = split(raw), parts.time == nil,
+              let start = el.clip?.start, start > 0 else { return el.src }
+        return src(parts.id, at: start)
+    }
+
     /// Where `t` seconds into the page falls in a clip `duration` long,
     /// looping; a clip with no length shows its start.
     static func loopedTime(_ t: Double, duration: Double) -> Double {

@@ -83,8 +83,8 @@ struct ElementView: View {
             if let clock = animationTime {
                 let length = liveVideo ? VideoStore.knownLength(parts.id) : VideoStore.duration(of: parts.id)
                 el.src = VideoStore.src(parts.id, at: VideoStore.clipTime(clock.time, clip: clip, duration: length))
-            } else if clip.start > 0 {
-                el.src = VideoStore.src(parts.id, at: clip.start)
+            } else {
+                el.src = VideoStore.atRest(el)
             }
         }
         return el
