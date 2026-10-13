@@ -250,4 +250,23 @@ final class BrandKitsTests: XCTestCase {
         XCTAssertTrue(refused, "not a kit")
         XCTAssertEqual(kits.kits.count, 2)
     }
+
+    /// The row the Android twin's kit-file test checks: a photo or clip logo
+    /// the file does not carry is left out, a library picture is kept as
+    /// it is.
+    func testAKitFileKeepsALibraryLogoAndDropsOneNotCarried() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var kit = BrandKit(id: "kit-9", name: "My brand")
+        kit.logos = ["media:img-1", "video:vid-1", "asset:mesh-ocean", "media:img-gone"]
+        let contents = BrandKitFile.Contents(kit: kit, media: ["img-1": DesignPackage.Media(ext: "png", data: Data([1, 2, 3, 4]))])
+        XCTAssertEqual(BrandKitFile.carried(contents), ["media:img-1", "asset:mesh-ocean"])
+
+        var kits = BrandKits.fresh
+        let arrived = try BrandKitFile.import(try JSONEncoder().encode(contents), into: &kits, mediaDirectory: dir)
+        XCTAssertEqual(arrived.logos.count, 2)
+        XCTAssertTrue(arrived.logos[0].hasPrefix("media:") && arrived.logos[0] != "media:img-1", arrived.logos[0])
+        XCTAssertEqual(arrived.logos[1], "asset:mesh-ocean")
+    }
 }

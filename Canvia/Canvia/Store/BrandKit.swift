@@ -468,6 +468,18 @@ enum BrandKitFile {
         var errorDescription: String? { "This file is not a Canvia brand kit." }
     }
 
+    /// The file's logos that arrive: a photo or clip logo whose file it
+    /// does not carry is left out, and any other — a library picture — is
+    /// kept as it is, as the Android twin's BrandKitPackage.relinked keeps
+    /// them.
+    static func carried(_ contents: Contents) -> [String] {
+        contents.kit.logos.filter { src in
+            if src.hasPrefix("media:") { return contents.media[String(src.dropFirst(6))] != nil }
+            if let clip = VideoStore.split(src) { return contents.videos?[clip.id] != nil }
+            return true
+        }
+    }
+
     /// The kit inside, with its logos stored under fresh ids, a fresh id of
     /// its own and a name no kit here has ("My brand 2"), added to `kits`
     /// and made active.
@@ -476,7 +488,7 @@ enum BrandKitFile {
                          mediaDirectory: URL = MediaStore.directory) throws -> BrandKit {
         guard let contents = try? JSONDecoder().decode(Contents.self, from: data),
               contents.format == format else { throw KitFileError.notAKit }
-        let package = DesignPackage.Package(design: carrier(contents.kit.logos), media: contents.media,
+        let package = DesignPackage.Package(design: carrier(carried(contents)), media: contents.media,
                                             videos: contents.videos)
         let stored = try DesignPackage.import(DesignPackage.encode(package), mediaDirectory: mediaDirectory,
                                               normalize: false)
