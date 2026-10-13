@@ -260,6 +260,7 @@ final class DesignTypesAndUnitsTests: XCTestCase {
     func testAPictureSaysTheDesignsDPI() throws {
         let a4 = try designType("a4").makeDesign()
         XCTAssertEqual(DesignExporter.imageDPI(design: a4, page: a4.pages[0], requested: 1), 300)
+        XCTAssertEqual(DesignExporter.imageDPI(design: a4, page: a4.pages[0], requested: 0.5), 150)
         let post = Design(title: "p", width: 1080, height: 1080)
         XCTAssertNil(DesignExporter.imageDPI(design: post, page: post.pages[0], requested: 2))
     }

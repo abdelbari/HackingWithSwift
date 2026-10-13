@@ -130,6 +130,9 @@ enum CopyResize {
         "Making copy \(n) of \(total)…"
     }
 
+    /// When none could be saved — the disk full, say — as Android says it.
+    static let failedText = "Couldn't make the copies"
+
     /// Afterwards: "Made 1 resized copy", "Made 3 resized copies".
     static func doneText(count: Int) -> String {
         count == 1 ? "Made 1 resized copy" : "Made \(count) resized copies"

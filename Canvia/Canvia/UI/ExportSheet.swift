@@ -68,12 +68,13 @@ struct ExportSheet: View {
     /// The page choice as the exporter takes it. A one-page design has no
     /// choice to show, and is that page, as before.
     private var pageExportRange: DesignExporter.PageRange {
-        if store.design.pages.count == 1 { return .current }
+        let picked: DesignExporter.PageRange
         switch pageRange {
-        case .all: return .all
-        case .current: return .current
-        case .chosen: return .chosen(chosenIds)
+        case .all: picked = .all
+        case .current: picked = .current
+        case .chosen: picked = .chosen(chosenIds)
         }
+        return ExportChoices.exportRange(picked, in: store.design)
     }
 
     /// Choosing "Choose…" opens the pages to tick; set from a remembered
@@ -643,7 +644,7 @@ struct ExportSheet: View {
                 try await exportGIF()
             }
             Picker("Video size", selection: $resolution) {
-                ForEach(MovieExporter.resolutions) { Text($0.rawValue).tag($0) }
+                ForEach(MovieExporter.resolutions(for: store.design)) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
             DisclosureGroup("Motion settings") { motionSettings }

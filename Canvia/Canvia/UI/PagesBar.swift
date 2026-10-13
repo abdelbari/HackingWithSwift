@@ -371,7 +371,7 @@ struct PageThumbnail: View {
                 Color.white
             }
         }
-        .task(id: page) {
+        .task(id: ThumbKey(page: page, baked: bakedVersion)) {
             // Debounced, because a drag rewrites the page on every frame.
             // Without the wait, each of those frames started a full
             // ImageRenderer pass over the whole page — rasterising every
@@ -382,13 +382,32 @@ struct PageThumbnail: View {
             // during continuous movement none of them survive the sleep and
             // exactly one render happens once the page stops changing. Pages
             // that are not being edited keep the same id throughout, so they
-            // are never re-rendered at all.
+            // are never re-rendered at all. A look made off the main thread
+            // goes through the same wait: a dial dragged, or a clip playing,
+            // finishes a run of them, which end in one render of each page
+            // with such a photo, and none of any other page.
             try? await Task.sleep(for: .milliseconds(180))
             guard !Task.isCancelled else { return }
             render()
         }
         // A photo's focus subject, found off the main thread meanwhile.
         .onChange(of: ImageFilterEngine.subjectsFound.version) { render() }
+    }
+
+    /// The thumbnail's task id: the page, and for a page with a photo whose
+    /// clarity or pixelate is made off the main thread, how many such looks
+    /// are made, so a new one draws it again.
+    private struct ThumbKey: Equatable {
+        let page: Page
+        let baked: Int
+    }
+
+    /// The count of looks made off the main thread, read only by a page
+    /// that has a photo waiting for one; 0 for any other, which never draws
+    /// again for them.
+    private var bakedVersion: Int {
+        guard design.drawnElements(on: page).contains(where: ImageFilterEngine.makesLater) else { return 0 }
+        return ImageFilterEngine.looksBaked.version
     }
 
     @MainActor

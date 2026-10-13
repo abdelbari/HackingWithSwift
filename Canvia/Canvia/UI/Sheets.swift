@@ -1699,6 +1699,7 @@ struct ResizeSheet: View {
     @State private var pageOnly = false
     @State private var ticked: [ResizeTarget] = []
     @State private var progress: String?
+    @State private var failed = false
     @State private var task: Task<Void, Never>?
 
     /// `copying` picks the mode it opens in; nil is Copy & resize when the
@@ -1750,7 +1751,7 @@ struct ResizeSheet: View {
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if copying {
-                    CopyResizeButton(count: ticked.count, progress: progress) { makeCopies() }
+                    CopyResizeButton(count: ticked.count, progress: progress, failed: failed) { makeCopies() }
                 }
             }
             .navigationTitle(copying ? "Copy & resize" : "Resize design")
@@ -1818,12 +1819,19 @@ struct ResizeSheet: View {
         store.endTextEdit()
         let source = store.design
         let targets = ticked
+        failed = false
         task = Task { @MainActor in
             defer { progress = nil; task = nil }
-            guard let made = try? await CopyResize.make(source, targets: targets, progress: { progress = $0 }),
-                  !made.isEmpty else { return }
-            onCopies(made)
-            dismiss()
+            do {
+                let made = try await CopyResize.make(source, targets: targets, progress: { progress = $0 })
+                // None saved is said, and the sheet stays to try again.
+                guard !made.isEmpty else { failed = true; return }
+                onCopies(made)
+                dismiss()
+            } catch {
+                // Cancelled is the sheet going: nothing to say.
+                if !(error is CancellationError) { failed = true }
+            }
         }
     }
 }
