@@ -39,6 +39,9 @@ final class DesignStore {
     /// Keeping the selection in view waits for it to lift, so the page never
     /// slides out from under a drag.
     var canvasTouchActive = false
+    /// True while the view itself moves — a pan, a pinch, the glide after
+    /// one — so what floats over the selection on screen waits for it.
+    var canvasMoving = false
     /// Mirrors the canvas scroll view's zoomScale, so selection handles can
     /// stay a constant size on screen. The scroll view owns pan entirely.
     var zoom: Double = 1
@@ -87,7 +90,17 @@ final class DesignStore {
     var replaceTargetId: String?
 
     private var clipboard: [Element] = []
+    /// The page the clipboard was copied from, and the page pasted onto
+    /// last: a paste somewhere new lands in place (Copies.pasteOffset).
+    private var clipboardPage: String?
+    private var pastePage: String?
     private var pasteCount = 0
+
+    /// Select multiple: while on, a tap on an element adds it to the
+    /// selection or takes it out, a tap on the empty page leaves the
+    /// selection be, and a banner stands in for the toolbar. View state
+    /// only — never saved — as on the Android twin.
+    var selectingMultiple = false
 
     private struct HistoryEntry {
         var design: Design
@@ -516,7 +529,12 @@ final class DesignStore {
         selection = [el.id]
     }
 
-    func deleteSelected() {
+    /// Delete asked for with something locked in position selected: the
+    /// editor asks first, and its Delete is deleteSelected(confirmed: true)
+    /// — the Android twin's confirmingDelete.
+    var askingDelete = false
+
+    func deleteSelected(confirmed: Bool = false) {
         // Only unlocked elements go; committing when nothing can be removed
         // would push a history entry identical to the previous one. A
         // refusal is felt, as on the Android twin, rather than silent.
@@ -525,6 +543,13 @@ final class DesignStore {
             if !selection.isEmpty { buzz(.reject) }
             return
         }
+        // The one exception to never asking: a position lock was set on
+        // purpose, by someone, often a template's author.
+        if !confirmed && selectedElements.contains(where: { ElementLock.mode(of: $0) == .position }) {
+            askingDelete = true
+            return
+        }
+        askingDelete = false
         applyToPage { page in
             page.elements.removeAll { ids.contains($0.id) }
         }
@@ -548,6 +573,12 @@ final class DesignStore {
     /// Commands that move elements ignore locked ones, so the UI must gate on
     /// the unlocked subset or it offers controls that quietly do nothing.
     var unlockedSelectionCount: Int { selectedElements.filter { !$0.locked }.count }
+    /// The same for what moves, sizes and turns: a position lock counts as
+    /// locked here (see ElementLock), so align, distribute, tidy, nudge and
+    /// the Position numbers are offered only for what they would move.
+    var movableSelectionCount: Int { selectedElements.filter { !$0.holdsPlace }.count }
+    /// Grouping moves nothing, so a position lock groups, as on the Android
+    /// twin; only a whole lock keeps an element out.
     var canGroup: Bool { unlockedSelectionCount >= 2 }
 
     // MARK: colour for a multi-selection
@@ -627,29 +658,35 @@ final class DesignStore {
         }
         return e
     }
-    var canDistribute: Bool { unlockedSelectionCount >= 3 }
+    var canDistribute: Bool { movableSelectionCount >= 3 }
 
     func copySelected() {
         let selected = selectedElements
         guard !selected.isEmpty else { return }
         clipboard = selected
+        clipboardPage = page.id
+        pastePage = nil
         pasteCount = 0
-        ElementClipboard.write(selected)
+        ElementClipboard.write(selected, sourcePage: page.id)
         buzz(.tick)
         announce(selected.count == 1 ? "Copied" : "Copied \(selected.count) things", undoable: false)
     }
 
     func cutSelected() {
-        // Symmetric with deleteSelected: cut takes exactly what it removes,
-        // so a locked element is never both left behind and on the clipboard.
-        let removable = selectedElements.filter { !$0.locked }
+        // Cut takes exactly what it removes, so a locked element is never
+        // both left behind and on the clipboard. A cut is a move by way of
+        // the clipboard, so, as with Move to page, a position lock stays
+        // too, as on the Android twin (its DesignStore.cutSelected).
+        let removable = selectedElements.filter { !$0.holdsPlace }
         guard !removable.isEmpty else {
             if !selection.isEmpty { buzz(.reject) }
             return
         }
         clipboard = removable
+        clipboardPage = page.id
+        pastePage = nil
         pasteCount = 0
-        ElementClipboard.write(removable)
+        ElementClipboard.write(removable, sourcePage: page.id)
         let ids = Set(removable.map(\.id))
         applyToPage { page in
             page.elements.removeAll { ids.contains($0.id) }
@@ -664,6 +701,8 @@ final class DesignStore {
         if clipboard.isEmpty {
             if let mine = ElementClipboard.read() {
                 clipboard = mine
+                clipboardPage = ElementClipboard.sourcePage()
+                pastePage = nil
                 pasteCount = 0
             } else if let stranger = ElementClipboard.foreign(designWidth: pageWidth) {
                 add(stranger)
@@ -678,10 +717,18 @@ final class DesignStore {
                      undoable: false)
             return
         }
+        // Each page counts its own pastes: the first onto a page other than
+        // the copy's lands in place, and only a repeat there steps.
+        if pastePage != page.id {
+            pastePage = page.id
+            pasteCount = 0
+        }
         pasteCount += 1
         // Copies arrive unlocked: locked is a property of the original, and a
         // pasted element the user cannot move, edit or delete is a dead end.
-        let copies = Copies.of(clipboard, offset: 24 * Double(pasteCount))
+        let offset = Copies.pasteOffset(nth: pasteCount, sourcePage: clipboardPage, onto: page,
+                                        copied: clipboard.map(\.id))
+        let copies = Copies.of(clipboard, offset: offset)
         applyToPage { $0.elements.append(contentsOf: copies) }
         selection = Set(copies.map(\.id))
     }
@@ -729,7 +776,7 @@ final class DesignStore {
     }
 
     func groupSelected() {
-        guard selectedElements.filter({ !$0.locked }).count >= 2 else { return }
+        guard unlockedSelectionCount >= 2 else { return }
         buzz(.grouped)
         let gid = UID.make("grp")
         applyToPage { page in
@@ -788,10 +835,10 @@ final class DesignStore {
     /// Whether Position's align buttons line the selection up with the page
     /// rather than with each other: one thing on its own, or one sticky
     /// group, which lines up as a single box.
-    var alignsToPage: Bool { unlockedSelectionCount <= 1 || selectionIsGrouped }
+    var alignsToPage: Bool { movableSelectionCount <= 1 || selectionIsGrouped }
 
     func alignSelected(_ mode: AlignMode) {
-        let selected = selectedElements.filter { !$0.locked }
+        let selected = selectedElements.filter { !$0.holdsPlace }
         guard !selected.isEmpty else { return }
         let pageBox = CGRect(origin: .zero, size: pageSize)
         // One sticky group lines up with the page as one box, every member
@@ -810,7 +857,7 @@ final class DesignStore {
         }
         let bounds: CGRect = selected.count == 1 ? pageBox : Geometry.union(selected.map(Geometry.aabb))
         applyToPage { page in
-            for i in page.elements.indices where self.selection.contains(page.elements[i].id) && !page.elements[i].locked {
+            for i in page.elements.indices where self.selection.contains(page.elements[i].id) && !page.elements[i].holdsPlace {
                 let shift = Self.alignShift(Geometry.aabb(page.elements[i]), to: bounds, mode)
                 page.elements[i].x += shift.x
                 page.elements[i].y += shift.y
@@ -835,7 +882,7 @@ final class DesignStore {
     /// keep their places relative to each other — the Android twin's
     /// centreOnPage.
     func centreOnPage() {
-        let members = selectedElements.filter { !$0.locked }
+        let members = selectedElements.filter { !$0.holdsPlace }
         guard !members.isEmpty else { return }
         let box = Geometry.union(members.map(Geometry.aabb))
         let dx = (pageWidth - box.width) / 2 - box.minX
@@ -852,7 +899,7 @@ final class DesignStore {
     /// Tidy the unlocked selection into a row, column or grid, one undo step.
     /// The gap is a fiftieth of the page's shorter side: visible, not loose.
     func tidySelected(_ mode: Geometry.TidyMode) {
-        let members = selectedElements.filter { !$0.locked }
+        let members = selectedElements.filter { !$0.holdsPlace }
         guard members.count >= 2 else { return }
         let gap = (min(pageWidth, pageHeight) / 50).rounded()
         let tidied = Geometry.tidy(members, mode: mode, gap: gap)
@@ -867,8 +914,21 @@ final class DesignStore {
     /// Move the unlocked selection by a step, as one undo step. Arrow keys,
     /// VoiceOver actions and the numeric fields all come through here.
     func nudgeSelected(dx: Double, dy: Double) {
-        guard dx != 0 || dy != 0, unlockedSelectionCount > 0 else { return }
-        updateSelected { $0.x += dx; $0.y += dy }
+        guard dx != 0 || dy != 0, movableSelectionCount > 0 else { return }
+        updateSelectedPlacement { $0.x += dx; $0.y += dy }
+    }
+
+    /// Mutate where every selected element free to move sits, its size or
+    /// its turn, as one undo step: what the Position numbers and a nudge
+    /// change. A position lock keeps them, as a whole lock does.
+    func updateSelectedPlacement(_ mutate: (inout Element) -> Void) {
+        guard movableSelectionCount > 0 else { return }
+        applyToPage { page in
+            for i in page.elements.indices
+            where self.selection.contains(page.elements[i].id) && !page.elements[i].holdsPlace {
+                mutate(&page.elements[i])
+            }
+        }
     }
 
     /// The selection's box, for the numeric fields; nil when nothing is
@@ -880,7 +940,7 @@ final class DesignStore {
 
     /// Resize the whole selection so its box becomes `to`, one undo step.
     func setSelectionBox(_ to: CGRect) {
-        let members = selectedElements.filter { !$0.locked }
+        let members = selectedElements.filter { !$0.holdsPlace }
         guard let from = selectionBox, !members.isEmpty, to.width >= 1, to.height >= 1 else { return }
         let scaled = from.size == to.size
             ? members.map { el in var e = el; e.x += to.minX - from.minX; e.y += to.minY - from.minY; return e }
@@ -895,7 +955,7 @@ final class DesignStore {
 
     /// Turn the whole selection about its centre by `degrees`, one undo step.
     func rotateSelection(by degrees: Double) {
-        let members = selectedElements.filter { !$0.locked }
+        let members = selectedElements.filter { !$0.holdsPlace }
         guard let box = selectionBox, !members.isEmpty, degrees != 0 else { return }
         let turned = Geometry.rotate(members, around: CGPoint(x: box.midX, y: box.midY), by: degrees)
         applyToPage { page in
@@ -922,7 +982,7 @@ final class DesignStore {
 
     /// Even spacing between the outermost two elements (needs 3+).
     func distributeSelected(_ axis: DistributeAxis) {
-        let selected = selectedElements.filter { !$0.locked }
+        let selected = selectedElements.filter { !$0.holdsPlace }
         guard selected.count >= 3 else { return }
         let horizontal = axis == .horizontal
         var boxes = selected.map { (id: $0.id, box: Geometry.aabb($0)) }
@@ -1377,15 +1437,24 @@ final class DesignStore {
         updateSelected { Self.apply(style, to: &$0) }
     }
 
+    /// ⇧⌘L: everything selected locked whole while anything of it is not,
+    /// else all of it unlocked.
     func toggleLockSelected() {
-        // A box being typed in cannot be locked mid-word.
-        endTextEdit()
         let anyUnlocked = selectedElements.contains { !$0.locked }
-        applyToPage { page in
-            for i in page.elements.indices where self.selection.contains(page.elements[i].id) {
-                page.elements[i].locked = anyUnlocked
-            }
-        }
+        setLock(selection, anyUnlocked ? .full : .unlocked)
+    }
+
+    /// The Lock menu's Lock, Lock position or Unlock, for everything
+    /// selected, as one undo step.
+    func lockSelected(_ mode: ElementLock.Mode) {
+        setLock(selection, mode)
+    }
+
+    /// How the selection is locked, for the Lock menu: one way when all of
+    /// it is, else nil.
+    var selectionLock: ElementLock.Mode? {
+        let modes = Set(selectedElements.map { ElementLock.mode(of: $0) })
+        return modes.count == 1 ? modes.first : nil
     }
 
     // MARK: layers
@@ -1393,12 +1462,18 @@ final class DesignStore {
     /// Lock or unlock the elements `ids` on this page, from their Layers row,
     /// as one undo step.
     func setLocked(_ ids: Set<String>, locked: Bool) {
-        guard page.elements.contains(where: { ids.contains($0.id) && $0.locked != locked }) else { return }
+        setLock(ids, locked ? .full : .unlocked)
+    }
+
+    /// Lock the elements `ids` on this page by `mode` — whole, in position
+    /// only, or not at all — as one undo step; none when nothing changes.
+    func setLock(_ ids: Set<String>, _ mode: ElementLock.Mode) {
+        guard page.elements.contains(where: { ids.contains($0.id) && ElementLock.mode(of: $0) != mode }) else { return }
         // A box being typed in cannot be locked mid-word.
         if let typing = editingTextId, ids.contains(typing) { endTextEdit() }
         applyToPage { page in
             for i in page.elements.indices where ids.contains(page.elements[i].id) {
-                page.elements[i].locked = locked
+                page.elements[i] = ElementLock.with(page.elements[i], mode)
             }
         }
     }

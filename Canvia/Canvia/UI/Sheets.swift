@@ -723,7 +723,9 @@ struct CropSheet: View {
                             Text("Fit").tag(1)
                         }
                         .pickerStyle(.segmented)
+                        // A frame locked in position keeps its shape.
                         aspectRow(el)
+                            .disabled(el.holdsPlace)
                     }
                     Section {
                         Toggle("Ken Burns drift in video", isOn: Binding(
@@ -825,6 +827,14 @@ struct PositionSheet: View {
     /// sheet opens, as on the Android twin, and never saved.
     @State private var nudgeStep = 1.0
     @State private var nudges = 0
+    /// Keep proportions as switched in this panel; nil until it is, when it
+    /// is what the one selected element starts with (RatioLock.startsOn).
+    /// Never saved.
+    @State private var keepProportions: Bool?
+
+    private var keepsProportions: Bool {
+        keepProportions ?? store.singleSelection.map(RatioLock.startsOn) ?? false
+    }
 
     var body: some View {
         NavigationStack {
@@ -859,7 +869,7 @@ struct PositionSheet: View {
                         Label("Centre on page", systemImage: "plus.viewfinder")
                             .frame(maxWidth: .infinity)
                     }
-                    .disabled(store.unlockedSelectionCount == 0)
+                    .disabled(store.movableSelectionCount == 0)
                 }
                 if store.selection.count >= 3 {
                     Section("Distribute evenly") {
@@ -884,7 +894,7 @@ struct PositionSheet: View {
                             orderButton("Column", "rectangle.split.1x2") { store.tidySelected(.column) }
                             orderButton("Grid", "rectangle.split.3x3") { store.tidySelected(.grid) }
                         }
-                        .disabled(store.unlockedSelectionCount < 2)
+                        .disabled(store.movableSelectionCount < 2)
                     }
                 }
                 nudgeSection
@@ -899,15 +909,20 @@ struct PositionSheet: View {
                     }
                 }
                 if let el = store.singleSelection {
+                    // A lock, whole or of its position, keeps every number
+                    // here as it is.
                     Section("Exact") {
-                        numberRow("X", value: el.x) { v in store.updateSelected { $0.x = v } }
-                        numberRow("Y", value: el.y) { v in store.updateSelected { $0.y = v } }
-                        numberRow("Width", value: el.w) { v in store.updateSelected { $0.w = max(8, v) } }
+                        numberRow("X", value: el.x) { v in store.updateSelectedPlacement { $0.x = v } }
+                        numberRow("Y", value: el.y) { v in store.updateSelectedPlacement { $0.y = v } }
+                        numberRow("Width", value: el.w) { v in setWidth(v, of: el) }
+                        // Text has no height to type: it follows its words.
                         if el.type != .text {
-                            numberRow("Height", value: el.h) { v in store.updateSelected { $0.h = max(8, v) } }
+                            proportionsToggle
+                            numberRow("Height", value: el.h) { v in setHeight(v, of: el) }
                         }
-                        numberRow("Rotation", value: el.rotation) { v in store.updateSelected { $0.rotation = v } }
+                        numberRow("Rotation", value: el.rotation) { v in store.updateSelectedPlacement { $0.rotation = v } }
                     }
+                    .disabled(el.holdsPlace)
                 } else if let box = store.selectionBox {
                     // The selection as one thing: its box moves and scales,
                     // and a rotation turns the whole about the centre.
@@ -918,16 +933,19 @@ struct PositionSheet: View {
                         numberRow("Y", value: box.minY) { v in
                             store.setSelectionBox(CGRect(x: box.minX, y: v, width: box.width, height: box.height))
                         }
+                        // Always scaled evenly, as on the Android twin: a
+                        // box of several things has no chain to switch off.
                         numberRow("Width", value: box.width) { v in
-                            let w = max(8, v)
+                            let w = max(RatioLock.minSide, v)
                             store.setSelectionBox(CGRect(x: box.minX, y: box.minY, width: w, height: box.height * w / max(box.width, 1)))
                         }
                         numberRow("Height", value: box.height) { v in
-                            let h = max(8, v)
+                            let h = max(RatioLock.minSide, v)
                             store.setSelectionBox(CGRect(x: box.minX, y: box.minY, width: box.width * h / max(box.height, 1), height: h))
                         }
                         numberRow("Rotate by", value: 0) { v in store.rotateSelection(by: v) }
                     }
+                    .disabled(store.movableSelectionCount == 0)
                 }
             }
             .navigationTitle("Position")
@@ -938,6 +956,47 @@ struct PositionSheet: View {
         }
         .presentationDetents(sheetDetents)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        // Another selection starts from its own proportions rule.
+        .onChange(of: store.selection) { _, _ in keepProportions = nil }
+    }
+
+    /// The chain between Width and Height: on, either number brings the
+    /// other with it in proportion (see RatioLock). Read as "Keep
+    /// proportions, on" or "off", as on the Android twin.
+    private var proportionsToggle: some View {
+        Toggle(isOn: Binding(get: { keepsProportions }, set: { keepProportions = $0 })) {
+            Label("Keep proportions", systemImage: "link")
+        }
+    }
+
+    /// A width typed for one element: with the chain on, the height in
+    /// proportion, its turned top-left corner held as a corner drag holds
+    /// the opposite one (RatioLock.placed) — as one step either way.
+    private func setWidth(_ typed: Double, of el: Element) {
+        guard keepsProportions && el.type != .text else {
+            store.updateSelectedPlacement { $0.w = max(RatioLock.minSide, typed) }
+            return
+        }
+        place(el, at: RatioLock.size(width: typed, from: CGSize(width: el.w, height: el.h)))
+    }
+
+    /// A height typed for one element: the same, the other way round.
+    private func setHeight(_ typed: Double, of el: Element) {
+        guard keepsProportions else {
+            store.updateSelectedPlacement { $0.h = max(RatioLock.minSide, typed) }
+            return
+        }
+        place(el, at: RatioLock.size(height: typed, from: CGSize(width: el.w, height: el.h)))
+    }
+
+    private func place(_ el: Element, at size: CGSize) {
+        let box = RatioLock.placed(el, at: size)
+        store.updateSelectedPlacement {
+            $0.x = Double(box.minX)
+            $0.y = Double(box.minY)
+            $0.w = Double(box.width)
+            $0.h = Double(box.height)
+        }
     }
 
     /// Arrows that move the selection 1, 10 or 100 page units a tap, with
@@ -959,7 +1018,7 @@ struct PositionSheet: View {
                 nudgeButton("arrow.up", "up", dx: 0, dy: -1)
                 nudgeButton("arrow.down", "down", dx: 0, dy: 1)
             }
-            .disabled(store.unlockedSelectionCount == 0)
+            .disabled(store.movableSelectionCount == 0)
             .feel(.impact(weight: .light), trigger: nudges)
         } header: {
             HStack {
@@ -1035,6 +1094,8 @@ struct LayersSheet: View {
     /// The element Rename… is naming, and the name being typed.
     @State private var renaming: Element?
     @State private var typedName = ""
+    /// The rows' elements a swipe would delete, while it asks first.
+    @State private var askingDelete: [String]?
 
     private var rows: [LayerRows.Row] {
         switch filter {
@@ -1072,6 +1133,14 @@ struct LayersSheet: View {
                 Button("Cancel", role: .cancel) {}
             } message: { _ in
                 Text("Up to \(LayerNames.maxLength) characters. Leave it empty for the name Canvia gives it.")
+            }
+            .alert((askingDelete?.count ?? 0) > 1 ? "Delete these?" : "Delete this?",
+                   isPresented: Binding(get: { askingDelete != nil }, set: { if !$0 { askingDelete = nil } }),
+                   presenting: askingDelete) { ids in
+                Button("Delete", role: .destructive) { remove(Set(ids)) }
+                Button("Cancel", role: .cancel) {}
+            } message: { ids in
+                Text(ids.count > 1 ? "Some of them have their position locked." : "Its position is locked.")
             }
         }
         .presentationDetents(sheetDetents)
@@ -1115,14 +1184,23 @@ struct LayersSheet: View {
     }
 
     /// The rows swiped away, as one undo step: every unlocked element they
-    /// stand for — a group row its whole group.
+    /// stand for — a group row its whole group. Something locked in
+    /// position among them asks first, as Delete does.
     private func delete(_ picked: [LayerRows.Row]) {
-        let removable = Set(picked.flatMap(\.elements).filter { !$0.locked }.map(\.id))
+        let removable = picked.flatMap(\.elements).filter { !$0.locked }
         guard !removable.isEmpty else { return }
-        store.applyToPage { page in
-            page.elements.removeAll { removable.contains($0.id) }
+        if removable.contains(where: { ElementLock.mode(of: $0) == .position }) {
+            askingDelete = removable.map(\.id)
+        } else {
+            remove(Set(removable.map(\.id)))
         }
-        store.selection.subtract(removable)
+    }
+
+    private func remove(_ ids: Set<String>) {
+        store.applyToPage { page in
+            page.elements.removeAll { ids.contains($0.id) }
+        }
+        store.selection.subtract(ids)
     }
 
     @ViewBuilder
@@ -1152,7 +1230,7 @@ struct LayersSheet: View {
             .opacity(el.isHidden ? 0.45 : 1)
             .padding(.leading, member ? 24 : 0)
             .accessibilityElement(children: .combine)
-            .accessibilityValue([el.isHidden ? "Hidden" : nil, el.locked ? "Locked" : nil]
+            .accessibilityValue([el.isHidden ? "Hidden" : nil, lockValue(ElementLock.mode(of: el))]
                 .compactMap { $0 }.joined(separator: ", "))
             .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
             .accessibilityAction { pick(el, alone: alone) }
@@ -1163,7 +1241,7 @@ struct LayersSheet: View {
                     .accessibilityHidden(true)
             }
             eyeButton([el.id], hidden: el.isHidden, name: name)
-            lockButton([el.id], locked: el.locked, name: name)
+            lockButton([el.id], mode: ElementLock.mode(of: el), name: name)
         }
         .contentShape(Rectangle())
         .onTapGesture { pick(el, alone: alone) }
@@ -1205,7 +1283,7 @@ struct LayersSheet: View {
                     .accessibilityHidden(true)
             }
             eyeButton(ids, hidden: allHidden, name: name)
-            lockButton(ids, locked: members.allSatisfy(\.locked), name: name)
+            lockButton(ids, mode: Self.sharedLock(members), name: name)
         }
         .contentShape(Rectangle())
         .onTapGesture { pickGroup(members) }
@@ -1223,16 +1301,40 @@ struct LayersSheet: View {
         .accessibilityLabel(hidden ? "Show \(name)" : "Hide \(name)")
     }
 
-    /// Locks what the row stands for, or — when all of it is locked —
-    /// unlocks it.
-    private func lockButton(_ ids: Set<String>, locked: Bool, name: String) -> some View {
-        Button { store.setLocked(ids, locked: !locked) } label: {
-            Image(systemName: locked ? "lock.fill" : "lock.open")
+    /// The padlock: the toolbar's Lock menu — Lock, Lock position, Unlock —
+    /// for what the row stands for, each one undo step. Closed while all of
+    /// it is locked whole, open with the accent while its position is.
+    private func lockButton(_ ids: Set<String>, mode: ElementLock.Mode, name: String) -> some View {
+        Menu {
+            ForEach([ElementLock.Mode.full, .position, .unlocked], id: \.self) { choice in
+                Button { store.setLock(ids, choice) } label: {
+                    Label(ElementLock.name(choice), systemImage: mode == choice ? "checkmark" : ElementLock.symbol(choice))
+                }
+            }
+        } label: {
+            Image(systemName: mode == .unlocked ? "lock.open" : ElementLock.symbol(mode))
                 .frame(width: 30, height: 30)
         }
         .buttonStyle(.borderless)
-        .foregroundStyle(locked ? Theme.accent : Color.secondary)
-        .accessibilityLabel(locked ? "Unlock \(name)" : "Lock \(name)")
+        .foregroundStyle(mode == .unlocked ? Color.secondary : Theme.accent)
+        .accessibilityLabel("Lock \(name)")
+        .accessibilityValue(lockValue(mode) ?? "Unlocked")
+    }
+
+    /// How a row's lock is read out: nil unlocked.
+    private func lockValue(_ mode: ElementLock.Mode) -> String? {
+        switch mode {
+        case .unlocked: return nil
+        case .position: return "Position locked"
+        case .full: return "Locked"
+        }
+    }
+
+    /// A group row's lock: the members' one lock when they share it, else
+    /// none, so the menu offers to lock them all.
+    private static func sharedLock(_ members: [Element]) -> ElementLock.Mode {
+        let modes = Set(members.map { ElementLock.mode(of: $0) })
+        return modes.count == 1 ? modes.first ?? .unlocked : .unlocked
     }
 
     private func pick(_ el: Element, alone: Bool) {

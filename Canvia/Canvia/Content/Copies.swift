@@ -20,8 +20,9 @@ enum Copies {
     /// its own — each source chart one fresh chart id, so Edit chart on the
     /// copy leaves the original alone, and each arrow its ends' copies, or no
     /// end, where that end was not copied.
-    /// Unlocked unless `keepingLocks`: locked belongs to the original, and a
-    /// pasted element that cannot be moved is a dead end.
+    /// Unlocked unless `keepingLocks` — both locks, the whole and the
+    /// position one: a lock belongs to the original, and a pasted element
+    /// that cannot be moved is a dead end.
     static func of(_ elements: [Element], offset: Double = 0, keepingLocks: Bool = false) -> [Element] {
         var ids: [String: String] = [:]
         for el in elements { ids[el.id] = UID.make() }
@@ -33,7 +34,10 @@ enum Copies {
             copy.id = ids[el.id] ?? UID.make()
             copy.x += offset
             copy.y += offset
-            if !keepingLocks { copy.locked = false }
+            if !keepingLocks {
+                copy.locked = false
+                copy.lockPosition = nil
+            }
             if let group = el.group {
                 if groups[group] == nil { groups[group] = UID.make("grp") }
                 copy.group = groups[group]
@@ -50,6 +54,19 @@ enum Copies {
             copy.connectTo = el.connectTo.flatMap { ids[$0] }
             return copy
         }
+    }
+
+    /// How far the `nth` paste (one-based) of a clipboard is moved down and
+    /// right. Pasted onto another page than the one it was copied from, or
+    /// where none of the copied elements is any longer — after a cut — the
+    /// first paste lands where the copy was, and each one after steps 24
+    /// further; on the page beside the originals, every paste steps, the
+    /// first by 24. A clipboard whose page is not known (nil) goes by the
+    /// elements alone. The Android twin pastes by the same rule.
+    static func pasteOffset(nth: Int, sourcePage: String?, onto page: Page, copied ids: [String]) -> Double {
+        let here = Set(page.elements.map(\.id))
+        let inPlace = (sourcePage != nil && sourcePage != page.id) || !ids.contains(where: here.contains)
+        return 24 * Double(inPlace ? max(nth - 1, 0) : nth)
     }
 
     /// A page copied whole: a fresh id, and its elements copied in place —

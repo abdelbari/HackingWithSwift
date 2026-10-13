@@ -674,4 +674,48 @@ enum Geometry {
         CGPoint(x: (content.width - viewport.width) / 2,
                 y: (content.height - viewport.height) / 2)
     }
+
+    /// A box in page units as it stands on screen, in the canvas's own
+    /// points: `visible` is the part of the page on screen, at `zoom`.
+    static func screenRect(_ box: CGRect, visible: CGRect, zoom: Double) -> CGRect {
+        let z = CGFloat(zoom)
+        return CGRect(x: (box.minX - visible.minX) * z, y: (box.minY - visible.minY) * z,
+                      width: box.width * z, height: box.height * z)
+    }
+
+    // MARK: quick actions
+
+    /// Which side of the selection the quick-action bubble sits on.
+    enum BubbleSide: Equatable { case above, below }
+
+    /// Where the quick-action bubble goes: `point` is the middle of its foot
+    /// when it sits above, of its head when below.
+    struct BubbleAnchor: Equatable {
+        var point: CGPoint
+        var side: BubbleSide
+    }
+
+    /// The bubble's distance from the selection, beyond its handles, and how
+    /// near the top of the canvas it may sit before it goes below instead,
+    /// in screen points — the Android twin's numbers, in dp.
+    static let bubbleGap = 12.0
+    static let bubbleTopRoom = 56.0
+
+    /// Where the quick-action bubble sits for a selection whose box on
+    /// screen is `selection`, its handles standing `handleOutset` off it,
+    /// in a canvas showing `viewport`: centred over it, bubbleGap above the
+    /// handles — or as far below them when that would leave the bubble
+    /// within bubbleTopRoom of the canvas's top, kept bubbleTopRoom up from
+    /// the canvas's bottom (over the selection, when nothing else fits).
+    /// Across, its middle is kept on the canvas. All in screen points; the
+    /// Android twin's Geometry.bubbleAnchor, with the same tests.
+    static func bubbleAnchor(_ selection: CGRect, viewport: CGRect, handleOutset: Double) -> BubbleAnchor {
+        let x = Double(min(max(selection.midX, viewport.minX), viewport.maxX))
+        let above = Double(selection.minY) - handleOutset - bubbleGap
+        if above - Double(viewport.minY) >= bubbleTopRoom {
+            return BubbleAnchor(point: CGPoint(x: x, y: above), side: .above)
+        }
+        let below = min(Double(selection.maxY) + handleOutset + bubbleGap, Double(viewport.maxY) - bubbleTopRoom)
+        return BubbleAnchor(point: CGPoint(x: x, y: max(below, Double(viewport.minY))), side: .below)
+    }
 }

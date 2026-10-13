@@ -68,6 +68,9 @@ struct CanvasView: View {
         var groupBox: CGRect = .zero
         /// The rubber band, in page units, while one is being drawn.
         var marquee: CGRect?
+        /// Whether a hold on the empty page has taken, so a band is being
+        /// held out.
+        var banding = false
         /// What a finger in crop mode is working, from when it lands.
         var crop: CropTouch?
         /// A crop-mode pinch's magnification when last applied.
@@ -104,16 +107,21 @@ struct CanvasView: View {
             fitToken: "\(store.design.id)-\(store.pageWidth)x\(store.pageHeight)",
             onBackgroundTap: {
                 commitTextEditIfAny()
-                store.select(nil)
+                // Select multiple keeps what it has built.
+                if !store.selectingMultiple { store.select(nil) }
             },
             onPencilTap: { store.toggleDrawing() },
             pinchZooms: store.cropping == nil,
             claimsDoubleTap: { point in claimsDoubleTap(at: point) },
+            pansFromPage: { point in pansFromPage(at: point) },
             request: store.canvasRequest,
             onViewport: { visible, fit in
                 // Only real changes: every write redraws whatever reads it.
                 if store.viewport != visible { store.viewport = visible }
                 if store.fitZoom != fit { store.fitZoom = fit }
+            },
+            onMotion: { moving in
+                if store.canvasMoving != moving { store.canvasMoving = moving }
             }
         ) {
             pageContent
@@ -197,11 +205,12 @@ struct CanvasView: View {
                 .contentShape(Rectangle())
                 .onTapGesture {
                     commitTextEditIfAny()
-                    store.select(nil)
+                    // Select multiple keeps what it has built.
+                    if !store.selectingMultiple { store.select(nil) }
                 }
-                // A one-finger drag from empty page draws a rubber band.
-                // It starts on the page, so the workspace pan (which refuses
-                // touches on the page) never competes with it.
+                // Held still on the empty page, a drag draws a rubber band;
+                // a drag from there straight away moves the view instead
+                // (see pansFromPage and ZoomableCanvas).
                 .gesture(marqueeGesture)
 
             Group {
@@ -400,7 +409,7 @@ struct CanvasView: View {
             if working {
                 context.stroke(Self.thirds(in: frame), with: .color(.white.opacity(0.5)), lineWidth: hairline)
             }
-            for handle in Handle.allCases {
+            for handle in Handle.allCases where !photo.holdsPlace {
                 context.stroke(Self.bracket(handle, in: frame, length: bracketLength),
                                with: .color(handle == held ? Theme.accent : .white),
                                style: StrokeStyle(lineWidth: hairline * 3, lineCap: .round, lineJoin: .round))
@@ -451,7 +460,8 @@ struct CanvasView: View {
     /// included, since that is the part you can see you want to bring in —
     /// else nothing of the photo's.
     private func cropTouch(at point: CGPoint, photo: Element, crop: CropSession) -> CropTouch {
-        var best = Touch.pageUnits(22, zoom: store.zoom)
+        // A photo locked in position has no brackets: its frame stays put.
+        var best = photo.holdsPlace ? 0 : Touch.pageUnits(22, zoom: store.zoom)
         var grabbed: Handle?
         for handle in Handle.allCases {
             let at = Geometry.handlePoint(photo, handle)
@@ -650,28 +660,64 @@ struct CanvasView: View {
 
     // MARK: marquee
 
+    /// Hold still on the empty page, then drag: the rubber band, as on the
+    /// Android twin (CanvasGestures). The hold is felt as it takes, with
+    /// the Android twin's tick.
     private var marqueeGesture: some Gesture {
-        DragGesture(minimumDistance: Touch.pageUnits(Touch.dragSlop, zoom: store.zoom),
-                    coordinateSpace: .named("page"))
+        LongPressGesture(minimumDuration: CanvasGestures.holdSeconds)
+            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("page")))
             .onChanged { value in
-                if gesture.marquee == nil {
+                guard case .second(true, let drag) = value else { return }
+                if !gesture.banding {
+                    gesture.banding = true
                     commitTextEditIfAny()
                     store.canvasTouchActive = true
+                    store.buzz(.tick)
                 }
+                guard let drag else { return }
                 let band = CGRect(
-                    x: min(value.startLocation.x, value.location.x),
-                    y: min(value.startLocation.y, value.location.y),
-                    width: abs(value.location.x - value.startLocation.x),
-                    height: abs(value.location.y - value.startLocation.y))
+                    x: min(drag.startLocation.x, drag.location.x),
+                    y: min(drag.startLocation.y, drag.location.y),
+                    width: abs(drag.location.x - drag.startLocation.x),
+                    height: abs(drag.location.y - drag.startLocation.y))
                 gesture.marquee = band
                 // Live: the selection follows the band as it grows, so you
-                // see what you are about to get before you let go.
-                store.select(within: band)
+                // see what you are about to get before you let go. A band
+                // with no size yet leaves the selection be.
+                if band.width > 0 || band.height > 0 { store.select(within: band) }
             }
             .onEnded { _ in
                 gesture.marquee = nil
+                gesture.banding = false
                 store.canvasTouchActive = false
             }
+    }
+
+    /// Whether one finger dragged from `point` on the page moves the view:
+    /// only where there is nothing to work — no element (at its touch
+    /// target's size), no handle of the selection, no guide — and never
+    /// while the pen, the eraser or crop mode has the page's touches.
+    private func pansFromPage(at point: CGPoint) -> Bool {
+        guard store.drawing == nil, store.erasing == nil, store.cropping == nil else { return false }
+        let target = Touch.pageUnits(Touch.minTarget, zoom: store.zoom)
+        // Only what is shown has a hit area: a hidden layer is empty page.
+        let onElement = store.page.elements.contains { el in
+            guard !el.isHidden else { return false }
+            var reach = el
+            let grow = max(0, target - el.w) / 2, rise = max(0, target - el.h) / 2
+            reach.x -= grow; reach.w += grow * 2
+            reach.y -= rise; reach.h += rise * 2
+            return Geometry.hits(reach, point: point)
+        }
+        // The handles stand off the selection's box, the rotate handle
+        // furthest: everything within their reach is theirs.
+        let handles = Touch.pageUnits(Touch.handleMinGap + 28 + Touch.handleReach, zoom: store.zoom)
+        let onHandles = store.selectionBox.map { $0.insetBy(dx: -handles, dy: -handles).contains(point) } ?? false
+        let guideReach = Touch.pageUnits(12, zoom: store.zoom)
+        let onGuide = store.design.guides.contains { guide in
+            abs(Double(guide.vertical ? point.x : point.y) - guide.position) <= guideReach
+        }
+        return CanvasGestures.pansFromPage(onElement: onElement || onHandles || onGuide, held: 0)
     }
 
     private func marqueeView(_ band: CGRect) -> some View {
@@ -778,6 +824,14 @@ struct CanvasView: View {
             .rotationEffect(.degrees(el.rotation))
             .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
             .onTapGesture(count: 2) {
+                // Selecting several, taps are each their own, never a pair:
+                // two quick ones put the element in and take it out again,
+                // as on the Android twin, rather than typing or cropping.
+                if store.selectingMultiple {
+                    store.tapInSelectMultiple(el.id)
+                    store.tapInSelectMultiple(el.id)
+                    return
+                }
                 // A shape double-tapped is typed in, as a text box is; a
                 // table cell's rectangle, its words.
                 if let target = store.typedIn(el) {
@@ -791,12 +845,19 @@ struct CanvasView: View {
             }
             .onTapGesture {
                 commitTextEditIfAny()
+                // Select multiple: each tap puts the element's group in or
+                // takes it out.
+                if store.selectingMultiple {
+                    store.tapInSelectMultiple(el.id)
+                    return
+                }
                 // A second tap on a member of the selected group takes just
                 // that member; otherwise the tap takes the element's group.
                 if !store.selectMember(el.id) { store.select(el.id) }
             }
-            .onLongPressGesture(minimumDuration: 0.4) {
+            .onLongPressGesture(minimumDuration: CanvasGestures.holdSeconds) {
                 store.select(el.id, additive: true)
+                store.buzz(.tick)
             }
             .gesture(moveGesture(el))
             .accessibilityElement()
@@ -818,12 +879,19 @@ struct CanvasView: View {
         Button(store.selection.contains(el.id) ? "Remove from selection" : "Add to selection") {
             store.select(el.id, additive: true)
         }
-        if !el.locked {
+        // A position lock keeps it where it is, as a whole lock does, but
+        // it can still be copied.
+        if !el.holdsPlace {
             Button("Move left") { nudge(el, dx: -step, dy: 0) }
             Button("Move right") { nudge(el, dx: step, dy: 0) }
             Button("Move up") { nudge(el, dx: 0, dy: -step) }
             Button("Move down") { nudge(el, dx: 0, dy: step) }
+        }
+        if !el.locked {
             Button("Duplicate") { store.select(el.id); store.duplicateSelected() }
+        }
+        // A position lock asks first (DesignStore.askingDelete).
+        if !el.locked {
             Button("Delete") { store.select(el.id); store.deleteSelected() }
         }
         Button("Bring forward") { store.select(el.id); store.reorderSelected(.forward) }
@@ -854,17 +922,20 @@ struct CanvasView: View {
         DragGesture(minimumDistance: Touch.pageUnits(Touch.dragSlop, zoom: store.zoom),
                     coordinateSpace: .named("page"))
             .onChanged { value in
-                guard !el.locked, store.editingTextId != el.id else { return }
+                guard !el.holdsPlace, store.editingTextId != el.id else { return }
                 if !gesture.dragActive {
                     gesture.dragActive = true
                     store.canvasTouchActive = true
                     // Selected before the step opens: selecting ends any typing
                     // as its own step, which must not swallow this move's.
-                    if !store.selection.contains(el.id) { store.select(el.id) }
+                    // Select multiple adds it, and the whole selection moves.
+                    if !store.selection.contains(el.id) {
+                        if store.selectingMultiple { store.tapInSelectMultiple(el.id) } else { store.select(el.id) }
+                    }
                     store.beginGesture()
                     gesture.dragOriginals = Dictionary(
                         uniqueKeysWithValues: store.selectedElements
-                            .filter { !$0.locked }
+                            .filter { !$0.holdsPlace }
                             .map { ($0.id, CGPoint(x: $0.x, y: $0.y)) })
                     let lines = Geometry.taggedSnapLines(design: store.design, page: store.page,
                                                          excluding: Set(gesture.dragOriginals.keys),
@@ -874,7 +945,7 @@ struct CanvasView: View {
                     gesture.snapX = lines.x.map(\.position)
                     gesture.snapY = lines.y.map(\.position)
                     gesture.dragUnion = Geometry.union(
-                        store.selectedElements.filter { !$0.locked }.map(Geometry.aabb))
+                        store.selectedElements.filter { !$0.holdsPlace }.map(Geometry.aabb))
                     gesture.siblingBoxes = store.page.elements
                         .filter { gesture.dragOriginals[$0.id] == nil && !$0.isHidden }
                         .map(Geometry.aabb)
@@ -983,7 +1054,7 @@ struct CanvasView: View {
             groupHandleDrag(handle, location)
             return
         }
-        guard let selected = store.singleSelection, !selected.locked else { return }
+        guard let selected = store.singleSelection, !selected.holdsPlace else { return }
         if gesture.resizeOriginal?.id != selected.id || !gesture.dragActive {
             store.beginGesture()
             gesture.resizeOriginal = selected
@@ -1116,7 +1187,7 @@ struct CanvasView: View {
     /// follow it.
     private func groupHandleDrag(_ handle: Handle, _ location: CGPoint) {
         if gesture.groupOriginals.isEmpty || !gesture.dragActive {
-            let members = store.selectedElements.filter { !$0.locked }
+            let members = store.selectedElements.filter { !$0.holdsPlace }
             guard !members.isEmpty else { return }
             store.beginGesture()
             gesture.dragActive = true
@@ -1139,7 +1210,7 @@ struct CanvasView: View {
 
     private func groupRotateDrag(_ location: CGPoint) {
         if gesture.groupOriginals.isEmpty || !gesture.dragActive {
-            let members = store.selectedElements.filter { !$0.locked }
+            let members = store.selectedElements.filter { !$0.holdsPlace }
             guard !members.isEmpty else { return }
             store.beginGesture()
             gesture.dragActive = true
@@ -1165,7 +1236,7 @@ struct CanvasView: View {
             groupRotateDrag(location)
             return
         }
-        guard let selected = store.singleSelection, !selected.locked else { return }
+        guard let selected = store.singleSelection, !selected.holdsPlace else { return }
         if gesture.rotateCenter == nil || !gesture.dragActive {
             store.beginGesture()
             gesture.dragActive = true

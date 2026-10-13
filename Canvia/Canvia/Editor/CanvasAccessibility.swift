@@ -39,7 +39,7 @@ enum CanvasAccessibility {
         ]
         let turn = Int(el.rotation.rounded()) % 360
         if turn != 0 { parts.append("rotated \(turn) degrees") }
-        if el.locked { parts.append("locked") }
+        if el.locked { parts.append("locked") } else if el.lockPosition == true { parts.append("position locked") }
         return parts.joined(separator: "; ")
     }
 

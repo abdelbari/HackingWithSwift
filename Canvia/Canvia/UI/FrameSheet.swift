@@ -96,11 +96,13 @@ struct FrameSheet: View {
     /// element's box is, so a circle frame on the default 480x360 photo would
     /// come out an ellipse — which is exactly the portrait-in-a-circle case
     /// this feature is for. Shapes tolerate that stretch; frames do not.
+    /// A photo locked in position keeps its size and takes the frame
+    /// stretched, as on the Android twin (ElementLock).
     private func apply(_ id: String) {
         store.updateSelected { el in
             let wasFramed = el.maskShapeId != nil
             el.maskShapeId = id
-            guard !wasFramed, el.w != el.h else { return }
+            guard !wasFramed, el.w != el.h, !el.holdsPlace else { return }
             let centre = el.center
             let side = min(el.w, el.h)
             el.w = side

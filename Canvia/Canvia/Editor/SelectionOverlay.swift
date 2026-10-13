@@ -39,14 +39,21 @@ struct SelectionOverlay: View {
             ForEach(selected) { el in
                 if el.isHidden {
                     dashedOutline(el, badge: "eye.slash.fill")
-                } else if selected.count == 1 && el.locked {
-                    dashedOutline(el, badge: "lock.fill")
+                } else if selected.count == 1 && el.holdsPlace {
+                    // A padlock in outline for a position lock, filled for
+                    // a whole one.
+                    dashedOutline(el, badge: ElementLock.symbol(ElementLock.mode(of: el)))
                 } else {
                     outline(el, lineWidth: (selected.count > 1 ? 1 : 1.5) * weight)
                 }
             }
 
-            if let el = store.singleSelection, !el.locked, !el.isHidden, store.editingTextId != el.id {
+            // Select multiple: a tick on everything in the selection.
+            if store.selectingMultiple {
+                ForEach(selected) { el in tick(el) }
+            }
+
+            if let el = store.singleSelection, !el.holdsPlace, !el.isHidden, store.editingTextId != el.id {
                 handleRing(for: el, handles: Touch.handleSet(for: el))
             }
 
@@ -61,7 +68,7 @@ struct SelectionOverlay: View {
                 // The group resizes and turns as one unit from its box.
                 // Corners only: a uniform scale is the only one that keeps
                 // rotated members exact (see Geometry.scale).
-                if selected.contains(where: { !$0.locked }) {
+                if selected.contains(where: { !$0.holdsPlace }) {
                     handleRing(for: Geometry.boxElement(bounds), handles: [.nw, .ne, .se, .sw])
                 }
                 // How many, over the box — but not while a drag's readout is
@@ -106,6 +113,21 @@ struct SelectionOverlay: View {
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+
+    /// Select multiple's tick: a 20-point disc at the top-right corner of
+    /// the element's box, as the Android twin's 20dp one.
+    private func tick(_ el: Element) -> some View {
+        let box = Geometry.aabb(el)
+        return Image(systemName: "checkmark")
+            .font(.system(size: 10 * iz, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: 20 * iz, height: 20 * iz)
+            .background(Circle().fill(Theme.accent))
+            .overlay(Circle().stroke(Color.white, lineWidth: 1.5 * iz))
+            .position(x: box.maxX, y: box.minY)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 
     /// A small label on the canvas, the same size on screen at any zoom,
