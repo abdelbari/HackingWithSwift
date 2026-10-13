@@ -467,13 +467,21 @@ struct FiltersSheet: View {
     @Environment(\.dismiss) private var dismiss
     private let columns = [GridItem(.adaptive(minimum: 84), spacing: 12)]
 
+    /// A code has to stay crisp to scan: no effects for it, and no Auto
+    /// adjust, as it is black and white already.
+    private var isCode: Bool {
+        CodeGenerator.payload(from: store.singleSelection?.src ?? "") != nil
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     presetGrid
+                    strengthSlider
                     duotoneRow
                     adjustmentDials
+                    if !isCode { effectsSection }
                     resetAllButton
                 }
                 .padding()
@@ -486,6 +494,8 @@ struct FiltersSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        // A colour well's last change, which has no release to end its step.
+        .onDisappear { if store.hasPendingChanges { store.commit() } }
     }
 
     private var presetGrid: some View {
@@ -493,7 +503,14 @@ struct FiltersSheet: View {
             ForEach(ImageFilterPreset.allCases) { preset in
                 let active = ImageFilterPreset.from(store.singleSelection?.filter) == preset
                 Button {
-                    store.updateSelected { $0.filter = preset.rawValue }
+                    // The ringed tile again is no change, and no Undo step;
+                    // another filter comes in whole.
+                    if !active {
+                        store.updateSelected {
+                            $0.filter = preset.rawValue
+                            $0.filterStrength = nil
+                        }
+                    }
                 } label: {
                     VStack(spacing: 6) {
                         filterPreview(preset)
@@ -510,8 +527,24 @@ struct FiltersSheet: View {
         }
     }
 
-    /// Every look taken off in one step — filter, dials, duotone,
-    /// straighten and show-whole — leaving where the photo sits alone.
+    /// How much of the chosen filter shows, once there is one: live, one
+    /// step per drag, and all of it written as none.
+    @ViewBuilder
+    private var strengthSlider: some View {
+        let preset = ImageFilterPreset.from(store.singleSelection?.filter)
+        if preset != .none {
+            let value = PhotoLook.strength(store.singleSelection?.filterStrength)
+            effectSlider("\(preset.displayName) strength", value: value, in: 0...1,
+                         readout: "\(Int((value * 100).rounded()))%") { v, el in
+                let strength = (v * 100).rounded() / 100
+                el.filterStrength = strength >= 1 ? nil : strength
+            }
+        }
+    }
+
+    /// Every look taken off in one step — filter and its strength, dials,
+    /// duotone, straighten, show-whole and the effects — leaving where the
+    /// photo sits alone.
     private var resetAllButton: some View {
         Button("Reset photo edits") {
             store.updateSelected { PhotoEdits.reset(&$0) }
@@ -580,19 +613,223 @@ struct FiltersSheet: View {
             HStack {
                 Text("Adjust").font(.headline)
                 Spacer()
+                if !isCode {
+                    Button("Auto adjust") { autoAdjust() }
+                        .font(.callout)
+                        .disabled(store.singleSelection?.src == nil)
+                        .accessibilityHint("Sets the blacks, whites and brightness from the photo itself")
+                }
                 Button("Reset") {
                     store.updateSelected { $0.adjustments = nil }
                 }
                 .font(.callout)
                 .disabled(store.singleSelection?.adjustments?.isNeutral ?? true)
             }
-            dial("Brightness", \.brightness, in: -1...1)
-            dial("Contrast", \.contrast, in: -1...1)
-            dial("Saturation", \.saturation, in: -1...1)
-            dial("Warmth", \.warmth, in: -1...1)
-            dial("Sharpness", \.sharpness, in: -1...1)
-            dial("Vignette", \.vignette, in: 0...1)
+            // The dials in Canva's three groups, each in its order.
+            dialGroup("Light") {
+                dial("Brightness", \.brightness, in: -1...1)
+                dial("Contrast", \.contrast, in: -1...1)
+                dial("Highlights", \.highlights, in: -1...1)
+                dial("Shadows", \.shadows, in: -1...1)
+                dial("Whites", \.whites, in: -1...1)
+                dial("Blacks", \.blacks, in: -1...1)
+            }
+            dialGroup("Colour") {
+                dial("Saturation", \.saturation, in: -1...1)
+                dial("Vibrance", \.vibrance, in: -1...1)
+                dial("Warmth", \.warmth, in: -1...1)
+                dial("Tint", \.tint, in: -1...1)
+            }
+            dialGroup("Texture") {
+                dial("Clarity", \.clarity, in: -1...1)
+                dial("Sharpness", \.sharpness, in: -1...1)
+                dial("Vignette", \.vignette, in: 0...1)
+                dial("Fade", \.fade, in: 0...1)
+            }
             curveRow
+        }
+    }
+
+    /// A group of dials under its name — Light, Colour, Texture.
+    private func dialGroup<Dials: View>(_ name: String, @ViewBuilder _ dials: () -> Dials) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(name)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.top, 4)
+                .accessibilityAddTraits(.isHeader)
+            dials()
+        }
+    }
+
+    /// Blacks, whites and brightness read off the picture's own lightness,
+    /// drawn at 64 × 64 (see `PhotoLook.autoAdjust`), as one step with the
+    /// other dials kept — none when they are already so.
+    private func autoAdjust() {
+        guard let photo = store.singleSelection,
+              let picture = PhotoLibrary.resolve(VideoStore.atRest(photo)),
+              let histogram = PhotoLook.histogram(of: picture) else { return }
+        let adjusted = PhotoLook.autoAdjusted(photo.adjustments, histogram: histogram)
+        let next = adjusted.isNeutral ? nil : adjusted
+        guard next != photo.adjustments else { return }
+        store.updateSelected { $0.adjustments = next }
+    }
+
+    // MARK: effects
+
+    /// The photo's effects, a chip each — Blur, Pixelate, Focus, Outline and
+    /// Glow — a tap turning one on at its usual setting, or off, as one step;
+    /// the dials of each that is on beneath, live and one step per drag.
+    /// Blur is the sharpness dial below zero; an outline and a glow are the
+    /// one edge, of two kinds, with its own colour well.
+    private var effectsSection: some View {
+        let photo = store.singleSelection
+        let sharpness = photo?.adjustments?.sharpness ?? 0
+        let blurred = sharpness < 0
+        let focus = photo?.focusBlur
+        let edge = photo?.edge
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("Effects").font(.headline)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    effectChip("Blur", on: blurred) { el in
+                        el.setAdjustment(\.sharpness, to: blurred ? 0 : -PhotoEffects.defaultBlur)
+                    }
+                    effectChip("Pixelate", on: photo?.pixelate != nil) { el in
+                        el.pixelate = el.pixelate == nil ? PhotoEffects.defaultPixelate : nil
+                    }
+                    effectChip("Focus", on: focus != nil) { el in
+                        el.focusBlur = el.focusBlur == nil ? FocusBlur() : nil
+                    }
+                    edgeChip("outline", "Outline", current: edge)
+                    edgeChip("glow", "Glow", current: edge)
+                }
+                .padding(.vertical, 2)
+            }
+            if blurred {
+                effectSlider("Blur", value: -sharpness, in: 0.01...1,
+                             readout: "\(Int((-sharpness * 100).rounded()))") { v, el in
+                    el.setAdjustment(\.sharpness, to: -max(1, (v * 100).rounded()) / 100)
+                }
+            }
+            if let pixelate = photo?.pixelate {
+                effectSlider("Pixel size", value: pixelate, in: 0.01...1,
+                             readout: "\(Int((pixelate * 100).rounded()))") { v, el in
+                    el.pixelate = max(1, (v * 100).rounded()) / 100
+                }
+            }
+            if let focus { focusControls(focus) }
+            if let edge { edgeControls(edge) }
+        }
+    }
+
+    private func effectChip(_ name: String, on: Bool, _ toggle: @escaping (inout Element) -> Void) -> some View {
+        Button {
+            store.updateSelected { el in
+                guard el.type == .image else { return }
+                toggle(&el)
+            }
+        } label: {
+            Text(name)
+                .font(.callout)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(on ? Theme.accent.opacity(0.18) : Color(.systemGray6)))
+                .overlay(Capsule().stroke(on ? Theme.accent : Theme.hairline, lineWidth: on ? 2 : 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(on ? .isSelected : [])
+    }
+
+    /// An outline or a glow; from one kind to the other keeps the size and
+    /// colour.
+    private func edgeChip(_ kind: String, _ name: String, current edge: PhotoEdge?) -> some View {
+        let on = edge.map { ($0.kind == "glow") == (kind == "glow") } ?? false
+        return effectChip(name, on: on) { el in
+            if on {
+                el.edge = nil
+            } else if var mine = el.edge {
+                mine.kind = kind
+                el.edge = mine
+            } else {
+                el.edge = PhotoEdge(kind: kind, color: kind == "glow" ? PhotoEffects.glowColour : "#ffffff")
+            }
+        }
+    }
+
+    /// A share to the hundredth, as the sliders step.
+    private static func hundredths(_ v: Double) -> Double { (v * 100).rounded() / 100 }
+
+    private static func percent(_ v: Double) -> String { "\(Int((v * 100).rounded()))%" }
+
+    @ViewBuilder
+    private func focusControls(_ focus: FocusBlur) -> some View {
+        effectSlider("Focus size", value: focus.radius, in: 0...1, readout: Self.percent(focus.radius)) { v, el in
+            el.focusBlur?.radius = Self.hundredths(v)
+        }
+        effectSlider("Background blur", value: focus.amount, in: 0.01...1,
+                     readout: "\(Int((focus.amount * 100).rounded()))") { v, el in
+            el.focusBlur?.amount = max(0.01, Self.hundredths(v))
+        }
+        effectSlider("Focus across", value: focus.x, in: 0...1, readout: Self.percent(focus.x)) { v, el in
+            el.focusBlur?.x = Self.hundredths(v)
+        }
+        effectSlider("Focus down", value: focus.y, in: 0...1, readout: Self.percent(focus.y)) { v, el in
+            el.focusBlur?.y = Self.hundredths(v)
+        }
+        Toggle("Keep the subject sharp", isOn: Binding(
+            get: { focus.subject },
+            set: { on in store.updateSelected { $0.focusBlur?.subject = on } }))
+            .font(.subheadline)
+    }
+
+    @ViewBuilder
+    private func edgeControls(_ edge: PhotoEdge) -> some View {
+        let name = PhotoEffects.isGlow(edge) ? "Glow" : "Outline"
+        effectSlider("\(name) size", value: edge.width, in: 1...100,
+                     readout: "\(Int(edge.width.rounded()))") { v, el in
+            el.edge?.width = v.rounded()
+        }
+        HStack {
+            Text("\(name) colour").font(.subheadline)
+            Spacer()
+            ColorPicker("", selection: Binding(
+                get: { Color(hex: edge.color) },
+                set: { color in
+                    let hex = UIColor(color).hexString
+                    store.updateSelectedTransient { $0.edge?.color = hex }
+                }), supportsOpacity: false)
+                .labelsHidden()
+                .accessibilityLabel("\(name) colour")
+        }
+    }
+
+    /// A named slider with its readout, live under the thumb and one undo
+    /// step when let go.
+    private func effectSlider(_ label: String, value: Double, in range: ClosedRange<Double>, readout: String,
+                              _ set: @escaping (Double, inout Element) -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(label).font(.subheadline)
+                Spacer()
+                Text(readout)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityHidden(true)
+            Slider(value: Binding(
+                get: { value },
+                set: { v in
+                    store.updateSelectedTransient { el in
+                        guard el.type == .image else { return }
+                        set(v, &el)
+                    }
+                }
+            ), in: range, onEditingChanged: { editing in
+                if !editing { store.commit() }
+            })
+            .accessibilityLabel(label)
+            .accessibilityValue(readout)
         }
     }
 
@@ -637,13 +874,7 @@ struct FiltersSheet: View {
             Slider(value: Binding(
                 get: { current[keyPath: key] },
                 set: { value in
-                    store.updateSelectedTransient { el in
-                        var adjustments = el.adjustments ?? .neutral
-                        adjustments[keyPath: key] = value
-                        // Back to nil when every dial is centred, so an
-                        // untouched image keeps the filter cache key it had.
-                        el.adjustments = adjustments.isNeutral ? nil : adjustments
-                    }
+                    store.updateSelectedTransient { $0.setAdjustment(key, to: value) }
                 }
             ), in: range, onEditingChanged: { editing in
                 if !editing { store.commit() }
@@ -660,10 +891,14 @@ struct FiltersSheet: View {
                 // Filter a small copy: ten full-size variants of a 1200x900
                 // artwork would be ~43 MB for a row of 76pt thumbnails.
                 let base = PhotoLibrary.preview(full, key: src)
+                // The chosen tile at the photo's strength; the rest as a tap
+                // on them gives them, whole.
+                let chosen = ImageFilterPreset.from(store.singleSelection?.filter) == preset
                 Image(uiImage: ImageFilterEngine.apply(
                     preset,
                     adjustments: store.singleSelection?.adjustments ?? .neutral,
                     duotone: store.singleSelection?.duotone,
+                    strength: chosen ? PhotoLook.strength(store.singleSelection?.filterStrength) : 1,
                     to: base, cacheKey: src + "|preview"))
                     .resizable()
                     .aspectRatio(contentMode: .fill)

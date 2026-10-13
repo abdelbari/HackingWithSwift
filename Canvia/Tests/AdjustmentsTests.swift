@@ -73,7 +73,8 @@ final class AdjustmentsTests: XCTestCase {
     func testTheSignatureChangesWithEveryDial() {
         var seen = Set<String>([Adjustments().signature])
         let dials: [WritableKeyPath<Adjustments, Double>] =
-            [\.brightness, \.contrast, \.saturation, \.warmth, \.sharpness, \.vignette]
+            [\.brightness, \.contrast, \.saturation, \.warmth, \.sharpness, \.vignette,
+             \.tint, \.highlights, \.shadows, \.whites, \.blacks, \.vibrance, \.clarity, \.fade]
         for dial in dials {
             var a = Adjustments()
             a[keyPath: dial] = 0.5
@@ -192,6 +193,440 @@ final class AdjustmentsTests: XCTestCase {
         DesignStore.apply(DesignStore.style(of: source), to: &target)
         XCTAssertEqual(target.adjustments, a)
         XCTAssertEqual(target.src, "asset:b", "the picture itself was overwritten")
+    }
+}
+
+// MARK: - the shared maths
+
+/// The colour maths both phones share, row for row with the Android twin's
+/// PhotoLookTest: a colour in, the filter at its strength and the dials, a
+/// colour out. Change a number here and there together.
+final class PhotoLookTests: XCTestCase {
+
+    private func dials(_ change: (inout Adjustments) -> Void) -> Adjustments {
+        var a = Adjustments()
+        change(&a)
+        return a
+    }
+
+    /// One row of the shared table: a colour, 0xRRGGBB, through a filter at
+    /// a strength and the dials, and what it becomes. With `around`, the
+    /// row is clarity's one-pixel step instead: the colour lifted by its
+    /// lightness less the lightness `around` it, the dial times.
+    private struct Row {
+        let name: String
+        let input: Int
+        let output: Int
+        var adjustments = Adjustments()
+        var filter: String? = nil
+        var strength: Double? = nil
+        var around: Float? = nil
+    }
+
+    /// The Android twin's PhotoLookTest has these rows, in this order,
+    /// value for value.
+    private var table: [Row] {
+        [
+            Row(name: "untouched", input: 0xc86432, output: 0xc86432),
+            Row(name: "tint +1", input: 0x808080, output: 0x887188, adjustments: dials { $0.tint = 1 }),
+            Row(name: "tint -0.5", input: 0xc86432, output: 0xc26a31, adjustments: dials { $0.tint = -0.5 }),
+            Row(name: "fade 1, black", input: 0x000000, output: 0x262626, adjustments: dials { $0.fade = 1 }),
+            Row(name: "fade 1, white", input: 0xffffff, output: 0xffffff, adjustments: dials { $0.fade = 1 }),
+            Row(name: "fade 0.5", input: 0xc86432, output: 0xcc7041, adjustments: dials { $0.fade = 0.5 }),
+            Row(name: "highlights +1", input: 0xbfbfbf, output: 0xe5e5e5, adjustments: dials { $0.highlights = 1 }),
+            Row(name: "highlights -1", input: 0xbfbfbf, output: 0x999999, adjustments: dials { $0.highlights = -1 }),
+            Row(name: "shadows -1", input: 0x404040, output: 0x1a1a1a, adjustments: dials { $0.shadows = -1 }),
+            Row(name: "shadows +1", input: 0x404040, output: 0x666666, adjustments: dials { $0.shadows = 1 }),
+            Row(name: "whites +1", input: 0xe6e6e6, output: 0xffffff, adjustments: dials { $0.whites = 1 }),
+            Row(name: "whites -1", input: 0xffffff, output: 0xd9d9d9, adjustments: dials { $0.whites = -1 }),
+            Row(name: "blacks -1", input: 0x141414, output: 0x000000, adjustments: dials { $0.blacks = -1 }),
+            Row(name: "blacks +0.5", input: 0x000000, output: 0x131313, adjustments: dials { $0.blacks = 0.5 }),
+            Row(name: "vibrance +1", input: 0x967864, output: 0xaa7450, adjustments: dials { $0.vibrance = 1 }),
+            Row(name: "vibrance -1", input: 0x967864, output: 0x827c78, adjustments: dials { $0.vibrance = -1 }),
+            Row(name: "vibrance +1, pure red", input: 0xff0000, output: 0xff0000, adjustments: dials { $0.vibrance = 1 }),
+            Row(name: "clarity +0.5", input: 0x6496c8, output: 0x6ea0d2, adjustments: dials { $0.clarity = 0.5 }, around: 120),
+            Row(name: "clarity -1", input: 0x6496c8, output: 0x77a9db, adjustments: dials { $0.clarity = -1 }, around: 160),
+            Row(name: "mono at 0.5", input: 0xc86432, output: 0x9e6c53, filter: "mono", strength: 0.5),
+            Row(name: "noir at 0", input: 0xc86432, output: 0xc86432, filter: "noir", strength: 0),
+            Row(name: "vivid at 1", input: 0xc86432, output: 0xff5b01, filter: "vivid"),
+            Row(name: "warm at 0.25", input: 0xc86432, output: 0xca6935, filter: "warm", strength: 0.25),
+            Row(name: "brightness +0.5", input: 0x646464, output: 0x919191, adjustments: dials { $0.brightness = 0.5 }),
+            Row(name: "contrast -0.5, saturation +1", input: 0xc86432, output: 0xec601a,
+                adjustments: dials { $0.contrast = -0.5; $0.saturation = 1 }),
+            Row(name: "warmth +1", input: 0x808080, output: 0x8f8371, adjustments: dials { $0.warmth = 1 }),
+            Row(name: "retro at 0.6, tint, shadows, vibrance and fade", input: 0x3c78b4, output: 0x5f7db3,
+                adjustments: dials { $0.tint = 0.3; $0.shadows = 0.4; $0.vibrance = 0.5; $0.fade = 0.2 },
+                filter: "retro", strength: 0.6),
+            // The preset curve first, then the light dials' curve.
+            Row(name: "S-curve then highlights", input: 0xb4a08c, output: 0xd8bb96,
+                adjustments: dials { $0.curve = "scurve"; $0.highlights = 0.5 }),
+        ]
+    }
+
+    func testTheSharedTable() {
+        XCTAssertGreaterThanOrEqual(table.count, 12)
+        for row in table {
+            let out: Int
+            if let around = row.around {
+                out = PhotoLook.lifted(row.input, light: PhotoLook.lightness(row.input), around: around,
+                                       k: Float(row.adjustments.clarity))
+            } else {
+                out = PhotoLook.pixel(row.input, filter: row.filter, adjustments: row.adjustments, strength: row.strength)
+            }
+            XCTAssertEqual(String(format: "%06x", out), String(format: "%06x", row.output), row.name)
+        }
+    }
+
+    /// Clarity on a whole picture: a hard edge between two greys comes out
+    /// harder with the dial up and softer with it down, flat ground stays
+    /// as it was, and nothing is done at zero.
+    func testClarityLiftsAndSoftensTheDetail() {
+        let width = 40, height = 20
+        func picture() -> [UInt8] {
+            var bytes = [UInt8](repeating: 255, count: width * height * 4)
+            for y in 0..<height {
+                for x in 0..<width {
+                    let v: UInt8 = x < width / 2 ? 64 : 192
+                    for c in 0..<3 { bytes[(y * width + x) * 4 + c] = v }
+                }
+            }
+            return bytes
+        }
+        func level(_ bytes: [UInt8], x: Int) -> Int { Int(bytes[(10 * width + x) * 4]) }
+        var up = picture()
+        PhotoLook.clarify(&up, width: width, height: height, amount: 1)
+        var down = picture()
+        PhotoLook.clarify(&down, width: width, height: height, amount: -1)
+        var none = picture()
+        PhotoLook.clarify(&none, width: width, height: height, amount: 0)
+        XCTAssertEqual(none, picture())
+        // Next to the edge, the dark side darker and the light side lighter…
+        XCTAssertLessThan(level(up, x: 19), 64)
+        XCTAssertGreaterThan(level(up, x: 20), 192)
+        // …or the two drawn towards each other, below zero.
+        XCTAssertGreaterThan(level(down, x: 19), 64)
+        XCTAssertLessThan(level(down, x: 20), 192)
+        // Far from it, untouched.
+        XCTAssertEqual(level(up, x: 0), 64)
+        XCTAssertEqual(level(down, x: 39), 192)
+    }
+
+    /// The Gaussian is the Android twin's: it keeps a flat plane flat and
+    /// its total about the same, at both of its sizes.
+    func testTheGaussianKeepsAFlatPlaneFlat() {
+        for sigma in [1.0, 4.0] {
+            var flat = [Float](repeating: 100, count: 30 * 20)
+            PhotoLook.gauss(&flat, width: 30, height: 20, sigma: sigma)
+            for v in flat { XCTAssertEqual(v, 100, accuracy: 1e-3) }
+        }
+    }
+
+    /// (what, histogram, brightness, whites, blacks)
+    private var autoTable: [(String, [Int], Double, Double, Double)] {
+        func levels(_ change: (inout [Int]) -> Void) -> [Int] {
+            var h = [Int](repeating: 0, count: 256)
+            change(&h)
+            return h
+        }
+        return [
+            ("one grey", levels { $0[128] = 4096 }, 0, 1, -1),
+            ("every level alike", [Int](repeating: 16, count: 256), 0, 0.03, -0.03),
+            ("dark", levels { for i in 10...90 { $0[i] = 50 } }, 0, 1, -0.26),
+            ("bright", levels { $0[200] = 2000; $0[250] = 2096 }, -0.5, 0.13, -1),
+            ("a speck of black", levels { $0[0] = 100; for i in 40...200 { $0[i] = 25 } }, -0.09, 1, 0),
+            ("nothing", levels { _ in }, 0, 0, 0),
+        ]
+    }
+
+    func testAutoAdjustReadsTheHistogram() {
+        for (what, histogram, brightness, whites, blacks) in autoTable {
+            XCTAssertEqual(PhotoLook.autoAdjust(histogram),
+                           PhotoLook.Auto(brightness: brightness, whites: whites, blacks: blacks), what)
+        }
+    }
+
+    /// Clear pixels are not counted; a half-clear one counts at its colour.
+    func testTheHistogramCountsLightnessByRec709() {
+        let pixels = [0xff000000, 0xffffffff, 0xff808080, 0x00ffffff, 0xffc86432, 0x80ff0000]
+        let counts = PhotoLook.histogram(pixels)
+        XCTAssertEqual(counts.reduce(0, +), 5)
+        for level in [0, 54, 118, 128, 255] { XCTAssertEqual(counts[level], 1, "level \(level)") }
+    }
+
+    /// The picture auto adjust reads, boiled down cell by cell, colour
+    /// weighted by alpha; the Android twin's PhotoLookTest checks the same.
+    func testThePictureIsBoiledDownCellByCell() {
+        let pixels = [
+            0xff000000, 0xffffffff, 0xff808080,
+            0xff102030, 0x00ff0000, 0x80ff0000,
+            0xff000000, 0xff000000, 0xff0000ff,
+        ]
+        // Three to two: the first cell one pixel across, the second two.
+        let cells = PhotoLook.reduced(pixels, width: 3, height: 3, side: 2)
+        XCTAssertEqual(cells.map { String(format: "%08x", $0) }, ["ff000000", "ffc0c0c0", "ff081018", "a0330066"])
+        // Nothing but clear pixels is clear; a picture smaller than the
+        // cells repeats its pixels.
+        XCTAssertEqual(PhotoLook.reduced([0x00ffffff], width: 1, height: 1, side: 2)[0], 0)
+        XCTAssertEqual(PhotoLook.reduced([0xff336699], width: 1, height: 1, side: 2), [Int](repeating: 0xff336699, count: 4))
+        XCTAssertEqual(PhotoLook.reduced([Int](repeating: 0xffffffff, count: 100 * 70), width: 100, height: 70).count, 64 * 64)
+    }
+
+    /// Auto adjust sets its three dials and keeps the rest.
+    func testAutoAdjustKeepsTheOtherDials() {
+        var before = Adjustments()
+        before.warmth = 0.4
+        before.whites = -0.2
+        let after = PhotoLook.autoAdjusted(before, histogram: [Int](repeating: 16, count: 256))
+        XCTAssertEqual(after.warmth, 0.4)
+        XCTAssertEqual(after.whites, 0.03)
+        XCTAssertEqual(after.blacks, -0.03)
+        XCTAssertEqual(after.brightness, 0)
+    }
+
+    func testTheLightDialsAreFivePoints() {
+        XCTAssertNil(ToneCurve.light(highlights: 0, shadows: 0, whites: 0, blacks: 0))
+        let points = ToneCurve.light(highlights: 1, shadows: -1, whites: 1, blacks: -1)
+        XCTAssertEqual(points, [CGPoint(x: 0.15, y: 0), CGPoint(x: 0.25, y: 0.1), CGPoint(x: 0.5, y: 0.5),
+                                CGPoint(x: 0.75, y: 0.9), CGPoint(x: 0.85, y: 1)])
+        let lifted = ToneCurve.light(highlights: 0, shadows: 0, whites: -1, blacks: 1)
+        XCTAssertEqual(lifted?.first, CGPoint(x: 0, y: 0.15))
+        XCTAssertEqual(lifted?.last, CGPoint(x: 1, y: 0.85))
+        // Crushed: black from the first point down.
+        let crush = ToneCurve.table(ToneCurve.light(highlights: 0, shadows: 0, whites: 0, blacks: -1) ?? [])
+        XCTAssertEqual(crush[0], 0)
+        XCTAssertEqual(crush[38], 0)
+        XCTAssertEqual(crush[128], 128)
+        XCTAssertEqual(crush[255], 255)
+    }
+
+    /// A curve through points on the diagonal is the diagonal.
+    func testAStraightCurveChangesNothing() {
+        let line = (0...4).map { CGPoint(x: Double($0) / 4, y: Double($0) / 4) }
+        XCTAssertEqual(ToneCurve.table(line), Array(0...255))
+    }
+
+    func testStrengthIsAShareOfTheFilter() {
+        XCTAssertEqual(PhotoLook.strength(nil), 1)
+        XCTAssertEqual(PhotoLook.strength(0.4), 0.4)
+        XCTAssertEqual(PhotoLook.strength(-2), 0)
+        XCTAssertEqual(PhotoLook.strength(.nan), 1)
+        let vivid = PhotoLook.preset(.vivid)
+        XCTAssertTrue(vivid.partly(0).isIdentity)
+        for (whole, all) in zip(vivid.m, vivid.partly(1).m) { XCTAssertEqual(whole, all, accuracy: 1e-12) }
+        XCTAssertNil(PhotoLook.preMatrix("vivid", nil, strength: 0))
+        XCTAssertNil(PhotoLook.preMatrix(nil, nil, strength: nil))
+    }
+
+    // MARK: drawn by Core Image
+
+    private func flat(_ hex: Int, size: Int = 16) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let color = UIColor(red: CGFloat((hex >> 16) & 0xff) / 255, green: CGFloat((hex >> 8) & 0xff) / 255,
+                            blue: CGFloat(hex & 0xff) / 255, alpha: 1)
+        return UIGraphicsImageRenderer(size: CGSize(width: size, height: size), format: format).image { ctx in
+            color.setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: size, height: size))
+        }
+    }
+
+    private func centre(_ image: UIImage) throws -> Int {
+        let cg = try XCTUnwrap(image.cgImage)
+        var pixel: [UInt8] = [0, 0, 0, 0]
+        try pixel.withUnsafeMutableBytes { raw in
+            let ctx = try XCTUnwrap(CGContext(
+                data: raw.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            ctx.draw(cg, in: CGRect(x: -cg.width / 2, y: -cg.height / 2, width: cg.width, height: cg.height))
+        }
+        return (Int(pixel[0]) << 16) | (Int(pixel[1]) << 8) | Int(pixel[2])
+    }
+
+    /// The engine draws the new dials as the shared maths says, within a
+    /// few levels: they run on the values a picture stores, not on Core
+    /// Image's linear light.
+    func testTheEngineDrawsWhatTheTableSays() throws {
+        let rows: [(String, Int, String?, Adjustments, Double?)] = [
+            ("tint", 0x808080, nil, dials { $0.tint = 1 }, nil),
+            ("fade", 0x000000, nil, dials { $0.fade = 1 }, nil),
+            ("shadows", 0x404040, nil, dials { $0.shadows = -1 }, nil),
+            ("blacks", 0x000000, nil, dials { $0.blacks = 0.5 }, nil),
+            ("vibrance", 0x967864, nil, dials { $0.vibrance = 1 }, nil),
+            ("noir at none", 0xc86432, "noir", Adjustments(), 0),
+        ]
+        for (what, input, filter, adjustments, strength) in rows {
+            let drawn = try centre(ImageFilterEngine.apply(
+                ImageFilterPreset.from(filter), adjustments: adjustments, duotone: nil,
+                strength: PhotoLook.strength(strength), to: flat(input), cacheKey: UUID().uuidString))
+            let shared = PhotoLook.pixel(input, filter: filter, adjustments: adjustments, strength: strength)
+            for shift in [16, 8, 0] {
+                XCTAssertEqual(Double((drawn >> shift) & 0xff), Double((shared >> shift) & 0xff),
+                               accuracy: 6, "\(what), channel \(shift)")
+            }
+        }
+    }
+
+    /// The red level of `image` at (`x`, `y`), from the top left.
+    private func level(_ image: UIImage, x: Int, y: Int) throws -> Int {
+        let cg = try XCTUnwrap(image.cgImage)
+        var pixel: [UInt8] = [0, 0, 0, 0]
+        try pixel.withUnsafeMutableBytes { raw in
+            let ctx = try XCTUnwrap(CGContext(
+                data: raw.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            ctx.interpolationQuality = .none
+            ctx.draw(cg, in: CGRect(x: -x, y: -(cg.height - 1 - y), width: cg.width, height: cg.height))
+        }
+        return Int(pixel[0])
+    }
+
+    /// Dark grey on the left half, light grey on the right.
+    private func twoGreys(width: Int = 64, height: Int = 32) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        return UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: format).image { ctx in
+            UIColor(white: 64.0 / 255, alpha: 1).setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: width / 2, height: height))
+            UIColor(white: 192.0 / 255, alpha: 1).setFill()
+            ctx.fill(CGRect(x: width / 2, y: 0, width: width - width / 2, height: height))
+        }
+    }
+
+    /// The engine draws clarity with the shared step: up, the edge between
+    /// the greys grows harder; down — which the Android twin draws too —
+    /// it softens.
+    func testTheEngineSharpensAndSoftensWithClarity() throws {
+        let source = twoGreys()
+        let dark = try level(source, x: 31, y: 16), light = try level(source, x: 32, y: 16)
+        let up = ImageFilterEngine.apply(.none, adjustments: dials { $0.clarity = 1 }, duotone: nil,
+                                         to: source, cacheKey: UUID().uuidString)
+        XCTAssertLessThan(try level(up, x: 31, y: 16), dark - 5)
+        XCTAssertGreaterThan(try level(up, x: 32, y: 16), light + 5)
+        let down = ImageFilterEngine.apply(.none, adjustments: dials { $0.clarity = -1 }, duotone: nil,
+                                           to: source, cacheKey: UUID().uuidString)
+        XCTAssertGreaterThan(try level(down, x: 31, y: 16), dark + 5)
+        XCTAssertLessThan(try level(down, x: 32, y: 16), light - 5)
+        // Far from the edge, nothing to lift.
+        XCTAssertEqual(Double(try level(down, x: 2, y: 16)), Double(dark), accuracy: 2)
+    }
+
+    /// The vignette is laid over the effects, as on the Android twin: over
+    /// pixelate's blocks it still fades smoothly, so the corner of a block
+    /// is darker than the same block's middle-most pixel.
+    func testTheVignetteFadesOverTheBlocks() throws {
+        let drawn = ImageFilterEngine.apply(.none, adjustments: dials { $0.vignette = 1 }, duotone: nil,
+                                            effects: PhotoEffects.Plan(block: 32), to: flat(0xc0c0c0, size: 64),
+                                            cacheKey: UUID().uuidString)
+        XCTAssertLessThan(try level(drawn, x: 0, y: 0), try level(drawn, x: 31, y: 31) - 5)
+    }
+
+    // MARK: the file
+
+    /// The dials that came later are written only once moved, so a photo
+    /// nobody has turned them on is saved exactly as before.
+    func testTheLaterDialsAreWrittenOnlyOnceMoved() throws {
+        var a = Adjustments()
+        a.brightness = 0.2
+        let plain = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(a)) as? [String: Any])
+        XCTAssertEqual(Set(plain.keys), ["brightness", "contrast", "saturation", "warmth", "sharpness", "vignette"])
+        a.tint = -0.3
+        a.fade = 0.5
+        a.clarity = 0.1
+        let moved = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(a)) as? [String: Any])
+        XCTAssertEqual(moved["tint"] as? Double, -0.3)
+        XCTAssertEqual(moved["fade"] as? Double, 0.5)
+        XCTAssertEqual(moved["clarity"] as? Double, 0.1)
+        XCTAssertNil(moved["highlights"])
+        XCTAssertEqual(try JSONDecoder().decode(Adjustments.self, from: JSONEncoder().encode(a)), a)
+    }
+
+    func testEveryNewDialReadsFromTheFile() throws {
+        let json = #"{"tint":0.1,"highlights":0.2,"shadows":0.3,"whites":0.4,"blacks":-0.5,"vibrance":0.6,"clarity":0.7,"fade":0.8}"#
+        let a = try JSONDecoder().decode(Adjustments.self, from: Data(json.utf8))
+        XCTAssertEqual([a.tint, a.highlights, a.shadows, a.whites, a.blacks, a.vibrance, a.clarity, a.fade],
+                       [0.1, 0.2, 0.3, 0.4, -0.5, 0.6, 0.7, 0.8])
+        XCTAssertEqual(a.brightness, 0)
+    }
+
+    func testThePhotoKeysAreOmittedAtTheirDefaults() throws {
+        let photo = Element.image("asset:x", w: 100, h: 100)
+        let plain = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(photo)) as? [String: Any])
+        for key in ["filterStrength", "pixelate", "focusBlur", "edge"] { XCTAssertNil(plain[key], key) }
+
+        var edited = photo
+        edited.filterStrength = 0.4
+        edited.pixelate = 0.25
+        edited.focusBlur = FocusBlur(x: 0.2, y: 0.7, radius: 0.1, amount: 0.9, subject: true)
+        edited.edge = PhotoEdge(kind: "glow", color: "#ffe066", width: 45)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(edited)) as? [String: Any])
+        XCTAssertEqual(object["filterStrength"] as? Double, 0.4)
+        XCTAssertEqual(object["pixelate"] as? Double, 0.25)
+        let focus = try XCTUnwrap(object["focusBlur"] as? [String: Any])
+        XCTAssertEqual(Set(focus.keys), ["x", "y", "radius", "amount", "subject"])
+        let edge = try XCTUnwrap(object["edge"] as? [String: Any])
+        XCTAssertEqual(edge["kind"] as? String, "glow")
+        XCTAssertEqual(edge["color"] as? String, "#ffe066")
+        XCTAssertEqual(edge["width"] as? Double, 45)
+        XCTAssertEqual(try JSONDecoder().decode(Element.self, from: JSONEncoder().encode(edited)), edited)
+    }
+
+    /// Written at their defaults by some other build, they read as unset;
+    /// a partial object reads with the rest at its defaults.
+    func testThePhotoKeysReadForgivingly() throws {
+        let json = #"{"id":"el_1","type":"image","src":"asset:x","w":10,"h":10,"filterStrength":1,"pixelate":0,"focusBlur":{"x":0.25},"edge":{"kind":"glow"}}"#
+        let el = try JSONDecoder().decode(Element.self, from: Data(json.utf8))
+        XCTAssertNil(el.filterStrength)
+        XCTAssertNil(el.pixelate)
+        XCTAssertEqual(el.focusBlur, FocusBlur(x: 0.25))
+        XCTAssertEqual(el.edge, PhotoEdge(kind: "glow", color: "#ffffff", width: 30))
+        let odd = #"{"id":"el_1","type":"image","filterStrength":-3,"pixelate":4}"#
+        let held = try JSONDecoder().decode(Element.self, from: Data(odd.utf8))
+        XCTAssertEqual(held.filterStrength, 0)
+        XCTAssertEqual(held.pixelate, 1)
+    }
+
+    /// Reset photo edits takes off the new keys too, and keeps the crop.
+    func testResetPhotoEditsTakesOffTheNewKeys() {
+        var photo = Element.image("asset:sun")
+        photo.cropScale = 2
+        let edits: [(String, (inout Element) -> Void)] = [
+            ("filterStrength", { $0.filterStrength = 0.5 }),
+            ("tint", { $0.setAdjustment(\.tint, to: 0.3) }),
+            ("pixelate", { $0.pixelate = 0.2 }),
+            ("focusBlur", { $0.focusBlur = FocusBlur() }),
+            ("edge", { $0.edge = PhotoEdge() }),
+        ]
+        for (name, edit) in edits {
+            var el = photo
+            edit(&el)
+            XCTAssertTrue(PhotoEdits.any(el), name)
+            XCTAssertTrue(DesignStore.hasLook(el), name)
+            PhotoEdits.reset(&el)
+            XCTAssertFalse(PhotoEdits.any(el), name)
+            XCTAssertEqual(el.cropScale, 2, name)
+        }
+    }
+
+    /// A dial put back to the middle leaves no adjustments behind.
+    func testADialBackAtZeroLeavesNoAdjustments() {
+        var el = Element.image("asset:sun")
+        el.setAdjustment(\.vibrance, to: 0.4)
+        XCTAssertEqual(el.adjustments?.vibrance, 0.4)
+        el.setAdjustment(\.vibrance, to: 0)
+        XCTAssertNil(el.adjustments)
+    }
+
+    func testStyleCopyCarriesTheFilterStrength() {
+        var source = Element.image("asset:a", w: 100, h: 100)
+        source.filter = "mono"
+        source.filterStrength = 0.3
+        var target = Element.image("asset:b", w: 50, h: 50)
+        DesignStore.apply(DesignStore.style(of: source), to: &target)
+        XCTAssertEqual(target.filterStrength, 0.3)
     }
 }
 

@@ -387,11 +387,15 @@ struct PageThumbnail: View {
             guard !Task.isCancelled else { return }
             render()
         }
+        // A photo's focus subject, found off the main thread meanwhile.
+        .onChange(of: ImageFilterEngine.subjectsFound.version) { render() }
     }
 
     @MainActor
     private func render() {
-        let renderer = ImageRenderer(content: PageRenderView(design: design, page: page))
+        // On screen, so a focus subject is found off the main thread rather
+        // than holding up the strip; the thumbnail is drawn again when it is.
+        let renderer = ImageRenderer(content: PageRenderView(design: design, page: page).environment(\.onScreen, true))
         renderer.scale = max(0.02, 140 / max(design.size(for: page).width, 1))
         renderer.isOpaque = true
         if let ui = renderer.uiImage { image = ui }

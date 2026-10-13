@@ -469,6 +469,17 @@ struct Element: Codable, Equatable, Identifiable {
     /// Fit the whole picture inside the frame (letterboxed) instead of
     /// filling the frame and cropping. nil is fill.
     var cropFit: Bool?
+    /// How much of the filter shows, 0…1, mixed with the picture without
+    /// it; nil is all of it, and 1 is never written.
+    var filterStrength: Double?
+    /// 0…1: the picture in blocks 2 + 48 × this page units across; nil is
+    /// none.
+    var pixelate: Double?
+    /// Sharp about a point (or round the subject), blurred beyond; nil is
+    /// none.
+    var focusBlur: FocusBlur?
+    /// An outline or a glow round what the photo shows; nil is none.
+    var edge: PhotoEdge?
     /// For a clip ("video:" source): its trim, speed, loop and sound. Never a
     /// clip at all its defaults — that is nil, and no key in the file.
     var clip: ClipPlayback?
@@ -570,6 +581,14 @@ struct Element: Codable, Equatable, Identifiable {
         cropY = try? c.decode(Double.self, forKey: .cropY)
         straighten = try? c.decode(Double.self, forKey: .straighten)
         cropFit = try? c.decode(Bool.self, forKey: .cropFit)
+        // At their defaults these are no key at all, so a file that wrote
+        // one there reads as one that did not.
+        filterStrength = (try? c.decode(Double.self, forKey: .filterStrength))
+            .flatMap { $0.isFinite && $0 < 1 ? max(0, $0) : nil }
+        pixelate = (try? c.decode(Double.self, forKey: .pixelate))
+            .flatMap { $0.isFinite && $0 > 0 ? min(1, $0) : nil }
+        focusBlur = try? c.decode(FocusBlur.self, forKey: .focusBlur)
+        edge = try? c.decode(PhotoEdge.self, forKey: .edge)
         clip = (try? c.decode(ClipPlayback.self, forKey: .clip)).flatMap { $0.isDefault ? nil : $0 }
         glyph = try? c.decode(String.self, forKey: .glyph)
         thickness = try? c.decode(Double.self, forKey: .thickness)
@@ -605,6 +624,7 @@ struct Element: Codable, Equatable, Identifiable {
         case spans, spansText
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit, clip
+        case filterStrength, pixelate, focusBlur, edge
         case glyph
         case thickness, dash, startCap, endCap
     }

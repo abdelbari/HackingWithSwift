@@ -199,6 +199,8 @@ struct CanvasView: View {
                 // While Play runs, a clip shows the frames decoded so far
                 // rather than holding up the canvas for each one.
                 .environment(\.liveVideo, store.previewTime != nil)
+                // A photo's subject is found for focus off the main thread.
+                .environment(\.onScreen, true)
                 // Carries the document edge in dark mode, where a shadow on a
                 // dark workspace is invisible.
                 .overlay(Rectangle().stroke(Theme.hairline, lineWidth: 1 * iz))
@@ -356,6 +358,7 @@ struct CanvasView: View {
             cropPicture(photo, crop)
             ElementView(element: level)
                 .allowsHitTesting(false)
+                .environment(\.onScreen, true)
             cropArt(photo, crop)
         }
         .frame(width: store.pageWidth, height: store.pageHeight)
@@ -372,11 +375,13 @@ struct CanvasView: View {
         let drawn = Crop.drawnPicture(photo, image: crop.imageSize)
         // A trimmed clip shows the frame at its start, as the frame does.
         let src = VideoStore.atRest(photo)
+        // On screen: a focus subject still being found shows the circle, and
+        // the count read here draws it again once it is.
+        let waits = photo.focusBlur?.subject != true
+        if !waits { _ = ImageFilterEngine.subjectsFound.version }
         return ZStack {
             if let ui = PhotoLibrary.resolve(src) {
-                let shown = ImageFilterEngine.apply(ImageFilterPreset.from(photo.filter),
-                                                    adjustments: photo.adjustments ?? .neutral,
-                                                    duotone: photo.duotone, to: ui, cacheKey: src ?? "")
+                let shown = ImageFilterEngine.apply(look: photo, to: ui, cacheKey: src ?? "", waits: waits)
                 Image(uiImage: shown)
                     .resizable()
                     .frame(width: drawn.width, height: drawn.height)
