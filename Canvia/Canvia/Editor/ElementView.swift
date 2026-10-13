@@ -331,6 +331,22 @@ struct TextElementView: View {
             hollow.addAttributes([.strokeWidth: NSNumber(value: fx.stroke / fontSize * 100),
                                   .foregroundColor: UIColor.clear], range: whole)
             hollow.draw(in: rect)
+        case .outlined:
+            // The stroke first and the letters over it, so they keep their
+            // full width. Every run at the same width, a larger word's too,
+            // as the Android twin's paint strokes them: CoreText takes the
+            // width as a share of each run's own size.
+            if fx.stroke > 0 {
+                let ring = NSMutableAttributedString(attributedString: styled)
+                styled.enumerateAttribute(.font, in: whole) { value, part, _ in
+                    let size = Double((value as? UIFont)?.pointSize ?? CGFloat(fontSize))
+                    ring.addAttribute(.strokeWidth, value: NSNumber(value: fx.stroke / max(size, 1) * 100), range: part)
+                }
+                ring.addAttributes([.strokeColor: UIColor(hex: fx.color),
+                                    .foregroundColor: UIColor.clear], range: whole)
+                ring.draw(in: rect)
+            }
+            styled.draw(in: rect)
         case .neon:
             // Multiple passes deepen the glow.
             styled.draw(in: rect)
@@ -343,9 +359,10 @@ struct TextElementView: View {
         // solid text above has already cast whatever shadow or glow the
         // effect asked for, and this replaces its face. Not for the effects
         // that draw the letters as strokes or doubles — a gradient across
-        // an outline is a smear.
+        // an outline is a smear. Outline's letters are filled, so they take
+        // it, the stroke round them left as it is.
         if let fill = el.textFill, fill.kind == "gradient",
-           [.none, .shadow, .lift, .neon, .highlight].contains(effect) {
+           [.none, .shadow, .lift, .outlined, .neon, .highlight].contains(effect) {
             let renderer = UIGraphicsImageRenderer(size: size)
             // The letters as drawn, bold runs and all, so the gradient
             // lands on exactly the glyphs above.
@@ -451,7 +468,8 @@ struct TextElementView: View {
     /// because there is no attributed-string way to bend a baseline. The
     /// effects that survive that are the ones a filled path can carry — the
     /// shadows and the glow; outline and splice become a stroke on the same
-    /// path at the effect's thickness, and glitch and echo become offset fills.
+    /// path at the effect's thickness, Outline a stroke under the filled
+    /// path, and glitch and echo become offset fills.
     private func drawCurvedText(_ resolved: Element, in cg: CGContext, size: CGSize, effect: TextEffect) {
         var el = resolved
         el.w = size.width
@@ -498,6 +516,18 @@ struct TextElementView: View {
                 cg.restoreGState()
             }
             fillParts()
+        case .outlined:
+            // The stroke round the letters, then the letters filled over it.
+            if fx.stroke > 0 {
+                cg.saveGState()
+                cg.setLineWidth(fx.stroke)
+                cg.setLineJoin(.round)
+                cg.setStrokeColor(UIColor(hex: fx.color).cgColor)
+                cg.addPath(path)
+                cg.strokePath()
+                cg.restoreGState()
+            }
+            fallthrough
         default:
             fillParts()
             // The outline is a path, so the gradient clips to it directly —

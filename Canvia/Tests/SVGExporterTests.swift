@@ -234,6 +234,26 @@ final class SVGExporterTests: XCTestCase {
         XCTAssertTrue(isWellFormed(svg))
     }
 
+    /// Outline: a stroke pass in its colour before the letters' fill, so the
+    /// letters keep their full width, as the canvas draws them.
+    @MainActor
+    func testOutlinedTextIsStrokedUnderItsFill() {
+        var el = text("Hello")
+        el.fontSize = 50
+        el.color = "#ffffff"
+        el.effect = TextEffectSpec(type: "outlined", color: "#ff0000")
+        let svg = markup(design(elements: [el]))
+        XCTAssertTrue(svg.contains("fill=\"none\" stroke=\"#ff0000\" stroke-width=\"2\""), svg)
+        let stroke = svg.range(of: "stroke=\"#ff0000\"")
+        let fill = svg.range(of: "fill=\"#ffffff\"")
+        XCTAssertNotNil(stroke)
+        XCTAssertNotNil(fill)
+        if let stroke, let fill { XCTAssertLessThan(stroke.lowerBound, fill.lowerBound, "the stroke first") }
+
+        el.effect = TextEffectSpec(type: "outline")
+        XCTAssertFalse(markup(design(elements: [el])).contains("stroke=\"#"), "Hollow is not exported as Outline")
+    }
+
     @MainActor
     func testEmptyTextExportsNothingRatherThanABrokenTag() {
         let svg = markup(design(elements: [text("")]))

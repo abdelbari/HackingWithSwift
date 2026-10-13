@@ -15,7 +15,7 @@ enum ElementType: String, Codable {
 /// before the settings draws as it did; one at its default is never written.
 /// Settings another type does not use are kept and ignored when drawing.
 struct TextEffectSpec: Codable, Equatable, Hashable {
-    var type: String = "none"     // none|shadow|lift|outline|splice|echo|neon|glitch|highlight
+    var type: String = "none"     // none|shadow|lift|outline|outlined|splice|echo|neon|glitch|highlight
     var offset: Double?           // 0–100
     var direction: Double?        // degrees −180…180; 0 points right, 90 down
     var blur: Double?             // 0–100

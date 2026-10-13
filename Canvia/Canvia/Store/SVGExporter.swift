@@ -205,12 +205,16 @@ enum SVGExporter {
         let d = data(outlines.whole)
         guard !d.isEmpty else { return "" }
         let gradient = el.textFill?.kind == "gradient" && !(el.textFill?.stops ?? []).isEmpty
+        // Outline's stroke as a pass of its own under every fill, as the
+        // canvas strokes all the letters before it fills any.
+        let stroke = outlinedStroke(drawn)
+        let ring = stroke.isEmpty ? "" : "<path d=\"\(d)\" fill=\"none\"\(stroke)/>"
         if !gradient, outlines.parts.contains(where: { $0.color != nil }) {
             // Words in colours of their own: a path for each colour.
             let paths = outlines.parts.map { part in
                 "<path d=\"\(data(part.path))\" fill=\"\(escape(part.color ?? el.color ?? "#1f2430"))\" fill-rule=\"nonzero\"/>"
             }
-            return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + paths.joined() + "</g>"
+            return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + ring + paths.joined() + "</g>"
         }
         let paint: String
         if let fill = el.textFill, fill.kind == "gradient", let stops = fill.stops, !stops.isEmpty {
@@ -225,8 +229,19 @@ enum SVGExporter {
         } else {
             paint = escape(el.color ?? "#1f2430")
         }
-        return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" +
+        return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + ring +
                "<path d=\"\(d)\" fill=\"\(paint)\" fill-rule=\"nonzero\"/></g>"
+    }
+
+    /// Outline's stroke round the letters as path attributes, for a pass
+    /// drawn before the fill so the letters keep their full width; nothing
+    /// for any other effect, or at no thickness.
+    static func outlinedStroke(_ el: Element) -> String {
+        guard TextEffect.from(el.effect) == .outlined else { return "" }
+        let fx = TextEffect.resolve(el.effect, fontSize: el.fontSize ?? 42, ink: el.color ?? "#1f2430")
+        guard fx.stroke > 0 else { return "" }
+        return " stroke=\"\(escape(fx.color))\" stroke-width=\"\(num(fx.stroke))\"" +
+            " stroke-linejoin=\"round\""
     }
 
     /// A shape's words as glyph outlines, set in its text-safe box as the
