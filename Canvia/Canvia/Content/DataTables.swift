@@ -523,7 +523,8 @@ extension DataGraphics {
     /// alone is made a body row, so a table of a header alone grows body
     /// rows, and a copy of the one body row keeps its fonts and colours,
     /// only a cell in that row's own band taking the next band
-    /// (bandedRow). Nil when `rows` has no cell.
+    /// (bandedRow). A merged cell stays where it is, and words at a place
+    /// it covers join its own (cellWords). Nil when `rows` has no cell.
     static func rebuiltTable(_ elements: [Element], id: String, rows: [[String]],
                              heightFor: (Element) -> Double) -> [Element]? {
         guard let wanted = rows.map(\.count).max(), wanted > 0,
@@ -560,14 +561,39 @@ extension DataGraphics {
         let colAt = Dictionary(uniqueKeysWithValues: tableColumns(out, id: id).enumerated().map { ($0.element, $0.offset) })
         out = out.map { el in
             guard el.type == .text, let cell = el.table, cell.id == id,
-                  let r = rowAt[cell.row], let c = colAt[cell.col], r < rows.count else { return el }
-            let words = c < rows[r].count ? rows[r][c] : ""
+                  let r = rowAt[cell.row], r < rows.count, colAt[cell.col] != nil else { return el }
+            let words = cellWords(rows, cell, rowAt: rowAt, colAt: colAt)
             if plainWords(el.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines) == words { return el }
             var set = el
             set.setText(words)
             return set
         }
         return relaidTable(out, id: id, heightFor: heightFor)
+    }
+
+    /// The words `rows` give `cell`: its own place's, and — a merged
+    /// cell's — any a place it covers holds too (the grid's words shifted or
+    /// pasted onto one), each trimmed, joined after its own by line breaks
+    /// in rows from the top and left to right, as merging joins them, so no
+    /// word is lost; its own as they are when the places it covers are
+    /// blank.
+    private static func cellWords(_ rows: [[String]], _ cell: TableCell,
+                                  rowAt: [Int: Int], colAt: [Int: Int]) -> String {
+        func at(_ row: Int, _ col: Int) -> String {
+            guard let r = rowAt[row], let c = colAt[col], r < rows.count, c < rows[r].count else { return "" }
+            return rows[r][c]
+        }
+        let own = at(cell.row, cell.col)
+        var covered: [String] = []
+        for row in cell.spannedRows {
+            for col in cell.spannedCols where row != cell.row || col != cell.col {
+                let words = at(row, col).trimmingCharacters(in: .whitespacesAndNewlines)
+                if !words.isEmpty { covered.append(words) }
+            }
+        }
+        guard !covered.isEmpty else { return own }
+        let mine = own.trimmingCharacters(in: .whitespacesAndNewlines)
+        return ([mine] + covered).filter { !$0.isEmpty }.joined(separator: "\n")
     }
 
     /// Table `id`'s row `row`, a copy of row `from`, banded as its place

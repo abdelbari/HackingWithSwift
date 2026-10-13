@@ -5,8 +5,12 @@
 // + Column add one at the end; and text pasted — with Paste, or into a
 // cell, when it holds tabs or lines — splits into cells from the cell
 // worked last (DataGrid.pasting), as from a spreadsheet. A place a merged
-// cell covers past its own waits, blank: its words are the merged cell's.
-// The Android twin's grid offers the same.
+// cell covers past its own waits, greyed: words pasted onto one join the
+// merged cell's on Update (DataGraphics.rebuiltTable). While a table has a
+// merged cell, the menus add and delete nothing, as the covered places
+// would no longer line up with the words; + Row and + Column, at the end,
+// still work. The Android twin's grid offers the same, its menus beside
+// each row and over each column.
 
 import SwiftUI
 
@@ -80,7 +84,7 @@ struct DataGridEditor: View {
 
     private func cell(_ r: Int, _ c: Int) -> some View {
         let free = !covered.contains([r, c])
-        return TextField("", text: free ? words(r, c) : .constant(""))
+        return TextField("", text: words(r, c))
             .disabled(!free)
             .font(r == 0 && header ? .body.bold() : .body)
             .textInputAutocapitalization(.never)
@@ -113,9 +117,11 @@ struct DataGridEditor: View {
     private func rowMenu(_ r: Int) -> some View {
         Menu {
             Button("Add row above") { cells = DataGrid.addingRow(shown, at: r) }
+                .disabled(!covered.isEmpty)
             Button("Add row below") { cells = DataGrid.addingRow(shown, at: r + 1) }
+                .disabled(!covered.isEmpty)
             Button("Delete row", role: .destructive) { cells = DataGrid.removingRow(shown, at: r) }
-                .disabled(shown.count <= 1)
+                .disabled(shown.count <= 1 || !covered.isEmpty)
         } label: {
             Text("\(r + 1)")
                 .font(.caption.monospacedDigit())
@@ -128,9 +134,11 @@ struct DataGridEditor: View {
     private func columnMenu(_ c: Int) -> some View {
         Menu {
             Button("Add column left") { cells = DataGrid.addingColumn(shown, at: c) }
+                .disabled(!covered.isEmpty)
             Button("Add column right") { cells = DataGrid.addingColumn(shown, at: c + 1) }
+                .disabled(!covered.isEmpty)
             Button("Delete column", role: .destructive) { cells = DataGrid.removingColumn(shown, at: c) }
-                .disabled(width <= 1)
+                .disabled(width <= 1 || !covered.isEmpty)
         } label: {
             Text(DataGrid.columnName(c))
                 .font(.caption.weight(.semibold))
