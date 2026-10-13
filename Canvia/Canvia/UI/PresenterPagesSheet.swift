@@ -1,7 +1,7 @@
-// Present's page grid, to go straight to a page, and its pointer: a press
-// and hold on the page draws a red dot there, which follows the finger and
-// goes when it lifts — on the phone, or with a second screen on the screen
-// at the same place on the page.
+// The presenter's console's page grid, to go straight to a page, and its
+// pointer: a press and hold on the page up draws a red dot on the second
+// screen at the same place on the page, which follows the finger and goes
+// when it lifts.
 
 import SwiftUI
 
@@ -9,25 +9,20 @@ import SwiftUI
 /// dot with the finger; letting go takes it away.
 enum PresenterPointing {
     @MainActor
-    static func gesture(session: PresentSession, in size: CGSize,
-                        began: @escaping () -> Void = {}, ended: @escaping () -> Void = {}) -> some Gesture {
+    static func gesture(session: PresentSession, in size: CGSize) -> some Gesture {
         LongPressGesture(minimumDuration: 0.3)
             .sequenced(before: DragGesture(minimumDistance: 0))
             .onChanged { value in
                 guard case .second(true, let drag?) = value else { return }
-                began()
                 session.pointer = Presenter.pagePoint(drag.location, in: size,
                                                       page: session.design.size(for: session.page))
             }
-            .onEnded { _ in
-                session.pointer = nil
-                ended()
-            }
+            .onEnded { _ in session.pointer = nil }
     }
 }
 
-/// Present's page grid: the pages shown, hidden pages left out, numbered as
-/// the counter numbers them; a tap goes to the page.
+/// The console's page grid, Pages: the pages shown, hidden pages left out,
+/// numbered as the counter numbers them; a tap goes to the page.
 struct PresenterPagesSheet: View {
     let design: Design
     /// The page up, by index.

@@ -57,8 +57,9 @@ struct PresenterConsole<Controls: View>: View {
         }
     }
 
-    /// The talk's timer: a tap pauses or starts it again, a press and hold
-    /// offers Reset as well.
+    /// The talk's timer, as on the Android twin: a tap pauses it or starts
+    /// it again, and a press and hold offers Pause or Resume timer and Reset
+    /// timer.
     private var timer: some View {
         Menu {
             Button(timerPaused ? "Resume timer" : "Pause timer", action: toggleTimer)
@@ -128,10 +129,11 @@ struct PresenterConsole<Controls: View>: View {
                 .font(.headline)
                 .lineLimit(1)
             Spacer()
-            Text(Presenter.pageTime(onPage, hold: session.holdSeconds(session.page)))
+            // "This page 0:07 · holds 2.5 s", read as it is written, as on
+            // the Android twin.
+            Text("This page " + Presenter.pageTime(onPage, hold: session.holdSeconds(session.page)))
                 .font(.subheadline.monospacedDigit())
                 .foregroundStyle(.white.opacity(0.8))
-                .accessibilityLabel("On this page \(Presenter.clockText(onPage)), of \(Presenter.clockText(session.holdSeconds(session.page)))")
         }
     }
 

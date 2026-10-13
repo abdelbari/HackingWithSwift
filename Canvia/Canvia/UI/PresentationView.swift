@@ -12,12 +12,12 @@
 // Pages turn as PageTransitions lays them out, as the video draws them. A
 // page whose elements leave waits, turned by hand, with its exits held where
 // they begin while the rest of it plays on; going on plays them, and the page
-// turns once they are done. A tap on the clock opens the page grid, and a
-// press and hold on the page points at it with a red dot.
+// turns once they are done.
 // With a second screen attached (ExternalDisplay) the slides go there, drawn
 // from the same PresentSession, and the phone shows the presenter's console
-// instead; the screen taken away mid-talk, the phone presents again on the
-// same page. Without one, Present is as it was.
+// instead, with its page grid and pointer; the screen taken away mid-talk,
+// the phone presents again on the same page. Without one, Present is as it
+// was.
 
 import SwiftUI
 
@@ -30,7 +30,7 @@ struct PresentationView: View {
     @State private var session: PresentSession
     @State private var showingNotes = false
     @State private var showingChrome = true
-    /// The page grid, to go straight to a page.
+    /// The console's page grid, to go straight to a page.
     @State private var showingPages = false
     /// When the talk began, for the music.
     @State private var started = Date()
@@ -40,8 +40,6 @@ struct PresentationView: View {
     @State private var autoplayTask: Task<Void, Never>?
     @State private var settleTask: Task<Void, Never>?
     @State private var exitTask: Task<Void, Never>?
-    /// A press and hold is pointing, so the lift that ends it turns no page.
-    @State private var pointing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openURL) private var openURL
     /// Said for a moment when a link has no app here to open it.
@@ -110,6 +108,7 @@ struct PresentationView: View {
             if ExternalDisplay.shared.session === session { ExternalDisplay.shared.session = nil }
         }
         .onReceive(clock) { now = $0 }
+        .onChange(of: ExternalDisplay.shared.attached) { _, attached in displayChanged(attached) }
         .task { heard = await PageSound.heard(in: design) }
         // Silent in the background; on the way back the page's clips start
         // again from its clock, and the music from the talk's.
@@ -125,17 +124,15 @@ struct PresentationView: View {
     }
 
     /// The talk on the phone itself: the page full screen, tap or swipe to
-    /// turn it, press and hold to point, the bar and the notes over it.
+    /// turn it, the bar and the notes over it.
     private func onPhone(in size: CGSize) -> some View {
         ZStack {
             Color.black.ignoresSafeArea()
             PresentStage(session: session, size: size)
                 .gesture(DragGesture(minimumDistance: 30).onEnded { value in
-                    guard !pointing else { return }
                     if value.translation.width < 0 { go(1) } else { go(-1) }
                 })
                 .onTapGesture { location in
-                    guard !pointing else { return }
                     // A linked element opens its link, as a click on it
                     // does in the PDF.
                     if let url = link(at: location, in: size) { open(url) }
@@ -143,7 +140,6 @@ struct PresentationView: View {
                     else if location.x < size.width * 0.33 { go(-1) }
                     else { withAnimation { showingChrome.toggle() } }
                 }
-                .simultaneousGesture(pointerGesture(in: size))
                 .accessibilityLabel(spokenPlace)
                 .accessibilityActions { pageActions }
             if showingChrome { chrome }
@@ -151,12 +147,17 @@ struct PresentationView: View {
         }
     }
 
-    /// Pointing on the phone: the swipe and the tap that hear the same
-    /// lift turn no page, and are let go of once they have.
-    private func pointerGesture(in size: CGSize) -> some Gesture {
-        PresenterPointing.gesture(session: session, in: size, began: { pointing = true }, ended: {
-            DispatchQueue.main.async { pointing = false }
-        })
+    /// A screen attached or taken away. Either way no one is pointing any
+    /// more: a finger held on the console when it goes is never let go of.
+    /// Back on the phone, whose own clock has no pause, the console's grid
+    /// closes and a timer paused there runs on from where it stood, as on
+    /// the Android twin.
+    private func displayChanged(_ attached: Bool) {
+        session.pointer = nil
+        guard !attached else { return }
+        showingPages = false
+        if timer.paused { timer.toggle(at: Date()) }
+        now = Date()
     }
 
     /// Turning the page without a swipe or a tap on its edge, for VoiceOver
@@ -262,10 +263,16 @@ struct PresentationView: View {
     }
 
     /// The link under `location`, in a view of `size` that fits the page as
-    /// PresentStage does; nil where there is none.
+    /// PresentStage does; nil where there is none. Not kept to the page, so
+    /// an element hanging off it opens its link in the margin too.
     private func link(at location: CGPoint, in size: CGSize) -> URL? {
-        guard let point = Presenter.pagePoint(location, in: size, page: design.size(for: page)),
-              let url = Links.at(design: design, page: page, point: point) else { return nil }
+        let pageSize = design.size(for: page)
+        let scale: CGFloat = min(size.width / max(pageSize.width, 1), size.height / max(pageSize.height, 1))
+        guard scale > 0 else { return nil }
+        let dx: CGFloat = (size.width - pageSize.width * scale) / 2
+        let dy: CGFloat = (size.height - pageSize.height * scale) / 2
+        let point = CGPoint(x: (location.x - dx) / scale, y: (location.y - dy) / scale)
+        guard let url = Links.at(design: design, page: page, point: point) else { return nil }
         return URL(string: url)
     }
 
@@ -410,14 +417,9 @@ struct PresentationView: View {
                 Button { dismiss() } label: { Image(systemName: "xmark").padding(10) }
                     .accessibilityLabel("End presentation")
                 Spacer()
-                // A tap on the clock opens the page grid.
-                Button { showingPages = true } label: {
-                    Text(timeString)
-                        .font(.system(.body, design: .monospaced))
-                        .padding(.vertical, 10)
-                }
-                .accessibilityLabel("Elapsed \(timeString)")
-                .accessibilityHint("Shows the pages")
+                Text(timeString)
+                    .font(.system(.body, design: .monospaced))
+                    .accessibilityLabel("Elapsed \(timeString)")
                 Spacer()
                 soundButton
                 autoplayButton
@@ -538,8 +540,10 @@ struct PresentationView: View {
     private func turn(to target: Int?) {
         guard let next = target, next != index, design.pages.indices.contains(next) else { return }
         // Any exits still playing are over; the page leaving keeps its
-        // clock as it was drawn.
+        // clock as it was drawn. The pointer is on the page leaving, so it
+        // goes with it.
         exitTask?.cancel()
+        session.pointer = nil
         let forward = next > index
         // Going on, the page being left decides; going back, the page being
         // returned to, played in reverse. With a hidden page between, that

@@ -25,8 +25,11 @@ final class PresenterViewTests: XCTestCase {
 
     func testTimerFormatting() {
         XCTAssertEqual(Presenter.clockText(0), "0:00")
+        XCTAssertEqual(Presenter.clockText(59), "0:59")
         XCTAssertEqual(Presenter.clockText(725), "12:05")
+        XCTAssertEqual(Presenter.clockText(3599), "59:59")
         XCTAssertEqual(Presenter.clockText(3723), "1:02:03")
+        XCTAssertEqual(Presenter.clockText(-5), "0:00")
         XCTAssertEqual(Presenter.clockText(59.9), "0:59", "whole seconds, rounded down")
         XCTAssertEqual(Presenter.clockText(600), "10:00")
         XCTAssertEqual(Presenter.clockText(3600), "1:00:00", "hours once there is one")
@@ -35,9 +38,14 @@ final class PresenterViewTests: XCTestCase {
         XCTAssertEqual(Presenter.clockText(.nan), "0:00")
     }
 
+    @MainActor
     func testTheTimeOnAPageSitsBesideItsHold() {
-        XCTAssertEqual(Presenter.pageTime(12, hold: 5), "0:12 / 0:05")
-        XCTAssertEqual(Presenter.pageTime(0, hold: 90), "0:00 / 1:30")
+        XCTAssertEqual(Presenter.pageTime(7, hold: 2.5), "0:07 · holds 2.5 s")
+        var d = design(hidden: [false])
+        d.pages[0].holdSeconds = 12
+        let session = PresentSession(design: d)
+        XCTAssertEqual(Presenter.pageTime(65, hold: session.holdSeconds(session.page)), "1:05 · holds 12.0 s")
+        XCTAssertEqual(Presenter.pageTime(0, hold: 0.5), "0:00 · holds 0.5 s", "a hold under a second still said")
     }
 
     func testTheTimerPausesAndResets() {
@@ -80,11 +88,13 @@ final class PresenterViewTests: XCTestCase {
     // MARK: notes
 
     func testNotesTextSteps() {
-        XCTAssertEqual(Presenter.defaultNotesSize, 22)
-        XCTAssertEqual(Presenter.notesSize(22, steps: 1), 24)
-        XCTAssertEqual(Presenter.notesSize(22, steps: -1), 20)
+        XCTAssertEqual(Presenter.defaultNotesSize, 20)
+        XCTAssertEqual(Presenter.notesSize(20, steps: -1), 18)
+        XCTAssertEqual(Presenter.notesSize(20, steps: 1), 22)
         XCTAssertEqual(Presenter.notesSize(14, steps: -1), 14, "never below 14")
+        XCTAssertEqual(Presenter.notesSize(15, steps: -1), 14)
         XCTAssertEqual(Presenter.notesSize(40, steps: 1), 40, "never above 40")
+        XCTAssertEqual(Presenter.notesSize(39, steps: 1), 40)
         XCTAssertEqual(Presenter.notesSize(38, steps: 5), 40)
     }
 

@@ -22,10 +22,11 @@ enum Presenter {
         return String(format: "%d:%02d", minutes, rest)
     }
 
-    /// The time on the page up beside its hold, each as `clockText` writes
-    /// it: "0:12 / 0:05".
+    /// How long the page up has been showing, as `clockText` writes it,
+    /// and how long it holds on autoplay to a tenth of a second, as the
+    /// pages panel says it: "0:07 · holds 2.5 s".
     static func pageTime(_ seconds: Double, hold: Double) -> String {
-        "\(clockText(seconds)) / \(clockText(hold))"
+        "\(clockText(seconds)) · holds \(String(format: "%.1f", hold)) s"
     }
 
     /// The page after page `index` among `visible` (the design's
@@ -43,9 +44,9 @@ enum Presenter {
 
     // MARK: notes
 
-    /// The notes' text size in points: 22 to begin with, A− and A+ stepping
+    /// The notes' text size in points: 20 to begin with, A− and A+ stepping
     /// it by 2 between 14 and 40.
-    static let defaultNotesSize: Double = 22
+    static let defaultNotesSize: Double = 20
     static let notesSizes: ClosedRange<Double> = 14...40
     static let notesStep: Double = 2
 
