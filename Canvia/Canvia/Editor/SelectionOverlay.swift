@@ -166,24 +166,28 @@ struct SelectionOverlay: View {
     /// being dragged, otherwise what the element's size on screen needs.
     private func outsets(for el: Element) -> (x: Double, y: Double) {
         if let held { return (held.outsetX, held.outsetY) }
-        let x = Touch.handleOutset(side: el.w, zoom: store.zoom)
-        let y = Touch.handleOutset(side: el.h, zoom: store.zoom)
+        return Self.outsets(for: el, zoom: store.zoom, page: Self.reachablePage(store))
+    }
+
+    /// What an element's size on screen needs of the ring's outset.
+    private static func outsets(for el: Element, zoom: Double, page: CGRect) -> (x: Double, y: Double) {
+        let x = Touch.handleOutset(side: el.w, zoom: zoom)
+        let y = Touch.handleOutset(side: el.h, zoom: zoom)
         // Only the page takes a touch: a handle pushed past its edge would be
         // drawn where no finger can work it. Near an edge the ring stands off
         // only as far as keeps every handle on the page — on one axis, or on
         // neither, the handles then on the outline.
-        for (ox, oy) in [(x, y), (x, 0), (0, y)] where ringFits(el, ox, oy) { return (ox, oy) }
-        return ringFits(el, 0, 0) ? (0, 0) : (x, y)
+        for (ox, oy) in [(x, y), (x, 0), (0, y)] where ringFits(el, ox, oy, page: page) { return (ox, oy) }
+        return ringFits(el, 0, 0, page: page) ? (0, 0) : (x, y)
     }
 
     /// The page, a hair wider, so a handle exactly on its edge counts.
-    private var reachablePage: CGRect {
+    private static func reachablePage(_ store: DesignStore) -> CGRect {
         CGRect(x: 0, y: 0, width: store.pageWidth, height: store.pageHeight).insetBy(dx: -0.5, dy: -0.5)
     }
 
-    private func ringFits(_ el: Element, _ outsetX: Double, _ outsetY: Double) -> Bool {
-        let page = reachablePage
-        return Handle.allCases.allSatisfy {
+    private static func ringFits(_ el: Element, _ outsetX: Double, _ outsetY: Double, page: CGRect) -> Bool {
+        Handle.allCases.allSatisfy {
             page.contains(Geometry.handlePoint(el, $0, outsetX: outsetX, outsetY: outsetY))
         }
     }
@@ -193,13 +197,45 @@ struct SelectionOverlay: View {
     /// above the top edge instead when below is off the page, where no
     /// finger could reach it.
     private func rotatePoint(_ el: Element, outsetY: Double) -> CGPoint {
+        Self.rotatePoint(el, outsetY: outsetY, iz: iz, page: Self.reachablePage(store))
+    }
+
+    private static func rotatePoint(_ el: Element, outsetY: Double, iz: Double, page: CGRect) -> CGPoint {
         let below = Geometry.rotate(CGPoint(x: el.x + el.w / 2, y: el.y + el.h + outsetY + 28 * iz),
                                     around: el.center, degrees: el.rotation)
-        let page = reachablePage
         guard !page.contains(below) else { return below }
         let above = Geometry.rotate(CGPoint(x: el.x + el.w / 2, y: el.y - outsetY - 28 * iz),
                                     around: el.center, degrees: el.rotation)
         return page.contains(above) ? above : below
+    }
+
+    /// What the handle ring is drawn round, and the handles it offers, as
+    /// the body draws it: a single selection free to move, shown and not
+    /// being typed in, with its own set; several, any of them free, as
+    /// their box's corners. Nil when no handle is drawn.
+    private static func ring(_ store: DesignStore) -> (el: Element, handles: [Handle])? {
+        if let el = store.singleSelection {
+            guard !el.holdsPlace, !el.isHidden, store.editingTextId != el.id else { return nil }
+            return (el: el, handles: Touch.handleSet(for: el))
+        }
+        let selected = store.selectedElements
+        guard selected.count > 1, selected.contains(where: { !$0.holdsPlace }) else { return nil }
+        return (el: Geometry.boxElement(Geometry.union(selected.map(Geometry.aabb))), handles: [.nw, .ne, .se, .sw])
+    }
+
+    /// Whether a touch at `point`, in page units, is within reach of a
+    /// handle drawn — the rotate handle among them — and so the handles'
+    /// rather than the empty page's. As on the Android twin, nothing else
+    /// near the selection is: a locked one, which draws none, has none.
+    static func handlesTake(_ point: CGPoint, store: DesignStore) -> Bool {
+        guard let drawn = ring(store) else { return false }
+        let page = reachablePage(store)
+        let out = outsets(for: drawn.el, zoom: store.zoom, page: page)
+        let rotateAt = rotatePoint(drawn.el, outsetY: out.y, iz: 1 / max(store.zoom, 0.01), page: page)
+        return Touch.grab(at: point, el: drawn.el, handles: drawn.handles,
+                          outsetX: out.x, outsetY: out.y, rotateAt: rotateAt,
+                          reach: Touch.pageUnits(Touch.handleReach, zoom: store.zoom),
+                          inside: Touch.pageUnits(Touch.handleReachInside, zoom: store.zoom)) != nil
     }
 
     /// Every handle the element offers, at any size or zoom. On a small or

@@ -92,7 +92,7 @@ final class LibraryItemsTests: XCTestCase {
 
     func testAComponentIsNormalisedAndInstancesScaleWithFreshIds() {
         var a = Element.shape("rect", w: 100, h: 50); a.x = 200; a.y = 300; a.locked = true
-        var t = Element.text("Hi", fontSize: 20, w: 100); t.x = 300; t.y = 300
+        var t = Element.text("Hi", fontSize: 20, w: 100); t.x = 300; t.y = 300; t.lockPosition = true
         let c = Components.make(named: "Tag", from: [a, t])!
         XCTAssertEqual(c.width, 200); XCTAssertGreaterThan(c.height, 0)
         XCTAssertEqual(c.elements[0].x, 0); XCTAssertEqual(c.elements[1].x, 100)
@@ -104,6 +104,7 @@ final class LibraryItemsTests: XCTestCase {
         XCTAssertEqual(placed[0].x, 50, accuracy: 0.001)
         XCTAssertEqual(placed[1].x, 250, accuracy: 0.001)
         XCTAssertEqual(placed[1].fontSize ?? 0, 40, accuracy: 0.001)
+        XCTAssertEqual(placed.map { ElementLock.mode(of: $0) }, [.unlocked, .unlocked], "a position lock is not saved into it either")
         XCTAssertNotEqual(placed[0].id, c.elements[0].id)
         XCTAssertEqual(Set(placed.compactMap(\.group)).count, 1)
         XCTAssertNil(Components.make(named: "Empty", from: []))

@@ -715,10 +715,9 @@ struct CanvasView: View {
             reach.y -= rise; reach.h += rise * 2
             return Geometry.hits(reach, point: point)
         }
-        // The handles stand off the selection's box, the rotate handle
-        // furthest: everything within their reach is theirs.
-        let handles = Touch.pageUnits(Touch.handleMinGap + 28 + Touch.handleReach, zoom: store.zoom)
-        let onHandles = store.selectionBox.map { $0.insetBy(dx: -handles, dy: -handles).contains(point) } ?? false
+        // Only within reach of a handle drawn is the touch the handles':
+        // the rest of the page round the selection still pans.
+        let onHandles = SelectionOverlay.handlesTake(point, store: store)
         let guideReach = Touch.pageUnits(12, zoom: store.zoom)
         let onGuide = store.design.guides.contains { guide in
             abs(Double(guide.vertical ? point.x : point.y) - guide.position) <= guideReach

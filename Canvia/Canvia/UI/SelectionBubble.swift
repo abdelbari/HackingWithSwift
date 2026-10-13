@@ -53,9 +53,11 @@ struct SelectionBubble: View {
         let canvas = CGRect(origin: .zero, size: size)
         guard screen.intersects(canvas) else { return nil }
         // A single thing free to turn has its rotate handle below it, the
-        // furthest of its handles: the pill keeps clear of it.
+        // furthest of its handles, and several have "N selected" over their
+        // box: the pill keeps clear of either.
         let turns = store.singleSelection.map { !$0.holdsPlace } ?? false
-        let place = Geometry.bubbleAnchor(screen, viewport: canvas, handleOutset: turns ? 40 : 8)
+        let clears = turns || store.selection.count > 1
+        let place = Geometry.bubbleAnchor(screen, viewport: canvas, handleOutset: clears ? 40 : 8)
         let half = CGFloat(width / 2 + 8)
         let x = size.width > half * 2 ? min(max(place.point.x, half), size.width - half) : size.width / 2
         let rise = CGFloat(Self.height / 2)
