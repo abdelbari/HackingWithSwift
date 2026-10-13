@@ -14,7 +14,10 @@ enum ElementNames {
     /// The longest a quoted snippet of someone's own text gets.
     private static let snippet = 28
 
+    /// The element's name: its own (`layerName`) when it has one, else the
+    /// one made from what it is.
     static func name(of el: Element) -> String {
+        if let own = LayerNames.custom(of: el) { return own }
         switch el.type {
         case .text:
             let words = RichText.strip(el.text ?? "").replacingOccurrences(of: "\n", with: " ")
@@ -64,10 +67,12 @@ enum ElementNames {
         case .margin: return "Page margin"
         case .element(let id):
             guard let other = elements.first(where: { $0.id == id }) else { return "Lined up" }
-            // The first word is always one chosen here — Heading, Text,
-            // Photo, a shape's colour — never one of the user's own, so it
-            // can go into the sentence in lower case.
+            // The first word of a made name is always one chosen here —
+            // Heading, Text, Photo, a shape's colour — never one of the
+            // user's own, so it can go into the sentence in lower case. A
+            // name the user gave it is theirs, and kept as typed.
             let name = shortName(of: other)
+            if LayerNames.custom(of: other) != nil { return "Lined up with \(name)" }
             let lowered = name.prefix(1).lowercased() + String(name.dropFirst())
             return "Lined up with \(lowered)"
         }

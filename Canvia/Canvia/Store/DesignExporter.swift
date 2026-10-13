@@ -163,7 +163,7 @@ enum DesignExporter {
     static func upscaledImages(page: Page, scale: Double,
                                pixelSize: (String) -> CGSize?) -> [String] {
         page.elements.compactMap { el in
-            guard el.type == .image, let src = el.src, let source = pixelSize(src),
+            guard el.type == .image, !el.isHidden, let src = el.src, let source = pixelSize(src),
                   source.width > 0, source.height > 0 else { return nil }
             // A cropped-in photo shows fewer of its pixels over the same
             // frame, so it needs proportionally more of them.
@@ -181,7 +181,8 @@ enum DesignExporter {
     /// page's background comes along: a cut-out over a colour should keep
     /// its colour unless the export is asked to be transparent.
     static func selectionDesign(design: Design, page: Page, ids: Set<String>) -> Design? {
-        let chosen = page.elements.filter { ids.contains($0.id) }
+        // A hidden element is never exported, chosen or not.
+        let chosen = page.elements.filter { ids.contains($0.id) && !$0.isHidden }
         guard !chosen.isEmpty else { return nil }
         let box = Geometry.union(chosen.map(Geometry.aabb)).integral
         guard box.width > 0, box.height > 0 else { return nil }

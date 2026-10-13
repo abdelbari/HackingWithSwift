@@ -49,7 +49,7 @@ enum AudioMix {
     /// The clips on `page` that are heard while it plays — its own photos
     /// and the master's behind it showing a clip, in drawing order.
     static func clips(design: Design, page: Page) -> [Clip] {
-        (design.masterElements(behind: page) + page.elements).compactMap { el -> Clip? in
+        design.drawnElements(on: page).compactMap { el -> Clip? in
             guard el.type == .image, let src = el.src, let parts = VideoStore.split(src) else { return nil }
             let playback = el.clip ?? ClipPlayback()
             return playback.sounds ? Clip(source: parts.id, playback: playback) : nil

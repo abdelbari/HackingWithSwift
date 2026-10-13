@@ -31,7 +31,8 @@ enum Proofreader {
             : (UITextChecker.availableLanguages.first ?? "en_US")
         var found: [Misspelling] = []
         for (p, page) in design.pages.enumerated() {
-            for el in page.elements where ShapeText.carriesWords(el) {
+            // A hidden element is not read: nobody sees its words.
+            for el in page.elements where ShapeText.carriesWords(el) && !el.isHidden {
                 guard let text = el.text, !text.isEmpty else { continue }
                 let (plain, rawAt) = RichText.mapped(text)
                 let ns = plain as NSString

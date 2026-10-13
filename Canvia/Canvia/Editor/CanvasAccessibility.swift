@@ -12,14 +12,16 @@ import Foundation
 
 enum CanvasAccessibility {
 
-    /// Alt text when there is some; "Empty text" for a box with no words;
-    /// otherwise the same name the Layers sheet and the snap guides use —
-    /// "Heading: SALE", "Red oval", "Blue line", "QR code", "Empty photo
-    /// frame" — as the Android twin names its TalkBack nodes.
+    /// Alt text when there is some; the name given it in Layers; "Empty
+    /// text" for a box with no words; otherwise the same name the Layers
+    /// sheet and the snap guides use — "Heading: SALE", "Red oval", "Blue
+    /// line", "QR code", "Empty photo frame" — as the Android twin names its
+    /// TalkBack nodes.
     static func label(for el: Element) -> String {
         if let alt = el.altText?.trimmingCharacters(in: .whitespacesAndNewlines), !alt.isEmpty {
             return alt
         }
+        if let own = LayerNames.custom(of: el) { return own }
         if el.type == .text, RichText.strip(el.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return "Empty text"
         }

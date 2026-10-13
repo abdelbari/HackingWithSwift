@@ -37,14 +37,16 @@ struct SelectionOverlay: View {
             let selected = store.selectedElements
 
             ForEach(selected) { el in
-                if selected.count == 1 && el.locked {
-                    lockedOutline(el)
+                if el.isHidden {
+                    dashedOutline(el, badge: "eye.slash.fill")
+                } else if selected.count == 1 && el.locked {
+                    dashedOutline(el, badge: "lock.fill")
                 } else {
                     outline(el, lineWidth: (selected.count > 1 ? 1 : 1.5) * weight)
                 }
             }
 
-            if let el = store.singleSelection, !el.locked, store.editingTextId != el.id {
+            if let el = store.singleSelection, !el.locked, !el.isHidden, store.editingTextId != el.id {
                 handleRing(for: el, handles: Touch.handleSet(for: el))
             }
 
@@ -78,8 +80,10 @@ struct SelectionOverlay: View {
 
     /// A locked element, selected on its own: a dashed outline, which says it
     /// will not move, and a padlock at its corner, which says why — rather
-    /// than the solid outline that promised handles and then had none.
-    private func lockedOutline(_ el: Element) -> some View {
+    /// than the solid outline that promised handles and then had none. A
+    /// hidden one, picked in Layers, is the same outline round where it
+    /// would be, with an eye struck through, and is still not drawn.
+    private func dashedOutline(_ el: Element, badge: String) -> some View {
         let dash: [CGFloat] = [7 * iz, 5 * iz]
         let box = Geometry.aabb(el)
         return ZStack {
@@ -92,7 +96,7 @@ struct SelectionOverlay: View {
             .frame(width: el.w, height: el.h)
             .rotationEffect(.degrees(el.rotation))
             .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
-            Image(systemName: "lock.fill")
+            Image(systemName: badge)
                 .font(.system(size: 11 * iz, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 22 * iz, height: 22 * iz)

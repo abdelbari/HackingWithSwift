@@ -256,6 +256,16 @@ struct Element: Codable, Equatable, Identifiable {
     /// A web address, mailto or tel link: clickable in the exported PDF and
     /// SVG, and opened by a tap in the presenter (see Links).
     var link: String?
+    /// Left off the page: never drawn — on the canvas, in an export, a
+    /// thumbnail, Present or a video — never hit or snapped to, and a clip
+    /// that makes no sound; still listed in Layers, where it is shown again.
+    /// Never false: shown is nil, so the key is written only when true, as
+    /// the page's own `hidden`.
+    var hidden: Bool?
+    /// A name of the person's own, over the one ElementNames makes, wherever
+    /// the element is named: Layers, VoiceOver, the snap guides. Kept trimmed
+    /// and at most LayerNames.maxLength characters; nil is none.
+    var layerName: String?
 
     // shape
     var shapeId: String?
@@ -364,6 +374,8 @@ struct Element: Codable, Equatable, Identifiable {
     var endCap: String?
 
     var frame: CGRect { CGRect(x: x, y: y, width: w, height: h) }
+    /// Whether the element is left off the page (see `hidden`).
+    var isHidden: Bool { hidden == true }
     var center: CGPoint { CGPoint(x: x + w / 2, y: y + h / 2) }
 
     init() {}
@@ -388,6 +400,8 @@ struct Element: Codable, Equatable, Identifiable {
         connectFrom = try? c.decode(String.self, forKey: .connectFrom)
         connectTo = try? c.decode(String.self, forKey: .connectTo)
         link = try? c.decode(String.self, forKey: .link)
+        hidden = (try? c.decode(Bool.self, forKey: .hidden)) == true ? true : nil
+        layerName = (try? c.decode(String.self, forKey: .layerName)).flatMap(LayerNames.kept)
         shapeId = try? c.decode(String.self, forKey: .shapeId)
         pathData = try? c.decode(String.self, forKey: .pathData)
         iconId = try? c.decode(String.self, forKey: .iconId)
@@ -465,7 +479,7 @@ struct Element: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow, blendMode, altText
-        case connectFrom, connectTo, link
+        case connectFrom, connectTo, link, hidden, layerName
         case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical

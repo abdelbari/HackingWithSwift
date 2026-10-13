@@ -1059,67 +1059,244 @@ struct PositionSheet: View {
 
 // MARK: - layers
 
+/// Everything on the page, top-most first: drag a row to reorder it, tap
+/// to select, the eye to hide and the padlock to lock — each one undo step —
+/// and press and hold for Rename…. Elements sharing a group fold into one
+/// "Group (n)" row, which opens to list them and drags as one block.
+/// Overlapping lists only what overlaps the selection.
 struct LayersSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
+    @State private var filter: LayerRows.Filter = .all
+    /// The groups opened to list their members; each starts folded.
+    @State private var expanded: Set<String> = []
+    /// The element Rename… is naming, and the name being typed.
+    @State private var renaming: Element?
+    @State private var typedName = ""
+
+    private var rows: [LayerRows.Row] {
+        switch filter {
+        case .all:
+            return LayerRows.rows(store.page.elements, expanded: expanded)
+        case .overlapping:
+            return LayerRows.flat(LayerRows.overlapping(store.page.elements, selection: store.selection))
+        }
+    }
 
     var body: some View {
         NavigationStack {
+            let rows = self.rows
             List {
-                if store.page.elements.isEmpty {
-                    ContentUnavailableView("Nothing on this page yet",
-                                           systemImage: "square.3.layers.3d",
-                                           description: Text("Everything you add will be listed here, top-most first, and can be dragged into a new order."))
-                        .listRowBackground(Color.clear)
+                if rows.isEmpty { emptyState }
+                ForEach(rows) { row in
+                    rowView(row)
+                        .moveDisabled(filter != .all || !row.movable)
+                        .deleteDisabled(!row.elements.contains { !$0.locked })
                 }
-                // Top-most first; List reordering maps back to array indices.
-                ForEach(Array(store.page.elements.reversed())) { el in
-                    HStack(spacing: 12) {
-                        layerThumb(el)
-                        Text(layerName(el)).lineLimit(1)
-                        Spacer()
-                        if el.locked { Image(systemName: "lock.fill").foregroundStyle(.secondary) }
-                        if store.selection.contains(el.id) {
-                            Image(systemName: "checkmark").foregroundStyle(Theme.accent)
-                        }
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture { store.select(el.id) }
-                }
-                .onMove { source, destination in
-                    let count = store.page.elements.count
-                    var reversed = Array(store.page.elements.reversed())
-                    reversed.move(fromOffsets: source, toOffset: destination)
-                    store.applyToPage { $0.elements = reversed.reversed() }
-                    _ = count
-                }
-                .onDelete { offsets in
-                    let reversed = Array(store.page.elements.reversed())
-                    let removable = Set(offsets.map { reversed[$0] }
-                        .filter { !$0.locked }
-                        .map(\.id))
-                    guard !removable.isEmpty else { return }
-                    store.applyToPage { page in
-                        page.elements.removeAll { removable.contains($0.id) }
-                    }
-                    store.selection.subtract(removable)
-                }
+                .onMove(perform: moveAction(rows))
+                .onDelete { offsets in delete(offsets.map { rows[$0] }) }
             }
             .environment(\.editMode, .constant(.active))
+            .safeAreaInset(edge: .top) { filterPicker }
             .navigationTitle("Layers")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+            }
+            .alert("Rename", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } }),
+                   presenting: renaming) { el in
+                TextField(madeName(el), text: $typedName)
+                Button("Rename") { store.renameLayer(el.id, to: typedName) }
+                Button("Cancel", role: .cancel) {}
+            } message: { _ in
+                Text("Up to \(LayerNames.maxLength) characters. Leave it empty for the name Canvia gives it.")
             }
         }
         .presentationDetents(sheetDetents)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
     }
 
-    /// The name VoiceOver and the snap guides use too: "Heading: SALE",
-    /// "Red oval", "QR code" — as the Android twin's Layers panel.
+    private var filterPicker: some View {
+        Picker("Show", selection: $filter) {
+            ForEach(LayerRows.Filter.allCases) { choice in
+                Text(choice.rawValue).tag(choice)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(.bar)
+    }
+
+    @ViewBuilder
+    private var emptyState: some View {
+        if filter == .overlapping {
+            ContentUnavailableView("Nothing selected",
+                                   systemImage: "square.on.square.dashed",
+                                   description: Text("Select something on the page to list what overlaps it."))
+                .listRowBackground(Color.clear)
+        } else {
+            ContentUnavailableView("Nothing on this page yet",
+                                   systemImage: "square.3.layers.3d",
+                                   description: Text("Everything you add will be listed here, top-most first, and can be dragged into a new order."))
+                .listRowBackground(Color.clear)
+        }
+    }
+
+    /// Dragging reorders the page in All; Overlapping is not the page's
+    /// order, so nothing there drags.
+    private func moveAction(_ rows: [LayerRows.Row]) -> ((IndexSet, Int) -> Void)? {
+        guard filter == .all else { return nil }
+        return { source, destination in
+            store.moveLayers(rows, from: source, to: destination)
+        }
+    }
+
+    /// The rows swiped away, as one undo step: every unlocked element they
+    /// stand for — a group row its whole group.
+    private func delete(_ picked: [LayerRows.Row]) {
+        let removable = Set(picked.flatMap(\.elements).filter { !$0.locked }.map(\.id))
+        guard !removable.isEmpty else { return }
+        store.applyToPage { page in
+            page.elements.removeAll { removable.contains($0.id) }
+        }
+        store.selection.subtract(removable)
+    }
+
+    @ViewBuilder
+    private func rowView(_ row: LayerRows.Row) -> some View {
+        switch row {
+        case .element(let el, let member):
+            elementRow(el, member: member)
+        case .group(let id, let members):
+            groupRow(id, members: members)
+        }
+    }
+
+    /// An element's row: faded, with its eye struck through, while hidden.
+    /// A member of an opened group is indented under it, and a tap takes it
+    /// alone; any other row's tap takes its group, as on the canvas.
+    private func elementRow(_ el: Element, member: Bool) -> some View {
+        let name = layerName(el)
+        let selected = store.selection.contains(el.id)
+        return HStack(spacing: 12) {
+            HStack(spacing: 12) {
+                layerThumb(el)
+                Text(name).lineLimit(1)
+            }
+            .opacity(el.isHidden ? 0.45 : 1)
+            .padding(.leading, member ? 24 : 0)
+            .accessibilityElement(children: .combine)
+            .accessibilityValue([el.isHidden ? "Hidden" : nil, el.locked ? "Locked" : nil]
+                .compactMap { $0 }.joined(separator: ", "))
+            .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+            .accessibilityAction { pick(el, member: member) }
+            .accessibilityAction(named: "Rename…") { startRename(el) }
+            Spacer(minLength: 4)
+            if selected {
+                Image(systemName: "checkmark").foregroundStyle(Theme.accent)
+                    .accessibilityHidden(true)
+            }
+            eyeButton([el.id], hidden: el.isHidden, name: name)
+            lockButton([el.id], locked: el.locked, name: name)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { pick(el, member: member) }
+        .contextMenu {
+            Button { startRename(el) } label: { Label("Rename…", systemImage: "pencil") }
+        }
+    }
+
+    /// A group's row, "Group (3)": folded until its disclosure opens it, a
+    /// tap takes the whole group, and the eye and padlock work every member.
+    private func groupRow(_ id: String, members: [Element]) -> some View {
+        let open = expanded.contains(id)
+        let name = LayerRows.groupName(members.count)
+        let ids = Set(members.map(\.id))
+        let allHidden = members.allSatisfy(\.isHidden)
+        let selected = ids.isSubset(of: store.selection)
+        return HStack(spacing: 12) {
+            Button {
+                if open { expanded.remove(id) } else { expanded.insert(id) }
+            } label: {
+                Image(systemName: open ? "chevron.down" : "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .frame(width: 20, height: 28)
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel(open ? "Collapse \(name)" : "Expand \(name)")
+            HStack(spacing: 12) {
+                Image(systemName: "square.on.square")
+                    .frame(width: 28, height: 28)
+                Text(name).lineLimit(1)
+            }
+            .opacity(allHidden ? 0.45 : 1)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+            .accessibilityAction { pickGroup(members) }
+            Spacer(minLength: 4)
+            if selected {
+                Image(systemName: "checkmark").foregroundStyle(Theme.accent)
+                    .accessibilityHidden(true)
+            }
+            eyeButton(ids, hidden: allHidden, name: name)
+            lockButton(ids, locked: members.allSatisfy(\.locked), name: name)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { pickGroup(members) }
+    }
+
+    /// Hides what the row stands for, or — when all of it is hidden — shows
+    /// it again.
+    private func eyeButton(_ ids: Set<String>, hidden: Bool, name: String) -> some View {
+        Button { store.setHidden(ids, hidden: !hidden) } label: {
+            Image(systemName: hidden ? "eye.slash" : "eye")
+                .frame(width: 30, height: 30)
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(hidden ? Theme.accent : Color.secondary)
+        .accessibilityLabel(hidden ? "Show \(name)" : "Hide \(name)")
+    }
+
+    /// Locks what the row stands for, or — when all of it is locked —
+    /// unlocks it.
+    private func lockButton(_ ids: Set<String>, locked: Bool, name: String) -> some View {
+        Button { store.setLocked(ids, locked: !locked) } label: {
+            Image(systemName: locked ? "lock.fill" : "lock.open")
+                .frame(width: 30, height: 30)
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(locked ? Theme.accent : Color.secondary)
+        .accessibilityLabel(locked ? "Unlock \(name)" : "Lock \(name)")
+    }
+
+    private func pick(_ el: Element, member: Bool) {
+        if member { store.selectLayer(el.id) } else { store.select(el.id) }
+    }
+
+    private func pickGroup(_ members: [Element]) {
+        if let top = members.first { store.select(top.id) }
+    }
+
+    private func startRename(_ el: Element) {
+        typedName = el.layerName ?? ""
+        renaming = el
+    }
+
+    /// The name VoiceOver and the snap guides use too: the one given it in
+    /// Rename…, else "Heading: SALE", "Red oval", "QR code" — as the Android
+    /// twin's Layers panel.
     private func layerName(_ el: Element) -> String {
         ElementNames.name(of: el)
+    }
+
+    /// The name the element would have without one of its own: what Rename…
+    /// shows in an empty field.
+    private func madeName(_ el: Element) -> String {
+        var plain = el
+        plain.layerName = nil
+        return ElementNames.name(of: plain)
     }
 
     @ViewBuilder

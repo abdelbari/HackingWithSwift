@@ -182,7 +182,7 @@ enum MovieExporter {
     /// in Present and on the Android twin's video alike, so it has to here
     /// too rather than sit on its first frame.
     static func isAnimated(_ page: Page, in design: Design) -> Bool {
-        (design.masterElements(behind: page) + page.elements).contains {
+        design.drawnElements(on: page).contains {
             $0.animation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src)
         }
     }

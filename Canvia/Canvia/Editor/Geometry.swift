@@ -231,8 +231,9 @@ enum Geometry {
         return result
     }
 
-    /// Hit test respecting rotation.
+    /// Hit test respecting rotation. A hidden element is never hit.
     static func hits(_ el: Element, point: CGPoint) -> Bool {
+        guard !el.isHidden else { return false }
         let p = el.rotation == 0 ? point : rotate(point, around: el.center, degrees: -el.rotation)
         return el.frame.insetBy(dx: -4, dy: -4).contains(p)
     }
@@ -475,7 +476,7 @@ enum Geometry {
                    SnapLine(position: ph, source: .pageEdge)]
         }
         if settings.toElements {
-            for el in page.elements where !ids.contains(el.id) {
+            for el in page.elements where !ids.contains(el.id) && !el.isHidden {
                 let b = aabb(el)
                 xs += [b.minX, b.midX, b.maxX].map { SnapLine(position: $0, source: .element(el.id)) }
                 ys += [b.minY, b.midY, b.maxY].map { SnapLine(position: $0, source: .element(el.id)) }
@@ -529,12 +530,12 @@ enum Geometry {
     // MARK: selection and group transforms
 
     /// The elements a rubber band drawn over `rect` picks up: anything
-    /// unlocked whose box it touches. Touching, not containing — a marquee
-    /// that had to swallow an element whole would miss everything larger than
-    /// the screen at the current zoom.
+    /// unlocked and shown whose box it touches. Touching, not containing — a
+    /// marquee that had to swallow an element whole would miss everything
+    /// larger than the screen at the current zoom.
     static func intersecting(_ elements: [Element], _ rect: CGRect) -> [Element] {
         guard rect.width > 0 || rect.height > 0 else { return [] }
-        return elements.filter { !$0.locked && aabb($0).intersects(rect) }
+        return elements.filter { !$0.locked && !$0.isHidden && aabb($0).intersects(rect) }
     }
 
     /// Scale a set of elements together so that the box `from` (their

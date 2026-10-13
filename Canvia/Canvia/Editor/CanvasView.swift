@@ -186,9 +186,10 @@ struct CanvasView: View {
             }
 
             // Hit layer: one transparent overlay per element for taps/drags,
-            // announced in reading order rather than stacking order.
+            // announced in reading order rather than stacking order. A hidden
+            // element has none: it is picked from Layers.
             let order = CanvasAccessibility.readingOrder(store.page.elements, pageHeight: store.pageHeight)
-            ForEach(store.page.elements) { el in
+            ForEach(store.page.elements.filter { !$0.isHidden }) { el in
                 elementHitArea(el)
                     .accessibilitySortPriority(Double(order.count - (order.firstIndex(of: el.id) ?? 0)))
             }
@@ -829,7 +830,7 @@ struct CanvasView: View {
                     gesture.dragUnion = Geometry.union(
                         store.selectedElements.filter { !$0.locked }.map(Geometry.aabb))
                     gesture.siblingBoxes = store.page.elements
-                        .filter { gesture.dragOriginals[$0.id] == nil }
+                        .filter { gesture.dragOriginals[$0.id] == nil && !$0.isHidden }
                         .map(Geometry.aabb)
                     // One photo on its own may be going into a frame.
                     if gesture.dragOriginals.count == 1, let id = gesture.dragOriginals.keys.first,
