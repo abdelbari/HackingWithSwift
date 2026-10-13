@@ -4,20 +4,25 @@
 //  - contrast: text that falls short of WCAG AA on what is behind it —
 //    ContrastAudit's measure, unchanged.
 //  - altText: a photo, video, sticker or icon with nothing for a screen
-//    reader to say, unless it is marked decorative ("decorative": true).
-//  - smallText: text under 12 px at export size — the size it is stored
-//    at, which is what a PNG comes out at.
+//    reader to say, unless it is marked decorative ("decorative": true). An
+//    empty photo frame has nothing to describe yet.
+//  - smallText: words — a text's or a shape's — under 12 px at export size,
+//    the size they are stored at; or, in a design measured on paper, under
+//    9 pt there (37.5 px at 300 dpi).
 //  - flashing: a looping animation that cycles faster than every 0.33 s, or
-//    a page held under a third of a second, so pages change more than three
-//    times a second.
+//    a page that gives way to the next in less — its hold in the video's
+//    timeline — so pages change more than three times a second. The last
+//    page gives way to nothing.
 //  - linkText: a link on something with no words to read and no alt text.
-//  - readingOrder: a page whose texts are layered in a different order from
-//    the one they read in, top to bottom and left to right.
+//  - readingOrder: a page whose layers, bottom to top, run in another order
+//    than the page reads — rows top to bottom, left to right — among what a
+//    reader says: words, and pictures with alt text.
 //
 // Findings come page by page; within a page in that order of kinds, and
-// within a kind in layer order, back to front. Hidden elements are passed
-// over: nobody meets them. The Android twin's AccessibilityAudit, with the
-// same rows in its tests.
+// within a kind in layer order, back to front. Hidden elements and hidden
+// pages are passed over: nobody meets them. The Android twin's
+// AccessibilityAudit, rule for rule and word for word, with the same rows in
+// its tests.
 
 import Foundation
 
@@ -37,16 +42,18 @@ enum AccessibilityAudit {
     /// One thing found: {kind, pageIndex, elementId, message, fix}.
     typealias Finding = AccessibilityFinding
 
-    /// The smallest text that passes, in pixels at export size.
+    /// The smallest text that passes: in pixels at export size, and in
+    /// points on paper for a design measured in mm, cm or inches.
     static let minTextSize = 12.0
+    static let minTextPoints = 9.0
     /// A loop or a page change faster than this, in seconds, flashes.
     static let minFlashPeriod = 0.33
 
     static func findings(_ design: Design) -> [Finding] {
         let contrast = Dictionary(grouping: ContrastAudit.audit(design), by: \.pageIndex)
+        let holds = filmHolds(design)
         var out: [Finding] = []
-        let shownPages = design.visiblePageIndices.count
-        for (p, page) in design.pages.enumerated() {
+        for (p, page) in design.pages.enumerated() where page.hidden != true {
             let shown = page.elements.filter { !$0.isHidden }
             for f in contrast[p] ?? [] {
                 out.append(Finding(kind: .contrast, pageIndex: p, elementId: f.elementId,
@@ -55,28 +62,27 @@ enum AccessibilityAudit {
             }
             for el in shown where needsAltText(el) {
                 out.append(Finding(kind: .altText, pageIndex: p, elementId: el.id,
-                                   message: "\(describedKind(el)) with no alt text", fix: .addAltText))
+                                   message: "\(describedKind(el)) has no alt text", fix: .addAltText))
             }
-            for el in shown where isSmallText(el) {
+            for el in shown where isSmallText(el, in: design) {
                 out.append(Finding(kind: .smallText, pageIndex: p, elementId: el.id,
-                                   message: "Text at \(Units.format(el.fontSize ?? 0, unit: "px")) px — under 12 px is hard to read",
-                                   fix: .makeIt12))
+                                   message: smallMessage(el, in: design), fix: .makeIt12))
+            }
+            if let hold = holds[p], hold < minFlashPeriod {
+                out.append(Finding(kind: .flashing, pageIndex: p, elementId: nil,
+                                   message: "Gives way to the next page faster than three times a second"))
             }
             for el in shown where flashes(el) {
                 out.append(Finding(kind: .flashing, pageIndex: p, elementId: el.id,
                                    message: "Moves faster than three times a second"))
             }
-            if shownPages > 1, page.hidden != true, hold(of: page, in: design) < minFlashPeriod {
-                out.append(Finding(kind: .flashing, pageIndex: p, elementId: nil,
-                                   message: "Page changes faster than three times a second"))
-            }
             for el in shown where isSilentLink(el) {
                 out.append(Finding(kind: .linkText, pageIndex: p, elementId: el.id,
-                                   message: "Link with nothing to read", fix: .addAltText))
+                                   message: "A link with no words and no alt text", fix: .addAltText))
             }
             if let first = readingOrderMismatch(page, height: Double(design.size(for: page).height)) {
                 out.append(Finding(kind: .readingOrder, pageIndex: p, elementId: first,
-                                   message: "Layers run in a different order from how the page reads"))
+                                   message: "The layers are in a different order from how the page reads"))
             }
         }
         return out
@@ -85,15 +91,22 @@ enum AccessibilityAudit {
     // MARK: the rules
 
     /// A photo, video, sticker or icon that is not decorative and has no
-    /// alt text. An empty photo frame has nothing to describe yet.
+    /// alt text.
     static func needsAltText(_ el: Element) -> Bool {
         guard el.decorative != true, isPicture(el) else { return false }
-        return (el.altText ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return !hasAltText(el)
     }
 
+    /// Alt text with something in it: spaces alone are none.
+    static func hasAltText(_ el: Element) -> Bool {
+        !(el.altText ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// A photo or video — not an empty frame, which has nothing to describe
+    /// yet — a sticker or an icon.
     static func isPicture(_ el: Element) -> Bool {
         switch el.type {
-        case .image: return el.src != nil
+        case .image: return !(el.src ?? "").trimmingCharacters(in: .whitespaces).isEmpty
         case .sticker: return true
         case .shape: return el.iconId != nil
         case .text, .line: return false
@@ -109,10 +122,28 @@ enum AccessibilityAudit {
         }
     }
 
-    /// Text with words whose size is under 12 px.
-    static func isSmallText(_ el: Element) -> Bool {
-        guard el.type == .text, hasWords(el) else { return false }
-        return (el.fontSize ?? 42) < minTextSize
+    /// The smallest type a design should have, in its own pixels: 12, or
+    /// 9 pt on paper at its dpi (37.5 px at 300 dpi).
+    static func smallest(_ design: Design) -> Double {
+        design.physicalUnit != nil ? minTextPoints * design.effectiveDPI / 72 : minTextSize
+    }
+
+    /// What Make it 12 sets the type to: 12 px, or 12 pt on paper (50 px at
+    /// 300 dpi).
+    static func legibleSize(_ design: Design) -> Double {
+        design.physicalUnit != nil ? 12 * design.effectiveDPI / 72 : minTextSize
+    }
+
+    /// Words — a text's or a shape's — smaller than `smallest`.
+    static func isSmallText(_ el: Element, in design: Design) -> Bool {
+        hasWords(el) && (el.fontSize ?? 42) < smallest(design) - 1e-9
+    }
+
+    /// "Text is 8 px, under 12 px", or on paper "Text is 7 pt, under 9 pt".
+    static func smallMessage(_ el: Element, in design: Design) -> String {
+        let size = el.fontSize ?? 42
+        guard design.physicalUnit != nil else { return "Text is \(Int(size.rounded())) px, under 12 px" }
+        return "Text is \(Int((size * 72 / design.effectiveDPI).rounded())) pt, under 9 pt"
     }
 
     /// A loop that cycles faster than every 0.33 s.
@@ -121,16 +152,24 @@ enum AccessibilityAudit {
         return period < minFlashPeriod
     }
 
-    /// How long a page holds in Present and the video.
-    static func hold(of page: Page, in design: Design) -> Double {
-        page.holdSeconds ?? (design.motion ?? MotionSettings()).secondsPerPage
+    /// Each shown page's hold in the video's timeline, frames over the frame
+    /// rate, by its index in the design — all but the last, which gives way
+    /// to nothing.
+    static func filmHolds(_ design: Design) -> [Int: Double] {
+        let settings = MovieExporter.Settings(design.motion)
+        let pages = design.visiblePageIndices
+        let timeline = MovieExporter.timeline(design: design, pages: pages, settings: settings)
+        var holds: [Int: Double] = [:]
+        for (index, timing) in zip(pages, timeline).dropLast() {
+            holds[index] = Double(timing.frames) / Double(max(settings.fps, 1))
+        }
+        return holds
     }
 
     /// A link on something with no words of its own and no alt text.
     static func isSilentLink(_ el: Element) -> Bool {
         guard let link = el.link, !link.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
-        let alt = (el.altText ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        return alt.isEmpty && !hasWords(el)
+        return !hasAltText(el) && !hasWords(el)
     }
 
     /// Words a reader can see: a text's, or a shape's own.
@@ -139,15 +178,20 @@ enum AccessibilityAudit {
         return !RichText.strip(el.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    /// The first text, in layer order, that is not where reading order puts
-    /// it — nil when the page's texts are layered as they read, or there
-    /// are fewer than two.
+    /// Whether a reader says something for the element: its words, or a
+    /// picture's alt text.
+    static func isRead(_ el: Element) -> Bool {
+        hasWords(el) || (isPicture(el) && el.decorative != true && hasAltText(el))
+    }
+
+    /// Where the page's layers and its reading order part: the first
+    /// element, in reading order, whose place differs between the two,
+    /// among those a reader says; nil when they agree.
     static func readingOrderMismatch(_ page: Page, height: Double) -> String? {
-        let texts = page.elements.filter { !$0.isHidden && $0.type == .text && hasWords($0) }
-        guard texts.count > 1 else { return nil }
-        let layered = texts.map(\.id)
-        let read = CanvasAccessibility.readingOrder(texts, pageHeight: height)
-        for (a, b) in zip(layered, read) where a != b { return a }
+        let read = page.elements.filter { !$0.isHidden && isRead($0) }
+        let layered = read.map(\.id)
+        let reading = CanvasAccessibility.readingOrder(read, pageHeight: height)
+        for (a, b) in zip(reading, layered) where a != b { return a }
         return nil
     }
 
@@ -178,8 +222,9 @@ enum AccessibilityAudit {
     // MARK: fixes
 
     /// The design with a finding's own fix made: the contrast colour, or the
-    /// text at 12 px (and its box measured again). Anything else is
-    /// unchanged — alt text has to be written.
+    /// type at `legibleSize` — a text's box measured again for it, a
+    /// shape's left as it is. Anything else is unchanged — alt text has to
+    /// be written.
     static func fixed(_ design: Design, _ f: Finding) -> Design {
         guard design.pages.indices.contains(f.pageIndex), let id = f.elementId,
               let i = design.pages[f.pageIndex].elements.firstIndex(where: { $0.id == id }) else { return design }
@@ -190,8 +235,8 @@ enum AccessibilityAudit {
             guard let c = f.contrast else { return design }
             el = ContrastAudit.fixed(el, for: c)
         case .some(.makeIt12):
-            el.fontSize = minTextSize
-            el.h = FontLibrary.layoutHeight(for: el)
+            el.fontSize = legibleSize(design)
+            if el.type == .text { el.h = FontLibrary.layoutHeight(for: el) }
         case .some(.addAltText), .none:
             return design
         }
