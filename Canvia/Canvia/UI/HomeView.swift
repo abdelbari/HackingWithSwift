@@ -10,6 +10,8 @@ enum HomeSheet: Identifiable, Equatable {
     case pickSize
     case customSize
     case help
+    /// Every design type, searchable and by category.
+    case designTypes
 
     var id: String {
         switch self {
@@ -17,6 +19,7 @@ enum HomeSheet: Identifiable, Equatable {
         case .pickSize: return "pick-size"
         case .customSize: return "custom-size"
         case .help: return "help"
+        case .designTypes: return "design-types"
         }
     }
 }
@@ -116,6 +119,9 @@ struct HomeView: View {
                 if !trashed.isEmpty {
                     trashSection
                 }
+                // Sizes the search names, above the templates: "tiktok"
+                // finds TikTok Video, to start one.
+                if !matchingTypes.isEmpty { designTypeMatches }
                 Text("Start from a template")
                     .font(.title3.weight(.bold))
                     .padding(.horizontal)
@@ -200,6 +206,8 @@ struct HomeView: View {
                 replayTour = true
                 homeSheet = nil
             }
+        case .designTypes:
+            DesignTypesSheet { preset in homeSheet = .start(presetId: preset.id) }
         }
     }
 
@@ -314,6 +322,42 @@ struct HomeView: View {
         // Starred templates first.
         let starred = Set(Favorites.ids(of: "template"))
         return matching.filter { starred.contains($0.id) } + matching.filter { !starred.contains($0.id) }
+    }
+
+    /// The design types the search finds, at most eight.
+    private var matchingTypes: [SizePreset] {
+        Array(SizePreset.search(query).prefix(8))
+    }
+
+    /// "Design types: TikTok Video" — each a chip that opens its start.
+    private var designTypeMatches: some View {
+        let found = matchingTypes
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("Design types: \(found.map(\.name).joined(separator: ", "))")
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(2)
+                .padding(.horizontal)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(found) { preset in
+                        Button {
+                            homeSheet = .start(presetId: preset.id)
+                        } label: {
+                            Label("\(preset.name) · \(preset.dimensions)", systemImage: preset.icon)
+                                .font(.subheadline.weight(.medium))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 7)
+                                .background(Theme.card, in: Capsule())
+                                .overlay(Capsule().stroke(Theme.hairline))
+                                .foregroundStyle(Theme.ink)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Start a \(preset.name)")
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
     }
 
     // MARK: chips
@@ -471,7 +515,7 @@ struct HomeView: View {
     private var searchBar: some View {
         HStack {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-            TextField("Search designs and templates", text: $query)
+            TextField("Search designs, sizes and templates", text: $query)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
             if !query.isEmpty {
@@ -685,16 +729,24 @@ struct HomeView: View {
                     // A size opens on its blank page and everything already
                     // made at that size, rather than straight into an empty
                     // page with no idea there was a head start on offer.
-                    ForEach(SizePreset.all) { preset in
+                    ForEach(SizePreset.hero) { preset in
                         let count = ContentLibrary.templateCounts[preset.id] ?? 0
                         Button {
                             homeSheet = .start(presetId: preset.id)
                         } label: {
                             heroTile(systemImage: preset.icon, title: preset.name,
-                                     lines: ["\(Int(preset.w)) × \(Int(preset.h))", "\(count) ready-made"])
+                                     lines: [preset.dimensions, "\(count) ready-made"])
                         }
-                        .accessibilityLabel("\(preset.name), \(Int(preset.w)) by \(Int(preset.h)), \(count) ready-made designs")
+                        .accessibilityLabel("\(preset.name), \(preset.dimensions.replacingOccurrences(of: " × ", with: " by ")), \(count) ready-made designs")
                     }
+                    // Every other design type, searchable, by category.
+                    Button {
+                        homeSheet = .designTypes
+                    } label: {
+                        heroTile(systemImage: "square.grid.2x2", title: "More sizes",
+                                 lines: ["\(SizePreset.all.count) design types"])
+                    }
+                    .accessibilityLabel("More sizes, \(SizePreset.all.count) design types")
                     Button {
                         homeSheet = .customSize
                     } label: {
@@ -1061,11 +1113,12 @@ struct HomeView: View {
     /// which folder, while every folder is showing. Heard as "1080 by 1920"
     /// rather than a multiplication.
     private func caption(for recent: RecentDesign) -> (shown: String, spoken: String) {
-        let w = Int(recent.width), h = Int(recent.height)
+        // "210 × 297 mm" for a design measured in a physical unit.
+        let size = recent.sizeText
         let when = RelativeTime.text(ms: recent.updatedAt)
         let pages = RelativeTime.pages(recent.pages)
-        var shown = "\(w) × \(h) · \(when) · \(pages)"
-        var spoken = "\(w) by \(h), \(when), \(pages)"
+        var shown = "\(size) · \(when) · \(pages)"
+        var spoken = "\(size.replacingOccurrences(of: " × ", with: " by ")), \(when), \(pages)"
         if folder == nil, let name = recent.folder {
             shown += " · \(name)"
             spoken += ", in \(name)"

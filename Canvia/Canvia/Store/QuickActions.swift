@@ -51,15 +51,16 @@ enum QuickActions {
     }
 
     /// What an action asks for, or nil for one this app does not know. A
-    /// new design is named after its size, as the Android twin names it; a
-    /// size it does not know is the first size. An id that could reach
+    /// new design is named after its size, as the Android twin names it, and
+    /// any design type's id is taken — in its unit; a size it does not know
+    /// is the first size. An id that could reach
     /// outside the designs folder is refused.
     static func request(type: String, info: [String: String]) -> LaunchRequest.Request? {
         switch type {
         case newType:
             let id = info[presetKey] ?? "insta-post"
-            guard let preset = SizePreset.all.first(where: { $0.id == id }) ?? SizePreset.all.first else { return nil }
-            return .newDesign(width: preset.w, height: preset.h, title: preset.name)
+            guard let preset = SizePreset.byId(id) ?? SizePreset.all.first else { return nil }
+            return .newType(id: preset.id, title: preset.name)
         case openType:
             guard let id = info[designKey], isSafeId(id) else { return nil }
             return .open(id: id)

@@ -79,6 +79,13 @@ struct CanviaApp: App {
             design.updatedAt = Date().timeIntervalSince1970 * 1000
             DesignLibrary.save(design)
             return DesignStore(design: design)
+        case .newType(let id, let title):
+            // A size this build does not list is the first size.
+            guard let preset = SizePreset.byId(id) ?? SizePreset.all.first else { return nil }
+            var design = preset.makeDesign(title: Titles.unique(title, taken: DesignLibrary.recents().map(\.title)))
+            design.updatedAt = Date().timeIntervalSince1970 * 1000
+            DesignLibrary.save(design)
+            return DesignStore(design: design)
         case .open(let id):
             return DesignLibrary.load(id: id).map { DesignStore(design: $0) }
         }

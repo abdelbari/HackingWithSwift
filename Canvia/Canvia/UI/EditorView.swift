@@ -464,6 +464,7 @@ struct EditorView: View {
                 }
                 .onSubmit { titleFocused = false }
             Text(EditorCaption.text(width: store.pageWidth, height: store.pageHeight,
+                                    unit: store.design.physicalUnit, dpi: store.design.dpi,
                                     page: store.pageIndex, of: store.design.pages.count))
                 .font(.caption2)
                 .foregroundStyle(.secondary)

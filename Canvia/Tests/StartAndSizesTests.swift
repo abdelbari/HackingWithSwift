@@ -58,10 +58,11 @@ final class StartAndSizesTests: XCTestCase {
         XCTAssertEqual(Set(ids).count, ids.count, "two sizes share an id")
     }
 
-    /// Every size opens on at least three ready-made starts, as on Android:
-    /// logos and quote cards now have their own, not a blank page alone.
+    /// Every size on Home's row opens on at least three ready-made starts,
+    /// as on Android: logos and quote cards now have their own, not a blank
+    /// page alone. (The rest of the catalogue may have none: "0 ready-made".)
     func testEverySizeHasTemplatesToStartFrom() {
-        for size in SizePreset.all {
+        for size in SizePreset.hero {
             XCTAssertGreaterThanOrEqual(ContentLibrary.templateCounts[size.id] ?? 0, 3, "\(size.name) has too few templates")
         }
     }
@@ -113,8 +114,9 @@ final class StartAndSizesTests: XCTestCase {
         XCTAssertEqual(CustomSizes.digits("٣٤"), "", "digits a size field can read")
         XCTAssertEqual(CustomSizes.side("40"), 40)
         XCTAssertEqual(CustomSizes.side("4000"), 4000)
+        XCTAssertEqual(CustomSizes.side("8000"), 8000)
         XCTAssertNil(CustomSizes.side("39"))
-        XCTAssertNil(CustomSizes.side("4001"))
+        XCTAssertNil(CustomSizes.side("8001"))
         XCTAssertNil(CustomSizes.side(""))
         XCTAssertEqual(CustomSizes.title(width: 1600, height: 900), "1600 × 900")
     }
@@ -128,7 +130,7 @@ final class StartAndSizesTests: XCTestCase {
         XCTAssertEqual(CustomSizes.height(forWidth: "1000", ratio: 0.8), "1250")
         XCTAssertEqual(CustomSizes.height(forWidth: "", ratio: 1), "1080")
         XCTAssertEqual(CustomSizes.height(forWidth: "4000", ratio: 9.0 / 16), "7111")
-        XCTAssertNil(CustomSizes.side(CustomSizes.height(forWidth: "4000", ratio: 9.0 / 16)), "out of range, and said so")
+        XCTAssertNil(CustomSizes.side(CustomSizes.height(forWidth: "5000", ratio: 9.0 / 16)), "out of range, and said so")
     }
 
     /// Newest first, once each, four at most; anything that is not two

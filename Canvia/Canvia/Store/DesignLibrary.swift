@@ -19,6 +19,12 @@ struct RecentDesign: Identifiable, Sendable {
     var thumbnailStamp: Double? = nil
     /// A design file that no longer reads as a design.
     var damaged = false
+    /// The unit and dpi the design is read in, for its card's size line.
+    var unit: String? = nil
+    var dpi: Double? = nil
+
+    /// "210 × 297 mm", or "1080 × 1920" for a design in pixels.
+    var sizeText: String { Units.dimensions(width: width, height: height, unit: unit, dpi: dpi) }
 }
 
 enum DesignLibrary {
@@ -156,7 +162,7 @@ enum DesignLibrary {
                 id: design.id, title: design.title,
                 width: design.width, height: design.height,
                 pages: design.pages.count, updatedAt: deleted.timeIntervalSince1970 * 1000,
-                thumbnailStamp: stamps[design.id]))
+                thumbnailStamp: stamps[design.id], unit: design.physicalUnit, dpi: design.dpi))
         }
         return result.sorted { $0.updatedAt > $1.updatedAt }
     }

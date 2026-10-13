@@ -74,16 +74,19 @@ final class HomeShelfTests: XCTestCase {
         XCTAssertEqual(QuickActions.items(recents: []).count, 2)
     }
 
-    /// A new design at the size, named after it; an open for a safe id only;
+    /// A new design of the type, named after it — any type in the
+    /// catalogue, so it starts in its unit; an open for a safe id only;
     /// nothing for an action this app does not know.
     func testAQuickActionBecomesALaunchRequest() throws {
         XCTAssertEqual(QuickActions.request(type: QuickActions.newType, info: [QuickActions.presetKey: "insta-story"]),
-                       .newDesign(width: 1080, height: 1920, title: "Instagram Story"))
+                       .newType(id: "insta-story", title: "Instagram Story"))
         XCTAssertEqual(QuickActions.request(type: QuickActions.newType, info: [:]),
-                       .newDesign(width: 1080, height: 1080, title: "Instagram Post"))
+                       .newType(id: "insta-post", title: "Instagram Post"))
+        XCTAssertEqual(QuickActions.request(type: QuickActions.newType, info: [QuickActions.presetKey: "tiktok-video"]),
+                       .newType(id: "tiktok-video", title: "TikTok Video"))
         let first = try XCTUnwrap(SizePreset.all.first)
         XCTAssertEqual(QuickActions.request(type: QuickActions.newType, info: [QuickActions.presetKey: "billboard"]),
-                       .newDesign(width: first.w, height: first.h, title: first.name))
+                       .newType(id: first.id, title: first.name))
         XCTAssertEqual(QuickActions.request(type: QuickActions.openType, info: [QuickActions.designKey: "doc_ab-12"]),
                        .open(id: "doc_ab-12"))
         XCTAssertNil(QuickActions.request(type: QuickActions.openType, info: [QuickActions.designKey: "../secrets"]))

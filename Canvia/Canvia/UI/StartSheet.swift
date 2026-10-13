@@ -27,7 +27,7 @@ struct StartSheet: View {
 
     private var preset: SizePreset? {
         guard let presetId else { return nil }
-        return SizePreset.all.first { $0.id == presetId }
+        return SizePreset.byId(presetId)
     }
 
     var body: some View {
@@ -72,7 +72,8 @@ struct StartSheet: View {
                 .font(.headline)
                 .lineLimit(1)
             if let preset {
-                Text("\(Int(preset.w)) × \(Int(preset.h)) px")
+                // In its own unit: "210 × 297 mm".
+                Text(preset.unit == nil ? "\(preset.dimensions) px" : preset.dimensions)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -83,7 +84,7 @@ struct StartSheet: View {
 
     private var sizePicker: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: 12)], alignment: .leading, spacing: 16) {
-            ForEach(SizePreset.all) { preset in
+            ForEach(SizePreset.hero) { preset in
                 SizeTile(preset: preset) { presetId = preset.id }
             }
             CustomSizeTile(action: onCustomSize)
@@ -179,10 +180,10 @@ private struct StartGrid: View {
                 BlankCard(preset: preset) {
                     // Named for what it is, as the Android twin names it;
                     // Home makes the name one the shelf does not have yet.
-                    onCreate(Design(title: preset.name, width: preset.w, height: preset.h))
+                    onCreate(preset.makeDesign())
                 }
                 ForEach(shown) { template in
-                    StartTemplateCard(template: template) { onCreate(template.instantiate()) }
+                    StartTemplateCard(template: template) { onCreate(template.instantiate(for: preset)) }
                 }
             }
         }
@@ -274,15 +275,24 @@ struct CustomSizeSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var width = "1080"
     @State private var height = "1080"
+    /// What the sides are typed in: px, in, mm or cm.
+    @State private var unit = "px"
     /// Read once as the sheet opens.
     @State private var recent = CustomSizes.recent()
 
     var body: some View {
-        let w = CustomSizes.side(width)
-        let h = CustomSizes.side(height)
+        let w = CustomSizes.side(width, unit: unit)
+        let h = CustomSizes.side(height, unit: unit)
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    UnitPicker(unit: $unit)
+                        // The size stays the size: what is typed is
+                        // rewritten in the new unit.
+                        .onChange(of: unit) { old, new in
+                            width = CustomSizes.convert(width, from: old, to: new)
+                            height = CustomSizes.convert(height, from: old, to: new)
+                        }
                     HStack(alignment: .top, spacing: 12) {
                         sideField("Width", text: $width, valid: w != nil)
                         sideField("Height", text: $height, valid: h != nil)
@@ -291,7 +301,7 @@ struct CustomSizeSheet: View {
                         ForEach(CustomSizes.ratios.indices, id: \.self) { i in
                             let item = CustomSizes.ratios[i]
                             chip(item.label) {
-                                height = CustomSizes.height(forWidth: width, ratio: item.ratio)
+                                height = CustomSizes.height(forWidth: width, ratio: item.ratio, unit: unit)
                             }
                             .accessibilityLabel("Ratio \(item.label)")
                         }
@@ -303,8 +313,10 @@ struct CustomSizeSheet: View {
                         HStack(spacing: 8) {
                             ForEach(recent, id: \.self) { size in
                                 chip(size.label) {
-                                    width = String(size.width)
-                                    height = String(size.height)
+                                    // Kept in pixels, written in the unit
+                                    // the sides are typed in.
+                                    width = CustomSizes.convert(String(size.width), from: "px", to: unit)
+                                    height = CustomSizes.convert(String(size.height), from: "px", to: unit)
                                 }
                                 .accessibilityLabel("\(size.width) by \(size.height)")
                             }
@@ -322,7 +334,7 @@ struct CustomSizeSheet: View {
                     Button("Create") {
                         guard let w, let h else { return }
                         CustomSizes.remember(width: w, height: h)
-                        onCreate(Design(title: CustomSizes.title(width: w, height: h), width: w, height: h))
+                        onCreate(CustomSizes.design(width: w, height: h, unit: unit))
                     }
                     .fontWeight(.semibold)
                     .disabled(w == nil || h == nil)
@@ -339,9 +351,9 @@ struct CustomSizeSheet: View {
                 .foregroundStyle(.secondary)
             HStack(spacing: 6) {
                 TextField(label, text: text)
-                    .keyboardType(.numberPad)
+                    .keyboardType(unit == "px" ? .numberPad : .decimalPad)
                     .accessibilityHint(valid ? CustomSizes.rangeText : CustomSizes.outOfRangeText)
-                Text("px").foregroundStyle(.secondary)
+                Text(unit).foregroundStyle(.secondary)
             }
             .padding(10)
             .background(Theme.card, in: RoundedRectangle(cornerRadius: 10))
@@ -352,9 +364,10 @@ struct CustomSizeSheet: View {
                 .foregroundStyle(valid ? Color.secondary : Color(.systemRed))
         }
         .frame(maxWidth: .infinity)
-        // Digits only, five at most, however they arrive — typed or pasted.
+        // Digits only, five at most, however they arrive — typed or pasted;
+        // and one decimal point in a physical unit.
         .onChange(of: text.wrappedValue) { _, typed in
-            let clean = CustomSizes.digits(typed)
+            let clean = CustomSizes.field(typed, unit: unit)
             if clean != typed { text.wrappedValue = clean }
         }
     }
@@ -370,5 +383,18 @@ struct CustomSizeSheet: View {
                 .foregroundStyle(Theme.ink)
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// px | in | mm | cm, for a size typed in Custom size and Resize. A size in
+/// a physical unit is made at 300 dpi.
+struct UnitPicker: View {
+    @Binding var unit: String
+
+    var body: some View {
+        Picker("Unit", selection: $unit) {
+            ForEach(Units.all, id: \.self) { Text($0).tag($0) }
+        }
+        .pickerStyle(.segmented)
     }
 }

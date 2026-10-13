@@ -21,10 +21,31 @@ struct Template: Codable, Identifiable {
     var background: Background
     var elements: [Element]
 
-    /// A fresh Design at the template's native size.
+    /// A fresh Design at the template's native size — in the unit of the
+    /// print type made at exactly that size, so an A4 template prints on A4.
     func instantiate() -> Design {
         var design = Design(title: name, width: width, height: height)
         design.pages = [makePage(scale: 1, dx: 0, dy: 0)]
+        if let type = SizePreset.all.first(where: { $0.unit != nil && $0.w == width && $0.h == height }) {
+            design.unit = type.unit
+            design.dpi = type.dpi
+        }
+        return design
+    }
+
+    /// A fresh Design at a design type's size and in its unit: the
+    /// template as it is when made at that size, else fitted to it — a
+    /// flyer made before the flyer became true A5.
+    func instantiate(for preset: SizePreset) -> Design {
+        var design: Design
+        if width == preset.w && height == preset.h {
+            design = instantiate()
+        } else {
+            design = Design(title: name, width: preset.w, height: preset.h)
+            design.pages = [makePage(width: preset.w, height: preset.h)]
+        }
+        design.unit = preset.unit
+        design.dpi = preset.dpi
         return design
     }
 
@@ -155,6 +176,8 @@ struct ContentBundle: Codable {
     var pairings: [FontPairing]
     var stickerGroups: [StickerGroup]
     var photoSpecs: PhotoSpecs
+    /// The design types: every size a design can start at.
+    var sizes: [SizePreset]?
 }
 
 enum ContentLibrary {
@@ -178,6 +201,27 @@ enum ContentLibrary {
     static var gradients: [GradientPreset] { bundle.gradients }
     static var pairings: [FontPairing] { bundle.pairings }
     static var stickerGroups: [StickerGroup] { bundle.stickerGroups }
+
+    /// The design-type catalogue; the eleven Home has always shown should
+    /// it fail to load, so a size is always there to start from.
+    static let sizes: [SizePreset] = {
+        let listed = bundle.sizes ?? []
+        return listed.isEmpty ? fallbackSizes : listed
+    }()
+
+    static let fallbackSizes: [SizePreset] = [
+        SizePreset(id: "insta-post", name: "Instagram Post", category: "Social", width: 1080, height: 1080),
+        SizePreset(id: "insta-story", name: "Instagram Story", category: "Social", width: 1080, height: 1920),
+        SizePreset(id: "presentation", name: "Presentation", category: "Presentations", width: 1920, height: 1080),
+        SizePreset(id: "youtube-thumb", name: "YouTube Thumbnail", category: "Video", width: 1280, height: 720),
+        SizePreset(id: "facebook-post", name: "Facebook Post", category: "Social", width: 1200, height: 630),
+        SizePreset(id: "poster", name: "Poster", category: "Print", width: 420, height: 594, unit: "mm", dpi: 96),
+        SizePreset(id: "flyer", name: "Flyer A5", category: "Print", width: 148, height: 210, unit: "mm", dpi: 300),
+        SizePreset(id: "a4", name: "A4 Document", category: "Documents", width: 210, height: 297, unit: "mm", dpi: 300),
+        SizePreset(id: "business-card", name: "Business Card", category: "Print", width: 3.5, height: 2, unit: "in", dpi: 300),
+        SizePreset(id: "quote-card", name: "Quote Card", category: "Social", width: 1440, height: 1080),
+        SizePreset(id: "logo", name: "Logo", category: "Marketing", width: 800, height: 800),
+    ]
 
     /// A plain square, used whenever a shape id cannot be resolved.
     static let fallbackShape = ShapeDef(id: "rect", name: "Square",
@@ -255,8 +299,15 @@ enum ContentLibrary {
             : "Replaces what is on this page. Undo brings it back."
     }
 
+    /// A size's templates: those made at exactly its pixels, then any made
+    /// at the pixels it had before it became its true size.
     static func sizedTemplates(for preset: SizePreset) -> [Template] {
-        sizedTemplates(width: preset.w, height: preset.h, category: nil)
+        var bucket = sizedTemplates(width: preset.w, height: preset.h, category: nil)
+        if let former = SizePreset.formerPixels[preset.id],
+           former.width != preset.w || former.height != preset.h {
+            bucket += sizedTemplates(width: former.width, height: former.height, category: nil)
+        }
+        return bucket
     }
 
     /// How many ready-made starts each size has, by preset id: the line
@@ -312,31 +363,173 @@ enum ContentLibrary {
 
 // MARK: size presets
 
-struct SizePreset: Identifiable {
+/// A design type: a size a design starts at, from the catalogue every phone
+/// reads — Content.json's "sizes", the same list as the Android twin's
+/// SizePresets, so an id means the same size on both. Each is written in its
+/// own unit (an A4 page as 210 × 297 mm at 300 dpi) and made whole pixels
+/// here, which is what a page is.
+struct SizePreset: Identifiable, Codable, Equatable {
     var id: String
     var name: String
+    /// "Social", "Video", "Presentations", "Print", "Documents" or
+    /// "Marketing".
+    var category: String
+    /// The size in pixels, which is what a design made at it gets.
     var w: Double
     var h: Double
-    var icon: String
+    /// The size as the catalogue writes it, in `unit`.
+    var width: Double
+    var height: Double
+    /// "mm", "cm" or "in" for a print size; nil is pixels.
+    var unit: String?
+    var dpi: Double?
+    /// Other words it is found by: "cv" for a resume, "twitter" for X.
+    var keywords: [String]
 
-    static let all: [SizePreset] = [
-        .init(id: "insta-post", name: "Instagram Post", w: 1080, h: 1080, icon: "square"),
-        .init(id: "insta-story", name: "Instagram Story", w: 1080, h: 1920, icon: "iphone"),
-        .init(id: "presentation", name: "Presentation", w: 1920, h: 1080, icon: "display"),
-        .init(id: "youtube-thumb", name: "YouTube Thumbnail", w: 1280, h: 720, icon: "play.rectangle"),
-        // Where the Android twin has it, and the size seven of the bundled
-        // templates were already made at with no tile to reach them by.
-        .init(id: "facebook-post", name: "Facebook Post", w: 1200, h: 630, icon: "rectangle"),
-        .init(id: "poster", name: "Poster", w: 1587, h: 2245, icon: "doc.richtext"),
-        .init(id: "flyer", name: "Flyer A5", w: 1240, h: 1748, icon: "doc"),
-        // A4 at 300 dpi, the size the bundled A4 templates (a resume, a
-        // certificate, a menu, an invoice, a travel plan) were made at and
-        // the Android twin's; at 150 dpi the tile opened on no templates.
-        .init(id: "a4", name: "A4 Document", w: 2480, h: 3508, icon: "doc.text"),
-        .init(id: "business-card", name: "Business Card", w: 1050, h: 600, icon: "person.crop.rectangle"),
-        .init(id: "quote-card", name: "Quote Card", w: 1440, h: 1080, icon: "quote.opening"),
-        .init(id: "logo", name: "Logo", w: 800, h: 800, icon: "seal"),
+    init(id: String, name: String, category: String, width: Double, height: Double,
+         unit: String? = nil, dpi: Double? = nil, keywords: [String] = []) {
+        self.id = id
+        self.name = name
+        self.category = category
+        self.width = width
+        self.height = height
+        self.unit = Units.isPhysical(unit) ? unit : nil
+        self.dpi = self.unit == nil ? nil : (dpi ?? Units.printDPI)
+        self.keywords = keywords
+        let d = self.dpi ?? Units.screenDPI
+        w = Units.pixels(width, unit: self.unit ?? "px", dpi: d)
+        h = Units.pixels(height, unit: self.unit ?? "px", dpi: d)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, category, width, height, unit, dpi, keywords
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(id: try c.decode(String.self, forKey: .id),
+                  name: try c.decode(String.self, forKey: .name),
+                  category: (try? c.decode(String.self, forKey: .category)) ?? "Social",
+                  width: try c.decode(Double.self, forKey: .width),
+                  height: try c.decode(Double.self, forKey: .height),
+                  unit: try? c.decode(String.self, forKey: .unit),
+                  dpi: try? c.decode(Double.self, forKey: .dpi),
+                  keywords: (try? c.decode([String].self, forKey: .keywords)) ?? [])
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(category, forKey: .category)
+        try c.encode(width, forKey: .width)
+        try c.encode(height, forKey: .height)
+        try c.encodeIfPresent(unit, forKey: .unit)
+        try c.encodeIfPresent(dpi, forKey: .dpi)
+        try c.encode(keywords, forKey: .keywords)
+    }
+
+    /// A blank design at this size, in its unit, under `title`.
+    func makeDesign(title: String? = nil) -> Design {
+        var design = Design(title: title ?? name, width: w, height: h)
+        design.unit = unit
+        design.dpi = dpi
+        return design
+    }
+
+    /// "210 × 297 mm", or "1080 × 1920" for a size in pixels.
+    var dimensions: String {
+        Units.dimensions(width: w, height: h, unit: unit, dpi: dpi)
+    }
+
+    /// The symbol a size is drawn with: its own for the eleven on Home's
+    /// row, else its category's.
+    var icon: String {
+        if let own = Self.icons[id] { return own }
+        switch category {
+        case "Video": return "play.rectangle"
+        case "Presentations": return "display"
+        case "Print": return "doc.richtext"
+        case "Documents": return "doc.text"
+        case "Marketing": return "megaphone"
+        default: return w > h ? "rectangle" : (w < h ? "rectangle.portrait" : "square")
+        }
+    }
+
+    private static let icons: [String: String] = [
+        "insta-post": "square", "insta-story": "iphone", "presentation": "display",
+        "youtube-thumb": "play.rectangle", "facebook-post": "rectangle", "poster": "doc.richtext",
+        "flyer": "doc", "a4": "doc.text", "business-card": "person.crop.rectangle",
+        "quote-card": "quote.opening", "logo": "seal",
     ]
+
+    /// How many of the catalogue's first sizes Home's row shows: the
+    /// eleven it always had, in their order, before "More sizes".
+    static let heroCount = 11
+
+    /// Every design type, in catalogue order.
+    static var all: [SizePreset] { ContentLibrary.sizes }
+
+    /// The eleven on Home's row and in the Start sheet.
+    static var hero: [SizePreset] { Array(all.prefix(heroCount)) }
+
+    static func byId(_ id: String) -> SizePreset? { all.first { $0.id == id } }
+
+    /// The categories, in the order they first appear.
+    static var categories: [String] {
+        var seen: [String] = []
+        for p in all where !seen.contains(p.category) { seen.append(p.category) }
+        return seen
+    }
+
+    /// The pixel size a type's templates were made at before it became
+    /// its true size: the A5 flyer's were made at 1240 × 1748, and are its
+    /// templates still — fitted to the page when picked — as on Android.
+    static let formerPixels: [String: (width: Double, height: Double)] = ["flyer": (1240, 1748)]
+
+    // MARK: search
+
+    /// A query as it is compared: case, accents and the space around it
+    /// gone — "Résumé" finds "resume".
+    static func folded(_ text: String) -> String {
+        text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
+            .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// The design types a search finds. A name that starts with the query
+    /// comes first, then a name that has it, then a keyword or a pixel size
+    /// ("1080x1920", "1080 × 1920") — each band in catalogue order, so
+    /// "tiktok" leads with TikTok Video. Empty finds nothing.
+    static func search(_ query: String, in presets: [SizePreset] = SizePreset.all) -> [SizePreset] {
+        let needle = folded(query)
+        guard !needle.isEmpty else { return [] }
+        let size = pixelQuery(needle)
+        var starts: [SizePreset] = [], names: [SizePreset] = [], others: [SizePreset] = []
+        for preset in presets {
+            let name = folded(preset.name)
+            if name.hasPrefix(needle) {
+                starts.append(preset)
+            } else if name.contains(needle) {
+                names.append(preset)
+            } else if preset.keywords.contains(where: { folded($0).contains(needle) })
+                        || folded(preset.category).hasPrefix(needle)
+                        || (size.map { $0.width == preset.w && $0.height == preset.h } ?? false) {
+                others.append(preset)
+            }
+        }
+        return starts + names + others
+    }
+
+    /// "1080x1920", "1080 × 1920" or "1080 by 1920" as a size, or nil.
+    static func pixelQuery(_ needle: String) -> (width: Double, height: Double)? {
+        let parts = needle.replacingOccurrences(of: "×", with: "x")
+            .replacingOccurrences(of: " by ", with: "x")
+            .replacingOccurrences(of: " ", with: "")
+            .split(separator: "x")
+        guard parts.count == 2, let w = Double(parts[0]), let h = Double(parts[1]) else { return nil }
+        return (w, h)
+    }
 }
 
 // MARK: document colors + shuffle

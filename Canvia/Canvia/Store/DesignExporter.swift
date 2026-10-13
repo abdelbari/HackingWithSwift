@@ -188,6 +188,9 @@ enum DesignExporter {
         guard box.width > 0, box.height > 0 else { return nil }
         var cropped = Design(title: design.title, width: box.width, height: box.height)
         cropped.id = design.id
+        // At the design's dpi, so the selection prints at its true size too.
+        cropped.unit = design.unit
+        cropped.dpi = design.dpi
         var only = page
         // The box is the page's size now. A page with a size of its own
         // would otherwise keep it, and render and print at that size with
@@ -247,6 +250,14 @@ enum DesignExporter {
         return renderer.cgImage
     }
 
+    /// The dpi a picture of `page` is written with: the design's own, at
+    /// the scale it renders at — its true size whatever the scale — or nil
+    /// for a design with none.
+    static func imageDPI(design: Design, page: Page, requested: Double) -> Double? {
+        guard let dpi = design.dpi else { return nil }
+        return dpi * effectiveScale(size: design.size(for: page), requested: requested)
+    }
+
     @MainActor
     static func exportRaster(design: Design, page: Page, format: RasterFormat,
                              scale: Double, quality: Double = 0.92,
@@ -257,9 +268,17 @@ enum DesignExporter {
             guard let destination = CGImageDestinationCreateWithURL(
                 url as CFURL, format.contentType.identifier as CFString, 1, nil)
             else { throw ExportError.encodeFailed }
-            CGImageDestinationAddImage(destination, cg, [
+            var properties: [CFString: Any] = [
                 kCGImageDestinationLossyCompressionQuality: max(0.05, min(1, quality)),
-            ] as CFDictionary)
+            ]
+            // A design in a physical unit says its dpi, so the picture opens
+            // at the design's true size; one in pixels says nothing, as
+            // before.
+            if let dpi = imageDPI(design: design, page: page, requested: scale) {
+                properties[kCGImagePropertyDPIWidth] = dpi
+                properties[kCGImagePropertyDPIHeight] = dpi
+            }
+            CGImageDestinationAddImage(destination, cg, properties as CFDictionary)
             guard CGImageDestinationFinalize(destination) else {
                 throw ExportError.encodeFailed
             }
@@ -377,9 +396,6 @@ enum DesignExporter {
 
     // MARK: pdf
 
-    /// Page units are pixels at 96dpi; PDF works in points at 72.
-    static let pxToPt = 72.0 / 96.0
-
     /// The PDF, written a page at a time with `progress` after each, and a
     /// pause between pages so the sheet stays live and Cancel works. A
     /// cancelled PDF is deleted rather than left short.
@@ -388,6 +404,9 @@ enum DesignExporter {
                           to url: URL, progress: ((Double) -> Void)? = nil) async throws {
         let indices = range.indices(in: design, current: current)
         guard !indices.isEmpty else { throw ExportError.renderFailed }
+        // Page units are pixels at the design's dpi; PDF works in points
+        // at 72 — so a page comes out at its true size.
+        let pxToPt = PrintLayout.pxToPt(design)
         func bounds(_ page: Page) -> CGRect {
             let size = design.size(for: page)
             return CGRect(x: 0, y: 0, width: Double(size.width) * pxToPt, height: Double(size.height) * pxToPt)
@@ -423,6 +442,7 @@ enum DesignExporter {
     private static func linkAreas(of page: Page, in design: Design, onto cg: CGContext, pageHeight: Double) {
         let areas = Links.areas(design: design, page: page)
         guard !areas.isEmpty else { return }
+        let pxToPt = PrintLayout.pxToPt(design)
         cg.saveGState()
         cg.concatenate(cg.ctm.inverted())
         for area in areas {
@@ -460,7 +480,7 @@ enum DesignExporter {
     /// How many sheets of paper the pages will take.
     static func sheetCount(design: Design, indices: [Int], options: PrintLayout.Options) -> Int {
         indices.reduce(0) { total, index in
-            let pagePts = PrintLayout.pagePoints(size: design.size(at: index), bleed: options.bleed)
+            let pagePts = PrintLayout.pagePoints(size: design.size(at: index), dpi: design.effectiveDPI, bleed: options.bleed)
             return total + placements(pagePoints: pagePts, options: options).count
         }
     }
@@ -483,7 +503,7 @@ enum DesignExporter {
         var done = 0
         do {
             for page in indices.map({ design.pages[$0] }) {
-                let pagePts = PrintLayout.pagePoints(size: design.size(for: page), bleed: options.bleed)
+                let pagePts = PrintLayout.pagePoints(size: design.size(for: page), dpi: design.effectiveDPI, bleed: options.bleed)
                 for placement in placements(pagePoints: pagePts, options: options) {
                     try await pacer.breathe()
                     writer.page(sheet) { cg in
