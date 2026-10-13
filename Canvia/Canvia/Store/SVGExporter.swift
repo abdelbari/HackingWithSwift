@@ -336,15 +336,17 @@ enum SVGExporter {
     }
 
     /// How far past its box the canvas draws an element that goes out as a
-    /// picture: half its border, which is centred on the frame, and for a
+    /// picture: half its border, which is centred on the frame, for a
     /// shape or a photo in a shaped frame the 3.5% a few library outlines
-    /// lean past their box by — as the Android twin pads the same pictures.
+    /// lean past their box by, and a photo's outline or glow — as the
+    /// Android twin pads the same pictures.
     static func overflow(_ el: Element) -> Double {
         guard el.type == .shape || el.type == .image else { return 0 }
         var border = 0.0
         if el.stroke != nil, let width = el.strokeWidth, width > 0 { border = width / 2 }
         let lean = (el.type == .shape || el.maskShapeId != nil) ? max(el.w, el.h) * 0.035 : 0
-        return border + lean
+        let edge = el.type == .image ? PhotoEffects.reach(el.edge) : 0
+        return border + lean + edge
     }
 
     // MARK: background

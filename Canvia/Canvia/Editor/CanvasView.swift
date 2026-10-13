@@ -364,9 +364,7 @@ struct CanvasView: View {
         let src = VideoStore.atRest(photo)
         return ZStack {
             if let ui = PhotoLibrary.resolve(src) {
-                let shown = ImageFilterEngine.apply(ImageFilterPreset.from(photo.filter),
-                                                    adjustments: photo.adjustments ?? .neutral,
-                                                    duotone: photo.duotone, to: ui, cacheKey: src ?? "")
+                let shown = ImageFilterEngine.apply(look: photo, to: ui, cacheKey: src ?? "")
                 Image(uiImage: shown)
                     .resizable()
                     .frame(width: drawn.width, height: drawn.height)

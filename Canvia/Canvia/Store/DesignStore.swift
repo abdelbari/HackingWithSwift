@@ -1282,6 +1282,8 @@ final class DesignStore {
         var adjustments: Adjustments?
         var maskShapeId: String?
         var duotone: Duotone?
+        /// How much of `filter` shows, which goes with it.
+        var filterStrength: Double?
         var opacity: Double
         var shadow: Shadow?
         var blendMode: String?
@@ -1305,7 +1307,7 @@ final class DesignStore {
               vAlign: el.vAlign, paragraphSpacing: el.paragraphSpacing,
               effect: el.effect, curve: el.curve, filter: el.filter,
               adjustments: el.adjustments, maskShapeId: el.maskShapeId, duotone: el.duotone,
-              opacity: el.opacity, shadow: el.shadow, blendMode: el.blendMode,
+              filterStrength: el.filterStrength, opacity: el.opacity, shadow: el.shadow, blendMode: el.blendMode,
               thickness: el.thickness, dash: el.dash,
               startCap: el.startCap, endCap: el.endCap)
     }
@@ -1351,6 +1353,7 @@ final class DesignStore {
             el.adjustments = style.adjustments
             el.maskShapeId = style.maskShapeId
             el.duotone = style.duotone
+            el.filterStrength = style.filterStrength
             el.radius = style.radius
             el.stroke = style.stroke
             el.strokeWidth = style.strokeWidth

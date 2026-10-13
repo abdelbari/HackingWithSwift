@@ -572,7 +572,8 @@ struct ImageElementView: View {
         // Resolved here, not inside the GeometryReader, so that a clip played
         // live — whose frame version is read on the way — is watched by this
         // view, and drawn again when its next frame lands.
-        let resolved = resolvedImage()
+        let picture = resolvedPicture()
+        let resolved = picture.map { ImageFilterEngine.apply(look: element, to: $0.image, cacheKey: $0.key) }
         GeometryReader { _ in
             if let ui = resolved {
                 let frameW = element.w, frameH = element.h
@@ -620,6 +621,16 @@ struct ImageElementView: View {
                 frame.stroke(Color(hex: stroke), lineWidth: sw)
             }
         }
+        // An outline or glow round what the photo shows, behind it and past
+        // its frame — after the clip, so the frame does not cut it away.
+        .background {
+            if let picture, let edge = PhotoEffects.edge(element, picture: picture.image, key: picture.key) {
+                Image(uiImage: edge.image)
+                    .resizable()
+                    .frame(width: element.w + 2 * edge.pad, height: element.h + 2 * edge.pad)
+                    .allowsHitTesting(false)
+            }
+        }
     }
 
     private var frame: FrameShape {
@@ -627,7 +638,8 @@ struct ImageElementView: View {
                    cornerRadius: element.radius ?? 0)
     }
 
-    private func resolvedImage() -> UIImage? {
+    /// The picture before its look, and the key its looks are kept by.
+    private func resolvedPicture() -> (image: UIImage, key: String)? {
         let base: UIImage
         let key: String
         if liveVideo, let src = element.src, VideoStore.isVideo(src) {
@@ -645,10 +657,7 @@ struct ImageElementView: View {
             base = image
             key = element.src ?? ""
         }
-        let preset = ImageFilterPreset.from(element.filter)
-        return ImageFilterEngine.apply(preset, adjustments: element.adjustments ?? .neutral,
-                                       duotone: element.duotone,
-                                       to: base, cacheKey: key)
+        return (base, key)
     }
 }
 
