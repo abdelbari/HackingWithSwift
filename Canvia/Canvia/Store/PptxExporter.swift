@@ -41,6 +41,13 @@
 //     description
 //   • a page's background is the slide's p:bg: its colour, or a gradient or
 //     photo as a picture stretched over it — white when it cannot be drawn
+//   • a page of a size of its own is fitted whole onto the slide (fit):
+//     every length times one factor, centred; its colour still fills the
+//     slide, but a gradient or photo behind it is a picture at its place,
+//     the first shape on the slide, with white round it
+//   • a type size is held to the 1 to 4000 points PowerPoint reads (typeSize)
+//   • a word's own font and link go with it: the run names its face, and a
+//     linked word, coloured as the canvas draws it, opens on a click
 //   • a slide's relationships run rId1 for its layout, then what its XML
 //     needs in reading order — the background picture, then each
 //     element's link before its picture — and its notes slide last
@@ -87,6 +94,12 @@ enum PptxExporter {
         return Int((min(max(px, 0), 1e6) * 75).rounded())
     }
 
+    /// A run's type size: fontSize held to the 100 to 400000 (1 to 4000 pt)
+    /// a deck may give it — not its spacing, which may be any.
+    static func typeSize(_ px: Double) -> Int {
+        min(max(fontSize(px), 100), 400_000)
+    }
+
     /// An angle in 60000ths of a degree, clockwise, within 0..<360°.
     static func angle(_ degrees: Double) -> Int {
         guard degrees.isFinite else { return 0 }
@@ -114,6 +127,40 @@ enum PptxExporter {
     /// — which only a design far longer than it is wide still needs.
     static func slideEdge(_ px: Double, scale: Double) -> Int {
         min(max(emu(px * scale), 914_400), 51_206_400)
+    }
+
+    /// Where a page sits on the deck's slide, in the design's pixels: times
+    /// `factor`, `dx` in from the left and `dy` down from the top.
+    struct PageFit: Equatable {
+        var factor: Double
+        var dx: Double
+        var dy: Double
+
+        /// Whether the page covers the whole slide — within half a pixel —
+        /// so that its background can be the slide's.
+        var fills: Bool { dx < 0.5 && dy < 0.5 }
+    }
+
+    /// Where `page` sits on a slide at the design's size: one with no size
+    /// of its own fills it; one with its own is fitted whole into it — the
+    /// one factor that fits both sides, min(W/w, H/h) — and centred.
+    static func fit(design: Design, page: Page) -> PageFit {
+        let w = page.width ?? design.width
+        let h = page.height ?? design.height
+        let whole = PageFit(factor: 1, dx: 0, dy: 0)
+        if w == design.width && h == design.height { return whole }
+        let factor = min(design.width / w, design.height / h)
+        guard factor > 0, factor.isFinite else { return whole }
+        return PageFit(factor: factor, dx: (design.width - w * factor) / 2, dy: (design.height - h * factor) / 2)
+    }
+
+    /// How a page's lengths go onto its slide: times `unit` — the deck's
+    /// scale and the page's fit together — then `dx` and `dy` along, in
+    /// the slide's pixels.
+    struct Frame {
+        var unit: Double
+        var dx: Double = 0
+        var dy: Double = 0
     }
 
     // MARK: what each element becomes
@@ -299,6 +346,8 @@ enum PptxExporter {
     /// not among them is left out, and a background that is not is white.
     static func slide(design: Design, page: Page, number: Int, previous: Page?, drawn: [MediaPart]) -> SlideParts {
         let scale = slideScale(width: design.width, height: design.height)
+        let placed = fit(design: design, page: page)
+        let frame = Frame(unit: scale * placed.factor, dx: placed.dx * scale, dy: placed.dy * scale)
         var rels = Relationships()
         rels.add("slideLayout", "../slideLayouts/slideLayout1.xml")
         var remaining = drawn
@@ -310,18 +359,32 @@ enum PptxExporter {
         }
 
         var fill = "<a:solidFill>\(color("#ffffff"))</a:solidFill>"
+        var backdrop: String?
         if case .color(let hex) = page.background {
             fill = "<a:solidFill>\(color(hex))</a:solidFill>"
         } else if let picture = take(.background) {
             // A gradient or a photo behind the page: the pixels the canvas
-            // draws, stretched over the slide.
+            // draws, stretched over the slide — or, round a page of another
+            // shape, white with the picture at the page's place.
             let embed = rels.add("image", "../media/\(picture.name)")
-            fill = "<a:blipFill><a:blip r:embed=\"\(embed)\"/><a:stretch><a:fillRect/></a:stretch></a:blipFill>"
+            if placed.fills {
+                fill = "<a:blipFill><a:blip r:embed=\"\(embed)\"/><a:stretch><a:fillRect/></a:stretch></a:blipFill>"
+            } else {
+                backdrop = embed
+            }
         }
         let background = "<p:bg><p:bgPr>\(fill)<a:effectLst/></p:bgPr></p:bg>"
 
         var shapes: [String] = []
         var nextId = 2
+        if let backdrop {
+            let size = design.size(for: page)
+            let box = xfrm(x: 0, y: 0, w: Double(size.width), h: Double(size.height), rotation: 0, frame: frame)
+            let properties = "<p:nvPicPr><p:cNvPr id=\"\(nextId)\" name=\"Background\"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr>"
+            let picture = "<p:blipFill><a:blip r:embed=\"\(backdrop)\"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>"
+            shapes.append("<p:pic>\(properties)\(picture)<p:spPr>\(box)\(geometry("rect"))</p:spPr></p:pic>")
+            nextId += 1
+        }
         for el in drawnElements(design: design, page: page) {
             let kind = form(of: el)
             var picture: MediaPart?
@@ -337,16 +400,16 @@ enum PptxExporter {
             }
             switch kind {
             case .text:
-                shapes.append(textXML(el, id: id, link: link, design: design, scale: scale))
+                shapes.append(textXML(el, id: id, link: link, design: design, frame: frame, rels: &rels))
             case .shape(let preset):
-                shapes.append(shapeXML(el, preset: preset, id: id, link: link, scale: scale))
+                shapes.append(shapeXML(el, preset: preset, id: id, link: link, frame: frame))
             case .line:
-                shapes.append(lineXML(el, id: id, link: link, scale: scale))
+                shapes.append(lineXML(el, id: id, link: link, frame: frame))
             case .picture:
                 let embed = rels.add("image", "../media/\(picture?.name ?? "")")
                 let pad = margin(el)
                 let box = xfrm(x: el.x - pad, y: el.y - pad, w: el.w + 2 * pad, h: el.h + 2 * pad,
-                               rotation: el.rotation, scale: scale)
+                               rotation: el.rotation, frame: frame)
                 shapes.append(pictureXML(el, id: id, link: link, embed: embed, box: box))
             }
         }
@@ -376,18 +439,18 @@ enum PptxExporter {
 
     // MARK: elements
 
-    /// The box's place, size and turn about its centre, its lengths times
-    /// `scale`.
-    static func xfrm(x: Double, y: Double, w: Double, h: Double, rotation: Double, scale: Double) -> String {
+    /// The box's place, size and turn about its centre, on the slide as
+    /// `frame` puts the page.
+    static func xfrm(x: Double, y: Double, w: Double, h: Double, rotation: Double, frame: Frame) -> String {
         let rot = angle(rotation)
         let turned = rot == 0 ? "" : " rot=\"\(rot)\""
-        let offset = "<a:off x=\"\(emu(x * scale))\" y=\"\(emu(y * scale))\"/>"
-        let extent = "<a:ext cx=\"\(max(0, emu(w * scale)))\" cy=\"\(max(0, emu(h * scale)))\"/>"
+        let offset = "<a:off x=\"\(emu(x * frame.unit + frame.dx))\" y=\"\(emu(y * frame.unit + frame.dy))\"/>"
+        let extent = "<a:ext cx=\"\(max(0, emu(w * frame.unit)))\" cy=\"\(max(0, emu(h * frame.unit)))\"/>"
         return "<a:xfrm\(turned)>\(offset)\(extent)</a:xfrm>"
     }
 
-    private static func elementBox(_ el: Element, scale: Double) -> String {
-        xfrm(x: el.x, y: el.y, w: el.w, h: el.h, rotation: el.rotation, scale: scale)
+    private static func elementBox(_ el: Element, frame: Frame) -> String {
+        xfrm(x: el.x, y: el.y, w: el.w, h: el.h, rotation: el.rotation, frame: frame)
     }
 
     private static func geometry(_ preset: String) -> String {
@@ -414,7 +477,7 @@ enum PptxExporter {
     /// A rectangle, rounded or not, or an oval, filled and bordered as the
     /// element is. A rounded one's corner is a share of its shorter side,
     /// clamped to half of it as the canvas clamps it.
-    private static func shapeXML(_ el: Element, preset: String, id: Int, link: String?, scale: Double) -> String {
+    private static func shapeXML(_ el: Element, preset: String, id: Int, link: String?, frame: Frame) -> String {
         var outline = geometry(preset)
         if preset == "roundRect" {
             let short = min(el.w, el.h)
@@ -423,16 +486,16 @@ enum PptxExporter {
         }
         var border = ""
         if let stroke = el.stroke, let width = el.strokeWidth, width > 0 {
-            border = "<a:ln w=\"\(emu(width * scale))\"><a:solidFill>\(color(stroke, opacity: el.opacity))</a:solidFill></a:ln>"
+            border = "<a:ln w=\"\(emu(width * frame.unit))\"><a:solidFill>\(color(stroke, opacity: el.opacity))</a:solidFill></a:ln>"
         }
         let properties = "<p:nvSpPr>\(cNvPr(el, id: id, link: link))<p:cNvSpPr/><p:nvPr/></p:nvSpPr>"
-        let look = [elementBox(el, scale: scale), outline, fillXML(el.fill, opacity: el.opacity), border].joined()
+        let look = [elementBox(el, frame: frame), outline, fillXML(el.fill, opacity: el.opacity), border].joined()
         return "<p:sp>\(properties)<p:spPr>\(look)</p:spPr></p:sp>"
     }
 
     /// A preset line across the middle of the element's box, with its
     /// ends — swapped when the line is flipped across.
-    private static func lineXML(_ el: Element, id: Int, link: String?, scale: Double) -> String {
+    private static func lineXML(_ el: Element, id: Int, link: String?, frame: Frame) -> String {
         let thickness = max(el.thickness ?? 4, 0.5)
         var ends = [el.startCap, el.endCap]
         if el.flipH { ends.reverse() }
@@ -444,8 +507,8 @@ enum PptxExporter {
         }
         let paint = "<a:solidFill>\(color(el.color ?? "#1f2430", opacity: el.opacity))</a:solidFill>"
         let capped = "\(lineEnd("headEnd", ends[0]))\(lineEnd("tailEnd", ends[1]))"
-        let stroke = "<a:ln w=\"\(emu(thickness * scale))\" cap=\"rnd\">\(paint)\(dash)\(capped)</a:ln>"
-        let box = xfrm(x: el.x, y: el.y + el.h / 2, w: el.w, h: 0, rotation: el.rotation, scale: scale)
+        let stroke = "<a:ln w=\"\(emu(thickness * frame.unit))\" cap=\"rnd\">\(paint)\(dash)\(capped)</a:ln>"
+        let box = xfrm(x: el.x, y: el.y + el.h / 2, w: el.w, h: 0, rotation: el.rotation, frame: frame)
         let properties = "<p:nvSpPr>\(cNvPr(el, id: id, link: link))<p:cNvSpPr/><p:nvPr/></p:nvSpPr>"
         return "<p:sp>\(properties)<p:spPr>\(box)\(geometry("line"))\(stroke)</p:spPr></p:sp>"
     }
@@ -470,13 +533,18 @@ enum PptxExporter {
         var color: String?
         /// The box's type size times this; nil is the box's own.
         var scale: Double?
+        /// A font key of its own; nil is the box's face.
+        var font: String? = nil
+        /// A link a reader may follow (Links.followable); nil is none.
+        var link: String? = nil
     }
 
     /// The words as typed — page numbers filled in, a list's markers in
     /// front, the inline style marks read, before any capitals — as
     /// paragraphs of runs: cut at every line break and every change of
-    /// style, colour or size, and joined again where neighbours turn out
-    /// the same.
+    /// style, colour, size, font or link, and joined again where neighbours
+    /// turn out the same. A linked word with no colour of its own is in the
+    /// link colour, as the canvas draws it.
     static func paragraphs(of el: Element) -> [[TextRun]] {
         let marked = FontLibrary.markedDisplayText(for: el, pageNumber: nil, pageCount: nil)
         let parsed = RichText.parse(marked)
@@ -510,10 +578,12 @@ enum PptxExporter {
             let style = RichText.Style(bold: box.bold || own.bold, italic: box.italic || own.italic,
                                        underline: box.underline || own.underline, strike: own.strike)
             let span = spans.first { $0.start <= from && from < $0.end }
-            let run = TextRun(text: piece, style: style, color: span?.color, scale: span?.scale)
+            let linked = span?.link != nil ? Spans.linkColour : nil
+            let run = TextRun(text: piece, style: style, color: span?.color ?? linked, scale: span?.scale,
+                              font: span?.font, link: Links.followable(span?.link))
             let last = paragraphs.count - 1
-            if var before = paragraphs[last].last, before.style == run.style,
-               before.color == run.color, before.scale == run.scale {
+            if var before = paragraphs[last].last, before.style == run.style, before.color == run.color,
+               before.scale == run.scale, before.font == run.font, before.link == run.link {
                 before.text += piece
                 paragraphs[last][paragraphs[last].count - 1] = before
             } else {
@@ -530,10 +600,11 @@ enum PptxExporter {
         return FontLibrary.of(key).name
     }
 
-    private static func textXML(_ el: Element, id: Int, link: String?, design: Design, scale: Double) -> String {
+    /// A text box, its words' links going into `rels` run by run.
+    private static func textXML(_ el: Element, id: Int, link: String?, design: Design, frame: Frame,
+                                rels: inout Relationships) -> String {
         // The size the canvas draws it at: fitted type at the size that fits.
         let size = FontLibrary.effectiveFontSize(for: el)
-        let face = typeface(el.fontFamily, in: design)
         var align = ""
         switch el.align ?? "center" {
         case "left": align = ""
@@ -547,33 +618,41 @@ enum PptxExporter {
         case "bottom": anchor = " anchor=\"b\""
         default: anchor = ""
         }
-        let body = paragraphs(of: el).map { runs -> String in
-            let content = runs.isEmpty
-                ? "<a:endParaRPr sz=\"\(fontSize(size * scale))\"/>"
-                : runs.map { runXML($0, el: el, size: size, face: face, scale: scale) }.joined()
-            return "<a:p>\(align)\(content)</a:p>"
-        }.joined()
+        var body = ""
+        for runs in paragraphs(of: el) {
+            var content = runs.isEmpty ? "<a:endParaRPr sz=\"\(typeSize(size * frame.unit))\"/>" : ""
+            for run in runs {
+                let face = typeface(run.font ?? el.fontFamily, in: design)
+                var onClick: String?
+                if let url = run.link { onClick = rels.add("hyperlink", url, external: true) }
+                content += runXML(run, el: el, size: size, face: face, link: onClick, unit: frame.unit)
+            }
+            body += "<a:p>\(align)\(content)</a:p>"
+        }
         let properties = "<p:nvSpPr>\(cNvPr(el, id: id, link: link))<p:cNvSpPr txBox=\"1\"/><p:nvPr/></p:nvSpPr>"
-        let look = "<p:spPr>\(elementBox(el, scale: scale))\(geometry("rect"))<a:noFill/></p:spPr>"
-        let frame = "<a:bodyPr lIns=\"0\" tIns=\"0\" rIns=\"0\" bIns=\"0\"\(anchor)/><a:lstStyle/>"
-        return "<p:sp>\(properties)\(look)<p:txBody>\(frame)\(body)</p:txBody></p:sp>"
+        let look = "<p:spPr>\(elementBox(el, frame: frame))\(geometry("rect"))<a:noFill/></p:spPr>"
+        let bodyProperties = "<a:bodyPr lIns=\"0\" tIns=\"0\" rIns=\"0\" bIns=\"0\"\(anchor)/><a:lstStyle/>"
+        return "<p:sp>\(properties)\(look)<p:txBody>\(bodyProperties)\(body)</p:txBody></p:sp>"
     }
 
     /// One run: bold, italic, underlined or struck as its style is, in
     /// capitals with the box, its letter spacing as spc (px × 75), its
-    /// colour — its own or the box's — faded by the element's opacity.
-    private static func runXML(_ run: TextRun, el: Element, size: Double, face: String, scale: Double) -> String {
-        var attributes = " sz=\"\(fontSize(size * (run.scale ?? 1) * scale))\""
+    /// colour — its own or the box's — faded by the element's opacity, its
+    /// face, and its link (`link`, a relationship id) on a click.
+    private static func runXML(_ run: TextRun, el: Element, size: Double, face: String, link: String?,
+                               unit: Double) -> String {
+        var attributes = " sz=\"\(typeSize(size * (run.scale ?? 1) * unit))\""
         if run.style.bold { attributes += " b=\"1\"" }
         if run.style.italic { attributes += " i=\"1\"" }
         if run.style.underline { attributes += " u=\"sng\"" }
         if run.style.strike { attributes += " strike=\"sngStrike\"" }
         if el.uppercase == true { attributes += " cap=\"all\"" }
-        let tracking = (el.letterSpacing ?? 0) * scale
+        let tracking = (el.letterSpacing ?? 0) * unit
         let spacing = tracking.isFinite ? Int((min(max(tracking, -1000), 1000) * 75).rounded()) : 0
         if spacing != 0 { attributes += " spc=\"\(spacing)\"" }
         let paint = "<a:solidFill>\(color(run.color ?? el.color ?? "#1f2430", opacity: el.opacity))</a:solidFill>"
-        let font = "<a:latin typeface=\"\(SVGExporter.escape(face))\"/>"
+        var font = "<a:latin typeface=\"\(SVGExporter.escape(face))\"/>"
+        if let link { font += "<a:hlinkClick r:id=\"\(link)\"/>" }
         return "<a:r><a:rPr\(attributes)>\(paint)\(font)</a:rPr><a:t>\(SVGExporter.escape(run.text))</a:t></a:r>"
     }
 
