@@ -19,6 +19,11 @@ struct CanvasView: View {
     /// When a tap on the photo in crop mode last landed, for the double tap
     /// that finishes it.
     @State private var lastCropTap: Date?
+    /// The guide a long press is offering Position… and Remove for.
+    @State private var guideMenu: Guide?
+    /// The guide Position… is asking a place for, and what is typed.
+    @State private var positioningGuide: Guide?
+    @State private var guidePositionText = ""
 
     /// Inverse zoom: ornaments are drawn in page units but should
     /// stay a constant size on screen.
@@ -116,6 +121,30 @@ struct CanvasView: View {
                 .frame(width: store.pageWidth, height: store.pageHeight)
         }
         .ignoresSafeArea(.keyboard)
+        .confirmationDialog(guideMenu.map { guideTitle($0) } ?? "Guide",
+                            isPresented: Binding(get: { guideMenu != nil }, set: { if !$0 { guideMenu = nil } }),
+                            titleVisibility: .visible, presenting: guideMenu) { guide in
+            Button("Position…") { askPosition(guide) }
+            Button("Remove guide", role: .destructive) { store.removeGuide(guide.id) }
+            Button("Cancel", role: .cancel) {}
+        }
+        .alert("Position", isPresented: Binding(get: { positioningGuide != nil },
+                                                set: { if !$0 { positioningGuide = nil } }),
+               presenting: positioningGuide) { guide in
+            TextField("px", text: $guidePositionText)
+                .keyboardType(.decimalPad)
+            Button("Move") {
+                let limit = guide.vertical ? store.pageWidth : store.pageHeight
+                if let position = Guides.typedPosition(guidePositionText, limit: limit) {
+                    store.setGuidePosition(guide.id, to: position)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { guide in
+            Text(guide.vertical
+                 ? "Pixels from the left edge, 0 to \(Int(store.pageWidth))."
+                 : "Pixels from the top edge, 0 to \(Int(store.pageHeight)).")
+        }
         // Typing in place stays above the keyboard: when it starts, when the
         // keyboard arrives or changes, and as the box grows line by line.
         .onChange(of: typingBox) { _, _ in revealTyping() }
@@ -675,9 +704,9 @@ struct CanvasView: View {
         .allowsHitTesting(false)
     }
 
-    /// A guide: a thin line across the page that can be dragged into place
-    /// and removed with a long press. Its touch target is wide though the
-    /// line is not.
+    /// A guide: a thin line across the page that can be dragged into place,
+    /// and pressed and held for Position… and Remove. Its touch target is
+    /// wide though the line is not.
     private func guideLine(_ guide: Guide) -> some View {
         let w = store.pageWidth, h = store.pageHeight
         return Rectangle()
@@ -691,10 +720,10 @@ struct CanvasView: View {
                     }
                     .onEnded { _ in store.commit() }
             )
-            .onLongPressGesture(minimumDuration: 0.5) { store.removeGuide(guide.id) }
+            .onLongPressGesture(minimumDuration: 0.5) { guideMenu = guide }
             .position(x: guide.vertical ? guide.position : w / 2, y: guide.vertical ? h / 2 : guide.position)
-            .accessibilityLabel(guide.vertical ? "Vertical guide at \(Int(guide.position))" : "Horizontal guide at \(Int(guide.position))")
-            .accessibilityHint("Drag to move, press and hold to remove; or use the actions to move or remove it")
+            .accessibilityLabel(guideTitle(guide))
+            .accessibilityHint("Drag to move, press and hold to place or remove; or use the actions to move, place or remove it")
             .accessibilityActions { guideActions(guide) }
     }
 
@@ -705,7 +734,22 @@ struct CanvasView: View {
         let step = CanvasAccessibility.nudge(for: store.design)
         Button(guide.vertical ? "Move left" : "Move up") { nudgeGuide(guide, by: -step) }
         Button(guide.vertical ? "Move right" : "Move down") { nudgeGuide(guide, by: step) }
+        Button("Position…") { askPosition(guide) }
         Button("Remove guide") { store.removeGuide(guide.id) }
+    }
+
+    /// "Vertical guide at 540".
+    private func guideTitle(_ guide: Guide) -> String {
+        let at = Guides.halfPixel(guide.position)
+        let number = at == at.rounded() ? String(Int(at)) : String(at)
+        return guide.vertical ? "Vertical guide at \(number)" : "Horizontal guide at \(number)"
+    }
+
+    /// Position…: the guide's place typed in, starting from where it is.
+    private func askPosition(_ guide: Guide) {
+        let at = guide.position
+        guidePositionText = at == at.rounded() ? String(Int(at)) : String(at)
+        positioningGuide = guide
     }
 
     private func nudgeGuide(_ guide: Guide, by step: Double) {

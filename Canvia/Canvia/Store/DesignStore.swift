@@ -1756,6 +1756,32 @@ final class DesignStore {
         }
     }
 
+    /// Put guide `id` at a typed `position`, kept on the page, as one undo
+    /// step.
+    func setGuidePosition(_ id: String, to position: Double) {
+        guard let guide = design.guides.first(where: { $0.id == id }) else { return }
+        let limit = guide.vertical ? pageWidth : pageHeight
+        let kept = min(max(position, 0), limit)
+        guard kept != guide.position else { return }
+        apply { d in
+            if let i = d.guides.firstIndex(where: { $0.id == id }) { d.guides[i].position = kept }
+        }
+    }
+
+    /// Columns and rows laid out as guides on this page (see Guides.layout),
+    /// added to the guides there — or in their place, with `replace` — as
+    /// one undo step. How many were added; none at all is no step.
+    @discardableResult
+    func addGuideLayout(columns: Int, rows: Int, gutter: Double, margin: Double, replace: Bool) -> Int {
+        let kept = replace ? [] : design.guides
+        let made = Guides.layout(size: pageSize, columns: columns, rows: rows,
+                                 gutter: gutter, margin: margin, existing: kept)
+        guard kept + made != design.guides else { return 0 }
+        apply { $0.guides = kept + made }
+        buzz(.confirm)
+        return made.count
+    }
+
     func removeGuide(_ id: String) {
         guard design.guides.contains(where: { $0.id == id }) else { return }
         apply { $0.guides.removeAll { $0.id == id } }
