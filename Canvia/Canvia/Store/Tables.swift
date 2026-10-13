@@ -210,11 +210,12 @@ extension DesignStore {
     }
 
     /// The selected table made the rows typed in `text` (read as
-    /// DataGraphics.parseEditedTable reads them, with `tabs`), its column
-    /// widths kept, as one step. False when the text holds no rows.
+    /// DataGraphics.parseEditedTable reads them, against the `opened` text
+    /// and with `tabs`), its column widths kept, as one step. False when
+    /// the text holds no rows.
     @discardableResult
-    func rebuildTable(from text: String, tabs: Bool = false) -> Bool {
-        let rows = DataGraphics.parseEditedTable(text, tabs: tabs)
+    func rebuildTable(from text: String, opened: String = "", tabs: Bool = false) -> Bool {
+        let rows = DataGraphics.parseEditedTable(text, opened: opened, tabs: tabs)
         guard !rows.isEmpty else { return false }
         let measure = self.measure
         return editTable { els, t in

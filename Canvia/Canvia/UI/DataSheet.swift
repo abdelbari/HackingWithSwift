@@ -23,6 +23,9 @@ struct DataSheet: View {
     /// Whether the table being edited was written with tabs between its
     /// cells, so a comma in its words stays in its cell.
     @State private var tableTabs = false
+    /// The table's words as they were opened, whose lines with no tab are
+    /// read as they were written.
+    @State private var tableOpened = ""
     /// Why the last Add drew nothing, until the data or the kind changes.
     @State private var refusal: String?
 
@@ -40,7 +43,7 @@ struct DataSheet: View {
     /// The rows typed for the table: as Edit as text reads its own words
     /// back when a table is being edited, else as a new table's.
     private var tableRows: [[String]] {
-        editingTable ? DataGraphics.parseEditedTable(tableText, tabs: tableTabs) : DataGraphics.parseTable(tableText)
+        editingTable ? DataGraphics.parseEditedTable(tableText, opened: tableOpened, tabs: tableTabs) : DataGraphics.parseTable(tableText)
     }
 
     /// Edit chart on a chart with a locked part: nothing to update until it
@@ -139,7 +142,8 @@ struct DataSheet: View {
             guard editingTable else { return }
             mode = 1
             tableTabs = store.tableTextTabbed
-            tableText = store.tableText
+            tableOpened = store.tableText
+            tableText = tableOpened
         }
     }
 
@@ -166,7 +170,7 @@ struct DataSheet: View {
 
     @discardableResult
     private func add() -> Bool {
-        if editingTable { return store.rebuildTable(from: tableText, tabs: tableTabs) }
+        if editingTable { return store.rebuildTable(from: tableText, opened: tableOpened, tabs: tableTabs) }
         let spec = ChartSpec(id: editing?.id ?? UID.make("chart"), kind: kind.rawValue, data: chartText,
                              legend: legend, values: values, gridlines: gridlines)
         // Drawn again where it was, as one step, keeping its colours.

@@ -221,7 +221,7 @@ extension DataGraphics {
     }
 
     /// Whether tableText puts tabs between table `id`'s cells, so that the
-    /// text is read back split on tabs alone (parseEditedTable): a
+    /// lines it wrote are read back split on tabs alone (parseEditedTable): a
     /// one-column table's words with a comma in them are still one cell.
     static func tableTextTabbed(_ elements: [Element], id: String) -> Bool {
         tabbed(tableCells(elements, id: id))
@@ -248,9 +248,11 @@ extension DataGraphics {
     /// average, rounded, so the table grows or shrinks on the right; then
     /// each cell's words set, a cell whose words did not change keeping its
     /// own styles. A new row copies the row two above it, keeping the bands,
-    /// or the last row when there is one row; a copy of the header row is
-    /// made a body row, banded as its place has it, so a table of a header
-    /// alone grows body rows. Nil when `rows` has no cell.
+    /// or the last row when there are fewer than three: a copy of a header
+    /// alone is made a body row, so a table of a header alone grows body
+    /// rows, and a copy of the one body row keeps its fonts and colours,
+    /// only a cell in that row's own band taking the next band
+    /// (bandedRow). Nil when `rows` has no cell.
     static func rebuiltTable(_ elements: [Element], id: String, rows: [[String]],
                              heightFor: (Element) -> Double) -> [Element]? {
         guard let wanted = rows.map(\.count).max(), wanted > 0,
@@ -259,10 +261,13 @@ extension DataGraphics {
         while true {
             let have = tableRows(out, id: id)
             guard have.count < rows.count, let last = have.last else { break }
-            let source = have.count >= 2 ? have[have.count - 2] : last
-            let header = source == have.first && tableHasHeader(out, id: id)
+            let source = have.count >= 3 ? have[have.count - 2] : last
             out = insertingRow(out, id: id, source: source, at: last + 1)
-            if header { out = asBodyRow(out, id: id, row: last + 1) }
+            if have.count == 1 && tableHasHeader(out, id: id) {
+                out = asBodyRow(out, id: id, row: last + 1)
+            } else if have.count <= 2 {
+                out = bandedRow(out, id: id, from: source, row: last + 1)
+            }
         }
         while tableRows(out, id: id).count > rows.count, let last = tableRows(out, id: id).last {
             out = removingRow(out, id: id, row: last)
@@ -292,6 +297,20 @@ extension DataGraphics {
             return set
         }
         return relaidTable(out, id: id, heightFor: heightFor)
+    }
+
+    /// Table `id`'s row `row`, a copy of row `from`, banded as its place
+    /// has it: each cell still in `from`'s own band takes `row`'s, and a
+    /// cell given a colour of its own keeps it.
+    private static func bandedRow(_ elements: [Element], id: String, from: Int, row: Int) -> [Element] {
+        elements.map { el -> Element in
+            guard el.type == .shape, let cell = el.table, cell.id == id, cell.row == row,
+                  let fill = el.fill, fill.kind == "solid",
+                  fill.color?.lowercased() == tableBodyFill(from) else { return el }
+            var out = el
+            out.fill = .solid(tableBodyFill(cell.row))
+            return out
+        }
     }
 
     /// Table `id`'s row `row` styled as a body row, as withTableHeader

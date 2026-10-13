@@ -738,21 +738,29 @@ enum DataGraphics {
     }
 
     /// A table's words as Edit as text reads them back (tableText wrote
-    /// them): a row per line, the blank lines before the first row and after
-    /// the last left out and those between kept as rows with no words, so no
-    /// row's words move up into another's; cells split by tabs, and by
-    /// commas only in a line with no tab and when `tabs` is false — with
-    /// `tabs`, the table was written with tabs between its cells, and a
-    /// comma is part of a cell's words. The Android twin's
-    /// `parseEditedTable`.
-    static func parseEditedTable(_ text: String, tabs: Bool) -> [[String]] {
+    /// them as `opened`): a row per line, the blank lines before the first
+    /// row and after the last left out and those between kept as rows with
+    /// no words, so no row's words move up into another's. A line with a
+    /// tab splits on tabs. With `tabs`, the table was written with tabs
+    /// between its cells and a comma is part of a cell's words, so a line
+    /// as it was opened (a one-column table's "Smith, John") stays one
+    /// cell; any other line with no tab — one typed on a keyboard with no
+    /// tab key — splits on commas, as parseTable splits it. The Android
+    /// twin's `parseEditedTable`.
+    static func parseEditedTable(_ text: String, opened: String, tabs: Bool) -> [[String]] {
         let all = text.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: .newlines)
-        let filled: (String) -> Bool = { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-        guard let first = all.firstIndex(where: filled), let last = all.lastIndex(where: filled) else { return [] }
-        return all[first...last].map { line in
-            let sep: Character = tabs || line.contains("\t") ? "\t" : ","
-            return line.split(separator: sep, omittingEmptySubsequences: false)
-                .map { $0.trimmingCharacters(in: .whitespaces) }
+        let trim: (String) -> String = { $0.trimmingCharacters(in: .whitespaces) }
+        guard let first = all.firstIndex(where: { !trim($0).isEmpty }),
+              let last = all.lastIndex(where: { !trim($0).isEmpty }) else { return [] }
+        let whole: Set<String> = tabs
+            ? Set(opened.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: .newlines).map(trim))
+            : []
+        return all[first...last].map { line -> [String] in
+            if line.contains("\t") {
+                return line.split(separator: "\t", omittingEmptySubsequences: false).map { trim(String($0)) }
+            }
+            if whole.contains(trim(line)) { return [trim(line)] }
+            return line.split(separator: ",", omittingEmptySubsequences: false).map { trim(String($0)) }
         }
     }
 

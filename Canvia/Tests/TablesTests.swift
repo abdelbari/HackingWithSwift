@@ -295,25 +295,31 @@ final class TablesTests: XCTestCase {
         XCTAssertEqual(text, "Item\nSmith, John\nBagel")
         XCTAssertTrue(DataGraphics.tableTextTabbed(one, id: tableId(one)))
         XCTAssertFalse(DataGraphics.tableTextTabbed(table, id: tableId(table)))
-        XCTAssertEqual(DataGraphics.parseEditedTable(text, tabs: true), [["Item"], ["Smith, John"], ["Bagel"]])
+        XCTAssertEqual(DataGraphics.parseEditedTable(text, opened: text, tabs: true), [["Item"], ["Smith, John"], ["Bagel"]])
         let again = try XCTUnwrap(DataGraphics.rebuiltTable(
-            one, id: tableId(one), rows: DataGraphics.parseEditedTable(text, tabs: true), heightFor: heightFor))
+            one, id: tableId(one), rows: DataGraphics.parseEditedTable(text, opened: text, tabs: true), heightFor: heightFor))
         XCTAssertEqual(words(again), ["Item", "Smith, John", "Bagel"])
         XCTAssertEqual(columnWidths(again), [400])
         // Without tabs, a comma parts cells, as ever.
-        XCTAssertEqual(DataGraphics.parseEditedTable("Smith, John", tabs: false), [["Smith", "John"]])
+        XCTAssertEqual(DataGraphics.parseEditedTable("Smith, John", opened: "Smith, John", tabs: false), [["Smith", "John"]])
+        // A line typed in, with no tab (a phone's keyboard has no tab key),
+        // splits on commas even when the table was written with tabs; the
+        // lines as they were opened stay whole.
+        XCTAssertEqual(DataGraphics.parseEditedTable(text + "\nJuice, 3\nTea\t1", opened: text, tabs: true),
+                       [["Item"], ["Smith, John"], ["Bagel"], ["Juice", "3"], ["Tea", "1"]])
 
         // Blank lines between rows are rows with no words; those before the
         // first row and after the last are not rows at all.
-        XCTAssertEqual(DataGraphics.parseEditedTable("\n \nItem\n\nBagel\n\n", tabs: false), [["Item"], [""], ["Bagel"]])
-        XCTAssertEqual(DataGraphics.parseEditedTable("Item\tQty\n\t\nBagel\t1", tabs: true),
+        XCTAssertEqual(DataGraphics.parseEditedTable("\n \nItem\n\nBagel\n\n", opened: "", tabs: false), [["Item"], [""], ["Bagel"]])
+        XCTAssertEqual(DataGraphics.parseEditedTable("Item\tQty\n\t\nBagel\t1", opened: "Item\tQty\nBagel\t1", tabs: true),
                        [["Item", "Qty"], ["", ""], ["Bagel", "1"]])
-        XCTAssertEqual(DataGraphics.parseEditedTable("A\r\nB", tabs: false), [["A"], ["B"]])
-        XCTAssertEqual(DataGraphics.parseEditedTable(" \n\t\n", tabs: true), [])
+        XCTAssertEqual(DataGraphics.parseEditedTable("A\r\nB", opened: "", tabs: false), [["A"], ["B"]])
+        XCTAssertEqual(DataGraphics.parseEditedTable(" \n\t\n", opened: "", tabs: true), [])
         let gap = DataGraphics.addingTableRow(one, id: tableId(one), row: 1, below: true, heightFor: heightFor)
         let gapText = DataGraphics.tableText(gap, id: tableId(gap))
         XCTAssertEqual(gapText, "Item\nSmith, John\n\nBagel")
-        let gapRows = DataGraphics.parseEditedTable(gapText, tabs: DataGraphics.tableTextTabbed(gap, id: tableId(gap)))
+        let gapRows = DataGraphics.parseEditedTable(gapText, opened: gapText,
+                                                   tabs: DataGraphics.tableTextTabbed(gap, id: tableId(gap)))
         let kept = try XCTUnwrap(DataGraphics.rebuiltTable(gap, id: tableId(gap), rows: gapRows, heightFor: heightFor))
         XCTAssertEqual(words(kept), ["Item", "Smith, John", "", "Bagel"])
         XCTAssertEqual(rowTops(kept), rowTops(gap))
@@ -334,6 +340,32 @@ final class TablesTests: XCTestCase {
         // As a table made from the same rows bands them.
         let table = made()
         XCTAssertEqual((0...2).map { rect(table, $0, 1).fill }, (0...2).map { rect(grown, $0, 1).fill })
+
+        // A header and one body row: the new rows copy the body row, its
+        // fonts and colours, and a cell in its band takes the next band.
+        let two = DataGraphics.table(DataGraphics.parseTable("Item, Qty\nCoffee, 2"),
+                                     in: CGRect(x: 100, y: 200, width: 400, height: 300), accent: "#1f2430",
+                                     heightFor: heightFor)
+        let longer = DataGraphics.parseTable("Item, Qty\nCoffee, 2\nBagel, 1\nJam, 3")
+        let plainRows = try XCTUnwrap(DataGraphics.rebuiltTable(two, id: tableId(two), rows: longer, heightFor: heightFor))
+        XCTAssertEqual((0...3).map { rect(plainRows, $0, 1).fill?.color ?? "" }, ["#1f2430", "#ffffff", "#f3f4f6", "#ffffff"])
+        XCTAssertEqual((0...3).map { text(plainRows, $0, 1).fontWeight ?? 0 }, [700, 400, 400, 400])
+        let yellow = two.map { el -> Element in
+            guard el.table?.row == 1 else { return el }
+            var out = el
+            if el.type == .shape && el.table?.col == 0 { out.fill = .solid("#ffeb3b") }
+            if el.type == .text {
+                out.fontFamily = "Lora"
+                out.color = "#c62828"
+            }
+            return out
+        }
+        let styledRows = try XCTUnwrap(DataGraphics.rebuiltTable(yellow, id: tableId(yellow), rows: longer, heightFor: heightFor))
+        XCTAssertEqual((1...3).map { rect(styledRows, $0, 0).fill?.color ?? "" }, ["#ffeb3b", "#ffeb3b", "#ffeb3b"])
+        XCTAssertEqual((1...3).map { rect(styledRows, $0, 1).fill?.color ?? "" }, ["#ffffff", "#f3f4f6", "#ffffff"])
+        XCTAssertEqual((1...3).map { text(styledRows, $0, 0).fontFamily ?? "" }, ["Lora", "Lora", "Lora"])
+        XCTAssertEqual((1...3).map { text(styledRows, $0, 1).color ?? "" }, ["#c62828", "#c62828", "#c62828"])
+        XCTAssertEqual(text(styledRows, 2, 0).fontSize, text(two, 1, 0).fontSize)
     }
 
     func testOnlyWordsTypedLayATableOutAgainNeverACopyOrALockedTable() {
