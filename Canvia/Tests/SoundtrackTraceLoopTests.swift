@@ -40,29 +40,56 @@ final class SoundtrackTraceLoopTests: XCTestCase {
         XCTAssertNil(AudioStore.url(for: ""))
     }
 
-    func testSoundtrackTravelsThroughMotionSettings() throws {
-        var m = MotionSettings()
-        m.soundtrack = "audio-1.mp3"; m.soundVolume = 0.4
-        let back = try JSONDecoder().decode(MotionSettings.self, from: JSONEncoder().encode(m))
-        XCTAssertEqual(back.soundtrack, "audio-1.mp3")
-        let settings = MovieExporter.Settings(back)
-        XCTAssertEqual(settings.soundtrack, "audio-1.mp3")
-        XCTAssertEqual(settings.soundVolume, 0.4)
-        XCTAssertEqual(MovieExporter.Settings(MotionSettings()).soundVolume, 1)
-        let old = try JSONDecoder().decode(MotionSettings.self, from: Data(#"{"secondsPerPage":2,"fps":30,"movement":true,"crossfade":false}"#.utf8))
-        XCTAssertNil(old.soundtrack)
+    func testTheOldSoundtrackIsReadAsATrackAndNeverWrittenAgain() throws {
+        let json = #"{"title":"old","motion":{"secondsPerPage":2,"fps":30,"movement":true,"crossfade":false,"soundtrack":"audio-1.mp3","soundVolume":0.4}}"#
+        let design = try JSONDecoder().decode(Design.self, from: Data(json.utf8))
+        let track = try XCTUnwrap(design.audio?.first)
+        XCTAssertEqual(design.audioTracks.count, 1)
+        XCTAssertEqual(track.src, "audio:audio-1.mp3")
+        XCTAssertEqual(track.start, 0)
+        XCTAssertEqual(track.trimStart, 0)
+        XCTAssertNil(track.trimEnd)
+        XCTAssertEqual(track.volume, 0.4)
+        XCTAssertEqual(track.fadeIn, 0)
+        XCTAssertEqual(track.fadeOut, 1, "the old soundtrack faded out over the last second")
+        XCTAssertTrue(track.loop)
+        XCTAssertEqual(design.motion?.secondsPerPage, 2)
+
+        // Written back as a track, the old keys gone.
+        let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: JSONEncoder().encode(design)) as? [String: Any])
+        let motion = try XCTUnwrap(object["motion"] as? [String: Any])
+        XCTAssertNil(motion["soundtrack"])
+        XCTAssertNil(motion["soundVolume"])
+        XCTAssertEqual((object["audio"] as? [[String: Any]])?.count, 1)
+        let again = try JSONDecoder().decode(Design.self, from: JSONEncoder().encode(design))
+        XCTAssertEqual(again.audio, design.audio)
+
+        // A volume left out is full; no soundtrack is no audio, and no key.
+        let full = try JSONDecoder().decode(Design.self, from: Data(#"{"motion":{"soundtrack":"a.m4a"}}"#.utf8))
+        XCTAssertEqual(full.audio?.first?.volume, 1)
+        let quiet = try JSONDecoder().decode(Design.self, from: Data(#"{"motion":{"secondsPerPage":2,"fps":30,"movement":true,"crossfade":false}}"#.utf8))
+        XCTAssertNil(quiet.audio)
+        let quietObject = try JSONSerialization.jsonObject(with: JSONEncoder().encode(quiet)) as? [String: Any]
+        XCTAssertNil(quietObject?["audio"])
+    }
+
+    func testTracksWinOverAnOldSoundtrackBesideThem() throws {
+        let json = #"{"audio":[{"id":"t1","src":"audio:new.m4a"}],"motion":{"soundtrack":"old.m4a"}}"#
+        let design = try JSONDecoder().decode(Design.self, from: Data(json.utf8))
+        XCTAssertEqual(design.audioTracks.map(\.src), ["audio:new.m4a"])
     }
 
     func testSoundtracksAreGatheredFromEveryDesign() {
-        var a = Design(title: "a"); a.motion = MotionSettings(); a.motion?.soundtrack = "audio_a.m4a"
-        var b = Design(title: "b"); b.motion = MotionSettings(); b.motion?.soundtrack = "audio_b.mp3"
+        var a = Design(title: "a"); a.audio = [AudioTrack(src: "audio:audio_a.m4a")]
+        var b = Design(title: "b")
+        b.audio = [AudioTrack(src: "audio:audio_b.mp3"), AudioTrack(src: "audio:audio_a.m4a", start: 4)]
         var silent = Design(title: "silent"); silent.motion = MotionSettings()
         let still = Design(title: "still")
         XCTAssertEqual(DesignLibrary.soundtracks(in: [a, b, silent, still, a]), ["audio_a.m4a", "audio_b.mp3"])
         XCTAssertTrue(DesignLibrary.soundtracks(in: []).isEmpty)
     }
 
-    /// Removing a soundtrack leaves its file, so the launch sweep has to keep
+    /// Removing a track leaves its file, so the launch sweep has to keep
     /// every one something can still play — a live design, a trashed one, a
     /// saved version — and take only the file nothing names.
     func testTheAudioSweepKeepsWhatAnyDesignVersionOrTrashedDesignPlays() throws {
@@ -76,17 +103,17 @@ final class SoundtrackTraceLoopTests: XCTestCase {
         defer { for id in [live, trashed, versioned, orphan] { AudioStore.delete(id) } }
 
         var playing = Design(title: "sweep: live")
-        playing.motion = MotionSettings(); playing.motion?.soundtrack = live
+        playing.audio = [AudioTrack(src: AudioTrack.src(live))]
         DesignLibrary.save(playing)
         var binned = Design(title: "sweep: trashed")
-        binned.motion = MotionSettings(); binned.motion?.soundtrack = trashed
+        binned.audio = [AudioTrack(src: AudioTrack.src(trashed))]
         DesignLibrary.save(binned)
         DesignLibrary.trash(id: binned.id)
         // The music taken out since, but still in the version kept before.
         var older = Design(title: "sweep: versioned")
-        older.motion = MotionSettings(); older.motion?.soundtrack = versioned
+        older.audio = [AudioTrack(src: AudioTrack.src(versioned))]
         XCTAssertTrue(DesignLibrary.snapshot(older, force: true))
-        var now = older; now.motion = nil
+        var now = older; now.audio = nil
         DesignLibrary.save(now)
         defer { for id in [playing.id, binned.id, older.id] { DesignLibrary.delete(id: id) } }
 

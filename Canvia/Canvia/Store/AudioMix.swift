@@ -1,14 +1,23 @@
 // Everything heard in the video: each clip's own sound on its page, and the
-// design's music under the whole film. The plan is pure — the same numbers
+// design's audio tracks under the film. The plan is pure — the same numbers
 // as the Android twin's, from the same table of tests — and Soundtrack.mux
-// runs it through AVFoundation on the finished MP4.
+// runs it through AVFoundation on the finished MP4; PageSound plays each
+// track's span (AudioMix.span) in Play and Present.
 //
 // A clip sounds while its page plays: its trimmed window laid from the
 // page's start, again and again when it loops, never past the page's last
 // frame. A muted or silent clip, or one playing at another speed, is not in
 // the mix; nor is a clip behind a page or filling a shape, or a GIF, which
 // is a photo. Hidden pages are not in the film, so their clips are not
-// either. The music follows Soundtrack.plan, its fade and all.
+// either.
+//
+// A track sounds from its `start` in the film: its trimmed window once, or
+// round and round to the film's end when it loops, never past that end — so
+// one that starts after the film is over is not heard at all. Its gain
+// rises from nothing over its fade in and falls to nothing over its fade
+// out, at the end of what it plays. A fade is heard only on a track that
+// sounds for more than twice its length, as the old soundtrack's one-second
+// fade was, so the old soundtrack's track plays exactly as it did.
 
 import Foundation
 
@@ -21,29 +30,109 @@ enum AudioMix {
         var playback: ClipPlayback
     }
 
-    /// The design's music: its id, its length in seconds and its volume.
-    struct Music: Equatable {
-        var source: String
-        var duration: Double
-        var volume: Double
-    }
-
     /// One stretch of one source's sound: from `sourceStart` seconds into
     /// the file, laid at `at` seconds into the video for `duration` seconds,
-    /// at `gain` — falling to nothing across `fadeOut` when it has one.
+    /// at `gain` — rising from nothing across `fadeIn` and falling to
+    /// nothing across `fadeOut`, when it has them.
     struct Segment: Equatable {
         var source: String, sourceStart: Double, at: Double, duration: Double
         var gain: Double
         var fadeOut: ClosedRange<Double>? = nil
+        var fadeIn: ClosedRange<Double>? = nil
 
         var end: Double { at + duration }
 
         /// How loud it is `t` seconds into the video.
         func gainAt(_ t: Double) -> Double {
-            guard let fade = fadeOut, t > fade.lowerBound else { return gain }
-            guard t < fade.upperBound else { return 0 }
-            return gain * (fade.upperBound - t) / (fade.upperBound - fade.lowerBound)
+            AudioMix.envelope(t, gain: gain, fadeIn: fadeIn, fadeOut: fadeOut)
         }
+    }
+
+    /// Where one track sounds in the film: `from`...`to` seconds of its
+    /// file, laid from `at` until `until` seconds into the film — round
+    /// again from `from` when it loops — at `gain`, with its fades in film
+    /// seconds.
+    struct Span: Equatable {
+        var source: String
+        var from: Double, to: Double
+        var at: Double, until: Double
+        var loop: Bool
+        var gain: Double
+        var fadeIn: ClosedRange<Double>?
+        var fadeOut: ClosedRange<Double>?
+
+        /// How loud it is `t` seconds into the film.
+        func gainAt(_ t: Double) -> Double {
+            AudioMix.envelope(t, gain: gain, fadeIn: fadeIn, fadeOut: fadeOut)
+        }
+
+        /// The stretches it lays: its window from `at`, again and again
+        /// when it loops, the last cut short at `until`; none for a span
+        /// with no end.
+        var segments: [Segment] {
+            let length = to - from
+            guard length > 0.01, until.isFinite else { return [] }
+            var out: [Segment] = []
+            var t = at
+            while t < until - 0.001 {
+                let stretch = min(length, until - t)
+                out.append(Segment(source: source, sourceStart: from, at: t, duration: stretch, gain: gain,
+                                   fadeOut: fadeOut, fadeIn: fadeIn))
+                t += stretch
+                if !loop { break }
+            }
+            return out
+        }
+    }
+
+    /// `gain` at `t`, rising linearly from nothing across `fadeIn` and
+    /// falling linearly to nothing across `fadeOut`.
+    static func envelope(_ t: Double, gain: Double, fadeIn: ClosedRange<Double>?,
+                         fadeOut: ClosedRange<Double>?) -> Double {
+        var g = gain
+        if let fade = fadeIn, t < fade.upperBound {
+            g *= t <= fade.lowerBound ? 0 : (t - fade.lowerBound) / (fade.upperBound - fade.lowerBound)
+        }
+        if let fade = fadeOut, t > fade.lowerBound {
+            g *= t >= fade.upperBound ? 0 : (fade.upperBound - t) / (fade.upperBound - fade.lowerBound)
+        }
+        return g
+    }
+
+    /// Where `track` sounds in a film `film` seconds long, its file being
+    /// `duration` seconds: nil when it is not heard — silent, of no known
+    /// length, trimmed to nothing, or starting once the film is over. Its
+    /// window is the trim kept within the file; it plays once from `start`
+    /// (never before the film's start), or loops to the film's end. Each
+    /// fade, kept to AudioTrack.fadeRange, is heard only when the track
+    /// sounds for more than twice its length. A `film` with no end — a talk
+    /// in Present — loops a track for as long as it runs, with no fade out
+    /// for one that loops.
+    static func span(of track: AudioTrack, duration: Double?, film: Double) -> Span? {
+        guard let source = track.audioId, let duration, duration > 0.01 else { return nil }
+        let gain = min(max(track.volume, 0), 1)
+        let from = min(max(track.trimStart, 0), duration)
+        let to = min(track.trimEnd ?? duration, duration)
+        let at = max(track.start, 0)
+        guard gain > 0, to - from > 0.01, at < film - 0.001 else { return nil }
+        let until = track.loop ? film : min(at + (to - from), film)
+        let sounds = until - at
+        func fade(_ seconds: Double) -> Double? {
+            let f = min(max(seconds, AudioTrack.fadeRange.lowerBound), AudioTrack.fadeRange.upperBound)
+            return f > 0 && sounds > f * 2 ? f : nil
+        }
+        let fadeIn = fade(track.fadeIn).map { at...(at + $0) }
+        let fadeOut = until.isFinite ? fade(track.fadeOut).map { (until - $0)...until } : nil
+        return Span(source: source, from: from, to: to, at: at, until: until, loop: track.loop,
+                    gain: gain, fadeIn: fadeIn, fadeOut: fadeOut)
+    }
+
+    /// The film's length in seconds: the shown pages, as the video plays
+    /// them.
+    static func filmLength(design: Design) -> Double {
+        let settings = MovieExporter.Settings(design.motion)
+        let end = MovieExporter.timeline(design: design, settings: settings).last?.end ?? 0
+        return Double(end) / Double(max(settings.fps, 1))
     }
 
     /// The clips on `page` that are heard while it plays — its own photos
@@ -69,9 +158,11 @@ enum AudioMix {
     /// The mix of a film laid out as `timeline` at `fps`: for each of its
     /// pages, the clips in `clipsByPage` at the same place, each as long as
     /// `clipDurations` says by source — a clip whose length is not known has
-    /// no sound to lay — then the `soundtrack`, if any, under the whole film.
+    /// no sound to lay — then each of `tracks` in order, as long as
+    /// `trackDurations` says by AudioStore id (see `span`).
     static func plan(timeline: [MovieExporter.Timing], fps: Int, clipsByPage: [[Clip]],
-                     clipDurations: [String: Double], soundtrack: Music?) -> [Segment] {
+                     clipDurations: [String: Double], tracks: [AudioTrack] = [],
+                     trackDurations: [String: Double] = [:]) -> [Segment] {
         let rate = Double(max(fps, 1))
         var out: [Segment] = []
         for (index, timing) in timeline.enumerated() {
@@ -97,16 +188,10 @@ enum AudioMix {
                 }
             }
         }
-        if let soundtrack {
-            let film = Double(timeline.last?.end ?? 0) / rate
-            let music = Soundtrack.plan(audioDuration: soundtrack.duration, videoDuration: film)
-            let gain = min(max(soundtrack.volume, 0), 1)
-            if gain > 0 {
-                for s in music.segments {
-                    out.append(Segment(source: soundtrack.source, sourceStart: s.sourceStart, at: s.at,
-                                       duration: s.duration, gain: gain, fadeOut: music.fadeOut))
-                }
-            }
+        let film = Double(timeline.last?.end ?? 0) / rate
+        for track in tracks {
+            let duration = track.audioId.flatMap { trackDurations[$0] }
+            if let laid = span(of: track, duration: duration, film: film) { out += laid.segments }
         }
         return out
     }

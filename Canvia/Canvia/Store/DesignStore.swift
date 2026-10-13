@@ -1844,7 +1844,7 @@ final class DesignStore {
     var previewTime: Double?
     private var previewTask: Task<Void, Never>?
     /// What is heard while the preview plays: the page's clips, and the
-    /// music from where the page comes in the video.
+    /// audio tracks from where the page comes in the video.
     private let previewSound = PageSound(presenting: false)
 
     var pageHold: Double {
@@ -1867,8 +1867,8 @@ final class DesignStore {
 
     /// Play the page's entrances, exits and drifts once, at 30 frames a
     /// second, from `offset` seconds in, then settle. Scrub by setting
-    /// previewTime directly. Its clips are heard, and the music from where
-    /// the page comes in the video, for the page's hold.
+    /// previewTime directly. Its clips are heard, and the audio tracks from
+    /// where the page comes in the video, for the page's hold.
     func playPreview(from offset: Double = 0) {
         previewTask?.cancel()
         let hold = pageHold
@@ -1883,7 +1883,8 @@ final class DesignStore {
         let since = Date().addingTimeInterval(-offset)
         previewSound.stop()
         previewSound.page(AudioMix.clips(design: design, page: page), since: since)
-        previewSound.music(design: design, offset: AudioMix.pageStart(design: design, index: pageIndex), since: since)
+        previewSound.tracks(design: design, offset: AudioMix.pageStart(design: design, index: pageIndex), since: since,
+                            film: AudioMix.filmLength(design: design))
         previewTask = Task { @MainActor in
             // Timed by the clock rather than by counting passes: a pass that
             // runs long — a busy page, a clip's frame being decoded — would

@@ -16,7 +16,6 @@ struct ExportSheet: View {
     @State private var paper = PrintLayout.Options()
     @State private var pickingAudio = false
     @State private var audioRefused = false
-    @State private var audioSeconds: Double?
     @State private var jpegQuality = 0.92
     @State private var transparent = false
     /// All pages to start with, the first of the row as in Canva: the
@@ -41,9 +40,6 @@ struct ExportSheet: View {
     @State private var photosFormat = DesignExporter.RasterFormat.png
     /// Said under Motion when a video's music could not be put in.
     @State private var musicNote: String?
-    /// The volume while its slider is dragged; written to the design once,
-    /// when the drag ends, so a drag is one Undo.
-    @State private var dragVolume: Double?
     /// What the progress card says is happening.
     @State private var workingLabel = "Rendering"
 
@@ -701,12 +697,7 @@ struct ExportSheet: View {
         var note = "Each page holds \(String(format: "%.1f", settings.secondsPerPage))s unless it has its own time"
         if m.movement { note += ", with a slow push in" }
         note += m.crossfade ? ", and fades into the next." : ", and cuts to the next."
-        if m.soundtrack != nil {
-            note += AudioStore.url(for: m.soundtrack) != nil
-                ? " The video has music under it."
-                : " The music was chosen on another phone and isn't on this one."
-        }
-        return note
+        return note + Self.musicSentence(store.design.audioTracks)
     }
 
     /// Timing, frame rate and the two moves, saved with the design.
@@ -725,115 +716,65 @@ struct ExportSheet: View {
             }
             Toggle("Slow push in", isOn: binding.movement)
             Toggle("Cross-fade between pages", isOn: binding.crossfade)
-            soundtrackRows(binding)
+            trackRows
         }
     }
 
-    /// A music file under the video: picked from Files, looped or trimmed
-    /// to the video's length, faded out over the last second.
+    /// What the motion note says of the music: nothing without tracks,
+    /// that the video has it, or that some or all of it was chosen on
+    /// another phone and is not on this one.
+    static func musicSentence(_ tracks: [AudioTrack]) -> String {
+        guard !tracks.isEmpty else { return "" }
+        let away = tracks.filter { AudioStore.url(for: $0.audioId) == nil }.count
+        if away == 0 { return " The video has music under it." }
+        if away == tracks.count { return " The music was chosen on another phone and isn't on this one." }
+        return " Some of the music was chosen on another phone and isn't on this one."
+    }
+
+    /// The design's audio tracks, each by its name with where it starts in
+    /// the video, and music from Files added as another track from the
+    /// start.
     @ViewBuilder
-    private func soundtrackRows(_ binding: Binding<MotionSettings>) -> some View {
-        let current = binding.wrappedValue.soundtrack
-        // A design from the Android twin, or one sent over from another
-        // phone, brings the soundtrack's id but not the file, and the video
-        // is made without it. Shown as it is rather than as if it would play.
-        let here: Bool = AudioStore.url(for: current) != nil
-        HStack {
-            Label(soundtrackLabel(current, here: here), systemImage: "music.note")
-                .lineLimit(1)
-            Spacer()
-            if let audioSeconds, here {
-                Text(String(format: "%.0fs", audioSeconds)).font(.caption).foregroundStyle(.secondary)
+    private var trackRows: some View {
+        ForEach(store.design.audioTracks) { track in
+            HStack {
+                Label(AudioTracks.name(of: track), systemImage: "waveform")
+                    .lineLimit(1)
+                Spacer()
+                Text("from \(VideoStore.timeLabel(track.start))")
+                    .font(.caption).foregroundStyle(.secondary)
             }
-            Button(here ? "Change…" : "Choose…") { pickingAudio = true }
-                .font(.callout)
-            if current != nil {
-                // Only the design lets go of it. The file stays, because a
-                // duplicate, a saved version or the undo step can still point
-                // at it; the sweep at launch removes it once nothing does.
-                Button(role: .destructive) {
-                    binding.wrappedValue.soundtrack = nil
-                    audioSeconds = nil
-                } label: { Image(systemName: "xmark.circle") }
-                .accessibilityLabel("Remove soundtrack")
-            }
+            .accessibilityElement(children: .combine)
         }
-        .fileImporter(isPresented: $pickingAudio, allowedContentTypes: [.audio]) { result in
-            guard case .success(let url) = result else { return }
-            let scoped = url.startAccessingSecurityScopedResource()
-            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            // The one it replaces is left where it is, for the same reason
-            // as a removal: something else may still play it.
-            guard let id = AudioStore.store(url) else {
+        Button("Add music…") { pickingAudio = true }
+            .fileImporter(isPresented: $pickingAudio, allowedContentTypes: [.audio]) { result in
+                addMusic(result)
+            }
+            .alert("That file isn't music this phone can play", isPresented: $audioRefused) {
+                Button("OK", role: .cancel) {}
+            }
+    }
+
+    /// Music picked in Files as another track, one Undo: only music that
+    /// plays — a file with no sound in it would make a silent video without
+    /// a word — kept among your uploads to choose again.
+    private func addMusic(_ result: Result<URL, Error>) {
+        guard case .success(let url) = result else { return }
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let id = AudioStore.store(url) else {
+            audioRefused = true
+            return
+        }
+        Task {
+            guard let seconds = await AudioStore.duration(of: id), seconds > 0 else {
+                AudioStore.delete(id)
                 audioRefused = true
                 return
             }
-            // Only music that plays becomes the soundtrack: a file with no
-            // sound in it would make a silent video without a word. Music
-            // that plays is kept among your uploads, to choose again.
-            Task {
-                guard let seconds = await AudioStore.duration(of: id), seconds > 0 else {
-                    AudioStore.delete(id)
-                    audioRefused = true
-                    return
-                }
-                Uploads.record(id, kind: .audio)
-                binding.wrappedValue.soundtrack = id
-                audioSeconds = seconds
-            }
+            Uploads.record(id, kind: .audio)
+            store.addAudioTrack(id)
         }
-        .task(id: current) {
-            if let id = current { audioSeconds = await AudioStore.duration(of: id) }
-        }
-        .alert("That file isn't music this phone can play", isPresented: $audioRefused) {
-            Button("OK", role: .cancel) {}
-        }
-        if current != nil && !here {
-            Text("This music was chosen on another phone. Choose it again here to hear it in the video.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        }
-        if here {
-            volumeRow(binding)
-        }
-    }
-
-    /// The soundtrack's volume. Held here while dragged and written once
-    /// on release, so a drag is one Undo, not dozens; VoiceOver's swipes
-    /// write a tenth at a time.
-    private func volumeRow(_ binding: Binding<MotionSettings>) -> some View {
-        let stored = binding.wrappedValue.soundVolume ?? 1
-        let shown = dragVolume ?? stored
-        let percent = "\(Int((shown * 100).rounded()))%"
-        func write(_ v: Double) { binding.wrappedValue.soundVolume = v == 1 ? nil : v }
-        return HStack {
-            Text("Volume")
-                .accessibilityHidden(true)
-            Slider(value: Binding(get: { dragVolume ?? stored }, set: { dragVolume = $0 }),
-                   in: 0...1,
-                   onEditingChanged: { editing in
-                       guard !editing, let v = dragVolume else { return }
-                       dragVolume = nil
-                       if v != stored { write(v) }
-                   })
-            .accessibilityLabel("Soundtrack volume")
-            .accessibilityValue(percent)
-            .accessibilityAdjustableAction { direction in
-                let step = direction == .increment ? 0.1 : -0.1
-                write(min(1, max(0, ((stored + step) * 10).rounded() / 10)))
-            }
-            Text(percent)
-                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-        }
-    }
-
-    /// What the soundtrack row says: nothing chosen, the music's own name
-    /// (or its kind), or that it was chosen on another phone and is not on
-    /// this one.
-    private func soundtrackLabel(_ id: String?, here: Bool) -> String {
-        guard let id else { return "No soundtrack" }
-        return here ? AudioStore.label(for: id) : "Music from another phone"
     }
 
     /// A row that makes something. `unavailable`, when set, is why it cannot

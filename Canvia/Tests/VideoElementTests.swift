@@ -210,7 +210,7 @@ final class VideoElementTests: XCTestCase {
         var design = Design(title: "sweep: all three")
         design.pages[0].elements = [Element.image(photo, w: 100, h: 100),
                                     Element.image(VideoStore.src(clip, at: nil), w: 160, h: 90)]
-        design.motion = MotionSettings(); design.motion?.soundtrack = track
+        design.audio = [AudioTrack(src: AudioTrack.src(track))]
         DesignLibrary.save(design)
         defer { DesignLibrary.delete(id: design.id) }
         let board = UIPasteboard.withUniqueName()

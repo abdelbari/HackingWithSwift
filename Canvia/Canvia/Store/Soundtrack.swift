@@ -1,7 +1,9 @@
-// A soundtrack under the video: the chosen audio looped or trimmed to the
-// video's length, at a volume, fading out over the last second so the file
-// does not end mid-note. The plan is pure; the mux runs it, and each clip's
-// own sound (AudioMix), through AVFoundation on the finished MP4.
+// Sound under the video. `plan` is the old single soundtrack's: the chosen
+// audio looped or trimmed to the video's length, fading out over the last
+// second so the file does not end mid-note — kept as what that soundtrack's
+// track (AudioTrack.migrated) is measured against. The design's tracks and
+// each clip's own sound are laid by AudioMix.plan, and `mux` runs that
+// through AVFoundation on the finished MP4, summing every track.
 
 import AVFoundation
 import Foundation
@@ -53,22 +55,50 @@ enum Soundtrack {
         bytes > 0 && bytes <= maxPackedBytes && packable.contains(ext.lowercased())
     }
 
+    /// The most a design file carries of music in all, in bytes: the same
+    /// budget as its clips have (DesignPackage.maxPackedVideoTotalBytes),
+    /// counted over the tracks' files alone.
+    static let maxPackedTotalBytes = 100 * 1024 * 1024
+
+    /// Of the music files listed — each one's size in bytes and file type,
+    /// by id — the ones a design file carries: taken in id order, each one
+    /// that `packs`, while the running total stays within
+    /// `maxPackedTotalBytes` — the rule the clips are chosen by, and the
+    /// Android twin's, so either phone packs the same. The rest stay on the
+    /// phone they were chosen on.
+    static func packed(_ files: [String: (bytes: Int, ext: String)]) -> Set<String> {
+        var packed = Set<String>()
+        var total = 0
+        for id in files.keys.sorted() {
+            guard let file = files[id], packs(bytes: file.bytes, ext: file.ext),
+                  total + file.bytes <= maxPackedTotalBytes else { continue }
+            total += file.bytes
+            packed.insert(id)
+        }
+        return packed
+    }
+
     /// One stretch's level on its track, from `start` to `end` in the
-    /// video: its gain from where it begins, falling across whatever part of
-    /// the fade it is under.
+    /// video: its gain held where it is steady and ramped where it is under
+    /// a fade, between each place its envelope bends.
     private static func level(_ s: AudioMix.Segment, from start: CMTime, to end: CMTime,
                               in levels: AVMutableAudioMixInputParameters) {
         let from = start.seconds, to = end.seconds
-        guard let fade = s.fadeOut, fade.upperBound > from, fade.lowerBound < to else {
-            levels.setVolume(Float(s.gain), at: start)
-            return
+        var bends = [from, to]
+        for fade in [s.fadeIn, s.fadeOut].compactMap({ $0 }) {
+            for t in [fade.lowerBound, fade.upperBound] where t > from && t < to { bends.append(t) }
         }
-        let rampStart = max(fade.lowerBound, from), rampEnd = min(fade.upperBound, to)
-        // A stretch that begins inside the fade begins on the ramp.
-        if rampStart > from { levels.setVolume(Float(s.gain), at: start) }
-        levels.setVolumeRamp(fromStartVolume: Float(s.gainAt(rampStart)), toEndVolume: Float(s.gainAt(rampEnd)),
-                             timeRange: CMTimeRange(start: CMTime(seconds: rampStart, preferredTimescale: start.timescale),
-                                                    end: CMTime(seconds: rampEnd, preferredTimescale: start.timescale)))
+        bends.sort()
+        func time(_ seconds: Double) -> CMTime { CMTime(seconds: seconds, preferredTimescale: start.timescale) }
+        for (a, b) in zip(bends, bends.dropFirst()) where b > a {
+            let ga = s.gainAt(a), gb = s.gainAt(b)
+            if ga == gb {
+                levels.setVolume(Float(ga), at: time(a))
+            } else {
+                levels.setVolumeRamp(fromStartVolume: Float(ga), toEndVolume: Float(gb),
+                                     timeRange: CMTimeRange(start: time(a), end: time(b)))
+            }
+        }
     }
 
     enum SoundtrackError: LocalizedError {
@@ -85,8 +115,9 @@ enum Soundtrack {
     /// Writes `video` with the sound `segments` lay under it (see
     /// AudioMix.plan) to `output`, each source read from its file in
     /// `sources`: one composition track a source — another beside it where
-    /// two of its stretches sound at once, the same clip twice on a page —
-    /// each with its own levels, the music fading out. A source that will
+    /// two of its stretches sound at once, the same clip twice on a page or
+    /// the same song on two tracks — each with its own levels, fading in and
+    /// out. The mix sums them, each at its own gain of at most full. A source that will
     /// not decode is left out and the rest kept; returns whether every one
     /// went in, and throws when none did, so the picture is kept as it is.
     static func mux(video: URL, segments: [AudioMix.Segment], sources: [String: URL],

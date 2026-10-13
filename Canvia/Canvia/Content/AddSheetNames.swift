@@ -25,11 +25,11 @@ enum AddSheetNames {
     }
 
     /// A song by its own name and its place, then whether it is starred and
-    /// whether it is the design's soundtrack already.
+    /// whether the design plays it on a track already.
     static func music(_ name: String, _ index: Int, of count: Int, starred: Bool, playing: Bool) -> String {
         var label = "\(name), music \(index + 1) of \(count)"
         if starred { label += ", favourite" }
-        if playing { label += ", this design's soundtrack" }
+        if playing { label += ", in this design" }
         return label
     }
 

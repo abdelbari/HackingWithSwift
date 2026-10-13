@@ -1,8 +1,10 @@
 // The page heard as it plays: each clip's own sound while its page is up
-// (AudioMix.clips) and the design's music, in Play in the editor and in
-// Present. One player a clip and one for the music, each kept to the page's
-// clock: a looping clip goes round its trimmed window (AVPlayerLooper), one
-// that does not falls silent at its end, and once a second a player more
+// (AudioMix.clips) and the design's audio tracks, in Play in the editor and
+// in Present. One player a clip and one a track, each kept to its clock: a
+// looping clip goes round its trimmed window (AVPlayerLooper), one that does
+// not falls silent at its end; a track waits for its place in the film
+// (AudioMix.span), plays its window once or round and round, and its level
+// follows its fades every tenth of a second. Once a second a player more
 // than 150 ms off the clock is put right — as the Android twin's PageSound
 // keeps its players.
 //
@@ -25,7 +27,9 @@ final class PageSound {
     }
 
     /// One player, playing `start`...`end` seconds of its file from `since`,
-    /// round and round or once, at `level`.
+    /// round and round or once, at `level` — for `lasts` seconds when that
+    /// is set, rising and falling over `fadeIn` and `fadeOut`, in seconds
+    /// on its own clock.
     private final class Voice {
         let player = AVQueuePlayer()
         /// What keeps a looping voice going round; none for one played once.
@@ -35,13 +39,23 @@ final class PageSound {
         let start: Double
         let end: Double
         let loop: Bool
+        let lasts: Double?
+        let fadeIn: ClosedRange<Double>?
+        let fadeOut: ClosedRange<Double>?
+        /// Whether it has started: one still waiting for its moment is
+        /// looked at every tick, not once a second, so it starts on time.
+        private(set) var begun = false
 
-        init(url: URL, start: Double, end: Double, loop: Bool, level: Float, since: Date) {
+        init(url: URL, start: Double, end: Double, loop: Bool, level: Float, since: Date,
+             lasts: Double? = nil, fadeIn: ClosedRange<Double>? = nil, fadeOut: ClosedRange<Double>? = nil) {
             self.start = start
             self.end = end
             self.loop = loop
             self.level = level
             self.since = since
+            self.lasts = lasts
+            self.fadeIn = fadeIn
+            self.fadeOut = fadeOut
             let item = AVPlayerItem(url: url)
             if loop {
                 looper = AVPlayerLooper(player: player, templateItem: item,
@@ -50,19 +64,25 @@ final class PageSound {
                 item.forwardPlaybackEndTime = PageSound.time(end)
                 player.insert(item, after: nil)
             }
-            player.volume = level
+            player.volume = fadeIn == nil ? level : 0
         }
 
-        /// Where in the file it should be at `now`; nil once it has played
-        /// out, or for a window too short to play.
+        /// Where in the file it should be at `now`; nil before its moment,
+        /// once it has played out, or for a window too short to play.
         func position(at now: Date) -> Double? {
-            let t = max(0, now.timeIntervalSince(since))
+            let t = now.timeIntervalSince(since)
             let span = end - start
-            guard span > 0.01 else { return nil }
-            if loop { return start + t.truncatingRemainder(dividingBy: span) }
+            guard span > 0.01, t >= 0 else { return nil }
             // Within a twentieth of its end it has ended: the player may
             // already have stopped there.
+            if let lasts, t >= lasts - 0.05 { return nil }
+            if loop { return start + t.truncatingRemainder(dividingBy: span) }
             return t < span - 0.05 ? start + t : nil
+        }
+
+        /// How loud it is at `now`, under its fades.
+        func volume(at now: Date) -> Float {
+            Float(AudioMix.envelope(now.timeIntervalSince(since), gain: Double(level), fadeIn: fadeIn, fadeOut: fadeOut))
         }
 
         /// Puts the player where the clock says — once it has strayed, or
@@ -72,15 +92,27 @@ final class PageSound {
                 player.pause()
                 return
             }
+            player.volume = volume(at: now)
             let at = player.currentTime().seconds
             var off = abs(at - want)
             // Just past the window's end and just past its start are the
             // same moment, for a voice going round.
             if loop { off = min(off, (end - start) - off) }
-            if force || !at.isFinite || off > PageSound.drift {
+            if force || !begun || !at.isFinite || off > PageSound.drift {
                 player.seek(to: PageSound.time(want), toleranceBefore: .zero, toleranceAfter: .zero)
             }
             if player.rate == 0 { player.play() }
+            begun = true
+        }
+
+        /// Between the checks on its clock: its level kept to its fades,
+        /// and silent once its time is up.
+        func follow(_ now: Date) {
+            guard position(at: now) != nil else {
+                player.pause()
+                return
+            }
+            player.volume = volume(at: now)
         }
 
         func stop() {
@@ -92,12 +124,12 @@ final class PageSound {
     }
 
     private var clips: [Voice] = []
-    private var music: Voice?
+    private var tracks: [Voice] = []
     /// Move on as the sound does, so a file still being read for a page
-    /// already gone, or music already stopped, never starts.
+    /// already gone, or tracks already stopped, never starts.
     private var clipTurn = 0
-    private var musicTurn = 0
-    private var musicLoading = false
+    private var trackTurn = 0
+    private var tracksLoading = false
     private var ticker: Task<Void, Never>?
     private var holdsSession = false
     /// The phone has one session for every PageSound: how many hold it, and
@@ -106,6 +138,10 @@ final class PageSound {
     /// Main actor use only.
     private static var holders = 0
     private static var presenters = 0
+
+    /// How often each track's level follows its fades, in seconds; every
+    /// tenth tick every player is checked against its clock.
+    static let tick = 0.1
 
     static func time(_ seconds: Double) -> CMTime { CMTime(seconds: seconds, preferredTimescale: 600) }
 
@@ -130,80 +166,107 @@ final class PageSound {
                 let start = max(0, p.start)
                 let end = min(p.end ?? length, length)
                 guard end - start > 0.01 else { continue }
-                self.play(Voice(url: url, start: start, end: end, loop: p.loop,
-                                level: Float(min(max(p.volume, 0), 1)), since: since))
+                let voice = Voice(url: url, start: start, end: end, loop: p.loop,
+                                  level: Float(min(max(p.volume, 0), 1)), since: since)
+                self.clips.append(voice)
+                self.play(voice)
             }
         }
     }
 
-    /// The design's music, if this phone has it, as from `offset` seconds
-    /// in at `since`, looping; left playing when it already is.
-    func music(design: Design, offset: Double, since: Date) {
-        guard music == nil, !musicLoading, let id = design.motion?.soundtrack,
-              let url = AudioStore.url(for: id) else { return }
-        let level = min(max(design.motion?.soundVolume ?? 1, 0), 1)
-        guard level > 0 else { return }
-        musicLoading = true
-        let turn = musicTurn
+    /// The design's tracks this phone has the music of, on a film clock
+    /// that read `offset` seconds at `since`: each from its place in a film
+    /// `film` seconds long, in its trim, at its volume, with its fades — as
+    /// AudioMix.span lays it for the video. A talk in Present passes no end
+    /// (`.infinity`), so a looping track goes on for as long as it runs, as
+    /// the soundtrack always did. Left playing when they already are.
+    func tracks(design: Design, offset: Double, since: Date, film: Double) {
+        guard tracks.isEmpty, !tracksLoading else { return }
+        let wanted = design.audioTracks.compactMap { track in AudioStore.url(for: track.audioId).map { (track, $0) } }
+        guard !wanted.isEmpty else { return }
+        tracksLoading = true
+        let turn = trackTurn
+        // The moment the film's clock reads 0.
+        let zero = since.addingTimeInterval(-offset)
         Task { @MainActor in
-            let length = await AudioStore.duration(of: id)
-            guard turn == self.musicTurn else { return }
-            self.musicLoading = false
-            guard let length, length > 0.01 else { return }
-            // Started `offset` seconds before `since`, so the clock finds it
-            // there.
-            let voice = Voice(url: url, start: 0, end: length, loop: true, level: Float(level),
-                              since: since.addingTimeInterval(-offset))
-            self.music = voice
-            self.play(voice)
+            var lengths: [String: Double] = [:]
+            for (track, _) in wanted {
+                guard let id = track.audioId, lengths[id] == nil else { continue }
+                if let length = await AudioStore.duration(of: id) { lengths[id] = length }
+            }
+            guard turn == self.trackTurn else { return }
+            self.tracksLoading = false
+            for (track, url) in wanted {
+                let length = track.audioId.flatMap { lengths[$0] }
+                guard let span = AudioMix.span(of: track, duration: length, film: film) else { continue }
+                let lasts: Double? = span.until.isFinite ? span.until - span.at : nil
+                let begins = zero.addingTimeInterval(span.at)
+                // Over already, where the film is now.
+                if let lasts, begins.addingTimeInterval(lasts) <= Date() { continue }
+                func local(_ fade: ClosedRange<Double>?) -> ClosedRange<Double>? {
+                    fade.map { ($0.lowerBound - span.at)...($0.upperBound - span.at) }
+                }
+                let voice = Voice(url: url, start: span.from, end: span.to, loop: span.loop, level: Float(span.gain),
+                                  since: begins, lasts: lasts, fadeIn: local(span.fadeIn), fadeOut: local(span.fadeOut))
+                self.tracks.append(voice)
+                self.play(voice)
+            }
         }
     }
 
     private func play(_ voice: Voice) {
         takeSession()
-        if voice !== music { clips.append(voice) }
         voice.sync(Date(), force: true)
         keepTime()
     }
 
-    /// Everything silent and let go — the music falling away over a second
+    /// Everything silent and let go — the tracks falling away over a second
     /// first, when `fade`d, as a presentation closes.
     func stop(fade: Bool = false) {
         clipTurn += 1
-        musicTurn += 1
-        musicLoading = false
+        trackTurn += 1
+        tracksLoading = false
         clips.forEach { $0.stop() }
         clips = []
         ticker?.cancel()
         ticker = nil
-        let last = music
-        music = nil
-        guard fade, let last else {
-            last?.stop()
+        let last = tracks
+        tracks = []
+        guard fade, !last.isEmpty else {
+            last.forEach { $0.stop() }
             letGo()
             return
         }
+        let levels = last.map { $0.player.volume }
         Task { @MainActor in
             let steps = 20
             for step in 1...steps {
                 try? await Task.sleep(for: .seconds(Soundtrack.fadeSeconds / Double(steps)))
-                last.player.volume = last.level * Float(steps - step) / Float(steps)
+                for (voice, level) in zip(last, levels) {
+                    voice.player.volume = level * Float(steps - step) / Float(steps)
+                }
             }
-            last.stop()
+            last.forEach { $0.stop() }
             self.letGo()
         }
     }
 
-    /// Once a second, every player put back on the clock if it has strayed.
+    /// Every tick, each track's level kept to its fades and any player
+    /// still waiting for its moment started; once a second, every player put
+    /// back on the clock if it has strayed.
     private func keepTime() {
         guard ticker == nil else { return }
         ticker = Task { @MainActor [weak self] in
+            var ticks = 0
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
+                try? await Task.sleep(for: .seconds(PageSound.tick))
                 guard let self, !Task.isCancelled else { return }
+                ticks += 1
                 let now = Date()
-                for voice in self.clips { voice.sync(now) }
-                self.music?.sync(now)
+                let check = ticks % 10 == 0
+                for voice in self.clips + self.tracks {
+                    if check || !voice.begun { voice.sync(now) } else { voice.follow(now) }
+                }
             }
         }
     }
@@ -223,7 +286,7 @@ final class PageSound {
     private func letGo() {
         // Taken again in the meantime — the sound turned back on mid-fade —
         // it is kept.
-        guard holdsSession, music == nil, clips.isEmpty, !musicLoading else { return }
+        guard holdsSession, tracks.isEmpty, clips.isEmpty, !tracksLoading else { return }
         holdsSession = false
         PageSound.holders -= 1
         if presenting { PageSound.presenters -= 1 }
@@ -240,10 +303,10 @@ final class PageSound {
         try? session.setActive(false, options: .notifyOthersOnDeactivation)
     }
 
-    /// Whether anything in `design` is heard on this phone: its music, or a
-    /// clip with sound on a page Present shows.
+    /// Whether anything in `design` is heard on this phone: a track whose
+    /// music is here, or a clip with sound on a page Present shows.
     static func heard(in design: Design) async -> Bool {
-        if AudioStore.url(for: design.motion?.soundtrack) != nil, (design.motion?.soundVolume ?? 1) > 0 { return true }
+        if design.audioTracks.contains(where: { $0.volume > 0 && AudioStore.url(for: $0.audioId) != nil }) { return true }
         var ids: [String] = []
         for index in design.visiblePageIndices {
             for clip in AudioMix.clips(design: design, page: design.pages[index]) where !ids.contains(clip.source) {
