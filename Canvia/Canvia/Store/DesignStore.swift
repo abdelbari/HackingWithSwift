@@ -97,7 +97,7 @@ final class DesignStore {
     /// The page the clipboard was copied from, and the page pasted onto
     /// last: a paste somewhere new lands in place (Copies.pasteOffset).
     private var clipboardPage: String?
-    private var pastePage: String?
+    private var pastedOnto: String?
     private var pasteCount = 0
 
     /// Select multiple: while on, a tap on an element adds it to the
@@ -669,7 +669,7 @@ final class DesignStore {
         guard !selected.isEmpty else { return }
         clipboard = selected
         clipboardPage = page.id
-        pastePage = nil
+        pastedOnto = nil
         pasteCount = 0
         ElementClipboard.write(selected, sourcePage: page.id)
         buzz(.tick)
@@ -688,7 +688,7 @@ final class DesignStore {
         }
         clipboard = removable
         clipboardPage = page.id
-        pastePage = nil
+        pastedOnto = nil
         pasteCount = 0
         ElementClipboard.write(removable, sourcePage: page.id)
         let ids = Set(removable.map(\.id))
@@ -706,7 +706,7 @@ final class DesignStore {
             if let mine = ElementClipboard.read() {
                 clipboard = mine
                 clipboardPage = ElementClipboard.sourcePage()
-                pastePage = nil
+                pastedOnto = nil
                 pasteCount = 0
             } else if let stranger = ElementClipboard.foreign(designWidth: pageWidth) {
                 add(stranger)
@@ -723,8 +723,8 @@ final class DesignStore {
         }
         // Each page counts its own pastes: the first onto a page other than
         // the copy's lands in place, and only a repeat there steps.
-        if pastePage != page.id {
-            pastePage = page.id
+        if pastedOnto != page.id {
+            pastedOnto = page.id
             pasteCount = 0
         }
         pasteCount += 1
