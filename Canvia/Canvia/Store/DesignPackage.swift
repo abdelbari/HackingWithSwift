@@ -323,6 +323,40 @@ enum DesignPackage {
         try? FileManager.default.removeItem(at: url)
     }
 
+    /// Whether a name from a file is safe to keep a file under: letters,
+    /// digits, "_", "-" and ".", and no way out of the folder.
+    static func isSafeFileName(_ name: String) -> Bool {
+        !name.isEmpty && !name.contains("..")
+            && name.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || "_-.".contains($0)) }
+    }
+
+    /// A package's files stored under the ids it names — each only when no
+    /// file of that id is here yet, as the same photo is the same file — and
+    /// its design returned as it is, ids, dates and all: how a backup brings
+    /// a design back. Text boxes are left unmeasured, for a caller off the
+    /// main thread.
+    static func storeKeepingIds(_ package: Package, mediaDirectory: URL = MediaStore.directory) -> Design {
+        let fm = FileManager.default
+        for (id, item) in package.media where isSafeFileName(id) && isSafeFileName(item.ext) {
+            let here = MediaStore.extensions.contains {
+                fm.fileExists(atPath: mediaDirectory.appendingPathComponent("\(id).\($0)").path)
+            }
+            if !here { try? item.data.write(to: mediaDirectory.appendingPathComponent("\(id).\(item.ext)")) }
+        }
+        for (id, item) in package.videos ?? [:] where isSafeFileName(id) && isSafeFileName(item.ext) {
+            if VideoStore.url(for: id) == nil {
+                try? item.data.write(to: VideoStore.directory.appendingPathComponent("\(id).\(item.ext.lowercased())"))
+            }
+        }
+        for (sha, item) in package.fonts ?? [:] where CustomFonts.sha12(item.data) == sha {
+            _ = FontStore.add(item.data)
+        }
+        for (id, item) in package.audio ?? [:] where isSafeFileName(id) && AudioStore.url(for: id) == nil {
+            try? item.data.write(to: AudioStore.directory.appendingPathComponent(id))
+        }
+        return package.design
+    }
+
     /// The design inside, as a new document (new id, fresh media ids, the
     /// title marked as imported so it is not mistaken for the original).
     static func `import`(_ data: Data, mediaDirectory: URL = MediaStore.directory,

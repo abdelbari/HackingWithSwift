@@ -32,6 +32,8 @@ struct ExportSheet: View {
     @State private var flatten = false
     /// "Remember these settings": the last export, as JSON; empty is off.
     @AppStorage(ExportLast.key) private var exportLast = ""
+    /// Settings' default export format, listed first.
+    @AppStorage(AppDefaults.exportFormatKey) private var defaultFormat = "png"
     @State private var remember = false
     @State private var sharedURLs: [URL] = []
     /// What the last save to Photos came to, and whether anything went in.
@@ -355,45 +357,56 @@ struct ExportSheet: View {
         }
     }
 
+    /// The four file formats, Settings' default export format first.
     private var formatSection: some View {
-        // Said from the page choice above, which the PDF follows.
-        let pages = store.design.pages.count
-        let kind = flatten ? "flattened at 300 dpi" : "vector"
-        var pdfSubtitle = "Print-ready document, \(kind)"
-        if pages > 1 {
-            switch pageRange {
-            case .all: pdfSubtitle = "\(allPagesText), \(kind)"
-            case .current: pdfSubtitle = "Page \(store.pageIndex + 1) only, \(kind)"
-            case .chosen: pdfSubtitle = "\(chosenText), \(kind)"
-            }
-        }
-        // PNG and JPEG write a file a page, so they follow it too.
-        let count = exportedIndices.count
-        let what = count > 1 ? "\(pagesWord(count)), one file each" : onePageText
-        let jpegSubtitle = "\(what), about \(estimatedSize)\(count > 1 ? " a page" : "")"
-        let svgSubtitle = count > 1 ? "\(pagesWord(count)), one SVG each" : "\(onePageText), editable vectors"
-        return Section {
-            exportButton("PNG", subtitle: "\(what), best for sharing", icon: "photo",
-                         unavailable: leftOut(exportedIndices), format: "png") {
-                try await export(.png)
-            }
-            exportButton("JPEG", subtitle: jpegSubtitle, icon: "photo.fill",
-                         unavailable: leftOut(exportedIndices), format: "jpg") {
-                try await export(.jpeg)
-            }
-            exportButton("PDF", subtitle: pdfSubtitle, icon: "doc.richtext", working: "Making the PDF",
-                         unavailable: leftOut(pdfIndices), format: "pdf") {
-                try await exportPDF()
-            }
-            exportButton("SVG", subtitle: svgSubtitle,
-                         icon: "scribble.variable", unavailable: leftOut(exportedIndices), format: "svg") {
-                try exportSVG()
-            }
+        Section {
+            ForEach(AppDefaults.formatOrder(defaultFormat), id: \.self) { formatRow($0) }
             Toggle("Flatten PDF", isOn: $flatten)
         } header: {
             Text("Format")
         } footer: {
             Text("Flatten draws each PDF page as one 300-dpi picture: no editable text and no links, so a print shop gets no font surprises.")
+        }
+    }
+
+    /// One format's row, said from the page choice above, which each
+    /// follows: PNG and JPEG write a file a page.
+    @ViewBuilder
+    private func formatRow(_ format: String) -> some View {
+        let count = exportedIndices.count
+        let what = count > 1 ? "\(pagesWord(count)), one file each" : onePageText
+        switch format {
+        case "png":
+            exportButton("PNG", subtitle: "\(what), best for sharing", icon: "photo",
+                         unavailable: leftOut(exportedIndices), format: "png") {
+                try await export(.png)
+            }
+        case "jpg":
+            exportButton("JPEG", subtitle: "\(what), about \(estimatedSize)\(count > 1 ? " a page" : "")",
+                         icon: "photo.fill", unavailable: leftOut(exportedIndices), format: "jpg") {
+                try await export(.jpeg)
+            }
+        case "pdf":
+            exportButton("PDF", subtitle: pdfSubtitle, icon: "doc.richtext", working: "Making the PDF",
+                         unavailable: leftOut(pdfIndices), format: "pdf") {
+                try await exportPDF()
+            }
+        default:
+            exportButton("SVG", subtitle: count > 1 ? "\(pagesWord(count)), one SVG each" : "\(onePageText), editable vectors",
+                         icon: "scribble.variable", unavailable: leftOut(exportedIndices), format: "svg") {
+                try exportSVG()
+            }
+        }
+    }
+
+    /// What the PDF holds, from the page choice.
+    private var pdfSubtitle: String {
+        let kind = flatten ? "flattened at 300 dpi" : "vector"
+        guard store.design.pages.count > 1 else { return "Print-ready document, \(kind)" }
+        switch pageRange {
+        case .all: return "\(allPagesText), \(kind)"
+        case .current: return "Page \(store.pageIndex + 1) only, \(kind)"
+        case .chosen: return "\(chosenText), \(kind)"
         }
     }
 
@@ -438,6 +451,8 @@ struct ExportSheet: View {
     /// sheet opens.
     private func restoreSettings() {
         chosenIds = ExportChoices.chosen(for: store.design)
+        // The default picture format, unless the last export is remembered.
+        photosFormat = defaultFormat == "jpg" ? .jpeg : .png
         guard let last = ExportLast.read(exportLast) else { return }
         remember = true
         scale = [1.0, 2.0, 3.0].contains(last.scale) ? last.scale : 2

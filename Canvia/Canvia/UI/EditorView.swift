@@ -32,6 +32,7 @@ enum EditorSheet: String, Identifiable {
     case addGuides
     /// More's "Copy & resize…": the Resize sheet, opened on its copies.
     case copyResize
+    case settings
     var id: String { rawValue }
 }
 
@@ -671,6 +672,9 @@ struct EditorView: View {
                 snappingMenu
                 Toggle(isOn: $haptics) { Label("Vibration", systemImage: "iphone.radiowaves.left.and.right") }
                 Toggle(isOn: $quickActions) { Label("Quick actions at the selection", systemImage: "capsule") }
+                Button {
+                    activeSheet = .settings
+                } label: { Label("Settings", systemImage: "gearshape") }
             }
 
             Section {
@@ -1113,6 +1117,8 @@ struct EditorView: View {
             AccessibilitySheet(store: store)
         case .brand:
             BrandKitSheet(store: store)
+        case .settings:
+            SettingsSheet(store: store)
         case .pages:
             PageOrganizerSheet(store: store)
         case .snapping:

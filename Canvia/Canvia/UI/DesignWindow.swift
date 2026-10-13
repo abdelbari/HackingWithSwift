@@ -7,6 +7,8 @@ struct DesignWindow: View {
     @Binding var id: String?
     @State private var store: DesignStore?
     @Environment(\.dismissWindow) private var dismissWindow
+    /// Settings' Appearance, as the main window wears it.
+    @AppStorage(Appearance.key) private var appearance = Appearance.system.rawValue
 
     var body: some View {
         Group {
@@ -18,6 +20,7 @@ struct DesignWindow: View {
                                        description: Text("It may have been deleted from the home screen."))
             }
         }
+        .preferredColorScheme(Appearance.scheme(appearance))
         .onAppear {
             if store == nil, let id, let design = DesignLibrary.load(id: id) {
                 store = DesignStore(design: design)

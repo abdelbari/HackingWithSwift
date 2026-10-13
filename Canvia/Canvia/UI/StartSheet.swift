@@ -316,8 +316,9 @@ struct CustomSizeSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var width = "1080"
     @State private var height = "1080"
-    /// What the sides are typed in: px, in, mm or cm.
-    @State private var unit = "px"
+    /// What the sides are typed in: px, in, mm or cm — at first, Settings'
+    /// custom size unit.
+    @State private var unit = AppDefaults.unit()
     /// Read once as the sheet opens.
     @State private var recent = CustomSizes.recent()
 

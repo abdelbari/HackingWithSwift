@@ -17,6 +17,8 @@ struct CanviaApp: App {
     /// A quick action or Siri asked for a design that has since gone.
     @State private var designMissing = false
     @Environment(\.scenePhase) private var scenePhase
+    /// Settings' Appearance: System, Light or Dark.
+    @AppStorage(Appearance.key) private var appearance = Appearance.system.rawValue
 
     init() {
         // Launch is the one moment no editor can be holding freshly added
@@ -182,6 +184,7 @@ struct CanviaApp: App {
             // another app — at launch or while the app is open, once each.
             .onOpenURL { url in openDesignFile(url) }
             .overlay { if openingFile { OpeningDesignCard() } }
+            .preferredColorScheme(Appearance.scheme(appearance))
             .alert("Couldn't open that file", isPresented: Binding(
                 get: { openError != nil }, set: { if !$0 { openError = nil } })) {
                 Button("OK") { openError = nil }

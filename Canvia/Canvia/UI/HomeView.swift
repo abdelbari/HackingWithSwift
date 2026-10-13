@@ -12,6 +12,7 @@ enum HomeSheet: Identifiable, Equatable {
     case help
     /// Every design type, searchable and by category.
     case designTypes
+    case settings
 
     var id: String {
         switch self {
@@ -20,6 +21,7 @@ enum HomeSheet: Identifiable, Equatable {
         case .customSize: return "custom-size"
         case .help: return "help"
         case .designTypes: return "design-types"
+        case .settings: return "settings"
         }
     }
 }
@@ -45,8 +47,6 @@ struct HomeView: View {
     @State private var pendingOpen: Design?
     /// Asked for from the help sheet: the tour, once that sheet has gone.
     @State private var replayTour = false
-    /// The Vibration switch, shared with the editor.
-    @AppStorage(Haptics.key) private var haptics = true
     /// Your own templates, first under the templates.
     @State private var userTemplates: [UserTemplate] = []
     /// The "Yours" chip: only your own templates.
@@ -218,6 +218,13 @@ struct HomeView: View {
             }
         case .designTypes:
             DesignTypesSheet { preset in homeSheet = .start(presetId: preset.id) }
+        case .settings:
+            SettingsSheet(onTour: {
+                replayTour = true
+                homeSheet = nil
+            })
+            // A restore, or Recently deleted emptied, shows on the shelf.
+            .onDisappear { reload() }
         }
     }
 
@@ -789,12 +796,7 @@ struct HomeView: View {
                 }
                 heroButton("New design", systemImage: "plus") { homeSheet = .pickSize }
                 heroButton("How Canvia works", systemImage: "questionmark") { homeSheet = .help }
-                Menu {
-                    Toggle(isOn: $haptics) { Label("Vibration", systemImage: "iphone.radiowaves.left.and.right") }
-                } label: {
-                    heroCircle("ellipsis")
-                }
-                .accessibilityLabel("More")
+                heroButton("Settings", systemImage: "gearshape") { homeSheet = .settings }
             }
 
             Text("What will you design today?")
