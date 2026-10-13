@@ -51,29 +51,41 @@ extension DesignStore {
 
     /// Draws chart `spec` again in place of every element on the page that
     /// carries its id: so that it fills the box their frames fill together —
-    /// unrotated, as the Android twin measures it, so Update after Update
-    /// never shrinks or grows it — as the chart before did (see
-    /// DataGraphics.frameFilling), at the place in the stack of the lowest
-    /// of them, under the group of the lowest one in a group, with the
-    /// colours they had by series ("series:<n>"), still hidden when the
-    /// whole of it was — as one step, the new chart's whole group selected.
-    /// False, and nothing recorded, when the chart is not on the page or the
-    /// data draws nothing.
+    /// measured with them upright, as the Android twin measures it, so
+    /// Update after Update never shrinks or grows it — as the chart before
+    /// did (see DataGraphics.updateFrame), at the place in the stack of the
+    /// lowest of them, under the group of the lowest one in a group, with
+    /// the colours they had by series ("series:<n>") and a new series in a
+    /// colour of the design's the chart does not show yet
+    /// (DataGraphics.palette(updating:)), turned, faded, linked and animated
+    /// as they all were (DataGraphics.carrying), still hidden when the whole
+    /// of it was — as one step, the new chart's whole group selected. False,
+    /// and nothing recorded, when the chart is not on the page or the data
+    /// draws nothing.
     @discardableResult
     func updateChart(_ spec: ChartSpec) -> Bool {
         let members = page.elements.filter { $0.chart?.id == spec.id }
         guard let was = members.first?.chart else { return false }
-        let frame = DataGraphics.frameFilling(was, bounds: Geometry.union(members.map(\.frame)))
+        // Measured upright, turned about the middle of the box they fill,
+        // and turned back the same way once drawn.
+        let turn = DataGraphics.turn(of: members)
+        let box = Geometry.union(members.map(\.frame))
+        let pivot = CGPoint(x: box.midX, y: box.midY)
+        let upright = turn != 0 ? Geometry.rotate(members, around: pivot, by: -turn) : members
+        let frame = DataGraphics.updateFrame(was, to: spec, bounds: Geometry.union(upright.map(\.frame)),
+                                             width: pageWidth, height: pageHeight)
         var colours: [Int: Paint] = [:]
         for el in members {
             guard let n = Self.chartSeries(el.chartPart), colours[n] == nil,
                   let paint = Self.chartColour(of: el) else { continue }
             colours[n] = paint
         }
-        var made = DataGraphics.chart(spec, in: frame, palette: DataGraphics.palette(for: design, page: page),
+        let palette = DataGraphics.palette(updating: spec.id, design: design, page: page, colours: colours)
+        var made = DataGraphics.chart(spec, in: frame, palette: palette,
                                       ink: DataGraphics.ink(for: page), colours: colours,
                                       group: members.first(where: { $0.group != nil })?.group ?? UID.make("grp"))
         guard !made.isEmpty else { return false }
+        made = DataGraphics.carrying(members, into: made, pivot: pivot, turn: turn)
         // A chart hidden whole stays hidden; one only partly hidden comes
         // back whole, as on Android.
         if members.allSatisfy(\.isHidden) {
