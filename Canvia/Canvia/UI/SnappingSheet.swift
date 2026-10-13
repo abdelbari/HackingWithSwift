@@ -158,10 +158,11 @@ struct AddGuidesView: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
     @State private var replace = false
+    // Custom starts where Android's does: 3 columns, nothing more.
     @State private var columns = 3
     @State private var rows = 0
-    @State private var gutter = 20
-    @State private var margin = 40
+    @State private var gutter = 0
+    @State private var margin = 0
 
     var body: some View {
         Form {
