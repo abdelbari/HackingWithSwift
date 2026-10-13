@@ -1852,9 +1852,13 @@ struct CanvasView: View {
         return Group {
             if livePages.contains(index) {
                 PageRenderView(design: store.design, page: page)
-                    // Its bleed too, as round the page being worked.
+                    // Its bleed too, and its trim dashed, as round the page
+                    // being worked — only that page names it.
                     .background {
                         if bleed > 0 { BleedBand(design: store.design, page: page, bleed: bleed, unit: point / slot.scale) }
+                    }
+                    .overlay {
+                        if bleed > 0 { TrimLine(size: store.design.size(for: page), unit: point / slot.scale) }
                     }
                     .environment(\.onScreen, true)
                     .scaleEffect(slot.scale, anchor: .topLeading)

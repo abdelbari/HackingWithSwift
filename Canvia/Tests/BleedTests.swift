@@ -5,6 +5,7 @@
 
 import XCTest
 import CoreGraphics
+import UIKit
 @testable import Canvia
 
 final class BleedTests: XCTestCase {
@@ -113,6 +114,74 @@ final class BleedTests: XCTestCase {
                                  yLines: lines.y.map(\.position), threshold: 8)
         XCTAssertEqual(-43 + snap.dx, -45.5, accuracy: 1e-9)
         XCTAssertEqual(Geometry.snapSource(at: snap.guideX, in: lines.x), .bleedEdge)
+    }
+
+    // MARK: the background through the band
+
+    /// The colour of `image` at `x`, `y` in its pixels from the top left.
+    private func pixel(_ image: CGImage, _ x: Int, _ y: Int) throws -> (r: Int, g: Int, b: Int) {
+        var bytes = [UInt8](repeating: 0, count: 4)
+        try bytes.withUnsafeMutableBytes { raw in
+            let ctx = try XCTUnwrap(CGContext(
+                data: raw.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            ctx.draw(image, in: CGRect(x: -x, y: y - image.height + 1, width: image.width, height: image.height))
+        }
+        return (Int(bytes[0]), Int(bytes[1]), Int(bytes[2]))
+    }
+
+    /// Whether the trimmed page and the bled page's middle, `bleed` in,
+    /// are the same picture at each of `xs` along the page's middle row.
+    private func assertSameAtTheTrim(_ trimmed: CGImage, _ bled: CGImage, bleed: Int, xs: [Int],
+                                     file: StaticString = #filePath, line: UInt = #line) throws {
+        for x in xs {
+            let a = try pixel(trimmed, x, 500)
+            let b = try pixel(bled, x + bleed, 500 + bleed)
+            let apart = max(abs(a.r - b.r), abs(a.g - b.g), abs(a.b - b.b))
+            XCTAssertLessThanOrEqual(apart, 4, "at \(x): \(a) and \(b)", file: file, line: line)
+        }
+    }
+
+    /// The trim is the same picture with or without the band round it, as
+    /// on Android: a photo is laid over the page and the design's bleed in
+    /// both, and a gradient over the page, its end colours on through the
+    /// band — so the print PDF's trim is the plain PDF's page.
+    @MainActor
+    func testThePagesBackgroundIsTheSameAtTheTrimWithOrWithoutTheBand() throws {
+        // A square photo, its left quarter red: laid over the page and its
+        // 36 px bleed, 1072 px, the red ends at 232, not at 250.
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let photo = UIGraphicsImageRenderer(size: CGSize(width: 100, height: 100), format: format).image { ctx in
+            UIColor.blue.setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: 100, height: 100))
+            UIColor.red.setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: 25, height: 100))
+        }
+        let src = try XCTUnwrap(MediaStore.storeOpaque(photo))
+        defer { MediaStore.delete(String(src.dropFirst("media:".count))) }
+        var design = Design(title: "b", width: 1000, height: 1000)
+        design.bleed = 36
+        design.pages[0].background = .image(src)
+
+        var trimmed = try XCTUnwrap(DesignExporter.render(design: design, page: design.pages[0], scale: 1))
+        var bled = try XCTUnwrap(DesignExporter.render(design: design, page: design.pages[0], scale: 1, bleed: 36))
+        XCTAssertEqual(trimmed.width, 1000)
+        XCTAssertEqual(bled.width, 1072)
+        try assertSameAtTheTrim(trimmed, bled, bleed: 36, xs: [100, 241, 500, 900])
+        let edge = try pixel(trimmed, 241, 500)
+        XCTAssertTrue(edge.b > 150 && edge.r < 100, "the photo covers the bleed too: \(edge)")
+
+        // Black to white across: the band carries the ends on.
+        design.pages[0].background = .gradient(Paint(kind: "gradient", color: nil, angle: 90, stops: [
+            GradientStop(offset: 0, color: "#000000"), GradientStop(offset: 1, color: "#ffffff"),
+        ]))
+        trimmed = try XCTUnwrap(DesignExporter.render(design: design, page: design.pages[0], scale: 1))
+        bled = try XCTUnwrap(DesignExporter.render(design: design, page: design.pages[0], scale: 1, bleed: 36))
+        try assertSameAtTheTrim(trimmed, bled, bleed: 36, xs: [50, 250, 500, 750, 950])
+        XCTAssertLessThan(try pixel(bled, 10, 536).r, 8, "the start colour, on through the band")
+        XCTAssertGreaterThan(try pixel(bled, 1062, 536).r, 247, "and the end colour")
     }
 
     // MARK: printing it
@@ -265,5 +334,20 @@ final class BleedTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: enlarged) }
         try await DesignExporter.exportPrintPDF(design: bare, options: options, to: enlarged)
         XCTAssertFalse(isRed(try colour(of: enlarged, at: inBand)), "enlarged, the page is cut at its edge")
+        // And, as before there was a bleed to design, it says no trim or
+        // bleed: both read as the whole sheet.
+        let enlargedPage = try XCTUnwrap(CGPDFDocument(enlarged as CFURL)?.page(at: 1))
+        XCTAssertEqual(enlargedPage.getBoxRect(.trimBox), enlargedPage.getBoxRect(.mediaBox))
+        XCTAssertEqual(enlargedPage.getBoxRect(.bleedBox), enlargedPage.getBoxRect(.mediaBox))
+
+        // A designed bleed printed with the stepper at 0 still says where
+        // the trim is, its bleed the same, as on Android.
+        options.bleed = 0
+        let unbled = FileManager.default.temporaryDirectory.appendingPathComponent("unbled-\(UUID()).pdf")
+        defer { try? FileManager.default.removeItem(at: unbled) }
+        try await DesignExporter.exportPrintPDF(design: design, options: options, to: unbled)
+        let unbledPage = try XCTUnwrap(CGPDFDocument(unbled as CFURL)?.page(at: 1))
+        XCTAssertEqual(unbledPage.getBoxRect(.trimBox).width, 750, accuracy: 0.01)
+        XCTAssertEqual(unbledPage.getBoxRect(.bleedBox), unbledPage.getBoxRect(.trimBox))
     }
 }

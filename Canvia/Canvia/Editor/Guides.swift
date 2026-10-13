@@ -161,9 +161,10 @@ enum Guides {
         }
     }
 
-    /// A labelled tick's number: whole for a step of 1 or more, else with as
-    /// many places as the step has — "0.5", "1.5" — written with a point
-    /// whatever the phone's language, and never "-0".
+    /// A labelled tick's number: to as many places as the step has, none
+    /// for a step of 1 or more, and without trailing zeros — "50", "1.5",
+    /// "1" — written with a point whatever the phone's language, and never
+    /// "-0". The Android twin's `rulerLabel`.
     static func rulerLabel(_ value: Double, step: Double) -> String {
         var places = 0
         var s = step
@@ -171,9 +172,12 @@ enum Guides {
             s *= 10
             places += 1
         }
-        let text = String(format: "%.\(places)f", value)
-        let unsigned = String(text.drop(while: { $0 == "-" }))
-        return unsigned.allSatisfy { $0 == "0" || $0 == "." } ? unsigned : text
+        var text = String(format: "%.\(places)f", value)
+        if places > 0 {
+            while text.hasSuffix("0") { text.removeLast() }
+            if text.hasSuffix(".") { text.removeLast() }
+        }
+        return text == "-0" ? "0" : text
     }
 
     /// The unit `design`'s rulers count in, and how many page pixels make

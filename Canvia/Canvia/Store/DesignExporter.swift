@@ -522,6 +522,7 @@ enum DesignExporter {
         guard !indices.isEmpty else { throw ExportError.renderFailed }
         let total = max(1, sheetCount(design: design, indices: indices, options: options))
         let writer = try PDFWriter(url: url, bounds: sheet)
+        let designed = Bleed.shown(design)
         var pacer = Pacer()
         var done = 0
         do {
@@ -529,9 +530,12 @@ enum DesignExporter {
                 let pagePts = PrintLayout.pagePoints(size: design.size(for: page), dpi: design.effectiveDPI, bleed: options.bleed)
                 for placement in placements(pagePoints: pagePts, options: options) {
                     try await pacer.breathe()
-                    // A sheet holding a whole bled page says where its trim
-                    // and bleed are, for the print shop's software.
-                    let boxes = options.bleed > 0
+                    // A sheet holding a whole page of a design with a bleed
+                    // of its own says where its trim and bleed are, for the
+                    // print shop's software — the two the same with the
+                    // stepper at 0 — as Android adds them. One without
+                    // prints exactly as before, with neither.
+                    let boxes = designed
                         ? PrintLayout.boxes(sheet: placement.sheetRect, source: placement.source, page: pagePts,
                                             bleed: options.bleed, sheetHeight: Double(sheet.height))
                         : nil

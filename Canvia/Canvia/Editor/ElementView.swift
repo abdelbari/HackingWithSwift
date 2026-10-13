@@ -802,11 +802,11 @@ struct PageRenderView: View {
     let page: Page
     /// Page units shown beyond the trim on every side — a print bleed
     /// (Bleed) — or none. With some, the view is that much bigger all round:
-    /// the page's background is laid over the whole bled area, as if the
-    /// page were that big, and what is put out past the trim shows up to the
-    /// bleed's edge and is cut there. Only the canvas's bleed band and the
-    /// print-ready PDF ask for it; everything else draws the trim, cut at
-    /// the page's edge, exactly as before.
+    /// the page's background runs on through the band (PageBackgroundFill),
+    /// and what is put out past the trim shows up to the bleed's edge and is
+    /// cut there. Only the canvas's bleed band and the print-ready PDF ask
+    /// for it; everything else draws the trim, cut at the page's edge. The
+    /// trim is the same picture either way.
     var bleed: Double = 0
 
     var body: some View {
@@ -815,7 +815,7 @@ struct PageRenderView: View {
 
     private var trimmed: some View {
         ZStack {
-            backgroundView(design.size(for: page))
+            PageBackgroundFill(background: page.background, size: design.size(for: page), cover: Bleed.of(design))
             drawn
         }
         .frame(width: design.size(for: page).width, height: design.size(for: page).height)
@@ -830,7 +830,7 @@ struct PageRenderView: View {
         let size = design.size(for: page)
         let whole = CGSize(width: size.width + 2 * bleed, height: size.height + 2 * bleed)
         return ZStack {
-            backgroundView(whole)
+            PageBackgroundFill(background: page.background, size: size, reach: bleed, cover: Bleed.of(design))
             ZStack { drawn }
                 .frame(width: size.width, height: size.height)
         }
@@ -863,26 +863,75 @@ struct PageRenderView: View {
         guard let index = design.pages.firstIndex(where: { $0.id == page.id }) else { return nil }
         return (index + 1, design.pages.count)
     }
+}
 
-    /// The page's background over `size`: the page's own, or its bled
-    /// area.
+/// A page's background, in a view `reach` page units bigger than the page
+/// all round — a print bleed — or the page's own size, laid as Android's
+/// PageRenderer.drawBackground lays it, so the trim shows the same thing
+/// whether or not the band is drawn round it: a colour all over; a
+/// gradient over the page, its end colours carried on through the band; a
+/// photo filling the page and `cover` round it — the design's own bleed,
+/// in every drawing of the page, trimmed or bled — centred on the page,
+/// over white. Not clipped: the view it is in cuts it.
+struct PageBackgroundFill: View {
+    let background: Background
+    /// The page's size, in page units.
+    let size: CGSize
+    /// How far this view reaches past the trim on every side.
+    var reach: Double = 0
+    /// How far past the trim a photo is laid: the design's bleed.
+    var cover: Double = 0
+
+    var body: some View {
+        fill.frame(width: Double(size.width) + 2 * reach, height: Double(size.height) + 2 * reach)
+    }
+
     @ViewBuilder
-    private func backgroundView(_ size: CGSize) -> some View {
-        switch page.background {
+    private var fill: some View {
+        switch background {
         case .color(let hex):
             Color(hex: hex)
         case .gradient(let paint):
-            paint.fillView()
+            gradient(paint)
         case .image(let src):
-            if let ui = PhotoLibrary.resolve(src) {
-                Image(uiImage: ui)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: size.width, height: size.height)
-                    .clipped()
-            } else {
+            ZStack {
                 Color.white
+                if let ui = PhotoLibrary.resolve(src) {
+                    Image(uiImage: ui)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: Double(size.width) + 2 * cover, height: Double(size.height) + 2 * cover)
+                }
             }
         }
+    }
+
+    /// A gradient laid over the page in the middle of this view, as
+    /// Android's shader clamps it past the page: a linear one along the
+    /// page's own line, its end colours on through the band; a radial one
+    /// round the page's ellipse, its outer colour beyond; an angular one
+    /// sweeping on round the page's centre.
+    @ViewBuilder
+    private func gradient(_ paint: Paint) -> some View {
+        if reach <= 0 || paint.kind != "gradient" || paint.stops == nil || paint.gradientKind == "angular" {
+            paint.fillView()
+        } else if paint.gradientKind == "radial" {
+            ZStack {
+                Color(hex: paint.stops?.max(by: { $0.offset < $1.offset })?.color ?? "#000000")
+                paint.fillView()
+                    .frame(width: size.width, height: size.height)
+            }
+        } else {
+            let line = paint.unitPoints
+            Rectangle().fill(LinearGradient(stops: paint.swiftUIStops,
+                                            startPoint: onPage(line.start), endPoint: onPage(line.end)))
+        }
+    }
+
+    /// A point in the page's unit square as one in this bigger view's.
+    private func onPage(_ point: UnitPoint) -> UnitPoint {
+        let w = Double(size.width), h = Double(size.height)
+        return UnitPoint(x: (reach + Double(point.x) * w) / (w + 2 * reach),
+                         y: (reach + Double(point.y) * h) / (h + 2 * reach))
     }
 }

@@ -483,12 +483,13 @@ struct PageBackgroundView: View {
 
     var body: some View {
         Group {
-            if case .image(let src) = page.background, let ui = PhotoLibrary.resolve(src) {
-                Image(uiImage: ui).resizable().aspectRatio(contentMode: .fill)
-            } else if case .gradient(let paint) = page.background {
-                paint.fillView()
-            } else {
+            if case .color = page.background {
                 Color.white
+            } else {
+                // A photo laid over the design's bleed too, so the trim
+                // shows the crop the canvas and the PDFs show.
+                PageBackgroundFill(background: page.background, size: design.size(for: page),
+                                   cover: Bleed.of(design))
             }
         }
         .frame(width: design.size(for: page).width, height: design.size(for: page).height)

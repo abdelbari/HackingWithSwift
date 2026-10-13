@@ -35,14 +35,15 @@ final class RulersTests: XCTestCase {
         XCTAssertTrue(Guides.rulerTicks(from: 0, to: 10, step: 0).isEmpty)
     }
 
-    func testALabelledTickIsWrittenWholeOrToTheStepsPlaces() {
+    func testALabelledTickIsWrittenToTheStepsPlacesWithoutTrailingZeros() {
         XCTAssertEqual(Guides.rulerLabel(100, step: 50), "100")
         XCTAssertEqual(Guides.rulerLabel(-50, step: 50), "-50")
         XCTAssertEqual(Guides.rulerLabel(-0.0, step: 1), "0")
         XCTAssertEqual(Guides.rulerLabel(1.5, step: 0.5), "1.5")
         XCTAssertEqual(Guides.rulerLabel(0.2 * 1, step: 0.2), "0.2")
         XCTAssertEqual(Guides.rulerLabel(0.05, step: 0.05), "0.05")
-        XCTAssertEqual(Guides.rulerLabel(-0.0000001, step: 0.5), "0.0")
+        XCTAssertEqual(Guides.rulerLabel(1, step: 0.5), "1")
+        XCTAssertEqual(Guides.rulerLabel(-0.0000001, step: 0.5), "0")
     }
 
     /// Rulers count in the design's unit: pixels one to one, paper at its
@@ -81,6 +82,8 @@ final class RulersTests: XCTestCase {
         XCTAssertEqual(Guides.rulerGuidePosition(120, lines: [130], threshold: 6, unitPixels: 1, limit: 1000), 120)
         XCTAssertEqual(Guides.rulerGuidePosition(-40, lines: [], threshold: 6, unitPixels: 1, limit: 1000), 0)
         XCTAssertEqual(Guides.rulerGuidePosition(1200, lines: [], threshold: 6, unitPixels: 1, limit: 1000), 1000)
+        XCTAssertEqual(Guides.rulerGuidePosition(124.5, lines: [], threshold: 6, unitPixels: 1, limit: 1000), 125,
+                       "halves go up")
     }
 
     /// Pulled out and let go, a guide is one step through addGuide; dragged
