@@ -3,8 +3,10 @@
 // Not a new element kind: a bar chart is rectangles and labels, a pie is
 // path shapes, a table is cells and text — all things the editor already
 // moves, recolours, exports and reads aloud. The data comes in as lines of
-// "Label, value"; the result is a group that behaves like anything else on
-// the page.
+// "Label, value" — or a header row and a value per series; the result is a
+// group that behaves like anything else on the page. A chart's elements each
+// carry the chart they make up (Element.chart), so it can be drawn again
+// from its data with Edit chart.
 
 import Foundation
 
@@ -15,31 +17,111 @@ enum DataGraphics {
         var value: Double
     }
 
-    /// "Label, value" per line; a line with no number is skipped, a line with
-    /// only a number gets a numbered label.
-    static func parse(_ text: String) -> [Series] {
-        text.components(separatedBy: .newlines).enumerated().compactMap { n, line in
-            let parts = line.split(separator: ",", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
-            guard let last = parts.last else { return nil }
-            let numeric = last.replacingOccurrences(of: "%", with: "")
-            guard let value = Double(numeric), value.isFinite else { return nil }
-            let label = parts.count > 1 && !parts[0].isEmpty ? parts[0] : "Item \(n + 1)"
-            return Series(label: label, value: max(0, value))
+    /// Chart data as typed: a row per item, a value per series in each.
+    struct ChartData: Equatable {
+        /// One per series: the header's names, "Series <n>" for any it lacks.
+        var names: [String]
+        var rows: [Row]
+
+        struct Row: Equatable {
+            var label: String
+            var values: [Double]
         }
     }
 
+    /// The first series of `parseChart`, item by item: "Label, value" per
+    /// line; a line with no number is skipped, a line with only a number
+    /// gets a numbered label.
+    static func parse(_ text: String) -> [Series] {
+        parseChart(text).rows.map { Series(label: $0.label, value: $0.values.first ?? 0) }
+    }
+
+    /// Chart data from typed lines, by the same rules as the Android twin's
+    /// (the test vectors are shared):
+    /// - cells are split at commas and trimmed; blank lines are skipped, and
+    ///   empty cells at the end of a line — a trailing comma — are dropped;
+    /// - the first line that is not blank is a header when it has cells after
+    ///   the first and none of them is a number: "Quarter, North, South"
+    ///   names two series;
+    /// - every other line is a row: its first cell the label ("Item <line>"
+    ///   when empty, or when the line is a lone number), the rest its values;
+    /// - a value cell that is not a number reads as 0, and a line with no
+    ///   number at all is skipped; a "%" is ignored and below zero reads 0;
+    /// - every row has a value for every series, 0 where it has none.
+    static func parseChart(_ text: String) -> ChartData {
+        var header: [String] = []
+        var rows: [ChartData.Row] = []
+        var first = true
+        for (n, line) in text.components(separatedBy: .newlines).enumerated() {
+            var cells = line.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+            while cells.count > 1, cells.last?.isEmpty == true { cells.removeLast() }
+            guard cells.contains(where: { !$0.isEmpty }) else { continue }
+            defer { first = false }
+            if first, cells.count > 1, !cells.dropFirst().contains(where: { number($0) != nil }) {
+                header = Array(cells.dropFirst())
+                continue
+            }
+            let numbers = (cells.count > 1 ? Array(cells.dropFirst()) : cells).map(number)
+            guard numbers.contains(where: { $0 != nil }) else { continue }
+            let label = cells.count > 1 && !cells[0].isEmpty ? cells[0] : "Item \(n + 1)"
+            rows.append(ChartData.Row(label: label, values: numbers.map { max(0, $0 ?? 0) }))
+        }
+        let count = max(header.count, rows.map(\.values.count).max() ?? 0)
+        let names = (0..<count).map { s in
+            s < header.count && !header[s].isEmpty ? header[s] : "Series \(s + 1)"
+        }
+        for i in rows.indices where rows[i].values.count < count {
+            rows[i].values += Array(repeating: 0, count: count - rows[i].values.count)
+        }
+        return ChartData(names: names, rows: rows)
+    }
+
+    /// A cell as a number: "65%" is 65; words, blanks and infinities are none.
+    private static func number(_ cell: String) -> Double? {
+        guard let value = Double(cell.replacingOccurrences(of: "%", with: "")), value.isFinite else { return nil }
+        return value
+    }
+
+    /// What the chart typed so far comes to, under the box it is typed in.
+    static func chartSummary(_ data: ChartData) -> String {
+        let n = data.rows.count
+        guard n > 0 else { return "No numbers found yet." }
+        let palette = " — coloured from the document's palette."
+        if data.names.count > 1 {
+            return (n == 1 ? "1 row" : "\(n) rows") + " × \(data.names.count) series" + palette
+        }
+        return (n == 1 ? "1 value" : "\(n) values") + palette
+    }
+
+    /// Raw values are the `kind` written in a chart's JSON.
     enum ChartKind: String, CaseIterable, Identifiable {
-        case bar, column, pie, donut, line
+        case column, bar, line, pie, donut, stackedColumn, stackedBar, area, progressRing, progressBar
         var id: String { rawValue }
         var name: String {
             switch self {
-            case .bar: return "Bars"
-            case .column: return "Columns"
+            case .column: return "Column"
+            case .bar: return "Bar"
+            case .line: return "Line"
             case .pie: return "Pie"
             case .donut: return "Donut"
-            case .line: return "Line"
+            case .stackedColumn: return "Stacked column"
+            case .stackedBar: return "Stacked bar"
+            case .area: return "Area"
+            case .progressRing: return "Progress ring"
+            case .progressBar: return "Progress bar"
             }
         }
+
+        /// Drawn against a scale, so gridlines have something to mark.
+        var hasScale: Bool {
+            switch self {
+            case .column, .bar, .line, .stackedColumn, .stackedBar, .area: return true
+            case .pie, .donut, .progressRing, .progressBar: return false
+            }
+        }
+
+        /// One value read as a percentage, written in the chart itself.
+        var isProgress: Bool { self == .progressRing || self == .progressBar }
     }
 
     /// The colours a chart or a table is drawn in: the design's own, counted
@@ -120,18 +202,68 @@ enum DataGraphics {
         return String(format: "#%02x%02x%02x", c.r, c.g, c.b)
     }
 
-    /// Chart elements filling `frame`, grouped, coloured from `palette` in
-    /// turn, labelled in `ink`.
+    /// The chart `spec` describes, filling `frame`, each element carrying the
+    /// spec so Edit chart can find them all and draw them again. A kind this
+    /// build does not know is drawn as columns. `colours` are the series
+    /// colours of the chart drawn before, by series number, which win over
+    /// the palette's.
+    static func chart(_ spec: ChartSpec, in frame: CGRect, palette: [String],
+                      ink: String = "#1f2430", colours: [Int: Paint] = [:]) -> [Element] {
+        let kind = ChartKind(rawValue: spec.kind) ?? .column
+        return chart(kind, data: parseChart(spec.data), in: frame, palette: palette, ink: ink,
+                     legend: spec.legend, values: spec.values, gridlines: spec.gridlines, colours: colours)
+            .map { var e = $0; e.chart = spec; return e }
+    }
+
+    /// One series, item by item, as a chart.
     static func chart(_ kind: ChartKind, series: [Series], in frame: CGRect,
                       palette: [String], ink: String = "#1f2430") -> [Element] {
-        guard !series.isEmpty, frame.width > 0, frame.height > 0 else { return [] }
+        let rows = series.map { ChartData.Row(label: $0.label, values: [$0.value]) }
+        return chart(kind, data: ChartData(names: ["Series 1"], rows: rows), in: frame, palette: palette, ink: ink)
+    }
+
+    /// Chart elements filling `frame`, grouped, coloured from `palette` in
+    /// turn, labelled in `ink`, by the same maths as the Android twin's (the
+    /// test vectors are shared). One colour per series; a single series, and a
+    /// pie's slices, one per item, as charts here always were. The colour
+    /// number is each mark's part, "series:<n>". Pies and progress kinds
+    /// read the first series; progress kinds only its first value, as a
+    /// percentage clamped to 0...100.
+    ///
+    /// The switches: a legend is a band along the top, a swatch and a name
+    /// per colour; values are each number beside its mark (inside a stack's
+    /// or a slice's); gridlines are five hairlines at 0, 25, 50, 75 and 100%
+    /// of the scale, behind the marks, for the kinds that have one. A
+    /// progress kind writes its own value, so takes only the legend.
+    static func chart(_ kind: ChartKind, data: ChartData, in frame: CGRect, palette: [String],
+                      ink: String = "#1f2430", legend: Bool = false, values: Bool = false,
+                      gridlines: Bool = false, colours: [Int: Paint] = [:]) -> [Element] {
+        let rows = data.rows
+        guard !rows.isEmpty, frame.width > 0, frame.height > 0 else { return [] }
         let colors = palette.isEmpty ? ["#5a31f4"] : palette
         let group = UID.make("grp")
-        var out: [Element] = []
-        let labelSize = max(10, (min(frame.width, frame.height) * 0.06).rounded())
-        let total = series.reduce(0) { $0 + $1.value }
-        let peak = series.map(\.value).max() ?? 1
+        let count = max(1, data.names.count)
+        // A progress bar is a band, so its type follows the width alone: drawn
+        // again into the band it left, it comes out the same size.
+        let labelSize = kind == .progressBar
+            ? max(10, (frame.width * 0.045).rounded())
+            : max(10, (min(frame.width, frame.height) * 0.06).rounded())
+        let byItem = kind == .pie || kind == .donut || (count == 1 && kind != .line && kind != .area)
+        let showValues = values && !kind.isProgress
+        let showGrid = gridlines && kind.hasScale
+        let faint = ink + "22"
+        // Behind to front: gridlines, marks, item labels, values, the legend.
+        var grid: [Element] = [], marks: [Element] = [], labels: [Element] = []
+        var numbers: [Element] = [], key: [Element] = []
 
+        func paint(_ n: Int) -> Paint { colours[n] ?? .solid(colors[n % colors.count]) }
+        func hex(_ n: Int) -> String { colours[n]?.primaryColor ?? colors[n % colors.count] }
+        func value(_ row: ChartData.Row, _ s: Int) -> Double { s < row.values.count ? row.values[s] : 0 }
+        func part(_ el: Element, _ name: String) -> Element {
+            var e = el
+            e.chartPart = name
+            return e
+        }
         func label(_ text: String, x: Double, y: Double, w: Double, align: String = "center") -> Element {
             var t = Element.text(text, fontSize: labelSize, w: max(w, labelSize * 2))
             t.align = align
@@ -140,73 +272,266 @@ enum DataGraphics {
             t.h = FontLibrary.layoutHeight(for: t)
             return t
         }
+        /// A hairline, `w` by `h`, at `x`, `y`.
+        func hairline(x: Double, y: Double, w: Double, h: Double) -> Element {
+            var g = Element.shape("rect", w: w.rounded(), h: h.rounded())
+            g.x = x.rounded(); g.y = y.rounded()
+            g.fill = .solid(faint)
+            return part(g, "grid")
+        }
+        let fractions: [Double] = [0, 0.25, 0.5, 0.75, 1]
+        // Each item's stack, for the stacked kinds' scale.
+        let totals = rows.map { $0.values.reduce(0, +) }
+
+        var area = frame
+        if legend {
+            var entries: [(name: String, n: Int)] = []
+            if kind.isProgress {
+                entries = [(name: rows[0].label, n: 0)]
+            } else if byItem {
+                for (i, row) in rows.enumerated() { entries.append((name: row.label, n: i)) }
+            } else {
+                for s in 0..<count { entries.append((name: s < data.names.count ? data.names[s] : "Series \(s + 1)", n: s)) }
+            }
+            let band = labelSize * 1.6
+            let slot = frame.width / Double(max(1, entries.count))
+            let swatch = (labelSize * 0.8).rounded()
+            for (k, entry) in entries.enumerated() {
+                let left = frame.minX + slot * Double(k)
+                var sw = Element.shape("rect", w: swatch, h: swatch)
+                sw.x = left.rounded()
+                sw.y = (frame.minY + (band - swatch) / 2).rounded()
+                sw.fill = paint(entry.n)
+                key.append(part(sw, "legend"))
+                key.append(part(label(entry.name, x: left + swatch * 1.4, y: frame.minY + (band - labelSize * 1.25) / 2,
+                                      w: slot - swatch * 1.4, align: "left"), "legend"))
+            }
+            area = CGRect(x: frame.minX, y: frame.minY + band, width: frame.width, height: max(1, frame.height - band))
+        }
 
         switch kind {
-        case .column:
+        case .column, .stackedColumn:
+            let stacked = kind == .stackedColumn
             let labelH = labelSize * 1.6
-            let plotH = frame.height - labelH
-            let slot = frame.width / Double(series.count)
-            let barW = slot * 0.64
-            for (i, s) in series.enumerated() {
-                let h = peak > 0 ? plotH * s.value / peak : 0
-                var bar = Element.shape("rect", w: barW.rounded(), h: max(1, h.rounded()))
-                bar.x = (frame.minX + slot * Double(i) + (slot - barW) / 2).rounded()
-                bar.y = (frame.minY + plotH - h).rounded()
-                bar.fill = .solid(colors[i % colors.count])
-                out.append(bar)
-                out.append(label(s.label, x: frame.minX + slot * Double(i), y: frame.minY + plotH + labelSize * 0.3, w: slot))
+            // Room above the tallest column for its number; a stack's sit inside it.
+            let valueH = showValues && !stacked ? labelSize * 1.4 : 0
+            let plotTop = area.minY + valueH
+            let plotH = max(1, area.height - labelH - valueH)
+            let plotBottom = plotTop + plotH
+            if showGrid {
+                for f in fractions { grid.append(hairline(x: area.minX, y: plotBottom - plotH * f, w: area.width, h: 1)) }
             }
-        case .bar:
-            let labelW = min(frame.width * 0.28, labelSize * 9)
-            let plotW = frame.width - labelW
-            let slot = frame.height / Double(series.count)
-            let barH = slot * 0.64
-            for (i, s) in series.enumerated() {
-                let w = peak > 0 ? plotW * s.value / peak : 0
-                var bar = Element.shape("rect", w: max(1, w.rounded()), h: barH.rounded())
-                bar.x = (frame.minX + labelW).rounded()
-                bar.y = (frame.minY + slot * Double(i) + (slot - barH) / 2).rounded()
-                bar.fill = .solid(colors[i % colors.count])
-                out.append(bar)
-                var l = label(s.label, x: frame.minX, y: bar.y + (barH - labelSize * 1.25) / 2, w: labelW - labelSize * 0.5, align: "right")
-                l.x = frame.minX
-                out.append(l)
+            let slot = area.width / Double(rows.count)
+            let groupW = slot * 0.64
+            let barW = stacked ? groupW : groupW / Double(count)
+            let peak = (stacked ? totals : rows.flatMap(\.values)).max() ?? 0
+            for (i, row) in rows.enumerated() {
+                let left = area.minX + slot * Double(i) + (slot - groupW) / 2
+                var base = 0.0
+                for s in 0..<count {
+                    let v = value(row, s)
+                    let n = byItem ? i : s
+                    var bar: Element
+                    if stacked {
+                        guard v > 0, peak > 0 else { continue }
+                        let top = (plotBottom - plotH * (base + v) / peak).rounded()
+                        let bottom = (plotBottom - plotH * base / peak).rounded()
+                        base += v
+                        bar = Element.shape("rect", w: barW.rounded(), h: max(1, bottom - top))
+                        bar.x = left.rounded(); bar.y = top
+                    } else {
+                        let h = peak > 0 ? plotH * v / peak : 0
+                        bar = Element.shape("rect", w: barW.rounded(), h: max(1, h.rounded()))
+                        bar.x = (left + barW * Double(s)).rounded()
+                        bar.y = (plotBottom - h).rounded()
+                    }
+                    bar.fill = paint(n)
+                    marks.append(part(bar, "series:\(n)"))
+                    if showValues {
+                        let w = max(bar.w, labelSize * 3)
+                        var t = label(num(v), x: bar.x + bar.w / 2 - w / 2,
+                                      y: stacked ? bar.y + (bar.h - labelSize * 1.25) / 2 : bar.y - labelSize * 1.35, w: w)
+                        if stacked { t.color = ColorTheory.readableInk(on: hex(n)) }
+                        numbers.append(part(t, "value"))
+                    }
+                }
+                labels.append(part(label(row.label, x: area.minX + slot * Double(i), y: plotBottom + labelSize * 0.3, w: slot), "label"))
+            }
+        case .bar, .stackedBar:
+            let stacked = kind == .stackedBar
+            let labelW = min(area.width * 0.28, labelSize * 9)
+            let valueW = showValues && !stacked ? labelSize * 3.5 : 0
+            let plotLeft = area.minX + labelW
+            let plotW = max(1, area.width - labelW - valueW)
+            if showGrid {
+                for f in fractions { grid.append(hairline(x: plotLeft + plotW * f, y: area.minY, w: 1, h: area.height)) }
+            }
+            let slot = area.height / Double(rows.count)
+            let groupH = slot * 0.64
+            let barH = stacked ? groupH : groupH / Double(count)
+            let peak = (stacked ? totals : rows.flatMap(\.values)).max() ?? 0
+            for (i, row) in rows.enumerated() {
+                let top = (area.minY + slot * Double(i) + (slot - groupH) / 2).rounded()
+                var base = 0.0
+                for s in 0..<count {
+                    let v = value(row, s)
+                    let n = byItem ? i : s
+                    var bar: Element
+                    if stacked {
+                        guard v > 0, peak > 0 else { continue }
+                        let start = (plotLeft + plotW * base / peak).rounded()
+                        let end = (plotLeft + plotW * (base + v) / peak).rounded()
+                        base += v
+                        bar = Element.shape("rect", w: max(1, end - start), h: barH.rounded())
+                        bar.x = start; bar.y = top
+                    } else {
+                        let w = peak > 0 ? plotW * v / peak : 0
+                        bar = Element.shape("rect", w: max(1, w.rounded()), h: barH.rounded())
+                        bar.x = plotLeft.rounded()
+                        bar.y = (top + barH * Double(s)).rounded()
+                    }
+                    bar.fill = paint(n)
+                    marks.append(part(bar, "series:\(n)"))
+                    if showValues {
+                        let y = bar.y + (bar.h - labelSize * 1.25) / 2
+                        if stacked {
+                            let w = max(bar.w, labelSize * 2)
+                            var t = label(num(v), x: bar.x + bar.w / 2 - w / 2, y: y, w: w)
+                            t.color = ColorTheory.readableInk(on: hex(n))
+                            numbers.append(part(t, "value"))
+                        } else {
+                            numbers.append(part(label(num(v), x: bar.x + bar.w + labelSize * 0.3, y: y,
+                                                      w: valueW - labelSize * 0.3, align: "left"), "value"))
+                        }
+                    }
+                }
+                labels.append(part(label(row.label, x: area.minX, y: top + (groupH - labelSize * 1.25) / 2,
+                                         w: labelW - labelSize * 0.5, align: "right"), "label"))
+            }
+        case .line, .area:
+            let labelH = labelSize * 1.6
+            let valueH = showValues ? labelSize * 1.4 : 0
+            let plotTop = area.minY + valueH
+            let plotH = max(1, area.height - labelH - valueH)
+            if showGrid {
+                for f in fractions { grid.append(hairline(x: area.minX, y: plotTop + plotH * (1 - f), w: area.width, h: 1)) }
+            }
+            // Each point over the middle of its label's slot, so the first and
+            // last labels stay inside the frame and the chart, drawn again
+            // into the frame it left, comes out the same.
+            let slot = area.width / Double(rows.count)
+            let inset = rows.count > 1 ? slot / 2 : 0
+            let plotLeft = area.minX + inset
+            let plotW = max(1, area.width - 2 * inset)
+            let n = max(rows.count - 1, 1)
+            let peak = rows.flatMap(\.values).max() ?? 0
+            for s in 0..<count {
+                let points = rows.enumerated().map { i, row in
+                    CGPoint(x: Double(i) / Double(n) * 100, y: 100 - (peak > 0 ? value(row, s) / peak * 100 : 0))
+                }
+                var mark = Element.shape("rect", w: plotW.rounded(), h: plotH.rounded())
+                mark.x = plotLeft.rounded(); mark.y = plotTop.rounded()
+                if kind == .area {
+                    let ends = [CGPoint(x: points.first?.x ?? 0, y: 100), CGPoint(x: points.last?.x ?? 100, y: 100)]
+                    mark.pathData = polyline([ends[0]] + points + [ends[1]]) + " Z"
+                    mark.fill = paint(s)
+                    // Several areas overlap: each lets the ones behind show.
+                    if count > 1 { mark.opacity = 0.75 }
+                } else {
+                    mark.pathData = polyline(points)
+                    mark.fill = .solid("#00000000")
+                    mark.stroke = hex(s)
+                    mark.strokeWidth = max(2, (plotH * 0.02).rounded())
+                }
+                marks.append(part(mark, "series:\(s)"))
+                if showValues {
+                    for (i, row) in rows.enumerated() {
+                        let w = labelSize * 3
+                        let x = plotLeft + Double(i) / Double(n) * plotW
+                        let y = plotTop + plotH * (peak > 0 ? 1 - value(row, s) / peak : 1)
+                        numbers.append(part(label(num(value(row, s)), x: x - w / 2, y: y - labelSize * 1.4, w: w), "value"))
+                    }
+                }
+            }
+            for (i, row) in rows.enumerated() {
+                let x = plotLeft + Double(i) / Double(n) * plotW
+                labels.append(part(label(row.label, x: x - slot / 2, y: plotTop + plotH + labelSize * 0.3, w: slot), "label"))
             }
         case .pie, .donut:
-            let side = min(frame.width, frame.height)
-            let box = CGRect(x: frame.midX - side / 2, y: frame.midY - side / 2, width: side, height: side)
+            let total = rows.reduce(0.0) { $0 + value($1, 0) }
+            let side = min(area.width, area.height)
+            let box = CGRect(x: area.midX - side / 2, y: area.midY - side / 2, width: side, height: side)
+            let inner = kind == .donut ? 0.55 : 0
             var start = -Double.pi / 2
-            for (i, s) in series.enumerated() where total > 0 && s.value > 0 {
-                let sweep = 2 * .pi * s.value / total
+            for (i, row) in rows.enumerated() where total > 0 && value(row, 0) > 0 {
+                let v = value(row, 0)
+                let sweep = 2 * .pi * v / total
                 var slice = Element.shape("rect", w: side.rounded(), h: side.rounded())
                 slice.x = box.minX.rounded(); slice.y = box.minY.rounded()
-                slice.pathData = wedge(from: start, sweep: sweep, inner: kind == .donut ? 0.55 : 0)
-                slice.fill = .solid(colors[i % colors.count])
-                slice.altText = "\(s.label): \(Int((s.value / total * 100).rounded()))%"
-                out.append(slice)
+                slice.pathData = wedge(from: start, sweep: sweep, inner: inner)
+                slice.fill = paint(i)
+                slice.altText = "\(row.label): \(Int((v / total * 100).rounded()))%"
+                marks.append(part(slice, "series:\(i)"))
+                if showValues {
+                    let middle = start + sweep / 2
+                    let reach = side / 2 * (inner > 0 ? (1 + inner) / 2 : 0.62)
+                    let w = labelSize * 3
+                    var t = label(num(v), x: box.midX + reach * cos(middle) - w / 2,
+                                  y: box.midY + reach * sin(middle) - labelSize * 0.625, w: w)
+                    t.color = ColorTheory.readableInk(on: hex(i))
+                    numbers.append(part(t, "value"))
+                }
                 start += sweep
             }
-        case .line:
-            let labelH = labelSize * 1.6
-            let plotH = frame.height - labelH
-            let n = max(series.count - 1, 1)
-            let points = series.enumerated().map { i, s in
-                CGPoint(x: Double(i) / Double(n) * 100, y: 100 - (peak > 0 ? s.value / peak * 100 : 0))
-            }
-            var line = Element.shape("rect", w: frame.width.rounded(), h: plotH.rounded())
-            line.x = frame.minX.rounded(); line.y = frame.minY.rounded()
-            line.pathData = polyline(points)
-            line.fill = .solid("#00000000")
-            line.stroke = colors[0]
-            line.strokeWidth = max(2, (plotH * 0.02).rounded())
-            out.append(line)
-            let slot = frame.width / Double(series.count)
-            for (i, s) in series.enumerated() {
-                out.append(label(s.label, x: frame.minX + Double(i) / Double(n) * frame.width - slot / 2,
-                                 y: frame.minY + plotH + labelSize * 0.3, w: slot))
+        case .progressRing, .progressBar:
+            let percent = min(100, max(0, value(rows[0], 0)))
+            let words = "\(Int(percent.rounded()))%"
+            if kind == .progressRing {
+                let side = min(area.width, area.height)
+                let box = CGRect(x: area.midX - side / 2, y: area.midY - side / 2, width: side, height: side)
+                var track = Element.shape("rect", w: side.rounded(), h: side.rounded())
+                track.x = box.minX.rounded(); track.y = box.minY.rounded()
+                track.pathData = wedge(from: -Double.pi / 2, sweep: 2 * .pi, inner: 0.75)
+                track.fill = .solid(faint)
+                marks.append(part(track, "axis"))
+                if percent > 0 {
+                    var done = Element.shape("rect", w: side.rounded(), h: side.rounded())
+                    done.x = track.x; done.y = track.y
+                    done.pathData = wedge(from: -Double.pi / 2, sweep: 2 * .pi * percent / 100, inner: 0.75)
+                    done.fill = paint(0)
+                    marks.append(part(done, "series:0"))
+                }
+                var t = Element.text(words, fontSize: max(10, (side * 0.2).rounded()), w: (side * 0.7).rounded())
+                t.color = ink
+                t.fontWeight = 700
+                t.h = FontLibrary.layoutHeight(for: t)
+                t.x = (box.midX - t.w / 2).rounded(); t.y = (box.midY - t.h / 2).rounded()
+                numbers.append(part(t, "value"))
+            } else {
+                let barH = min(area.height, labelSize * 1.6)
+                let textW = labelSize * 3.5
+                let trackW = max(1, area.width - textW)
+                let top = (area.midY - barH / 2).rounded()
+                var track = Element.shape("rect", w: trackW.rounded(), h: barH.rounded())
+                track.x = area.minX.rounded(); track.y = top
+                track.radius = (barH / 2).rounded()
+                track.fill = .solid(faint)
+                marks.append(part(track, "axis"))
+                if percent > 0 {
+                    var done = Element.shape("rect", w: max(1, (trackW * percent / 100).rounded()), h: barH.rounded())
+                    done.x = track.x; done.y = top
+                    done.radius = track.radius
+                    done.fill = paint(0)
+                    marks.append(part(done, "series:0"))
+                }
+                var t = label(words, x: area.minX + trackW + labelSize * 0.4, y: area.midY - labelSize * 0.625,
+                              w: textW - labelSize * 0.4, align: "left")
+                t.fontWeight = 700
+                t.h = FontLibrary.layoutHeight(for: t)
+                numbers.append(part(t, "value"))
             }
         }
-        return out.map { var e = $0; e.group = group; return e }
+        return (grid + marks + labels + numbers + key).map { var e = $0; e.group = group; return e }
     }
 
     /// A slice of a circle in a 0…100 box, from `start` radians (clockwise
