@@ -15,11 +15,15 @@
 // come from ImageIO (CGImageSource), which composes each GIF or WebP frame
 // over the last as the file says.
 //
-// A frame decodes in a few milliseconds and is kept once decoded, so the
-// picture is drawn there and then wherever it is asked for, live or not.
+// A frame waited for — an export, a still, a thumbnail — is decoded there
+// and then at the picture's own size and kept. On screen while it plays —
+// Play in the editor, Present — nothing waits (`peek`): frames are decoded
+// small on a worker and the nearest one there is shows meanwhile, as on the
+// Android twin.
 
 import Foundation
 import ImageIO
+import Observation
 import UIKit
 
 enum AnimStore {
@@ -226,6 +230,11 @@ enum AnimStore {
         sources.removeValue(forKey: id)
         timings.removeValue(forKey: id)
         lock.unlock()
+        liveLock.lock()
+        liveTimings.removeValue(forKey: id)
+        liveDecoded.removeValue(forKey: id)
+        liveLock.unlock()
+        worker.async { AnimStore.liveSources.removeValue(forKey: id) }
     }
 
     static func all() -> [String] {
@@ -328,5 +337,180 @@ enum AnimStore {
         guard let parts = split(src), let index = frameIndex(src) else { return src }
         guard index > 0 else { return Self.src(parts.id, at: nil) }
         return Self.src(parts.id, at: start(of: index, delays: delays(of: parts.id)))
+    }
+
+    // MARK: playing live
+
+    /// Moves on each time a frame asked for by `peek` is ready, so the views
+    /// drawing animated pictures live — which read it — draw again.
+    @Observable
+    final class LiveFrames {
+        fileprivate(set) var version = 0
+    }
+
+    static let live = LiveFrames()
+
+    /// The longest side of a frame decoded to play on screen, as on the
+    /// Android twin: more of a large picture's loop stays kept.
+    static let screenEdge = 720
+
+    /// Each picture's delays as the worker has read them; empty for one
+    /// that cannot be read.
+    private static var liveTimings: [String: [Int]] = [:]
+    /// The frames of each picture decoded small, for one still decoding to
+    /// show the nearest meanwhile.
+    private static var liveDecoded: [String: Set<Int>] = [:]
+    /// A moment asked for: the stamped time, or nil for the first frame.
+    private struct Want { var time: Double? }
+    /// The latest moment asked for of each picture.
+    private static var wanted: [String: Want] = [:]
+    /// The pictures with a decode waiting on the worker.
+    private static var queued = Set<String>()
+    /// Guards the four above; never held across a decode, so the main
+    /// thread never waits on one.
+    private static let liveLock = NSLock()
+    /// Each picture's file as the worker reads it; touched only there.
+    private static var liveSources: [String: CGImageSource] = [:]
+    private static let worker = DispatchQueue(label: "canvia.anim-frames", qos: .userInitiated)
+
+    private static func liveKey(_ id: String, _ index: Int) -> NSString {
+        "\(id)#live#\(index)" as NSString
+    }
+
+    /// The key a small frame's looks are kept by: its frame's start, apart
+    /// from the full-size frame's, which an export draws.
+    private static func liveShownKey(_ id: String, _ index: Int, _ delays: [Int]) -> String {
+        src(id, at: start(of: index, delays: delays)) + "|screen"
+    }
+
+    /// What an "anim:" source shows on screen, without waiting: its frame
+    /// if it has been decoded small, else the nearest one that has, else
+    /// the first frame as already kept, while the frame is decoded on a
+    /// worker. Only the latest moment asked for is decoded, so a picture
+    /// that plays faster than its frames decode skips rather than falls
+    /// behind. Nil until it has anything to show.
+    static func peek(_ source: String) -> (image: UIImage, key: String)? {
+        guard let parts = split(source) else { return nil }
+        let id = parts.id
+        liveLock.lock()
+        let delays = liveTimings[id]
+        liveLock.unlock()
+        // Until its delays are read a playing picture cannot say which frame
+        // it is at, so it asks the worker rather than take one for the answer.
+        var index = 0
+        if let delays {
+            index = parts.time.map { frame(at: $0, delays: delays) } ?? 0
+            if let hit = frames.object(forKey: liveKey(id, index)) {
+                liveLock.lock()
+                // Nothing older is worth decoding now.
+                wanted.removeValue(forKey: id)
+                liveLock.unlock()
+                return (hit, liveShownKey(id, index, delays))
+            }
+        }
+        ask(id, Want(time: parts.time))
+        if let delays, let near = nearest(id, to: index) {
+            return (near.image, liveShownKey(id, near.index, delays))
+        }
+        if let poster = frames.object(forKey: "\(id)#0" as NSString) { return (poster, src(id, at: nil)) }
+        return nil
+    }
+
+    /// The small frame of picture `id` nearest before `index`, else after;
+    /// frames the cache has let go are forgotten on the way.
+    private static func nearest(_ id: String, to index: Int) -> (image: UIImage, index: Int)? {
+        liveLock.lock()
+        let known = liveDecoded[id] ?? []
+        liveLock.unlock()
+        let order = known.filter { $0 <= index }.sorted(by: >) + known.filter { $0 > index }.sorted()
+        var gone = Set<Int>()
+        var found: (image: UIImage, index: Int)?
+        for i in order {
+            if let image = frames.object(forKey: liveKey(id, i)) {
+                found = (image, i)
+                break
+            }
+            gone.insert(i)
+        }
+        if !gone.isEmpty {
+            liveLock.lock()
+            liveDecoded[id]?.subtract(gone)
+            liveLock.unlock()
+        }
+        return found
+    }
+
+    /// Records the moment wanted of picture `id`, and queues it on the
+    /// worker unless it is already waiting there.
+    private static func ask(_ id: String, _ want: Want) {
+        liveLock.lock()
+        wanted[id] = want
+        let start = queued.insert(id).inserted
+        liveLock.unlock()
+        if start { worker.async { AnimStore.decodeNext(id) } }
+    }
+
+    /// One frame of picture `id` — the latest moment asked for — on the
+    /// worker, its delays read first if they have not been; then its turn
+    /// passes on, so pictures on a page take turns.
+    private static func decodeNext(_ id: String) {
+        liveLock.lock()
+        let want = wanted.removeValue(forKey: id)
+        var delays = liveTimings[id]
+        liveLock.unlock()
+        var landed = false
+        if let want {
+            if delays == nil {
+                let read = readDelays(id)
+                liveLock.lock()
+                liveTimings[id] = read
+                liveLock.unlock()
+                delays = read
+                landed = true
+            }
+            let index = want.time.map { frame(at: $0, delays: delays ?? []) } ?? 0
+            if decodeSmall(id, index) { landed = true }
+        }
+        liveLock.lock()
+        let more = wanted[id] != nil
+        if !more { queued.remove(id) }
+        liveLock.unlock()
+        if more { worker.async { AnimStore.decodeNext(id) } }
+        if landed { DispatchQueue.main.async { AnimStore.live.version &+= 1 } }
+    }
+
+    /// Picture `id`'s file as the worker reads it, opened once; on the
+    /// worker only.
+    private static func liveSource(_ id: String) -> CGImageSource? {
+        if let open = liveSources[id] { return open }
+        guard let url = url(for: id), let made = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        liveSources[id] = made
+        return made
+    }
+
+    /// Each frame's delay as the file gives it; on the worker only.
+    private static func readDelays(_ id: String) -> [Int] {
+        guard let source = liveSource(id) else { return [] }
+        return (0..<CGImageSourceGetCount(source)).map { rawDelay(source, at: $0) }
+    }
+
+    /// Frame `index` of picture `id` decoded no larger than `screenEdge` and
+    /// kept, unless it is already; on the worker only.
+    private static func decodeSmall(_ id: String, _ index: Int) -> Bool {
+        let key = liveKey(id, index)
+        if frames.object(forKey: key) != nil { return true }
+        guard let source = liveSource(id), index >= 0, index < CGImageSourceGetCount(source) else { return false }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: screenEdge,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+        ]
+        guard let cg = CGImageSourceCreateThumbnailAtIndex(source, index, options as CFDictionary) else { return false }
+        frames.setObject(UIImage(cgImage: cg), forKey: key, cost: cg.bytesPerRow * cg.height)
+        liveLock.lock()
+        liveDecoded[id, default: []].insert(index)
+        liveLock.unlock()
+        return true
     }
 }

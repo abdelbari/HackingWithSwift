@@ -494,8 +494,10 @@ struct VoiceOverPanel: View {
     /// kept, it is said.
     private func finish() {
         guard recorder.isRecording else { return }
+        // Stopped first: the play's end calls back here, and finds it done.
+        let taken = recorder.stop()
         store.stopPreview()
-        guard let file = recorder.stop() else {
+        guard let file = taken else {
             store.announce("Nothing was recorded", undoable: false)
             onDone()
             return

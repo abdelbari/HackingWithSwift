@@ -1843,6 +1843,10 @@ final class DesignStore {
     /// Seconds into the current page while a preview plays; nil at rest.
     var previewTime: Double?
     private var previewTask: Task<Void, Never>?
+    /// What waits on a play through the film — a voice-over's take — to
+    /// end with it, however it ends: the film's end, another page brought
+    /// up, Play, or stopPreview, as the Android twin's take ends.
+    @ObservationIgnored private var previewEnded: (@MainActor () -> Void)?
     /// What is heard while the preview plays: the page's clips, and the
     /// audio tracks from where the page comes in the video.
     private let previewSound = PageSound(presenting: false)
@@ -1870,6 +1874,7 @@ final class DesignStore {
     /// previewTime directly. Its clips are heard, and the audio tracks from
     /// where the page comes in the video, for the page's hold.
     func playPreview(from offset: Double = 0) {
+        endThrough()
         previewTask?.cancel()
         let hold = pageHold
         let offset = min(max(offset, 0), hold)
@@ -1929,26 +1934,37 @@ final class DesignStore {
         previewTask = nil
         previewTime = nil
         previewSound.stop()
+        endThrough()
+    }
+
+    /// A play through the film over: what waited on it ends now, once.
+    private func endThrough() {
+        guard let ended = previewEnded else { return }
+        previewEnded = nil
+        MainActor.assumeIsolated { ended() }
     }
 
     /// The design played from the start of the page on screen to the end of
     /// the film, each shown page after it in turn, as Play plays one — in
     /// silence, as a voice-over is recorded over it and the microphone
-    /// would hear the speaker — then `onEnd`: at the film's end, or when
-    /// another page is brought up meanwhile. Not when stopPreview stops it.
+    /// would hear the speaker — then `onEnd`: at the film's end, when
+    /// another page is brought up meanwhile, or when it is stopped.
     func playThrough(onEnd: @escaping @MainActor () -> Void) {
         stopPreview()
-        let after = design.visiblePageIndices.filter { $0 >= pageIndex }
-        let order = after.isEmpty ? [pageIndex] : after
+        // Followed by id: an undo meanwhile may move or take away a page.
+        let ids = AudioMix.playedThrough(design: design, index: pageIndex)
+            .filter { design.pages.indices.contains($0) }
+            .map { design.pages[$0].id }
+        previewEnded = onEnd
         previewTask = Task { @MainActor in
-            for index in order {
-                guard design.pages.indices.contains(index) else { break }
+            for id in ids {
+                guard let index = design.pages.firstIndex(where: { $0.id == id }) else { break }
                 setPage(index)
                 guard await playOnce() else { break }
             }
             guard !Task.isCancelled else { return }
             previewTime = nil
-            onEnd()
+            endThrough()
         }
     }
 

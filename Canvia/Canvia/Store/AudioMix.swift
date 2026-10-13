@@ -155,6 +155,15 @@ enum AudioMix {
         return Double(end) / Double(max(settings.fps, 1))
     }
 
+    /// The pages a voice-over started on page `index` plays over, in turn:
+    /// the shown pages from there to the film's end. A hidden page is in no
+    /// film, so the take starts on the next shown page, where pageStart
+    /// lays it; with none after it, the page plays alone.
+    static func playedThrough(design: Design, index: Int) -> [Int] {
+        let after = design.visiblePageIndices.filter { $0 >= index }
+        return after.isEmpty ? [index] : after
+    }
+
     /// The mix of a film laid out as `timeline` at `fps`: for each of its
     /// pages, the clips in `clipsByPage` at the same place, each as long as
     /// `clipDurations` says by source — a clip whose length is not known has
