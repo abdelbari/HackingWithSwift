@@ -293,6 +293,44 @@ final class TimelineTests: XCTestCase {
 
     // MARK: split page
 
+    /// Timing, cut, then whether the entrance stays on the second page and
+    /// the exit on the first: an element coming in at the cut or after keeps
+    /// its entrance; one gone at the cut or before keeps its exit.
+    func testATimedElementKeepsItsEntranceOrExitWhereItPlays() throws {
+        let rows: [(ElementTiming?, Double, Bool, Bool)] = [
+            (nil, 1.5, false, false),
+            (ElementTiming(start: 4), 3, true, false),
+            (ElementTiming(start: 3), 3, true, false),
+            (ElementTiming(start: 2.9), 3, false, false),
+            (ElementTiming(start: 0, end: 2), 4, false, true),
+            (ElementTiming(start: 0, end: 4), 4, false, true),
+            (ElementTiming(start: 1, end: 4.1), 4, false, false),
+            (ElementTiming(start: 4, end: 5), 3, true, false),
+        ]
+        for (timing, cut, entrance, exit) in rows {
+            let name = "\(String(describing: timing)) at \(cut)"
+            XCTAssertEqual(Timeline.entranceStaysAfter(timing, cut: cut), entrance, name)
+            XCTAssertEqual(Timeline.exitStaysBefore(timing, cut: cut), exit, name)
+        }
+        // On a page split at 3: a title coming in at 4 still fades in, and
+        // one gone at 2 still fades out.
+        func animated(_ timing: ElementTiming) -> Element {
+            var el = Element.text("Hi")
+            el.animation = ElementAnimation(kind: "fade", delay: 0, duration: 1)
+            el.exitAnimation = ElementAnimation(kind: "fade", delay: 0, duration: 0.5)
+            el.timing = timing
+            return el
+        }
+        var page = Page()
+        page.elements = [animated(ElementTiming(start: 4)), animated(ElementTiming(start: 0, end: 2))]
+        let parts = try XCTUnwrap(Timeline.split(page, at: 3, hold: 6, duration: { _ in nil }))
+        XCTAssertEqual(parts.second.elements[0].animation?.kind, "fade")
+        XCTAssertEqual(parts.second.elements[0].timing, ElementTiming(start: 1))
+        XCTAssertNil(parts.first.elements[0].exitAnimation)
+        XCTAssertEqual(parts.first.elements[1].exitAnimation?.kind, "fade")
+        XCTAssertNil(parts.second.elements[1].animation)
+    }
+
     func testSplitPageMakesTwoPagesThatPlayAsOne() throws {
         var page = Page()
         page.holdSeconds = 4

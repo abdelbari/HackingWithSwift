@@ -21,8 +21,9 @@ final class ClipSoundTests: XCTestCase {
         }
     }
 
-    private func clip(_ source: String, _ playback: ClipPlayback = ClipPlayback()) -> AudioMix.Clip {
-        AudioMix.Clip(source: source, playback: playback)
+    private func clip(_ source: String, _ playback: ClipPlayback = ClipPlayback(),
+                      timing: ElementTiming? = nil) -> AudioMix.Clip {
+        AudioMix.Clip(source: source, playback: playback, timing: timing)
     }
 
     private func segment(_ source: String, _ sourceStart: Double, _ at: Double, _ duration: Double, _ gain: Double,
@@ -77,6 +78,21 @@ final class ClipSoundTests: XCTestCase {
              pages(5), [[clip("a", ClipPlayback(speed: 2)), clip("b", ClipPlayback(volume: 0)), clip("c")]],
              ["a": 10, "b": 10], [],
              []),
+            ("a timed clip, heard only while it shows",
+             pages(6), [[clip("a", timing: ElementTiming(start: 3, end: 5))]], ["a": 10], [],
+             [segment("a", 3, 3, 2, 1)]),
+            ("a looping clip shown from 3 s, cut where its loop has got to",
+             pages(10), [[clip("a", timing: ElementTiming(start: 3))]], ["a": 4], [],
+             [segment("a", 3, 3, 1, 1), segment("a", 0, 4, 4, 1), segment("a", 0, 8, 2, 1)]),
+            ("a clip shown only after it has played out",
+             pages(10), [[clip("a", ClipPlayback(loop: false), timing: ElementTiming(start: 5))]], ["a": 4], [],
+             []),
+            ("a timed clip whose end is past its page's",
+             pages(5), [[clip("a", timing: ElementTiming(start: 1, end: 8))]], ["a": 10], [],
+             [segment("a", 1, 1, 4, 1)]),
+            ("a timed clip on the second page",
+             pages(3, 4), [[], [clip("b", timing: ElementTiming(start: 0.5, end: 2))]], ["b": 10], [],
+             [segment("b", 0.5, 3.5, 1.5, 1)]),
         ]
         for row in rows {
             // Durations by source: the clips' and the tracks' music alike.
@@ -138,6 +154,13 @@ final class ClipSoundTests: XCTestCase {
         XCTAssertEqual(AudioMix.clips(design: design, page: design.pages[1]).map(\.source), ["vid-m", "vid-1"])
         // The master's own page hears its clip once.
         XCTAssertEqual(AudioMix.clips(design: design, page: design.pages[0]).map(\.source), ["vid-m"])
+        // Each with its own timing, which is when it is heard.
+        var timed = Element.image("video:vid-t")
+        timed.timing = ElementTiming(start: 1, end: 2)
+        var timedDesign = Design(title: "timed", width: 320, height: 240)
+        timedDesign.pages = [Page(elements: [timed, Element.image("video:vid-u")])]
+        XCTAssertEqual(AudioMix.clips(design: timedDesign, page: timedDesign.pages[0]).map(\.timing),
+                       [ElementTiming(start: 1, end: 2), nil])
     }
 
     // MARK: volume and mute

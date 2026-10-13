@@ -8,8 +8,10 @@
 // page's start, again and again when it loops, never past the page's last
 // frame. A muted or silent clip, or one playing at another speed, is not in
 // the mix; nor is a clip behind a page or filling a shape, or a GIF, which
-// is a photo. Hidden pages are not in the film, so their clips are not
-// either.
+// is a photo. A clip with its own timing (ElementTiming) is heard only
+// while it shows: what it would play then, from the page's start, cut to
+// its window, as its picture is. Hidden pages are not in the film, so their
+// clips are not either.
 //
 // A track sounds from its `start` in the film: its trimmed window once, or
 // round and round to the film's end when it loops, never past that end — so
@@ -24,10 +26,12 @@ import Foundation
 enum AudioMix {
 
     /// A clip on a page that may sound: `source` is its id, as
-    /// `Segment.source` names it.
+    /// `Segment.source` names it; `timing`, its element's own time on the
+    /// page, outside which it is silent, as it is unseen.
     struct Clip: Equatable {
         var source: String
         var playback: ClipPlayback
+        var timing: ElementTiming? = nil
     }
 
     /// One stretch of one source's sound: from `sourceStart` seconds into
@@ -136,12 +140,14 @@ enum AudioMix {
     }
 
     /// The clips on `page` that are heard while it plays — its own photos
-    /// and the master's behind it showing a clip, in drawing order.
+    /// and the master's behind it showing a clip, in drawing order, each
+    /// with its timing.
     static func clips(design: Design, page: Page) -> [Clip] {
         design.drawnElements(on: page).compactMap { el -> Clip? in
             guard el.type == .image, let src = el.src, let parts = VideoStore.split(src) else { return nil }
             let playback = el.clip ?? ClipPlayback()
-            return playback.sounds ? Clip(source: parts.id, playback: playback) : nil
+            let timing = el.timing.flatMap { ElementTiming.kept($0) }
+            return playback.sounds ? Clip(source: parts.id, playback: playback, timing: timing) : nil
         }
     }
 
@@ -187,10 +193,19 @@ enum AudioMix {
                 let length = end - start
                 guard length > 0.01 else { continue }
                 let gain = min(max(playback.volume, 0), 1)
+                // Where its timing lets it be heard: from its start until its
+                // end, on the page's clock.
+                let heardFrom = pageStart + (clip.timing?.start ?? 0)
+                let heardUntil = clip.timing?.end.map { min(pageEnd, pageStart + $0) } ?? pageEnd
                 var at = pageStart
                 while at < pageEnd - 0.001 {
                     let stretch = min(length, pageEnd - at)
-                    out.append(Segment(source: clip.source, sourceStart: start, at: at, duration: stretch, gain: gain))
+                    let from = max(at, heardFrom)
+                    let to = min(at + stretch, heardUntil)
+                    if to - from > 0.001 {
+                        out.append(Segment(source: clip.source, sourceStart: start + (from - at), at: from,
+                                           duration: to - from, gain: gain))
+                    }
                     at += stretch
                     // Played once, it is silent while its last frame holds.
                     if !playback.loop { break }
