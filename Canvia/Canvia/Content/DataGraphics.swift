@@ -274,17 +274,22 @@ enum DataGraphics {
     /// A table filling `frame`: a header row in `accent` with light text,
     /// banded body rows, hairline cells, text in each cell. Column widths
     /// follow the longest text in each column; row heights follow the text.
-    static func table(_ rows: [[String]], in frame: CGRect, accent: String) -> [Element] {
-        table(rows, in: frame, accent: accent, ink: "#1f2430", band: "#f3f4f6", fontSize: nil)
+    /// Every cell and its text carry the table's id, row and column, so the
+    /// table can be edited afterwards (see relayout). Texts are measured by
+    /// `heightFor`, as relayout measures them.
+    static func table(_ rows: [[String]], in frame: CGRect, accent: String,
+                      heightFor: (Element) -> Double = { FontLibrary.layoutHeight(for: $0) }) -> [Element] {
+        table(rows, in: frame, accent: accent, ink: tableInk, band: tableBand, fontSize: nil, heightFor: heightFor)
     }
 
     static func table(_ rows: [[String]], in frame: CGRect, accent: String, ink: String,
-                      band: String, fontSize: Double?) -> [Element] {
+                      band: String, fontSize: Double?, heightFor: (Element) -> Double) -> [Element] {
         guard let columns = rows.map(\.count).max(), columns > 0, !rows.isEmpty,
               frame.width > 0 else { return [] }
         let group = UID.make("grp")
+        let tableId = UID.make("tbl")
         let size = fontSize ?? max(10, (frame.width / Double(columns) * 0.11).rounded())
-        let pad = size * 0.6
+        let pad = size * tablePad
         // Column widths in proportion to the longest cell, floored so an
         // empty column still exists.
         let longest = (0..<columns).map { c in
@@ -305,7 +310,8 @@ enum DataGraphics {
                 t.fontWeight = r == 0 ? 700 : 400
                 t.color = r == 0 ? ColorTheory.readableInk(on: accent) : ink
                 t.x = (x + pad).rounded()
-                t.h = FontLibrary.layoutHeight(for: t)
+                t.h = heightFor(t)
+                t.table = TableCell(id: tableId, row: r, col: c)
                 texts.append(t)
                 x += widths[c]
             }
@@ -314,10 +320,11 @@ enum DataGraphics {
             for c in 0..<columns {
                 var cell = Element.shape("rect", w: widths[c], h: rowH)
                 cell.x = x.rounded(); cell.y = y.rounded()
-                cell.fill = .solid(r == 0 ? accent : (r % 2 == 0 ? band : "#ffffff"))
+                cell.fill = .solid(r == 0 ? accent : tableBodyFill(r, band: band))
                 cell.stroke = "#00000022"
                 cell.strokeWidth = 1
                 cell.radius = 0
+                cell.table = TableCell(id: tableId, row: r, col: c)
                 out.append(cell)
                 x += widths[c]
             }

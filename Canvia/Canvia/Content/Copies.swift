@@ -15,14 +15,17 @@ import Foundation
 enum Copies {
 
     /// `elements` copied as a batch, moved `offset` down and right. Each gets
-    /// a fresh id, each source group one fresh key its copies share, and each
-    /// arrow its ends' copies — or no end, where that end was not copied.
+    /// a fresh id, each source group one fresh key its copies share, each
+    /// table one fresh id its cells' copies share — so the copy is a table of
+    /// its own — and each arrow its ends' copies, or no end, where that end
+    /// was not copied.
     /// Unlocked unless `keepingLocks`: locked belongs to the original, and a
     /// pasted element that cannot be moved is a dead end.
     static func of(_ elements: [Element], offset: Double = 0, keepingLocks: Bool = false) -> [Element] {
         var ids: [String: String] = [:]
         for el in elements { ids[el.id] = UID.make() }
         var groups: [String: String] = [:]
+        var tables: [String: String] = [:]
         return elements.map { el in
             var copy = el
             copy.id = ids[el.id] ?? UID.make()
@@ -32,6 +35,10 @@ enum Copies {
             if let group = el.group {
                 if groups[group] == nil { groups[group] = UID.make("grp") }
                 copy.group = groups[group]
+            }
+            if let cell = el.table {
+                if tables[cell.id] == nil { tables[cell.id] = UID.make("tbl") }
+                copy.table = TableCell(id: tables[cell.id] ?? cell.id, row: cell.row, col: cell.col)
             }
             copy.connectFrom = el.connectFrom.flatMap { ids[$0] }
             copy.connectTo = el.connectTo.flatMap { ids[$0] }
