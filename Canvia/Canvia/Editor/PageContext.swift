@@ -14,6 +14,14 @@ struct AnimationTimeKey: EnvironmentKey {
     static let defaultValue: (time: Double, hold: Double)? = nil
 }
 
+/// The moment the page's exits are played at, when it is not the page's
+/// own time: Present holds them where they begin until the person goes on,
+/// while loops, clips, drifts and entrances play on. nil plays them by
+/// `animationTime`.
+struct ExitTimeKey: EnvironmentKey {
+    static let defaultValue: Double? = nil
+}
+
 /// Whether the page is being played live — Present, or Play in the editor
 /// — rather than rendered for export. Live, a clip shows the latest frame
 /// it has while the next is decoded off the main thread, and never makes
@@ -32,6 +40,11 @@ extension EnvironmentValues {
     var animationTime: (time: Double, hold: Double)? {
         get { self[AnimationTimeKey.self] }
         set { self[AnimationTimeKey.self] = newValue }
+    }
+
+    var exitTime: Double? {
+        get { self[ExitTimeKey.self] }
+        set { self[ExitTimeKey.self] = newValue }
     }
 
     var liveVideo: Bool {

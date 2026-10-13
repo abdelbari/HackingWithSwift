@@ -215,22 +215,37 @@ final class ExitAnimationTests: XCTestCase {
 
     // MARK: present
 
-    /// Present's clock for a page held 3 s, `after` seconds after it came
-    /// up, the person having gone on `exitAfter` seconds after it did.
-    /// The clock read `after` seconds into a page. It goes through Dates a
-    /// billion seconds from their epoch, which hold a moment only to about a
-    /// tenth of a microsecond, so its readings are compared to 1e-6.
+    /// Present's exits' clock for a page held 3 s, `after` seconds after it
+    /// came up, the person having gone on `exitAfter` seconds after it did,
+    /// and the exits counting from `zeroAfter` seconds after it came up.
+    /// It goes through Dates a billion seconds from their epoch, which hold
+    /// a moment only to about a tenth of a microsecond, so its readings are
+    /// compared to 1e-6.
     @MainActor
-    private func time(_ after: Double, heldAt: Double? = nil, exitAfter: Double? = nil) throws -> Double {
-        let start = Date(timeIntervalSince1970: 1000)
-        let clock = PresentationView.clock(at: start.addingTimeInterval(after), from: start, hold: 3, playing: true,
-                                           heldAt: heldAt,
-                                           exitFrom: exitAfter.map { start.addingTimeInterval($0) })
-        return try XCTUnwrap(clock).time
+    private func time(_ after: Double, heldAt: Double? = nil, exitAfter: Double? = nil,
+                      zeroAfter: Double? = nil) throws -> Double {
+        try XCTUnwrap(reading(after, heldAt: heldAt, exitAfter: exitAfter, zeroAfter: zeroAfter)).exitTime
+    }
+
+    /// The page's own clock, which loops, clips, drifts and entrances play by.
+    @MainActor
+    private func pageTime(_ after: Double, heldAt: Double? = nil, exitAfter: Double? = nil,
+                          zeroAfter: Double? = nil) throws -> Double {
+        try XCTUnwrap(reading(after, heldAt: heldAt, exitAfter: exitAfter, zeroAfter: zeroAfter)).time
     }
 
     @MainActor
-    func testPresentHoldsTheClockWhereTheExitsBeginUntilGoingOn() throws {
+    private func reading(_ after: Double, heldAt: Double?, exitAfter: Double?,
+                       zeroAfter: Double?) -> PresentationView.Reading? {
+        let start = Date(timeIntervalSince1970: 1000)
+        return PresentationView.clock(at: start.addingTimeInterval(after), from: start, hold: 3, playing: true,
+                                      heldAt: heldAt,
+                                      exitFrom: exitAfter.map { start.addingTimeInterval($0) },
+                                      exitZero: zeroAfter.map { start.addingTimeInterval($0) })
+    }
+
+    @MainActor
+    func testPresentHoldsTheExitsWhereTheyBeginUntilGoingOn() throws {
         let start = Date(timeIntervalSince1970: 1000)
         XCTAssertEqual(try time(1), 1, accuracy: 1e-6, "no exits: the clock runs")
         XCTAssertEqual(try time(5), 5, accuracy: 1e-6)
@@ -238,7 +253,29 @@ final class ExitAnimationTests: XCTestCase {
         XCTAssertEqual(try time(9, heldAt: 2.4), 2.4, accuracy: 1e-6, "held where the exits begin")
         XCTAssertEqual(try time(10, heldAt: 2.4, exitAfter: 9.7), 2.7, accuracy: 1e-6, "going on runs it on from there")
         XCTAssertEqual(try time(20, heldAt: 2.4, exitAfter: 9.7), 3, accuracy: 1e-6, "to the hold, no further")
-        XCTAssertNil(PresentationView.clock(at: start, from: start, hold: 3, playing: false, heldAt: 2.4, exitFrom: nil))
+        XCTAssertNil(PresentationView.clock(at: start, from: start, hold: 3, playing: false, heldAt: 2.4,
+                                            exitFrom: nil, exitZero: nil))
+    }
+
+    /// While the exits wait, the rest of the page plays on: a loop keeps
+    /// turning and a clip keeps playing in step with its sound, and an
+    /// entrance that ends after the exits would begin still finishes.
+    @MainActor
+    func testPresentPlaysThePageOnWhileItsExitsWait() throws {
+        XCTAssertEqual(try pageTime(0.9, heldAt: 0.6), 0.9, accuracy: 1e-6, "an entrance ending at 0.9 s finishes")
+        XCTAssertEqual(try time(0.9, heldAt: 0.6), 0.6, accuracy: 1e-6)
+        XCTAssertEqual(try pageTime(9, heldAt: 2.4), 9, accuracy: 1e-6, "a loop or a clip plays on")
+        XCTAssertEqual(try pageTime(10, heldAt: 2.4, exitAfter: 9.7), 10, accuracy: 1e-6, "and through the exits")
+    }
+
+    /// Autoplay turned on 5 s into a page whose exits were held at 2.4 s:
+    /// they count from 2.6 s after it came up, so they run on from 2.4 s,
+    /// while the page's own clock is not set back.
+    @MainActor
+    func testAutoplayRunsTheExitsOnWithoutSettingThePageBack() throws {
+        XCTAssertEqual(try time(5, zeroAfter: 2.6), 2.4, accuracy: 1e-6)
+        XCTAssertEqual(try time(5.6, zeroAfter: 2.6), 3, accuracy: 1e-6)
+        XCTAssertEqual(try pageTime(5.6, zeroAfter: 2.6), 5.6, accuracy: 1e-6)
     }
 
     /// Autoplay turned off once the exits of a page held 3 s, leaving over
