@@ -30,6 +30,8 @@ enum EditorSheet: String, Identifiable {
     case pages, snapping
     /// The Snapping menu's "Add guides…".
     case addGuides
+    /// More's "Copy & resize…": the Resize sheet, opened on its copies.
+    case copyResize
     var id: String { rawValue }
 }
 
@@ -48,6 +50,9 @@ struct EditorView: View {
     @State private var toastUndoes = true
     /// The history's step when the toast offered its Undo.
     @State private var toastVersion = 0
+    /// The copies Copy & resize just made, which the toast offers to Open
+    /// in place of an Undo.
+    @State private var toastOpens: [String] = []
     @State private var toastTask: Task<Void, Never>?
     @State private var tip: Tip?
     @State private var presenting = false
@@ -593,6 +598,16 @@ struct EditorView: View {
 
             Section {
                 Button {
+                    activeSheet = .copyResize
+                } label: { Label("Copy & resize…", systemImage: "rectangle.on.rectangle.angled") }
+
+                Button {
+                    makeCopy()
+                } label: { Label("Make a copy", systemImage: "plus.square.on.square") }
+            }
+
+            Section {
+                Button {
                     componentName = ""
                     namingComponent = true
                 } label: { Label("Save selection as component…", systemImage: "square.grid.3x1.folder.badge.plus") }
@@ -958,7 +973,9 @@ struct EditorView: View {
         case .export:
             ExportSheet(store: store)
         case .resize:
-            ResizeSheet(store: store)
+            ResizeSheet(store: store) { made in showCopies(made) }
+        case .copyResize:
+            ResizeSheet(store: store, copying: true) { made in showCopies(made) }
         case .find:
             FindReplaceSheet(store: store)
         case .frame:
@@ -1027,7 +1044,15 @@ struct EditorView: View {
                 Text(toast)
                     .font(.subheadline)
                     .lineLimit(1)
-                if toastUndoes {
+                if !toastOpens.isEmpty {
+                    Button("Open") {
+                        let ids = toastOpens
+                        dismissToast()
+                        openCopies(ids)
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
+                } else if toastUndoes {
                     Button("Undo") {
                         // Only while what it names is still the newest step:
                         // after anything else, Undo would take back that.
@@ -1165,6 +1190,7 @@ struct EditorView: View {
     /// or Switch Control runs, so its Undo can be reached.
     private func show(toast text: String, undoable: Bool) {
         toastTask?.cancel()
+        toastOpens = []
         toastUndoes = undoable
         toastVersion = store.historyVersion
         withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { toast = text }
@@ -1187,6 +1213,50 @@ struct EditorView: View {
         toastTask?.cancel()
         toastTask = nil
         withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { toast = nil }
+    }
+
+    // MARK: copies
+
+    /// "Made 3 resized copies", with Open: straight into the copy when there
+    /// is one, else to Home with them highlighted. Nothing here changed, so
+    /// there is nothing to undo.
+    private func showCopies(_ made: [Design]) {
+        guard !made.isEmpty else { return }
+        show(toast: CopyResize.doneText(count: made.count), undoable: false)
+        toastOpens = made.map(\.id)
+    }
+
+    @MainActor
+    private func openCopies(_ ids: [String]) {
+        closeRename()
+        saveNow()
+        if ids.count == 1, let id = ids.first {
+            openDesign(id)
+        } else {
+            HomeHighlight.ids = ids
+            onHome()
+        }
+    }
+
+    /// More's Make a copy: this design saved, then copied whole under
+    /// "<title> copy" with fresh ids, and the copy opened in its place.
+    @MainActor
+    private func makeCopy() {
+        closeRename()
+        store.finishCrop()
+        store.endTextEdit()
+        saveNow()
+        let copy = CopyResize.madeCopy(of: store.design, taken: DesignLibrary.recents().map(\.title))
+        guard DesignLibrary.save(copy) else { return }
+        DesignLibrary.writeThumbnail(for: copy)
+        openDesign(copy.id)
+    }
+
+    /// Another design opened over this one — saved already — through the
+    /// app's launch request, as a quick action opens one.
+    private func openDesign(_ id: String) {
+        LaunchRequest.set(.open(id: id))
+        NotificationCenter.default.post(name: QuickActions.requested, object: nil)
     }
 
     /// Snapping switches and the grid, in a submenu so the overflow stays a

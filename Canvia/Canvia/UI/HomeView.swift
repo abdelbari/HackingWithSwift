@@ -84,6 +84,12 @@ struct HomeView: View {
     /// The designs just moved to Recently deleted, all at once, while their
     /// one Undo is on offer.
     @State private var justTrashed: [RecentDesign] = []
+    /// The design Copy & resize is open for, from its card's menu.
+    @State private var copyResizing: Design?
+    /// The copies just made, while their toast offers to open them.
+    @State private var madeCopies: [Design] = []
+    /// Cards drawn ringed: the copies just made.
+    @State private var highlighted: Set<String> = []
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openWindow) private var openWindow
     @Environment(\.supportsMultipleWindows) private var supportsMultipleWindows
@@ -146,10 +152,17 @@ struct HomeView: View {
             if selecting { AccessibilityNotification.Announcement("\(pickedDesigns.count) selected").post() }
         }
         .overlay(alignment: .bottom) { trashedToast }
+        .overlay(alignment: .bottom) { copiesToast }
         .overlay { if openingFile { OpeningDesignCard() } }
         .onAppear {
             reload()
             if Onboarding.needsTour { touring = true }
+            // Copies the editor made and was asked to show.
+            let asked = HomeHighlight.take()
+            if !asked.isEmpty { highlighted = Set(asked) }
+        }
+        .sheet(item: $copyResizing) { source in
+            CopyResizeSheet(source: source) { made in showCopies(made) }
         }
         .sheet(isPresented: $touring, onDismiss: { Onboarding.markSeen() }) {
             WelcomeTour { touring = false }
@@ -663,6 +676,60 @@ struct HomeView: View {
         }
     }
 
+    /// "Made 3 resized copies", with Open: one copy opens, several are
+    /// shown on the shelf — every folder, no search — ringed.
+    @ViewBuilder
+    private var copiesToast: some View {
+        if !madeCopies.isEmpty {
+            HStack(spacing: 12) {
+                Text(CopyResize.doneText(count: madeCopies.count))
+                    .font(.subheadline)
+                    .lineLimit(2)
+                Button("Open") {
+                    let made = madeCopies
+                    hideCopies()
+                    if made.count == 1, let only = made.first {
+                        onOpen(only)
+                    } else {
+                        query = ""
+                        folder = nil
+                        highlighted = Set(made.map(\.id))
+                    }
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.accent)
+                Button {
+                    hideCopies()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel("Dismiss")
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(.regularMaterial, in: Capsule())
+            .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
+            .padding(.horizontal)
+            .padding(.bottom, 12)
+            .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    /// The copies on the shelf, ringed, and their toast up.
+    private func showCopies(_ made: [Design]) {
+        guard !made.isEmpty else { return }
+        highlighted = Set(made.map(\.id))
+        reload()
+        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { madeCopies = made }
+        AccessibilityNotification.Announcement(CopyResize.doneText(count: made.count)).post()
+    }
+
+    private func hideCopies() {
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { madeCopies = [] }
+    }
+
     private func showTrashed(_ designs: [RecentDesign]) {
         guard !designs.isEmpty else { return }
         withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { justTrashed = designs }
@@ -865,6 +932,12 @@ struct HomeView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .shadow(color: .black.opacity(0.08), radius: 5, y: 2)
             .overlay(alignment: .topTrailing) { if selecting { checkCircle(picked.contains(recent.id)) } }
+            // A copy just made, ringed until the next one is opened.
+            .overlay {
+                if highlighted.contains(recent.id) {
+                    RoundedRectangle(cornerRadius: 12).stroke(Theme.accent, lineWidth: 3)
+                }
+            }
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(recent.title), \(caption(for: recent).spoken)")
@@ -878,6 +951,9 @@ struct HomeView: View {
                 Button {
                     duplicate([recent])
                 } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
+                Button {
+                    copyResizing = DesignLibrary.load(id: recent.id)
+                } label: { Label("Copy & resize", systemImage: "rectangle.on.rectangle.angled") }
                 Menu {
                     moveItems([recent])
                 } label: { Label("Move to folder", systemImage: "folder") }
