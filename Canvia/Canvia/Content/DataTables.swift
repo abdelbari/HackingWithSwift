@@ -228,12 +228,12 @@ extension DataGraphics {
     }
 
     /// Table `id` made `rows` of cells (parseTable's): rows and columns
-    /// added at the end or taken off it until there are as many, each
-    /// column as Add column right on the last column adds it and Delete
-    /// column on the last takes it, so the table keeps its width; then each
-    /// cell's words set, a cell whose words did not change keeping its own
-    /// styles. A new row copies the row two above it, keeping the bands, or
-    /// the last row when that would be the header. Nil when `rows` has no
+    /// added at the end or taken off it until there are as many, every
+    /// column it keeps keeping its width and a new one the width they then
+    /// average, rounded, so the table grows or shrinks on the right; then
+    /// each cell's words set, a cell whose words did not change keeping its
+    /// own styles. A new row copies the row two above it, keeping the bands,
+    /// or the last row when that would be the header. Nil when `rows` has no
     /// cell.
     static func rebuiltTable(_ elements: [Element], id: String, rows: [[String]],
                              heightFor: (Element) -> Double) -> [Element]? {
@@ -250,15 +250,17 @@ extension DataGraphics {
             out = removingRow(out, id: id, row: last)
         }
         while true {
-            let cols = tableColumns(out, id: id)
-            guard cols.count < wanted, let last = cols.last else { break }
-            out = withColumn(out, id: id, source: last, at: last + 1)
-                ?? insertingColumn(out, id: id, source: last, at: last + 1)
+            let boxes = columnBoxes(out, id: id)
+            guard boxes.count < wanted, let last = boxes.keys.max(),
+                  let left = boxes.values.map({ $0.x }).min() else { break }
+            var widths = boxes.mapValues { $0.w }
+            widths[last + 1] = (boxes.values.map { $0.w }.reduce(0, +) / Double(boxes.count)).rounded()
+            out = placingColumns(insertingColumn(out, id: id, source: last, at: last + 1), id: id, left: left, widths: widths)
         }
         while true {
-            let cols = tableColumns(out, id: id)
-            guard cols.count > wanted, let last = cols.last else { break }
-            out = withoutColumn(out, id: id, col: last) ?? removingColumn(out, id: id, col: last)
+            let boxes = columnBoxes(out, id: id)
+            guard boxes.count > wanted, let last = boxes.keys.max() else { break }
+            out = removingColumn(out, id: id, col: last)
         }
         let rowAt = Dictionary(uniqueKeysWithValues: tableRows(out, id: id).enumerated().map { ($0.element, $0.offset) })
         let colAt = Dictionary(uniqueKeysWithValues: tableColumns(out, id: id).enumerated().map { ($0.element, $0.offset) })

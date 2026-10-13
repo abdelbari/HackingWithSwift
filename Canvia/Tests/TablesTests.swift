@@ -223,29 +223,25 @@ final class TablesTests: XCTestCase {
         XCTAssertEqual(DataGraphics.tableText(broken, id: tableId(broken)), "Item, Qty\nCoffee black hot, 2\nBagel, 1")
     }
 
-    func testEditedAsTextTheTableKeepsItsWidthAndItsUntouchedCells() throws {
+    func testEditedAsTextTheTableKeepsItsColumnWidthsAndItsUntouchedCells() throws {
         let table = made()
         let rebuilt = try XCTUnwrap(DataGraphics.rebuiltTable(
             table, id: tableId(table), rows: DataGraphics.parseTable("Item, Qty, Price\nCoffee, 2, 3.50"), heightFor: heightFor))
         XCTAssertEqual(rebuilt.count, 12)
-        // A column more comes as Add column right on the last column adds
-        // one: the 200 the two averaged, 267 and 133 halved to make room,
-        // 66.5 rounding to 67 and the last taking the 199 left of the 400.
-        XCTAssertEqual(columnWidths(rebuilt), [134, 67, 199])
-        XCTAssertEqual(columnLefts(rebuilt), [100, 234, 301])
-        XCTAssertEqual(columnWidths(DataGraphics.addingTableColumn(table, id: tableId(table), col: 1, right: true,
-                                                                   heightFor: heightFor)), columnWidths(rebuilt))
+        // The columns it had keep their widths; a column more is the 200
+        // they average, and the table grows to the right.
+        XCTAssertEqual(columnWidths(rebuilt), [267, 133, 200])
+        XCTAssertEqual(columnLefts(rebuilt), [100, 367, 500])
         XCTAssertEqual(text(rebuilt, 1, 2).text, "3.50")
         XCTAssertEqual(text(rebuilt, 1, 0).id, text(table, 1, 0).id)
         XCTAssertEqual(text(rebuilt, 1, 0).text, "Coffee")
-        XCTAssertEqual(text(rebuilt, 1, 0).w, 107.6, accuracy: 1e-9)
+        XCTAssertEqual(text(rebuilt, 1, 0), text(table, 1, 0))
         XCTAssertEqual(rowTops(rebuilt), [200, 246])
         XCTAssertEqual(Set(rebuilt.compactMap { $0.table?.id }), [tableId(table)])
-        // A column fewer goes as Delete column takes one: the table keeps
-        // its width.
+        // A column fewer: the table narrows from the right.
         let narrower = try XCTUnwrap(DataGraphics.rebuiltTable(
             table, id: tableId(table), rows: DataGraphics.parseTable("A\nB"), heightFor: heightFor))
-        XCTAssertEqual(columnWidths(narrower), [400])
+        XCTAssertEqual(columnWidths(narrower), [267])
         XCTAssertEqual(columnLefts(narrower), [100])
         XCTAssertEqual(words(narrower), ["A", "B"])
         XCTAssertNil(DataGraphics.rebuiltTable(table, id: tableId(table), rows: [], heightFor: heightFor))
@@ -292,6 +288,7 @@ final class TablesTests: XCTestCase {
         }
         XCTAssertEqual(try read(#"{"id": "tbl_x", "row": 1.0, "col": 0}"#), TableCell(id: "tbl_x", row: 1, col: 0))
         XCTAssertNil(try read(#"{"row": 1, "col": 0}"#))
+        XCTAssertNil(try read(#"{"id": "", "row": 1, "col": 0}"#))
         XCTAssertNil(try read(#"{"id": "tbl_x", "row": "1", "col": 0}"#))
         XCTAssertNil(try read(#"{"id": "tbl_x", "row": -1, "col": 0}"#))
         XCTAssertNil(try read(#""tbl_x""#))
@@ -425,7 +422,7 @@ final class TablesTests: XCTestCase {
         XCTAssertEqual(s.tableText, "Item, Qty\nCoffee, 2\nBagel, 1")
         XCTAssertFalse(s.rebuildTable(from: "  \n"))
         XCTAssertTrue(s.rebuildTable(from: "Item, Qty, Price\nCoffee, 2, 3.50"))
-        XCTAssertEqual(columnWidths(s.page.elements), [134, 67, 199])
+        XCTAssertEqual(columnWidths(s.page.elements), [267, 133, 200])
         s.undo()
         XCTAssertEqual(s.page.elements, table)
     }

@@ -1,6 +1,6 @@
 // Type the numbers, get the chart; type the cells, get the table. Opened
 // from a table's Edit as text, it shows that table's cells and Update sets
-// the table again from them, as wide as it was.
+// the table again from them, its column widths kept.
 
 import SwiftUI
 

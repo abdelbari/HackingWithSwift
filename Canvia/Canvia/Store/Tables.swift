@@ -204,8 +204,8 @@ extension DesignStore {
         tableSelection.map { DataGraphics.tableText(page.elements, id: $0.id) } ?? ""
     }
 
-    /// The selected table made the rows typed in `text`, as wide as it was,
-    /// as one step. False when the text holds no rows.
+    /// The selected table made the rows typed in `text`, its column widths
+    /// kept, as one step. False when the text holds no rows.
     @discardableResult
     func rebuildTable(from text: String) -> Bool {
         let rows = DataGraphics.parseTable(text)
