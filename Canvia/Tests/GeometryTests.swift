@@ -300,9 +300,9 @@ final class FontLibraryCacheTests: XCTestCase {
     }
 
     func testFontRespondsToFamily() {
-        // Keys are personality names from FontLibrary.stacks, not font names.
-        // "serif" resolves to Georgia and "mono" to Menlo, both of which ship
-        // with iOS, so this compares two genuinely different families.
+        // Keys are family ids from FontLibrary, not font names. "serif"
+        // resolves to Georgia and "mono" to Menlo, both of which ship with
+        // iOS, so this compares two genuinely different families.
         XCTAssertNotEqual(font(text { $0.fontFamily = "serif" })?.familyName,
                           font(text { $0.fontFamily = "mono" })?.familyName)
     }
@@ -316,13 +316,13 @@ final class FontLibraryCacheTests: XCTestCase {
         XCTAssertEqual(fallback, sans)
     }
 
-    /// Every declared personality must resolve to something usable, so a
-    /// stack naming a font iOS does not ship is caught here rather than
+    /// Every family must resolve to something usable, so a catalogue entry
+    /// naming a face the app does not bundle is caught here rather than
     /// silently rendering as Helvetica for the user.
-    func testEveryFontStackResolves() {
-        for stack in FontLibrary.stacks {
-            let resolved = font(text { $0.fontFamily = stack.key })
-            XCTAssertNotNil(resolved, "\(stack.key) resolved to nothing")
+    func testEveryFontFamilyResolves() {
+        for family in FontLibrary.all {
+            let resolved = font(text { $0.fontFamily = family.id })
+            XCTAssertNotNil(resolved, "\(family.id) resolved to nothing")
             XCTAssertGreaterThan(resolved?.pointSize ?? 0, 0)
         }
     }

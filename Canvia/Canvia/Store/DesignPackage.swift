@@ -1,5 +1,5 @@
 // A design as one file: the document plus every photo and clip it uses,
-// and its music.
+// its music, and the fonts of your own its texts are set in.
 //
 // The JSON on disk points at media by id, which means nothing outside this
 // app. A package inlines those files, so the design can be sent to someone,
@@ -34,6 +34,11 @@ enum DesignPackage {
         /// (Soundtrack.packs). Optional like `videos`, so older files read,
         /// and older readers pass over it.
         var audio: [String: Media]?
+        /// The fonts of your own the texts are set in, by their hash —
+        /// {"<sha12>": {"data", "ext"}}, each at most CustomFonts.maxBytes;
+        /// one past it stays behind, and its texts fall back where they
+        /// arrive. Optional like `videos`, and left out when there are none.
+        var fonts: [String: Media]?
     }
 
     /// The longest clip a file carries, in bytes; a longer one travels as
@@ -171,7 +176,10 @@ enum DesignPackage {
         // older install. The file carries it as a picture like any other,
         // under a fresh id, and only the exported copy is re-pointed.
         var videos: [String: Media] = [:]
-        let withClips = packingVideos(design, media: &media, videos: &videos)
+        // The record of fonts of your own as a save writes it, so the
+        // other phone can name one it cannot draw.
+        let synced = CustomFonts.synced(design, installed: FontStore.record)
+        let withClips = packingVideos(synced, media: &media, videos: &videos)
         let design = packingLibraryPhotos(withClips, into: &media)
         for id in mediaIDs(in: design) {
             for ext in MediaStore.extensions {
@@ -183,7 +191,26 @@ enum DesignPackage {
             }
         }
         return Package(design: design, media: media, videos: videos.isEmpty ? nil : videos,
-                       audio: packedAudio(of: design))
+                       audio: packedAudio(of: design), fonts: packedFonts(of: design))
+    }
+
+    /// Whether a font file of `bytes` travels in a package: one past the
+    /// limit stays behind, and its texts fall back where they arrive.
+    static func packsFont(bytes: Int) -> Bool {
+        (1...CustomFonts.maxBytes).contains(bytes)
+    }
+
+    /// The fonts of your own the design's texts are set in, packed, those on
+    /// this phone that travel; none when there are none.
+    static func packedFonts(of design: Design) -> [String: Media]? {
+        var fonts: [String: Media] = [:]
+        for sha in CustomFonts.used(in: design) {
+            guard let url = FontStore.url(for: sha) else { continue }
+            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+            guard packsFont(bytes: size), let data = try? Data(contentsOf: url) else { continue }
+            fonts[sha] = Media(ext: url.pathExtension.lowercased(), data: data)
+        }
+        return fonts.isEmpty ? nil : fonts
     }
 
     /// The design's music, packed, when it is on this phone and travels;
@@ -314,6 +341,13 @@ enum DesignPackage {
         var clips: [String: String] = [:]
         for (oldId, item) in package.videos ?? [:] {
             if let newId = VideoStore.store(item.data, ext: item.ext) { clips[oldId] = newId }
+        }
+        // A font of your own under its own hash, which is what the texts
+        // name: stored only when its bytes are the file the key names, and
+        // one this phone has already is the same file. One left out draws
+        // in Modern Sans.
+        for (sha, item) in package.fonts ?? [:] where CustomFonts.sha12(item.data) == sha {
+            _ = FontStore.add(item.data)
         }
         // The music under a fresh id too, the design's soundtrack pointed
         // at it.

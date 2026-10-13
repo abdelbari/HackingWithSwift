@@ -272,6 +272,11 @@ struct Design: Codable, Equatable, Identifiable {
     /// without it, a save on iOS silently dropped the field, and a design
     /// renamed on Android came back from the iPhone renaming itself again.
     var titleAuto: Bool = true
+    /// The fonts of your own the texts are set in — {"id": "custom:<sha12>",
+    /// "name", "file"} each — so a phone without one can still name it (see
+    /// CustomFonts). Nil, and not written, when there are none; brought up
+    /// to date by every save.
+    var fonts: [CustomFonts.Record]?
 
     var size: CGSize { CGSize(width: width, height: height) }
 
@@ -314,11 +319,13 @@ struct Design: Codable, Equatable, Identifiable {
         guides = (try? c.decode([Guide].self, forKey: .guides)) ?? []
         folder = try? c.decode(String.self, forKey: .folder)
         titleAuto = (try? c.decode(Bool.self, forKey: .titleAuto)) ?? true
+        let records = (try? c.decode([CustomFonts.Lenient].self, forKey: .fonts))?.compactMap(\.record) ?? []
+        fonts = records.isEmpty ? nil : records
     }
 
     private enum CodingKeys: String, CodingKey {
         case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides, folder
-        case titleAuto
+        case titleAuto, fonts
     }
 
     /// The master page, if one is set and still exists.

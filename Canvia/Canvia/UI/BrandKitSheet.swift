@@ -9,6 +9,16 @@ struct BrandKitSheet: View {
     @State private var newColor = Color.blue
     /// The logos there when the sheet opened, listed even once switched off.
     @State private var openedWithLogos = BrandKit.load().logos
+    /// The face being chosen in the font picker.
+    @State private var choosingFace: Face?
+
+    /// The kit's two faces.
+    private enum Face: String, Identifiable {
+        case heading = "Heading face"
+        case body = "Body face"
+
+        var id: String { rawValue }
+    }
 
     private let columns = [GridItem(.adaptive(minimum: 40), spacing: 10)]
 
@@ -43,16 +53,8 @@ struct BrandKitSheet: View {
                 }
 
                 Section("Type") {
-                    Picker("Heading face", selection: Binding(
-                        get: { kit.headingFamily ?? "" }, set: { kit.headingFamily = $0.isEmpty ? nil : $0 })) {
-                        Text("None").tag("")
-                        ForEach(FontLibrary.stacks) { Text($0.name).tag($0.key) }
-                    }
-                    Picker("Body face", selection: Binding(
-                        get: { kit.bodyFamily ?? "" }, set: { kit.bodyFamily = $0.isEmpty ? nil : $0 })) {
-                        Text("None").tag("")
-                        ForEach(FontLibrary.stacks) { Text($0.name).tag($0.key) }
-                    }
+                    faceRow(.heading, kit.headingFamily, weight: kit.headingWeight)
+                    faceRow(.body, kit.bodyFamily, weight: kit.bodyWeight)
                 }
 
                 Section {
@@ -80,9 +82,44 @@ struct BrandKitSheet: View {
             }
         }
         .presentationDetents([.large])
+        // The font picker, None first, every font and your own, as for a
+        // text — as the Android twin chooses a brand face.
+        .sheet(item: $choosingFace) { face in
+            FontSheet(store: store, choice: FontSheet.Choice(
+                title: face.rawValue,
+                current: face == .heading ? kit.headingFamily : kit.bodyFamily,
+                onPick: { key in
+                    if face == .heading { kit.headingFamily = key } else { kit.bodyFamily = key }
+                }))
+        }
         // Every change kept as it is made, as on the Android twin, so the
         // sheet can be swiped away as well as closed with Done.
         .onChange(of: kit) { _, changed in changed.save() }
+    }
+
+    /// A face of the kit, its name drawn in itself at the kit's weight for
+    /// it, or None; a tap opens the font picker. One of your own not on
+    /// this phone says so.
+    private func faceRow(_ face: Face, _ family: String?, weight: Int) -> some View {
+        let name = family.map { FontStore.displayName($0, in: store.design) } ?? "None"
+        let missing = family.flatMap { FontStore.missingNote($0, in: store.design) }
+        return Button { choosingFace = face } label: {
+            HStack {
+                Text(face.rawValue).foregroundStyle(.primary)
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(name)
+                        .font(family.map { FontLibrary.font(family: $0, size: 17, weight: weight, italic: false) } ?? .body)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    if let missing {
+                        Text(missing).font(.caption).foregroundStyle(.red)
+                    }
+                }
+            }
+        }
+        .accessibilityLabel(face.rawValue)
+        .accessibilityValue(missing ?? name)
     }
 
     /// One switch per picture, told apart by its place in the list — the

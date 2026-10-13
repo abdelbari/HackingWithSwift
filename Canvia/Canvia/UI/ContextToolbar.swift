@@ -225,15 +225,56 @@ struct ContextToolbar: View {
         }
     }
 
-    /// Face, colour and size, for one text or several.
+    /// Face, colour and size, for one text or several. A font of your own
+    /// this phone does not have says so beside the face: its words are in
+    /// Modern Sans meanwhile.
     private var typeBasics: some View {
         HStack(spacing: 14) {
             let family = store.sharedText { $0.fontFamily ?? "sans" }
-            toolButton("textformat", "Font") { activeSheet = .fonts }
-                .accessibilityValue(family.map { FontLibrary.stack($0).name } ?? TypeReadouts.mixed)
+            fontButton(family)
+            if let family, let missing = FontStore.missingNote(family, in: store.design) {
+                missingFontChip(missing)
+            }
             textColourChip
             fontSizeStepper
         }
+    }
+
+    /// The face, "Aa" drawn in it — what the words will look like — opening
+    /// the font picker; the plain glyph when the texts are in different ones.
+    private func fontButton(_ family: String?) -> some View {
+        Button { activeSheet = .fonts } label: {
+            VStack(spacing: 3) {
+                Group {
+                    if let family {
+                        Text(verbatim: "Aa")
+                            .font(FontLibrary.font(family: family, size: 19, weight: 400, italic: false))
+                            .lineLimit(1)
+                    } else {
+                        Image(systemName: "textformat").font(Theme.controlGlyph)
+                    }
+                }
+                .frame(height: 22)
+                Text("Font").font(Theme.controlLabel)
+            }
+        }
+        .buttonStyle(ToolButtonStyle())
+        .accessibilityLabel("Font")
+        .accessibilityValue(family.map { FontStore.displayName($0, in: store.design) } ?? TypeReadouts.mixed)
+    }
+
+    /// "Font missing: <name>", which opens the font picker to choose another.
+    private func missingFontChip(_ note: String) -> some View {
+        Button { activeSheet = .fonts } label: {
+            Label(note, systemImage: "exclamationmark.triangle.fill")
+                .font(Theme.controlLabel)
+                .foregroundStyle(.red)
+                .lineLimit(1)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(Color.red.opacity(0.12), in: Capsule())
+        }
+        .buttonStyle(ToolButtonStyle())
     }
 
     /// Gradient letters are not their plain colour underneath: the chip

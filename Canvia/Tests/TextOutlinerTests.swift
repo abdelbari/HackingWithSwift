@@ -92,6 +92,22 @@ final class TextOutlinerTests: XCTestCase {
         XCTAssertGreaterThan(long.width, short.width)
     }
 
+    /// An italic slanted where the family has none of its own — Oswald, as
+    /// a font of your own is — leans in the outlines as on the canvas: the
+    /// letter's top runs right of the upright's, its foot stays where it was.
+    func testASlantedItalicLeansInTheOutlines() throws {
+        var upright = text("I")
+        upright.fontFamily = "oswald"
+        upright.h = FontLibrary.measuredHeight(for: upright)
+        var italic = upright
+        italic.italic = true
+        let straight = try XCTUnwrap(TextOutliner.path(for: upright)).boundingBox
+        let leaning = try XCTUnwrap(TextOutliner.path(for: italic)).boundingBox
+        XCTAssertGreaterThan(leaning.width, straight.width + 4, "the italic is traced upright")
+        XCTAssertGreaterThan(leaning.maxX, straight.maxX + 4)
+        XCTAssertEqual(leaning.minX, straight.minX, accuracy: 1)
+    }
+
     func testEmptyTextOutlinesToNothing() {
         XCTAssertNil(TextOutliner.path(for: text("")))
         var zeroWidth = text("Hello")
