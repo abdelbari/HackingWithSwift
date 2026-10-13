@@ -664,6 +664,14 @@ enum Geometry {
                    (viewport.height - padding) / content.height)
     }
 
+    /// How far a pinch may zoom, given the zoom that fits the page: past
+    /// eight times the fit or 400%, and down to half the fit or 5% — so a
+    /// tiny custom page, fitted large, can still be looked into. The Android
+    /// twin's Viewport.zoomRange.
+    static func zoomRange(fit: Double) -> ClosedRange<Double> {
+        min(fit * 0.5, 0.05)...max(fit * 8, 4)
+    }
+
     /// The scroll offset that centres already-scaled content in a viewport.
     ///
     /// A content point p appears on screen at p - offset, whatever the scroll
@@ -717,5 +725,179 @@ enum Geometry {
         }
         let below = min(Double(selection.maxY) + handleOutset + bubbleGap, Double(viewport.maxY) - bubbleTopRoom)
         return BubbleAnchor(point: CGPoint(x: x, y: max(below, Double(viewport.minY))), side: .below)
+    }
+}
+
+// MARK: - scroll through pages
+
+/// Scroll through pages: every page stacked top to bottom in one column,
+/// each under a header row, with "+ Add page" beneath the last — the Android
+/// twin's Viewport.pageOrigins and the rest, with the same test rows.
+///
+/// "Column space" is the canvas's content before the pinch zooms it: one
+/// unit is one point on screen while the column fits the width. Every page is
+/// fitted to the viewport's width less a gutter each side, so each is as wide
+/// on screen as every other, and each has a gap above it — the room for its
+/// header and the space between it and the page before, which the canvas
+/// passes as `room`. The first page is a gap down.
+enum PageColumn {
+
+    /// The More menu's "Scroll through pages": on unless turned off. The
+    /// Android twin's Prefs key.
+    static let key = "pageScroll"
+    /// Between one page and the next page's header, in points.
+    static let gap = 24.0
+    /// Either side of every page.
+    static let gutter = 16.0
+    /// The header row over each page.
+    static let header = 32.0
+    /// The gap above each page: its header and the gap over that.
+    static let room = gap + header
+    /// "+ Add page": how far under the last page, and how tall — inside the
+    /// gap the column leaves there.
+    static let addPageDrop = 8.0
+    static let addPageHeight = 40.0
+
+    /// Where a page lies in the column: its top-left corner and how many
+    /// column units one page unit takes, with the page's own size.
+    struct Slot: Equatable {
+        var origin: CGPoint
+        var scale: Double
+        var size: CGSize
+
+        /// The page itself, in column units.
+        var rect: CGRect {
+            CGRect(x: origin.x, y: origin.y, width: size.width * scale, height: size.height * scale)
+        }
+
+        /// A point on this page, in column units.
+        func toColumn(_ p: CGPoint) -> CGPoint {
+            CGPoint(x: origin.x + p.x * scale, y: origin.y + p.y * scale)
+        }
+
+        /// A point in column units, in this page's own.
+        func toPage(_ p: CGPoint) -> CGPoint {
+            CGPoint(x: (p.x - origin.x) / scale, y: (p.y - origin.y) / scale)
+        }
+
+        /// A box on this page, in column units.
+        func columnBox(_ box: CGRect) -> CGRect {
+            CGRect(origin: toColumn(box.origin), size: CGSize(width: box.width * scale, height: box.height * scale))
+        }
+
+        /// A box in column units, in this page's own.
+        func pageBox(_ box: CGRect) -> CGRect {
+            CGRect(origin: toPage(box.origin), size: CGSize(width: box.width / scale, height: box.height / scale))
+        }
+    }
+
+    /// The pages of `sizes`, in order, stacked top to bottom in a viewport
+    /// `viewportWidth` wide: each fitted to the width less a `gutter` each
+    /// side, with `gap` above it. A page with no width is drawn one to one.
+    static func pageOrigins(_ sizes: [CGSize], gap: Double, gutter: Double, viewportWidth: Double) -> [Slot] {
+        let inner = max(viewportWidth - 2 * gutter, 1)
+        var y = 0.0
+        return sizes.map { size in
+            y += gap
+            let scale = size.width > 0 ? inner / Double(size.width) : 1
+            let slot = Slot(origin: CGPoint(x: gutter, y: y), scale: scale, size: size)
+            y += max(Double(size.height), 0) * scale
+            return slot
+        }
+    }
+
+    /// How tall the whole column is: the last page's bottom and one more
+    /// `gap` under it, where "+ Add page" goes.
+    static func columnHeight(_ slots: [Slot], gap: Double) -> Double {
+        (slots.last.map { Double($0.rect.maxY) } ?? 0) + gap
+    }
+
+    /// The page whose rect holds `point`, in column units, edges included —
+    /// the earlier of two that touch — or nil over the gaps and gutters.
+    static func pageAt(_ point: CGPoint, in slots: [Slot]) -> Int? {
+        slots.firstIndex { slot in
+            let r = slot.rect
+            return point.x >= r.minX && point.x <= r.maxX && point.y >= r.minY && point.y <= r.maxY
+        }
+    }
+
+    /// The page that is current once a scroll settles: the one covering the
+    /// middle of `viewport` (in column units) — by height alone, the page
+    /// whose top-to-bottom span is nearest the middle's height, nothing when
+    /// the middle is inside it. Ties, the middle exactly halfway down a gap,
+    /// go to the earlier page. 0 with no pages.
+    static func currentPage(_ viewport: CGRect, in slots: [Slot]) -> Int {
+        let y = Double(viewport.midY)
+        var best = 0
+        var bestDistance = Double.infinity
+        for (i, slot) in slots.enumerated() {
+            let r = slot.rect
+            let distance: Double
+            if y < Double(r.minY) {
+                distance = Double(r.minY) - y
+            } else if y > Double(r.maxY) {
+                distance = y - Double(r.maxY)
+            } else {
+                distance = 0
+            }
+            if distance < bestDistance {
+                best = i
+                bestDistance = distance
+            }
+        }
+        return best
+    }
+
+    /// The pages drawn as themselves: those within one viewport height of
+    /// `visible` (in column units), above or below it. The rest are drawn
+    /// from a thumbnail.
+    static func livePages(_ slots: [Slot], visible: CGRect) -> [Int] {
+        let top = Double(visible.minY - visible.height)
+        let bottom = Double(visible.maxY + visible.height)
+        return slots.indices.filter { i in
+            let r = slots[i].rect
+            return Double(r.maxY) >= top && Double(r.minY) <= bottom
+        }
+    }
+
+    /// Where `box` lands when dropped on a page of `page` size, as a
+    /// top-left: moved by the least that keeps it inside the page, so a box
+    /// hanging over an edge comes in just far enough. A box wider or taller
+    /// than the page sits at its left or top edge.
+    static func clampToPage(_ box: CGRect, page: CGSize) -> CGPoint {
+        CGPoint(x: clampSpan(Double(box.minX), Double(box.width), Double(page.width)),
+                y: clampSpan(Double(box.minY), Double(box.height), Double(page.height)))
+    }
+
+    /// A span starting at `start`, `length` long, kept within 0…`limit`:
+    /// back from the far edge first, then off the near one, which wins.
+    private static func clampSpan(_ start: Double, _ length: Double, _ limit: Double) -> Double {
+        var at = start
+        if at + length > limit { at = limit - length }
+        if at < 0 { at = 0 }
+        return at
+    }
+
+    /// Where a box let go over another page lands on it, in that page's
+    /// units: its top-left corner, from page `from` to page `to` through the
+    /// column.
+    static func landing(_ box: CGRect, from: Slot, to: Slot) -> CGPoint {
+        to.toPage(from.toColumn(box.origin))
+    }
+
+    /// The header row over `slot`, `unit` column units to a point on
+    /// screen: as wide as the page, and the same height on screen however
+    /// far the column is zoomed.
+    static func headerRect(_ slot: Slot, unit: Double) -> CGRect {
+        let r = slot.rect
+        return CGRect(x: Double(r.minX), y: Double(r.minY) - header * unit, width: Double(r.width), height: header * unit)
+    }
+
+    /// "+ Add page" under the last of `slots`, `unit` column units to a
+    /// point; nil with no pages.
+    static func addPageRect(_ slots: [Slot], unit: Double) -> CGRect? {
+        guard let r = slots.last?.rect else { return nil }
+        return CGRect(x: Double(r.minX), y: Double(r.maxY) + addPageDrop * unit,
+                      width: Double(r.width), height: addPageHeight * unit)
     }
 }
