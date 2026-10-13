@@ -26,6 +26,8 @@ enum EditorSheet: String, Identifiable {
     /// Opened by Help's "Show me": the page organiser, and the snapping
     /// switches as a sheet (a Menu cannot be opened from code).
     case pages, snapping
+    /// The Snapping menu's "Add guides…".
+    case addGuides
     var id: String { rawValue }
 }
 
@@ -50,6 +52,8 @@ struct EditorView: View {
     /// The Vibration switch, shared with Home.
     @AppStorage(Haptics.key) private var haptics = true
     @State private var namingComponent = false
+    /// The Snapping menu's Grid "Custom…" asking for a spacing.
+    @State private var askingCustomGrid = false
     @State private var componentName = ""
     @State private var tipTask: Task<Void, Never>?
     /// The crop slider's end while it is being dragged, held still.
@@ -167,6 +171,7 @@ struct EditorView: View {
         .onChange(of: presenting) { _, on in
             if on { store.stopPreview() }
         }
+        .customGridAlert(isPresented: $askingCustomGrid, store: store)
         .alert("Name this component", isPresented: $namingComponent) {
             TextField("Footer, Price tag, Call-out…", text: $componentName)
             Button("Save") {
@@ -977,6 +982,16 @@ struct EditorView: View {
             PageOrganizerSheet(store: store)
         case .snapping:
             SnappingSheet(store: store)
+        case .addGuides:
+            NavigationStack {
+                AddGuidesView(store: store)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") { activeSheet = nil }
+                        }
+                    }
+            }
+            .presentationDetents([.medium, .large])
         case .help:
             // The help sheet is itself presented; the one it opens has to
             // wait for it to be gone, or SwiftUI drops the second present.
@@ -1173,12 +1188,7 @@ struct EditorView: View {
         Menu {
             Toggle("Snap to elements", isOn: $store.snapping.toElements)
             Toggle("Snap to page", isOn: $store.snapping.toPage)
-            Picker("Grid", selection: $store.snapping.grid) {
-                Text("No grid").tag(0.0)
-                ForEach(SnapSettings.gridChoices.filter { $0 > 0 }, id: \.self) { step in
-                    Text("Every \(Int(step)) px").tag(step)
-                }
-            }
+            SnappingSheet.gridPicker(store: store, askingCustom: $askingCustomGrid)
             Toggle("Show grid", isOn: $store.snapping.showGrid)
                 .disabled(!store.snapping.gridEnabled)
             Picker("Margins", selection: $store.snapping.margin) {
@@ -1189,11 +1199,15 @@ struct EditorView: View {
             }
             Toggle("Show margins", isOn: $store.snapping.showMargins)
                 .disabled(!store.snapping.marginEnabled)
-            Divider()
-            Button { store.addGuide(vertical: true) } label: { Label("Add vertical guide", systemImage: "line.vertical") }
-            Button { store.addGuide(vertical: false) } label: { Label("Add horizontal guide", systemImage: "line.horizontal") }
-            Button(role: .destructive) { store.clearGuides() } label: { Label("Remove all guides", systemImage: "trash") }
-                .disabled(store.design.guides.isEmpty)
+            // A section, so the guides sit apart from the switches as the
+            // divider set them apart.
+            Section {
+                Button { store.addGuide(vertical: true) } label: { Label("Add vertical guide", systemImage: "line.vertical") }
+                Button { store.addGuide(vertical: false) } label: { Label("Add horizontal guide", systemImage: "line.horizontal") }
+                Button { activeSheet = .addGuides } label: { Label("Add guides…", systemImage: "rectangle.split.3x1") }
+                Button(role: .destructive) { store.clearGuides() } label: { Label("Remove all guides", systemImage: "trash") }
+                    .disabled(store.design.guides.isEmpty)
+            }
         } label: {
             Label("Snapping", systemImage: "square.grid.3x3")
         }

@@ -182,10 +182,10 @@ struct ElementAnimation: Codable, Equatable {
     }
 
     /// How long before the end of the page its exits begin: the latest
-    /// `delay + duration` among `elements`, at most `maxExitSpan`; 0 when
-    /// none of them leaves.
+    /// `delay + duration` among the shown `elements`, at most `maxExitSpan`;
+    /// 0 when none of them leaves — a hidden element leaves unseen.
     static func exitSpan(_ elements: [Element]) -> Double {
-        let span = elements.compactMap { $0.exitAnimation.map { max(0, $0.delay + $0.duration) } }.max() ?? 0
+        let span = elements.filter { !$0.isHidden }.compactMap { $0.exitAnimation.map { max(0, $0.delay + $0.duration) } }.max() ?? 0
         return min(span, maxExitSpan)
     }
 

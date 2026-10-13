@@ -50,7 +50,8 @@ enum ContrastAudit {
     static func backdrop(for el: Element, in page: Page) -> String {
         guard let index = page.elements.firstIndex(where: { $0.id == el.id }) else { return pageColor(page) }
         let centre = el.center
-        for other in page.elements[..<index].reversed() where other.type == .shape || other.type == .image {
+        for other in page.elements[..<index].reversed()
+        where (other.type == .shape || other.type == .image) && !other.isHidden {
             // Edges included, as on Android: CGRect.contains leaves out the
             // right and bottom ones, so a text centred exactly on a shape's
             // edge was read against the page here and the shape there.
@@ -136,7 +137,7 @@ enum ContrastAudit {
         var findings: [Finding] = []
         for (p, page) in design.pages.enumerated() {
             for el in page.elements where el.type == .text {
-                guard el.textFill == nil, el.opacity > 0.05 else { continue }
+                guard el.textFill == nil, el.opacity > 0.05, !el.isHidden else { continue }
                 let ink = el.color ?? "#1f2430"
                 let back = backdrop(for: el, in: page)
                 // Measured as drawn: faded text reads fainter than its ink.

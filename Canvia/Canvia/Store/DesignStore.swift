@@ -678,7 +678,7 @@ final class DesignStore {
 
     func selectAll() {
         endTextEdit()
-        selection = Set(page.elements.filter { !$0.locked }.map(\.id))
+        selection = Set(page.elements.filter { !$0.locked && !$0.isHidden }.map(\.id))
     }
 
     /// Rubber-band selection: everything the rectangle touches, with sticky
@@ -1378,6 +1378,62 @@ final class DesignStore {
         }
     }
 
+    // MARK: layers
+
+    /// Lock or unlock the elements `ids` on this page, from their Layers row,
+    /// as one undo step.
+    func setLocked(_ ids: Set<String>, locked: Bool) {
+        guard page.elements.contains(where: { ids.contains($0.id) && $0.locked != locked }) else { return }
+        // A box being typed in cannot be locked mid-word.
+        if let typing = editingTextId, ids.contains(typing) { endTextEdit() }
+        applyToPage { page in
+            for i in page.elements.indices where ids.contains(page.elements[i].id) {
+                page.elements[i].locked = locked
+            }
+        }
+    }
+
+    /// Hide the elements `ids` on this page, or show them again, as one undo
+    /// step. A hidden element stays where it is, listed in Layers and
+    /// selectable from there; shown is nil, never false.
+    func setHidden(_ ids: Set<String>, hidden: Bool) {
+        guard page.elements.contains(where: { ids.contains($0.id) && $0.isHidden != hidden }) else { return }
+        // A box being typed in is finished before it goes.
+        if let typing = editingTextId, ids.contains(typing) { endTextEdit() }
+        applyToPage { page in
+            for i in page.elements.indices where ids.contains(page.elements[i].id) {
+                page.elements[i].hidden = hidden ? true : nil
+            }
+        }
+    }
+
+    /// Give element `id` a name of its own — trimmed, cut to
+    /// LayerNames.maxLength — or, when `typed` is blank, take its own name
+    /// away; one undo step, none when nothing changes.
+    func renameLayer(_ id: String, to typed: String) {
+        let name = LayerNames.cleaned(typed)
+        guard let el = element(id), el.layerName != name else { return }
+        applyToPage { page in
+            if let i = page.elements.firstIndex(where: { $0.id == id }) { page.elements[i].layerName = name }
+        }
+    }
+
+    /// The Layers rows at `source` dragged to before row `destination`, as
+    /// one undo step; a group's row takes its whole group (see
+    /// LayerRows.moved).
+    func moveLayers(_ rows: [LayerRows.Row], from source: IndexSet, to destination: Int) {
+        let reordered = LayerRows.moved(page.elements, rows: rows, from: source, to: destination)
+        guard reordered.map(\.id) != page.elements.map(\.id) else { return }
+        applyToPage { $0.elements = reordered }
+    }
+
+    /// Take the element `id` alone, from its Layers row — a group's member
+    /// without the rest of the group.
+    func selectLayer(_ id: String) {
+        endTextEdit()
+        selection = [id]
+    }
+
     func flipSelected(horizontal: Bool) {
         guard unlockedSelectionCount > 0 else { return }
         buzz(.tick)
@@ -1738,6 +1794,32 @@ final class DesignStore {
             let limit = design.guides[i].vertical ? pageWidth : pageHeight
             design.guides[i].position = min(max(position, 0), limit).rounded()
         }
+    }
+
+    /// Put guide `id` at a typed `position`, kept on the page and on a half
+    /// pixel as Android keeps it, as one undo step.
+    func setGuidePosition(_ id: String, to position: Double) {
+        guard let guide = design.guides.first(where: { $0.id == id }) else { return }
+        let limit = max(guide.vertical ? pageWidth : pageHeight, 0)
+        let kept = min(max(Guides.halfPixel(min(max(position, 0), limit)), 0), limit)
+        guard kept != guide.position else { return }
+        apply { d in
+            if let i = d.guides.firstIndex(where: { $0.id == id }) { d.guides[i].position = kept }
+        }
+    }
+
+    /// Columns and rows laid out as guides on this page (see Guides.layout),
+    /// added to the guides there — or in their place, with `replace` — as
+    /// one undo step. How many were added; none at all is no step.
+    @discardableResult
+    func addGuideLayout(columns: Int, rows: Int, gutter: Double, margin: Double, replace: Bool) -> Int {
+        let kept = replace ? [] : design.guides
+        let made = Guides.layout(size: pageSize, columns: columns, rows: rows,
+                                 gutter: gutter, margin: margin, existing: kept)
+        guard kept + made != design.guides else { return 0 }
+        apply { $0.guides = kept + made }
+        buzz(.confirm)
+        return made.count
     }
 
     func removeGuide(_ id: String) {

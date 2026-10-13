@@ -38,6 +38,39 @@ struct SnapSettings: Equatable, Codable {
     /// them (1080, 1920, 2048) and so are the paddings people type.
     static let gridChoices: [Double] = [0, 8, 16, 32, 64]
 
+    /// What the Grid picker's "Custom…" takes, in pixels.
+    static let customGridRange = 2.0...500.0
+
+    /// A spacing typed for Custom…: the number when it is one within
+    /// `customGridRange`, else nil — never clamped into a spacing nobody
+    /// typed.
+    static func customGrid(_ typed: String) -> Double? {
+        var text = typed.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if text.hasSuffix("px") { text = String(text.dropLast(2)).trimmingCharacters(in: .whitespaces) }
+        guard let value = Double(text.replacingOccurrences(of: ",", with: ".")),
+              customGridRange.contains(value) else { return nil }
+        return value
+    }
+
+    /// "Every 16 px", "Every 12.5 px".
+    static func gridLabel(_ step: Double) -> String {
+        let number = step == step.rounded() ? String(Int(step)) : String(step)
+        return "Every \(number) px"
+    }
+
+    /// "Custom: every 24 px": a spacing set with Custom…, as Android's Grid
+    /// row says it.
+    static func customGridLabel(_ step: Double) -> String {
+        let number = step == step.rounded() ? String(Int(step)) : String(step)
+        return "Custom: every \(number) px"
+    }
+
+    /// Whether `step` is a spacing the picker does not list: one set with
+    /// Custom….
+    static func isCustomGrid(_ step: Double) -> Bool {
+        step > 0 && !gridChoices.contains(step)
+    }
+
     static let key = "canvia.snapping"
 
     static func load(from defaults: UserDefaults = .standard) -> SnapSettings {

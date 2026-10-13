@@ -132,6 +132,9 @@ final class ExitAnimationTests: XCTestCase {
         XCTAssertEqual(ElementAnimation.exitSpan([Element.shape("rect")]), 0)
         b.exitAnimation = ElementAnimation(kind: "pop", delay: 3, duration: 0.6)
         XCTAssertEqual(ElementAnimation.exitSpan([a, b]), 2)
+        // A hidden element leaves unseen, so its exit holds nothing back.
+        a.hidden = true
+        XCTAssertEqual(ElementAnimation.exitSpan([a]), 0)
     }
 
     // MARK: rendered

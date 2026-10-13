@@ -21,7 +21,7 @@ final class ReadAloud: NSObject, AVSpeechSynthesizerDelegate {
     /// tokens resolved, each part ending in a full stop so the voice pauses.
     static func script(for page: Page, in design: Design) -> String {
         let number = (design.pages.firstIndex { $0.id == page.id } ?? 0) + 1
-        let elements = design.masterElements(behind: page) + page.elements
+        let elements = design.drawnElements(on: page)
         let order = CanvasAccessibility.readingOrder(elements, pageHeight: design.size(for: page).height)
         let byId = Dictionary(elements.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         var parts: [String] = []

@@ -266,7 +266,7 @@ struct PresentationView: View {
     /// Whether anything on the page moves: an entrance, an exit, a loop, a
     /// drift, a clip playing.
     private static func moves(_ page: Page, in design: Design) -> Bool {
-        (design.masterElements(behind: page) + page.elements).contains {
+        design.drawnElements(on: page).contains {
             $0.animation != nil || $0.exitAnimation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src)
         }
     }
@@ -300,7 +300,7 @@ struct PresentationView: View {
     /// drift or an exit; never, for a loop or a clip, which plays while the
     /// page is up.
     private func motionEnd(_ page: Page) -> Double {
-        let elements = design.masterElements(behind: page) + page.elements
+        let elements = design.drawnElements(on: page)
         if elements.contains(where: { VideoStore.isVideo($0.src) }) { return .infinity }
         var end = elements.compactMap { $0.animation?.end }.max() ?? 0
         if elements.contains(where: { $0.kenBurns != nil || $0.exitAnimation != nil }) {

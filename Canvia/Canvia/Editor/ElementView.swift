@@ -732,7 +732,9 @@ struct PageRenderView: View {
             ForEach(design.masterElements(behind: page)) { el in
                 ElementView(element: el).equatable()
             }
-            ForEach(page.elements) { el in
+            // A hidden element is never drawn, here or in anything that
+            // renders through this view: exports, thumbnails, Present, video.
+            ForEach(page.elements.filter { !$0.isHidden }) { el in
                 // .equatable() so a drag re-renders the element that moved
                 // rather than every element on the page. The store is
                 // @Observable and a gesture mutates the document each frame,

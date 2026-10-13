@@ -38,7 +38,7 @@ enum SVGExporter {
 
         body.append(backgroundMarkup(design: design, page: page, defs: &defs))
         let number = (design.pages.firstIndex { $0.id == page.id } ?? 0) + 1
-        let drawn = design.masterElements(behind: page) + page.elements
+        let drawn = design.drawnElements(on: page)
         for (index, el) in drawn.enumerated() {
             var resolved = el
             if ShapeText.carriesWords(el) {

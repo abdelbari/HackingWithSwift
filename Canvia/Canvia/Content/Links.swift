@@ -63,7 +63,7 @@ enum Links {
     /// Every linked element on the page as drawn — the master's first — with
     /// its area on the page.
     static func areas(design: Design, page: Page) -> [(rect: CGRect, url: String)] {
-        (design.masterElements(behind: page) + page.elements).compactMap { el in
+        design.drawnElements(on: page).compactMap { el in
             guard let url = followable(el.link) else { return nil }
             return (Geometry.aabb(el), url)
         }
@@ -72,7 +72,7 @@ enum Links {
     /// The link under `point` on the page: the topmost linked element holding
     /// it, rotation and all; nil where there is none.
     static func at(design: Design, page: Page, point: CGPoint) -> String? {
-        let drawn = design.masterElements(behind: page) + page.elements
+        let drawn = design.drawnElements(on: page)
         let hit = drawn.last { el in
             followable(el.link) != nil && Geometry.hits(el, point: point)
         }

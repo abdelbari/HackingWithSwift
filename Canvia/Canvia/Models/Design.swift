@@ -328,10 +328,17 @@ struct Design: Codable, Equatable, Identifiable {
     }
 
     /// The elements drawn behind `page` from the master: none on the master
-    /// itself, none on a page that opted out.
+    /// itself, none on a page that opted out, and none hidden.
     func masterElements(behind page: Page) -> [Element] {
         guard let master = masterPage, master.id != page.id, page.usesMaster != false else { return [] }
-        return master.elements
+        return master.elements.filter { !$0.isHidden }
+    }
+
+    /// Everything drawn on `page`, back to front: the master's behind, then
+    /// the page's own — hidden elements left out. What every renderer,
+    /// exporter, link, voice and sound reads.
+    func drawnElements(on page: Page) -> [Element] {
+        masterElements(behind: page) + page.elements.filter { !$0.isHidden }
     }
 
     /// Grow any text box that is shorter than the text actually needs.
