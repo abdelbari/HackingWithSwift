@@ -1,5 +1,5 @@
 // The design's audio tracks as the Audio sheet edits them: added from your
-// music, each change to one — where it starts, its trim,
+// music or a voice-over, each change to one — where it starts, its trim,
 // volume, fades, loop — one undo step, and taken out again; and what the
 // sheet says of each. As the Android twin's Audio panel does.
 
@@ -32,6 +32,17 @@ enum AudioTracks {
         if let duration { line += " · \(VideoStore.timeLabel(length(of: track, duration: duration))) long" }
         if track.loop { line += " · loops" }
         return line
+    }
+
+    /// The name a new voice-over takes: "Voice-over 1", then one more than
+    /// the most the design's tracks have reached.
+    static func voiceOverName(after tracks: [AudioTrack]) -> String {
+        let prefix = "Voice-over "
+        let used = tracks.compactMap { track -> Int? in
+            guard track.name.hasPrefix(prefix) else { return nil }
+            return Int(track.name.dropFirst(prefix.count))
+        }
+        return prefix + String((used.max() ?? 0) + 1)
     }
 
     /// A time as a fade shows it: "0.0s" to "5.0s".

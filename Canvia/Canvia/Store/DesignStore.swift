@@ -1931,6 +1931,46 @@ final class DesignStore {
         previewSound.stop()
     }
 
+    /// The design played from the start of the page on screen to the end of
+    /// the film, each shown page after it in turn, as Play plays one — in
+    /// silence, as a voice-over is recorded over it and the microphone
+    /// would hear the speaker — then `onEnd`: at the film's end, or when
+    /// another page is brought up meanwhile. Not when stopPreview stops it.
+    func playThrough(onEnd: @escaping @MainActor () -> Void) {
+        stopPreview()
+        let after = design.visiblePageIndices.filter { $0 >= pageIndex }
+        let order = after.isEmpty ? [pageIndex] : after
+        previewTask = Task { @MainActor in
+            for index in order {
+                guard design.pages.indices.contains(index) else { break }
+                setPage(index)
+                guard await playOnce() else { break }
+            }
+            guard !Task.isCancelled else { return }
+            previewTime = nil
+            onEnd()
+        }
+    }
+
+    /// The page on screen played through once, on the clock as Play plays
+    /// it; false when it was cut short — stopped, or another page brought
+    /// up.
+    @MainActor
+    private func playOnce() async -> Bool {
+        let playing = page.id
+        let hold = pageHold
+        let start = ContinuousClock.now
+        while page.id == playing {
+            let elapsed = ContinuousClock.now - start
+            let t = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
+            if t > hold { return true }
+            previewTime = t
+            try? await Task.sleep(for: .milliseconds(33))
+            guard !Task.isCancelled else { return false }
+        }
+        return false
+    }
+
     /// Give every selected element an entrance, staggered in layer order so
     /// a list builds itself rather than arriving as a block.
     func animateSelected(_ kind: String?) {

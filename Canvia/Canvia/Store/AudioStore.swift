@@ -14,16 +14,17 @@ enum AudioStore {
     }
 
     /// Copies the file in under a fresh id and returns it. The file's own
-    /// name is kept beside it, so the soundtrack row can say "Summer Song.mp3"
-    /// rather than "Audio (MP3)" — on this phone only, as the Android twin
-    /// keeps it; the design carries the id alone.
-    static func store(_ source: URL) -> String? {
+    /// name — or `name`, for a voice-over recorded under a made-up one — is
+    /// kept beside it, so the music list can say "Summer Song.mp3" rather
+    /// than "Audio (MP3)" — on this phone only, as the Android twin keeps
+    /// it; the design carries the id, and each track its own name.
+    static func store(_ source: URL, name: String? = nil) -> String? {
         let ext = source.pathExtension.isEmpty ? "m4a" : source.pathExtension.lowercased()
         let id = UID.make("audio") + "." + ext
         do {
             try FileManager.default.copyItem(at: source, to: directory.appendingPathComponent(id))
-            let name = source.lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !name.isEmpty { try? Data(name.utf8).write(to: nameFile(for: id)) }
+            let label = (name ?? source.lastPathComponent).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !label.isEmpty { try? Data(label.utf8).write(to: nameFile(for: id)) }
             return id
         } catch {
             return nil

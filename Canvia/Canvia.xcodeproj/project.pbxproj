@@ -269,7 +269,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Canvia-Info.plist";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Canvia listens while you dictate into a text element.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Canvia listens while you dictate into a text element, and records the voice-overs you make for a video.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Canvia turns what you say into the words of a text element.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Canvia uses the camera to scan documents onto the page.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Canvia saves your exported designs to your photo library when you choose Save Image.";
@@ -304,7 +304,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Canvia-Info.plist";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Canvia listens while you dictate into a text element.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Canvia listens while you dictate into a text element, and records the voice-overs you make for a video.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Canvia turns what you say into the words of a text element.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Canvia uses the camera to scan documents onto the page.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Canvia saves your exported designs to your photo library when you choose Save Image.";

@@ -1,46 +1,78 @@
 // The design's audio: every track under the film, listed with where it
 // starts and how long it plays, and more added — music from Files or from
-// your uploads. A track opens to its start, trim, volume, fades, loop and
-// Delete, each change one undo step, a slider's when it is let go. The
-// Android twin's Audio panel sets the same `audio` array.
+// your uploads, or a voice-over recorded over the design as it plays. A
+// track opens to its start, trim, volume, fades, loop and Delete, each
+// change one undo step, a slider's when it is let go. The Android twin's
+// Audio panel sets the same `audio` array.
 
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 
 struct AudioSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     /// Each track's music's length in seconds, by AudioStore id, read as
     /// the sheet opens.
     @State private var lengths: [String: Double] = [:]
     @State private var importing = false
     @State private var refused = false
+    @State private var micRefused = false
+    /// A voice-over under way: counting down, then recording.
+    @State private var recording = false
+    @State private var detent: PresentationDetent = .medium
 
     private var tracks: [AudioTrack] { store.design.audioTracks }
 
     var body: some View {
         NavigationStack {
-            List {
-                tracksSection
-                addSection
-            }
-            .navigationTitle("Audio")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(for: String.self) { id in
-                AudioTrackView(store: store, trackId: id)
-            }
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
-            }
+            content
+                .navigationTitle("Audio")
+                .navigationBarTitleDisplayMode(.inline)
+                .navigationDestination(for: String.self) { id in
+                    AudioTrackView(store: store, trackId: id)
+                }
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        if !recording { Button("Done") { dismiss() } }
+                    }
+                }
         }
-        .presentationDetents(sheetDetents)
+        .presentationDetents(sheetDetents, selection: $detent)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        .interactiveDismissDisabled(recording)
         .fileImporter(isPresented: $importing, allowedContentTypes: [.audio]) { result in
             bringIn(result)
         }
         .task(id: tracks.compactMap(\.audioId)) { await readLengths() }
         .alert("That file isn't music this phone can play", isPresented: $refused) {
             Button("OK", role: .cancel) {}
+        }
+        .alert(Self.micRefusedTitle, isPresented: $micRefused) {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(Self.micRefusedMessage)
+        }
+    }
+
+    /// Said when the microphone is not allowed.
+    static let micRefusedTitle = "Microphone access is off"
+    static let micRefusedMessage = "Canvia records a voice-over with the microphone. "
+        + "You can allow it in Settings, under Canvia."
+
+    @ViewBuilder
+    private var content: some View {
+        if recording {
+            VoiceOverPanel(store: store) { recording = false }
+        } else {
+            List {
+                tracksSection
+                addSection
+            }
         }
     }
 
@@ -64,7 +96,7 @@ struct AudioSheet: View {
     }
 
     /// What the list says before there is anything in it.
-    static let emptyNote = "No audio yet. Add music to hear it under the video."
+    static let emptyNote = "No audio yet. Add music or record a voice-over to hear it under the video."
 
     /// A track by its name, with where it starts and how long it plays.
     private func trackRow(_ track: AudioTrack) -> some View {
@@ -91,6 +123,9 @@ struct AudioSheet: View {
                 Label("Music from Files…", systemImage: "folder")
             }
             musicMenu
+            Button { startRecording() } label: {
+                Label("Record voice-over", systemImage: "mic")
+            }
             if !tracks.isEmpty {
                 Button { store.playPreview() } label: {
                     Label("Play this page", systemImage: "play.circle")
@@ -140,6 +175,20 @@ struct AudioSheet: View {
             Uploads.record(id, kind: .audio)
             lengths[id] = seconds
             add(id)
+        }
+    }
+
+    /// The microphone asked for, then the countdown; a refusal says how to
+    /// allow it.
+    private func startRecording() {
+        Task {
+            guard await VoiceRecorder.requestPermission() else {
+                micRefused = true
+                return
+            }
+            store.stopPreview()
+            detent = .medium
+            recording = true
         }
     }
 
@@ -330,5 +379,134 @@ struct AudioTrackView: View {
         store.buzz(.confirm)
         store.announce("Deleted the track")
         dismiss()
+    }
+}
+
+// MARK: - voice-over
+
+/// A voice-over as it happens: 3, 2, 1, then the design plays from the
+/// start of the page on screen while the microphone records, with its level
+/// and the time so far, until Stop or the film's end. The recording becomes
+/// one of your music uploads and a track from where that page starts.
+struct VoiceOverPanel: View {
+    @Bindable var store: DesignStore
+    var onDone: () -> Void
+    private let recorder = VoiceRecorder.shared
+    @State private var count = 3
+    /// When the recording began; nil while counting down.
+    @State private var started: Date?
+    /// Where the page it began on starts in the film: where its track goes.
+    @State private var startsAt = 0.0
+    @State private var failed = false
+
+    var body: some View {
+        VStack(spacing: 18) {
+            if failed {
+                failure
+            } else if let started {
+                live(since: started)
+            } else {
+                countdown
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+        .task { await run() }
+        // Gone mid-recording — the editor closed — what was said is kept.
+        .onDisappear { if recorder.isRecording { finish() } }
+    }
+
+    private var countdown: some View {
+        VStack(spacing: 12) {
+            Text("\(count)")
+                .font(.system(size: 72, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .accessibilityLabel("Recording in \(count)")
+            Text("The design plays from the start of this page as you speak.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button("Cancel", role: .cancel) { onDone() }
+        }
+    }
+
+    private func live(since: Date) -> some View {
+        VStack(spacing: 14) {
+            Label("Recording", systemImage: "record.circle")
+                .foregroundStyle(.red)
+            TimelineView(.periodic(from: since, by: 0.1)) { context in
+                Text(VideoStore.timeLabel(context.date.timeIntervalSince(since)))
+                    .font(.title2.monospacedDigit())
+            }
+            meter(recorder.level)
+            Button(role: .destructive) { finish() } label: {
+                Label("Stop", systemImage: "stop.fill")
+            }
+            .buttonStyle(.borderedProminent)
+        }
+    }
+
+    private var failure: some View {
+        VStack(spacing: 12) {
+            Text("The microphone could not be started.")
+            Button("OK") { onDone() }
+        }
+    }
+
+    /// How loud the microphone is now, as a bar.
+    private func meter(_ level: Double) -> some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color(.systemGray5))
+                Capsule().fill(Theme.accent).frame(width: geo.size.width * level)
+            }
+        }
+        .frame(height: 10)
+        .accessibilityElement()
+        .accessibilityLabel("Microphone level")
+        .accessibilityValue(ClipSheet.percentLabel(level))
+    }
+
+    /// Three seconds counted down, then the microphone on and the design
+    /// playing; the film's end stops it, as Stop does.
+    private func run() async {
+        for n in [3, 2, 1] {
+            count = n
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+        }
+        startsAt = AudioMix.pageStart(design: store.design, index: store.pageIndex)
+        guard recorder.start() else {
+            failed = true
+            return
+        }
+        started = Date()
+        store.playThrough { finish() }
+    }
+
+    /// The recording stopped and kept: a music upload, and a track from
+    /// where its page starts, as one undo step. Too short to keep, or not
+    /// kept, it is said.
+    private func finish() {
+        guard recorder.isRecording else { return }
+        store.stopPreview()
+        guard let file = recorder.stop() else {
+            store.announce("Nothing was recorded", undoable: false)
+            onDone()
+            return
+        }
+        defer { try? FileManager.default.removeItem(at: file) }
+        let name = AudioTracks.voiceOverName(after: store.design.audioTracks)
+        guard let id = AudioStore.store(file, name: name) else {
+            store.buzz(.reject)
+            store.announce("Couldn't keep that recording", undoable: false)
+            onDone()
+            return
+        }
+        Uploads.record(id, kind: .audio)
+        store.addAudioTrack(id, start: startsAt, name: name)
+        store.buzz(.confirm)
+        store.announce("Added \(name)")
+        onDone()
     }
 }

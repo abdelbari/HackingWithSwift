@@ -1,8 +1,8 @@
 // Audio tracks: the `audio` array as both phones write it, the mix of every
 // track in the video (AudioMix.plan, the same table as the Android twin's),
 // the old soundtrack's track playing as the old plan did, fades, a talk in
-// Present, each change to a track one undo step, what the sheet says, and
-// the music a design file carries.
+// Present, each change in the Audio sheet one undo step, what the sheet
+// says, the music a design file carries, and the voice-over meter.
 
 import XCTest
 @testable import Canvia
@@ -271,5 +271,28 @@ final class AudioTracksTests: XCTestCase {
         looped.loop = true
         XCTAssertEqual(AudioTracks.summary(of: looped, duration: 2.5), "Starts at 0:02.0 · 0:01.5 long · loops")
         XCTAssertEqual(AudioTracks.secondsLabel(1.5), "1.5s")
+    }
+
+    func testVoiceOversAreNumbered() {
+        XCTAssertEqual(AudioTracks.voiceOverName(after: []), "Voice-over 1")
+        let tracks = [AudioTrack(src: "audio:a", name: "Voice-over 1"), AudioTrack(src: "audio:b", name: "Song"),
+                      AudioTrack(src: "audio:c", name: "Voice-over 3")]
+        XCTAssertEqual(AudioTracks.voiceOverName(after: tracks), "Voice-over 4")
+    }
+
+    func testTheMeterShowsFiftyDecibelsOfLevel() {
+        XCTAssertEqual(VoiceRecorder.meterLevel(decibels: 0), 1)
+        XCTAssertEqual(VoiceRecorder.meterLevel(decibels: -25), 0.5, accuracy: 1e-9)
+        XCTAssertEqual(VoiceRecorder.meterLevel(decibels: -50), 0)
+        XCTAssertEqual(VoiceRecorder.meterLevel(decibels: -160), 0)
+        XCTAssertEqual(VoiceRecorder.meterLevel(decibels: 3), 1)
+        XCTAssertEqual(VoiceRecorder.meterLevel(decibels: -.infinity), 0)
+    }
+
+    @MainActor
+    func testTheMicrophoneRefusalSaysHowToAllowIt() {
+        XCTAssertEqual(AudioSheet.micRefusedTitle, "Microphone access is off")
+        XCTAssertEqual(AudioSheet.micRefusedMessage,
+                       "Canvia records a voice-over with the microphone. You can allow it in Settings, under Canvia.")
     }
 }

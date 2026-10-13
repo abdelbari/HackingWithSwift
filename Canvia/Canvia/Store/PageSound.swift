@@ -10,7 +10,8 @@
 //
 // Play shares the phone's sound, and the silent switch mutes it; a
 // presentation takes the sound, switch or not. The session is let go, and
-// other apps told, when the sound stops.
+// other apps told, when the sound stops. While a voice-over records, the
+// recorder has the session, and nothing here touches it.
 
 import AVFoundation
 import Foundation
@@ -274,7 +275,7 @@ final class PageSound {
     /// The phone's sound: shared and silenced by the switch for Play, taken
     /// for a presentation. Left alone while dictation has the microphone.
     private func takeSession() {
-        guard !holdsSession, !Dictation.shared.isListening else { return }
+        guard !holdsSession, !Dictation.shared.isListening, !VoiceRecorder.shared.isRecording else { return }
         holdsSession = true
         PageSound.holders += 1
         if presenting { PageSound.presenters += 1 }
@@ -290,9 +291,9 @@ final class PageSound {
         holdsSession = false
         PageSound.holders -= 1
         if presenting { PageSound.presenters -= 1 }
-        // Dictation took the session while this held it: it is dictation's
-        // now, and dictation lets it go when it stops.
-        guard !Dictation.shared.isListening else { return }
+        // Dictation or a voice-over took the session while this held it: it
+        // is theirs now, and they let it go when they stop.
+        guard !Dictation.shared.isListening, !VoiceRecorder.shared.isRecording else { return }
         let session = AVAudioSession.sharedInstance()
         // Another still plays — Play started while Present faded out — so the
         // session stays, shared again once no presentation holds it.
