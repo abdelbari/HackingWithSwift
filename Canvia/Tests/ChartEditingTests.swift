@@ -155,6 +155,95 @@ final class ChartEditingTests: XCTestCase {
         XCTAssertFalse(t.page.elements.contains(where: \.isHidden), "partly hidden, it comes back whole")
     }
 
+    func testAnUpdatesPaletteKeepsEachSeriesPlaceAndGivesTheRestColoursTheChartDoesNotShow() {
+        let p = ["#aa0000", "#00aa00", "#0000aa", "#aaaa00"]
+        XCTAssertEqual(DataGraphics.keepingPalette(p, colours: [0: .solid("#00aa00")]),
+                       ["#00aa00", "#aa0000", "#0000aa", "#aaaa00"])
+        XCTAssertEqual(DataGraphics.keepingPalette(p, colours: [0: .solid("#aa0000"), 2: .solid("#0000aa")]),
+                       ["#aa0000", "#00aa00", "#0000aa", "#aaaa00"])
+        XCTAssertEqual(DataGraphics.keepingPalette(p, colours: [:]), p)
+        var all: [Int: Paint] = [:]
+        for (i, c) in p.enumerated() { all[i] = .solid(c) }
+        XCTAssertEqual(DataGraphics.keepingPalette(p, colours: all), p)
+    }
+
+    func testARowAddedOnUpdateTakesTheColourANewChartGivesItNotOneTheChartShows() {
+        let blank = store([])
+        let fresh = DataGraphics.palette(for: blank.design, page: blank.page)
+        let spec = ChartSpec(kind: "column", data: "Spring, 40\nSummer, 65\nAutumn, 30\nWinter, 20")
+        let chart = DataGraphics.chart(spec, in: frame, palette: fresh)
+        let s = store(chart)
+        var colours: [Int: Paint] = [:]
+        for el in chart {
+            guard let n = DesignStore.chartSeries(el.chartPart), colours[n] == nil,
+                  let paint = DesignStore.chartColour(of: el) else { continue }
+            colours[n] = paint
+        }
+        XCTAssertEqual(DataGraphics.palette(updating: spec.id, design: s.design, page: s.page, colours: colours), fresh,
+                       "its own bars and labels are not the design's colours")
+        var five = spec
+        five.data = "Spring, 40\nSummer, 65\nAutumn, 30\nWinter, 20\nMore, 50"
+        XCTAssertTrue(s.updateChart(five))
+        let elements = s.page.elements
+        func colour(_ n: Int) -> String {
+            elements.first { $0.chartPart == "series:\(n)" }?.fill?.color ?? ""
+        }
+        XCTAssertEqual(colour(4), "#f9ed69")
+        XCTAssertEqual((0...3).map(colour), Array(fresh.prefix(4)))
+    }
+
+    func testAProgressBarMadeAnotherKindOnUpdateStaysOnThePage() {
+        let bar = ChartSpec(kind: "progressBar", data: "72")
+        let twenty: (Element) -> Double = { _ in 20 }
+        let made = DataGraphics.chart(bar, in: CGRect(x: 108, y: -300, width: 864, height: 1152), palette: ["#ff0000"],
+                                      heightFor: twenty)
+        let bounds = Geometry.union(made.map(\.frame))
+        let filling = DataGraphics.frameFilling(bar, bounds: bounds, heightFor: twenty)
+        XCTAssertLessThan(filling.minY, 0)
+        // The same kind is drawn where it was, in the frame it was drawn in.
+        XCTAssertEqual(DataGraphics.updateFrame(bar, to: bar, bounds: bounds, width: 1080, height: 1920, heightFor: twenty),
+                       filling)
+        var column = bar
+        column.kind = "column"
+        XCTAssertEqual(DataGraphics.updateFrame(bar, to: column, bounds: bounds, width: 1080, height: 1920, heightFor: twenty),
+                       CGRect(x: filling.minX, y: 0, width: filling.width, height: filling.height))
+        // Kept to a page smaller than the frame.
+        var pie = bar
+        pie.kind = "pie"
+        XCTAssertEqual(DataGraphics.updateFrame(bar, to: pie, bounds: bounds, width: 500, height: 400, heightFor: twenty),
+                       CGRect(x: 0, y: 0, width: 500, height: 400))
+    }
+
+    func testUpdateLeavesAChartTurnedFadedLinkedAndAnimatedAsItWas() {
+        let spec = ChartSpec(kind: "column", data: "A, 10\nB, 5")
+        let upright = DataGraphics.chart(spec, in: frame, palette: ["#ff0000"])
+        let box = Geometry.union(upright.map(\.frame))
+        let enter = ElementAnimation(kind: "rise", delay: 0, duration: 0.6)
+        let turned = Geometry.rotate(upright, around: CGPoint(x: box.midX, y: box.midY), by: 30).map { el -> Element in
+            var out = el
+            out.opacity = 0.5
+            out.link = "https://example.com"
+            out.animation = enter
+            return out
+        }
+        let s = store(turned)
+        XCTAssertTrue(s.updateChart(spec))
+        let made = s.page.elements
+        XCTAssertEqual(made.count, turned.count)
+        XCTAssertTrue(made.allSatisfy { $0.rotation == 30 && $0.opacity == 0.5 })
+        XCTAssertTrue(made.allSatisfy { $0.link == "https://example.com" && $0.animation == enter })
+        // Where it was, mark for mark.
+        for (a, b) in zip(turned, made) {
+            XCTAssertEqual(a.x, b.x, accuracy: 2)
+            XCTAssertEqual(a.y, b.y, accuracy: 2)
+            XCTAssertEqual(a.w, b.w, accuracy: 2)
+            XCTAssertEqual(a.h, b.h, accuracy: 2)
+        }
+        // Parts turned differently are no turn of the whole.
+        XCTAssertEqual(DataGraphics.turn(of: [turned[0], upright[1]]), 0)
+        XCTAssertEqual(DataGraphics.turn(of: turned), 30)
+    }
+
     func testAChartAndATableCopiedTogetherAreEachOneOfTheirOwn() throws {
         let spec = ChartSpec(kind: "column", data: "A, 10\nB, 5")
         let chart = DataGraphics.chart(spec, in: frame, palette: ["#ff0000"])

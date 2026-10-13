@@ -204,11 +204,18 @@ extension DesignStore {
         tableSelection.map { DataGraphics.tableText(page.elements, id: $0.id) } ?? ""
     }
 
-    /// The selected table made the rows typed in `text`, its column widths
-    /// kept, as one step. False when the text holds no rows.
+    /// Whether tableText puts tabs between the selected table's cells.
+    var tableTextTabbed: Bool {
+        tableSelection.map { DataGraphics.tableTextTabbed(page.elements, id: $0.id) } ?? false
+    }
+
+    /// The selected table made the rows typed in `text` (read as
+    /// DataGraphics.parseEditedTable reads them, against the `opened` text
+    /// and with `tabs`), its column widths kept, as one step. False when
+    /// the text holds no rows.
     @discardableResult
-    func rebuildTable(from text: String) -> Bool {
-        let rows = DataGraphics.parseTable(text)
+    func rebuildTable(from text: String, opened: String = "", tabs: Bool = false) -> Bool {
+        let rows = DataGraphics.parseEditedTable(text, opened: opened, tabs: tabs)
         guard !rows.isEmpty else { return false }
         let measure = self.measure
         return editTable { els, t in

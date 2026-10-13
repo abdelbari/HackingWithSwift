@@ -20,6 +20,12 @@ struct DataSheet: View {
     @State private var values: Bool
     @State private var gridlines: Bool
     @State private var tableText = "Item, Qty, Price\nCoffee, 2, 3.50\nBagel, 1, 2.25\nJuice, 3, 4.00"
+    /// Whether the table being edited was written with tabs between its
+    /// cells, so a comma in its words stays in its cell.
+    @State private var tableTabs = false
+    /// The table's words as they were opened, whose lines with no tab are
+    /// read as they were written.
+    @State private var tableOpened = ""
     /// Why the last Add drew nothing, until the data or the kind changes.
     @State private var refusal: String?
 
@@ -32,6 +38,12 @@ struct DataSheet: View {
         _legend = State(initialValue: editing?.legend ?? false)
         _values = State(initialValue: editing?.values ?? false)
         _gridlines = State(initialValue: editing?.gridlines ?? false)
+    }
+
+    /// The rows typed for the table: as Edit as text reads its own words
+    /// back when a table is being edited, else as a new table's.
+    private var tableRows: [[String]] {
+        editingTable ? DataGraphics.parseEditedTable(tableText, opened: tableOpened, tabs: tableTabs) : DataGraphics.parseTable(tableText)
     }
 
     /// Edit chart on a chart with a locked part: nothing to update until it
@@ -98,11 +110,10 @@ struct DataSheet: View {
                         } header: {
                             Text("One row per line, cells separated by commas or tabs")
                         } footer: {
-                            let rows = DataGraphics.parseTable(tableText)
                             if let refusal {
                                 Text(refusal).foregroundStyle(Color(.systemRed))
                             } else {
-                                Text(DataGraphics.tableSummary(rows))
+                                Text(DataGraphics.tableSummary(tableRows))
                             }
                         }
                     }
@@ -118,7 +129,7 @@ struct DataSheet: View {
                     Button(editing != nil || editingTable ? "Update" : "Add") {
                         if add() { dismiss() } else { refusal = whyNot() }
                     }
-                        .disabled(locked || (mode == 0 ? DataGraphics.parseChart(chartText).rows.isEmpty : DataGraphics.parseTable(tableText).isEmpty))
+                        .disabled(locked || (mode == 0 ? DataGraphics.parseChart(chartText).rows.isEmpty : tableRows.isEmpty))
                 }
             }
         }
@@ -130,7 +141,9 @@ struct DataSheet: View {
         .onAppear {
             guard editingTable else { return }
             mode = 1
-            tableText = store.tableText
+            tableTabs = store.tableTextTabbed
+            tableOpened = store.tableText
+            tableText = tableOpened
         }
     }
 
@@ -143,7 +156,7 @@ struct DataSheet: View {
             store.buzz(.reject)
             return "Nothing to draw: type some values, or values above zero."
         }
-        if !editingTable || DataGraphics.parseTable(tableText).isEmpty {
+        if !editingTable || tableRows.isEmpty {
             store.buzz(.reject)
             return "Nothing to set: type some rows."
         }
@@ -157,7 +170,7 @@ struct DataSheet: View {
 
     @discardableResult
     private func add() -> Bool {
-        if editingTable { return store.rebuildTable(from: tableText) }
+        if editingTable { return store.rebuildTable(from: tableText, opened: tableOpened, tabs: tableTabs) }
         let spec = ChartSpec(id: editing?.id ?? UID.make("chart"), kind: kind.rawValue, data: chartText,
                              legend: legend, values: values, gridlines: gridlines)
         // Drawn again where it was, as one step, keeping its colours.

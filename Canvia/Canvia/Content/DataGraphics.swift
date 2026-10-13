@@ -564,6 +564,94 @@ enum DataGraphics {
         return frame
     }
 
+    /// The frame Update draws `spec` in, in place of the chart `was` whose
+    /// elements, upright, fill `bounds`: the frame that fills them as `was`
+    /// did (frameFilling), which is the frame it was drawn in. When the kind
+    /// changes, that frame is kept on the page (`width` by `height`) — a
+    /// progress bar's is far taller than the bar, and the new kind fills all
+    /// of it. The Android twin's `updateFrame`.
+    static func updateFrame(_ was: ChartSpec, to spec: ChartSpec, bounds: CGRect, width: Double, height: Double,
+                            heightFor: @escaping (Element) -> Double = FontLibrary.layoutHeight(for:)) -> CGRect {
+        let frame = frameFilling(was, bounds: bounds, heightFor: heightFor)
+        guard spec.kind != was.kind else { return frame }
+        let w = min(Double(frame.width), width)
+        let h = min(Double(frame.height), height)
+        let x = max(0, min(Double(frame.minX), width - w))
+        let y = max(0, min(Double(frame.minY), height - h))
+        return CGRect(x: x, y: y, width: w, height: h)
+    }
+
+    /// The palette Update draws chart `id`'s series — or rows — in:
+    /// palette(for:page:) of the design as it is without the chart, so that
+    /// its own marks and labels are not counted as the design's colours,
+    /// then keepingPalette for the colours its series have now (`colours`).
+    /// The Android twin's `paletteForUpdate`.
+    static func palette(updating id: String, design: Design, page: Page, colours: [Int: Paint]) -> [String] {
+        func bare(_ p: Page) -> Page {
+            var out = p
+            out.elements.removeAll { $0.chart?.id == id }
+            return out
+        }
+        var without = design
+        without.pages = design.pages.map { $0.id == page.id ? bare($0) : $0 }
+        return keepingPalette(palette(for: without, page: bare(page)), colours: colours)
+    }
+
+    /// `palette` laid out for a chart whose series have `colours` (by
+    /// number): each of those in its own place, and every other place, in
+    /// turn, a colour of `palette` none of them has, after the last of them
+    /// too — so a series or row added comes out as it would in a chart just
+    /// made, not in a colour the chart already shows. `palette` itself when
+    /// no series has a colour, or every colour of it is taken. Numbers past
+    /// 63 are not given places. The Android twin's `keepingPalette`.
+    static func keepingPalette(_ palette: [String], colours: [Int: Paint]) -> [String] {
+        let used = Set(colours.values.map { normalised($0.primaryColor) })
+        let fresh = palette.filter { !used.contains(normalised($0)) }
+        let last = min(colours.keys.max() ?? -1, 63)
+        guard !fresh.isEmpty, last >= 0 else { return palette }
+        var out: [String] = []
+        var taken = 0
+        var n = 0
+        while n <= last || taken < fresh.count {
+            if let own = colours[n] {
+                out.append(own.primaryColor)
+            } else {
+                out.append(fresh[taken % fresh.count])
+                taken += 1
+            }
+            n += 1
+        }
+        return out
+    }
+
+    /// The turn every one of a chart's `members` has; 0 when they differ.
+    static func turn(of members: [Element]) -> Double {
+        let turns = Set(members.map(\.rotation))
+        return turns.count == 1 ? turns.first ?? 0 : 0
+    }
+
+    /// `made`, drawn upright, given what `members` had as a whole: turned by
+    /// `turn` about `pivot`, as a group is turned; the opacity they all had;
+    /// the first link, entrance and exit among them on every element — so
+    /// Update leaves a turned, faded, linked or animated chart so. The
+    /// Android twin's `carried`.
+    static func carrying(_ members: [Element], into made: [Element], pivot: CGPoint, turn: Double) -> [Element] {
+        let opacities = Set(members.map(\.opacity))
+        let opacity: Double? = opacities.count == 1 ? opacities.first : nil
+        let link = members.lazy.compactMap(\.link).first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        let enter = members.lazy.compactMap(\.animation).first
+        let exit = members.lazy.compactMap(\.exitAnimation).first
+        let styled = made.map { el -> Element in
+            var out = el
+            if let opacity { out.opacity = opacity }
+            if let link { out.link = link }
+            if let enter { out.animation = enter }
+            if let exit { out.exitAnimation = exit }
+            return out
+        }
+        return turn != 0 ? Geometry.rotate(styled, around: pivot, by: turn) : styled
+    }
+
     /// A slice of a circle in a 0…100 box, from `start` radians (clockwise
     /// from 3 o'clock, y down) through `sweep`; with `inner` > 0, a ring.
     static func wedge(from start: Double, sweep: Double, inner: Double) -> String {
@@ -647,6 +735,33 @@ enum DataGraphics {
                 return line.split(separator: sep, omittingEmptySubsequences: false)
                     .map { $0.trimmingCharacters(in: .whitespaces) }
             }
+    }
+
+    /// A table's words as Edit as text reads them back (tableText wrote
+    /// them as `opened`): a row per line, the blank lines before the first
+    /// row and after the last left out and those between kept as rows with
+    /// no words, so no row's words move up into another's. A line with a
+    /// tab splits on tabs. With `tabs`, the table was written with tabs
+    /// between its cells and a comma is part of a cell's words, so a line
+    /// as it was opened (a one-column table's "Smith, John") stays one
+    /// cell; any other line with no tab — one typed on a keyboard with no
+    /// tab key — splits on commas, as parseTable splits it. The Android
+    /// twin's `parseEditedTable`.
+    static func parseEditedTable(_ text: String, opened: String, tabs: Bool) -> [[String]] {
+        let all = text.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: .newlines)
+        let trim: (String) -> String = { $0.trimmingCharacters(in: .whitespaces) }
+        guard let first = all.firstIndex(where: { !trim($0).isEmpty }),
+              let last = all.lastIndex(where: { !trim($0).isEmpty }) else { return [] }
+        let whole: Set<String> = tabs
+            ? Set(opened.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: .newlines).map(trim))
+            : []
+        return all[first...last].map { line -> [String] in
+            if line.contains("\t") {
+                return line.split(separator: "\t", omittingEmptySubsequences: false).map { trim(String($0)) }
+            }
+            if whole.contains(trim(line)) { return [trim(line)] }
+            return line.split(separator: ",", omittingEmptySubsequences: false).map { trim(String($0)) }
+        }
     }
 
     /// A table filling `frame`: a header row in `accent` with light text,
