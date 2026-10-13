@@ -632,21 +632,23 @@ enum DataGraphics {
 
     /// `made`, drawn upright, given what `members` had as a whole: turned by
     /// `turn` about `pivot`, as a group is turned; the opacity they all had;
-    /// the first link, entrance and exit among them on every element — so
-    /// Update leaves a turned, faded, linked or animated chart so. The
-    /// Android twin's `carried`.
+    /// the first link, entrance, exit and timing among them on every
+    /// element — so Update leaves a turned, faded, linked, animated or timed
+    /// chart so. The Android twin's `carried`.
     static func carrying(_ members: [Element], into made: [Element], pivot: CGPoint, turn: Double) -> [Element] {
         let opacities = Set(members.map(\.opacity))
         let opacity: Double? = opacities.count == 1 ? opacities.first : nil
         let link = members.lazy.compactMap(\.link).first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         let enter = members.lazy.compactMap(\.animation).first
         let exit = members.lazy.compactMap(\.exitAnimation).first
+        let timing = members.lazy.compactMap(\.timing).first
         let styled = made.map { el -> Element in
             var out = el
             if let opacity { out.opacity = opacity }
             if let link { out.link = link }
             if let enter { out.animation = enter }
             if let exit { out.exitAnimation = exit }
+            if let timing { out.timing = timing }
             return out
         }
         return turn != 0 ? Geometry.rotate(styled, around: pivot, by: turn) : styled

@@ -314,14 +314,16 @@ struct PresentationView: View {
 
     /// When the page's movement is over: its last entrance, or its hold for a
     /// drift or an exit; never, for a loop, a clip or an animated picture,
-    /// which plays while the page is up.
+    /// which plays while the page is up. An element with a timing comes and
+    /// goes on the page's clock, so it plays until the last of those.
     private func motionEnd(_ page: Page) -> Double {
         let elements = design.drawnElements(on: page)
         if elements.contains(where: { VideoStore.isVideo($0.src) || AnimStore.isAnim($0.src) }) { return .infinity }
-        var end = elements.compactMap { $0.animation?.end }.max() ?? 0
+        var end = elements.compactMap { el in el.animation.map { (el.timing?.start ?? 0) + $0.end } }.max() ?? 0
         if elements.contains(where: { $0.kenBurns != nil || $0.exitAnimation != nil }) {
             end = max(end, session.holdSeconds(page))
         }
+        end = max(end, elements.compactMap { $0.timing.map { $0.end ?? $0.start } }.max() ?? 0)
         return end
     }
 

@@ -214,7 +214,7 @@ final class ChartEditingTests: XCTestCase {
                        CGRect(x: 0, y: 0, width: 500, height: 400))
     }
 
-    func testUpdateLeavesAChartTurnedFadedLinkedAndAnimatedAsItWas() {
+    func testUpdateLeavesAChartTurnedFadedLinkedAnimatedAndTimedAsItWas() {
         let spec = ChartSpec(kind: "column", data: "A, 10\nB, 5")
         let upright = DataGraphics.chart(spec, in: frame, palette: ["#ff0000"])
         let box = Geometry.union(upright.map(\.frame))
@@ -224,6 +224,7 @@ final class ChartEditingTests: XCTestCase {
             out.opacity = 0.5
             out.link = "https://example.com"
             out.animation = enter
+            out.timing = ElementTiming(start: 0, end: 2)
             return out
         }
         let s = store(turned)
@@ -232,6 +233,7 @@ final class ChartEditingTests: XCTestCase {
         XCTAssertEqual(made.count, turned.count)
         XCTAssertTrue(made.allSatisfy { $0.rotation == 30 && $0.opacity == 0.5 })
         XCTAssertTrue(made.allSatisfy { $0.link == "https://example.com" && $0.animation == enter })
+        XCTAssertTrue(made.allSatisfy { $0.timing == ElementTiming(start: 0, end: 2) })
         // Where it was, mark for mark.
         for (a, b) in zip(turned, made) {
             XCTAssertEqual(a.x, b.x, accuracy: 2)

@@ -71,6 +71,8 @@ struct EditorView: View {
     /// Rulers along the canvas's top and left, off unless turned on
     /// (RulersView).
     @AppStorage(Guides.rulersKey) private var rulers = false
+    /// The timeline above the pages, off unless turned on (TimelineStrip).
+    @AppStorage(TimelineStrip.key) private var timeline = false
     @State private var namingComponent = false
     /// More's "Save as template…" asking for a name and a category.
     @State private var savingTemplate = false
@@ -149,6 +151,7 @@ struct EditorView: View {
                 .overlay {
                     if store.selectingMultiple { selectMultipleBanner }
                 }
+            if timeline { TimelineStrip(store: store) }
             PagesBar(store: store)
         }
         .background(keyboardCommands)
@@ -702,6 +705,16 @@ struct EditorView: View {
                 Button {
                     activeSheet = .settings
                 } label: { Label("Settings", systemImage: "gearshape") }
+            }
+
+            // The timeline is this phone's; Split page cuts the page on
+            // screen at its playhead.
+            Section {
+                Toggle(isOn: $timeline) { Label("Timeline", systemImage: "timeline.selection") }
+                Button {
+                    store.splitPage()
+                } label: { Label("Split page", systemImage: "scissors") }
+                    .disabled(!store.canSplitPage)
             }
 
             Section {

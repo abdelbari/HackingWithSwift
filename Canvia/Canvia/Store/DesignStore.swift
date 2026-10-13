@@ -9,7 +9,16 @@ import Observation
 @Observable
 final class DesignStore {
     var design: Design
-    var pageIndex: Int = 0
+    var pageIndex: Int = 0 {
+        // Another page brought up puts the timeline's playhead at its start
+        // (TimelineEditing), as the Android twin's playhead follows the page.
+        didSet {
+            if pageIndex != oldValue {
+                playhead = 0
+                playheadPage = design.pages.indices.contains(pageIndex) ? design.pages[pageIndex].id : nil
+            }
+        }
+    }
     var selection: Set<String> = [] {
         // Crop mode works on one selected photo. Selecting anything else —
         // another element, the page, another page — ends it, and the crop
@@ -1855,6 +1864,12 @@ final class DesignStore {
 
     /// Seconds into the current page while a preview plays; nil at rest.
     var previewTime: Double?
+    /// Where the timeline's playhead stands, in seconds into the page
+    /// `playheadPage` — so a page before it held longer or shorter leaves
+    /// it where it is (see TimelineEditing). View state only, never saved.
+    var playhead: Double = 0
+    /// The page the playhead stands on; nil for the page on screen.
+    var playheadPage: String?
     private var previewTask: Task<Void, Never>?
     /// What waits on a play through the film — a voice-over's take — to
     /// end with it, however it ends: the film's end, another page brought

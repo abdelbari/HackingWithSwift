@@ -43,6 +43,8 @@ struct ContextToolbar: View {
     @Binding var activeSheet: EditorSheet?
     /// Animated pictures play on the canvas, not only in Present and video.
     @AppStorage(AnimStore.playKey) private var playAnimated = false
+    /// The editor's timeline is showing, with its playhead to time by.
+    @AppStorage(TimelineStrip.key) private var timeline = false
 
     /// The border as a drag of its slider began, so going back to None puts
     /// back what was there.
@@ -443,8 +445,44 @@ struct ContextToolbar: View {
             exitMenu(el)
             Button { store.playPreview() } label: { Label("Play this page", systemImage: "play") }
                 .disabled(!store.pagePlays)
+            if timeline || timed {
+                Divider()
+                timingButtons()
+            }
         } label: {
             toolLabel("sparkles.rectangle.stack", "Animate", active: el.animation != nil || el.exitAnimation != nil)
+        }
+    }
+
+    /// Whether anything selected has a timing of its own.
+    private var timed: Bool {
+        store.selectedElements.contains { $0.timing != nil }
+    }
+
+    /// When the selection shows within its page: by the timeline's playhead
+    /// while the timeline is on — gone from the menu while it is off,
+    /// unavailable on a hidden page, and Hide not at the page's very start,
+    /// which would hide it all through — and Show for the whole page once it
+    /// has a timing. The Android twin's Animate panel, rule for rule.
+    @ViewBuilder
+    private func timingButtons() -> some View {
+        let t = store.playheadInPage
+        let none = store.unlockedSelectionCount == 0
+        if timeline {
+            Button { store.showSelectedFromPlayhead() } label: {
+                Label("Show from playhead", systemImage: "eye")
+            }
+            .disabled(t == nil || none)
+            Button { store.hideSelectedFromPlayhead() } label: {
+                Label("Hide from playhead", systemImage: "eye.slash")
+            }
+            .disabled((t ?? 0) < 0.05 || none)
+        }
+        if timed {
+            Button { store.clearSelectedTiming() } label: {
+                Label("Show for the whole page", systemImage: "arrow.left.and.right")
+            }
+            .disabled(none)
         }
     }
 
