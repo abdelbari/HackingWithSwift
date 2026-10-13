@@ -268,6 +268,56 @@ struct TableCell: Codable, Equatable, Hashable {
     }
 }
 
+/// The chart an element was drawn as part of: what Edit chart reopens. Every
+/// element of one chart carries the same object — its id, its kind, the data
+/// exactly as typed and its three switches — beside a `chartPart` of its
+/// own. An object without an id, a kind or data is no chart, and its
+/// elements are a plain group again; a kind this build does not know is kept
+/// as written and offers no Edit chart. The switches are written only when on.
+struct ChartSpec: Codable, Equatable, Hashable {
+    /// "chart_<uid>", shared by every element of the chart.
+    var id: String
+    /// A DataGraphics.ChartKind raw value: "column", "stackedBar", "progressRing"…
+    var kind: String
+    var data: String
+    var legend: Bool = false
+    /// Each value written beside its column, bar, point or slice.
+    var values: Bool = false
+    var gridlines: Bool = false
+
+    private enum CodingKeys: String, CodingKey { case id, kind, data, legend, values, gridlines }
+
+    init(id: String = UID.make("chart"), kind: String, data: String,
+         legend: Bool = false, values: Bool = false, gridlines: Bool = false) {
+        self.id = id
+        self.kind = kind
+        self.data = data
+        self.legend = legend
+        self.values = values
+        self.gridlines = gridlines
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        kind = try c.decode(String.self, forKey: .kind)
+        data = try c.decode(String.self, forKey: .data)
+        legend = (try? c.decodeIfPresent(Bool.self, forKey: .legend)) ?? false
+        values = (try? c.decodeIfPresent(Bool.self, forKey: .values)) ?? false
+        gridlines = (try? c.decodeIfPresent(Bool.self, forKey: .gridlines)) ?? false
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(kind, forKey: .kind)
+        try c.encode(data, forKey: .data)
+        if legend { try c.encode(true, forKey: .legend) }
+        if values { try c.encode(true, forKey: .values) }
+        if gridlines { try c.encode(true, forKey: .gridlines) }
+    }
+}
+
 struct Element: Codable, Equatable, Identifiable {
     var id: String = UID.make()
     var type: ElementType = .shape
@@ -308,6 +358,11 @@ struct Element: Codable, Equatable, Identifiable {
     /// A cell rectangle or text of a table that can be edited: which table,
     /// and which row and column (see DataGraphics.relayout).
     var table: TableCell?
+    /// The chart this element was drawn as part of, and which part of it it
+    /// is: "series:<n>", "label", "value", "axis", "grid" or "legend". See
+    /// DataGraphics.chart.
+    var chart: ChartSpec?
+    var chartPart: String?
 
     // shape
     var shapeId: String?
@@ -448,6 +503,8 @@ struct Element: Codable, Equatable, Identifiable {
         hidden = (try? c.decode(Bool.self, forKey: .hidden)) == true ? true : nil
         layerName = (try? c.decode(String.self, forKey: .layerName)).flatMap(LayerNames.kept)
         table = try? c.decode(TableCell.self, forKey: .table)
+        chart = try? c.decode(ChartSpec.self, forKey: .chart)
+        chartPart = try? c.decode(String.self, forKey: .chartPart)
         shapeId = try? c.decode(String.self, forKey: .shapeId)
         pathData = try? c.decode(String.self, forKey: .pathData)
         iconId = try? c.decode(String.self, forKey: .iconId)
@@ -526,7 +583,7 @@ struct Element: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow, blendMode, altText
-        case connectFrom, connectTo, link, hidden, layerName, table
+        case connectFrom, connectTo, link, hidden, layerName, table, chart, chartPart
         case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical

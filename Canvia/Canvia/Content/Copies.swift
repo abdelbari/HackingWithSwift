@@ -17,8 +17,9 @@ enum Copies {
     /// `elements` copied as a batch, moved `offset` down and right. Each gets
     /// a fresh id, each source group one fresh key its copies share, each
     /// table one fresh id its cells' copies share — so the copy is a table of
-    /// its own — and each arrow its ends' copies, or no end, where that end
-    /// was not copied.
+    /// its own — each source chart one fresh chart id, so Edit chart on the
+    /// copy leaves the original alone, and each arrow its ends' copies, or no
+    /// end, where that end was not copied.
     /// Unlocked unless `keepingLocks`: locked belongs to the original, and a
     /// pasted element that cannot be moved is a dead end.
     static func of(_ elements: [Element], offset: Double = 0, keepingLocks: Bool = false) -> [Element] {
@@ -26,6 +27,7 @@ enum Copies {
         for el in elements { ids[el.id] = UID.make() }
         var groups: [String: String] = [:]
         var tables: [String: String] = [:]
+        var charts: [String: String] = [:]
         return elements.map { el in
             var copy = el
             copy.id = ids[el.id] ?? UID.make()
@@ -39,6 +41,10 @@ enum Copies {
             if let cell = el.table {
                 if tables[cell.id] == nil { tables[cell.id] = UID.make("tbl") }
                 copy.table = TableCell(id: tables[cell.id] ?? cell.id, row: cell.row, col: cell.col)
+            }
+            if let chart = el.chart {
+                if charts[chart.id] == nil { charts[chart.id] = UID.make("chart") }
+                copy.chart?.id = charts[chart.id] ?? chart.id
             }
             copy.connectFrom = el.connectFrom.flatMap { ids[$0] }
             copy.connectTo = el.connectTo.flatMap { ids[$0] }
