@@ -812,6 +812,16 @@ enum PageColumn {
         (slots.last.map { Double($0.rect.maxY) } ?? 0) + gap
     }
 
+    /// Where Fit puts the page worked on screen, and where a page picked
+    /// elsewhere is brought to: its top this far down a viewport
+    /// `viewportHeight` tall — in the middle of the height when the page,
+    /// `pageHeight` tall on screen, fits there, but never closer to the top
+    /// than `gap`, the room for its header. One rule for both phones (the
+    /// Android twin's Viewport.fitTop).
+    static func fitTop(viewportHeight: Double, pageHeight: Double, gap: Double) -> Double {
+        max(gap, (viewportHeight - pageHeight) / 2)
+    }
+
     /// The page whose rect holds `point`, in column units, edges included —
     /// the earlier of two that touch — or nil over the gaps and gutters.
     static func pageAt(_ point: CGPoint, in slots: [Slot]) -> Int? {

@@ -624,4 +624,18 @@ final class TablesTests: XCTestCase {
         let plain = Element.shape("rect")
         XCTAssertEqual(s.typedIn(plain)?.id, plain.id, "a plain shape takes its own words")
     }
+
+    func testADoubleTapOnAnotherPageTypesOnlyWhatIsUnlockedThere() {
+        let s = store([])
+        var table = made()
+        XCTAssertEqual(s.typedIn(rect(table, 1, 0), among: table)?.id, text(table, 1, 0).id,
+                       "a cell on another page finds its words on that page")
+        XCTAssertNil(s.typedIn(rect(table, 1, 0)), "not among the page worked")
+        let words = table.firstIndex { $0.id == text(table, 1, 0).id } ?? 0
+        table[words].locked = true
+        XCTAssertNil(s.typedIn(rect(table, 1, 0), among: table), "locked words zoom")
+        var shape = Element.shape("rect")
+        shape.locked = true
+        XCTAssertNil(s.typedIn(shape, among: [shape]), "a locked shape zooms")
+    }
 }

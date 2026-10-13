@@ -145,7 +145,8 @@ struct InlineTextField: UIViewRepresentable {
             painted = spans
             paintedWords = words
             InlineTextField.paint(view.textStorage, words: words, spans: spans, attrs: attrs,
-                                  weight: drawn.fontWeight ?? 400, italic: drawn.italic == true)
+                                  weight: drawn.fontWeight ?? 400, italic: drawn.italic == true,
+                                  gradient: el.textFill?.kind == "gradient")
         }
 
         func textViewDidChange(_ textView: UITextView) {
@@ -317,9 +318,11 @@ struct InlineTextField: UIViewRepresentable {
     /// The typed words, markers and all, in `attrs`, with the colours, sizes
     /// and faces of `spans` — counted in the words as they read — on the
     /// letters they belong to, a face at the box's `weight` and slant, and
-    /// linked words underlined in the link colour unless coloured.
+    /// linked words underlined in the link colour unless coloured — or, in
+    /// `gradient` letters, in the text's ink, as the canvas draws them.
     static func paint(_ storage: NSTextStorage, words: String, spans: [TextSpan],
-                      attrs: [NSAttributedString.Key: Any], weight: Int = 400, italic: Bool = false) {
+                      attrs: [NSAttributedString.Key: Any], weight: Int = 400, italic: Bool = false,
+                      gradient: Bool = false) {
         let whole = NSRange(location: 0, length: storage.length)
         storage.beginEditing()
         storage.setAttributes(attrs, range: whole)
@@ -333,7 +336,7 @@ struct InlineTextField: UIViewRepresentable {
                     face = FontLibrary.uiFont(family: family, size: Double(font.pointSize), weight: weight, italic: italic)
                 }
                 for range in RichText.typedRanges(of: span.range, units: units) {
-                    if let color = span.color ?? (span.link != nil ? Spans.linkColour : nil) {
+                    if let color = span.color ?? (span.link != nil && !gradient ? Spans.linkColour : nil) {
                         storage.addAttribute(.foregroundColor, value: UIColor(hex: color), range: range)
                     }
                     if span.link != nil {

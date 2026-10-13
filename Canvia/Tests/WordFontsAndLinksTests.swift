@@ -228,7 +228,54 @@ final class WordFontsAndLinksTests: XCTestCase {
         XCTAssertEqual(Spans.linkColour, "#2563eb")
     }
 
+    /// Under gradient letters a linked word takes no colour of its own,
+    /// on the canvas and in the typing field, as the Android twin draws it
+    /// (TextLayouts.wordColour); it is still underlined.
+    func testALinkUnderGradientLettersKeepsTheTextsInk() {
+        var el = Element.text("Go here", fontSize: 40)
+        el.color = "#112233"
+        el.textFill = Paint(kind: "gradient", color: nil, angle: 90,
+                            stops: [GradientStop(offset: 0, color: "#ff0000"), GradientStop(offset: 1, color: "#0000ff")])
+        el.setSpans([span(3, 7, link: site)])
+        let drawn = FontLibrary.attributedString(for: el)
+        let ink = (drawn.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? UIColor)?.hexString
+        XCTAssertEqual((drawn.attribute(.foregroundColor, at: 4, effectiveRange: nil) as? UIColor)?.hexString, ink)
+        XCTAssertNotEqual(ink, Spans.linkColour)
+        XCTAssertEqual(drawn.attribute(.underlineStyle, at: 4, effectiveRange: nil) as? Int, NSUnderlineStyle.single.rawValue)
+        XCTAssertEqual(drawn.attribute(Spans.linkKey, at: 4, effectiveRange: nil) as? String, site)
+
+        let attrs: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor(hex: "#112233")]
+        for gradient in [false, true] {
+            let storage = NSTextStorage(string: "Go here", attributes: attrs)
+            InlineTextField.paint(storage, words: "Go here", spans: [span(3, 7, link: site)], attrs: attrs,
+                                  gradient: gradient)
+            let shown = (storage.attribute(.foregroundColor, at: 4, effectiveRange: nil) as? UIColor)?.hexString
+            XCTAssertEqual(shown, gradient ? "#112233" : Spans.linkColour, "gradient \(gradient)")
+        }
+    }
+
     // MARK: where a link is clicked
+
+    /// A drop cap's body is laid out as it is drawn: a linked word on its
+    /// first line sits past the cap's corner, where the canvas draws it.
+    func testALinkBesideADropCapIsWhereTheWordIsDrawn() throws {
+        var el = Element.text("Hello world and some more words", fontSize: 20, w: 300)
+        el.align = "left"
+        el.dropCap = true
+        el.setSpans([span(6, 11, link: site)])
+        let layout = try XCTUnwrap(FontLibrary.dropCapLayout(for: el))
+        let rects = WordLinks.rects(for: el)
+        XCTAssertEqual(rects.count, 1)
+        let first = try XCTUnwrap(rects.first)
+        XCTAssertEqual(first.url, site)
+        XCTAssertGreaterThanOrEqual(Double(first.rect.minX), Double(layout.capRect.width) - 0.5)
+        XCTAssertLessThan(Double(first.rect.minY), Double(layout.capRect.height))
+        // Measured from the body as drawn: "ello world…", the cap's letter out.
+        let body = FontLibrary.dropCapText(for: el, layout).body
+        XCTAssertTrue(body.string.hasPrefix("ello world"))
+        let expected = WordLinks.wordRects(body, width: el.w, notch: layout.capRect.size)
+        XCTAssertEqual(expected.map(\.rect), rects.map(\.rect))
+    }
 
     func testALinkWrappingOverTwoLinesIsTwoRects() throws {
         let font = UIFont.systemFont(ofSize: 20)

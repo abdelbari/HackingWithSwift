@@ -461,6 +461,101 @@ final class PptxExporterTests: XCTestCase {
         XCTAssertTrue(xml.contains("<a:t>•  Eggs</a:t>"))
     }
 
+    /// Shared: a word's font is its run's face, and a word's link a click
+    /// on its run, in the link colour when it has none of its own.
+    func testWordsKeepTheirOwnFontAndLink() {
+        var el = Element.text("one two three")
+        el.setSpans([TextSpan(start: 4, end: 7, font: "lora"), TextSpan(start: 8, end: 13, link: "https://x.com")])
+        let parts = slide(onePage([el]))
+        let ink = "<a:solidFill><a:srgbClr val=\"1F2430\"/></a:solidFill>"
+        let expected = [
+            "<a:r><a:rPr sz=\"3150\">\(ink)<a:latin typeface=\"Modern Sans\"/></a:rPr><a:t>one </a:t></a:r>",
+            "<a:r><a:rPr sz=\"3150\">\(ink)<a:latin typeface=\"Lora\"/></a:rPr><a:t>two</a:t></a:r>",
+            "<a:r><a:rPr sz=\"3150\">\(ink)<a:latin typeface=\"Modern Sans\"/></a:rPr><a:t> </a:t></a:r>",
+            "<a:r><a:rPr sz=\"3150\"><a:solidFill><a:srgbClr val=\"2563EB\"/></a:solidFill>",
+            "<a:latin typeface=\"Modern Sans\"/><a:hlinkClick r:id=\"rId2\"/></a:rPr><a:t>three</a:t></a:r>",
+        ].joined()
+        XCTAssertTrue(parts.xml.contains(expected), parts.xml)
+        let rel = "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink\" "
+            + "Target=\"https://x.com\" TargetMode=\"External\"/>"
+        XCTAssertTrue(parts.rels.contains(rel), parts.rels)
+        XCTAssertTrue(isWellFormed(parts.xml))
+    }
+
+    /// Shared: sz is held to 100 to 400000, as a deck must have it.
+    func testATypeSizeIsHeldToWhatADeckMayHold() {
+        let rows: [(px: Double, size: Int)] = [
+            (1.2, 100), (0, 100), (-5, 100), (.nan, 100), (42, 3150), (5000, 375_000), (6000, 400_000),
+        ]
+        for row in rows { XCTAssertEqual(PptxExporter.typeSize(row.px), row.size, "\(row.px) px") }
+        // A 4 px box with a word at 0.3 of it.
+        var tiny = Element.text("ab", fontSize: 4)
+        tiny.setSpans([TextSpan(start: 0, end: 1, scale: 0.3)])
+        XCTAssertTrue(slideXML([tiny]).contains("<a:rPr sz=\"100\">"))
+    }
+
+    /// Shared: a page of its own size is fitted whole and centred.
+    func testAPageOfItsOwnSizeIsFittedOntoTheSlide() {
+        let d = Design(title: "Deck", width: 1920, height: 1080)
+        let rows: [(w: Double?, h: Double?, factor: Double, dx: Double, dy: Double, fills: Bool)] = [
+            (nil, nil, 1, 0, 0, true),
+            (1080, 1920, 0.5625, 656.25, 0, false),
+            (960, 540, 2, 0, 0, true),
+            (1920, 1920, 0.5625, 420, 0, false),
+            (3840, 1080, 0.5, 0, 270, false),
+        ]
+        for row in rows {
+            var page = Page()
+            page.width = row.w
+            page.height = row.h
+            let fit = PptxExporter.fit(design: d, page: page)
+            let label = "\(String(describing: row.w)) x \(String(describing: row.h))"
+            XCTAssertEqual(fit.factor, row.factor, accuracy: 1e-12, label)
+            XCTAssertEqual(fit.dx, row.dx, accuracy: 1e-12, label)
+            XCTAssertEqual(fit.dy, row.dy, accuracy: 1e-12, label)
+            XCTAssertEqual(fit.fills, row.fills, label)
+        }
+    }
+
+    /// Shared: the slide of a tall page in a wide deck.
+    func testATallPageInAWideDeckKeepsItsElementsOnTheSlide() {
+        var rect = Element.shape("rect", w: 100, h: 100)
+        rect.id = "r"
+        rect.x = 0; rect.y = 1800
+        rect.stroke = "#000000"
+        rect.strokeWidth = 2
+        var text = Element.text("Hi", fontSize: 40, w: 1080)
+        text.x = 0; text.y = 0; text.h = 100
+        text.letterSpacing = 2
+        var page = Page(background: .image("asset:bg"), elements: [rect, text])
+        page.width = 1080
+        page.height = 1920
+        var d = Design(title: "Deck", width: 1920, height: 1080)
+        d.pages = [page]
+        let parts = slide(d)
+        let expected = [
+            "<p:bg><p:bgPr><a:solidFill><a:srgbClr val=\"FFFFFF\"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>",
+            "<p:spTree><p:nvGrpSpPr><p:cNvPr id=\"1\" name=\"\"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>",
+            "<p:pic><p:nvPicPr><p:cNvPr id=\"2\" name=\"Background\"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr>",
+            "<p:blipFill><a:blip r:embed=\"rId2\"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>",
+            "<p:spPr><a:xfrm><a:off x=\"6250781\" y=\"0\"/><a:ext cx=\"5786438\" cy=\"10287000\"/></a:xfrm>",
+            "<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom></p:spPr></p:pic>",
+            "<p:sp><p:nvSpPr><p:cNvPr id=\"3\" name=\"r\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>",
+            "<p:spPr><a:xfrm><a:off x=\"6250781\" y=\"9644063\"/><a:ext cx=\"535781\" cy=\"535781\"/></a:xfrm>",
+        ].joined()
+        XCTAssertTrue(parts.xml.contains(expected), parts.xml)
+        XCTAssertTrue(parts.xml.contains("<a:ln w=\"10716\">"))
+        XCTAssertTrue(parts.xml.contains("<a:rPr sz=\"1688\" spc=\"84\">"))
+        XCTAssertTrue(parts.rels.contains("Target=\"../media/image1.jpeg\""))
+        XCTAssertTrue(isWellFormed(parts.xml))
+        // A page of the deck's shape at another size still fills the slide.
+        d.pages[0].width = 960
+        d.pages[0].height = 540
+        let fills = slide(d).xml
+        XCTAssertTrue(fills.contains("<p:bg><p:bgPr><a:blipFill><a:blip r:embed=\"rId2\"/>"), fills)
+        XCTAssertTrue(fills.contains("<a:off x=\"0\" y=\"34290000\"/><a:ext cx=\"1905000\" cy=\"1905000\"/>"))
+    }
+
     // MARK: shapes and lines (shared)
 
     func testShapesAndLinesArePresetGeometry() {

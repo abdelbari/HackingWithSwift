@@ -506,7 +506,11 @@ enum FontLibrary {
             FontLibrary.uiFont(family: family, size: size, weight: FontLibrary.resolveWeight(weight, bold: bold),
                                italic: slanted || italic)
         }
-        return RichText.attributed(marked, base: base, uppercase: capitals, spans: spans, face: face) { bold, slanted in
+        // Under gradient letters a link takes no colour, as words' colours
+        // do not (displaySpans), on both phones.
+        let linkColour = el.textFill?.kind != "gradient"
+        return RichText.attributed(marked, base: base, uppercase: capitals, spans: spans,
+                                   linkColour: linkColour, face: face) { bold, slanted in
             uiFont(family: el.fontFamily, size: size, weight: resolveWeight(weight, bold: bold), italic: slanted || italic)
         }
     }
