@@ -103,24 +103,33 @@ struct CopyResizeRows: View {
     }
 }
 
-/// The button under the sizes: "Make 3 copies", then how far it has got.
+/// The button under the sizes: "Make 3 copies", then how far it has got,
+/// and above it "Couldn't make the copies" when none could be saved.
 struct CopyResizeButton: View {
     let count: Int
     let progress: String?
+    var failed: Bool = false
     var action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                if progress != nil { ProgressView().tint(.white) }
-                Text(progress ?? CopyResize.buttonTitle(count: max(count, 0)))
-                    .fontWeight(.semibold)
+        VStack(spacing: 6) {
+            if failed && progress == nil {
+                Text(CopyResize.failedText)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 6)
+            Button(action: action) {
+                HStack(spacing: 8) {
+                    if progress != nil { ProgressView().tint(.white) }
+                    Text(progress ?? CopyResize.buttonTitle(count: max(count, 0)))
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(count == 0 || progress != nil)
         }
-        .buttonStyle(.borderedProminent)
-        .disabled(count == 0 || progress != nil)
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .background(.bar)
@@ -149,6 +158,7 @@ struct CopyResizeSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var ticked: [ResizeTarget] = []
     @State private var progress: String?
+    @State private var failed = false
     @State private var task: Task<Void, Never>?
 
     var body: some View {
@@ -162,7 +172,7 @@ struct CopyResizeSheet: View {
                 CopyResizeRows(ticked: $ticked)
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                CopyResizeButton(count: ticked.count, progress: progress) { make() }
+                CopyResizeButton(count: ticked.count, progress: progress, failed: failed) { make() }
             }
             .navigationTitle("Copy & resize")
             .navigationBarTitleDisplayMode(.inline)
@@ -178,12 +188,19 @@ struct CopyResizeSheet: View {
 
     private func make() {
         let targets = ticked
+        failed = false
         task = Task { @MainActor in
             defer { progress = nil; task = nil }
-            guard let made = try? await CopyResize.make(source, targets: targets, progress: { progress = $0 }),
-                  !made.isEmpty else { return }
-            onDone(made)
-            dismiss()
+            do {
+                let made = try await CopyResize.make(source, targets: targets, progress: { progress = $0 })
+                // None saved is said, and the sheet stays to try again.
+                guard !made.isEmpty else { failed = true; return }
+                onDone(made)
+                dismiss()
+            } catch {
+                // Cancelled is the sheet going: nothing to say.
+                if !(error is CancellationError) { failed = true }
+            }
         }
     }
 }

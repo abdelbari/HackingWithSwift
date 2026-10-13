@@ -1331,7 +1331,10 @@ struct EditorView: View {
         store.endTextEdit()
         saveNow()
         let copy = CopyResize.madeCopy(of: store.design, taken: DesignLibrary.recents().map(\.title))
-        guard DesignLibrary.save(copy) else { return }
+        guard DesignLibrary.save(copy) else {
+            show(toast: "Couldn't make a copy", undoable: false)
+            return
+        }
         DesignLibrary.writeThumbnail(for: copy)
         openDesign(copy.id)
     }
