@@ -17,7 +17,7 @@ final class ExitAnimationTests: XCTestCase {
     /// duration, q = (t - begin) / duration and e = q^3: at q = 0.5, e =
     /// 0.125. Fade and rise fade by e; pop and the slides keep full opacity
     /// until e passes 0.5, as their entrances run the other way. The same
-    /// rows as the Android twin's ExitAnimationTest.
+    /// rows as the Android twin's ElementAnimationTest.
     func testTheExitTable() {
         let rows: [(String, Double, Double, Double, Double, Double, Double, Double)] = [
             // before it begins: settled
