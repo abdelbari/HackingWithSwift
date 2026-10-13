@@ -115,7 +115,7 @@ struct BrandKitSheet: View {
             try BrandKitFile.export(kit).write(to: url, options: .atomic)
             sharedURL = url
         } catch {
-            problem = "Couldn't make the kit's file."
+            problem = "Couldn't make the brand kit file."
         }
     }
 
@@ -130,7 +130,8 @@ struct BrandKitSheet: View {
             try BrandKitFile.import(data, into: &next)
             kits = next
         } catch {
-            problem = error.localizedDescription
+            // As the Android twin says it, whatever went wrong.
+            problem = BrandKitFile.KitFileError.notAKit.localizedDescription
         }
     }
 

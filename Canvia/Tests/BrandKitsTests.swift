@@ -250,4 +250,56 @@ final class BrandKitsTests: XCTestCase {
         XCTAssertTrue(refused, "not a kit")
         XCTAssertEqual(kits.kits.count, 2)
     }
+
+    /// The file the Android twin's kit-file test reads too: a kit file
+    /// that does carry a clip, as an earlier build wrote them.
+    static let kitCarryingAClip = #"{"format":"canvia-brand","kit":{"id":"kit-7","logos":["media:img-1","video:vid-1","asset:mesh-ocean"],"name":"Clips"},"media":{"img-1":{"data":"AQIDBA==","ext":"png"}},"version":1,"videos":{"vid-1":{"data":"AAAAGGZ0eXA=","ext":"mp4"}}}"#
+
+    /// No kit file carries a clip, on either phone: a clip logo goes out as
+    /// its name only, and arrives nowhere — even from a file that does carry
+    /// the clip. The photo and the library picture arrive, as on Android.
+    func testAKitFileLeavesOutEveryClipLogo() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let data = Data(Self.kitCarryingAClip.utf8)
+        let contents = try JSONDecoder().decode(BrandKitFile.Contents.self, from: data)
+        XCTAssertEqual(BrandKitFile.carried(contents), ["media:img-1", "asset:mesh-ocean"])
+        var kits = BrandKits.fresh
+        let arrived = try BrandKitFile.import(data, into: &kits, mediaDirectory: dir)
+        XCTAssertEqual(arrived.name, "Clips")
+        XCTAssertEqual(arrived.logos.count, 2)
+        XCTAssertTrue(arrived.logos[0].hasPrefix("media:") && arrived.logos[0] != "media:img-1", arrived.logos[0])
+        XCTAssertEqual(arrived.logos[1], "asset:mesh-ocean")
+
+        // Going out, a clip logo is its name: neither the clip nor a still.
+        let id = try XCTUnwrap(VideoStore.store(Data([0, 0, 0, 24, 102, 116, 121, 112]), ext: "mp4"))
+        defer { VideoStore.delete(id) }
+        var kit = BrandKit(id: "kit-8", name: "Clips")
+        kit.logos = [VideoStore.src(id, at: nil), "asset:sun"]
+        let out = BrandKitFile.contents(of: kit, mediaDirectory: dir)
+        XCTAssertEqual(out.kit.logos, kit.logos)
+        XCTAssertTrue(out.media.isEmpty)
+        let raw = try XCTUnwrap(JSONSerialization.jsonObject(with: BrandKitFile.export(kit, mediaDirectory: dir)) as? [String: Any])
+        XCTAssertNil(raw["videos"])
+    }
+
+    /// The row the Android twin's kit-file test checks: a photo logo the
+    /// file does not carry, or a clip logo, is left out, a library picture
+    /// is kept as it is.
+    func testAKitFileKeepsALibraryLogoAndDropsOneNotCarried() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var kit = BrandKit(id: "kit-9", name: "My brand")
+        kit.logos = ["media:img-1", "video:vid-1", "asset:mesh-ocean", "media:img-gone"]
+        let contents = BrandKitFile.Contents(kit: kit, media: ["img-1": DesignPackage.Media(ext: "png", data: Data([1, 2, 3, 4]))])
+        XCTAssertEqual(BrandKitFile.carried(contents), ["media:img-1", "asset:mesh-ocean"])
+
+        var kits = BrandKits.fresh
+        let arrived = try BrandKitFile.import(try JSONEncoder().encode(contents), into: &kits, mediaDirectory: dir)
+        XCTAssertEqual(arrived.logos.count, 2)
+        XCTAssertTrue(arrived.logos[0].hasPrefix("media:") && arrived.logos[0] != "media:img-1", arrived.logos[0])
+        XCTAssertEqual(arrived.logos[1], "asset:mesh-ocean")
+    }
 }
