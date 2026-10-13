@@ -1,12 +1,12 @@
 // The page heard as it plays: each clip's own sound while its page is up
-// (AudioMix.clips) and the design's audio tracks, in Play in the editor and
-// in Present. One player a clip and one a track, each kept to its clock: a
-// looping clip goes round its trimmed window (AVPlayerLooper), one that does
-// not falls silent at its end; a track waits for its place in the film
-// (AudioMix.span), plays its window once or round and round, and its level
-// follows its fades every tenth of a second. Once a second a player more
-// than 150 ms off the clock is put right — as the Android twin's PageSound
-// keeps its players.
+// and its element shows (AudioMix.clips), and the design's audio tracks,
+// in Play in the editor and in Present. One player a clip and one a track,
+// each kept to its clock: a looping clip goes round its trimmed window
+// (AVPlayerLooper), one that does not falls silent at its end; a track
+// waits for its place in the film (AudioMix.span), plays its window once
+// or round and round, and its level follows its fades every tenth of a
+// second. Once a second a player more than 150 ms off the clock is put
+// right — as the Android twin's PageSound keeps its players.
 //
 // Play shares the phone's sound, and the silent switch mutes it; a
 // presentation takes the sound, switch or not. The session is let go, and
@@ -30,7 +30,8 @@ final class PageSound {
     /// One player, playing `start`...`end` seconds of its file from `since`,
     /// round and round or once, at `level` — for `lasts` seconds when that
     /// is set, rising and falling over `fadeIn` and `fadeOut`, in seconds
-    /// on its own clock.
+    /// on its own clock, and heard only within `timing` on that clock when
+    /// it has one: a clip whose element shows for part of its page.
     private final class Voice {
         let player = AVQueuePlayer()
         /// What keeps a looping voice going round; none for one played once.
@@ -43,12 +44,14 @@ final class PageSound {
         let lasts: Double?
         let fadeIn: ClosedRange<Double>?
         let fadeOut: ClosedRange<Double>?
+        let timing: ElementTiming?
         /// Whether it has started: one still waiting for its moment is
         /// looked at every tick, not once a second, so it starts on time.
         private(set) var begun = false
 
         init(url: URL, start: Double, end: Double, loop: Bool, level: Float, since: Date,
-             lasts: Double? = nil, fadeIn: ClosedRange<Double>? = nil, fadeOut: ClosedRange<Double>? = nil) {
+             lasts: Double? = nil, fadeIn: ClosedRange<Double>? = nil, fadeOut: ClosedRange<Double>? = nil,
+             timing: ElementTiming? = nil) {
             self.start = start
             self.end = end
             self.loop = loop
@@ -57,6 +60,7 @@ final class PageSound {
             self.lasts = lasts
             self.fadeIn = fadeIn
             self.fadeOut = fadeOut
+            self.timing = timing
             let item = AVPlayerItem(url: url)
             if loop {
                 looper = AVPlayerLooper(player: player, templateItem: item,
@@ -69,11 +73,12 @@ final class PageSound {
         }
 
         /// Where in the file it should be at `now`; nil before its moment,
-        /// once it has played out, or for a window too short to play.
+        /// outside its timing, once it has played out, or for a window too
+        /// short to play.
         func position(at now: Date) -> Double? {
             let t = now.timeIntervalSince(since)
             let span = end - start
-            guard span > 0.01, t >= 0 else { return nil }
+            guard span > 0.01, t >= 0, ElementTiming.shows(timing, at: t) else { return nil }
             // Within a twentieth of its end it has ended: the player may
             // already have stopped there.
             if let lasts, t >= lasts - 0.05 { return nil }
@@ -148,7 +153,8 @@ final class PageSound {
 
     /// The clips of a page that came up at `since`, in place of any page's
     /// before: each clip this phone has with sound in it, in its window, at
-    /// its volume.
+    /// its volume, while its element shows — as AudioMix lays it in the
+    /// video.
     func page(_ sounding: [AudioMix.Clip], since: Date) {
         clips.forEach { $0.stop() }
         clips = []
@@ -168,7 +174,7 @@ final class PageSound {
                 let end = min(p.end ?? length, length)
                 guard end - start > 0.01 else { continue }
                 let voice = Voice(url: url, start: start, end: end, loop: p.loop,
-                                  level: Float(min(max(p.volume, 0), 1)), since: since)
+                                  level: Float(min(max(p.volume, 0), 1)), since: since, timing: clip.timing)
                 self.clips.append(voice)
                 self.play(voice)
             }
