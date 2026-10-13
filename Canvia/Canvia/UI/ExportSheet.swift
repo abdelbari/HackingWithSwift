@@ -1,7 +1,7 @@
-// Export sheet: the chooser. PNG / JPEG at 1-3x and multi-page PDF, all
-// rendered from the same PageRenderView the canvas uses and handed to the
-// system share sheet. The rendering and encoding themselves live in
-// DesignExporter.
+// Export sheet: the chooser. PNG / JPEG at 1-3x, multi-page PDF and a
+// PowerPoint deck, all rendered from the same views the canvas uses and
+// handed to the system share sheet. The rendering and encoding themselves
+// live in DesignExporter and PptxExporter.
 
 import SwiftUI
 import UIKit
@@ -357,11 +357,15 @@ struct ExportSheet: View {
         }
     }
 
-    /// The four file formats, Settings' default export format first.
+    /// The file formats, Settings' default export format first, then PowerPoint.
     private var formatSection: some View {
         Section {
             ForEach(AppDefaults.formatOrder(defaultFormat), id: \.self) { formatRow($0) }
             Toggle("Flatten PDF", isOn: $flatten)
+            exportButton("PowerPoint", subtitle: pptxSubtitle, icon: "rectangle.stack",
+                         working: "Making the PowerPoint", unavailable: leftOut(pdfIndices), format: "pptx") {
+                try await exportPowerPoint()
+            }
         } header: {
             Text("Format")
         } footer: {
@@ -403,6 +407,18 @@ struct ExportSheet: View {
     private var pdfSubtitle: String {
         let kind = flatten ? "flattened at 300 dpi" : "vector"
         guard store.design.pages.count > 1 else { return "Print-ready document, \(kind)" }
+        switch pageRange {
+        case .all: return "\(allPagesText), \(kind)"
+        case .current: return "Page \(store.pageIndex + 1) only, \(kind)"
+        case .chosen: return "\(chosenText), \(kind)"
+        }
+    }
+
+    /// Said from the page choice above, which the PowerPoint follows as the
+    /// PDF does: a slide a page, hidden pages left out of All pages.
+    private var pptxSubtitle: String {
+        let kind = "editable slides"
+        guard store.design.pages.count > 1 else { return "One slide, editable text and shapes" }
         switch pageRange {
         case .all: return "\(allPagesText), \(kind)"
         case .current: return "Page \(store.pageIndex + 1) only, \(kind)"
@@ -1027,6 +1043,18 @@ struct ExportSheet: View {
                                                  current: exportedPageIndex)
         sharedURLs = urls
         exportedURL = urls.first
+    }
+
+    /// The deck as a .pptx named after the design, of the pages the PDF
+    /// would hold.
+    @MainActor
+    private func exportPowerPoint() async throws {
+        let url = DesignExporter.fileURL(for: store.design, ext: PptxExporter.fileExtension)
+        try await PptxExporter.export(design: store.design, range: pageExportRange,
+                                      current: store.pageIndex, to: url,
+                                      progress: { progress = $0 })
+        sharedURLs = [url]
+        exportedURL = url
     }
 
     @MainActor

@@ -230,6 +230,16 @@ struct ResolvedEffect: Equatable {
     func radius(barHeight: Double) -> Double {
         barHeight / 2 * roundness
     }
+
+    /// How far past the letters the effect draws: the farthest shadow or
+    /// copy and a blur's soft edge, which runs on about one and a half
+    /// times its blur, a bar's pad, and half a stroke — the Android twin's
+    /// ResolvedEffect.reach.
+    var reach: Double {
+        let cast = max(abs(dx), abs(dy)) + 1.5 * blur
+        let copy = copies.map { max(abs($0.dx), abs($0.dy)) }.max() ?? 0
+        return max(cast, copy, pad) + stroke / 2
+    }
 }
 
 /// Applies an effect around already-styled text content.

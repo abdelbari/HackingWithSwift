@@ -53,7 +53,7 @@ enum ExportChoices {
 /// {"format":"png","scale":2,"longEdge":null,"jpegQuality":0.85,
 ///  "transparent":false,"pages":"all"}.
 struct ExportLast: Codable, Equatable {
-    /// "png" | "jpg" | "pdf" | "print" | "svg" | "mp4" | "gif".
+    /// "png" | "jpg" | "pdf" | "print" | "svg" | "pptx" | "mp4" | "gif".
     var format: String
     var scale: Double
     /// The long edge typed, in pixels; nil when the scale applies.
@@ -64,7 +64,7 @@ struct ExportLast: Codable, Equatable {
     var pages: String
 
     static let key = "exportLast"
-    static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "mp4", "gif"]
+    static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif"]
     static let pageChoices: Set<String> = ["all", "current", "chosen"]
 
     private enum CodingKeys: String, CodingKey {
