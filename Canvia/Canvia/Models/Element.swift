@@ -309,6 +309,9 @@ struct Element: Codable, Equatable, Identifiable {
     var dropCap: Bool?
     /// How the element arrives on the page, in video and preview.
     var animation: ElementAnimation?
+    /// How the element leaves as its page ends: the same three fields, the
+    /// delay counted back from the page's end. nil is staying to the end.
+    var exitAnimation: ElementAnimation?
     /// For photos: a slow drift of the crop over the page's hold.
     var kenBurns: KenBurns?
     /// A gradient behind the letters. nil paints `color`; a solid Paint here
@@ -415,6 +418,7 @@ struct Element: Codable, Equatable, Identifiable {
         textStyleId = try? c.decode(String.self, forKey: .textStyleId)
         dropCap = try? c.decode(Bool.self, forKey: .dropCap)
         animation = try? c.decode(ElementAnimation.self, forKey: .animation)
+        exitAnimation = try? c.decode(ElementAnimation.self, forKey: .exitAnimation)
         kenBurns = try? c.decode(KenBurns.self, forKey: .kenBurns)
         textFill = try? c.decode(Paint.self, forKey: .textFill)
         effect = try? c.decode(TextEffectSpec.self, forKey: .effect)
@@ -470,7 +474,7 @@ struct Element: Codable, Equatable, Identifiable {
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
         case spans, spansText
-        case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, kenBurns
+        case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit, clip
         case glyph
         case thickness, dash, startCap, endCap

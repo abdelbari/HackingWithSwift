@@ -6,6 +6,11 @@
 // opacity, offset, scale and a count of visible characters, and the canvas
 // preview, the video and the GIF all read that one function. Ken Burns is
 // the same idea for a photo: a slow drift of its crop over the page's hold.
+//
+// An element can leave the same way, as its page ends: an exit is the same
+// three fields under `exitAnimation`, its delay counted back from the end of
+// the page, read by `exitState(at:hold:size:)` and combined with the
+// entrance — at parity with the Android twin's ElementAnimation.exitState.
 
 import Foundation
 
@@ -25,6 +30,27 @@ struct ElementAnimation: Codable, Equatable {
     static let loopPeriod = 1.2
 
     var loops: Bool { Self.loopKinds.contains(kind) }
+
+    /// The ways out, in the order the Exit menu offers them. Any other kind
+    /// leaves as a fade.
+    static let exitKinds = ["fade", "rise", "pop", "slideLeft", "slideRight"]
+    /// An exit's length when it is picked, and the gap between elements
+    /// leaving together.
+    static let exitDuration = 0.6
+    static let exitStagger = 0.15
+    /// The longest Present holds back for exits before the page turns.
+    static let maxExitSpan = 2.0
+
+    static func exitName(_ kind: String?) -> String {
+        switch kind {
+        case nil: return "No exit"
+        case "rise": return "Rise"
+        case "pop": return "Pop"
+        case "slideLeft": return "Slide left"
+        case "slideRight": return "Slide right"
+        default: return "Fade"
+        }
+    }
 
     static func name(_ kind: String) -> String {
         switch kind {
@@ -55,6 +81,18 @@ struct ElementAnimation: Codable, Equatable {
         /// For text reveals: how many characters are shown; nil is all.
         var visibleCharacters: Int?
         static let settled = State()
+
+        /// This state with an exit's on top: opacities and scales
+        /// multiply, offsets and turns add; the characters shown are this
+        /// one's, since only an entrance reveals text.
+        func combined(with exit: State) -> State {
+            var s = self
+            s.opacity *= exit.opacity
+            s.offset = CGSize(width: offset.width + exit.offset.width, height: offset.height + exit.offset.height)
+            s.scale *= exit.scale
+            s.rotation += exit.rotation
+            return s
+        }
     }
 
     /// 0 before the delay, 1 after the duration, eased in between.
@@ -109,6 +147,45 @@ struct ElementAnimation: Codable, Equatable {
 
     /// When the element is fully in; a loop is never in.
     var end: Double { loops ? .infinity : delay + duration }
+
+    /// As an exit: what the element looks like `t` seconds into a page held
+    /// `hold` seconds. It is gone by `delay` seconds before the end, having
+    /// taken `duration` to go — settled before that, eased in (q cubed)
+    /// while it goes, so it leaves slowly and then quickly.
+    func exitState(at t: Double, hold: Double, size: Double = 100) -> State {
+        let end = hold - delay
+        let begin = end - duration
+        if t <= begin { return .settled }
+        let q = duration > 0 ? min(max((t - begin) / duration, 0), 1) : 1
+        let e = t >= end ? 1 : q * q * q
+        var s = State()
+        switch kind {
+        case "rise":
+            s.opacity = 1 - e
+            s.offset = CGSize(width: 0, height: -e * size * 0.3)
+        case "pop":
+            s.opacity = min(1, (1 - e) * 2)
+            s.scale = 1 - 0.6 * e
+        case "slideLeft":
+            s.opacity = min(1, (1 - e) * 2)
+            s.offset = CGSize(width: -e * size, height: 0)
+        case "slideRight":
+            s.opacity = min(1, (1 - e) * 2)
+            s.offset = CGSize(width: e * size, height: 0)
+        default: // fade
+            s.opacity = 1 - e
+        }
+        if t >= end { s.opacity = 0 }
+        return s
+    }
+
+    /// How long before the end of the page its exits begin: the latest
+    /// `delay + duration` among `elements`, at most `maxExitSpan`; 0 when
+    /// none of them leaves.
+    static func exitSpan(_ elements: [Element]) -> Double {
+        let span = elements.compactMap { $0.exitAnimation.map { max(0, $0.delay + $0.duration) } }.max() ?? 0
+        return min(span, maxExitSpan)
+    }
 
     /// One cycle every `loopPeriod` seconds from the delay, at rest before it.
     private func loopState(at t: Double) -> State {

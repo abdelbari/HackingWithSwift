@@ -180,13 +180,14 @@ enum MovieExporter {
     // MARK: frames
 
     /// Whether a page has to be rendered frame by frame: anything on it
-    /// moves, or anything the master page draws behind it does. A master's
+    /// moves — arriving, leaving, looping, drifting, playing — or anything
+    /// the master page draws behind it does. A master's
     /// looping clip or pulsing logo plays through every page that shows it,
     /// in Present and on the Android twin's video alike, so it has to here
     /// too rather than sit on its first frame.
     static func isAnimated(_ page: Page, in design: Design) -> Bool {
         (design.masterElements(behind: page) + page.elements).contains {
-            $0.animation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src)
+            $0.animation != nil || $0.exitAnimation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src)
         }
     }
 
