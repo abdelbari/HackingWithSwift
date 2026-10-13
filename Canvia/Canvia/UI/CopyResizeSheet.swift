@@ -137,7 +137,7 @@ extension CopyResize {
             DesignLibrary.recents().map(\.title)
         }.value
         let made = copies(of: source, to: targets, taken: taken)
-        return try await save(made) { n in progress(progressText(n, of: made.count)) }
+        return try await save(made) { n in progress(CopyResize.progressText(n, of: made.count)) }
     }
 }
 

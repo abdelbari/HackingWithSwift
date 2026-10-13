@@ -83,8 +83,8 @@ struct ExportLast: Codable, Equatable {
         longEdge = (try? c.decode(Int.self, forKey: .longEdge)).flatMap { $0 >= 16 ? $0 : nil }
         jpegQuality = min(max((try? c.decode(Double.self, forKey: .jpegQuality)) ?? 0.92, 0.3), 1)
         transparent = (try? c.decode(Bool.self, forKey: .transparent)) ?? false
-        let p = (try? c.decode(String.self, forKey: .pages)) ?? "current"
-        pages = Self.pageChoices.contains(p) ? p : "current"
+        let p = (try? c.decode(String.self, forKey: .pages)) ?? "all"
+        pages = Self.pageChoices.contains(p) ? p : "all"
     }
 
     /// Every key written, the long edge as null when there is none, in the

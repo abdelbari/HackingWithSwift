@@ -231,7 +231,7 @@ final class DownloadPagesTests: XCTestCase {
         XCTAssertEqual(odd.format, "png")
         XCTAssertEqual(odd.scale, 3)
         XCTAssertNil(odd.longEdge)
-        XCTAssertEqual(odd.pages, "current")
+        XCTAssertEqual(odd.pages, "all")
         XCTAssertNil(ExportLast.read(""))
         XCTAssertNil(ExportLast.read("not json"))
     }

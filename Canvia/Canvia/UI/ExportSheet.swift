@@ -19,7 +19,10 @@ struct ExportSheet: View {
     @State private var audioSeconds: Double?
     @State private var jpegQuality = 0.92
     @State private var transparent = false
-    @State private var pageRange = RangeChoice.current
+    /// All pages to start with, the first of the row as in Canva: the
+    /// video and GIF follow the choice now, and play the whole design
+    /// unless asked otherwise.
+    @State private var pageRange = RangeChoice.all
     /// The pages ticked in Choose…, by id — this design's, for the session.
     @State private var chosenIds: [String] = []
     @State private var choosingPages = false
@@ -62,8 +65,10 @@ struct ExportSheet: View {
         }
     }
 
-    /// The page choice as the exporter takes it.
+    /// The page choice as the exporter takes it. A one-page design has no
+    /// choice to show, and is that page, as before.
     private var pageExportRange: DesignExporter.PageRange {
+        if store.design.pages.count == 1 { return .current }
         switch pageRange {
         case .all: return .all
         case .current: return .current
@@ -437,7 +442,7 @@ struct ExportSheet: View {
         scale = [1.0, 2.0, 3.0].contains(last.scale) ? last.scale : 2
         jpegQuality = last.jpegQuality
         transparent = last.transparent
-        pageRange = RangeChoice(rawValue: last.pages) ?? .current
+        pageRange = RangeChoice(rawValue: last.pages) ?? .all
         if last.format == "jpg" { photosFormat = .jpeg } else if last.format == "png" { photosFormat = .png }
         // After the scale's own change has cleared the field, which it does
         // once this pass is drawn.
