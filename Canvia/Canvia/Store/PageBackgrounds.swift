@@ -86,13 +86,15 @@ extension DesignStore {
     }
 
     /// The page's background picture taken out as a photo covering the whole
-    /// page, filling it as the background did, behind everything else and
-    /// selected; the page is left white. One step.
+    /// page and its print bleed, filling them as the background did — so the
+    /// crop holds still and the band stays filled — behind everything else
+    /// and selected; the page is left white. One step, as on the Android twin.
     func detachBackground() {
         guard case .image(let src) = page.background else { return }
-        var photo = Element.image(src, w: pageWidth, h: pageHeight)
-        photo.x = 0
-        photo.y = 0
+        let b = Bleed.of(design)
+        var photo = Element.image(src, w: pageWidth + 2 * b, h: pageHeight + 2 * b)
+        photo.x = -b
+        photo.y = -b
         applyToPage { page in
             page.elements.insert(photo, at: 0)
             page.background = .color("#ffffff")

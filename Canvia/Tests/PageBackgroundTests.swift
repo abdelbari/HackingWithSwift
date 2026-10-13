@@ -160,6 +160,21 @@ final class PageBackgroundTests: XCTestCase {
         XCTAssertEqual(s.page.elements.map(\.id), [top.id])
     }
 
+    /// With the print bleed shown the background covered the band too, so
+    /// the photo does: the crop holds still and the band stays filled. The
+    /// Android twin's rows.
+    func testADetachedBackgroundCoversThePrintBleed() {
+        let s = store([], background: .image("asset:mesh-ocean"))
+        s.design.bleed = 35.5
+        s.detachBackground()
+        let photo = s.page.elements[0]
+        XCTAssertEqual(photo.x, -35.5, accuracy: 1e-9)
+        XCTAssertEqual(photo.y, -35.5, accuracy: 1e-9)
+        XCTAssertEqual(photo.w, 871, accuracy: 1e-9)
+        XCTAssertEqual(photo.h, 671, accuracy: 1e-9)
+        XCTAssertEqual(photo.cropScale, 1)
+    }
+
     func testNothingToDetachFromAColour() {
         let s = store([])
         s.detachBackground()

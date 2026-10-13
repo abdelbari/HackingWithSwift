@@ -72,8 +72,10 @@ struct CanvasView: View {
     /// stay a constant size on screen.
     private var iz: Double { 1 / max(store.zoom, 0.01) }
 
-    /// The design's print bleed, in page units; 0 when none is shown.
-    private var bleed: Double { Bleed.of(store.design) }
+    /// The design's print bleed, in page units; 0 when none is shown, and
+    /// while the page plays, which cuts it at its trim as Present does, as
+    /// on the Android twin.
+    private var bleed: Double { store.previewTime == nil ? Bleed.of(store.design) : 0 }
 
     struct GestureState {
         var dragOriginals: [String: CGPoint] = [:]
