@@ -337,7 +337,7 @@ struct ContextToolbar: View {
         }
     }
 
-    /// An entrance for the selection, and a way to see it.
+    /// An entrance for the selection, an exit, and a way to see them.
     private func animateMenu(_ el: Element) -> some View {
         Menu {
             Button { store.animateSelected(nil) } label: {
@@ -364,11 +364,36 @@ struct ContextToolbar: View {
                 }
             }
             Divider()
+            exitMenu(el)
             Button { store.playPreview() } label: { Label("Play this page", systemImage: "play") }
                 .disabled(!store.pageIsAnimated)
         } label: {
-            toolLabel("sparkles.rectangle.stack", "Animate", active: el.animation != nil)
+            toolLabel("sparkles.rectangle.stack", "Animate", active: el.animation != nil || el.exitAnimation != nil)
         }
+    }
+
+    /// How the selection leaves as the page ends; a pick plays the page's
+    /// last moments to show it.
+    private func exitMenu(_ el: Element) -> some View {
+        // A kind from a newer build leaves as a fade, so it is ticked as one.
+        let current = el.exitAnimation.map { ElementAnimation.exitKinds.contains($0.kind) ? $0.kind : "fade" }
+        return Menu {
+            Button { store.exitSelected(nil) } label: {
+                Label(ElementAnimation.exitName(nil), systemImage: current == nil ? "checkmark" : "circle")
+            }
+            Divider()
+            ForEach(ElementAnimation.exitKinds, id: \.self) { kind in
+                Button {
+                    store.exitSelected(kind)
+                    store.playPreview(from: store.exitPreviewStart)
+                } label: {
+                    Label(ElementAnimation.exitName(kind), systemImage: current == kind ? "checkmark" : "circle")
+                }
+            }
+        } label: {
+            Label("Exit", systemImage: "rectangle.portrait.and.arrow.right")
+        }
+        .disabled(store.unlockedSelectionCount == 0)
     }
 
     private func blendMenu(_ el: Element) -> some View {

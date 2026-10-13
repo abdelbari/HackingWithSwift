@@ -223,10 +223,38 @@ private struct PageNotesSheet: View {
                     Picker("Transition to the next page", selection: Binding(
                         get: { store.page.transition ?? "default" },
                         set: { v in finishTyping(); store.applyToPage { $0.transition = v == "default" ? nil : v } })) {
+                        // In Android's order, the shared list's.
                         Text("Document setting").tag("default")
                         Text("Fade").tag("fade")
                         Text("Cut").tag("cut")
                         Text("Slide").tag("slide")
+                        Text("Push").tag("push")
+                        Text("Wipe").tag("wipe")
+                        Text("Circle").tag("circle")
+                        Text("Zoom").tag("zoom")
+                    }
+                    // A cut takes no time, so has no length to choose; a
+                    // length from a file shows as the nearest — as Android
+                    // has both.
+                    if PageTransitions.transitionKind(after: store.page, in: store.design) != "cut" {
+                        Picker("Length", selection: Binding(
+                            get: { PageTransitions.lengthName(store.page.transitionSeconds) },
+                            set: { name in
+                                finishTyping()
+                                let seconds = PageTransitions.lengths.first { $0.name == name }?.seconds
+                                store.applyToPage { $0.transitionSeconds = seconds }
+                            })) {
+                            ForEach(PageTransitions.lengths.map { $0.name }, id: \.self) { name in
+                                Text(name).tag(name)
+                            }
+                        }
+                    }
+                    // Only when there are other pages to make turn so.
+                    if store.design.pages.count > 1 {
+                        Button("Apply to all pages") {
+                            finishTyping()
+                            store.applyTransitionToAllPages()
+                        }
                     }
                     if store.page.holdSeconds != nil {
                         Button("Use the document's timing") {

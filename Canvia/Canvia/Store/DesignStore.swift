@@ -1464,6 +1464,18 @@ final class DesignStore {
         applyToPage { $0.hidden = hidden ? true : nil }
     }
 
+    /// This page's transition and its length given to every page, hidden
+    /// ones too, as one undo step.
+    func applyTransitionToAllPages() {
+        let transition = page.transition, seconds = page.transitionSeconds
+        apply { d in
+            for i in d.pages.indices {
+                d.pages[i].transition = transition
+                d.pages[i].transitionSeconds = seconds
+            }
+        }
+    }
+
     /// Hide or show several pages in one undo step, as the organizer picks
     /// them.
     func setPagesHidden(_ ids: Set<String>, hidden: Bool) {
@@ -1586,19 +1598,29 @@ final class DesignStore {
         MovieExporter.isAnimated(page, in: design)
     }
 
-    /// Play the page's entrances and drifts once, at 30 frames a second,
-    /// then settle. Scrub by setting previewTime directly. Its clips are
-    /// heard, and the music from where the page comes in the video, for
-    /// the page's hold.
-    func playPreview() {
+    /// Where a preview of the page's exits starts: half a second before the
+    /// first of them begins, never before the page does.
+    var exitPreviewStart: Double {
+        let span = ElementAnimation.exitSpan(design.masterElements(behind: page) + page.elements)
+        return max(0, pageHold - span - 0.5)
+    }
+
+    /// Play the page's entrances, exits and drifts once, at 30 frames a
+    /// second, from `offset` seconds in, then settle. Scrub by setting
+    /// previewTime directly. Its clips are heard, and the music from where
+    /// the page comes in the video, for the page's hold.
+    func playPreview(from offset: Double = 0) {
         previewTask?.cancel()
         let hold = pageHold
+        let offset = min(max(offset, 0), hold)
         // The page being played. Once another is on screen — picked in the
         // pages bar, or put there by a delete, an undo or a restored version
         // — the preview is over: that page was never played, and drawing it
         // at this one's clock would show its entrances already done.
         let playing = page.id
-        let since = Date()
+        // The moment the page's clock reads 0, so its sound is where its
+        // picture is.
+        let since = Date().addingTimeInterval(-offset)
         previewSound.stop()
         previewSound.page(AudioMix.clips(design: design, page: page), since: since)
         previewSound.music(design: design, offset: AudioMix.pageStart(design: design, index: pageIndex), since: since)
@@ -1612,7 +1634,7 @@ final class DesignStore {
                 let elapsed = ContinuousClock.now - start
                 let seconds = Double(elapsed.components.seconds)
                 let fraction = Double(elapsed.components.attoseconds) / 1e18
-                let t = seconds + fraction
+                let t = offset + seconds + fraction
                 if t > hold { break }
                 previewTime = t
                 try? await Task.sleep(for: .milliseconds(33))
@@ -1663,6 +1685,24 @@ final class DesignStore {
                 } else {
                     page.elements[i].animation = nil
                 }
+            }
+        }
+    }
+
+    /// Give every unlocked selected element a way out as the page ends, as
+    /// one undo step, staggered in layer order so the first in is the last
+    /// out; nil takes the exits away.
+    func exitSelected(_ kind: String?) {
+        guard unlockedSelectionCount > 0 else { return }
+        applyToPage { page in
+            var n = 0
+            for i in page.elements.indices
+            where self.selection.contains(page.elements[i].id) && !page.elements[i].locked {
+                page.elements[i].exitAnimation = kind.map {
+                    ElementAnimation(kind: $0, delay: Double(n) * ElementAnimation.exitStagger,
+                                     duration: ElementAnimation.exitDuration)
+                }
+                n += 1
             }
         }
     }

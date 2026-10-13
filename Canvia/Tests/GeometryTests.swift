@@ -182,6 +182,7 @@ final class ElementEqualityTests: XCTestCase {
             ("corners", { $0.corners = [10, 0, 10, 0] }),
             ("dropCap", { $0.dropCap = true }),
             ("animation", { $0.animation = ElementAnimation(kind: "rise", delay: 0.2, duration: 0.5) }),
+            ("exitAnimation", { $0.exitAnimation = ElementAnimation(kind: "pop", delay: 0.2, duration: 0.5) }),
             ("kenBurns", { $0.kenBurns = KenBurns() }),
             ("straighten", { $0.straighten = 7 }),
             ("vAlign", { $0.vAlign = "middle" }),

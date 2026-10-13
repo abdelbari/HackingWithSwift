@@ -143,9 +143,13 @@ struct Page: Codable, Equatable, Identifiable {
     /// How long this page holds in a video or presentation; nil is the
     /// document's setting.
     var holdSeconds: Double?
-    /// How this page gives way to the next: "fade" | "cut" | "slide"; nil
-    /// is the document's setting.
+    /// How this page gives way to the next: "fade" | "cut" | "slide" |
+    /// "push" | "wipe" | "circle" | "zoom"; nil is the document's setting.
+    /// Kept as written, so a kind from a newer build survives a save here.
     var transition: String?
+    /// How long that takes, in seconds, kept to PageTransitions.secondsRange
+    /// where it is used; nil is the usual timing.
+    var transitionSeconds: Double?
     /// Whether the master page shows behind this one; nil is yes.
     var usesMaster: Bool?
     /// This page's own size, when it differs from the document's — a story
@@ -179,6 +183,7 @@ struct Page: Codable, Equatable, Identifiable {
         notes = try? c.decode(String.self, forKey: .notes)
         holdSeconds = try? c.decode(Double.self, forKey: .holdSeconds)
         transition = try? c.decode(String.self, forKey: .transition)
+        transitionSeconds = try? c.decode(Double.self, forKey: .transitionSeconds)
         usesMaster = try? c.decode(Bool.self, forKey: .usesMaster)
         width = try? c.decode(Double.self, forKey: .width)
         height = try? c.decode(Double.self, forKey: .height)
@@ -198,6 +203,7 @@ struct Page: Codable, Equatable, Identifiable {
         try c.encodeIfPresent(notes, forKey: .notes)
         try c.encodeIfPresent(holdSeconds, forKey: .holdSeconds)
         try c.encodeIfPresent(transition, forKey: .transition)
+        try c.encodeIfPresent(transitionSeconds, forKey: .transitionSeconds)
         try c.encodeIfPresent(usesMaster, forKey: .usesMaster)
         try c.encodeIfPresent(width, forKey: .width)
         try c.encodeIfPresent(height, forKey: .height)
@@ -207,7 +213,7 @@ struct Page: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case id, background, elements, notes, holdSeconds, transition, usesMaster, width, height
-        case hidden, title
+        case hidden, title, transitionSeconds
     }
 }
 

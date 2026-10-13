@@ -78,14 +78,16 @@ enum MovieExporter {
 
     // MARK: timeline
 
-    static let transitions = ["fade", "cut", "slide"]
+    static let transitions = ["fade", "cut", "slide", "push", "wipe", "circle", "zoom"]
 
     /// One page's stretch of the sequence: where it starts, how many frames
-    /// it holds, and how it hands over to the next.
+    /// it holds, and how it hands over to the next — and how long that
+    /// takes, when the page says.
     struct Timing: Equatable {
         var start: Int
         var frames: Int
         var transition: String
+        var transitionSeconds: Double? = nil
         var end: Int { start + frames }
     }
 
@@ -101,7 +103,8 @@ enum MovieExporter {
             let frames = max(1, Int((seconds * Double(settings.fps)).rounded()))
             let transition = page.transition ?? (settings.crossfade > 0 ? "fade" : "cut")
             defer { start += frames }
-            return Timing(start: start, frames: frames, transition: transition)
+            return Timing(start: start, frames: frames, transition: transition,
+                          transitionSeconds: PageTransitions.seconds(page.transitionSeconds))
         }
     }
 
@@ -177,13 +180,14 @@ enum MovieExporter {
     // MARK: frames
 
     /// Whether a page has to be rendered frame by frame: anything on it
-    /// moves, or anything the master page draws behind it does. A master's
+    /// moves — arriving, leaving, looping, drifting, playing — or anything
+    /// the master page draws behind it does. A master's
     /// looping clip or pulsing logo plays through every page that shows it,
     /// in Present and on the Android twin's video alike, so it has to here
     /// too rather than sit on its first frame.
     static func isAnimated(_ page: Page, in design: Design) -> Bool {
         (design.masterElements(behind: page) + page.elements).contains {
-            $0.animation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src)
+            $0.animation != nil || $0.exitAnimation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src)
         }
     }
 
@@ -290,33 +294,56 @@ enum MovieExporter {
         context.fill(CGRect(origin: .zero, size: size))
         context.interpolationQuality = .high
 
-        drawPage(animated?(page, seconds, hold) ?? pages[page], progress: progress, alpha: 1,
-                 size: size, settings: settings, into: context)
-
         // The transition lives at the end of a page rather than the start of
         // the next, so the last page never fades into nothing.
-        let transition = timeline[min(page, timeline.count - 1)].transition
-        let overlap = Int((max(settings.crossfade, transition == "cut" ? 0 : 0.5) * Double(settings.fps)).rounded())
+        let transition = timing.transition
+        let overlap = Int((overlapSeconds(timing, settings: settings) * Double(settings.fps)).rounded())
         let remaining = where_.remaining
-        if page + 1 < pages.count, transition != "cut", overlap > 0, remaining <= overlap {
-            let t = 1 - Double(remaining) / Double(overlap)
-            // A page that moves comes in as it opens, its entrances still to
-            // play, not as it ends — as the Android twin draws it.
-            let coming = animated?(page + 1, 0, 0) ?? pages[page + 1]
-            switch transition {
-            case "slide":
-                // The next page pushes in from the right, easing out.
-                let eased = 1 - pow(1 - t, 3)
-                context.saveGState()
-                context.translateBy(x: size.width * (1 - eased), y: 0)
-                drawPage(coming, progress: 0, alpha: 1,
-                         size: size, settings: settings, into: context)
-                context.restoreGState()
-            default:
-                drawPage(coming, progress: 0, alpha: t,
-                         size: size, settings: settings, into: context)
-            }
+        let leaving = animated?(page, seconds, hold) ?? pages[page]
+        guard page + 1 < pages.count, transition != "cut", overlap > 0, remaining <= overlap else {
+            drawPage(leaving, progress: progress, alpha: 1, size: size, settings: settings, into: context)
+            return
         }
+        let t = 1 - Double(remaining) / Double(overlap)
+        // A page that moves comes in as it opens, its entrances still to
+        // play, not as it ends — as the Android twin draws it.
+        let coming = animated?(page + 1, 0, 0) ?? pages[page + 1]
+        // Both pages as PageTransitions lays them out, the next one on top;
+        // a kind this build does not know is drawn as a fade.
+        let layers = PageTransitions.layers(transition, t: t, forward: true)
+        drawLayer(layers.outgoing, leaving, progress: progress, size: size, settings: settings, into: context)
+        drawLayer(layers.incoming, coming, progress: 0, size: size, settings: settings, into: context)
+    }
+
+    /// How long a page hands over to the next, in seconds: its own length,
+    /// else the cross-fade, but never under half a second; none for a cut.
+    static func overlapSeconds(_ timing: Timing, settings: Settings) -> Double {
+        guard timing.transition != "cut" else { return 0 }
+        return timing.transitionSeconds ?? max(settings.crossfade, 0.5)
+    }
+
+    /// One page of a transition: clipped to a strip from the left or a
+    /// circle from the centre, then shifted and scaled about the centre.
+    private static func drawLayer(_ layer: PageTransitions.Layer, _ image: CGImage, progress: Double,
+                                  size: CGSize, settings: Settings, into context: CGContext) {
+        guard layer.alpha > 0 else { return }
+        context.saveGState()
+        switch layer.clip {
+        case .none:
+            break
+        case .rect(let fraction):
+            context.clip(to: CGRect(x: 0, y: 0, width: size.width * fraction, height: size.height))
+        case .circle(let fraction):
+            let radius = fraction * hypot(size.width, size.height) / 2
+            context.addEllipse(in: CGRect(x: size.width / 2 - radius, y: size.height / 2 - radius,
+                                          width: radius * 2, height: radius * 2))
+            context.clip()
+        }
+        context.translateBy(x: size.width / 2 + size.width * layer.dx, y: size.height / 2)
+        context.scaleBy(x: layer.scale, y: layer.scale)
+        context.translateBy(x: -size.width / 2, y: -size.height / 2)
+        drawPage(image, progress: progress, alpha: layer.alpha, size: size, settings: settings, into: context)
+        context.restoreGState()
     }
 
     private static func drawPage(_ image: CGImage, progress: Double, alpha: Double,
