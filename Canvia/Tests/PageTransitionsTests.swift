@@ -294,6 +294,20 @@ final class PageTransitionsTests: XCTestCase {
         XCTAssertEqual(store.design.pages.map(\.transitionSeconds), [0.3, nil, 1.0])
     }
 
+    /// A kind a newer build made is given to every page as written, as on
+    /// the Android twin.
+    @MainActor
+    func testAKindThisBuildDoesNotKnowIsGivenToEveryPageAsWritten() {
+        var d = Design(title: "a", width: 400, height: 300)
+        d.pages = [Page(), Page(), Page()]
+        d.pages[0].transition = "dissolve"
+        d.pages[1].transition = "push"
+        d.pages[2].transition = "push"
+        let store = DesignStore(design: d)
+        store.applyTransitionToAllPages()
+        XCTAssertEqual(store.design.pages.map(\.transition), ["dissolve", "dissolve", "dissolve"])
+    }
+
     @MainActor
     func testApplyingNormalTakesTheLengthAwayEverywhere() {
         var d = Design(title: "a", width: 400, height: 300)

@@ -168,12 +168,13 @@ enum Freehand {
 
     /// The drawn strokes an eraser dragged along `path` (page units) touches:
     /// any stroke whose line comes within `radius` of it, its own half-width
-    /// added. Only strokes, and none that is locked.
+    /// added. Only strokes, and none that is locked or hidden — the eraser
+    /// never takes what cannot be seen.
     static func erased(_ elements: [Element], path: [CGPoint], radius: Double) -> Set<String> {
         guard !path.isEmpty else { return [] }
         let sweep: [CGPoint] = path.count == 1 ? [path[0], path[0]] : path
         var out = Set<String>()
-        for el in elements where isStroke(el) && !el.locked {
+        for el in elements where isStroke(el) && !el.locked && !el.isHidden {
             let points = pagePoints(el)
             guard !points.isEmpty else { continue }
             let line: [CGPoint] = points.count == 1 ? [points[0], points[0]] : points
