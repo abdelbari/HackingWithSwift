@@ -2,6 +2,11 @@
 // scroll view that owns zoom and pan (see ZoomableCanvas), with a gesture
 // layer for select/move and a selection overlay for handles. All gesture math
 // runs in the "page" coordinate space so zoom never affects it.
+//
+// Scrolling through pages (PageColumn, on unless turned off in the More
+// menu), the scroll view holds every page down one column instead: the page
+// being worked is this same interactive page, scaled into its place, and the
+// others are drawn around it under their headers.
 
 import SwiftUI
 import UIKit
@@ -24,6 +29,29 @@ struct CanvasView: View {
     /// The guide Position… is asking a place for, and what is typed.
     @State private var positioningGuide: Guide?
     @State private var guidePositionText = ""
+    /// Scroll through pages, from the More menu: on unless turned off.
+    @AppStorage(PageColumn.key) private var pageScroll = true
+    /// The canvas's width, which the column of pages is fitted to.
+    @State private var canvasWidth = 0.0
+    /// A page the column itself made the one worked — scrolled to, tapped
+    /// on, or something let go over — which it then does not scroll to.
+    @State private var pageFromColumn: Int?
+    /// The pages near enough to the part of the column on screen to draw
+    /// live (PageColumn.livePages); the others show a thumbnail.
+    @State private var livePages: Set<Int> = []
+    /// The part of the column on screen, kept without redrawing the canvas
+    /// on every frame of a scroll.
+    @State private var seen = ColumnSeen()
+    /// A page header's Delete asking first, and its Notes.
+    @State private var confirmingPageDelete = false
+    @State private var editingPageNotes = false
+
+    /// Where the view is in the column, written as it scrolls, and whether
+    /// a finger set it moving; read when it comes to rest.
+    final class ColumnSeen {
+        var visible: CGRect = .zero
+        var moved = false
+    }
 
     /// Inverse zoom: ornaments are drawn in page units but should
     /// stay a constant size on screen.
@@ -75,6 +103,9 @@ struct CanvasView: View {
         var crop: CropTouch?
         /// A crop-mode pinch's magnification when last applied.
         var cropPinch = 1.0
+        /// The page in the column a move is over, other than its own: let
+        /// go there, what moves goes to that page.
+        var dropPage: Int?
     }
 
     /// What a touch in crop mode landed on: one of the frame's brackets (the
@@ -97,37 +128,7 @@ struct CanvasView: View {
     }
 
     var body: some View {
-        // Zoom and pan live in a UIScrollView rather than in SwiftUI gestures.
-        // See ZoomableCanvas for why: a MagnifyGesture on this stack can never
-        // outrank the per-element DragGestures inside it, which is what made
-        // pinching impossible once elements covered the page.
-        ZoomableCanvas(
-            contentSize: CGSize(width: store.pageWidth, height: store.pageHeight),
-            zoom: $store.zoom,
-            fitToken: "\(store.design.id)-\(store.pageWidth)x\(store.pageHeight)",
-            onBackgroundTap: {
-                commitTextEditIfAny()
-                // Select multiple keeps what it has built.
-                if !store.selectingMultiple { store.select(nil) }
-            },
-            onPencilTap: { store.toggleDrawing() },
-            pinchZooms: store.cropping == nil,
-            claimsDoubleTap: { point in claimsDoubleTap(at: point) },
-            pansFromPage: { point in pansFromPage(at: point) },
-            request: store.canvasRequest,
-            onViewport: { visible, fit in
-                // Only real changes: every write redraws whatever reads it.
-                if store.viewport != visible { store.viewport = visible }
-                if store.fitZoom != fit { store.fitZoom = fit }
-            },
-            onMotion: { moving in
-                if store.canvasMoving != moving { store.canvasMoving = moving }
-            }
-        ) {
-            pageContent
-                .coordinateSpace(name: "page")
-                .frame(width: store.pageWidth, height: store.pageHeight)
-        }
+        columnAware
         .ignoresSafeArea(.keyboard)
         .confirmationDialog(guideMenu.map { guideTitle($0) } ?? "Guide",
                             isPresented: Binding(get: { guideMenu != nil }, set: { if !$0 { guideMenu = nil } }),
@@ -159,6 +160,55 @@ struct CanvasView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { _ in
             revealTyping()
         }
+    }
+
+    /// Zoom and pan live in a UIScrollView rather than in SwiftUI gestures.
+    /// See ZoomableCanvas for why: a MagnifyGesture on this stack can never
+    /// outrank the per-element DragGestures inside it, which is what made
+    /// pinching impossible once elements covered the page.
+    private var zoomable: some View {
+        let slot = columnSlot
+        return ZoomableCanvas(
+            contentSize: slot == nil ? CGSize(width: store.pageWidth, height: store.pageHeight) : columnSize,
+            zoom: slot.map { columnZoom($0.scale) } ?? $store.zoom,
+            fitToken: slot == nil ? "\(store.design.id)-\(store.pageWidth)x\(store.pageHeight)" : "\(store.design.id)-column",
+            onBackgroundTap: { point in backgroundTap(at: point) },
+            onPencilTap: { store.toggleDrawing() },
+            pinchZooms: store.cropping == nil,
+            claimsDoubleTap: { point in claimsDoubleTap(at: point) },
+            pansFromPage: { point in pansFromPage(at: point) },
+            request: canvasRequest(in: slot),
+            column: slot.map { canvasColumn($0) },
+            isControl: { point in isColumnControl(point) },
+            onViewport: { visible, fit in viewportChanged(visible, fit: fit) },
+            onMotion: { moving in motionChanged(moving) }
+        ) {
+            if let slot {
+                columnContent(slot)
+            } else {
+                pageContent
+                    .coordinateSpace(name: "page")
+                    .frame(width: store.pageWidth, height: store.pageHeight)
+            }
+        }
+    }
+
+    /// The canvas, and what the column of pages answers: the width it is
+    /// fitted to, a page made current from elsewhere scrolled to, and a
+    /// header's questions.
+    private var columnAware: some View {
+        zoomable
+            .background {
+                GeometryReader { proxy in
+                    Color.clear
+                        .onAppear { canvasWidth = Double(proxy.size.width) }
+                        .onChange(of: proxy.size.width) { _, width in canvasWidth = Double(width) }
+                }
+            }
+            .onChange(of: store.pageIndex) { _, index in followPage(index) }
+            .onChange(of: columnSlot?.scale) { old, new in rescaleZoom(from: old, to: new) }
+            .asksBeforeDeletingPage($confirmingPageDelete, store: store)
+            .sheet(isPresented: $editingPageNotes) { PageNotesSheet(store: store) }
     }
 
     /// The box being typed in, as it is now.
@@ -1036,6 +1086,12 @@ struct CanvasView: View {
                     let over = store.frameDropTarget(at: value.location, dragging: photo)
                     if gesture.frameTarget != over { gesture.frameTarget = over }
                 }
+                // Over another page in the column, that page lit up: let go
+                // there, it goes to that page.
+                if columnOn {
+                    let over = dropPage(at: value.location)
+                    if gesture.dropPage != over { gesture.dropPage = over }
+                }
                 let travel = hypot(value.translation.width, value.translation.height) * store.zoom
                 if travel >= 14 && !gesture.ghost { gesture.ghost = true }
                 for i in store.design.pages[store.pageIndex].elements.indices {
@@ -1060,8 +1116,9 @@ struct CanvasView: View {
                 let moved = hypot(value.translation.width, value.translation.height) * store.zoom
                 if gesture.dragActive && moved >= Touch.tapSlop {
                     // Let go over a frame, the photo goes into it — the move
-                    // and the drop one step; anywhere else it is a move.
-                    if !dropIntoFrame(at: value.location) { store.commit() }
+                    // and the drop one step; over another page in the column,
+                    // it goes there, one step too; anywhere else it is a move.
+                    if !dropIntoFrame(at: value.location) && !dropOntoPage(at: value.location) { store.commit() }
                 } else {
                     store.endGesture()
                 }
@@ -1075,6 +1132,34 @@ struct CanvasView: View {
         guard let photo = gesture.framePhoto, let home = gesture.dragOriginals[photo],
               let frame = store.frameDropTarget(at: point, dragging: photo) else { return false }
         return store.dropIntoFrame(photo, onto: frame, home: home)
+    }
+
+    /// Let go over another page in the column, what moves goes there,
+    /// landing where it was let go — the move and the change of page one
+    /// step (DesignStore.moveSelectedToPage). True when it did.
+    private func dropOntoPage(at point: CGPoint) -> Bool {
+        guard let target = dropPage(at: point), let from = columnSlot else { return false }
+        let slots = columnSlots
+        // The selection's own box, as the store puts it at the drop.
+        let ids = PageMove.moving(store.page.elements, selection: store.selection)
+        let moving = store.page.elements.filter { ids.contains($0.id) }
+        guard !moving.isEmpty else { return false }
+        let chosen = moving.filter { store.selection.contains($0.id) }
+        let box = Geometry.union((chosen.isEmpty ? moving : chosen).map(Geometry.aabb))
+        pageFromColumn = target
+        guard store.moveSelectedToPage(target, at: PageColumn.landing(box, from: from, to: slots[target])) else {
+            pageFromColumn = nil
+            return false
+        }
+        return true
+    }
+
+    /// The page in the column under `point` on the page being worked, when
+    /// it is another one.
+    private func dropPage(at point: CGPoint) -> Int? {
+        guard let slot = columnSlot else { return nil }
+        let index = PageColumn.pageAt(slot.toColumn(point), in: columnSlots)
+        return index == store.pageIndex ? nil : index
     }
 
     // MARK: resize / rotate (called from the overlay)
@@ -1363,5 +1448,268 @@ struct CanvasView: View {
 
     private func typeInline(_ id: String, _ words: String) {
         store.typeWords(words, into: id)
+    }
+
+    // MARK: scroll through pages
+
+    /// Whether the canvas is the column of every page.
+    private var columnOn: Bool { pageScroll && canvasWidth > 0 }
+
+    /// Every page's place in the column, while it is one; none otherwise.
+    private var columnSlots: [PageColumn.Slot] {
+        guard columnOn else { return [] }
+        return PageColumn.pageOrigins(store.design.pages.map { store.design.size(for: $0) },
+                                      gap: PageColumn.room, gutter: PageColumn.gutter, viewportWidth: canvasWidth)
+    }
+
+    /// The page being worked's place in the column.
+    private var columnSlot: PageColumn.Slot? {
+        let slots = columnSlots
+        return slots.indices.contains(store.pageIndex) ? slots[store.pageIndex] : nil
+    }
+
+    private var columnSize: CGSize {
+        CGSize(width: canvasWidth, height: PageColumn.columnHeight(columnSlots, gap: PageColumn.room))
+    }
+
+    /// The page being worked in the column, for the scroll view — with the
+    /// widest page's scale, whose zoom range the column's is.
+    private func canvasColumn(_ slot: PageColumn.Slot) -> CanvasColumn {
+        CanvasColumn(page: slot.rect, scale: slot.scale, widest: columnSlots.map(\.scale).min() ?? slot.scale)
+    }
+
+    /// One point on screen, in column units.
+    private var columnPoint: Double { (columnSlot?.scale ?? 1) * iz }
+
+    /// Crop, typing, the pen, the eraser or a preview playing holds the
+    /// view to the page being worked: scrolling does not change it, and the
+    /// headers only say which page is which.
+    private var pagePinned: Bool {
+        store.cropping != nil || store.editingTextId != nil || store.drawing != nil
+            || store.erasing != nil || store.previewTime != nil
+    }
+
+    // MARK: the view
+
+    /// The scroll view's zoom of the column, as the store's zoom of the page
+    /// — what the handles, the zoom pill and every reach on the page read.
+    private func columnZoom(_ scale: Double) -> Binding<Double> {
+        Binding(get: { store.zoom / scale }, set: { store.zoom = $0 * scale })
+    }
+
+    /// The column fitted to another width, or about another widest page:
+    /// the page's zoom follows the column's scale.
+    private func rescaleZoom(from old: Double?, to new: Double?) {
+        guard let old, let new, old > 0 else { return }
+        store.zoom = store.zoom / old * new
+    }
+
+    /// A change of view asked of the page, asked of the column: a zoom of
+    /// the page is the column's at its scale, a box on the page is where
+    /// it lies in the column.
+    private func canvasRequest(in slot: PageColumn.Slot?) -> CanvasRequest? {
+        guard let slot, let request = store.canvasRequest else { return store.canvasRequest }
+        switch request.kind {
+        case .fit:
+            return request
+        case .zoom(let zoom):
+            return CanvasRequest(kind: .zoom(zoom / slot.scale), serial: request.serial)
+        case .reveal(let box, let covered, let typing):
+            return CanvasRequest(kind: .reveal(slot.columnBox(box), covered: covered, typing: typing),
+                                 serial: request.serial)
+        }
+    }
+
+    /// The part of the canvas on screen, as the page being worked reads it,
+    /// and in the column the pages near enough to draw live.
+    private func viewportChanged(_ visible: CGRect, fit: Double) {
+        var shown = visible
+        var fitting = fit
+        if let slot = columnSlot {
+            seen.visible = visible
+            shown = slot.pageBox(visible)
+            fitting = fit * slot.scale
+            let live = Set(PageColumn.livePages(columnSlots, visible: visible))
+            if livePages != live { livePages = live }
+        }
+        // Only real changes: every write redraws whatever reads it.
+        if store.viewport != shown { store.viewport = shown }
+        if store.fitZoom != fitting { store.fitZoom = fitting }
+    }
+
+    /// Only a view a finger moved settles on a page: one moved to bring a
+    /// page or a box into sight — which may leave another page across the
+    /// middle — never starts moving, and leaves the page as it is.
+    private func motionChanged(_ moving: Bool) {
+        if store.canvasMoving != moving { store.canvasMoving = moving }
+        if moving {
+            seen.moved = true
+        } else if seen.moved {
+            seen.moved = false
+            settle()
+        }
+    }
+
+    /// The view come to rest in the column: the page covering its middle
+    /// becomes the one worked, and the top bar's "Page n of m" says so.
+    /// While crop, typing, the pen, the eraser or a preview has its page,
+    /// the page stays, and the view is brought back to it.
+    private func settle() {
+        let slots = columnSlots
+        guard !slots.isEmpty else { return }
+        let index = PageColumn.currentPage(seen.visible, in: slots)
+        guard index != store.pageIndex else { return }
+        if pagePinned {
+            revealPage()
+        } else {
+            pageFromColumn = index
+            store.setPage(index)
+        }
+    }
+
+    /// A page made current from elsewhere — the pages bar, Undo, a page
+    /// added — is scrolled to; one the column made current is in view.
+    private func followPage(_ index: Int) {
+        let fromColumn = pageFromColumn == index
+        pageFromColumn = nil
+        guard columnOn, !fromColumn else { return }
+        revealPage()
+    }
+
+    /// The page being worked, its header too, brought into sight.
+    private func revealPage() {
+        guard let slot = columnSlot else { return }
+        let shown = slot.rect.union(PageColumn.headerRect(slot, unit: columnPoint))
+        store.requestCanvas(.reveal(slot.pageBox(shown)))
+    }
+
+    // MARK: touches
+
+    /// A tap off the page being worked: on another page in the column, that
+    /// page becomes the one worked and what was tapped on it is selected;
+    /// anywhere else the selection goes — Select multiple keeps what it has
+    /// built.
+    private func backgroundTap(at point: CGPoint) {
+        commitTextEditIfAny()
+        let slots = columnSlots
+        if let index = PageColumn.pageAt(point, in: slots), index != store.pageIndex, !pagePinned {
+            let at = slots[index].toPage(point)
+            pageFromColumn = index
+            store.setPage(index)
+            if let hit = store.page.elements.last(where: { !$0.isHidden && Geometry.hits($0, point: at) }) {
+                store.select(hit.id)
+            }
+            return
+        }
+        if !store.selectingMultiple { store.select(nil) }
+    }
+
+    /// The headers and "+ Add page" keep their own touches — unless the
+    /// page is held, when the headers only say which page is which.
+    private func isColumnControl(_ point: CGPoint) -> Bool {
+        let slots = columnSlots
+        guard !slots.isEmpty, !pagePinned else { return false }
+        let unit = columnPoint
+        if PageColumn.addPageRect(slots, unit: unit)?.contains(point) == true { return true }
+        return slots.contains { PageColumn.headerRect($0, unit: unit).contains(point) }
+    }
+
+    /// Delete from a header: asked first when the page has something on it,
+    /// as in the pages bar.
+    private func askDeletePage() {
+        if store.page.elements.isEmpty {
+            store.deletePage()
+        } else {
+            confirmingPageDelete = true
+        }
+    }
+
+    // MARK: drawing the column
+
+    /// Every page down the column, each under its header, with "+ Add page"
+    /// after the last. Only the page being worked takes touches and shows
+    /// the selection, guides, grid and margins; the others are drawn live
+    /// near the view and as a thumbnail further off. It is drawn last, so a
+    /// thing dragged off it stays over the page it is dragged across.
+    private func columnContent(_ worked: PageColumn.Slot) -> some View {
+        let slots = columnSlots
+        return ZStack(alignment: .topLeading) {
+            ForEach(slots.indices, id: \.self) { i in
+                if i != store.pageIndex { otherPage(i, slot: slots[i]) }
+                pageHeader(i, slot: slots[i])
+            }
+            if !pagePinned, let add = PageColumn.addPageRect(slots, unit: columnPoint) {
+                onScreenSize(AddPageRow(store: store), in: add, height: PageColumn.addPageHeight)
+            }
+            if let drop = gesture.dropPage, slots.indices.contains(drop) {
+                dropOutline(slots[drop])
+            }
+            workedPage(worked)
+        }
+        .frame(width: canvasWidth, height: PageColumn.columnHeight(slots, gap: PageColumn.room),
+               alignment: .topLeading)
+    }
+
+    /// `content` laid out at its size on screen, `height` points tall, and
+    /// scaled into `rect` of the column — the same size however far the
+    /// column is zoomed.
+    private func onScreenSize(_ content: some View, in rect: CGRect, height: Double) -> some View {
+        let unit = columnPoint
+        return content
+            .frame(width: rect.width / unit, height: height)
+            .scaleEffect(unit, anchor: .topLeading)
+            .frame(width: rect.width, height: rect.height, alignment: .topLeading)
+            .offset(x: rect.minX, y: rect.minY)
+    }
+
+    /// The page being worked: the canvas's own page, in its page units,
+    /// scaled into its place in the column.
+    private func workedPage(_ slot: PageColumn.Slot) -> some View {
+        pageContent
+            .coordinateSpace(name: "page")
+            .frame(width: store.pageWidth, height: store.pageHeight)
+            .scaleEffect(slot.scale, anchor: .topLeading)
+            .frame(width: slot.rect.width, height: slot.rect.height, alignment: .topLeading)
+            .offset(x: slot.origin.x, y: slot.origin.y)
+    }
+
+    /// Another page: live near the view, a thumbnail further off, with
+    /// nothing on it to touch — a tap there is the canvas's (backgroundTap).
+    private func otherPage(_ index: Int, slot: PageColumn.Slot) -> some View {
+        let page = store.design.pages[index]
+        let r = slot.rect
+        let point = columnPoint
+        return Group {
+            if livePages.contains(index) {
+                PageRenderView(design: store.design, page: page)
+                    .environment(\.onScreen, true)
+                    .scaleEffect(slot.scale, anchor: .topLeading)
+                    .frame(width: r.width, height: r.height, alignment: .topLeading)
+            } else {
+                PageThumbnail(design: store.design, page: page)
+                    .frame(width: r.width, height: r.height)
+            }
+        }
+        .background(Rectangle().fill(Color.white).shadow(color: .black.opacity(0.16), radius: 12 * point, y: 3 * point))
+        .overlay(Rectangle().stroke(Theme.hairline, lineWidth: 1 * point))
+        .allowsHitTesting(false)
+        .offset(x: r.minX, y: r.minY)
+    }
+
+    private func pageHeader(_ index: Int, slot: PageColumn.Slot) -> some View {
+        let row = PageHeaderRow(store: store, index: index, pinned: pagePinned,
+                                onDelete: { askDeletePage() },
+                                onNotes: { editingPageNotes = true })
+        return onScreenSize(row, in: PageColumn.headerRect(slot, unit: columnPoint), height: PageColumn.header)
+    }
+
+    /// The page a move would go to if let go now.
+    private func dropOutline(_ slot: PageColumn.Slot) -> some View {
+        let r = slot.rect
+        return Rectangle()
+            .stroke(Theme.accent, lineWidth: 3 * columnPoint)
+            .frame(width: r.width, height: r.height)
+            .offset(x: r.minX, y: r.minY)
+            .allowsHitTesting(false)
     }
 }

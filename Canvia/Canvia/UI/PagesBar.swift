@@ -91,15 +91,7 @@ struct PagesBar: View {
         .frame(height: 72)
         .background(Theme.chrome)
         .overlay(alignment: .top) { Divider() }
-        .confirmationDialog("Delete page \(store.pageIndex + 1)?",
-                            isPresented: $confirmingDelete, titleVisibility: .visible) {
-            Button("Delete page", role: .destructive) { store.deletePage() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(store.page.elements.count == 1
-                 ? "It has 1 element on it."
-                 : "It has \(store.page.elements.count) elements on it.")
-        }
+        .asksBeforeDeletingPage($confirmingDelete, store: store)
         .sheet(isPresented: $editingNotes) {
             PageNotesSheet(store: store)
         }
@@ -172,6 +164,23 @@ struct PagesBar: View {
     }
 }
 
+extension View {
+    /// Deleting a page with something on it asks first — from the pages
+    /// bar, or a page's header while scrolling through pages. The page on
+    /// screen is the one asked about.
+    func asksBeforeDeletingPage(_ isPresented: Binding<Bool>, store: DesignStore) -> some View {
+        confirmationDialog("Delete page \(store.pageIndex + 1)?",
+                           isPresented: isPresented, titleVisibility: .visible) {
+            Button("Delete page", role: .destructive) { store.deletePage() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(store.page.elements.count == 1
+                 ? "It has 1 element on it."
+                 : "It has \(store.page.elements.count) elements on it.")
+        }
+    }
+}
+
 /// Notes about a page rather than on it: what to say over this slide, what
 /// the client asked for, which photo still needs replacing — and the page's
 /// title. Never rendered, so they cannot leak into an export.
@@ -182,7 +191,7 @@ struct PagesBar: View {
 /// Each keystroke used to be a step, so Undo took a note back a letter at a
 /// time and pushed everything older out of the history. A title typed is one
 /// Undo the same way, and a step apart from the notes.
-private struct PageNotesSheet: View {
+struct PageNotesSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
     /// The notes as the sheet found them, to tell a real edit from typing
