@@ -16720,6 +16720,515 @@
    ]
   }
  ],
+ "stickerNames": {
+  "🎉": [
+   "party",
+   "celebrate",
+   "popper",
+   "confetti"
+  ],
+  "🎊": [
+   "confetti",
+   "party",
+   "celebrate"
+  ],
+  "🎈": [
+   "balloon",
+   "party",
+   "birthday"
+  ],
+  "🎂": [
+   "cake",
+   "birthday",
+   "party"
+  ],
+  "🎁": [
+   "gift",
+   "present",
+   "birthday",
+   "wrapped"
+  ],
+  "🥳": [
+   "party",
+   "celebrate",
+   "birthday",
+   "face"
+  ],
+  "🍾": [
+   "champagne",
+   "bottle",
+   "celebrate",
+   "cheers"
+  ],
+  "✨": [
+   "sparkles",
+   "magic",
+   "shine",
+   "new"
+  ],
+  "🎆": [
+   "fireworks",
+   "new year",
+   "celebrate"
+  ],
+  "🏆": [
+   "trophy",
+   "winner",
+   "award",
+   "prize"
+  ],
+  "🎖️": [
+   "medal",
+   "award",
+   "honour"
+  ],
+  "💝": [
+   "heart",
+   "gift",
+   "love",
+   "valentine"
+  ],
+  "⭐": [
+   "star",
+   "favourite",
+   "rating"
+  ],
+  "🌟": [
+   "star",
+   "glowing",
+   "shine"
+  ],
+  "💫": [
+   "dizzy",
+   "star",
+   "sparkle"
+  ],
+  "❤️": [
+   "heart",
+   "love",
+   "red"
+  ],
+  "🧡": [
+   "heart",
+   "love",
+   "orange"
+  ],
+  "💛": [
+   "heart",
+   "love",
+   "yellow"
+  ],
+  "💚": [
+   "heart",
+   "love",
+   "green"
+  ],
+  "💙": [
+   "heart",
+   "love",
+   "blue"
+  ],
+  "💜": [
+   "heart",
+   "love",
+   "purple"
+  ],
+  "🖤": [
+   "heart",
+   "love",
+   "black"
+  ],
+  "💥": [
+   "boom",
+   "bang",
+   "explosion",
+   "collision"
+  ],
+  "🔥": [
+   "fire",
+   "hot",
+   "flame",
+   "lit"
+  ],
+  "😀": [
+   "smile",
+   "happy",
+   "grin",
+   "face"
+  ],
+  "😄": [
+   "smile",
+   "happy",
+   "laugh",
+   "face"
+  ],
+  "😁": [
+   "grin",
+   "happy",
+   "beam",
+   "face"
+  ],
+  "😊": [
+   "smile",
+   "blush",
+   "happy",
+   "face"
+  ],
+  "😍": [
+   "love",
+   "heart eyes",
+   "crush",
+   "face"
+  ],
+  "😎": [
+   "cool",
+   "sunglasses",
+   "face"
+  ],
+  "🤩": [
+   "star struck",
+   "wow",
+   "excited",
+   "face"
+  ],
+  "😂": [
+   "laugh",
+   "tears",
+   "joy",
+   "funny",
+   "face"
+  ],
+  "😜": [
+   "wink",
+   "tongue",
+   "silly",
+   "face"
+  ],
+  "😇": [
+   "angel",
+   "halo",
+   "innocent",
+   "face"
+  ],
+  "🤔": [
+   "thinking",
+   "wonder",
+   "hmm",
+   "face"
+  ],
+  "😴": [
+   "sleep",
+   "tired",
+   "zzz",
+   "face"
+  ],
+  "🙃": [
+   "upside down",
+   "silly",
+   "face"
+  ],
+  "🌸": [
+   "blossom",
+   "flower",
+   "spring",
+   "cherry"
+  ],
+  "🌻": [
+   "sunflower",
+   "flower",
+   "summer"
+  ],
+  "🌿": [
+   "herb",
+   "leaf",
+   "plant",
+   "green"
+  ],
+  "🍀": [
+   "clover",
+   "luck",
+   "four leaf",
+   "lucky"
+  ],
+  "🌵": [
+   "cactus",
+   "desert",
+   "plant"
+  ],
+  "🌴": [
+   "palm",
+   "tree",
+   "beach",
+   "holiday"
+  ],
+  "🌈": [
+   "rainbow",
+   "pride",
+   "weather"
+  ],
+  "☀️": [
+   "sun",
+   "sunny",
+   "weather",
+   "summer"
+  ],
+  "🌙": [
+   "moon",
+   "night",
+   "crescent"
+  ],
+  "🌊": [
+   "wave",
+   "sea",
+   "ocean",
+   "surf"
+  ],
+  "🍁": [
+   "maple",
+   "leaf",
+   "autumn",
+   "fall"
+  ],
+  "🦋": [
+   "butterfly",
+   "insect",
+   "spring"
+  ],
+  "🐝": [
+   "bee",
+   "honey",
+   "insect",
+   "buzz"
+  ],
+  "🍕": [
+   "pizza",
+   "food",
+   "slice"
+  ],
+  "🍔": [
+   "burger",
+   "hamburger",
+   "food"
+  ],
+  "🌮": [
+   "taco",
+   "food",
+   "mexican"
+  ],
+  "🍣": [
+   "sushi",
+   "food",
+   "japanese"
+  ],
+  "🍩": [
+   "doughnut",
+   "donut",
+   "sweet"
+  ],
+  "🍪": [
+   "cookie",
+   "biscuit",
+   "sweet"
+  ],
+  "🍓": [
+   "strawberry",
+   "fruit",
+   "berry"
+  ],
+  "🍉": [
+   "watermelon",
+   "fruit",
+   "summer"
+  ],
+  "🥑": [
+   "avocado",
+   "fruit",
+   "green"
+  ],
+  "🍦": [
+   "ice cream",
+   "sweet",
+   "summer"
+  ],
+  "☕": [
+   "coffee",
+   "tea",
+   "hot drink",
+   "cafe"
+  ],
+  "🧁": [
+   "cupcake",
+   "cake",
+   "sweet",
+   "bakery"
+  ],
+  "🍰": [
+   "cake",
+   "slice",
+   "sweet",
+   "dessert"
+  ],
+  "🍇": [
+   "grapes",
+   "fruit",
+   "wine"
+  ],
+  "📷": [
+   "camera",
+   "photo",
+   "picture"
+  ],
+  "🎧": [
+   "headphones",
+   "music",
+   "listen"
+  ],
+  "🎨": [
+   "palette",
+   "art",
+   "paint",
+   "colour"
+  ],
+  "✏️": [
+   "pencil",
+   "write",
+   "draw",
+   "school"
+  ],
+  "📚": [
+   "books",
+   "read",
+   "study",
+   "school"
+  ],
+  "💻": [
+   "laptop",
+   "computer",
+   "work"
+  ],
+  "📱": [
+   "phone",
+   "mobile",
+   "call"
+  ],
+  "🎸": [
+   "guitar",
+   "music",
+   "rock"
+  ],
+  "⏰": [
+   "alarm",
+   "clock",
+   "time",
+   "wake"
+  ],
+  "💡": [
+   "idea",
+   "bulb",
+   "light",
+   "tip"
+  ],
+  "🔑": [
+   "key",
+   "lock",
+   "access"
+  ],
+  "✂️": [
+   "scissors",
+   "cut",
+   "craft"
+  ],
+  "🧭": [
+   "compass",
+   "travel",
+   "direction"
+  ],
+  "🎬": [
+   "clapper",
+   "film",
+   "movie",
+   "action"
+  ],
+  "📌": [
+   "pin",
+   "pushpin",
+   "note"
+  ],
+  "📍": [
+   "pin",
+   "location",
+   "place",
+   "map"
+  ],
+  "✅": [
+   "tick",
+   "check",
+   "done",
+   "yes"
+  ],
+  "❌": [
+   "cross",
+   "no",
+   "wrong",
+   "cancel"
+  ],
+  "❗": [
+   "exclamation",
+   "important",
+   "alert"
+  ],
+  "❓": [
+   "question",
+   "ask",
+   "help"
+  ],
+  "🚀": [
+   "rocket",
+   "launch",
+   "space",
+   "fast"
+  ],
+  "⚡": [
+   "lightning",
+   "flash",
+   "energy",
+   "power"
+  ],
+  "🎯": [
+   "target",
+   "goal",
+   "bullseye",
+   "aim"
+  ],
+  "💎": [
+   "gem",
+   "diamond",
+   "jewel",
+   "premium"
+  ],
+  "🎵": [
+   "music",
+   "note",
+   "song"
+  ],
+  "🔔": [
+   "bell",
+   "notification",
+   "ring"
+  ],
+  "💬": [
+   "speech",
+   "chat",
+   "message",
+   "comment"
+  ],
+  "👉": [
+   "point",
+   "right",
+   "finger",
+   "this"
+  ]
+ },
  "photoSpecs": {
   "meshes": [
    {

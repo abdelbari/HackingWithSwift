@@ -187,7 +187,8 @@ struct InsertSheet: View {
             return !ContentLibrary.shapes.contains { ContentLibrary.shape($0, matches: search) }
                 && IconLibrary.search(search).isEmpty
         case "Photos": return filteredPhotos.isEmpty
-        case "Stickers": return filteredStickerGroups.allSatisfy { $0.emoji.isEmpty }
+        case "Stickers":
+            return filteredStickerGroups.allSatisfy { $0.emoji.isEmpty } && Stickers.searchAnimated(search).isEmpty
         default: return false
         }
     }
@@ -1327,6 +1328,7 @@ struct InsertSheet: View {
 
     private var stickersGrid: some View {
         VStack(alignment: .leading, spacing: 8) {
+            animatedStickersRow
             ForEach(filteredStickerGroups) { group in
                 if !group.emoji.isEmpty {
                     sectionHeader(group.name)
@@ -1355,15 +1357,37 @@ struct InsertSheet: View {
         .contextMenu { favoriteButton("sticker", glyph) }
     }
 
-    /// Sticker search matches on the group name — the glyphs themselves carry
-    /// no searchable text — so a non-matching group drops out whole.
+    /// The stickers that keep moving, each shown moving as it will in
+    /// Present — still with Reduce Motion — found by its glyph's words.
+    @ViewBuilder
+    private var animatedStickersRow: some View {
+        let moving = Stickers.searchAnimated(search)
+        if !moving.isEmpty {
+            sectionHeader("Animated")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(moving) { sticker in
+                        Button {
+                            store.add(sticker.element(size: min(store.pageWidth, store.pageHeight) * 0.18))
+                            dismiss()
+                        } label: {
+                            AnimatedStickerFace(sticker: sticker)
+                                .frame(width: 52, height: 52)
+                        }
+                        .accessibilityLabel(sticker.name)
+                    }
+                }
+            }
+        }
+    }
+
+    /// A search finds a group by its name, whole, or the stickers in it by
+    /// their own words (Stickers.search); a group with none drops out.
     private var filteredStickerGroups: [StickerGroup] {
         let starred = Favorites.ids(of: "sticker")
         let favourites = starred.isEmpty ? [] : [StickerGroup(name: "Favourites", emoji: starred)]
         guard !search.isEmpty else { return favourites + ContentLibrary.stickerGroups }
-        return ContentLibrary.stickerGroups.filter {
-            $0.name.localizedCaseInsensitiveContains(search)
-        }
+        return Stickers.search(search, in: ContentLibrary.stickerGroups)
     }
 
     /// The Background sheet's choices, the same here as there.
@@ -1377,6 +1401,32 @@ struct InsertSheet: View {
             .font(.system(size: 11, weight: .bold))
             .foregroundStyle(.secondary)
             .padding(.top, 8)
+    }
+}
+
+/// An animated sticker's glyph going through its loop, as it will on the
+/// page; standing still with Reduce Motion.
+private struct AnimatedStickerFace: View {
+    let sticker: AnimatedSticker
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        if reduceMotion {
+            face(.settled)
+        } else {
+            TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
+                let t = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: ElementAnimation.loopPeriod)
+                face(ElementAnimation(kind: sticker.loop).state(at: t, size: 52))
+            }
+        }
+    }
+
+    private func face(_ state: ElementAnimation.State) -> some View {
+        Text(sticker.glyph)
+            .font(.system(size: 30))
+            .scaleEffect(state.scale)
+            .rotationEffect(.degrees(state.rotation))
+            .offset(state.offset)
     }
 }
 

@@ -585,7 +585,12 @@ or no code to read, says so.
 
 **Loops** — Animate offers Pulse, Wiggle, Bounce and Spin: moves that
 never settle, for stickers and badges, on the canvas preview and in the
-video and GIF alike.
+video and GIF alike. Add ▸ Stickers leads with an Animated row of
+twenty-four stickers with a loop already set, six of each, shown moving
+(still with Reduce Motion); they are ordinary stickers with a loop, so
+they open on either phone. A sticker search finds stickers by their own
+words too — party, heart, pizza — from Content.json's `stickerNames`, the
+Android twin's table glyph for glyph.
 
 **Apple Pencil** — drawing takes a Pencil like a finger, and the Pencil's
 double tap toggles the pen on and off (honouring the system setting).
