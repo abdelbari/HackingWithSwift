@@ -6,9 +6,10 @@
 // a tap on a linked element to open its link, a clock, the page's notes for
 // the person holding the phone, and autoplay on each page's own timing.
 // Hidden pages are stepped over, and left out of the count.
-// The clips on the page are heard while it is up, and the music runs on
-// under the whole talk from where the first page comes in the video, fading
-// out as it ends; a speaker button turns the sound off for this talk.
+// The clips on the page are heard while it is up, and the audio tracks run
+// under the whole talk from where the first page comes in the video, each
+// at its place, a looping one for as long as the talk runs, fading out as
+// it ends; a speaker button turns the sound off for this talk.
 // Pages turn as PageTransitions lays them out, as the video draws them. A
 // page whose elements leave waits, turned by hand, with its exits held where
 // they begin while the rest of it plays on; going on plays them, and the page
@@ -400,7 +401,7 @@ struct PresentationView: View {
             sound.stop()
             return
         }
-        sound.music(design: design, offset: musicFrom, since: started)
+        sound.tracks(design: design, offset: musicFrom, since: started, film: .infinity)
         sound.page(AudioMix.clips(design: design, page: page), since: session.shownAt)
     }
 

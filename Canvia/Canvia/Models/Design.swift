@@ -234,16 +234,133 @@ struct MotionSettings: Codable, Equatable {
     var movement: Bool = true
     /// Cross-fade between pages; off is a hard cut.
     var crossfade: Bool = true
-    /// An AudioStore id played under the video, looped or trimmed to fit,
-    /// and its volume (nil is full).
-    var soundtrack: String?
-    var soundVolume: Double?
+    // The one soundtrack a design used to have, `soundtrack` and
+    // `soundVolume`, is read by Design as its first audio track and never
+    // written here again (see AudioTrack.migrated).
 
     static let fpsChoices = [24, 30, 60]
     static let secondsRange = 0.5...10.0
     /// A page's own hold can be longer than the document's, to play a clip
     /// on it through.
     static let pageHoldRange = 0.5...60.0
+}
+
+/// One sound under the design's film — a song, a voice-over — as the Audio
+/// sheet sets it. `src` names its file, "audio:<AudioStore id>"; `start` is
+/// where it comes in, in seconds into the film; `trimStart` and `trimEnd`
+/// the part of the file it plays, nil being to the file's end; `volume`
+/// 0...1; `fadeIn` and `fadeOut` in seconds; `loop` goes round again until
+/// the film ends; `name` is what the sheet calls it. Written as one of the
+/// design's `audio` array, with the Android twin's keys; each read
+/// leniently, as a clip's are, and a track with no "audio:" source is none.
+struct AudioTrack: Codable, Equatable, Identifiable {
+    var id: String = UID.make("track")
+    var src: String
+    var start: Double = 0
+    var trimStart: Double = 0
+    var trimEnd: Double?
+    var volume: Double = 1
+    var fadeIn: Double = 0
+    var fadeOut: Double = 0
+    var loop: Bool = false
+    var name: String = ""
+
+    static let prefix = "audio:"
+    /// What the sheet offers a fade, and what the mix plays one within.
+    static let fadeRange = 0.0...5.0
+    /// The shortest a trim leaves a track, in seconds, as a clip's.
+    static let minLength = 0.1
+    /// How long the old soundtrack faded out over at the film's end, which
+    /// its track keeps (Soundtrack.fadeSeconds).
+    static let migratedFadeOut = 1.0
+    /// The old soundtrack's track's id and name — fixed, so the same old
+    /// design reads as the same track on either phone, and on every read.
+    static let migratedId = "soundtrack"
+    static let migratedName = "Soundtrack"
+
+    /// The AudioStore id the track plays, or nil for a source that is not
+    /// one.
+    var audioId: String? {
+        guard src.hasPrefix(Self.prefix) else { return nil }
+        let id = String(src.dropFirst(Self.prefix.count))
+        return id.isEmpty ? nil : id
+    }
+
+    static func src(_ id: String) -> String { prefix + id }
+
+    init(id: String = UID.make("track"), src: String, start: Double = 0, trimStart: Double = 0,
+         trimEnd: Double? = nil, volume: Double = 1, fadeIn: Double = 0, fadeOut: Double = 0,
+         loop: Bool = false, name: String = "") {
+        self.id = id
+        self.src = src
+        self.start = start
+        self.trimStart = trimStart
+        self.trimEnd = trimEnd
+        self.volume = volume
+        self.fadeIn = fadeIn
+        self.fadeOut = fadeOut
+        self.loop = loop
+        self.name = name
+    }
+
+    /// The old single soundtrack as a track: from the film's start, looping
+    /// to its end at its volume, fading out over the last second as it did —
+    /// so its sound is what it was — with the Android twin's fixed id and
+    /// name, "Soundtrack".
+    static func migrated(soundtrack id: String, volume: Double?) -> AudioTrack {
+        AudioTrack(id: migratedId, src: src(id), volume: min(max(volume ?? 1, 0), 1), fadeOut: migratedFadeOut,
+                   loop: true, name: migratedName)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, src, start, trimStart, trimEnd, volume, fadeIn, fadeOut, loop, name
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        src = try c.decode(String.self, forKey: .src)
+        guard src.hasPrefix(Self.prefix), src.count > Self.prefix.count else {
+            throw DecodingError.dataCorrupted(.init(codingPath: c.codingPath, debugDescription: "Not an audio track"))
+        }
+        // One with no id of its own goes by its source, as on Android: the
+        // same file reads as the same track each time.
+        let own = try? c.decodeIfPresent(String.self, forKey: .id)
+        id = own.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 } ?? src
+        start = (try? c.decodeIfPresent(Double.self, forKey: .start)) ?? 0
+        trimStart = (try? c.decodeIfPresent(Double.self, forKey: .trimStart)) ?? 0
+        trimEnd = try? c.decodeIfPresent(Double.self, forKey: .trimEnd)
+        volume = (try? c.decodeIfPresent(Double.self, forKey: .volume)) ?? 1
+        fadeIn = (try? c.decodeIfPresent(Double.self, forKey: .fadeIn)) ?? 0
+        fadeOut = (try? c.decodeIfPresent(Double.self, forKey: .fadeOut)) ?? 0
+        loop = (try? c.decodeIfPresent(Bool.self, forKey: .loop)) ?? false
+        name = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? ""
+    }
+
+    /// Every key but `trimEnd`, which is written only when the track stops
+    /// short of its file's end.
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(src, forKey: .src)
+        try c.encode(start, forKey: .start)
+        try c.encode(trimStart, forKey: .trimStart)
+        try c.encodeIfPresent(trimEnd, forKey: .trimEnd)
+        try c.encode(volume, forKey: .volume)
+        try c.encode(fadeIn, forKey: .fadeIn)
+        try c.encode(fadeOut, forKey: .fadeOut)
+        try c.encode(loop, forKey: .loop)
+        try c.encode(name, forKey: .name)
+    }
+
+    /// One track of an `audio` array: none, rather than the whole array,
+    /// for one that does not read.
+    struct IfReadable: Decodable {
+        var track: AudioTrack?
+
+        init(from decoder: Decoder) throws {
+            track = try? AudioTrack(from: decoder)
+        }
+    }
 }
 
 struct Design: Codable, Equatable, Identifiable {
@@ -289,6 +406,16 @@ struct Design: Codable, Equatable, Identifiable {
     /// bleed: a design written before it, or with it turned off, prints as
     /// it always did (see Bleed). Never 0 or less.
     var bleed: Double?
+    /// The sound under the film, in the order the Audio sheet lists it. Nil,
+    /// and not written, when there is none. A design from before tracks
+    /// reads its soundtrack in as the one track (AudioTrack.migrated).
+    var audio: [AudioTrack]?
+
+    /// The tracks, none as an empty list; setting none takes the key away.
+    var audioTracks: [AudioTrack] {
+        get { audio ?? [] }
+        set { audio = newValue.isEmpty ? nil : newValue }
+    }
 
     var size: CGSize { CGSize(width: width, height: height) }
 
@@ -338,11 +465,34 @@ struct Design: Codable, Equatable, Identifiable {
         unit = (try? c.decode(String.self, forKey: .unit)).flatMap { $0 == "px" ? nil : $0 }
         dpi = (try? c.decode(Double.self, forKey: .dpi)).flatMap { $0 > 0 && $0.isFinite ? $0 : nil }
         bleed = (try? c.decode(Double.self, forKey: .bleed)).flatMap { $0 > 0 && $0.isFinite ? $0 : nil }
+        let tracks = (try? c.decode([AudioTrack.IfReadable].self, forKey: .audio))?.compactMap(\.track) ?? []
+        audio = tracks.isEmpty ? nil : tracks
+        // The old soundtrack, read forever: the one track of a file with no
+        // `audio` key, and passed over beside one that has it. Never written
+        // back, as `motion` no longer has it.
+        if audio == nil, let old = try? c.decode(LegacySound.self, forKey: .motion),
+           let id = old.soundtrack, !id.isEmpty {
+            audio = [AudioTrack.migrated(soundtrack: id, volume: old.soundVolume)]
+        }
+    }
+
+    /// The soundtrack keys `motion` had before audio tracks.
+    private struct LegacySound: Decodable {
+        var soundtrack: String?
+        var soundVolume: Double?
+
+        private enum CodingKeys: String, CodingKey { case soundtrack, soundVolume }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            soundtrack = try? c.decodeIfPresent(String.self, forKey: .soundtrack)
+            soundVolume = try? c.decodeIfPresent(Double.self, forKey: .soundVolume)
+        }
     }
 
     private enum CodingKeys: String, CodingKey {
         case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides, folder
-        case titleAuto, fonts, unit, dpi, bleed
+        case titleAuto, fonts, unit, dpi, bleed, audio
     }
 
     /// The master page, if one is set and still exists.

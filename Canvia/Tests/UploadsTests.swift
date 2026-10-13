@@ -217,8 +217,7 @@ final class UploadsTests: XCTestCase {
     func testMusicIsUsedByTheDesignsItPlaysUnder() throws {
         let track = try storedTrack()
         var playing = Design(title: "uploads: music")
-        playing.motion = MotionSettings()
-        playing.motion?.soundtrack = track
+        playing.audio = [AudioTrack(src: AudioTrack.src(track))]
         _ = saved(playing)
         XCTAssertEqual(DesignLibrary.use(ofUpload: track, kind: .audio).designs, 1)
         XCTAssertFalse(DesignLibrary.uploadKeptOutsideDesigns(track, kind: .audio))

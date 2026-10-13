@@ -526,7 +526,7 @@ enum DesignLibrary {
 
     /// Delete soundtrack files no design plays any more.
     ///
-    /// Removing or changing a design's soundtrack leaves its file behind: a
+    /// Removing a design's track leaves its file behind: a
     /// duplicate of the design, one of its saved versions or the undo step
     /// may still name the same id, and deleting it there and then took the
     /// music out of their videos without a word. At launch there is no undo
@@ -625,9 +625,10 @@ enum DesignLibrary {
         return found
     }
 
-    /// The AudioStore ids these designs play under their videos.
+    /// The AudioStore ids these designs play under their videos, on any of
+    /// their tracks.
     static func soundtracks(in designs: [Design]) -> Set<String> {
-        Set(designs.compactMap { $0.motion?.soundtrack })
+        Set(designs.flatMap { $0.audioTracks.compactMap(\.audioId) })
     }
 
     // MARK: uploads in use
@@ -645,7 +646,7 @@ enum DesignLibrary {
         switch kind {
         case .image: return photos(in: [design]).contains(id)
         case .video: return clips(in: [design]).contains(id)
-        case .audio: return design.motion?.soundtrack == id
+        case .audio: return design.audioTracks.contains { $0.audioId == id }
         }
     }
 

@@ -1,8 +1,8 @@
 // Sound: each clip's volume and mute in its `clip` JSON, the mix of clips
-// and music in the video (AudioMix.plan, the same table as the Android
-// twin's), where the music starts in Play, the clips a page is heard with,
-// the soundtrack travelling in a design file, and the video carrying a
-// clip's sound.
+// and audio tracks in the video (AudioMix.plan, the same tables as the
+// Android twin's), where the music starts in Play, the clips a page is heard
+// with, the tracks' music travelling in a design file, and the video
+// carrying a clip's sound.
 
 import AVFoundation
 import XCTest
@@ -26,55 +26,69 @@ final class ClipSoundTests: XCTestCase {
     }
 
     private func segment(_ source: String, _ sourceStart: Double, _ at: Double, _ duration: Double, _ gain: Double,
-                         _ fadeOut: ClosedRange<Double>? = nil) -> AudioMix.Segment {
-        AudioMix.Segment(source: source, sourceStart: sourceStart, at: at, duration: duration, gain: gain, fadeOut: fadeOut)
+                         _ fadeOut: ClosedRange<Double>? = nil, fadeIn: ClosedRange<Double>? = nil) -> AudioMix.Segment {
+        AudioMix.Segment(source: source, sourceStart: sourceStart, at: at, duration: duration, gain: gain,
+                         fadeOut: fadeOut, fadeIn: fadeIn)
+    }
+
+    /// The old soundtrack `source`, `volume` loud, as the track it is read
+    /// in as.
+    private func soundtrack(_ source: String, volume: Double) -> [AudioTrack] {
+        [AudioTrack.migrated(soundtrack: source, volume: volume)]
+    }
+
+    private func assertPlan(_ plan: [AudioMix.Segment], _ want: [AudioMix.Segment], _ name: String,
+                            file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertEqual(plan.count, want.count, name, file: file, line: line)
+        for (want, got) in zip(want, plan) {
+            XCTAssertEqual(got.source, want.source, name, file: file, line: line)
+            XCTAssertEqual(got.sourceStart, want.sourceStart, accuracy: 1e-9, name, file: file, line: line)
+            XCTAssertEqual(got.at, want.at, accuracy: 1e-9, name, file: file, line: line)
+            XCTAssertEqual(got.duration, want.duration, accuracy: 1e-9, name, file: file, line: line)
+            XCTAssertEqual(got.gain, want.gain, accuracy: 1e-9, name, file: file, line: line)
+            XCTAssertEqual(got.fadeOut, want.fadeOut, name, file: file, line: line)
+            XCTAssertEqual(got.fadeIn, want.fadeIn, name, file: file, line: line)
+        }
     }
 
     func testClipsAndTheSoundtrackAreLaidAsOnAndroid() {
         let rows: [(name: String, timeline: [MovieExporter.Timing], clipsByPage: [[AudioMix.Clip]],
-                    durations: [String: Double], soundtrack: AudioMix.Music?, segments: [AudioMix.Segment])] = [
+                    durations: [String: Double], tracks: [AudioTrack], segments: [AudioMix.Segment])] = [
             ("a looping clip over a longer page",
-             pages(10), [[clip("a")]], ["a": 4], nil,
+             pages(10), [[clip("a")]], ["a": 4], [],
              [segment("a", 0, 0, 4, 1), segment("a", 0, 4, 4, 1), segment("a", 0, 8, 2, 1)]),
             ("a clip shorter than its page, not looping",
-             pages(10), [[clip("a", ClipPlayback(loop: false))]], ["a": 4], nil,
+             pages(10), [[clip("a", ClipPlayback(loop: false))]], ["a": 4], [],
              [segment("a", 0, 0, 4, 1)]),
             ("a trimmed clip",
-             pages(5), [[clip("a", ClipPlayback(start: 2, end: 5))]], ["a": 10], nil,
+             pages(5), [[clip("a", ClipPlayback(start: 2, end: 5))]], ["a": 10], [],
              [segment("a", 2, 0, 3, 1), segment("a", 2, 3, 2, 1)]),
             ("a muted clip",
-             pages(5), [[clip("a", ClipPlayback(muted: true))]], ["a": 10], nil,
+             pages(5), [[clip("a", ClipPlayback(muted: true))]], ["a": 10], [],
              []),
             ("two pages each with a clip",
-             pages(3, 4), [[clip("a")], [clip("b", ClipPlayback(volume: 0.5))]], ["a": 10, "b": 10], nil,
+             pages(3, 4), [[clip("a")], [clip("b", ClipPlayback(volume: 0.5))]], ["a": 10, "b": 10], [],
              [segment("a", 0, 0, 3, 1), segment("b", 0, 3, 4, 0.5)]),
             ("the soundtrack and a clip",
-             pages(10), [[clip("a", ClipPlayback(loop: false, volume: 0.8))]], ["a": 4],
-             AudioMix.Music(source: "m", duration: 6, volume: 0.5),
+             pages(10), [[clip("a", ClipPlayback(loop: false, volume: 0.8))]], ["a": 4, "m": 6],
+             soundtrack("m", volume: 0.5),
              [segment("a", 0, 0, 4, 0.8), segment("m", 0, 0, 6, 0.5, 9...10), segment("m", 0, 6, 4, 0.5, 9...10)]),
             ("a clip at another speed, a silent one, and one of no known length",
              pages(5), [[clip("a", ClipPlayback(speed: 2)), clip("b", ClipPlayback(volume: 0)), clip("c")]],
-             ["a": 10, "b": 10], nil,
+             ["a": 10, "b": 10], [],
              []),
         ]
         for row in rows {
+            // Durations by source: the clips' and the tracks' music alike.
             let plan = AudioMix.plan(timeline: row.timeline, fps: 30, clipsByPage: row.clipsByPage,
-                                     clipDurations: row.durations, soundtrack: row.soundtrack)
-            XCTAssertEqual(plan.count, row.segments.count, row.name)
-            for (want, got) in zip(row.segments, plan) {
-                XCTAssertEqual(got.source, want.source, row.name)
-                XCTAssertEqual(got.sourceStart, want.sourceStart, accuracy: 1e-9, row.name)
-                XCTAssertEqual(got.at, want.at, accuracy: 1e-9, row.name)
-                XCTAssertEqual(got.duration, want.duration, accuracy: 1e-9, row.name)
-                XCTAssertEqual(got.gain, want.gain, accuracy: 1e-9, row.name)
-                XCTAssertEqual(got.fadeOut, want.fadeOut, row.name)
-            }
+                                     clipDurations: row.durations, tracks: row.tracks, trackDurations: row.durations)
+            assertPlan(plan, row.segments, row.name)
         }
     }
 
     func testTheSoundtrackFadesOutOverTheFilmsLastSecond() throws {
         let plan = AudioMix.plan(timeline: pages(10), fps: 30, clipsByPage: [[]], clipDurations: [:],
-                                 soundtrack: AudioMix.Music(source: "m", duration: 20, volume: 0.8))
+                                 tracks: soundtrack("m", volume: 0.8), trackDurations: ["m": 20])
         XCTAssertEqual(plan.count, 1)
         let music = try XCTUnwrap(plan.first)
         XCTAssertEqual(music.gainAt(5), 0.8, accuracy: 1e-9)
@@ -82,7 +96,7 @@ final class ClipSoundTests: XCTestCase {
         XCTAssertEqual(music.gainAt(10), 0, accuracy: 1e-9)
         // Silent music is no music.
         XCTAssertTrue(AudioMix.plan(timeline: pages(10), fps: 30, clipsByPage: [[]], clipDurations: [:],
-                                    soundtrack: AudioMix.Music(source: "m", duration: 20, volume: 0)).isEmpty)
+                                    tracks: soundtrack("m", volume: 0), trackDurations: ["m": 20]).isEmpty)
     }
 
     func testTheMusicInPlayStartsWhereThePageStartsInTheFilm() {
@@ -196,7 +210,7 @@ final class ClipSoundTests: XCTestCase {
         XCTAssertFalse(Soundtrack.packs(bytes: 0, ext: "m4a"))
     }
 
-    func testTheSoundtrackTravelsUnderAudioAndComesBackAsTheDesignsMusic() throws {
+    func testEveryTracksMusicTravelsUnderAudioAndComesBackPlayedByItsTracks() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("pkg-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -204,57 +218,71 @@ final class ClipSoundTests: XCTestCase {
         let bytes = Data((0..<5000).map { UInt8(truncatingIfNeeded: $0 * 7) })
         try bytes.write(to: song)
         let id = try XCTUnwrap(AudioStore.store(song))
-        defer { AudioStore.delete(id) }
+        let voice = dir.appendingPathComponent("Voice.m4a")
+        try Data([9, 8, 7]).write(to: voice)
+        let spoken = try XCTUnwrap(AudioStore.store(voice))
+        defer { for id in [id, spoken] { AudioStore.delete(id) } }
 
         var d = Design(title: "Scored", width: 400, height: 300)
-        var m = MotionSettings(); m.soundtrack = id; m.soundVolume = 0.5
-        d.motion = m
+        d.audio = [AudioTrack(src: AudioTrack.src(id), volume: 0.5, loop: true),
+                   AudioTrack(src: AudioTrack.src(spoken), start: 2.5, name: "Voice-over 1"),
+                   AudioTrack(src: AudioTrack.src(id), start: 4, trimStart: 1, trimEnd: 3)]
         let data = try DesignPackage.export(d, mediaDirectory: dir)
         let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         let audio = try XCTUnwrap(object["audio"] as? [String: Any])
+        XCTAssertEqual(Set(audio.keys), [id, spoken], "each file once, however many tracks play it")
         let packed = try XCTUnwrap(audio[id] as? [String: Any])
         XCTAssertEqual(packed["ext"] as? String, "m4a")
         XCTAssertEqual((packed["data"] as? String).flatMap { Data(base64Encoded: $0) }, bytes)
 
-        // Stored under a fresh id, the design's soundtrack points at it, its
-        // volume kept.
+        // Stored under fresh ids, each track points at its music again, all
+        // else kept.
         let back = try DesignPackage.import(data, mediaDirectory: dir)
-        let moved = try XCTUnwrap(back.motion?.soundtrack)
-        defer { AudioStore.delete(moved) }
-        XCTAssertNotEqual(moved, id)
-        XCTAssertEqual(try Data(contentsOf: try XCTUnwrap(AudioStore.url(for: moved))), bytes)
-        XCTAssertEqual(back.motion?.soundVolume, 0.5)
+        let moved = back.audioTracks.compactMap(\.audioId)
+        defer { for id in Set(moved) { AudioStore.delete(id) } }
+        XCTAssertEqual(moved.count, 3)
+        XCTAssertFalse(moved.contains(id))
+        XCTAssertFalse(moved.contains(spoken))
+        XCTAssertEqual(moved[0], moved[2], "two tracks of one song still share it")
+        XCTAssertEqual(try Data(contentsOf: try XCTUnwrap(AudioStore.url(for: moved[0]))), bytes)
+        XCTAssertEqual(back.audioTracks[0].volume, 0.5)
+        XCTAssertEqual(back.audioTracks[1].start, 2.5)
+        XCTAssertEqual(back.audioTracks[1].name, "Voice-over 1")
+        XCTAssertEqual(back.audioTracks[2].trimEnd, 3)
 
         // No music, or music not on this phone, writes no "audio".
         let plain = try JSONSerialization.jsonObject(with: DesignPackage.export(Design(title: "Quiet"), mediaDirectory: dir)) as? [String: Any]
         XCTAssertNil(plain?["audio"])
         var elsewhere = d
-        elsewhere.motion?.soundtrack = "audio_elsewhere.m4a"
+        elsewhere.audio = [AudioTrack(src: "audio:audio_elsewhere.m4a")]
         let away = try DesignPackage.import(try DesignPackage.export(elsewhere, mediaDirectory: dir), mediaDirectory: dir)
-        XCTAssertEqual(away.motion?.soundtrack, "audio_elsewhere.m4a", "music that did not travel is left as it was")
+        XCTAssertEqual(away.audioTracks.map(\.src), ["audio:audio_elsewhere.m4a"], "music that did not travel is left as it was")
     }
 
-    /// A file written by the Android twin, music first as the sorted keys
-    /// put it, opens with its music; the file type it names is kept to
-    /// letters and digits.
+    /// A file written by the Android twin before tracks, music first as the
+    /// sorted keys put it, opens with its music as one track; the file type
+    /// it names is kept to letters and digits.
     func testADesignFileWithMusicFromAndroidOpens() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("pkg-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
-        var d = Design(title: "From Android", width: 400, height: 300)
-        var m = MotionSettings(); m.soundtrack = "audio-1.m4a"
-        d.motion = m
-        let design = try JSONSerialization.jsonObject(with: JSONEncoder().encode(d))
+        let d = Design(title: "From Android", width: 400, height: 300)
+        var design = try XCTUnwrap(try JSONSerialization.jsonObject(with: JSONEncoder().encode(d)) as? [String: Any])
+        design["motion"] = ["secondsPerPage": 2.5, "fps": 30, "movement": true, "crossfade": true,
+                            "soundtrack": "audio-1.m4a", "soundVolume": 0.6] as [String: Any]
         let file: [String: Any] = [
             "audio": ["audio-1.m4a": ["data": "AQID", "ext": "../m4a"]],
             "design": design, "format": "canvia-package", "media": [String: Any](), "version": 1,
         ]
         let back = try DesignPackage.import(try JSONSerialization.data(withJSONObject: file), mediaDirectory: dir)
-        let moved = try XCTUnwrap(back.motion?.soundtrack)
+        let track = try XCTUnwrap(back.audio?.first)
+        let moved = try XCTUnwrap(track.audioId)
         defer { AudioStore.delete(moved) }
         XCTAssertTrue(moved.hasSuffix(".m4a"), moved)
         XCTAssertFalse(moved.contains("/"))
         XCTAssertEqual(try Data(contentsOf: try XCTUnwrap(AudioStore.url(for: moved))), Data([1, 2, 3]))
+        XCTAssertEqual(track.volume, 0.6)
+        XCTAssertTrue(track.loop)
     }
 
     // MARK: the video
@@ -296,9 +324,8 @@ final class ClipSoundTests: XCTestCase {
         // A clip with sound in it: a second of video with the tone under it.
         var scored = Design(title: "scored", width: 320, height: 240)
         var m = MotionSettings(); m.secondsPerPage = 1; m.fps = 24; m.movement = false; m.crossfade = false
-        var withMusic = m
-        withMusic.soundtrack = music
-        scored.motion = withMusic
+        scored.motion = m
+        scored.audio = [AudioTrack(src: AudioTrack.src(music), loop: true)]
         let made = dir.appendingPathComponent("made.mp4")
         let first = try await MovieExporter.exportMP4(design: scored, settings: MovieExporter.Settings(scored.motion), to: made)
         XCTAssertFalse(first.musicLost)

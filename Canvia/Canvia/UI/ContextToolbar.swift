@@ -414,7 +414,7 @@ struct ContextToolbar: View {
             Divider()
             exitMenu(el)
             Button { store.playPreview() } label: { Label("Play this page", systemImage: "play") }
-                .disabled(!store.pageIsAnimated)
+                .disabled(!store.pagePlays)
         } label: {
             toolLabel("sparkles.rectangle.stack", "Animate", active: el.animation != nil || el.exitAnimation != nil)
         }

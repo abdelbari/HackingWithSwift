@@ -631,7 +631,7 @@ struct InsertSheet: View {
         switch kind {
         case .image: return "Photos you add show here."
         case .video: return "Videos you add show here."
-        case .audio: return "Music you choose for a video shows here."
+        case .audio: return "Music and voice-overs you add show here."
         }
     }
 
@@ -708,15 +708,15 @@ struct InsertSheet: View {
         }
     }
 
-    /// A song brought in, by its own name. A tap makes it the design's
-    /// soundtrack, as choosing it under Export does; the one playing now is
-    /// ticked.
+    /// A song brought in, by its own name. A tap adds it as another of the
+    /// design's audio tracks, from the film's start; one the design plays
+    /// already is ticked.
     private func musicRow(_ id: String, index: Int, count: Int) -> some View {
         let starred = Favorites.isFavorite("upload", id)
-        let playing = store.design.motion?.soundtrack == id
+        let playing = store.design.audioTracks.contains { $0.audioId == id }
         let name = AudioStore.label(for: id)
         return Button {
-            chooseSoundtrack(id)
+            addTrack(id)
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "music.note")
@@ -744,14 +744,12 @@ struct InsertSheet: View {
         }
     }
 
-    /// The design's soundtrack, as one Undo, said, and the sheet out of the
-    /// way.
-    private func chooseSoundtrack(_ id: String) {
-        var motion = store.design.motion ?? MotionSettings()
-        motion.soundtrack = id
-        store.apply { $0.motion = motion }
+    /// The song as a new audio track, as one Undo, said, and the sheet out
+    /// of the way.
+    private func addTrack(_ id: String) {
+        store.addAudioTrack(id)
         store.buzz(.confirm)
-        store.announce("Soundtrack: \(AudioStore.label(for: id))")
+        store.announce("Added \(AudioStore.label(for: id))")
         dismiss()
     }
 

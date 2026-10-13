@@ -29,10 +29,10 @@ enum DesignPackage {
         /// before clips travelled — or with none — still reads; the Android
         /// twin writes and reads the same.
         var videos: [String: Media]?
-        /// The soundtrack, by the id the design's `motion.soundtrack` names,
-        /// when it is small enough and of a type both phones play
-        /// (Soundtrack.packs). Optional like `videos`, so older files read,
-        /// and older readers pass over it.
+        /// The music of every audio track, by the AudioStore id its `src`
+        /// names, those small enough and of a type both phones play, within
+        /// a total (Soundtrack.packed). Optional like `videos`, so older
+        /// files read, and older readers pass over it.
         var audio: [String: Media]?
         /// The fonts of your own the texts are set in, by their hash —
         /// {"<sha12>": {"data", "ext"}}, each at most CustomFonts.maxBytes;
@@ -275,15 +275,25 @@ enum DesignPackage {
         return fonts.isEmpty ? nil : fonts
     }
 
-    /// The design's music, packed, when it is on this phone and travels;
-    /// otherwise none, and the design names music only the phone it was
-    /// chosen on has, as it always did.
+    /// The music of the design's tracks, packed, those on this phone that
+    /// travel (Soundtrack.packed); none when none does. A track whose file
+    /// stays behind names music only the phone it was chosen on has, as the
+    /// soundtrack always did.
     static func packedAudio(of design: Design) -> [String: Media]? {
-        guard let id = design.motion?.soundtrack, let url = AudioStore.url(for: id) else { return nil }
-        let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
-        let ext = url.pathExtension.lowercased()
-        guard Soundtrack.packs(bytes: size, ext: ext), let data = try? Data(contentsOf: url) else { return nil }
-        return [id: Media(ext: ext, data: data)]
+        var files: [String: URL] = [:]
+        var sizes: [String: (bytes: Int, ext: String)] = [:]
+        for track in design.audioTracks {
+            guard let id = track.audioId, files[id] == nil, let url = AudioStore.url(for: id) else { continue }
+            files[id] = url
+            sizes[id] = (bytes: (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0,
+                         ext: url.pathExtension.lowercased())
+        }
+        var audio: [String: Media] = [:]
+        for id in Soundtrack.packed(sizes) {
+            guard let url = files[id], let data = try? Data(contentsOf: url) else { continue }
+            audio[id] = Media(ext: url.pathExtension.lowercased(), data: data)
+        }
+        return audio.isEmpty ? nil : audio
     }
 
     /// The file's bytes. The slow part of an export — every photo and clip
@@ -511,7 +521,7 @@ enum DesignPackage {
         for (sha, item) in package.fonts ?? [:] where CustomFonts.sha12(item.data) == sha {
             _ = FontStore.add(item.data)
         }
-        // The music under a fresh id too, the design's soundtrack pointed
+        // The music under a fresh id too, each track that plays it pointed
         // at it.
         var music: [String: String] = [:]
         for (oldId, item) in package.audio ?? [:] {
@@ -550,8 +560,11 @@ enum DesignPackage {
         if let master = design.masterPageId {
             design.masterPageId = pageIds[master]
         }
-        if let old = design.motion?.soundtrack, let moved = music[old] {
-            design.motion?.soundtrack = moved
+        design.audioTracks = design.audioTracks.map { track in
+            guard let old = track.audioId, let moved = music[old] else { return track }
+            var next = track
+            next.src = AudioTrack.src(moved)
+            return next
         }
         if normalize { design.normalizeTextHeights() }
         return design

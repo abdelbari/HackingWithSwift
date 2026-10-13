@@ -29,9 +29,6 @@ enum MovieExporter {
         var maxEdge: Double = 1920
         var zoom: Double = 0.06
         var crossfade: Double = 0.5
-        /// AudioStore id under the video, if any, and its volume.
-        var soundtrack: String?
-        var soundVolume: Double = 1
 
         init() {}
 
@@ -44,8 +41,6 @@ enum MovieExporter {
             zoom = m.movement ? 0.06 : 0
             // A fade cannot outlast the page it fades from.
             crossfade = m.crossfade ? min(0.5, secondsPerPage / 2) : 0
-            soundtrack = m.soundtrack
-            soundVolume = min(max(m.soundVolume ?? 1, 0), 1)
         }
     }
 
@@ -596,8 +591,9 @@ enum MovieExporter {
     /// What is heard under the video of `pages` (the design's indices, as
     /// they play, timed by `timings`): the plan, the file each of its
     /// sources is read from, and whether music there was could not be read.
-    /// A clip filmed without sound, or not on this phone, is silent, and
-    /// music this phone does not have — chosen on another — is no music.
+    /// A clip filmed without sound, or not on this phone, is silent, and a
+    /// track whose music this phone does not have — chosen on another — is
+    /// no music.
     @MainActor
     static func soundMix(design: Design, pages: [Int], timings: [Timing],
                          settings: Settings) async -> (segments: [AudioMix.Segment], sources: [String: URL], lost: Bool) {
@@ -612,17 +608,21 @@ enum MovieExporter {
             durations[clip.source] = seconds
             sources[clip.source] = file
         }
-        var music: AudioMix.Music?
-        if let id = settings.soundtrack, let file = AudioStore.url(for: id) {
+        // Each track's music once, however many tracks play it.
+        var trackDurations: [String: Double] = [:]
+        var heard = Set<String>()
+        for track in design.audioTracks where track.volume > 0 {
+            guard let id = track.audioId, heard.insert(id).inserted, let file = AudioStore.url(for: id) else { continue }
             if let seconds = await AudioStore.duration(of: id), seconds > 0 {
-                music = AudioMix.Music(source: id, duration: seconds, volume: settings.soundVolume)
+                trackDurations[id] = seconds
                 sources[id] = file
             } else {
                 lost = true
             }
         }
         let segments = AudioMix.plan(timeline: timings, fps: settings.fps, clipsByPage: clipsByPage,
-                                     clipDurations: durations, soundtrack: music)
+                                     clipDurations: durations, tracks: design.audioTracks,
+                                     trackDurations: trackDurations)
         return (segments, sources, lost)
     }
 

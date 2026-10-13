@@ -1844,7 +1844,7 @@ final class DesignStore {
     var previewTime: Double?
     private var previewTask: Task<Void, Never>?
     /// What is heard while the preview plays: the page's clips, and the
-    /// music from where the page comes in the video.
+    /// audio tracks from where the page comes in the video.
     private let previewSound = PageSound(presenting: false)
 
     var pageHold: Double {
@@ -1867,8 +1867,8 @@ final class DesignStore {
 
     /// Play the page's entrances, exits and drifts once, at 30 frames a
     /// second, from `offset` seconds in, then settle. Scrub by setting
-    /// previewTime directly. Its clips are heard, and the music from where
-    /// the page comes in the video, for the page's hold.
+    /// previewTime directly. Its clips are heard, and the audio tracks from
+    /// where the page comes in the video, for the page's hold.
     func playPreview(from offset: Double = 0) {
         previewTask?.cancel()
         let hold = pageHold
@@ -1883,7 +1883,8 @@ final class DesignStore {
         let since = Date().addingTimeInterval(-offset)
         previewSound.stop()
         previewSound.page(AudioMix.clips(design: design, page: page), since: since)
-        previewSound.music(design: design, offset: AudioMix.pageStart(design: design, index: pageIndex), since: since)
+        previewSound.tracks(design: design, offset: AudioMix.pageStart(design: design, index: pageIndex), since: since,
+                            film: AudioMix.filmLength(design: design))
         previewTask = Task { @MainActor in
             // Timed by the clock rather than by counting passes: a pass that
             // runs long — a busy page, a clip's frame being decoded — would
@@ -1928,6 +1929,46 @@ final class DesignStore {
         previewTask = nil
         previewTime = nil
         previewSound.stop()
+    }
+
+    /// The design played from the start of the page on screen to the end of
+    /// the film, each shown page after it in turn, as Play plays one — in
+    /// silence, as a voice-over is recorded over it and the microphone
+    /// would hear the speaker — then `onEnd`: at the film's end, or when
+    /// another page is brought up meanwhile. Not when stopPreview stops it.
+    func playThrough(onEnd: @escaping @MainActor () -> Void) {
+        stopPreview()
+        let after = design.visiblePageIndices.filter { $0 >= pageIndex }
+        let order = after.isEmpty ? [pageIndex] : after
+        previewTask = Task { @MainActor in
+            for index in order {
+                guard design.pages.indices.contains(index) else { break }
+                setPage(index)
+                guard await playOnce() else { break }
+            }
+            guard !Task.isCancelled else { return }
+            previewTime = nil
+            onEnd()
+        }
+    }
+
+    /// The page on screen played through once, on the clock as Play plays
+    /// it; false when it was cut short — stopped, or another page brought
+    /// up.
+    @MainActor
+    private func playOnce() async -> Bool {
+        let playing = page.id
+        let hold = pageHold
+        let start = ContinuousClock.now
+        while page.id == playing {
+            let elapsed = ContinuousClock.now - start
+            let t = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
+            if t > hold { return true }
+            previewTime = t
+            try? await Task.sleep(for: .milliseconds(33))
+            guard !Task.isCancelled else { return false }
+        }
+        return false
     }
 
     /// Give every selected element an entrance, staggered in layer order so

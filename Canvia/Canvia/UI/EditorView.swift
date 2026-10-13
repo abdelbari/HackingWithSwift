@@ -33,6 +33,8 @@ enum EditorSheet: String, Identifiable {
     /// More's "Copy & resize…": the Resize sheet, opened on its copies.
     case copyResize
     case settings
+    /// More's "Audio": the design's tracks, and a voice-over.
+    case audio
     /// The typing bar's Aa: the font sheet for the words chosen.
     case fontWords
     var id: String { rawValue }
@@ -630,6 +632,10 @@ struct EditorView: View {
                 } label: { Label("Page background", systemImage: "photo.artframe") }
 
                 Button {
+                    activeSheet = .audio
+                } label: { Label("Audio", systemImage: "waveform") }
+
+                Button {
                     activeSheet = .find
                 } label: { Label("Find and replace", systemImage: "text.magnifyingglass") }
 
@@ -1142,6 +1148,8 @@ struct EditorView: View {
             BrandKitSheet(store: store)
         case .settings:
             SettingsSheet(store: store)
+        case .audio:
+            AudioSheet(store: store)
         case .pages:
             PageOrganizerSheet(store: store)
         case .snapping:
