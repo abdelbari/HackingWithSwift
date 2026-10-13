@@ -38,24 +38,28 @@ enum DataGraphics {
 
     /// Chart data from typed lines, by the same rules as the Android twin's
     /// (the test vectors are shared):
-    /// - blank lines are skipped, and a line's trailing commas ignored;
-    /// - the first line that is not blank is a header when it has cells
-    ///   after the first, words and no numbers: "Quarter, North, South"
-    ///   names two series; a blank name is "Series <n>";
-    /// - one series — no header, or a header naming one — is read as it
-    ///   always was: split at the first comma only, a line with no number is
-    ///   skipped, one with only a number gets a numbered label ("Item <line>");
-    /// - several series: cells split at every comma; a value cell that is not
-    ///   a number, or is missing, reads as 0, a row with no number among its
-    ///   values is skipped, and cells past the last series are ignored;
+    /// - blank lines are skipped; the first line that is not blank once its
+    ///   trailing commas are ignored is a header when it has cells after the
+    ///   first, words and no numbers: "Quarter, North, South" names two
+    ///   series; a blank name is "Series <n>";
+    /// - one series — no header, or a header naming one — reads each line
+    ///   exactly as it always was: split at the first comma only, a line with
+    ///   no number is skipped ("A, 5," too, "5," being no number, and several
+    ///   numbers on a line without a header likewise), one with only a number
+    ///   gets a numbered label ("Item <line>");
+    /// - several series: cells split at every comma, a trailing comma being
+    ///   nothing; a value cell that is not a number, or is missing, reads as
+    ///   0, a row with no number among its values is skipped, and cells past
+    ///   the last series are ignored;
     /// - a "%" is ignored and below zero reads 0; with no header the one
     ///   series is "Series 1".
     static func parseChart(_ text: String) -> ChartData {
-        let lines = text.components(separatedBy: .newlines).map(withoutTrailingCommas)
+        let raw = text.components(separatedBy: .newlines)
+        let lines = raw.map(withoutTrailingCommas)
         let first = lines.firstIndex { !$0.isEmpty }
         let header = first.flatMap { headerNames(lines[$0]) }
         guard let names = header, names.count > 1 else {
-            let rows = lines.enumerated().compactMap { n, line in
+            let rows = raw.enumerated().compactMap { n, line in
                 header != nil && n == first ? nil : single(n, line)
             }
             return ChartData(names: [header?.first ?? "Series 1"], rows: rows)
@@ -102,15 +106,21 @@ enum DataGraphics {
         return value
     }
 
-    /// What the chart typed so far comes to, under the box it is typed in.
-    static func chartSummary(_ data: ChartData) -> String {
+    /// The hint under the chart's text, for a kind with rows to read.
+    static let seriesHint = "A first line of names, as in \"Quarter, North, South\", makes a series of each column after the first."
+
+    /// What the chart typed so far comes to, under the box it is typed in,
+    /// in the Android twin's words: "4 values", "3 rows × 2 series", or for a
+    /// progress kind the percentage it will show.
+    static func chartSummary(_ data: ChartData, kind: ChartKind) -> String {
         let n = data.rows.count
-        guard n > 0 else { return "No numbers found yet." }
-        let palette = " — coloured from the document's palette."
+        guard let first = data.rows.first?.values.first else { return "No numbers found yet." }
+        if kind.isProgress { return "The first value, as a percentage: \(Int(min(100, max(0, first)).rounded()))%." }
+        let tail = ", coloured from this page."
         if data.names.count > 1 {
-            return (n == 1 ? "1 row" : "\(n) rows") + " × \(data.names.count) series" + palette
+            return (n == 1 ? "1 row" : "\(n) rows") + " × \(data.names.count) series" + tail
         }
-        return (n == 1 ? "1 value" : "\(n) values") + palette
+        return (n == 1 ? "1 value" : "\(n) values") + tail
     }
 
     /// Raw values are the `kind` written in a chart's JSON.

@@ -33,25 +33,37 @@ extension DesignStore {
         return Int(part.dropFirst("series:".count))
     }
 
-    /// The colour a chart's mark shows: a line's stroke, anything else's fill.
+    /// The colour a chart's mark shows: a line's stroke — its fill being
+    /// none, or a solid colour wholly see-through — anything else's fill, as
+    /// the Android twin's `seriesColours` reads it.
     static func chartColour(of el: Element) -> Paint? {
-        let unfilled = el.fill == nil || el.fill?.kind == "none" || el.fill?.color == "#00000000"
+        let unfilled = el.fill == nil || el.fill?.kind == "none" || (el.fill?.kind == "solid" && isClear(el.fill?.color))
         if unfilled, let stroke = el.stroke, (el.strokeWidth ?? 0) > 0 { return .solid(stroke) }
         return el.fill
     }
 
+    /// An eight-digit hex colour whose alpha is zero.
+    private static func isClear(_ hex: String?) -> Bool {
+        guard var digits = hex?.trimmingCharacters(in: .whitespaces) else { return false }
+        if digits.hasPrefix("#") { digits.removeFirst() }
+        return digits.count == 8 && UInt8(digits.suffix(2), radix: 16) == 0
+    }
+
     /// Draws chart `spec` again in place of every element on the page that
-    /// carries its id: so that it fills the box they fill together as the
-    /// chart before did (see DataGraphics.frameFilling), at the place in the
-    /// stack of the lowest of them, under their group, with the colours they
-    /// had by series ("series:<n>") — as one step, the new chart selected.
+    /// carries its id: so that it fills the box their frames fill together —
+    /// unrotated, as the Android twin measures it, so Update after Update
+    /// never shrinks or grows it — as the chart before did (see
+    /// DataGraphics.frameFilling), at the place in the stack of the lowest
+    /// of them, under the group of the lowest one in a group, with the
+    /// colours they had by series ("series:<n>") — as one step, the new
+    /// chart selected.
     /// False, and nothing recorded, when the chart is not on the page or the
     /// data draws nothing.
     @discardableResult
     func updateChart(_ spec: ChartSpec) -> Bool {
         let members = page.elements.filter { $0.chart?.id == spec.id }
         guard let was = members.first?.chart else { return false }
-        let frame = DataGraphics.frameFilling(was, bounds: Geometry.union(members.map(Geometry.aabb)))
+        let frame = DataGraphics.frameFilling(was, bounds: Geometry.union(members.map(\.frame)))
         var colours: [Int: Paint] = [:]
         for el in members {
             guard let n = Self.chartSeries(el.chartPart), colours[n] == nil,

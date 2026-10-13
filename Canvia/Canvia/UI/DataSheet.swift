@@ -60,17 +60,17 @@ struct DataSheet: View {
                                 .font(.system(.body, design: .monospaced))
                                 .frame(minHeight: 140)
                         } header: {
-                            Text("One line per value: label, number")
+                            Text("One \"Label, value\" per line, or a header row for series")
                         } footer: {
                             let data = DataGraphics.parseChart(chartText)
                             if let refusal {
                                 Text(refusal).foregroundStyle(Color(.systemRed))
-                            } else if kind.isProgress, let first = data.rows.first?.values.first {
-                                Text("The first value, as a percentage: \(Int(min(100, first).rounded()))%.")
+                            } else if kind.isProgress || data.rows.isEmpty {
+                                Text(DataGraphics.chartSummary(data, kind: kind))
                             } else {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(DataGraphics.chartSummary(data))
-                                    Text("A first line of names, as in \"Quarter, North, South\", makes a series of each column after the first.")
+                                    Text(DataGraphics.chartSummary(data, kind: kind))
+                                    Text(DataGraphics.seriesHint)
                                 }
                             }
                         }

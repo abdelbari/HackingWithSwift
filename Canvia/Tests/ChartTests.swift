@@ -37,9 +37,10 @@ final class ChartDataTests: XCTestCase {
             ("\n  \nQuarter, North, South\n\nQ1, 40, 32\n \nQ2, 55, 41\n", ["North", "South"], ["Q1", "Q2"], [[40, 32], [55, 41]]),
             // A cell that is no number reads as 0; a row with no number at all is skipped.
             ("Quarter, North, South\nQ1, n/a, 32\nQ2, -, -\nQ3, 12", ["North", "South"], ["Q1", "Q3"], [[0, 32], [12, 0]]),
-            // A trailing comma is nothing, on a header or a row, one series or several.
+            // A trailing comma is nothing on a header or a row of several series.
             ("Quarter, North, South,\nQ1, 40, 32,", ["North", "South"], ["Q1"], [[40, 32]]),
-            ("A, 5,\nB, 6", ["Series 1"], ["A", "B"], [[5], [6]]),
+            // One series reads each line as it always did: "5," is no number after a label, a bare "7," is 7.
+            ("A, 5,\nB, 6\n7,", ["Series 1"], ["B", "Item 3"], [[6], [7]]),
             // Several numbers with no header above them are no single value.
             ("Q1, 40, 32", ["Series 1"], [], []),
             // A blank series name is numbered; negatives count as zero; a blank label is numbered by its line.
@@ -68,6 +69,30 @@ final class ChartDataTests: XCTestCase {
         XCTAssertEqual(rect(bars[0]), [136, 100, 128, 271])
         XCTAssertEqual(rect(bars[1]), [336, 236, 128, 136])
         XCTAssertEqual(els.map(\.chartPart), ["series:0", "label", "series:1", "label"])
+    }
+
+    func testTheSharedLayoutTableLineAsItAlwaysWas() {
+        let els = made(spec(.line, "A, 10\nB, 5"))
+        XCTAssertEqual(els.map(\.chartPart), ["series:0", "label", "label"])
+        XCTAssertEqual(rect(els[0]), [100, 100, 400, 271])
+        XCTAssertEqual(els[0].pathData, "M0 0 L100 50")
+        XCTAssertEqual(els[0].stroke, "#ff0000")
+        XCTAssertEqual(els[0].strokeWidth, 5)
+        XCTAssertEqual(els.dropFirst().map(\.x), [0, 400])
+    }
+
+    func testTheSharedSummaryTable() {
+        let table: [(text: String, kind: DataGraphics.ChartKind, words: String)] = [
+            ("", .column, "No numbers found yet."),
+            ("A, 1\nB, 2", .column, "2 values, coloured from this page."),
+            ("A, 1", .pie, "1 value, coloured from this page."),
+            ("Q, N, S\nQ1, 1, 2", .line, "1 row × 2 series, coloured from this page."),
+            ("Score, 140", .progressRing, "The first value, as a percentage: 100%."),
+            ("72.4", .progressBar, "The first value, as a percentage: 72%."),
+        ]
+        for row in table {
+            XCTAssertEqual(DataGraphics.chartSummary(DataGraphics.parseChart(row.text), kind: row.kind), row.words, row.text)
+        }
     }
 
     func testTheSharedLayoutTableColumnWithTwoSeriesLegendValuesAndGridlines() {
