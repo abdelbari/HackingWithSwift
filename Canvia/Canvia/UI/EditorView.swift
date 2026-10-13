@@ -66,6 +66,9 @@ struct EditorView: View {
     /// Scroll through pages: every page down one column on the canvas, on
     /// unless turned off (PageColumn).
     @AppStorage(PageColumn.key) private var pageScroll = true
+    /// Rulers along the canvas's top and left, off unless turned on
+    /// (RulersView).
+    @AppStorage(Guides.rulersKey) private var rulers = false
     @State private var namingComponent = false
     /// More's "Save as template…" asking for a name and a category.
     @State private var savingTemplate = false
@@ -102,8 +105,11 @@ struct EditorView: View {
             if let tip { tipBanner(tip) }
             ZStack(alignment: .bottomTrailing) {
                 CanvasView(store: store)
+                    .overlay { if rulers { RulersView(store: store) } }
                     .overlay { SelectionBubble(store: store) }
-                    .overlay(alignment: .top) { CanvasChips(store: store) }
+                    .overlay(alignment: .top) {
+                        CanvasChips(store: store).padding(.top, CGFloat(rulers ? Guides.rulerThickness : 0))
+                    }
                 if let tool = store.drawing {
                     drawingBar(tool)
                         // Never quite to the screen's edges.
@@ -680,8 +686,10 @@ struct EditorView: View {
                 } label: { Label("Save selection as component…", systemImage: "square.grid.3x1.folder.badge.plus") }
                     .disabled(store.selection.isEmpty)
                 snappingMenu
-                // The design's own setting, so one step.
+                // The design's own setting, so one step; the rulers are
+                // this phone's.
                 Toggle(isOn: printBleed) { Label("Show print bleed", systemImage: "rectangle.dashed") }
+                Toggle(isOn: $rulers) { Label("Rulers", systemImage: "ruler") }
                 Toggle(isOn: $haptics) { Label("Vibration", systemImage: "iphone.radiowaves.left.and.right") }
                 Toggle(isOn: $quickActions) { Label("Quick actions at the selection", systemImage: "capsule") }
                 Toggle(isOn: $pageScroll) { Label("Scroll through pages", systemImage: "rectangle.stack") }

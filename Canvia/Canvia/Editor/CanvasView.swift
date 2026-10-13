@@ -48,6 +48,8 @@ struct CanvasView: View {
     @State private var editingPageNotes = false
     /// The bleed band's "Bleed" label, shown for its first few seconds.
     @State private var bleedLabel = false
+    /// Rulers, from the More menu: off unless turned on (RulersView).
+    @AppStorage(Guides.rulersKey) private var rulers = false
 
     /// Where the view is in the column, written as it scrolls, the zoom
     /// that fits it, and whether a finger set it moving; read when it comes
@@ -858,7 +860,8 @@ struct CanvasView: View {
 
     /// A guide: a thin line across the page that can be dragged into place,
     /// and pressed and held for Position… and Remove. Its touch target is
-    /// wide though the line is not.
+    /// wide though the line is not. With the rulers on, one dragged back
+    /// onto its ruler goes, in the same step as the drag.
     private func guideLine(_ guide: Guide) -> some View {
         let w = store.pageWidth, h = store.pageHeight
         return Rectangle()
@@ -870,13 +873,28 @@ struct CanvasView: View {
                     .onChanged { value in
                         store.moveGuideTransient(guide.id, to: guide.vertical ? value.location.x : value.location.y)
                     }
-                    .onEnded { _ in store.commit() }
+                    .onEnded { value in
+                        if rulers && overRuler(value.location, vertical: guide.vertical) {
+                            store.removeGuide(guide.id)
+                        } else {
+                            store.commit()
+                        }
+                    }
             )
             .onLongPressGesture(minimumDuration: 0.5) { guideMenu = guide }
             .position(x: guide.vertical ? guide.position : w / 2, y: guide.vertical ? h / 2 : guide.position)
             .accessibilityLabel(guideTitle(guide))
             .accessibilityHint("Drag to move, press and hold to place or remove; or use the actions to move, place or remove it")
             .accessibilityActions { guideActions(guide) }
+    }
+
+    /// Whether `point` on the page is on screen over the ruler a guide
+    /// across it — `vertical` or not — came from.
+    private func overRuler(_ point: CGPoint, vertical: Bool) -> Bool {
+        let view = store.viewport
+        return vertical
+            ? Guides.onRuler(Double(point.x), viewportStart: Double(view.minX), zoom: store.zoom)
+            : Guides.onRuler(Double(point.y), viewportStart: Double(view.minY), zoom: store.zoom)
     }
 
     /// A guide moved a step or taken away without a drag, for VoiceOver and
