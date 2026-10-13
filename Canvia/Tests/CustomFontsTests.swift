@@ -132,6 +132,49 @@ final class CustomFontsTests: XCTestCase {
         XCTAssertEqual(CustomFonts.used(in: design("custom:ab12cd34ef56", "lora", "custom:ab12cd34ef56")), ["ab12cd34ef56"])
     }
 
+    func testACopyCarriesTheRecordsOfItsFontsAndAPasteAddsThoseTheDesignLacks() {
+        let brand = CustomFonts.Record(id: "custom:0123456789ab", name: "Brand Serif", file: "0123456789ab.otf")
+        let source = CustomFonts.with(
+            design("custom:0123456789ab", "lora", "custom:ab12cd34ef56", "custom:0123456789ab", "custom:ffffffffffff"),
+            [acme, brand])
+        // Each once, in the elements' order; one the design has no entry for brings none.
+        XCTAssertEqual(CustomFonts.carried(source.pages[0].elements, from: source), [brand, acme])
+        XCTAssertEqual(CustomFonts.carried([Element.text("plain")], from: source), [])
+        // The design's own entries first and kept as they are, then those it lacked, each once.
+        let target = CustomFonts.with(design("custom:ab12cd34ef56"), [acme])
+        var renamed = acme
+        renamed.name = "Other"
+        XCTAssertEqual(CustomFonts.records(in: CustomFonts.adopting([brand, renamed, brand], into: target)), [acme, brand])
+        XCTAssertEqual(CustomFonts.adopting([acme], into: target), target)
+        XCTAssertEqual(CustomFonts.adopting([], into: target), target)
+    }
+
+    @MainActor
+    func testAPastedTextOrPageBringsItsFontsRecordInTheSameStep() throws {
+        let s = DesignStore(design: CustomFonts.with(design("custom:ab12cd34ef56"), [acme]))
+        s.selection = ["t0"]
+        s.copySelected()
+        // Into a design with no entry for it, as on another phone.
+        s.apply { $0 = CustomFonts.with($0, []) }
+        s.paste()
+        XCTAssertEqual(CustomFonts.records(in: s.design), [acme])
+        XCTAssertEqual(CustomFonts.name(in: s.design, of: "custom:ab12cd34ef56"), "Acme Sans")
+        s.undo()
+        XCTAssertEqual(CustomFonts.records(in: s.design), [])
+        XCTAssertEqual(s.page.elements.count, 1)
+
+        // Across the pasteboard, beside the elements and the page.
+        let board = UIPasteboard.withUniqueName()
+        ElementClipboard.write(s.page.elements, sourcePage: "p1", fonts: [acme], to: board)
+        XCTAssertEqual(ElementClipboard.fonts(from: board), [acme])
+        ElementClipboard.write(s.page.elements, to: board)
+        XCTAssertEqual(ElementClipboard.fonts(from: board), [])
+        PageClipboard.copy(s.page, width: 1080, height: 1080, fonts: [acme], to: board)
+        XCTAssertEqual(try XCTUnwrap(PageClipboard.paste(from: board)).fonts, [acme])
+        PageClipboard.copy(s.page, width: 1080, height: 1080, to: board)
+        XCTAssertNil(try XCTUnwrap(PageClipboard.paste(from: board)).fonts)
+    }
+
     func testAMissingFontDrawsAsSansAndIsNamedInTheTextControls() {
         let d = CustomFonts.with(design("custom:ab12cd34ef56"), [acme])
         let el = d.pages[0].elements[0]

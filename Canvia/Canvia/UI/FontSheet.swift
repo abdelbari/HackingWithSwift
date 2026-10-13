@@ -34,11 +34,12 @@ struct FontSheet: View {
         var onPick: (String?) -> Void
     }
 
-    /// The font in use: the one every text selected shares — none is ticked
-    /// when they differ — or the face being chosen.
+    /// The font in use: the one every text selected shares — an old name
+    /// counting as the family it means, and none ticked when they differ —
+    /// or the face being chosen.
     private var chosen: String? {
         if let choice { return choice.current.map { FontLibrary.resolve($0) } }
-        return store.sharedText { $0.fontFamily ?? "sans" }.map { FontLibrary.resolve($0) }
+        return store.sharedText { FontLibrary.resolve($0.fontFamily) }
     }
 
     var body: some View {
@@ -169,7 +170,9 @@ struct FontSheet: View {
 
     /// The face picked: the brand kit's, which closes the sheet, or every
     /// unlocked text selected and a shape's words, as one Undo. Either way
-    /// it heads this phone's Recently used.
+    /// it heads this phone's Recently used. Each box is measured again even
+    /// when its face is unchanged, so a font of your own just added snaps
+    /// its words out of Modern Sans's height.
     private func pick(_ key: String?) {
         if let key { RecentFonts.record(key) }
         if let choice {
@@ -181,6 +184,7 @@ struct FontSheet: View {
         store.updateSelected { el in
             guard ShapeText.carriesWords(el) else { return }
             el.fontFamily = key
+            el.h = ShapeText.heightForWords(el)
         }
     }
 

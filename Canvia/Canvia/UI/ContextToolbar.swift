@@ -230,7 +230,7 @@ struct ContextToolbar: View {
     /// Modern Sans meanwhile.
     private var typeBasics: some View {
         HStack(spacing: 14) {
-            let family = store.sharedText { $0.fontFamily ?? "sans" }
+            let family = store.sharedText { FontLibrary.resolve($0.fontFamily) }
             fontButton(family)
             if let family, let missing = FontStore.missingNote(family, in: store.design) {
                 missingFontChip(missing)

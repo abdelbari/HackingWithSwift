@@ -97,6 +97,9 @@ final class DesignStore {
     /// The page the clipboard was copied from, and the page pasted onto
     /// last: a paste somewhere new lands in place (Copies.pasteOffset).
     private var clipboardPage: String?
+    /// The records of the fonts of your own the clipboard is set in, which
+    /// a paste brings into a design that has none (CustomFonts.adopting).
+    private var clipboardFonts: [CustomFonts.Record] = []
     private var pastedOnto: String?
     private var pasteCount = 0
 
@@ -669,9 +672,10 @@ final class DesignStore {
         guard !selected.isEmpty else { return }
         clipboard = selected
         clipboardPage = page.id
+        clipboardFonts = CustomFonts.carried(selected, from: design)
         pastedOnto = nil
         pasteCount = 0
-        ElementClipboard.write(selected, sourcePage: page.id)
+        ElementClipboard.write(selected, sourcePage: page.id, fonts: clipboardFonts)
         buzz(.tick)
         announce(selected.count == 1 ? "Copied" : "Copied \(selected.count) things", undoable: false)
     }
@@ -688,9 +692,10 @@ final class DesignStore {
         }
         clipboard = removable
         clipboardPage = page.id
+        clipboardFonts = CustomFonts.carried(removable, from: design)
         pastedOnto = nil
         pasteCount = 0
-        ElementClipboard.write(removable, sourcePage: page.id)
+        ElementClipboard.write(removable, sourcePage: page.id, fonts: clipboardFonts)
         let ids = Set(removable.map(\.id))
         applyToPage { page in
             page.elements.removeAll { ids.contains($0.id) }
@@ -706,6 +711,7 @@ final class DesignStore {
             if let mine = ElementClipboard.read() {
                 clipboard = mine
                 clipboardPage = ElementClipboard.sourcePage()
+                clipboardFonts = ElementClipboard.fonts()
                 pastedOnto = nil
                 pasteCount = 0
             } else if let stranger = ElementClipboard.foreign(designWidth: pageWidth) {
@@ -733,7 +739,12 @@ final class DesignStore {
         let offset = Copies.pasteOffset(nth: pasteCount, sourcePage: clipboardPage, onto: page,
                                         copied: clipboard.map(\.id))
         let copies = Copies.of(clipboard, offset: offset)
-        applyToPage { $0.elements.append(contentsOf: copies) }
+        let fonts = clipboardFonts
+        // The fonts of your own they brought recorded with them, one step.
+        apply { design in
+            design.pages[self.pageIndex].elements.append(contentsOf: copies)
+            design = CustomFonts.adopting(fonts, into: design)
+        }
         selection = Set(copies.map(\.id))
     }
 
@@ -1938,7 +1949,8 @@ final class DesignStore {
     /// Copying changes nothing on screen, so it is said and felt — as on
     /// the Android twin — rather than the menu closing on nothing.
     func copyPage() {
-        PageClipboard.copy(page, width: pageWidth, height: pageHeight)
+        PageClipboard.copy(page, width: pageWidth, height: pageHeight,
+                           fonts: CustomFonts.carried(page.elements, from: design))
         announce("Page copied", undoable: false)
         buzz(.confirm)
     }
@@ -1949,7 +1961,12 @@ final class DesignStore {
     func pastePage() {
         guard let payload = PageClipboard.paste() else { return }
         let landed = PageClipboard.fitted(payload, width: pageWidth, height: pageHeight)
-        apply { $0.pages.insert(landed, at: pageIndex + 1) }
+        let at = pageIndex + 1
+        // The fonts of your own it brought recorded with it, one step.
+        apply { design in
+            design.pages.insert(landed, at: at)
+            design = CustomFonts.adopting(payload.fonts ?? [], into: design)
+        }
         pageIndex += 1
         selection.removeAll()
         buzz(.confirm)

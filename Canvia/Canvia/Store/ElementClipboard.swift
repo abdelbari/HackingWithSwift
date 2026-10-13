@@ -15,12 +15,19 @@ enum ElementClipboard {
     /// `sourcePage`, as the Android twin's clipboard keeps it — beside them,
     /// so a paste onto another page lands in place (Copies.pasteOffset).
     static let sourcePageType = "com.canvia.elements.sourcePage"
+    /// The design's records of the fonts of your own the elements are set
+    /// in (CustomFonts.carried), as the design writes them, so a paste into
+    /// a design without them still names a font this phone does not have —
+    /// the Android twin's clipboard keeps them as "fonts".
+    static let fontsType = "com.canvia.elements.fonts"
 
     /// `sourcePage` empty when the page is not known.
-    static func write(_ elements: [Element], sourcePage: String = "", to pasteboard: UIPasteboard = .general) {
+    static func write(_ elements: [Element], sourcePage: String = "", fonts: [CustomFonts.Record] = [],
+                      to pasteboard: UIPasteboard = .general) {
         guard let data = try? JSONEncoder().encode(elements) else { return }
         var item: [String: Any] = [type: data]
         if !sourcePage.isEmpty { item[sourcePageType] = Data(sourcePage.utf8) }
+        if !fonts.isEmpty, let records = try? JSONEncoder().encode(fonts) { item[fontsType] = records }
         let text = plainText(of: elements)
         if !text.isEmpty { item["public.utf8-plain-text"] = text }
         pasteboard.items = [item]
@@ -54,6 +61,15 @@ enum ElementClipboard {
         guard let data = pasteboard.data(forPasteboardType: sourcePageType),
               let id = String(data: data, encoding: .utf8), !id.isEmpty else { return nil }
         return id
+    }
+
+    /// The records of the fonts of your own beside our own elements, an
+    /// entry that does not read passed over; none from a build that did not
+    /// write them.
+    static func fonts(from pasteboard: UIPasteboard = .general) -> [CustomFonts.Record] {
+        guard let data = pasteboard.data(forPasteboardType: fontsType),
+              let list = try? JSONDecoder().decode([CustomFonts.Lenient].self, from: data) else { return [] }
+        return list.compactMap(\.record)
     }
 
     /// Whether the pasteboard carries our own elements. Asking what types are
