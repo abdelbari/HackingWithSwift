@@ -32,7 +32,8 @@ import CoreGraphics
 /// holds. So does a photo whose focus keeps its subject sharp, on screen:
 /// it reads the engine's count of subjects found
 /// (`ImageFilterEngine.subjectsFound`) and is drawn again when its subject
-/// is found.
+/// is found; and a photo with clarity or pixelate, whose look is made off
+/// the main thread (`ImageFilterEngine.looksBaked`).
 struct ElementView: View {
     let element: Element
     @Environment(\.animationTime) private var animationTime
@@ -579,7 +580,10 @@ struct ImageElementView: View {
         // subject found for focus.
         let picture = resolvedPicture()
         let waits = waitsForSubject()
-        let resolved = picture.map { ImageFilterEngine.apply(look: element, to: $0.image, cacheKey: $0.key, waits: waits) }
+        let later = makesLookLater()
+        let resolved = picture.map {
+            ImageFilterEngine.apply(look: element, to: $0.image, cacheKey: $0.key, waits: waits, later: later)
+        }
         GeometryReader { _ in
             if let ui = resolved {
                 let frameW = element.w, frameH = element.h
@@ -659,6 +663,15 @@ struct ImageElementView: View {
         guard onScreen, element.focusBlur?.subject == true else { return true }
         _ = ImageFilterEngine.subjectsFound.version
         return false
+    }
+
+    /// Whether clarity or pixelate is made off the main thread: on screen
+    /// it is, the photo showing its last look meanwhile, and reading the
+    /// count of looks made draws it again when its own is ready.
+    private func makesLookLater() -> Bool {
+        guard onScreen, ImageFilterEngine.makesLater(element) else { return false }
+        _ = ImageFilterEngine.looksBaked.version
+        return true
     }
 
     /// The picture before its look, and the key its looks are kept by.

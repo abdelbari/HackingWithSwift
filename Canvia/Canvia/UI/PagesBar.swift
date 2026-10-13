@@ -389,6 +389,8 @@ struct PageThumbnail: View {
         }
         // A photo's focus subject, found off the main thread meanwhile.
         .onChange(of: ImageFilterEngine.subjectsFound.version) { render() }
+        // A photo's clarity or pixelate, made off the main thread meanwhile.
+        .onChange(of: ImageFilterEngine.looksBaked.version) { render() }
     }
 
     @MainActor

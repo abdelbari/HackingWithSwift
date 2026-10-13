@@ -173,6 +173,28 @@ final class PhotoEffectsTests: XCTestCase {
                            source)
     }
 
+    /// A code takes no clarity, sharpness, focus or pixelate, as on
+    /// Android, so its modules still scan: those alone leave it untouched.
+    func testACodeStaysCrisp() {
+        let source = halves()
+        var code = Element.image(CodeGenerator.source(for: "hello"), w: 64, h: 64)
+        var dials = Adjustments.neutral
+        dials.clarity = 1
+        dials.sharpness = 0.5
+        code.adjustments = dials
+        code.pixelate = 0.5
+        code.focusBlur = FocusBlur(x: 0.5, y: 0.5, radius: 0.2, amount: 1)
+        XCTAssertIdentical(ImageFilterEngine.apply(look: code, to: source, cacheKey: UUID().uuidString), source)
+        XCTAssertFalse(ImageFilterEngine.makesLater(code))
+        var photo = Element.image("media:a", w: 64, h: 64)
+        XCTAssertFalse(ImageFilterEngine.makesLater(photo))
+        photo.adjustments = dials
+        XCTAssertTrue(ImageFilterEngine.makesLater(photo), "clarity is made off the main thread on screen")
+        photo.adjustments = nil
+        photo.pixelate = 0.5
+        XCTAssertTrue(ImageFilterEngine.makesLater(photo), "so is pixelate")
+    }
+
     /// The edge is a picture larger than the frame by its reach, coloured
     /// past the frame and clear well beyond it.
     func testAnOutlineReachesPastTheFrame() throws {

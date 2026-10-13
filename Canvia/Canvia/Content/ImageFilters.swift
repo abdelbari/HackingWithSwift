@@ -710,12 +710,39 @@ enum ImageFilterEngine {
     /// (pixelate and focus) and the duotone. The edge is drawn behind the
     /// frame, not here (see `PhotoEffects.edge`). `waits` for the subject a
     /// focus keeps sharp to be found, as a file must; on screen it does not
-    /// (see `apply(_:adjustments:duotone:strength:effects:waits:to:cacheKey:)`).
-    static func apply(look el: Element, to image: UIImage, cacheKey: String, waits: Bool = true) -> UIImage {
+    /// (see `apply(_:adjustments:duotone:strength:effects:crisp:waits:later:to:cacheKey:)`).
+    /// On screen, a look with clarity or pixelate is made `later`, off the
+    /// main thread.
+    static func apply(look el: Element, to image: UIImage, cacheKey: String, waits: Bool = true,
+                      later: Bool = false) -> UIImage {
         let pixels = CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
-        return apply(ImageFilterPreset.from(el.filter), adjustments: el.adjustments ?? .neutral,
+        // A code's modules stay crisp so it still scans: its colour and
+        // curves, and nothing that blurs, sharpens or blocks — no clarity,
+        // sharpness, focus, pixelate or soft focus — as the Android twin
+        // draws a code.
+        let code = isCode(el)
+        var adjustments = el.adjustments ?? .neutral
+        if code {
+            adjustments.clarity = 0
+            adjustments.sharpness = 0
+        }
+        return apply(ImageFilterPreset.from(el.filter), adjustments: adjustments,
                      duotone: el.duotone, strength: PhotoLook.strength(el.filterStrength),
-                     effects: PhotoEffects.plan(el, picture: pixels), waits: waits, to: image, cacheKey: cacheKey)
+                     effects: code ? .none : PhotoEffects.plan(el, picture: pixels), crisp: code,
+                     waits: waits, later: later, to: image, cacheKey: cacheKey)
+    }
+
+    /// Whether `el` is a QR code, drawn crisp (see `apply(look:)`).
+    static func isCode(_ el: Element) -> Bool {
+        CodeGenerator.payload(from: el.src ?? "") != nil
+    }
+
+    /// Whether `el`'s look has steps done a pixel at a time — clarity,
+    /// pixelate — which on screen are made off the main thread, the photo
+    /// drawn again when `looksBaked` moves on.
+    static func makesLater(_ el: Element) -> Bool {
+        guard !isCode(el) else { return false }
+        return (el.adjustments?.clarity ?? 0) != 0 || (el.pixelate ?? 0) > 0
     }
 
     /// The look on `image`, in the Android twin's order: the filter at its
@@ -724,22 +751,58 @@ enum ImageFilterEngine {
     /// subject first; unless the call `waits`, that is done off the main
     /// thread, the circle drawn meanwhile and not kept, and `subjectsFound`
     /// moves on when it is ready, so the photo is drawn again with it.
+    /// `crisp` leaves out the filter's soft focus, for a code.
+    ///
+    /// A call that makes clarity or pixelate `later` — the screen — never
+    /// does that Swift pixel work on the main thread, where a dial dragged
+    /// over a large photo would stall at every step: it is made on a worker,
+    /// the newest asked of each picture only, and `looksBaked` moves on when
+    /// it is ready. Meanwhile the picture's last look shows, else the look
+    /// without those steps, as the Android twin shows its last bake.
     static func apply(_ preset: ImageFilterPreset, adjustments: Adjustments,
                       duotone: Duotone?, strength: Double = 1, effects: PhotoEffects.Plan = .none,
-                      waits: Bool = true, to image: UIImage, cacheKey: String) -> UIImage {
+                      crisp: Bool = false, waits: Bool = true, later: Bool = false,
+                      to image: UIImage, cacheKey: String) -> UIImage {
         if preset == .none && adjustments.isNeutral && duotone == nil && effects.isNone { return image }
         let share = min(max(strength, 0), 1)
         let partly = preset != .none && share < 1
         let tone = duotone.map { "|duo\($0.dark)\($0.light)" } ?? ""
         let mix = partly ? "@\(Int((share * 100).rounded()))" : ""
-        let key = "\(cacheKey)|\(preset.rawValue)\(mix)\(adjustments.signature)\(tone)\(effects.signature)"
+        let soft = crisp && preset == .dreamy ? "|crisp" : ""
+        let key = "\(cacheKey)|\(preset.rawValue)\(mix)\(adjustments.signature)\(tone)\(effects.signature)\(soft)"
         if let cached = cache.object(forKey: key as NSString) { return cached }
-        guard let input = CIImage(image: image) else { return image }
+        if later && (adjustments.clarity != 0 || effects.block > 1) {
+            bake(picture: cacheKey, key: key) {
+                ImageFilterEngine.rendered(preset, adjustments: adjustments, duotone: duotone, share: share,
+                                           partly: partly, effects: effects, crisp: crisp, waits: waits,
+                                           image: image, cacheKey: cacheKey)
+            }
+            if let last = lastBaked.object(forKey: cacheKey as NSString) { return last }
+            var quick = adjustments
+            quick.clarity = 0
+            var plain = effects
+            plain.block = 0
+            return rendered(preset, adjustments: quick, duotone: duotone, share: share, partly: partly,
+                            effects: plain, crisp: crisp, waits: waits, image: image, cacheKey: cacheKey).image
+        }
+        let made = rendered(preset, adjustments: adjustments, duotone: duotone, share: share, partly: partly,
+                            effects: effects, crisp: crisp, waits: waits, image: image, cacheKey: cacheKey)
+        if !made.stopgap { cache.setObject(made.image, forKey: key as NSString) }
+        return made.image
+    }
+
+    /// The look drawn, and whether it is a stand-in not to keep: the focus
+    /// circle while the subject is found, or the picture as it was when it
+    /// could not be drawn.
+    private static func rendered(_ preset: ImageFilterPreset, adjustments: Adjustments, duotone: Duotone?,
+                                 share: Double, partly: Bool, effects: PhotoEffects.Plan, crisp: Bool,
+                                 waits: Bool, image: UIImage, cacheKey: String) -> (image: UIImage, stopgap: Bool) {
+        guard let input = CIImage(image: image) else { return (image, true) }
         let extent = input.extent
         // Preset first, adjustments second: the preset is the look, the dials
         // are the correction on top of it. The other order would have a dial
         // silently undone by whichever preset was picked afterwards.
-        var output = filtered(input, preset: preset)
+        var output = filtered(input, preset: preset, crisp: crisp)
         // Less than all of the filter: the filtered picture dissolved into
         // the plain one, on the encoded values, as the Android twin moves
         // its matrix towards the identity.
@@ -771,10 +834,70 @@ enum ImageFilterEngine {
         // Duotone last, because it replaces colour outright — running it
         // before a saturation dial would leave that dial with nothing to do.
         if let duotone { output = mapped(output, to: duotone) }
-        guard let cg = context.createCGImage(output, from: extent) else { return image }
-        let result = UIImage(cgImage: cg, scale: image.scale, orientation: image.imageOrientation)
-        if !stopgap { cache.setObject(result, forKey: key as NSString) }
-        return result
+        guard let cg = context.createCGImage(output, from: extent) else { return (image, true) }
+        return (UIImage(cgImage: cg, scale: image.scale, orientation: image.imageOrientation), stopgap)
+    }
+
+    // MARK: looks made off the main thread
+
+    /// Moves on each time a look made off the main thread is ready, so the
+    /// photos on screen waiting for one — which read it — draw again.
+    @Observable
+    final class Bakes {
+        fileprivate(set) var version = 0
+    }
+
+    static let looksBaked = Bakes()
+
+    private static let baker = DispatchQueue(label: "canvia.photo-looks", qos: .userInitiated)
+    private static let bakeLock = NSLock()
+
+    /// A look wanted of a picture: the picture, its cache key and how to
+    /// make it.
+    private struct Want {
+        let picture: String
+        let key: String
+        let make: () -> (image: UIImage, stopgap: Bool)
+    }
+
+    /// The newest look wanted of each picture until the worker takes it —
+    /// a clip's frames all one clip, so a clip playing only ever waits for
+    /// its latest frame; guarded by `bakeLock`.
+    private static var wanted: [String: Want] = [:]
+
+    /// The last look made of each picture (each frame of a clip its own),
+    /// shown while the next is made.
+    private static let lastBaked: NSCache<NSString, UIImage> = {
+        let c = NSCache<NSString, UIImage>()
+        c.countLimit = 16
+        return c
+    }()
+
+    /// `make` done on the worker for `picture`, in place of any look of it
+    /// still waiting; kept under `key` when it is no stand-in.
+    private static func bake(picture: String, key: String,
+                             make: @escaping () -> (image: UIImage, stopgap: Bool)) {
+        let slot = VideoStore.split(picture).map { VideoStore.src($0.id, at: nil) } ?? picture
+        bakeLock.lock()
+        let start = wanted[slot] == nil
+        wanted[slot] = Want(picture: picture, key: key, make: make)
+        bakeLock.unlock()
+        guard start else { return }
+        baker.async {
+            ImageFilterEngine.bakeLock.lock()
+            let want = ImageFilterEngine.wanted.removeValue(forKey: slot)
+            ImageFilterEngine.bakeLock.unlock()
+            guard let want else { return }
+            if ImageFilterEngine.cache.object(forKey: want.key as NSString) == nil {
+                let made = want.make()
+                ImageFilterEngine.lastBaked.setObject(made.image, forKey: want.picture as NSString)
+                // A stand-in is shown, not kept; the subject found draws
+                // the photo again, and asks again.
+                guard !made.stopgap else { return }
+                ImageFilterEngine.cache.setObject(made.image, forKey: want.key as NSString)
+            }
+            DispatchQueue.main.async { ImageFilterEngine.looksBaked.version &+= 1 }
+        }
     }
 
     /// `image` drawn into a bitmap by the engine's context.
@@ -836,7 +959,11 @@ enum ImageFilterEngine {
     /// there and then when the call `waits`, or else looked for on a worker
     /// — once, however often it is asked for meanwhile — and `finding`.
     private static func subjectMask(of image: UIImage, key: String, extent: CGRect, waits: Bool) -> Subject {
-        let id = "\(key)|\(Int(extent.width))x\(Int(extent.height))"
+        // A clip's subject is the clip's, not each frame's: found once from
+        // the first frame asked and kept for the rest, so a clip playing, or
+        // made into a video, never looks again frame after frame.
+        let picture = VideoStore.split(key).map { VideoStore.src($0.id, at: nil) } ?? key
+        let id = "\(picture)|\(Int(extent.width))x\(Int(extent.height))"
         if let known = subjects.object(forKey: id as NSString) { return .found(fitted(known, to: extent)) }
         guard !waits else {
             let found = findSubject(of: image)
@@ -1059,7 +1186,7 @@ enum ImageFilterEngine {
         return (f.outputImage ?? input).cropped(to: extent)
     }
 
-    private static func filtered(_ input: CIImage, preset: ImageFilterPreset) -> CIImage {
+    private static func filtered(_ input: CIImage, preset: ImageFilterPreset, crisp: Bool = false) -> CIImage {
         func controls(_ image: CIImage, saturation: Double = 1, brightness: Double = 0, contrast: Double = 1) -> CIImage {
             let f = CIFilter.colorControls()
             f.inputImage = image
@@ -1097,7 +1224,7 @@ enum ImageFilterEngine {
         case .fade: return controls(input, saturation: 0.65, brightness: 0.08, contrast: 0.88)
         case .retro: return controls(sepia(input, 0.5), saturation: 1.15, contrast: 0.95)
         case .dramatic: return controls(input, saturation: 1.1, brightness: -0.03, contrast: 1.35)
-        case .dreamy: return controls(blur(input, 1.6), saturation: 1.15, brightness: 0.04)
+        case .dreamy: return controls(crisp ? input : blur(input, 1.6), saturation: 1.15, brightness: 0.04)
         }
     }
 }
