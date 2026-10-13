@@ -386,4 +386,90 @@ final class TimelineTests: XCTestCase {
         leaving.timing = nil
         XCTAssertEqual(ElementAnimation.exitSpan([leaving]), 0.6, accuracy: 1e-9)
     }
+
+    // MARK: the store
+
+    private func store(holds: [Double]) -> DesignStore {
+        var d = Design(title: "t", width: 400, height: 300)
+        d.pages = holds.map { hold in
+            var p = Page(elements: [Element()])
+            p.holdSeconds = hold
+            return p
+        }
+        return DesignStore(design: d)
+    }
+
+    func testDraggingAnEdgeIsOneUndo() {
+        let s = store(holds: [2, 3])
+        let id = s.design.pages[0].id
+        s.dragHold(of: id, to: 2.5)
+        s.dragHold(of: id, to: 3.1)
+        s.commit()
+        XCTAssertEqual(s.design.pages[0].holdSeconds, 3.1)
+        s.undo()
+        XCTAssertEqual(s.design.pages[0].holdSeconds, 2)
+        XCTAssertFalse(s.canUndo, "the whole drag was one step")
+    }
+
+    func testScrubbingShowsThePageUnderThePlayheadAtThatMoment() {
+        let s = store(holds: [2, 3])
+        s.beginScrub()
+        s.scrub(to: 2.5)
+        XCTAssertEqual(s.pageIndex, 1)
+        XCTAssertEqual(s.previewTime ?? -1, 0.5, accuracy: 1e-9)
+        XCTAssertEqual(s.playheadInPage ?? -1, 0.5, accuracy: 1e-9)
+        s.scrub(to: 99)
+        XCTAssertEqual(s.playhead, 5, "kept to the film")
+        XCTAssertEqual(s.previewTime ?? -1, 3, accuracy: 1e-9)
+        s.endScrub()
+        XCTAssertNil(s.previewTime, "the canvas at rest once the scrub ends")
+        XCTAssertEqual(s.playhead, 5, "the playhead stays")
+        XCTAssertFalse(s.canUndo, "scrubbing changes nothing")
+
+        s.selectTimelinePage(0)
+        XCTAssertEqual(s.pageIndex, 0)
+        XCTAssertEqual(s.playhead, 0, "brought to the page tapped")
+    }
+
+    func testSplitPageIsOneUndo() {
+        let s = store(holds: [4, 2])
+        s.playhead = 0.3
+        XCTAssertFalse(s.canSplitPage, "too near the start")
+        s.splitPage()
+        XCTAssertEqual(s.design.pages.count, 2)
+
+        s.playhead = 1.5
+        XCTAssertTrue(s.canSplitPage)
+        s.splitPage()
+        XCTAssertEqual(s.design.pages.map(\.holdSeconds), [1.5, 2.5, 2])
+        XCTAssertEqual(s.pageIndex, 1, "the second part on screen")
+        XCTAssertEqual(s.playhead, 1.5, accuracy: 1e-9)
+        s.undo()
+        XCTAssertEqual(s.design.pages.map(\.holdSeconds), [4, 2])
+        XCTAssertEqual(s.pageIndex, 0)
+        XCTAssertFalse(s.canUndo)
+    }
+
+    func testShowAndHideFromThePlayheadAreEachOneUndo() {
+        let s = store(holds: [4, 2])
+        let id = s.design.pages[0].elements[0].id
+        s.select(id)
+        s.playhead = 1
+        s.showSelectedFromPlayhead()
+        s.playhead = 3
+        s.hideSelectedFromPlayhead()
+        XCTAssertEqual(s.design.pages[0].elements[0].timing, ElementTiming(start: 1, end: 3))
+        s.clearSelectedTiming()
+        XCTAssertNil(s.design.pages[0].elements[0].timing)
+        s.undo()
+        s.undo()
+        XCTAssertEqual(s.design.pages[0].elements[0].timing, ElementTiming(start: 1))
+        s.undo()
+        XCTAssertNil(s.design.pages[0].elements[0].timing)
+
+        s.playhead = 5
+        XCTAssertNil(s.playheadInPage, "the playhead on another page")
+        s.showSelectedFromPlayhead()
+        XCTAssertNil(s.design.pages[0].elements[0].timing, "nothing to time by")
+    }
 }

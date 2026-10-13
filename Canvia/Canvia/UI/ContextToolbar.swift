@@ -43,6 +43,8 @@ struct ContextToolbar: View {
     @Binding var activeSheet: EditorSheet?
     /// Animated pictures play on the canvas, not only in Present and video.
     @AppStorage(AnimStore.playKey) private var playAnimated = false
+    /// The editor's timeline is showing, with its playhead to time by.
+    @AppStorage(TimelineStrip.key) private var timeline = false
 
     /// The border as a drag of its slider began, so going back to None puts
     /// back what was there.
@@ -417,8 +419,35 @@ struct ContextToolbar: View {
             exitMenu(el)
             Button { store.playPreview() } label: { Label("Play this page", systemImage: "play") }
                 .disabled(!store.pagePlays)
+            if timeline {
+                Divider()
+                timingButtons()
+            }
         } label: {
             toolLabel("sparkles.rectangle.stack", "Animate", active: el.animation != nil || el.exitAnimation != nil)
+        }
+    }
+
+    /// When the selection shows within its page, from the timeline's
+    /// playhead on that page — gone from the menu while it is off, and
+    /// unavailable while the playhead stands on another page.
+    @ViewBuilder
+    private func timingButtons() -> some View {
+        let t = store.playheadInPage
+        let none = store.unlockedSelectionCount == 0
+        Button { store.showSelectedFromPlayhead() } label: {
+            Label("Show from playhead", systemImage: "eye")
+        }
+        .disabled(t == nil || none)
+        Button { store.hideSelectedFromPlayhead() } label: {
+            Label("Hide from playhead", systemImage: "eye.slash")
+        }
+        .disabled((t ?? 0) < 0.05 || none)
+        if store.selectedElements.contains(where: { $0.timing != nil }) {
+            Button { store.clearSelectedTiming() } label: {
+                Label("Show for the whole page", systemImage: "arrow.left.and.right")
+            }
+            .disabled(none)
         }
     }
 

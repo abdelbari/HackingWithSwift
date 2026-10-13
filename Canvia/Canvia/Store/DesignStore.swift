@@ -1842,6 +1842,10 @@ final class DesignStore {
 
     /// Seconds into the current page while a preview plays; nil at rest.
     var previewTime: Double?
+    /// Where the timeline's playhead stands, in seconds into the film — the
+    /// shown pages played in turn (see TimelineEditing). View state only,
+    /// never saved.
+    var playhead: Double = 0
     private var previewTask: Task<Void, Never>?
     /// What waits on a play through the film — a voice-over's take — to
     /// end with it, however it ends: the film's end, another page brought
