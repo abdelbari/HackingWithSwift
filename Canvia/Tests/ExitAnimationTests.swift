@@ -217,6 +217,9 @@ final class ExitAnimationTests: XCTestCase {
 
     /// Present's clock for a page held 3 s, `after` seconds after it came
     /// up, the person having gone on `exitAfter` seconds after it did.
+    /// The clock read `after` seconds into a page. It goes through Dates a
+    /// billion seconds from their epoch, which hold a moment only to about a
+    /// tenth of a microsecond, so its readings are compared to 1e-6.
     @MainActor
     private func time(_ after: Double, heldAt: Double? = nil, exitAfter: Double? = nil) throws -> Double {
         let start = Date(timeIntervalSince1970: 1000)
@@ -229,12 +232,12 @@ final class ExitAnimationTests: XCTestCase {
     @MainActor
     func testPresentHoldsTheClockWhereTheExitsBeginUntilGoingOn() throws {
         let start = Date(timeIntervalSince1970: 1000)
-        XCTAssertEqual(try time(1), 1, accuracy: 1e-9, "no exits: the clock runs")
-        XCTAssertEqual(try time(5), 5, accuracy: 1e-9)
-        XCTAssertEqual(try time(1, heldAt: 2.4), 1, accuracy: 1e-9)
-        XCTAssertEqual(try time(9, heldAt: 2.4), 2.4, accuracy: 1e-9, "held where the exits begin")
-        XCTAssertEqual(try time(10, heldAt: 2.4, exitAfter: 9.7), 2.7, accuracy: 1e-9, "going on runs it on from there")
-        XCTAssertEqual(try time(20, heldAt: 2.4, exitAfter: 9.7), 3, accuracy: 1e-9, "to the hold, no further")
+        XCTAssertEqual(try time(1), 1, accuracy: 1e-6, "no exits: the clock runs")
+        XCTAssertEqual(try time(5), 5, accuracy: 1e-6)
+        XCTAssertEqual(try time(1, heldAt: 2.4), 1, accuracy: 1e-6)
+        XCTAssertEqual(try time(9, heldAt: 2.4), 2.4, accuracy: 1e-6, "held where the exits begin")
+        XCTAssertEqual(try time(10, heldAt: 2.4, exitAfter: 9.7), 2.7, accuracy: 1e-6, "going on runs it on from there")
+        XCTAssertEqual(try time(20, heldAt: 2.4, exitAfter: 9.7), 3, accuracy: 1e-6, "to the hold, no further")
         XCTAssertNil(PresentationView.clock(at: start, from: start, hold: 3, playing: false, heldAt: 2.4, exitFrom: nil))
     }
 
@@ -249,9 +252,9 @@ final class ExitAnimationTests: XCTestCase {
                        "stopped before the exits: held where they begin")
         let partway = try XCTUnwrap(PresentationView.heldPoint(hold: 3, span: 0.6, stoppedAt: 2.8))
         XCTAssertEqual(partway, 2.8, accuracy: 1e-9)
-        XCTAssertEqual(try time(9, heldAt: partway), 2.8, accuracy: 1e-9, "partway out, it stays partway out")
-        XCTAssertEqual(try time(10, heldAt: partway, exitAfter: 9.9), 2.9, accuracy: 1e-9, "going on runs it on from there")
+        XCTAssertEqual(try time(9, heldAt: partway), 2.8, accuracy: 1e-6, "partway out, it stays partway out")
+        XCTAssertEqual(try time(10, heldAt: partway, exitAfter: 9.9), 2.9, accuracy: 1e-6, "going on runs it on from there")
         let atTheEnd = try XCTUnwrap(PresentationView.heldPoint(hold: 3, span: 0.6, stoppedAt: 3))
-        XCTAssertEqual(try time(3.05, heldAt: atTheEnd), 3, accuracy: 1e-9, "at the last page's hold, gone stays gone")
+        XCTAssertEqual(try time(3.05, heldAt: atTheEnd), 3, accuracy: 1e-6, "at the last page's hold, gone stays gone")
     }
 }
