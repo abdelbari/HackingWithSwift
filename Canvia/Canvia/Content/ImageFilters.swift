@@ -873,7 +873,8 @@ enum ImageFilterEngine {
     /// two copies of a photo in two looks both bake, and one never shows
     /// the other's look, as on the Android twin.
     private static func bakeSlot(picture: String, owner: String) -> String {
-        let subject = VideoStore.split(picture).map { VideoStore.src($0.id, at: nil) } ?? picture
+        let subject = VideoStore.split(picture).map { VideoStore.src($0.id, at: nil) }
+            ?? AnimStore.split(picture).map { AnimStore.src($0.id, at: nil) } ?? picture
         return "\(subject)\u{0}\(owner)"
     }
 
@@ -979,7 +980,8 @@ enum ImageFilterEngine {
         // A clip's subject is the clip's, not each frame's: found once from
         // the first frame asked and kept for the rest, so a clip playing, or
         // made into a video, never looks again frame after frame.
-        let picture = VideoStore.split(key).map { VideoStore.src($0.id, at: nil) } ?? key
+        let picture = VideoStore.split(key).map { VideoStore.src($0.id, at: nil) }
+            ?? AnimStore.split(key).map { AnimStore.src($0.id, at: nil) } ?? key
         let id = "\(picture)|\(Int(extent.width))x\(Int(extent.height))"
         if let known = subjects.object(forKey: id as NSString) { return .found(fitted(known, to: extent)) }
         guard !waits else {

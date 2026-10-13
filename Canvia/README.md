@@ -655,6 +655,17 @@ never holds up the screen: it shows the latest frame decoded while the
 next is decoded off the main thread; the exports wait for every frame.
 The clip's own sound is not carried; a soundtrack is.
 
+**Animated GIFs and WebPs** — a GIF or WebP that moves, picked or dropped
+in, is kept as it came and placed as a picture element whose source is
+`anim:<id>`: its first frame at rest and in still exports, so crop,
+frames, filters and transparency work as on a photo; looping, frame by
+frame, in Present, Play, the MP4 and the GIF, and on the canvas too with
+the photo bar's "Play in the editor" on. Delays and frames come from
+ImageIO; each frame is shown for its delay with a 20 ms floor, by the
+frame-at-time rule the Android twin shares. Design files carry them under
+"animations", 10 MB each and 50 MB in all; the rest travel as their
+first frame.
+
 **Keyboard** — with a hardware keyboard, the usual shortcuts, each with
 a title in the discoverability overlay: ⌘Z / ⇧⌘Z (or ⌘Y), ⌘C / ⌘X / ⌘V, ⌘D
 duplicate, ⌘A select all, ⌘G / ⇧⌘G group and ungroup, ⌘] / ⌘[ (and

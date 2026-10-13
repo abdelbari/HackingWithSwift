@@ -40,6 +40,13 @@ struct OnScreenKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+/// Whether animated pictures play where the page is drawn though it is not
+/// playing: the editor's canvas, with Play in the editor on. Each such picture
+/// keeps its own clock, so nothing else on the page is drawn again for it.
+struct PlaysPicturesKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 extension EnvironmentValues {
     var pageNumber: (number: Int, count: Int)? {
         get { self[PageNumberKey.self] }
@@ -64,5 +71,10 @@ extension EnvironmentValues {
     var onScreen: Bool {
         get { self[OnScreenKey.self] }
         set { self[OnScreenKey.self] = newValue }
+    }
+
+    var playsPictures: Bool {
+        get { self[PlaysPicturesKey.self] }
+        set { self[PlaysPicturesKey.self] = newValue }
     }
 }

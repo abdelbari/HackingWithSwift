@@ -41,6 +41,8 @@ struct ContextToolbar: View {
     @State private var enteringSize = false
     @Bindable var store: DesignStore
     @Binding var activeSheet: EditorSheet?
+    /// Animated pictures play on the canvas, not only in Present and video.
+    @AppStorage(AnimStore.playKey) private var playAnimated = false
 
     /// The border as a drag of its slider began, so going back to None puts
     /// back what was there.
@@ -927,6 +929,18 @@ struct ContextToolbar: View {
                 .sheet(isPresented: $editingCode) {
                     QRCodeSheet(store: store, id: el.id, payload: payload)
                 }
+        } else if AnimStore.isAnim(el.src) {
+            // An animated picture always plays in Present and in a video or
+            // GIF; here, only when asked, and otherwise shows its first
+            // frame. Erasing a frame would leave a still, so that is not
+            // offered.
+            Button {
+                playAnimated.toggle()
+            } label: {
+                toolLabel(playAnimated ? "pause.circle" : "play.circle", "Play in the editor", active: playAnimated)
+            }
+            .buttonStyle(ToolButtonStyle())
+            .accessibilityAddTraits(playAnimated ? [.isSelected] : [])
         } else {
             toolButton("eraser", "Erase") { store.beginErasing(el.id) }
         }

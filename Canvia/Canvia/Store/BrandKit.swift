@@ -451,15 +451,15 @@ enum BrandKitFile {
     }
 
     /// The kit's file: its photo logos inlined and library pictures drawn,
-    /// as a design file does. A clip logo stays as it is — neither the clip
-    /// nor a still of it goes in — as the Android twin writes it.
+    /// as a design file does. A clip or animated logo stays as it is —
+    /// neither it nor a still of it goes in — as the Android twin writes it.
     static func contents(of kit: BrandKit, mediaDirectory: URL = MediaStore.directory) -> Contents {
-        let pictures = kit.logos.filter { VideoStore.split($0) == nil }
+        let pictures = kit.logos.filter(isStill)
         let package = DesignPackage.contents(of: carrier(pictures), mediaDirectory: mediaDirectory)
         let packedPictures = package.design.pages.first?.elements.compactMap(\.src) ?? pictures
         var drawn = packedPictures.makeIterator()
         var packed = kit
-        packed.logos = kit.logos.map { src in VideoStore.split(src) == nil ? (drawn.next() ?? src) : src }
+        packed.logos = kit.logos.map { src in isStill(src) ? (drawn.next() ?? src) : src }
         return Contents(kit: packed, media: package.media)
     }
 
@@ -475,14 +475,20 @@ enum BrandKitFile {
     }
 
     /// The file's logos that arrive: a photo logo whose file it does not
-    /// carry is left out, and so is every clip logo, as no kit file carries
-    /// a clip; any other — a library picture — is kept as it is, as the
-    /// Android twin's BrandKitPackage.relinked keeps them.
+    /// carry is left out, and so is every clip or animated logo, as no kit
+    /// file carries one; any other — a library picture — is kept as it is,
+    /// as the Android twin's BrandKitPackage.relinked keeps them.
     static func carried(_ contents: Contents) -> [String] {
         contents.kit.logos.filter { src in
             if src.hasPrefix("media:") { return contents.media[String(src.dropFirst(6))] != nil }
-            return VideoStore.split(src) == nil
+            return isStill(src)
         }
+    }
+
+    /// Whether a logo is a picture a kit file carries: not a clip, nor an
+    /// animated picture.
+    private static func isStill(_ src: String) -> Bool {
+        VideoStore.split(src) == nil && AnimStore.split(src) == nil
     }
 
     /// The kit inside, with its logos stored under fresh ids, a fresh id of

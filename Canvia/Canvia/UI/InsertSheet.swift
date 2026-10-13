@@ -145,10 +145,12 @@ struct InsertSheet: View {
         }
     }
 
-    /// One picked item stored: a clip whole, shown by its poster frame, or
-    /// a picture decoded, scaled and re-encoded — all off the main actor,
-    /// where a full-resolution camera photo's decode belongs. Either is
-    /// kept among your uploads, to use again.
+    /// One picked item stored: a clip whole, shown by its poster frame, an
+    /// animated GIF or WebP whole, shown by its first frame, or a picture
+    /// decoded, scaled and re-encoded — all off the main actor, where a
+    /// full-resolution camera photo's decode belongs. A clip or a photo is
+    /// kept among your uploads, to use again; an animated picture lives
+    /// with the designs that show it.
     private func load(_ item: PhotosPickerItem) async -> (src: String, natural: CGSize, isVideo: Bool)? {
         guard let data = try? await item.loadTransferable(type: Data.self) else { return nil }
         if let movie = item.supportedContentTypes.first(where: { $0.conforms(to: .movie) }) {
@@ -160,6 +162,9 @@ struct InsertSheet: View {
             }.value
         }
         return await Task.detached(priority: .userInitiated) { () -> (src: String, natural: CGSize, isVideo: Bool)? in
+            // An animated GIF or WebP is kept as it came, to play; a still
+            // one is a photo like any other.
+            if let animated = AnimStore.bringIn(data) { return (animated.src, animated.natural, false) }
             guard let prepared = ImageDownsampler.prepare(data),
                   let src = MediaStore.store(prepared) else { return nil }
             Uploads.record(source: src)

@@ -264,7 +264,7 @@ final class CollageTests: XCTestCase {
         rects.map { r in [r.minX, r.minY, r.width, r.height].map { (Double($0) * 1000).rounded() / 1000 } }
     }
 
-    private func boxes(_ elements: [Element]) -> [[Double]] {
+    private func elementBoxes(_ elements: [Element]) -> [[Double]] {
         boxes(elements.map(\.frame))
     }
 
@@ -360,7 +360,7 @@ final class CollageTests: XCTestCase {
         let (grid, ordered) = try XCTUnwrap(PhotoGrids.grid(of: cells))
         let out = PhotoGrids.relaid(grid, cells: ordered, gutter: 0, corners: 50)
         // The box: 140…1140 across, 40…1040 down.
-        XCTAssertEqual(boxes(out), [[140, 40, 500, 500], [640, 40, 500, 500], [140, 540, 1000, 500]])
+        XCTAssertEqual(elementBoxes(out), [[140, 40, 500, 500], [640, 40, 500, 500], [140, 540, 1000, 500]])
         // Half of each cell's own shorter side.
         XCTAssertEqual(out.map(\.radius), [250, 250, 250])
         XCTAssertEqual(out[1].src, "media:p")
@@ -371,7 +371,7 @@ final class CollageTests: XCTestCase {
         XCTAssertEqual(out[0].grid?.margin, 40)
         // And back: the same box, so the same cells as at first, moved.
         let back = PhotoGrids.relaid(grid, cells: out, gutter: 20, corners: 0)
-        XCTAssertEqual(boxes(back), boxes(cells))
+        XCTAssertEqual(elementBoxes(back), elementBoxes(cells))
         XCTAssertEqual(PhotoGrids.corners(of: back), 0)
         // Out of range is held to the tracks.
         let far = PhotoGrids.relaid(grid, cells: out, gutter: 99, corners: 99)
@@ -436,8 +436,8 @@ final class CollageTests: XCTestCase {
         let els = DecorativeFrames.elements(polaroid, page: CGSize(width: 1080, height: 1080))
         XCTAssertEqual(els.count, 3)
         let card = els[0], window = els[1], caption = els[2]
-        XCTAssertEqual(boxes([card]), [[270, 216, 540, 648]])
-        XCTAssertEqual(boxes([window]), [[302.4, 248.4, 475.2, 475.2]])
+        XCTAssertEqual(elementBoxes([card]), [[270, 216, 540, 648]])
+        XCTAssertEqual(elementBoxes([window]), [[302.4, 248.4, 475.2, 475.2]])
         XCTAssertEqual(caption.text, "Good times")
         XCTAssertEqual(caption.fontSize ?? 0, 39.6, accuracy: 1e-9)
         XCTAssertEqual(caption.fontFamily, "script")
