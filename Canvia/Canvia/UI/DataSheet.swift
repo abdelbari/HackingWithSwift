@@ -1,9 +1,13 @@
-// Type the numbers, get the chart; type the cells, get the table.
+// Type the numbers, get the chart; type the cells, get the table. Opened
+// from a table's Edit as text, it shows that table's cells and Update sets
+// the table again from them, its column widths kept.
 
 import SwiftUI
 
 struct DataSheet: View {
     @Bindable var store: DesignStore
+    /// Editing the selected table's cells rather than adding a new one.
+    var editingTable = false
     @Environment(\.dismiss) private var dismiss
     @State private var mode = 0
     @State private var kind = DataGraphics.ChartKind.column
@@ -15,11 +19,13 @@ struct DataSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Picker("Kind", selection: $mode) {
-                    Text("Chart").tag(0)
-                    Text("Table").tag(1)
+                if !editingTable {
+                    Picker("Kind", selection: $mode) {
+                        Text("Chart").tag(0)
+                        Text("Table").tag(1)
+                    }
+                    .pickerStyle(.segmented)
                 }
-                .pickerStyle(.segmented)
                 if mode == 0 {
                     Section {
                         Picker("Chart", selection: $kind) {
@@ -63,12 +69,8 @@ struct DataSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     // Kept open with a word when there turns out to be
                     // nothing to draw — a pie of zeros — as on the Android twin.
-                    Button("Add") {
-                        if add() { dismiss() } else {
-                            store.buzz(.reject)
-                            refusal = mode == 0 ? "Nothing to draw: type some values, or values above zero."
-                                : "Nothing to set: type some rows."
-                        }
+                    Button(editingTable ? "Update" : "Add") {
+                        if add() { dismiss() } else { refusal = whyNot() }
                     }
                         .disabled(mode == 0 ? DataGraphics.parse(chartText).isEmpty : DataGraphics.parseTable(tableText).isEmpty)
                 }
@@ -79,10 +81,37 @@ struct DataSheet: View {
         .onChange(of: tableText) { refusal = nil }
         .onChange(of: kind) { refusal = nil }
         .onChange(of: mode) { refusal = nil }
+        .onAppear {
+            guard editingTable else { return }
+            mode = 1
+            tableText = store.tableText
+        }
+    }
+
+    /// Why Add or Update did nothing. Rows typed for a table being edited
+    /// were fine, so the table itself refused them — turned, or with a
+    /// locked cell — and the store has already buzzed and said why; the
+    /// sheet says it too, in the same words.
+    private func whyNot() -> String? {
+        if mode == 0 {
+            store.buzz(.reject)
+            return "Nothing to draw: type some values, or values above zero."
+        }
+        if !editingTable || DataGraphics.parseTable(tableText).isEmpty {
+            store.buzz(.reject)
+            return "Nothing to set: type some rows."
+        }
+        guard let table = store.tableSelection else { return nil }
+        if table.turned { return TableSelection.turnedNote }
+        if DataGraphics.tableMembers(store.page.elements, id: table.id).contains(where: \.locked) {
+            return TableSelection.lockedNote
+        }
+        return nil
     }
 
     @discardableResult
     private func add() -> Bool {
+        if editingTable { return store.rebuildTable(from: tableText) }
         let w = store.pageWidth, h = store.pageHeight
         let frame = CGRect(x: (w * 0.1).rounded(), y: (h * 0.2).rounded(), width: (w * 0.8).rounded(), height: (h * 0.6).rounded())
         // The design's colours that show on this page, and labels in an ink

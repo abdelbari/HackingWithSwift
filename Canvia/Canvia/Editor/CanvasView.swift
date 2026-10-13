@@ -325,11 +325,11 @@ struct CanvasView: View {
     /// Whether a double tap here belongs to the page rather than to the
     /// canvas's zoom: anywhere in crop mode, and on a photo, a text box or an
     /// unlocked shape that takes words — a locked one zooms, as on the
-    /// Android twin.
+    /// Android twin — or a table's cell, whose words are typed in.
     private func claimsDoubleTap(at point: CGPoint) -> Bool {
         if store.cropping != nil { return true }
         guard let hit = store.page.elements.last(where: { Geometry.hits($0, point: point) }) else { return false }
-        return hit.type == .image || hit.type == .text || (ShapeText.takesText(hit) && !hit.locked)
+        return hit.type == .image || hit.type == .text || store.typedIn(hit) != nil
     }
 
     /// Crop mode over the page: the page dimmed, the whole picture faint
@@ -777,9 +777,10 @@ struct CanvasView: View {
             .rotationEffect(.degrees(el.rotation))
             .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
             .onTapGesture(count: 2) {
-                // A shape double-tapped is typed in, as a text box is.
-                if ShapeText.carriesWords(el) && !el.locked {
-                    startTextEdit(el)
+                // A shape double-tapped is typed in, as a text box is; a
+                // table cell's rectangle, its words.
+                if let target = store.typedIn(el) {
+                    startTextEdit(target)
                 } else if el.type == .image {
                     // A photo double-tapped opens crop, where the picture is
                     // worked directly — or says why it cannot.
@@ -826,8 +827,8 @@ struct CanvasView: View {
         }
         Button("Bring forward") { store.select(el.id); store.reorderSelected(.forward) }
         Button("Send backward") { store.select(el.id); store.reorderSelected(.backward) }
-        if ShapeText.carriesWords(el) && !el.locked {
-            Button("Edit text") { startTextEdit(el) }
+        if let target = store.typedIn(el) {
+            Button("Edit text") { startTextEdit(target) }
         }
         if el.type == .image && !el.locked {
             Button("Crop") { store.startCrop(el.id) }

@@ -101,6 +101,10 @@ final class DesignStore {
     /// shape left with no words goes back to, though a style pressed while
     /// typing has closed the step it began in — as on the Android twin.
     @ObservationIgnored private var typedShapeBefore: Element?
+    /// How tall a text's words stand, for a table whose words changed in a
+    /// step to be laid out again as part of it (DataGraphics.settlingTables),
+    /// and for the Table controls. Tests measure in round numbers.
+    @ObservationIgnored var measure: (Element) -> Double = { FontLibrary.layoutHeight(for: $0) }
 
     var onCommit: (() -> Void)?
 
@@ -160,7 +164,9 @@ final class DesignStore {
         // Without a beginGesture() snapshot there is no pre-mutation state to
         // record — pushing the current design would make undo a no-op.
         guard let entry = pending else { return }
-        // Connectors follow their ends as part of the same step.
+        // A table's rows follow its words, and connectors their ends, as
+        // part of the same step.
+        design = DataGraphics.settlingTables(design, since: entry.design, heightFor: measure)
         Connectors.resolve(in: &design)
         // A step that changed nothing — a text box opened and left as it
         // was, a crop opened and closed untouched — would be an Undo that
@@ -404,13 +410,17 @@ final class DesignStore {
     /// edited, a box left empty is removed, and the typing is its own undo
     /// step. Every way out comes through here, as on the Android twin. A
     /// shape left with no words stays, its words gone (ShapeText.withoutWords).
+    /// A table's cell stays however empty — it is still a cell of the
+    /// table — and its row grows or shrinks to the words in the typing's own
+    /// step (see commit).
     func endTextEdit() {
         guard let id = editingTextId else { return }
         editingTextId = nil
         for p in design.pages.indices {
             guard let i = design.pages[p].elements.firstIndex(where: { $0.id == id }) else { continue }
             let words = design.pages[p].elements[i].text ?? ""
-            if words.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if design.pages[p].elements[i].table == nil,
+               words.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 beginGesture()
                 if design.pages[p].elements[i].type == .shape {
                     let before = typedShapeBefore?.id == id

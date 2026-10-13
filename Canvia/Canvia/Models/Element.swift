@@ -229,6 +229,45 @@ struct ClipPlayback: Codable, Equatable, Hashable {
     }
 }
 
+/// Where a table's cell rectangle or its text sits in the table: the
+/// table's id ("tbl_<uid>"), shared by every cell and text of one table, and
+/// the row (0 is the header) and column. The texts are the table's content,
+/// so nothing else is kept. Written as the element's `table` object; one
+/// missing a part, or with a part that cannot be read, is no key at all,
+/// and the element is a plain member of its group, as a table from before
+/// tables could be edited is.
+struct TableCell: Codable, Equatable, Hashable {
+    var id: String
+    var row: Int
+    var col: Int
+
+    private enum CodingKeys: String, CodingKey { case id, row, col }
+
+    init(id: String, row: Int, col: Int) {
+        self.id = id
+        self.row = row
+        self.col = col
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let id = try c.decode(String.self, forKey: .id)
+        guard !id.isEmpty, let row = Self.index(c, .row), let col = Self.index(c, .col) else {
+            throw DecodingError.dataCorrupted(.init(codingPath: c.codingPath, debugDescription: "Not a table cell"))
+        }
+        self.id = id
+        self.row = row
+        self.col = col
+    }
+
+    /// A row or column: a whole number from nought, written either way.
+    private static func index<Key: CodingKey>(_ c: KeyedDecodingContainer<Key>, _ key: Key) -> Int? {
+        if let n = try? c.decode(Int.self, forKey: key) { return n >= 0 ? n : nil }
+        guard let d = try? c.decode(Double.self, forKey: key), d >= 0, d < 1_000_000, d == d.rounded() else { return nil }
+        return Int(d)
+    }
+}
+
 struct Element: Codable, Equatable, Identifiable {
     var id: String = UID.make()
     var type: ElementType = .shape
@@ -266,6 +305,9 @@ struct Element: Codable, Equatable, Identifiable {
     /// the element is named: Layers, VoiceOver, the snap guides. Kept trimmed
     /// and at most LayerNames.maxLength characters; nil is none.
     var layerName: String?
+    /// A cell rectangle or text of a table that can be edited: which table,
+    /// and which row and column (see DataGraphics.relayout).
+    var table: TableCell?
 
     // shape
     var shapeId: String?
@@ -405,6 +447,7 @@ struct Element: Codable, Equatable, Identifiable {
         link = try? c.decode(String.self, forKey: .link)
         hidden = (try? c.decode(Bool.self, forKey: .hidden)) == true ? true : nil
         layerName = (try? c.decode(String.self, forKey: .layerName)).flatMap(LayerNames.kept)
+        table = try? c.decode(TableCell.self, forKey: .table)
         shapeId = try? c.decode(String.self, forKey: .shapeId)
         pathData = try? c.decode(String.self, forKey: .pathData)
         iconId = try? c.decode(String.self, forKey: .iconId)
@@ -483,7 +526,7 @@ struct Element: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow, blendMode, altText
-        case connectFrom, connectTo, link, hidden, layerName
+        case connectFrom, connectTo, link, hidden, layerName, table
         case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical

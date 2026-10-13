@@ -718,8 +718,9 @@ struct ContextToolbar: View {
             toolButton("text.viewfinder", "To text") { store.strokesToText() }
         }
         // Words in the shape: their face, size, colour and style, and a way
-        // in to type them, as a double tap on the shape is.
-        if ShapeText.takesText(el) && !el.locked {
+        // in to type them, as a double tap on the shape is. A table cell's
+        // words are its text box's.
+        if ShapeText.takesText(el) && !el.locked && el.table == nil {
             toolButton("character.textbox", "Text") { activeSheet = .shapeText }
         }
         // Another shape in its place, keeping its size, colours and effects.
@@ -1022,8 +1023,16 @@ struct ContextToolbar: View {
         if store.selection.count > 1 && store.selectionTakesColour && store.textSelection == nil {
             multiColourChip
         }
-        toolButton("square.3.layers.3d", "Position") { activeSheet = .position }
-        toolButton("shadow", "Shadow") { activeSheet = .shadow }
+        // Grouped to keep this block within a ViewBuilder's ten children.
+        Group {
+            // Any cell of a table made here: its rows, columns, cells and
+            // header.
+            if store.tableSelection != nil {
+                toolButton("tablecells", "Table") { activeSheet = .table }
+            }
+            toolButton("square.3.layers.3d", "Position") { activeSheet = .position }
+            toolButton("shadow", "Shadow") { activeSheet = .shadow }
+        }
         if let el = store.selectedElements.first { blendMenu(el); animateMenu(el) }
 
         // Opacity
