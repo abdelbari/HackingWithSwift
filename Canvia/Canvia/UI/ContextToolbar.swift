@@ -228,9 +228,9 @@ struct ContextToolbar: View {
         }
     }
 
-    /// Face, colour and size, for one text or several. A font of your own
-    /// this phone does not have says so beside the face: its words are in
-    /// Modern Sans meanwhile.
+    /// Face, weight, colour and size, for one text or several. A font of
+    /// your own this phone does not have says so beside the face: its words
+    /// are in Modern Sans meanwhile.
     private var typeBasics: some View {
         HStack(spacing: 14) {
             let family = store.sharedText { FontLibrary.resolve($0.fontFamily) }
@@ -238,6 +238,7 @@ struct ContextToolbar: View {
             if let family, let missing = FontStore.missingNote(family, in: store.design) {
                 missingFontChip(missing)
             }
+            weightMenu
             textColourChip
             fontSizeStepper
         }
@@ -264,6 +265,31 @@ struct ContextToolbar: View {
         .buttonStyle(ToolButtonStyle())
         .accessibilityLabel("Font")
         .accessibilityValue(family.map { FontStore.displayName($0, in: store.design) } ?? TypeReadouts.mixed)
+    }
+
+    /// Light to Black: the weights the texts' fonts have (TypeReadouts), the
+    /// one they are drawn at ticked and said — none ticked when Mixed — set
+    /// on every one as one Undo. None for texts only in fonts of your own,
+    /// each one face. The font picker shows each drawn at its weight.
+    @ViewBuilder
+    private var weightMenu: some View {
+        let texts = store.textsRead
+        let weights = TypeReadouts.weights(texts)
+        if !weights.isEmpty {
+            Menu {
+                Picker("Weight", selection: Binding(
+                    get: { TypeReadouts.drawnWeight(texts) ?? 0 },
+                    set: { store.setFontWeight($0) })) {
+                    ForEach(weights, id: \.self) { weight in
+                        Text(FontLibrary.weightName(weight)).tag(weight)
+                    }
+                }
+            } label: {
+                toolLabel("lineweight", "Weight")
+            }
+            .accessibilityLabel("Weight")
+            .accessibilityValue(TypeReadouts.weightReadout(texts))
+        }
     }
 
     /// "Font missing: <name>", which opens the font picker to choose another.

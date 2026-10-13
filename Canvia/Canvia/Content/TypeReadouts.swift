@@ -93,6 +93,33 @@ enum TypeReadouts {
         return first
     }
 
+    // MARK: weights
+
+    /// The texts the Weight row is for: every one not set in a font of your
+    /// own, which is one face, drawn at its own weight whatever is asked.
+    private static func weighable(_ texts: [Element]) -> [Element] {
+        texts.filter { !CustomFonts.isCustom($0.fontFamily) }
+    }
+
+    /// The weights the Weight row offers `texts`: every weight their fonts
+    /// have, together, lightest first — none, and no row, when they are all
+    /// in fonts of your own. The Android twin's TextSelection.weights.
+    static func weights(_ texts: [Element]) -> [Int] {
+        Array(Set(weighable(texts).flatMap { FontLibrary.weights($0.fontFamily) })).sorted()
+    }
+
+    /// The weight every text is drawn at (FontLibrary.resolveWeight), or nil
+    /// when they differ — the chip the Weight row shows chosen.
+    static func drawnWeight(_ texts: [Element]) -> Int? {
+        shared(weighable(texts).map { FontLibrary.resolveWeight($0.fontFamily, $0.fontWeight ?? 400) })
+    }
+
+    /// The Weight row's readout: the name of the weight they are drawn at
+    /// ("Semibold"), or "Mixed".
+    static func weightReadout(_ texts: [Element]) -> String {
+        drawnWeight(texts).map(FontLibrary.weightName) ?? mixed
+    }
+
     /// The list style as the List menu names it.
     static func listStyle(_ style: String?) -> String {
         switch style {

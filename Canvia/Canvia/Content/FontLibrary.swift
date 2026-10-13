@@ -23,8 +23,11 @@ import CoreText
 /// what the picker calls it, its category, and its faces. A bundled
 /// family's faces are files in the app ("lora-400.ttf"), keyed by weight
 /// with "i" after for the family's true italic ("400", "400i", "700",
-/// "700i"); `postScript` is each face's PostScript name, which is how it is
-/// asked for here. A system family has none.
+/// "700i", and from Light "300" to Black "900" where it has them);
+/// `postScript` is each face's PostScript name, which is how it is asked for
+/// here. A system family has none. `weights` are the upright weights it has,
+/// lightest first — a bundled family's files, a system family's the cuts
+/// both phones' own faces have — the same list on both phones.
 struct FontDef: Decodable, Identifiable, Equatable {
     var id: String
     var name: String
@@ -33,8 +36,9 @@ struct FontDef: Decodable, Identifiable, Equatable {
     var licence: String?
     var files: [String: String] = [:]
     var postScript: [String: String] = [:]
+    var weights: [Int] = []
 
-    private enum CodingKeys: String, CodingKey { case id, name, category, system, licence, files, postScript }
+    private enum CodingKeys: String, CodingKey { case id, name, category, system, licence, files, postScript, weights }
 
     init(id: String, name: String, category: String, system: Bool = false) {
         self.id = id
@@ -52,6 +56,7 @@ struct FontDef: Decodable, Identifiable, Equatable {
         licence = try? c.decodeIfPresent(String.self, forKey: .licence)
         files = (try? c.decodeIfPresent([String: String].self, forKey: .files)) ?? [:]
         postScript = (try? c.decodeIfPresent([String: String].self, forKey: .postScript)) ?? [:]
+        weights = (try? c.decodeIfPresent([Int].self, forKey: .weights)) ?? []
     }
 }
 
@@ -70,6 +75,23 @@ enum FontLibrary {
 
     /// How many fonts Recently used keeps, newest first.
     static let recentLimit = 8
+
+    /// What the Weight row calls each weight it offers, Light to Black.
+    static let weightNames: [Int: String] = [
+        300: "Light",
+        400: "Regular",
+        500: "Medium",
+        600: "Semibold",
+        700: "Bold",
+        800: "Extra bold",
+        900: "Black",
+    ]
+
+    /// `weight`'s name, as the Weight row and VoiceOver say it; a weight the
+    /// row does not offer by its number.
+    static func weightName(_ weight: Int) -> String {
+        weightNames[weight] ?? String(weight)
+    }
 
     /// The file's shape. "source" is informational.
     private struct Catalogue: Decodable {
@@ -117,6 +139,31 @@ enum FontLibrary {
         return of(key).id
     }
 
+    /// The weights the font `key` has, lightest first: its family's — an
+    /// alias's family's, and Modern Sans's for an unknown key or a font of
+    /// your own, which is what one draws as when it is missing.
+    static func weights(_ key: String?) -> [Int] {
+        of(key).weights
+    }
+
+    /// The weight a text at `requested` in the font `key` is drawn and
+    /// measured at, the rule both phones share: the nearest weight the font
+    /// has (`weights`), ties to the heavier — so 550 in Lora (400, 700) is
+    /// 700, and 600 in Modern Sans (300, 400, 500, 700) is 700. `requested`
+    /// itself for a font with none listed.
+    static func resolveWeight(_ key: String?, _ requested: Int) -> Int {
+        nearest(weights(key), to: requested) ?? requested
+    }
+
+    /// The one of `weights` nearest `weight`, ties to the heavier; nil for
+    /// none.
+    private static func nearest(_ weights: [Int], to weight: Int) -> Int? {
+        weights.min { a, b in
+            let da = abs(a - weight), db = abs(b - weight)
+            return da != db ? da < db : a > b
+        }
+    }
+
     /// The face of `font` a text at `weight` is set in: the nearest weight
     /// it has, ties to the heavier — so a 900 takes the 700 rather than a
     /// 400 made bold, and a 550 the 700. Italic asks for the family's true
@@ -126,13 +173,10 @@ enum FontLibrary {
         let weights = font.files.keys
             .filter { $0.hasSuffix("i") == italic }
             .compactMap { Int(italic ? String($0.dropLast()) : $0) }
-        guard let nearest = weights.min(by: { a, b in
-            let da = abs(a - weight), db = abs(b - weight)
-            return da != db ? da < db : a > b
-        }) else { return nil }
-        let key = "\(nearest)\(italic ? "i" : "")"
+        guard let closest = nearest(weights, to: weight) else { return nil }
+        let key = "\(closest)\(italic ? "i" : "")"
         guard let file = font.files[key], let postScript = font.postScript[key] else { return nil }
-        return FontFace(file: file, postScript: postScript, weight: nearest)
+        return FontFace(file: file, postScript: postScript, weight: closest)
     }
 
     // MARK: search and the picker's lists
@@ -217,9 +261,25 @@ enum FontLibrary {
         _ = registered
     }
 
-    /// What the system draws the system families with, by category — and
-    /// any bundled face that cannot be read. Candidate PostScript names,
-    /// tried in order.
+    /// The system's own cut of each weight the system families list, by
+    /// category — Light, Medium and Bold by name rather than bold made on
+    /// top — so Modern Sans at 300, 400, 500 and 700, Classic Serif and
+    /// Typewriter at 400 and 700, draw as the Android twin draws its own.
+    /// Any bundled face that cannot be read falls back to these too.
+    private static let systemCuts: [String: [Int: String]] = [
+        "Sans": [300: "HelveticaNeue-Light", 400: "HelveticaNeue", 500: "HelveticaNeue-Medium", 700: "HelveticaNeue-Bold"],
+        "Serif": [400: "Georgia", 700: "Georgia-Bold"],
+        "Mono": [400: "Menlo-Regular", 700: "Menlo-Bold"],
+    ]
+
+    /// The cuts `font` falls back on: its category's, or Modern Sans's.
+    private static func fallbackCuts(_ font: FontDef) -> [Int: String] {
+        systemCuts[font.category] ?? systemCuts["Sans"] ?? [:]
+    }
+
+    /// What the system draws the system families with, by category, when
+    /// the cut asked for is not there. Candidate PostScript names, tried in
+    /// order.
     private static func systemNames(_ font: FontDef) -> [String] {
         switch font.category {
         case "Serif": return ["Georgia"]
@@ -336,7 +396,8 @@ enum FontLibrary {
 
     /// A font of your own when the box is set in one and this phone has it;
     /// else the bundled face of its family at the nearest weight, else the
-    /// system's — Modern Sans for a font of your own that is missing. A
+    /// system's cut of the nearest weight it has (resolveWeight's rule) —
+    /// Modern Sans for a font of your own that is missing. A
     /// bundled face is used at its own weight — Anton has only one, and it is
     /// already black — and only italic is made on top, by slanting, where
     /// the family has no italic of its own. A font of your own is one face,
@@ -359,12 +420,17 @@ enum FontLibrary {
                 return italic && trueItalic == nil ? slanted(ui, size: size) : ui
             }
         }
+        let cuts = fallbackCuts(font)
+        let drawn = nearest(Array(cuts.keys), to: weight) ?? weight
+        if let name = cuts[drawn], let cut = UIFont(name: name, size: size) {
+            return styled(cut, size: size, bold: false, italic: italic)
+        }
         var base: UIFont?
         for name in systemNames(font) {
             if let f = UIFont(name: name, size: size) { base = f; break }
         }
-        return styled(base ?? UIFont.systemFont(ofSize: size, weight: uiWeight(weight)),
-                      size: size, bold: weight >= 600, italic: italic)
+        return styled(base ?? UIFont.systemFont(ofSize: size, weight: uiWeight(drawn)),
+                      size: size, bold: drawn >= 600, italic: italic)
     }
 
     /// A system font with bold and italic from its family where it has

@@ -2,11 +2,13 @@
 // bundled Fonts.json (the very file Android ships) read in the picker's
 // order, every bundled file there, a TrueType font of the family it is
 // listed under that loads and draws, the twelve personality keys as
-// aliases, the nearest face, search with accents aside, Recently used,
+// aliases, the nearest face, the weights from Light to Black each font has
+// and the one a text is drawn at, search with accents aside, Recently used,
 // In this design, and the picker's lists.
 
 import XCTest
 import UIKit
+import CryptoKit
 @testable import Canvia
 
 final class FontLibraryTests: XCTestCase {
@@ -22,7 +24,7 @@ final class FontLibraryTests: XCTestCase {
             "mono", "roboto-mono", "space-mono", "jetbrains-mono", "ibm-plex-mono",
         ])
         XCTAssertEqual(FontLibrary.all.count, 40)
-        XCTAssertEqual(FontLibrary.all.reduce(0) { $0 + $1.files.count }, 97)
+        XCTAssertEqual(FontLibrary.all.reduce(0) { $0 + $1.files.count }, 148)
         XCTAssertEqual(FontLibrary.categories, ["Sans", "Serif", "Display", "Script", "Handwriting", "Mono"])
         XCTAssertEqual(FontLibrary.all.filter(\.system).map(\.id), ["sans", "serif", "mono"])
         XCTAssertEqual(FontLibrary.of("lora").name, "Lora")
@@ -32,6 +34,13 @@ final class FontLibraryTests: XCTestCase {
         XCTAssertTrue(FontLibrary.all.filter { !$0.system }.allSatisfy {
             ["OFL-1.1", "Apache-2.0"].contains($0.licence ?? "") && $0.files["400"] != nil
         })
+    }
+
+    func testTheCatalogueIsTheSameBytesOnBothPhones() throws {
+        // The Android twin's FontLibraryTest checks the same digest of its copy.
+        let url = try XCTUnwrap(Bundle.main.url(forResource: "Fonts", withExtension: "json"))
+        let digest = SHA256.hash(data: try Data(contentsOf: url)).map { String(format: "%02x", $0) }.joined()
+        XCTAssertEqual(digest, "5c4dcec41f2e9f8ccaaa9e8de361255c1c271123bf963fbb4575d356e1be4cde")
     }
 
     func testEveryBundledFileIsThereATrueTypeFontOfItsFamilyThatLoads() throws {
@@ -53,6 +62,11 @@ final class FontLibraryTests: XCTestCase {
                 XCTAssertEqual(UIFont(name: postScript, size: 20)?.fontName, postScript, name)
             }
         }
+        // The cuts from Light to Black are the families' own, by name.
+        XCTAssertEqual(FontLibrary.of("roboto").postScript["900"], "Roboto-Black")
+        XCTAssertEqual(FontLibrary.of("montserrat").postScript["300"], "Montserrat-Light")
+        XCTAssertEqual(FontLibrary.of("didone").postScript["600"], "PlayfairDisplay-SemiBold")
+        XCTAssertEqual(FontLibrary.of("slab").files["800"], "roboto-slab-800.ttf")
         // Nothing bundled that the catalogue does not list.
         let listed = Set(FontLibrary.all.flatMap { $0.files.values })
         let bundled = (Bundle.main.paths(forResourcesOfType: "ttf", inDirectory: nil)
@@ -94,10 +108,123 @@ final class FontLibraryTests: XCTestCase {
         XCTAssertEqual(face(lora, 500), "lora-400.ttf 400")
         XCTAssertEqual(face(lora, 700, italic: true), "lora-700i.ttf 700")
         XCTAssertEqual(FontLibrary.face(lora, weight: 700, italic: true)?.postScript, "Lora-BoldItalic")
+        // Twelve families have their cuts from Light to Black.
+        let roboto = FontLibrary.of("roboto")
+        XCTAssertEqual(face(roboto, 300), "roboto-300.ttf 300")
+        XCTAssertEqual(face(roboto, 600), "roboto-600.ttf 600")
+        XCTAssertEqual(face(roboto, 950), "roboto-900.ttf 900")
+        XCTAssertEqual(face(roboto, 900, italic: true), "roboto-700i.ttf 700")
         // Anton has one face, already black; Oswald no italic; the system's none.
         XCTAssertEqual(face(FontLibrary.of("impact"), 900), "anton-400.ttf 400")
         XCTAssertNil(face(FontLibrary.of("condensed"), 400, italic: true))
         XCTAssertNil(face(FontLibrary.of("serif"), 400))
+    }
+
+    /// The rows of the Android twin's FontLibraryTest: the weights each font
+    /// has.
+    func testEachFontListsTheWeightsItHasTheSameOnBothPhones() {
+        let all = [300, 400, 500, 600, 700, 800, 900]
+        let expected: [String: [Int]] = [
+            "sans": [300, 400, 500, 700],
+            "serif": [400, 700],
+            "mono": [400, 700],
+            "roboto": all,
+            "open-sans": [300, 400, 500, 600, 700, 800],
+            "lato": [300, 400, 700, 900],
+            "montserrat": all,
+            "poppins": all,
+            "raleway": all,
+            "nunito": all,
+            "dm-sans": all,
+            "roboto-slab": all,
+            "space-grotesk": [300, 400, 500, 600, 700],
+            "oswald": [300, 400, 500, 600, 700],
+            "playfair-display": [400, 500, 600, 700, 800, 900],
+            "lora": [400, 700],
+            "crimson-text": [400, 700],
+            "dm-serif-display": [400],
+            "anton": [400],
+            // Aliases have their family's; unknown keys and fonts of your own Modern Sans's.
+            "didone": [400, 500, 600, 700, 800, 900],
+            "condensed": [300, 400, 500, 600, 700],
+            "impact": [400],
+            "comic": [300, 400, 500, 700],
+            "custom:0123456789ab": [300, 400, 500, 700],
+        ]
+        for (key, weights) in expected { XCTAssertEqual(FontLibrary.weights(key), weights, key) }
+        // Twelve families have more than regular and bold; every bundled
+        // family's list is its upright files, and every weight has a name.
+        XCTAssertEqual(FontLibrary.all.filter { f in !f.system && f.weights.contains { $0 != 400 && $0 != 700 } }.count, 12)
+        for font in FontLibrary.all where !font.system {
+            let upright = font.files.keys.filter { !$0.hasSuffix("i") }.compactMap { Int($0) }.sorted()
+            XCTAssertEqual(font.weights, upright, font.id)
+        }
+        XCTAssertTrue(FontLibrary.all.allSatisfy { f in
+            !f.weights.isEmpty && f.weights.allSatisfy { FontLibrary.weightNames[$0] != nil }
+        })
+    }
+
+    func testTheWeightsAreNamedLightToBlack() {
+        XCTAssertEqual([300, 400, 500, 600, 700, 800, 900].map(FontLibrary.weightName),
+                       ["Light", "Regular", "Medium", "Semibold", "Bold", "Extra bold", "Black"])
+        XCTAssertEqual(FontLibrary.weightName(450), "450")
+    }
+
+    /// The rows of the Android twin's FontLibraryTest: the weight each
+    /// request is drawn and measured at.
+    func testAWeightResolvesToTheNearestTheFontHasTiesToTheHeavier() {
+        let rows: [(String, Int, Int)] = [
+            ("lora", 400, 400),
+            ("lora", 500, 400),
+            ("lora", 550, 700),
+            ("lora", 900, 700),
+            ("lato", 500, 400),
+            ("lato", 800, 900),
+            ("lato", 200, 300),
+            ("roboto", 650, 700),
+            ("roboto", 350, 400),
+            ("montserrat", 900, 900),
+            ("didone", 300, 400),
+            ("didone", 850, 900),
+            ("condensed", 800, 700),
+            ("grotesk", 600, 600),
+            ("impact", 900, 400),
+            ("sans", 600, 700),
+            ("sans", 900, 700),
+            ("sans", 200, 300),
+            ("sans", 450, 500),
+            ("serif", 500, 400),
+            ("serif", 550, 700),
+            ("mono", 300, 400),
+            ("comic", 600, 700),
+        ]
+        for (key, requested, drawn) in rows {
+            XCTAssertEqual(FontLibrary.resolveWeight(key, requested), drawn, "\(key) \(requested)")
+        }
+    }
+
+    /// The system's own faces at the cut of each weight they list, by name:
+    /// Modern Sans from Light to Bold, Classic Serif and Typewriter regular
+    /// and bold — the weights resolveWeight picks, as the Android twin draws.
+    func testTheSystemFacesDrawAtTheirOwnCuts() {
+        func name(_ key: String, _ weight: Int) -> String {
+            FontLibrary.uiFont(family: key, size: 40, weight: weight, italic: false).fontName
+        }
+        XCTAssertEqual(name("sans", 300), "HelveticaNeue-Light")
+        XCTAssertEqual(name("sans", 400), "HelveticaNeue")
+        XCTAssertEqual(name("sans", 500), "HelveticaNeue-Medium")
+        XCTAssertEqual(name("sans", 600), "HelveticaNeue-Bold")
+        XCTAssertEqual(name("sans", 900), "HelveticaNeue-Bold")
+        XCTAssertEqual(name("comic", 200), "HelveticaNeue-Light")
+        XCTAssertEqual(name("serif", 550), "Georgia-Bold")
+        XCTAssertEqual(name("serif", 500), "Georgia")
+        XCTAssertEqual(name("mono", 300), "Menlo-Regular")
+        XCTAssertEqual(name("mono", 800), "Menlo-Bold")
+        // Bundled families from Light to Black, each its own file.
+        XCTAssertEqual(name("poppins", 800), "Poppins-ExtraBold")
+        XCTAssertEqual(name("didone", 600), "PlayfairDisplay-SemiBold")
+        XCTAssertEqual(name("lato", 800), "Lato-Black")
+        XCTAssertEqual(name("roboto", 300), "Roboto-Light")
     }
 
     /// The canvas, measurement and export all ask FontLibrary for a face:

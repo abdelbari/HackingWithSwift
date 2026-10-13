@@ -67,9 +67,15 @@ extension DesignStore {
     /// they differ: what the controls show, or "Mixed". As on the Android
     /// twin. A shape's words count as a text (ShapeText.carriesWords).
     func sharedText<T: Equatable>(_ value: (Element) -> T) -> T? {
+        TypeReadouts.shared(textsRead.map(value))
+    }
+
+    /// The selected texts the controls read, a shape's words among them:
+    /// the unlocked ones, or all of them when every one is locked.
+    var textsRead: [Element] {
         let texts = selectedElements.filter(ShapeText.carriesWords)
         let reached = texts.filter { !$0.locked }
-        return TypeReadouts.shared((reached.isEmpty ? texts : reached).map(value))
+        return reached.isEmpty ? texts : reached
     }
 
     /// Bold, italic, underline or capitals on for every selected, unlocked
@@ -92,6 +98,17 @@ extension DesignStore {
         commit()
         change()
         commit()
+    }
+
+    /// Every selected, unlocked text — a shape's words among them — at one
+    /// weight, the Weight row's chip, each box measured again. One step.
+    /// Bold keeps its own rule (TextToggle).
+    func setFontWeight(_ weight: Int) {
+        updateSelected { el in
+            guard ShapeText.carriesWords(el) else { return }
+            el.fontWeight = weight
+            el.h = ShapeText.heightForWords(el)
+        }
     }
 
     /// Every selected, unlocked text at one type size, in whole points from
