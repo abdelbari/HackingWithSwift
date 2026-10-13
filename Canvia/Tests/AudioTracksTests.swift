@@ -52,18 +52,30 @@ final class AudioTracksTests: XCTestCase {
             ("two tracks overlapping",
              pages(10), [track("a"), track("b", start: 3, volume: 0.5)], ["a": 6, "b": 4],
              [segment("a", 0, 0, 6, 1), segment("b", 0, 3, 4, 0.5)]),
+            ("a song and a voice-over overlapping",
+             pages(10), [track("song", volume: 0.6), track("voice", start: 2)], ["song": 20, "voice": 3],
+             [segment("song", 0, 0, 10, 0.6), segment("voice", 0, 2, 3, 1)]),
             ("a trimmed track",
              pages(10), [track("t", start: 1, trimStart: 2, trimEnd: 5)], ["t": 10],
              [segment("t", 2, 1, 3, 1)]),
+            ("a trimmed track from a second in",
+             pages(10), [track("song", start: 1, trimStart: 4, trimEnd: 7.5)], ["song": 20],
+             [segment("song", 4, 1, 3.5, 1)]),
             ("a trim past the file's end stops at the end",
              pages(10), [track("t", trimStart: 8, trimEnd: 20)], ["t": 10],
              [segment("t", 8, 0, 2, 1)]),
             ("fades in and out",
              pages(10), [track("f", start: 1, fadeIn: 2, fadeOut: 1)], ["f": 8],
              [segment("f", 0, 1, 8, 1, fadeIn: 1...3, fadeOut: 8...9)]),
+            ("fades on a trimmed track",
+             pages(10), [track("song", start: 2, trimEnd: 6, fadeIn: 1, fadeOut: 2)], ["song": 20],
+             [segment("song", 0, 2, 6, 1, fadeIn: 2...3, fadeOut: 6...8)]),
             ("a fade not under twice its length is not heard",
              pages(10), [track("g", fadeIn: 3, fadeOut: 0.5)], ["g": 5],
              [segment("g", 0, 0, 5, 1, fadeOut: 4.5...5)]),
+            ("a fade of half what is heard is not heard",
+             pages(10), [track("voice", start: 1, fadeIn: 1.5, fadeOut: 1)], ["voice": 3],
+             [segment("voice", 0, 1, 3, 1, fadeOut: 3...4)]),
             ("a fade past five seconds is five",
              pages(30), [track("h", fadeIn: 8)], ["h": 20],
              [segment("h", 0, 0, 20, 1, fadeIn: 0...5)]),
@@ -74,14 +86,20 @@ final class AudioTracksTests: XCTestCase {
             ("a looping trimmed track",
              pages(5), [track("r", trimStart: 1, trimEnd: 3, loop: true)], ["r": 10],
              [segment("r", 1, 0, 2, 1), segment("r", 1, 2, 2, 1), segment("r", 1, 4, 1, 1)]),
+            ("a looping track from a second in, fading out at the end",
+             pages(10), [track("m", start: 3, trimStart: 1, fadeOut: 0.5, loop: true)], ["m": 6],
+             [segment("m", 1, 3, 5, 1, fadeOut: 9.5...10), segment("m", 1, 8, 2, 1, fadeOut: 9.5...10)]),
             ("a track cut short by the film's end",
              pages(10), [track("c", start: 7)], ["c": 6],
              [segment("c", 0, 7, 3, 1)]),
+            ("a track cut short by the film's end, fading out there",
+             pages(4), [track("song", start: 1, fadeOut: 1)], ["song": 20],
+             [segment("song", 0, 1, 3, 1, fadeOut: 3...4)]),
             ("a track starting after the design ends is absent",
              pages(10), [track("late", start: 12), track("edge", start: 10)], ["late": 5, "edge": 5],
              []),
-            ("a silent track, and one of no known length",
-             pages(10), [track("q", volume: 0), track("unknown")], ["q": 5],
+            ("a silent track, one of no known length, and one that is no song",
+             pages(10), [track("q", volume: 0), track("unknown"), AudioTrack(id: "t-img", src: "media:img-1")], ["q": 5],
              []),
             ("a track across two pages",
              pages(3, 4), [track("x", start: 1)], ["x": 10],
@@ -105,7 +123,7 @@ final class AudioTracksTests: XCTestCase {
     /// the old plan's pieces, at its volume, under its fade — none on a film
     /// too short for one.
     func testTheMigratedSoundtrackPlaysAsTheOldPlanDid() {
-        for (audio, film) in [(4.0, 10.0), (30.0, 5.0), (3.0, 1.5), (2.5, 2.0), (7.0, 7.0)] {
+        for (audio, film) in [(4.0, 10.0), (60.0, 12.0), (30.0, 5.0), (3.0, 1.5), (6.0, 2.0), (2.5, 2.0), (7.0, 7.0)] {
             let old = Soundtrack.plan(audioDuration: audio, videoDuration: film)
             let want = old.segments.map {
                 segment("m", $0.sourceStart, $0.at, $0.duration, 0.7, fadeOut: old.fadeOut)
@@ -197,7 +215,7 @@ final class AudioTracksTests: XCTestCase {
         XCTAssertEqual(first.fadeOut, 0)
         XCTAssertFalse(first.loop)
         XCTAssertEqual(first.name, "")
-        XCTAssertFalse(first.id.isEmpty)
+        XCTAssertEqual(first.id, "audio:a.m4a", "one with no id goes by its source, as on Android")
         XCTAssertEqual(d.audioTracks[1].id, "v")
         XCTAssertTrue(d.audioTracks[1].loop)
         XCTAssertEqual(d.audioTracks[1].fadeIn, 1.5)
@@ -233,7 +251,7 @@ final class AudioTracksTests: XCTestCase {
         let s = DesignStore(design: Design(title: "audio", width: 1000, height: 1000))
         let added = s.addAudioTrack("song.m4a", start: 2.04, name: "Song")
         XCTAssertEqual(s.design.audioTracks, [added])
-        XCTAssertEqual(added.start, 2, "kept to the tenth the sheet shows")
+        XCTAssertEqual(added.start, 2.04, "laid exactly where it was asked, as a page's start is")
         XCTAssertEqual(added.src, "audio:song.m4a")
         XCTAssertFalse(added.loop)
         s.updateAudioTrack(added.id) { $0.fadeIn = 1.5 }
@@ -264,20 +282,36 @@ final class AudioTracksTests: XCTestCase {
     func testTheSheetSaysEachTrack() {
         let t = AudioTrack(src: "audio:song.m4a", start: 2, trimStart: 1, trimEnd: 4, name: "Song")
         XCTAssertEqual(AudioTracks.name(of: t), "Song")
-        XCTAssertEqual(AudioTracks.name(of: AudioTrack(src: "audio:gone.m4a")), "Music from another phone")
+        XCTAssertEqual(AudioTracks.name(of: AudioTrack(src: "audio:gone.m4a", name: " ")), "Music from another phone")
         XCTAssertEqual(AudioTracks.summary(of: t, duration: 10), "Starts at 0:02.0 · 0:03.0 long")
         XCTAssertEqual(AudioTracks.summary(of: t, duration: nil), "Starts at 0:02.0")
+        XCTAssertEqual(AudioTracks.summary(of: t, duration: nil, missing: true), "Starts at 0:02.0 · not on this phone")
+        XCTAssertTrue(AudioTracks.isMissing(AudioTrack(src: "audio:gone.m4a")))
         var looped = t
         looped.loop = true
         XCTAssertEqual(AudioTracks.summary(of: looped, duration: 2.5), "Starts at 0:02.0 · 0:01.5 long · loops")
         XCTAssertEqual(AudioTracks.secondsLabel(1.5), "1.5s")
     }
 
+    /// "Voice-over", then "Voice-over 2" and on, the first free — as the
+    /// Android twin names them.
     func testVoiceOversAreNumbered() {
-        XCTAssertEqual(AudioTracks.voiceOverName(after: []), "Voice-over 1")
-        let tracks = [AudioTrack(src: "audio:a", name: "Voice-over 1"), AudioTrack(src: "audio:b", name: "Song"),
-                      AudioTrack(src: "audio:c", name: "Voice-over 3")]
-        XCTAssertEqual(AudioTracks.voiceOverName(after: tracks), "Voice-over 4")
+        XCTAssertEqual(AudioTracks.voiceOverName(after: []), "Voice-over")
+        let one = [AudioTrack(src: "audio:a", name: "Voice-over"), AudioTrack(src: "audio:b", name: "Song")]
+        XCTAssertEqual(AudioTracks.voiceOverName(after: one), "Voice-over 2")
+        let gap = one + [AudioTrack(src: "audio:c", name: "Voice-over 3")]
+        XCTAssertEqual(AudioTracks.voiceOverName(after: gap), "Voice-over 2")
+        XCTAssertEqual(AudioTracks.voiceOverName(after: one + [AudioTrack(src: "audio:d", name: "Voice-over 2")]),
+                       "Voice-over 3")
+    }
+
+    func testTheMotionNoteSaysWhetherTheMusicIsOnThisPhone() {
+        XCTAssertEqual(AudioTracks.musicNote(tracks: 0, away: 0), "")
+        XCTAssertEqual(AudioTracks.musicNote(tracks: 2, away: 0), " The video has music under it.")
+        XCTAssertEqual(AudioTracks.musicNote(tracks: 2, away: 2),
+                       " The music was chosen on another phone and isn't on this one.")
+        XCTAssertEqual(AudioTracks.musicNote(tracks: 3, away: 1),
+                       " Some of the music was chosen on another phone and isn't on this one.")
     }
 
     func testTheMeterShowsFiftyDecibelsOfLevel() {

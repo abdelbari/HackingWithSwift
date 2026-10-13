@@ -53,6 +53,10 @@ final class SoundtrackTraceLoopTests: XCTestCase {
         XCTAssertEqual(track.fadeIn, 0)
         XCTAssertEqual(track.fadeOut, 1, "the old soundtrack faded out over the last second")
         XCTAssertTrue(track.loop)
+        // Android's fixed id and name, the same on every read.
+        XCTAssertEqual(track.id, "soundtrack")
+        XCTAssertEqual(track.name, "Soundtrack")
+        XCTAssertEqual(try JSONDecoder().decode(Design.self, from: Data(json.utf8)).audio, design.audio)
         XCTAssertEqual(design.motion?.secondsPerPage, 2)
 
         // Written back as a track, the old keys gone.

@@ -273,6 +273,10 @@ struct AudioTrack: Codable, Equatable, Identifiable {
     /// How long the old soundtrack faded out over at the film's end, which
     /// its track keeps (Soundtrack.fadeSeconds).
     static let migratedFadeOut = 1.0
+    /// The old soundtrack's track's id and name — fixed, so the same old
+    /// design reads as the same track on either phone, and on every read.
+    static let migratedId = "soundtrack"
+    static let migratedName = "Soundtrack"
 
     /// The AudioStore id the track plays, or nil for a source that is not
     /// one.
@@ -301,10 +305,11 @@ struct AudioTrack: Codable, Equatable, Identifiable {
 
     /// The old single soundtrack as a track: from the film's start, looping
     /// to its end at its volume, fading out over the last second as it did —
-    /// so its sound is what it was. Named nothing, so each phone shows the
-    /// file's own name.
+    /// so its sound is what it was — with the Android twin's fixed id and
+    /// name, "Soundtrack".
     static func migrated(soundtrack id: String, volume: Double?) -> AudioTrack {
-        AudioTrack(src: src(id), volume: min(max(volume ?? 1, 0), 1), fadeOut: migratedFadeOut, loop: true)
+        AudioTrack(id: migratedId, src: src(id), volume: min(max(volume ?? 1, 0), 1), fadeOut: migratedFadeOut,
+                   loop: true, name: migratedName)
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -317,7 +322,10 @@ struct AudioTrack: Codable, Equatable, Identifiable {
         guard src.hasPrefix(Self.prefix), src.count > Self.prefix.count else {
             throw DecodingError.dataCorrupted(.init(codingPath: c.codingPath, debugDescription: "Not an audio track"))
         }
-        id = (try? c.decodeIfPresent(String.self, forKey: .id)) ?? UID.make("track")
+        // One with no id of its own goes by its source, as on Android: the
+        // same file reads as the same track each time.
+        let own = try? c.decodeIfPresent(String.self, forKey: .id)
+        id = own.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 } ?? src
         start = (try? c.decodeIfPresent(Double.self, forKey: .start)) ?? 0
         trimStart = (try? c.decodeIfPresent(Double.self, forKey: .trimStart)) ?? 0
         trimEnd = try? c.decodeIfPresent(Double.self, forKey: .trimEnd)

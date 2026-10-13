@@ -26,23 +26,44 @@ enum AudioTracks {
 
     /// The line under a track's name: where it starts in the film, and how
     /// long it plays once through when that is known — "Starts at 0:02.0 ·
-    /// 0:12.5 long".
-    static func summary(of track: AudioTrack, duration: Double?) -> String {
+    /// 0:12.5 long" — "loops" when it does, and that its music is `missing`
+    /// from this phone, chosen on another. As the Android twin's.
+    static func summary(of track: AudioTrack, duration: Double?, missing: Bool = false) -> String {
         var line = "Starts at \(VideoStore.timeLabel(track.start))"
         if let duration { line += " · \(VideoStore.timeLabel(length(of: track, duration: duration))) long" }
         if track.loop { line += " · loops" }
+        if missing { line += " · not on this phone" }
         return line
     }
 
-    /// The name a new voice-over takes: "Voice-over 1", then one more than
-    /// the most the design's tracks have reached.
+    /// Whether the track's music is not on this phone: chosen on another.
+    static func isMissing(_ track: AudioTrack) -> Bool {
+        AudioStore.url(for: track.audioId) == nil
+    }
+
+    /// What a new voice-over is called first.
+    static let firstVoiceOver = "Voice-over"
+
+    /// The name a new voice-over takes, as the Android twin names it:
+    /// "Voice-over", then "Voice-over 2" and on — the first that none of
+    /// the design's tracks has.
     static func voiceOverName(after tracks: [AudioTrack]) -> String {
-        let prefix = "Voice-over "
-        let used = tracks.compactMap { track -> Int? in
-            guard track.name.hasPrefix(prefix) else { return nil }
-            return Int(track.name.dropFirst(prefix.count))
-        }
-        return prefix + String((used.max() ?? 0) + 1)
+        let names = Set(tracks.map(\.name))
+        guard names.contains(firstVoiceOver) else { return firstVoiceOver }
+        var n = 2
+        while names.contains("\(firstVoiceOver) \(n)") { n += 1 }
+        return "\(firstVoiceOver) \(n)"
+    }
+
+    /// What Export's motion note says of the music: nothing without tracks,
+    /// that the video has music under it, or that some or all of it —
+    /// `away` of the `tracks` — was chosen on another phone and is not on
+    /// this one. Each sentence starts with a space. As the Android twin's.
+    static func musicNote(tracks: Int, away: Int) -> String {
+        if tracks <= 0 { return "" }
+        if away <= 0 { return " The video has music under it." }
+        if away >= tracks { return " The music was chosen on another phone and isn't on this one." }
+        return " Some of the music was chosen on another phone and isn't on this one."
     }
 
     /// A time as a fade shows it: "0.0s" to "5.0s".
@@ -57,12 +78,13 @@ enum AudioTracks {
 extension DesignStore {
 
     /// Music `id` as a new track, last in the list, as one step: from
-    /// `start` seconds into the film, played once from the file's start at
-    /// full volume, called `name` — by the music's own name when that is
-    /// empty.
+    /// `start` seconds into the film — exactly, as a page's start is, the
+    /// way the Android twin lays a voice-over — played once from the file's
+    /// start at full volume, called `name` — by the music's own name when
+    /// that is empty.
     @discardableResult
     func addAudioTrack(_ id: String, start: Double = 0, name: String = "") -> AudioTrack {
-        let track = AudioTrack(src: AudioTrack.src(id), start: AudioTracks.tenths(max(0, start)),
+        let track = AudioTrack(src: AudioTrack.src(id), start: max(0, start),
                                name: name.isEmpty ? AudioStore.label(for: id) : name)
         apply { $0.audioTracks.append(track) }
         return track
