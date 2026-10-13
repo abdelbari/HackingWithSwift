@@ -43,8 +43,31 @@ final class DesignTypesAndUnitsTests: XCTestCase {
     func testTheCatalogueIsReadFromContentJSON() {
         XCTAssertNotNil(ContentLibrary.bundle.sizes)
         XCTAssertEqual(ContentLibrary.bundle.sizes?.count, SizePreset.all.count)
-        XCTAssertEqual(Set(SizePreset.categories),
+        XCTAssertEqual(SizePreset.categories,
                        ["Social", "Video", "Presentations", "Print", "Documents", "Marketing"])
+        for preset in SizePreset.all {
+            XCTAssertTrue(SizePreset.categories.contains(preset.category), preset.id)
+        }
+    }
+
+    /// Android's templates/sizes.json, entry for entry: the same ids, names,
+    /// categories and order, so a type asked for by id on one phone is the
+    /// same type on the other.
+    func testTheCatalogueIsTheSharedList() throws {
+        XCTAssertEqual(SizePreset.all.map(\.id), [
+            "insta-post", "insta-story", "presentation", "youtube-thumb", "facebook-post", "poster", "flyer", "a4",
+            "business-card", "quote-card", "logo", "us-letter", "tiktok-video", "insta-reel", "youtube-video",
+            "youtube-banner", "video-call-background", "insta-portrait", "facebook-story", "facebook-cover",
+            "linkedin-post", "linkedin-banner", "x-post", "x-header", "pinterest-pin", "phone-wallpaper",
+            "desktop-wallpaper", "presentation-4x3", "invitation", "postcard", "menu", "flyer-letter", "a3-poster",
+            "resume-a4", "resume-letter", "certificate", "infographic", "email-header", "brochure", "display-ad",
+        ])
+        XCTAssertEqual(try designType("us-letter").name, "US Letter Document")
+        XCTAssertEqual(try designType("resume-letter").name, "Resume (US Letter)")
+        let flyer = try designType("flyer-letter")
+        XCTAssertEqual(flyer.name, "Flyer (US Letter)")
+        XCTAssertEqual(flyer.category, "Print")
+        XCTAssertEqual(try designType("poster").keywords, ["poster", "a2", "print"])
     }
 
     func testTheSizesInPixels() throws {
@@ -109,7 +132,7 @@ final class DesignTypesAndUnitsTests: XCTestCase {
 
     func testSearchIgnoresAccentsAndFindsKeywordsAndPixels() {
         let resumes = SizePreset.search("Résumé").map(\.id)
-        XCTAssertEqual(resumes, ["resume-a4", "resume-letter"])
+        XCTAssertEqual(Array(resumes.prefix(2)), ["resume-a4", "resume-letter"])
         XCTAssertTrue(SizePreset.search("cv").map(\.id).contains("resume-a4"), "by a keyword")
         XCTAssertEqual(SizePreset.search("letter").first?.id, "us-letter")
         let tall = SizePreset.search("1080x1920").map(\.id)
@@ -121,14 +144,39 @@ final class DesignTypesAndUnitsTests: XCTestCase {
         XCTAssertTrue(SizePreset.search("   ").isEmpty)
     }
 
-    /// A name that starts with the query before one that only has it,
-    /// each band in catalogue order.
-    func testNamesThatStartWithTheQueryLead() throws {
-        let found = SizePreset.search("post").map(\.id)
-        XCTAssertEqual(Array(found.prefix(3)), ["poster", "poster-a3", "postcard"])
-        let card = try XCTUnwrap(found.firstIndex(of: "postcard"))
-        let post = try XCTUnwrap(found.firstIndex(of: "insta-post"))
-        XCTAssertLessThan(card, post)
+    /// Android's SizePresetsTest rows: (query, the ids expected to lead,
+    /// in order). Every word, in any order; a name that starts with the
+    /// query, then a name with a word that does, then a keyword.
+    func testSearchRowsAreAndroids() {
+        let rows: [(String, [String])] = [
+            ("tiktok", ["tiktok-video"]),
+            ("TikTok", ["tiktok-video"]),
+            ("resume", ["resume-a4", "resume-letter"]),
+            ("letter", ["us-letter"]),
+            ("cv", ["resume-a4", "resume-letter"]),
+            ("insta", ["insta-post", "insta-story", "insta-reel", "insta-portrait"]),
+            ("reel", ["insta-reel"]),
+            ("résumé", ["resume-a4", "resume-letter"]),
+            ("us letter", ["us-letter"]),
+            ("reel instagram", ["insta-reel"]),
+            ("post", ["poster", "postcard", "a3-poster", "insta-post", "facebook-post", "insta-portrait"]),
+        ]
+        for (query, lead) in rows {
+            XCTAssertEqual(Array(SizePreset.search(query).map(\.id).prefix(lead.count)), lead, query)
+        }
+        XCTAssertTrue(SizePreset.search("zzz").isEmpty)
+        // Words, not categories: "print" finds what says print, not every
+        // type in Print.
+        XCTAssertEqual(SizePreset.search("print").map(\.id), ["poster", "a3-poster"])
+    }
+
+    func testSearchingASizeFindsTheTypesOfThatSize() {
+        let tall = ["insta-story", "tiktok-video", "insta-reel", "facebook-story", "phone-wallpaper"]
+        XCTAssertEqual(SizePreset.search("1080x1920").map(\.id), tall)
+        XCTAssertEqual(SizePreset.search("1080 × 1920").map(\.id), tall)
+        XCTAssertEqual(SizePreset.search("1080 X 1920").map(\.id), tall)
+        XCTAssertEqual(SizePreset.search("2480x3508").map(\.id), ["a4", "resume-a4"])
+        XCTAssertTrue(SizePreset.search("1x1").isEmpty)
     }
 
     // MARK: units
@@ -147,13 +195,21 @@ final class DesignTypesAndUnitsTests: XCTestCase {
         XCTAssertEqual(Units.dimensions(width: 1080, height: 1920, unit: nil, dpi: nil), "1080 × 1920")
     }
 
-    func testFormatRows() {
-        XCTAssertEqual(Units.format(209.97, unit: "mm"), "210")
-        XCTAssertEqual(Units.format(148.46, unit: "mm"), "148.5")
-        XCTAssertEqual(Units.format(8.5, unit: "in"), "8.5")
-        XCTAssertEqual(Units.format(3.333, unit: "in"), "3.33")
-        XCTAssertEqual(Units.format(29.7, unit: "cm"), "29.7")
-        XCTAssertEqual(Units.format(1080.4, unit: "px"), "1080")
+    /// Android's UnitsTest rows: pixels and millimetres whole, centimetres
+    /// to a tenth, inches to a hundredth — so the 96-dpi poster reads the
+    /// 420 × 594 mm it was made as on both phones.
+    func testFormatRows() throws {
+        let rows: [(Double, String, String)] = [
+            (209.97, "mm", "210"), (148.46, "mm", "148"), (100.5, "mm", "101"), (419.89, "mm", "420"),
+            (29.7, "cm", "29.7"), (29.74, "cm", "29.7"), (21, "cm", "21"),
+            (8.5, "in", "8.5"), (3.333, "in", "3.33"), (11, "in", "11"),
+            (1080.9, "px", "1080"),
+        ]
+        for (value, unit, written) in rows {
+            XCTAssertEqual(Units.format(value, unit: unit), written, "\(value) \(unit)")
+        }
+        XCTAssertEqual(Units.dimensions(width: 1587, height: 2245, unit: "mm", dpi: 96), "420 × 594 mm")
+        XCTAssertEqual(try designType("poster").dimensions, "420 × 594 mm")
     }
 
     /// Points per pixel: 72 / dpi, and exactly today's 72 / 96 without one.
@@ -278,12 +334,13 @@ final class DesignTypesAndUnitsTests: XCTestCase {
         let name = "types-\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
         defer { defaults.removePersistentDomain(forName: name) }
-        LaunchRequest.set(.newType(id: "us-letter", title: "US Letter"), defaults: defaults)
-        XCTAssertEqual(LaunchRequest.take(defaults), .newType(id: "us-letter", title: "US Letter"))
+        LaunchRequest.set(.newType(id: "us-letter", title: "US Letter Document"), defaults: defaults)
+        XCTAssertEqual(LaunchRequest.take(defaults), .newType(id: "us-letter", title: "US Letter Document"))
         XCTAssertNil(LaunchRequest.take(defaults))
         XCTAssertEqual(DesignSizeChoice(rawValue: "tiktok-video")?.preset?.name, "TikTok Video")
         for preset in SizePreset.all {
             XCTAssertNotNil(DesignSizeChoice(rawValue: preset.id), "Shortcuts offers \(preset.id)")
         }
+        XCTAssertEqual(DesignSizeChoice.allCases.map(\.rawValue), SizePreset.all.map(\.id), "and nothing the catalogue lacks")
     }
 }

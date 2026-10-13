@@ -607,12 +607,10 @@ struct ExportSheet: View {
         case .fit: return "Fitted to \(paper.paper.name)\(paper.landscape ? " landscape" : "")."
         case .actual:
             let fits = pts.width <= paper.printable.width && pts.height <= paper.printable.height
-            // In the design's own unit, mm for one in pixels: the size it
-            // truly is now that a page prints at its dpi.
-            let unit = exportedDesign.physicalUnit ?? "mm"
-            let w = Units.format(Double(pts.width) / 72 * Units.perInch(unit), unit: unit)
-            let h = Units.format(Double(pts.height) / 72 * Units.perInch(unit), unit: unit)
-            return fits ? "Prints at actual size, \(w) × \(h) \(unit)."
+            // Whole millimetres, whatever the design is measured in, as
+            // Android's PrintLayout.note says it: the size it truly is now
+            // that a page prints at its dpi.
+            return fits ? "Prints at actual size, \(String(format: "%.0f × %.0f mm", pts.width / 2.835, pts.height / 2.835))."
                         : "Larger than the sheet at actual size — it will be clipped. Tile it instead."
         case .tile:
             let n = PrintLayout.tiles(page: pts, printable: paper.printable.size, overlap: paper.overlap).count

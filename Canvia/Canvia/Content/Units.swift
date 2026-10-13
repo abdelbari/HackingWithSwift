@@ -54,15 +54,19 @@ enum Units {
         return px / dpi * perInch(unit)
     }
 
-    /// A length as a size field and a readout show it: pixels whole,
-    /// millimetres to a tenth, centimetres and inches to a hundredth, with
-    /// trailing zeros dropped — "210", "29.7", "8.5".
+    /// A length as a size field and a readout show it: pixels whole (cut,
+    /// as the readout's `Int(w)` writes them), millimetres whole,
+    /// centimetres to a tenth and inches to a hundredth, with trailing zeros
+    /// dropped and always a "." — "210", "29.7", "8.5". Whole millimetres,
+    /// because a poster at 96 dpi is 419.89 of them and reads as the 420 it
+    /// was made as. Android's Units.number, row for row.
     static func format(_ value: Double, unit: String) -> String {
-        guard value.isFinite else { return "0" }
-        let places: Double = unit == "mm" ? 10 : (isPhysical(unit) ? 100 : 1)
+        guard value.isFinite, abs(value) < 1e9 else { return "0" }
+        guard isPhysical(unit) else { return String(Int(value)) }
+        let places: Double = unit == "mm" ? 1 : (unit == "cm" ? 10 : 100)
         let rounded = (value * places).rounded() / places
-        if rounded == rounded.rounded(), abs(rounded) < 1e9 { return String(Int(rounded)) }
-        var text = String(format: places == 10 ? "%.1f" : "%.2f", rounded)
+        if rounded == rounded.rounded() { return String(Int(rounded)) }
+        var text = String(format: unit == "cm" ? "%.1f" : "%.2f", rounded)
         while text.hasSuffix("0") { text.removeLast() }
         if text.hasSuffix(".") { text.removeLast() }
         return text

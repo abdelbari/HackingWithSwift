@@ -1408,6 +1408,15 @@ struct ResizeSheet: View {
         _store = Bindable(wrappedValue: store)
         self.onCopies = onCopies
         _copying = State(initialValue: copying ?? CopyResize.hasContent(store.design))
+        // In the design's own unit, at its size as it reads — a poster at
+        // 96 dpi is 420 × 594 mm — as Android's Resize fills it. Set here
+        // rather than on appear, so the unit picker's change never converts
+        // the fields a second time; a size typed on paper is made at 300 dpi.
+        let own = store.design.physicalUnit ?? "px"
+        let dpi = store.design.effectiveDPI
+        _unit = State(initialValue: own)
+        _customW = State(initialValue: Units.format(Units.value(ofPixels: store.pageWidth, unit: own, dpi: dpi), unit: own))
+        _customH = State(initialValue: Units.format(Units.value(ofPixels: store.pageHeight, unit: own, dpi: dpi), unit: own))
     }
 
     private func resize(_ w: Double, _ h: Double, units: UnitChoice) {
@@ -1447,11 +1456,6 @@ struct ResizeSheet: View {
             }
             .navigationTitle(copying ? "Copy & resize" : "Resize design")
             .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                // In pixels; the unit picker rewrites them in another unit.
-                customW = String(Int(store.pageWidth))
-                customH = String(Int(store.pageHeight))
-            }
         }
         .presentationDetents(sheetDetents)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))

@@ -16831,6 +16831,7 @@
     "instagram",
     "ig",
     "square",
+    "feed",
     "post"
    ]
   },
@@ -16856,9 +16857,9 @@
    "keywords": [
     "slides",
     "deck",
+    "16:9",
     "keynote",
-    "powerpoint",
-    "16:9"
+    "powerpoint"
    ]
   },
   {
@@ -16869,7 +16870,8 @@
    "height": 720,
    "keywords": [
     "youtube",
-    "thumbnail"
+    "thumbnail",
+    "video cover"
    ]
   },
   {
@@ -16893,6 +16895,7 @@
    "unit": "mm",
    "dpi": 96,
    "keywords": [
+    "poster",
     "a2",
     "print"
    ]
@@ -16906,8 +16909,9 @@
    "unit": "mm",
    "dpi": 300,
    "keywords": [
-    "a5",
+    "flyer",
     "leaflet",
+    "a5",
     "handout"
    ]
   },
@@ -16922,8 +16926,9 @@
    "keywords": [
     "a4",
     "document",
-    "paper",
-    "page"
+    "doc",
+    "page",
+    "report"
    ]
   },
   {
@@ -16935,6 +16940,7 @@
    "unit": "in",
    "dpi": 300,
    "keywords": [
+    "business card",
     "card",
     "contact"
    ]
@@ -16957,9 +16963,26 @@
    "width": 800,
    "height": 800,
    "keywords": [
+    "logo",
     "brand",
     "mark",
     "icon"
+   ]
+  },
+  {
+   "id": "us-letter",
+   "name": "US Letter Document",
+   "category": "Documents",
+   "width": 8.5,
+   "height": 11,
+   "unit": "in",
+   "dpi": 300,
+   "keywords": [
+    "letter",
+    "document",
+    "doc",
+    "page",
+    "report"
    ]
   },
   {
@@ -16970,9 +16993,9 @@
    "height": 1920,
    "keywords": [
     "tiktok",
-    "short",
+    "video",
     "vertical",
-    "video"
+    "short"
    ]
   },
   {
@@ -16985,8 +17008,8 @@
     "instagram",
     "ig",
     "reel",
-    "vertical",
-    "video"
+    "video",
+    "vertical"
    ]
   },
   {
@@ -17009,8 +17032,8 @@
    "height": 1440,
    "keywords": [
     "youtube",
-    "channel art",
-    "banner"
+    "banner",
+    "channel art"
    ]
   },
   {
@@ -17022,8 +17045,8 @@
    "keywords": [
     "zoom",
     "teams",
-    "meet",
-    "background"
+    "meeting",
+    "virtual background"
    ]
   },
   {
@@ -17036,7 +17059,8 @@
     "instagram",
     "ig",
     "portrait",
-    "4:5"
+    "4:5",
+    "post"
    ]
   },
   {
@@ -17085,7 +17109,8 @@
    "keywords": [
     "linkedin",
     "banner",
-    "cover"
+    "cover",
+    "background"
    ]
   },
   {
@@ -17134,7 +17159,8 @@
    "keywords": [
     "wallpaper",
     "phone",
-    "lock screen"
+    "lock screen",
+    "background"
    ]
   },
   {
@@ -17146,11 +17172,12 @@
    "keywords": [
     "wallpaper",
     "desktop",
-    "computer"
+    "computer",
+    "background"
    ]
   },
   {
-   "id": "presentation-4-3",
+   "id": "presentation-4x3",
    "name": "Presentation (4:3)",
    "category": "Presentations",
    "width": 1024,
@@ -17158,77 +17185,8 @@
    "keywords": [
     "slides",
     "deck",
-    "4:3"
-   ]
-  },
-  {
-   "id": "us-letter",
-   "name": "US Letter",
-   "category": "Documents",
-   "width": 8.5,
-   "height": 11,
-   "unit": "in",
-   "dpi": 300,
-   "keywords": [
-    "letter",
-    "document",
-    "paper",
-    "page"
-   ]
-  },
-  {
-   "id": "resume-a4",
-   "name": "Resume (A4)",
-   "category": "Documents",
-   "width": 210,
-   "height": 297,
-   "unit": "mm",
-   "dpi": 300,
-   "keywords": [
-    "resume",
-    "cv",
-    "a4"
-   ]
-  },
-  {
-   "id": "resume-letter",
-   "name": "Resume (Letter)",
-   "category": "Documents",
-   "width": 8.5,
-   "height": 11,
-   "unit": "in",
-   "dpi": 300,
-   "keywords": [
-    "resume",
-    "cv",
-    "letter"
-   ]
-  },
-  {
-   "id": "certificate",
-   "name": "Certificate",
-   "category": "Documents",
-   "width": 11,
-   "height": 8.5,
-   "unit": "in",
-   "dpi": 300,
-   "keywords": [
-    "certificate",
-    "award",
-    "diploma"
-   ]
-  },
-  {
-   "id": "poster-a3",
-   "name": "Poster (A3)",
-   "category": "Print",
-   "width": 297,
-   "height": 420,
-   "unit": "mm",
-   "dpi": 300,
-   "keywords": [
-    "a3",
-    "poster"
+    "4:3",
+    "standard"
    ]
   },
   {
@@ -17240,10 +17198,10 @@
    "unit": "in",
    "dpi": 300,
    "keywords": [
+    "invitation",
     "invite",
     "party",
-    "wedding",
-    "birthday"
+    "wedding"
    ]
   },
   {
@@ -17277,8 +17235,8 @@
   },
   {
    "id": "flyer-letter",
-   "name": "Flyer (Letter)",
-   "category": "Marketing",
+   "name": "Flyer (US Letter)",
+   "category": "Print",
    "width": 8.5,
    "height": 11,
    "unit": "in",
@@ -17286,7 +17244,91 @@
    "keywords": [
     "flyer",
     "leaflet",
+    "letter",
+    "handout"
+   ]
+  },
+  {
+   "id": "a3-poster",
+   "name": "Poster (A3)",
+   "category": "Print",
+   "width": 297,
+   "height": 420,
+   "unit": "mm",
+   "dpi": 300,
+   "keywords": [
+    "poster",
+    "a3",
+    "print"
+   ]
+  },
+  {
+   "id": "resume-a4",
+   "name": "Resume (A4)",
+   "category": "Documents",
+   "width": 210,
+   "height": 297,
+   "unit": "mm",
+   "dpi": 300,
+   "keywords": [
+    "resume",
+    "cv",
+    "curriculum vitae",
+    "a4"
+   ]
+  },
+  {
+   "id": "resume-letter",
+   "name": "Resume (US Letter)",
+   "category": "Documents",
+   "width": 8.5,
+   "height": 11,
+   "unit": "in",
+   "dpi": 300,
+   "keywords": [
+    "resume",
+    "cv",
+    "curriculum vitae",
     "letter"
+   ]
+  },
+  {
+   "id": "certificate",
+   "name": "Certificate",
+   "category": "Documents",
+   "width": 11,
+   "height": 8.5,
+   "unit": "in",
+   "dpi": 300,
+   "keywords": [
+    "certificate",
+    "award",
+    "diploma"
+   ]
+  },
+  {
+   "id": "infographic",
+   "name": "Infographic",
+   "category": "Marketing",
+   "width": 800,
+   "height": 2000,
+   "keywords": [
+    "infographic",
+    "chart",
+    "data"
+   ]
+  },
+  {
+   "id": "email-header",
+   "name": "Email Header",
+   "category": "Marketing",
+   "width": 600,
+   "height": 200,
+   "keywords": [
+    "email",
+    "newsletter",
+    "header",
+    "banner"
    ]
   },
   {
@@ -17304,39 +17346,16 @@
    ]
   },
   {
-   "id": "infographic",
-   "name": "Infographic",
+   "id": "display-ad",
+   "name": "Display Ad",
    "category": "Marketing",
-   "width": 800,
-   "height": 2000,
+   "width": 300,
+   "height": 250,
    "keywords": [
-    "infographic",
-    "chart",
-    "tall"
-   ]
-  },
-  {
-   "id": "email-header",
-   "name": "Email Header",
-   "category": "Marketing",
-   "width": 600,
-   "height": 200,
-   "keywords": [
-    "email",
-    "newsletter",
-    "header"
-   ]
-  },
-  {
-   "id": "web-banner",
-   "name": "Web Banner",
-   "category": "Marketing",
-   "width": 728,
-   "height": 90,
-   "keywords": [
-    "banner",
     "ad",
-    "leaderboard",
+    "advert",
+    "banner",
+    "medium rectangle",
     "web"
    ]
   }

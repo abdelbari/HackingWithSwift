@@ -364,10 +364,12 @@ enum ContentLibrary {
 // MARK: size presets
 
 /// A design type: a size a design starts at, from the catalogue every phone
-/// reads — Content.json's "sizes", the same list as the Android twin's
-/// SizePresets, so an id means the same size on both. Each is written in its
-/// own unit (an A4 page as 210 × 297 mm at 300 dpi) and made whole pixels
-/// here, which is what a page is.
+/// reads — Content.json's "sizes", which is the Android twin's
+/// templates/sizes.json entry for entry, written in by its generator
+/// (`tools/generate_templates.py --ios`) and never edited here, so an id,
+/// a name and an order mean the same on both. Each is written in its own
+/// unit (an A4 page as 210 × 297 mm at 300 dpi) and made whole pixels here,
+/// which is what a page is.
 struct SizePreset: Identifiable, Codable, Equatable {
     var id: String
     var name: String
@@ -475,12 +477,9 @@ struct SizePreset: Identifiable, Codable, Equatable {
 
     static func byId(_ id: String) -> SizePreset? { all.first { $0.id == id } }
 
-    /// The categories, in the order they first appear.
-    static var categories: [String] {
-        var seen: [String] = []
-        for p in all where !seen.contains(p.category) { seen.append(p.category) }
-        return seen
-    }
+    /// The categories, in the order the Design types sheet lists them —
+    /// Android's SizePresets.categories, word for word.
+    static let categories = ["Social", "Video", "Presentations", "Print", "Documents", "Marketing"]
 
     /// The pixel size a type's templates were made at before it became
     /// its true size: the A5 flyer's were made at 1240 × 1748, and are its
@@ -497,37 +496,45 @@ struct SizePreset: Identifiable, Codable, Equatable {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// The design types a search finds. A name that starts with the query
-    /// comes first, then a name that has it, then a keyword or a pixel size
-    /// ("1080x1920", "1080 × 1920") — each band in catalogue order, so
-    /// "tiktok" leads with TikTok Video. Empty finds nothing.
+    /// The design types a search finds, best first — Android's
+    /// SizePresets.search, rule for rule. Capitals and accents aside, every
+    /// word of the query must be in the name or the keywords; or it is a
+    /// size in pixels — "1080x1920", "1080 × 1920" — and finds the types of
+    /// that size. Ranked by one rule: a name that starts with the query,
+    /// then a name with a word starting with its first word, then the rest
+    /// — each tier in catalogue order, so "tiktok" leads with TikTok Video.
+    /// Nothing for a blank query.
     static func search(_ query: String, in presets: [SizePreset] = SizePreset.all) -> [SizePreset] {
-        let needle = folded(query)
+        let needle = folded(query).split(whereSeparator: \.isWhitespace).joined(separator: " ")
         guard !needle.isEmpty else { return [] }
-        let size = pixelQuery(needle)
-        var starts: [SizePreset] = [], names: [SizePreset] = [], others: [SizePreset] = []
-        for preset in presets {
-            let name = folded(preset.name)
-            if name.hasPrefix(needle) {
-                starts.append(preset)
-            } else if name.contains(needle) {
-                names.append(preset)
-            } else if preset.keywords.contains(where: { folded($0).contains(needle) })
-                        || folded(preset.category).hasPrefix(needle)
-                        || (size.map { $0.width == preset.w && $0.height == preset.h } ?? false) {
-                others.append(preset)
-            }
+        if let size = pixelQuery(needle) {
+            return presets.filter { $0.w == size.width && $0.h == size.height }
         }
-        return starts + names + others
+        let words = needle.split(separator: " ").map(String.init)
+        let found = presets.filter { preset in
+            let haystack = ([preset.name] + preset.keywords).map(folded)
+            return words.allSatisfy { word in haystack.contains { $0.contains(word) } }
+        }
+        let first = words[0]
+        func rank(_ preset: SizePreset) -> Int {
+            let name = folded(preset.name)
+            if name.hasPrefix(needle) { return 0 }
+            let nameWords = name.split(whereSeparator: { $0 == " " || $0 == "(" || $0 == ")" })
+            return nameWords.contains { $0.hasPrefix(first) } ? 1 : 2
+        }
+        let ranked = found.map { (preset: $0, rank: rank($0)) }
+        return (0...2).flatMap { tier in ranked.filter { $0.rank == tier }.map { $0.preset } }
     }
 
-    /// "1080x1920", "1080 × 1920" or "1080 by 1920" as a size, or nil.
+    /// "1080x1920" or "1080 × 1920" — whole numbers either side of one x —
+    /// as a size, or nil.
     static func pixelQuery(_ needle: String) -> (width: Double, height: Double)? {
         let parts = needle.replacingOccurrences(of: "×", with: "x")
-            .replacingOccurrences(of: " by ", with: "x")
-            .replacingOccurrences(of: " ", with: "")
-            .split(separator: "x")
-        guard parts.count == 2, let w = Double(parts[0]), let h = Double(parts[1]) else { return nil }
+            .split(separator: "x", omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+        guard parts.count == 2,
+              parts.allSatisfy({ side in !side.isEmpty && side.allSatisfy { $0.isASCII && $0.isNumber } }),
+              let w = Double(parts[0]), let h = Double(parts[1]) else { return nil }
         return (w, h)
     }
 }

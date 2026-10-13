@@ -4,9 +4,9 @@
 import AppIntents
 import Foundation
 
-enum DesignSizeChoice: String, AppEnum {
-    // Every design type in the catalogue, by its id: Shortcuts lists them
-    // as the Design types sheet does.
+enum DesignSizeChoice: String, AppEnum, CaseIterable {
+    // Every design type in the catalogue, by its id and in its order — the
+    // shared sizes.json — so a size Android asks for by id is one here too.
     case instagramPost = "insta-post"
     case instagramStory = "insta-story"
     case presentation
@@ -18,6 +18,7 @@ enum DesignSizeChoice: String, AppEnum {
     case businessCard = "business-card"
     case quoteCard = "quote-card"
     case logo
+    case usLetter = "us-letter"
     case tiktokVideo = "tiktok-video"
     case instaReel = "insta-reel"
     case youtubeVideo = "youtube-video"
@@ -33,20 +34,19 @@ enum DesignSizeChoice: String, AppEnum {
     case pinterestPin = "pinterest-pin"
     case phoneWallpaper = "phone-wallpaper"
     case desktopWallpaper = "desktop-wallpaper"
-    case presentation43 = "presentation-4-3"
-    case usLetter = "us-letter"
-    case resumeA4 = "resume-a4"
-    case resumeLetter = "resume-letter"
-    case certificate
-    case posterA3 = "poster-a3"
+    case presentation43 = "presentation-4x3"
     case invitation
     case postcard
     case menu
     case flyerLetter = "flyer-letter"
-    case brochure
+    case posterA3 = "a3-poster"
+    case resumeA4 = "resume-a4"
+    case resumeLetter = "resume-letter"
+    case certificate
     case infographic
     case emailHeader = "email-header"
-    case webBanner = "web-banner"
+    case brochure
+    case displayAd = "display-ad"
 
     static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Design Size")
     static var caseDisplayRepresentations: [DesignSizeChoice: DisplayRepresentation] = [
@@ -61,6 +61,7 @@ enum DesignSizeChoice: String, AppEnum {
         .businessCard: "Business Card",
         .quoteCard: "Quote Card",
         .logo: "Logo",
+        .usLetter: "US Letter Document",
         .tiktokVideo: "TikTok Video",
         .instaReel: "Instagram Reel",
         .youtubeVideo: "YouTube Video",
@@ -77,19 +78,18 @@ enum DesignSizeChoice: String, AppEnum {
         .phoneWallpaper: "Phone Wallpaper",
         .desktopWallpaper: "Desktop Wallpaper",
         .presentation43: "Presentation (4:3)",
-        .usLetter: "US Letter",
-        .resumeA4: "Resume (A4)",
-        .resumeLetter: "Resume (Letter)",
-        .certificate: "Certificate",
-        .posterA3: "Poster (A3)",
         .invitation: "Invitation",
         .postcard: "Postcard",
         .menu: "Menu",
-        .flyerLetter: "Flyer (Letter)",
-        .brochure: "Brochure",
+        .flyerLetter: "Flyer (US Letter)",
+        .posterA3: "Poster (A3)",
+        .resumeA4: "Resume (A4)",
+        .resumeLetter: "Resume (US Letter)",
+        .certificate: "Certificate",
         .infographic: "Infographic",
         .emailHeader: "Email Header",
-        .webBanner: "Web Banner",
+        .brochure: "Brochure",
+        .displayAd: "Display Ad",
     ]
 
     /// The home screen's preset this stands for.
