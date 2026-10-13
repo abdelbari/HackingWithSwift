@@ -7,6 +7,10 @@
 	open JSON, and checks what is inside rather than trusting the type, as
 	the Android twin does. A copy is handed over (not opened in place), and
 	the app deletes it once it has been read in.
+
+	The scene manifest is kept here, not generated, so that it can name a
+	configuration for a screen attached by HDMI, USB-C or AirPlay: Present
+	shows the slides there, and the presenter's console on the phone.
 -->
 <plist version="1.0">
 <dict>
@@ -27,5 +31,22 @@
 	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<true/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleExternalDisplayNonInteractive</key>
+			<array>
+				<dict>
+					<key>UISceneConfigurationName</key>
+					<string>External Display</string>
+					<key>UISceneDelegateClassName</key>
+					<string>$(PRODUCT_MODULE_NAME).ExternalDisplaySceneDelegate</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
 </dict>
 </plist>

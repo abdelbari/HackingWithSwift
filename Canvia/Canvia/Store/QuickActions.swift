@@ -107,11 +107,18 @@ enum QuickActions {
 }
 
 /// Only here to hand the window scene a delegate that hears quick actions:
-/// SwiftUI has no modifier for them.
+/// SwiftUI has no modifier for them. A screen attached for Present comes as
+/// a scene too, and is given the one that shows the slides on it.
 @MainActor
 final class CanviaAppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession,
                      options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        if connectingSceneSession.role == .windowExternalDisplayNonInteractive {
+            let configuration = UISceneConfiguration(name: ExternalDisplay.configurationName,
+                                                     sessionRole: connectingSceneSession.role)
+            configuration.delegateClass = ExternalDisplaySceneDelegate.self
+            return configuration
+        }
         let configuration = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
         configuration.delegateClass = CanviaSceneDelegate.self
         return configuration

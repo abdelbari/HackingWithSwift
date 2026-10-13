@@ -14,6 +14,10 @@
 // they begin while the rest of it plays on; going on plays them, and the page
 // turns once they are done. A tap on the clock opens the page grid, and a
 // press and hold on the page points at it with a red dot.
+// With a second screen attached (ExternalDisplay) the slides go there, drawn
+// from the same PresentSession, and the phone shows the presenter's console
+// instead; the screen taken away mid-talk, the phone presents again on the
+// same page. Without one, Present is as it was.
 
 import SwiftUI
 
@@ -30,7 +34,7 @@ struct PresentationView: View {
     @State private var showingPages = false
     /// When the talk began, for the music.
     @State private var started = Date()
-    /// The talk's timer.
+    /// The talk's timer, which the console can pause and reset.
     @State private var timer = PresenterTimer(startingAt: Date())
     @State private var now = Date()
     @State private var autoplayTask: Task<Void, Never>?
@@ -45,7 +49,8 @@ struct PresentationView: View {
     @State private var refusedTask: Task<Void, Never>?
     @Environment(\.scenePhase) private var scenePhase
     /// What is heard: the page's clips from when it came up, the music from
-    /// `musicFrom` seconds into the video when the talk began.
+    /// `musicFrom` seconds into the video when the talk began. Played to the
+    /// phone's sound route, which with a screen attached is the screen.
     @State private var sound = PageSound(presenting: true)
     /// Off for this talk only.
     @State private var soundOn = true
@@ -69,7 +74,15 @@ struct PresentationView: View {
     private var autoplay: Bool { session.autoplay }
 
     var body: some View {
-        GeometryReader { geo in onPhone(in: geo.size) }
+        Group {
+            // With a second screen the slides are there, and the phone is
+            // the presenter's console; without one, the phone presents.
+            if ExternalDisplay.shared.attached {
+                console
+            } else {
+                GeometryReader { geo in onPhone(in: geo.size) }
+            }
+        }
         .statusBarHidden(true)
         .background(keyCommands)
         .sheet(isPresented: $showingPages) {
@@ -85,6 +98,7 @@ struct PresentationView: View {
             now = started
             musicFrom = AudioMix.pageStart(design: design, index: index)
             UIApplication.shared.isIdleTimerDisabled = true
+            ExternalDisplay.shared.session = session
             pageArrived()
         }
         .onDisappear {
@@ -93,6 +107,7 @@ struct PresentationView: View {
             exitTask?.cancel()
             sound.stop(fade: true)
             UIApplication.shared.isIdleTimerDisabled = false
+            if ExternalDisplay.shared.session === session { ExternalDisplay.shared.session = nil }
         }
         .onReceive(clock) { now = $0 }
         .task { heard = await PageSound.heard(in: design) }
@@ -156,6 +171,24 @@ struct PresentationView: View {
             Button("Open \(Links.shown(url))") {
                 if let target = URL(string: url) { open(target) }
             }
+        }
+    }
+
+    /// The presenter's console, the slides being on the screen attached.
+    private var console: some View {
+        PresenterConsole(session: session,
+                         elapsed: timeString,
+                         timerPaused: timer.paused,
+                         onPage: max(0, now.timeIntervalSince(session.shownAt)),
+                         place: place,
+                         toggleTimer: { timer.toggle(at: Date()); now = Date() },
+                         resetTimer: { timer.reset(at: Date()); now = Date() },
+                         previous: { go(-1) },
+                         next: { go(1) },
+                         end: { dismiss() },
+                         showPages: { showingPages = true }) {
+            soundButton
+            autoplayButton
         }
     }
 

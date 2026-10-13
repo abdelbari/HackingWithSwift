@@ -1,10 +1,12 @@
-// Present's presenter rules: the timer as it reads, the page coming and
-// "End of presentation", the page grid leaving hidden pages out, the
-// notes' A− and A+, and the pointer's place on the page. The same cases as
-// the Android twin's tests.
+// Present on a second screen: the presenter's timer as it reads, the page
+// coming and "End of presentation", the page grid leaving hidden pages
+// out, the notes' A− and A+, the pointer's place on the page, and the
+// screen attached and taken away. The same cases as the Android twin's
+// tests.
 
 import XCTest
 import CoreGraphics
+import UIKit
 @testable import Canvia
 
 final class PresenterViewTests: XCTestCase {
@@ -121,5 +123,22 @@ final class PresenterViewTests: XCTestCase {
         XCTAssertEqual(session.holdSeconds(session.page), 7)
         XCTAssertNil(session.pointer)
         XCTAssertNil(session.heldAt(session.page), "nothing leaves: never held")
+    }
+
+    @MainActor
+    func testTheScreenShowsTheTalkOnlyWhileOneIsOn() {
+        let display = ExternalDisplay.shared
+        let session = PresentSession(design: design(hidden: [false]))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 1920, height: 1080))
+        XCTAssertFalse(display.attached)
+        display.attach(window)
+        XCTAssertTrue(display.attached, "a screen attached: Present shows the console")
+        XCTAssertTrue(window.isHidden, "no talk on: the screen is left to the system")
+        display.session = session
+        XCTAssertFalse(window.isHidden, "a talk on: the slides on the screen")
+        display.detach(window)
+        XCTAssertFalse(display.attached, "taken away: the phone presents again")
+        XCTAssertTrue(display.session === session, "on the same talk, and so the same page")
+        display.session = nil
     }
 }
