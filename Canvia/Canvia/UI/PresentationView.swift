@@ -10,9 +10,9 @@
 // under the whole talk from where the first page comes in the video, fading
 // out as it ends; a speaker button turns the sound off for this talk.
 // Pages turn as PageTransitions lays them out, as the video draws them. A
-// page whose elements leave waits, turned by hand, with its clock held where
-// the exits begin; going on plays them, and the page turns once they are
-// done.
+// page whose elements leave waits, turned by hand, with its exits held where
+// they begin while the rest of it plays on; going on plays them, and the page
+// turns once they are done.
 
 import SwiftUI
 
@@ -31,6 +31,9 @@ struct PresentationView: View {
     @State private var moving: AnyTransition = .opacity
     /// When the page now showing came up: its entrances play from here.
     @State private var shownAt = Date()
+    /// Where the clock its exits play by reads nought: when the page came
+    /// up, or later when autoplay was turned on while they were held.
+    @State private var exitZero = Date()
     /// Whether everything on the page has come to rest, so the clock that
     /// plays it can stop.
     @State private var settled = false
@@ -38,7 +41,7 @@ struct PresentationView: View {
     /// When the person went on from a page whose elements leave, so its
     /// clock runs on through the exits; nil before that.
     @State private var exitFrom: Date?
-    /// Where the page's clock stood when autoplay was turned off, so a page
+    /// Where the exits' clock stood when autoplay was turned off, so a page
     /// whose exits had begun keeps it there; nil before that.
     @State private var stoppedAt: Double?
     @State private var exitTask: Task<Void, Never>?
@@ -129,18 +132,22 @@ struct PresentationView: View {
         let scale = min(size.width / max(pageSize.width, 1), size.height / max(pageSize.height, 1))
         let shown = page
         let start = shownAt
+        let exitStart = exitZero
         let hold = holdSeconds(shown)
         let plays = Self.moves(shown, in: design) && !reduceMotion
-        // Turned by hand, a page whose elements leave is held where they
-        // begin to, until the person goes on; with autoplay it runs freely.
+        // Turned by hand, the exits of a page whose elements leave are held
+        // where they begin, until the person goes on, while its loops, clips,
+        // drifts and entrances play on; with autoplay they run freely.
         let waitAt = heldAt(shown)
         let exiting = exitFrom
         // The page's entrances play as it arrives, and a drifting photo
         // drifts over its hold — the Android twin's presenter plays them too.
         return TimelineView(.animation(minimumInterval: nil, paused: !plays || settled)) { context in
+            let now = Self.clock(at: context.date, from: start, hold: hold, playing: plays,
+                                 heldAt: waitAt, exitFrom: exiting, exitZero: exitStart)
             PageRenderView(design: design, page: shown)
-                .environment(\.animationTime, Self.clock(at: context.date, from: start, hold: hold, playing: plays,
-                                                         heldAt: waitAt, exitFrom: exiting))
+                .environment(\.animationTime, now.map { (time: $0.time, hold: $0.hold) })
+                .environment(\.exitTime, now?.exitTime)
                 // A clip plays from the frames decoded so far, never waiting
                 // on the next: this redraws every display frame, and a
                 // decode on the main thread each time made it stutter.
@@ -248,19 +255,28 @@ struct PresentationView: View {
         return URL(string: url)
     }
 
-    /// The page's clock at `date`: seconds since it came up, and its hold;
-    /// none when it does not play. Held at `heldAt`, when there is one,
-    /// until the exits are played from `exitFrom`: then it runs on from
-    /// `heldAt` to the hold.
+    /// A reading of `clock(at:…)`.
+    typealias Reading = (time: Double, hold: Double, exitTime: Double)
+
+    /// The page's clock at `date`: seconds since it came up, which never
+    /// waits, so loops, clips and entrances play on in step with the clips'
+    /// sound; its hold; and the clock its exits play by, which counts from
+    /// `exitZero` (else from when the page came up), held at `heldAt`, when
+    /// there is one, until the exits are played from `exitFrom`: then it
+    /// runs on from `heldAt` to the hold. None when the page does not play.
     static func clock(at date: Date, from start: Date, hold: Double, playing: Bool,
-                      heldAt: Double? = nil, exitFrom: Date? = nil) -> (time: Double, hold: Double)? {
+                      heldAt: Double? = nil, exitFrom: Date? = nil, exitZero: Date? = nil) -> Reading? {
         guard playing else { return nil }
-        if let heldAt, let exitFrom {
-            return (time: min(hold, heldAt + max(0, date.timeIntervalSince(exitFrom))), hold: hold)
+        let time = max(0, date.timeIntervalSince(start))
+        var exitTime = max(0, date.timeIntervalSince(exitZero ?? start))
+        if let heldAt {
+            if let exitFrom {
+                exitTime = min(hold, heldAt + max(0, date.timeIntervalSince(exitFrom)))
+            } else {
+                exitTime = min(exitTime, heldAt)
+            }
         }
-        var time = max(0, date.timeIntervalSince(start))
-        if let heldAt { time = min(time, heldAt) }
-        return (time: time, hold: hold)
+        return (time: time, hold: hold, exitTime: exitTime)
     }
 
     /// Whether anything on the page moves: an entrance, an exit, a loop, a
@@ -313,6 +329,7 @@ struct PresentationView: View {
     /// at rest; its clips are heard from now, the music playing on.
     private func pageArrived() {
         shownAt = Date()
+        exitZero = shownAt
         stoppedAt = nil
         startSound()
         settle(after: motionEnd(page))
@@ -332,15 +349,15 @@ struct PresentationView: View {
         }
     }
 
-    /// Going on by hand from a page whose elements leave: its clock runs on
-    /// from where it was held through the exits — the clips playing on, not
-    /// started again — and the page turns once they are done. False when
+    /// Going on by hand from a page whose elements leave: its exits' clock
+    /// runs on from where it was held through them — the clips playing on,
+    /// not started again — and the page turns once they are done. False when
     /// there is nothing to play first: no exits, autoplay, Reduce Motion.
     private func beginExit(to next: Int) -> Bool {
         guard exitFrom == nil, let held = heldAt(page), Self.moves(page, in: design), !reduceMotion else { return false }
         let left = max(0, holdSeconds(page) - held)
         exitFrom = Date()
-        settle(after: left)
+        settle(after: max(left, motionEnd(page) - Date().timeIntervalSince(shownAt)))
         let showing = index
         exitTask?.cancel()
         exitTask = Task { @MainActor in
@@ -352,9 +369,10 @@ struct PresentationView: View {
     }
 
     /// Autoplay turned on partway through a page whose elements leave: its
-    /// clock runs on from where it was held, and the page turns at its hold
-    /// on that clock, rather than its exits playing out early and the page
-    /// standing empty.
+    /// exits' clock runs on from where it was held, and the page turns at
+    /// its hold on that clock, rather than its exits playing out early and
+    /// the page standing empty. The page's own clock, which its loops and
+    /// clips play by, is not set back.
     private func autoplayFromHere() {
         guard exitFrom == nil else { return }
         let span = exitSpan(page)
@@ -364,18 +382,18 @@ struct PresentationView: View {
             return
         }
         let held = Self.heldPoint(hold: hold, span: span, stoppedAt: stoppedAt) ?? 0
-        let now = min(Date().timeIntervalSince(shownAt), held)
-        shownAt = Date().addingTimeInterval(-now)
-        settle(after: max(motionEnd(page) - now, 0))
+        let now = min(Date().timeIntervalSince(exitZero), held)
+        exitZero = Date().addingTimeInterval(-now)
+        settle(after: max(motionEnd(page) - Date().timeIntervalSince(shownAt), hold - now, 0))
         scheduleAdvance(after: max(hold - now, 0.1))
     }
 
-    /// Autoplay turned off: the page's clock stays where it stands, waiting
-    /// there for the person to go on, rather than going back to where its
-    /// exits begin and bringing back elements that have already left.
+    /// Autoplay turned off: the exits' clock stays where it stands, waiting
+    /// there for the person to go on, rather than going back to where they
+    /// begin and bringing back elements that have already left.
     private func autoplayStopped() {
         guard exitFrom == nil else { return }
-        stoppedAt = min(Date().timeIntervalSince(shownAt), holdSeconds(page))
+        stoppedAt = min(Date().timeIntervalSince(exitZero), holdSeconds(page))
     }
 
     /// The sound with the page's clock: the clips of the page up, the music

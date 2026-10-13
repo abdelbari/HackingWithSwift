@@ -33,6 +33,7 @@ import CoreGraphics
 struct ElementView: View {
     let element: Element
     @Environment(\.animationTime) private var animationTime
+    @Environment(\.exitTime) private var exitTime
     @Environment(\.pageNumber) private var pageNumber
     @Environment(\.liveVideo) private var liveVideo
 
@@ -54,7 +55,8 @@ struct ElementView: View {
         // A reveal counts the characters as they read, style marks left out.
         let entrance = element.animation?.state(at: clock.time, text: resolved.text.map(RichText.strip), size: size) ?? .settled
         guard let exit = element.exitAnimation else { return entrance }
-        return entrance.combined(with: exit.exitState(at: clock.time, hold: clock.hold, size: size))
+        // Played by their own clock where Present holds them back.
+        return entrance.combined(with: exit.exitState(at: exitTime ?? clock.time, hold: clock.hold, size: size))
     }
 
     /// The element as drawn now: text cut to the revealed characters, a

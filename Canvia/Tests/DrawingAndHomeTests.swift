@@ -246,5 +246,8 @@ final class DrawingAndHomeTests: XCTestCase {
         var turned = across; turned.rotation = 90
         XCTAssertTrue(Freehand.erased([turned], path: [CGPoint(x: 150, y: 100)], radius: 4).isEmpty)
         XCTAssertEqual(Freehand.erased([turned], path: [CGPoint(x: 200, y: 60)], radius: 8), ["across"])
+        // One hidden from Layers is never rubbed out unseen.
+        var hidden = across; hidden.id = "hidden"; hidden.hidden = true
+        XCTAssertEqual(Freehand.erased([across, hidden], path: sweep, radius: 8), ["across"])
     }
 }

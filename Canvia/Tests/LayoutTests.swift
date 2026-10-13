@@ -138,6 +138,14 @@ final class LayoutTests: XCTestCase {
         XCTAssertTrue(Geometry.gridLines(across: 64, spacing: 0).isEmpty)
     }
 
+    /// A grid too dense to see is drawn at every second, fourth or more line.
+    func testADenseGridIsDrawnThinnedOut() {
+        XCTAssertEqual(Geometry.drawnGridSpacing(2, scale: 0.25, minGap: 6), 32)
+        XCTAssertEqual(Geometry.drawnGridSpacing(24, scale: 0.25, minGap: 6), 24)
+        XCTAssertEqual(Geometry.drawnGridSpacing(8, scale: 1, minGap: 6), 8)
+        XCTAssertEqual(Geometry.drawnGridSpacing(0, scale: 0.25, minGap: 6), 0)
+    }
+
     func testEachSnapSourceHasItsOwnSwitch() {
         let design = store([rect(100, 100)]).design
         let page = design.pages[0]
