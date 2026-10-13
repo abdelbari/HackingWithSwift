@@ -1740,7 +1740,8 @@ final class DesignStore {
             for p in out.pages.indices {
                 for i in out.pages[p].elements.indices where out.pages[p].elements[i].type == .text {
                     guard let face = faces[out.pages[p].elements[i].fontSize ?? 42] else { continue }
-                    out.pages[p].elements[i].fontFamily = face.family
+                    // The role's face is the box's whole face: the words' own go.
+                    out.pages[p].elements[i].setFontFamily(face.family)
                     out.pages[p].elements[i].fontWeight = face.weight
                     out.pages[p].elements[i].h = FontLibrary.layoutHeight(for: out.pages[p].elements[i])
                 }

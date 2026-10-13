@@ -50,6 +50,22 @@ final class ThemeApplyTests: XCTestCase {
                                           TextSpan(start: 4, end: 8, link: "https://canvia.app")])
     }
 
+    /// A brand kit's role face is each box's whole face too: the words' own
+    /// faces go, their colours and links stay; the Android twin's
+    /// ThemesTest has the same row.
+    func testABrandKitsRoleFacesTakeTheWordsOwnFacesAway() {
+        var big = Element.text("Big sale", fontSize: 80, w: 400)
+        big.setSpans([TextSpan(start: 0, end: 3, color: "#ff0000", font: "lora"),
+                      TextSpan(start: 4, end: 8, font: "oswald", link: "https://canvia.app")])
+        var d = Design(title: "theme", width: 800, height: 600)
+        d.pages = [Page(background: .color("#ffffff"), elements: [big])]
+        let fonts = BrandFonts(heading: BrandFont(family: "impact", weight: 800))
+        let themed = DesignStore.themed(d, palette: nil, pairing: nil, brandFonts: fonts).pages[0].elements[0]
+        XCTAssertEqual(themed.fontFamily, "impact")
+        XCTAssertEqual(themed.liveSpans, [TextSpan(start: 0, end: 3, color: "#ff0000"),
+                                          TextSpan(start: 4, end: 8, link: "https://canvia.app")])
+    }
+
     func testThePaletteRecoloursEveryPage() {
         let palette = ["#101010", "#505050", "#a0a0a0", "#f0f0f0"]
         let themed = DesignStore.themed(design(), palette: palette, pairing: nil)

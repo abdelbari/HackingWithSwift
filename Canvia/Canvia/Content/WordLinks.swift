@@ -9,7 +9,9 @@
 //
 // Only straight lines: words round a curve, along a path or down a column are
 // drawn from outlines that carry no link, and are reached through the
-// element's own link, if it has one.
+// element's own link, if it has one. A drop cap's body is laid out as it is
+// drawn — without the letter, round the cap's corner — and the letter itself
+// is not a link's, as on the Android twin.
 
 import CoreGraphics
 import CoreText
@@ -27,7 +29,15 @@ enum WordLinks {
         var drawn = el
         if el.fitText == true { drawn.fontSize = FontLibrary.fittingFontSize(for: el) }
         let top = SVGExporter.textTop(el)
-        return wordRects(FontLibrary.attributedString(for: drawn), width: el.w).map { entry in
+        var text = FontLibrary.attributedString(for: drawn)
+        var notch: CGSize?
+        // A drop cap, as ElementView.drawDropCap sets it: the body past the
+        // letter, framed round the cap's corner.
+        if TextEffect.from(el.effect) == .none, let layout = FontLibrary.dropCapLayout(for: drawn) {
+            text = FontLibrary.dropCapText(for: drawn, layout).body
+            notch = layout.capRect.size
+        }
+        return wordRects(text, width: el.w, notch: notch).map { entry in
             (rect: entry.rect.offsetBy(dx: 0, dy: CGFloat(top)), url: entry.url)
         }
     }
@@ -37,11 +47,23 @@ enum WordLinks {
     /// where it starts on its line to where it ends (either way round, for
     /// right to left), as tall as the line.
     static func wordRects(_ text: NSAttributedString, width: Double) -> [(rect: CGRect, url: String)] {
+        wordRects(text, width: width, notch: nil)
+    }
+
+    /// As above, with a `notch` — a drop cap's corner, cut from the
+    /// top-left — that the first lines wrap beside.
+    static func wordRects(_ text: NSAttributedString, width: Double, notch: CGSize?) -> [(rect: CGRect, url: String)] {
         guard text.length > 0, width > 0 else { return [] }
         let tall: CGFloat = 100_000
         let framesetter = CTFramesetterCreateWithAttributedString(text)
-        let path = CGPath(rect: CGRect(x: 0, y: 0, width: CGFloat(width), height: tall), transform: nil)
-        let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: 0, length: 0), path, nil)
+        let path = CGMutablePath()
+        path.addRect(CGRect(x: 0, y: 0, width: CGFloat(width), height: tall))
+        var options: CFDictionary?
+        if let notch {
+            path.addRect(CGRect(x: 0, y: tall - notch.height, width: notch.width, height: notch.height))
+            options = [kCTFramePathFillRuleAttributeName: CTFramePathFillRule.evenOdd.rawValue] as CFDictionary
+        }
+        let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: 0, length: 0), path, options)
         guard let lines = CTFrameGetLines(frame) as? [CTLine], !lines.isEmpty else { return [] }
         var origins = [CGPoint](repeating: .zero, count: lines.count)
         CTFrameGetLineOrigins(frame, CFRange(location: 0, length: 0), &origins)

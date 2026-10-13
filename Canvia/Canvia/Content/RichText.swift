@@ -443,9 +443,10 @@ enum RichText {
     /// of the base one; a size as the letter's font scaled, and the lines of
     /// a paragraph with larger words in it given room for them (makeRoom);
     /// and a link underlined, in the link colour unless the words have a
-    /// colour of their own — as the Android twin sets them.
+    /// colour of their own or `linkColour` is false (letters in a gradient
+    /// keep the text's ink) — as the Android twin sets them.
     static func attributed(_ marked: String, base: [NSAttributedString.Key: Any], uppercase: Bool = false,
-                           spans: [TextSpan] = [],
+                           spans: [TextSpan] = [], linkColour: Bool = true,
                            face: ((_ family: String, _ bold: Bool, _ italic: Bool) -> UIFont)? = nil,
                            font: (_ bold: Bool, _ italic: Bool) -> UIFont) -> NSAttributedString {
         var parsed = parse(marked)
@@ -481,7 +482,7 @@ enum RichText {
             if let link = span.link {
                 out.addAttribute(Spans.linkKey, value: link, range: range)
                 out.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: range)
-                if span.color == nil {
+                if span.color == nil && linkColour {
                     out.addAttribute(.foregroundColor, value: UIColor(hex: Spans.linkColour), range: range)
                     out.addAttribute(Spans.colourKey, value: Spans.linkColour, range: range)
                 }
