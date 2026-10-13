@@ -2,8 +2,8 @@
 // written only when set and read back alike on both phones — the same rows
 // as the Android twin's — move with every edit as colours and sizes do, are
 // drawn, measured and outlined in the word's own face, linked words
-// underlined in the link colour, and a link is clickable over the lines its
-// words are set on: a link that wraps is two rectangles.
+// underlined in the link colour, and a link is clickable over each of its
+// words: a link that wraps is a rectangle on each line.
 
 import XCTest
 import UIKit
@@ -20,42 +20,50 @@ final class WordFontsAndLinksTests: XCTestCase {
         TextSpan(start: start, end: end, color: color, scale: scale, font: font, link: link)
     }
 
-    private func keys(_ span: TextSpan) throws -> [String: Any] {
-        let data = try JSONEncoder().encode(span)
-        return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-    }
-
     // MARK: the file — the shared rows
 
-    /// One row of the span JSON both phones read and write alike: the JSON
-    /// read, the span it reads as, and the keys it is written back with.
-    private struct SpanRow {
-        var json: String
-        var expected: TextSpan
-        var written: [String]
-    }
-
-    private var rows: [SpanRow] {
-        [
-            SpanRow(json: #"{"start":0,"end":3,"font":"lora"}"#,
-                expected: span(0, 3, font: "lora"), written: ["end", "font", "start"]),
-            SpanRow(json: #"{"start":4,"end":8,"link":"https://canvia.app"}"#,
-                expected: span(4, 8, link: "https://canvia.app"), written: ["end", "link", "start"]),
-            SpanRow(json: ##"{"start":0,"end":5,"color":"#ff0000","scale":1.25,"font":"custom:0123456789ab","link":"mailto:hi@canvia.app"}"##,
-                expected: span(0, 5, color: "#ff0000", scale: 1.25, font: "custom:0123456789ab", link: "mailto:hi@canvia.app"),
-                written: ["color", "end", "font", "link", "scale", "start"]),
-            SpanRow(json: ##"{"start":2,"end":4,"color":"#00ff00"}"##,
-                expected: span(2, 4, color: "#00ff00"), written: ["color", "end", "start"]),
-        ]
-    }
+    /// The span JSON both phones read and write alike — the Android twin's
+    /// WordFontsAndLinksTest, row for row: one span as a file has it on the
+    /// words "Big sale today", and the spans written back. A link is kept as
+    /// Links.normalized reads it, and dropped where it reads as none.
+    private let spanRows: [(read: String, written: String)] = [
+        (##"{"start":0,"end":3,"font":"lora"}"##,
+         ##"[{"start":0,"end":3,"font":"lora"}]"##),
+        (##"{"start":4,"end":8,"link":"https://canvia.app"}"##,
+         ##"[{"start":4,"end":8,"link":"https://canvia.app"}]"##),
+        (##"{"start":0,"end":5,"color":"#ff0000","scale":1.25,"font":"custom:0123456789ab","link":"mailto:hi@canvia.app"}"##,
+         ##"[{"start":0,"end":5,"color":"#ff0000","scale":1.25,"font":"custom:0123456789ab","link":"mailto:hi@canvia.app"}]"##),
+        (##"{"start":2,"end":4,"color":"#00ff00"}"##,
+         ##"[{"start":2,"end":4,"color":"#00ff00"}]"##),
+        (##"{"start":0,"end":3,"font":" lora "}"##,
+         ##"[{"start":0,"end":3,"font":"lora"}]"##),
+        (##"{"start":4,"end":8,"font":" ","link":"mailto:hi@canvia.app"}"##,
+         ##"[{"start":4,"end":8,"link":"mailto:hi@canvia.app"}]"##),
+        (##"{"start":9,"end":14,"font":3}"##,
+         ##"[]"##),
+        (##"{"start":4,"end":8,"link":"HTTPS://canvia.app"}"##,
+         ##"[{"start":4,"end":8,"link":"https://canvia.app"}]"##),
+        (##"{"start":4,"end":8,"link":"canvia.app"}"##,
+         ##"[{"start":4,"end":8,"link":"https://canvia.app"}]"##),
+        (##"{"start":4,"end":8,"link":"tel:+441234567890"}"##,
+         ##"[{"start":4,"end":8,"link":"tel:+441234567890"}]"##),
+        (##"{"start":4,"end":8,"link":"tel:+44 1234 567890"}"##,
+         ##"[]"##),
+        (##"{"start":4,"end":8,"link":"https://"}"##,
+         ##"[]"##),
+        (##"{"start":0,"end":3,"link":"javascript:alert(1)"}"##,
+         ##"[]"##),
+    ]
 
     func testTheSharedJSONRows() throws {
-        for row in rows {
-            let read = try JSONDecoder().decode(TextSpan.self, from: Data(row.json.utf8))
-            XCTAssertEqual(read, row.expected, row.json)
-            XCTAssertEqual(try keys(read).keys.sorted(), row.written, row.json)
-            let back = try JSONDecoder().decode(TextSpan.self, from: JSONEncoder().encode(read))
-            XCTAssertEqual(back, read, row.json)
+        XCTAssertEqual(spanRows.count, 13)
+        for row in spanRows {
+            var el = Element.text("Big sale today")
+            el.spans = try JSONDecoder().decode([TextSpan].self, from: Data("[\(row.read)]".utf8))
+            el.spansText = "Big sale today"
+            let written = try JSONSerialization.jsonObject(with: JSONEncoder().encode(el.liveSpans)) as? NSArray
+            let expected = try JSONSerialization.jsonObject(with: Data(row.written.utf8)) as? NSArray
+            XCTAssertEqual(written, expected, row.read)
         }
     }
 
@@ -226,9 +234,7 @@ final class WordFontsAndLinksTests: XCTestCase {
         let font = UIFont.systemFont(ofSize: 20)
         let text = NSMutableAttributedString(string: "aaaa bbbb", attributes: [.font: font])
         text.addAttribute(Spans.linkKey, value: site, range: NSRange(location: 0, length: 9))
-        let oneLine = WordLinks.lineRects(text, width: 1000)
-        XCTAssertEqual(oneLine.count, 1)
-        let lines = WordLinks.lineRects(text, width: 70)
+        let lines = WordLinks.wordRects(text, width: 70)
         XCTAssertEqual(lines.count, 2)
         let first = try XCTUnwrap(lines.first), second = try XCTUnwrap(lines.last)
         XCTAssertEqual(first.url, site)
@@ -237,6 +243,19 @@ final class WordFontsAndLinksTests: XCTestCase {
         XCTAssertEqual(first.rect.minX, 0, accuracy: 0.5)
         XCTAssertLessThan(first.rect.width, 70, "the space at the line's end is left off")
         XCTAssertGreaterThan(first.rect.height, 0)
+    }
+
+    /// A word each, as on the Android twin, so the space between two linked
+    /// words on one line is not a link.
+    func testLinkedWordsOnOneLineAreARectEach() throws {
+        let font = UIFont.systemFont(ofSize: 20)
+        let text = NSMutableAttributedString(string: "aaaa bbbb", attributes: [.font: font])
+        text.addAttribute(Spans.linkKey, value: site, range: NSRange(location: 0, length: 9))
+        let words = WordLinks.wordRects(text, width: 1000)
+        XCTAssertEqual(words.count, 2)
+        let first = try XCTUnwrap(words.first), second = try XCTUnwrap(words.last)
+        XCTAssertEqual(first.rect.minY, second.rect.minY, accuracy: 0.01, "on the same line")
+        XCTAssertGreaterThan(second.rect.minX, first.rect.maxX, "the space between them left out")
     }
 
     func testOnlyTheLinkedWordsAreLinkedTheBoxsOwnLinkElsewhere() throws {

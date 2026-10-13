@@ -1,9 +1,11 @@
 // Where linked words are: a link on chosen words (see Spans) is clickable in
 // the exported PDF and SVG and opened by a tap in Present only over those
-// words, so each line they are set on is a rectangle of its own — from the
-// first linked letter on the line to the last, the line's height — found in
-// the same CoreText layout the words are outlined from. A link that wraps
-// over two lines is two rectangles, on both phones.
+// words, so each word is a rectangle of its own — from its first letter to
+// its last, the height of the line it is on — found in the same CoreText
+// layout the words are outlined from. A word is a run with no space or line
+// break in it, so the spaces between linked words are not clickable, and a
+// link that wraps over two lines is a rectangle on each, as the Android
+// twin's WordLinks.rects cuts them.
 //
 // Only straight lines: words round a curve, along a path or down a column are
 // drawn from outlines that carry no link, and are reached through the
@@ -15,7 +17,7 @@ import UIKit
 
 enum WordLinks {
 
-    /// Each line of linked words in `el` with its link, in the box's own
+    /// Each linked word in `el` with its link, in the box's own
     /// space — its top-left the origin, y down — as the canvas sets them: at
     /// the size a fitted box draws, from where a vertically aligned box
     /// starts its words.
@@ -25,14 +27,16 @@ enum WordLinks {
         var drawn = el
         if el.fitText == true { drawn.fontSize = FontLibrary.fittingFontSize(for: el) }
         let top = SVGExporter.textTop(el)
-        return lineRects(FontLibrary.attributedString(for: drawn), width: el.w).map { entry in
+        return wordRects(FontLibrary.attributedString(for: drawn), width: el.w).map { entry in
             (rect: entry.rect.offsetBy(dx: 0, dy: CGFloat(top)), url: entry.url)
         }
     }
 
-    /// The lines of `text` set `width` wide, and on each the stretch of
-    /// letters carrying a link (Spans.linkKey), spaces at its end left off.
-    static func lineRects(_ text: NSAttributedString, width: Double) -> [(rect: CGRect, url: String)] {
+    /// The lines of `text` set `width` wide, and on each every word of the
+    /// letters carrying a link (Spans.linkKey): one rectangle a word, from
+    /// where it starts on its line to where it ends (either way round, for
+    /// right to left), as tall as the line.
+    static func wordRects(_ text: NSAttributedString, width: Double) -> [(rect: CGRect, url: String)] {
         guard text.length > 0, width > 0 else { return [] }
         let tall: CGFloat = 100_000
         let framesetter = CTFramesetterCreateWithAttributedString(text)
@@ -43,32 +47,52 @@ enum WordLinks {
         CTFrameGetLineOrigins(frame, CFRange(location: 0, length: 0), &origins)
         let string = text.string as NSString
         var out: [(rect: CGRect, url: String)] = []
-        for (i, line) in lines.enumerated() {
+        for (index, line) in lines.enumerated() {
             let range = CTLineGetStringRange(line)
             guard range.length > 0 else { continue }
             var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
             _ = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
             // CoreText's y runs up from the frame's foot; the box's down.
-            let baseline = tall - origins[i].y
+            let origin = origins[index]
+            let top = tall - origin.y - ascent
             let span = NSRange(location: range.location, length: range.length)
             text.enumerateAttribute(Spans.linkKey, in: span) { value, part, _ in
                 guard let url = value as? String else { return }
-                var end = NSMaxRange(part)
-                while end > part.location, isSpace(string.character(at: end - 1)) { end -= 1 }
-                guard end > part.location else { return }
-                let a = CTLineGetOffsetForStringIndex(line, part.location, nil)
-                let b = CTLineGetOffsetForStringIndex(line, end, nil)
-                let left = origins[i].x + min(a, b), right = origins[i].x + max(a, b)
-                guard right > left else { return }
-                out.append((rect: CGRect(x: left, y: baseline - ascent, width: right - left, height: ascent + descent),
-                            url: url))
+                let end = NSMaxRange(part)
+                var start = part.location
+                while start < end {
+                    if isSpace(string.character(at: start)) {
+                        start += 1
+                        continue
+                    }
+                    var stop = start
+                    while stop < end, !isSpace(string.character(at: stop)) { stop += 1 }
+                    let a = CTLineGetOffsetForStringIndex(line, start, nil)
+                    let b = CTLineGetOffsetForStringIndex(line, stop, nil)
+                    if abs(b - a) > 0 {
+                        out.append((rect: CGRect(x: origin.x + min(a, b), y: top,
+                                                 width: abs(b - a), height: ascent + descent),
+                                    url: url))
+                    }
+                    start = stop
+                }
             }
         }
         return out
     }
 
+    /// What splits linked words, as Kotlin's Char.isWhitespace has it on the
+    /// Android twin: a space, line or paragraph separator of any kind, or a
+    /// control from tab to carriage return or U+001C to U+001F.
     private static func isSpace(_ unit: unichar) -> Bool {
-        unit == 32 || unit == 10 || unit == 9 || unit == 13 || unit == 0x2028 || unit == 0x2029
+        if (0x09...0x0D).contains(unit) || (0x1C...0x1F).contains(unit) { return true }
+        guard let scalar = Unicode.Scalar(unit) else { return false }
+        switch scalar.properties.generalCategory {
+        case .spaceSeparator, .lineSeparator, .paragraphSeparator:
+            return true
+        default:
+            return false
+        }
     }
 
     /// The same rectangles on the page: each turned and flipped with the

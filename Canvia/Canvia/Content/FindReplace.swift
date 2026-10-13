@@ -14,8 +14,9 @@ enum FindReplace {
     ///
     /// With `wholeWord`, the occurrences are the same ones, less any with a
     /// letter or a digit (Unicode \p{L} or \p{N}) right before or after it —
-    /// the simplest rule: "cat" in "cat, catalog" is found once, and the
-    /// search never looks again inside an occurrence it dropped.
+    /// the simplest rule: "cat" in "cat, catalog" is found once. A dropped
+    /// occurrence is searched again from its second character, since a whole
+    /// word may start inside it: "ha ha" in "aha ha ha" is the one at 4.
     static func ranges(of needle: String, in body: String, caseSensitive: Bool, wholeWord: Bool) -> [NSRange] {
         guard !needle.isEmpty, !body.isEmpty else { return [] }
         let ns = body as NSString
@@ -25,8 +26,13 @@ enum FindReplace {
         while from < ns.length {
             let hit = ns.range(of: needle, options: options, range: NSRange(location: from, length: ns.length - from))
             guard hit.location != NSNotFound, hit.length > 0 else { break }
-            if !wholeWord || standsAlone(hit, in: ns) { found.append(hit) }
-            from = NSMaxRange(hit)
+            if !wholeWord || standsAlone(hit, in: ns) {
+                found.append(hit)
+                from = NSMaxRange(hit)
+            } else {
+                // Not a whole word here; one may start inside it.
+                from = hit.location + 1
+            }
         }
         return found
     }

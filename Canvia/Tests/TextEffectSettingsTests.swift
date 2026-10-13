@@ -60,18 +60,30 @@ final class TextEffectSettingsTests: XCTestCase {
         XCTAssertEqual(try resolve(#"{"type":"outline","thickness":100}"#, fontSize: 10).stroke, 5, accuracy: 0.001)
     }
 
+    /// Outline's stroke round its filled letters, max(1.5, 0.04 · fs) · t / 50:
+    /// the effect as a file has it, the type size, and the stroke's width —
+    /// the Android twin's TextEffectsTest, row for row.
+    private let outlineRows: [(json: String, fontSize: Double, width: Double)] = [
+        (#"{"type":"outlined"}"#, 100, 4.0),
+        (#"{"type":"outlined","thickness":100}"#, 100, 8.0),
+        (#"{"type":"outlined"}"#, 10, 1.5),
+        (#"{"type":"outlined","thickness":100}"#, 10, 3.0),
+        (#"{"type":"outlined","thickness":25}"#, 200, 4.0),
+        (#"{"type":"outlined","thickness":25}"#, 50, 1.0),
+        (#"{"type":"outlined","thickness":25}"#, 20, 0.75),
+        (#"{"type":"outlined","thickness":0}"#, 100, 0.0),
+    ]
+
     func testOutline() throws {
-        // Filled letters with a stroke round them: max(1.5, 0.04 · fs) · t / 50.
+        XCTAssertEqual(outlineRows.count, 8)
+        for row in outlineRows {
+            XCTAssertEqual(try resolve(row.json, fontSize: row.fontSize).stroke, row.width, accuracy: 0.001,
+                           "\(row.json) at \(row.fontSize)")
+        }
         let plain = try resolve(#"{"type":"outlined"}"#)
-        XCTAssertEqual(plain.stroke, 4, accuracy: 0.001)
         XCTAssertEqual(plain.color, "#000000")
         XCTAssertTrue(plain.copies.isEmpty)
         XCTAssertFalse(plain.casts)
-        // max(1.5, 0.4) · 2
-        XCTAssertEqual(try resolve(#"{"type":"outlined","thickness":100}"#, fontSize: 10).stroke, 3, accuracy: 0.001)
-        XCTAssertEqual(try resolve(#"{"type":"outlined","thickness":25}"#, fontSize: 200).stroke, 4, accuracy: 0.001)
-        XCTAssertEqual(try resolve(#"{"type":"outlined","thickness":0}"#).stroke, 0, accuracy: 0.001,
-                       "no thickness, no stroke: the letters as they are")
         XCTAssertEqual(try resolve(##"{"type":"outlined","color":"#ff0000"}"##).color, "#ff0000")
         // Hollow is unchanged, under its own key.
         XCTAssertEqual(try resolve(#"{"type":"outline"}"#).stroke, 3.5, accuracy: 0.001)

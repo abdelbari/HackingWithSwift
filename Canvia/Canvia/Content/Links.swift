@@ -63,8 +63,8 @@ enum Links {
     }
 
     /// Every linked element on the page as drawn — the master's first — with
-    /// its area on the page, and after each one the lines of its linked
-    /// words, which lie over it.
+    /// its area on the page, and after each one its linked words, a word
+    /// each, which lie over it.
     static func areas(design: Design, page: Page) -> [(rect: CGRect, url: String)] {
         drawn(design: design, page: page).flatMap { el -> [(rect: CGRect, url: String)] in
             var out: [(rect: CGRect, url: String)] = []

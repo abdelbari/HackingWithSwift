@@ -35,6 +35,21 @@ final class ThemeApplyTests: XCTestCase {
         XCTAssertEqual(themed.pages[0].elements[1].fill, .solid("#ff0000"), "no palette: colours untouched")
     }
 
+    /// A pairing's face is each box's whole face, so it takes the words' own
+    /// faces away, keeping their colours and links; the Android twin's
+    /// ThemesTest has the same row.
+    func testAPairingsFacesTakeTheWordsOwnFacesAway() {
+        var big = Element.text("Big sale", fontSize: 80, w: 400)
+        big.setSpans([TextSpan(start: 0, end: 3, color: "#ff0000", font: "lora"),
+                      TextSpan(start: 4, end: 8, font: "oswald", link: "https://canvia.app")])
+        var d = Design(title: "theme", width: 800, height: 600)
+        d.pages = [Page(background: .color("#ffffff"), elements: [big])]
+        let themed = DesignStore.themed(d, palette: nil, pairing: pairing()).pages[0].elements[0]
+        XCTAssertEqual(themed.fontFamily, "serif")
+        XCTAssertEqual(themed.liveSpans, [TextSpan(start: 0, end: 3, color: "#ff0000"),
+                                          TextSpan(start: 4, end: 8, link: "https://canvia.app")])
+    }
+
     func testThePaletteRecoloursEveryPage() {
         let palette = ["#101010", "#505050", "#a0a0a0", "#f0f0f0"]
         let themed = DesignStore.themed(design(), palette: palette, pairing: nil)

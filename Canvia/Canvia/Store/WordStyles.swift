@@ -96,6 +96,17 @@ extension DesignStore {
         }
     }
 
+    /// `el`'s spans changed by `change` over `range` of its words as they
+    /// read, kept within the words.
+    static func restyleWords(_ el: inout Element, _ range: NSRange,
+                             _ change: ([TextSpan], NSRange) -> [TextSpan]) {
+        guard el.type == .text else { return }
+        let length = (RichText.strip(el.text ?? "") as NSString).length
+        let lo = min(max(range.location, 0), length), hi = min(NSMaxRange(range), length)
+        guard hi > lo else { return }
+        el.setSpans(change(el.liveSpans, NSRange(location: lo, length: hi - lo)))
+    }
+
     // MARK: fonts on words
 
     /// What the font sheet says over its fonts when it is open for the words

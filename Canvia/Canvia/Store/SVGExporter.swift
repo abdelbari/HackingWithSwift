@@ -91,7 +91,7 @@ enum SVGExporter {
         return "<a href=\"\(href)\" xlink:href=\"\(href)\">\(group)</a>" + words
     }
 
-    /// Linked words (WordLinks): each line of them a clear rectangle in an
+    /// Linked words (WordLinks): each word of them a clear rectangle in an
     /// <a>, laid over the element in its turn and flip — beside its group,
     /// not inside its own link, which an <a> cannot hold — so a browser
     /// follows the words' link over them and the element's elsewhere.
