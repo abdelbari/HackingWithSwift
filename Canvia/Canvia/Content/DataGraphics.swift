@@ -70,6 +70,43 @@ enum DataGraphics {
         return ChartData(names: names, rows: rows)
     }
 
+    /// A scatter's rows, "Label, x, y": each row's cells after its label
+    /// read in pairs, x then y, the nth pair a point of series n — the
+    /// Android twin's rule (the test vectors are shared). Cells split at
+    /// every comma, as with several series:
+    /// - the header is the first line not blank once its trailing commas
+    ///   are ignored, when a cell after the first has words in it and none a
+    ///   number ("City, Size, Price"). It names x and y: each pair's y names
+    ///   its series ("Price"), a blank one "Series <n>"; there are as many
+    ///   series as it has whole pairs, at least one;
+    /// - without one, there are as many series as the line with the most
+    ///   cells has whole pairs after its label, at least one, "Series 1" on;
+    /// - a cell that is not a number, or is missing, reads as 0; a row with
+    ///   no number at all is skipped; below zero reads 0, as the scale starts
+    ///   there; a blank label is "Item <line>".
+    /// Each row's values are its points' x and y in turn: x0, y0, x1, y1…
+    static func parseScatter(_ text: String) -> ChartData {
+        let lines = text.components(separatedBy: .newlines).map(withoutTrailingCommas)
+        let first = lines.firstIndex { !$0.isEmpty }
+        let header = first.flatMap { headerCells(lines[$0]) }
+        let longest = lines.map { $0.isEmpty ? 0 : ($0.components(separatedBy: ",").count - 1) / 2 }.max() ?? 0
+        let pairs = max(1, header.map { $0.count / 2 } ?? longest)
+        let names = (0..<pairs).map { n -> String in
+            guard let header, 2 * n + 1 < header.count, !header[2 * n + 1].isEmpty else { return "Series \(n + 1)" }
+            return header[2 * n + 1]
+        }
+        let rows = lines.enumerated().compactMap { n, line in
+            header != nil && n <= (first ?? -1) ? nil : multiple(n, line, count: 2 * pairs)
+        }
+        return ChartData(names: names, rows: rows)
+    }
+
+    /// Chart data as a chart of `kind` reads it: parseScatter's for a
+    /// scatter, parseChart's for every other kind.
+    static func chartData(_ text: String, kind: ChartKind) -> ChartData {
+        kind == .scatter ? parseScatter(text) : parseChart(text)
+    }
+
     private static func withoutTrailingCommas(_ line: String) -> String {
         var s = line
         while let c = s.unicodeScalars.last, c == "," || CharacterSet.whitespaces.contains(c) {
@@ -80,10 +117,21 @@ enum DataGraphics {
 
     /// The series' names when `line` is a header: some cell after the first
     /// has words in it and none is a number.
-    private static func headerNames(_ line: String) -> [String]? {
+    static func headerNames(_ line: String) -> [String]? {
+        headerCells(line)?.enumerated().map { i, name in name.isEmpty ? "Series \(i + 1)" : name }
+    }
+
+    /// The cells after the first, as they are, when `line` is a header.
+    private static func headerCells(_ line: String) -> [String]? {
         let after = line.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }.dropFirst()
         if after.allSatisfy(\.isEmpty) || after.contains(where: { number($0) != nil }) { return nil }
-        return after.enumerated().map { i, name in name.isEmpty ? "Series \(i + 1)" : name }
+        return Array(after)
+    }
+
+    /// Whether `line` is a chart's header, as parseChart reads its first
+    /// line: a cell after the first with words in it, and none a number.
+    static func isHeader(_ line: String) -> Bool {
+        headerNames(withoutTrailingCommas(line)) != nil
     }
 
     private static func single(_ n: Int, _ line: String) -> ChartData.Row? {
@@ -111,6 +159,9 @@ enum DataGraphics {
     /// The hint under the chart's text, for a kind with rows to read.
     static let seriesHint = "A first line of names, as in \"Quarter, North, South\", makes a series of each column after the first."
 
+    /// The hint under a scatter's data.
+    static let scatterHint = "Each row is \"Label, x, y\"; a first line of names, as in \"City, Size, Price\", names x and y."
+
     /// What the chart typed so far comes to, under the box it is typed in,
     /// in the Android twin's words: "4 values", "3 rows × 2 series", or for a
     /// progress kind the percentage it will show.
@@ -127,7 +178,7 @@ enum DataGraphics {
 
     /// Raw values are the `kind` written in a chart's JSON.
     enum ChartKind: String, CaseIterable, Identifiable {
-        case column, bar, line, pie, donut, stackedColumn, stackedBar, area, progressRing, progressBar
+        case column, bar, line, pie, donut, stackedColumn, stackedBar, area, progressRing, progressBar, scatter
         var id: String { rawValue }
         var name: String {
             switch self {
@@ -141,13 +192,14 @@ enum DataGraphics {
             case .area: return "Area"
             case .progressRing: return "Progress ring"
             case .progressBar: return "Progress bar"
+            case .scatter: return "Scatter"
             }
         }
 
         /// Drawn against a scale, so gridlines have something to mark.
         var hasScale: Bool {
             switch self {
-            case .column, .bar, .line, .stackedColumn, .stackedBar, .area: return true
+            case .column, .bar, .line, .stackedColumn, .stackedBar, .area, .scatter: return true
             case .pie, .donut, .progressRing, .progressBar: return false
             }
         }
@@ -243,7 +295,7 @@ enum DataGraphics {
                       ink: String = "#1f2430", colours: [Int: Paint] = [:], group: String = UID.make("grp"),
                       heightFor: @escaping (Element) -> Double = FontLibrary.layoutHeight(for:)) -> [Element] {
         guard let kind = ChartKind(rawValue: spec.kind) else { return [] }
-        return chart(kind, data: parseChart(spec.data), in: frame, palette: palette, ink: ink,
+        return chart(kind, data: chartData(spec.data, kind: kind), in: frame, palette: palette, ink: ink,
                      legend: spec.legend, values: spec.values, gridlines: spec.gridlines,
                      colours: colours, group: group, heightFor: heightFor)
             .map { var e = $0; e.chart = spec; return e }
@@ -326,17 +378,67 @@ enum DataGraphics {
                                     y: (top + plotH * Double(g) / 4).rounded(), fill: .solid(faint + "33")), "grid"))
             }
         }
-        func gridDown(left: Double, plotW: Double) {
+        func gridDown(left: Double, plotW: Double, top: Double, plotH: Double) {
             guard gridlines else { return }
             for g in 0...4 {
-                out.append(part(bar(w: 1, h: plot.height.rounded(), x: (left + plotW * Double(g) / 4).rounded(),
-                                    y: plot.minY.rounded(), fill: .solid(faint + "33")), "grid"))
+                out.append(part(bar(w: 1, h: plotH.rounded(), x: (left + plotW * Double(g) / 4).rounded(),
+                                    y: top.rounded(), fill: .solid(faint + "33")), "grid"))
             }
         }
         func shape(_ path: String, x: Double, y: Double, w: Double, h: Double, fill: Paint) -> Element {
             var s = bar(w: w.rounded(), h: h.rounded(), x: x.rounded(), y: y.rounded(), fill: fill)
             s.pathData = path
             return s
+        }
+
+        /// A dot for each row's point in each series (parseScatter), 2.5%
+        /// of the frame's shorter side across (whole, at least 2), centred
+        /// where its x and y fall on scales from 0 to the largest x and the
+        /// largest y, laid out as a line chart is: values — its y — above
+        /// the dots, gridlines across and down at quarters, and along the
+        /// foot, where a line chart labels its rows, the x scale's ends, "0"
+        /// on the left and the largest x on the right. An axis a px wide up
+        /// the left and one along the foot are always drawn. Each dot says
+        /// what it is, "<label>: <x>, <y>", for a reader. The Android twin's
+        /// layout, number for number.
+        func scatter() {
+            let labelH: Double = labelSize * 1.6
+            let valueH: Double = values ? labelH : 0
+            let left = Double(plot.minX)
+            let width = Double(plot.width)
+            let top: Double = Double(plot.minY) + valueH
+            let plotH: Double = Double(plot.height) - labelH - valueH
+            let pairs = 0..<count
+            let xPeak = rows.map { row in pairs.map { value(row, 2 * $0) }.max() ?? 0 }.max() ?? 0
+            let yPeak = rows.map { row in pairs.map { value(row, 2 * $0 + 1) }.max() ?? 0 }.max() ?? 0
+            let dot: Double = max(2, (min(frame.width, frame.height) * 0.025).rounded())
+            gridAcross(top: top, plotH: plotH)
+            gridDown(left: left, plotW: width, top: top, plotH: plotH)
+            let axis = Paint.solid(faint + "66")
+            out.append(part(bar(w: 1, h: plotH.rounded(), x: left.rounded(), y: top.rounded(), fill: axis), "axis"))
+            out.append(part(bar(w: width.rounded(), h: 1, x: left.rounded(), y: (top + plotH).rounded(), fill: axis), "axis"))
+            for j in pairs {
+                for row in rows {
+                    let x = value(row, 2 * j)
+                    let y = value(row, 2 * j + 1)
+                    let across: Double = xPeak > 0 ? width * x / xPeak : 0
+                    let up: Double = yPeak > 0 ? plotH * y / yPeak : 0
+                    let cx: Double = left + across
+                    let cy: Double = top + plotH - up
+                    var mark = Element.shape("circle", w: dot, h: dot)
+                    mark.x = (cx - dot / 2).rounded()
+                    mark.y = (cy - dot / 2).rounded()
+                    mark.fill = paint(j)
+                    mark.altText = "\(row.label): \(valueText(x)), \(valueText(y))"
+                    out.append(part(mark, "series:\(j)"))
+                    if values { out.append(valueAbove(y, cx: cx, foot: cy - dot / 2, w: 0)) }
+                }
+            }
+            let foot: Double = top + plotH + labelSize * 0.3
+            out.append(label("0", x: left, y: foot, w: labelSize * 3, align: "left"))
+            var end = label(valueText(xPeak), x: 0, y: foot, w: labelSize * 3, align: "right")
+            end.x = left + width - end.w
+            out.append(end)
         }
 
         switch kind {
@@ -388,7 +490,7 @@ enum DataGraphics {
             let slot: Double = plot.height / Double(rows.count)
             let barH: Double = slot * 0.64
             let longest = stacked ? (rows.map { $0.values.reduce(0, +) }.max() ?? 0) : peak
-            gridDown(left: left, plotW: plotW)
+            gridDown(left: left, plotW: plotW, top: Double(plot.minY), plotH: Double(plot.height))
             func valueBeside(_ v: Double, end: Double, y: Double, h: Double) -> Element {
                 var t = label(valueText(v), x: end + labelSize * 0.3, y: 0, w: valueW - labelSize * 0.3, align: "left", part: "value")
                 t.y = y + (h - t.h) / 2
@@ -481,6 +583,8 @@ enum DataGraphics {
                 out.append(label(row.label, x: plot.minX + Double(i) / Double(n) * plot.width - slot / 2,
                                  y: top + plotH + labelSize * 0.3, w: slot))
             }
+        case .scatter:
+            scatter()
         case .progressRing:
             let percent = min(100, max(0, firsts[0]))
             let side: Double = min(frame.width, frame.height)
@@ -816,7 +920,7 @@ enum DataGraphics {
                 var cell = Element.shape("rect", w: widths[c], h: rowH)
                 cell.x = x.rounded(); cell.y = y.rounded()
                 cell.fill = .solid(r == 0 ? accent : tableBodyFill(r, band: band))
-                cell.stroke = "#00000022"
+                cell.stroke = tableHairline
                 cell.strokeWidth = 1
                 cell.radius = 0
                 cell.table = TableCell(id: tableId, row: r, col: c)

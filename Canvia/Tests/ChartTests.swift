@@ -151,6 +151,84 @@ final class ChartDataTests: XCTestCase {
         XCTAssertEqual(els[2].text, "72%")
     }
 
+    // MARK: scatter, the shared tables
+
+    /// `el`'s box to the thousandth, for a label placed off the whole numbers.
+    private func near(_ el: Element) -> [Double] { rect(el).map { ($0 * 1000).rounded() / 1000 } }
+
+    func testTheSharedScatterParseTable() {
+        let table: [(text: String, names: [String], labels: [String], values: [[Double]])] = [
+            // "Label, x, y" with no header: one series.
+            ("A, 10, 20\nB, 40, 5", ["Series 1"], ["A", "B"], [[10, 20], [40, 5]]),
+            // A header names x and y, its y the series; no number reads as 0, no number at all skips the row.
+            ("City, Size, Price\nA, 10, 20\nB, x, 5\nC, n/a", ["Price"], ["A", "B"], [[10, 20], [0, 5]]),
+            // Each further pair is a series; a negative is zero; a blank label is numbered by its line.
+            ("Team, x, North, x, South\nR, 1, 2, 3, 4\n, -1, 5", ["North", "South"], ["R", "Item 3"],
+             [[1, 2, 3, 4], [0, 5, 0, 0]]),
+            // Without a header, as many series as the longest row has whole pairs.
+            ("A, 1, 2, 3, 4\n\nB, 5, 6", ["Series 1", "Series 2"], ["A", "B"], [[1, 2, 3, 4], [5, 6, 0, 0]]),
+            // A lone value is an x; a blank y name is numbered by its series.
+            ("A, 1", ["Series 1"], ["A"], [[1, 0]]),
+            ("Name, Size, , Size, Cost\nA, 1, 2, 3, 4", ["Series 1", "Cost"], ["A"], [[1, 2, 3, 4]]),
+        ]
+        for row in table {
+            let data = DataGraphics.chartData(row.text, kind: .scatter)
+            XCTAssertEqual(data.names, row.names, row.text)
+            XCTAssertEqual(data.rows.map(\.label), row.labels, row.text)
+            XCTAssertEqual(data.rows.map(\.values), row.values, row.text)
+        }
+        // Every other kind reads its text as it always has.
+        XCTAssertEqual(DataGraphics.chartData("A, 10, 20", kind: .line), DataGraphics.parseChart("A, 10, 20"))
+        XCTAssertEqual(DataGraphics.ChartKind(rawValue: "scatter"), .scatter)
+        XCTAssertEqual(DataGraphics.ChartKind.scatter.name, "Scatter")
+        XCTAssertTrue(DataGraphics.ChartKind.scatter.hasScale)
+        XCTAssertFalse(DataGraphics.ChartKind.scatter.isProgress)
+    }
+
+    func testTheSharedLayoutTableScatter() {
+        let els = made(spec(.scatter, "A, 10, 20\nB, 40, 5"))
+        XCTAssertEqual(els.map(\.chartPart), ["axis", "axis", "series:0", "series:0", "label", "label"])
+        XCTAssertEqual(rect(els[0]), [100, 100, 1, 271])
+        XCTAssertEqual(rect(els[1]), [100, 371, 400, 1])
+        // Dots 8 across (2.5% of 300), centred on (200, 100) and (500, 303.4).
+        XCTAssertEqual(rect(els[2]), [196, 96, 8, 8])
+        XCTAssertEqual(rect(els[3]), [496, 299, 8, 8])
+        XCTAssertEqual(els[2].shapeId, "circle")
+        XCTAssertEqual(els[2].fill?.color, "#ff0000")
+        XCTAssertEqual(els[2].altText, "A: 10, 20")
+        XCTAssertEqual(els.dropFirst(4).map(\.text), ["0", "40"])
+        XCTAssertEqual(near(els[4]), [100, 376.6, 54, 20])
+        XCTAssertEqual(near(els[5]), [446, 376.6, 54, 20])
+    }
+
+    func testTheSharedLayoutTableScatterWithTwoSeriesLegendValuesAndGridlines() {
+        let els = made(spec(.scatter, "City, Size, Price, Size, Rent\nA, 10, 20, 5, 5\nB, 40, 5",
+                            legend: true, values: true, gridlines: true))
+        XCTAssertEqual(els.count, 26)
+        let parts = els.map(\.chartPart)
+        XCTAssertEqual(parts.filter { $0 == "grid" }.count, 10)
+        XCTAssertEqual(parts.filter { $0 == "axis" }.count, 2)
+        XCTAssertEqual(parts.filter { $0 == "value" }.count, 4)
+        XCTAssertEqual(parts.filter { $0 == "legend" }.count, 4)
+        let grid = els.filter { $0.chartPart == "grid" }
+        XCTAssertEqual(grid.prefix(5).map(\.y), [129, 182, 236, 289, 342])
+        XCTAssertEqual(grid.dropFirst(5).map(\.x), [100, 200, 300, 400, 500])
+        XCTAssertEqual(grid.dropFirst(5).first.map { [$0.y, $0.h] }, [129, 214])
+        let axes = els.filter { $0.chartPart == "axis" }
+        XCTAssertEqual(axes.map(rect), [[100, 129, 1, 214], [100, 342, 400, 1]])
+        let dots = els.filter { $0.chartPart?.hasPrefix("series:") == true }
+        XCTAssertEqual(dots.map { [$0.x, $0.y] }, [[196, 125], [496, 285], [146, 285], [96, 338]])
+        XCTAssertEqual(dots.map(\.chartPart), ["series:0", "series:0", "series:1", "series:1"])
+        XCTAssertEqual(dots.map { $0.fill?.color }, ["#ff0000", "#ff0000", "#00ff00", "#00ff00"])
+        let values = els.filter { $0.chartPart == "value" }
+        XCTAssertEqual(values.map(\.text), ["20", "5", "5", "0"])
+        XCTAssertEqual(near(values[0]), [173, 99.4, 54, 20])
+        XCTAssertEqual(els.filter { $0.chartPart == "legend" && $0.type == .text }.map(\.text), ["Price", "Rent"])
+        let swatches = els.filter { $0.chartPart == "legend" && $0.type == .shape }
+        XCTAssertEqual(swatches.map(rect), [[100, 379, 14, 14], [300, 379, 14, 14]])
+        XCTAssertEqual(els.filter { $0.chartPart == "label" }.map { near($0)[1] }, [347.8, 347.8])
+    }
+
     // MARK: the rest of the kinds
 
     func testEveryKindDrawsFromShapesAndTextAlone() {
@@ -213,10 +291,10 @@ final class ChartDataTests: XCTestCase {
     func testTheKindsAreNamedAsOnAndroid() {
         XCTAssertEqual(DataGraphics.ChartKind.allCases.map(\.name),
                        ["Column", "Bar", "Line", "Pie", "Donut", "Stacked column", "Stacked bar", "Area",
-                        "Progress ring", "Progress bar"])
+                        "Progress ring", "Progress bar", "Scatter"])
         XCTAssertEqual(DataGraphics.ChartKind.allCases.map(\.rawValue),
                        ["column", "bar", "line", "pie", "donut", "stackedColumn", "stackedBar", "area",
-                        "progressRing", "progressBar"])
+                        "progressRing", "progressBar", "scatter"])
     }
 
     // MARK: JSON

@@ -226,6 +226,242 @@ final class TablesTests: XCTestCase {
         XCTAssertEqual(rect(table, 1, 0), rect(coloured, 1, 0))
     }
 
+    // MARK: merged cells, as on the Android twin
+
+    /// Table `els`'s cells at `places` (row, column), as a selection holds them.
+    private func cells(_ els: [Element], _ places: [(Int, Int)]) -> Set<TableCell> {
+        Set(places.map { TableCell(id: tableId(els), row: $0.0, col: $0.1) })
+    }
+
+    private func merging(_ els: [Element], _ places: [(Int, Int)]) -> [Element]? {
+        DataGraphics.mergingTableCells(els, id: tableId(els), cells: cells(els, places), heightFor: heightFor)
+    }
+
+    private func box(_ el: Element) -> [Double] { [el.x, el.y, el.w, el.h] }
+
+    func testCellsSideBySideMergeIntoTheTopLeftOneTheirWordsJoinedByLineBreaks() throws {
+        let table = made()
+        let id = tableId(table)
+        let merged = try XCTUnwrap(merging(table, [(1, 0), (1, 1)]))
+        XCTAssertEqual(merged.count, 10)
+        XCTAssertEqual(rect(merged, 1, 0).table, TableCell(id: id, row: 1, col: 0, colSpan: 2))
+        XCTAssertEqual(text(merged, 1, 0).table, TableCell(id: id, row: 1, col: 0, colSpan: 2))
+        XCTAssertEqual(text(merged, 1, 0).text, "Coffee\n2")
+        // As wide as both columns, as tall as its two lines.
+        XCTAssertEqual(box(rect(merged, 1, 0)), [100, 246, 400, 66])
+        XCTAssertEqual(text(merged, 1, 0).x, 113)
+        XCTAssertEqual(text(merged, 1, 0).y, 259)
+        XCTAssertEqual(text(merged, 1, 0).w, 373.6, accuracy: 1e-9)
+        XCTAssertEqual(text(merged, 1, 0).h, 40)
+        XCTAssertEqual(rowTops(merged), [200, 246, 312])
+        // The columns keep their widths, read from the cells one column wide.
+        XCTAssertEqual(columnWidths(merged), [267, 133])
+        XCTAssertEqual(DataGraphics.tableColumns(merged, id: id), [0, 1])
+        XCTAssertEqual(DataGraphics.relayout(merged, heightFor: heightFor), merged)
+        // What the grid shows: a place merged into another blank, and covered.
+        XCTAssertEqual(DataGraphics.tableGrid(merged, id: id), [["Item", "Qty"], ["Coffee 2", ""], ["Bagel", "1"]])
+        XCTAssertEqual(DataGraphics.tableCovered(merged, id: id), [[1, 1]])
+        XCTAssertEqual(DataGraphics.tableText(merged, id: id), "Item, Qty\nCoffee 2, \nBagel, 1")
+    }
+
+    func testCellsOneAboveAnotherMergeAsTallAsTheirRowsTogether() throws {
+        let table = made()
+        let id = tableId(table)
+        let merged = try XCTUnwrap(merging(table, [(1, 0), (2, 0)]))
+        XCTAssertEqual(merged.count, 10)
+        XCTAssertEqual(rect(merged, 1, 0).table, TableCell(id: id, row: 1, col: 0, rowSpan: 2))
+        XCTAssertEqual(text(merged, 1, 0).text, "Coffee\nBagel")
+        // Its two lines need 66 of the 92 its rows already have.
+        XCTAssertEqual(box(rect(merged, 1, 0)), [100, 246, 267, 92])
+        XCTAssertEqual(text(merged, 1, 0).y, 259)
+        XCTAssertEqual([rect(merged, 1, 1).y, rect(merged, 2, 1).y], [246, 292])
+        XCTAssertEqual(DataGraphics.tableRows(merged, id: id), [0, 1, 2])
+        // A merged text taller than its rows grows the last of them.
+        let tall = DataGraphics.relayout(withWords(merged, 1, 0, "a\nb\nc\nd\ne"), heightFor: heightFor)
+        XCTAssertEqual([rect(tall, 1, 1).h, rect(tall, 2, 1).h], [46, 80])
+        XCTAssertEqual(rect(tall, 1, 0).h, 126)
+    }
+
+    func testOnlyTwoOrMoreCellsFormingARectangleMerge() throws {
+        let table = made()
+        let id = tableId(table)
+        func block(_ els: [Element], _ places: [(Int, Int)]) -> [Int]? {
+            DataGraphics.mergeBlock(els, id: id, cells: cells(els, places)).map {
+                [$0.rows.lowerBound, $0.cols.lowerBound, $0.rows.count, $0.cols.count]
+            }
+        }
+        XCTAssertNil(merging(table, [(1, 0)]))
+        XCTAssertNil(merging(table, [(0, 0), (1, 1)]))
+        XCTAssertNil(merging(table, [(0, 0), (2, 0)]))
+        XCTAssertNil(block(table, [(0, 0), (0, 1), (1, 0)]), "an L")
+        XCTAssertEqual(block(table, [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]), [0, 0, 3, 2])
+        // A merged cell counts as the places it covers.
+        let down = try XCTUnwrap(merging(table, [(1, 0), (2, 0)]))
+        XCTAssertEqual(block(down, [(0, 0), (1, 0)]), [0, 0, 3, 1])
+        XCTAssertNil(block(down, [(0, 0), (0, 1), (1, 1)]))
+        // Only the top-left cell has words: they are kept as they were.
+        let one = try XCTUnwrap(merging(withWords(table, 1, 1, ""), [(1, 0), (1, 1)]))
+        XCTAssertEqual(text(one, 1, 0).text, "Coffee")
+        // The whole table: its rows, none with a cell of its own, keep their
+        // heights, and its columns share its width.
+        let all = try XCTUnwrap(merging(withWords(table, 1, 1, ""), [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)]))
+        XCTAssertEqual(all.count, 2)
+        XCTAssertEqual(text(all, 0, 0).text, "Item\nQty\nCoffee\nBagel\n1")
+        XCTAssertEqual(box(rect(all, 0, 0)), [100, 200, 400, 138])
+        XCTAssertEqual(DataGraphics.tableColumnWidths(all, id: id), [200, 200])
+    }
+
+    func testUnmergeGivesBackBlankCellsAndTheColumnsAsTheyWere() throws {
+        let table = made()
+        let id = tableId(table)
+        let merged = try XCTUnwrap(merging(table, [(1, 0), (1, 1)]))
+        XCTAssertNil(DataGraphics.unmergingTableCells(table, id: id, cells: cells(table, [(1, 0)]), heightFor: heightFor))
+        let back = try XCTUnwrap(DataGraphics.unmergingTableCells(merged, id: id, cells: cells(merged, [(1, 0)]),
+                                                                  heightFor: heightFor))
+        XCTAssertEqual(back.count, 12)
+        XCTAssertEqual(rect(back, 1, 0).table, TableCell(id: id, row: 1, col: 0))
+        XCTAssertEqual(words(back), ["Item", "Qty", "Coffee\n2", "", "Bagel", "1"])
+        XCTAssertEqual(columnWidths(back), [267, 133])
+        XCTAssertEqual([rect(back, 1, 0).x, rect(back, 1, 1).x], [100, 367])
+        XCTAssertEqual([rect(back, 1, 0).h, rect(back, 1, 1).h], [66, 66])
+        XCTAssertEqual(rect(back, 1, 1).fill, rect(table, 1, 0).fill)
+        XCTAssertEqual(Set(back.map(\.id)).count, 12)
+        // A merged header, the columns' top row: each part goes back to its
+        // own column, as the rows below have them.
+        let header = try XCTUnwrap(merging(table, [(0, 0), (0, 1)]))
+        let parted = try XCTUnwrap(DataGraphics.unmergingTableCells(header, id: id, cells: cells(header, [(0, 0)]),
+                                                                    heightFor: heightFor))
+        XCTAssertEqual(words(parted), ["Item\nQty", "", "Coffee", "2", "Bagel", "1"])
+        XCTAssertEqual(columnWidths(parted), [267, 133])
+        XCTAssertEqual(columnLefts(parted), [100, 367])
+        XCTAssertEqual([rect(parted, 0, 0).h, rect(parted, 0, 1).h], [66, 66])
+        XCTAssertEqual(rowTops(parted), [200, 266, 312])
+    }
+
+    func testARowOrAColumnAddedOrDeletedThroughAMergedCellGrowsOrShrinksIt() throws {
+        let table = made()
+        let id = tableId(table)
+        let down = try XCTUnwrap(merging(table, [(1, 0), (2, 0)]))
+        // A row added inside it: the merged cell grows a row, and the new
+        // row has a cell only beside it.
+        let grown = DataGraphics.addingTableRow(down, id: id, row: 1, below: true, heightFor: heightFor)
+        XCTAssertEqual(grown.count, 12)
+        XCTAssertEqual(rect(grown, 1, 0).table, TableCell(id: id, row: 1, col: 0, rowSpan: 3))
+        XCTAssertEqual(words(grown), ["Item", "Qty", "Coffee\nBagel", "2", "", "1"])
+        XCTAssertEqual(DataGraphics.tableRows(grown, id: id), [0, 1, 2, 3])
+        XCTAssertEqual((0...3).map { rect(grown, $0, 1).y }, [200, 246, 292, 338])
+        XCTAssertEqual(rect(grown, 1, 0).h, 138)
+        // A row added below it: a cell under each column, the one under it
+        // a copy of it.
+        let below = DataGraphics.addingTableRow(down, id: id, row: 2, below: true, heightFor: heightFor)
+        XCTAssertEqual(below.count, 14)
+        XCTAssertEqual(rect(below, 1, 0).table, TableCell(id: id, row: 1, col: 0, rowSpan: 2))
+        XCTAssertEqual(rect(below, 3, 0).table, TableCell(id: id, row: 3, col: 0))
+        // Its first row deleted: it is a row shorter and keeps its words.
+        let shrunk = try XCTUnwrap(DataGraphics.deletingTableRow(down, id: id, row: 1, heightFor: heightFor))
+        XCTAssertEqual(shrunk.count, 8)
+        XCTAssertEqual(rect(shrunk, 1, 0).table, TableCell(id: id, row: 1, col: 0))
+        XCTAssertEqual(words(shrunk), ["Item", "Qty", "Coffee\nBagel", "1"])
+        XCTAssertEqual(rowTops(shrunk), [200, 246])
+        XCTAssertEqual(rect(shrunk, 1, 1).h, 66)
+
+        let across = try XCTUnwrap(merging(table, [(1, 0), (1, 1)]))
+        let wider = DataGraphics.addingTableColumn(across, id: id, col: 0, right: true, heightFor: heightFor)
+        XCTAssertEqual(wider.count, 14)
+        XCTAssertEqual(rect(wider, 1, 0).table, TableCell(id: id, row: 1, col: 0, colSpan: 3))
+        XCTAssertEqual(columnWidths(wider), [134, 200, 66])
+        XCTAssertEqual(rect(wider, 1, 0).w, 400)
+        let narrower = try XCTUnwrap(DataGraphics.deletingTableColumn(across, id: id, col: 1, heightFor: heightFor))
+        XCTAssertEqual(rect(narrower, 1, 0).table, TableCell(id: id, row: 1, col: 0))
+        XCTAssertEqual(columnWidths(narrower), [400])
+        XCTAssertEqual(rect(narrower, 1, 0).w, 400)
+    }
+
+    // MARK: borders and column widths, as on the Android twin
+
+    func testABorderIsEveryCellRectanglesStroke() {
+        let table = made()
+        let id = tableId(table)
+        XCTAssertEqual(DataGraphics.tableBorderWidth(table, id: id), 1)
+        XCTAssertEqual(DataGraphics.tableBorderColour(table, id: id), "#00000022")
+        XCTAssertEqual(DataGraphics.tableBorderWeights.map(\.name), ["None", "Thin", "Medium", "Thick"])
+        XCTAssertEqual(DataGraphics.tableBorderWeights.map(\.width), [0, 1, 2, 4])
+        let red = DataGraphics.borderingTable(table, id: id, width: 4, color: "#ff0000")
+        XCTAssertTrue(red.filter { $0.type == .shape }.allSatisfy { $0.strokeWidth == 4 && $0.stroke == "#ff0000" })
+        XCTAssertEqual(red.filter { $0.type == .text }, table.filter { $0.type == .text })
+        XCTAssertEqual(DataGraphics.tableBorderWidth(red, id: id), 4)
+        XCTAssertEqual(rowTops(red), rowTops(table), "a border takes no room")
+        // Colour alone keeps the width, and the width is held to 0…12.
+        XCTAssertEqual(DataGraphics.tableBorderWidth(DataGraphics.borderingTable(table, id: id, width: nil, color: "#00ff00"), id: id), 1)
+        XCTAssertEqual(DataGraphics.tableBorderWidth(DataGraphics.borderingTable(table, id: id, width: 20, color: nil), id: id), 12)
+        XCTAssertEqual(DataGraphics.tableBorderWidth(DataGraphics.borderingTable(table, id: id, width: -1, color: nil), id: id), 0)
+        // Cells of differing borders have none to show.
+        let corner = rect(table, 0, 0).id
+        let mixed = table.map { el -> Element in
+            guard el.id == corner else { return el }
+            var out = el
+            out.strokeWidth = 3
+            out.stroke = "#123456"
+            return out
+        }
+        XCTAssertNil(DataGraphics.tableBorderWidth(mixed, id: id))
+        XCTAssertNil(DataGraphics.tableBorderColour(mixed, id: id))
+    }
+
+    func testTheSharedColumnDragTable() {
+        let rows: [(widths: [Double], edge: Int, dx: Double, out: [Double])] = [
+            ([267, 133], 0, 20, [287, 113]),
+            ([267, 133], 0, 200, [376, 24]),
+            ([267, 133], 0, -300, [24, 376]),
+            ([100, 100, 100], 1, -10.4, [100, 90, 110]),
+            ([100, 100, 100], 0, 0.5, [101, 99, 100]),
+            ([30, 10], 0, 5, [30, 10]),
+        ]
+        for row in rows {
+            XCTAssertEqual(DataGraphics.draggedColumns(row.widths, edge: row.edge, by: row.dx), row.out,
+                           "\(row.widths) \(row.edge) \(row.dx)")
+        }
+        XCTAssertNil(DataGraphics.draggedColumns([267, 133], edge: 1, by: 10))
+        XCTAssertNil(DataGraphics.draggedColumns([267, 133], edge: -1, by: 10))
+
+        let even: [(total: Double, count: Int, out: [Double])] = [
+            (400, 2, [200, 200]),
+            (400, 3, [133, 133, 134]),
+            (100, 3, [33, 33, 34]),
+            (10, 4, [3, 3, 3, 1]),
+            (400, 1, [400]),
+        ]
+        for row in even {
+            XCTAssertEqual(DataGraphics.evenColumns(total: row.total, count: row.count), row.out, "\(row.total) / \(row.count)")
+        }
+    }
+
+    func testAColumnEdgeDraggedWidensOneNeighbourAndNarrowsTheOther() throws {
+        let table = made()
+        let id = tableId(table)
+        XCTAssertEqual(DataGraphics.tableColumnWidths(table, id: id), [267, 133])
+        XCTAssertEqual(DataGraphics.tableColumnEdges(table, id: id), [367])
+        let widths = try XCTUnwrap(DataGraphics.draggedColumns([267, 133], edge: 0, by: 20))
+        let dragged = DataGraphics.placingTableColumns(table, id: id, widths: widths, heightFor: heightFor)
+        XCTAssertEqual(columnWidths(dragged), [287, 113])
+        XCTAssertEqual(columnLefts(dragged), [100, 387])
+        XCTAssertEqual(text(dragged, 0, 1).x, 400)
+        XCTAssertEqual(text(dragged, 1, 0).w, 260.6, accuracy: 1e-9)
+        XCTAssertEqual(rowTops(dragged), [200, 246, 292])
+        XCTAssertEqual(DataGraphics.placingTableColumns(table, id: id, widths: [400], heightFor: heightFor), table,
+                       "not one width per column")
+        // A merged cell across the edge keeps the width of both.
+        let merged = try XCTUnwrap(merging(table, [(1, 0), (1, 1)]))
+        let across = DataGraphics.placingTableColumns(merged, id: id, widths: widths, heightFor: heightFor)
+        XCTAssertEqual([rect(across, 1, 0).x, rect(across, 1, 0).w], [100, 400])
+        XCTAssertEqual([rect(across, 0, 1).x, rect(across, 0, 1).w], [387, 113])
+
+        let even = DataGraphics.placingTableColumns(table, id: id, widths: DataGraphics.evenColumns(total: 400, count: 2),
+                                                    heightFor: heightFor)
+        XCTAssertEqual(columnWidths(even), [200, 200])
+        XCTAssertEqual(columnLefts(even), [100, 300])
+    }
+
     // MARK: as text
 
     func testATableReadsAsALinePerRow() {
@@ -452,12 +688,57 @@ final class TablesTests: XCTestCase {
         XCTAssertNil(try read(#"{"id": "", "row": 1, "col": 0}"#))
         XCTAssertNil(try read(#"{"id": "tbl_x", "row": "1", "col": 0}"#))
         XCTAssertNil(try read(#"{"id": "tbl_x", "row": -1, "col": 0}"#))
+        // A row or column is below 1,000,000, so a span added to it never wraps.
+        XCTAssertEqual(try read(#"{"id": "tbl_x", "row": 999999, "col": 0}"#), TableCell(id: "tbl_x", row: 999999, col: 0))
+        XCTAssertNil(try read(#"{"id": "tbl_x", "row": 1000000, "col": 0}"#))
+        XCTAssertNil(try read(#"{"id": "tbl_x", "row": 9223372036854775807, "col": 0}"#))
+        XCTAssertNil(try read(#"{"id": "tbl_x", "row": 0, "col": 2147483647}"#))
         XCTAssertNil(try read(#""tbl_x""#))
         // An unreadable place leaves the element itself as it was.
         let kept = try JSONDecoder().decode(Element.self, from: Data(
             #"{"id":"e","type":"text","text":"A","table":{"id":"tbl_a","row":"one","col":0}}"#.utf8))
         XCTAssertEqual(kept.text, "A")
         XCTAssertNil(kept.table)
+    }
+
+    func testAMergedCellsSpansAreWrittenOnlyOverOneAndReadTolerantly() throws {
+        var el = Element.shape("rect")
+        el.table = TableCell(id: "tbl_abc", row: 1, col: 0, rowSpan: 2, colSpan: 3)
+        let data = try JSONEncoder().encode(el)
+        let written = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let cell = try XCTUnwrap(written["table"] as? [String: Any])
+        XCTAssertEqual(Set(cell.keys), ["id", "row", "col", "rowSpan", "colSpan"])
+        XCTAssertEqual(cell["rowSpan"] as? Int, 2)
+        XCTAssertEqual(cell["colSpan"] as? Int, 3)
+        XCTAssertEqual(try JSONDecoder().decode(Element.self, from: data), el)
+        var wide = Element.shape("rect")
+        wide.table = TableCell(id: "tbl_abc", row: 2, col: 1, colSpan: 3)
+        let one = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(wide)) as? [String: Any])
+        let written3 = try XCTUnwrap(one["table"] as? [String: Any])
+        XCTAssertEqual(Set(written3.keys), ["id", "row", "col", "colSpan"])
+        XCTAssertEqual(written3["colSpan"] as? Int, 3)
+
+        func read(_ json: String) throws -> TableCell? {
+            try JSONDecoder().decode(Element.self,
+                                     from: Data(#"{"id":"e","type":"shape","table":\#(json)}"#.utf8)).table
+        }
+        XCTAssertEqual(try read(#"{"id": "tbl_x", "row": 1, "col": 0, "rowSpan": 2.0, "colSpan": 3}"#),
+                       TableCell(id: "tbl_x", row: 1, col: 0, rowSpan: 2, colSpan: 3))
+        XCTAssertEqual(try read(#"{"id": "tbl_x", "row": 1, "col": 0, "rowSpan": 0, "colSpan": "2"}"#),
+                       TableCell(id: "tbl_x", row: 1, col: 0))
+        XCTAssertEqual(try read(#"{"id": "tbl_x", "row": 1, "col": 0, "rowSpan": 1.5, "colSpan": -2}"#),
+                       TableCell(id: "tbl_x", row: 1, col: 0))
+        // Past maxSpan, which no table made on either phone reaches, a span is 1.
+        XCTAssertEqual(try read(#"{"id": "tbl_x", "row": 1, "col": 0, "rowSpan": 1000, "colSpan": 1001}"#),
+                       TableCell(id: "tbl_x", row: 1, col: 0, rowSpan: 1000))
+    }
+
+    func testACopyOfAMergedTableKeepsItsSpans() throws {
+        let table = try XCTUnwrap(merging(made(), [(1, 0), (1, 1)]))
+        let copy = Copies.of(table, offset: 24)
+        XCTAssertNotEqual(tableId(table), tableId(copy))
+        XCTAssertEqual(rect(copy, 1, 0).table?.colSpan, 2)
+        XCTAssertEqual(text(copy, 1, 0).table?.colSpan, 2)
     }
 
     func testACopyOfATableIsATableOfItsOwn() {
@@ -637,5 +918,87 @@ final class TablesTests: XCTestCase {
         var shape = Element.shape("rect")
         shape.locked = true
         XCTAssertNil(s.typedIn(shape, among: [shape]), "a locked shape zooms")
+    }
+
+    func testMergeAndUnmergeAreEachOneStep() {
+        let s = store(made())
+        let table = s.page.elements
+        s.selection = [text(table, 1, 1).id]
+        XCTAssertEqual(s.tableSelection?.canMerge, false)
+        s.selection = [text(table, 1, 0).id, rect(table, 1, 1).id]
+        XCTAssertEqual(s.tableSelection?.canMerge, true)
+        XCTAssertEqual(s.tableSelection?.canUnmerge, false)
+        XCTAssertTrue(s.mergeTableCells())
+        XCTAssertEqual(s.page.elements.count, 10)
+        XCTAssertEqual(s.selection, [text(s.page.elements, 1, 0).id], "the merged cell stays selected")
+        XCTAssertEqual(s.tableSelection?.columns, [0, 1])
+        XCTAssertEqual(s.tableSelection?.canUnmerge, true)
+        XCTAssertEqual(s.tableGrid, [["Item", "Qty"], ["Coffee 2", ""], ["Bagel", "1"]])
+        XCTAssertEqual(s.tableCovered, [[1, 1]])
+        XCTAssertTrue(s.unmergeTableCells())
+        XCTAssertEqual(s.page.elements.count, 12)
+        s.undo()
+        XCTAssertEqual(s.page.elements.count, 10)
+        s.undo()
+        XCTAssertEqual(s.page.elements, table)
+        XCTAssertFalse(s.canUndo)
+    }
+
+    func testBordersAreOneStepAndTheSliderOneForItsDrag() {
+        let s = store(made())
+        let table = s.page.elements
+        s.selection = [text(table, 1, 0).id]
+        XCTAssertEqual(s.tableBorderWidth, 1)
+        XCTAssertEqual(s.tableBorderColour, "#00000022")
+        XCTAssertTrue(s.setTableBorderWidth(4))
+        XCTAssertFalse(s.setTableBorderWidth(4), "nothing to change")
+        XCTAssertTrue(s.setTableBorderColour("#ff0000"))
+        XCTAssertEqual(s.tableBorderWidth, 4)
+        XCTAssertEqual(s.tableBorderColour, "#ff0000")
+        s.setTableBorderTransient(width: 7, color: nil)
+        s.setTableBorderTransient(width: 9, color: nil)
+        s.commit()
+        XCTAssertEqual(s.tableBorderWidth, 9)
+        s.undo()
+        XCTAssertEqual(s.tableBorderWidth, 4, "the slider's drag is one step")
+        s.undo()
+        s.undo()
+        XCTAssertEqual(s.page.elements, table)
+    }
+
+    func testColumnEdgesDragAndDistributeAsOneStepOnAWholeTable() {
+        let s = store(made())
+        let table = s.page.elements
+        s.selection = [text(table, 1, 0).id]
+        XCTAssertNil(s.tableColumnEdges, "only on a whole table")
+        s.selection = Set(table.map(\.id))
+        XCTAssertEqual(s.tableColumnEdges?.xs, [367])
+        XCTAssertEqual(s.tableColumnEdges?.top, 200)
+        XCTAssertEqual(s.tableColumnEdges?.bottom, 338)
+        s.setTableColumnWidthsTransient([150, 250])
+        s.setTableColumnWidthsTransient(DataGraphics.draggedColumns([267, 133], edge: 0, by: -107) ?? [])
+        s.commit()
+        XCTAssertEqual(s.tableColumnWidths, [160, 240])
+        XCTAssertEqual(s.tableColumnEdges?.xs, [260])
+        s.undo()
+        XCTAssertEqual(s.page.elements, table, "one step for the whole drag")
+        XCTAssertTrue(s.distributeTableColumns())
+        XCTAssertEqual(s.tableColumnWidths, [200, 200])
+        XCTAssertFalse(s.distributeTableColumns(), "already even")
+        s.undo()
+        XCTAssertEqual(s.page.elements, table)
+    }
+
+    func testTheGridSetsTheTableAndItsHeaderAsOneStep() {
+        let s = store(made())
+        let table = s.page.elements
+        s.selection = [text(table, 0, 0).id]
+        XCTAssertEqual(s.tableGrid, [["Item", "Qty"], ["Coffee", "2"], ["Bagel", "1"]])
+        XCTAssertTrue(s.rebuildTable(rows: [["Item", "Qty"], ["Tea", "3"]], header: false))
+        XCTAssertEqual(s.tableSelection?.header, false)
+        XCTAssertEqual(s.tableGrid, [["Item", "Qty"], ["Tea", "3"]])
+        XCTAssertFalse(s.rebuildTable(rows: [], header: nil))
+        s.undo()
+        XCTAssertEqual(s.page.elements, table)
     }
 }
