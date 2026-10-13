@@ -639,6 +639,11 @@ struct ImageElementView: View {
                     .allowsHitTesting(false)
             }
         }
+        // Edge, picture and border flattened into one layer, so ElementView's
+        // opacity and shadow apply to the whole photo, as the Android twin
+        // draws an element in one layer: a see-through photo never shows
+        // its own solid outline through it, nor shades its edge.
+        .compositingGroup()
     }
 
     private var frame: FrameShape {
