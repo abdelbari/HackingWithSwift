@@ -194,6 +194,19 @@ final class SettingsAndBackupTests: XCTestCase {
         XCTAssertTrue(text.hasSuffix(#""ext":"mov"}}}"#))
     }
 
+    /// What a failed backup or restore says, word for word as the Android
+    /// twin's Backup.backupFailure and restoreFailure say it.
+    func testAFailedBackupOrRestoreSaysWhatTheAndroidTwinSays() {
+        XCTAssertEqual(Backup.backupFailure(ZipStore.ZipError.tooBig),
+                       "Couldn't back up. There is too much to fit in one backup.")
+        XCTAssertEqual(Backup.backupFailure(CocoaError(.fileWriteOutOfSpace)), "Couldn't back up.")
+        XCTAssertEqual(Backup.restoreFailure(Backup.BackupError.notABackup), "This file is not a Canvia backup.")
+        XCTAssertEqual(Backup.restoreFailure(ZipStore.ZipError.notAZip), "This file is not a Canvia backup.")
+        XCTAssertEqual(Backup.restoreFailure(Backup.BackupError.newer),
+                       "This backup was made by a newer Canvia. Update Canvia to restore it.")
+        XCTAssertEqual(Backup.restoreFailure(CocoaError(.fileReadNoSuchFile)), "Couldn't restore that backup.")
+    }
+
     func testAStoreZipReadsBackFileForFile() throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).canviabackup")
         defer { try? FileManager.default.removeItem(at: url) }

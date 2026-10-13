@@ -163,6 +163,23 @@ enum Backup {
         return text
     }
 
+    /// What a backup that failed says, as the Android twin says it: that
+    /// there is too much for one file, when that is why; otherwise only that
+    /// it failed.
+    static func backupFailure(_ error: Error) -> String {
+        let failed = "Couldn't back up."
+        guard let zip = error as? ZipStore.ZipError, case .tooBig = zip else { return failed }
+        return "\(failed) \(zip.localizedDescription)"
+    }
+
+    /// What a restore that failed says, as the Android twin says it: why,
+    /// when the file is not a backup this build reads; otherwise only that
+    /// it failed.
+    static func restoreFailure(_ error: Error) -> String {
+        if error is BackupError || error is ZipStore.ZipError { return error.localizedDescription }
+        return "Couldn't restore that backup."
+    }
+
     /// "Canvia backup 2026-10-13.canviabackup".
     static func fileName(_ date: Date) -> String {
         let f = DateFormatter()

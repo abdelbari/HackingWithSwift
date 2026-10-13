@@ -278,7 +278,7 @@ struct SettingsSheet: View {
             } catch is CancellationError {
                 // Given up on: nothing to say.
             } catch {
-                outcome = "Couldn't make the backup. \(error.localizedDescription)"
+                outcome = Backup.backupFailure(error)
             }
         }
     }
@@ -298,7 +298,7 @@ struct SettingsSheet: View {
             } catch is CancellationError {
                 await measure()
             } catch {
-                outcome = error.localizedDescription
+                outcome = Backup.restoreFailure(error)
             }
         }
     }
