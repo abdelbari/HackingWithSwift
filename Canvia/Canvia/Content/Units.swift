@@ -103,14 +103,15 @@ extension Design {
     /// The unit the design is read in, when it is a physical one.
     var physicalUnit: String? { Units.isPhysical(unit) ? unit : nil }
 
-    /// What its pixels are at: its own dpi, else 96.
+    /// What its pixels are at: its own dpi; else 300 for a design in a
+    /// physical unit, as a size typed in one is made, and 96 in pixels.
     var effectiveDPI: Double {
-        guard let dpi, dpi > 0, dpi.isFinite else { return Units.screenDPI }
-        return dpi
+        if let dpi, dpi > 0, dpi.isFinite { return dpi }
+        return physicalUnit != nil ? Units.printDPI : Units.screenDPI
     }
 
     /// PDF points per page pixel — 72 / dpi — for every PDF and print path.
-    var pointsPerPixel: Double { Units.pointsPerPixel(dpi: dpi) }
+    var pointsPerPixel: Double { Units.pointsPerPixel(dpi: effectiveDPI) }
 
     /// A size of this design, in its own unit: "210 × 297 mm" or
     /// "1080 × 1920".

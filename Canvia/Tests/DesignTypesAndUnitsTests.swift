@@ -16,7 +16,7 @@ final class DesignTypesAndUnitsTests: XCTestCase {
         super.tearDown()
     }
 
-    private func type(_ id: String) throws -> SizePreset {
+    private func designType(_ id: String) throws -> SizePreset {
         try XCTUnwrap(SizePreset.byId(id), "no design type \(id)")
     }
 
@@ -59,25 +59,25 @@ final class DesignTypesAndUnitsTests: XCTestCase {
             ("postcard", 1800, 1200), ("certificate", 3300, 2550),
         ]
         for (id, w, h) in rows {
-            let t = try type(id)
+            let t = try designType(id)
             XCTAssertEqual(t.w, w, id)
             XCTAssertEqual(t.h, h, id)
         }
-        let a4 = try type("a4")
+        let a4 = try designType("a4")
         XCTAssertEqual(a4.unit, "mm")
         XCTAssertEqual(a4.dpi, 300)
         XCTAssertEqual(a4.dimensions, "210 × 297 mm")
-        XCTAssertEqual(try type("business-card").dimensions, "3.5 × 2 in")
-        XCTAssertEqual(try type("poster").dpi, 96, "existing poster files unchanged")
-        XCTAssertNil(try type("insta-post").unit)
-        XCTAssertNil(try type("insta-post").dpi)
-        XCTAssertEqual(try type("insta-post").dimensions, "1080 × 1080")
+        XCTAssertEqual(try designType("business-card").dimensions, "3.5 × 2 in")
+        XCTAssertEqual(try designType("poster").dpi, 96, "existing poster files unchanged")
+        XCTAssertNil(try designType("insta-post").unit)
+        XCTAssertNil(try designType("insta-post").dpi)
+        XCTAssertEqual(try designType("insta-post").dimensions, "1080 × 1080")
     }
 
     /// The A5 flyer's templates were made at 1240 × 1748, and are still its
     /// own, fitted to the true A5 page.
     func testTheFlyerKeepsItsTemplatesFittedToA5() throws {
-        let flyer = try type("flyer")
+        let flyer = try designType("flyer")
         let bucket = ContentLibrary.sizedTemplates(for: flyer)
         XCTAssertGreaterThanOrEqual(bucket.count, 3)
         let template = try XCTUnwrap(bucket.first)
@@ -163,16 +163,22 @@ final class DesignTypesAndUnitsTests: XCTestCase {
         let plain = Design(title: "p", width: 960, height: 480)
         XCTAssertEqual(PrintLayout.pxToPt(plain), 0.75)
         XCTAssertEqual(PrintLayout.pagePoints(design: plain, bleed: 0), CGSize(width: 720, height: 360))
-        let a4 = try type("a4").makeDesign()
+        let a4 = try designType("a4").makeDesign()
         let pts = PrintLayout.pagePoints(design: a4, bleed: 0)
         XCTAssertEqual(pts.width, 595, accuracy: 1)
         XCTAssertEqual(pts.height, 842, accuracy: 1)
+        // A physical unit with no dpi written is at 300, as one typed is.
+        var bare = Design(title: "mm", width: 2480, height: 3508)
+        bare.unit = "mm"
+        XCTAssertEqual(bare.effectiveDPI, 300)
+        XCTAssertEqual(PrintLayout.pxToPt(bare), 0.24, accuracy: 1e-12)
+        XCTAssertEqual(bare.sizeReadout, "210 × 297 mm")
     }
 
     /// The A4 type comes out as an A4 PDF page.
     @MainActor
     func testTheA4TypeGivesAnA4PDFPage() async throws {
-        var a4 = try type("a4").makeDesign()
+        var a4 = try designType("a4").makeDesign()
         a4.pages[0].elements = [.shape("rect", w: 400, h: 400)]
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("a4-\(UUID()).pdf")
         written.append(url)
@@ -184,7 +190,7 @@ final class DesignTypesAndUnitsTests: XCTestCase {
 
     /// Fit or actual size on A4 paper prints at the true size.
     func testActualSizeFitsOnTheSheet() throws {
-        let a4 = try type("a4").makeDesign()
+        let a4 = try designType("a4").makeDesign()
         var options = PrintLayout.Options()
         options.fit = .actual
         options.margin = 0
@@ -196,7 +202,7 @@ final class DesignTypesAndUnitsTests: XCTestCase {
 
     /// A picture says its dpi when the design has one, and nothing when not.
     func testAPictureSaysTheDesignsDPI() throws {
-        let a4 = try type("a4").makeDesign()
+        let a4 = try designType("a4").makeDesign()
         XCTAssertEqual(DesignExporter.imageDPI(design: a4, page: a4.pages[0], requested: 1), 300)
         let post = Design(title: "p", width: 1080, height: 1080)
         XCTAssertNil(DesignExporter.imageDPI(design: post, page: post.pages[0], requested: 2))
@@ -211,7 +217,7 @@ final class DesignTypesAndUnitsTests: XCTestCase {
         XCTAssertNil(plain?["unit"])
         XCTAssertNil(plain?["dpi"])
 
-        let a4 = try type("a4").makeDesign()
+        let a4 = try designType("a4").makeDesign()
         let data = try JSONEncoder().encode(a4)
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         XCTAssertEqual(json?["unit"] as? String, "mm")
@@ -256,7 +262,7 @@ final class DesignTypesAndUnitsTests: XCTestCase {
     /// Resizing to a type in place takes its unit in the same step.
     func testResizingToATypeTakesItsUnit() throws {
         let store = DesignStore(design: Design(title: "p", width: 1080, height: 1080))
-        let a4 = try type("a4")
+        let a4 = try designType("a4")
         store.magicResize(width: a4.w, height: a4.h, units: UnitChoice(unit: a4.unit, dpi: a4.dpi))
         XCTAssertEqual(store.design.width, 2480)
         XCTAssertEqual(store.design.unit, "mm")

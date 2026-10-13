@@ -1448,11 +1448,9 @@ struct ResizeSheet: View {
             .navigationTitle(copying ? "Copy & resize" : "Resize design")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
-                // In the design's own unit, as the readout says it.
-                let u = store.design.physicalUnit ?? "px"
-                unit = u
-                customW = CustomSizes.convert(String(Int(store.pageWidth)), from: "px", to: u)
-                customH = CustomSizes.convert(String(Int(store.pageHeight)), from: "px", to: u)
+                // In pixels; the unit picker rewrites them in another unit.
+                customW = String(Int(store.pageWidth))
+                customH = String(Int(store.pageHeight))
             }
         }
         .presentationDetents(sheetDetents)

@@ -254,8 +254,8 @@ enum DesignExporter {
     /// the scale it renders at — its true size whatever the scale — or nil
     /// for a design with none.
     static func imageDPI(design: Design, page: Page, requested: Double) -> Double? {
-        guard let dpi = design.dpi else { return nil }
-        return dpi * effectiveScale(size: design.size(for: page), requested: requested)
+        guard design.dpi != nil || design.physicalUnit != nil else { return nil }
+        return design.effectiveDPI * effectiveScale(size: design.size(for: page), requested: requested)
     }
 
     @MainActor
