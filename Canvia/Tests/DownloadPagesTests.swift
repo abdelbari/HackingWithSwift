@@ -62,6 +62,20 @@ final class DownloadPagesTests: XCTestCase {
         XCTAssertEqual(ExportChoices.chosen(for: design([false])).count, 1, "another design starts afresh")
     }
 
+    /// A one-page design is that page, even hidden or with nothing ticked;
+    /// more pages keep the choice as made.
+    func testAOnePageDesignIsThatPage() {
+        let lone = design([true])
+        for picked in [DesignExporter.PageRange.all, .current, .chosen([])] {
+            let taken = ExportChoices.exportRange(picked, in: lone)
+            XCTAssertEqual(taken, .current)
+            XCTAssertEqual(taken.indices(in: lone, current: 0), [0])
+        }
+        let deck = design([false, true, false])
+        XCTAssertEqual(ExportChoices.exportRange(.all, in: deck), .all)
+        XCTAssertEqual(ExportChoices.exportRange(.chosen([]), in: deck), .chosen([]))
+    }
+
     func testTheRowsSayHowManyOfHowMany() {
         XCTAssertEqual(ExportChoices.countText(3, of: 8), "3 of 8 pages")
         XCTAssertEqual(ExportChoices.countText(1, of: 8), "1 of 8 pages")
@@ -117,8 +131,14 @@ final class DownloadPagesTests: XCTestCase {
         let post = Design(title: "p", width: 1080, height: 1080)
         XCTAssertEqual(MovieExporter.videoSize(for: post, maxEdge: MovieExporter.Resolution.uhd.maxEdge),
                        CGSize(width: 1080, height: 1080), "never enlarged")
-        XCTAssertTrue(MovieExporter.resolutions.contains(.fullHD))
-        XCTAssertEqual(MovieExporter.resolutions.contains(.uhd), MovieExporter.supports4K)
+        XCTAssertTrue(MovieExporter.resolutions(for: deck).contains(.fullHD))
+        XCTAssertEqual(MovieExporter.resolutions(for: deck).contains(.uhd), MovieExporter.supports4K(for: deck))
+        // 4K is asked of the design's own size: a tall A3 poster is 2716 × 3840.
+        let a3 = Design(title: "a3", width: 3508, height: 4961)
+        XCTAssertEqual(MovieExporter.videoSize(for: a3, maxEdge: MovieExporter.Resolution.uhd.maxEdge),
+                       CGSize(width: 2716, height: 3840))
+        XCTAssertEqual(MovieExporter.supports4K(for: a3),
+                       MovieExporter.encoderTakes(CGSize(width: 2716, height: 3840)))
     }
 
     // MARK: every format follows the pages

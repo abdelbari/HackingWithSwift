@@ -169,22 +169,51 @@ enum MovieExporter {
         static let standard = Resolution.fullHD
     }
 
-    /// Whether this phone's encoder takes a 4K H.264 video; 4K is offered
-    /// only then.
-    static let supports4K: Bool = {
-        let probe = FileManager.default.temporaryDirectory.appendingPathComponent("canvia-4k-probe.mp4")
-        try? FileManager.default.removeItem(at: probe)
-        guard let writer = try? AVAssetWriter(outputURL: probe, fileType: .mp4) else { return false }
-        return writer.canApply(outputSettings: [
-            AVVideoCodecKey: AVVideoCodecType.h264,
-            AVVideoWidthKey: 3840,
-            AVVideoHeightKey: 2160,
-        ], forMediaType: .video)
-    }()
+    /// Whether this phone's encoder takes `design` as a 4K H.264 video —
+    /// its own size fitted under 3840, a tall print page as well as a wide
+    /// one — as the Android twin asks its encoder of each design. 4K is
+    /// offered only then.
+    static func supports4K(for design: Design) -> Bool {
+        encoderTakes(videoSize(for: design, maxEdge: Resolution.uhd.maxEdge))
+    }
 
-    /// The resolutions this phone can make.
-    static var resolutions: [Resolution] {
-        Resolution.allCases.filter { $0 != .uhd || supports4K }
+    /// The resolutions this phone can make of `design`.
+    static func resolutions(for design: Design) -> [Resolution] {
+        Resolution.allCases.filter { $0 != .uhd || supports4K(for: design) }
+    }
+
+    private static let probeLock = NSLock()
+    private static var probed: [String: Bool] = [:]
+
+    /// Whether the H.264 encoder takes a video of `size`: the settings and
+    /// an input for them, asked of a writer that never starts. Asked once
+    /// per size.
+    static func encoderTakes(_ size: CGSize) -> Bool {
+        let key = "\(Int(size.width))x\(Int(size.height))"
+        probeLock.lock()
+        defer { probeLock.unlock() }
+        if let known = probed[key] { return known }
+        let probe = FileManager.default.temporaryDirectory
+            .appendingPathComponent("canvia-size-probe-\(UUID().uuidString).mp4")
+        defer { try? FileManager.default.removeItem(at: probe) }
+        var takes = false
+        if let writer = try? AVAssetWriter(outputURL: probe, fileType: .mp4) {
+            let settings = videoSettings(size)
+            if writer.canApply(outputSettings: settings, forMediaType: .video) {
+                takes = writer.canAdd(AVAssetWriterInput(mediaType: .video, outputSettings: settings))
+            }
+        }
+        probed[key] = takes
+        return takes
+    }
+
+    /// The H.264 settings for a video of `size`.
+    static func videoSettings(_ size: CGSize) -> [String: Any] {
+        [
+            AVVideoCodecKey: AVVideoCodecType.h264,
+            AVVideoWidthKey: Int(size.width),
+            AVVideoHeightKey: Int(size.height),
+        ]
     }
 
     /// The page a frame belongs to, and how far through it.
@@ -426,9 +455,10 @@ enum MovieExporter {
         var musicLost = false
     }
 
-    /// Progress is reported as a fraction of frames written, from the writer's
-    /// own queue. Cancelling the surrounding task stops the writer at the next
-    /// frame, discards the partial file and throws CancellationError.
+    /// Progress is reported as a fraction of frames written. Frames are drawn
+    /// and handed to the writer here on the main actor, one at a time;
+    /// cancelling the surrounding task stops at the next frame, discards
+    /// the partial file and throws CancellationError.
     ///
     /// Returns whether sound — the soundtrack, or a clip's own — was meant
     /// to go under the picture and could not be mixed in: the picture is
@@ -440,95 +470,87 @@ enum MovieExporter {
                           range: DesignExporter.PageRange = .all, current: Int = 0, to url: URL,
                           progress: (@Sendable (Double) -> Void)? = nil) async throws -> Outcome {
         try? FileManager.default.removeItem(at: url)
-        let size = videoSize(for: design, maxEdge: settings.maxEdge)
+        var size = videoSize(for: design, maxEdge: settings.maxEdge)
         var pacer = DesignExporter.Pacer()
         // The pages Present shows: hidden ones are left out of the video,
         // and so of the length its music is fitted to, and their clips out
         // of its sound. Or the pages chosen in Export, in order.
         let shown = playedPages(design: design, range: range, current: current)
-        let pages = try await pageImages(design: design, pages: shown, size: size, pacer: &pacer)
+        var pages = try await pageImages(design: design, pages: shown, size: size, pacer: &pacer)
         guard !pages.isEmpty else { throw MovieError.nothingToRender }
 
         let timings = timeline(design: design, pages: shown, settings: settings)
         let total = timings.last?.end ?? 1
-        // Animated pages are rendered ahead, one bitmap per frame, since the
-        // writer callback runs off the main actor where SwiftUI cannot draw
-        // — before the writer opens, so a Cancel meanwhile leaves no file to
-        // clean up, and counted in the progress, which sat at 0% through it.
-        let ahead = Double(animatedFrameCount(design: design, pages: shown, timings: timings))
-        let share = ahead / (ahead + Double(total))
-        let frames = try await animatedFrames(design: design, pages: shown, size: size, settings: settings,
-                                              timings: timings, pacer: &pacer,
-                                              progress: { progress?(share * $0) })
 
-        let writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
-        let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
-            AVVideoCodecKey: AVVideoCodecType.h264,
-            AVVideoWidthKey: Int(size.width),
-            AVVideoHeightKey: Int(size.height),
-        ])
-        input.expectsMediaDataInRealTime = false
-        let adaptor = AVAssetWriterInputPixelBufferAdaptor(
-            assetWriterInput: input,
-            sourcePixelBufferAttributes: [
-                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
-                kCVPixelBufferWidthKey as String: Int(size.width),
-                kCVPixelBufferHeightKey as String: Int(size.height),
-            ])
-        guard writer.canAdd(input) else { throw MovieError.writerFailed("the encoder refused the input") }
-        writer.add(input)
-        guard writer.startWriting() else {
-            throw MovieError.writerFailed(writer.error?.localizedDescription ?? "it would not start")
+        // Opened once the page bitmaps are drawn, so a Cancel meanwhile
+        // leaves no file to clean up. An encoder that will not take the
+        // design at 4K after all makes it at 1080p rather than nothing, as
+        // the Android twin steps down.
+        let opened: OpenWriter
+        do {
+            opened = try openWriter(url: url, size: size)
+        } catch where settings.maxEdge > Resolution.fullHD.maxEdge {
+            size = videoSize(for: design, maxEdge: Resolution.fullHD.maxEdge)
+            pages = try await pageImages(design: design, pages: shown, size: size, pacer: &pacer)
+            opened = try openWriter(url: url, size: size)
         }
-        writer.startSession(atSourceTime: .zero)
+        let writer = opened.writer
+        let input = opened.input
+        let adaptor = opened.adaptor
+        let frameSize = size
+        let stills = pages
 
-        let state = WriteState()
-        let queue = DispatchQueue(label: "canvia.movie.write")
+        // An animated page is drawn as each of its frames is written, here
+        // on the main actor where SwiftUI draws, so only one frame of it is
+        // held at a time: rendered all ahead, a 4K A4 page ran to gigabytes.
+        // Each place keeps its last frame, so a page coming in under a
+        // transition is drawn once rather than for every frame of it.
+        let fps = Double(max(settings.fps, 1))
+        let moving = Set(timings.indices.filter { $0 < shown.count && isAnimated(design.pages[shown[$0]], in: design) })
+        var recent: [Int: (frame: Int, image: CGImage)] = [:]
+        var animated: ((Int, Double, Double) -> CGImage?)?
+        if !moving.isEmpty {
+            animated = { (place: Int, seconds: Double, _: Double) -> CGImage? in
+                guard moving.contains(place) else { return nil }
+                let timing = timings[place]
+                let f = min(max(Int((seconds * fps).rounded()), 0), max(timing.frames - 1, 0))
+                if let kept = recent[place], kept.frame == f { return kept.image }
+                guard let image = animatedFrame(design: design, page: shown[place], time: Double(f) / fps,
+                                                hold: Double(timing.frames) / fps, size: frameSize) else { return nil }
+                recent = recent.filter { abs($0.key - place) <= 1 }
+                recent[place] = (frame: f, image: image)
+                return image
+            }
+        }
+        let drawsMoving = animated
 
         do {
-        try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            input.requestMediaDataWhenReady(on: queue) {
-                while input.isReadyForMoreMediaData {
-                    guard !state.finished else { return }
-                    if state.cancelled {
-                        state.finished = true
-                        continuation.resume(throwing: CancellationError())
-                        return
+            for index in 0..<total {
+                // Between frames, not mid-frame, so the sheet stays live and
+                // a Cancel lands before the next one.
+                try await pacer.breathe()
+                while !input.isReadyForMoreMediaData {
+                    // A writer that has failed is never ready again.
+                    guard writer.status == .writing else {
+                        throw MovieError.writerFailed(writer.error?.localizedDescription ?? "the writer stopped early")
                     }
-                    if state.index >= total {
-                        state.finished = true
-                        input.markAsFinished()
-                        continuation.resume()
-                        return
-                    }
-                    guard let pool = adaptor.pixelBufferPool,
-                          let buffer = makeBuffer(from: pool) else {
-                        state.finished = true
-                        continuation.resume(throwing: MovieError.writerFailed("no pixel buffer"))
-                        return
-                    }
-                    fill(buffer, frame: state.index, pages: pages, size: size, settings: settings,
-                         timings: timings, animated: frames)
-                    let time = CMTime(value: CMTimeValue(state.index),
-                                      timescale: CMTimeScale(settings.fps))
-                    guard adaptor.append(buffer, withPresentationTime: time) else {
-                        state.finished = true
-                        let why = writer.error?.localizedDescription ?? "a frame was rejected"
-                        continuation.resume(throwing: MovieError.writerFailed(why))
-                        return
-                    }
-                    state.index += 1
-                    progress?(share + (1 - share) * Double(state.index) / Double(total))
+                    try await Task.sleep(nanoseconds: 2_000_000)
                 }
+                guard let pool = adaptor.pixelBufferPool,
+                      let buffer = makeBuffer(from: pool) else {
+                    throw MovieError.writerFailed("no pixel buffer")
+                }
+                autoreleasepool {
+                    fill(buffer, frame: index, pages: stills, size: frameSize, settings: settings,
+                         timings: timings, animated: drawsMoving)
+                }
+                let time = CMTime(value: CMTimeValue(index), timescale: CMTimeScale(settings.fps))
+                guard adaptor.append(buffer, withPresentationTime: time) else {
+                    throw MovieError.writerFailed(writer.error?.localizedDescription ?? "a frame was rejected")
+                }
+                progress?(Double(index + 1) / Double(total))
             }
-            }
-        } onCancel: {
-            // Seen by the writer callback on its next frame; the callback is
-            // the one that resumes, so the continuation is never resumed
-            // twice.
-            state.cancelled = true
-        }
+            input.markAsFinished()
         } catch {
             // Cancelled or failed: either way a partial MP4 is worse than
             // none, because it opens and plays and stops early.
@@ -604,16 +626,41 @@ enum MovieExporter {
         return (segments, sources, lost)
     }
 
-    /// Mutable state shared with the writer's callback, which is invoked
-    /// repeatedly and must resume its continuation exactly once.
-    ///
-    /// Unchecked because every access is on the writer's serial queue, except
-    /// the cancel flag, which is a single Bool store that the next callback
-    /// iteration reads — a stale read costs one more frame, never a crash.
-    private final class WriteState: @unchecked Sendable {
-        var index = 0
-        var finished = false
-        var cancelled = false
+    /// A writer started on a video of one size, its input and the adaptor
+    /// frames are handed to.
+    private struct OpenWriter {
+        let writer: AVAssetWriter
+        let input: AVAssetWriterInput
+        let adaptor: AVAssetWriterInputPixelBufferAdaptor
+    }
+
+    /// An H.264 writer at `url` for a video of `size`, started; throws when
+    /// the encoder will not take that size, leaving no file.
+    private static func openWriter(url: URL, size: CGSize) throws -> OpenWriter {
+        try? FileManager.default.removeItem(at: url)
+        let writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
+        let settings = videoSettings(size)
+        guard writer.canApply(outputSettings: settings, forMediaType: .video) else {
+            throw MovieError.writerFailed("the encoder refused the size")
+        }
+        let input = AVAssetWriterInput(mediaType: .video, outputSettings: settings)
+        input.expectsMediaDataInRealTime = false
+        let adaptor = AVAssetWriterInputPixelBufferAdaptor(
+            assetWriterInput: input,
+            sourcePixelBufferAttributes: [
+                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+                kCVPixelBufferWidthKey as String: Int(size.width),
+                kCVPixelBufferHeightKey as String: Int(size.height),
+            ])
+        guard writer.canAdd(input) else { throw MovieError.writerFailed("the encoder refused the input") }
+        writer.add(input)
+        guard writer.startWriting() else {
+            let why = writer.error?.localizedDescription ?? "it would not start"
+            try? FileManager.default.removeItem(at: url)
+            throw MovieError.writerFailed(why)
+        }
+        writer.startSession(atSourceTime: .zero)
+        return OpenWriter(writer: writer, input: input, adaptor: adaptor)
     }
 
     private static func makeBuffer(from pool: CVPixelBufferPool) -> CVPixelBuffer? {

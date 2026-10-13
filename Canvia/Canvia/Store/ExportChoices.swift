@@ -36,6 +36,13 @@ enum ExportChoices {
         return design.pages.map(\.id).filter { picked.contains($0) }
     }
 
+    /// The range as an export takes it: a one-page design has no Pages row
+    /// to change it, so it is that page — even hidden, or with nothing
+    /// ticked — as the Android twin's ExportPlan.pagesFor has it.
+    static func exportRange(_ range: DesignExporter.PageRange, in design: Design) -> DesignExporter.PageRange {
+        design.pages.count == 1 ? .current : range
+    }
+
     /// "3 of 8 pages", as the rows say a choice.
     static func countText(_ chosen: Int, of total: Int) -> String {
         "\(chosen) of \(total) \(total == 1 ? "page" : "pages")"
