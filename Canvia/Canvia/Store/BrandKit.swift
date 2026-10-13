@@ -73,10 +73,11 @@ struct BrandFonts: Codable, Equatable {
         }
 
         /// Its size as a fraction of the page's width, when the kit gives
-        /// none: the three Add text has always had, and the rest beside them.
+        /// none: the three Add text has always had, and the rest beside them
+        /// — the Android twin's BrandRoles.share, number for number.
         var widthFraction: Double {
             switch self {
-            case .title: return 0.1
+            case .title: return 0.11
             case .heading: return 0.08
             case .subheading: return 0.045
             case .body: return 0.028
@@ -85,11 +86,12 @@ struct BrandFonts: Codable, Equatable {
             }
         }
 
-        /// Its weight when the kit sets no face for it.
+        /// Its weight when the kit sets no face for it: a title and a
+        /// heading bold, a subheading semibold, the rest regular, as on the
+        /// Android twin.
         var defaultWeight: Int {
             switch self {
-            case .title: return 800
-            case .heading: return 700
+            case .title, .heading: return 700
             case .subheading: return 600
             default: return 400
             }
@@ -133,12 +135,29 @@ struct BrandFonts: Codable, Equatable {
     /// 1080 wide, else the role's own size and weight in the default face.
     /// Sizes are whole numbers; the box is 72% of the page wide.
     static func element(_ role: Role, face: BrandFont?, pageWidth: Double) -> Element {
-        let size = face?.size.map { $0 * pageWidth / 1080 } ?? pageWidth * role.widthFraction
-        var el = Element.text(role.addLabel, fontSize: size.rounded(), w: (pageWidth * 0.72).rounded())
+        let size = sized(face, pageWidth: pageWidth) ?? (pageWidth * role.widthFraction).rounded()
+        var el = Element.text(role.addLabel, fontSize: size, w: (pageWidth * 0.72).rounded())
         el.fontWeight = face?.weight ?? role.defaultWeight
         if let face { el.fontFamily = face.family }
         el.h = FontLibrary.layoutHeight(for: el)
         return el
+    }
+
+    /// The kit's size for a role, set on a page 1080 wide, on a page
+    /// `pageWidth` wide, whole; nil when the kit sets none.
+    static func sized(_ face: BrandFont?, pageWidth: Double) -> Double? {
+        face?.size.map { ($0 * pageWidth / 1080).rounded() }
+    }
+
+    /// A text set in a role's face — the Styles list's brand rows: its
+    /// family and weight, and the kit's size for the role, scaled as
+    /// `element` scales it, when it sets one. Anything but text is left
+    /// alone; the caller measures the height again.
+    static func apply(_ face: BrandFont, to el: inout Element, pageWidth: Double) {
+        guard el.type == .text else { return }
+        el.fontFamily = face.family
+        el.fontWeight = face.weight
+        if let size = sized(face, pageWidth: pageWidth) { el.fontSize = size }
     }
 
     /// The roles a theme sets by size rank, largest first: those with a face
@@ -285,14 +304,18 @@ struct BrandKits: Codable, Equatable {
     }
 
     /// An earlier build's brandkit.json as kit 1, "My brand", active: its
-    /// colours the palette "Colours" (no palette when it had none), its
-    /// heading and body faces those roles at the weights it kept, and its
-    /// logos. Nil when the data is not that file.
+    /// colours the palette "Colours" (no palette when it had none) — each
+    /// written one way, lower case, once, at most `limit`, as the Android
+    /// twin migrates them — its heading and body faces those roles at the
+    /// weights it kept, and its logos. Nil when the data is not that file.
     static func migrated(_ data: Data) -> BrandKits? {
         guard let old = try? JSONDecoder().decode(LegacyKit.self, from: data) else { return nil }
         var kit = BrandKit(id: BrandKit.firstId, name: BrandKit.firstName)
-        let colors = old.colors ?? []
-        if !colors.isEmpty { kit.palettes = [BrandPalette(name: BrandKit.firstPaletteName, colors: colors)] }
+        var seen = Set<String>()
+        let colors = (old.colors ?? []).map(RecentColors.normalise)
+            .filter { !$0.isEmpty && seen.insert($0).inserted }
+            .prefix(BrandKit.limit)
+        if !colors.isEmpty { kit.palettes = [BrandPalette(name: BrandKit.firstPaletteName, colors: Array(colors))] }
         kit.fonts.heading = old.headingFamily.map { BrandFont(family: $0, weight: old.headingWeight ?? 700) }
         kit.fonts.body = old.bodyFamily.map { BrandFont(family: $0, weight: old.bodyWeight ?? 400) }
         kit.logos = old.logos ?? []

@@ -1790,6 +1790,14 @@ final class DesignStore {
         updateSelected { el in TextStyles.apply(style, to: &el) }
     }
 
+    /// The selected text in a brand role's face — at the kit's size for
+    /// it, scaled to this page, when it sets one — one undo step, each box
+    /// measured again, as the Android twin's Text panel sets it.
+    func applyBrandFace(_ face: BrandFont) {
+        let width = pageWidth
+        updateSelected { el in BrandFonts.apply(face, to: &el, pageWidth: width) }
+    }
+
     /// Re-read the style from `element` and re-apply it to every element on
     /// every page that follows it — the linked half of a linked style.
     func updateTextStyle(_ id: String, from element: Element) {

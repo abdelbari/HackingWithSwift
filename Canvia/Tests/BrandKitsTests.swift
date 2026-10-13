@@ -1,6 +1,7 @@
 // Brand kit v2: several kits in brandkits.json, named palettes, a face per
 // text role, the single kit of earlier builds migrated, and a kit as a file.
-// The fixtures are the Android twin's, byte for byte.
+// The fixtures are the Android twin's BrandKitsTest's, byte for byte, and
+// the size, rank and Add text rows are its rows.
 
 import XCTest
 @testable import Canvia
@@ -9,21 +10,23 @@ final class BrandKitsTests: XCTestCase {
 
     /// brandkits.json as both phones write it: keys sorted, a role left
     /// unset not written, a size only where one is set.
-    static let fixture = ##"{"activeId":"kit-2","kits":[{"fonts":{"body":{"family":"lora","weight":400},"heading":{"family":"playfair-display","weight":700}},"id":"kit-1","logos":["media:img_logo"],"name":"My brand","palettes":[{"colors":["#1f2430","#ff6b6b"],"name":"Colours"}]},{"fonts":{"caption":{"family":"lora","weight":400},"title":{"family":"anton","size":120,"weight":400}},"id":"kit-2","logos":[],"name":"Autumn","palettes":[{"colors":["#c2410c","#facc15","#14532d"],"name":"Leaves"},{"colors":["#ffffff"],"name":"Accents"}]}]}"##
+    static let fixture = ##"{"activeId":"kit-2","kits":[{"fonts":{"body":{"family":"serif","weight":400},"heading":{"family":"impact","weight":800}},"id":"kit-1","logos":["media:img-1"],"name":"My brand","palettes":[{"colors":["#112233","#e94560"],"name":"Colours"}]},{"fonts":{"caption":{"family":"mono","weight":400},"title":{"family":"didone","size":120,"weight":700}},"id":"kit-2","logos":[],"name":"Autumn","palettes":[{"colors":["#5c3d2e"],"name":"Primary"},{"colors":["#e0824b","#f2d8c2"],"name":"Accents"}]}]}"##
 
-    /// The single kit an earlier build kept in brandkit.json.
-    static let legacy = ##"{"bodyFamily":"lora","bodyWeight":400,"colors":["#ff0000","#00ff00"],"headingFamily":"anton","headingWeight":800,"logos":["media:img_a"]}"##
+    /// The single kit an earlier build kept in brandkit.json, as both
+    /// phones wrote it.
+    static let legacy = ##"{"bodyFamily":"serif","bodyWeight":400,"colors":["#E94560","#1a1a2e"],"headingFamily":"impact","headingWeight":800,"logos":["media:img-1"]}"##
 
     func testTheKitsFileReadsAndWritesAsBothPhonesDo() throws {
         let kits = try XCTUnwrap(BrandKits.read(Data(Self.fixture.utf8)))
         XCTAssertEqual(kits.kits.map(\.name), ["My brand", "Autumn"])
         XCTAssertEqual(kits.active.id, "kit-2")
-        XCTAssertEqual(kits.active.palettes.map(\.name), ["Leaves", "Accents"])
-        XCTAssertEqual(kits.active.fonts.title, BrandFont(family: "anton", weight: 400, size: 120))
+        XCTAssertEqual(kits.active.palettes.map(\.name), ["Primary", "Accents"])
+        XCTAssertEqual(kits.active.fonts.title, BrandFont(family: "didone", weight: 700, size: 120))
         XCTAssertNil(kits.active.fonts.heading)
-        XCTAssertEqual(kits.active.colors, ["#c2410c", "#facc15", "#14532d", "#ffffff"])
-        XCTAssertEqual(kits.active.themePalettes.map(\.name), ["Leaves"], "a palette of one is no theme")
-        XCTAssertEqual(kits.allLogos, ["media:img_logo"])
+        XCTAssertEqual(kits.kits[0].fonts.heading, BrandFont(family: "impact", weight: 800))
+        XCTAssertEqual(kits.active.colors, ["#5c3d2e", "#e0824b", "#f2d8c2"])
+        XCTAssertEqual(kits.active.themePalettes.map(\.name), ["Accents"], "a palette of one is no theme")
+        XCTAssertEqual(kits.allLogos, ["media:img-1"])
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
@@ -37,11 +40,12 @@ final class BrandKitsTests: XCTestCase {
         let kit = kits.kits[0]
         XCTAssertEqual(kit.id, "kit-1")
         XCTAssertEqual(kit.name, "My brand")
-        XCTAssertEqual(kit.palettes, [BrandPalette(name: "Colours", colors: ["#ff0000", "#00ff00"])])
-        XCTAssertEqual(kit.fonts.heading, BrandFont(family: "anton", weight: 800))
-        XCTAssertEqual(kit.fonts.body, BrandFont(family: "lora", weight: 400))
+        XCTAssertEqual(kit.palettes, [BrandPalette(name: "Colours", colors: ["#e94560", "#1a1a2e"])],
+                       "each colour written one way, as the Android twin migrates it")
+        XCTAssertEqual(kit.fonts.heading, BrandFont(family: "impact", weight: 800))
+        XCTAssertEqual(kit.fonts.body, BrandFont(family: "serif", weight: 400))
         XCTAssertNil(kit.fonts.title)
-        XCTAssertEqual(kit.logos, ["media:img_a"])
+        XCTAssertEqual(kit.logos, ["media:img-1"])
 
         // No colours: no palette; no weights: 700 and 400.
         let bare = try XCTUnwrap(BrandKits.migrated(Data(#"{"headingFamily":"anton","bodyFamily":"lora"}"#.utf8)))
@@ -112,24 +116,56 @@ final class BrandKitsTests: XCTestCase {
     }
 
     func testARoleTextTakesTheKitsFaceAndItsSizeScaledFromTenEighty() {
-        let face = BrandFont(family: "anton", weight: 400, size: 96)
-        let big = BrandFonts.element(.heading, face: face, pageWidth: 2160)
-        XCTAssertEqual(big.text, "Add a heading")
-        XCTAssertEqual(big.fontFamily, "anton")
-        XCTAssertEqual(big.fontWeight, 400)
-        XCTAssertEqual(big.fontSize, 192)
-        XCTAssertEqual(big.w, 1555)
+        // Rows both phones check: role, the kit's size (set on a page 1080
+        // wide, scaled with the page), the page width, the size added.
+        let rows: [(role: BrandFonts.Role, size: Double?, width: Double, expected: Double)] = [
+            (.title, nil, 1080, 119),
+            (.heading, nil, 1080, 86),
+            (.subheading, nil, 1080, 49),
+            (.body, nil, 1080, 30),
+            (.quote, nil, 1080, 43),
+            (.caption, nil, 1080, 24),
+            (.heading, 64, 1080, 64),
+            (.heading, 64, 1920, 114),
+            (.heading, 96, 2160, 192),
+            (.body, nil, 1920, 54),
+        ]
+        for row in rows {
+            let el = BrandFonts.element(row.role, face: BrandFont(family: "serif", weight: 600, size: row.size),
+                                        pageWidth: row.width)
+            XCTAssertEqual(el.fontSize, row.expected, "\(row.role) at \(row.width)")
+            XCTAssertEqual(el.text, row.role.addLabel)
+            XCTAssertEqual(el.fontFamily, "serif")
+            XCTAssertEqual(el.fontWeight, 600)
+            XCTAssertEqual(el.w, (row.width * 0.72).rounded())
+        }
+        XCTAssertEqual(BrandFonts.Role.allCases.map(\.defaultWeight), [700, 700, 600, 400, 400, 400])
 
         // No face: the role's own size and weight, in the default face.
-        let body = BrandFonts.element(.body, face: nil, pageWidth: 1080)
-        XCTAssertEqual(body.fontSize, 30, "0.028 of 1080, whole")
-        XCTAssertEqual(body.fontWeight, 400)
-        XCTAssertEqual(body.fontFamily, Element.text("x").fontFamily)
-        // A face with no size: the role's size, the face's weight.
-        let title = BrandFonts.element(.title, face: BrandFont(family: "lora", weight: 700), pageWidth: 1080)
-        XCTAssertEqual(title.fontSize, 108)
+        let title = BrandFonts.element(.title, face: nil, pageWidth: 1080)
+        XCTAssertEqual(title.fontSize, 119, "0.11 of 1080, whole")
         XCTAssertEqual(title.fontWeight, 700)
-        XCTAssertEqual(BrandFonts.element(.title, face: nil, pageWidth: 1080).fontWeight, 800)
+        XCTAssertEqual(title.fontFamily, Element.text("x").fontFamily)
+    }
+
+    func testABrandStyleSetsTheFaceAndTheSizeOnlyWhenTheKitHasOne() {
+        var text = Element.text("Words", fontSize: 30)
+        text.fontFamily = "sans"
+        text.fontWeight = 400
+        var heading = text
+        BrandFonts.apply(BrandFont(family: "impact", weight: 800), to: &heading, pageWidth: 1080)
+        XCTAssertEqual(heading.fontFamily, "impact")
+        XCTAssertEqual(heading.fontWeight, 800)
+        XCTAssertEqual(heading.fontSize, 30)
+        var sized = text
+        BrandFonts.apply(BrandFont(family: "didone", weight: 700, size: 96), to: &sized, pageWidth: 1080)
+        XCTAssertEqual(sized.fontSize, 96)
+        BrandFonts.apply(BrandFont(family: "didone", weight: 700, size: 96), to: &sized, pageWidth: 2160)
+        XCTAssertEqual(sized.fontSize, 192, "the kit's size scaled with the page, as Add text scales it")
+        let shape = Element.shape("rect")
+        var same = shape
+        BrandFonts.apply(BrandFont(family: "impact"), to: &same, pageWidth: 1080)
+        XCTAssertEqual(same, shape)
     }
 
     /// The theme's rule: sizes, largest first, take the kit's ranked roles
@@ -157,6 +193,11 @@ final class BrandKitsTests: XCTestCase {
         let three = BrandFonts(heading: heading, subheading: sub, body: body)
         XCTAssertEqual(DesignStore.brandFaces(sizes: [18, 96, 24, 48], fonts: three),
                        [96: heading, 48: sub, 24: body, 18: body])
+        // A caption is not a rank: with a heading, every size is the heading's.
+        let impact = BrandFont(family: "impact", weight: 800)
+        XCTAssertEqual(DesignStore.brandFaces(sizes: [96, 24],
+                                              fonts: BrandFonts(heading: impact, caption: BrandFont(family: "mono"))),
+                       [96: impact, 24: impact])
 
         var d = Design(title: "Theme")
         var big = Element.text("Big", fontSize: 96, w: 800)

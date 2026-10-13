@@ -51,12 +51,11 @@ enum UserTemplates {
 
     static let folderName = "templates_user"
     static let indexName = "usertemplates.json"
-    /// Where a template goes when no category is typed.
-    static let defaultCategory = "My templates"
-    /// What Home and the Templates panel head them with, first.
+    /// Where a template goes when no category is typed, as on the Android
+    /// twin.
+    static let defaultCategory = "Personal"
+    /// What Home's chip and section, and the Templates panel, call them.
     static let sectionTitle = "Your templates"
-    /// Home's chip for them.
-    static let chipTitle = "Yours"
 
     static var directory: URL {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -144,7 +143,7 @@ enum UserTemplates {
         return name.isEmpty ? design.title : name
     }
 
-    /// The category typed, trimmed; "My templates" when it is empty.
+    /// The category typed, trimmed; "Personal" when it is empty.
     static func category(_ typed: String) -> String {
         let category = typed.trimmingCharacters(in: .whitespacesAndNewlines)
         return category.isEmpty ? defaultCategory : category
@@ -152,14 +151,15 @@ enum UserTemplates {
 
     /// `design` as the template `id` keeps it: every page, fresh ids
     /// throughout (CopyResize.freshCopy, by Copies' rules), its id the
-    /// template's, its title the template's name, in no folder, made `now`.
+    /// template's, its title the template's name, in no folder, made `now`
+    /// — in whole milliseconds, as the Android twin reads the index.
     static func templateDesign(_ design: Design, id: String, name: String, now: Date = Date()) -> Design {
         var out = CopyResize.freshCopy(of: design)
         out.id = id
         out.title = name
         out.titleAuto = false
         out.folder = nil
-        out.createdAt = now.timeIntervalSince1970 * 1000
+        out.createdAt = (now.timeIntervalSince1970 * 1000).rounded()
         out.updatedAt = out.createdAt
         return out
     }
@@ -265,18 +265,27 @@ enum UserTemplates {
         var design = CopyResize.freshCopy(of: template)
         design.folder = nil
         design.titleAuto = false
-        design.createdAt = now.timeIntervalSince1970 * 1000
+        design.createdAt = (now.timeIntervalSince1970 * 1000).rounded()
         design.updatedAt = design.createdAt
         return design
     }
 
     /// The template's pages as they land on a page `width` × `height` in
-    /// the editor: fresh ids, each scaled to fit and centred, in the size of
-    /// the page they land on rather than one of their own.
+    /// the editor: fresh ids, each scaled to fit and centred by the rules a
+    /// built-in template is fitted by (Template.fitted) — strokes keep
+    /// their width, as on the Android twin — in the size of the page they
+    /// land on rather than one of their own.
     static func pages(of template: Design, width: Double, height: Double) -> [Page] {
         template.pages.indices.map { index in
-            var page = DesignStore.scaledPage(Copies.of(template.pages[index]), from: template.size(at: index),
-                                              to: CGSize(width: width, height: height))
+            var page = Copies.of(template.pages[index])
+            let size = template.size(at: index)
+            let ownWidth = Double(size.width), ownHeight = Double(size.height)
+            if ownWidth > 0, ownHeight > 0 {
+                let scale = min(width / ownWidth, height / ownHeight)
+                let dx = (width - ownWidth * scale) / 2
+                let dy = (height - ownHeight * scale) / 2
+                page.elements = page.elements.map { Template.fitted($0, scale: scale, dx: dx, dy: dy) }
+            }
             page.width = nil
             page.height = nil
             return page

@@ -43,6 +43,11 @@ final class UserTemplatesTests: XCTestCase {
         XCTAssertFalse(t.titleAuto)
         XCTAssertNil(t.folder)
         XCTAssertEqual(t.updatedAt, 1_727_000_000_000)
+        // Whole milliseconds, however finely the clock reads.
+        let fine = UserTemplates.templateDesign(source, id: "tpl_2", name: "Fine",
+                                                now: Date(timeIntervalSince1970: 1_727_000_000.1236))
+        XCTAssertEqual(fine.updatedAt, 1_727_000_000_124)
+        XCTAssertEqual(fine.createdAt, fine.updatedAt)
         XCTAssertEqual(t.pages.count, 3)
         XCTAssertTrue(ids(t).isDisjoint(with: ids(source)), "no id shared with the design")
         XCTAssertEqual(t.masterPageId, t.pages[1].id, "the master follows its page")
@@ -68,7 +73,7 @@ final class UserTemplatesTests: XCTestCase {
         let d = deck()
         XCTAssertEqual(UserTemplates.name("  ", design: d), "Pitch")
         XCTAssertEqual(UserTemplates.name(" Launch ", design: d), "Launch")
-        XCTAssertEqual(UserTemplates.category(""), "My templates")
+        XCTAssertEqual(UserTemplates.category(""), "Personal", "as the Android twin files it")
         XCTAssertEqual(UserTemplates.category(" Decks "), "Decks")
     }
 
@@ -79,8 +84,12 @@ final class UserTemplatesTests: XCTestCase {
         XCTAssertEqual(entries.map(\.id), ["tpl_a", "tpl_b"])
         XCTAssertEqual(entries[0], UserTemplate(id: "tpl_a", name: "Pitch", category: "Decks", width: 1920,
                                                 height: 1080, pageCount: 3, updatedAt: 1_727_000_000_000))
-        XCTAssertEqual(entries[1].category, "My templates")
+        XCTAssertEqual(entries[1].category, "Personal")
         XCTAssertEqual(entries[1].pageCount, 1)
+        // A fraction of a millisecond, as an earlier build wrote it, reads;
+        // the Android twin rounds it to 1727000000001.
+        let fraction = #"[{"category":"Decks","height":1080,"id":"tpl_a","name":"Pitch","pageCount":3,"updatedAt":1727000000000.5,"width":1920}]"#
+        XCTAssertEqual(UserTemplates.read(Data(fraction.utf8)).first?.updatedAt.rounded(), 1_727_000_000_001)
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
@@ -135,6 +144,21 @@ final class UserTemplatesTests: XCTestCase {
         XCTAssertEqual(pages[0].elements[1].w, 100, "halved to fit")
         XCTAssertNil(pages[2].height, "at the size of the page it lands on")
         XCTAssertEqual(pages[2].elements[0].fontSize, 48 * 540 / 1920, "a tall page fitted by its height")
+    }
+
+    /// The row the Android twin's "a template of your own is fitted as a
+    /// built-in one is" checks: a stroke keeps its width, the rounding
+    /// scales with the box.
+    func testATemplateOfYourOwnIsFittedAsABuiltInOneIs() {
+        var card = Element.shape("rect", w: 400, h: 200)
+        card.strokeWidth = 10
+        card.radius = 24
+        var d = Design(title: "Card", width: 1080, height: 1080)
+        d.pages = [Page(elements: [card])]
+        let fitted = UserTemplates.pages(of: d, width: 540, height: 540)[0].elements[0]
+        XCTAssertEqual(fitted.w, 200, accuracy: 0.001)
+        XCTAssertEqual(fitted.strokeWidth, 10)
+        XCTAssertEqual(fitted.radius ?? 0, 12, accuracy: 0.001)
     }
 
     func testApplyingSeveralPagesReplacesThisOneAndAddsTheRestAfterIt() {

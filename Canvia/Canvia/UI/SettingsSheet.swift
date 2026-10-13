@@ -1,6 +1,6 @@
-// Settings: Appearance, Editing, Help, Storage, Backup and About — the same
-// sections, in the same words, as the Android twin's. Opened from Home's
-// gear and the editor's More menu.
+// Settings: Appearance, Editing, Export, Help, Storage, Backup and About —
+// the same sections, in the same words, as the Android twin's. Opened from
+// Home's gear and the editor's More menu.
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -40,21 +40,22 @@ enum Appearance: String, CaseIterable, Identifiable {
 
 /// What Settings sets for new work.
 enum AppDefaults {
-    /// The format Export lists first: "png", "jpg" or "pdf". A picture
-    /// format is also the one its Photos row starts on.
+    /// The picture format Export starts on — its Photos row's, and the
+    /// first of its format rows — unless it remembers the last export:
+    /// "png" or "jpg", as the Android twin's export sheet starts on one.
     static let exportFormatKey = "canvia.defaultExportFormat"
-    static let exportFormats = ["png", "jpg", "pdf"]
+    static let exportFormats = ["png", "jpg"]
 
-    /// "PNG", "JPEG", "PDF".
+    /// "PNG", "JPG", as the Android twin says them.
     static func formatLabel(_ format: String) -> String {
-        format == "jpg" ? "JPEG" : format.uppercased()
+        format.uppercased()
     }
 
-    /// Export's format rows with the default first, the rest in their own
-    /// order; one this build does not know changes nothing.
+    /// Export's format rows with the default picture format first, the
+    /// rest in their own order; any other changes nothing.
     static func formatOrder(_ first: String) -> [String] {
         let rows = ["png", "jpg", "pdf", "svg"]
-        guard rows.contains(first) else { return rows }
+        guard exportFormats.contains(first) else { return rows }
         return [first] + rows.filter { $0 != first }
     }
 
@@ -125,6 +126,7 @@ struct SettingsSheet: View {
             Form {
                 appearanceSection
                 editingSection
+                exportSection
                 helpSection
                 storageSection
                 backupSection
@@ -156,15 +158,12 @@ struct SettingsSheet: View {
 
     private var editingSection: some View {
         Section("Editing") {
-            Toggle("Vibration", isOn: $haptics)
-            Toggle("Quick actions at the selection", isOn: $quickActions)
+            Toggle("Haptics", isOn: $haptics)
             Toggle("Snap to elements", isOn: $snapping.toElements)
             Toggle("Snap to page", isOn: $snapping.toPage)
-            Picker("Custom size unit", selection: $unit) {
+            Toggle("Quick actions at the selection", isOn: $quickActions)
+            Picker("Custom sizes start in", selection: $unit) {
                 ForEach(Units.all, id: \.self) { Text($0).tag($0) }
-            }
-            Picker("Default export format", selection: $exportFormat) {
-                ForEach(AppDefaults.exportFormats, id: \.self) { Text(AppDefaults.formatLabel($0)).tag($0) }
             }
         }
         // The open design snaps as the defaults now say, and keeps them.
@@ -173,6 +172,18 @@ struct SettingsSheet: View {
             store?.snapping = next
         }
         .onAppear { if let store { snapping = store.snapping } }
+    }
+
+    private var exportSection: some View {
+        Section {
+            Picker("Default export format", selection: $exportFormat) {
+                ForEach(AppDefaults.exportFormats, id: \.self) { Text(AppDefaults.formatLabel($0)).tag($0) }
+            }
+        } header: {
+            Text("Export")
+        } footer: {
+            Text("What the export sheet starts on, unless it remembers your last export.")
+        }
     }
 
     private var helpSection: some View {
@@ -203,12 +214,15 @@ struct SettingsSheet: View {
             storageRow("Versions", storage?.versions)
             storageRow("Recently deleted", storage?.recentlyDeleted)
             storageRow("Caches", storage?.caches)
+            // Neither while a backup or restore runs: a backup is written
+            // among the caches, and a restore fills Recently deleted.
             Button("Clear caches") { clearingCaches = true }
+                .disabled(progress != nil)
             Button("Empty Recently deleted", role: .destructive) {
                 trashCount = DesignLibrary.trashed().count
                 emptyingTrash = true
             }
-            .disabled(storage?.recentlyDeleted == 0)
+            .disabled(storage?.recentlyDeleted == 0 || progress != nil)
         } header: {
             Text("Storage")
         } footer: {
@@ -276,7 +290,9 @@ struct SettingsSheet: View {
         task = Task { @MainActor in
             defer { progress = nil }
             do {
-                let report = try await Backup.restore(from: url) { progress = $0 }
+                // The design open in the editor is left as it is: it
+                // would be saved over the one restored.
+                let report = try await Backup.restore(from: url, open: store?.design.id) { progress = $0 }
                 outcome = Backup.summary(report)
                 await measure()
             } catch is CancellationError {

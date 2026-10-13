@@ -314,13 +314,24 @@ private struct StartUserTemplateCard: View {
 struct CustomSizeSheet: View {
     var onCreate: (Design) -> Void
     @Environment(\.dismiss) private var dismiss
-    @State private var width = "1080"
-    @State private var height = "1080"
+    @State private var width: String
+    @State private var height: String
     /// What the sides are typed in: px, in, mm or cm — at first, Settings'
     /// custom size unit.
-    @State private var unit = AppDefaults.unit()
+    @State private var unit: String
     /// Read once as the sheet opens.
     @State private var recent = CustomSizes.recent()
+
+    /// 1080 × 1080 pixels to start, written in Settings' unit, as the
+    /// Android twin starts its sides.
+    init(onCreate: @escaping (Design) -> Void) {
+        self.onCreate = onCreate
+        let unit = AppDefaults.unit()
+        let side = CustomSizes.convert("1080", from: "px", to: unit)
+        _width = State(initialValue: side)
+        _height = State(initialValue: side)
+        _unit = State(initialValue: unit)
+    }
 
     var body: some View {
         let w = CustomSizes.side(width, unit: unit)

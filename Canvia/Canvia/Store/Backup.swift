@@ -20,8 +20,10 @@
 //
 // Restoring merges, keeping every id: what is not here is added; a design
 // or template already here is replaced only by a newer one (its updatedAt
-// later), never by an older or the same; a file already here is kept.
-// Nothing here is ever deleted by a restore.
+// later, in whole milliseconds), never by an older or the same; a file
+// already here is kept; the design open in the editor is kept as it is.
+// Nothing here is ever deleted by a restore. The Android twin writes and
+// reads the same names, and restores by the same rules.
 
 import Foundation
 
@@ -87,20 +89,24 @@ enum Backup {
     /// What a restore does with a design or template the backup holds,
     /// edited at `incoming`, when the one here with its id was edited at
     /// `existing` (nil when there is none): added, replaced only when the
-    /// backup's is strictly newer, else kept.
+    /// backup's is strictly newer, else kept. Compared in whole
+    /// milliseconds, as the Android twin keeps them: a design that went
+    /// through it and came back is the same design, not a newer one.
     static func merge(incoming: Double, existing: Double?) -> Merge {
         guard let existing else { return .add }
-        return incoming > existing ? .replace : .keep
+        return incoming.rounded() > existing.rounded() ? .replace : .keep
     }
 
-    /// The brand kits the backup holds merged into these: a kit whose id is
-    /// not here is added; one the same as the kit here is passed over; one
-    /// whose kit here is still empty takes its place; any other is added
-    /// beside it under a fresh id and a name no kit has. The kit in use
-    /// stays in use. Returns how many were added or filled in.
+    /// The brand kits the backup holds merged into these: a kit with
+    /// nothing in it is passed over — another phone's untouched first kit
+    /// brings nothing; a kit whose id is not here is added; one the same as
+    /// the kit here is passed over; one whose kit here is still empty takes
+    /// its place; any other is added beside it under a fresh id and a name
+    /// no kit has. The kit in use stays in use. Returns how many were added
+    /// or filled in.
     static func mergeKits(_ incoming: BrandKits, into kits: inout BrandKits) -> Int {
         var added = 0
-        for kit in incoming.kits {
+        for kit in incoming.kits where !kit.isEmpty {
             if let i = kits.kits.firstIndex(where: { $0.id == kit.id }) {
                 if kits.kits[i] == kit { continue }
                 if kits.kits[i].isEmpty {
@@ -311,11 +317,13 @@ enum Backup {
     // MARK: restoring
 
     /// The backup at `url` merged into this phone (see the merge rule
-    /// above), `progress` told the fraction done. Cancelled, what is already
-    /// in stays: a restore can be run again, and takes only what is still
-    /// missing.
+    /// above), `progress` told the fraction done. The design `open` in the
+    /// editor is kept as it is, as its next save would put it back over the
+    /// one restored. Cancelled, what is already in stays: a restore can be
+    /// run again, and takes only what is still missing.
     @MainActor
-    static func restore(from url: URL, progress: @escaping @MainActor (Double) -> Void) async throws -> Report {
+    static func restore(from url: URL, open: String? = nil,
+                        progress: @escaping @MainActor (Double) -> Void) async throws -> Report {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         let reader = try await Task.detached(priority: .userInitiated) { try ZipStore.Reader(url: url) }.value
@@ -345,14 +353,14 @@ enum Backup {
 
         for name in designs {
             let outcome = await Task.detached(priority: .userInitiated) {
-                Backup.restoreDesign(reader.file(name), trashed: false)
+                Backup.restoreDesign(reader.file(name), trashed: false, open: open)
             }.value
             count(outcome, into: &report, trashed: false)
             try step()
         }
         for name in binned {
             let outcome = await Task.detached(priority: .userInitiated) {
-                Backup.restoreDesign(reader.file(name), trashed: true)
+                Backup.restoreDesign(reader.file(name), trashed: true, open: open)
             }.value
             count(outcome, into: &report, trashed: true)
             try step()
@@ -417,15 +425,16 @@ enum Backup {
     }
 
     /// One design file from the backup put in its place: on the shelf, or
-    /// in Recently deleted. A deleted design never displaces one on the
-    /// shelf; one coming back to the shelf takes its own copy out of the
-    /// trash. A design whose picture would now be out of date loses it, to
-    /// be drawn again.
-    private static func restoreDesign(_ data: Data?, trashed: Bool) -> Outcome {
+    /// in Recently deleted. The design `open` in the editor is kept. A
+    /// deleted design never displaces one on the shelf; one coming back to
+    /// the shelf takes its own copy out of the trash. A design whose picture
+    /// would now be out of date loses it, to be drawn again.
+    private static func restoreDesign(_ data: Data?, trashed: Bool, open: String?) -> Outcome {
         guard let data, let package = try? JSONDecoder().decode(DesignPackage.Package.self, from: data),
               package.format == DesignPackage.format else { return .unreadable }
         let id = package.design.id
         guard DesignPackage.isSafeFileName(id) else { return .unreadable }
+        guard id != open else { return .kept }
         let liveFile = DesignLibrary.designsDir.appendingPathComponent("\(id).json")
         let trashFile = DesignLibrary.trashDir.appendingPathComponent("\(id).json")
         let fm = FileManager.default

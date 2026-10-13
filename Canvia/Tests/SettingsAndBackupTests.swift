@@ -50,6 +50,10 @@ final class SettingsAndBackupTests: XCTestCase {
             (100, 200, .keep),
             (100, 100, .keep),
             (0, nil, .add),
+            // The same design back from the Android twin, which keeps whole
+            // milliseconds: the same, not newer, either way round.
+            (124, 123.6, .keep),
+            (123.6, 124, .keep),
         ]
         for row in rows {
             XCTAssertEqual(Backup.merge(incoming: row.incoming, existing: row.existing), row.expected,
@@ -62,7 +66,8 @@ final class SettingsAndBackupTests: XCTestCase {
         mine.addColor("#111111")
         var theirs = BrandKit(id: "kit-1", name: "My brand")
         theirs.addColor("#222222")
-        let autumn = BrandKit(id: "kit_autumn", name: "Autumn")
+        var autumn = BrandKit(id: "kit_autumn", name: "Autumn")
+        autumn.fonts.body = BrandFont(family: "serif")
 
         // Here, the first kit is still empty: the backup's takes its place.
         var kits = BrandKits.fresh
@@ -82,6 +87,12 @@ final class SettingsAndBackupTests: XCTestCase {
         XCTAssertNotEqual(kits.kits[1].id, "kit-1")
         XCTAssertEqual(kits.kits[1].palettes, theirs.palettes)
         XCTAssertEqual(kits.activeId, "kit-1", "the kit in use stays in use")
+
+        // A kit with nothing in it — another phone's untouched first kit —
+        // brings nothing.
+        kits = BrandKits(activeId: "kit-1", kits: [mine])
+        XCTAssertEqual(Backup.mergeKits(BrandKits.fresh, into: &kits), 0)
+        XCTAssertEqual(kits.kits, [mine])
     }
 
     // MARK: what a restore says
@@ -168,10 +179,10 @@ final class SettingsAndBackupTests: XCTestCase {
 
     func testTheDefaultExportFormatIsListedFirst() {
         XCTAssertEqual(AppDefaults.formatOrder("png"), ["png", "jpg", "pdf", "svg"])
-        XCTAssertEqual(AppDefaults.formatOrder("pdf"), ["pdf", "png", "jpg", "svg"])
         XCTAssertEqual(AppDefaults.formatOrder("jpg"), ["jpg", "png", "pdf", "svg"])
+        XCTAssertEqual(AppDefaults.formatOrder("pdf"), ["png", "jpg", "pdf", "svg"], "a picture format, or none")
         XCTAssertEqual(AppDefaults.formatOrder("gif"), ["png", "jpg", "pdf", "svg"])
-        XCTAssertEqual(AppDefaults.exportFormats.map(AppDefaults.formatLabel), ["PNG", "JPEG", "PDF"])
+        XCTAssertEqual(AppDefaults.exportFormats.map(AppDefaults.formatLabel), ["PNG", "JPG"], "as the Android twin offers them")
     }
 
     func testCustomSizeOpensInTheDefaultUnit() throws {

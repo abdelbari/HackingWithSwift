@@ -49,7 +49,7 @@ struct HomeView: View {
     @State private var replayTour = false
     /// Your own templates, first under the templates.
     @State private var userTemplates: [UserTemplate] = []
-    /// The "Yours" chip: only your own templates.
+    /// The "Your templates" chip: only your own templates.
     @State private var yoursOnly = false
     @State private var renamingTemplate: UserTemplate?
     @State private var templateRenameText = ""
@@ -382,8 +382,8 @@ struct HomeView: View {
     // MARK: chips
 
     /// One row of categories over the templates, so browsing is a tap
-    /// rather than a scroll through everything: "Yours" after All when you
-    /// have templates of your own.
+    /// rather than a scroll through everything: "Your templates" after All
+    /// when you have templates of your own, as on the Android twin.
     private var templateCategoryChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
@@ -392,7 +392,7 @@ struct HomeView: View {
                     yoursOnly = false
                 }
                 if !userTemplates.isEmpty {
-                    chip(UserTemplates.chipTitle, selected: yoursOnly) {
+                    chip(UserTemplates.sectionTitle, selected: yoursOnly) {
                         yoursOnly.toggle()
                         templateCategory = nil
                     }
