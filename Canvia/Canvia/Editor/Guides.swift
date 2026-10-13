@@ -76,13 +76,15 @@ enum Guides {
 
     /// The lines along one side `length` long, in order: the margins, and
     /// the gutter edges of every boundary between `count` equal tracks
-    /// inside them — on half pixels, within the page.
+    /// inside them — on half pixels, within the page. A margin past half the
+    /// side meets the other in the middle, and a gutter that leaves no room
+    /// leaves tracks of nothing, as on Android.
     static func lines(across length: Double, count: Int, gutter: Double, margin: Double) -> [Double] {
         guard length > 0, count >= 1 else { return [] }
         let margin = min(margin, length / 2)
         var out: [Double] = []
         if margin > 0 { out += [margin, length - margin] }
-        let track = (length - 2 * margin - gutter * Double(count - 1)) / Double(count)
+        let track = max(0, (length - 2 * margin - gutter * Double(count - 1)) / Double(count))
         for i in 1..<count {
             let edge = margin + Double(i) * track + Double(i - 1) * gutter
             out.append(edge)

@@ -27,7 +27,8 @@ final class GuideLayoutTests: XCTestCase {
         var horizontal: [Double]
     }
 
-    /// The spec's shared table: what Guides.layout gives, on both phones.
+    /// The spec's shared table: what Guides.layout gives, on both phones —
+    /// Android's GuidesTest has these rows, in this order.
     private var layoutTable: [LayoutCase] { [
         LayoutCase(name: "3 columns, no gutter, no margin", size: CGSize(width: 1080, height: 1080),
                    columns: 3, rows: 0, gutter: 0, margin: 0, vertical: [360, 720], horizontal: []),
@@ -61,6 +62,21 @@ final class GuideLayoutTests: XCTestCase {
         LayoutCase(name: "4 columns, gutter 16, margin 32", size: CGSize(width: 1080, height: 1080),
                    columns: 4, rows: 0, gutter: 16, margin: 32,
                    vertical: [32, 274, 290, 532, 548, 790, 806, 1048], horizontal: []),
+        LayoutCase(name: "3 × 2 grid, gutter 10, margin 20, on a tall page", size: CGSize(width: 1080, height: 1920),
+                   columns: 3, rows: 2, gutter: 10, margin: 20,
+                   vertical: [20, 360, 370, 710, 720, 1060], horizontal: [20, 955, 965, 1900]),
+        LayoutCase(name: "within 0.5 of a guide already there is that guide", size: CGSize(width: 1080, height: 1080),
+                   columns: 3, rows: 3, gutter: 0, margin: 0,
+                   existing: [Guide(vertical: true, position: 360.4), Guide(vertical: true, position: 719),
+                              Guide(vertical: false, position: 720.5)],
+                   vertical: [720], horizontal: [360]),
+        LayoutCase(name: "numbers past their range are kept to it", size: CGSize(width: 1080, height: 2400),
+                   columns: 0, rows: 30, gutter: -5, margin: -10,
+                   vertical: [], horizontal: (1...23).map { 100 * Double($0) }),
+        LayoutCase(name: "a margin past half the side meets in the middle", size: CGSize(width: 1050, height: 600),
+                   columns: 1, rows: 1, gutter: 0, margin: 400, vertical: [400, 650], horizontal: [300]),
+        LayoutCase(name: "a gutter that leaves no room leaves tracks of nothing", size: CGSize(width: 1050, height: 600),
+                   columns: 1, rows: 5, gutter: 200, margin: 0, vertical: [], horizontal: [0, 200, 400, 600]),
     ] }
 
     func testGuidesLayoutMatchesTheSharedTable() {
