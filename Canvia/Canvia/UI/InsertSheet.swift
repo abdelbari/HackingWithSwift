@@ -900,6 +900,57 @@ struct InsertSheet: View {
         .background(RoundedRectangle(cornerRadius: 8).fill(Color(.systemGray6)))
     }
 
+    // MARK: decorative frames
+
+    /// Photo frames: a polaroid, a phone, a film strip… each a group of
+    /// shapes round one empty frame, put in the middle of the page with all
+    /// of it selected, so photos picked next go straight into its window.
+    private var decorativeFramesRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            sectionHeader("Photo frames")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(DecorativeFrames.presets) { preset in
+                        Button {
+                            insertDecorativeFrame(preset)
+                        } label: {
+                            VStack(spacing: 4) {
+                                decorativeFrameThumb(preset)
+                                Text(preset.name).font(.caption2).lineLimit(1)
+                            }
+                            .frame(width: 72)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("\(preset.name) photo frame")
+                    }
+                }
+            }
+        }
+    }
+
+    /// Laid out on this page, which may be a size of its own, as one step.
+    private func insertDecorativeFrame(_ preset: FrameDef) {
+        let made = DecorativeFrames.elements(preset, page: CGSize(width: store.pageWidth, height: store.pageHeight))
+        guard !made.isEmpty else { return }
+        store.applyToPage { $0.elements.append(contentsOf: made) }
+        store.selection = Set(made.map(\.id))
+        dismiss()
+    }
+
+    /// The frame drawn by the page renderer at its own size, scaled down.
+    private func decorativeFrameThumb(_ preset: FrameDef) -> some View {
+        var design = Design(title: preset.name, width: preset.width, height: preset.height)
+        design.pages[0] = Page(background: .color("#eef0f3"),
+                               elements: preset.parts.compactMap { DecorativeFrames.element($0, scale: 1) })
+        let scale = min(56 / preset.width, 44 / preset.height)
+        return PageRenderView(design: design, page: design.pages[0])
+            .scaleEffect(scale, anchor: .topLeading)
+            .frame(width: preset.width * scale, height: preset.height * scale)
+            .frame(width: 64, height: 48)
+            .background(RoundedRectangle(cornerRadius: 8).fill(Color(.systemGray6)))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
     // MARK: pdf
 
     /// One page becomes a picture on this page; several become pages of
@@ -1034,7 +1085,10 @@ struct InsertSheet: View {
                 }
             }
             uploadsSection
-            if !isReplacing { layoutsRow }
+            if !isReplacing {
+                layoutsRow
+                decorativeFramesRow
+            }
             Button {
                 importingPDF = true
             } label: {

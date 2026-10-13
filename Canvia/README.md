@@ -297,9 +297,16 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   page backgrounds. "In this design" leaves out faint colours, and a
   Fill chip whose fill is not one colour says so ("photo", "no fill"). Text takes colours
   and gradients only, since it never draws a pattern or a photo.
-- Photo grids: six layouts of empty frames (2 across, 3 across, 2 by 2,
-  1 + 2, 1 over 3, 3 by 3) flush to the margins and one gutter apart,
-  grouped, filled with Replace.
+- Photo grids: nineteen layouts of two to nine empty frames (2 across,
+  3 across, 2 by 2, 1 + 2, 1 over 3, 3 by 3, stacks, mosaics…) flush to
+  the margins and one gutter apart, grouped, filled with Replace. With a
+  whole grid selected, Spacing (0–40) and Corners (0–50% of each cell's
+  shorter side) lay every cell out again in the grid's box, pictures and
+  crops kept, one Undo a release; each cell records its grid in `grid`
+  {id, layout, cell, gutter, margin}. Eight photo frames — Polaroid, Film
+  strip, Phone, Laptop, Browser window, Torn paper, Circle stamp, Arch —
+  are plain shapes round one empty frame. Grids and frames both come from
+  PhotoFrames.json, the Android twin's file byte for byte.
 - Copy and paste go through the system pasteboard too: elements survive
   switching designs or quitting, a copied text element pastes into other
   apps as text, without the asterisks and underscores that style it, and
