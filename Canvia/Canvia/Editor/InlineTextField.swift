@@ -15,10 +15,11 @@
 // capitals is still typed as its words are kept: the capitals are drawn.
 //
 // Beside them a colour well and A- and A+ colour the words chosen, or set
-// them a step smaller or larger (see Spans) — only with words chosen — and
-// the field shows the words in those colours and sizes as they are typed.
-// A shape's words take none, so its bar leaves them out, as the Android
-// twin's bar keeps them off.
+// them a step smaller or larger, Aa sets them in a face of their own and
+// Link links them (see Spans) — only with words chosen — and the field
+// shows the words in those colours, sizes and faces, linked ones underlined,
+// as they are typed. A shape's words take none, so its bar leaves them out,
+// as the Android twin's bar keeps them off.
 
 import SwiftUI
 import UIKit
@@ -39,8 +40,12 @@ struct InlineTextField: UIViewRepresentable {
     var onWordColour: (NSRange) -> Void = { _ in }
     /// A- or A+ for the words chosen, and what their size is multiplied by.
     var onWordScale: (NSRange, Double) -> Void = { _, _ in }
-    /// Whether the bar has the colour well and A- and A+: not for a shape's
-    /// words, which take no colours or sizes of their own.
+    /// Aa, the font sheet for the words chosen.
+    var onWordFont: (NSRange) -> Void = { _ in }
+    /// Link, for the words chosen.
+    var onWordLink: (NSRange) -> Void = { _ in }
+    /// Whether the bar has the colour well, A- and A+, Aa and Link: not for
+    /// a shape's words, which take no colours, sizes, fonts or links.
     var wordStyles = true
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -100,7 +105,7 @@ struct InlineTextField: UIViewRepresentable {
         private var look = ""
         /// The bar's style buttons, in RichText.Mark's order.
         private var styleItems: [UIBarButtonItem] = []
-        /// The colour well, A- and A+, for the words chosen.
+        /// The colour well, A- and A+, Aa and Link, for the words chosen.
         private var wordItems: [UIBarButtonItem] = []
         /// The colours and sizes the words are shown in now, and the words
         /// they were put on.
@@ -139,7 +144,8 @@ struct InlineTextField: UIViewRepresentable {
             guard !spans.isEmpty || !painted.isEmpty else { return }
             painted = spans
             paintedWords = words
-            InlineTextField.paint(view.textStorage, words: words, spans: spans, attrs: attrs)
+            InlineTextField.paint(view.textStorage, words: words, spans: spans, attrs: attrs,
+                                  weight: drawn.fontWeight ?? 400, italic: drawn.italic == true)
         }
 
         func textViewDidChange(_ textView: UITextView) {
@@ -152,8 +158,8 @@ struct InlineTextField: UIViewRepresentable {
         }
 
         /// A bar over the keyboard: Bold, Italic, Underline and
-        /// Strikethrough for the words chosen, their colour and A- and A+,
-        /// and Done, the plainest way out.
+        /// Strikethrough for the words chosen, their colour, A- and A+, their
+        /// font and a link, and Done, the plainest way out.
         func typingBar() -> UIToolbar {
             let bar = UIToolbar(frame: CGRect(x: 0, y: 0, width: 320, height: 44))
             styleItems = RichText.Mark.allCases.enumerated().map { entry -> UIBarButtonItem in
@@ -173,7 +179,12 @@ struct InlineTextField: UIViewRepresentable {
             let larger = UIBarButtonItem(title: "A+", style: .plain, target: self, action: #selector(sizeWords(_:)))
             larger.tag = 1
             larger.accessibilityLabel = "Larger"
-            wordItems = parent.wordStyles ? [well, smaller, larger] : []
+            let face = UIBarButtonItem(title: "Aa", style: .plain, target: self, action: #selector(fontWords))
+            face.accessibilityLabel = "Font of the selected words"
+            let link = UIBarButtonItem(image: UIImage(systemName: "link"), style: .plain,
+                                       target: self, action: #selector(linkWords))
+            link.accessibilityLabel = "Link"
+            wordItems = parent.wordStyles ? [well, smaller, larger, face, link] : []
             let done = UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(finish))
             bar.items = styleItems + wordItems
                 + [UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil), done]
@@ -196,6 +207,18 @@ struct InlineTextField: UIViewRepresentable {
         @objc private func colourWords() {
             guard let view, let range = chosenWords(view) else { return }
             parent.onWordColour(range)
+        }
+
+        /// Aa: the font sheet, for the words chosen.
+        @objc private func fontWords() {
+            guard let view, let range = chosenWords(view) else { return }
+            parent.onWordFont(range)
+        }
+
+        /// Link: the link prompt, for the words chosen.
+        @objc private func linkWords() {
+            guard let view, let range = chosenWords(view) else { return }
+            parent.onWordLink(range)
         }
 
         /// A- or A+: the words chosen a step smaller or larger, as a step of
@@ -260,6 +283,13 @@ struct InlineTextField: UIViewRepresentable {
                 }
                 well.tintColor = hex.map { UIColor(hex: $0) } ?? .label
             }
+            // Link lit when the words chosen are all linked.
+            if let link = wordItems.last {
+                let linked = picked.map { Spans.link(of: parent.element.liveSpans, in: $0) }
+                let on = linked?.shared == true && linked?.link != nil
+                link.tintColor = on ? UIColor(Theme.accent) : .label
+                link.accessibilityTraits = on ? [.button, .selected] : .button
+            }
             for (item, mark) in zip(styleItems, RichText.Mark.allCases) {
                 let on: Bool
                 if chosen.length > 0 {
@@ -275,19 +305,21 @@ struct InlineTextField: UIViewRepresentable {
         }
     }
 
-    /// The colours and sizes the field shows the words in: the element's,
-    /// less the colours while its letters are a gradient, as on the canvas.
+    /// The colours, sizes, fonts and links the field shows the words in:
+    /// the element's, less the colours while its letters are a gradient, as
+    /// on the canvas.
     static func shownSpans(_ el: Element) -> [TextSpan] {
         let spans = el.liveSpans
         guard el.textFill?.kind == "gradient" else { return spans }
-        return Spans.normalised(spans.map { TextSpan(start: $0.start, end: $0.end, scale: $0.scale) })
+        return Spans.withoutColours(spans)
     }
 
-    /// The typed words, markers and all, in `attrs`, with the colours and
-    /// sizes of `spans` — counted in the words as they read — on the letters
-    /// they belong to.
+    /// The typed words, markers and all, in `attrs`, with the colours, sizes
+    /// and faces of `spans` — counted in the words as they read — on the
+    /// letters they belong to, a face at the box's `weight` and slant, and
+    /// linked words underlined in the link colour unless coloured.
     static func paint(_ storage: NSTextStorage, words: String, spans: [TextSpan],
-                      attrs: [NSAttributedString.Key: Any]) {
+                      attrs: [NSAttributedString.Key: Any], weight: Int = 400, italic: Bool = false) {
         let whole = NSRange(location: 0, length: storage.length)
         storage.beginEditing()
         storage.setAttributes(attrs, range: whole)
@@ -295,12 +327,21 @@ struct InlineTextField: UIViewRepresentable {
             let units = RichText.typedUnits(words)
             let font = attrs[.font] as? UIFont
             for span in spans {
+                // The span's face, else the box's, at the span's size.
+                var face = font
+                if let family = span.font, let font {
+                    face = FontLibrary.uiFont(family: family, size: Double(font.pointSize), weight: weight, italic: italic)
+                }
                 for range in RichText.typedRanges(of: span.range, units: units) {
-                    if let color = span.color {
+                    if let color = span.color ?? (span.link != nil ? Spans.linkColour : nil) {
                         storage.addAttribute(.foregroundColor, value: UIColor(hex: color), range: range)
                     }
-                    if let scale = span.scale, let font {
-                        storage.addAttribute(.font, value: font.withSize(font.pointSize * scale), range: range)
+                    if span.link != nil {
+                        storage.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: range)
+                    }
+                    if let face, span.font != nil || span.scale != nil {
+                        let scale = span.scale ?? 1
+                        storage.addAttribute(.font, value: face.withSize(face.pointSize * scale), range: range)
                         if scale > 1 { RichText.makeRoom(in: storage, for: range, scale: scale) }
                     }
                 }

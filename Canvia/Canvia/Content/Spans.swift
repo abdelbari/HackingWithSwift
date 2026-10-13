@@ -1,9 +1,11 @@
-// Colours and sizes on chosen words inside one text element.
+// Colours, sizes, fonts and links on chosen words inside one text element.
 //
 // Written as the element's `spans`: stretches of the words as they read —
 // RichText.strip(text), before any capitals — in UTF-16 offsets, as
 // RichText.Run counts them, each with a colour, a size (a scale on the
-// box's type size, so fitting and corner-resizing keep working) or both.
+// box's type size, so fitting and corner-resizing keep working), a font (a
+// key as `fontFamily` stores it, a font of your own's "custom:" too), a link
+// (a web address, email or phone number, as Links reads one) or several.
 // Beside them `spansText` holds the very words the offsets were made for:
 // should the words have been changed by a build that does not carry spans
 // along, the two no longer agree and the spans are ignored — never a colour
@@ -18,7 +20,7 @@
 import Foundation
 import UIKit
 
-/// One stretch of words in a colour, a size, or both.
+/// One stretch of words in a colour, a size, a font, a link, or several.
 struct TextSpan: Codable, Equatable, Hashable {
     /// UTF-16 offsets into the words as they read, end exclusive.
     var start: Int
@@ -27,15 +29,22 @@ struct TextSpan: Codable, Equatable, Hashable {
     var color: String?
     /// The box's type size times this, 0.3 to 4; nil is the box's own.
     var scale: Double?
+    /// A font key, as `fontFamily` holds one; nil is the box's own face.
+    var font: String?
+    /// "https://…", "http://…", "mailto:…" or "tel:…"; nil is no link.
+    var link: String?
 
-    init(start: Int, end: Int, color: String? = nil, scale: Double? = nil) {
+    init(start: Int, end: Int, color: String? = nil, scale: Double? = nil,
+         font: String? = nil, link: String? = nil) {
         self.start = start
         self.end = end
         self.color = color
         self.scale = scale
+        self.font = font
+        self.link = link
     }
 
-    private enum CodingKeys: String, CodingKey { case start, end, color, scale }
+    private enum CodingKeys: String, CodingKey { case start, end, color, scale, font, link }
 
     // Each key on its own: a stretch missing its ends reads as empty and is
     // dropped when the spans are tidied, never the design.
@@ -45,6 +54,8 @@ struct TextSpan: Codable, Equatable, Hashable {
         end = (try? c.decode(Int.self, forKey: .end)) ?? 0
         color = try? c.decodeIfPresent(String.self, forKey: .color)
         scale = try? c.decodeIfPresent(Double.self, forKey: .scale)
+        font = try? c.decodeIfPresent(String.self, forKey: .font)
+        link = try? c.decodeIfPresent(String.self, forKey: .link)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -53,9 +64,28 @@ struct TextSpan: Codable, Equatable, Hashable {
         try c.encode(end, forKey: .end)
         try c.encodeIfPresent(color, forKey: .color)
         try c.encodeIfPresent(scale, forKey: .scale)
+        try c.encodeIfPresent(font, forKey: .font)
+        try c.encodeIfPresent(link, forKey: .link)
     }
 
     var range: NSRange { NSRange(location: start, length: max(0, end - start)) }
+
+    /// Whether it says anything: a colour, a size, a font or a link.
+    var says: Bool { color != nil || scale != nil || font != nil || link != nil }
+
+    /// The same look over `from..<to`.
+    func over(_ from: Int, _ to: Int) -> TextSpan {
+        var out = self
+        out.start = from
+        out.end = to
+        return out
+    }
+
+    /// Whether `other` has the same colour, size, font and link: where two
+    /// differ in any of them, a run of words splits.
+    func looksLike(_ other: TextSpan) -> Bool {
+        color == other.color && scale == other.scale && font == other.font && link == other.link
+    }
 }
 
 enum Spans {
@@ -74,6 +104,14 @@ enum Spans {
     /// so outlines can be gathered by the colour each word is set in.
     static let colourKey = NSAttributedString.Key("CanviaSpanColour")
 
+    /// The attribute linked words carry their link in, so the lines they are
+    /// set on can be found (WordLinks).
+    static let linkKey = NSAttributedString.Key("CanviaSpanLink")
+
+    /// Linked words are drawn underlined in this — unless they have a
+    /// colour of their own — as on the Android twin.
+    static let linkColour = "#2563eb"
+
     /// The spans when they were made for `plain`, the words as they read
     /// now, tidied and cut to its length as on the Android twin; none when
     /// they were made for other words.
@@ -83,10 +121,12 @@ enum Spans {
     }
 
     /// The spans tidied: sorted, none overlapping — where two overlap, the
-    /// later in the list wins — each with a colour or a size other than the
-    /// box's own (a blank colour, or a size of 1, is none), sizes kept
-    /// within `scaleRange`, neighbours alike joined into one, and no more
-    /// than `maxCount`.
+    /// later in the list wins — each with a colour, a size, a font or a link
+    /// other than the box's own (a blank colour or font, a size of 1, or a
+    /// link Links.normalized does not read as one, is none), sizes kept
+    /// within `scaleRange`, links as Links.normalized writes them,
+    /// neighbours alike in all four joined into one, and no more than
+    /// `maxCount`.
     static func normalised(_ spans: [TextSpan]) -> [TextSpan] {
         let tidy = spans.compactMap { span -> TextSpan? in
             var out = span
@@ -99,7 +139,14 @@ enum Spans {
                 let kept = scale.isFinite ? min(max(scale, scaleRange.lowerBound), scaleRange.upperBound) : 1
                 out.scale = abs(kept - 1) <= scaleTolerance ? nil : kept
             }
-            guard out.end > out.start, out.color != nil || out.scale != nil else { return nil }
+            if let font = span.font {
+                let trimmed = font.trimmingCharacters(in: .whitespacesAndNewlines)
+                out.font = trimmed.isEmpty ? nil : trimmed
+            }
+            if let link = span.link {
+                out.link = Links.normalized(link)
+            }
+            guard out.end > out.start, out.says else { return nil }
             return out
         }
         guard !tidy.isEmpty else { return [] }
@@ -108,10 +155,10 @@ enum Spans {
         var out: [TextSpan] = []
         for (from, to) in zip(edges, edges.dropFirst()) {
             guard let top = tidy.last(where: { $0.start <= from && $0.end >= to }) else { continue }
-            if let last = out.last, last.end == from, last.color == top.color, last.scale == top.scale {
+            if let last = out.last, last.end == from, last.looksLike(top) {
                 out[out.count - 1].end = to
             } else {
-                out.append(TextSpan(start: from, end: to, color: top.color, scale: top.scale))
+                out.append(top.over(from, to))
             }
         }
         return Array(out.prefix(maxCount))
@@ -207,6 +254,48 @@ enum Spans {
         restyled(spans, range) { $0.color = color }
     }
 
+    /// The words in `range` in the face `font` — or back in the box's own,
+    /// with nil — keeping their colour, size and link.
+    static func fonting(_ spans: [TextSpan], range: NSRange, font: String?) -> [TextSpan] {
+        restyled(spans, range) { $0.font = font }
+    }
+
+    /// The words in `range` linked to `link` — or unlinked, with nil.
+    static func linking(_ spans: [TextSpan], range: NSRange, link: String?) -> [TextSpan] {
+        restyled(spans, range) { $0.link = link }
+    }
+
+    /// The spans with no colours: what gradient letters, which colours on
+    /// words would not show through, are drawn with.
+    static func withoutColours(_ spans: [TextSpan]) -> [TextSpan] {
+        normalised(spans.map { span -> TextSpan in
+            var out = span
+            out.color = nil
+            return out
+        })
+    }
+
+    /// The spans with no fonts: what a new face for the whole box leaves.
+    static func withoutFonts(_ spans: [TextSpan]) -> [TextSpan] {
+        normalised(spans.map { span -> TextSpan in
+            var out = span
+            out.font = nil
+            return out
+        })
+    }
+
+    /// Only the links: what Clear word colours and sizes leaves, a link not
+    /// being a look.
+    static func linksOnly(_ spans: [TextSpan]) -> [TextSpan] {
+        normalised(spans.map { TextSpan(start: $0.start, end: $0.end, link: $0.link) })
+    }
+
+    /// Whether some words have a colour, a size or a font of their own —
+    /// what Clear word colours and sizes takes off.
+    static func hasStyles(_ spans: [TextSpan]) -> Bool {
+        spans.contains { $0.color != nil || $0.scale != nil || $0.font != nil }
+    }
+
     /// The words in `range` a step smaller or larger: each one's size times
     /// `factor`, to four places as on the Android twin, so going back down
     /// the steps it went up returns it to the box's own size, and no size is
@@ -230,15 +319,15 @@ enum Spans {
         var cursor = lo
         for span in tidy {
             if span.start < lo {
-                out.append(TextSpan(start: span.start, end: min(span.end, lo), color: span.color, scale: span.scale))
+                out.append(span.over(span.start, min(span.end, lo)))
             }
             if span.end > hi {
-                out.append(TextSpan(start: max(span.start, hi), end: span.end, color: span.color, scale: span.scale))
+                out.append(span.over(max(span.start, hi), span.end))
             }
             let from = max(span.start, lo), to = min(span.end, hi)
             guard to > from else { continue }
             if from > cursor { inside.append(TextSpan(start: cursor, end: from)) }
-            inside.append(TextSpan(start: from, end: to, color: span.color, scale: span.scale))
+            inside.append(span.over(from, to))
             cursor = to
         }
         if hi > cursor { inside.append(TextSpan(start: cursor, end: hi)) }
@@ -252,24 +341,45 @@ enum Spans {
     /// The colour every letter in `range` is set in, when they share one —
     /// nil for the box's own — and whether they do share one. `spans` tidy.
     static func colour(of spans: [TextSpan], in range: NSRange) -> (color: String?, shared: Bool) {
+        let shared = sharing(spans, range, \.color)
+        return (shared.value, shared.shared)
+    }
+
+    /// The same for the font: nil for the box's own face.
+    static func font(of spans: [TextSpan], in range: NSRange) -> (font: String?, shared: Bool) {
+        let shared = sharing(spans, range, \.font)
+        return (shared.value, shared.shared)
+    }
+
+    /// The same for the link: nil for none.
+    static func link(of spans: [TextSpan], in range: NSRange) -> (link: String?, shared: Bool) {
+        let shared = sharing(spans, range, \.link)
+        return (shared.value, shared.shared)
+    }
+
+    /// What every letter in `range` has of `key`, nil where no span is, and
+    /// whether they all have the same.
+    private static func sharing(_ spans: [TextSpan], _ range: NSRange,
+                                _ key: KeyPath<TextSpan, String?>) -> (value: String?, shared: Bool) {
         let lo = range.location, hi = NSMaxRange(range)
-        var colours: [String?] = []
+        var values: [String?] = []
         var cursor = lo
         for span in spans where span.end > lo && span.start < hi {
-            if span.start > cursor { colours.append(nil) }
-            colours.append(span.color)
+            if span.start > cursor { values.append(nil) }
+            values.append(span[keyPath: key])
             cursor = min(span.end, hi)
         }
-        if cursor < hi { colours.append(nil) }
-        guard let first = colours.first else { return (nil, true) }
-        return colours.allSatisfy({ $0 == first }) ? (first, true) : (nil, false)
+        if cursor < hi { values.append(nil) }
+        guard let first = values.first else { return (nil, true) }
+        return values.allSatisfy({ $0 == first }) ? (first, true) : (nil, false)
     }
 }
 
 extension Element {
 
-    /// The colours and sizes on its words that still fit them: none when
-    /// the words were changed by something that did not carry them along.
+    /// The colours, sizes, fonts and links on its words that still fit
+    /// them: none when the words were changed by something that did not
+    /// carry them along.
     var liveSpans: [TextSpan] {
         guard let spans, !spans.isEmpty else { return [] }
         return Spans.live(spans, madeFor: spansText, plain: RichText.strip(text ?? ""))
@@ -316,5 +426,23 @@ extension Element {
         let tidy = Spans.normalised(new)
         spans = tidy.isEmpty ? nil : tidy
         spansText = tidy.isEmpty ? nil : RichText.strip(text ?? "")
+    }
+
+    /// The whole box set in `key`: the faces chosen for words go, as a new
+    /// face for the box takes every word with it.
+    mutating func setFontFamily(_ key: String) {
+        fontFamily = key
+        guard spans != nil || spansText != nil else { return }
+        setSpans(Spans.withoutFonts(liveSpans))
+    }
+
+    /// The faces it is set in, the box's own first, then its words', each
+    /// once as stored: what the design's fonts of your own are gathered from.
+    var fontKeys: [String] {
+        var out: [String] = fontFamily.map { [$0] } ?? []
+        for span in liveSpans {
+            if let font = span.font, !out.contains(font) { out.append(font) }
+        }
+        return out
     }
 }

@@ -83,11 +83,30 @@ enum SVGExporter {
         // and browsers read for an SVG element.
         let title = el.altText.map { "<title>\(escape($0))</title>" } ?? ""
         let group = "<g\(attributes)>\(title)\(markup(el, index: index, defs: &defs))</g>"
+        let words = wordLinksMarkup(el, transforms: transforms)
         // A link wraps the element, so a browser follows it on a click —
         // one of the kinds a link is, never a script or a file.
-        guard let link = Links.followable(el.link) else { return group }
+        guard let link = Links.followable(el.link) else { return group + words }
         let href = escape(link)
-        return "<a href=\"\(href)\" xlink:href=\"\(href)\">\(group)</a>"
+        return "<a href=\"\(href)\" xlink:href=\"\(href)\">\(group)</a>" + words
+    }
+
+    /// Linked words (WordLinks): each line of them a clear rectangle in an
+    /// <a>, laid over the element in its turn and flip — beside its group,
+    /// not inside its own link, which an <a> cannot hold — so a browser
+    /// follows the words' link over them and the element's elsewhere.
+    private static func wordLinksMarkup(_ el: Element, transforms: [String]) -> String {
+        let anchors = WordLinks.rects(for: el).compactMap { entry -> String? in
+            guard let url = Links.followable(entry.url) else { return nil }
+            let href = escape(url)
+            let r = entry.rect
+            let box = "x=\"\(num(el.x + Double(r.minX)))\" y=\"\(num(el.y + Double(r.minY)))\" " +
+                "width=\"\(num(Double(r.width)))\" height=\"\(num(Double(r.height)))\""
+            return "<a href=\"\(href)\" xlink:href=\"\(href)\"><rect \(box) fill=\"#000000\" fill-opacity=\"0\"/></a>"
+        }
+        guard !anchors.isEmpty else { return "" }
+        let transform = transforms.isEmpty ? "" : " transform=\"\(transforms.joined(separator: " "))\""
+        return "<g\(transform)>" + anchors.joined() + "</g>"
     }
 
     /// feDropShadow, which every current renderer supports. stdDeviation is

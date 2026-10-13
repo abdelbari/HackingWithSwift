@@ -172,15 +172,18 @@ enum FontLibrary {
     }
 
     /// The fonts the design sets text in — each once, resolved, page by page
-    /// and on a page from the bottom layer up — fonts of your own included.
+    /// and on a page from the bottom layer up, a box's words' after its own —
+    /// fonts of your own included.
     static func usedIn(_ design: Design) -> [String] {
         var seen = Set<String>()
         var out: [String] = []
         for page in design.pages {
             for el in page.elements {
-                guard let family = el.fontFamily else { continue }
-                let id = resolve(family)
-                if seen.insert(id).inserted { out.append(id) }
+                // The box's face, then any its words are set in.
+                for family in el.fontKeys {
+                    let id = resolve(family)
+                    if seen.insert(id).inserted { out.append(id) }
+                }
             }
         }
         return out
@@ -484,8 +487,8 @@ enum FontLibrary {
     /// element's own attributes. In capitals the markers are read first and
     /// each run uppercased on its own, so a styled word keeps its style
     /// however much a letter grows.
-    /// Words in a colour or a size of their own (see Spans) are set so on
-    /// top — in capitals, moved as the runs are.
+    /// Words in a colour, a size, a font or a link of their own (see Spans)
+    /// are set so on top — in capitals, moved as the runs are.
     static func attributedString(for el: Element) -> NSAttributedString {
         let marked = markedDisplayText(for: el, pageNumber: nil, pageCount: nil)
         let base = attributes(for: el)
@@ -496,11 +499,23 @@ enum FontLibrary {
         }
         let size = el.fontSize ?? 42
         let weight = el.fontWeight ?? 400
-        return RichText.attributed(marked, base: base, uppercase: capitals, spans: spans) { bold, italic in
-            uiFont(family: el.fontFamily, size: size,
-                   weight: bold ? (weight >= 700 ? 900 : 700) : weight,
-                   italic: italic || el.italic == true)
+        let italic = el.italic == true
+        // A word's own face at the box's size and weight, bold and italic
+        // by the same rule as the box's own words.
+        let face = { (family: String, bold: Bool, slanted: Bool) -> UIFont in
+            FontLibrary.uiFont(family: family, size: size, weight: FontLibrary.resolveWeight(weight, bold: bold),
+                               italic: slanted || italic)
         }
+        return RichText.attributed(marked, base: base, uppercase: capitals, spans: spans, face: face) { bold, slanted in
+            uiFont(family: el.fontFamily, size: size, weight: resolveWeight(weight, bold: bold), italic: slanted || italic)
+        }
+    }
+
+    /// The weight a box's words at `weight` are drawn at, **bold** ones
+    /// heavier: 700, or 900 when the box is already bold — on both phones,
+    /// a word's own face too.
+    static func resolveWeight(_ weight: Int, bold: Bool) -> Int {
+        bold ? (weight >= 700 ? 900 : 700) : weight
     }
 
     /// Display text with the inline style markers still in it.
@@ -524,18 +539,18 @@ enum FontLibrary {
         }
     }
 
-    // MARK: colours and sizes on words
+    // MARK: colours, sizes, fonts and links on words
 
-    /// The element's colours and sizes on words, moved from the words as
-    /// they read onto the display text before capitals — past a list's
-    /// markers, a line at a time. Colours are left out while the letters
-    /// are a gradient, which they would not show through. None when the
-    /// words do not read as the spans expect.
+    /// The element's colours, sizes, fonts and links on words, moved from
+    /// the words as they read onto the display text before capitals — past
+    /// a list's markers, a line at a time. Colours are left out while the
+    /// letters are a gradient, which they would not show through. None when
+    /// the words do not read as the spans expect.
     static func displaySpans(for el: Element, marked: String) -> [TextSpan] {
         var spans = el.liveSpans
         guard !spans.isEmpty else { return [] }
         if el.textFill?.kind == "gradient" {
-            spans = Spans.normalised(spans.map { TextSpan(start: $0.start, end: $0.end, scale: $0.scale) })
+            spans = Spans.withoutColours(spans)
             guard !spans.isEmpty else { return [] }
         }
         guard isList(el) else { return spans }
@@ -563,12 +578,15 @@ enum FontLibrary {
     }
 
     /// The colours on words over the display text itself, capitals and all:
-    /// what text round a curve, along a path or down a column is drawn in.
-    /// Sizes are left out there, where the letters keep the box's size.
+    /// what text round a curve, along a path or down a column is drawn in —
+    /// linked words in the link colour unless they have their own. Sizes
+    /// and faces are left out there, where the letters keep the box's type.
     static func displayColours(for el: Element) -> [TextSpan] {
         let marked = markedDisplayText(for: el, pageNumber: nil, pageCount: nil)
+        let gradient = el.textFill?.kind == "gradient"
         let colours = displaySpans(for: el, marked: marked).compactMap { span -> TextSpan? in
-            span.color.map { TextSpan(start: span.start, end: span.end, color: $0) }
+            let linked = span.link != nil && !gradient ? Spans.linkColour : nil
+            return (span.color ?? linked).map { TextSpan(start: span.start, end: span.end, color: $0) }
         }
         guard !colours.isEmpty else { return [] }
         guard el.uppercase == true else { return colours }
@@ -588,10 +606,10 @@ enum FontLibrary {
         }
     }
 
-    /// Whether some words are set larger or smaller than the box's type,
-    /// so measuring has to take them in.
+    /// Whether some words are set larger or smaller than the box's type, or
+    /// in a face of their own, so measuring has to take them in.
     static func hasSizedWords(_ el: Element) -> Bool {
-        el.liveSpans.contains { $0.scale != nil }
+        el.liveSpans.contains { $0.scale != nil || $0.font != nil }
     }
 
     /// One indent level, in ems.

@@ -104,14 +104,16 @@ enum CustomFonts {
         return out
     }
 
-    /// The hashes of the fonts of your own the design's texts are set in,
-    /// each once, in page order.
+    /// The hashes of the fonts of your own the design's texts are set in —
+    /// a box's words' too — each once, in page order.
     static func used(in design: Design) -> [String] {
         var seen = Set<String>()
         var out: [String] = []
         for page in design.pages {
             for el in page.elements {
-                if let sha = sha(el.fontFamily), seen.insert(sha).inserted { out.append(sha) }
+                for key in el.fontKeys {
+                    if let sha = sha(key), seen.insert(sha).inserted { out.append(sha) }
+                }
             }
         }
         return out
@@ -139,8 +141,8 @@ enum CustomFonts {
     static func carried(_ elements: [Element], from design: Design) -> [Record] {
         let had = records(in: design)
         var seen = Set<String>()
-        return elements.compactMap { el -> Record? in
-            guard let found = sha(el.fontFamily), seen.insert(found).inserted else { return nil }
+        return elements.flatMap(\.fontKeys).compactMap { family -> Record? in
+            guard let found = sha(family), seen.insert(found).inserted else { return nil }
             return had.first { $0.id == key(found) }
         }
     }

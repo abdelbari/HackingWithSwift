@@ -32,6 +32,10 @@ final class DesignStore {
     /// The words the colour sheet is open for, from the typing bar's colour
     /// well (see WordStyles).
     var wordColourTarget: WordRange?
+    /// The words the font sheet is open for, from the typing bar's Aa.
+    var wordFontTarget: WordRange?
+    /// The words the link prompt is open for, from the typing bar's Link.
+    var wordLinkTarget: WordRange?
     /// The text box dictation writes into while the microphone is on. Its
     /// words go there and nowhere else, whatever is selected meanwhile.
     var dictationTarget: String?
@@ -1701,7 +1705,7 @@ final class DesignStore {
                 for i in out.pages[p].elements.indices where out.pages[p].elements[i].type == .text {
                     let spec = (out.pages[p].elements[i].fontSize ?? 42) >= headingSize
                         ? pairing.heading : pairing.body
-                    out.pages[p].elements[i].fontFamily = spec.fontFamily
+                    out.pages[p].elements[i].setFontFamily(spec.fontFamily)
                     out.pages[p].elements[i].fontWeight = spec.fontWeight
                     if let spacing = spec.letterSpacing { out.pages[p].elements[i].letterSpacing = spacing }
                     out.pages[p].elements[i].h = FontLibrary.layoutHeight(for: out.pages[p].elements[i])

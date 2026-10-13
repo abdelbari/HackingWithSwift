@@ -112,7 +112,7 @@ final class FindReplaceTests: XCTestCase {
     /// One row of the table the Android twin's FindReplaceTest runs too, row
     /// for row: the needle, the words, Match case and Whole words, and the
     /// UTF-16 (start, length) of every match.
-    private struct Row {
+    private struct MatchRow {
         var needle: String
         var body: String
         var matchCase = false
@@ -120,21 +120,21 @@ final class FindReplaceTests: XCTestCase {
         var expected: [[Int]]
     }
 
-    private var rows: [Row] {
+    private var rows: [MatchRow] {
         [
-            Row(needle: "cat", body: "cat, catalog", wholeWord: true, expected: [[0, 3]]),
-            Row(needle: "cat", body: "cat, catalog", expected: [[0, 3], [5, 3]]),
-            Row(needle: "cat", body: "concat cat", wholeWord: true, expected: [[7, 3]]),
-            Row(needle: "cat", body: "cat2 cat_ 2cat", wholeWord: true, expected: [[5, 3]]),
-            Row(needle: "Cat", body: "cat Cat CAT", matchCase: true, wholeWord: true, expected: [[4, 3]]),
-            Row(needle: "cat", body: "cat Cat CAT", wholeWord: true, expected: [[0, 3], [4, 3], [8, 3]]),
-            Row(needle: "café", body: "le café, cafés", wholeWord: true, expected: [[3, 4]]),
-            Row(needle: "aa", body: "aaaa", expected: [[0, 2], [2, 2]]),
-            Row(needle: "aa", body: "aaa", wholeWord: true, expected: []),
-            Row(needle: "cat", body: "\u{732B}cat", wholeWord: true, expected: []),
-            Row(needle: "ok", body: "\u{1F600}ok\u{1F600}", wholeWord: true, expected: [[2, 2]]),
-            Row(needle: "ab", body: "ab-ab.ab", wholeWord: true, expected: [[0, 2], [3, 2], [6, 2]]),
-            Row(needle: "", body: "anything", expected: []),
+            MatchRow(needle: "cat", body: "cat, catalog", wholeWord: true, expected: [[0, 3]]),
+            MatchRow(needle: "cat", body: "cat, catalog", expected: [[0, 3], [5, 3]]),
+            MatchRow(needle: "cat", body: "concat cat", wholeWord: true, expected: [[7, 3]]),
+            MatchRow(needle: "cat", body: "cat2 cat_ 2cat", wholeWord: true, expected: [[5, 3]]),
+            MatchRow(needle: "Cat", body: "cat Cat CAT", matchCase: true, wholeWord: true, expected: [[4, 3]]),
+            MatchRow(needle: "cat", body: "cat Cat CAT", wholeWord: true, expected: [[0, 3], [4, 3], [8, 3]]),
+            MatchRow(needle: "café", body: "le café, cafés", wholeWord: true, expected: [[3, 4]]),
+            MatchRow(needle: "aa", body: "aaaa", expected: [[0, 2], [2, 2]]),
+            MatchRow(needle: "aa", body: "aaa", wholeWord: true, expected: []),
+            MatchRow(needle: "cat", body: "\u{732B}cat", wholeWord: true, expected: []),
+            MatchRow(needle: "ok", body: "\u{1F600}ok\u{1F600}", wholeWord: true, expected: [[2, 2]]),
+            MatchRow(needle: "ab", body: "ab-ab.ab", wholeWord: true, expected: [[0, 2], [3, 2], [6, 2]]),
+            MatchRow(needle: "", body: "anything", expected: []),
         ]
     }
 

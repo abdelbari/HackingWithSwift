@@ -1,6 +1,8 @@
 // Links on elements: a web address, an email or a phone number on a shape,
 // a picture or a line of text, as Canva has them — clickable over the
 // element in the exported PDF and SVG, and opened by a tap in the presenter.
+// Chosen words can carry a link of their own (see Spans), clickable over
+// those words only (WordLinks); the element's link still answers elsewhere.
 //
 // What is typed is read the way people type it: "canvia.app" is a web
 // address, "hello@canvia.app" an email, "+44 1234 567890" a phone number.
@@ -61,22 +63,39 @@ enum Links {
     }
 
     /// Every linked element on the page as drawn — the master's first — with
-    /// its area on the page.
+    /// its area on the page, and after each one the lines of its linked
+    /// words, which lie over it.
     static func areas(design: Design, page: Page) -> [(rect: CGRect, url: String)] {
-        design.drawnElements(on: page).compactMap { el in
-            guard let url = followable(el.link) else { return nil }
-            return (Geometry.aabb(el), url)
+        drawn(design: design, page: page).flatMap { el -> [(rect: CGRect, url: String)] in
+            var out: [(rect: CGRect, url: String)] = []
+            if let url = followable(el.link) { out.append((rect: Geometry.aabb(el), url: url)) }
+            for words in WordLinks.areas(of: el) {
+                if let url = followable(words.url) { out.append((rect: words.rect, url: url)) }
+            }
+            return out
         }
     }
 
-    /// The link under `point` on the page: the topmost linked element holding
-    /// it, rotation and all; nil where there is none.
+    /// The link under `point` on the page: the topmost element with a link
+    /// there — its linked words', where the point is on them, else its own,
+    /// rotation and all; nil where there is none.
     static func at(design: Design, page: Page, point: CGPoint) -> String? {
-        let drawn = design.drawnElements(on: page)
-        let hit = drawn.last { el in
-            followable(el.link) != nil && Geometry.hits(el, point: point)
+        for el in drawn(design: design, page: page).reversed() {
+            if let url = followable(WordLinks.link(in: el, at: point)) { return url }
+            if let url = followable(el.link), Geometry.hits(el, point: point) { return url }
         }
-        return followable(hit?.link)
+        return nil
+    }
+
+    /// The page's elements as drawn, the page's numbers in its words — so
+    /// linked words are found where the page draws them.
+    private static func drawn(design: Design, page: Page) -> [Element] {
+        let number = (design.pages.firstIndex { $0.id == page.id } ?? 0) + 1
+        return design.drawnElements(on: page).map { el in
+            var out = el
+            if out.type == .text { out.fillPageTokens(number: number, count: design.pages.count) }
+            return out
+        }
     }
 
     // MARK: reading what is typed

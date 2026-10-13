@@ -32,6 +32,8 @@ enum EditorSheet: String, Identifiable {
     case addGuides
     /// More's "Copy & resize…": the Resize sheet, opened on its copies.
     case copyResize
+    /// The typing bar's Aa: the font sheet for the words chosen.
+    case fontWords
     var id: String { rawValue }
 }
 
@@ -194,6 +196,7 @@ struct EditorView: View {
                 revealSelection()
             }
             if sheet != .colorWords, store.wordColourTarget != nil { store.wordColourTarget = nil }
+            if sheet != .fontWords, store.wordFontTarget != nil { store.wordFontTarget = nil }
         }
         // Crop, typing, the pen or the eraser taking the page ends Select
         // multiple as a panel does, the selection kept — as on the Android
@@ -201,10 +204,9 @@ struct EditorView: View {
         .onChange(of: pageTaken) { _, busy in
             if busy { store.endSelectingMultiple() }
         }
-        // The typing bar's colour well asks for the colour sheet.
-        .onChange(of: store.wordColourTarget) { _, target in
-            if target != nil { activeSheet = .colorWords }
-        }
+        // The typing bar's colour well, Aa and Link ask for the colour sheet,
+        // the font sheet and the link prompt for the words chosen.
+        .modifier(WordRequests(store: store, activeSheet: $activeSheet))
         .onChange(of: store.selection) { _, _ in
             if activeSheet != nil { revealSelection() }
         }
@@ -1056,6 +1058,8 @@ struct EditorView: View {
             BackgroundSheet(store: store)
         case .fonts:
             FontSheet(store: store)
+        case .fontWords:
+            FontSheet(store: store, words: true)
         case .effects:
             EffectsSheet(store: store)
         case .spacing:
@@ -1461,5 +1465,23 @@ private extension View {
         } message: {
             Text(several ? "Some of them have their position locked." : "Its position is locked.")
         }
+    }
+}
+
+/// The typing bar's requests for the words chosen: its colour well opens the
+/// colour sheet, Aa the font sheet, and Link asks for a link (WordLinkPrompt).
+private struct WordRequests: ViewModifier {
+    @Bindable var store: DesignStore
+    @Binding var activeSheet: EditorSheet?
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: store.wordColourTarget) { _, target in
+                if target != nil { activeSheet = .colorWords }
+            }
+            .onChange(of: store.wordFontTarget) { _, target in
+                if target != nil { activeSheet = .fontWords }
+            }
+            .modifier(WordLinkPrompt(store: store))
     }
 }
