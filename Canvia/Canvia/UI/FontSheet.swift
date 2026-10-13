@@ -8,7 +8,9 @@
 // Opened from the typing bar's Aa it sets the words chosen instead, under a
 // note that says so, as the colour sheet does for their colour; the box's
 // own face gives them back to it. The Android twin's FontSheet, in the same
-// words.
+// words. Choosing for the texts selected, the Weight row comes first: Light
+// to Black, the weights their fonts have, each named in the face at that
+// weight, as the Android twin's Text panel has it under Font.
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -59,6 +61,9 @@ struct FontSheet: View {
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
+                }
+                if choice == nil && !words {
+                    weightRow
                 }
                 Section { categoryChips }
                     .listRowBackground(Color.clear)
@@ -129,6 +134,48 @@ struct FontSheet: View {
             }
             .padding(.vertical, 4)
         }
+    }
+
+    /// The weights the texts selected can take (TypeReadouts.weights), each
+    /// named in the first one's font at that weight, the one they are drawn
+    /// at chosen — its name in the title, or Mixed. A tap sets every
+    /// unlocked text selected to it, as one Undo, each measured again; the
+    /// sheet stays up. No row for texts only in fonts of your own, each one
+    /// face, drawn at its own weight.
+    @ViewBuilder
+    private var weightRow: some View {
+        let texts = store.textsRead
+        let weights = TypeReadouts.weights(texts)
+        if !weights.isEmpty {
+            let font = texts.first { !CustomFonts.isCustom($0.fontFamily) }?.fontFamily ?? "sans"
+            let drawn = TypeReadouts.drawnWeight(texts)
+            Section("Weight: \(TypeReadouts.weightReadout(texts))") {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(weights, id: \.self) { weight in
+                            weightChip(weight, font: font, chosen: weight == drawn)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
+        }
+    }
+
+    /// One weight, its name drawn at it in `font`.
+    private func weightChip(_ weight: Int, font: String, chosen: Bool) -> some View {
+        Button { store.setFontWeight(weight) } label: {
+            Text(FontLibrary.weightName(weight))
+                .font(FontLibrary.font(family: font, size: 15, weight: weight, italic: false))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(chosen ? Theme.accent : Theme.card, in: Capsule())
+                .foregroundStyle(chosen ? Color.white : Theme.ink)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 
     /// The fonts of your own on this phone, newest first, and the row that

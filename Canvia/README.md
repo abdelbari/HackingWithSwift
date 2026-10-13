@@ -86,11 +86,31 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   weight as Anton is (bold leaves it as it is, on both phones), carried
   inside a `.canvia.json` file and drawn in Modern Sans with "Font
   missing: <name>" on a phone without it; the twelve older personality keys still open as
-  aliases, 8 text effects (shadow, lift, hollow, splice, neon,
+  aliases; weights from Light to Black — twelve families (Roboto, Open
+  Sans, Lato, Montserrat, Poppins, Raleway, Nunito, DM Sans, Space
+  Grotesk, Playfair Display, Oswald, Roboto Slab) ship their Light,
+  Medium, Semibold, Extra bold and Black cuts, each family lists its
+  `weights` in Fonts.json (the system faces the cuts both phones have:
+  HelveticaNeue Light, Regular, Medium and Bold; Georgia and Menlo regular
+  and bold), and `FontLibrary.resolveWeight` — the nearest listed weight,
+  ties to the heavier — is the weight a text is drawn and measured at on
+  both phones; a Weight menu beside Font, and a Weight row atop the font
+  picker with each name drawn at its weight, set the selected texts as
+  one Undo, titled with the drawn weight's name or Mixed (Bold keeps its
+  own rule), 8 text effects (shadow, lift, hollow, splice, neon,
   echo, highlight) drawn through one CoreText pipeline shared by canvas,
   thumbnails and export — inline bold and italic words keep their style
   under every effect, and highlight bars sit behind each line as it is
   set, indents, list markers and justification included
+- Font combinations in Add ▸ Text: thirty ready lockups — the six font
+  pairings first, then sales, invitations, quotes, menus and more, mixing
+  faces, weights, spacing, colours, effects, curves, small shapes and
+  rules — two to a row, each drawn by the page renderer and kept, and found
+  by name or tag with "Search font combinations". They are
+  `textcombos.json` (`TextCombos`), the very file the Android twin's
+  tools/generate_textcombos.py writes; a tap puts one on the page 72% of
+  its width and centred, with fresh ids and one group, each text measured
+  from its top, selected, as one Undo
 - Photo frames: any library shape clips a photo — circle, star, blob,
   speech bubble — applying one squares the box about its centre, because
   the library's paths stretch onto the element and a circle on a 4:3 photo
