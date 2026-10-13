@@ -8,15 +8,23 @@ import Foundation
 
 extension DesignStore {
 
-    /// The chart the selection is part of, when it is part of one: some of it
-    /// carries a chart, all of that the same one, and none of it is locked.
-    /// A chart from before charts were kept — a plain group — has none.
+    /// The chart the selection is part of, when it is one Edit chart can draw
+    /// again: some of it carries a chart of a kind this build knows, all of
+    /// that the same one. A chart from before charts were kept — a plain
+    /// group — has none, and a kind from a newer build is kept as it is. A
+    /// locked chart still offers Edit chart, which says how to unlock it, as
+    /// on the Android twin.
     var selectedChart: ChartSpec? {
-        let selected = selectedElements
-        let charted = selected.filter { $0.chart != nil }
+        let charted = selectedElements.filter { $0.chart != nil }
         guard let spec = charted.first?.chart, charted.allSatisfy({ $0.chart?.id == spec.id }),
-              !selected.contains(where: \.locked) else { return nil }
+              DataGraphics.ChartKind(rawValue: spec.kind) != nil else { return nil }
         return spec
+    }
+
+    /// Whether any element of chart `id` on the page is locked: Edit chart
+    /// then only says how to unlock it.
+    func chartIsLocked(_ id: String) -> Bool {
+        page.elements.contains { $0.locked && $0.chart?.id == id }
     }
 
     /// The series number a chart part names: 2 for "series:2".
@@ -33,7 +41,8 @@ extension DesignStore {
     }
 
     /// Draws chart `spec` again in place of every element on the page that
-    /// carries its id: into the box they fill together, at the place in the
+    /// carries its id: so that it fills the box they fill together as the
+    /// chart before did (see DataGraphics.frameFilling), at the place in the
     /// stack of the lowest of them, under their group, with the colours they
     /// had by series ("series:<n>") — as one step, the new chart selected.
     /// False, and nothing recorded, when the chart is not on the page or the
@@ -41,20 +50,18 @@ extension DesignStore {
     @discardableResult
     func updateChart(_ spec: ChartSpec) -> Bool {
         let members = page.elements.filter { $0.chart?.id == spec.id }
-        guard !members.isEmpty else { return false }
-        let frame = Geometry.union(members.map(Geometry.aabb))
+        guard let was = members.first?.chart else { return false }
+        let frame = DataGraphics.frameFilling(was, bounds: Geometry.union(members.map(Geometry.aabb)))
         var colours: [Int: Paint] = [:]
         for el in members {
             guard let n = Self.chartSeries(el.chartPart), colours[n] == nil,
                   let paint = Self.chartColour(of: el) else { continue }
             colours[n] = paint
         }
-        var made = DataGraphics.chart(spec, in: frame, palette: DataGraphics.palette(for: design, page: page),
-                                      ink: DataGraphics.ink(for: page), colours: colours)
+        let made = DataGraphics.chart(spec, in: frame, palette: DataGraphics.palette(for: design, page: page),
+                                      ink: DataGraphics.ink(for: page), colours: colours,
+                                      group: members.first(where: { $0.group != nil })?.group ?? UID.make("grp"))
         guard !made.isEmpty else { return false }
-        if let group = members.first(where: { $0.group != nil })?.group {
-            for i in made.indices { made[i].group = group }
-        }
         let ids = Set(members.map(\.id))
         applyToPage { page in
             guard let at = page.elements.firstIndex(where: { ids.contains($0.id) }) else { return }

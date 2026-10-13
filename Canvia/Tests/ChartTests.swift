@@ -1,52 +1,55 @@
 // Charts that stay editable: the typed data parsed into series, the layout
-// of every kind at a fixed frame, and the `chart` and `chartPart` JSON — the
-// same tables as the Android twin's.
+// of every kind at a fixed frame, and the `chart` and `chartPart` JSON. The
+// parse and layout tables are the Android twin's ChartsTest, vector for
+// vector — the same frame, every label 20 tall — so the same text makes the
+// same chart on both phones.
 
 import XCTest
 @testable import Canvia
 
 final class ChartDataTests: XCTestCase {
 
-    private let frame = CGRect(x: 100, y: 100, width: 600, height: 400)
+    private let frame = CGRect(x: 100, y: 100, width: 400, height: 300)
     private let palette = ["#ff0000", "#00ff00", "#0000ff"]
 
-    // MARK: parsing
+    private func spec(_ kind: DataGraphics.ChartKind, _ data: String, legend: Bool = false,
+                      values: Bool = false, gridlines: Bool = false) -> ChartSpec {
+        ChartSpec(id: "chart_t", kind: kind.rawValue, data: data, legend: legend, values: values, gridlines: gridlines)
+    }
 
-    /// Non-numeric value cells read as 0; a line with no number at all is
-    /// skipped. Empty cells at the end of a line — a trailing comma — are
-    /// dropped.
-    func testParseTable() {
-        let rows: [(name: String, text: String, names: [String], labels: [String], values: [[Double]])] = [
-            ("single series", "Spring, 40\nSummer, 65",
-             ["Series 1"], ["Spring", "Summer"], [[40], [65]]),
-            ("header row", "Quarter, North, South\nQ1, 40, 32\nQ2, 50, 41",
-             ["North", "South"], ["Q1", "Q2"], [[40, 32], [50, 41]]),
-            ("blank lines", "\nA, 1\n\n   \nB, 2\n",
-             ["Series 1"], ["A", "B"], [[1], [2]]),
-            ("non-numeric cells", "Quarter, North, South\nQ1, n/a, 32\nQ2, -, -\nQ3, 7, 8",
-             ["North", "South"], ["Q1", "Q3"], [[0, 32], [7, 8]]),
-            ("trailing comma", "A, 1,\nB, 2,",
-             ["Series 1"], ["A", "B"], [[1], [2]]),
-            ("trailing comma on the header", "Month, Sales,\nJan, 5,",
-             ["Sales"], ["Jan"], [[5]]),
-            ("a lone number, an empty label", "12\n, 7",
-             ["Series 1"], ["Item 1", "Item 2"], [[12], [7]]),
-            ("percent and below zero", "A, 50%\nB, -3",
-             ["Series 1"], ["A", "B"], [[50], [0]]),
-            ("a short row", "Q, N, S\nQ1, 4",
-             ["N", "S"], ["Q1"], [[4, 0]]),
-            ("no header", "Q1, 40, 32\nQ2, 50",
-             ["Series 1", "Series 2"], ["Q1", "Q2"], [[40, 32], [50, 0]]),
-            ("a header only", "Quarter, North, South",
-             ["North", "South"], [], []),
-            ("words first, one cell", "nothing here\nA, 3",
-             ["Series 1"], ["A"], [[3]]),
+    private func made(_ spec: ChartSpec) -> [Element] {
+        DataGraphics.chart(spec, in: frame, palette: palette, heightFor: { _ in 20 })
+    }
+
+    private func rect(_ el: Element) -> [Double] { [el.x, el.y, el.w, el.h] }
+
+    // MARK: the shared parse table
+
+    func testTheSharedParseTable() {
+        let table: [(text: String, names: [String], labels: [String], values: [[Double]])] = [
+            // One series, as ever: no number skips the line, a bare number is numbered by its line.
+            ("Coffee, 42\nTea, 18%\njust words\n7", ["Series 1"], ["Coffee", "Tea", "Item 4"], [[42], [18], [7]]),
+            // A header names the series.
+            ("Quarter, North, South\nQ1, 40, 32\nQ2, 55, 41", ["North", "South"], ["Q1", "Q2"], [[40, 32], [55, 41]]),
+            // A header over one series names it, and reads the rows as before.
+            ("Month, Sales\nJan, 40\nFeb, 25", ["Sales"], ["Jan", "Feb"], [[40], [25]]),
+            // Blank lines, before the header and between rows, are skipped.
+            ("\n  \nQuarter, North, South\n\nQ1, 40, 32\n \nQ2, 55, 41\n", ["North", "South"], ["Q1", "Q2"], [[40, 32], [55, 41]]),
+            // A cell that is no number reads as 0; a row with no number at all is skipped.
+            ("Quarter, North, South\nQ1, n/a, 32\nQ2, -, -\nQ3, 12", ["North", "South"], ["Q1", "Q3"], [[0, 32], [12, 0]]),
+            // A trailing comma is nothing, on a header or a row, one series or several.
+            ("Quarter, North, South,\nQ1, 40, 32,", ["North", "South"], ["Q1"], [[40, 32]]),
+            ("A, 5,\nB, 6", ["Series 1"], ["A", "B"], [[5], [6]]),
+            // Several numbers with no header above them are no single value.
+            ("Q1, 40, 32", ["Series 1"], [], []),
+            // A blank series name is numbered; negatives count as zero; a blank label is numbered by its line.
+            ("Team, , Away\n, -4, 7%", ["Series 1", "Away"], ["Item 2"], [[0, 7]]),
         ]
-        for row in rows {
+        for row in table {
             let data = DataGraphics.parseChart(row.text)
-            XCTAssertEqual(data.names, row.names, row.name)
-            XCTAssertEqual(data.rows.map(\.label), row.labels, row.name)
-            XCTAssertEqual(data.rows.map(\.values), row.values, row.name)
+            XCTAssertEqual(data.names, row.names, row.text)
+            XCTAssertEqual(data.rows.map(\.label), row.labels, row.text)
+            XCTAssertEqual(data.rows.map(\.values), row.values, row.text)
         }
     }
 
@@ -56,92 +59,109 @@ final class ChartDataTests: XCTestCase {
         XCTAssertEqual(series.map(\.value), [40, 65, 12, 0])
     }
 
-    // MARK: layout
+    // MARK: the shared layout table, at (100, 100, 400 × 300), every label 20 tall
 
-    private func chart(_ kind: DataGraphics.ChartKind, _ text: String, legend: Bool = false,
-                       values: Bool = false, gridlines: Bool = false) -> [Element] {
-        DataGraphics.chart(kind, data: DataGraphics.parseChart(text), in: frame, palette: palette,
-                           legend: legend, values: values, gridlines: gridlines)
+    func testTheSharedLayoutTableColumn() {
+        let els = made(spec(.column, "A, 10\nB, 5"))
+        XCTAssertEqual(els.count, 4)
+        let bars = els.filter { $0.chartPart?.hasPrefix("series:") == true }
+        XCTAssertEqual(rect(bars[0]), [136, 100, 128, 271])
+        XCTAssertEqual(rect(bars[1]), [336, 236, 128, 136])
+        XCTAssertEqual(els.map(\.chartPart), ["series:0", "label", "series:1", "label"])
     }
 
-    private func rects(_ els: [Element]) -> [[Double]] {
-        els.filter { $0.chartPart?.hasPrefix("series:") == true }.map { [$0.x, $0.y, $0.w, $0.h] }
+    func testTheSharedLayoutTableColumnWithTwoSeriesLegendValuesAndGridlines() {
+        let els = made(spec(.column, "Quarter, North, South\nQ1, 40, 20\nQ2, 30, 10", legend: true, values: true, gridlines: true))
+        XCTAssertEqual(els.count, 19)
+        let parts = els.map(\.chartPart)
+        XCTAssertEqual(parts.filter { $0 == "grid" }.count, 5)
+        XCTAssertEqual(parts.filter { $0 == "value" }.count, 4)
+        XCTAssertEqual(parts.filter { $0 == "legend" }.count, 4)
+        XCTAssertEqual(els.filter { $0.chartPart == "grid" }.map(\.y), [129, 182, 236, 289, 342])
+        let bars = els.filter { $0.chartPart?.hasPrefix("series:") == true }
+        XCTAssertEqual(rect(bars[0]), [136, 129, 64, 214])
+        XCTAssertEqual(rect(bars[1]), [200, 236, 64, 107])
+        XCTAssertEqual(rect(bars[2]), [336, 182, 64, 160])
+        XCTAssertEqual(rect(bars[3]), [400, 289, 64, 53])
+        // Coloured by series, not by row.
+        XCTAssertEqual(bars.map(\.chartPart), ["series:0", "series:1", "series:0", "series:1"])
+        XCTAssertEqual(bars.map { $0.fill?.color }, ["#ff0000", "#00ff00", "#ff0000", "#00ff00"])
+        let swatches = els.filter { $0.chartPart == "legend" && $0.type == .shape }
+        XCTAssertEqual(rect(swatches[0]), [100, 379, 14, 14])
+        XCTAssertEqual(rect(swatches[1]), [300, 379, 14, 14])
+        XCTAssertEqual(els.filter { $0.chartPart == "legend" && $0.type == .text }.map(\.text), ["North", "South"])
     }
 
-    /// Element counts at the frame (100, 100, 600 × 400): marks, item
-    /// labels, values, five gridlines, and a swatch and a name per legend
-    /// entry.
-    func testLayoutCountTable() {
-        let single = "A, 10\nB, 20\nC, 5"
-        let multi = "Q, N, S\nQ1, 30, 20\nQ2, 50, 30"
-        let rows: [(name: String, kind: DataGraphics.ChartKind, text: String, all: Bool, count: Int)] = [
-            ("column", .column, single, false, 6),
-            ("column, every switch", .column, single, true, 20),
-            ("column, two series", .column, multi, false, 6),
-            ("column, two series, every switch", .column, multi, true, 19),
-            ("stacked column", .stackedColumn, multi, false, 6),
-            ("stacked column, every switch", .stackedColumn, multi, true, 19),
-            ("stacked column, a zero", .stackedColumn, "Q, N, S\nQ1, 30, 0\nQ2, 50, 30", false, 5),
-            ("bar", .bar, single, false, 6),
-            ("stacked bar", .stackedBar, multi, false, 6),
-            ("line, two series", .line, multi, false, 4),
-            ("area, two series", .area, multi, false, 4),
-            ("pie", .pie, single, false, 3),
-            ("donut, every switch", .donut, single, true, 3 + 3 + 6),
-            ("progress ring", .progressRing, "Done, 72", false, 3),
-            ("progress ring at 0", .progressRing, "Done, 0", false, 2),
-            ("progress ring, every switch", .progressRing, "Done, 72", true, 5),
-            ("progress bar", .progressBar, "Done, 72", false, 3),
-        ]
-        for row in rows {
-            let els = chart(row.kind, row.text, legend: row.all, values: row.all, gridlines: row.all)
-            XCTAssertEqual(els.count, row.count, row.name)
-        }
+    func testTheSharedLayoutTableStackedColumn() {
+        let els = made(spec(.stackedColumn, "Quarter, North, South\nQ1, 40, 20\nQ2, 30, 10"))
+        XCTAssertEqual(els.count, 6)
+        let segments = els.filter { $0.type == .shape }
+        XCTAssertEqual(rect(segments[0]), [136, 190, 128, 181])
+        XCTAssertEqual(rect(segments[1]), [136, 100, 128, 90])
+        XCTAssertEqual(rect(segments[2]), [336, 236, 128, 135])
+        XCTAssertEqual(rect(segments[3]), [336, 190, 128, 46])
     }
 
-    func testColumnRectangles() {
-        XCTAssertEqual(rects(chart(.column, "A, 10\nB, 20\nC, 5")),
-                       [[136, 281, 128, 181], [336, 100, 128, 362], [536, 371, 128, 90]])
-        XCTAssertEqual(rects(chart(.column, "A, 10\nB, 20\nC, 5", legend: true, values: true, gridlines: true)),
-                       [[136, 317, 128, 145], [336, 172, 128, 290], [536, 389, 128, 72]])
-        let grouped = chart(.column, "Q, N, S\nQ1, 40, 32\nQ2, 50, 41")
-        XCTAssertEqual(rects(grouped),
-                       [[154, 172, 96, 289], [250, 230, 96, 231], [454, 100, 96, 362], [550, 165, 96, 297]])
-        XCTAssertEqual(grouped.compactMap(\.chartPart), ["series:0", "series:1", "series:0", "series:1", "label", "label"])
-        XCTAssertEqual(grouped.prefix(4).map { $0.fill?.color }, ["#ff0000", "#00ff00", "#ff0000", "#00ff00"],
-                       "two series, a colour each")
+    func testTheSharedLayoutTableProgressRing() {
+        let els = made(spec(.progressRing, "72"))
+        XCTAssertEqual(els.count, 3)
+        XCTAssertEqual(els.map(\.chartPart), ["axis", "series:0", "value"])
+        XCTAssertEqual(rect(els[0]), [150, 100, 300, 300])
+        XCTAssertEqual(rect(els[1]), [150, 100, 300, 300])
+        XCTAssertEqual(rect(els[2]), [150, 240, 300, 20])
+        XCTAssertEqual(els[2].text, "72%")
+        // Clamped to 0…100; nothing to fill at none.
+        XCTAssertEqual(made(spec(.progressRing, "Score, 140")).last?.text, "100%")
+        let none = made(spec(.progressRing, "-5"))
+        XCTAssertEqual(none.count, 2)
+        XCTAssertEqual(none.last?.text, "0%")
     }
 
-    func testStackedColumnRectangles() {
-        let text = "Q, N, S\nQ1, 30, 20\nQ2, 50, 30"
-        XCTAssertEqual(rects(chart(.stackedColumn, text)),
-                       [[154, 326, 192, 136], [154, 236, 192, 90], [454, 236, 192, 226], [454, 100, 192, 136]])
-        XCTAssertEqual(rects(chart(.stackedColumn, text, legend: true, values: true, gridlines: true)),
-                       [[154, 340, 192, 122], [154, 260, 192, 80], [454, 260, 192, 202], [454, 138, 192, 122]])
+    func testTheSharedLayoutTableProgressBar() {
+        let els = made(spec(.progressBar, "72"))
+        XCTAssertEqual(els.count, 3)
+        XCTAssertEqual(rect(els[0]), [100, 236, 328, 29])
+        XCTAssertEqual(rect(els[1]), [100, 236, 236, 29])
+        XCTAssertEqual(rect(els[2]), [437, 240, 63, 20])
+        XCTAssertEqual(els[2].text, "72%")
     }
 
-    func testProgressRing() {
-        let ring = chart(.progressRing, "Done, 72")
-        XCTAssertEqual(ring.map(\.chartPart), ["axis", "series:0", "value"])
-        XCTAssertEqual(ring.prefix(2).map { [$0.x, $0.y, $0.w, $0.h] }, [[200, 100, 400, 400], [200, 100, 400, 400]])
-        XCTAssertEqual(ring[2].text, "72%")
-        let keyed = chart(.progressRing, "Done, 72", legend: true)
-        XCTAssertEqual(keyed.filter { $0.chartPart == "series:0" }.map { [$0.x, $0.y, $0.w, $0.h] }, [[219, 138, 362, 362]])
-        XCTAssertEqual(chart(.progressRing, "Done, 140").last?.text, "100%", "clamped to 100")
-        XCTAssertEqual(chart(.progressRing, "Done, 72.6").last?.text, "73%")
-        XCTAssertEqual(chart(.progressBar, "Done, 40").last?.text, "40%", "at the end of the bar")
-    }
+    // MARK: the rest of the kinds
 
-    func testEveryKindStaysInsideItsFrameWithEverySwitch() {
+    func testEveryKindDrawsFromShapesAndTextAlone() {
+        let data = "Quarter, North, South\nQ1, 40, 20\nQ2, 30, 10\nQ3, 50, 25"
         for kind in DataGraphics.ChartKind.allCases {
-            let els = chart(kind, "Q, N, S\nQ1, 30, 20\nQ2, 50, 30\nQ3, 10, 40", legend: true, values: true, gridlines: true)
+            let els = made(spec(kind, data, legend: true, values: true, gridlines: true))
             XCTAssertFalse(els.isEmpty, kind.rawValue)
+            XCTAssertTrue(els.allSatisfy { $0.type == .shape || $0.type == .text }, kind.rawValue)
+            XCTAssertTrue(els.allSatisfy { $0.chartPart != nil && $0.chart?.kind == kind.rawValue }, kind.rawValue)
             XCTAssertEqual(Set(els.compactMap(\.group)).count, 1, "\(kind.rawValue): one group")
-            XCTAssertTrue(els.allSatisfy { $0.chartPart != nil }, "\(kind.rawValue): every element has a part")
-            for e in els {
-                XCTAssertTrue(frame.insetBy(dx: -2, dy: -2).contains(Geometry.aabb(e)),
-                              "\(kind.rawValue): \(e.chartPart ?? "") leaves the frame: \(Geometry.aabb(e))")
-            }
+        }
+        // Lines and areas: one path per series; stacked bars: a segment per value.
+        XCTAssertEqual(made(spec(.line, data)).filter { $0.type == .shape }.count, 2)
+        XCTAssertEqual(made(spec(.area, data)).filter { $0.type == .shape }.count, 2)
+        XCTAssertEqual(made(spec(.stackedBar, data)).filter { $0.type == .shape }.count, 6)
+    }
+
+    func testLegendValuesAndGridlinesAreOffUnlessAskedFor() {
+        let plain = made(spec(.bar, "A, 3\nB, 4"))
+        XCTAssertFalse(plain.contains { ["legend", "value", "grid"].contains($0.chartPart ?? "") })
+        // A pie's legend names its slices, its values are shares.
+        let pie = made(spec(.pie, "Yes, 3\nNo, 1", legend: true, values: true))
+        XCTAssertEqual(pie.filter { $0.chartPart == "legend" && $0.type == .text }.map(\.text), ["Yes", "No"])
+        XCTAssertEqual(pie.filter { $0.chartPart == "value" }.map(\.text), ["75%", "25%"])
+    }
+
+    func testDrawnIntoTheFrameThatFillsItsOwnBoxAChartStaysWhereItIs() {
+        for kind in DataGraphics.ChartKind.allCases {
+            let s = spec(kind, "Quarter, North, South\nQ1, 40, 20\nQ2, 30, 10\nQ3, 50, 25", legend: true)
+            let bounds = Geometry.union(made(s).map(\.frame))
+            let filling = DataGraphics.frameFilling(s, bounds: bounds, heightFor: { _ in 20 })
+            let again = Geometry.union(DataGraphics.chart(s, in: filling, palette: palette, heightFor: { _ in 20 }).map(\.frame))
+            XCTAssertEqual(again.minX, bounds.minX, accuracy: 2, kind.rawValue)
+            XCTAssertEqual(again.minY, bounds.minY, accuracy: 2, kind.rawValue)
+            XCTAssertEqual(again.width, bounds.width, accuracy: 2, kind.rawValue)
+            XCTAssertEqual(again.height, bounds.height, accuracy: 2, kind.rawValue)
         }
     }
 
@@ -159,7 +179,7 @@ final class ChartDataTests: XCTestCase {
     func testEveryElementCarriesTheChartAndItsPart() throws {
         let spec = ChartSpec(kind: "column", data: "A, 1\nB, 2", legend: true)
         XCTAssertTrue(spec.id.hasPrefix("chart_"))
-        let els = DataGraphics.chart(spec, in: frame, palette: palette)
+        let els = made(spec)
         XCTAssertTrue(els.allSatisfy { $0.chart == spec })
         let json = try XCTUnwrap(String(data: JSONEncoder().encode(els[0]), encoding: .utf8))
         XCTAssertTrue(json.contains("\"chartPart\":\"series:0\""), json)
@@ -179,8 +199,9 @@ final class ChartDataTests: XCTestCase {
         XCTAssertEqual(el.chart?.gridlines, false)
         XCTAssertEqual(el.chartPart, "label")
         let kept = try XCTUnwrap(el.chart)
-        XCTAssertEqual(DataGraphics.chart(kept, in: frame, palette: palette).count, 3,
-                       "and drawn as columns: a column, its label and its value")
+        XCTAssertTrue(made(kept).isEmpty, "and not drawn as some other kind")
+        let again = try JSONDecoder().decode(Element.self, from: JSONEncoder().encode(el))
+        XCTAssertEqual(again.chart, kept, "but written back as it was")
         let broken = #"{"type":"shape","chart":{"id":"chart_a","kind":"pie"}}"#
         XCTAssertNil(try JSONDecoder().decode(Element.self, from: Data(broken.utf8)).chart, "no data, no chart")
         let old = #"{"type":"shape","group":"grp_1"}"#

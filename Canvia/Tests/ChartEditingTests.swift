@@ -46,11 +46,30 @@ final class ChartEditingTests: XCTestCase {
         XCTAssertTrue(made.filter { $0.chartPart == "series:1" }.allSatisfy { $0.fill?.color == "#123456" },
                       "the hand-set colour carries over by series")
         let after = Geometry.union(made.filter { $0.type == .shape }.map(Geometry.aabb))
-        XCTAssertTrue(box.insetBy(dx: -1, dy: -1).contains(after), "drawn into the box the chart filled")
+        XCTAssertTrue(box.insetBy(dx: -2, dy: -2).contains(after), "drawn into the box the chart filled")
         XCTAssertEqual(s.selection, Set(made.map(\.id)))
 
         s.undo()
         XCTAssertEqual(s.page.elements.map(\.id), ([below] + chart + [above]).map(\.id), "one step")
+    }
+
+    /// A chart never fills its frame to the edge, so drawn again into the
+    /// box it left it would shrink at every Update; it is drawn into the
+    /// frame that fills that box instead.
+    func testUpdatingWithNoChangeKeepsTheChartsBox() {
+        for spec in [ChartSpec(kind: "bar", data: "A, 10\nB, 20\nC, 5\nD, 15"),
+                     ChartSpec(kind: "progressBar", data: "72"),
+                     ChartSpec(kind: "line", data: "Q, N, S\nQ1, 30, 20\nQ2, 50, 30", legend: true, values: true)] {
+            let chart = DataGraphics.chart(spec, in: frame, palette: ["#ff0000"])
+            let s = store(chart)
+            let box = Geometry.union(chart.map(Geometry.aabb))
+            XCTAssertTrue(s.updateChart(spec), spec.kind)
+            let after = Geometry.union(s.page.elements.map(Geometry.aabb))
+            XCTAssertEqual(after.minX, box.minX, accuracy: 2, spec.kind)
+            XCTAssertEqual(after.minY, box.minY, accuracy: 2, spec.kind)
+            XCTAssertEqual(after.width, box.width, accuracy: 2, spec.kind)
+            XCTAssertEqual(after.height, box.height, accuracy: 2, spec.kind)
+        }
     }
 
     func testOnlyAChartWithItsDataOffersEditChart() {
@@ -69,10 +88,18 @@ final class ChartEditingTests: XCTestCase {
         s.applyToPage { $0.elements += other }
         s.selection = [chart[0].id, other[0].id]
         XCTAssertNil(s.selectedChart)
-        // Nor is a locked one.
-        chart[0].locked = true
-        s.applyToPage { $0.elements[2] = chart[0] }
+        // A locked one still offers Edit chart, which says how to unlock it.
+        XCTAssertFalse(s.chartIsLocked(spec.id))
+        chart[1].locked = true
+        s.applyToPage { $0.elements[3] = chart[1] }
         s.selection = [chart[0].id]
+        XCTAssertEqual(s.selectedChart?.id, spec.id)
+        XCTAssertTrue(s.chartIsLocked(spec.id))
+        // A kind from a newer build is kept as it is, not edited as another.
+        var radar = Element.shape("rect")
+        radar.chart = ChartSpec(kind: "radar", data: "A, 1")
+        s.applyToPage { $0.elements.append(radar) }
+        s.select(radar.id)
         XCTAssertNil(s.selectedChart)
     }
 

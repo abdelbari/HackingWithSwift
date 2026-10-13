@@ -29,64 +29,76 @@ struct DataSheet: View {
         _gridlines = State(initialValue: editing?.gridlines ?? false)
     }
 
+    /// Edit chart on a chart with a locked part: nothing to update until it
+    /// is unlocked.
+    private var locked: Bool { editing.map { store.chartIsLocked($0.id) } ?? false }
+
     var body: some View {
         NavigationStack {
             Form {
-                // A chart being edited stays a chart.
-                if editing == nil {
-                    Picker("Kind", selection: $mode) {
-                        Text("Chart").tag(0)
-                        Text("Table").tag(1)
-                    }
-                    .pickerStyle(.segmented)
-                }
-                if mode == 0 {
-                    Section {
-                        // Ten kinds: a menu, where a segmented row would not fit.
-                        Picker("Chart", selection: $kind) {
-                            ForEach(DataGraphics.ChartKind.allCases) { Text($0.name).tag($0) }
+                // A locked chart is only told how to unlock, as on the Android twin.
+                if locked {
+                    Label("This chart is locked. Tap Unlock to edit it.", systemImage: "lock")
+                        .foregroundStyle(.secondary)
+                } else {
+                    // A chart being edited stays a chart.
+                    if editing == nil {
+                        Picker("Kind", selection: $mode) {
+                            Text("Chart").tag(0)
+                            Text("Table").tag(1)
                         }
-                        .pickerStyle(.menu)
-                        TextEditor(text: $chartText)
-                            .font(.system(.body, design: .monospaced))
-                            .frame(minHeight: 140)
-                    } header: {
-                        Text("One line per value: label, number")
-                    } footer: {
-                        let data = DataGraphics.parseChart(chartText)
-                        if let refusal {
-                            Text(refusal).foregroundStyle(Color(.systemRed))
-                        } else if kind.isProgress, let first = data.rows.first?.values.first {
-                            Text("The first value, as a percentage: \(Int(min(100, first).rounded()))%.")
-                        } else {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(DataGraphics.chartSummary(data))
-                                Text("A first line of names, as in \"Quarter, North, South\", makes a series of each column after the first.")
+                        .pickerStyle(.segmented)
+                    }
+                    if mode == 0 {
+                        Section {
+                            // Ten kinds: a menu, where a segmented row would not fit.
+                            Picker("Chart", selection: $kind) {
+                                ForEach(DataGraphics.ChartKind.allCases) { Text($0.name).tag($0) }
+                            }
+                            .pickerStyle(.menu)
+                            TextEditor(text: $chartText)
+                                .font(.system(.body, design: .monospaced))
+                                .frame(minHeight: 140)
+                        } header: {
+                            Text("One line per value: label, number")
+                        } footer: {
+                            let data = DataGraphics.parseChart(chartText)
+                            if let refusal {
+                                Text(refusal).foregroundStyle(Color(.systemRed))
+                            } else if kind.isProgress, let first = data.rows.first?.values.first {
+                                Text("The first value, as a percentage: \(Int(min(100, first).rounded()))%.")
+                            } else {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(DataGraphics.chartSummary(data))
+                                    Text("A first line of names, as in \"Quarter, North, South\", makes a series of each column after the first.")
+                                }
                             }
                         }
-                    }
-                    Section {
-                        Toggle("Legend", isOn: $legend)
-                        // A progress kind writes its own value; only kinds
-                        // with a scale have lines to draw across it.
-                        Toggle("Values", isOn: $values)
-                            .disabled(kind.isProgress)
-                        Toggle("Gridlines", isOn: $gridlines)
-                            .disabled(!kind.hasScale)
-                    }
-                } else {
-                    Section {
-                        TextEditor(text: $tableText)
-                            .font(.system(.body, design: .monospaced))
-                            .frame(minHeight: 140)
-                    } header: {
-                        Text("One row per line, cells separated by commas or tabs")
-                    } footer: {
-                        let rows = DataGraphics.parseTable(tableText)
-                        if let refusal {
-                            Text(refusal).foregroundStyle(Color(.systemRed))
-                        } else {
-                            Text(DataGraphics.tableSummary(rows))
+                        Section {
+                            // A progress kind writes its own value and has no
+                            // legend; only kinds with a scale have lines to
+                            // draw across it.
+                            Toggle("Legend", isOn: $legend)
+                                .disabled(kind.isProgress)
+                            Toggle("Values", isOn: $values)
+                                .disabled(kind.isProgress)
+                            Toggle("Gridlines", isOn: $gridlines)
+                                .disabled(!kind.hasScale)
+                        }
+                    } else {
+                        Section {
+                            TextEditor(text: $tableText)
+                                .font(.system(.body, design: .monospaced))
+                                .frame(minHeight: 140)
+                        } header: {
+                            Text("One row per line, cells separated by commas or tabs")
+                        } footer: {
+                            let rows = DataGraphics.parseTable(tableText)
+                            if let refusal {
+                                Text(refusal).foregroundStyle(Color(.systemRed))
+                            } else {
+                                Text(DataGraphics.tableSummary(rows))
+                            }
                         }
                     }
                 }
@@ -105,7 +117,7 @@ struct DataSheet: View {
                                 : "Nothing to set: type some rows."
                         }
                     }
-                        .disabled(mode == 0 ? DataGraphics.parseChart(chartText).rows.isEmpty : DataGraphics.parseTable(tableText).isEmpty)
+                        .disabled(locked || (mode == 0 ? DataGraphics.parseChart(chartText).rows.isEmpty : DataGraphics.parseTable(tableText).isEmpty))
                 }
             }
         }

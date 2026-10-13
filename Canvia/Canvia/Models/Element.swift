@@ -234,7 +234,7 @@ struct ClipPlayback: Codable, Equatable, Hashable {
 /// exactly as typed and its three switches — beside a `chartPart` of its
 /// own. An object without an id, a kind or data is no chart, and its
 /// elements are a plain group again; a kind this build does not know is kept
-/// as written. The switches are written only when on.
+/// as written and offers no Edit chart. The switches are written only when on.
 struct ChartSpec: Codable, Equatable, Hashable {
     /// "chart_<uid>", shared by every element of the chart.
     var id: String
