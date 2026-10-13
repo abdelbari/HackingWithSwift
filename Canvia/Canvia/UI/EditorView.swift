@@ -84,7 +84,10 @@ struct EditorView: View {
     /// the same.
     static let saveFailedMessage = "Couldn't save your changes. Your phone may be out of space. Canvia will keep trying."
 
-    var body: some View {
+    /// The editor's stack and the modifiers that answer the canvas — split
+    /// from `body`'s sheets, alerts and lifecycle so the type checker takes
+    /// each chain in reasonable time.
+    private var editorStack: some View {
         VStack(spacing: 0) {
             topBar
             if saveFailed { saveFailedBanner }
@@ -161,6 +164,15 @@ struct EditorView: View {
         .feel(trigger: store.spacingSnapped) { _, spaced in spaced ? .alignment : nil }
         .feel(trigger: store.haptic) { _, event in event.feedback }
         .background(Theme.workspace)
+    }
+
+    /// Crop, typing, the pen or the eraser has the page.
+    private var pageTaken: Bool {
+        store.cropping != nil || store.editingTextId != nil || store.drawing != nil || store.erasing != nil
+    }
+
+    var body: some View {
+        editorStack
         .sheet(item: $activeSheet) { sheet in
             sheetView(sheet)
         }
@@ -178,8 +190,7 @@ struct EditorView: View {
         // Crop, typing, the pen or the eraser taking the page ends Select
         // multiple as a panel does, the selection kept — as on the Android
         // twin.
-        .onChange(of: store.cropping != nil || store.editingTextId != nil
-                  || store.drawing != nil || store.erasing != nil) { _, busy in
+        .onChange(of: pageTaken) { _, busy in
             if busy { store.endSelectingMultiple() }
         }
         // The typing bar's colour well asks for the colour sheet.

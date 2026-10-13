@@ -94,11 +94,14 @@ struct Adjustments: Codable, Equatable, Hashable {
         func f(_ label: String, _ value: Double) -> String {
             value == 0 ? "" : "\(label)\(Int((value * 100).rounded()))"
         }
-        return "adj" + f("b", brightness) + f("c", contrast) + f("s", saturation)
-            + f("w", warmth) + f("k", sharpness) + f("v", vignette)
-            + f("n", tint) + f("h", highlights) + f("o", shadows) + f("x", whites)
-            + f("z", blacks) + f("y", vibrance) + f("l", clarity) + f("f", fade)
-            + (curve.map { "t\($0)" } ?? "")
+        let dials: [(String, Double)] = [
+            ("b", brightness), ("c", contrast), ("s", saturation),
+            ("w", warmth), ("k", sharpness), ("v", vignette),
+            ("n", tint), ("h", highlights), ("o", shadows), ("x", whites),
+            ("z", blacks), ("y", vibrance), ("l", clarity), ("f", fade),
+        ]
+        let curveKey: String = curve.map { "t\($0)" } ?? ""
+        return "adj" + dials.map { f($0.0, $0.1) }.joined() + curveKey
     }
 
     private enum CodingKeys: String, CodingKey {

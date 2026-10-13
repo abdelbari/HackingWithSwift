@@ -45,8 +45,9 @@ final class PhotoEffectsTests: XCTestCase {
     /// column too; a clear pixel adds clearness, not black.
     func testEachBlockIsItsPixelsMean() {
         func grey(_ v: UInt8) -> [UInt8] { [v, v, v, 255] }
-        var bytes = grey(0) + grey(100) + grey(200)
-            + grey(50) + grey(150) + [0, 0, 0, 0]
+        var bytes: [UInt8] = []
+        for v: UInt8 in [0, 100, 200, 50, 150] { bytes += grey(v) }
+        bytes += [0, 0, 0, 0] as [UInt8]
         PhotoEffects.pixelate(&bytes, width: 3, height: 2, block: 2)
         XCTAssertEqual(bytes[0], 75)
         XCTAssertEqual(bytes[4 * 4], 75)
