@@ -135,6 +135,11 @@ final class PageTransitionsTests: XCTestCase {
         XCTAssertEqual(PageTransitions.lengthName(nil), "Normal")
         XCTAssertEqual(PageTransitions.lengthName(0.3), "Quick")
         XCTAssertEqual(PageTransitions.lengthName(1.0), "Slow")
+        // A length of its own reads as the nearest, as Android's lengthName.
+        XCTAssertEqual(PageTransitions.lengthName(0.5), "Quick")
+        XCTAssertEqual(PageTransitions.lengthName(0.8), "Slow")
+        XCTAssertEqual(PageTransitions.lengthName(2.0), "Slow")
+        XCTAssertEqual(PageTransitions.lengthName(0.2), "Quick")
     }
 
     // MARK: present
@@ -151,6 +156,24 @@ final class PageTransitionsTests: XCTestCase {
 
     func testEveryNewKindIsKnown() {
         XCTAssertEqual(MovieExporter.transitions, ["fade", "cut", "slide", "push", "wipe", "circle", "zoom"])
+    }
+
+    /// Android's "a page gives way by its own transition, else the design's".
+    func testAPageGivesWayByItsOwnTransitionElseTheDesigns() {
+        var plain = Design(title: "t", width: 400, height: 300)
+        plain.pages = [Page()]
+        XCTAssertEqual(PageTransitions.transitionKind(after: plain.pages[0], in: plain), "fade")
+        var cutting = plain
+        var motion = MotionSettings()
+        motion.crossfade = false
+        cutting.motion = motion
+        XCTAssertEqual(PageTransitions.transitionKind(after: cutting.pages[0], in: cutting), "cut")
+        var page = Page()
+        page.transition = "slide"
+        XCTAssertEqual(PageTransitions.transitionKind(after: page, in: cutting), "slide")
+        page.transition = "spiral"
+        XCTAssertEqual(PageTransitions.transitionKind(after: page, in: plain), "fade", "a kind this build does not know is the design's")
+        XCTAssertEqual(PageTransitions.transitionKind(after: page, in: cutting), "cut")
     }
 
     // MARK: video

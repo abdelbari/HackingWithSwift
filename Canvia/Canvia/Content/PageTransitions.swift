@@ -36,6 +36,14 @@ enum PageTransitions {
     /// The lengths the page sheet offers: nil is today's timings.
     static let lengths: [(name: String, seconds: Double?)] = [("Quick", 0.3), ("Normal", nil), ("Slow", 1.0)]
 
+    /// How `page` gives way to the next: its own transition when this build
+    /// knows it, else the design's — a fade, or a cut when its motion turns
+    /// cross-fade off. Android's PageTiming.transitionOf.
+    static func transitionKind(after page: Page, in design: Design) -> String {
+        if let own = page.transition, MovieExporter.transitions.contains(own) { return own }
+        return design.motion?.crossfade == false ? "cut" : "fade"
+    }
+
     /// Ease-out cubic: arrives fast, settles gently.
     static func eased(_ t: Double) -> Double {
         let c = min(max(t, 0), 1)

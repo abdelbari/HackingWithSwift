@@ -43,6 +43,12 @@ final class ExitAnimationTests: XCTestCase {
             ("slideRight", 0, 0.6, 3.0, 0, 100, 0, 1),
             // a kind from a newer build leaves as a fade
             ("spin", 0, 0.6, 2.7, 0.875, 0, 0, 1),
+            // no length: settled until its end, gone from it
+            ("fade", 0, 0, 2.9, 1, 0, 0, 1),
+            ("fade", 0, 0, 3.0, 0, 0, 0, 1),
+            // a length below nothing, from a file: still gone from its end
+            ("fade", 1, -1, 1.5, 1, 0, 0, 1),
+            ("fade", 1, -1, 2.5, 0, 0, 0, 1),
         ]
         for (kind, delay, duration, t, opacity, dx, dy, scale) in rows {
             let s = ElementAnimation(kind: kind, delay: delay, duration: duration).exitState(at: t, hold: 3, size: 100)
@@ -78,6 +84,7 @@ final class ExitAnimationTests: XCTestCase {
         XCTAssertEqual(ElementAnimation.exitName(nil), "No exit")
         XCTAssertEqual(ElementAnimation.exitKinds.map { ElementAnimation.exitName($0) },
                        ["Fade", "Rise", "Pop", "Slide left", "Slide right"])
+        XCTAssertEqual(ElementAnimation.exitName("comet"), "Fade", "a kind from a newer build leaves as a fade")
     }
 
     // MARK: the file

@@ -393,8 +393,7 @@ struct PresentationView: View {
     /// design's — a fade, or a cut with cross-fade off. The same rule the
     /// video and the Android twin use.
     private func transition(after page: Page) -> String {
-        if let own = page.transition, MovieExporter.transitions.contains(own) { return own }
-        return design.motion?.crossfade == false ? "cut" : "fade"
+        PageTransitions.transitionKind(after: page, in: design)
     }
 
     private var chrome: some View {

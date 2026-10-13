@@ -155,7 +155,9 @@ struct ElementAnimation: Codable, Equatable {
     func exitState(at t: Double, hold: Double, size: Double = 100) -> State {
         let end = hold - delay
         let begin = end - duration
-        if t <= begin { return .settled }
+        // Gone from its end, whatever its length — even none, or one
+        // below nothing from a file — as Android has it.
+        if t <= begin && t < end { return .settled }
         let q = duration > 0 ? min(max((t - begin) / duration, 0), 1) : 1
         let e = t >= end ? 1 : q * q * q
         var s = State()
