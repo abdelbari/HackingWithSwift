@@ -128,10 +128,12 @@ struct CanvasView: View {
             Button("Remove guide", role: .destructive) { store.removeGuide(guide.id) }
             Button("Cancel", role: .cancel) {}
         }
-        .alert("Position", isPresented: Binding(get: { positioningGuide != nil },
-                                                set: { if !$0 { positioningGuide = nil } }),
+        // Worded as Android's Position… dialog words it.
+        .alert(positioningGuide?.vertical == false ? "Horizontal guide" : "Vertical guide",
+               isPresented: Binding(get: { positioningGuide != nil },
+                                    set: { if !$0 { positioningGuide = nil } }),
                presenting: positioningGuide) { guide in
-            TextField("px", text: $guidePositionText)
+            TextField(guide.vertical ? "From the left (px)" : "From the top (px)", text: $guidePositionText)
                 .keyboardType(.decimalPad)
             Button("Move") {
                 let limit = guide.vertical ? store.pageWidth : store.pageHeight
@@ -141,9 +143,7 @@ struct CanvasView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: { guide in
-            Text(guide.vertical
-                 ? "Pixels from the left edge, 0 to \(Int(store.pageWidth))."
-                 : "Pixels from the top edge, 0 to \(Int(store.pageHeight)).")
+            Text("From 0 to \(Int((guide.vertical ? store.pageWidth : store.pageHeight).rounded())) px")
         }
         // Typing in place stays above the keyboard: when it starts, when the
         // keyboard arrives or changes, and as the box grows line by line.

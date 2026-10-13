@@ -99,7 +99,7 @@ struct SnappingSheet: View {
                 Text(SnapSettings.gridLabel(step)).tag(step)
             }
             if let custom {
-                Text(SnapSettings.gridLabel(custom)).tag(custom)
+                Text(SnapSettings.customGridLabel(custom)).tag(custom)
             }
             Text("Custom…").tag(Self.customGridTag)
         }

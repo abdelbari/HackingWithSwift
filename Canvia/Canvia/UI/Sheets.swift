@@ -1132,9 +1132,8 @@ struct LayersSheet: View {
     @ViewBuilder
     private var emptyState: some View {
         if filter == .overlapping {
-            ContentUnavailableView("Nothing selected",
-                                   systemImage: "square.on.square.dashed",
-                                   description: Text("Select something on the page to list what overlaps it."))
+            ContentUnavailableView("Select something to see what overlaps it.",
+                                   systemImage: "square.on.square.dashed")
                 .listRowBackground(Color.clear)
         } else {
             ContentUnavailableView("Nothing on this page yet",
@@ -1225,7 +1224,7 @@ struct LayersSheet: View {
                     .frame(width: 20, height: 28)
             }
             .buttonStyle(.borderless)
-            .accessibilityLabel(open ? "Collapse \(name)" : "Expand \(name)")
+            .accessibilityLabel(open ? "Close \(name)" : "Open \(name)")
             HStack(spacing: 12) {
                 Image(systemName: "square.on.square")
                     .frame(width: 28, height: 28)

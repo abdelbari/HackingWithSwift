@@ -58,6 +58,13 @@ struct SnapSettings: Equatable, Codable {
         return "Every \(number) px"
     }
 
+    /// "Custom: every 24 px": a spacing set with Custom…, as Android's Grid
+    /// row says it.
+    static func customGridLabel(_ step: Double) -> String {
+        let number = step == step.rounded() ? String(Int(step)) : String(step)
+        return "Custom: every \(number) px"
+    }
+
     /// Whether `step` is a spacing the picker does not list: one set with
     /// Custom….
     static func isCustomGrid(_ step: Double) -> Bool {

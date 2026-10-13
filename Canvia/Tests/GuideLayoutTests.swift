@@ -152,6 +152,8 @@ final class GuideLayoutTests: XCTestCase {
         XCTAssertNil(SnapSettings.customGrid("lots"))
         XCTAssertEqual(SnapSettings.gridLabel(16), "Every 16 px")
         XCTAssertEqual(SnapSettings.gridLabel(12.5), "Every 12.5 px")
+        XCTAssertEqual(SnapSettings.customGridLabel(24), "Custom: every 24 px", "Android's words")
+        XCTAssertEqual(SnapSettings.customGridLabel(12.5), "Custom: every 12.5 px")
         XCTAssertFalse(SnapSettings.isCustomGrid(16))
         XCTAssertFalse(SnapSettings.isCustomGrid(0))
         XCTAssertTrue(SnapSettings.isCustomGrid(24))
