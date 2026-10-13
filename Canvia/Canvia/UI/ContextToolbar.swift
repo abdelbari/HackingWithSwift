@@ -63,6 +63,12 @@ struct ContextToolbar: View {
         HStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
+                    // Any part of a chart, or the whole of it: first in the
+                    // row, before the controls of whichever part it is.
+                    if store.selectedChart != nil {
+                        toolButton("chart.bar.xaxis", "Edit chart") { activeSheet = .chart }
+                        Divider().frame(height: 24).padding(.horizontal, 6)
+                    }
                     if let el = store.singleSelection, hasTypeControls(el) {
                         typeControls(el)
                         Divider().frame(height: 24).padding(.horizontal, 6)

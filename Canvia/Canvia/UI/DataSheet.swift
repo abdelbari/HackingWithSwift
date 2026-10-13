@@ -1,43 +1,78 @@
-// Type the numbers, get the chart; type the cells, get the table.
+// Type the numbers, get the chart; type the cells, get the table. Edit chart
+// opens it again on the selected chart, filled in, to Update it in place.
 
 import SwiftUI
 
 struct DataSheet: View {
     @Bindable var store: DesignStore
+    /// The chart Edit chart opened the sheet on: its kind, data and switches
+    /// filled in, and Update in place of Add. Nil for a new chart or table.
+    let editing: ChartSpec?
     @Environment(\.dismiss) private var dismiss
     @State private var mode = 0
-    @State private var kind = DataGraphics.ChartKind.column
-    @State private var chartText = "Spring, 40\nSummer, 65\nAutumn, 30\nWinter, 20"
+    @State private var kind: DataGraphics.ChartKind
+    @State private var chartText: String
+    @State private var legend: Bool
+    @State private var values: Bool
+    @State private var gridlines: Bool
     @State private var tableText = "Item, Qty, Price\nCoffee, 2, 3.50\nBagel, 1, 2.25\nJuice, 3, 4.00"
     /// Why the last Add drew nothing, until the data or the kind changes.
     @State private var refusal: String?
 
+    init(store: DesignStore, editing: ChartSpec? = nil) {
+        self.store = store
+        self.editing = editing
+        _kind = State(initialValue: editing.flatMap { DataGraphics.ChartKind(rawValue: $0.kind) } ?? .column)
+        _chartText = State(initialValue: editing?.data ?? "Spring, 40\nSummer, 65\nAutumn, 30\nWinter, 20")
+        _legend = State(initialValue: editing?.legend ?? false)
+        _values = State(initialValue: editing?.values ?? false)
+        _gridlines = State(initialValue: editing?.gridlines ?? false)
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                Picker("Kind", selection: $mode) {
-                    Text("Chart").tag(0)
-                    Text("Table").tag(1)
+                // A chart being edited stays a chart.
+                if editing == nil {
+                    Picker("Kind", selection: $mode) {
+                        Text("Chart").tag(0)
+                        Text("Table").tag(1)
+                    }
+                    .pickerStyle(.segmented)
                 }
-                .pickerStyle(.segmented)
                 if mode == 0 {
                     Section {
+                        // Ten kinds: a menu, where a segmented row would not fit.
                         Picker("Chart", selection: $kind) {
                             ForEach(DataGraphics.ChartKind.allCases) { Text($0.name).tag($0) }
                         }
-                        .pickerStyle(.segmented)
+                        .pickerStyle(.menu)
                         TextEditor(text: $chartText)
                             .font(.system(.body, design: .monospaced))
                             .frame(minHeight: 140)
                     } header: {
                         Text("One line per value: label, number")
                     } footer: {
-                        let n = DataGraphics.parse(chartText).count
+                        let data = DataGraphics.parseChart(chartText)
                         if let refusal {
                             Text(refusal).foregroundStyle(Color(.systemRed))
+                        } else if kind.isProgress, let first = data.rows.first?.values.first {
+                            Text("The first value, as a percentage: \(Int(min(100, first).rounded()))%.")
                         } else {
-                            Text(n == 0 ? "No numbers found yet." : (n == 1 ? "1 value" : "\(n) values") + " — coloured from the document's palette.")
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(DataGraphics.chartSummary(data))
+                                Text("A first line of names, as in \"Quarter, North, South\", makes a series of each column after the first.")
+                            }
                         }
+                    }
+                    Section {
+                        Toggle("Legend", isOn: $legend)
+                        // A progress kind writes its own value; only kinds
+                        // with a scale have lines to draw across it.
+                        Toggle("Values", isOn: $values)
+                            .disabled(kind.isProgress)
+                        Toggle("Gridlines", isOn: $gridlines)
+                            .disabled(!kind.hasScale)
                     }
                 } else {
                     Section {
@@ -56,21 +91,21 @@ struct DataSheet: View {
                     }
                 }
             }
-            .navigationTitle(mode == 0 ? "Chart" : "Table")
+            .navigationTitle(editing != nil ? "Edit chart" : (mode == 0 ? "Chart" : "Table"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     // Kept open with a word when there turns out to be
                     // nothing to draw — a pie of zeros — as on the Android twin.
-                    Button("Add") {
+                    Button(editing != nil ? "Update" : "Add") {
                         if add() { dismiss() } else {
                             store.buzz(.reject)
                             refusal = mode == 0 ? "Nothing to draw: type some values, or values above zero."
                                 : "Nothing to set: type some rows."
                         }
                     }
-                        .disabled(mode == 0 ? DataGraphics.parse(chartText).isEmpty : DataGraphics.parseTable(tableText).isEmpty)
+                        .disabled(mode == 0 ? DataGraphics.parseChart(chartText).rows.isEmpty : DataGraphics.parseTable(tableText).isEmpty)
                 }
             }
         }
@@ -83,14 +118,17 @@ struct DataSheet: View {
 
     @discardableResult
     private func add() -> Bool {
+        let spec = ChartSpec(id: editing?.id ?? UID.make("chart"), kind: kind.rawValue, data: chartText,
+                             legend: legend, values: values, gridlines: gridlines)
+        // Drawn again where it was, as one step, keeping its colours.
+        if mode == 0, editing != nil { return store.updateChart(spec) }
         let w = store.pageWidth, h = store.pageHeight
         let frame = CGRect(x: (w * 0.1).rounded(), y: (h * 0.2).rounded(), width: (w * 0.8).rounded(), height: (h * 0.6).rounded())
         // The design's colours that show on this page, and labels in an ink
         // that reads on it — as the Android twin chooses them.
         let colors = DataGraphics.palette(for: store.design, page: store.page)
         let elements = mode == 0
-            ? DataGraphics.chart(kind, series: DataGraphics.parse(chartText), in: frame, palette: colors,
-                                 ink: DataGraphics.ink(for: store.page))
+            ? DataGraphics.chart(spec, in: frame, palette: colors, ink: DataGraphics.ink(for: store.page))
             : DataGraphics.table(DataGraphics.parseTable(tableText), in: frame, accent: colors[0])
         guard !elements.isEmpty else { return false }
         store.applyToPage { $0.elements.append(contentsOf: elements) }
