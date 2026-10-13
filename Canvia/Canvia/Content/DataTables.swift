@@ -212,19 +212,34 @@ extension DataGraphics {
     /// Table `id`'s words as rows of cells, for the editor tables are typed
     /// in (parseTable reads them back, a line at a time): commas between
     /// cells, or tabs between them in every row once any cell's words hold
-    /// a comma, so the rows read alike; each cell's plain words, its line
-    /// breaks and tabs spaces.
+    /// a comma, so the rows read alike (tableTextTabbed); each cell's plain
+    /// words, its line breaks and tabs spaces.
     static func tableText(_ elements: [Element], id: String) -> String {
+        let cells = tableCells(elements, id: id)
+        let split = tabbed(cells) ? "\t" : ", "
+        return cells.map { $0.joined(separator: split) }.joined(separator: "\n")
+    }
+
+    /// Whether tableText puts tabs between table `id`'s cells, so that the
+    /// text is read back split on tabs alone (parseEditedTable): a
+    /// one-column table's words with a comma in them are still one cell.
+    static func tableTextTabbed(_ elements: [Element], id: String) -> Bool {
+        tabbed(tableCells(elements, id: id))
+    }
+
+    private static func tabbed(_ cells: [[String]]) -> Bool {
+        cells.contains { row in row.contains { $0.contains(",") } }
+    }
+
+    private static func tableCells(_ elements: [Element], id: String) -> [[String]] {
         var words: [TableCell: String] = [:]
         for el in tableMembers(elements, id: id) where el.type == .text {
             if let cell = el.table { words[cell] = el.text ?? "" }
         }
         let columns = tableColumns(elements, id: id)
-        let cells = tableRows(elements, id: id).map { row in
+        return tableRows(elements, id: id).map { row in
             columns.map { col in words[TableCell(id: id, row: row, col: col)].map(plainWords) ?? "" }
         }
-        let split = cells.contains { row in row.contains { $0.contains(",") } } ? "\t" : ", "
-        return cells.map { $0.joined(separator: split) }.joined(separator: "\n")
     }
 
     /// Table `id` made `rows` of cells (parseTable's): rows and columns
@@ -233,8 +248,9 @@ extension DataGraphics {
     /// average, rounded, so the table grows or shrinks on the right; then
     /// each cell's words set, a cell whose words did not change keeping its
     /// own styles. A new row copies the row two above it, keeping the bands,
-    /// or the last row when that would be the header. Nil when `rows` has no
-    /// cell.
+    /// or the last row when there is one row; a copy of the header row is
+    /// made a body row, banded as its place has it, so a table of a header
+    /// alone grows body rows. Nil when `rows` has no cell.
     static func rebuiltTable(_ elements: [Element], id: String, rows: [[String]],
                              heightFor: (Element) -> Double) -> [Element]? {
         guard let wanted = rows.map(\.count).max(), wanted > 0,
@@ -243,8 +259,10 @@ extension DataGraphics {
         while true {
             let have = tableRows(out, id: id)
             guard have.count < rows.count, let last = have.last else { break }
-            let source = have.count >= 3 ? have[have.count - 2] : last
+            let source = have.count >= 2 ? have[have.count - 2] : last
+            let header = source == have.first && tableHasHeader(out, id: id)
             out = insertingRow(out, id: id, source: source, at: last + 1)
+            if header { out = asBodyRow(out, id: id, row: last + 1) }
         }
         while tableRows(out, id: id).count > rows.count, let last = tableRows(out, id: id).last {
             out = removingRow(out, id: id, row: last)
@@ -276,13 +294,34 @@ extension DataGraphics {
         return relaidTable(out, id: id, heightFor: heightFor)
     }
 
+    /// Table `id`'s row `row` styled as a body row, as withTableHeader
+    /// styles row 0 when it is off: banded, regular, in the table's ink.
+    private static func asBodyRow(_ elements: [Element], id: String, row: Int) -> [Element] {
+        elements.map { el -> Element in
+            guard let cell = el.table, cell.id == id, cell.row == row else { return el }
+            var out = el
+            switch el.type {
+            case .shape:
+                out.fill = .solid(tableBodyFill(row))
+            case .text:
+                out.fontWeight = 400
+                out.color = tableInk
+            default:
+                break
+            }
+            return out
+        }
+    }
+
     // MARK: after a step
 
     /// `after` with each table whose words changed since `before` laid out
     /// again — a cell typed in, its type changed in the Text controls, words
     /// replaced — so a row grows with its words in the same step that grew
     /// them. Moving cells about is not a change of words, and tables
-    /// nothing was typed in are left where they are.
+    /// nothing was typed in are left where they are: a copy's cells are new,
+    /// not typed in, so a copy stays as its original stands, and a table with
+    /// a locked cell is never moved, as no change to a table moves one.
     static func settlingTables(_ after: Design, since before: Design, heightFor: (Element) -> Double) -> Design {
         var out = after
         for p in out.pages.indices {
@@ -293,10 +332,11 @@ extension DataGraphics {
             for el in old?.elements ?? [] where el.type == .text && el.table != nil { was[el.id] = el }
             var edited: [String] = []
             for el in page.elements where el.type == .text {
-                guard let cell = el.table, !edited.contains(cell.id) else { continue }
-                if let w = was[el.id], !wordsDiffer(w, el) { continue }
+                guard let cell = el.table, !edited.contains(cell.id),
+                      let w = was[el.id], wordsDiffer(w, el) else { continue }
                 edited.append(cell.id)
             }
+            edited.removeAll { id in tableMembers(page.elements, id: id).contains(where: \.locked) }
             guard !edited.isEmpty else { continue }
             var elements = page.elements
             for id in edited { elements = relaidTable(elements, id: id, heightFor: heightFor) }
@@ -466,11 +506,19 @@ extension DataGraphics {
     }
 
     /// Whether a cell's words, or anything that sets how much room they
-    /// take, changed.
+    /// take, changed. The settings the Android twin keeps among an
+    /// element's extras — case, lists, indent, paragraph spacing, drop cap,
+    /// the way the words run and how they fit their box — count too, as
+    /// they count there.
     private static func wordsDiffer(_ a: Element, _ b: Element) -> Bool {
-        a.text != b.text || a.fontSize != b.fontSize || a.fontFamily != b.fontFamily
+        let face = a.text != b.text || a.fontSize != b.fontSize || a.fontFamily != b.fontFamily
             || a.fontWeight != b.fontWeight || a.italic != b.italic || a.lineHeight != b.lineHeight
-            || a.letterSpacing != b.letterSpacing || a.spans != b.spans || a.spansText != b.spansText
-            || a.table != b.table
+            || a.letterSpacing != b.letterSpacing
+        let marks = a.spans != b.spans || a.spansText != b.spansText || a.table != b.table
+        let lines = a.uppercase != b.uppercase || a.listStyle != b.listStyle || a.indent != b.indent
+            || a.paragraphSpacing != b.paragraphSpacing || a.dropCap != b.dropCap
+        let run = a.vertical != b.vertical || a.curve != b.curve || a.textPath != b.textPath
+            || a.fitText != b.fitText || a.vAlign != b.vAlign
+        return face || marks || lines || run
     }
 }

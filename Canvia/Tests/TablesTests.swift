@@ -284,6 +284,116 @@ final class TablesTests: XCTestCase {
         XCTAssertEqual(rect(longer, 1, 0).fill, rect(longer, 3, 0).fill)
     }
 
+    func testEditedAsTextACommaStaysInItsCellAndABlankRowStaysARow() throws {
+        let table = made()
+        // One column with a comma in its words: written with tabs, so read
+        // back on tabs alone, and Update changes nothing.
+        let narrowed = try XCTUnwrap(DataGraphics.deletingTableColumn(table, id: tableId(table), col: 1,
+                                                                      heightFor: heightFor))
+        let one = withWords(narrowed, 1, 0, "Smith, John")
+        let text = DataGraphics.tableText(one, id: tableId(one))
+        XCTAssertEqual(text, "Item\nSmith, John\nBagel")
+        XCTAssertTrue(DataGraphics.tableTextTabbed(one, id: tableId(one)))
+        XCTAssertFalse(DataGraphics.tableTextTabbed(table, id: tableId(table)))
+        XCTAssertEqual(DataGraphics.parseEditedTable(text, tabs: true), [["Item"], ["Smith, John"], ["Bagel"]])
+        let again = try XCTUnwrap(DataGraphics.rebuiltTable(
+            one, id: tableId(one), rows: DataGraphics.parseEditedTable(text, tabs: true), heightFor: heightFor))
+        XCTAssertEqual(words(again), ["Item", "Smith, John", "Bagel"])
+        XCTAssertEqual(columnWidths(again), [400])
+        // Without tabs, a comma parts cells, as ever.
+        XCTAssertEqual(DataGraphics.parseEditedTable("Smith, John", tabs: false), [["Smith", "John"]])
+
+        // Blank lines between rows are rows with no words; those before the
+        // first row and after the last are not rows at all.
+        XCTAssertEqual(DataGraphics.parseEditedTable("\n \nItem\n\nBagel\n\n", tabs: false), [["Item"], [""], ["Bagel"]])
+        XCTAssertEqual(DataGraphics.parseEditedTable("Item\tQty\n\t\nBagel\t1", tabs: true),
+                       [["Item", "Qty"], ["", ""], ["Bagel", "1"]])
+        XCTAssertEqual(DataGraphics.parseEditedTable("A\r\nB", tabs: false), [["A"], ["B"]])
+        XCTAssertEqual(DataGraphics.parseEditedTable(" \n\t\n", tabs: true), [])
+        let gap = DataGraphics.addingTableRow(one, id: tableId(one), row: 1, below: true, heightFor: heightFor)
+        let gapText = DataGraphics.tableText(gap, id: tableId(gap))
+        XCTAssertEqual(gapText, "Item\nSmith, John\n\nBagel")
+        let gapRows = DataGraphics.parseEditedTable(gapText, tabs: DataGraphics.tableTextTabbed(gap, id: tableId(gap)))
+        let kept = try XCTUnwrap(DataGraphics.rebuiltTable(gap, id: tableId(gap), rows: gapRows, heightFor: heightFor))
+        XCTAssertEqual(words(kept), ["Item", "Smith, John", "", "Bagel"])
+        XCTAssertEqual(rowTops(kept), rowTops(gap))
+        XCTAssertEqual(rect(kept, 3, 0).fill, rect(gap, 3, 0).fill)
+    }
+
+    func testEditedAsTextATableOfAHeaderAloneGrowsBandedBodyRows() throws {
+        let header = DataGraphics.table(DataGraphics.parseTable("Item, Qty"),
+                                        in: CGRect(x: 100, y: 200, width: 400, height: 300), accent: "#1f2430",
+                                        heightFor: heightFor)
+        let grown = try XCTUnwrap(DataGraphics.rebuiltTable(
+            header, id: tableId(header), rows: DataGraphics.parseTable("Item, Qty\nCoffee, 2\nBagel, 1\nJam, 3"),
+            heightFor: heightFor))
+        XCTAssertEqual((0...3).map { rect(grown, $0, 0).fill?.color ?? "" }, ["#1f2430", "#ffffff", "#f3f4f6", "#ffffff"])
+        XCTAssertEqual((0...3).map { text(grown, $0, 1).fontWeight ?? 0 }, [700, 400, 400, 400])
+        XCTAssertEqual((1...3).map { text(grown, $0, 0).color ?? "" }, ["#1f2430", "#1f2430", "#1f2430"])
+        XCTAssertTrue(DataGraphics.tableHasHeader(grown, id: tableId(grown)))
+        // As a table made from the same rows bands them.
+        let table = made()
+        XCTAssertEqual((0...2).map { rect(table, $0, 1).fill }, (0...2).map { rect(grown, $0, 1).fill })
+    }
+
+    func testOnlyWordsTypedLayATableOutAgainNeverACopyOrALockedTable() {
+        let table = made()
+        // Row 1 made taller by hand.
+        let tall = table.map { el -> Element in
+            var out = el
+            if el.table?.row == 1 && el.type == .shape { out.h = 80 }
+            return out
+        }
+        var start = Design(title: "tables", width: 1000, height: 1000)
+        start.pages[0].elements = tall
+        let before = start
+        func after(_ elements: [Element]) -> Design {
+            var out = before
+            out.pages[0].elements = elements
+            return out
+        }
+
+        // A copy's cells are new, not typed in: it stays as its original stands.
+        let copy = Copies.of(tall, offset: 24)
+        XCTAssertEqual(DataGraphics.settlingTables(after(tall + copy), since: before, heightFor: heightFor).pages[0].elements,
+                       tall + copy)
+
+        // Words typed in a cell lay the table out again...
+        let typed = withWords(tall, 1, 0, "Coffee\nwith milk")
+        let laid = DataGraphics.settlingTables(after(typed), since: before, heightFor: heightFor).pages[0].elements
+        XCTAssertEqual(rect(laid, 1, 1).h, 66)
+        XCTAssertEqual(rect(laid, 2, 0).y, 312)
+        // ...but not when a cell of it is locked: nothing locked moves.
+        let locked = typed.map { el -> Element in
+            var out = el
+            if el.table?.row == 2 { out.locked = true }
+            return out
+        }
+        XCTAssertEqual(DataGraphics.settlingTables(after(locked), since: before, heightFor: heightFor).pages[0].elements,
+                       locked)
+    }
+
+    /// Uppercase, a list, an indent and the like change how much room a
+    /// cell's words take, so the table is laid out again, as on the Android
+    /// twin, where they are among the element's extras.
+    func testACellMadeUppercaseLaysTheTableOutAgain() {
+        let table = made()
+        let coffee = text(table, 1, 0).id
+        // Words grown but not yet laid out, then made uppercase.
+        var grown = Design(title: "tables", width: 1000, height: 1000)
+        grown.pages[0].elements = withWords(table, 1, 0, "Coffee\nwith milk")
+        var cased = grown
+        cased.pages[0].elements = grown.pages[0].elements.map { el -> Element in
+            var out = el
+            if el.id == coffee { out.uppercase = true }
+            return out
+        }
+        XCTAssertEqual(rect(cased.pages[0].elements, 1, 1).h, 46)
+        let laid = DataGraphics.settlingTables(cased, since: grown, heightFor: heightFor).pages[0].elements
+        XCTAssertEqual(rect(laid, 1, 1).h, 66)
+        XCTAssertEqual(rect(laid, 2, 0).y, 312)
+    }
+
     // MARK: the file
 
     func testACellIsReadAsTheAndroidTwinWritesItAndGoesOutTheSame() throws {
@@ -439,6 +549,7 @@ final class TablesTests: XCTestCase {
         let table = s.page.elements
         s.selection = [text(table, 0, 0).id]
         XCTAssertEqual(s.tableText, "Item, Qty\nCoffee, 2\nBagel, 1")
+        XCTAssertFalse(s.tableTextTabbed)
         XCTAssertFalse(s.rebuildTable(from: "  \n"))
         XCTAssertTrue(s.rebuildTable(from: "Item, Qty, Price\nCoffee, 2, 3.50"))
         XCTAssertEqual(columnWidths(s.page.elements), [267, 133, 200])

@@ -649,6 +649,25 @@ enum DataGraphics {
             }
     }
 
+    /// A table's words as Edit as text reads them back (tableText wrote
+    /// them): a row per line, the blank lines before the first row and after
+    /// the last left out and those between kept as rows with no words, so no
+    /// row's words move up into another's; cells split by tabs, and by
+    /// commas only in a line with no tab and when `tabs` is false — with
+    /// `tabs`, the table was written with tabs between its cells, and a
+    /// comma is part of a cell's words. The Android twin's
+    /// `parseEditedTable`.
+    static func parseEditedTable(_ text: String, tabs: Bool) -> [[String]] {
+        let all = text.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: .newlines)
+        let filled: (String) -> Bool = { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        guard let first = all.firstIndex(where: filled), let last = all.lastIndex(where: filled) else { return [] }
+        return all[first...last].map { line in
+            let sep: Character = tabs || line.contains("\t") ? "\t" : ","
+            return line.split(separator: sep, omittingEmptySubsequences: false)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+        }
+    }
+
     /// A table filling `frame`: a header row in `accent` with light text,
     /// banded body rows, hairline cells, text in each cell. Column widths
     /// follow the longest text in each column; row heights follow the text.
