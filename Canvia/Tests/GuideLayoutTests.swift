@@ -77,6 +77,13 @@ final class GuideLayoutTests: XCTestCase {
                    columns: 1, rows: 1, gutter: 0, margin: 400, vertical: [400, 650], horizontal: [300]),
         LayoutCase(name: "a gutter that leaves no room leaves tracks of nothing", size: CGSize(width: 1050, height: 600),
                    columns: 1, rows: 5, gutter: 200, margin: 0, vertical: [], horizontal: [0, 200, 400, 600]),
+        LayoutCase(name: "a quarter pixel goes up to the half", size: CGSize(width: 1001, height: 1001),
+                   columns: 4, rows: 0, gutter: 0, margin: 0, vertical: [250.5, 500.5, 751], horizontal: []),
+        LayoutCase(name: "a small page, gutter 4, margin 6", size: CGSize(width: 64, height: 48),
+                   columns: 4, rows: 2, gutter: 4, margin: 6,
+                   vertical: [6, 16, 20, 30, 34, 44, 48, 58], horizontal: [6, 22, 26, 42]),
+        LayoutCase(name: "a small page, gutter and margin both too wide", size: CGSize(width: 100, height: 50),
+                   columns: 3, rows: 2, gutter: 40, margin: 30, vertical: [30, 70, 100], horizontal: [25, 50]),
     ] }
 
     func testGuidesLayoutMatchesTheSharedTable() {
@@ -138,6 +145,28 @@ final class GuideLayoutTests: XCTestCase {
         XCTAssertEqual(s.design.guides[0].position, 250.5, "on a half pixel, as Android puts it")
         s.setGuidePosition(id, to: 120.3)
         XCTAssertEqual(s.design.guides[0].position, 120.5)
+    }
+
+    /// Android's typedPosition cases, on the same 1080 × 500 page.
+    func testATypedPositionLandsAsAndroidPutsIt() {
+        let s = DesignStore(design: design(width: 1080, height: 500))
+        s.addGuide(vertical: true, at: 10)
+        s.addGuide(vertical: false, at: 10)
+        let across = s.design.guides[0].id, down = s.design.guides[1].id
+        s.setGuidePosition(across, to: 250.4)
+        XCTAssertEqual(s.design.guides[0].position, 250.5)
+        s.setGuidePosition(across, to: 2000)
+        XCTAssertEqual(s.design.guides[0].position, 1080)
+        s.setGuidePosition(down, to: 2000)
+        XCTAssertEqual(s.design.guides[1].position, 500)
+        s.setGuidePosition(down, to: -5)
+        XCTAssertEqual(s.design.guides[1].position, 0)
+        s.setGuidePosition(down, to: 120.3)
+        XCTAssertEqual(s.design.guides[1].position, 120.5)
+        s.setGuidePosition(down, to: 250.25)
+        XCTAssertEqual(s.design.guides[1].position, 250.5)
+        XCTAssertEqual(Guides.halfPixel(0.24999999999999997), 0)
+        XCTAssertEqual(Guides.halfPixel(-2.25), -2.5)
     }
 
     // MARK: custom grid
