@@ -74,10 +74,16 @@ extension DesignStore {
     /// cell's rectangle the cell's words — the padding round them is the
     /// cell too. Nil when it takes no typing.
     func typedIn(_ el: Element) -> Element? {
+        typedIn(el, among: page.elements)
+    }
+
+    /// What a double tap on `el` types into among `elements`, the page it
+    /// is on — another page of the column, too, before it is the one worked.
+    func typedIn(_ el: Element, among elements: [Element]) -> Element? {
         guard let cell = el.table, el.type == .shape else {
             return ShapeText.carriesWords(el) && !el.locked ? el : nil
         }
-        guard let words = page.elements.first(where: { $0.type == .text && $0.table == cell }),
+        guard let words = elements.first(where: { $0.type == .text && $0.table == cell }),
               !words.locked else { return nil }
         return words
     }

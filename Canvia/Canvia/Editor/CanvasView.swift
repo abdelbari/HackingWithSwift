@@ -1695,11 +1695,16 @@ struct CanvasView: View {
     /// on a photo or words, that page becomes the one worked and the photo
     /// opens crop, or the words their typing — as the Android twin's first
     /// tap makes the page current and its second works what it landed on.
-    /// Anywhere else it is not taken, and the canvas zooms.
+    /// What it takes is what a double tap on the page worked claims
+    /// (claimsDoubleTap): a locked shape, or a cell whose words are locked,
+    /// zooms. Anywhere else it is not taken, and the canvas zooms — where
+    /// the page worked hangs over it, too, as its tap does (backgroundTap).
     private func otherPageDoubleTap(at point: CGPoint) -> Bool {
+        if let slot = columnSlot, holdsWorkedPage(at: slot.toPage(point)) { return false }
         guard let found = otherPageHit(at: point) else { return false }
         let hit = found.element
-        guard hit.type == .image || ShapeText.carriesWords(hit) || hit.table != nil else { return false }
+        let typed = store.typedIn(hit, among: store.design.pages[found.page].elements)
+        guard hit.type == .image || hit.type == .text || typed != nil else { return false }
         commitTextEditIfAny()
         pageFromColumn = found.page
         store.setPage(found.page)
