@@ -1530,10 +1530,11 @@ final class DesignStore {
         applyToPage { $0.hidden = hidden ? true : nil }
     }
 
-    /// This page's transition and its length given to every page, hidden
-    /// ones too, as one undo step.
+    /// This page's transition, as written, and its length, kept to the
+    /// range, given to every page, hidden ones too, as one undo step — a
+    /// length out of range lands clamped, as on the Android twin.
     func applyTransitionToAllPages() {
-        let transition = page.transition, seconds = page.transitionSeconds
+        let transition = page.transition, seconds = PageTransitions.seconds(page.transitionSeconds)
         apply { d in
             for i in d.pages.indices {
                 d.pages[i].transition = transition

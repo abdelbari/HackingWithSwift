@@ -308,6 +308,23 @@ final class PageTransitionsTests: XCTestCase {
         XCTAssertEqual(store.design.pages.map(\.transition), ["dissolve", "dissolve", "dissolve"])
     }
 
+    /// A length out of range is given to every page kept to the range, as
+    /// on the Android twin.
+    @MainActor
+    func testALengthOutOfRangeIsGivenToEveryPageKeptToTheRange() {
+        for (written, kept) in [(5.0, 2.0), (0.05, 0.2)] {
+            var d = Design(title: "a", width: 400, height: 300)
+            d.pages = [Page(), Page(), Page()]
+            d.pages[0].transition = "circle"
+            d.pages[0].transitionSeconds = written
+            d.pages[2].transitionSeconds = 1.0
+            let store = DesignStore(design: d)
+            store.applyTransitionToAllPages()
+            XCTAssertEqual(store.design.pages.map(\.transitionSeconds), [kept, kept, kept])
+            XCTAssertEqual(store.design.pages.map(\.transition), ["circle", "circle", "circle"])
+        }
+    }
+
     @MainActor
     func testApplyingNormalTakesTheLengthAwayEverywhere() {
         var d = Design(title: "a", width: 400, height: 300)
