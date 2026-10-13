@@ -522,11 +522,12 @@ struct ContextToolbar: View {
         }
     }
 
-    /// Saved, linked text styles: apply one, save the current look as one,
-    /// or push this element's look back into the style it follows. A
-    /// popover rather than a menu, because a menu sets every row in the
-    /// system font and each style is shown here in its own face — "Heading"
-    /// looks like a heading — as the Android twin's style chips are.
+    /// The active brand kit's text roles, then saved, linked text styles:
+    /// apply one, save the current look as one, or push this element's look
+    /// back into the style it follows. A popover rather than a menu,
+    /// because a menu sets every row in the system font and each style is
+    /// shown here in its own face — "Heading" looks like a heading — as the
+    /// Android twin's style chips are.
     private func stylesMenu(_ el: Element) -> some View {
         let styles = TextStyles.load()
         let followed = styles.first { $0.id == el.textStyleId }
@@ -556,8 +557,12 @@ struct ContextToolbar: View {
     }
 
     private func stylesList(_ el: Element, styles: [TextStyle], followed: TextStyle?) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if styles.isEmpty {
+        // The kit's roles lead, those it sets, each in its face, as the
+        // Android twin's Text panel leads with them.
+        let fonts = BrandKit.load().fonts
+        let roles = BrandFonts.Role.allCases.filter { fonts[$0] != nil }
+        return VStack(alignment: .leading, spacing: 0) {
+            if styles.isEmpty && roles.isEmpty {
                 Text("No saved styles yet")
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 16)
@@ -565,6 +570,9 @@ struct ContextToolbar: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
+                        ForEach(roles) { role in
+                            if let face = fonts[role] { brandRow(role, face: face, el: el) }
+                        }
                         ForEach(styles) { style in styleRow(style, followed: style.id == followed?.id) }
                     }
                 }
@@ -575,6 +583,30 @@ struct ContextToolbar: View {
         }
         .frame(minWidth: 260)
         .padding(.vertical, 6)
+    }
+
+    /// A brand role, in its own face: one tap sets the text in it.
+    private func brandRow(_ role: BrandFonts.Role, face: BrandFont, el: Element) -> some View {
+        let chosen = el.fontFamily == face.family && el.fontWeight == face.weight
+        return Button {
+            store.applyBrandFace(face)
+            styleVersion += 1
+            showingStyles = false
+        } label: {
+            HStack {
+                Text(role.label)
+                    .font(FontLibrary.font(family: face.family, size: 17, weight: face.weight, italic: false))
+                    .lineLimit(1)
+                Spacer(minLength: 12)
+                if chosen { Image(systemName: "checkmark").foregroundStyle(Theme.accent) }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(role.label), brand kit")
+        .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 
     private func styleRow(_ style: TextStyle, followed: Bool) -> some View {

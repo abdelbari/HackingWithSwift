@@ -27,10 +27,11 @@ enum FontChoices {
         var id: String { title }
     }
 
-    /// The brand kit's faces, heading then body, resolved, once each.
+    /// The brand kit's faces, by role from title to caption, resolved,
+    /// once each.
     static func brandFonts(_ kit: BrandKit) -> [String] {
         var out: [String] = []
-        for family in [kit.headingFamily, kit.bodyFamily].compactMap({ $0 }) {
+        for family in BrandFonts.Role.allCases.compactMap({ kit.fonts[$0]?.family }) {
             let id = FontLibrary.resolve(family)
             if !out.contains(id) { out.append(id) }
         }

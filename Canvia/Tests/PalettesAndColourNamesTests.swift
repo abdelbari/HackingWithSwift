@@ -94,16 +94,21 @@ final class PalettesAndColourNamesTests: XCTestCase {
 
     // MARK: brand kit
 
-    func testTheBrandKitIsAPaletteOnceItHasTwoColours() throws {
+    func testEachBrandPaletteIsAThemePaletteOnceItHasTwoColours() throws {
         var kit = BrandKit()
-        XCTAssertNil(kit.palette)
+        XCTAssertTrue(kit.themePalettes.isEmpty)
         kit.addColor("#112233")
-        XCTAssertNil(kit.palette, "one colour is nothing to map a design onto")
+        XCTAssertTrue(kit.themePalettes.isEmpty, "one colour is nothing to map a design onto")
         kit.addColor("#445566")
-        let palette = try XCTUnwrap(kit.palette)
-        XCTAssertEqual(palette.id, "brand-kit")
-        XCTAssertEqual(palette.name, "Brand kit")
+        kit.palettes.append(BrandPalette(name: "Accent", colors: ["#ff0000"]))
+        kit.palettes.append(BrandPalette(name: "Autumn", colors: ["#c2410c", "#facc15"]))
+        XCTAssertEqual(kit.themePalettes.map(\.name), ["Colours", "Autumn"])
+        let palette = try XCTUnwrap(kit.themePalettes.first)
+        XCTAssertEqual(palette.id, "brand-kit-0")
+        XCTAssertTrue(BrandKit.isBrandPalette(palette))
         XCTAssertEqual(palette.colors, ["#445566", "#112233"], "in kit order, newest first")
+        XCTAssertEqual(kit.themePalettes.last?.id, "brand-kit-2", "by the palette's place in the kit")
+        XCTAssertEqual(kit.title(of: kit.palettes[2]), "My brand · Autumn")
     }
 
     // MARK: colours in words

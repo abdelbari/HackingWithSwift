@@ -77,9 +77,12 @@ struct ColorPickerSheet: View {
                             EyedropperSheet(design: store.design, page: store.page) { hex in choose(hex) }
                         }
 
-                        let brand = BrandKit.load().colors
-                        if !brand.isEmpty {
-                            section("Brand colours", colors: brand)
+                        // The active brand kit's palettes, each by name.
+                        let kit = BrandKit.load()
+                        ForEach(Array(kit.palettes.enumerated()), id: \.offset) { _, palette in
+                            if !palette.colors.isEmpty {
+                                section(kit.title(of: palette), colors: palette.colors)
+                            }
                         }
                     }
 

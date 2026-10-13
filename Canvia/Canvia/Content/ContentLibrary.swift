@@ -12,6 +12,12 @@ struct ShapeDef: Codable, Identifiable {
     var rectLike: Bool?
 }
 
+/// One page of a template that has several.
+struct TemplatePage: Codable {
+    var background: Background
+    var elements: [Element]
+}
+
 struct Template: Codable, Identifiable {
     var id: String
     var name: String
@@ -20,12 +26,25 @@ struct Template: Codable, Identifiable {
     var height: Double
     var background: Background
     var elements: [Element]
+    /// Every page, for a template that has several, as the Android twin
+    /// reads them: {"background", "elements"} each. Nil or empty is the
+    /// one page `background` and `elements` describe.
+    var pages: [TemplatePage]? = nil
 
-    /// A fresh Design at the template's native size — in the unit of the
-    /// print type made at exactly that size, so an A4 template prints on A4.
+    /// The template's pages, in order: one for a single-page template.
+    var pageSpecs: [TemplatePage] {
+        if let pages, !pages.isEmpty { return pages }
+        return [TemplatePage(background: background, elements: elements)]
+    }
+
+    var pageCount: Int { pageSpecs.count }
+
+    /// A fresh Design at the template's native size, every page of it — in
+    /// the unit of the print type made at exactly that size, so an A4
+    /// template prints on A4.
     func instantiate() -> Design {
         var design = Design(title: name, width: width, height: height)
-        design.pages = [makePage(scale: 1, dx: 0, dy: 0)]
+        design.pages = pageSpecs.map { makePage($0, scale: 1, dx: 0, dy: 0) }
         if let type = SizePreset.all.first(where: { $0.unit != nil && $0.w == width && $0.h == height }) {
             design.unit = type.unit
             design.dpi = type.dpi
@@ -42,7 +61,7 @@ struct Template: Codable, Identifiable {
             design = instantiate()
         } else {
             design = Design(title: name, width: preset.w, height: preset.h)
-            design.pages = [makePage(width: preset.w, height: preset.h)]
+            design.pages = pageSpecs.indices.map { makePage(at: $0, width: preset.w, height: preset.h) }
         }
         design.unit = preset.unit
         design.dpi = preset.dpi
@@ -61,36 +80,53 @@ struct Template: Codable, Identifiable {
     /// design of mixed sizes need not be the document's. As the Android
     /// twin's instantiate(width, height).
     func makePage(width pageWidth: Double, height pageHeight: Double) -> Page {
-        guard width > 0, height > 0 else { return Page(background: background) }
+        makePage(at: 0, width: pageWidth, height: pageHeight)
+    }
+
+    /// Page `index` of the template (the first when there is no such page)
+    /// fitted to a page of this size, as above.
+    func makePage(at index: Int, width pageWidth: Double, height pageHeight: Double) -> Page {
+        let specs = pageSpecs
+        let spec = specs.indices.contains(index) ? specs[index] : specs[0]
+        guard width > 0, height > 0 else { return Page(background: spec.background) }
         let scale = min(pageWidth / width, pageHeight / height)
         let dx = (pageWidth - width * scale) / 2
         let dy = (pageHeight - height * scale) / 2
-        return makePage(scale: scale, dx: dx, dy: dy)
+        return makePage(spec, scale: scale, dx: dx, dy: dy)
     }
 
-    private func makePage(scale: Double, dx: Double, dy: Double) -> Page {
-        var page = Page(background: background)
-        page.elements = elements.map { spec in
-            var el = spec
+    private func makePage(_ spec: TemplatePage, scale: Double, dx: Double, dy: Double) -> Page {
+        var page = Page(background: spec.background)
+        page.elements = spec.elements.map { item in
+            var el = Self.fitted(item, scale: scale, dx: dx, dy: dy)
             el.id = UID.make()
-            el.x = el.x * scale + dx
-            el.y = el.y * scale + dy
-            el.w *= scale
-            el.h *= scale
-            // A shape's words scale with it, as a text box's do.
-            if ShapeText.carriesWords(el), let fs = el.fontSize { el.fontSize = fs * scale }
-            if ShapeText.carriesWords(el), let ls = el.letterSpacing { el.letterSpacing = ls * scale }
-            if el.type == .line, let t = el.thickness { el.thickness = max(1, t * scale) }
-            // Rounding scales with the box it rounds, as on the Android twin,
-            // so a card is as round on either phone and both write the same
-            // radius. Per-corner radii are left as they are on both.
-            if let r = el.radius { el.radius = r * scale }
             // Measure after scaling: the spec carries no height, and the
             // decoder's line-count estimate ignores leading and wrapping.
             if el.type == .text { el.h = FontLibrary.layoutHeight(for: el) }
             return el
         }
         return page
+    }
+
+    /// An element of a template fitted onto a page, as the Android twin's
+    /// Template.instantiate(width, height) fits one — a built-in template
+    /// or one of your own alike: its box scaled and moved by `dx`, `dy`;
+    /// its type and spacing, wherever it has them, scaled with it; a
+    /// line's or a drawing's thickness too, never under 1. Rounding scales
+    /// with the box it rounds, so a card is as round on either phone and
+    /// both write the same radius. A stroke's width and per-corner radii
+    /// are left as they are on both.
+    static func fitted(_ item: Element, scale: Double, dx: Double, dy: Double) -> Element {
+        var el = item
+        el.x = el.x * scale + dx
+        el.y = el.y * scale + dy
+        el.w *= scale
+        el.h *= scale
+        if let fs = el.fontSize { el.fontSize = fs * scale }
+        if let ls = el.letterSpacing { el.letterSpacing = ls * scale }
+        if let t = el.thickness { el.thickness = max(1, t * scale) }
+        if let r = el.radius { el.radius = r * scale }
+        return el
     }
 }
 

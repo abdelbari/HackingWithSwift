@@ -228,20 +228,25 @@ final class BrandAndAuditTests: XCTestCase {
     // MARK: brand kit
 
     func testTheKitPersistsAndDedupsColours() throws {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("kit-\(UUID().uuidString).json")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("kits-\(UUID().uuidString).json")
+        let legacy = url.appendingPathExtension("legacy")
         defer { try? FileManager.default.removeItem(at: url) }
         var kit = BrandKit()
         kit.addColor("#FF0000")
         kit.addColor("#00ff00")
         kit.addColor("#ff0000")
+        XCTAssertEqual(kit.palettes.map(\.name), ["Colours"], "the first colour starts a palette")
         XCTAssertEqual(kit.colors, ["#ff0000", "#00ff00"], "re-adding moves to the front, once")
-        kit.headingFamily = "serif"
+        kit.fonts.heading = BrandFont(family: "serif", weight: 700)
         kit.logos = ["asset:sun"]
-        kit.save(to: url)
-        XCTAssertEqual(BrandKit.load(from: url), kit)
-        XCTAssertEqual(kit.pairing?.heading.fontFamily, "serif")
-        XCTAssertEqual(kit.pairing?.body.fontFamily, "serif", "one face set: both roles use it")
-        XCTAssertNil(BrandKit().pairing)
-        XCTAssertTrue(BrandKit.load(from: url.appendingPathExtension("missing")).isEmpty)
+        var kits = BrandKits.fresh
+        kits.update(kit)
+        kits.save(to: url)
+        let back = BrandKits.load(from: url, legacy: legacy)
+        XCTAssertEqual(back, kits)
+        XCTAssertEqual(back.active, kit, "a kit added is the kit in use")
+        XCTAssertEqual(back.kits.count, 2)
+        XCTAssertEqual(BrandKits.load(from: legacy, legacy: legacy), BrandKits.fresh, "nothing saved: one empty kit")
+        XCTAssertTrue(BrandKits.fresh.active.isEmpty)
     }
 }

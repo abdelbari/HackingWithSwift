@@ -505,7 +505,7 @@ enum DesignLibrary {
     }
 
     /// The photos kept outside the designs: what the person keeps across
-    /// them — the brand's logos and the components' pictures — and what was
+    /// them — every brand kit's logos and the components' pictures — and what was
     /// cut or copied but not yet pasted. The pasteboard outlives a launch,
     /// and a photo cut from a design is referenced nowhere else until it is
     /// pasted back; the Android twin keeps these too. Read only when our own
@@ -513,7 +513,7 @@ enum DesignLibrary {
     /// paste prompt.
     static func photosKeptOutsideDesigns(pasteboard: UIPasteboard) -> Set<String> {
         var found = Set<String>()
-        for src in BrandKit.load().logos { if let id = photoID(src) { found.insert(id) } }
+        for src in BrandKits.load().allLogos { if let id = photoID(src) { found.insert(id) } }
         for component in Components.load() { collectPhotos(in: component.elements, into: &found) }
         if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
             collectPhotos(in: elements, into: &found)
@@ -615,7 +615,7 @@ enum DesignLibrary {
     static func clipsKeptOutsideDesigns(pasteboard: UIPasteboard) -> Set<String> {
         var found = Set<String>()
         for component in Components.load() { collectClips(in: component.elements, into: &found) }
-        for src in BrandKit.load().logos { if let id = clipID(src) { found.insert(id) } }
+        for src in BrandKits.load().allLogos { if let id = clipID(src) { found.insert(id) } }
         if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
             collectClips(in: elements, into: &found)
         }
@@ -672,7 +672,7 @@ enum DesignLibrary {
         if let open = editing.first { byID[open.id] = open }
         let count = byID.values.filter { uses($0, upload: id, kind: kind) }.count
         guard count == 0, !unreadable else { return UploadUse(designs: count, held: true) }
-        let held = (allVersions() + editing).contains { uses($0, upload: id, kind: kind) }
+        let held = (allVersions() + UserTemplates.designs() + editing).contains { uses($0, upload: id, kind: kind) }
         return UploadUse(designs: 0, held: held)
     }
 
@@ -688,12 +688,12 @@ enum DesignLibrary {
         }
     }
 
-    /// Every design, live and trashed, and every kept version of each — or
-    /// nil when a design's file no longer reads, and so what it uses
-    /// cannot be known. Each sweep keeps what these use.
+    /// Every design, live and trashed, every kept version of each, and
+    /// your templates — or nil when a design's file no longer reads, and so
+    /// what it uses cannot be known. Each sweep keeps what these use.
     private static func everyDesign() -> [Design]? {
         guard let designs = allDesigns() else { return nil }
-        return designs + allVersions()
+        return designs + allVersions() + UserTemplates.designs()
     }
 
     /// Every kept version of every design that still reads. One that does

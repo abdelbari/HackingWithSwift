@@ -32,6 +32,7 @@ enum EditorSheet: String, Identifiable {
     case addGuides
     /// More's "Copy & resize…": the Resize sheet, opened on its copies.
     case copyResize
+    case settings
     var id: String { rawValue }
 }
 
@@ -61,6 +62,8 @@ struct EditorView: View {
     /// Quick actions at the selection, on unless turned off (SelectionBubble).
     @AppStorage(SelectionBubble.key) private var quickActions = true
     @State private var namingComponent = false
+    /// More's "Save as template…" asking for a name and a category.
+    @State private var savingTemplate = false
     /// The Snapping menu's Grid "Custom…" asking for a spacing.
     @State private var askingCustomGrid = false
     @State private var componentName = ""
@@ -217,6 +220,7 @@ struct EditorView: View {
             if on { store.stopPreview() }
         }
         .customGridAlert(isPresented: $askingCustomGrid, store: store)
+        .saveTemplateAlert(isPresented: $savingTemplate, store: store) { text in show(toast: text, undoable: false) }
         .asksBeforeLockedDelete(Binding(get: { store.askingDelete && activeSheet == nil },
                                         set: { store.askingDelete = $0 }),
                                 several: deletesSeveral, store: store)
@@ -379,7 +383,8 @@ struct EditorView: View {
     /// is selected, and no text field anywhere has the keyboard.
     private var deleteKeysLive: Bool {
         !store.selection.isEmpty && store.editingTextId == nil && !titleFocused && activeSheet == nil
-            && !namingComponent && !store.textFieldOpen && store.drawing == nil && store.erasing == nil
+            && !namingComponent && !savingTemplate && !store.textFieldOpen && store.drawing == nil
+            && store.erasing == nil
     }
 
     /// Undo, and — held — a rewind: after a moment it takes back a step
@@ -649,6 +654,13 @@ struct EditorView: View {
                 Button {
                     makeCopy()
                 } label: { Label("Make a copy", systemImage: "plus.square.on.square") }
+
+                Button {
+                    // Typing under way is kept first, so the template has it.
+                    store.finishCrop()
+                    store.endTextEdit()
+                    savingTemplate = true
+                } label: { Label("Save as template…", systemImage: "rectangle.stack.badge.plus") }
             }
 
             Section {
@@ -660,6 +672,9 @@ struct EditorView: View {
                 snappingMenu
                 Toggle(isOn: $haptics) { Label("Vibration", systemImage: "iphone.radiowaves.left.and.right") }
                 Toggle(isOn: $quickActions) { Label("Quick actions at the selection", systemImage: "capsule") }
+                Button {
+                    activeSheet = .settings
+                } label: { Label("Settings", systemImage: "gearshape") }
             }
 
             Section {
@@ -1102,6 +1117,8 @@ struct EditorView: View {
             AccessibilitySheet(store: store)
         case .brand:
             BrandKitSheet(store: store)
+        case .settings:
+            SettingsSheet(store: store)
         case .pages:
             PageOrganizerSheet(store: store)
         case .snapping:

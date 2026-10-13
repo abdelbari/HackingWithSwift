@@ -1563,6 +1563,36 @@ final class DesignStore {
         tipEvent = .pageAdded
     }
 
+    /// A template's pages, fitted to this page, applied as one undo step:
+    /// the first takes this page's place — its background and everything on
+    /// it — and the rest are added after it, in order, each at this page's
+    /// size.
+    func applyTemplatePages(_ pages: [Page], name: String) {
+        guard !pages.isEmpty else { return }
+        let at = pageIndex
+        apply { $0 = Self.appliedTemplate($0, pages: pages, at: at) }
+        selection.removeAll()
+        buzz(.confirm)
+        announce(pages.count == 1 ? "Started over from \u{201C}\(name)\u{201D}"
+                 : "Applied all \(pages.count) pages of \u{201C}\(name)\u{201D}")
+    }
+
+    /// The design with `pages` applied at page `index`, as above. Pure.
+    static func appliedTemplate(_ design: Design, pages: [Page], at index: Int) -> Design {
+        guard let first = pages.first, design.pages.indices.contains(index) else { return design }
+        var out = design
+        out.pages[index].background = first.background
+        out.pages[index].elements = first.elements
+        let rest = pages.dropFirst().map { page -> Page in
+            var sized = page
+            sized.width = design.pages[index].width
+            sized.height = design.pages[index].height
+            return sized
+        }
+        out.pages.insert(contentsOf: rest, at: index + 1)
+        return out
+    }
+
     func duplicatePage() {
         let copy = Copies.of(page)
         apply { $0.pages.insert(copy, at: pageIndex + 1) }
@@ -1664,7 +1694,11 @@ final class DesignStore {
     /// colours remapped by luminance rank onto the palette, headings and body
     /// text given the pairing's faces at their own sizes. Pure, so the sheet
     /// can preview it before anyone commits.
-    static func themed(_ design: Design, palette: [String]?, pairing: FontPairing?) -> Design {
+    ///
+    /// With `brandFonts` setting any ranked role, the brand kit's text roles
+    /// are applied by size rank in place of a pairing (see brandFaces).
+    static func themed(_ design: Design, palette: [String]?, pairing: FontPairing?,
+                       brandFonts: BrandFonts = BrandFonts()) -> Design {
         var out = design
         if let palette, !palette.isEmpty {
             // Faint colours — a chart's clear plot, a table's hairlines — keep
@@ -1676,7 +1710,18 @@ final class DesignStore {
                 }
             }
         }
-        if let pairing {
+        if !brandFonts.rankedRoles.isEmpty {
+            let faces = brandFaces(sizes: out.pages.flatMap(\.elements).filter { $0.type == .text }
+                .map { $0.fontSize ?? 42 }, fonts: brandFonts)
+            for p in out.pages.indices {
+                for i in out.pages[p].elements.indices where out.pages[p].elements[i].type == .text {
+                    guard let face = faces[out.pages[p].elements[i].fontSize ?? 42] else { continue }
+                    out.pages[p].elements[i].fontFamily = face.family
+                    out.pages[p].elements[i].fontWeight = face.weight
+                    out.pages[p].elements[i].h = FontLibrary.layoutHeight(for: out.pages[p].elements[i])
+                }
+            }
+        } else if let pairing {
             for p in out.pages.indices {
                 for i in out.pages[p].elements.indices where out.pages[p].elements[i].type == .text {
                     let spec = (out.pages[p].elements[i].fontSize ?? 42) >= headingSize
@@ -1691,9 +1736,24 @@ final class DesignStore {
         return out
     }
 
+    /// The brand face for each text size, by rank: the sizes, once each and
+    /// largest first, take the kit's ranked roles in turn — title, heading,
+    /// subheading, body, those it sets — and every size past the last role
+    /// takes the last. Family and weight only: the sizes stay as they are.
+    /// Empty when the kit sets none of those roles.
+    static func brandFaces(sizes: [Double], fonts: BrandFonts) -> [Double: BrandFont] {
+        let roles = fonts.rankedRoles
+        guard !roles.isEmpty else { return [:] }
+        var faces: [Double: BrandFont] = [:]
+        for (rank, size) in Set(sizes).sorted(by: >).enumerated() {
+            faces[size] = fonts[roles[min(rank, roles.count - 1)]]
+        }
+        return faces
+    }
+
     /// Apply a theme to the whole document as one undo step.
-    func applyTheme(palette: [String]?, pairing: FontPairing?) {
-        let next = Self.themed(design, palette: palette, pairing: pairing)
+    func applyTheme(palette: [String]?, pairing: FontPairing?, brandFonts: BrandFonts = BrandFonts()) {
+        let next = Self.themed(design, palette: palette, pairing: pairing, brandFonts: brandFonts)
         guard next != design else { return }
         apply { $0 = next }
         announce("Applied theme to \(design.pages.count == 1 ? "the page" : "all \(design.pages.count) pages")")
@@ -1728,6 +1788,14 @@ final class DesignStore {
     /// Apply a saved style to the selected text elements, one undo step.
     func applyTextStyle(_ style: TextStyle) {
         updateSelected { el in TextStyles.apply(style, to: &el) }
+    }
+
+    /// The selected text in a brand role's face — at the kit's size for
+    /// it, scaled to this page, when it sets one — one undo step, each box
+    /// measured again, as the Android twin's Text panel sets it.
+    func applyBrandFace(_ face: BrandFont) {
+        let width = pageWidth
+        updateSelected { el in BrandFonts.apply(face, to: &el, pageWidth: width) }
     }
 
     /// Re-read the style from `element` and re-apply it to every element on
