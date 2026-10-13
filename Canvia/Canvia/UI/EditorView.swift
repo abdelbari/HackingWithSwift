@@ -562,6 +562,11 @@ struct EditorView: View {
         titleFocused = false
     }
 
+    /// "Show print bleed": on while the design has a bleed (Bleed).
+    private var printBleed: Binding<Bool> {
+        Binding(get: { Bleed.shown(store.design) }, set: { store.setBleed($0) })
+    }
+
     private var overflowMenu: some View {
         Menu {
             // Sections rather than a flat list with dividers: a ViewBuilder
@@ -675,6 +680,8 @@ struct EditorView: View {
                 } label: { Label("Save selection as component…", systemImage: "square.grid.3x1.folder.badge.plus") }
                     .disabled(store.selection.isEmpty)
                 snappingMenu
+                // The design's own setting, so one step.
+                Toggle(isOn: printBleed) { Label("Show print bleed", systemImage: "rectangle.dashed") }
                 Toggle(isOn: $haptics) { Label("Vibration", systemImage: "iphone.radiowaves.left.and.right") }
                 Toggle(isOn: $quickActions) { Label("Quick actions at the selection", systemImage: "capsule") }
                 Toggle(isOn: $pageScroll) { Label("Scroll through pages", systemImage: "rectangle.stack") }

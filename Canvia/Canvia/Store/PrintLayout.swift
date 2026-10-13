@@ -6,7 +6,8 @@
 // the page to the printable area; actual size prints it at its true
 // dimensions and, when that is bigger than the sheet, tiles it with an
 // overlap so the pieces can be trimmed and joined. Bleed extends the page
-// outward and crop marks show where to cut.
+// outward — the design's own, drawn into (Bleed), or the page enlarged to
+// make one — and crop marks show where to cut.
 
 import CoreGraphics
 import Foundation
@@ -110,10 +111,7 @@ enum PrintLayout {
     /// mark lands on blank paper. The Android twin's `sheetMarks`.
     static func sheetMarks(sheet: CGRect, source: CGRect, page: CGSize, bleed: Double) -> [(CGPoint, CGPoint)] {
         let scale = sheet.width / max(source.width, 1)
-        let trim = CGRect(x: sheet.minX + (bleed - source.minX) * scale,
-                          y: sheet.minY + (bleed - source.minY) * scale,
-                          width: (page.width - 2 * bleed) * scale,
-                          height: (page.height - 2 * bleed) * scale)
+        let trim = trimOnSheet(sheet: sheet, source: source, page: page, bleed: bleed)
         let slack = 0.5
         let reach = sheet.insetBy(dx: -slack, dy: -slack)
         // Clear of the printed bleed, not only of the trim: 4 pt from the
@@ -131,6 +129,67 @@ enum PrintLayout {
             return corner.x >= reach.minX && corner.x <= reach.maxX && corner.y >= reach.minY && corner.y <= reach.maxY
         }
     }
+
+    /// The page's trim — the bled page less its `bleed` — where it lands on
+    /// the sheet, in sheet points from the top left.
+    static func trimOnSheet(sheet: CGRect, source: CGRect, page: CGSize, bleed: Double) -> CGRect {
+        let scale = sheet.width / max(source.width, 1)
+        return CGRect(x: sheet.minX + (bleed - source.minX) * scale,
+                      y: sheet.minY + (bleed - source.minY) * scale,
+                      width: (page.width - 2 * bleed) * scale,
+                      height: (page.height - 2 * bleed) * scale)
+    }
+
+    /// A sheet's TrimBox and BleedBox — where a print shop cuts, and how far
+    /// its artwork runs past that — in PDF points up from the bottom of a
+    /// sheet `sheetHeight` tall, for a sheet holding one whole page. None
+    /// for a tile of a poster, which holds a piece. The Android twin's
+    /// `boxes`, which its writer adds after the page is drawn.
+    static func boxes(sheet: CGRect, source: CGRect, page: CGSize, bleed: Double,
+                      sheetHeight: Double) -> (trim: CGRect, bleed: CGRect)? {
+        guard source.minX == 0, source.minY == 0, source.width >= page.width, source.height >= page.height
+        else { return nil }
+        let trim = trimOnSheet(sheet: sheet, source: source, page: page, bleed: bleed)
+        let reach = bleed * Double(sheet.width) / max(Double(source.width), 1)
+        func flipped(_ r: CGRect) -> CGRect {
+            CGRect(x: r.minX, y: CGFloat(sheetHeight) - r.maxY, width: r.width, height: r.height)
+        }
+        return (flipped(trim), flipped(trim.insetBy(dx: -reach, dy: -reach)))
+    }
+
+    /// How a page is drawn into its bled area in points: where its top left
+    /// lands, the points a page unit takes, and what part of the page shows,
+    /// in page units.
+    struct Drawing: Equatable {
+        var origin: CGPoint
+        var scale: Double
+        var clip: CGRect
+    }
+
+    /// A page of `size` drawn with `bleed` points round it. Of a design that
+    /// `designed` its bleed (Bleed): at its true size, set in by the bleed,
+    /// and seen out to the bleed's edge — so what was put past the trim
+    /// prints in the band, and the trim is exactly the plain PDF's page.
+    /// Otherwise enlarged evenly to cover the whole bled area, centred —
+    /// never stretched, so a circle stays round — and cut at its own edge:
+    /// the bleed a print shop makes when none was designed. The Android
+    /// twin's `drawing`.
+    static func drawing(size: CGSize, bleed: Double, pxToPt: Double, designed: Bool) -> Drawing {
+        let w = Double(size.width), h = Double(size.height)
+        if designed {
+            let reach = bleed / max(pxToPt, 1e-9)
+            return Drawing(origin: CGPoint(x: bleed, y: bleed), scale: pxToPt,
+                           clip: CGRect(x: -reach, y: -reach, width: w + 2 * reach, height: h + 2 * reach))
+        }
+        let pw = w * pxToPt + 2 * bleed, ph = h * pxToPt + 2 * bleed
+        let fill = max(pw / max(w, 1), ph / max(h, 1))
+        return Drawing(origin: CGPoint(x: (pw - w * fill) / 2, y: (ph - h * fill) / 2), scale: fill,
+                       clip: CGRect(x: 0, y: 0, width: w, height: h))
+    }
+
+    /// Said under the Bleed stepper when the design has no bleed of its own,
+    /// so the page is enlarged to make one.
+    static let enlargedNote = "Bleed made by enlarging slightly"
 
     /// Crop marks: short lines outside each corner of `rect`, `gap` away.
     static func cropMarkSegments(around rect: CGRect, length: Double = 14, gap: Double = 4) -> [(CGPoint, CGPoint)] {

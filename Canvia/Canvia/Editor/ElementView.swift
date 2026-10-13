@@ -800,30 +800,63 @@ extension ElementView: Equatable {
 struct PageRenderView: View {
     let design: Design
     let page: Page
+    /// Page units shown beyond the trim on every side — a print bleed
+    /// (Bleed) — or none. With some, the view is that much bigger all round:
+    /// the page's background is laid over the whole bled area, as if the
+    /// page were that big, and what is put out past the trim shows up to the
+    /// bleed's edge and is cut there. Only the canvas's bleed band and the
+    /// print-ready PDF ask for it; everything else draws the trim, cut at
+    /// the page's edge, exactly as before.
+    var bleed: Double = 0
 
     var body: some View {
+        if bleed > 0 { bled } else { trimmed }
+    }
+
+    private var trimmed: some View {
         ZStack {
-            backgroundView
-            // The master page's elements, behind this page's own. Not on
-            // the master itself, and not on a page that opted out.
-            ForEach(design.masterElements(behind: page)) { el in
-                ElementView(element: el).equatable()
-            }
-            // A hidden element is never drawn, here or in anything that
-            // renders through this view: exports, thumbnails, Present, video.
-            ForEach(page.elements.filter { !$0.isHidden }) { el in
-                // .equatable() so a drag re-renders the element that moved
-                // rather than every element on the page. The store is
-                // @Observable and a gesture mutates the document each frame,
-                // so without this every text run re-lays out through CoreText
-                // and every shape re-parses its path, on every frame, however
-                // little actually changed.
-                ElementView(element: el).equatable()
-            }
+            backgroundView(design.size(for: page))
+            drawn
         }
         .frame(width: design.size(for: page).width, height: design.size(for: page).height)
         .clipped()
         .environment(\.pageNumber, pageNumberValue)
+    }
+
+    /// The page in the middle of its bleed: the background under all of
+    /// it, and the page's own things placed on the trim as ever, free to
+    /// run out into the band.
+    private var bled: some View {
+        let size = design.size(for: page)
+        let whole = CGSize(width: size.width + 2 * bleed, height: size.height + 2 * bleed)
+        return ZStack {
+            backgroundView(whole)
+            ZStack { drawn }
+                .frame(width: size.width, height: size.height)
+        }
+        .frame(width: whole.width, height: whole.height)
+        .clipped()
+        .environment(\.pageNumber, pageNumberValue)
+    }
+
+    @ViewBuilder
+    private var drawn: some View {
+        // The master page's elements, behind this page's own. Not on
+        // the master itself, and not on a page that opted out.
+        ForEach(design.masterElements(behind: page)) { el in
+            ElementView(element: el).equatable()
+        }
+        // A hidden element is never drawn, here or in anything that
+        // renders through this view: exports, thumbnails, Present, video.
+        ForEach(page.elements.filter { !$0.isHidden }) { el in
+            // .equatable() so a drag re-renders the element that moved
+            // rather than every element on the page. The store is
+            // @Observable and a gesture mutates the document each frame,
+            // so without this every text run re-lays out through CoreText
+            // and every shape re-parses its path, on every frame, however
+            // little actually changed.
+            ElementView(element: el).equatable()
+        }
     }
 
     private var pageNumberValue: (number: Int, count: Int)? {
@@ -831,8 +864,10 @@ struct PageRenderView: View {
         return (index + 1, design.pages.count)
     }
 
+    /// The page's background over `size`: the page's own, or its bled
+    /// area.
     @ViewBuilder
-    private var backgroundView: some View {
+    private func backgroundView(_ size: CGSize) -> some View {
         switch page.background {
         case .color(let hex):
             Color(hex: hex)
@@ -843,7 +878,7 @@ struct PageRenderView: View {
                 Image(uiImage: ui)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(width: design.size(for: page).width, height: design.size(for: page).height)
+                    .frame(width: size.width, height: size.height)
                     .clipped()
             } else {
                 Color.white
