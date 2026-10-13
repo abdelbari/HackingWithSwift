@@ -60,8 +60,8 @@ final class TemplateLibraryTests: XCTestCase {
                 XCTAssertGreaterThanOrEqual(el.fontSize ?? 0, 14, "\(t.id): tiny type")
                 XCTAssertNotNil(el.color, "\(t.id): text with no colour")
                 if let family = el.fontFamily {
-                    XCTAssertNotNil(FontLibrary.stackMap[family],
-                                    "\(t.id) names font \(family), which FontLibrary does not have")
+                    XCTAssertTrue(FontLibrary.all.contains { $0.id == family } || FontLibrary.aliases[family] != nil,
+                                  "\(t.id) names font \(family), which FontLibrary does not have")
                 }
             }
         }

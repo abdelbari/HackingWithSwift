@@ -1,7 +1,7 @@
-// Editor sheets: background, fonts, effects, spacing, filters, crop,
-// position, layers, resize. The colour picker has its own file — it grew
-// past what belongs in a shared one, and past the size the Linux static
-// checker could read in a single string.
+// Editor sheets: background, effects, spacing, filters, crop,
+// position, layers, resize. The colour picker and the font picker have
+// files of their own — they grew past what belongs in a shared one, and
+// past the size the Linux static checker could read in a single string.
 
 import SwiftUI
 import UIKit
@@ -120,44 +120,6 @@ func photoThumb(_ id: String) -> some View {
     }
     .frame(height: 68)
     .clipShape(RoundedRectangle(cornerRadius: 9))
-}
-
-// MARK: - fonts
-
-struct FontSheet: View {
-    @Bindable var store: DesignStore
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        // The face every text selected shares; none is ticked when they differ.
-        let current = store.sharedText { $0.fontFamily ?? "sans" }
-        NavigationStack {
-            List {
-                ForEach(FontLibrary.stacks) { stack in
-                    Button {
-                        store.updateSelected { $0.fontFamily = stack.key }
-                        dismiss()
-                    } label: {
-                        HStack {
-                            Text(stack.name)
-                                .font(FontLibrary.font(family: stack.key, size: 20, weight: 500, italic: false))
-                            Spacer()
-                            if current == stack.key {
-                                Image(systemName: "checkmark").foregroundStyle(Theme.accent)
-                            }
-                        }
-                    }
-                    .foregroundStyle(.primary)
-                    .accessibilityLabel("\(stack.name) font")
-                    .accessibilityAddTraits(current == stack.key ? .isSelected : [])
-                }
-            }
-            .navigationTitle("Fonts")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .presentationDetents(sheetDetents)
-        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-    }
 }
 
 // MARK: - text effects

@@ -29,6 +29,10 @@ struct CanviaApp: App {
         DesignLibrary.purgeTrash()
         Uploads.seedIfNeeded()
         DesignLibrary.pruneUnusedFiles()
+        // The bundled fonts and your own, registered with CoreText for this
+        // process before anything is measured or drawn.
+        FontLibrary.registerBundledFonts()
+        FontStore.registerInstalled()
         // The samples with their pictures, so the first Home shows two
         // finished designs rather than two grey boxes. An App is made on
         // the main thread, where ImageRenderer draws.

@@ -107,17 +107,17 @@ final class UploadsTests: XCTestCase {
     func testWhatThisVersionDoesNotKnowIsKept() throws {
         let photo = try storedPhoto()
         var raw = try rawList()
-        raw.append(["id": "font_later", "kind": "font", "added": 1])
+        raw.append(["id": "sticker_later", "kind": "sticker", "added": 1])
         raw.append(["id": photo, "kind": "image", "added": 2, "note": "from the future"])
         try JSONSerialization.data(withJSONObject: raw).write(to: Uploads.fileURL)
-        defer { Uploads.remove("font_later") }
+        defer { Uploads.remove("sticker_later") }
 
         let track = try storedTrack()
         Uploads.record(track, kind: .audio)
         let after = try rawList()
-        XCTAssertTrue(after.contains { $0["id"] as? String == "font_later" && $0["kind"] as? String == "font" })
+        XCTAssertTrue(after.contains { $0["id"] as? String == "sticker_later" && $0["kind"] as? String == "sticker" })
         XCTAssertEqual(after.first { $0["id"] as? String == photo }?["note"] as? String, "from the future")
-        XCTAssertFalse(Uploads.all().contains { $0.id == "font_later" }, "a kind not known here was offered")
+        XCTAssertFalse(Uploads.all().contains { $0.id == "sticker_later" }, "a kind not known here was offered")
     }
 
     /// The first launch with the list puts everything already stored on

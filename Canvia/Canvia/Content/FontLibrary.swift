@@ -1,47 +1,238 @@
-// Font personalities mapped to fonts that ship with iOS, so every design is
-// fully offline. Each stack resolves to a concrete UIFont for both canvas
-// rendering and text measurement.
+// The fonts: about forty Google Fonts families, OFL or Apache, bundled as
+// TTF files, plus the system's sans, serif and mono — read from Fonts.json,
+// the very file the Android twin ships, byte for byte (its
+// tools/generate_fonts.py writes both, with the files). The files are
+// registered with CoreText for this process the first time a font is asked
+// for, so both phones draw and measure every bundled family from the same
+// bytes. A design names a family, never a file; each one resolves to a
+// concrete UIFont for canvas rendering, measurement and export alike.
+//
+// The twelve type personalities earlier designs stored ("didone",
+// "script"…) are aliases of the families they now draw with; "sans",
+// "serif" and "mono" are system families themselves, as they always were.
+// A font of your own is "custom:<sha1 first 12 hex>" (see CustomFonts);
+// anything else — or a font of your own that is not on this phone — draws
+// as Modern Sans. The licences are bundled beside the files
+// (Fonts/licenses).
 
 import SwiftUI
 import UIKit
 import CoreText
 
-struct FontStack: Identifiable {
-    var key: String
+/// One font family: its id — the key a text box's `fontFamily` stores —
+/// what the picker calls it, its category, and its faces. A bundled
+/// family's faces are files in the app ("lora-400.ttf"), keyed by weight
+/// with "i" after for the family's true italic ("400", "400i", "700",
+/// "700i"); `postScript` is each face's PostScript name, which is how it is
+/// asked for here. A system family has none.
+struct FontDef: Decodable, Identifiable, Equatable {
+    var id: String
     var name: String
-    /// Candidate PostScript family names, tried in order.
-    var families: [String]
+    var category: String
+    var system: Bool = false
+    var licence: String?
+    var files: [String: String] = [:]
+    var postScript: [String: String] = [:]
 
-    var id: String { key }
+    private enum CodingKeys: String, CodingKey { case id, name, category, system, licence, files, postScript }
+
+    init(id: String, name: String, category: String, system: Bool = false) {
+        self.id = id
+        self.name = name
+        self.category = category
+        self.system = system
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        category = try c.decode(String.self, forKey: .category)
+        system = (try? c.decodeIfPresent(Bool.self, forKey: .system)) ?? false
+        licence = try? c.decodeIfPresent(String.self, forKey: .licence)
+        files = (try? c.decodeIfPresent([String: String].self, forKey: .files)) ?? [:]
+        postScript = (try? c.decodeIfPresent([String: String].self, forKey: .postScript)) ?? [:]
+    }
+}
+
+/// The face of a family a text is set in: its file, its PostScript name and
+/// its own weight.
+struct FontFace: Equatable {
+    var file: String
+    var postScript: String
+    var weight: Int
 }
 
 enum FontLibrary {
-    static let stacks: [FontStack] = [
-        FontStack(key: "sans", name: "Modern Sans", families: ["HelveticaNeue"]),
-        FontStack(key: "grotesk", name: "Grotesk", families: ["AvenirNext-Bold", "HelveticaNeue-Bold"]),
-        FontStack(key: "serif", name: "Classic Serif", families: ["Georgia"]),
-        FontStack(key: "didone", name: "Editorial", families: ["Didot", "Georgia"]),
-        FontStack(key: "slab", name: "Slab", families: ["Rockwell", "AmericanTypewriter"]),
-        FontStack(key: "mono", name: "Typewriter", families: ["Menlo-Regular", "CourierNewPSMT"]),
-        FontStack(key: "rounded", name: "Rounded", families: ["ArialRoundedMTBold", "AvenirNext-Medium"]),
-        FontStack(key: "condensed", name: "Condensed", families: ["AvenirNextCondensed-Medium", "DINCondensed-Bold"]),
-        FontStack(key: "humanist", name: "Humanist", families: ["Verdana", "TrebuchetMS"]),
-        FontStack(key: "script", name: "Script", families: ["SnellRoundhand-Bold", "MarkerFelt-Wide"]),
-        FontStack(key: "elegant", name: "Elegant", families: ["Palatino-Roman", "HoeflerText-Regular"]),
-        FontStack(key: "impact", name: "Display", families: ["Futura-CondensedExtraBold", "AvenirNextCondensed-Heavy"]),
-    ]
 
-    static let stackMap: [String: FontStack] = Dictionary(
-        uniqueKeysWithValues: stacks.map { ($0.key, $0) })
+    /// The chip that shows every category.
+    static let allCategories = "All"
 
-    static func stack(_ key: String?) -> FontStack {
-        stackMap[key ?? "sans"] ?? stacks[0]
+    /// How many fonts Recently used keeps, newest first.
+    static let recentLimit = 8
+
+    /// The file's shape. "source" is informational.
+    private struct Catalogue: Decodable {
+        var categories: [String]
+        var aliases: [String: String]
+        var families: [FontDef]
     }
+
+    /// Read once, on first use.
+    private static let catalogue: Catalogue = {
+        guard let url = Bundle.main.url(forResource: "Fonts", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let decoded = try? JSONDecoder().decode(Catalogue.self, from: data), !decoded.families.isEmpty else {
+            assertionFailure("Fonts.json missing or invalid")
+            return Catalogue(categories: ["Sans"], aliases: [:],
+                             families: [FontDef(id: "sans", name: "Modern Sans", category: "Sans", system: true)])
+        }
+        return decoded
+    }()
+
+    /// Every family, in the picker's order: category by category.
+    static var all: [FontDef] { catalogue.families }
+
+    /// The categories, in the order the chips show them after "All".
+    static var categories: [String] { catalogue.categories }
+
+    /// Older keys, and the family each now means.
+    static var aliases: [String: String] { catalogue.aliases }
+
+    private static let byId: [String: FontDef] = Dictionary(
+        catalogue.families.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+
+    /// The family a stored key means; an unknown or missing key — and a font
+    /// of your own, which is drawn from its own file when this phone has it
+    /// — reads as Modern Sans, which is what a text box is created with.
+    static func of(_ key: String?) -> FontDef {
+        let id = key.map { aliases[$0] ?? $0 }
+        return id.flatMap { byId[$0] } ?? all[0]
+    }
+
+    /// A stored key as the family id it means — a font of your own as
+    /// itself — so "didone" and "playfair-display" are the same choice.
+    static func resolve(_ key: String?) -> String {
+        if let key, CustomFonts.isCustom(key) { return key }
+        return of(key).id
+    }
+
+    /// The face of `font` a text at `weight` is set in: the nearest weight
+    /// it has, ties to the heavier — so a 900 takes the 700 rather than a
+    /// 400 made bold, and a 550 the 700. Italic asks for the family's true
+    /// italic, and is nil where it has none (the upright is then slanted).
+    /// Nil for a system family.
+    static func face(_ font: FontDef, weight: Int, italic: Bool = false) -> FontFace? {
+        let weights = font.files.keys
+            .filter { $0.hasSuffix("i") == italic }
+            .compactMap { Int(italic ? String($0.dropLast()) : $0) }
+        guard let nearest = weights.min(by: { a, b in
+            let da = abs(a - weight), db = abs(b - weight)
+            return da != db ? da < db : a > b
+        }) else { return nil }
+        let key = "\(nearest)\(italic ? "i" : "")"
+        guard let file = font.files[key], let postScript = font.postScript[key] else { return nil }
+        return FontFace(file: file, postScript: postScript, weight: nearest)
+    }
+
+    // MARK: search and the picker's lists
+
+    /// The text as a search compares it: no accents, no case — "Café" is
+    /// "cafe" — and no spaces either side.
+    static func folded(_ text: String) -> String {
+        var kept = String.UnicodeScalarView()
+        for scalar in text.decomposedStringWithCanonicalMapping.unicodeScalars {
+            switch scalar.properties.generalCategory {
+            case .nonspacingMark, .spacingMark, .enclosingMark: continue
+            default: kept.append(scalar)
+            }
+        }
+        return String(kept).lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Whether a font called `name` is found by `query`: the name has it,
+    /// case and accents aside. A blank query finds everything.
+    static func matches(_ name: String, _ query: String) -> Bool {
+        let needle = folded(query)
+        return needle.isEmpty || folded(name).contains(needle)
+    }
+
+    /// The families the picker lists for `query` in `category`
+    /// (allCategories for every one), in catalogue order.
+    static func search(_ query: String, category: String = allCategories) -> [FontDef] {
+        all.filter { (category == allCategories || $0.category == category) && matches($0.name, query) }
+    }
+
+    /// Recently used after `key` is chosen: it first, once, then the rest as
+    /// they were, recentLimit in all. Keys are kept as resolved, so an alias
+    /// and its family are one entry.
+    static func recent(_ list: [String], adding key: String) -> [String] {
+        let id = resolve(key)
+        return Array(([id] + list.filter { $0 != id }).prefix(recentLimit))
+    }
+
+    /// The fonts the design sets text in — each once, resolved, page by page
+    /// and on a page from the bottom layer up — fonts of your own included.
+    static func usedIn(_ design: Design) -> [String] {
+        var seen = Set<String>()
+        var out: [String] = []
+        for page in design.pages {
+            for el in page.elements {
+                guard let family = el.fontFamily else { continue }
+                let id = resolve(family)
+                if seen.insert(id).inserted { out.append(id) }
+            }
+        }
+        return out
+    }
+
+    // MARK: the bundled files
+
+    /// A bundled face's file. Resources in the app's folder are copied to
+    /// the top of the bundle; a build that kept the folder finds it there.
+    static func bundledURL(_ file: String) -> URL? {
+        let name = (file as NSString).deletingPathExtension
+        let ext = (file as NSString).pathExtension
+        return Bundle.main.url(forResource: name, withExtension: ext)
+            ?? Bundle.main.url(forResource: name, withExtension: ext, subdirectory: "Fonts")
+    }
+
+    /// Every bundled face registered for this process, once: each is then
+    /// found by its PostScript name.
+    private static let registered: Void = {
+        for font in catalogue.families {
+            for name in font.files.values.sorted() {
+                guard let url = bundledURL(name) else { continue }
+                _ = CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+            }
+        }
+    }()
+
+    /// Registers the bundled faces, if they are not yet: at launch, and
+    /// before any font is made.
+    static func registerBundledFonts() {
+        _ = registered
+    }
+
+    /// What the system draws the system families with, by category — and
+    /// any bundled face that cannot be read. Candidate PostScript names,
+    /// tried in order.
+    private static func systemNames(_ font: FontDef) -> [String] {
+        switch font.category {
+        case "Serif": return ["Georgia"]
+        case "Mono": return ["Menlo-Regular", "CourierNewPSMT"]
+        default: return ["HelveticaNeue"]
+        }
+    }
+
+    /// How far a face with no italic of its own leans when one is asked for,
+    /// as the Android twin slants it.
+    static let slant = 0.25
 
     // MARK: memoisation
     //
-    // None of this was cached. attributes(for:) walks a font-family stack
-    // calling UIFont(name:), rebuilds a descriptor, allocates a paragraph
+    // None of this was cached. attributes(for:) finds a face calling
+    // UIFont(name:), rebuilds a descriptor, allocates a paragraph
     // style and parses a hex colour; measuredHeight(for:) then runs a full
     // CoreText layout on top. They are called on every keystroke while
     // editing text, on every frame of a text resize, and once per text
@@ -129,22 +320,71 @@ enum FontLibrary {
                  &fontCache) { buildFont(family: key, size: size, weight: weight, italic: italic) }
     }
 
+    /// Forgets every font, attribute and height worked out so far: a font of
+    /// your own has arrived or gone, and the texts set in it draw in it, or
+    /// in Modern Sans, from now on.
+    static func fontsChanged() {
+        lock.lock()
+        fontCache.removeAll()
+        attrCache.removeAll()
+        heightCache.removeAll()
+        lock.unlock()
+    }
+
+    /// A font of your own when the box is set in one and this phone has it;
+    /// else the bundled face of its family at the nearest weight, else the
+    /// system's — Modern Sans for a font of your own that is missing. A
+    /// bundled face is used at its own weight — Anton has only one, and it is
+    /// already black — and only italic is made on top, by slanting, where
+    /// the family has no italic of its own. A font of your own is one face:
+    /// its own bold or italic when the family has one registered here, else
+    /// slanted for italic and drawn at its own weight.
     private static func buildFont(family key: String?, size: Double,
                                   weight: Int, italic: Bool) -> UIFont {
-        let stack = stack(key)
+        registerBundledFonts()
+        if CustomFonts.isCustom(key), let own = FontStore.uiFont(key, size: size) {
+            return styled(own, size: size, bold: weight >= 600, italic: italic)
+        }
+        let font = of(key)
+        if !font.system {
+            let trueItalic = italic ? face(font, weight: weight, italic: true) : nil
+            if let chosen = trueItalic ?? face(font, weight: weight),
+               let ui = UIFont(name: chosen.postScript, size: size) {
+                return italic && trueItalic == nil ? slanted(ui, size: size) : ui
+            }
+        }
         var base: UIFont?
-        for family in stack.families {
-            if let f = UIFont(name: family, size: size) { base = f; break }
+        for name in systemNames(font) {
+            if let f = UIFont(name: name, size: size) { base = f; break }
         }
-        var font = base ?? UIFont.systemFont(ofSize: size, weight: uiWeight(weight))
+        return styled(base ?? UIFont.systemFont(ofSize: size, weight: uiWeight(weight)),
+                      size: size, bold: weight >= 600, italic: italic)
+    }
+
+    /// The font with bold and italic from its family where it has them; an
+    /// italic it has not, slanted.
+    private static func styled(_ font: UIFont, size: Double, bold: Bool, italic: Bool) -> UIFont {
         var traits: UIFontDescriptor.SymbolicTraits = []
-        if weight >= 600 { traits.insert(.traitBold) }
+        if bold { traits.insert(.traitBold) }
         if italic { traits.insert(.traitItalic) }
-        if !traits.isEmpty, let d = font.fontDescriptor.withSymbolicTraits(
-            font.fontDescriptor.symbolicTraits.union(traits)) {
-            font = UIFont(descriptor: d, size: size)
+        guard !traits.isEmpty else { return font }
+        var out = font
+        // Only the family's own: a font of your own with no bold is not
+        // swapped for some other family's.
+        if let d = font.fontDescriptor.withSymbolicTraits(font.fontDescriptor.symbolicTraits.union(traits)) {
+            let traited = UIFont(descriptor: d, size: size)
+            if traited.familyName == font.familyName { out = traited }
         }
-        return font
+        if italic && !out.fontDescriptor.symbolicTraits.contains(.traitItalic) {
+            out = slanted(out, size: size)
+        }
+        return out
+    }
+
+    /// The upright leaning as an italic would.
+    private static func slanted(_ font: UIFont, size: Double) -> UIFont {
+        let matrix = CGAffineTransform(a: 1, b: 0, c: CGFloat(slant), d: 1, tx: 0, ty: 0)
+        return UIFont(descriptor: font.fontDescriptor.withMatrix(matrix), size: size)
     }
 
     /// SwiftUI Font for an element's typography (UIFont is toll-free

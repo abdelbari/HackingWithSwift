@@ -53,18 +53,27 @@ struct ShapeTextSheet: View {
                         if !worded { Text(ShapeText.wordsNote) }
                     }
                     if worded {
+                        let fontName = FontStore.displayName(words.fontFamily, in: store.design)
+                        let missing = FontStore.missingNote(words.fontFamily, in: store.design)
                         Section {
                             Button { choosingFont = true } label: {
                                 HStack {
                                     Text("Font").foregroundStyle(.primary)
                                     Spacer()
-                                    Text(FontLibrary.stack(words.fontFamily).name)
+                                    Text(fontName)
                                         .font(FontLibrary.font(family: words.fontFamily, size: 17, weight: 500, italic: false))
                                         .foregroundStyle(.secondary)
                                 }
                             }
                             .accessibilityLabel("Font")
-                            .accessibilityValue(FontLibrary.stack(words.fontFamily).name)
+                            .accessibilityValue(fontName)
+                            // A font of your own this phone does not have:
+                            // the words are in Modern Sans meanwhile.
+                            if let missing {
+                                Label(missing, systemImage: "exclamationmark.triangle.fill")
+                                    .font(.footnote)
+                                    .foregroundStyle(.red)
+                            }
                             Stepper(value: Binding(get: { words.fontSize ?? 42 },
                                                    set: { size in write { $0.fontSize = TypeReadouts.wholeSize(size) } }),
                                     in: TypeReadouts.sizeRange, step: 2) {

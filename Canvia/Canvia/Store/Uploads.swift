@@ -13,6 +13,12 @@
 // and when it came in, in epoch milliseconds. The Android twin keeps the
 // same file in its filesDir. Keys this version does not know are kept as
 // they were.
+//
+// A font of your own is an entry too, of kind "font", kept apart from the
+// photos, clips and music the Add sheet offers: its id is the twelve hex
+// digits of "custom:<sha12>", and it also holds the font's "name" — its
+// family's, read from the file — and its "file" in fonts/ ("<sha12>.ttf"),
+// as the Android twin writes it. See CustomFonts and FontStore.
 
 import Foundation
 
@@ -28,6 +34,21 @@ enum Uploads {
         /// When it came in, in epoch milliseconds.
         var added: Double
     }
+
+    /// A font of your own, as uploads.json lists it.
+    struct FontEntry: Equatable, Sendable {
+        /// The font's hash, sha12.
+        var id: String
+        var name: String
+        /// Its file in fonts/.
+        var file: String
+        var added: Double
+
+        /// The key a text set in it stores.
+        var key: String { CustomFonts.key(id) }
+    }
+
+    static let fontKind = "font"
 
     static let fileName = "uploads.json"
 
@@ -100,6 +121,36 @@ enum Uploads {
         } else if let clip = VideoStore.split(source) {
             record(clip.id, kind: .video, now: now)
         }
+    }
+
+    /// Puts a font of your own on the list — its hash, family name and file
+    /// — once, however often it is added.
+    static func recordFont(_ sha: String, name: String, file: String, now: Date = Date()) {
+        lock.lock()
+        defer { lock.unlock() }
+        var raw = list(now: now)
+        guard !raw.contains(where: { $0["id"] as? String == sha && $0["kind"] as? String == fontKind }) else { return }
+        raw.append(["id": sha, "kind": fontKind, "added": milliseconds(now), "name": name, "file": file])
+        write(raw)
+    }
+
+    /// The fonts of your own listed, newest first, whether or not their
+    /// files are here (FontStore.installed asks that). One with no name is
+    /// called by its hash; one with no file is taken to be a .ttf.
+    static func fonts() -> [FontEntry] {
+        lock.lock()
+        let raw = list()
+        lock.unlock()
+        return raw.compactMap { item -> FontEntry? in
+            guard item["kind"] as? String == fontKind,
+                  let id = item["id"] as? String, CustomFonts.sha(CustomFonts.key(id)) != nil else { return nil }
+            return FontEntry(id: id, name: (item["name"] as? String) ?? id,
+                             file: (item["file"] as? String) ?? "\(id).ttf",
+                             added: (item["added"] as? NSNumber)?.doubleValue ?? 0)
+        }
+        .enumerated()
+        .sorted { $0.element.added != $1.element.added ? $0.element.added > $1.element.added : $0.offset > $1.offset }
+        .map { $0.element }
     }
 
     /// Takes an upload off the list. Its file stays for whatever still uses

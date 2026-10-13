@@ -77,9 +77,15 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   ends (a tap elsewhere, Done, Escape, a Layers row, a page change) it is
   its own undo step and an emptied box goes; changing the font, weight,
   slant, alignment or path measures the box again,
-  12 font personalities mapped to fonts
-  that ship with iOS (Didot, Rockwell, Futura Condensed ExtraBold, Menlo,
-  Snell Roundhand, …), 8 text effects (shadow, lift, hollow, splice, neon,
+  a font library of 40 families — 37 Google Fonts families (OFL or
+  Apache) bundled as the very TTF files the Android twin ships, licences
+  beside them in `Fonts/licenses`, registered with CoreText at launch, plus the system's sans, serif and mono — in a
+  picker with search (case and accents aside), category chips, the brand
+  kit's fonts, Recently used, In this design and every row drawn in its own
+  face; your own .ttf or .otf added with "Add a font…", carried inside a
+  `.canvia.json` file and drawn in Modern Sans with "Font missing: <name>"
+  on a phone without it; the twelve older personality keys still open as
+  aliases, 8 text effects (shadow, lift, hollow, splice, neon,
   echo, highlight) drawn through one CoreText pipeline shared by canvas,
   thumbnails and export — inline bold and italic words keep their style
   under every effect, and highlight bars sit behind each line as it is
@@ -671,9 +677,9 @@ the rates a GIF can state exactly, written frame by frame with AVAssetWriter
 (video) and ImageIO (GIF). No network, no account, no codec licence.
 
 SVG keeps shapes and lines as paths and strokes, and converts text to
-glyph outlines rather than `<text>` — the twelve font personalities map
-to faces that ship with iOS and are not on the machine opening the file,
-so `<text>` would silently substitute. Images and stickers embed as
+glyph outlines rather than `<text>` — the fonts are files inside the app,
+or of your own, and are not on the machine opening the file, so `<text>`
+would silently substitute. Images and stickers embed as
 bitmaps rendered through the very views the canvas draws, so crop,
 filter, corner radius and emoji colour arrive exactly as they looked.
 

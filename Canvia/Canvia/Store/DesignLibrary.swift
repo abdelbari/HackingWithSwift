@@ -42,10 +42,12 @@ enum DesignLibrary {
     /// left half a file where the design had been — and the design with it
     /// gone. Atomic, the new file is written beside the old and swapped in
     /// only once it is complete, so a failed save leaves the last good one.
+    /// The design's record of the fonts of your own it uses is brought up to
+    /// date as it goes (CustomFonts.synced).
     @discardableResult
     static func save(_ design: Design) -> Bool {
         do {
-            let data = try JSONEncoder().encode(design)
+            let data = try JSONEncoder().encode(CustomFonts.synced(design, installed: FontStore.record))
             try data.write(to: designsDir.appendingPathComponent("\(design.id).json"), options: .atomic)
             SpotlightIndexer.index(design)
             return true

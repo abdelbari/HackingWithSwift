@@ -1,8 +1,8 @@
 // Text as vector outlines.
 //
-// Needed because Canvia's twelve font personalities map to faces that ship
-// with iOS — Didot, Rockwell, Snell Roundhand, Futura Condensed ExtraBold —
-// and none of them exist on the machine a designer opens an exported file on.
+// Needed because Canvia's fonts are files bundled in the app, or added by
+// the person — Playfair Display, Dancing Script, a font of their own — and
+// none of them need exist on the machine a designer opens an exported file on.
 // An SVG carrying <text> would render there in whatever the browser
 // substitutes, which is to say: not the design. Outlines carry the letterforms
 // themselves, so the file looks the same everywhere and stays vector.
