@@ -865,6 +865,13 @@ struct PositionSheet: View {
     /// sheet opens, as on the Android twin, and never saved.
     @State private var nudgeStep = 1.0
     @State private var nudges = 0
+    /// Keep proportions as switched in this panel; nil until it is, when it
+    /// is what the selection starts with (RatioLock.startsOn). Never saved.
+    @State private var keepProportions: Bool?
+
+    private var keepsProportions: Bool {
+        keepProportions ?? RatioLock.startsOn(store.selectedElements)
+    }
 
     var body: some View {
         NavigationStack {
@@ -944,9 +951,11 @@ struct PositionSheet: View {
                     Section("Exact") {
                         numberRow("X", value: el.x) { v in store.updateSelectedPlacement { $0.x = v } }
                         numberRow("Y", value: el.y) { v in store.updateSelectedPlacement { $0.y = v } }
-                        numberRow("Width", value: el.w) { v in store.updateSelectedPlacement { $0.w = max(8, v) } }
+                        numberRow("Width", value: el.w) { v in setWidth(v, of: el) }
+                        // Text has no height to type: it follows its words.
                         if el.type != .text {
-                            numberRow("Height", value: el.h) { v in store.updateSelectedPlacement { $0.h = max(8, v) } }
+                            proportionsToggle
+                            numberRow("Height", value: el.h) { v in setHeight(v, of: el) }
                         }
                         numberRow("Rotation", value: el.rotation) { v in store.updateSelectedPlacement { $0.rotation = v } }
                     }
@@ -962,12 +971,15 @@ struct PositionSheet: View {
                             store.setSelectionBox(CGRect(x: box.minX, y: v, width: box.width, height: box.height))
                         }
                         numberRow("Width", value: box.width) { v in
-                            let w = max(8, v)
-                            store.setSelectionBox(CGRect(x: box.minX, y: box.minY, width: w, height: box.height * w / max(box.width, 1)))
+                            let size = keepsProportions ? RatioLock.size(width: v, from: box.size)
+                                : CGSize(width: max(RatioLock.minSide, v), height: Double(box.height))
+                            store.setSelectionBox(CGRect(origin: box.origin, size: size))
                         }
+                        proportionsToggle
                         numberRow("Height", value: box.height) { v in
-                            let h = max(8, v)
-                            store.setSelectionBox(CGRect(x: box.minX, y: box.minY, width: box.width * h / max(box.height, 1), height: h))
+                            let size = keepsProportions ? RatioLock.size(height: v, from: box.size)
+                                : CGSize(width: Double(box.width), height: max(RatioLock.minSide, v))
+                            store.setSelectionBox(CGRect(origin: box.origin, size: size))
                         }
                         numberRow("Rotate by", value: 0) { v in store.rotateSelection(by: v) }
                     }
@@ -982,6 +994,39 @@ struct PositionSheet: View {
         }
         .presentationDetents(sheetDetents)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        // Another selection starts from its own proportions rule.
+        .onChange(of: store.selection) { _, _ in keepProportions = nil }
+    }
+
+    /// The chain between Width and Height: on, either number brings the
+    /// other with it in proportion (see RatioLock). Read as "Keep
+    /// proportions, on" or "off", as on the Android twin.
+    private var proportionsToggle: some View {
+        Toggle(isOn: Binding(get: { keepsProportions }, set: { keepProportions = $0 })) {
+            Label("Keep proportions", systemImage: "link")
+        }
+    }
+
+    /// A width typed for one element: with the chain on, the height in
+    /// proportion, from the top-left corner as a corner drag sizes it — as
+    /// one step either way.
+    private func setWidth(_ typed: Double, of el: Element) {
+        guard keepsProportions && el.type != .text else {
+            store.updateSelectedPlacement { $0.w = max(RatioLock.minSide, typed) }
+            return
+        }
+        let size = RatioLock.size(width: typed, from: CGSize(width: el.w, height: el.h))
+        store.updateSelectedPlacement { $0.w = Double(size.width); $0.h = Double(size.height) }
+    }
+
+    /// A height typed for one element: the same, the other way round.
+    private func setHeight(_ typed: Double, of el: Element) {
+        guard keepsProportions else {
+            store.updateSelectedPlacement { $0.h = max(RatioLock.minSide, typed) }
+            return
+        }
+        let size = RatioLock.size(height: typed, from: CGSize(width: el.w, height: el.h))
+        store.updateSelectedPlacement { $0.w = Double(size.width); $0.h = Double(size.height) }
     }
 
     /// Arrows that move the selection 1, 10 or 100 page units a tap, with

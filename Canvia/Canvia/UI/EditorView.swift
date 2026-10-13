@@ -53,6 +53,8 @@ struct EditorView: View {
     @State private var presenting = false
     /// The Vibration switch, shared with Home.
     @AppStorage(Haptics.key) private var haptics = true
+    /// Quick actions at the selection, on unless turned off (SelectionBubble).
+    @AppStorage(SelectionBubble.key) private var quickActions = true
     @State private var namingComponent = false
     /// The Snapping menu's Grid "Custom…" asking for a spacing.
     @State private var askingCustomGrid = false
@@ -84,6 +86,7 @@ struct EditorView: View {
             if let tip { tipBanner(tip) }
             ZStack(alignment: .bottomTrailing) {
                 CanvasView(store: store)
+                    .overlay { SelectionBubble(store: store) }
                     .overlay(alignment: .top) { CanvasChips(store: store) }
                 if let tool = store.drawing {
                     drawingBar(tool)
@@ -611,6 +614,7 @@ struct EditorView: View {
                     .disabled(store.selection.isEmpty)
                 snappingMenu
                 Toggle(isOn: $haptics) { Label("Vibration", systemImage: "iphone.radiowaves.left.and.right") }
+                Toggle(isOn: $quickActions) { Label("Quick actions at the selection", systemImage: "capsule") }
             }
 
             Section {
