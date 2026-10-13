@@ -134,22 +134,14 @@ extension DataGraphics {
 
     /// A column added left or right of `col` (right with `right`), copying
     /// that column's cells with no words. It is as wide as the columns were
-    /// on average, and the others are narrowed in proportion to make room,
-    /// so the table is as wide as it was; the last column takes what
-    /// rounding leaves over.
+    /// on average before it came, and the others are narrowed in proportion
+    /// to make room, so the table is as wide as it was; the last column
+    /// takes what rounding leaves over.
     static func addingTableColumn(_ elements: [Element], id: String, col: Int, right: Bool,
                                   heightFor: (Element) -> Double) -> [Element] {
-        let boxes = columnBoxes(elements, id: id)
-        let total = boxes.values.map { $0.w }.reduce(0, +)
-        guard let left = boxes.values.map({ $0.x }).min(), boxes[col] != nil, total > 0 else { return elements }
-        let average = total / Double(boxes.count)
-        let at = right ? col + 1 : col
-        var widths: [Int: Double] = [:]
-        for (c, box) in boxes { widths[c >= at ? c + 1 : c] = box.w * (total - average) / total }
-        widths[at] = average
-        let added = insertingColumn(elements, id: id, source: col, at: at)
-        return relaidTable(placingColumns(added, id: id, left: left, widths: roundedWidths(widths, total: total)),
-                           id: id, heightFor: heightFor)
+        guard columnBoxes(elements, id: id)[col] != nil,
+              let added = withColumn(elements, id: id, source: col, at: right ? col + 1 : col) else { return elements }
+        return relaidTable(added, id: id, heightFor: heightFor)
     }
 
     /// Row `row` taken out, the rows below moved up; nil when it is the
@@ -168,15 +160,9 @@ extension DataGraphics {
     static func deletingTableColumn(_ elements: [Element], id: String, col: Int,
                                     heightFor: (Element) -> Double) -> [Element]? {
         let boxes = columnBoxes(elements, id: id)
-        guard let box = boxes[col], boxes.count > 1, let left = boxes.values.map({ $0.x }).min() else { return nil }
-        let total = boxes.values.map { $0.w }.reduce(0, +)
-        let rest = total - box.w
-        guard rest > 0 else { return nil }
-        var widths: [Int: Double] = [:]
-        for (c, b) in boxes where c != col { widths[c > col ? c - 1 : c] = b.w * total / rest }
-        let removed = removingColumn(elements, id: id, col: col)
-        return relaidTable(placingColumns(removed, id: id, left: left, widths: roundedWidths(widths, total: total)),
-                           id: id, heightFor: heightFor)
+        guard boxes[col] != nil, boxes.count > 1,
+              let removed = withoutColumn(elements, id: id, col: col) else { return nil }
+        return relaidTable(removed, id: id, heightFor: heightFor)
     }
 
     // MARK: look
@@ -225,27 +211,30 @@ extension DataGraphics {
 
     /// Table `id`'s words as rows of cells, for the editor tables are typed
     /// in (parseTable reads them back, a line at a time): commas between
-    /// cells, or tabs in a row whose words hold a comma; each cell's plain
-    /// words, its line breaks and tabs spaces.
+    /// cells, or tabs between them in every row once any cell's words hold
+    /// a comma, so the rows read alike; each cell's plain words, its line
+    /// breaks and tabs spaces.
     static func tableText(_ elements: [Element], id: String) -> String {
         var words: [TableCell: String] = [:]
         for el in tableMembers(elements, id: id) where el.type == .text {
             if let cell = el.table { words[cell] = el.text ?? "" }
         }
         let columns = tableColumns(elements, id: id)
-        return tableRows(elements, id: id).map { row in
-            let cells = columns.map { col in words[TableCell(id: id, row: row, col: col)].map(plainWords) ?? "" }
-            return cells.joined(separator: cells.contains { $0.contains(",") } ? "\t" : ", ")
-        }.joined(separator: "\n")
+        let cells = tableRows(elements, id: id).map { row in
+            columns.map { col in words[TableCell(id: id, row: row, col: col)].map(plainWords) ?? "" }
+        }
+        let split = cells.contains { row in row.contains { $0.contains(",") } } ? "\t" : ", "
+        return cells.map { $0.joined(separator: split) }.joined(separator: "\n")
     }
 
     /// Table `id` made `rows` of cells (parseTable's): rows and columns
-    /// added at the end or taken off it until there are as many, every
-    /// column it had keeping its width and a new one the width they
-    /// averaged, so the table grows to the right; then each cell's words
-    /// set, a cell whose words did not change keeping its own styles. A new
-    /// row copies the row two above it, keeping the bands, or the last row
-    /// when that would be the header. Nil when `rows` has no cell.
+    /// added at the end or taken off it until there are as many, each
+    /// column as Add column right on the last column adds it and Delete
+    /// column on the last takes it, so the table keeps its width; then each
+    /// cell's words set, a cell whose words did not change keeping its own
+    /// styles. A new row copies the row two above it, keeping the bands, or
+    /// the last row when that would be the header. Nil when `rows` has no
+    /// cell.
     static func rebuiltTable(_ elements: [Element], id: String, rows: [[String]],
                              heightFor: (Element) -> Double) -> [Element]? {
         guard let wanted = rows.map(\.count).max(), wanted > 0,
@@ -261,17 +250,15 @@ extension DataGraphics {
             out = removingRow(out, id: id, row: last)
         }
         while true {
-            let boxes = columnBoxes(out, id: id)
-            guard boxes.count < wanted, let last = boxes.keys.max(),
-                  let left = boxes.values.map({ $0.x }).min() else { break }
-            var widths = boxes.mapValues { $0.w }
-            widths[last + 1] = (boxes.values.map { $0.w }.reduce(0, +) / Double(boxes.count)).rounded()
-            out = placingColumns(insertingColumn(out, id: id, source: last, at: last + 1), id: id, left: left, widths: widths)
+            let cols = tableColumns(out, id: id)
+            guard cols.count < wanted, let last = cols.last else { break }
+            out = withColumn(out, id: id, source: last, at: last + 1)
+                ?? insertingColumn(out, id: id, source: last, at: last + 1)
         }
         while true {
-            let boxes = columnBoxes(out, id: id)
-            guard boxes.count > wanted, let last = boxes.keys.max() else { break }
-            out = removingColumn(out, id: id, col: last)
+            let cols = tableColumns(out, id: id)
+            guard cols.count > wanted, let last = cols.last else { break }
+            out = withoutColumn(out, id: id, col: last) ?? removingColumn(out, id: id, col: last)
         }
         let rowAt = Dictionary(uniqueKeysWithValues: tableRows(out, id: id).enumerated().map { ($0.element, $0.offset) })
         let colAt = Dictionary(uniqueKeysWithValues: tableColumns(out, id: id).enumerated().map { ($0.element, $0.offset) })
@@ -317,6 +304,37 @@ extension DataGraphics {
     }
 
     // MARK: rows and columns, before the relayout
+
+    /// Column `source` copied, without words, in as column `at`, as wide
+    /// as the columns averaged, the others narrowed in proportion to make
+    /// room and the last given what rounding leaves of the table's width;
+    /// nil when the table has no width to share.
+    private static func withColumn(_ elements: [Element], id: String, source: Int, at: Int) -> [Element]? {
+        let boxes = columnBoxes(elements, id: id)
+        let total = boxes.values.map { $0.w }.reduce(0, +)
+        guard let left = boxes.values.map({ $0.x }).min(), total > 0 else { return nil }
+        let average = total / Double(boxes.count)
+        var widths: [Int: Double] = [:]
+        for (c, box) in boxes { widths[c >= at ? c + 1 : c] = box.w * (total - average) / total }
+        widths[at] = average
+        let added = insertingColumn(elements, id: id, source: source, at: at)
+        return placingColumns(added, id: id, left: left, widths: roundedWidths(widths, total: total))
+    }
+
+    /// Column `col` taken out, the columns left widened in proportion to
+    /// fill the table's width and the last given what rounding leaves over;
+    /// nil when nothing would be left to widen.
+    private static func withoutColumn(_ elements: [Element], id: String, col: Int) -> [Element]? {
+        let boxes = columnBoxes(elements, id: id)
+        guard let box = boxes[col], boxes.count > 1, let left = boxes.values.map({ $0.x }).min() else { return nil }
+        let total = boxes.values.map { $0.w }.reduce(0, +)
+        let rest = total - box.w
+        guard rest > 0 else { return nil }
+        var widths: [Int: Double] = [:]
+        for (c, b) in boxes where c != col { widths[c > col ? c - 1 : c] = b.w * total / rest }
+        let removed = removingColumn(elements, id: id, col: col)
+        return placingColumns(removed, id: id, left: left, widths: roundedWidths(widths, total: total))
+    }
 
     /// Row `source` copied, without words, in as row `at`; rows from `at`
     /// on moved down one.

@@ -25,6 +25,10 @@ struct TableSelection: Equatable {
     var canDeleteRow: Bool { rows.count == 1 && rowCount > 1 }
     var canDeleteColumn: Bool { columns.count == 1 && columnCount > 1 }
 
+    /// Why a turned table, or one with a locked cell, is left as it is.
+    static let turnedNote = "Turn the table back to level to change its rows and columns."
+    static let lockedNote = "A cell of this table is locked. Unlock it to change the table."
+
     /// Why Delete row or Delete column waits, when either does.
     var deleteNote: String? {
         guard !canDeleteRow || !canDeleteColumn else { return nil }
@@ -81,21 +85,26 @@ extension DesignStore {
     /// One edit to the selected table, as one undo step: `change` given the
     /// page's elements, the table and the selection in it; nil is nothing to
     /// do. A turned table's rows no longer stand in rows, and a locked cell
-    /// stays where it is, so neither is changed. The whole table stays
-    /// selected when it was, new cells and all; a cell taken away hands the
-    /// selection to the cell now in its place. Whether it changed.
+    /// stays as it is, so neither table is changed, and each says why, as
+    /// the Android twin says it. The whole table stays selected when it
+    /// was, new cells and all; a cell taken away hands the selection to the
+    /// cell now in its place. Whether it changed.
     @discardableResult
     private func editTable(_ change: ([Element], TableSelection) -> [Element]?) -> Bool {
         endTextEdit()
         guard let table = tableSelection else { return false }
         if table.turned {
             buzz(.reject)
-            announce("Turn the table back to level to change its rows and columns.", undoable: false)
+            announce(TableSelection.turnedNote, undoable: false)
             return false
         }
         let els = page.elements
-        guard !DataGraphics.tableMembers(els, id: table.id).contains(where: \.locked),
-              let changed = change(els, table) else {
+        if DataGraphics.tableMembers(els, id: table.id).contains(where: \.locked) {
+            buzz(.reject)
+            announce(TableSelection.lockedNote, undoable: false)
+            return false
+        }
+        guard let changed = change(els, table) else {
             buzz(.reject)
             return false
         }
@@ -195,8 +204,8 @@ extension DesignStore {
         tableSelection.map { DataGraphics.tableText(page.elements, id: $0.id) } ?? ""
     }
 
-    /// The selected table made the rows typed in `text`, its column widths
-    /// kept, as one step. False when the text holds no rows.
+    /// The selected table made the rows typed in `text`, as wide as it was,
+    /// as one step. False when the text holds no rows.
     @discardableResult
     func rebuildTable(from text: String) -> Bool {
         let rows = DataGraphics.parseTable(text)

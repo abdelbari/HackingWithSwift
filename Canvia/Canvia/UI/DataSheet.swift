@@ -1,6 +1,6 @@
 // Type the numbers, get the chart; type the cells, get the table. Opened
 // from a table's Edit as text, it shows that table's cells and Update sets
-// the table again from them, its column widths kept.
+// the table again from them, as wide as it was.
 
 import SwiftUI
 
@@ -90,7 +90,8 @@ struct DataSheet: View {
 
     /// Why Add or Update did nothing. Rows typed for a table being edited
     /// were fine, so the table itself refused them — turned, or with a
-    /// locked cell — and the store has already buzzed.
+    /// locked cell — and the store has already buzzed and said why; the
+    /// sheet says it too, in the same words.
     private func whyNot() -> String? {
         if mode == 0 {
             store.buzz(.reject)
@@ -101,9 +102,9 @@ struct DataSheet: View {
             return "Nothing to set: type some rows."
         }
         guard let table = store.tableSelection else { return nil }
-        if table.turned { return "Turn the table back to level to change its rows and columns." }
+        if table.turned { return TableSelection.turnedNote }
         if DataGraphics.tableMembers(store.page.elements, id: table.id).contains(where: \.locked) {
-            return "A cell of this table is locked. Tap Unlock to change it."
+            return TableSelection.lockedNote
         }
         return nil
     }
