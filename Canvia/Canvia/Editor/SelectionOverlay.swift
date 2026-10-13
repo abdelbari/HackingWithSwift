@@ -1,6 +1,7 @@
-// Selection overlay: outlines, resize handles, rotate handle, snap guides
-// and the size/angle badge. Rendered in page coordinates; visual sizes are
-// divided by zoom so they stay constant on screen.
+// Selection overlay: outlines, resize handles, rotate handle, a table's
+// column edges, snap guides and the size/angle badge. Rendered in page
+// coordinates; visual sizes are divided by zoom so they stay constant on
+// screen.
 
 import SwiftUI
 
@@ -77,6 +78,11 @@ struct SelectionOverlay: View {
                     pill("\(selected.count) selected", colour: Theme.accent,
                          at: CGPoint(x: bounds.midX, y: bounds.minY - 9 * iz), alignment: .bottom)
                 }
+            }
+
+            // A whole table selected: its column edges, to drag.
+            if let edges = store.tableColumnEdges {
+                TableColumnHandles(store: store, edges: edges)
             }
 
             guides

@@ -235,18 +235,26 @@ struct ClipPlayback: Codable, Equatable, Hashable {
 /// so nothing else is kept. Written as the element's `table` object; one
 /// missing a part, or with a part that cannot be read, is no key at all,
 /// and the element is a plain member of its group, as a table from before
-/// tables could be edited is.
+/// tables could be edited is. A merged cell is the top-left one of the
+/// cells merged, covering `rowSpan` rows down and `colSpan` columns across
+/// from its own; each is written only when over 1, and one missing, or
+/// not a whole number of at least 1, is 1, as the Android twin reads it —
+/// and so is one past `maxSpan`, which no table made here reaches.
 struct TableCell: Codable, Equatable, Hashable {
     var id: String
     var row: Int
     var col: Int
+    var rowSpan = 1
+    var colSpan = 1
 
-    private enum CodingKeys: String, CodingKey { case id, row, col }
+    private enum CodingKeys: String, CodingKey { case id, row, col, rowSpan, colSpan }
 
-    init(id: String, row: Int, col: Int) {
+    init(id: String, row: Int, col: Int, rowSpan: Int = 1, colSpan: Int = 1) {
         self.id = id
         self.row = row
         self.col = col
+        self.rowSpan = max(1, rowSpan)
+        self.colSpan = max(1, colSpan)
     }
 
     init(from decoder: Decoder) throws {
@@ -258,6 +266,40 @@ struct TableCell: Codable, Equatable, Hashable {
         self.id = id
         self.row = row
         self.col = col
+        rowSpan = Self.span(c, .rowSpan)
+        colSpan = Self.span(c, .colSpan)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(row, forKey: .row)
+        try c.encode(col, forKey: .col)
+        if rowSpan > 1 { try c.encode(rowSpan, forKey: .rowSpan) }
+        if colSpan > 1 { try c.encode(colSpan, forKey: .colSpan) }
+    }
+
+    /// The rows the cell covers: its own, and those merged into it below.
+    var spannedRows: Range<Int> { row..<(row + max(1, rowSpan)) }
+    /// The columns the cell covers: its own, and those merged into it on
+    /// the right.
+    var spannedCols: Range<Int> { col..<(col + max(1, colSpan)) }
+    /// Whether the cell is several merged.
+    var isMerged: Bool { rowSpan > 1 || colSpan > 1 }
+
+    /// Whether the cell covers row `r`, column `c`.
+    func covers(row r: Int, col c: Int) -> Bool {
+        spannedRows.contains(r) && spannedCols.contains(c)
+    }
+
+    /// The most rows or columns one cell is read as covering, so a file
+    /// with a span of millions does not make a table of millions of rows.
+    static let maxSpan = 1000
+
+    /// A span as written: a whole number from 1 to maxSpan, else 1.
+    private static func span<Key: CodingKey>(_ c: KeyedDecodingContainer<Key>, _ key: Key) -> Int {
+        guard let n = index(c, key), n >= 1, n <= maxSpan else { return 1 }
+        return n
     }
 
     /// A row or column: a whole number from nought, written either way.

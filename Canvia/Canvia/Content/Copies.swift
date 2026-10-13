@@ -44,7 +44,8 @@ enum Copies {
             }
             if let cell = el.table {
                 if tables[cell.id] == nil { tables[cell.id] = UID.make("tbl") }
-                copy.table = TableCell(id: tables[cell.id] ?? cell.id, row: cell.row, col: cell.col)
+                // Its place, merged cells' spans and all, in the copy's own table.
+                copy.table?.id = tables[cell.id] ?? cell.id
             }
             if let chart = el.chart {
                 if charts[chart.id] == nil { charts[chart.id] = UID.make("chart") }

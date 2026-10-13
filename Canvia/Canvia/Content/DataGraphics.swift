@@ -918,7 +918,7 @@ enum DataGraphics {
                 var cell = Element.shape("rect", w: widths[c], h: rowH)
                 cell.x = x.rounded(); cell.y = y.rounded()
                 cell.fill = .solid(r == 0 ? accent : tableBodyFill(r, band: band))
-                cell.stroke = "#00000022"
+                cell.stroke = tableHairline
                 cell.strokeWidth = 1
                 cell.radius = 0
                 cell.table = TableCell(id: tableId, row: r, col: c)
