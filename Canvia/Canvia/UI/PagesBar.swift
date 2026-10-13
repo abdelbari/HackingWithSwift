@@ -32,7 +32,7 @@ struct PagesBar: View {
             HStack(spacing: 2) {
                 Button { organizing = true } label: { Image(systemName: "square.grid.2x2") }
                     .accessibilityLabel("Organize pages")
-                if store.pageIsAnimated {
+                if store.pagePlays {
                     Button {
                         if store.previewTime == nil { store.playPreview() } else { store.stopPreview() }
                     } label: { Image(systemName: store.previewTime == nil ? "play.circle" : "stop.circle") }

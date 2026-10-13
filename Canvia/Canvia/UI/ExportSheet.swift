@@ -732,8 +732,8 @@ struct ExportSheet: View {
     }
 
     /// The design's audio tracks, each by its name with where it starts in
-    /// the video, and music from Files added as another track from the
-    /// start.
+    /// the video — trimmed, faded and moved in the editor's Audio sheet —
+    /// and music from Files added as another track from the start.
     @ViewBuilder
     private var trackRows: some View {
         ForEach(store.design.audioTracks) { track in
@@ -753,6 +753,9 @@ struct ExportSheet: View {
             .alert("That file isn't music this phone can play", isPresented: $audioRefused) {
                 Button("OK", role: .cancel) {}
             }
+        Text("Set where each track starts, its trim, volume and fades under More > Audio.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
     }
 
     /// Music picked in Files as another track, one Undo: only music that

@@ -74,4 +74,8 @@ extension DesignStore {
         guard design.audioTracks.contains(where: { $0.id == id }) else { return }
         apply { $0.audioTracks.removeAll { $0.id == id } }
     }
+
+    /// Whether Play has anything to show or to hear on this page: its
+    /// motion, or the design's tracks.
+    var pagePlays: Bool { pageIsAnimated || !design.audioTracks.isEmpty }
 }

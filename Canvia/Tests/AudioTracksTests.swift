@@ -253,6 +253,14 @@ final class AudioTracksTests: XCTestCase {
         XCTAssertNil(s.design.audio, "one step for the add")
     }
 
+    @MainActor
+    func testPlayIsOfferedOnAPageWithTracksUnderIt() {
+        let s = DesignStore(design: Design(title: "still", width: 1000, height: 1000))
+        XCTAssertFalse(s.pagePlays, "a still page with no sound has nothing to play")
+        s.addAudioTrack("song.m4a", name: "Song")
+        XCTAssertTrue(s.pagePlays)
+    }
+
     func testTheSheetSaysEachTrack() {
         let t = AudioTrack(src: "audio:song.m4a", start: 2, trimStart: 1, trimEnd: 4, name: "Song")
         XCTAssertEqual(AudioTracks.name(of: t), "Song")
