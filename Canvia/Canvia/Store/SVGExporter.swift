@@ -442,8 +442,8 @@ enum SVGExporter {
 }
 
 /// Just the page's background, for baking an image background into a bitmap
-/// without the elements on top of it.
-private struct PageBackgroundView: View {
+/// without the elements on top of it — here and in a PowerPoint slide.
+struct PageBackgroundView: View {
     let design: Design
     let page: Page
 
