@@ -45,6 +45,23 @@ final class PageScrollTests: XCTestCase {
         XCTAssertEqual(slots[2].rect, CGRect(x: 16, y: 672, width: 400, height: 800))
     }
 
+    /// Shared with the Android twin's PageColumnTest: Fit puts a page that
+    /// fits in the middle of the height, else its top under its header.
+    func testFitPutsThePageInTheMiddleOfTheHeightNeverAboveItsHeader() {
+        // Rows: viewport height, page height on screen, gap, the page's top.
+        let rows: [(Double, Double, Double, Double)] = [
+            (700, 201, 56, 249.5),
+            (700, 600, 56, 56),
+            (700, 800, 56, 56),
+            (1000, 0, 56, 500),
+            (0, 0, 56, 56),
+        ]
+        for row in rows {
+            XCTAssertEqual(PageColumn.fitTop(viewportHeight: row.0, pageHeight: row.1, gap: row.2), row.3,
+                           accuracy: 1e-9, "\(row)")
+        }
+    }
+
     func testNoPagesIsAnEmptyColumnOneGapTall() {
         XCTAssertEqual(PageColumn.pageOrigins([], gap: 24, gutter: 16, viewportWidth: 432), [])
         XCTAssertEqual(PageColumn.columnHeight([], gap: 24), 24, accuracy: 1e-9)

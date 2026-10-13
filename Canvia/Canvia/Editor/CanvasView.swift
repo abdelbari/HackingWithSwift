@@ -189,11 +189,13 @@ struct CanvasView: View {
             pinchZooms: store.cropping == nil,
             claimsDoubleTap: { point in claimsDoubleTap(at: point) },
             pansFromPage: { point in pansFromPage(at: point) },
+            holdsPage: { point in holdsWorkedPage(at: point) },
             request: canvasRequest(in: slot),
             column: slot.map { canvasColumn($0) },
             isControl: { point in isColumnControl(point) },
             movesOtherPage: { point in otherPageHit(at: point) != nil },
             onOtherPageDrag: { phase, start, now in otherPageDrag(phase, from: start, to: now) },
+            onOtherPageDoubleTap: { point in otherPageDoubleTap(at: point) },
             onViewport: { visible, fit in viewportChanged(visible, fit: fit) },
             onMotion: { moving in motionChanged(moving) }
         ) {
@@ -770,24 +772,35 @@ struct CanvasView: View {
     /// while the pen, the eraser or crop mode has the page's touches.
     private func pansFromPage(at point: CGPoint) -> Bool {
         guard store.drawing == nil, store.erasing == nil, store.cropping == nil else { return false }
-        let target = Touch.pageUnits(Touch.minTarget, zoom: store.zoom)
-        // Only what is shown has a hit area: a hidden layer is empty page.
-        let onElement = store.page.elements.contains { el in
-            guard !el.isHidden else { return false }
-            var reach = el
-            let grow = max(0, target - el.w) / 2, rise = max(0, target - el.h) / 2
-            reach.x -= grow; reach.w += grow * 2
-            reach.y -= rise; reach.h += rise * 2
-            return Geometry.hits(reach, point: point)
-        }
-        // Only within reach of a handle drawn is the touch the handles':
-        // the rest of the page round the selection still pans.
-        let onHandles = SelectionOverlay.handlesTake(point, store: store)
         let guideReach = Touch.pageUnits(12, zoom: store.zoom)
         let onGuide = store.design.guides.contains { guide in
             abs(Double(guide.vertical ? point.x : point.y) - guide.position) <= guideReach
         }
-        return CanvasGestures.pansFromPage(onElement: onElement || onHandles || onGuide, held: 0)
+        return CanvasGestures.pansFromPage(onElement: holdsWorkedPage(at: point) || onGuide, held: 0)
+    }
+
+    /// Whether `point` on the page being worked is on something of it to
+    /// work: an element shown, at its touch target's size, or within reach
+    /// of a handle of the selection — the rest of the page round the
+    /// selection still pans. Scrolling through pages, these keep their
+    /// touches where they hang off the page, too (ZoomableCanvas.holdsPage).
+    private func holdsWorkedPage(at point: CGPoint) -> Bool {
+        let target = Touch.pageUnits(Touch.minTarget, zoom: store.zoom)
+        // Only what is shown has a hit area: a hidden layer is empty page.
+        let onElement = store.page.elements.contains { el in
+            !el.isHidden && Geometry.hits(Self.reach(el, target), point: point)
+        }
+        return onElement || SelectionOverlay.handlesTake(point, store: store)
+    }
+
+    /// `el` grown about its centre to at least `target` across and down —
+    /// its touch target, as its hit area is drawn.
+    private static func reach(_ el: Element, _ target: Double) -> Element {
+        var grown = el
+        let grow = max(0, target - el.w) / 2, rise = max(0, target - el.h) / 2
+        grown.x -= grow; grown.w += grow * 2
+        grown.y -= rise; grown.h += rise * 2
+        return grown
     }
 
     private func marqueeView(_ band: CGRect) -> some View {
@@ -1546,6 +1559,8 @@ struct CanvasView: View {
         case .reveal(let box, let covered, let typing):
             return CanvasRequest(kind: .reveal(slot.columnBox(box), covered: covered, typing: typing),
                                  serial: request.serial)
+        case .page:
+            return request
         }
     }
 
@@ -1609,12 +1624,18 @@ struct CanvasView: View {
     }
 
     /// A page made current from elsewhere — the pages bar, Undo, a page
-    /// added — is scrolled to; one the column made current is in view.
+    /// added — is brought to where Fit puts it (PageColumn.fitTop), as on
+    /// the Android twin, unless it is already the page across the middle of
+    /// the view; one the column made current is in view.
     private func followPage(_ index: Int) {
         let fromColumn = pageFromColumn == index
         pageFromColumn = nil
         guard columnOn, !fromColumn else { return }
-        revealPage()
+        let slots = columnSlots
+        if seen.fit > 0, slots.indices.contains(index), PageColumn.currentPage(seen.visible, in: slots) == index {
+            return
+        }
+        store.requestCanvas(.page)
     }
 
     /// The page being worked, its header too, brought into sight.
@@ -1631,15 +1652,16 @@ struct CanvasView: View {
     /// anywhere else the selection goes — Select multiple keeps what it has
     /// built.
     private func backgroundTap(at point: CGPoint) {
+        // What of the page worked hangs off it there is that page's, not
+        // the column's (ZoomableCanvas.holdsPage).
+        if let slot = columnSlot, holdsWorkedPage(at: slot.toPage(point)) { return }
         commitTextEditIfAny()
         let slots = columnSlots
         if let index = PageColumn.pageAt(point, in: slots), index != store.pageIndex, !pagePinned {
-            let at = slots[index].toPage(point)
+            let hit = otherPageElement(index, at: slots[index].toPage(point))
             pageFromColumn = index
             store.setPage(index)
-            if let hit = store.page.elements.last(where: { !$0.isHidden && Geometry.hits($0, point: at) }) {
-                store.select(hit.id)
-            }
+            if let hit { store.select(hit.id) }
             return
         }
         if !store.selectingMultiple { store.select(nil) }
@@ -1651,10 +1673,44 @@ struct CanvasView: View {
     private func otherPageHit(at point: CGPoint) -> (page: Int, element: Element)? {
         let slots = columnSlots
         guard !pagePinned, let index = PageColumn.pageAt(point, in: slots), index != store.pageIndex else { return nil }
-        let at = slots[index].toPage(point)
-        guard let hit = store.design.pages[index].elements.last(where: { !$0.isHidden && Geometry.hits($0, point: at) })
-        else { return nil }
+        guard let hit = otherPageElement(index, at: slots[index].toPage(point)) else { return nil }
         return (index, hit)
+    }
+
+    /// The topmost thing shown on page `index` of the column under `at`, in
+    /// that page's units — each at least its touch target's size on screen,
+    /// as on the page worked (elementHitArea) and on the Android twin.
+    private func otherPageElement(_ index: Int, at: CGPoint) -> Element? {
+        let slots = columnSlots
+        guard store.design.pages.indices.contains(index), slots.indices.contains(index) else { return nil }
+        // The page worked's zoom, in this page's units.
+        let zoom = store.zoom / (columnSlot?.scale ?? 1) * slots[index].scale
+        let target = Touch.pageUnits(Touch.minTarget, zoom: zoom)
+        return store.design.pages[index].elements.last { el in
+            !el.isHidden && Geometry.hits(Self.reach(el, target), point: at)
+        }
+    }
+
+    /// A double tap on another page (ZoomableCanvas.onOtherPageDoubleTap):
+    /// on a photo or words, that page becomes the one worked and the photo
+    /// opens crop, or the words their typing — as the Android twin's first
+    /// tap makes the page current and its second works what it landed on.
+    /// Anywhere else it is not taken, and the canvas zooms.
+    private func otherPageDoubleTap(at point: CGPoint) -> Bool {
+        guard let found = otherPageHit(at: point) else { return false }
+        let hit = found.element
+        guard hit.type == .image || ShapeText.carriesWords(hit) || hit.table != nil else { return false }
+        commitTextEditIfAny()
+        pageFromColumn = found.page
+        store.setPage(found.page)
+        store.select(hit.id)
+        // A table cell's words are found on the page now worked.
+        if let target = store.typedIn(hit) {
+            startTextEdit(target)
+        } else if hit.type == .image {
+            store.startCrop(hit.id)
+        }
+        return true
     }
 
     /// One finger dragged from something on another page (ZoomableCanvas's
