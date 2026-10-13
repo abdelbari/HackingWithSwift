@@ -1,0 +1,217 @@
+// The font combinations in Add ▸ Text, as the Android twin's TextCombosTest
+// has them: textcombos.json the same bytes on both phones, every combination
+// decoded with every element it lists, the six pairings first, a search over
+// names and tags, and the same numbers as one goes on a page — 72% of its
+// width, centred, a fresh group — then measured and selected in one step.
+
+import XCTest
+import CryptoKit
+@testable import Canvia
+
+@MainActor
+final class TextCombosTests: XCTestCase {
+
+    func testTheCombinationsAreTheSameBytesOnBothPhones() throws {
+        // The Android twin's TextCombosTest checks the same digest of its copy.
+        let url = try XCTUnwrap(Bundle.main.url(forResource: "textcombos", withExtension: "json"))
+        let digest = SHA256.hash(data: try Data(contentsOf: url)).map { String(format: "%02x", $0) }.joined()
+        XCTAssertEqual(digest, "2878070657aebdbd0043053030361c18749783d3b2b805497d9ab8f0dd7e3d1b")
+    }
+
+    /// The rows of the Android twin's TextCombosTest: every combination, and
+    /// how many elements it draws.
+    func testEveryCombinationDecodesAndDrawsEveryElementItLists() {
+        let expected: [(String, Int)] = [
+            ("editorial", 2), ("poster", 2), ("technical", 2), ("playful", 2), ("luxury", 2), ("minimal", 2),
+            ("mega-sale", 4), ("wedding-invitation", 5), ("quote", 4), ("grand-opening", 4), ("happy-birthday", 3),
+            ("webinar", 4), ("summer-vibes", 4), ("breaking-news", 5), ("coffee-house", 4), ("thank-you", 3),
+            ("neon-night", 3), ("creative-workshop", 3), ("new-collection", 3), ("podcast-episode", 4), ("open-house", 4),
+            ("train-harder", 3), ("black-friday", 4), ("recipe-card", 3), ("merry-christmas", 5), ("explore-iceland", 3),
+            ("baby-shower", 6), ("dont-stop", 3), ("product-launch", 4), ("halloween-party", 3),
+        ]
+        XCTAssertEqual(TextCombos.all.map(\.id), expected.map(\.0))
+        XCTAssertEqual(TextCombos.all.map(\.elements.count), expected.map(\.1))
+        let fonts = Set(FontLibrary.all.map(\.id)).union(FontLibrary.aliases.keys)
+        for combo in TextCombos.all {
+            let drawn = TextCombos.elements(combo, scale: 1)
+            XCTAssertEqual(drawn.count, combo.elements.count, combo.id)
+            // Text, shapes and rules only, each with a box, every text with
+            // words in a font the library has.
+            XCTAssertTrue(drawn.allSatisfy { [ElementType.text, .shape, .line].contains($0.type) && $0.w > 0 && $0.h > 0 }, combo.id)
+            for el in drawn where el.type == .text {
+                XCTAssertFalse((el.text ?? "").trimmingCharacters(in: .whitespaces).isEmpty, combo.id)
+                XCTAssertTrue(fonts.contains(el.fontFamily ?? ""), "\(combo.id) \(el.fontFamily ?? "")")
+            }
+            // Within its box.
+            XCTAssertTrue(drawn.allSatisfy {
+                $0.x >= 0 && $0.x + $0.w <= combo.w + 1e-9 && $0.y >= 0 && $0.y + $0.h <= combo.h + 1e-9
+            }, combo.id)
+            XCTAssertFalse(combo.name.isEmpty, combo.id)
+            XCTAssertFalse(combo.tags.isEmpty, combo.id)
+        }
+        XCTAssertEqual(Set(TextCombos.all.map(\.id)).count, TextCombos.all.count)
+    }
+
+    func testTheSixPairingsComeFirstAsTheyWere() {
+        XCTAssertEqual(Array(TextCombos.all.prefix(6)).map(\.name), ContentLibrary.pairings.map(\.name))
+        for (combo, pairing) in zip(TextCombos.all, ContentLibrary.pairings) {
+            let drawn = TextCombos.elements(combo, scale: 1)
+            XCTAssertEqual(drawn.count, 2, combo.id)
+            guard drawn.count == 2 else { continue }
+            for (el, spec) in [(drawn[0], pairing.heading), (drawn[1], pairing.body)] {
+                XCTAssertEqual(el.text, spec.text)
+                XCTAssertEqual(el.fontFamily, spec.fontFamily)
+                XCTAssertEqual(el.fontWeight, spec.fontWeight)
+                XCTAssertEqual(el.fontSize, spec.fontSize)
+                XCTAssertEqual(el.letterSpacing, spec.letterSpacing ?? 0)
+            }
+            // The body 14 under the heading.
+            XCTAssertEqual(drawn[1].y, drawn[0].y + drawn[0].h + 14, accuracy: 1e-9)
+        }
+    }
+
+    func testTheCombinationsUseWhatADesignCanHold() {
+        let drawn = TextCombos.all.flatMap { TextCombos.elements($0, scale: 1) }
+        let texts = drawn.filter { $0.type == .text }
+        XCTAssertTrue(texts.contains { ($0.effect?.type ?? "none") != "none" })
+        XCTAssertTrue(texts.contains { ($0.curve ?? 0) != 0 })
+        XCTAssertTrue(texts.contains { $0.uppercase == true })
+        XCTAssertTrue(texts.contains { !$0.liveSpans.isEmpty })
+        XCTAssertTrue(texts.contains { $0.textFill?.kind == "gradient" && $0.textFill?.stops?.count == 2 })
+        XCTAssertTrue(texts.contains { ($0.letterSpacing ?? 0) > 0 })
+        XCTAssertTrue(texts.contains { $0.italic == true })
+        XCTAssertTrue(drawn.contains { $0.type == .line })
+        // This phone's shape ids, each one the library has.
+        let shapes = drawn.filter { $0.type == .shape }
+        XCTAssertEqual(Set(shapes.compactMap(\.shapeId)), ["rect", "circle", "heart", "star-4"])
+        XCTAssertTrue(shapes.allSatisfy { ContentLibrary.shapeMap[$0.shapeId ?? ""] != nil })
+        // Weights from Light to Black among them.
+        XCTAssertEqual(Set(texts.compactMap(\.fontWeight)).sorted(), [300, 400, 500, 600, 700, 800, 900])
+        // Words given their own colour where the file says.
+        let sale = TextCombos.elements(TextCombos.combo("mega-sale")!, scale: 1)[0]
+        XCTAssertEqual(sale.liveSpans, [TextSpan(start: 5, end: 9, color: "#111827")])
+        XCTAssertEqual(sale.effect?.type, "lift")
+        let coffee = TextCombos.elements(TextCombos.combo("coffee-house")!, scale: 1)[0]
+        XCTAssertEqual(coffee.curve, 60)
+    }
+
+    /// The rows of the Android twin's TextCombosTest.
+    func testASearchFindsNamesAndTagsCaseAndAccentsAside() {
+        XCTAssertEqual(TextCombos.search("SALE").map(\.id), ["mega-sale", "black-friday"])
+        XCTAssertEqual(TextCombos.search("wedding").map(\.id), ["wedding-invitation"])
+        XCTAssertEqual(TextCombos.search("quote").map(\.id), ["quote", "dont-stop"])
+        XCTAssertEqual(TextCombos.search("Café").map(\.id), ["coffee-house"])
+        XCTAssertEqual(TextCombos.search(" celebration ").map(\.id), ["happy-birthday", "baby-shower"])
+        XCTAssertEqual(TextCombos.search("eleg").map(\.id), ["luxury", "wedding-invitation"])
+        XCTAssertEqual(TextCombos.search("real estate").map(\.id), ["open-house"])
+        XCTAssertEqual(TextCombos.search("").map(\.id), TextCombos.all.map(\.id))
+        XCTAssertEqual(TextCombos.search("zzz").map(\.id), [])
+        XCTAssertEqual(TextCombos.noneFound(" zzz "), "No font combinations match \u{201C}zzz\u{201D}.")
+    }
+
+    private func assertRect(_ el: Element, _ x: Double, _ y: Double, _ w: Double, _ h: Double,
+                            file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertEqual(el.x, x, accuracy: 1e-6, file: file, line: line)
+        XCTAssertEqual(el.y, y, accuracy: 1e-6, file: file, line: line)
+        XCTAssertEqual(el.w, w, accuracy: 1e-6, file: file, line: line)
+        XCTAssertEqual(el.h, h, accuracy: 1e-6, file: file, line: line)
+    }
+
+    /// The rows of the Android twin's TextCombosTest: 72% of the page wide,
+    /// centred both ways, nothing rounded.
+    func testACombinationGoesOnScaledToThePageAndCentredAsOneNewGroup() {
+        let editorial = TextCombos.placed(TextCombos.combo("editorial")!, pageWidth: 1080, pageHeight: 1080)
+        assertRect(editorial[0], 151.2, 460.7446153846154, 777.6, 109.66153846153846)
+        assertRect(editorial[1], 151.2, 584.363076923077, 777.6, 34.89230769230769)
+        XCTAssertEqual(editorial[0].fontSize ?? 0, 87.72923076923077, accuracy: 1e-6)
+        XCTAssertEqual(editorial[0].letterSpacing ?? 0, -0.9969230769230769, accuracy: 1e-6)
+
+        let sale = TextCombos.placed(TextCombos.combo("mega-sale")!, pageWidth: 1080, pageHeight: 1080)
+        assertRect(sale[0], 151.2, 404.352, 777.6, 129.6)
+        assertRect(sale[1], 280.8, 554.688, 518.4, 72.576)
+        XCTAssertEqual(sale[1].radius ?? 0, 36.288, accuracy: 1e-6)
+        assertRect(sale[2], 280.8, 568.08, 518.4, 45.792)
+        XCTAssertEqual(sale[2].fontSize ?? 0, 38.016, accuracy: 1e-6)
+        XCTAssertEqual(sale[2].letterSpacing ?? 0, 2.592, accuracy: 1e-6)
+        assertRect(sale[3], 151.2, 648.0, 777.6, 27.648)
+
+        // A wide page: still 72% of its width.
+        let wedding = TextCombos.placed(TextCombos.combo("wedding-invitation")!, pageWidth: 1920, pageHeight: 1080)
+        assertRect(wedding[0], 268.8, 281.2018604651163, 1382.4, 54.65302325581395)
+        XCTAssertEqual(wedding[0].letterSpacing ?? 0, 19.289302325581396, accuracy: 1e-6)
+        assertRect(wedding[2], 799.2558139534884, 615.5497674418605, 321.48837209302326, 12.85953488372093)
+        XCTAssertEqual(wedding[2].thickness ?? 0, 3.2148837209302323, accuracy: 1e-6)
+        assertRect(wedding[4], 268.8, 747.36, 1382.4, 51.43813953488372)
+
+        // A tall one.
+        let neon = TextCombos.placed(TextCombos.combo("neon-night")!, pageWidth: 1080, pageHeight: 1920)
+        assertRect(neon[0], 151.2, 797.246511627907, 777.6, 325.50697674418603)
+        assertRect(neon[1], 187.3674418604651, 869.5813953488373, 705.2651162790697, 119.35255813953489)
+        XCTAssertEqual(neon[1].fontSize ?? 0, 99.46046511627907, accuracy: 1e-6)
+
+        // One group, fresh ids every time it goes on.
+        for placed in [editorial, sale, wedding, neon] {
+            XCTAssertEqual(Set(placed.map(\.group)).count, 1)
+            XCTAssertNotNil(placed[0].group)
+            XCTAssertEqual(Set(placed.map(\.id)).count, placed.count)
+        }
+        let again = TextCombos.placed(TextCombos.combo("mega-sale")!, pageWidth: 1080, pageHeight: 1080)
+        XCTAssertTrue(Set(again.map(\.id)).isDisjoint(with: sale.map(\.id)))
+        XCTAssertNotEqual(again[0].group, sale[0].group)
+    }
+
+    func testACombinationWithoutWhatItNeedsIsPassedOver() {
+        func combos(_ json: String) -> [TextCombos.Combo] {
+            TextCombos.combos(from: Data(json.utf8))
+        }
+        let element = #"{"type":"text","text":"Hi","w":100,"h":40}"#
+        XCTAssertEqual(combos(#"[{"id":"a","name":"A","w":100,"elements":[\#(element)]}]"#).first?.h, 40)
+        XCTAssertEqual(combos(#"[{"name":"A","w":100,"elements":[\#(element)]}]"#).count, 0)
+        XCTAssertEqual(combos(#"[{"id":"a","name":"A","w":"100","elements":[\#(element)]}]"#).count, 0)
+        XCTAssertEqual(combos(#"[{"id":"a","name":"A","w":100}]"#).count, 0)
+        // One passed over leaves the rest.
+        XCTAssertEqual(combos(#"[{"id":"a","w":100,"elements":[\#(element)]},{"id":"b","name":"B","w":100,"elements":[\#(element)]}]"#).map(\.id), ["b"])
+    }
+
+    // MARK: on the page
+
+    private func store(width: Double, height: Double) -> DesignStore {
+        DesignStore(design: Design(title: "combos", width: width, height: height))
+    }
+
+    func testATapPutsItOnThePageMeasuredGroupedAndSelectedAsOneStep() {
+        let s = store(width: 1080, height: 1080)
+        let combo = TextCombos.combo("mega-sale")!
+        let placed = TextCombos.placed(combo, pageWidth: 1080, pageHeight: 1080)
+        s.addTextCombo(combo)
+        let made = s.page.elements
+        XCTAssertEqual(made.count, 4)
+        XCTAssertEqual(Set(made.compactMap(\.group)).count, 1)
+        XCTAssertEqual(s.selection, Set(made.map(\.id)))
+        for (el, at) in zip(made, placed) {
+            XCTAssertEqual(el.type, at.type)
+            // Each text from its top, at the height its words take.
+            XCTAssertEqual(el.x, at.x, accuracy: 1e-9)
+            XCTAssertEqual(el.y, at.y, accuracy: 1e-9)
+            XCTAssertEqual(el.w, at.w, accuracy: 1e-9)
+            if el.type == .text {
+                XCTAssertEqual(el.h, FontLibrary.layoutHeight(for: el), accuracy: 1e-9)
+            } else {
+                XCTAssertEqual(el.h, at.h, accuracy: 1e-9)
+            }
+        }
+        s.undo()
+        XCTAssertTrue(s.page.elements.isEmpty)
+        XCTAssertFalse(s.canUndo, "one step")
+    }
+
+    func testAPageOfItsOwnSizeTakesItAtItsOwnWidth() {
+        var design = Design(title: "combos", width: 1080, height: 1080)
+        design.pages[0].width = 1920
+        let s = DesignStore(design: design)
+        s.addTextCombo(TextCombos.combo("editorial")!)
+        let heading = s.page.elements[0]
+        XCTAssertEqual(heading.x, 268.8, accuracy: 1e-6)
+        XCTAssertEqual(heading.w, 1382.4, accuracy: 1e-6)
+    }
+}

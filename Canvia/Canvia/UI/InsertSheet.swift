@@ -1,5 +1,5 @@
-// Insert sheet: templates, shapes, lines, icons, text presets & pairings,
-// photos, stickers, and photo-library uploads.
+// Insert sheet: templates, shapes, lines, icons, text presets & font
+// combinations, photos, stickers, and photo-library uploads.
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -63,7 +63,7 @@ struct InsertSheet: View {
                 }
             }
             .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always),
-                        prompt: tab == "Elements" ? Text("Search shapes and icons") : nil)
+                        prompt: searchPrompt)
             .navigationTitle(isReplacing ? "Replace image" : "Add to design")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -172,8 +172,18 @@ struct InsertSheet: View {
         }.value
     }
 
+    /// What the search field says on the tabs whose search is their own.
+    private var searchPrompt: Text? {
+        switch tab {
+        case "Elements": return Text("Search shapes and icons")
+        case "Text": return Text("Search font combinations")
+        default: return nil
+        }
+    }
+
     /// A search that finds nothing on this tab says so, rather than showing
-    /// a blank scroll view that looks like a load that never finished.
+    /// a blank scroll view that looks like a load that never finished. The
+    /// Text tab says it in its own words, under the combinations' search.
     private var nothingMatches: Bool {
         guard !search.isEmpty else { return false }
         switch tab {
@@ -466,45 +476,61 @@ struct InsertSheet: View {
 
     // MARK: text
 
+    /// The role inserts and a page number, then the font combinations two
+    /// to a row, the six pairings first. A search keeps the combinations
+    /// whose name or a tag has it, and only them — as on the Android twin.
     private var textList: some View {
         // In the active brand kit's faces, role by role.
         let fonts = BrandKit.load().fonts
+        let searching = !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return VStack(alignment: .leading, spacing: 10) {
-            ForEach(fonts.addTextRoles) { role in
-                roleInsert(role, face: fonts[role])
-            }
-            textInsert("Page {page} of {pages}", size: 0.022, weight: 500)
-
-            if !ContentLibrary.pairings.isEmpty {
-                sectionHeader("Font pairings")
-                ForEach(ContentLibrary.pairings) { pairing in
-                    Button {
-                        insertPairing(pairing)
-                        dismiss()
-                    } label: {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(pairing.name.uppercased())
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(.secondary)
-                            Text(pairing.heading.text)
-                                .font(FontLibrary.font(
-                                    family: pairing.heading.fontFamily, size: 19,
-                                    weight: pairing.heading.fontWeight, italic: false))
-                            Text(pairing.body.text)
-                                .font(FontLibrary.font(
-                                    family: pairing.body.fontFamily, size: 12,
-                                    weight: pairing.body.fontWeight, italic: false))
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(12)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
-                    }
-                    .buttonStyle(.plain)
+            if !searching {
+                ForEach(fonts.addTextRoles) { role in
+                    roleInsert(role, face: fonts[role])
                 }
+                textInsert("Page {page} of {pages}", size: 0.022, weight: 500)
             }
+            comboGrid(TextCombos.search(search))
         }
         .padding()
+    }
+
+    /// "Font combinations", each a tile drawn as it goes on a page, its name
+    /// under it; or, when a search finds none, that said.
+    @ViewBuilder
+    private func comboGrid(_ combos: [TextCombos.Combo]) -> some View {
+        if combos.isEmpty {
+            Text(TextCombos.noneFound(search))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .padding(.top, 8)
+        } else {
+            sectionHeader("Font combinations")
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                ForEach(combos) { combo in comboTile(combo) }
+            }
+        }
+    }
+
+    /// A tap puts the combination on this page, centred and selected, as
+    /// one Undo (DesignStore.addTextCombo).
+    private func comboTile(_ combo: TextCombos.Combo) -> some View {
+        Button {
+            store.addTextCombo(combo)
+            dismiss()
+        } label: {
+            VStack(spacing: 4) {
+                ComboThumb(combo: combo)
+                Text(combo.name)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(combo.name) font combination")
+        .accessibilityAddTraits(.isButton)
     }
 
     private func textInsert(_ label: String, size: Double, weight: Int) -> some View {
@@ -542,35 +568,6 @@ struct InsertSheet: View {
                 .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
         }
         .buttonStyle(.plain)
-    }
-
-    private func insertPairing(_ pairing: FontPairing) {
-        // Placed on this page, which may have a size of its own: from the
-        // design's size, a pairing ran off a narrower page.
-        let scale = store.pageWidth / 1080
-        let w = store.pageWidth * 0.72
-        let x = store.pageWidth * 0.14
-        let y0 = store.pageHeight * 0.38
-        var heading = Element.text(pairing.heading.text,
-                                   fontSize: pairing.heading.fontSize * scale, w: w)
-        heading.fontFamily = pairing.heading.fontFamily
-        heading.fontWeight = pairing.heading.fontWeight
-        heading.letterSpacing = (pairing.heading.letterSpacing ?? 0) * scale
-        heading.x = x; heading.y = y0
-        heading.h = FontLibrary.layoutHeight(for: heading)
-
-        var body = Element.text(pairing.body.text,
-                                fontSize: pairing.body.fontSize * scale, w: w)
-        body.fontFamily = pairing.body.fontFamily
-        body.fontWeight = pairing.body.fontWeight
-        body.letterSpacing = (pairing.body.letterSpacing ?? 0) * scale
-        body.x = x; body.y = y0 + heading.h + 14 * scale
-        body.h = FontLibrary.layoutHeight(for: body)
-
-        store.applyToPage { page in
-            page.elements.append(contentsOf: [heading, body])
-        }
-        store.selection = [heading.id, body.id]
     }
 
     // MARK: uploads
@@ -1476,6 +1473,65 @@ enum TemplateThumbCache {
         let design = template.instantiate()
         let renderer = ImageRenderer(content: PageRenderView(design: design, page: design.pages[0]))
         renderer.scale = 320 / max(design.width, 1)
+        let image = renderer.uiImage
+        if let image { cache.setObject(image, forKey: key) }
+        return image
+    }
+}
+
+/// A font combination's tile: drawn by the page's own renderer as it goes on
+/// a page, its words measured in the real faces, on white so dark type shows
+/// in dark mode too, and kept (ComboThumbCache).
+struct ComboThumb: View {
+    let combo: TextCombos.Combo
+    @State private var image: UIImage?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+            } else {
+                Color.white
+                    .aspectRatio(ComboThumbCache.width / ComboThumbCache.height, contentMode: .fit)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.hairline, lineWidth: 1))
+        .task {
+            if image == nil {
+                image = ComboThumbCache.thumbnail(for: combo)
+            }
+        }
+    }
+}
+
+@MainActor
+enum ComboThumbCache {
+    /// A tile's size in page units, and how much of it, either way, a
+    /// combination may take — the Android twin's ComboTiles.
+    static let width: Double = 360
+    static let height: Double = 240
+    private static let fill = 0.86
+
+    /// NSCache, as TemplateThumbCache, so a memory warning gives them back.
+    private static let cache: NSCache<NSString, UIImage> = {
+        let c = NSCache<NSString, UIImage>()
+        c.countLimit = 32
+        return c
+    }()
+
+    static func thumbnail(for combo: TextCombos.Combo) -> UIImage? {
+        let key = combo.id as NSString
+        if let cached = cache.object(forKey: key) { return cached }
+        let scale = min(width * fill / combo.w, height * fill / max(combo.h, 1))
+        let placed = TextCombos.placed(combo, scale: scale, pageWidth: width, pageHeight: height)
+        var design = Design(title: combo.name, width: width, height: height)
+        design.pages = [Page(elements: TextCombos.measured(placed))]
+        let renderer = ImageRenderer(content: PageRenderView(design: design, page: design.pages[0]))
+        renderer.scale = 1.5
+        renderer.isOpaque = true
         let image = renderer.uiImage
         if let image { cache.setObject(image, forKey: key) }
         return image

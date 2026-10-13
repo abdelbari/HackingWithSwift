@@ -102,6 +102,15 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   thumbnails and export — inline bold and italic words keep their style
   under every effect, and highlight bars sit behind each line as it is
   set, indents, list markers and justification included
+- Font combinations in Add ▸ Text: thirty ready lockups — the six font
+  pairings first, then sales, invitations, quotes, menus and more, mixing
+  faces, weights, spacing, colours, effects, curves, small shapes and
+  rules — two to a row, each drawn by the page renderer and kept, and found
+  by name or tag with "Search font combinations". They are
+  `textcombos.json` (`TextCombos`), the very file the Android twin's
+  tools/generate_textcombos.py writes; a tap puts one on the page 72% of
+  its width and centred, with fresh ids and one group, each text measured
+  from its top, selected, as one Undo
 - Photo frames: any library shape clips a photo — circle, star, blob,
   speech bubble — applying one squares the box about its centre, because
   the library's paths stretch onto the element and a circle on a 4:3 photo

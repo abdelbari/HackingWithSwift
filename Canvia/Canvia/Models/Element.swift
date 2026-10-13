@@ -750,4 +750,21 @@ struct Element: Codable, Equatable, Identifiable {
         copy.y += offset
         return copy
     }
+
+    /// Its sizes `scale` times as big, where it stays: its box, type size,
+    /// letter spacing, corners and border, and a line's thickness never
+    /// under 1. Effects, curves and the words' own sizes are shares of the
+    /// type, and stay. As the Android twin's PageResize.scaledSizes.
+    func scaledSizes(by scale: Double) -> Element {
+        var e = self
+        e.w = w * scale
+        e.h = h * scale
+        if let fontSize { e.fontSize = fontSize * scale }
+        if let thickness { e.thickness = max(1, thickness * scale) }
+        if let letterSpacing { e.letterSpacing = letterSpacing * scale }
+        if let radius { e.radius = radius * scale }
+        if let corners { e.corners = corners.map { $0 * scale } }
+        if let strokeWidth { e.strokeWidth = strokeWidth * scale }
+        return e
+    }
 }

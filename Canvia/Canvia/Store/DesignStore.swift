@@ -1808,6 +1808,19 @@ final class DesignStore {
         selection = Set(elements.map(\.id))
     }
 
+    /// A font combination (TextCombos), 72% of this page's width — the page
+    /// may have a size of its own — and centred on it, each text then
+    /// measured with the real faces from its top: on top of the page, one
+    /// group, selected, as one Undo, as the Android twin inserts one. Brand
+    /// colours are left to the theme sheet, as Canva leaves them.
+    func addTextCombo(_ combo: TextCombos.Combo) {
+        let made = TextCombos.measured(TextCombos.placed(combo, pageWidth: pageWidth, pageHeight: pageHeight))
+        guard !made.isEmpty else { return }
+        applyToPage { $0.elements.append(contentsOf: made) }
+        selection = Set(made.map(\.id))
+        buzz(.confirm)
+    }
+
     // MARK: text styles
 
     /// Apply a saved style to the selected text elements, one undo step.
@@ -2191,16 +2204,10 @@ final class DesignStore {
         let dy = (new.height - old.height * scale) / 2
         var out = page
         for i in out.elements.indices {
-            out.elements[i].x = out.elements[i].x * scale + dx
-            out.elements[i].y = out.elements[i].y * scale + dy
-            out.elements[i].w *= scale
-            out.elements[i].h *= scale
-            if let fs = out.elements[i].fontSize { out.elements[i].fontSize = fs * scale }
-            if let t = out.elements[i].thickness { out.elements[i].thickness = max(1, t * scale) }
-            if let ls = out.elements[i].letterSpacing { out.elements[i].letterSpacing = ls * scale }
-            if let r = out.elements[i].radius { out.elements[i].radius = r * scale }
-            if let c = out.elements[i].corners { out.elements[i].corners = c.map { $0 * scale } }
-            if let sw = out.elements[i].strokeWidth { out.elements[i].strokeWidth = sw * scale }
+            let el = out.elements[i]
+            out.elements[i] = el.scaledSizes(by: scale)
+            out.elements[i].x = el.x * scale + dx
+            out.elements[i].y = el.y * scale + dy
         }
         return out
     }
