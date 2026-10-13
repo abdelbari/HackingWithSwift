@@ -1175,10 +1175,13 @@ struct LayersSheet: View {
 
     /// An element's row: faded, with its eye struck through, while hidden.
     /// A member of an opened group is indented under it, and a tap takes it
-    /// alone; any other row's tap takes its group, as on the canvas.
+    /// alone, as it does on a row of Overlapping, which lists elements one
+    /// by one — as on the Android twin; any other row's tap takes its group,
+    /// as on the canvas.
     private func elementRow(_ el: Element, member: Bool) -> some View {
         let name = layerName(el)
         let selected = store.selection.contains(el.id)
+        let alone = member || filter == .overlapping
         return HStack(spacing: 12) {
             HStack(spacing: 12) {
                 layerThumb(el)
@@ -1190,7 +1193,7 @@ struct LayersSheet: View {
             .accessibilityValue([el.isHidden ? "Hidden" : nil, el.locked ? "Locked" : nil]
                 .compactMap { $0 }.joined(separator: ", "))
             .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
-            .accessibilityAction { pick(el, member: member) }
+            .accessibilityAction { pick(el, alone: alone) }
             .accessibilityAction(named: "Rename…") { startRename(el) }
             Spacer(minLength: 4)
             if selected {
@@ -1201,7 +1204,7 @@ struct LayersSheet: View {
             lockButton([el.id], locked: el.locked, name: name)
         }
         .contentShape(Rectangle())
-        .onTapGesture { pick(el, member: member) }
+        .onTapGesture { pick(el, alone: alone) }
         .contextMenu {
             Button { startRename(el) } label: { Label("Rename…", systemImage: "pencil") }
         }
@@ -1270,8 +1273,8 @@ struct LayersSheet: View {
         .accessibilityLabel(locked ? "Unlock \(name)" : "Lock \(name)")
     }
 
-    private func pick(_ el: Element, member: Bool) {
-        if member { store.selectLayer(el.id) } else { store.select(el.id) }
+    private func pick(_ el: Element, alone: Bool) {
+        if alone { store.selectLayer(el.id) } else { store.select(el.id) }
     }
 
     private func pickGroup(_ members: [Element]) {

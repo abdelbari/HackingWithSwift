@@ -513,6 +513,17 @@ enum Geometry {
         return stride(from: 0, through: length, by: spacing).map { $0 }
     }
 
+    /// The spacing the grid is drawn at, `scale` screen points to a page
+    /// unit: doubled until its lines stand at least `minGap` apart, so a
+    /// dense grid never turns the page into a tint, as on the Android twin.
+    /// It is still snapped to line by line.
+    static func drawnGridSpacing(_ spacing: Double, scale: Double, minGap: Double) -> Double {
+        guard spacing > 0, scale > 0 else { return spacing }
+        var step = spacing
+        while step * scale < minGap { step *= 2 }
+        return step
+    }
+
     /// How much a `width` × `height` picture turned by `degrees` has to grow
     /// to still cover a frame of the same size. A levelled horizon must not
     /// show the frame's corners through the picture's.

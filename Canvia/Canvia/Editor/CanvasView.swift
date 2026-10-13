@@ -684,9 +684,10 @@ struct CanvasView: View {
     }
 
     /// The snapping grid, as hairlines over the page. Drawn here and not in
-    /// PageRenderView, so it is never in an export or a thumbnail.
+    /// PageRenderView, so it is never in an export or a thumbnail. Too dense
+    /// to see at this zoom, every second or fourth line is drawn.
     private var gridOverlay: some View {
-        let spacing = store.snapping.grid
+        let spacing = Geometry.drawnGridSpacing(store.snapping.grid, scale: Double(store.zoom), minGap: 6)
         let w = store.pageWidth, h = store.pageHeight
         return Canvas { context, _ in
             var path = Path()

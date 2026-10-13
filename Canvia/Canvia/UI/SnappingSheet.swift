@@ -158,11 +158,13 @@ struct AddGuidesView: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
     @State private var replace = false
-    // Custom starts where Android's does: 3 columns, nothing more.
-    @State private var columns = 3
-    @State private var rows = 0
-    @State private var gutter = 0
-    @State private var margin = 0
+    // Custom starts where Android's does: 3 columns, nothing more. Kept as
+    // the text typed, so a number still being typed on the number pad,
+    // which has no Return, is the one Add guides lays out.
+    @State private var columns = "3"
+    @State private var rows = "0"
+    @State private var gutter = "0"
+    @State private var margin = "0"
 
     var body: some View {
         Form {
@@ -203,23 +205,46 @@ struct AddGuidesView: View {
             replaceSection
             Section {
                 Button("Add guides") {
-                    add(columns: columns, rows: rows, gutter: Double(gutter), margin: Double(margin))
+                    guard let numbers = typed else { return }
+                    add(columns: numbers.columns, rows: numbers.rows,
+                        gutter: Double(numbers.gutter), margin: Double(numbers.margin))
                 }
                 .fontWeight(.semibold)
+                // Only for numbers in range, as on the Android twin.
+                .disabled(typed == nil)
             }
         }
         .navigationTitle("Custom guides")
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    /// A number typed or stepped, kept within `range`.
-    private func field(_ label: String, value: Binding<Int>, in range: ClosedRange<Int>, unit: String?) -> some View {
-        let kept = Binding<Int>(get: { value.wrappedValue },
-                                set: { value.wrappedValue = min(max($0, range.lowerBound), range.upperBound) })
+    /// The four numbers as typed, when each is a whole number in its range;
+    /// nil while any is not.
+    private var typed: (columns: Int, rows: Int, gutter: Int, margin: Int)? {
+        guard let c = Self.number(columns, in: Guides.columnRange),
+              let r = Self.number(rows, in: Guides.rowRange),
+              let g = Self.number(gutter, in: Guides.gutterRange),
+              let m = Self.number(margin, in: Guides.marginRange) else { return nil }
+        return (c, r, g, m)
+    }
+
+    /// `text` as a whole number within `range`; nil otherwise.
+    static func number(_ text: String, in range: ClosedRange<Int>) -> Int? {
+        guard let n = Int(text), range.contains(n) else { return nil }
+        return n
+    }
+
+    /// A number typed — digits only, up to three, as on the Android twin —
+    /// or stepped within `range`.
+    private func field(_ label: String, value: Binding<String>, in range: ClosedRange<Int>, unit: String?) -> some View {
+        let digits = Binding<String>(get: { value.wrappedValue },
+                                     set: { new in value.wrappedValue = String(new.filter { $0.isASCII && $0.isNumber }.prefix(3)) })
+        let kept = Binding<Int>(get: { min(max(Int(value.wrappedValue) ?? range.lowerBound, range.lowerBound), range.upperBound) },
+                                set: { value.wrappedValue = String(min(max($0, range.lowerBound), range.upperBound)) })
         return HStack {
             Text(label)
             Spacer()
-            TextField(label, value: kept, format: .number)
+            TextField(label, text: digits)
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.trailing)
                 .frame(width: 64)
