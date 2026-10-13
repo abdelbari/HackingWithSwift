@@ -95,6 +95,35 @@ final class FontWeightsTests: XCTestCase {
         XCTAssertEqual(s.element(medium.id)?.fontWeight, 400, "off is regular")
     }
 
+    /// The rows of the Android twin's TextSelectionTest: Bold reads the
+    /// weight drawn, as the Weight row does.
+    func testBoldReadsTheWeightDrawnAsTheWeightRowDoes() {
+        func bolded(_ el: Element, _ on: Bool) -> Int? {
+            var out = el
+            TextToggle.bold.apply(on, to: &out)
+            return out.fontWeight
+        }
+        // 600 in Modern Sans is drawn at its Bold: on, and off is regular.
+        let sans = text("Sans", font: "sans", weight: 600)
+        XCTAssertTrue(TextToggle.bold.isOn(sans))
+        XCTAssertEqual(bolded(sans, true), 600)
+        XCTAssertEqual(bolded(sans, false), 400)
+        // Roboto has a Semibold: off, and on is 700.
+        let roboto = text("Roboto", font: "roboto", weight: 600)
+        XCTAssertFalse(TextToggle.bold.isOn(roboto))
+        XCTAssertEqual(bolded(roboto, true), 700)
+        // 550 in Lora is drawn at its Bold.
+        XCTAssertTrue(TextToggle.bold.isOn(text("Lora", font: "lora", weight: 550)))
+        XCTAssertFalse(TextToggle.bold.isOn(text("Lora", font: "lora", weight: 500)))
+        // One face — Anton, or a font of your own — reads the weight stored.
+        let anton = text("Anton", font: "anton", weight: 400)
+        XCTAssertFalse(TextToggle.bold.isOn(anton))
+        XCTAssertEqual(bolded(anton, true), 700)
+        XCTAssertTrue(TextToggle.bold.isOn(text("Anton", font: "anton", weight: 700)))
+        XCTAssertTrue(TextToggle.bold.isOn(text("Own", font: "custom:0123456789ab", weight: 700)))
+        XCTAssertFalse(TextToggle.bold.isOn(text("Own", font: "custom:0123456789ab", weight: 600)))
+    }
+
     func testAShapesWordsTakeTheWeightToo() {
         var shape = Element.shape("rect", w: 300, h: 120)
         shape.text = "Sale"
