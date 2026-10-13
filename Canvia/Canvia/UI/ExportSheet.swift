@@ -385,6 +385,7 @@ struct ExportSheet: View {
                          unavailable: leftOut(pdfIndices), format: "pdf") {
                 try await exportPDF()
             }
+            Toggle("Flatten PDF", isOn: $flatten)
             exportButton("SVG", subtitle: svgSubtitle,
                          icon: "scribble.variable", unavailable: leftOut(exportedIndices), format: "svg") {
                 try exportSVG()
@@ -393,7 +394,6 @@ struct ExportSheet: View {
                          working: "Making the PowerPoint", unavailable: leftOut(pdfIndices), format: "pptx") {
                 try await exportPowerPoint()
             }
-            Toggle("Flatten PDF", isOn: $flatten)
         } header: {
             Text("Format")
         } footer: {

@@ -7,14 +7,16 @@
 //   text               a text box: the family's name, the size in points
 //                      (px × 0.75), bold, italic, underline and strike runs
 //                      from its inline styles, the colours and sizes on its
-//                      words, its alignment and its rotation
-//   squares, circles   preset shapes (prstGeom rect / ellipse) with their
-//                      fill — solid, none or a linear gradient — and border
+//                      words, capitals, its alignment and its rotation
+//   squares, circles   preset shapes (prstGeom rect / roundRect / ellipse)
+//                      with their fill — solid, none or a linear gradient —
+//                      and border
 //   lines              a preset line with its dash and arrow or dot ends
 //   everything else    a PNG picture at 2×, drawn by the very view the
 //                      canvas draws it with, placed over its box — photos,
 //                      stickers, icons, drawn and library shapes, charts,
-//                      tables, text with effects, anything with a shadow
+//                      tables, text with effects, anything with a shadow,
+//                      a flip or a blend
 //
 // A page's background is a solid fill, or a picture filling the slide; its
 // notes become a notes slide; a link a click on the element. Hidden pages
@@ -25,20 +27,29 @@
 // character (PptxExporterTests holds the shared vectors). The rules where
 // the format left a choice:
 //
-//   • lengths are EMU, px × 9525, rounded half away from zero; sizes are
-//     hundredths of a point, px × 75; angles are 60000ths of a degree,
-//     turned into 0..<360 first
+//   • lengths are EMU, px × 9525 × the deck's slideScale, rounded half away
+//     from zero; sizes are hundredths of a point, px × 75 × that scale;
+//     angles are 60000ths of a degree, turned into 0..<360 first
 //   • an optional attribute is written only when it is not the format's
-//     default (no rot="0", no algn="l", no b="0"); text boxes have no
-//     insets, as the canvas sets words to the box's edge
-//   • a run is bold at weight 700 and up, or in **bold**
-//   • shapes are numbered from 2 (1 is the slide's tree) in drawing order,
-//     a picture background first, and named by the element's id
+//     default (no rot="0", no algn="l", no anchor="t", no b="0"); text
+//     boxes have no insets and no autofit, fitted type going out at the
+//     size the canvas draws it
+//   • a run is bold at weight 700 and up, or in **bold**; words that come
+//     out the same are one run
+//   • shapes are numbered from 2 (1 is the slide's tree) in drawing order
+//     and named by the element's id, its alt text, trimmed, as the
+//     description
+//   • a page's background is the slide's p:bg: its colour, or a gradient or
+//     photo as a picture stretched over it — white when it cannot be drawn
 //   • a slide's relationships run rId1 for its layout, then what its XML
-//     needs in reading order — a link before its picture — and its notes
-//     slide last
-//   • pictures are ppt/media/imageN.png, numbered across the whole deck;
-//     a background picture is imageN.jpeg
+//     needs in reading order — the background picture, then each
+//     element's link before its picture — and its notes slide last
+//   • pictures are ppt/media/imageN.png, a background imageN.jpeg,
+//     numbered across the deck as they are drawn; one that cannot be drawn
+//     is left out of its slide and takes no number
+//   • the file holds the fixed parts first, then for each slide its
+//     pictures, the slide and its relationships, then its notes slide and
+//     theirs
 //   • a slide's transition is the way the slide before it gives way
 //     (fade, push or cut; any other kind none), and the first has none
 
@@ -59,6 +70,10 @@ enum PptxExporter {
 
     /// English Metric Units in a page pixel: 914400 an inch at 96 px an inch.
     static let emuPerPixel = 9525.0
+
+    /// The sides of a slide PowerPoint opens, in page px: 1 to 56 inches.
+    static let minSlidePixels = 96.0
+    static let maxSlidePixels = 5376.0
 
     /// A length on the page in EMU, rounded half away from zero.
     static func emu(_ px: Double) -> Int {
@@ -81,42 +96,67 @@ enum PptxExporter {
         return a >= 21_600_000 ? 0 : a
     }
 
-    /// A slide's side in EMU, kept within what PowerPoint opens: one inch
-    /// to 56 inches (96 to 5376 px).
-    static func slideEdge(_ px: Double) -> Int {
-        min(max(emu(px), 914_400), 51_206_400)
+    /// What every length on the deck is multiplied by: 1, unless a side of
+    /// the design falls outside the 96 to 5376 px PowerPoint opens — then
+    /// the one factor that brings the shorter side up to 96 or, winning
+    /// over it, the longer down to 5376, so the whole design stays on the
+    /// slide in its proportions.
+    static func slideScale(width: Double, height: Double) -> Double {
+        let short = min(width, height)
+        let long = max(width, height)
+        guard short > 0, long.isFinite else { return 1 }
+        var scale = short < minSlidePixels ? minSlidePixels / short : 1
+        if long * scale > maxSlidePixels { scale = maxSlidePixels / long }
+        return scale
+    }
+
+    /// A slide's side in EMU at `scale`, kept within what PowerPoint opens
+    /// — which only a design far longer than it is wide still needs.
+    static func slideEdge(_ px: Double, scale: Double) -> Int {
+        min(max(emu(px * scale), 914_400), 51_206_400)
     }
 
     // MARK: what each element becomes
 
     enum Form: Equatable {
         case text
-        /// A preset shape: "rect" or "ellipse".
+        /// A preset shape: "rect", "roundRect" or "ellipse".
         case shape(String)
         case line
         case picture
     }
 
+    /// What `el` becomes, by the rule the Android twin's kindOf follows.
     static func form(of el: Element) -> Form {
-        // A table's cells and a chart's parts come through as pictures,
-        // and so does anything casting a shadow, which no preset carries.
-        if el.table != nil || el.chart != nil || el.shadow != nil { return .picture }
+        // A table's cells and a chart and its parts come through as
+        // pictures, and so does anything casting a shadow or blended with
+        // what is under it, which no preset carries.
+        if el.table != nil || el.chart != nil || el.chartPart != nil || el.shadow != nil
+            || BlendModes.mode(el.blendMode).id != "normal" {
+            return .picture
+        }
+        let flipped = el.flipH || el.flipV
         switch el.type {
         case .text:
-            let effect = el.effect?.type ?? "none"
-            if el.textFill != nil || effect != "none" || TextOutliner.followsAPath(el)
-                || el.dropCap == true || el.flipH || el.flipV {
+            let gradient = el.textFill?.kind == "gradient" && !(el.textFill?.stops ?? []).isEmpty
+            if flipped || gradient || TextEffect.from(el.effect) != .none || TextOutliner.followsAPath(el)
+                || FontLibrary.dropCapLayout(for: el) != nil {
                 return .picture
             }
             return .text
         case .shape:
-            guard el.pathData?.isEmpty ?? true, el.iconId == nil, ShapeText.words(of: el) == nil,
-                  presetFill(el.fill) else { return .picture }
-            let id = ContentLibrary.shape(for: el).id
-            if id == "circle" { return .shape("ellipse") }
-            let rounded = (el.radius ?? 0) > 0 || (el.corners ?? []).contains { $0 > 0 }
-            return id == "rect" && !rounded ? .shape("rect") : .picture
+            guard !flipped, el.pathData?.isEmpty ?? true, el.iconId == nil, ShapeText.words(of: el) == nil,
+                  !(el.corners ?? []).contains(where: { $0 > 0 }), presetFill(el.fill) else { return .picture }
+            switch ContentLibrary.shape(for: el).id {
+            case "circle":
+                return .shape("ellipse")
+            case "rect":
+                return (el.radius ?? 0) > 0 && min(el.w, el.h) > 0 ? .shape("roundRect") : .shape("rect")
+            default:
+                return .picture
+            }
         case .line:
+            // A flip turns its ends round (lineXML).
             return .line
         case .image, .sticker:
             return .picture
@@ -137,12 +177,16 @@ enum PptxExporter {
 
     /// How far past its box a picture reaches, in page px: the SVG's
     /// overflow (a border, a leaning outline, a photo's edge), a shadow's
-    /// blur and offset, half the type size round text with an effect, and
-    /// a line's arrowheads.
+    /// blur and a half and its longer offset (the SVG shadow's room), a
+    /// text effect's reach at the size the text is drawn, and a line's
+    /// arrowhead, which covers a dot and half the line.
     static func margin(_ el: Element) -> Double {
         var reach = SVGExporter.overflow(el)
-        if let shadow = el.shadow { reach += shadow.blur + max(abs(shadow.offsetX), abs(shadow.offsetY)) }
-        if el.type == .text, let effect = el.effect?.type, effect != "none" { reach += (el.fontSize ?? 42) / 2 }
+        if let shadow = el.shadow { reach += shadow.blur * 1.5 + max(abs(shadow.offsetX), abs(shadow.offsetY)) }
+        if el.type == .text, TextEffect.from(el.effect) != .none {
+            let size = FontLibrary.effectiveFontSize(for: el)
+            reach += TextEffect.resolve(el.effect, fontSize: size, ink: el.color ?? "#1f2430").reach
+        }
         if el.type == .line { reach += SVGExporter.arrowSize(max(el.thickness ?? 4, 0.5)) }
         return reach
     }
@@ -189,8 +233,47 @@ enum PptxExporter {
         }
     }
 
-    /// Every slide of the pages at `indices`, in order, worked out before a
-    /// picture is drawn.
+    /// Whether a page has notes to carry: any that are not only spaces.
+    static func hasNotes(_ page: Page) -> Bool {
+        !(page.notes ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// What a page draws, bottom up — the master's elements behind its
+    /// own, the hidden ones left out — with its page numbers filled in.
+    static func drawnElements(design: Design, page: Page) -> [Element] {
+        let pageNumber = (design.pages.firstIndex { $0.id == page.id } ?? 0) + 1
+        return design.drawnElements(on: page).map { el in
+            var resolved = el
+            if ShapeText.carriesWords(el) {
+                resolved.fillPageTokens(number: pageNumber, count: design.pages.count)
+            }
+            return resolved
+        }
+    }
+
+    /// A picture's file name, by its number in the deck: a JPEG for the
+    /// page's background, a PNG for an element.
+    static func fileName(_ number: Int, for source: MediaPart.Source) -> String {
+        source == .background ? "image\(number).jpeg" : "image\(number).png"
+    }
+
+    /// The pictures `page` needs drawn, in the order its slide meets them —
+    /// a gradient or photo behind it first, then each element that comes
+    /// through as a picture — named from `firstImage` as if each one draws.
+    static func media(design: Design, page: Page, firstImage: Int) -> [MediaPart] {
+        var parts: [MediaPart] = []
+        func add(_ source: MediaPart.Source) {
+            parts.append(MediaPart(name: fileName(firstImage + parts.count, for: source), source: source))
+        }
+        if case .color(_) = page.background {} else { add(.background) }
+        for el in drawnElements(design: design, page: page) where form(of: el) == .picture && el.w > 0 && el.h > 0 {
+            add(.element(el))
+        }
+        return parts
+    }
+
+    /// Every slide of the pages at `indices`, in order, as it is when every
+    /// picture draws.
     static func deck(design: Design, indices: [Int]) -> [SlideParts] {
         var slides: [SlideParts] = []
         var image = 1
@@ -204,72 +287,80 @@ enum PptxExporter {
         return slides
     }
 
-    /// Slide `number` of the deck, showing `page`, after `previous`; its
-    /// pictures numbered from `firstImage`.
+    /// Slide `number` of the deck, showing `page`, after `previous`, as it
+    /// is when every picture draws; its pictures numbered from `firstImage`.
     static func slide(design: Design, page: Page, number: Int, previous: Page?, firstImage: Int) -> SlideParts {
+        slide(design: design, page: page, number: number, previous: previous,
+              drawn: media(design: design, page: page, firstImage: firstImage))
+    }
+
+    /// Slide `number` of the deck, showing `page`, after `previous`, with
+    /// the pictures `drawn` — those that were: an element whose picture is
+    /// not among them is left out, and a background that is not is white.
+    static func slide(design: Design, page: Page, number: Int, previous: Page?, drawn: [MediaPart]) -> SlideParts {
+        let scale = slideScale(width: design.width, height: design.height)
         var rels = Relationships()
         rels.add("slideLayout", "../slideLayouts/slideLayout1.xml")
-        var media: [MediaPart] = []
-        var shapes: [String] = []
-        var nextId = 2
-        var background = ""
-
-        if case .color(let hex) = page.background {
-            background = "<p:bg><p:bgPr><a:solidFill>\(color(hex))</a:solidFill><a:effectLst/></p:bgPr></p:bg>"
-        } else {
-            // A gradient or a photo behind the page: the pixels the canvas
-            // draws, filling the slide.
-            let size = design.size(for: page)
-            let name = "image\(firstImage + media.count).jpeg"
-            let embed = rels.add("image", "../media/\(name)")
-            media.append(MediaPart(name: name, source: .background))
-            let box = xfrm(x: 0, y: 0, w: size.width, h: size.height, rotation: 0)
-            shapes.append(pictureXML(id: nextId, name: "Background", alt: nil, link: nil, embed: embed, box: box))
-            nextId += 1
+        var remaining = drawn
+        /// The drawn picture of `source`, taken off the list so a second
+        /// element just like it finds its own.
+        func take(_ source: MediaPart.Source) -> MediaPart? {
+            guard let at = remaining.firstIndex(where: { $0.source == source }) else { return nil }
+            return remaining.remove(at: at)
         }
 
-        let pageNumber = (design.pages.firstIndex { $0.id == page.id } ?? 0) + 1
-        for el in design.drawnElements(on: page) {
-            var resolved = el
-            if ShapeText.carriesWords(el) {
-                resolved.fillPageTokens(number: pageNumber, count: design.pages.count)
+        var fill = "<a:solidFill>\(color("#ffffff"))</a:solidFill>"
+        if case .color(let hex) = page.background {
+            fill = "<a:solidFill>\(color(hex))</a:solidFill>"
+        } else if let picture = take(.background) {
+            // A gradient or a photo behind the page: the pixels the canvas
+            // draws, stretched over the slide.
+            let embed = rels.add("image", "../media/\(picture.name)")
+            fill = "<a:blipFill><a:blip r:embed=\"\(embed)\"/><a:stretch><a:fillRect/></a:stretch></a:blipFill>"
+        }
+        let background = "<p:bg><p:bgPr>\(fill)<a:effectLst/></p:bgPr></p:bg>"
+
+        var shapes: [String] = []
+        var nextId = 2
+        for el in drawnElements(design: design, page: page) {
+            let kind = form(of: el)
+            var picture: MediaPart?
+            if kind == .picture {
+                picture = take(.element(el))
+                if picture == nil { continue }
             }
             let id = nextId
             nextId += 1
             var link: String?
-            if let url = Links.followable(resolved.link) {
+            if let url = Links.followable(el.link) {
                 link = rels.add("hyperlink", url, external: true)
             }
-            switch form(of: resolved) {
+            switch kind {
             case .text:
-                shapes.append(textXML(resolved, id: id, link: link, design: design))
+                shapes.append(textXML(el, id: id, link: link, design: design, scale: scale))
             case .shape(let preset):
-                shapes.append(shapeXML(resolved, preset: preset, id: id, link: link))
+                shapes.append(shapeXML(el, preset: preset, id: id, link: link, scale: scale))
             case .line:
-                shapes.append(lineXML(resolved, id: id, link: link))
+                shapes.append(lineXML(el, id: id, link: link, scale: scale))
             case .picture:
-                let name = "image\(firstImage + media.count).png"
-                let embed = rels.add("image", "../media/\(name)")
-                media.append(MediaPart(name: name, source: .element(resolved)))
-                let pad = margin(resolved)
-                let box = xfrm(x: resolved.x - pad, y: resolved.y - pad, w: resolved.w + 2 * pad,
-                               h: resolved.h + 2 * pad, rotation: resolved.rotation)
-                shapes.append(pictureXML(id: id, name: resolved.id, alt: resolved.altText, link: link,
-                                         embed: embed, box: box))
+                let embed = rels.add("image", "../media/\(picture?.name ?? "")")
+                let pad = margin(el)
+                let box = xfrm(x: el.x - pad, y: el.y - pad, w: el.w + 2 * pad, h: el.h + 2 * pad,
+                               rotation: el.rotation, scale: scale)
+                shapes.append(pictureXML(el, id: id, link: link, embed: embed, box: box))
             }
         }
 
         var notes: String?
-        let said = (page.notes ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        if !said.isEmpty {
+        if hasNotes(page) {
             rels.add("notesSlide", "../notesSlides/notesSlide\(number).xml")
-            notes = notesXML(said)
+            notes = notesXML(page.notes ?? "")
         }
 
         let tree = "<p:spTree>\(groupHeader)\(shapes.joined())</p:spTree>"
         let xml = [declaration, "<p:sld \(namespaces)>", "<p:cSld>", background, tree, "</p:cSld>",
                    masterColours, transitionXML(after: previous, in: design), "</p:sld>"].joined()
-        return SlideParts(xml: xml, rels: rels.xml, media: media, notes: notes)
+        return SlideParts(xml: xml, rels: rels.xml, media: drawn, notes: notes)
     }
 
     /// How the slide comes in: the way the page before it gives way.
@@ -285,16 +376,18 @@ enum PptxExporter {
 
     // MARK: elements
 
-    static func xfrm(x: Double, y: Double, w: Double, h: Double, rotation: Double) -> String {
+    /// The box's place, size and turn about its centre, its lengths times
+    /// `scale`.
+    static func xfrm(x: Double, y: Double, w: Double, h: Double, rotation: Double, scale: Double) -> String {
         let rot = angle(rotation)
         let turned = rot == 0 ? "" : " rot=\"\(rot)\""
-        let offset = "<a:off x=\"\(emu(x))\" y=\"\(emu(y))\"/>"
-        let extent = "<a:ext cx=\"\(max(0, emu(w)))\" cy=\"\(max(0, emu(h)))\"/>"
+        let offset = "<a:off x=\"\(emu(x * scale))\" y=\"\(emu(y * scale))\"/>"
+        let extent = "<a:ext cx=\"\(max(0, emu(w * scale)))\" cy=\"\(max(0, emu(h * scale)))\"/>"
         return "<a:xfrm\(turned)>\(offset)\(extent)</a:xfrm>"
     }
 
-    private static func elementBox(_ el: Element) -> String {
-        xfrm(x: el.x, y: el.y, w: el.w, h: el.h, rotation: el.rotation)
+    private static func elementBox(_ el: Element, scale: Double) -> String {
+        xfrm(x: el.x, y: el.y, w: el.w, h: el.h, rotation: el.rotation, scale: scale)
     }
 
     private static func geometry(_ preset: String) -> String {
@@ -303,33 +396,43 @@ enum PptxExporter {
 
     /// The shape's own properties: its number, its name (the element's
     /// id), its alt text and its link.
-    private static func cNvPr(id: Int, name: String, alt: String?, link: String?) -> String {
-        var attributes = "id=\"\(id)\" name=\"\(SVGExporter.escape(name))\""
-        if let alt, !alt.isEmpty { attributes += " descr=\"\(SVGExporter.escape(alt))\"" }
+    private static func cNvPr(_ el: Element, id: Int, link: String?) -> String {
+        var attributes = "id=\"\(id)\" name=\"\(SVGExporter.escape(el.id))\""
+        if let alt = el.altText?.trimmingCharacters(in: .whitespacesAndNewlines), !alt.isEmpty {
+            attributes += " descr=\"\(SVGExporter.escape(alt))\""
+        }
         guard let link else { return "<p:cNvPr \(attributes)/>" }
         return "<p:cNvPr \(attributes)><a:hlinkClick r:id=\"\(link)\"/></p:cNvPr>"
     }
 
-    private static func pictureXML(id: Int, name: String, alt: String?, link: String?,
-                                   embed: String, box: String) -> String {
-        let properties = "<p:nvPicPr>\(cNvPr(id: id, name: name, alt: alt, link: link))<p:cNvPicPr/><p:nvPr/></p:nvPicPr>"
+    private static func pictureXML(_ el: Element, id: Int, link: String?, embed: String, box: String) -> String {
+        let properties = "<p:nvPicPr>\(cNvPr(el, id: id, link: link))<p:cNvPicPr/><p:nvPr/></p:nvPicPr>"
         let fill = "<p:blipFill><a:blip r:embed=\"\(embed)\"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>"
         return "<p:pic>\(properties)\(fill)<p:spPr>\(box)\(geometry("rect"))</p:spPr></p:pic>"
     }
 
-    private static func shapeXML(_ el: Element, preset: String, id: Int, link: String?) -> String {
+    /// A rectangle, rounded or not, or an oval, filled and bordered as the
+    /// element is. A rounded one's corner is a share of its shorter side,
+    /// clamped to half of it as the canvas clamps it.
+    private static func shapeXML(_ el: Element, preset: String, id: Int, link: String?, scale: Double) -> String {
+        var outline = geometry(preset)
+        if preset == "roundRect" {
+            let short = min(el.w, el.h)
+            let adj = Int((min(el.radius ?? 0, short / 2) / short * 100_000).rounded())
+            outline = "<a:prstGeom prst=\"roundRect\"><a:avLst><a:gd name=\"adj\" fmla=\"val \(adj)\"/></a:avLst></a:prstGeom>"
+        }
         var border = ""
         if let stroke = el.stroke, let width = el.strokeWidth, width > 0 {
-            border = "<a:ln w=\"\(emu(width))\"><a:solidFill>\(color(stroke, opacity: el.opacity))</a:solidFill></a:ln>"
+            border = "<a:ln w=\"\(emu(width * scale))\"><a:solidFill>\(color(stroke, opacity: el.opacity))</a:solidFill></a:ln>"
         }
-        let properties = "<p:nvSpPr>\(cNvPr(id: id, name: el.id, alt: el.altText, link: link))<p:cNvSpPr/><p:nvPr/></p:nvSpPr>"
-        let look = [elementBox(el), geometry(preset), fillXML(el.fill, opacity: el.opacity), border].joined()
+        let properties = "<p:nvSpPr>\(cNvPr(el, id: id, link: link))<p:cNvSpPr/><p:nvPr/></p:nvSpPr>"
+        let look = [elementBox(el, scale: scale), outline, fillXML(el.fill, opacity: el.opacity), border].joined()
         return "<p:sp>\(properties)<p:spPr>\(look)</p:spPr></p:sp>"
     }
 
     /// A preset line across the middle of the element's box, with its
     /// ends — swapped when the line is flipped across.
-    private static func lineXML(_ el: Element, id: Int, link: String?) -> String {
+    private static func lineXML(_ el: Element, id: Int, link: String?, scale: Double) -> String {
         let thickness = max(el.thickness ?? 4, 0.5)
         var ends = [el.startCap, el.endCap]
         if el.flipH { ends.reverse() }
@@ -340,9 +443,10 @@ enum PptxExporter {
         default: dash = ""
         }
         let paint = "<a:solidFill>\(color(el.color ?? "#1f2430", opacity: el.opacity))</a:solidFill>"
-        let stroke = "<a:ln w=\"\(emu(thickness))\" cap=\"rnd\">\(paint)\(dash)\(lineEnd("headEnd", ends[0]))\(lineEnd("tailEnd", ends[1]))</a:ln>"
-        let box = xfrm(x: el.x, y: el.y + el.h / 2, w: el.w, h: 0, rotation: el.rotation)
-        let properties = "<p:nvSpPr>\(cNvPr(id: id, name: el.id, alt: el.altText, link: link))<p:cNvSpPr/><p:nvPr/></p:nvSpPr>"
+        let capped = "\(lineEnd("headEnd", ends[0]))\(lineEnd("tailEnd", ends[1]))"
+        let stroke = "<a:ln w=\"\(emu(thickness * scale))\" cap=\"rnd\">\(paint)\(dash)\(capped)</a:ln>"
+        let box = xfrm(x: el.x, y: el.y + el.h / 2, w: el.w, h: 0, rotation: el.rotation, scale: scale)
+        let properties = "<p:nvSpPr>\(cNvPr(el, id: id, link: link))<p:cNvSpPr/><p:nvPr/></p:nvSpPr>"
         return "<p:sp>\(properties)<p:spPr>\(box)\(geometry("line"))\(stroke)</p:spPr></p:sp>"
     }
 
@@ -359,6 +463,8 @@ enum PptxExporter {
     /// A stretch of one paragraph in one style.
     struct TextRun: Equatable {
         var text: String
+        /// Its style: the box's own (bold at weight 700 and up) and its
+        /// words' together.
         var style = RichText.Style()
         /// A colour of its own ("#rrggbb"); nil is the box's.
         var color: String?
@@ -366,14 +472,17 @@ enum PptxExporter {
         var scale: Double?
     }
 
-    /// The words as drawn — page numbers filled in, a list's markers in
-    /// front, the inline style marks read — as paragraphs of runs: cut at
-    /// every line break and every change of style, colour or size, and
-    /// joined again where neighbours turn out the same.
+    /// The words as typed — page numbers filled in, a list's markers in
+    /// front, the inline style marks read, before any capitals — as
+    /// paragraphs of runs: cut at every line break and every change of
+    /// style, colour or size, and joined again where neighbours turn out
+    /// the same.
     static func paragraphs(of el: Element) -> [[TextRun]] {
         let marked = FontLibrary.markedDisplayText(for: el, pageNumber: nil, pageCount: nil)
         let parsed = RichText.parse(marked)
         let spans = FontLibrary.displaySpans(for: el, marked: marked)
+        let box = RichText.Style(bold: (el.fontWeight ?? 400) >= 700, italic: el.italic == true,
+                                 underline: el.underline == true)
         let ns = parsed.plain as NSString
         let length = ns.length
         var cuts: Set<Int> = [0, length]
@@ -397,7 +506,9 @@ enum PptxExporter {
                 paragraphs.append([])
                 continue
             }
-            let style = parsed.runs.first { NSLocationInRange(from, $0.range) }?.style ?? RichText.Style()
+            let own = parsed.runs.first { NSLocationInRange(from, $0.range) }?.style ?? RichText.Style()
+            let style = RichText.Style(bold: box.bold || own.bold, italic: box.italic || own.italic,
+                                       underline: box.underline || own.underline, strike: own.strike)
             let span = spans.first { $0.start <= from && from < $0.end }
             let run = TextRun(text: piece, style: style, color: span?.color, scale: span?.scale)
             let last = paragraphs.count - 1
@@ -419,7 +530,8 @@ enum PptxExporter {
         return FontLibrary.of(key).name
     }
 
-    private static func textXML(_ el: Element, id: Int, link: String?, design: Design) -> String {
+    private static func textXML(_ el: Element, id: Int, link: String?, design: Design, scale: Double) -> String {
+        // The size the canvas draws it at: fitted type at the size that fits.
         let size = FontLibrary.effectiveFontSize(for: el)
         let face = typeface(el.fontFamily, in: design)
         var align = ""
@@ -437,28 +549,27 @@ enum PptxExporter {
         }
         let body = paragraphs(of: el).map { runs -> String in
             let content = runs.isEmpty
-                ? "<a:endParaRPr sz=\"\(fontSize(size))\"/>"
-                : runs.map { runXML($0, el: el, size: size, face: face) }.joined()
+                ? "<a:endParaRPr sz=\"\(fontSize(size * scale))\"/>"
+                : runs.map { runXML($0, el: el, size: size, face: face, scale: scale) }.joined()
             return "<a:p>\(align)\(content)</a:p>"
         }.joined()
-        let properties = "<p:nvSpPr>\(cNvPr(id: id, name: el.id, alt: el.altText, link: link))<p:cNvSpPr txBox=\"1\"/><p:nvPr/></p:nvSpPr>"
-        let look = "<p:spPr>\(elementBox(el))\(geometry("rect"))<a:noFill/></p:spPr>"
+        let properties = "<p:nvSpPr>\(cNvPr(el, id: id, link: link))<p:cNvSpPr txBox=\"1\"/><p:nvPr/></p:nvSpPr>"
+        let look = "<p:spPr>\(elementBox(el, scale: scale))\(geometry("rect"))<a:noFill/></p:spPr>"
         let frame = "<a:bodyPr lIns=\"0\" tIns=\"0\" rIns=\"0\" bIns=\"0\"\(anchor)/><a:lstStyle/>"
         return "<p:sp>\(properties)\(look)<p:txBody>\(frame)\(body)</p:txBody></p:sp>"
     }
 
-    /// One run: bold where the words or the box are (weight 700 and up),
-    /// italic, underlined or struck likewise, in capitals with the box, its
-    /// letter spacing as spc (px × 75), its colour faded by the element's
-    /// opacity.
-    private static func runXML(_ run: TextRun, el: Element, size: Double, face: String) -> String {
-        var attributes = " sz=\"\(fontSize(size * (run.scale ?? 1)))\""
-        if run.style.bold || (el.fontWeight ?? 400) >= 700 { attributes += " b=\"1\"" }
-        if run.style.italic || el.italic == true { attributes += " i=\"1\"" }
-        if run.style.underline || el.underline == true { attributes += " u=\"sng\"" }
+    /// One run: bold, italic, underlined or struck as its style is, in
+    /// capitals with the box, its letter spacing as spc (px × 75), its
+    /// colour — its own or the box's — faded by the element's opacity.
+    private static func runXML(_ run: TextRun, el: Element, size: Double, face: String, scale: Double) -> String {
+        var attributes = " sz=\"\(fontSize(size * (run.scale ?? 1) * scale))\""
+        if run.style.bold { attributes += " b=\"1\"" }
+        if run.style.italic { attributes += " i=\"1\"" }
+        if run.style.underline { attributes += " u=\"sng\"" }
         if run.style.strike { attributes += " strike=\"sngStrike\"" }
         if el.uppercase == true { attributes += " cap=\"all\"" }
-        let tracking = el.letterSpacing ?? 0
+        let tracking = (el.letterSpacing ?? 0) * scale
         let spacing = tracking.isFinite ? Int((min(max(tracking, -1000), 1000) * 75).rounded()) : 0
         if spacing != 0 { attributes += " spc=\"\(spacing)\"" }
         let paint = "<a:solidFill>\(color(run.color ?? el.color ?? "#1f2430", opacity: el.opacity))</a:solidFill>"
@@ -490,9 +601,9 @@ enum PptxExporter {
     }
 
     /// A preset shape's fill: none, a colour (the library's violet when it
-    /// has no fill), or a linear gradient along the CSS angle the model
-    /// stores — 0° up — which DrawingML measures from the right, so 90°
-    /// less.
+    /// has none, as the canvas fills it), or a linear gradient along the
+    /// CSS angle the model stores — 0° up — which DrawingML measures from
+    /// the right, so 90° less.
     static func fillXML(_ fill: Paint?, opacity: Double) -> String {
         let paint = fill ?? .solid("#8b5cf6")
         switch paint.kind {
@@ -505,19 +616,19 @@ enum PptxExporter {
             }.joined()
             return "<a:gradFill><a:gsLst>\(stops)</a:gsLst><a:lin ang=\"\(angle((paint.angle ?? 0) - 90))\"/></a:gradFill>"
         default:
-            return "<a:solidFill>\(color(paint.color ?? paint.primaryColor, opacity: opacity))</a:solidFill>"
+            return "<a:solidFill>\(color(paint.color ?? "#8b5cf6", opacity: opacity))</a:solidFill>"
         }
     }
 
     // MARK: notes
 
-    /// A notes slide, a paragraph a line, in the notes master's body.
+    /// A notes slide of the notes as they were typed, a paragraph a line,
+    /// in the notes master's body.
     static func notesXML(_ text: String) -> String {
         let lines = text.components(separatedBy: "\n").map { line -> String in
             line.isEmpty ? "<a:p/>" : "<a:p><a:r><a:t>\(SVGExporter.escape(line))</a:t></a:r></a:p>"
         }.joined()
-        let placeholder = "<p:nvSpPr><p:cNvPr id=\"2\" name=\"Notes\"/><p:cNvSpPr><a:spLocks noGrp=\"1\"/></p:cNvSpPr><p:nvPr><p:ph type=\"body\" idx=\"1\"/></p:nvPr></p:nvSpPr>"
-        let body = "<p:sp>\(placeholder)<p:spPr/><p:txBody><a:bodyPr/><a:lstStyle/>\(lines)</p:txBody></p:sp>"
+        let body = "<p:sp>\(notesPlaceholder)<p:spPr/><p:txBody><a:bodyPr/><a:lstStyle/>\(lines)</p:txBody></p:sp>"
         return [declaration, "<p:notes \(namespaces)>", "<p:cSld><p:spTree>", groupHeader, body,
                 "</p:spTree></p:cSld>", masterColours, "</p:notes>"].joined()
     }
@@ -539,16 +650,17 @@ enum PptxExporter {
 
     /// The parts every deck has, in the order the file holds them, before
     /// its slides: the content types first, as readers expect, then the
-    /// presentation, its master, layout and theme — and the notes master,
-    /// with a theme of its own, when a slide has notes.
-    static func packageParts(design: Design, slides: [SlideParts]) -> [Part] {
-        let notes = slides.contains { $0.notes != nil }
+    /// presentation and its properties, theme, master and layout — and the
+    /// notes master, with a theme of its own, when a slide has notes.
+    /// `noted` says, slide by slide, which have notes.
+    static func packageParts(design: Design, noted: [Bool]) -> [Part] {
+        let notes = noted.contains(true)
+        let presentation = presentationXML(width: design.width, height: design.height, slides: noted.count, notes: notes)
         var parts = [
-            Part(name: "[Content_Types].xml", xml: contentTypes(slides: slides)),
+            Part(name: "[Content_Types].xml", xml: contentTypes(noted: noted)),
             Part(name: "_rels/.rels", xml: rootRels),
-            Part(name: "ppt/presentation.xml",
-                 xml: presentationXML(width: design.width, height: design.height, slides: slides.count, notes: notes)),
-            Part(name: "ppt/_rels/presentation.xml.rels", xml: presentationRels(slides: slides.count, notes: notes)),
+            Part(name: "ppt/presentation.xml", xml: presentation),
+            Part(name: "ppt/_rels/presentation.xml.rels", xml: presentationRels(slides: noted.count, notes: notes)),
             Part(name: "ppt/presProps.xml", xml: declaration + "<p:presentationPr \(namespaces)/>"),
             Part(name: "ppt/viewProps.xml", xml: declaration + "<p:viewPr \(namespaces)/>"),
             Part(name: "ppt/tableStyles.xml", xml: tableStyles),
@@ -566,26 +678,31 @@ enum PptxExporter {
         return parts
     }
 
-    /// Every entry's name in the order the file holds them: the package's
-    /// parts, then each slide with its relationships, its notes slide and
-    /// its pictures.
-    static func entryNames(design: Design, slides: [SlideParts]) -> [String] {
-        var names = packageParts(design: design, slides: slides).map(\.name)
-        for (n, slide) in slides.enumerated() {
-            names += slideEntryNames(number: n + 1, slide: slide)
+    /// Every entry's name in the order the file holds them when every
+    /// picture draws: the package's parts, then each slide's pictures, the
+    /// slide with its relationships, and its notes slide.
+    static func entryNames(design: Design, indices: [Int]) -> [String] {
+        let pages = indices.map { design.pages[$0] }
+        var names = packageParts(design: design, noted: pages.map(hasNotes)).map(\.name)
+        var image = 1
+        for (n, page) in pages.enumerated() {
+            let pictures = media(design: design, page: page, firstImage: image)
+            image += pictures.count
+            names += pictures.map { "ppt/media/\($0.name)" }
+            names += slideEntryNames(number: n + 1, notes: hasNotes(page))
         }
         return names
     }
 
-    static func slideEntryNames(number: Int, slide: SlideParts) -> [String] {
-        var names = ["ppt/slides/slide\(number).xml", "ppt/slides/_rels/slide\(number).xml.rels"]
-        if slide.notes != nil {
-            names += ["ppt/notesSlides/notesSlide\(number).xml", "ppt/notesSlides/_rels/notesSlide\(number).xml.rels"]
-        }
-        return names + slide.media.map { "ppt/media/\($0.name)" }
+    static func slideEntryNames(number: Int, notes: Bool) -> [String] {
+        let names = ["ppt/slides/slide\(number).xml", "ppt/slides/_rels/slide\(number).xml.rels"]
+        guard notes else { return names }
+        return names + ["ppt/notesSlides/notesSlide\(number).xml", "ppt/notesSlides/_rels/notesSlide\(number).xml.rels"]
     }
 
-    static func contentTypes(slides: [SlideParts]) -> String {
+    /// The parts' types: the presentation's own parts, the notes master's
+    /// when there are notes, then each slide followed by its notes slide.
+    static func contentTypes(noted: [Bool]) -> String {
         let main = "application/vnd.openxmlformats-officedocument.presentationml"
         func part(_ name: String, _ type: String) -> String {
             "<Override PartName=\"/\(name)\" ContentType=\"\(type)\"/>"
@@ -603,13 +720,13 @@ enum PptxExporter {
             part("ppt/slideMasters/slideMaster1.xml", "\(main).slideMaster+xml"),
             part("ppt/slideLayouts/slideLayout1.xml", "\(main).slideLayout+xml"),
         ]
-        if slides.contains(where: { $0.notes != nil }) {
+        if noted.contains(true) {
             entries.append(part("ppt/notesMasters/notesMaster1.xml", "\(main).notesMaster+xml"))
             entries.append(part("ppt/theme/theme2.xml", "application/vnd.openxmlformats-officedocument.theme+xml"))
         }
-        for (n, slide) in slides.enumerated() {
+        for (n, notes) in noted.enumerated() {
             entries.append(part("ppt/slides/slide\(n + 1).xml", "\(main).slide+xml"))
-            if slide.notes != nil {
+            if notes {
                 entries.append(part("ppt/notesSlides/notesSlide\(n + 1).xml", "\(main).notesSlide+xml"))
             }
         }
@@ -624,11 +741,14 @@ enum PptxExporter {
     }
 
     /// The presentation: its master as rId1, its slides rId2 onwards, then
-    /// the notes master when there is one; slides at the design's size.
+    /// the notes master when there is one; slides at the design's size,
+    /// scaled into what PowerPoint opens (slideScale).
     static func presentationXML(width: Double, height: Double, slides: Int, notes: Bool) -> String {
+        let scale = slideScale(width: width, height: height)
         let ids = (0..<slides).map { "<p:sldId id=\"\(256 + $0)\" r:id=\"rId\($0 + 2)\"/>" }.joined()
         let notesList = notes ? "<p:notesMasterIdLst><p:notesMasterId r:id=\"rId\(slides + 2)\"/></p:notesMasterIdLst>" : ""
-        let size = "<p:sldSz cx=\"\(slideEdge(width))\" cy=\"\(slideEdge(height))\"/><p:notesSz cx=\"6858000\" cy=\"9144000\"/>"
+        let edges = "cx=\"\(slideEdge(width, scale: scale))\" cy=\"\(slideEdge(height, scale: scale))\""
+        let size = "<p:sldSz \(edges)/><p:notesSz cx=\"6858000\" cy=\"9144000\"/>"
         return [declaration, "<p:presentation \(namespaces)>",
                 "<p:sldMasterIdLst><p:sldMasterId id=\"2147483648\" r:id=\"rId1\"/></p:sldMasterIdLst>",
                 notesList, "<p:sldIdLst>\(ids)</p:sldIdLst>", size, "</p:presentation>"].joined()
@@ -661,6 +781,10 @@ enum PptxExporter {
     static let groupHeader = "<p:nvGrpSpPr><p:cNvPr id=\"1\" name=\"\"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>"
 
     static let masterColours = "<p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>"
+
+    /// The body placeholder each notes slide's words go in.
+    static let notesPlaceholder = "<p:nvSpPr><p:cNvPr id=\"2\" name=\"Notes\"/><p:cNvSpPr><a:spLocks noGrp=\"1\"/></p:cNvSpPr>"
+        + "<p:nvPr><p:ph type=\"body\" idx=\"1\"/></p:nvPr></p:nvSpPr>"
 
     private static let colourMap = "<p:clrMap bg1=\"lt1\" tx1=\"dk1\" bg2=\"lt2\" tx2=\"dk2\" accent1=\"accent1\" "
         + "accent2=\"accent2\" accent3=\"accent3\" accent4=\"accent4\" accent5=\"accent5\" accent6=\"accent6\" "
@@ -698,10 +822,9 @@ enum PptxExporter {
     /// The notes pages' master: one body placeholder, where each notes
     /// slide's words go, on a portrait page.
     static var notesMaster: String {
-        let placeholder = "<p:nvSpPr><p:cNvPr id=\"2\" name=\"Notes\"/><p:cNvSpPr><a:spLocks noGrp=\"1\"/></p:cNvSpPr><p:nvPr><p:ph type=\"body\" idx=\"1\"/></p:nvPr></p:nvSpPr>"
         let box = "<p:spPr><a:xfrm><a:off x=\"685800\" y=\"4400550\"/><a:ext cx=\"5486400\" cy=\"3600450\"/></a:xfrm>"
             + "<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom></p:spPr>"
-        let body = "<p:sp>\(placeholder)\(box)<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody></p:sp>"
+        let body = "<p:sp>\(notesPlaceholder)\(box)<p:txBody><a:bodyPr/><a:lstStyle/><a:p/></p:txBody></p:sp>"
         return [declaration, "<p:notesMaster \(namespaces)>", "<p:cSld>", masterBackground,
                 "<p:spTree>", groupHeader, body, "</p:spTree></p:cSld>", colourMap,
                 "</p:notesMaster>"].joined()
@@ -742,15 +865,17 @@ enum PptxExporter {
     // MARK: writing the file
 
     /// The deck of the pages `range` picks — the PDF's page choice, hidden
-    /// pages left out of "All pages" — written to `url` a slide at a time,
-    /// with `progress` after each and a pause between them, so a long deck
-    /// can be watched and cancelled. A cancelled deck is deleted.
+    /// pages left out of "All pages" — written to `url` a slide at a time:
+    /// each slide's pictures drawn and written first, then the slide that
+    /// names those that drew. `progress` comes after each slide, with a
+    /// pause between them, so a long deck can be watched and cancelled. A
+    /// cancelled deck is deleted.
     @MainActor
     static func export(design: Design, range: DesignExporter.PageRange = .all, current: Int = 0,
                        to url: URL, progress: ((Double) -> Void)? = nil) async throws {
         let indices = range.indices(in: design, current: current)
         guard !indices.isEmpty else { throw DesignExporter.ExportError.renderFailed }
-        let slides = deck(design: design, indices: indices)
+        let pages = indices.map { design.pages[$0] }
         try? FileManager.default.removeItem(at: url)
         guard FileManager.default.createFile(atPath: url.path, contents: nil),
               let handle = try? FileHandle(forWritingTo: url) else {
@@ -760,25 +885,33 @@ enum PptxExporter {
         let zip = ZipWriter { try handle.write(contentsOf: $0) }
         var pacer = DesignExporter.Pacer()
         do {
-            for part in packageParts(design: design, slides: slides) {
+            for part in packageParts(design: design, noted: pages.map(hasNotes)) {
                 try zip.add(part.name, Data(part.xml.utf8))
             }
-            for (n, slide) in slides.enumerated() {
+            var image = 1
+            for (n, page) in pages.enumerated() {
                 try await pacer.breathe()
                 let number = n + 1
-                let page = design.pages[indices[n]]
-                try zip.add("ppt/slides/slide\(number).xml", Data(slide.xml.utf8))
-                try zip.add("ppt/slides/_rels/slide\(number).xml.rels", Data(slide.rels.utf8))
-                if let notes = slide.notes {
+                var drawn: [MediaPart] = []
+                for planned in media(design: design, page: page, firstImage: image) {
+                    try autoreleasepool {
+                        // One that will not draw is left out, and takes no number.
+                        guard let data = render(planned.source, design: design, page: page) else { return }
+                        let part = MediaPart(name: fileName(image, for: planned.source), source: planned.source)
+                        try zip.add("ppt/media/\(part.name)", data)
+                        drawn.append(part)
+                        image += 1
+                    }
+                }
+                let previous = n > 0 ? pages[n - 1] : nil
+                let parts = slide(design: design, page: page, number: number, previous: previous, drawn: drawn)
+                try zip.add("ppt/slides/slide\(number).xml", Data(parts.xml.utf8))
+                try zip.add("ppt/slides/_rels/slide\(number).xml.rels", Data(parts.rels.utf8))
+                if let notes = parts.notes {
                     try zip.add("ppt/notesSlides/notesSlide\(number).xml", Data(notes.utf8))
                     try zip.add("ppt/notesSlides/_rels/notesSlide\(number).xml.rels", Data(notesRels(slide: number).utf8))
                 }
-                for item in slide.media {
-                    try autoreleasepool {
-                        try zip.add("ppt/media/\(item.name)", render(item.source, design: design, page: page))
-                    }
-                }
-                progress?(Double(number) / Double(slides.count))
+                progress?(Double(number) / Double(pages.count))
             }
             try await pacer.finish()
             try zip.finish()
@@ -793,19 +926,19 @@ enum PptxExporter {
     /// A picture a slide names, drawn: the page's background as a JPEG, or
     /// an element upright — the slide turns it — with its flip, opacity and
     /// shadow, at twice its size within the pixel budget, as a PNG with
-    /// room round it for what reaches past its box. One that will not draw
-    /// is a clear pixel, so the deck still opens.
+    /// room round it for what reaches past its box. Nil when it will not
+    /// draw, and the slide goes without it.
     @MainActor
-    static func render(_ source: MediaPart.Source, design: Design, page: Page) -> Data {
+    static func render(_ source: MediaPart.Source, design: Design, page: Page) -> Data? {
         switch source {
         case .background:
             let size = design.size(for: page)
             let renderer = ImageRenderer(content: PageBackgroundView(design: design, page: page))
             renderer.scale = CGFloat(DesignExporter.effectiveScale(size: size, requested: pictureScale))
             renderer.isOpaque = true
-            return renderer.uiImage?.jpegData(compressionQuality: 0.9) ?? clearPixel
+            return renderer.uiImage?.jpegData(compressionQuality: 0.9)
         case .element(let el):
-            guard el.w > 0, el.h > 0 else { return clearPixel }
+            guard el.w > 0, el.h > 0 else { return nil }
             var upright = el
             upright.rotation = 0
             upright.blendMode = nil
@@ -816,15 +949,7 @@ enum PptxExporter {
             let renderer = ImageRenderer(content: ElementView(element: upright).padding(CGFloat(pad)))
             renderer.scale = CGFloat(DesignExporter.effectiveScale(size: size, requested: pictureScale))
             renderer.isOpaque = false
-            return renderer.uiImage?.pngData() ?? clearPixel
+            return renderer.uiImage?.pngData()
         }
-    }
-
-    /// One transparent pixel as a PNG.
-    static var clearPixel: Data {
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        format.opaque = false
-        return UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1), format: format).pngData { _ in }
     }
 }
