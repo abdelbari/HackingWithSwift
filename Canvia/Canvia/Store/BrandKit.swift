@@ -422,10 +422,13 @@ extension BrandKits {
 // MARK: - a kit as a file
 
 /// A kit as one file, .canvia-brand.json, to move it between phones:
-/// {"format": "canvia-brand", "version": 1, "kit": {…}, "media": {…},
-/// "videos": {…}?}. Its logos travel inlined as a design package carries
-/// its photos and clips — the same {"ext", "data"} entries, under the ids
-/// the kit's logos name — and arrive under fresh ids, in a kit of its own.
+/// {"format": "canvia-brand", "version": 1, "kit": {…}, "media": {…}}. Its
+/// photo logos travel inlined as a design package carries its photos — the
+/// same {"ext", "data"} entries, under the ids the kit's logos name — and
+/// arrive under fresh ids, in a kit of its own. A clip logo travels as its
+/// name only, and is left out where it arrives, on either phone: the
+/// Android twin's kit file carries photos alone, and a "videos" entry from
+/// an earlier build is passed over by both.
 enum BrandKitFile {
 
     static let format = "canvia-brand"
@@ -437,7 +440,6 @@ enum BrandKitFile {
         var version: Int = BrandKitFile.version
         var kit: BrandKit
         var media: [String: DesignPackage.Media]
-        var videos: [String: DesignPackage.Media]?
     }
 
     /// The logos as a design's pictures, one each, in order, so a package's
@@ -448,13 +450,17 @@ enum BrandKitFile {
         return design
     }
 
-    /// The kit's file: library pictures drawn and clips too big to carry
-    /// made stills, as a design file does.
+    /// The kit's file: its photo logos inlined and library pictures drawn,
+    /// as a design file does. A clip logo stays as it is — neither the clip
+    /// nor a still of it goes in — as the Android twin writes it.
     static func contents(of kit: BrandKit, mediaDirectory: URL = MediaStore.directory) -> Contents {
-        let package = DesignPackage.contents(of: carrier(kit.logos), mediaDirectory: mediaDirectory)
+        let pictures = kit.logos.filter { VideoStore.split($0) == nil }
+        let package = DesignPackage.contents(of: carrier(pictures), mediaDirectory: mediaDirectory)
+        let packedPictures = package.design.pages.first?.elements.compactMap(\.src) ?? pictures
+        var drawn = packedPictures.makeIterator()
         var packed = kit
-        packed.logos = package.design.pages.first?.elements.compactMap(\.src) ?? kit.logos
-        return Contents(kit: packed, media: package.media, videos: package.videos)
+        packed.logos = kit.logos.map { src in VideoStore.split(src) == nil ? (drawn.next() ?? src) : src }
+        return Contents(kit: packed, media: package.media)
     }
 
     static func export(_ kit: BrandKit, mediaDirectory: URL = MediaStore.directory) throws -> Data {
@@ -468,15 +474,14 @@ enum BrandKitFile {
         var errorDescription: String? { "This file is not a Canvia brand kit." }
     }
 
-    /// The file's logos that arrive: a photo or clip logo whose file it
-    /// does not carry is left out, and any other — a library picture — is
-    /// kept as it is, as the Android twin's BrandKitPackage.relinked keeps
-    /// them.
+    /// The file's logos that arrive: a photo logo whose file it does not
+    /// carry is left out, and so is every clip logo, as no kit file carries
+    /// a clip; any other — a library picture — is kept as it is, as the
+    /// Android twin's BrandKitPackage.relinked keeps them.
     static func carried(_ contents: Contents) -> [String] {
         contents.kit.logos.filter { src in
             if src.hasPrefix("media:") { return contents.media[String(src.dropFirst(6))] != nil }
-            if let clip = VideoStore.split(src) { return contents.videos?[clip.id] != nil }
-            return true
+            return VideoStore.split(src) == nil
         }
     }
 
@@ -488,8 +493,7 @@ enum BrandKitFile {
                          mediaDirectory: URL = MediaStore.directory) throws -> BrandKit {
         guard let contents = try? JSONDecoder().decode(Contents.self, from: data),
               contents.format == format else { throw KitFileError.notAKit }
-        let package = DesignPackage.Package(design: carrier(carried(contents)), media: contents.media,
-                                            videos: contents.videos)
+        let package = DesignPackage.Package(design: carrier(carried(contents)), media: contents.media)
         let stored = try DesignPackage.import(DesignPackage.encode(package), mediaDirectory: mediaDirectory,
                                               normalize: false)
         var kit = contents.kit
