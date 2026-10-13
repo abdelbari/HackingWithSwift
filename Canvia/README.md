@@ -677,7 +677,9 @@ and read as "Notes, none for this page", when the page has none), and
 autoplay on each page's own timing. VoiceOver has Next
 page and Previous page among the page's actions. Every page can set
 its own hold and its transition to the next (fade, cut or slide) from
-its notes sheet; the video honours both.
+its notes sheet; the video honours both. A tap on the clock opens a
+grid of the pages shown to jump to, and a press and hold on the page
+points at it with a red dot.
 
 **MP4 and animated GIF** — a multi-page design is already a sequence, so
 it exports as one: each page holds for 2.5 seconds with a slow push in
