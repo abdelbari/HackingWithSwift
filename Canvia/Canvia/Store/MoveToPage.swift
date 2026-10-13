@@ -2,6 +2,7 @@
 // and a selection built one tap at a time — see PageMove for where moved
 // things land.
 
+import CoreGraphics
 import Foundation
 
 extension DesignStore {
@@ -15,17 +16,40 @@ extension DesignStore {
     /// selected. Anything locked stays behind; a selection all locked is
     /// refused with a buzz.
     func moveSelectedToPage(_ index: Int) {
-        guard design.pages.indices.contains(index), index != pageIndex, !selection.isEmpty else { return }
+        moveSelectedToPage(index, at: nil)
+    }
+
+    /// The same, let go over another page while scrolling through pages:
+    /// the selection's own box put with its top-left at `drop`, in that
+    /// page's units, and what goes with it — the rest of a group, a joined
+    /// arrow — beside it as it stood; on a page of another size the whole
+    /// block is then kept inside it (PageColumn.clampToPage). Nil, where it
+    /// sat. A drag still open is closed with it: the move and the change of
+    /// page are the one step. True when it moved.
+    @discardableResult
+    func moveSelectedToPage(_ index: Int, at drop: CGPoint?) -> Bool {
+        guard design.pages.indices.contains(index), index != pageIndex, !selection.isEmpty else { return false }
         endTextEdit()
         finishCrop()
         let ids = PageMove.moving(page.elements, selection: selection)
         guard !ids.isEmpty else {
             buzz(.reject)
-            return
+            return false
         }
         let source = pageIndex
-        let moved = PageMove.clamped(page.elements.filter { ids.contains($0.id) },
-                                     from: pageSize, to: design.size(at: index))
+        let moving = page.elements.filter { ids.contains($0.id) }
+        let size = design.size(at: index)
+        var moved = PageMove.clamped(moving, from: pageSize, to: size)
+        if let drop {
+            let chosen = moving.filter { selection.contains($0.id) }
+            let anchor = Geometry.union((chosen.isEmpty ? moving : chosen).map(Geometry.aabb))
+            moved = Self.shifted(moving, dx: Double(drop.x - anchor.minX), dy: Double(drop.y - anchor.minY))
+            if size != pageSize {
+                let block = Geometry.union(moved.map(Geometry.aabb))
+                let corner = PageColumn.clampToPage(block, page: size)
+                moved = Self.shifted(moved, dx: Double(corner.x - block.minX), dy: Double(corner.y - block.minY))
+            }
+        }
         apply { d in
             d.pages[source].elements.removeAll { ids.contains($0.id) }
             d.pages[index].elements.append(contentsOf: moved)
@@ -33,6 +57,17 @@ extension DesignStore {
         pageIndex = index
         selection = Set(moved.map(\.id))
         announce("Moved to page \(index + 1)")
+        return true
+    }
+
+    /// `elements`, each moved across by `dx` and down by `dy`.
+    private static func shifted(_ elements: [Element], dx: Double, dy: Double) -> [Element] {
+        elements.map { el in
+            var e = el
+            e.x += dx
+            e.y += dy
+            return e
+        }
     }
 
     /// A page Move to page offers: where it is, zero-based, and its name.

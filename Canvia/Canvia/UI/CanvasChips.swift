@@ -14,6 +14,9 @@ import SwiftUI
 
 struct CanvasChips: View {
     @Bindable var store: DesignStore
+    /// Scroll through pages, from the More menu: the canvas is the column
+    /// of every page.
+    @AppStorage(PageColumn.key) private var pageScroll = true
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -45,13 +48,16 @@ struct CanvasChips: View {
     }
 
     /// At the fitting zoom, within 2%, with the whole page in sight: pan a
-    /// fitted page half off the screen and it is no longer "Fit".
+    /// fitted page half off the screen and it is no longer "Fit". Scrolling
+    /// through pages, the page's whole width: one taller than the canvas is
+    /// scrolled through, never fitted any further — as on the Android twin.
     private var atFit: Bool {
         let fit = store.fitZoom
         guard abs(store.zoom - fit) <= 0.02 * fit else { return false }
         let slack = 0.5 / max(store.zoom, 0.01)
-        let page = CGRect(x: 0, y: 0, width: store.pageWidth, height: store.pageHeight)
-        return store.viewport.insetBy(dx: -slack, dy: -slack).contains(page)
+        let seen = store.viewport.insetBy(dx: -slack, dy: -slack)
+        if pageScroll { return seen.minX <= 0 && seen.maxX >= store.pageWidth }
+        return seen.contains(CGRect(x: 0, y: 0, width: store.pageWidth, height: store.pageHeight))
     }
 
     /// Where a tap at fit goes: actual size, or twice it when fitting is

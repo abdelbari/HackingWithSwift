@@ -127,6 +127,18 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
 - Pages: live-thumbnail strip, add / duplicate / reorder / delete (with a
   confirmation when the page is not empty), and per-page notes that are
   never drawn and so cannot reach an export; typing a note is one Undo
+- Scroll through pages (on unless turned off in the More menu): every page
+  down one column on the canvas, each as wide as the screen less a margin,
+  under a header ("Page 2 · Intro", the eye struck through when hidden) with
+  add below, duplicate, delete and More (hide or show, copy page, notes),
+  and "+ Add page" under the last. The page across the middle of the view,
+  once it settles, is the one worked — only it shows the selection, guides,
+  grid and margins — and a tap on something on another page selects it
+  there, a drag from it moves it. Let go over another page, a dragged
+  selection moves to it, under the finger as it was held and kept inside a
+  page of another size, one Undo. Zoomed in, each header keeps to the part
+  of its page on screen. Pages far from the view show a thumbnail; crop,
+  typing, the pen, the eraser and a preview keep the view on their page
 - Undo/redo with gesture coalescing (a whole drag is one step), autosave,
   lock, opacity, duplicate, align / distribute / flip / exact-position
   sheet, layers sheet with drag reorder. Saves land whole or not at all,

@@ -2,7 +2,13 @@
 // scroll view that owns zoom and pan (see ZoomableCanvas), with a gesture
 // layer for select/move and a selection overlay for handles. All gesture math
 // runs in the "page" coordinate space so zoom never affects it.
+//
+// Scrolling through pages (PageColumn, on unless turned off in the More
+// menu), the scroll view holds every page down one column instead: the page
+// being worked is this same interactive page, scaled into its place, and the
+// others are drawn around it under their headers.
 
+import Observation
 import SwiftUI
 import UIKit
 
@@ -24,6 +30,37 @@ struct CanvasView: View {
     /// The guide Position… is asking a place for, and what is typed.
     @State private var positioningGuide: Guide?
     @State private var guidePositionText = ""
+    /// Scroll through pages, from the More menu: on unless turned off.
+    @AppStorage(PageColumn.key) private var pageScroll = true
+    /// The canvas's width, which the column of pages is fitted to.
+    @State private var canvasWidth = 0.0
+    /// A page the column itself made the one worked — scrolled to, tapped
+    /// on, or something let go over — which it then does not scroll to.
+    @State private var pageFromColumn: Int?
+    /// The pages near enough to the part of the column on screen to draw
+    /// live (PageColumn.livePages); the others show a thumbnail.
+    @State private var livePages: Set<Int> = []
+    /// The part of the column on screen, kept without redrawing the canvas
+    /// on every frame of a scroll.
+    @State private var seen = ColumnSeen()
+    /// A page header's Delete asking first, and its Notes.
+    @State private var confirmingPageDelete = false
+    @State private var editingPageNotes = false
+
+    /// Where the view is in the column, written as it scrolls, the zoom
+    /// that fits it, and whether a finger set it moving; read when it comes
+    /// to rest, or when the page worked changes under a view standing still.
+    /// Only `across` is watched: the header rows, cut to it, redraw on their
+    /// own as the view pans across (ColumnRow).
+    @Observable
+    final class ColumnSeen {
+        @ObservationIgnored var visible: CGRect = .zero
+        @ObservationIgnored var fit = 0.0
+        @ObservationIgnored var moved = false
+        /// The column's left and right edges on screen, in column units;
+        /// nil until the canvas has said.
+        var across: ClosedRange<Double>?
+    }
 
     /// Inverse zoom: ornaments are drawn in page units but should
     /// stay a constant size on screen.
@@ -75,6 +112,12 @@ struct CanvasView: View {
         var crop: CropTouch?
         /// A crop-mode pinch's magnification when last applied.
         var cropPinch = 1.0
+        /// The page in the column a move is over, other than its own: let
+        /// go there, what moves goes to that page.
+        var dropPage: Int?
+        /// What a drag from another page of the column is moving, once it
+        /// has made that page the one worked.
+        var columnDrag: String?
     }
 
     /// What a touch in crop mode landed on: one of the frame's brackets (the
@@ -97,37 +140,7 @@ struct CanvasView: View {
     }
 
     var body: some View {
-        // Zoom and pan live in a UIScrollView rather than in SwiftUI gestures.
-        // See ZoomableCanvas for why: a MagnifyGesture on this stack can never
-        // outrank the per-element DragGestures inside it, which is what made
-        // pinching impossible once elements covered the page.
-        ZoomableCanvas(
-            contentSize: CGSize(width: store.pageWidth, height: store.pageHeight),
-            zoom: $store.zoom,
-            fitToken: "\(store.design.id)-\(store.pageWidth)x\(store.pageHeight)",
-            onBackgroundTap: {
-                commitTextEditIfAny()
-                // Select multiple keeps what it has built.
-                if !store.selectingMultiple { store.select(nil) }
-            },
-            onPencilTap: { store.toggleDrawing() },
-            pinchZooms: store.cropping == nil,
-            claimsDoubleTap: { point in claimsDoubleTap(at: point) },
-            pansFromPage: { point in pansFromPage(at: point) },
-            request: store.canvasRequest,
-            onViewport: { visible, fit in
-                // Only real changes: every write redraws whatever reads it.
-                if store.viewport != visible { store.viewport = visible }
-                if store.fitZoom != fit { store.fitZoom = fit }
-            },
-            onMotion: { moving in
-                if store.canvasMoving != moving { store.canvasMoving = moving }
-            }
-        ) {
-            pageContent
-                .coordinateSpace(name: "page")
-                .frame(width: store.pageWidth, height: store.pageHeight)
-        }
+        columnAware
         .ignoresSafeArea(.keyboard)
         .confirmationDialog(guideMenu.map { guideTitle($0) } ?? "Guide",
                             isPresented: Binding(get: { guideMenu != nil }, set: { if !$0 { guideMenu = nil } }),
@@ -159,6 +172,58 @@ struct CanvasView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { _ in
             revealTyping()
         }
+    }
+
+    /// Zoom and pan live in a UIScrollView rather than in SwiftUI gestures.
+    /// See ZoomableCanvas for why: a MagnifyGesture on this stack can never
+    /// outrank the per-element DragGestures inside it, which is what made
+    /// pinching impossible once elements covered the page.
+    private var zoomable: some View {
+        let slot = columnSlot
+        return ZoomableCanvas(
+            contentSize: slot == nil ? CGSize(width: store.pageWidth, height: store.pageHeight) : columnSize,
+            zoom: slot.map { columnZoom($0.scale) } ?? $store.zoom,
+            fitToken: slot == nil ? "\(store.design.id)-\(store.pageWidth)x\(store.pageHeight)" : "\(store.design.id)-column",
+            onBackgroundTap: { point in backgroundTap(at: point) },
+            onPencilTap: { store.toggleDrawing() },
+            pinchZooms: store.cropping == nil,
+            claimsDoubleTap: { point in claimsDoubleTap(at: point) },
+            pansFromPage: { point in pansFromPage(at: point) },
+            request: canvasRequest(in: slot),
+            column: slot.map { canvasColumn($0) },
+            isControl: { point in isColumnControl(point) },
+            movesOtherPage: { point in otherPageHit(at: point) != nil },
+            onOtherPageDrag: { phase, start, now in otherPageDrag(phase, from: start, to: now) },
+            onViewport: { visible, fit in viewportChanged(visible, fit: fit) },
+            onMotion: { moving in motionChanged(moving) }
+        ) {
+            if let slot {
+                columnContent(slot)
+            } else {
+                pageContent
+                    .coordinateSpace(name: "page")
+                    .frame(width: store.pageWidth, height: store.pageHeight)
+            }
+        }
+    }
+
+    /// The canvas, and what the column of pages answers: the width it is
+    /// fitted to, a page made current from elsewhere scrolled to, and a
+    /// header's questions.
+    private var columnAware: some View {
+        zoomable
+            .background {
+                GeometryReader { proxy in
+                    Color.clear
+                        .onAppear { canvasWidth = Double(proxy.size.width) }
+                        .onChange(of: proxy.size.width) { _, width in canvasWidth = Double(width) }
+                }
+            }
+            .onChange(of: store.pageIndex) { _, index in followPage(index) }
+            .onChange(of: columnSlot) { _, _ in republishViewport() }
+            .onChange(of: columnSlot?.scale) { old, new in rescaleZoom(from: old, to: new) }
+            .asksBeforeDeletingPage($confirmingPageDelete, store: store)
+            .sheet(isPresented: $editingPageNotes) { PageNotesSheet(store: store) }
     }
 
     /// The box being typed in, as it is now.
@@ -951,122 +1016,139 @@ struct CanvasView: View {
         // pushed an undo step.
         DragGesture(minimumDistance: Touch.pageUnits(Touch.dragSlop, zoom: store.zoom),
                     coordinateSpace: .named("page"))
-            .onChanged { value in
-                guard !el.holdsPlace, store.editingTextId != el.id else { return }
-                if !gesture.dragActive {
-                    gesture.dragActive = true
-                    store.canvasTouchActive = true
-                    // Selected before the step opens: selecting ends any typing
-                    // as its own step, which must not swallow this move's.
-                    // Select multiple adds it, and the whole selection moves.
-                    if !store.selection.contains(el.id) {
-                        if store.selectingMultiple { store.tapInSelectMultiple(el.id) } else { store.select(el.id) }
-                    }
-                    store.beginGesture()
-                    gesture.dragOriginals = Dictionary(
-                        uniqueKeysWithValues: store.selectedElements
-                            .filter { !$0.holdsPlace }
-                            .map { ($0.id, CGPoint(x: $0.x, y: $0.y)) })
-                    let lines = Geometry.taggedSnapLines(design: store.design, page: store.page,
-                                                         excluding: Set(gesture.dragOriginals.keys),
-                                                         settings: store.snapping)
-                    gesture.snapTagsX = lines.x
-                    gesture.snapTagsY = lines.y
-                    gesture.snapX = lines.x.map(\.position)
-                    gesture.snapY = lines.y.map(\.position)
-                    gesture.dragUnion = Geometry.union(
-                        store.selectedElements.filter { !$0.holdsPlace }.map(Geometry.aabb))
-                    gesture.siblingBoxes = store.page.elements
-                        .filter { gesture.dragOriginals[$0.id] == nil && !$0.isHidden }
-                        .map(Geometry.aabb)
-                    // One photo on its own may be going into a frame.
-                    if gesture.dragOriginals.count == 1, let id = gesture.dragOriginals.keys.first,
-                       let photo = store.element(id), PhotoFrames.canDrop(photo) {
-                        gesture.framePhoto = id
-                    }
-                }
-                var dx = value.location.x - value.startLocation.x
-                var dy = value.location.y - value.startLocation.y
-                var gapX: Double?
-                var gapY: Double?
+            .onChanged { value in moveChanged(el, from: value.startLocation, to: value.location) }
+            .onEnded { value in moveEnded(from: value.startLocation, to: value.location) }
+    }
 
-                // Snap the union of moved boxes against page + siblings.
-                // Translating the grab-time union is exact, not an
-                // approximation: rotation happens about each element's own
-                // centre, which moves with it, so translating an element
-                // translates its bounding box, and the union of translated
-                // boxes is the translated union.
-                if !gesture.dragUnion.isEmpty {
-                    let moved = gesture.dragUnion.offsetBy(dx: dx, dy: dy)
-                    let snap = Geometry.snap(box: moved,
-                                             xLines: gesture.snapX, yLines: gesture.snapY,
-                                             threshold: 6 / store.zoom)
-                    dx += snap.dx
-                    dy += snap.dy
-                    store.guideX = snap.guideX
-                    store.guideY = snap.guideY
-                    let sourceX = Geometry.snapSource(at: snap.guideX, in: gesture.snapTagsX)
-                    let sourceY = Geometry.snapSource(at: snap.guideY, in: gesture.snapTagsY)
-                    if store.guideXSource != sourceX { store.guideXSource = sourceX }
-                    if store.guideYSource != sourceY { store.guideYSource = sourceY }
-                    // Equal spacing: between two neighbours, land at the
-                    // same distance from each and say what that distance is —
-                    // on an axis no line is holding (a grid line gives way),
-                    // so the two never pull the box between them.
-                    if store.snapping.toElements {
-                        let even = Geometry.equalGap(moving: gesture.dragUnion.offsetBy(dx: dx, dy: dy),
-                                                     siblings: gesture.siblingBoxes, threshold: 6 / store.zoom)
-                        gapX = (snap.guideX == nil || sourceX == .grid) ? even.gapX : nil
-                        gapY = (snap.guideY == nil || sourceY == .grid) ? even.gapY : nil
-                        if gapX != nil { dx += even.dx }
-                        if gapY != nil { dy += even.dy }
-                    }
-                    let spaced = gapX != nil || gapY != nil
-                    if store.spacingSnapped != spaced { store.spacingSnapped = spaced }
-                }
+    /// A move of `el`, and the rest of the selection with it, the finger
+    /// gone from `start` to `location` in page units — by its own drag, or
+    /// by a drag from another page of the column that made this page the
+    /// one worked (otherPageDrag).
+    private func moveChanged(_ el: Element, from start: CGPoint, to location: CGPoint) {
+        guard !el.holdsPlace, store.editingTextId != el.id else { return }
+        if !gesture.dragActive {
+            gesture.dragActive = true
+            store.canvasTouchActive = true
+            // Selected before the step opens: selecting ends any typing
+            // as its own step, which must not swallow this move's.
+            // Select multiple adds it, and the whole selection moves.
+            if !store.selection.contains(el.id) {
+                if store.selectingMultiple { store.tapInSelectMultiple(el.id) } else { store.select(el.id) }
+            }
+            store.beginGesture()
+            gesture.dragOriginals = Dictionary(
+                uniqueKeysWithValues: store.selectedElements
+                    .filter { !$0.holdsPlace }
+                    .map { ($0.id, CGPoint(x: $0.x, y: $0.y)) })
+            let lines = Geometry.taggedSnapLines(design: store.design, page: store.page,
+                                                 excluding: Set(gesture.dragOriginals.keys),
+                                                 settings: store.snapping)
+            gesture.snapTagsX = lines.x
+            gesture.snapTagsY = lines.y
+            gesture.snapX = lines.x.map(\.position)
+            gesture.snapY = lines.y.map(\.position)
+            gesture.dragUnion = Geometry.union(
+                store.selectedElements.filter { !$0.holdsPlace }.map(Geometry.aabb))
+            gesture.siblingBoxes = store.page.elements
+                .filter { gesture.dragOriginals[$0.id] == nil && !$0.isHidden }
+                .map(Geometry.aabb)
+            // One photo on its own may be going into a frame.
+            if gesture.dragOriginals.count == 1, let id = gesture.dragOriginals.keys.first,
+               let photo = store.element(id), PhotoFrames.canDrop(photo) {
+                gesture.framePhoto = id
+            }
+        }
+        var dx = location.x - start.x
+        var dy = location.y - start.y
+        var gapX: Double?
+        var gapY: Double?
 
-                // Where it is going, for the page edges it crosses, and — once
-                // the finger has really travelled — where it came from.
-                if !gesture.dragUnion.isEmpty {
-                    gesture.movedBox = gesture.dragUnion.offsetBy(dx: dx, dy: dy)
-                }
-                // The frame under the finger, lit up: let go there, the photo
-                // goes into it.
-                if let photo = gesture.framePhoto {
-                    let over = store.frameDropTarget(at: value.location, dragging: photo)
-                    if gesture.frameTarget != over { gesture.frameTarget = over }
-                }
-                let travel = hypot(value.translation.width, value.translation.height) * store.zoom
-                if travel >= 14 && !gesture.ghost { gesture.ghost = true }
-                for i in store.design.pages[store.pageIndex].elements.indices {
-                    let id = store.design.pages[store.pageIndex].elements[i].id
-                    if let origin = gesture.dragOriginals[id] {
-                        store.design.pages[store.pageIndex].elements[i].x = origin.x + dx
-                        store.design.pages[store.pageIndex].elements[i].y = origin.y + dy
-                    }
-                }
-                // Where the moving box is, each axis a guide holds marked,
-                // and any gap made equal — as the Android twin reads it.
-                if let moved = gesture.movedBox {
-                    store.setBadge(Readouts.move(x: moved.minX, y: moved.minY,
-                                                 heldX: store.guideX != nil, heldY: store.guideY != nil,
-                                                 gapX: gapX, gapY: gapY))
-                }
+        // Snap the union of moved boxes against page + siblings.
+        // Translating the grab-time union is exact, not an
+        // approximation: rotation happens about each element's own
+        // centre, which moves with it, so translating an element
+        // translates its bounding box, and the union of translated
+        // boxes is the translated union.
+        if !gesture.dragUnion.isEmpty {
+            let moved = gesture.dragUnion.offsetBy(dx: dx, dy: dy)
+            let snap = Geometry.snap(box: moved,
+                                     xLines: gesture.snapX, yLines: gesture.snapY,
+                                     threshold: 6 / store.zoom)
+            dx += snap.dx
+            dy += snap.dy
+            store.guideX = snap.guideX
+            store.guideY = snap.guideY
+            let sourceX = Geometry.snapSource(at: snap.guideX, in: gesture.snapTagsX)
+            let sourceY = Geometry.snapSource(at: snap.guideY, in: gesture.snapTagsY)
+            if store.guideXSource != sourceX { store.guideXSource = sourceX }
+            if store.guideYSource != sourceY { store.guideYSource = sourceY }
+            // Equal spacing: between two neighbours, land at the
+            // same distance from each and say what that distance is —
+            // on an axis no line is holding (a grid line gives way),
+            // so the two never pull the box between them.
+            if store.snapping.toElements {
+                let even = Geometry.equalGap(moving: gesture.dragUnion.offsetBy(dx: dx, dy: dy),
+                                             siblings: gesture.siblingBoxes, threshold: 6 / store.zoom)
+                gapX = (snap.guideX == nil || sourceX == .grid) ? even.gapX : nil
+                gapY = (snap.guideY == nil || sourceY == .grid) ? even.gapY : nil
+                if gapX != nil { dx += even.dx }
+                if gapY != nil { dy += even.dy }
             }
-            .onEnded { value in
-                // Crossing the threshold and landing back where you started is
-                // a tap that wandered, not an edit: it must not enter history,
-                // or undo fills up with steps that changed nothing.
-                let moved = hypot(value.translation.width, value.translation.height) * store.zoom
-                if gesture.dragActive && moved >= Touch.tapSlop {
-                    // Let go over a frame, the photo goes into it — the move
-                    // and the drop one step; anywhere else it is a move.
-                    if !dropIntoFrame(at: value.location) { store.commit() }
-                } else {
-                    store.endGesture()
-                }
-                clearTransient()
+            let spaced = gapX != nil || gapY != nil
+            if store.spacingSnapped != spaced { store.spacingSnapped = spaced }
+        }
+
+        // Where it is going, for the page edges it crosses, and — once
+        // the finger has really travelled — where it came from.
+        if !gesture.dragUnion.isEmpty {
+            gesture.movedBox = gesture.dragUnion.offsetBy(dx: dx, dy: dy)
+        }
+        // The frame under the finger, lit up: let go there, the photo
+        // goes into it.
+        if let photo = gesture.framePhoto {
+            let over = store.frameDropTarget(at: location, dragging: photo)
+            if gesture.frameTarget != over { gesture.frameTarget = over }
+        }
+        // Over another page in the column, that page lit up: let go
+        // there, it goes to that page.
+        if columnOn {
+            let over = dropPage(at: location)
+            if gesture.dropPage != over { gesture.dropPage = over }
+        }
+        let travel = hypot(location.x - start.x, location.y - start.y) * store.zoom
+        if travel >= 14 && !gesture.ghost { gesture.ghost = true }
+        for i in store.design.pages[store.pageIndex].elements.indices {
+            let id = store.design.pages[store.pageIndex].elements[i].id
+            if let origin = gesture.dragOriginals[id] {
+                store.design.pages[store.pageIndex].elements[i].x = origin.x + dx
+                store.design.pages[store.pageIndex].elements[i].y = origin.y + dy
             }
+        }
+        // Where the moving box is, each axis a guide holds marked,
+        // and any gap made equal — as the Android twin reads it.
+        if let moved = gesture.movedBox {
+            store.setBadge(Readouts.move(x: moved.minX, y: moved.minY,
+                                         heldX: store.guideX != nil, heldY: store.guideY != nil,
+                                         gapX: gapX, gapY: gapY))
+        }
+    }
+
+    /// The move let go with the finger at `location`, having started at
+    /// `start`, in page units.
+    private func moveEnded(from start: CGPoint, to location: CGPoint) {
+        // Crossing the threshold and landing back where you started is
+        // a tap that wandered, not an edit: it must not enter history,
+        // or undo fills up with steps that changed nothing.
+        let moved = hypot(location.x - start.x, location.y - start.y) * store.zoom
+        if gesture.dragActive && moved >= Touch.tapSlop {
+            // Let go over a frame, the photo goes into it — the move
+            // and the drop one step; over another page in the column,
+            // it goes there, one step too; anywhere else it is a move.
+            if !dropIntoFrame(at: location) && !dropOntoPage(at: location) { store.commit() }
+        } else {
+            store.endGesture()
+        }
+        clearTransient()
     }
 
     /// The photo being moved goes into the frame under `point`, if there is
@@ -1075,6 +1157,36 @@ struct CanvasView: View {
         guard let photo = gesture.framePhoto, let home = gesture.dragOriginals[photo],
               let frame = store.frameDropTarget(at: point, dragging: photo) else { return false }
         return store.dropIntoFrame(photo, onto: frame, home: home)
+    }
+
+    /// Let go over another page in the column, what moves goes there,
+    /// under the finger as it was held (PageColumn.landing) — the move and
+    /// the change of page one step (DesignStore.moveSelectedToPage). True
+    /// when it did.
+    private func dropOntoPage(at point: CGPoint) -> Bool {
+        guard let target = dropPage(at: point), let from = columnSlot else { return false }
+        let slots = columnSlots
+        // The selection's own box, as the store puts it at the drop.
+        let ids = PageMove.moving(store.page.elements, selection: store.selection)
+        let moving = store.page.elements.filter { ids.contains($0.id) }
+        guard !moving.isEmpty else { return false }
+        let chosen = moving.filter { store.selection.contains($0.id) }
+        let box = Geometry.union((chosen.isEmpty ? moving : chosen).map(Geometry.aabb))
+        pageFromColumn = target
+        let at = PageColumn.landing(box, finger: from.toColumn(point), from: from, to: slots[target])
+        guard store.moveSelectedToPage(target, at: at) else {
+            pageFromColumn = nil
+            return false
+        }
+        return true
+    }
+
+    /// The page in the column under `point` on the page being worked, when
+    /// it is another one.
+    private func dropPage(at point: CGPoint) -> Int? {
+        guard let slot = columnSlot else { return nil }
+        let index = PageColumn.pageAt(slot.toColumn(point), in: columnSlots)
+        return index == store.pageIndex ? nil : index
     }
 
     // MARK: resize / rotate (called from the overlay)
@@ -1365,5 +1477,332 @@ struct CanvasView: View {
 
     private func typeInline(_ id: String, _ words: String) {
         store.typeWords(words, into: id)
+    }
+
+    // MARK: scroll through pages
+
+    /// Whether the canvas is the column of every page.
+    private var columnOn: Bool { pageScroll && canvasWidth > 0 }
+
+    /// Every page's place in the column, while it is one; none otherwise.
+    private var columnSlots: [PageColumn.Slot] {
+        guard columnOn else { return [] }
+        return PageColumn.pageOrigins(store.design.pages.map { store.design.size(for: $0) },
+                                      gap: PageColumn.room, gutter: PageColumn.gutter, viewportWidth: canvasWidth)
+    }
+
+    /// The page being worked's place in the column.
+    private var columnSlot: PageColumn.Slot? {
+        let slots = columnSlots
+        return slots.indices.contains(store.pageIndex) ? slots[store.pageIndex] : nil
+    }
+
+    private var columnSize: CGSize {
+        CGSize(width: canvasWidth, height: PageColumn.columnHeight(columnSlots, gap: PageColumn.room))
+    }
+
+    /// The page being worked in the column, for the scroll view — with the
+    /// widest page's scale, whose zoom range the column's is.
+    private func canvasColumn(_ slot: PageColumn.Slot) -> CanvasColumn {
+        CanvasColumn(page: slot.rect, scale: slot.scale, widest: columnSlots.map(\.scale).min() ?? slot.scale)
+    }
+
+    /// One point on screen, in column units.
+    private var columnPoint: Double { (columnSlot?.scale ?? 1) * iz }
+
+    /// Crop, typing, the pen, the eraser or a preview playing holds the
+    /// view to the page being worked: scrolling does not change it, and the
+    /// headers only say which page is which.
+    private var pagePinned: Bool {
+        store.cropping != nil || store.editingTextId != nil || store.drawing != nil
+            || store.erasing != nil || store.previewTime != nil
+    }
+
+    // MARK: the view
+
+    /// The scroll view's zoom of the column, as the store's zoom of the page
+    /// — what the handles, the zoom pill and every reach on the page read.
+    private func columnZoom(_ scale: Double) -> Binding<Double> {
+        Binding(get: { store.zoom / scale }, set: { store.zoom = $0 * scale })
+    }
+
+    /// The column fitted to another width, or about another widest page:
+    /// the page's zoom follows the column's scale.
+    private func rescaleZoom(from old: Double?, to new: Double?) {
+        guard let old, let new, old > 0 else { return }
+        store.zoom = store.zoom / old * new
+    }
+
+    /// A change of view asked of the page, asked of the column: a zoom of
+    /// the page is the column's at its scale, a box on the page is where
+    /// it lies in the column.
+    private func canvasRequest(in slot: PageColumn.Slot?) -> CanvasRequest? {
+        guard let slot, let request = store.canvasRequest else { return store.canvasRequest }
+        switch request.kind {
+        case .fit:
+            return request
+        case .zoom(let zoom):
+            return CanvasRequest(kind: .zoom(zoom / slot.scale), serial: request.serial)
+        case .reveal(let box, let covered, let typing):
+            return CanvasRequest(kind: .reveal(slot.columnBox(box), covered: covered, typing: typing),
+                                 serial: request.serial)
+        }
+    }
+
+    /// The part of the canvas on screen, as the page being worked reads it,
+    /// and in the column the pages near enough to draw live.
+    private func viewportChanged(_ visible: CGRect, fit: Double) {
+        var shown = visible
+        var fitting = fit
+        if let slot = columnSlot {
+            seen.visible = visible
+            seen.fit = fit
+            let across = Double(visible.minX)...Double(max(visible.maxX, visible.minX))
+            if seen.across != across { seen.across = across }
+            shown = slot.pageBox(visible)
+            fitting = fit * slot.scale
+            let live = Set(PageColumn.livePages(columnSlots, visible: visible))
+            if livePages != live { livePages = live }
+        }
+        // Only real changes: every write redraws whatever reads it.
+        if store.viewport != shown { store.viewport = shown }
+        if store.fitZoom != fitting { store.fitZoom = fitting }
+    }
+
+    /// The page worked changed, or moved in the column, under a view
+    /// standing still — settled on, tapped on, picked elsewhere: what it
+    /// reads of the view said again in its own units, for the selection's
+    /// bubble, Bring it back and the zoom pill.
+    private func republishViewport() {
+        guard columnSlot != nil, seen.fit > 0 else { return }
+        viewportChanged(seen.visible, fit: seen.fit)
+    }
+
+    /// Only a view a finger moved settles on a page: one moved to bring a
+    /// page or a box into sight — which may leave another page across the
+    /// middle — never starts moving, and leaves the page as it is.
+    private func motionChanged(_ moving: Bool) {
+        if store.canvasMoving != moving { store.canvasMoving = moving }
+        if moving {
+            seen.moved = true
+        } else if seen.moved {
+            seen.moved = false
+            settle()
+        }
+    }
+
+    /// The view come to rest in the column: the page covering its middle
+    /// becomes the one worked, and the top bar's "Page n of m" says so.
+    /// While crop, typing, the pen, the eraser or a preview has its page,
+    /// the page stays, and the view is brought back to it.
+    private func settle() {
+        let slots = columnSlots
+        guard !slots.isEmpty else { return }
+        let index = PageColumn.currentPage(seen.visible, in: slots)
+        guard index != store.pageIndex else { return }
+        if pagePinned {
+            revealPage()
+        } else {
+            pageFromColumn = index
+            store.setPage(index)
+        }
+    }
+
+    /// A page made current from elsewhere — the pages bar, Undo, a page
+    /// added — is scrolled to; one the column made current is in view.
+    private func followPage(_ index: Int) {
+        let fromColumn = pageFromColumn == index
+        pageFromColumn = nil
+        guard columnOn, !fromColumn else { return }
+        revealPage()
+    }
+
+    /// The page being worked, its header too, brought into sight.
+    private func revealPage() {
+        guard let slot = columnSlot else { return }
+        let shown = slot.rect.union(PageColumn.headerRect(slot, unit: columnPoint))
+        store.requestCanvas(.reveal(slot.pageBox(shown)))
+    }
+
+    // MARK: touches
+
+    /// A tap off the page being worked: on another page in the column, that
+    /// page becomes the one worked and what was tapped on it is selected;
+    /// anywhere else the selection goes — Select multiple keeps what it has
+    /// built.
+    private func backgroundTap(at point: CGPoint) {
+        commitTextEditIfAny()
+        let slots = columnSlots
+        if let index = PageColumn.pageAt(point, in: slots), index != store.pageIndex, !pagePinned {
+            let at = slots[index].toPage(point)
+            pageFromColumn = index
+            store.setPage(index)
+            if let hit = store.page.elements.last(where: { !$0.isHidden && Geometry.hits($0, point: at) }) {
+                store.select(hit.id)
+            }
+            return
+        }
+        if !store.selectingMultiple { store.select(nil) }
+    }
+
+    /// The page other than the one worked that `point` in the column is on,
+    /// and the thing shown topmost there under it — none while something
+    /// holds the view to its page.
+    private func otherPageHit(at point: CGPoint) -> (page: Int, element: Element)? {
+        let slots = columnSlots
+        guard !pagePinned, let index = PageColumn.pageAt(point, in: slots), index != store.pageIndex else { return nil }
+        let at = slots[index].toPage(point)
+        guard let hit = store.design.pages[index].elements.last(where: { !$0.isHidden && Geometry.hits($0, point: at) })
+        else { return nil }
+        return (index, hit)
+    }
+
+    /// One finger dragged from something on another page (ZoomableCanvas's
+    /// movesOtherPage), `start` and `now` in column units: that page becomes
+    /// the one worked, where it is, and the thing moves as a drag on the
+    /// page worked moves it — let go over yet another page, it goes there.
+    private func otherPageDrag(_ phase: CanvasDrag, from start: CGPoint, to now: CGPoint) {
+        if phase == .began {
+            guard let found = otherPageHit(at: start) else { return }
+            commitTextEditIfAny()
+            pageFromColumn = found.page
+            store.setPage(found.page)
+            gesture.columnDrag = found.element.id
+        }
+        guard let id = gesture.columnDrag, let slot = columnSlot else { return }
+        let from = slot.toPage(start), to = slot.toPage(now)
+        if phase == .ended {
+            moveEnded(from: from, to: to)
+        } else if let el = store.element(id) {
+            moveChanged(el, from: from, to: to)
+        }
+    }
+
+    /// The headers and "+ Add page" keep their own touches — unless the
+    /// page is held, when the headers only say which page is which.
+    private func isColumnControl(_ point: CGPoint) -> Bool {
+        let slots = columnSlots
+        guard !slots.isEmpty, !pagePinned else { return false }
+        let unit = columnPoint
+        if PageColumn.addPageRect(slots, unit: unit)?.contains(point) == true { return true }
+        return slots.contains { PageColumn.headerRect($0, unit: unit).contains(point) }
+    }
+
+    /// Delete from a header: asked first when the page has something on it,
+    /// as in the pages bar.
+    private func askDeletePage() {
+        if store.page.elements.isEmpty {
+            store.deletePage()
+        } else {
+            confirmingPageDelete = true
+        }
+    }
+
+    // MARK: drawing the column
+
+    /// Every page down the column, each under its header, with "+ Add page"
+    /// after the last. Only the page being worked takes touches and shows
+    /// the selection, guides, grid and margins; the others are drawn live
+    /// near the view and as a thumbnail further off. It is drawn last, so a
+    /// thing dragged off it stays over the page it is dragged across.
+    private func columnContent(_ worked: PageColumn.Slot) -> some View {
+        let slots = columnSlots
+        return ZStack(alignment: .topLeading) {
+            ForEach(slots.indices, id: \.self) { i in
+                if i != store.pageIndex { otherPage(i, slot: slots[i]) }
+                pageHeader(i, slot: slots[i])
+            }
+            if !pagePinned, let add = PageColumn.addPageRect(slots, unit: columnPoint) {
+                onScreenSize(AddPageRow(store: store), in: add, height: PageColumn.addPageHeight)
+            }
+            if let drop = gesture.dropPage, slots.indices.contains(drop) {
+                dropOutline(slots[drop])
+            }
+            workedPage(worked)
+        }
+        .frame(width: canvasWidth, height: PageColumn.columnHeight(slots, gap: PageColumn.room),
+               alignment: .topLeading)
+    }
+
+    /// `content` laid out at its size on screen, `height` points tall, and
+    /// scaled into `rect` of the column — the same size however far the
+    /// column is zoomed — cut across to the part of the column on screen.
+    private func onScreenSize(_ content: some View, in rect: CGRect, height: Double) -> some View {
+        ColumnRow(seen: seen, rect: rect, height: height, unit: columnPoint, content: content)
+    }
+
+    /// The page being worked: the canvas's own page, in its page units,
+    /// scaled into its place in the column.
+    private func workedPage(_ slot: PageColumn.Slot) -> some View {
+        pageContent
+            .coordinateSpace(name: "page")
+            .frame(width: store.pageWidth, height: store.pageHeight)
+            .scaleEffect(slot.scale, anchor: .topLeading)
+            .frame(width: slot.rect.width, height: slot.rect.height, alignment: .topLeading)
+            .offset(x: slot.origin.x, y: slot.origin.y)
+    }
+
+    /// Another page: live near the view, a thumbnail further off, with
+    /// nothing on it to touch — a tap there is the canvas's (backgroundTap).
+    private func otherPage(_ index: Int, slot: PageColumn.Slot) -> some View {
+        let page = store.design.pages[index]
+        let r = slot.rect
+        let point = columnPoint
+        return Group {
+            if livePages.contains(index) {
+                PageRenderView(design: store.design, page: page)
+                    .environment(\.onScreen, true)
+                    .scaleEffect(slot.scale, anchor: .topLeading)
+                    .frame(width: r.width, height: r.height, alignment: .topLeading)
+            } else {
+                PageThumbnail(design: store.design, page: page)
+                    .frame(width: r.width, height: r.height)
+            }
+        }
+        .background(Rectangle().fill(Color.white).shadow(color: .black.opacity(0.16), radius: 12 * point, y: 3 * point))
+        .overlay(Rectangle().stroke(Theme.hairline, lineWidth: 1 * point))
+        .allowsHitTesting(false)
+        .offset(x: r.minX, y: r.minY)
+    }
+
+    private func pageHeader(_ index: Int, slot: PageColumn.Slot) -> some View {
+        let row = PageHeaderRow(store: store, index: index, pinned: pagePinned,
+                                onDelete: { askDeletePage() },
+                                onNotes: { editingPageNotes = true })
+        return onScreenSize(row, in: PageColumn.headerRect(slot, unit: columnPoint), height: PageColumn.header)
+    }
+
+    /// The page a move would go to if let go now.
+    private func dropOutline(_ slot: PageColumn.Slot) -> some View {
+        let r = slot.rect
+        return Rectangle()
+            .stroke(Theme.accent, lineWidth: 3 * columnPoint)
+            .frame(width: r.width, height: r.height)
+            .offset(x: r.minX, y: r.minY)
+            .allowsHitTesting(false)
+    }
+}
+
+/// A header row or "+ Add page" in the column: laid out at its size on
+/// screen, `height` points tall, scaled into `rect` of the column, and cut
+/// across to the part of the column on screen (PageColumn.trimmed) — so,
+/// zoomed in, its buttons stay in reach rather than a page's width away. A
+/// view of its own, so only it redraws as the view pans across.
+private struct ColumnRow<Content: View>: View {
+    let seen: CanvasView.ColumnSeen
+    let rect: CGRect
+    let height: Double
+    /// Column units to a point on screen.
+    let unit: Double
+    let content: Content
+
+    var body: some View {
+        if let r = PageColumn.trimmed(rect, to: seen.across, least: unit) {
+            content
+                .frame(width: r.width / unit, height: height)
+                .scaleEffect(unit, anchor: .topLeading)
+                .frame(width: r.width, height: r.height, alignment: .topLeading)
+                .offset(x: r.minX, y: r.minY)
+        }
     }
 }

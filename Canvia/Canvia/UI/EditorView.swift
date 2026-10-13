@@ -63,6 +63,9 @@ struct EditorView: View {
     @AppStorage(Haptics.key) private var haptics = true
     /// Quick actions at the selection, on unless turned off (SelectionBubble).
     @AppStorage(SelectionBubble.key) private var quickActions = true
+    /// Scroll through pages: every page down one column on the canvas, on
+    /// unless turned off (PageColumn).
+    @AppStorage(PageColumn.key) private var pageScroll = true
     @State private var namingComponent = false
     /// More's "Save as template…" asking for a name and a category.
     @State private var savingTemplate = false
@@ -674,6 +677,7 @@ struct EditorView: View {
                 snappingMenu
                 Toggle(isOn: $haptics) { Label("Vibration", systemImage: "iphone.radiowaves.left.and.right") }
                 Toggle(isOn: $quickActions) { Label("Quick actions at the selection", systemImage: "capsule") }
+                Toggle(isOn: $pageScroll) { Label("Scroll through pages", systemImage: "rectangle.stack") }
                 Button {
                     activeSheet = .settings
                 } label: { Label("Settings", systemImage: "gearshape") }
