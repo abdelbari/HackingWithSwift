@@ -134,6 +134,10 @@ final class GuideLayoutTests: XCTestCase {
         XCTAssertEqual(s.design.guides[0].position, 300, "a horizontal guide is kept within the height")
         s.undo()
         XCTAssertEqual(s.design.guides[0].position, 50)
+        s.setGuidePosition(id, to: 250.4)
+        XCTAssertEqual(s.design.guides[0].position, 250.5, "on a half pixel, as Android puts it")
+        s.setGuidePosition(id, to: 120.3)
+        XCTAssertEqual(s.design.guides[0].position, 120.5)
     }
 
     // MARK: custom grid

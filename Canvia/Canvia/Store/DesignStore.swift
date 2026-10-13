@@ -1756,12 +1756,12 @@ final class DesignStore {
         }
     }
 
-    /// Put guide `id` at a typed `position`, kept on the page, as one undo
-    /// step.
+    /// Put guide `id` at a typed `position`, kept on the page and on a half
+    /// pixel as Android keeps it, as one undo step.
     func setGuidePosition(_ id: String, to position: Double) {
         guard let guide = design.guides.first(where: { $0.id == id }) else { return }
-        let limit = guide.vertical ? pageWidth : pageHeight
-        let kept = min(max(position, 0), limit)
+        let limit = max(guide.vertical ? pageWidth : pageHeight, 0)
+        let kept = min(max(Guides.halfPixel(min(max(position, 0), limit)), 0), limit)
         guard kept != guide.position else { return }
         apply { d in
             if let i = d.guides.firstIndex(where: { $0.id == id }) { d.guides[i].position = kept }
