@@ -25,7 +25,8 @@
 // page rather than the one page: "the page" above is the page being worked,
 // one finger on another page or between pages scrolls the column, gliding
 // on as it is let go, and a tap on another page is the canvas's, to make
-// that page the one worked.
+// that page the one worked. One finger dragged from something on another
+// page is the canvas's too: it makes that page the one worked and moves it.
 //
 // The scroll view's own pan is raised to two fingers so it never competes with
 // dragging an element, and a separate one-finger recogniser handles panning
@@ -67,6 +68,12 @@ struct CanvasColumn: Equatable {
     var widest: Double
 }
 
+/// Where a one-finger drag from something on another page of the column
+/// is (ZoomableCanvas.onOtherPageDrag).
+enum CanvasDrag {
+    case began, moved, ended
+}
+
 struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     /// Size of the page in its own coordinate space.
     let contentSize: CGSize
@@ -97,6 +104,13 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     /// Whether this point of the content is one of the column's own buttons
     /// — a page's header, "+ Add page" — which keep their touches.
     var isControl: (CGPoint) -> Bool = { _ in false }
+    /// Whether this point of the content is on something on a page other
+    /// than the one worked, which one finger dragged from there moves
+    /// rather than scrolling the column.
+    var movesOtherPage: (CGPoint) -> Bool = { _ in false }
+    /// That drag: where it landed and where the finger is now, in the
+    /// content. Cut short, it is let go where it got to.
+    var onOtherPageDrag: (CanvasDrag, CGPoint, CGPoint) -> Void = { _, _, _ in }
     /// Told the part of the page on screen, in page units, and the zoom that
     /// fits the page, whenever either changes.
     var onViewport: (CGRect, Double) -> Void = { _, _ in }
@@ -176,6 +190,10 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         defer { coordinator.isUpdating = false }
 
         if coordinator.contentSize != contentSize {
+            // The column of pages growing or shrinking down — a page added,
+            // duplicated, deleted, or one of those undone — keeps the zoom
+            // and the view where they are; only a new width fits afresh.
+            let across = coordinator.contentSize.width == contentSize.width
             coordinator.contentSize = contentSize
             // By bounds and centre, not frame: the view is scaled by the
             // zoom, and a frame set on a scaled view is undefined — the
@@ -184,7 +202,12 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             coordinator.host.view.bounds = CGRect(origin: .zero, size: contentSize)
             coordinator.host.view.center = CGPoint(x: contentSize.width * z / 2, y: contentSize.height * z / 2)
             scroll.contentSize = CGSize(width: contentSize.width * z, height: contentSize.height * z)
-            coordinator.needsFit = true
+            if column != nil && across {
+                // Which pages draw live, though the view has not moved.
+                coordinator.publishViewport()
+            } else {
+                coordinator.needsFit = true
+            }
         }
         if coordinator.fitToken != fitToken {
             coordinator.fitToken = fitToken
@@ -220,6 +243,9 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         /// whether on the page, for telling a drag from a hold and a drag.
         private var panTouchStart: TimeInterval = 0
         private var panTouchOnPage = false
+        /// Where the one-finger pan landed, in the content, when it landed on
+        /// something on another page of the column and so moves that.
+        private var otherPageStart: CGPoint?
         var contentSize: CGSize = .zero
         var fitToken: String = ""
         var needsFit = true
@@ -304,7 +330,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         /// The part of the page on screen, and the zoom that fits it — for
         /// the zoom pill and the Bring it back chip. Deferred out of an
         /// update, as the zoom is.
-        private func publishViewport() {
+        func publishViewport() {
             guard let scroll = scrollView, scroll.bounds.width > 0, scroll.bounds.height > 0 else { return }
             let visible = scroll.convert(scroll.bounds, to: host.view)
             let fit = Double(fitZoom(in: scroll))
@@ -478,6 +504,10 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         // MARK: gestures
 
         @objc func handleBackgroundPan(_ pan: UIPanGestureRecognizer) {
+            if let start = otherPageStart {
+                moveOtherPage(pan, from: start)
+                return
+            }
             guard let scroll = scrollView else { return }
             switch pan.state {
             case .began:
@@ -490,6 +520,23 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
                 glide(scroll, velocity: pan.velocity(in: scroll))
             case .ended, .cancelled, .failed:
                 publishMotion(false)
+            default:
+                break
+            }
+        }
+
+        /// The one-finger pan moving something from another page of the
+        /// column rather than the view.
+        private func moveOtherPage(_ pan: UIPanGestureRecognizer, from start: CGPoint) {
+            let now = pan.location(in: host.view)
+            switch pan.state {
+            case .began:
+                parent.onOtherPageDrag(.began, start, now)
+            case .changed:
+                parent.onOtherPageDrag(.moved, start, now)
+            case .ended, .cancelled, .failed:
+                otherPageStart = nil
+                parent.onOtherPageDrag(.ended, start, now)
             default:
                 break
             }
@@ -523,7 +570,8 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         /// anywhere, except where the page claims it for itself.
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                                shouldReceive touch: UITouch) -> Bool {
-            var point = touch.location(in: host.view)
+            let content = touch.location(in: host.view)
+            var point = content
             var onPage = host.view.bounds.contains(point)
             if let column = parent.column {
                 // A header's buttons and "+ Add page" are left their taps.
@@ -536,6 +584,19 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
                 return !(onPage && parent.claimsDoubleTap(point))
             }
             if gestureRecognizer === backgroundPan {
+                // Moving something from another page, the pan is that one
+                // finger's alone.
+                if otherPageStart != nil && gestureRecognizer.state != .possible { return false }
+                otherPageStart = nil
+                // Scrolling through pages, a drag from something on another
+                // page moves it, as a drag on the page worked does — that
+                // page becoming the one worked (onOtherPageDrag) — unless
+                // the page worked's own things hang over it there.
+                if parent.column != nil && !onPage && parent.pansFromPage(point) && parent.movesOtherPage(content) {
+                    otherPageStart = content
+                    panTouchOnPage = false
+                    return true
+                }
                 guard !onPage || parent.pansFromPage(point) else { return false }
                 panTouchStart = touch.timestamp
                 panTouchOnPage = onPage

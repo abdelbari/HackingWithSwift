@@ -139,16 +139,34 @@ final class PageScrollTests: XCTestCase {
         XCTAssertEqual(slots[2].columnBox(CGRect(x: 0, y: 0, width: 500, height: 1000)), slots[2].rect)
     }
 
-    func testABoxLandsWhereItWasLetGoOnAnotherPage() {
-        // A box on the first page dragged down over the second, through the
-        // column: below the first page's foot, at the second's scale.
-        let landed = PageColumn.landing(CGRect(x: 100, y: 1200, width: 100, height: 100), from: slots[0], to: slots[1])
-        XCTAssertEqual(landed.x, 100, accuracy: 1e-9)
-        XCTAssertEqual(landed.y, 140, accuracy: 1e-9)
-        // Onto the narrower third page, twice the scale: half the units.
-        let third = PageColumn.landing(CGRect(x: 500, y: 1000, width: 100, height: 100), from: slots[1], to: slots[2])
-        XCTAssertEqual(third.x, 250, accuracy: 1e-9)
-        XCTAssertEqual(third.y, 220, accuracy: 1e-9)
+    func testABoxLetGoOverAnotherPageLandsUnderTheFingerAsItWasHeld() {
+        // Rows: box x, y on the page it left (100 × 100), the finger in
+        // column units, from page, to page → top-left x, y on that page.
+        let rows: [(Double, Double, Double, Double, Int, Int, Double, Double)] = [
+            // Dragged down past the first page's foot onto the second, the
+            // same scale: the finger 50 in and 50 down, both pages.
+            (100, 1200, 76, 524, 0, 1, 100, 140),
+            // Onto the narrower third page, twice the scale: still 50 in and
+            // 50 down from the finger, in page units.
+            (500, 1000, 236, 868, 1, 2, 225, 195),
+        ]
+        for row in rows {
+            let at = PageColumn.landing(CGRect(x: row.0, y: row.1, width: 100, height: 100),
+                                        finger: CGPoint(x: row.2, y: row.3), from: slots[row.4], to: slots[row.5])
+            XCTAssertEqual(at.x, row.6, accuracy: 1e-9, "x of \(row)")
+            XCTAssertEqual(at.y, row.7, accuracy: 1e-9, "y of \(row)")
+        }
+    }
+
+    func testAHeaderRowIsCutToThePartOfTheColumnOnScreen() {
+        let header = PageColumn.headerRect(slots[1], unit: 1)
+        XCTAssertEqual(PageColumn.trimmed(header, to: nil, least: 1), header)
+        // Zoomed in, a third of the page across on screen.
+        XCTAssertEqual(PageColumn.trimmed(header, to: 150...283, least: 1),
+                       CGRect(x: 150, y: 416, width: 133, height: 32))
+        // Panned off the page's right edge but for a sliver.
+        XCTAssertNil(PageColumn.trimmed(header, to: 415.5...600, least: 1))
+        XCTAssertEqual(PageColumn.trimmed(header, to: 0...432, least: 1), header)
     }
 
     func testTheHeaderAndAddPageKeepTheirSizeOnScreen() {

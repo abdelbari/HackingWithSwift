@@ -134,9 +134,11 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   and "+ Add page" under the last. The page across the middle of the view,
   once it settles, is the one worked — only it shows the selection, guides,
   grid and margins — and a tap on something on another page selects it
-  there. Let go over another page, a dragged selection moves to it, one
-  Undo. Pages far from the view show a thumbnail; crop, typing, the pen, the
-  eraser and a preview keep the view on their page
+  there, a drag from it moves it. Let go over another page, a dragged
+  selection moves to it, under the finger as it was held and kept inside a
+  page of another size, one Undo. Zoomed in, each header keeps to the part
+  of its page on screen. Pages far from the view show a thumbnail; crop,
+  typing, the pen, the eraser and a preview keep the view on their page
 - Undo/redo with gesture coalescing (a whole drag is one step), autosave,
   lock, opacity, duplicate, align / distribute / flip / exact-position
   sheet, layers sheet with drag reorder. Saves land whole or not at all,

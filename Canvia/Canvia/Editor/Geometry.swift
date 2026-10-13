@@ -878,11 +878,26 @@ enum PageColumn {
         return at
     }
 
-    /// Where a box let go over another page lands on it, in that page's
-    /// units: its top-left corner, from page `from` to page `to` through the
-    /// column.
-    static func landing(_ box: CGRect, from: Slot, to: Slot) -> CGPoint {
-        to.toPage(from.toColumn(box.origin))
+    /// Where `box`, on page `from` in that page's units, lands on page `to`
+    /// when let go there with the finger at `finger` in column units, as a
+    /// top-left in that page's units: the finger kept on the same point of
+    /// the box, in page units — so on a page of another scale the box is
+    /// still under the finger where it was held.
+    static func landing(_ box: CGRect, finger: CGPoint, from: Slot, to: Slot) -> CGPoint {
+        let here = from.toPage(finger)
+        let there = to.toPage(finger)
+        return CGPoint(x: there.x + box.minX - here.x, y: there.y + box.minY - here.y)
+    }
+
+    /// `rect` cut across to `across`, the part of the column on screen from
+    /// left to right, so a header row's buttons stay in reach however far
+    /// the column is zoomed; nil when less than `least` of it is left.
+    static func trimmed(_ rect: CGRect, to across: ClosedRange<Double>?, least: Double) -> CGRect? {
+        guard let across else { return rect }
+        let left = max(Double(rect.minX), across.lowerBound)
+        let right = min(Double(rect.maxX), across.upperBound)
+        guard right - left >= least else { return nil }
+        return CGRect(x: left, y: Double(rect.minY), width: right - left, height: Double(rect.height))
     }
 
     /// The header row over `slot`, `unit` column units to a point on

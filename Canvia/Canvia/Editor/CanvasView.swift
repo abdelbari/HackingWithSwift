@@ -8,6 +8,7 @@
 // being worked is this same interactive page, scaled into its place, and the
 // others are drawn around it under their headers.
 
+import Observation
 import SwiftUI
 import UIKit
 
@@ -46,11 +47,19 @@ struct CanvasView: View {
     @State private var confirmingPageDelete = false
     @State private var editingPageNotes = false
 
-    /// Where the view is in the column, written as it scrolls, and whether
-    /// a finger set it moving; read when it comes to rest.
+    /// Where the view is in the column, written as it scrolls, the zoom
+    /// that fits it, and whether a finger set it moving; read when it comes
+    /// to rest, or when the page worked changes under a view standing still.
+    /// Only `across` is watched: the header rows, cut to it, redraw on their
+    /// own as the view pans across (ColumnRow).
+    @Observable
     final class ColumnSeen {
-        var visible: CGRect = .zero
-        var moved = false
+        @ObservationIgnored var visible: CGRect = .zero
+        @ObservationIgnored var fit = 0.0
+        @ObservationIgnored var moved = false
+        /// The column's left and right edges on screen, in column units;
+        /// nil until the canvas has said.
+        var across: ClosedRange<Double>?
     }
 
     /// Inverse zoom: ornaments are drawn in page units but should
@@ -106,6 +115,9 @@ struct CanvasView: View {
         /// The page in the column a move is over, other than its own: let
         /// go there, what moves goes to that page.
         var dropPage: Int?
+        /// What a drag from another page of the column is moving, once it
+        /// has made that page the one worked.
+        var columnDrag: String?
     }
 
     /// What a touch in crop mode landed on: one of the frame's brackets (the
@@ -180,6 +192,8 @@ struct CanvasView: View {
             request: canvasRequest(in: slot),
             column: slot.map { canvasColumn($0) },
             isControl: { point in isColumnControl(point) },
+            movesOtherPage: { point in otherPageHit(at: point) != nil },
+            onOtherPageDrag: { phase, start, now in otherPageDrag(phase, from: start, to: now) },
             onViewport: { visible, fit in viewportChanged(visible, fit: fit) },
             onMotion: { moving in motionChanged(moving) }
         ) {
@@ -206,6 +220,7 @@ struct CanvasView: View {
                 }
             }
             .onChange(of: store.pageIndex) { _, index in followPage(index) }
+            .onChange(of: columnSlot) { _, _ in republishViewport() }
             .onChange(of: columnSlot?.scale) { old, new in rescaleZoom(from: old, to: new) }
             .asksBeforeDeletingPage($confirmingPageDelete, store: store)
             .sheet(isPresented: $editingPageNotes) { PageNotesSheet(store: store) }
@@ -1001,129 +1016,139 @@ struct CanvasView: View {
         // pushed an undo step.
         DragGesture(minimumDistance: Touch.pageUnits(Touch.dragSlop, zoom: store.zoom),
                     coordinateSpace: .named("page"))
-            .onChanged { value in
-                guard !el.holdsPlace, store.editingTextId != el.id else { return }
-                if !gesture.dragActive {
-                    gesture.dragActive = true
-                    store.canvasTouchActive = true
-                    // Selected before the step opens: selecting ends any typing
-                    // as its own step, which must not swallow this move's.
-                    // Select multiple adds it, and the whole selection moves.
-                    if !store.selection.contains(el.id) {
-                        if store.selectingMultiple { store.tapInSelectMultiple(el.id) } else { store.select(el.id) }
-                    }
-                    store.beginGesture()
-                    gesture.dragOriginals = Dictionary(
-                        uniqueKeysWithValues: store.selectedElements
-                            .filter { !$0.holdsPlace }
-                            .map { ($0.id, CGPoint(x: $0.x, y: $0.y)) })
-                    let lines = Geometry.taggedSnapLines(design: store.design, page: store.page,
-                                                         excluding: Set(gesture.dragOriginals.keys),
-                                                         settings: store.snapping)
-                    gesture.snapTagsX = lines.x
-                    gesture.snapTagsY = lines.y
-                    gesture.snapX = lines.x.map(\.position)
-                    gesture.snapY = lines.y.map(\.position)
-                    gesture.dragUnion = Geometry.union(
-                        store.selectedElements.filter { !$0.holdsPlace }.map(Geometry.aabb))
-                    gesture.siblingBoxes = store.page.elements
-                        .filter { gesture.dragOriginals[$0.id] == nil && !$0.isHidden }
-                        .map(Geometry.aabb)
-                    // One photo on its own may be going into a frame.
-                    if gesture.dragOriginals.count == 1, let id = gesture.dragOriginals.keys.first,
-                       let photo = store.element(id), PhotoFrames.canDrop(photo) {
-                        gesture.framePhoto = id
-                    }
-                }
-                var dx = value.location.x - value.startLocation.x
-                var dy = value.location.y - value.startLocation.y
-                var gapX: Double?
-                var gapY: Double?
+            .onChanged { value in moveChanged(el, from: value.startLocation, to: value.location) }
+            .onEnded { value in moveEnded(from: value.startLocation, to: value.location) }
+    }
 
-                // Snap the union of moved boxes against page + siblings.
-                // Translating the grab-time union is exact, not an
-                // approximation: rotation happens about each element's own
-                // centre, which moves with it, so translating an element
-                // translates its bounding box, and the union of translated
-                // boxes is the translated union.
-                if !gesture.dragUnion.isEmpty {
-                    let moved = gesture.dragUnion.offsetBy(dx: dx, dy: dy)
-                    let snap = Geometry.snap(box: moved,
-                                             xLines: gesture.snapX, yLines: gesture.snapY,
-                                             threshold: 6 / store.zoom)
-                    dx += snap.dx
-                    dy += snap.dy
-                    store.guideX = snap.guideX
-                    store.guideY = snap.guideY
-                    let sourceX = Geometry.snapSource(at: snap.guideX, in: gesture.snapTagsX)
-                    let sourceY = Geometry.snapSource(at: snap.guideY, in: gesture.snapTagsY)
-                    if store.guideXSource != sourceX { store.guideXSource = sourceX }
-                    if store.guideYSource != sourceY { store.guideYSource = sourceY }
-                    // Equal spacing: between two neighbours, land at the
-                    // same distance from each and say what that distance is —
-                    // on an axis no line is holding (a grid line gives way),
-                    // so the two never pull the box between them.
-                    if store.snapping.toElements {
-                        let even = Geometry.equalGap(moving: gesture.dragUnion.offsetBy(dx: dx, dy: dy),
-                                                     siblings: gesture.siblingBoxes, threshold: 6 / store.zoom)
-                        gapX = (snap.guideX == nil || sourceX == .grid) ? even.gapX : nil
-                        gapY = (snap.guideY == nil || sourceY == .grid) ? even.gapY : nil
-                        if gapX != nil { dx += even.dx }
-                        if gapY != nil { dy += even.dy }
-                    }
-                    let spaced = gapX != nil || gapY != nil
-                    if store.spacingSnapped != spaced { store.spacingSnapped = spaced }
-                }
+    /// A move of `el`, and the rest of the selection with it, the finger
+    /// gone from `start` to `location` in page units — by its own drag, or
+    /// by a drag from another page of the column that made this page the
+    /// one worked (otherPageDrag).
+    private func moveChanged(_ el: Element, from start: CGPoint, to location: CGPoint) {
+        guard !el.holdsPlace, store.editingTextId != el.id else { return }
+        if !gesture.dragActive {
+            gesture.dragActive = true
+            store.canvasTouchActive = true
+            // Selected before the step opens: selecting ends any typing
+            // as its own step, which must not swallow this move's.
+            // Select multiple adds it, and the whole selection moves.
+            if !store.selection.contains(el.id) {
+                if store.selectingMultiple { store.tapInSelectMultiple(el.id) } else { store.select(el.id) }
+            }
+            store.beginGesture()
+            gesture.dragOriginals = Dictionary(
+                uniqueKeysWithValues: store.selectedElements
+                    .filter { !$0.holdsPlace }
+                    .map { ($0.id, CGPoint(x: $0.x, y: $0.y)) })
+            let lines = Geometry.taggedSnapLines(design: store.design, page: store.page,
+                                                 excluding: Set(gesture.dragOriginals.keys),
+                                                 settings: store.snapping)
+            gesture.snapTagsX = lines.x
+            gesture.snapTagsY = lines.y
+            gesture.snapX = lines.x.map(\.position)
+            gesture.snapY = lines.y.map(\.position)
+            gesture.dragUnion = Geometry.union(
+                store.selectedElements.filter { !$0.holdsPlace }.map(Geometry.aabb))
+            gesture.siblingBoxes = store.page.elements
+                .filter { gesture.dragOriginals[$0.id] == nil && !$0.isHidden }
+                .map(Geometry.aabb)
+            // One photo on its own may be going into a frame.
+            if gesture.dragOriginals.count == 1, let id = gesture.dragOriginals.keys.first,
+               let photo = store.element(id), PhotoFrames.canDrop(photo) {
+                gesture.framePhoto = id
+            }
+        }
+        var dx = location.x - start.x
+        var dy = location.y - start.y
+        var gapX: Double?
+        var gapY: Double?
 
-                // Where it is going, for the page edges it crosses, and — once
-                // the finger has really travelled — where it came from.
-                if !gesture.dragUnion.isEmpty {
-                    gesture.movedBox = gesture.dragUnion.offsetBy(dx: dx, dy: dy)
-                }
-                // The frame under the finger, lit up: let go there, the photo
-                // goes into it.
-                if let photo = gesture.framePhoto {
-                    let over = store.frameDropTarget(at: value.location, dragging: photo)
-                    if gesture.frameTarget != over { gesture.frameTarget = over }
-                }
-                // Over another page in the column, that page lit up: let go
-                // there, it goes to that page.
-                if columnOn {
-                    let over = dropPage(at: value.location)
-                    if gesture.dropPage != over { gesture.dropPage = over }
-                }
-                let travel = hypot(value.translation.width, value.translation.height) * store.zoom
-                if travel >= 14 && !gesture.ghost { gesture.ghost = true }
-                for i in store.design.pages[store.pageIndex].elements.indices {
-                    let id = store.design.pages[store.pageIndex].elements[i].id
-                    if let origin = gesture.dragOriginals[id] {
-                        store.design.pages[store.pageIndex].elements[i].x = origin.x + dx
-                        store.design.pages[store.pageIndex].elements[i].y = origin.y + dy
-                    }
-                }
-                // Where the moving box is, each axis a guide holds marked,
-                // and any gap made equal — as the Android twin reads it.
-                if let moved = gesture.movedBox {
-                    store.setBadge(Readouts.move(x: moved.minX, y: moved.minY,
-                                                 heldX: store.guideX != nil, heldY: store.guideY != nil,
-                                                 gapX: gapX, gapY: gapY))
-                }
+        // Snap the union of moved boxes against page + siblings.
+        // Translating the grab-time union is exact, not an
+        // approximation: rotation happens about each element's own
+        // centre, which moves with it, so translating an element
+        // translates its bounding box, and the union of translated
+        // boxes is the translated union.
+        if !gesture.dragUnion.isEmpty {
+            let moved = gesture.dragUnion.offsetBy(dx: dx, dy: dy)
+            let snap = Geometry.snap(box: moved,
+                                     xLines: gesture.snapX, yLines: gesture.snapY,
+                                     threshold: 6 / store.zoom)
+            dx += snap.dx
+            dy += snap.dy
+            store.guideX = snap.guideX
+            store.guideY = snap.guideY
+            let sourceX = Geometry.snapSource(at: snap.guideX, in: gesture.snapTagsX)
+            let sourceY = Geometry.snapSource(at: snap.guideY, in: gesture.snapTagsY)
+            if store.guideXSource != sourceX { store.guideXSource = sourceX }
+            if store.guideYSource != sourceY { store.guideYSource = sourceY }
+            // Equal spacing: between two neighbours, land at the
+            // same distance from each and say what that distance is —
+            // on an axis no line is holding (a grid line gives way),
+            // so the two never pull the box between them.
+            if store.snapping.toElements {
+                let even = Geometry.equalGap(moving: gesture.dragUnion.offsetBy(dx: dx, dy: dy),
+                                             siblings: gesture.siblingBoxes, threshold: 6 / store.zoom)
+                gapX = (snap.guideX == nil || sourceX == .grid) ? even.gapX : nil
+                gapY = (snap.guideY == nil || sourceY == .grid) ? even.gapY : nil
+                if gapX != nil { dx += even.dx }
+                if gapY != nil { dy += even.dy }
             }
-            .onEnded { value in
-                // Crossing the threshold and landing back where you started is
-                // a tap that wandered, not an edit: it must not enter history,
-                // or undo fills up with steps that changed nothing.
-                let moved = hypot(value.translation.width, value.translation.height) * store.zoom
-                if gesture.dragActive && moved >= Touch.tapSlop {
-                    // Let go over a frame, the photo goes into it — the move
-                    // and the drop one step; over another page in the column,
-                    // it goes there, one step too; anywhere else it is a move.
-                    if !dropIntoFrame(at: value.location) && !dropOntoPage(at: value.location) { store.commit() }
-                } else {
-                    store.endGesture()
-                }
-                clearTransient()
+            let spaced = gapX != nil || gapY != nil
+            if store.spacingSnapped != spaced { store.spacingSnapped = spaced }
+        }
+
+        // Where it is going, for the page edges it crosses, and — once
+        // the finger has really travelled — where it came from.
+        if !gesture.dragUnion.isEmpty {
+            gesture.movedBox = gesture.dragUnion.offsetBy(dx: dx, dy: dy)
+        }
+        // The frame under the finger, lit up: let go there, the photo
+        // goes into it.
+        if let photo = gesture.framePhoto {
+            let over = store.frameDropTarget(at: location, dragging: photo)
+            if gesture.frameTarget != over { gesture.frameTarget = over }
+        }
+        // Over another page in the column, that page lit up: let go
+        // there, it goes to that page.
+        if columnOn {
+            let over = dropPage(at: location)
+            if gesture.dropPage != over { gesture.dropPage = over }
+        }
+        let travel = hypot(location.x - start.x, location.y - start.y) * store.zoom
+        if travel >= 14 && !gesture.ghost { gesture.ghost = true }
+        for i in store.design.pages[store.pageIndex].elements.indices {
+            let id = store.design.pages[store.pageIndex].elements[i].id
+            if let origin = gesture.dragOriginals[id] {
+                store.design.pages[store.pageIndex].elements[i].x = origin.x + dx
+                store.design.pages[store.pageIndex].elements[i].y = origin.y + dy
             }
+        }
+        // Where the moving box is, each axis a guide holds marked,
+        // and any gap made equal — as the Android twin reads it.
+        if let moved = gesture.movedBox {
+            store.setBadge(Readouts.move(x: moved.minX, y: moved.minY,
+                                         heldX: store.guideX != nil, heldY: store.guideY != nil,
+                                         gapX: gapX, gapY: gapY))
+        }
+    }
+
+    /// The move let go with the finger at `location`, having started at
+    /// `start`, in page units.
+    private func moveEnded(from start: CGPoint, to location: CGPoint) {
+        // Crossing the threshold and landing back where you started is
+        // a tap that wandered, not an edit: it must not enter history,
+        // or undo fills up with steps that changed nothing.
+        let moved = hypot(location.x - start.x, location.y - start.y) * store.zoom
+        if gesture.dragActive && moved >= Touch.tapSlop {
+            // Let go over a frame, the photo goes into it — the move
+            // and the drop one step; over another page in the column,
+            // it goes there, one step too; anywhere else it is a move.
+            if !dropIntoFrame(at: location) && !dropOntoPage(at: location) { store.commit() }
+        } else {
+            store.endGesture()
+        }
+        clearTransient()
     }
 
     /// The photo being moved goes into the frame under `point`, if there is
@@ -1135,8 +1160,9 @@ struct CanvasView: View {
     }
 
     /// Let go over another page in the column, what moves goes there,
-    /// landing where it was let go — the move and the change of page one
-    /// step (DesignStore.moveSelectedToPage). True when it did.
+    /// under the finger as it was held (PageColumn.landing) — the move and
+    /// the change of page one step (DesignStore.moveSelectedToPage). True
+    /// when it did.
     private func dropOntoPage(at point: CGPoint) -> Bool {
         guard let target = dropPage(at: point), let from = columnSlot else { return false }
         let slots = columnSlots
@@ -1147,7 +1173,8 @@ struct CanvasView: View {
         let chosen = moving.filter { store.selection.contains($0.id) }
         let box = Geometry.union((chosen.isEmpty ? moving : chosen).map(Geometry.aabb))
         pageFromColumn = target
-        guard store.moveSelectedToPage(target, at: PageColumn.landing(box, from: from, to: slots[target])) else {
+        let at = PageColumn.landing(box, finger: from.toColumn(point), from: from, to: slots[target])
+        guard store.moveSelectedToPage(target, at: at) else {
             pageFromColumn = nil
             return false
         }
@@ -1527,6 +1554,9 @@ struct CanvasView: View {
         var fitting = fit
         if let slot = columnSlot {
             seen.visible = visible
+            seen.fit = fit
+            let across = Double(visible.minX)...Double(max(visible.maxX, visible.minX))
+            if seen.across != across { seen.across = across }
             shown = slot.pageBox(visible)
             fitting = fit * slot.scale
             let live = Set(PageColumn.livePages(columnSlots, visible: visible))
@@ -1535,6 +1565,15 @@ struct CanvasView: View {
         // Only real changes: every write redraws whatever reads it.
         if store.viewport != shown { store.viewport = shown }
         if store.fitZoom != fitting { store.fitZoom = fitting }
+    }
+
+    /// The page worked changed, or moved in the column, under a view
+    /// standing still — settled on, tapped on, picked elsewhere: what it
+    /// reads of the view said again in its own units, for the selection's
+    /// bubble, Bring it back and the zoom pill.
+    private func republishViewport() {
+        guard columnSlot != nil, seen.fit > 0 else { return }
+        viewportChanged(seen.visible, fit: seen.fit)
     }
 
     /// Only a view a finger moved settles on a page: one moved to bring a
@@ -1604,6 +1643,39 @@ struct CanvasView: View {
         if !store.selectingMultiple { store.select(nil) }
     }
 
+    /// The page other than the one worked that `point` in the column is on,
+    /// and the thing shown topmost there under it — none while something
+    /// holds the view to its page.
+    private func otherPageHit(at point: CGPoint) -> (page: Int, element: Element)? {
+        let slots = columnSlots
+        guard !pagePinned, let index = PageColumn.pageAt(point, in: slots), index != store.pageIndex else { return nil }
+        let at = slots[index].toPage(point)
+        guard let hit = store.design.pages[index].elements.last(where: { !$0.isHidden && Geometry.hits($0, point: at) })
+        else { return nil }
+        return (index, hit)
+    }
+
+    /// One finger dragged from something on another page (ZoomableCanvas's
+    /// movesOtherPage), `start` and `now` in column units: that page becomes
+    /// the one worked, where it is, and the thing moves as a drag on the
+    /// page worked moves it — let go over yet another page, it goes there.
+    private func otherPageDrag(_ phase: CanvasDrag, from start: CGPoint, to now: CGPoint) {
+        if phase == .began {
+            guard let found = otherPageHit(at: start) else { return }
+            commitTextEditIfAny()
+            pageFromColumn = found.page
+            store.setPage(found.page)
+            gesture.columnDrag = found.element.id
+        }
+        guard let id = gesture.columnDrag, let slot = columnSlot else { return }
+        let from = slot.toPage(start), to = slot.toPage(now)
+        if phase == .ended {
+            moveEnded(from: from, to: to)
+        } else if let el = store.element(id) {
+            moveChanged(el, from: from, to: to)
+        }
+    }
+
     /// The headers and "+ Add page" keep their own touches — unless the
     /// page is held, when the headers only say which page is which.
     private func isColumnControl(_ point: CGPoint) -> Bool {
@@ -1652,14 +1724,9 @@ struct CanvasView: View {
 
     /// `content` laid out at its size on screen, `height` points tall, and
     /// scaled into `rect` of the column — the same size however far the
-    /// column is zoomed.
+    /// column is zoomed — cut across to the part of the column on screen.
     private func onScreenSize(_ content: some View, in rect: CGRect, height: Double) -> some View {
-        let unit = columnPoint
-        return content
-            .frame(width: rect.width / unit, height: height)
-            .scaleEffect(unit, anchor: .topLeading)
-            .frame(width: rect.width, height: rect.height, alignment: .topLeading)
-            .offset(x: rect.minX, y: rect.minY)
+        ColumnRow(seen: seen, rect: rect, height: height, unit: columnPoint, content: content)
     }
 
     /// The page being worked: the canvas's own page, in its page units,
@@ -1711,5 +1778,29 @@ struct CanvasView: View {
             .frame(width: r.width, height: r.height)
             .offset(x: r.minX, y: r.minY)
             .allowsHitTesting(false)
+    }
+}
+
+/// A header row or "+ Add page" in the column: laid out at its size on
+/// screen, `height` points tall, scaled into `rect` of the column, and cut
+/// across to the part of the column on screen (PageColumn.trimmed) — so,
+/// zoomed in, its buttons stay in reach rather than a page's width away. A
+/// view of its own, so only it redraws as the view pans across.
+private struct ColumnRow<Content: View>: View {
+    let seen: CanvasView.ColumnSeen
+    let rect: CGRect
+    let height: Double
+    /// Column units to a point on screen.
+    let unit: Double
+    let content: Content
+
+    var body: some View {
+        if let r = PageColumn.trimmed(rect, to: seen.across, least: unit) {
+            content
+                .frame(width: r.width / unit, height: height)
+                .scaleEffect(unit, anchor: .topLeading)
+                .frame(width: r.width, height: r.height, alignment: .topLeading)
+                .offset(x: r.minX, y: r.minY)
+        }
     }
 }
