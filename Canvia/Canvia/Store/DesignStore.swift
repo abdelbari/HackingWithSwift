@@ -1563,6 +1563,36 @@ final class DesignStore {
         tipEvent = .pageAdded
     }
 
+    /// A template's pages, fitted to this page, applied as one undo step:
+    /// the first takes this page's place — its background and everything on
+    /// it — and the rest are added after it, in order, each at this page's
+    /// size.
+    func applyTemplatePages(_ pages: [Page], name: String) {
+        guard !pages.isEmpty else { return }
+        let at = pageIndex
+        apply { $0 = Self.appliedTemplate($0, pages: pages, at: at) }
+        selection.removeAll()
+        buzz(.confirm)
+        announce(pages.count == 1 ? "Started over from \u{201C}\(name)\u{201D}"
+                 : "Applied all \(pages.count) pages of \u{201C}\(name)\u{201D}")
+    }
+
+    /// The design with `pages` applied at page `index`, as above. Pure.
+    static func appliedTemplate(_ design: Design, pages: [Page], at index: Int) -> Design {
+        guard let first = pages.first, design.pages.indices.contains(index) else { return design }
+        var out = design
+        out.pages[index].background = first.background
+        out.pages[index].elements = first.elements
+        let rest = pages.dropFirst().map { page -> Page in
+            var sized = page
+            sized.width = design.pages[index].width
+            sized.height = design.pages[index].height
+            return sized
+        }
+        out.pages.insert(contentsOf: rest, at: index + 1)
+        return out
+    }
+
     func duplicatePage() {
         let copy = Copies.of(page)
         apply { $0.pages.insert(copy, at: pageIndex + 1) }

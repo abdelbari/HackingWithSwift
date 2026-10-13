@@ -159,11 +159,13 @@ struct CustomSizeTile: View {
     }
 }
 
-/// The blank start first, then every template at exactly this size.
+/// The blank start first, then your own templates at exactly this size,
+/// then every template of the library's at it.
 private struct StartGrid: View {
     let preset: SizePreset
     @Binding var category: String?
     var onCreate: (Design) -> Void
+    @State private var mine: [UserTemplate] = []
 
     private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
@@ -182,6 +184,11 @@ private struct StartGrid: View {
                     // Home makes the name one the shelf does not have yet.
                     onCreate(preset.makeDesign())
                 }
+                if category == nil {
+                    ForEach(mine) { entry in
+                        StartUserTemplateCard(entry: entry) { use(entry) }
+                    }
+                }
                 ForEach(shown) { template in
                     StartTemplateCard(template: template) { onCreate(template.instantiate(for: preset)) }
                 }
@@ -190,6 +197,17 @@ private struct StartGrid: View {
         .padding(.horizontal, 20)
         .padding(.top, 8)
         .padding(.bottom, 24)
+        .onAppear { mine = UserTemplates.sized(UserTemplates.all(), width: preset.w, height: preset.h) }
+    }
+
+    /// A new design from a fresh copy of the template, every page, in the
+    /// size's unit.
+    private func use(_ entry: UserTemplate) {
+        guard let template = UserTemplates.load(id: entry.id) else { return }
+        var design = UserTemplates.newDesign(from: template)
+        design.unit = preset.unit
+        design.dpi = preset.dpi
+        onCreate(design)
     }
 
     private func topicChips(_ bucket: [Template]) -> some View {
@@ -263,6 +281,29 @@ private struct StartTemplateCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(template.name), \(template.category) template")
+    }
+}
+
+/// One of your own templates among a size's starts.
+private struct StartUserTemplateCard: View {
+    let entry: UserTemplate
+    var action: () -> Void
+
+    var body: some View {
+        let ratio = min(max(entry.width / max(entry.height, 1), 0.45), 2.2)
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 6) {
+                UserTemplateThumb(entry: entry)
+                    .aspectRatio(ratio, contentMode: .fit)
+                    .frame(maxWidth: .infinity)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.hairline))
+                Text(entry.name)
+                    .font(.subheadline)
+                    .lineLimit(1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(entry.name), your template")
     }
 }
 

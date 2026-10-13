@@ -47,6 +47,13 @@ struct HomeView: View {
     @State private var replayTour = false
     /// The Vibration switch, shared with the editor.
     @AppStorage(Haptics.key) private var haptics = true
+    /// Your own templates, first under the templates.
+    @State private var userTemplates: [UserTemplate] = []
+    /// The "Yours" chip: only your own templates.
+    @State private var yoursOnly = false
+    @State private var renamingTemplate: UserTemplate?
+    @State private var templateRenameText = ""
+    @State private var deletingTemplate: UserTemplate?
     @State private var renaming: RecentDesign?
     @State private var renameText = ""
     @State private var query = ""
@@ -128,17 +135,7 @@ struct HomeView: View {
                 // Sizes the search names, above the templates: "tiktok"
                 // finds TikTok Video, to start one.
                 if !matchingTypes.isEmpty { designTypeMatches }
-                Text("Start from a template")
-                    .font(.title3.weight(.bold))
-                    .padding(.horizontal)
-                templateCategoryChips
-                if shownTemplates.isEmpty {
-                    Text("No template matches “\(query)”.")
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal)
-                } else {
-                    templatesGrid
-                }
+                templatesPart
             }
             .padding(.bottom, 40)
         }
@@ -256,10 +253,12 @@ struct HomeView: View {
         reloads += 1
         let generation = reloads
         Task { @MainActor in
-            let (shelf, binned) = await Task.detached(priority: .userInitiated) { () -> (DesignLibrary.Shelf, [RecentDesign]) in
-                (DesignLibrary.shelf(), DesignLibrary.trashed())
+            let (shelf, binned, mine) = await Task.detached(priority: .userInitiated) {
+                () -> (DesignLibrary.Shelf, [RecentDesign], [UserTemplate]) in
+                (DesignLibrary.shelf(), DesignLibrary.trashed(), UserTemplates.all())
             }.value
             guard generation == reloads else { return }
+            userTemplates = mine
             show(shelf, trashed: binned)
         }
     }
@@ -376,14 +375,25 @@ struct HomeView: View {
     // MARK: chips
 
     /// One row of categories over the templates, so browsing is a tap
-    /// rather than a scroll through everything.
+    /// rather than a scroll through everything: "Yours" after All when you
+    /// have templates of your own.
     private var templateCategoryChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                chip("All", selected: templateCategory == nil) { templateCategory = nil }
+                chip("All", selected: templateCategory == nil && !yoursOnly) {
+                    templateCategory = nil
+                    yoursOnly = false
+                }
+                if !userTemplates.isEmpty {
+                    chip(UserTemplates.chipTitle, selected: yoursOnly) {
+                        yoursOnly.toggle()
+                        templateCategory = nil
+                    }
+                }
                 ForEach(ContentLibrary.templateCategories, id: \.self) { category in
                     chip(category, selected: templateCategory == category) {
                         templateCategory = templateCategory == category ? nil : category
+                        yoursOnly = false
                     }
                 }
             }
@@ -1203,6 +1213,88 @@ struct HomeView: View {
     }
 
     // MARK: templates
+
+    /// The templates: your own first, under "Your templates", then the
+    /// library's — or yours alone under the Yours chip.
+    private var templatesPart: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Start from a template")
+                .font(.title3.weight(.bold))
+                .padding(.horizontal)
+            templateCategoryChips
+            if templateCategory == nil && !shownUserTemplates.isEmpty {
+                Text(UserTemplates.sectionTitle)
+                    .font(.headline)
+                    .padding(.horizontal)
+                userTemplatesGrid
+            }
+            if yoursOnly {
+                if shownUserTemplates.isEmpty {
+                    Text("None of your templates matches “\(query)”.")
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+                }
+            } else if shownTemplates.isEmpty {
+                Text("No template matches “\(query)”.")
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+            } else {
+                templatesGrid
+            }
+        }
+        .modifier(UserTemplateDialogs(renaming: $renamingTemplate, renameText: $templateRenameText,
+                                      deleting: $deletingTemplate) { reload() })
+    }
+
+    private var shownUserTemplates: [UserTemplate] {
+        UserTemplates.matching(userTemplates, query: query)
+    }
+
+    /// Your own: a tap makes a new design from a fresh copy, every page.
+    private var userTemplatesGrid: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
+            ForEach(shownUserTemplates) { entry in
+                Button {
+                    if let template = UserTemplates.load(id: entry.id) {
+                        create(UserTemplates.newDesign(from: template))
+                    }
+                } label: {
+                    VStack(alignment: .leading, spacing: 0) {
+                        UserTemplateThumb(entry: entry)
+                            .frame(height: 150)
+                            .frame(maxWidth: .infinity)
+                            .clipped()
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(entry.name)
+                                .font(.subheadline.weight(.semibold))
+                                .lineLimit(1)
+                            Text(entry.caption)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .background(Theme.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(color: .black.opacity(0.08), radius: 5, y: 2)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(entry.name), your template, \(entry.caption)")
+                .contextMenu {
+                    Button {
+                        templateRenameText = entry.name
+                        renamingTemplate = entry
+                    } label: { Label("Rename", systemImage: "pencil") }
+                    Button(role: .destructive) { deletingTemplate = entry } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+            }
+        }
+        .padding(.horizontal)
+    }
 
     private var templatesGrid: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {

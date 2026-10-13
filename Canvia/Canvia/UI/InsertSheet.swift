@@ -20,6 +20,8 @@ struct InsertSheet: View {
     /// Every template, fitted to this page, rather than only those made for
     /// its size.
     @State private var everySizeTemplates = false
+    /// A template of several pages, while what to do with it is asked.
+    @State private var templateChoice: TemplateChoice?
     /// The component whose deletion is being asked about.
     @State private var removingComponent: Component?
     /// The words typed for a code are more than a code holds.
@@ -175,6 +177,7 @@ struct InsertSheet: View {
         case "Templates":
             return ContentLibrary.editorTemplates(width: store.pageWidth, height: store.pageHeight,
                                                   everySize: true, matching: search).isEmpty
+                && UserTemplates.matching(UserTemplates.all(), query: search).isEmpty
         case "Elements":
             return !ContentLibrary.shapes.contains { ContentLibrary.shape($0, matches: search) }
                 && IconLibrary.search(search).isEmpty
@@ -190,6 +193,8 @@ struct InsertSheet: View {
     /// chip away. A tap starts the page over from the template, as one Undo.
     private var templatesGrid: some View {
         VStack(alignment: .leading, spacing: 10) {
+            // Your own first, every size, fitted to this page.
+            EditorYourTemplates(store: store, search: search) { dismiss() }
             if !exactTemplates.isEmpty {
                 Toggle("Every size, fitted to this page", isOn: $everySizeTemplates)
                     .toggleStyle(.button)
@@ -209,6 +214,7 @@ struct InsertSheet: View {
             }
         }
         .padding()
+        .templatePageChoice($templateChoice, store: store) { dismiss() }
     }
 
     private func templateTile(_ template: Template) -> some View {
@@ -231,6 +237,11 @@ struct InsertSheet: View {
     /// fitted to this page's own size — which in a design of mixed sizes
     /// need not be the document's — as one step the toast can take back.
     private func startOver(from template: Template) {
+        // One of several pages asks first: all of them, or one.
+        guard template.pageCount == 1 else {
+            templateChoice = TemplateChoice(id: template.id, name: template.name, design: template.instantiate())
+            return
+        }
         let page = template.makePage(width: store.pageWidth, height: store.pageHeight)
         store.applyToPage { current in
             current.background = page.background

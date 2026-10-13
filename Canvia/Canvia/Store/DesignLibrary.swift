@@ -672,7 +672,7 @@ enum DesignLibrary {
         if let open = editing.first { byID[open.id] = open }
         let count = byID.values.filter { uses($0, upload: id, kind: kind) }.count
         guard count == 0, !unreadable else { return UploadUse(designs: count, held: true) }
-        let held = (allVersions() + editing).contains { uses($0, upload: id, kind: kind) }
+        let held = (allVersions() + UserTemplates.designs() + editing).contains { uses($0, upload: id, kind: kind) }
         return UploadUse(designs: 0, held: held)
     }
 
@@ -688,12 +688,12 @@ enum DesignLibrary {
         }
     }
 
-    /// Every design, live and trashed, and every kept version of each — or
-    /// nil when a design's file no longer reads, and so what it uses
-    /// cannot be known. Each sweep keeps what these use.
+    /// Every design, live and trashed, every kept version of each, and
+    /// your templates — or nil when a design's file no longer reads, and so
+    /// what it uses cannot be known. Each sweep keeps what these use.
     private static func everyDesign() -> [Design]? {
         guard let designs = allDesigns() else { return nil }
-        return designs + allVersions()
+        return designs + allVersions() + UserTemplates.designs()
     }
 
     /// Every kept version of every design that still reads. One that does

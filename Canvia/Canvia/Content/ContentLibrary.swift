@@ -12,6 +12,12 @@ struct ShapeDef: Codable, Identifiable {
     var rectLike: Bool?
 }
 
+/// One page of a template that has several.
+struct TemplatePage: Codable {
+    var background: Background
+    var elements: [Element]
+}
+
 struct Template: Codable, Identifiable {
     var id: String
     var name: String
@@ -20,12 +26,25 @@ struct Template: Codable, Identifiable {
     var height: Double
     var background: Background
     var elements: [Element]
+    /// Every page, for a template that has several, as the Android twin
+    /// reads them: {"background", "elements"} each. Nil or empty is the
+    /// one page `background` and `elements` describe.
+    var pages: [TemplatePage]? = nil
 
-    /// A fresh Design at the template's native size — in the unit of the
-    /// print type made at exactly that size, so an A4 template prints on A4.
+    /// The template's pages, in order: one for a single-page template.
+    var pageSpecs: [TemplatePage] {
+        if let pages, !pages.isEmpty { return pages }
+        return [TemplatePage(background: background, elements: elements)]
+    }
+
+    var pageCount: Int { pageSpecs.count }
+
+    /// A fresh Design at the template's native size, every page of it — in
+    /// the unit of the print type made at exactly that size, so an A4
+    /// template prints on A4.
     func instantiate() -> Design {
         var design = Design(title: name, width: width, height: height)
-        design.pages = [makePage(scale: 1, dx: 0, dy: 0)]
+        design.pages = pageSpecs.map { makePage($0, scale: 1, dx: 0, dy: 0) }
         if let type = SizePreset.all.first(where: { $0.unit != nil && $0.w == width && $0.h == height }) {
             design.unit = type.unit
             design.dpi = type.dpi
@@ -42,7 +61,7 @@ struct Template: Codable, Identifiable {
             design = instantiate()
         } else {
             design = Design(title: name, width: preset.w, height: preset.h)
-            design.pages = [makePage(width: preset.w, height: preset.h)]
+            design.pages = pageSpecs.indices.map { makePage(at: $0, width: preset.w, height: preset.h) }
         }
         design.unit = preset.unit
         design.dpi = preset.dpi
@@ -61,17 +80,25 @@ struct Template: Codable, Identifiable {
     /// design of mixed sizes need not be the document's. As the Android
     /// twin's instantiate(width, height).
     func makePage(width pageWidth: Double, height pageHeight: Double) -> Page {
-        guard width > 0, height > 0 else { return Page(background: background) }
+        makePage(at: 0, width: pageWidth, height: pageHeight)
+    }
+
+    /// Page `index` of the template (the first when there is no such page)
+    /// fitted to a page of this size, as above.
+    func makePage(at index: Int, width pageWidth: Double, height pageHeight: Double) -> Page {
+        let specs = pageSpecs
+        let spec = specs.indices.contains(index) ? specs[index] : specs[0]
+        guard width > 0, height > 0 else { return Page(background: spec.background) }
         let scale = min(pageWidth / width, pageHeight / height)
         let dx = (pageWidth - width * scale) / 2
         let dy = (pageHeight - height * scale) / 2
-        return makePage(scale: scale, dx: dx, dy: dy)
+        return makePage(spec, scale: scale, dx: dx, dy: dy)
     }
 
-    private func makePage(scale: Double, dx: Double, dy: Double) -> Page {
-        var page = Page(background: background)
-        page.elements = elements.map { spec in
-            var el = spec
+    private func makePage(_ spec: TemplatePage, scale: Double, dx: Double, dy: Double) -> Page {
+        var page = Page(background: spec.background)
+        page.elements = spec.elements.map { item in
+            var el = item
             el.id = UID.make()
             el.x = el.x * scale + dx
             el.y = el.y * scale + dy
