@@ -62,6 +62,7 @@ enum ElementNames {
         switch source {
         case .pageCentre: return vertical ? "Centre of the page" : "Middle of the page"
         case .pageEdge: return "Edge of the page"
+        case .bleedEdge: return "Edge of the bleed"
         case .guide: return "Your guide"
         case .grid: return "Grid"
         case .margin: return "Page margin"

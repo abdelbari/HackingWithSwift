@@ -1967,6 +1967,16 @@ final class DesignStore {
         }
     }
 
+    // MARK: print bleed
+
+    /// "Show print bleed" turned `on` — 3 mm at the design's dpi (Bleed) —
+    /// or off, the key gone: a property of the design, so one step; nothing
+    /// when it already is.
+    func setBleed(_ on: Bool) {
+        guard Bleed.shown(design) != on else { return }
+        apply { $0 = Bleed.withBleed($0, on: on) }
+    }
+
     // MARK: master page and guides
 
     /// Make the current page the master (or clear it), one undo step.

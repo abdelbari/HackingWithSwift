@@ -46,6 +46,10 @@ struct CanvasView: View {
     /// A page header's Delete asking first, and its Notes.
     @State private var confirmingPageDelete = false
     @State private var editingPageNotes = false
+    /// The bleed band's "Bleed" label, shown for its first few seconds.
+    @State private var bleedLabel = false
+    /// Rulers, from the More menu: off unless turned on (RulersView).
+    @AppStorage(Guides.rulersKey) private var rulers = false
 
     /// Where the view is in the column, written as it scrolls, the zoom
     /// that fits it, and whether a finger set it moving; read when it comes
@@ -65,6 +69,9 @@ struct CanvasView: View {
     /// Inverse zoom: ornaments are drawn in page units but should
     /// stay a constant size on screen.
     private var iz: Double { 1 / max(store.zoom, 0.01) }
+
+    /// The design's print bleed, in page units; 0 when none is shown.
+    private var bleed: Double { Bleed.of(store.design) }
 
     struct GestureState {
         var dragOriginals: [String: CGPoint] = [:]
@@ -226,6 +233,14 @@ struct CanvasView: View {
             .onChange(of: columnSlot?.scale) { old, new in rescaleZoom(from: old, to: new) }
             .asksBeforeDeletingPage($confirmingPageDelete, store: store)
             .sheet(isPresented: $editingPageNotes) { PageNotesSheet(store: store) }
+            .task(id: Bleed.shown(store.design)) {
+                // The bleed band says what it is for its first few seconds.
+                bleedLabel = Bleed.shown(store.design)
+                guard bleedLabel else { return }
+                try? await Task.sleep(for: .seconds(Bleed.labelSeconds))
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeOut(duration: 0.3)) { bleedLabel = false }
+            }
     }
 
     /// The box being typed in, as it is now.
@@ -255,8 +270,9 @@ struct CanvasView: View {
                 // Divided by zoom like every other ornament: this lives inside
                 // the scroll view's zoomed subview, so a fixed radius was 4pt
                 // of blur at fit zoom — the page looked pasted flat onto the
-                // workspace — and a 42pt black halo at 3x.
-                .shadow(color: .black.opacity(0.16), radius: 12 * iz, y: 3 * iz)
+                // workspace — and a 42pt black halo at 3x. With a bleed shown
+                // the band casts it instead, from its own edge.
+                .shadow(color: .black.opacity(bleed > 0 ? 0 : 0.16), radius: 12 * iz, y: 3 * iz)
 
             // Deselect (and commit any inline text edit) on the page surface
             // itself: the workspace-background tap can't fire here because
@@ -283,6 +299,7 @@ struct CanvasView: View {
                 .gesture(marqueeGesture)
 
             Group {
+                if bleed > 0 { TrimLine(size: store.pageSize, unit: iz) }
                 if store.snapping.showGrid { gridOverlay }
                 if store.snapping.marginEnabled && store.snapping.showMargins { marginOverlay }
                 ForEach(store.design.guides) { guide in guideLine(guide) }
@@ -325,6 +342,13 @@ struct CanvasView: View {
                 if let tool = store.drawing { drawingLayer(tool) }
                 if store.erasing != nil { eraserLayer }
                 if let crop = store.cropping, let photo = store.cropElement { cropLayer(photo, crop) }
+            }
+        }
+        // The print bleed round the page, when the design shows one: behind
+        // the page, and as big again as the bleed all round.
+        .background {
+            if bleed > 0 {
+                BleedBand(design: store.design, page: shownPage, bleed: bleed, unit: iz, labelled: bleedLabel)
             }
         }
         // Pictures, text and links from other apps land where they are let go.
@@ -836,7 +860,8 @@ struct CanvasView: View {
 
     /// A guide: a thin line across the page that can be dragged into place,
     /// and pressed and held for Position… and Remove. Its touch target is
-    /// wide though the line is not.
+    /// wide though the line is not. With the rulers on, one dragged back
+    /// onto its ruler goes, in the same step as the drag.
     private func guideLine(_ guide: Guide) -> some View {
         let w = store.pageWidth, h = store.pageHeight
         return Rectangle()
@@ -848,13 +873,28 @@ struct CanvasView: View {
                     .onChanged { value in
                         store.moveGuideTransient(guide.id, to: guide.vertical ? value.location.x : value.location.y)
                     }
-                    .onEnded { _ in store.commit() }
+                    .onEnded { value in
+                        if rulers && overRuler(value.location, vertical: guide.vertical) {
+                            store.removeGuide(guide.id)
+                        } else {
+                            store.commit()
+                        }
+                    }
             )
             .onLongPressGesture(minimumDuration: 0.5) { guideMenu = guide }
             .position(x: guide.vertical ? guide.position : w / 2, y: guide.vertical ? h / 2 : guide.position)
             .accessibilityLabel(guideTitle(guide))
             .accessibilityHint("Drag to move, press and hold to place or remove; or use the actions to move, place or remove it")
             .accessibilityActions { guideActions(guide) }
+    }
+
+    /// Whether `point` on the page is on screen over the ruler a guide
+    /// across it — `vertical` or not — came from.
+    private func overRuler(_ point: CGPoint, vertical: Bool) -> Bool {
+        let view = store.viewport
+        return vertical
+            ? Guides.onRuler(Double(point.x), viewportStart: Double(view.minX), zoom: store.zoom)
+            : Guides.onRuler(Double(point.y), viewportStart: Double(view.minY), zoom: store.zoom)
     }
 
     /// A guide moved a step or taken away without a drag, for VoiceOver and
@@ -1812,6 +1852,14 @@ struct CanvasView: View {
         return Group {
             if livePages.contains(index) {
                 PageRenderView(design: store.design, page: page)
+                    // Its bleed too, and its trim dashed, as round the page
+                    // being worked — only that page names it.
+                    .background {
+                        if bleed > 0 { BleedBand(design: store.design, page: page, bleed: bleed, unit: point / slot.scale) }
+                    }
+                    .overlay {
+                        if bleed > 0 { TrimLine(size: store.design.size(for: page), unit: point / slot.scale) }
+                    }
                     .environment(\.onScreen, true)
                     .scaleEffect(slot.scale, anchor: .topLeading)
                     .frame(width: r.width, height: r.height, alignment: .topLeading)

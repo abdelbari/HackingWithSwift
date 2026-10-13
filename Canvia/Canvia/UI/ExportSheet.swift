@@ -463,10 +463,12 @@ struct ExportSheet: View {
                                 pages: pageRange.rawValue).json
     }
 
-    /// The pages ticked this session, and the remembered settings, as the
-    /// sheet opens.
+    /// The pages ticked this session, the design's bleed, and the
+    /// remembered settings, as the sheet opens.
     private func restoreSettings() {
         chosenIds = ExportChoices.chosen(for: store.design)
+        // The Bleed stepper starts at the design's own bleed, on paper.
+        paper.bleed = Bleed.printPoints(store.design)
         // The default picture format, unless the last export is remembered.
         photosFormat = defaultFormat == "jpg" ? .jpeg : .png
         guard let last = ExportLast.read(exportLast) else { return }
@@ -660,6 +662,12 @@ struct ExportSheet: View {
                 ForEach(PrintLayout.Fit.allCases) { Text($0.name).tag($0) }
             }
             Stepper(value: $paper.bleed, in: 0...36, step: 3) { Text("Bleed \(String(format: "%.0f", paper.bleed / 2.835)) mm") }
+            // A design with no bleed of its own has one made for it.
+            if paper.bleed > 0 && !Bleed.shown(exportedDesign) {
+                Text(PrintLayout.enlargedNote)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
             Toggle("Crop marks", isOn: $paper.cropMarks)
         }
     }

@@ -229,17 +229,24 @@ enum DesignExporter {
 
     /// The page as pixels. Everything raster goes through here: files, the
     /// clipboard, and any test that wants to look at the output.
+    ///
+    /// With a `bleed`, in page units, the picture is of the page and that
+    /// much round it (PageRenderView) — only the print-ready PDF flattened
+    /// asks for one.
     @MainActor
     static func render(design: Design, page: Page, scale: Double,
-                       transparent: Bool = false) -> CGImage? {
+                       transparent: Bool = false, bleed: Double = 0) -> CGImage? {
         // A transparent export drops the page's own background rather than
         // just turning off compositing: "no background" has to mean the
         // background is gone, not that an opaque white one is drawn
         // without an alpha channel.
         var rendered = page
         if transparent { rendered.background = .color("#00000000") }
-        let renderer = ImageRenderer(content: PageRenderView(design: design, page: rendered))
-        renderer.scale = CGFloat(effectiveScale(size: design.size(for: page), requested: scale))
+        let renderer = ImageRenderer(content: PageRenderView(design: design, page: rendered, bleed: bleed))
+        let size = design.size(for: page)
+        let reach = max(bleed, 0)
+        let drawn = CGSize(width: Double(size.width) + 2 * reach, height: Double(size.height) + 2 * reach)
+        renderer.scale = CGFloat(effectiveScale(size: drawn, requested: scale))
         // Opaque unless asked otherwise: every page background is a
         // colour, a gradient, or an image over white, so compositing an
         // alpha channel is work both encoders would discard.
@@ -500,7 +507,9 @@ enum DesignExporter {
     }
 
     /// A print-ready PDF on real paper: each design page fitted, at actual
-    /// size, or tiled across sheets; with optional bleed and crop marks.
+    /// size, or tiled across sheets; with optional bleed and crop marks. A
+    /// design with a bleed of its own prints it: the page at its true size,
+    /// what was put past the trim in the band (PrintLayout.drawing).
     /// Written a sheet at a time, with `progress` after each and a pause
     /// between them, so a forty-sheet tiled poster can be watched and
     /// cancelled; a cancelled PDF is deleted.
@@ -513,6 +522,7 @@ enum DesignExporter {
         guard !indices.isEmpty else { throw ExportError.renderFailed }
         let total = max(1, sheetCount(design: design, indices: indices, options: options))
         let writer = try PDFWriter(url: url, bounds: sheet)
+        let designed = Bleed.shown(design)
         var pacer = Pacer()
         var done = 0
         do {
@@ -520,7 +530,16 @@ enum DesignExporter {
                 let pagePts = PrintLayout.pagePoints(size: design.size(for: page), dpi: design.effectiveDPI, bleed: options.bleed)
                 for placement in placements(pagePoints: pagePts, options: options) {
                     try await pacer.breathe()
-                    writer.page(sheet) { cg in
+                    // A sheet holding a whole page of a design with a bleed
+                    // of its own says where its trim and bleed are, for the
+                    // print shop's software — the two the same with the
+                    // stepper at 0 — as Android adds them. One without
+                    // prints exactly as before, with neither.
+                    let boxes = designed
+                        ? PrintLayout.boxes(sheet: placement.sheetRect, source: placement.source, page: pagePts,
+                                            bleed: options.bleed, sheetHeight: Double(sheet.height))
+                        : nil
+                    writer.page(sheet, trim: boxes?.trim, bleed: boxes?.bleed) { cg in
                         drawSheet(design: design, page: page, pagePoints: pagePts,
                                   placement: placement, options: options, flatten: flatten, into: cg)
                     }
@@ -550,21 +569,23 @@ enum DesignExporter {
         cg.translateBy(x: placement.sheetRect.minX - placement.source.minX * scale,
                        y: placement.sheetRect.minY - placement.source.minY * scale)
         cg.scaleBy(x: scale, y: scale)
-        // Nothing past the bleed. The page enlarged evenly
+        // Nothing past the bleed. A page enlarged evenly
         // runs past it on its long side, and a tile's source
         // reaches past the page's far edge, so without this
         // the last row or column of tiles printed artwork
         // beyond the bleed and under the crop marks.
         cg.clip(to: CGRect(origin: .zero, size: pagePts))
-        // The page itself sits inside the bleed; the bleed is
-        // the page's own edges carried out — drawn here as
-        // the page enlarged evenly to cover it, the way a
-        // print shop's bleed is made when none was designed.
-        let bleedRect = CGRect(origin: .zero, size: pagePts)
+        // The page itself sits inside the bleed. A design with
+        // a bleed of its own is drawn at its true size, what it
+        // put past the trim filling the band; one without is
+        // enlarged evenly to cover it, the way a print shop's
+        // bleed is made when none was designed.
+        let drawing = PrintLayout.drawing(size: design.size(for: page), bleed: options.bleed,
+                                          pxToPt: PrintLayout.pxToPt(design), designed: Bleed.shown(design))
         if flatten {
-            drawFlattened(design: design, page: page, fitting: bleedRect)
+            drawFlattened(design: design, page: page, drawing: drawing)
         } else {
-            draw(design: design, page: page, into: cg, fitting: bleedRect)
+            draw(design: design, page: page, into: cg, drawing: drawing)
         }
         cg.restoreGState()
         if options.cropMarks {
@@ -599,12 +620,14 @@ enum DesignExporter {
             self.context = context
         }
 
-        /// One page of `box` (in points), drawn by `body`.
-        func page(_ box: CGRect, body: (CGContext) -> Void) {
-            var media = box
-            let mediaData = Data(bytes: &media, count: MemoryLayout<CGRect>.size)
-            let info = [kCGPDFContextMediaBox as String: mediaData] as CFDictionary
-            context.beginPDFPage(info)
+        /// One page of `box` (in points), drawn by `body` — with its
+        /// TrimBox and BleedBox, in the PDF's own points up from the
+        /// bottom, when given.
+        func page(_ box: CGRect, trim: CGRect? = nil, bleed: CGRect? = nil, body: (CGContext) -> Void) {
+            var info = [kCGPDFContextMediaBox as String: Self.boxData(box)]
+            if let trim { info[kCGPDFContextTrimBox as String] = Self.boxData(trim) }
+            if let bleed { info[kCGPDFContextBleedBox as String] = Self.boxData(bleed) }
+            context.beginPDFPage(info as CFDictionary)
             context.saveGState()
             context.translateBy(x: 0, y: box.height)
             context.scaleBy(x: 1, y: -1)
@@ -615,6 +638,12 @@ enum DesignExporter {
             context.endPDFPage()
         }
 
+        /// A box as the page's info dictionary takes it.
+        private static func boxData(_ box: CGRect) -> Data {
+            var rect = box
+            return Data(bytes: &rect, count: MemoryLayout<CGRect>.size)
+        }
+
         /// Finishes the file. Safe to call twice.
         func close() {
             guard !closed else { return }
@@ -623,26 +652,40 @@ enum DesignExporter {
         }
     }
 
+    /// The page of `size` scaled evenly to cover `bounds`, and centred: a
+    /// bleed wider on one side than the other in proportion never stretches
+    /// the page, so a circle stays round. Cut at the page's edge, as the
+    /// canvas cuts it — the Android twin draws the same.
+    private static func covering(_ bounds: CGRect, size: CGSize) -> PrintLayout.Drawing {
+        let w = Double(size.width), h = Double(size.height)
+        let scale = max(Double(bounds.width) / max(w, 1), Double(bounds.height) / max(h, 1))
+        return PrintLayout.Drawing(origin: CGPoint(x: Double(bounds.minX) + (Double(bounds.width) - w * scale) / 2,
+                                                   y: Double(bounds.minY) + (Double(bounds.height) - h * scale) / 2),
+                                   scale: scale, clip: CGRect(x: 0, y: 0, width: w, height: h))
+    }
+
     /// Draw one page into an arbitrary context at `bounds`, as vectors.
     @MainActor
     private static func draw(design: Design, page: Page,
                              into context: CGContext, fitting bounds: CGRect) {
-        let renderer = ImageRenderer(content: PageRenderView(design: design, page: page))
+        draw(design: design, page: page, into: context, drawing: covering(bounds, size: design.size(for: page)))
+    }
+
+    /// Draw one page as `drawing` places it, as vectors: the view draws in
+    /// the design's own units, scaled onto the PDF page rather than resized,
+    /// so no layout depends on the output size. A clip reaching past the
+    /// page is a designed bleed, drawn by the page itself out to there.
+    @MainActor
+    private static func draw(design: Design, page: Page,
+                             into context: CGContext, drawing: PrintLayout.Drawing) {
+        let reach = max(0, -Double(drawing.clip.minX))
+        let renderer = ImageRenderer(content: PageRenderView(design: design, page: page, bleed: reach))
         renderer.render { size, drawInContext in
             context.saveGState()
-            // The view draws in the design's own units; scale that onto the
-            // PDF page rather than resizing the view, so no layout depends on
-            // the output size. Evenly, to cover `bounds`, and centred: a
-            // bleed wider on one side than the other in proportion never
-            // stretches the page, so a circle stays round. Cut at the page's
-            // edge, as the canvas cuts it — the Android twin draws the same.
-            let across = bounds.width / max(size.width, 1)
-            let down = bounds.height / max(size.height, 1)
-            let scale = max(across, down)
-            let dx = bounds.minX + (bounds.width - size.width * scale) / 2
-            let dy = bounds.minY + (bounds.height - size.height * scale) / 2
-            context.translateBy(x: dx, y: dy)
-            context.scaleBy(x: scale, y: scale)
+            // The view's top left is the bleed's, `reach` before the page's.
+            context.translateBy(x: Double(drawing.origin.x) - reach * drawing.scale,
+                                y: Double(drawing.origin.y) - reach * drawing.scale)
+            context.scaleBy(x: drawing.scale, y: drawing.scale)
             context.clip(to: CGRect(origin: .zero, size: size))
             drawInContext(context)
             context.restoreGState()
@@ -663,11 +706,19 @@ enum DesignExporter {
     /// UIKit context, which the PDF writer has set up the right way up.
     @MainActor
     private static func drawFlattened(design: Design, page: Page, fitting bounds: CGRect) {
-        guard let cg = render(design: design, page: page, scale: flattenScale(design)) else { return }
-        let size = design.size(for: page)
-        let scale = max(bounds.width / max(size.width, 1), bounds.height / max(size.height, 1))
-        let w = size.width * scale, h = size.height * scale
-        let rect = CGRect(x: bounds.midX - w / 2, y: bounds.midY - h / 2, width: w, height: h)
+        drawFlattened(design: design, page: page, drawing: covering(bounds, size: design.size(for: page)))
+    }
+
+    /// The same placed as `drawing` places it: with a designed bleed, the
+    /// picture is of the page and its band.
+    @MainActor
+    private static func drawFlattened(design: Design, page: Page, drawing: PrintLayout.Drawing) {
+        let reach = max(0, -Double(drawing.clip.minX))
+        guard let cg = render(design: design, page: page, scale: flattenScale(design), bleed: reach) else { return }
+        let rect = CGRect(x: Double(drawing.origin.x) + Double(drawing.clip.minX) * drawing.scale,
+                          y: Double(drawing.origin.y) + Double(drawing.clip.minY) * drawing.scale,
+                          width: Double(drawing.clip.width) * drawing.scale,
+                          height: Double(drawing.clip.height) * drawing.scale)
         UIImage(cgImage: cg).draw(in: rect)
     }
 

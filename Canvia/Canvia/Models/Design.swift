@@ -284,6 +284,11 @@ struct Design: Codable, Equatable, Identifiable {
     /// Its pixels per inch; nil is 96, what every design was drawn at before
     /// units. Written with a physical unit, at 300 for a size typed in one.
     var dpi: Double?
+    /// The print bleed round every page, in page units — "Show print
+    /// bleed", the Android twin's `bleed`. Nil, and not written, is no
+    /// bleed: a design written before it, or with it turned off, prints as
+    /// it always did (see Bleed). Never 0 or less.
+    var bleed: Double?
 
     var size: CGSize { CGSize(width: width, height: height) }
 
@@ -332,11 +337,12 @@ struct Design: Codable, Equatable, Identifiable {
         // it would have.
         unit = (try? c.decode(String.self, forKey: .unit)).flatMap { $0 == "px" ? nil : $0 }
         dpi = (try? c.decode(Double.self, forKey: .dpi)).flatMap { $0 > 0 && $0.isFinite ? $0 : nil }
+        bleed = (try? c.decode(Double.self, forKey: .bleed)).flatMap { $0 > 0 && $0.isFinite ? $0 : nil }
     }
 
     private enum CodingKeys: String, CodingKey {
         case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides, folder
-        case titleAuto, fonts, unit, dpi
+        case titleAuto, fonts, unit, dpi, bleed
     }
 
     /// The master page, if one is set and still exists.

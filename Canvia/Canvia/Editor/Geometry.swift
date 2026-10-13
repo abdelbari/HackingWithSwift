@@ -426,9 +426,9 @@ enum Geometry {
         return result
     }
 
-    /// Candidate snap lines: page edges/center plus sibling edges/centers,
-    /// plus every grid line when a grid is on — each source only if its
-    /// switch is.
+    /// Candidate snap lines: page edges/center — and a bleed's edges — plus
+    /// sibling edges/centers, plus every grid line when a grid is on — each
+    /// source only if its switch is.
     static func snapLines(design: Design, page: Page, excluding ids: Set<String>,
                           settings: SnapSettings = SnapSettings()) -> (x: [Double], y: [Double]) {
         let tagged = taggedSnapLines(design: design, page: page, excluding: ids, settings: settings)
@@ -439,6 +439,8 @@ enum Geometry {
     /// the selection up with.
     enum SnapSource: Equatable {
         case pageEdge, pageCentre, guide, grid, margin
+        /// The outer edge of a print bleed shown (Bleed).
+        case bleedEdge
         case element(String)
 
         /// Which of two lines in the same place names the guide: one placed
@@ -451,8 +453,9 @@ enum Geometry {
             case .element: return 1
             case .pageCentre: return 2
             case .pageEdge: return 3
-            case .margin: return 4
-            case .grid: return 5
+            case .bleedEdge: return 4
+            case .margin: return 5
+            case .grid: return 6
             }
         }
     }
@@ -474,6 +477,14 @@ enum Geometry {
                    SnapLine(position: pw, source: .pageEdge)]
             ys += [SnapLine(position: 0, source: .pageEdge), SnapLine(position: ph / 2, source: .pageCentre),
                    SnapLine(position: ph, source: .pageEdge)]
+            // With a print bleed shown, its outer edge is a line of the
+            // page's too, the bleed beyond each side, so a photo can be
+            // pulled out to it.
+            let bleed = Bleed.of(design)
+            if bleed > 0 {
+                xs += [SnapLine(position: -bleed, source: .bleedEdge), SnapLine(position: pw + bleed, source: .bleedEdge)]
+                ys += [SnapLine(position: -bleed, source: .bleedEdge), SnapLine(position: ph + bleed, source: .bleedEdge)]
+            }
         }
         if settings.toElements {
             for el in page.elements where !ids.contains(el.id) && !el.isHidden {

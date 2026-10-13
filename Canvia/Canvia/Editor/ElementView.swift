@@ -800,54 +800,138 @@ extension ElementView: Equatable {
 struct PageRenderView: View {
     let design: Design
     let page: Page
+    /// Page units shown beyond the trim on every side — a print bleed
+    /// (Bleed) — or none. With some, the view is that much bigger all round:
+    /// the page's background runs on through the band (PageBackgroundFill),
+    /// and what is put out past the trim shows up to the bleed's edge and is
+    /// cut there. Only the canvas's bleed band and the print-ready PDF ask
+    /// for it; everything else draws the trim, cut at the page's edge. The
+    /// trim is the same picture either way.
+    var bleed: Double = 0
 
     var body: some View {
+        if bleed > 0 { bled } else { trimmed }
+    }
+
+    private var trimmed: some View {
         ZStack {
-            backgroundView
-            // The master page's elements, behind this page's own. Not on
-            // the master itself, and not on a page that opted out.
-            ForEach(design.masterElements(behind: page)) { el in
-                ElementView(element: el).equatable()
-            }
-            // A hidden element is never drawn, here or in anything that
-            // renders through this view: exports, thumbnails, Present, video.
-            ForEach(page.elements.filter { !$0.isHidden }) { el in
-                // .equatable() so a drag re-renders the element that moved
-                // rather than every element on the page. The store is
-                // @Observable and a gesture mutates the document each frame,
-                // so without this every text run re-lays out through CoreText
-                // and every shape re-parses its path, on every frame, however
-                // little actually changed.
-                ElementView(element: el).equatable()
-            }
+            PageBackgroundFill(background: page.background, size: design.size(for: page), cover: Bleed.of(design))
+            drawn
         }
         .frame(width: design.size(for: page).width, height: design.size(for: page).height)
         .clipped()
         .environment(\.pageNumber, pageNumberValue)
     }
 
+    /// The page in the middle of its bleed: the background under all of
+    /// it, and the page's own things placed on the trim as ever, free to
+    /// run out into the band.
+    private var bled: some View {
+        let size = design.size(for: page)
+        let whole = CGSize(width: size.width + 2 * bleed, height: size.height + 2 * bleed)
+        return ZStack {
+            PageBackgroundFill(background: page.background, size: size, reach: bleed, cover: Bleed.of(design))
+            ZStack { drawn }
+                .frame(width: size.width, height: size.height)
+        }
+        .frame(width: whole.width, height: whole.height)
+        .clipped()
+        .environment(\.pageNumber, pageNumberValue)
+    }
+
+    @ViewBuilder
+    private var drawn: some View {
+        // The master page's elements, behind this page's own. Not on
+        // the master itself, and not on a page that opted out.
+        ForEach(design.masterElements(behind: page)) { el in
+            ElementView(element: el).equatable()
+        }
+        // A hidden element is never drawn, here or in anything that
+        // renders through this view: exports, thumbnails, Present, video.
+        ForEach(page.elements.filter { !$0.isHidden }) { el in
+            // .equatable() so a drag re-renders the element that moved
+            // rather than every element on the page. The store is
+            // @Observable and a gesture mutates the document each frame,
+            // so without this every text run re-lays out through CoreText
+            // and every shape re-parses its path, on every frame, however
+            // little actually changed.
+            ElementView(element: el).equatable()
+        }
+    }
+
     private var pageNumberValue: (number: Int, count: Int)? {
         guard let index = design.pages.firstIndex(where: { $0.id == page.id }) else { return nil }
         return (index + 1, design.pages.count)
     }
+}
+
+/// A page's background, in a view `reach` page units bigger than the page
+/// all round — a print bleed — or the page's own size, laid as Android's
+/// PageRenderer.drawBackground lays it, so the trim shows the same thing
+/// whether or not the band is drawn round it: a colour all over; a
+/// gradient over the page, its end colours carried on through the band; a
+/// photo filling the page and `cover` round it — the design's own bleed,
+/// in every drawing of the page, trimmed or bled — centred on the page,
+/// over white. Not clipped: the view it is in cuts it.
+struct PageBackgroundFill: View {
+    let background: Background
+    /// The page's size, in page units.
+    let size: CGSize
+    /// How far this view reaches past the trim on every side.
+    var reach: Double = 0
+    /// How far past the trim a photo is laid: the design's bleed.
+    var cover: Double = 0
+
+    var body: some View {
+        fill.frame(width: Double(size.width) + 2 * reach, height: Double(size.height) + 2 * reach)
+    }
 
     @ViewBuilder
-    private var backgroundView: some View {
-        switch page.background {
+    private var fill: some View {
+        switch background {
         case .color(let hex):
             Color(hex: hex)
         case .gradient(let paint):
-            paint.fillView()
+            gradient(paint)
         case .image(let src):
-            if let ui = PhotoLibrary.resolve(src) {
-                Image(uiImage: ui)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: design.size(for: page).width, height: design.size(for: page).height)
-                    .clipped()
-            } else {
+            ZStack {
                 Color.white
+                if let ui = PhotoLibrary.resolve(src) {
+                    Image(uiImage: ui)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: Double(size.width) + 2 * cover, height: Double(size.height) + 2 * cover)
+                }
             }
         }
+    }
+
+    /// A gradient laid over the page in the middle of this view, as
+    /// Android's shader clamps it past the page: a linear one along the
+    /// page's own line, its end colours on through the band; a radial one
+    /// round the page's ellipse, its outer colour beyond; an angular one
+    /// sweeping on round the page's centre.
+    @ViewBuilder
+    private func gradient(_ paint: Paint) -> some View {
+        if reach <= 0 || paint.kind != "gradient" || paint.stops == nil || paint.gradientKind == "angular" {
+            paint.fillView()
+        } else if paint.gradientKind == "radial" {
+            ZStack {
+                Color(hex: paint.stops?.max(by: { $0.offset < $1.offset })?.color ?? "#000000")
+                paint.fillView()
+                    .frame(width: size.width, height: size.height)
+            }
+        } else {
+            let line = paint.unitPoints
+            Rectangle().fill(LinearGradient(stops: paint.swiftUIStops,
+                                            startPoint: onPage(line.start), endPoint: onPage(line.end)))
+        }
+    }
+
+    /// A point in the page's unit square as one in this bigger view's.
+    private func onPage(_ point: UnitPoint) -> UnitPoint {
+        let w = Double(size.width), h = Double(size.height)
+        return UnitPoint(x: (reach + Double(point.x) * w) / (w + 2 * reach),
+                         y: (reach + Double(point.y) * h) / (h + 2 * reach))
     }
 }
