@@ -710,9 +710,9 @@ enum ImageFilterEngine {
     /// (pixelate and focus) and the duotone. The edge is drawn behind the
     /// frame, not here (see `PhotoEffects.edge`). `waits` for the subject a
     /// focus keeps sharp to be found, as a file must; on screen it does not
-    /// (see `apply(_:adjustments:duotone:strength:effects:crisp:waits:later:to:cacheKey:)`).
+    /// (see `apply(_:adjustments:duotone:strength:effects:crisp:waits:later:owner:to:cacheKey:)`).
     /// On screen, a look with clarity or pixelate is made `later`, off the
-    /// main thread.
+    /// main thread, `el` showing its own last look meanwhile.
     static func apply(look el: Element, to image: UIImage, cacheKey: String, waits: Bool = true,
                       later: Bool = false) -> UIImage {
         let pixels = CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
@@ -729,7 +729,7 @@ enum ImageFilterEngine {
         return apply(ImageFilterPreset.from(el.filter), adjustments: adjustments,
                      duotone: el.duotone, strength: PhotoLook.strength(el.filterStrength),
                      effects: code ? .none : PhotoEffects.plan(el, picture: pixels), crisp: code,
-                     waits: waits, later: later, to: image, cacheKey: cacheKey)
+                     waits: waits, later: later, owner: el.id, to: image, cacheKey: cacheKey)
     }
 
     /// Whether `el` is a QR code, drawn crisp (see `apply(look:)`).
@@ -756,12 +756,14 @@ enum ImageFilterEngine {
     /// A call that makes clarity or pixelate `later` — the screen — never
     /// does that Swift pixel work on the main thread, where a dial dragged
     /// over a large photo would stall at every step: it is made on a worker,
-    /// the newest asked of each picture only, and `looksBaked` moves on when
-    /// it is ready. Meanwhile the picture's last look shows, else the look
-    /// without those steps, as the Android twin shows its last bake.
+    /// the newest asked of each element's picture only, and `looksBaked`
+    /// moves on when it is ready. Meanwhile the last look made for the
+    /// `owner` element of this picture shows (a clip's newest, whichever
+    /// frame it was of), else the look without those steps, as the Android
+    /// twin shows its last bake.
     static func apply(_ preset: ImageFilterPreset, adjustments: Adjustments,
                       duotone: Duotone?, strength: Double = 1, effects: PhotoEffects.Plan = .none,
-                      crisp: Bool = false, waits: Bool = true, later: Bool = false,
+                      crisp: Bool = false, waits: Bool = true, later: Bool = false, owner: String = "",
                       to image: UIImage, cacheKey: String) -> UIImage {
         if preset == .none && adjustments.isNeutral && duotone == nil && effects.isNone { return image }
         let share = min(max(strength, 0), 1)
@@ -770,14 +772,19 @@ enum ImageFilterEngine {
         let mix = partly ? "@\(Int((share * 100).rounded()))" : ""
         let soft = crisp && preset == .dreamy ? "|crisp" : ""
         let key = "\(cacheKey)|\(preset.rawValue)\(mix)\(adjustments.signature)\(tone)\(effects.signature)\(soft)"
-        if let cached = cache.object(forKey: key as NSString) { return cached }
-        if later && (adjustments.clarity != 0 || effects.block > 1) {
-            bake(picture: cacheKey, key: key) {
+        let madeLater = later && (adjustments.clarity != 0 || effects.block > 1)
+        let slot = madeLater ? bakeSlot(picture: cacheKey, owner: owner) : ""
+        if let cached = cache.object(forKey: key as NSString) {
+            if madeLater { lastBaked.setObject(cached, forKey: slot as NSString) }
+            return cached
+        }
+        if madeLater {
+            bake(slot: slot, key: key) {
                 ImageFilterEngine.rendered(preset, adjustments: adjustments, duotone: duotone, share: share,
                                            partly: partly, effects: effects, crisp: crisp, waits: waits,
                                            image: image, cacheKey: cacheKey)
             }
-            if let last = lastBaked.object(forKey: cacheKey as NSString) { return last }
+            if let last = lastBaked.object(forKey: slot as NSString) { return last }
             var quick = adjustments
             quick.clarity = 0
             var plain = effects
@@ -852,35 +859,42 @@ enum ImageFilterEngine {
     private static let baker = DispatchQueue(label: "canvia.photo-looks", qos: .userInitiated)
     private static let bakeLock = NSLock()
 
-    /// A look wanted of a picture: the picture, its cache key and how to
-    /// make it.
+    /// A look wanted in a slot: its cache key and how to make it.
     private struct Want {
-        let picture: String
         let key: String
         let make: () -> (image: UIImage, stopgap: Bool)
     }
 
-    /// The newest look wanted of each picture until the worker takes it —
-    /// a clip's frames all one clip, so a clip playing only ever waits for
-    /// its latest frame; guarded by `bakeLock`.
+    /// Where the looks of one element's picture wait and are last shown:
+    /// the picture — a clip's frames all the one clip — and the element, so
+    /// two copies of a photo in two looks both bake, and one never shows
+    /// the other's look, as on the Android twin.
+    private static func bakeSlot(picture: String, owner: String) -> String {
+        let subject = VideoStore.split(picture).map { VideoStore.src($0.id, at: nil) } ?? picture
+        return "\(subject)\u{0}\(owner)"
+    }
+
+    /// The newest look wanted in each slot until the worker takes it, so a
+    /// clip playing only ever waits for its latest frame; guarded by
+    /// `bakeLock`.
     private static var wanted: [String: Want] = [:]
 
-    /// The last look made of each picture (each frame of a clip its own),
-    /// shown while the next is made.
+    /// The last look made in each slot, shown while the next is made: for a
+    /// clip playing, the newest frame made, a frame or two behind, as the
+    /// Android twin shows it.
     private static let lastBaked: NSCache<NSString, UIImage> = {
         let c = NSCache<NSString, UIImage>()
         c.countLimit = 16
         return c
     }()
 
-    /// `make` done on the worker for `picture`, in place of any look of it
+    /// `make` done on the worker for `slot`, in place of any look of it
     /// still waiting; kept under `key` when it is no stand-in.
-    private static func bake(picture: String, key: String,
+    private static func bake(slot: String, key: String,
                              make: @escaping () -> (image: UIImage, stopgap: Bool)) {
-        let slot = VideoStore.split(picture).map { VideoStore.src($0.id, at: nil) } ?? picture
         bakeLock.lock()
         let start = wanted[slot] == nil
-        wanted[slot] = Want(picture: picture, key: key, make: make)
+        wanted[slot] = Want(key: key, make: make)
         bakeLock.unlock()
         guard start else { return }
         baker.async {
@@ -890,7 +904,7 @@ enum ImageFilterEngine {
             guard let want else { return }
             if ImageFilterEngine.cache.object(forKey: want.key as NSString) == nil {
                 let made = want.make()
-                ImageFilterEngine.lastBaked.setObject(made.image, forKey: want.picture as NSString)
+                ImageFilterEngine.lastBaked.setObject(made.image, forKey: slot as NSString)
                 // A stand-in is shown, not kept; the subject found draws
                 // the photo again, and asks again.
                 guard !made.stopgap else { return }
