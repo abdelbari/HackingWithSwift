@@ -75,7 +75,7 @@ struct BackgroundColourChoices: View {
     }
 
     var body: some View {
-        let brand = BrandKit.load().colors
+        let kit = BrandKit.load()
         VStack(alignment: .leading, spacing: 10) {
             Button {
                 choosing = true
@@ -92,11 +92,14 @@ struct BackgroundColourChoices: View {
                                  onPick: { hex in store.setBackground(.color(hex)) },
                                  onPickTransient: { hex in store.setBackgroundTransient(.color(hex)) })
             }
-            if !brand.isEmpty {
-                Text("Brand colours").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
-                LazyVGrid(columns: columns, spacing: 10) {
-                    ForEach(brand, id: \.self) { hex in
-                        BackgroundSwatch(store: store, hex: hex)
+            // The active brand kit's palettes, each by name.
+            ForEach(Array(kit.palettes.enumerated()), id: \.offset) { _, palette in
+                if !palette.colors.isEmpty {
+                    Text(kit.title(of: palette)).font(.footnote.weight(.bold)).foregroundStyle(.secondary)
+                    LazyVGrid(columns: columns, spacing: 10) {
+                        ForEach(palette.colors, id: \.self) { hex in
+                            BackgroundSwatch(store: store, hex: hex)
+                        }
                     }
                 }
             }

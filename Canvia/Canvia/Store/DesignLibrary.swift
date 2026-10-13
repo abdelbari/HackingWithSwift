@@ -505,7 +505,7 @@ enum DesignLibrary {
     }
 
     /// The photos kept outside the designs: what the person keeps across
-    /// them — the brand's logos and the components' pictures — and what was
+    /// them — every brand kit's logos and the components' pictures — and what was
     /// cut or copied but not yet pasted. The pasteboard outlives a launch,
     /// and a photo cut from a design is referenced nowhere else until it is
     /// pasted back; the Android twin keeps these too. Read only when our own
@@ -513,7 +513,7 @@ enum DesignLibrary {
     /// paste prompt.
     static func photosKeptOutsideDesigns(pasteboard: UIPasteboard) -> Set<String> {
         var found = Set<String>()
-        for src in BrandKit.load().logos { if let id = photoID(src) { found.insert(id) } }
+        for src in BrandKits.load().allLogos { if let id = photoID(src) { found.insert(id) } }
         for component in Components.load() { collectPhotos(in: component.elements, into: &found) }
         if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
             collectPhotos(in: elements, into: &found)
@@ -615,7 +615,7 @@ enum DesignLibrary {
     static func clipsKeptOutsideDesigns(pasteboard: UIPasteboard) -> Set<String> {
         var found = Set<String>()
         for component in Components.load() { collectClips(in: component.elements, into: &found) }
-        for src in BrandKit.load().logos { if let id = clipID(src) { found.insert(id) } }
+        for src in BrandKits.load().allLogos { if let id = clipID(src) { found.insert(id) } }
         if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
             collectClips(in: elements, into: &found)
         }

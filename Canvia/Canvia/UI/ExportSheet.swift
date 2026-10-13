@@ -1025,12 +1025,12 @@ struct ExportSheet: View {
     }
 }
 
-private struct ShareURL: Identifiable {
+struct ShareURL: Identifiable {
     let url: URL
     var id: String { url.absoluteString }
 }
 
-private struct ShareSheet: UIViewControllerRepresentable {
+struct ShareSheet: UIViewControllerRepresentable {
     let urls: [URL]
 
     func makeUIViewController(context: Context) -> UIActivityViewController {

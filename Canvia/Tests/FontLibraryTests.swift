@@ -165,11 +165,15 @@ final class FontLibraryTests: XCTestCase {
 
     func testThePickerListsBrandFontsRecentAndThisDesignsThenFinds() {
         var kit = BrandKit()
-        kit.headingFamily = "didone"
-        kit.bodyFamily = "playfair-display"
+        kit.fonts.heading = BrandFont(family: "didone", weight: 700)
+        kit.fonts.body = BrandFont(family: "playfair-display")
         XCTAssertEqual(FontChoices.brandFonts(kit), ["playfair-display"])
-        kit.bodyFamily = "lora"
+        kit.fonts.body = BrandFont(family: "lora")
         XCTAssertEqual(FontChoices.brandFonts(kit), ["playfair-display", "lora"])
+        // Role by role, title first.
+        kit.fonts.title = BrandFont(family: "anton")
+        XCTAssertEqual(FontChoices.brandFonts(kit), ["anton", "playfair-display", "lora"])
+        kit.fonts.title = nil
 
         var design = Design(title: "Fonts")
         var a = Element.text("A"); a.fontFamily = "caveat"

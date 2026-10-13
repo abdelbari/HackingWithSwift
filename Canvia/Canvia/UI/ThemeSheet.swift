@@ -15,14 +15,20 @@ struct ThemeSheet: View {
     /// few palette ids, so an id cannot tell two tiles apart.
     @State private var paletteIndex: Int?
     @State private var pairing: FontPairing?
+    /// The active brand kit's text roles, by size rank, in place of a
+    /// pairing.
+    @State private var brandFonts = false
     /// Read once as the sheet opens, not on every tap.
     @State private var kit = BrandKit.load()
 
-    /// The brand kit's colours first, when it has two or more, then the
-    /// library's palettes.
+    /// The active brand kit's palettes first, each with two or more
+    /// colours, then the library's.
     private var palettes: [Palette] {
-        [kit.palette].compactMap { $0 } + ContentLibrary.palettes
+        kit.themePalettes + ContentLibrary.palettes
     }
+
+    /// The kit's roles when they are chosen; none set otherwise.
+    private var chosenBrandFonts: BrandFonts { brandFonts ? kit.fonts : BrandFonts() }
 
     private var palette: Palette? {
         guard let paletteIndex, palettes.indices.contains(paletteIndex) else { return nil }
@@ -30,7 +36,7 @@ struct ThemeSheet: View {
     }
 
     private var preview: Design {
-        DesignStore.themed(store.design, palette: palette?.colors, pairing: pairing)
+        DesignStore.themed(store.design, palette: palette?.colors, pairing: pairing, brandFonts: chosenBrandFonts)
     }
 
     var body: some View {
@@ -51,10 +57,10 @@ struct ThemeSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Apply") {
-                        store.applyTheme(palette: palette?.colors, pairing: pairing)
+                        store.applyTheme(palette: palette?.colors, pairing: pairing, brandFonts: chosenBrandFonts)
                         dismiss()
                     }
-                    .disabled(palette == nil && pairing == nil)
+                    .disabled(palette == nil && pairing == nil && !brandFonts)
                 }
             }
         }
@@ -105,7 +111,7 @@ struct ThemeSheet: View {
                         .stroke(chosen ? Theme.accent : Theme.hairline))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(p.id == "brand-kit" ? "Brand kit colours" : p.name)
+                .accessibilityLabel(BrandKit.isBrandPalette(p) ? "\(kit.name), \(p.name)" : p.name)
                 .accessibilityAddTraits(chosen ? [.isSelected] : [])
             }
         }
@@ -113,9 +119,11 @@ struct ThemeSheet: View {
 
     private var pairingList: some View {
         VStack(spacing: 8) {
-            ForEach([kit.pairing].compactMap { $0 } + ContentLibrary.pairings) { pr in
+            if !kit.fonts.rankedRoles.isEmpty { brandFontsRow }
+            ForEach(ContentLibrary.pairings) { pr in
                 Button {
                     pairing = pairing?.id == pr.id ? nil : pr
+                    brandFonts = false
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
@@ -142,5 +150,37 @@ struct ThemeSheet: View {
                 .accessibilityAddTraits(pairing?.id == pr.id ? [.isSelected] : [])
             }
         }
+    }
+
+    /// The active kit's faces, set by size rank: its title and heading
+    /// faces drawn as a pairing's are, with the kit's name.
+    private var brandFontsRow: some View {
+        let ranked = kit.fonts.rankedRoles.compactMap { kit.fonts[$0] }
+        let top = ranked.first, last = ranked.last
+        return Button {
+            brandFonts.toggle()
+            if brandFonts { pairing = nil }
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Brand heading")
+                        .font(FontLibrary.font(family: top?.family ?? "sans", size: 18,
+                                               weight: top?.weight ?? 700, italic: false))
+                    Text("Brand body text")
+                        .font(FontLibrary.font(family: last?.family ?? "sans", size: 13,
+                                               weight: last?.weight ?? 400, italic: false))
+                        .foregroundStyle(.secondary)
+                }
+                .lineLimit(1)
+                Spacer()
+                Text(kit.name).font(.caption).foregroundStyle(.secondary)
+            }
+            .padding(10)
+            .background(RoundedRectangle(cornerRadius: 10).fill(brandFonts ? Theme.accentSubtle : Theme.card))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(brandFonts ? Theme.accent : Theme.hairline))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(kit.name) fonts, by size")
+        .accessibilityAddTraits(brandFonts ? [.isSelected] : [])
     }
 }

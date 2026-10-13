@@ -450,10 +450,12 @@ struct InsertSheet: View {
     // MARK: text
 
     private var textList: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            textInsert("Add a heading", size: 0.08, weight: 700)
-            textInsert("Add a subheading", size: 0.045, weight: 600)
-            textInsert("Add body text", size: 0.028, weight: 400)
+        // In the active brand kit's faces, role by role.
+        let fonts = BrandKit.load().fonts
+        return VStack(alignment: .leading, spacing: 10) {
+            ForEach(fonts.addTextRoles) { role in
+                roleInsert(role, face: fonts[role])
+            }
             textInsert("Page {page} of {pages}", size: 0.022, weight: 500)
 
             if !ContentLibrary.pairings.isEmpty {
@@ -500,6 +502,24 @@ struct InsertSheet: View {
         } label: {
             Text(label)
                 .font(.system(size: 12 + size * 160, weight: weight >= 700 ? .bold : weight >= 600 ? .semibold : .regular))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// A text in a brand role, sized from this page, which may have a size
+    /// of its own; its button drawn in the role's face.
+    private func roleInsert(_ role: BrandFonts.Role, face: BrandFont?) -> some View {
+        let size = 12 + role.widthFraction * 160
+        let weight = face?.weight ?? role.defaultWeight
+        return Button {
+            store.add(BrandFonts.element(role, face: face, pageWidth: store.pageWidth))
+            dismiss()
+        } label: {
+            Text(role.addLabel)
+                .font(FontLibrary.font(family: face?.family ?? "sans", size: size, weight: weight, italic: false))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
                 .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
