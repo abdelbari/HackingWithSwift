@@ -328,6 +328,11 @@ struct Element: Codable, Equatable, Identifiable {
     var rotation: Double = 0
     var opacity: Double = 1
     var locked: Bool = false
+    /// Locked in place only: it cannot be moved, resized or turned, but its
+    /// words, colours, crop and picture can still be changed (see
+    /// ElementLock). Never false: the key is written only when true, as the
+    /// Android twin writes it, and `locked` stays the whole lock beside it.
+    var lockPosition: Bool?
     var flipH: Bool = false
     var flipV: Bool = false
     var group: String?
@@ -476,6 +481,9 @@ struct Element: Codable, Equatable, Identifiable {
     var frame: CGRect { CGRect(x: x, y: y, width: w, height: h) }
     /// Whether the element is left off the page (see `hidden`).
     var isHidden: Bool { hidden == true }
+    /// Whether the element keeps its place — locked whole, or its position
+    /// only — so nothing moves, resizes, turns or removes it.
+    var holdsPlace: Bool { locked || lockPosition == true }
     var center: CGPoint { CGPoint(x: x + w / 2, y: y + h / 2) }
 
     init() {}
@@ -491,6 +499,7 @@ struct Element: Codable, Equatable, Identifiable {
         rotation = (try? c.decode(Double.self, forKey: .rotation)) ?? 0
         opacity = (try? c.decode(Double.self, forKey: .opacity)) ?? 1
         locked = (try? c.decode(Bool.self, forKey: .locked)) ?? false
+        lockPosition = (try? c.decode(Bool.self, forKey: .lockPosition)) == true ? true : nil
         flipH = (try? c.decode(Bool.self, forKey: .flipH)) ?? false
         flipV = (try? c.decode(Bool.self, forKey: .flipV)) ?? false
         group = try? c.decode(String.self, forKey: .group)
@@ -582,7 +591,7 @@ struct Element: Codable, Equatable, Identifiable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow, blendMode, altText
+        case id, type, x, y, w, h, rotation, opacity, locked, lockPosition, flipH, flipV, group, shadow, blendMode, altText
         case connectFrom, connectTo, link, hidden, layerName, table, chart, chartPart
         case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align

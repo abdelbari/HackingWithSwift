@@ -20,8 +20,9 @@ enum Copies {
     /// its own — each source chart one fresh chart id, so Edit chart on the
     /// copy leaves the original alone, and each arrow its ends' copies, or no
     /// end, where that end was not copied.
-    /// Unlocked unless `keepingLocks`: locked belongs to the original, and a
-    /// pasted element that cannot be moved is a dead end.
+    /// Unlocked unless `keepingLocks` — both locks, the whole and the
+    /// position one: a lock belongs to the original, and a pasted element
+    /// that cannot be moved is a dead end.
     static func of(_ elements: [Element], offset: Double = 0, keepingLocks: Bool = false) -> [Element] {
         var ids: [String: String] = [:]
         for el in elements { ids[el.id] = UID.make() }
@@ -33,7 +34,10 @@ enum Copies {
             copy.id = ids[el.id] ?? UID.make()
             copy.x += offset
             copy.y += offset
-            if !keepingLocks { copy.locked = false }
+            if !keepingLocks {
+                copy.locked = false
+                copy.lockPosition = nil
+            }
             if let group = el.group {
                 if groups[group] == nil { groups[group] = UID.make("grp") }
                 copy.group = groups[group]

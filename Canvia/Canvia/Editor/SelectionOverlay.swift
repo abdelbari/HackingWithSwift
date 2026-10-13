@@ -39,14 +39,16 @@ struct SelectionOverlay: View {
             ForEach(selected) { el in
                 if el.isHidden {
                     dashedOutline(el, badge: "eye.slash.fill")
-                } else if selected.count == 1 && el.locked {
-                    dashedOutline(el, badge: "lock.fill")
+                } else if selected.count == 1 && el.holdsPlace {
+                    // A padlock in outline for a position lock, filled for
+                    // a whole one.
+                    dashedOutline(el, badge: ElementLock.symbol(ElementLock.mode(of: el)))
                 } else {
                     outline(el, lineWidth: (selected.count > 1 ? 1 : 1.5) * weight)
                 }
             }
 
-            if let el = store.singleSelection, !el.locked, !el.isHidden, store.editingTextId != el.id {
+            if let el = store.singleSelection, !el.holdsPlace, !el.isHidden, store.editingTextId != el.id {
                 handleRing(for: el, handles: Touch.handleSet(for: el))
             }
 
@@ -61,7 +63,7 @@ struct SelectionOverlay: View {
                 // The group resizes and turns as one unit from its box.
                 // Corners only: a uniform scale is the only one that keeps
                 // rotated members exact (see Geometry.scale).
-                if selected.contains(where: { !$0.locked }) {
+                if selected.contains(where: { !$0.holdsPlace }) {
                     handleRing(for: Geometry.boxElement(bounds), handles: [.nw, .ne, .se, .sw])
                 }
                 // How many, over the box — but not while a drag's readout is

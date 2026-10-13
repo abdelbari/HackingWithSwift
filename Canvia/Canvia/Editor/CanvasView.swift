@@ -400,7 +400,7 @@ struct CanvasView: View {
             if working {
                 context.stroke(Self.thirds(in: frame), with: .color(.white.opacity(0.5)), lineWidth: hairline)
             }
-            for handle in Handle.allCases {
+            for handle in Handle.allCases where !photo.holdsPlace {
                 context.stroke(Self.bracket(handle, in: frame, length: bracketLength),
                                with: .color(handle == held ? Theme.accent : .white),
                                style: StrokeStyle(lineWidth: hairline * 3, lineCap: .round, lineJoin: .round))
@@ -451,7 +451,8 @@ struct CanvasView: View {
     /// included, since that is the part you can see you want to bring in —
     /// else nothing of the photo's.
     private func cropTouch(at point: CGPoint, photo: Element, crop: CropSession) -> CropTouch {
-        var best = Touch.pageUnits(22, zoom: store.zoom)
+        // A photo locked in position has no brackets: its frame stays put.
+        var best = photo.holdsPlace ? 0 : Touch.pageUnits(22, zoom: store.zoom)
         var grabbed: Handle?
         for handle in Handle.allCases {
             let at = Geometry.handlePoint(photo, handle)
@@ -818,12 +819,18 @@ struct CanvasView: View {
         Button(store.selection.contains(el.id) ? "Remove from selection" : "Add to selection") {
             store.select(el.id, additive: true)
         }
-        if !el.locked {
+        // A position lock keeps it where it is, as a whole lock does, but
+        // it can still be copied.
+        if !el.holdsPlace {
             Button("Move left") { nudge(el, dx: -step, dy: 0) }
             Button("Move right") { nudge(el, dx: step, dy: 0) }
             Button("Move up") { nudge(el, dx: 0, dy: -step) }
             Button("Move down") { nudge(el, dx: 0, dy: step) }
+        }
+        if !el.locked {
             Button("Duplicate") { store.select(el.id); store.duplicateSelected() }
+        }
+        if !el.holdsPlace {
             Button("Delete") { store.select(el.id); store.deleteSelected() }
         }
         Button("Bring forward") { store.select(el.id); store.reorderSelected(.forward) }
@@ -854,7 +861,7 @@ struct CanvasView: View {
         DragGesture(minimumDistance: Touch.pageUnits(Touch.dragSlop, zoom: store.zoom),
                     coordinateSpace: .named("page"))
             .onChanged { value in
-                guard !el.locked, store.editingTextId != el.id else { return }
+                guard !el.holdsPlace, store.editingTextId != el.id else { return }
                 if !gesture.dragActive {
                     gesture.dragActive = true
                     store.canvasTouchActive = true
@@ -864,7 +871,7 @@ struct CanvasView: View {
                     store.beginGesture()
                     gesture.dragOriginals = Dictionary(
                         uniqueKeysWithValues: store.selectedElements
-                            .filter { !$0.locked }
+                            .filter { !$0.holdsPlace }
                             .map { ($0.id, CGPoint(x: $0.x, y: $0.y)) })
                     let lines = Geometry.taggedSnapLines(design: store.design, page: store.page,
                                                          excluding: Set(gesture.dragOriginals.keys),
@@ -874,7 +881,7 @@ struct CanvasView: View {
                     gesture.snapX = lines.x.map(\.position)
                     gesture.snapY = lines.y.map(\.position)
                     gesture.dragUnion = Geometry.union(
-                        store.selectedElements.filter { !$0.locked }.map(Geometry.aabb))
+                        store.selectedElements.filter { !$0.holdsPlace }.map(Geometry.aabb))
                     gesture.siblingBoxes = store.page.elements
                         .filter { gesture.dragOriginals[$0.id] == nil && !$0.isHidden }
                         .map(Geometry.aabb)
@@ -983,7 +990,7 @@ struct CanvasView: View {
             groupHandleDrag(handle, location)
             return
         }
-        guard let selected = store.singleSelection, !selected.locked else { return }
+        guard let selected = store.singleSelection, !selected.holdsPlace else { return }
         if gesture.resizeOriginal?.id != selected.id || !gesture.dragActive {
             store.beginGesture()
             gesture.resizeOriginal = selected
@@ -1116,7 +1123,7 @@ struct CanvasView: View {
     /// follow it.
     private func groupHandleDrag(_ handle: Handle, _ location: CGPoint) {
         if gesture.groupOriginals.isEmpty || !gesture.dragActive {
-            let members = store.selectedElements.filter { !$0.locked }
+            let members = store.selectedElements.filter { !$0.holdsPlace }
             guard !members.isEmpty else { return }
             store.beginGesture()
             gesture.dragActive = true
@@ -1139,7 +1146,7 @@ struct CanvasView: View {
 
     private func groupRotateDrag(_ location: CGPoint) {
         if gesture.groupOriginals.isEmpty || !gesture.dragActive {
-            let members = store.selectedElements.filter { !$0.locked }
+            let members = store.selectedElements.filter { !$0.holdsPlace }
             guard !members.isEmpty else { return }
             store.beginGesture()
             gesture.dragActive = true
@@ -1165,7 +1172,7 @@ struct CanvasView: View {
             groupRotateDrag(location)
             return
         }
-        guard let selected = store.singleSelection, !selected.locked else { return }
+        guard let selected = store.singleSelection, !selected.holdsPlace else { return }
         if gesture.rotateCenter == nil || !gesture.dragActive {
             store.beginGesture()
             gesture.dragActive = true

@@ -1054,10 +1054,7 @@ struct ContextToolbar: View {
             }
         }
 
-        let anyUnlocked = store.selectedElements.contains { !$0.locked }
-        toolButton(anyUnlocked ? "lock.open" : "lock", anyUnlocked ? "Lock" : "Unlock") {
-            store.toggleLockSelected()
-        }
+        lockMenu
         if let el = store.singleSelection, !el.locked { linkButton(el) }
         toolButton("plus.square.on.square", "Duplicate") { store.duplicateSelected() }
         if store.selection.count == 2 {
@@ -1067,6 +1064,27 @@ struct ContextToolbar: View {
             toolButton("square.2.layers.3d.top.filled", "Forward") { store.reorderSelected(.forward) }
             toolButton("square.2.layers.3d.bottom.filled", "Backward") { store.reorderSelected(.backward) }
         }
+    }
+
+    /// Lock, Lock position or Unlock for everything selected, each one
+    /// step — the Android twin's Lock submenu. Its face says how the
+    /// selection is locked: a filled padlock whole, one in outline in
+    /// position only, open otherwise, and lit while locked either way.
+    private var lockMenu: some View {
+        let current = store.selectionLock
+        return Menu {
+            ForEach([ElementLock.Mode.full, .position, .unlocked], id: \.self) { mode in
+                Button { store.lockSelected(mode) } label: {
+                    Label(ElementLock.name(mode),
+                          systemImage: current == mode ? "checkmark"
+                              : mode == .unlocked ? "lock.open" : ElementLock.symbol(mode))
+                }
+            }
+        } label: {
+            toolLabel(current == .full || current == .position ? ElementLock.symbol(current ?? .full) : "lock.open",
+                      "Lock", active: current == .full || current == .position)
+        }
+        .accessibilityValue(current == .full ? "Locked" : current == .position ? "Position locked" : "")
     }
 
     /// A colour chip with no one colour in it, since the selection has many.

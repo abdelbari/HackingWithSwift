@@ -761,7 +761,9 @@ struct CropSheet: View {
                             Text("Fit").tag(1)
                         }
                         .pickerStyle(.segmented)
+                        // A frame locked in position keeps its shape.
                         aspectRow(el)
+                            .disabled(el.holdsPlace)
                     }
                     Section {
                         Toggle("Ken Burns drift in video", isOn: Binding(
@@ -897,7 +899,7 @@ struct PositionSheet: View {
                         Label("Centre on page", systemImage: "plus.viewfinder")
                             .frame(maxWidth: .infinity)
                     }
-                    .disabled(store.unlockedSelectionCount == 0)
+                    .disabled(store.movableSelectionCount == 0)
                 }
                 if store.selection.count >= 3 {
                     Section("Distribute evenly") {
@@ -922,7 +924,7 @@ struct PositionSheet: View {
                             orderButton("Column", "rectangle.split.1x2") { store.tidySelected(.column) }
                             orderButton("Grid", "rectangle.split.3x3") { store.tidySelected(.grid) }
                         }
-                        .disabled(store.unlockedSelectionCount < 2)
+                        .disabled(store.movableSelectionCount < 2)
                     }
                 }
                 nudgeSection
@@ -937,15 +939,18 @@ struct PositionSheet: View {
                     }
                 }
                 if let el = store.singleSelection {
+                    // A lock, whole or of its position, keeps every number
+                    // here as it is.
                     Section("Exact") {
-                        numberRow("X", value: el.x) { v in store.updateSelected { $0.x = v } }
-                        numberRow("Y", value: el.y) { v in store.updateSelected { $0.y = v } }
-                        numberRow("Width", value: el.w) { v in store.updateSelected { $0.w = max(8, v) } }
+                        numberRow("X", value: el.x) { v in store.updateSelectedPlacement { $0.x = v } }
+                        numberRow("Y", value: el.y) { v in store.updateSelectedPlacement { $0.y = v } }
+                        numberRow("Width", value: el.w) { v in store.updateSelectedPlacement { $0.w = max(8, v) } }
                         if el.type != .text {
-                            numberRow("Height", value: el.h) { v in store.updateSelected { $0.h = max(8, v) } }
+                            numberRow("Height", value: el.h) { v in store.updateSelectedPlacement { $0.h = max(8, v) } }
                         }
-                        numberRow("Rotation", value: el.rotation) { v in store.updateSelected { $0.rotation = v } }
+                        numberRow("Rotation", value: el.rotation) { v in store.updateSelectedPlacement { $0.rotation = v } }
                     }
+                    .disabled(el.holdsPlace)
                 } else if let box = store.selectionBox {
                     // The selection as one thing: its box moves and scales,
                     // and a rotation turns the whole about the centre.
@@ -966,6 +971,7 @@ struct PositionSheet: View {
                         }
                         numberRow("Rotate by", value: 0) { v in store.rotateSelection(by: v) }
                     }
+                    .disabled(store.movableSelectionCount == 0)
                 }
             }
             .navigationTitle("Position")
@@ -997,7 +1003,7 @@ struct PositionSheet: View {
                 nudgeButton("arrow.up", "up", dx: 0, dy: -1)
                 nudgeButton("arrow.down", "down", dx: 0, dy: 1)
             }
-            .disabled(store.unlockedSelectionCount == 0)
+            .disabled(store.movableSelectionCount == 0)
             .feel(.impact(weight: .light), trigger: nudges)
         } header: {
             HStack {
@@ -1091,7 +1097,7 @@ struct LayersSheet: View {
                 ForEach(rows) { row in
                     rowView(row)
                         .moveDisabled(filter != .all || !row.movable)
-                        .deleteDisabled(!row.elements.contains { !$0.locked })
+                        .deleteDisabled(!row.elements.contains { !$0.holdsPlace })
                 }
                 .onMove(perform: moveAction(rows))
                 .onDelete { offsets in delete(offsets.map { rows[$0] }) }
@@ -1153,9 +1159,10 @@ struct LayersSheet: View {
     }
 
     /// The rows swiped away, as one undo step: every unlocked element they
-    /// stand for — a group row its whole group.
+    /// stand for — a group row its whole group. A position lock stays, as
+    /// Delete leaves it.
     private func delete(_ picked: [LayerRows.Row]) {
-        let removable = Set(picked.flatMap(\.elements).filter { !$0.locked }.map(\.id))
+        let removable = Set(picked.flatMap(\.elements).filter { !$0.holdsPlace }.map(\.id))
         guard !removable.isEmpty else { return }
         store.applyToPage { page in
             page.elements.removeAll { removable.contains($0.id) }
@@ -1190,7 +1197,7 @@ struct LayersSheet: View {
             .opacity(el.isHidden ? 0.45 : 1)
             .padding(.leading, member ? 24 : 0)
             .accessibilityElement(children: .combine)
-            .accessibilityValue([el.isHidden ? "Hidden" : nil, el.locked ? "Locked" : nil]
+            .accessibilityValue([el.isHidden ? "Hidden" : nil, lockValue(ElementLock.mode(of: el))]
                 .compactMap { $0 }.joined(separator: ", "))
             .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
             .accessibilityAction { pick(el, alone: alone) }
@@ -1201,7 +1208,7 @@ struct LayersSheet: View {
                     .accessibilityHidden(true)
             }
             eyeButton([el.id], hidden: el.isHidden, name: name)
-            lockButton([el.id], locked: el.locked, name: name)
+            lockButton([el.id], mode: ElementLock.mode(of: el), name: name)
         }
         .contentShape(Rectangle())
         .onTapGesture { pick(el, alone: alone) }
@@ -1243,7 +1250,7 @@ struct LayersSheet: View {
                     .accessibilityHidden(true)
             }
             eyeButton(ids, hidden: allHidden, name: name)
-            lockButton(ids, locked: members.allSatisfy(\.locked), name: name)
+            lockButton(ids, mode: Self.sharedLock(members), name: name)
         }
         .contentShape(Rectangle())
         .onTapGesture { pickGroup(members) }
@@ -1261,16 +1268,40 @@ struct LayersSheet: View {
         .accessibilityLabel(hidden ? "Show \(name)" : "Hide \(name)")
     }
 
-    /// Locks what the row stands for, or — when all of it is locked —
-    /// unlocks it.
-    private func lockButton(_ ids: Set<String>, locked: Bool, name: String) -> some View {
-        Button { store.setLocked(ids, locked: !locked) } label: {
-            Image(systemName: locked ? "lock.fill" : "lock.open")
+    /// The padlock: the toolbar's Lock menu — Lock, Lock position, Unlock —
+    /// for what the row stands for, each one undo step. Closed while all of
+    /// it is locked whole, open with the accent while its position is.
+    private func lockButton(_ ids: Set<String>, mode: ElementLock.Mode, name: String) -> some View {
+        Menu {
+            ForEach([ElementLock.Mode.full, .position, .unlocked], id: \.self) { choice in
+                Button { store.setLock(ids, choice) } label: {
+                    Label(ElementLock.name(choice), systemImage: mode == choice ? "checkmark" : ElementLock.symbol(choice))
+                }
+            }
+        } label: {
+            Image(systemName: mode == .unlocked ? "lock.open" : ElementLock.symbol(mode))
                 .frame(width: 30, height: 30)
         }
         .buttonStyle(.borderless)
-        .foregroundStyle(locked ? Theme.accent : Color.secondary)
-        .accessibilityLabel(locked ? "Unlock \(name)" : "Lock \(name)")
+        .foregroundStyle(mode == .unlocked ? Color.secondary : Theme.accent)
+        .accessibilityLabel("Lock \(name)")
+        .accessibilityValue(lockValue(mode) ?? "Unlocked")
+    }
+
+    /// How a row's lock is read out: nil unlocked.
+    private func lockValue(_ mode: ElementLock.Mode) -> String? {
+        switch mode {
+        case .unlocked: return nil
+        case .position: return "Position locked"
+        case .full: return "Locked"
+        }
+    }
+
+    /// A group row's lock: the members' one lock when they share it, else
+    /// none, so the menu offers to lock them all.
+    private static func sharedLock(_ members: [Element]) -> ElementLock.Mode {
+        let modes = Set(members.map { ElementLock.mode(of: $0) })
+        return modes.count == 1 ? modes.first ?? .unlocked : .unlocked
     }
 
     private func pick(_ el: Element, alone: Bool) {

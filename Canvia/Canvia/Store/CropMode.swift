@@ -126,9 +126,10 @@ extension DesignStore {
     }
 
     /// The frame trimmed from `start`, the photo as the handle was grabbed,
-    /// by dragging `handle` to a page point.
+    /// by dragging `handle` to a page point. Not for a photo locked in
+    /// position: its frame stays put, and only the picture in it moves.
     func trimCrop(from start: Element, handle: Handle, to point: CGPoint, minSize: Double) {
-        guard let crop = cropping else { return }
+        guard let crop = cropping, !start.holdsPlace else { return }
         let trimmed = Crop.trimmed(start, image: crop.imageSize, handle: handle, to: point, minSize: minSize)
         cropEdit { _ in trimmed }
         badge = "\(Int(trimmed.w.rounded())) × \(Int(trimmed.h.rounded()))"
