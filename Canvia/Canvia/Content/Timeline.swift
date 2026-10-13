@@ -172,16 +172,35 @@ enum Timeline {
         return ElementTiming.kept(ElementTiming(start: start, end: end))
     }
 
+    /// Whether an element timed `timing` keeps its entrance on the second
+    /// page of a split at `cut`: when it comes in at the cut or after, so
+    /// its entrance plays there, where the film shows it come in. The
+    /// Android twin's entranceStaysAfter, row for row.
+    static func entranceStaysAfter(_ timing: ElementTiming?, cut: Double) -> Bool {
+        (timing?.start ?? 0) >= cut - 1e-9
+    }
+
+    /// Whether an element timed `timing` keeps its exit on the first page
+    /// of a split at `cut`: when its timing ends at the cut or before, so
+    /// its exit plays out there. The Android twin's exitStaysBefore, row
+    /// for row.
+    static func exitStaysBefore(_ timing: ElementTiming?, cut: Double) -> Bool {
+        guard let end = timing?.end else { return false }
+        return end <= cut + 1e-9
+    }
+
     /// `page`, `hold` seconds long, split at `t` into two pages that play
     /// as it did: nil when `t` is within `splitMargin` of either end.
     ///
     /// The first keeps the page's id and its elements', holds for the cut,
     /// and gives way to the second with a cut — no transition, so a clip
-    /// runs on unbroken — its exits dropped. The second is a copy with new
-    /// ids, holding for the rest, with the page's transition; each clip on
-    /// it picks up where the first left it (`duration` gives a clip's file
+    /// runs on unbroken — its exits dropped, but not one timed to end before
+    /// the cut (`exitStaysBefore`). The second is a copy with new ids,
+    /// holding for the rest, with the page's transition; each clip on it
+    /// picks up where the first left it (`duration` gives a clip's file
     /// length by VideoStore id), its entrances dropped — loops, which are
-    /// not entrances, kept on both — its exits kept, and its timings moved
+    /// not entrances, kept on both, and so is one timed to start after the
+    /// cut (`entranceStaysAfter`) — its exits kept, and its timings moved
     /// earlier by the cut. Both keep every element.
     static func split(_ page: Page, at t: Double, hold: Double,
                       duration: (String) -> Double?) -> (first: Page, second: Page)? {
@@ -190,14 +209,14 @@ enum Timeline {
         first.holdSeconds = holds.first
         first.transition = "cut"
         first.transitionSeconds = nil
-        for i in first.elements.indices {
+        for i in first.elements.indices where !exitStaysBefore(first.elements[i].timing, cut: holds.first) {
             first.elements[i].exitAnimation = nil
         }
         var second = Copies.of(page)
         second.holdSeconds = holds.second
         for i in second.elements.indices {
             var el = second.elements[i]
-            if el.animation?.loops != true { el.animation = nil }
+            if el.animation?.loops != true, !entranceStaysAfter(el.timing, cut: holds.first) { el.animation = nil }
             el.timing = shiftedTiming(el.timing, by: holds.first)
             if let src = el.src, let parts = VideoStore.split(src) {
                 var clip = el.clip ?? ClipPlayback()
