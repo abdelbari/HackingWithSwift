@@ -20,6 +20,16 @@ struct ExportSheet: View {
     @State private var jpegQuality = 0.92
     @State private var transparent = false
     @State private var pageRange = RangeChoice.current
+    /// The pages ticked in Choose…, by id — this design's, for the session.
+    @State private var chosenIds: [String] = []
+    @State private var choosingPages = false
+    /// The video's size: 720p, 1080p or, where the encoder takes it, 4K.
+    @State private var resolution = MovieExporter.Resolution.standard
+    /// PDFs drawn as one 300-dpi picture a page.
+    @State private var flatten = false
+    /// "Remember these settings": the last export, as JSON; empty is off.
+    @AppStorage(ExportLast.key) private var exportLast = ""
+    @State private var remember = false
     @State private var sharedURLs: [URL] = []
     /// What the last save to Photos came to, and whether anything went in.
     @State private var photosNote: PhotosNote?
@@ -37,11 +47,37 @@ struct ExportSheet: View {
         var ok: Bool
     }
 
+    /// "All pages (N)" | "Current page" | "Choose…"; the raw values are
+    /// what "Remember these settings" writes.
     private enum RangeChoice: String, CaseIterable, Identifiable {
-        case current, all
+        case all, current, chosen
         var id: String { rawValue }
-        var label: String { self == .current ? "This page" : "All pages" }
-        var exportRange: DesignExporter.PageRange { self == .current ? .current : .all }
+    }
+
+    private func label(_ choice: RangeChoice) -> String {
+        switch choice {
+        case .all: return "All pages (\(store.design.pages.count))"
+        case .current: return "Current page"
+        case .chosen: return "Choose…"
+        }
+    }
+
+    /// The page choice as the exporter takes it.
+    private var pageExportRange: DesignExporter.PageRange {
+        switch pageRange {
+        case .all: return .all
+        case .current: return .current
+        case .chosen: return .chosen(chosenIds)
+        }
+    }
+
+    /// Choosing "Choose…" opens the pages to tick; set from a remembered
+    /// setting it does not.
+    private var rangeBinding: Binding<RangeChoice> {
+        Binding(get: { pageRange }, set: { next in
+            pageRange = next
+            if next == .chosen { choosingPages = true }
+        })
     }
     /// Fraction done while an export runs; nil when idle. Rasters report a
     /// page at a time, the movie a frame at a time.
@@ -66,7 +102,12 @@ struct ExportSheet: View {
                 clipboardSection
                 photosSection
                 if UIPrintInteractionController.isPrintingAvailable { printSection }
-                motionSection
+                // Grouped, which changes nothing on screen: a ViewBuilder
+                // block takes at most ten children.
+                Group {
+                    motionSection
+                    rememberSection
+                }
                 if let errorMessage {
                     Text(errorMessage).foregroundStyle(.red)
                 }
@@ -92,7 +133,13 @@ struct ExportSheet: View {
             .overlay {
                 if let progress { progressCard(progress) }
             }
+            .sheet(isPresented: $choosingPages, onDismiss: {
+                ExportChoices.remember(chosenIds, for: store.design)
+            }) {
+                PagePickerSheet(design: store.design, chosen: $chosenIds)
+            }
         }
+        .onAppear { restoreSettings() }
         // While the progress card is up, Cancel or Close is the way out, not
         // a swipe; and however the sheet goes, the export goes with it.
         .interactiveDismissDisabled(exporting)
@@ -214,7 +261,7 @@ struct ExportSheet: View {
     /// A selection export is a one-page design, so it is always "this page"
     /// of that design.
     private var exportedRange: DesignExporter.PageRange {
-        selectionOnly ? .current : pageRange.exportRange
+        selectionOnly ? .current : pageExportRange
     }
 
     private var exportedPageIndex: Int { selectionOnly ? 0 : store.pageIndex }
@@ -275,12 +322,17 @@ struct ExportSheet: View {
         if pageRange == .all {
             note = "One file per page, numbered — so each can be posted on its own."
             if hiddenPages > 0 { note = allPagesText + ". " + note }
+        } else if pageRange == .chosen {
+            note = "\(chosenText). Pictures and SVGs are a file a page; the PDF, video and GIF play them in order."
         }
         return Section {
-            Picker("Pages", selection: $pageRange) {
-                ForEach(RangeChoice.allCases) { Text($0.label).tag($0) }
+            Picker("Pages", selection: rangeBinding) {
+                ForEach(RangeChoice.allCases) { Text(label($0)).tag($0) }
             }
             .pickerStyle(.segmented)
+            if pageRange == .chosen {
+                Button("Choose pages… (\(chosenText))") { choosingPages = true }
+            }
         } header: {
             Text("Pages")
         } footer: {
@@ -300,31 +352,97 @@ struct ExportSheet: View {
     private var formatSection: some View {
         // Said from the page choice above, which the PDF follows.
         let pages = store.design.pages.count
-        let pdfSubtitle = pages == 1
-            ? "Print-ready document, vector"
-            : (pageRange == .all ? "\(allPagesText), vector" : "Page \(store.pageIndex + 1) only, vector")
+        let kind = flatten ? "flattened at 300 dpi" : "vector"
+        var pdfSubtitle = "Print-ready document, \(kind)"
+        if pages > 1 {
+            switch pageRange {
+            case .all: pdfSubtitle = "\(allPagesText), \(kind)"
+            case .current: pdfSubtitle = "Page \(store.pageIndex + 1) only, \(kind)"
+            case .chosen: pdfSubtitle = "\(chosenText), \(kind)"
+            }
+        }
         // PNG and JPEG write a file a page, so they follow it too.
         let count = exportedIndices.count
-        let what = count > 1 ? "\(count) pages, one file each" : onePageText
+        let what = count > 1 ? "\(pagesWord(count)), one file each" : onePageText
         let jpegSubtitle = "\(what), about \(estimatedSize)\(count > 1 ? " a page" : "")"
-        return Section("Format") {
+        let svgSubtitle = count > 1 ? "\(pagesWord(count)), one SVG each" : "\(onePageText), editable vectors"
+        return Section {
             exportButton("PNG", subtitle: "\(what), best for sharing", icon: "photo",
-                         unavailable: leftOut(exportedIndices)) {
+                         unavailable: leftOut(exportedIndices), format: "png") {
                 try await export(.png)
             }
             exportButton("JPEG", subtitle: jpegSubtitle, icon: "photo.fill",
-                         unavailable: leftOut(exportedIndices)) {
+                         unavailable: leftOut(exportedIndices), format: "jpg") {
                 try await export(.jpeg)
             }
             exportButton("PDF", subtitle: pdfSubtitle, icon: "doc.richtext", working: "Making the PDF",
-                         unavailable: leftOut(pdfIndices)) {
+                         unavailable: leftOut(pdfIndices), format: "pdf") {
                 try await exportPDF()
             }
-            exportButton("SVG", subtitle: "Current page, editable vectors",
-                         icon: "scribble.variable") {
+            exportButton("SVG", subtitle: svgSubtitle,
+                         icon: "scribble.variable", unavailable: leftOut(exportedIndices), format: "svg") {
                 try exportSVG()
             }
+            Toggle("Flatten PDF", isOn: $flatten)
+        } header: {
+            Text("Format")
+        } footer: {
+            Text("Flatten draws each PDF page as one 300-dpi picture: no editable text and no links, so a print shop gets no font surprises.")
         }
+    }
+
+    /// "3 pages", or "3 of 8 pages" when they were chosen.
+    private func pagesWord(_ count: Int) -> String {
+        pageRange == .chosen && !selectionOnly
+            ? ExportChoices.countText(count, of: store.design.pages.count)
+            : "\(count) pages"
+    }
+
+    /// "3 of 8 pages": what Choose… has ticked.
+    private var chosenText: String {
+        ExportChoices.countText(chosenIds.count, of: store.design.pages.count)
+    }
+
+    /// Kept for the next Export, or forgotten, with the switch.
+    private var rememberSection: some View {
+        Section {
+            Toggle("Remember these settings", isOn: $remember)
+                .onChange(of: remember) { _, on in
+                    if !on {
+                        exportLast = ""
+                    } else if ExportLast.read(exportLast) == nil {
+                        // Switched on here, not restored as the sheet opened.
+                        rememberSettings("png")
+                    }
+                }
+        } footer: {
+            Text("The format, size, quality, background and page choice of your last export, ready next time. The pages ticked in Choose… stay with this design until the app closes.")
+        }
+    }
+
+    /// The settings now, under `format`, when Remember is on.
+    private func rememberSettings(_ format: String) {
+        guard remember else { return }
+        exportLast = ExportLast(format: format, scale: scale, longEdge: typedLongEdge.map { Int($0) },
+                                jpegQuality: jpegQuality, transparent: transparent,
+                                pages: pageRange.rawValue).json
+    }
+
+    /// The pages ticked this session, and the remembered settings, as the
+    /// sheet opens.
+    private func restoreSettings() {
+        chosenIds = ExportChoices.chosen(for: store.design)
+        guard let last = ExportLast.read(exportLast) else { return }
+        remember = true
+        scale = [1.0, 2.0, 3.0].contains(last.scale) ? last.scale : 2
+        jpegQuality = last.jpegQuality
+        transparent = last.transparent
+        pageRange = RangeChoice(rawValue: last.pages) ?? .current
+        if last.format == "jpg" { photosFormat = .jpeg } else if last.format == "png" { photosFormat = .png }
+        // After the scale's own change has cleared the field, which it does
+        // once this pass is drawn.
+        let edge = last.longEdge.map { String($0) } ?? ""
+        DispatchQueue.main.async { longEdgeText = edge }
     }
 
     private var photosSection: some View {
@@ -339,11 +457,12 @@ struct ExportSheet: View {
             }
             .pickerStyle(.segmented)
             exportButton("\(kind) to Photos", subtitle: photosSubtitle, icon: "photo.badge.plus",
-                         working: "Saving to your photos", unavailable: leftOut(exportedIndices)) {
+                         working: "Saving to your photos", unavailable: leftOut(exportedIndices),
+                         format: photosFormat == .png ? "png" : "jpg") {
                 try await saveToPhotos(photosFormat)
             }
             exportButton("Video to Photos", subtitle: movieSubtitle, icon: "film.stack",
-                         working: "Rendering the video", unavailable: leftOut(store.design.visiblePageIndices)) {
+                         working: "Rendering the video", unavailable: leftOut(moviePages), format: "mp4") {
                 try await saveToPhotos(nil)
             }
         } header: {
@@ -358,7 +477,7 @@ struct ExportSheet: View {
 
     private var photosSubtitle: String {
         let count = exportedIndices.count
-        let each = count > 1 ? "\(count) pages, one photo each" : "\(onePageText), straight into your library"
+        let each = count > 1 ? "\(pagesWord(count)), one photo each" : "\(onePageText), straight into your library"
         return photosFormat == .jpeg ? "\(each), about \(estimatedSize)\(count > 1 ? " a page" : "")" : each
     }
 
@@ -390,9 +509,8 @@ struct ExportSheet: View {
     @MainActor
     private func saveMovieToPhotos() async throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "mp4")
-        let movie = try await MovieExporter.exportMP4(design: store.design,
-                                                      settings: MovieExporter.Settings(store.design.motion),
-                                                      to: url, progress: report)
+        let movie = try await MovieExporter.exportMP4(design: store.design, settings: movieSettings,
+                                                      range: pageExportRange, current: store.pageIndex, to: url, progress: report)
         let outcome = try await PhotoSaver.save([url])
         if outcome.cancelled && !outcome.anySaved { return }
         var text = outcome.anySaved ? "Saved the video to your photos." : "Couldn't save to your photos."
@@ -455,16 +573,17 @@ struct ExportSheet: View {
     private var printSection: some View {
         Section {
             exportButton("Send to a printer", subtitle: "AirPrint, on the paper layout below", icon: "printer",
-                         working: "Preparing to print", unavailable: leftOut(exportedIndices)) {
+                         working: "Preparing to print", unavailable: leftOut(exportedIndices), format: "print") {
                 try await printDesign()
             }
             exportButton("Print-ready PDF", subtitle: "Paper, bleed and crop marks as set", icon: "doc.badge.gearshape",
-                         working: "Making the print PDF", unavailable: leftOut(exportedIndices)) {
+                         working: "Making the print PDF", unavailable: leftOut(exportedIndices), format: "print") {
                 let url = DesignExporter.fileURL(for: store.design, ext: "pdf", suffix: "-print")
                 // The design the other formats render, so "Selection only"
                 // prints the selection rather than page 1 of the whole thing.
                 try await DesignExporter.exportPrintPDF(design: exportedDesign, range: exportedRange,
-                                                        current: exportedPageIndex, options: paper, to: url,
+                                                        current: exportedPageIndex, options: paper,
+                                                        flatten: flatten, to: url,
                                                         progress: { progress = $0 })
                 sharedURLs = [url]
                 exportedURL = url
@@ -513,13 +632,17 @@ struct ExportSheet: View {
     private var motionSection: some View {
         Section {
             exportButton("MP4 video", subtitle: movieSubtitle, icon: "film", working: "Rendering the video",
-                         unavailable: leftOut(store.design.visiblePageIndices)) {
+                         unavailable: leftOut(moviePages), format: "mp4") {
                 try await exportMovie()
             }
             exportButton("Animated GIF", subtitle: movieSubtitle, icon: "square.stack.3d.down.right",
-                         working: "Rendering the GIF", unavailable: leftOut(store.design.visiblePageIndices)) {
+                         working: "Rendering the GIF", unavailable: leftOut(moviePages), format: "gif") {
                 try await exportGIF()
             }
+            Picker("Video size", selection: $resolution) {
+                ForEach(MovieExporter.resolutions) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
             DisclosureGroup("Motion settings") { motionSettings }
         } header: {
             Text("Motion")
@@ -682,7 +805,7 @@ struct ExportSheet: View {
     /// now — every page it would make is hidden — said in place of its
     /// subtitle, with the row disabled.
     private func exportButton(_ title: String, subtitle: String, icon: String, working: String = "Rendering",
-                              unavailable: String? = nil,
+                              unavailable: String? = nil, format: String? = nil,
                               action: @escaping @MainActor () async throws -> Void) -> some View {
         Button {
             progress = 0
@@ -694,7 +817,11 @@ struct ExportSheet: View {
             // and Cancel can be tapped while it works.
             exportTask = Task { @MainActor in
                 defer { progress = nil; exportTask = nil }
-                do { try await action() }
+                do {
+                    try await action()
+                    // Kept for next time, when asked to be.
+                    if let format { rememberSettings(format) }
+                }
                 catch is CancellationError { /* asked for; nothing to report */ }
                 catch { errorMessage = "Export failed: \(error.localizedDescription)" }
             }
@@ -730,12 +857,27 @@ struct ExportSheet: View {
 
     /// The pages the PDF row writes, which follow the page choice alone.
     private var pdfIndices: [Int] {
-        pageRange.exportRange.indices(in: store.design, current: store.pageIndex)
+        pageExportRange.indices(in: store.design, current: store.pageIndex)
     }
 
-    /// Said on a row whose pages are all hidden, in place of what it makes.
+    /// The pages the video and GIF play: every page shown, the page on
+    /// screen, or those chosen.
+    private var moviePages: [Int] {
+        MovieExporter.playedPages(design: store.design, range: pageExportRange, current: store.pageIndex)
+    }
+
+    /// The motion settings with the video size chosen.
+    private var movieSettings: MovieExporter.Settings {
+        var settings = MovieExporter.Settings(store.design.motion)
+        settings.maxEdge = resolution.maxEdge
+        return settings
+    }
+
+    /// Said on a row with no page to make, in place of what it makes: none
+    /// ticked in Choose…, or every page hidden.
     private func leftOut(_ indices: [Int]) -> String? {
-        indices.isEmpty ? PageVisibility.everyPageHidden : nil
+        guard indices.isEmpty else { return nil }
+        return pageRange == .chosen && !selectionOnly ? "No pages chosen" : PageVisibility.everyPageHidden
     }
 
     /// The pixel size of the page shown — each page is sized on its own, so
@@ -779,10 +921,17 @@ struct ExportSheet: View {
     /// own counts at that hold, and a hidden page not at all.
     private var movieSubtitle: String {
         let pages = store.design.pages.count
-        let settings = MovieExporter.Settings(store.design.motion)
-        let seconds = MovieExporter.seconds(design: store.design, settings: settings)
+        let seconds = MovieExporter.seconds(design: store.design, settings: movieSettings,
+                                            range: pageExportRange, current: store.pageIndex)
         let length = String(format: "%.0f", max(1, seconds))
-        return pages > 1 ? "\(allPagesText), \(length)s" : "One page, \(length)s"
+        let size = MovieExporter.videoSize(for: store.design, maxEdge: resolution.maxEdge)
+        let pixels = "\(Int(size.width)) × \(Int(size.height))"
+        guard pages > 1 else { return "One page, \(length)s, \(pixels)" }
+        switch pageRange {
+        case .all: return "\(allPagesText), \(length)s, \(pixels)"
+        case .current: return "Current page, \(length)s, \(pixels)"
+        case .chosen: return "\(chosenText), \(length)s, \(pixels)"
+        }
     }
 
     /// Printing goes through the same vector PDF the export does, so what
@@ -796,7 +945,8 @@ struct ExportSheet: View {
         // — with the whole design they pointed at page 1, not the selection.
         let design = exportedDesign
         try await DesignExporter.exportPrintPDF(design: design, range: exportedRange, current: exportedPageIndex,
-                                                options: paper, to: url, progress: { progress = $0 })
+                                                options: paper, flatten: flatten, to: url,
+                                                progress: { progress = $0 })
 
         let info = UIPrintInfo.printInfo()
         info.outputType = .general
@@ -830,9 +980,8 @@ struct ExportSheet: View {
     @MainActor
     private func exportMovie() async throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "mp4")
-        let movie = try await MovieExporter.exportMP4(design: store.design,
-                                                      settings: MovieExporter.Settings(store.design.motion),
-                                                      to: url, progress: report)
+        let movie = try await MovieExporter.exportMP4(design: store.design, settings: movieSettings,
+                                                      range: pageExportRange, current: store.pageIndex, to: url, progress: report)
         // The picture is kept when the music will not go under it; the
         // sheet says so beside the share, as the Android twin toasts it.
         if movie.musicLost {
@@ -846,26 +995,27 @@ struct ExportSheet: View {
     @MainActor
     private func exportGIF() async throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "gif")
-        try await MovieExporter.exportGIF(design: store.design, settings: MovieExporter.Settings(store.design.motion),
-                                    to: url, progress: { progress = $0 })
+        try await MovieExporter.exportGIF(design: store.design, settings: movieSettings,
+                                          range: pageExportRange, current: store.pageIndex, to: url, progress: { progress = $0 })
         sharedURLs = [url]
         exportedURL = url
     }
 
+    /// One .svg per page exported, shared together.
     @MainActor
     private func exportSVG() throws {
-        let url = DesignExporter.fileURL(for: store.design, ext: "svg")
-        try DesignExporter.exportSVG(design: exportedDesign,
-                                     page: exportedDesign.pages[exportedPageIndex], to: url)
-        sharedURLs = [url]
-        exportedURL = url
+        let urls = try DesignExporter.exportSVGs(design: exportedDesign, range: exportedRange,
+                                                 current: exportedPageIndex)
+        sharedURLs = urls
+        exportedURL = urls.first
     }
 
     @MainActor
     private func exportPDF() async throws {
         let url = DesignExporter.fileURL(for: store.design, ext: "pdf")
-        try await DesignExporter.exportPDF(design: store.design, range: pageRange.exportRange,
-                                           current: store.pageIndex, to: url, progress: { progress = $0 })
+        try await DesignExporter.exportPDF(design: store.design, range: pageExportRange,
+                                           current: store.pageIndex, flatten: flatten, to: url,
+                                           progress: { progress = $0 })
         sharedURLs = [url]
         exportedURL = url
     }
