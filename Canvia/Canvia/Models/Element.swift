@@ -302,9 +302,10 @@ struct TableCell: Codable, Equatable, Hashable {
         return n
     }
 
-    /// A row or column: a whole number from nought, written either way.
+    /// A row or column: a whole number from nought below 1,000,000, written
+    /// either way, so a span added to it never overflows.
     private static func index<Key: CodingKey>(_ c: KeyedDecodingContainer<Key>, _ key: Key) -> Int? {
-        if let n = try? c.decode(Int.self, forKey: key) { return n >= 0 ? n : nil }
+        if let n = try? c.decode(Int.self, forKey: key) { return n >= 0 && n < 1_000_000 ? n : nil }
         guard let d = try? c.decode(Double.self, forKey: key), d >= 0, d < 1_000_000, d == d.rounded() else { return nil }
         return Int(d)
     }

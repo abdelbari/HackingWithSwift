@@ -326,6 +326,16 @@ final class TablesTests: XCTestCase {
         XCTAssertEqual([rect(back, 1, 0).h, rect(back, 1, 1).h], [66, 66])
         XCTAssertEqual(rect(back, 1, 1).fill, rect(table, 1, 0).fill)
         XCTAssertEqual(Set(back.map(\.id)).count, 12)
+        // A merged header, the columns' top row: each part goes back to its
+        // own column, as the rows below have them.
+        let header = try XCTUnwrap(merging(table, [(0, 0), (0, 1)]))
+        let parted = try XCTUnwrap(DataGraphics.unmergingTableCells(header, id: id, cells: cells(header, [(0, 0)]),
+                                                                    heightFor: heightFor))
+        XCTAssertEqual(words(parted), ["Item\nQty", "", "Coffee", "2", "Bagel", "1"])
+        XCTAssertEqual(columnWidths(parted), [267, 133])
+        XCTAssertEqual(columnLefts(parted), [100, 367])
+        XCTAssertEqual([rect(parted, 0, 0).h, rect(parted, 0, 1).h], [66, 66])
+        XCTAssertEqual(rowTops(parted), [200, 266, 312])
     }
 
     func testARowOrAColumnAddedOrDeletedThroughAMergedCellGrowsOrShrinksIt() throws {
@@ -678,6 +688,11 @@ final class TablesTests: XCTestCase {
         XCTAssertNil(try read(#"{"id": "", "row": 1, "col": 0}"#))
         XCTAssertNil(try read(#"{"id": "tbl_x", "row": "1", "col": 0}"#))
         XCTAssertNil(try read(#"{"id": "tbl_x", "row": -1, "col": 0}"#))
+        // A row or column is below 1,000,000, so a span added to it never wraps.
+        XCTAssertEqual(try read(#"{"id": "tbl_x", "row": 999999, "col": 0}"#), TableCell(id: "tbl_x", row: 999999, col: 0))
+        XCTAssertNil(try read(#"{"id": "tbl_x", "row": 1000000, "col": 0}"#))
+        XCTAssertNil(try read(#"{"id": "tbl_x", "row": 9223372036854775807, "col": 0}"#))
+        XCTAssertNil(try read(#"{"id": "tbl_x", "row": 0, "col": 2147483647}"#))
         XCTAssertNil(try read(#""tbl_x""#))
         // An unreadable place leaves the element itself as it was.
         let kept = try JSONDecoder().decode(Element.self, from: Data(

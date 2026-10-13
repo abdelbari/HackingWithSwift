@@ -230,10 +230,12 @@ struct SelectionOverlay: View {
     }
 
     /// Whether a touch at `point`, in page units, is within reach of a
-    /// handle drawn — the rotate handle among them — and so the handles'
-    /// rather than the empty page's. As on the Android twin, nothing else
-    /// near the selection is: a locked one, which draws none, has none.
+    /// handle drawn — the rotate handle and a whole table's column edges
+    /// among them — and so the handles' rather than the empty page's. As on
+    /// the Android twin, nothing else near the selection is: a locked one,
+    /// which draws none, has none.
     static func handlesTake(_ point: CGPoint, store: DesignStore) -> Bool {
+        if onColumnEdge(point, store: store) { return true }
         guard let drawn = ring(store) else { return false }
         let page = reachablePage(store)
         let out = outsets(for: drawn.el, zoom: store.zoom, page: page)
@@ -242,6 +244,16 @@ struct SelectionOverlay: View {
                           outsetX: out.x, outsetY: out.y, rotateAt: rotateAt,
                           reach: Touch.pageUnits(Touch.handleReach, zoom: store.zoom),
                           inside: Touch.pageUnits(Touch.handleReachInside, zoom: store.zoom)) != nil
+    }
+
+    /// Whether `point` is on a column edge's handle (TableColumnHandles):
+    /// a touch target square centred on the table's foot, so half of it
+    /// hangs below the table over the page.
+    private static func onColumnEdge(_ point: CGPoint, store: DesignStore) -> Bool {
+        guard let edges = store.tableColumnEdges else { return false }
+        let half = Touch.pageUnits(Touch.minTarget, zoom: store.zoom) / 2
+        guard abs(Double(point.y) - edges.bottom) <= half else { return false }
+        return edges.xs.contains { abs(Double(point.x) - $0) <= half }
     }
 
     /// Every handle the element offers, at any size or zoom. On a small or
