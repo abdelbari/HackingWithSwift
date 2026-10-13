@@ -112,6 +112,18 @@ final class ClipSoundTests: XCTestCase {
         XCTAssertEqual(AudioMix.pageStart(design: d, index: 2), 2, accuracy: 1e-9)
     }
 
+    func testAVoiceOverPlaysTheShownPagesFromItsPageOnAHiddenOneFromTheNextShownPage() {
+        var d = Design(title: "through", width: 320, height: 240)
+        d.pages = [Page(), Page(), Page(), Page()]
+        d.pages[1].hidden = true
+        d.pages[3].hidden = true
+        XCTAssertEqual(AudioMix.playedThrough(design: d, index: 0), [0, 2])
+        XCTAssertEqual(AudioMix.playedThrough(design: d, index: 1), [2])
+        XCTAssertEqual(AudioMix.playedThrough(design: d, index: 2), [2])
+        // No shown page after a hidden one: it plays alone.
+        XCTAssertEqual(AudioMix.playedThrough(design: d, index: 3), [3])
+    }
+
     func testTheClipsHeardOnAPageAreItsOwnAndTheMastersNeverABackgroundOrAFill() {
         let master = Page(elements: [Element.image("video:vid-m")])
         var fill = Element.shape("rect")
