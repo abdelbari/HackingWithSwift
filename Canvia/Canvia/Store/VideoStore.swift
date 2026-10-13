@@ -179,6 +179,29 @@ enum VideoStore {
         return seconds
     }
 
+    /// The clip's length in seconds, or nil when it cannot be read — read
+    /// without blocking, for Split page, and kept for duration(of:) after.
+    static func loadedDuration(of id: String) async -> Double? {
+        if let known = knownDuration(of: id) { return known }
+        guard let url = url(for: id),
+              let duration = try? await AVURLAsset(url: url).load(.duration), duration.isNumeric else { return nil }
+        let seconds = duration.seconds
+        guard seconds.isFinite else { return nil }
+        rememberDuration(seconds, of: id)
+        return seconds
+    }
+
+    /// The clip's length once it has been read; nil before.
+    private static func knownDuration(of id: String) -> Double? {
+        lock.lock(); defer { lock.unlock() }
+        return durations[id]
+    }
+
+    private static func rememberDuration(_ seconds: Double, of id: String) {
+        lock.lock(); defer { lock.unlock() }
+        durations[id] = seconds
+    }
+
     /// The clip's length in seconds when it has sound to hear; nil for one
     /// filmed without, or one that cannot be read. Read without blocking,
     /// for the sound that plays live and the video's mix.

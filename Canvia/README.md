@@ -723,19 +723,25 @@ the rates a GIF can state exactly, written frame by frame with AVAssetWriter
 (video) and ImageIO (GIF). No network, no account, no codec licence.
 
 **Timeline** — More > Timeline puts a strip above the pages (off until
-turned on, and remembered on this phone): each shown page is a block as
+turned on, and remembered on this phone), under a "Timeline" header that
+shows the playhead and the film's length and folds the strip away: each
+shown page is a block as
 wide as it holds, its right edge dragged to set the hold to a tenth of a
 second (half a second to a minute, one Undo per drag), a tap bringing the
 page up. Dragging along the strip's ruler scrubs the playhead, and the
-canvas shows the design at that moment, in silence. Split page (in the
-strip, and in More) cuts the page at the playhead into two that play as
-one: the first holds to the cut and keeps the entrances, the second holds
+canvas shows the design at that moment, in silence; the playhead keeps its
+place in its page when an earlier page is retimed. Split page (in the
+strip's header, and in More) cuts the page at the playhead, to a tenth of a
+second, into two that play as one: the first holds to the cut and keeps the entrances, the second holds
 the rest, keeps the exits and the page's transition, and each clip on it
 picks up where the first left off. An element can show for part of its
-page — Show from playhead and Hide from playhead in its Animate menu, the
-`timing` key in the file — and the selection's timings and the audio
+page — Show from playhead and Hide from playhead in its Animate menu while
+the timeline is on (Hide not at the page's very start), Show for the whole
+page to undo it, the `timing` key in the file — and the selection's
+timings and the audio
 tracks are thin bars under the blocks. Present, Play, MP4 and GIF honour
-timings; still exports and the editor at rest show every element.
+timings, an exit over at the timing's end or the page's, whichever comes
+first; still exports and the editor at rest show every element.
 
 SVG keeps shapes and lines as paths and strokes, and converts text to
 glyph outlines rather than `<text>` — the fonts are files inside the app,

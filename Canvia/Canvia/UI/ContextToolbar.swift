@@ -419,7 +419,7 @@ struct ContextToolbar: View {
             exitMenu(el)
             Button { store.playPreview() } label: { Label("Play this page", systemImage: "play") }
                 .disabled(!store.pagePlays)
-            if timeline {
+            if timeline || timed {
                 Divider()
                 timingButtons()
             }
@@ -428,22 +428,31 @@ struct ContextToolbar: View {
         }
     }
 
-    /// When the selection shows within its page, from the timeline's
-    /// playhead on that page — gone from the menu while it is off, and
-    /// unavailable while the playhead stands on another page.
+    /// Whether anything selected has a timing of its own.
+    private var timed: Bool {
+        store.selectedElements.contains { $0.timing != nil }
+    }
+
+    /// When the selection shows within its page: by the timeline's playhead
+    /// while the timeline is on — gone from the menu while it is off,
+    /// unavailable on a hidden page, and Hide not at the page's very start,
+    /// which would hide it all through — and Show for the whole page once it
+    /// has a timing. The Android twin's Animate panel, rule for rule.
     @ViewBuilder
     private func timingButtons() -> some View {
         let t = store.playheadInPage
         let none = store.unlockedSelectionCount == 0
-        Button { store.showSelectedFromPlayhead() } label: {
-            Label("Show from playhead", systemImage: "eye")
+        if timeline {
+            Button { store.showSelectedFromPlayhead() } label: {
+                Label("Show from playhead", systemImage: "eye")
+            }
+            .disabled(t == nil || none)
+            Button { store.hideSelectedFromPlayhead() } label: {
+                Label("Hide from playhead", systemImage: "eye.slash")
+            }
+            .disabled((t ?? 0) < 0.05 || none)
         }
-        .disabled(t == nil || none)
-        Button { store.hideSelectedFromPlayhead() } label: {
-            Label("Hide from playhead", systemImage: "eye.slash")
-        }
-        .disabled((t ?? 0) < 0.05 || none)
-        if store.selectedElements.contains(where: { $0.timing != nil }) {
+        if timed {
             Button { store.clearSelectedTiming() } label: {
                 Label("Show for the whole page", systemImage: "arrow.left.and.right")
             }

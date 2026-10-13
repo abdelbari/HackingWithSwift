@@ -1,9 +1,10 @@
 // The editor's timeline: a strip above the pages, off unless turned on in
-// More. Each shown page is a block as wide as it holds, whose right edge
-// drags its hold longer or shorter; a playhead scrubs the film, the canvas
-// showing each moment it passes, in silence; under the blocks, when each
-// selected element shows, and the design's audio tracks as thin bars. As
-// the Android twin's timeline.
+// More, under a "Timeline" header that folds it away. Each shown page is a
+// block as wide as it holds, whose right edge drags its hold longer or
+// shorter; a playhead scrubs the film, the canvas showing each moment it
+// passes, in silence; under the blocks, when each selected element shows,
+// and the design's audio tracks as thin bars. As the Android twin's
+// timeline.
 
 import SwiftUI
 
@@ -14,6 +15,8 @@ struct TimelineStrip: View {
     /// under the finger.
     @State private var drag: HoldDrag?
     @State private var scrubbing = false
+    /// Unfolded, or folded down to its header.
+    @State private var open = true
     /// Each track's music length, by AudioStore id, once read.
     @State private var trackLengths: [String: Double] = [:]
 
@@ -43,25 +46,56 @@ struct TimelineStrip: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            GeometryReader { geo in
-                ScrollView(.horizontal, showsIndicators: false) {
-                    lanes(scale: scale(width: geo.size.width - 24))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
+        VStack(spacing: 0) {
+            header
+            if open {
+                GeometryReader { geo in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        lanes(scale: scale(width: geo.size.width - 24))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                    }
                 }
+                .frame(height: height)
             }
-            Button { store.splitPage() } label: {
-                Image(systemName: "scissors").frame(width: 44, height: 44)
-            }
-            .disabled(!store.canSplitPage)
-            .accessibilityLabel("Split page")
-            .padding(.trailing, 6)
         }
-        .frame(height: height)
         .background(Theme.chrome)
         .overlay(alignment: .top) { Divider() }
         .task(id: trackSources) { await readTrackLengths() }
+    }
+
+    // MARK: header
+
+    /// The fold, the title, where the playhead is in the film and how long
+    /// it runs, and Split page — as the Android twin's header.
+    private var header: some View {
+        HStack(spacing: 8) {
+            Button { open.toggle() } label: {
+                Image(systemName: open ? "chevron.down" : "chevron.up")
+                    .frame(width: 32, height: 32)
+            }
+            .accessibilityLabel(open ? "Fold the timeline" : "Unfold the timeline")
+            Text("Timeline")
+                .font(.subheadline.weight(.semibold))
+            Text(clockLabel)
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Spacer(minLength: 0)
+            Button("Split page") { store.splitPage() }
+                .font(.subheadline)
+                .disabled(!store.canSplitPage)
+        }
+        .padding(.horizontal, 8)
+        .frame(height: 36)
+    }
+
+    /// "0:03.5 / 0:12.0": the playhead in the film, m:ss.s, and the film's
+    /// length; on a hidden page, which has no playhead, that it is hidden.
+    private var clockLabel: String {
+        guard let at = shownPlayhead else { return "This page is hidden" }
+        let total = store.timelinePages.reduce(0.0) { $0 + $1.hold }
+        return VideoStore.timeLabel(at) + " / " + VideoStore.timeLabel(total)
     }
 
     // MARK: layout
@@ -119,10 +153,10 @@ struct TimelineStrip: View {
         .gesture(scrubGesture(scale: scale))
         .accessibilityElement()
         .accessibilityLabel("Playhead")
-        .accessibilityValue(String(format: "%.1f seconds", store.playhead))
+        .accessibilityValue(String(format: "%.1f seconds", store.filmPlayhead ?? 0))
         .accessibilityAdjustableAction { direction in
             let step = direction == .increment ? 0.5 : -0.5
-            store.scrub(to: store.playhead + step)
+            store.scrub(to: (store.filmPlayhead ?? 0) + step)
             store.endScrub()
         }
     }
@@ -142,24 +176,27 @@ struct TimelineStrip: View {
             }
     }
 
-    /// Where the playhead is drawn: where it stands, or while the page
-    /// plays, where the play has got to.
-    private var shownPlayhead: Double {
-        guard !scrubbing, let t = store.previewTime, let start = store.timelinePageStart else { return store.playhead }
-        return start + t
+    /// Where the playhead is drawn, in the film: where it stands, or while
+    /// the page plays, where the play has got to; nowhere on a hidden page.
+    private var shownPlayhead: Double? {
+        guard let start = store.timelinePageStart else { return nil }
+        if !scrubbing, let t = store.previewTime { return start + t }
+        return store.filmPlayhead
     }
 
+    @ViewBuilder
     private func playheadLine(width: Double, scale: Double) -> some View {
-        let x = min(max(shownPlayhead * scale, 0), width)
-        return Rectangle()
-            .fill(Theme.guide)
-            .frame(width: 2)
-            .overlay(alignment: .top) {
-                Circle().fill(Theme.guide).frame(width: 10, height: 10)
-            }
-            .offset(x: x - 1)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
+        if let at = shownPlayhead {
+            Rectangle()
+                .fill(Theme.guide)
+                .frame(width: 2)
+                .overlay(alignment: .top) {
+                    Circle().fill(Theme.guide).frame(width: 10, height: 10)
+                }
+                .offset(x: min(max(at * scale, 0), width) - 1)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
     }
 
     // MARK: blocks

@@ -23,14 +23,20 @@ extension DesignStore {
         return nil
     }
 
-    /// The playhead as seconds into the page on screen; nil when it stands
-    /// on another page, or the page is hidden.
+    /// The playhead as seconds into the page on screen, within its hold —
+    /// its start when the playhead stood on a page since gone; nil while
+    /// the page is hidden, which is on no timeline.
     var playheadInPage: Double? {
-        guard let start = timelinePageStart else { return nil }
-        let t = playhead - start
-        let hold = pageHold
-        guard t >= -1e-9, t <= hold + 1e-9 else { return nil }
-        return min(max(t, 0), hold)
+        guard timelinePageStart != nil else { return nil }
+        guard playheadPage == nil || playheadPage == page.id else { return 0 }
+        return min(max(playhead, 0), pageHold)
+    }
+
+    /// The playhead in the film: where the page on screen starts, and as far
+    /// into it as the playhead stands; nil while the page is hidden.
+    var filmPlayhead: Double? {
+        guard let start = timelinePageStart, let t = playheadInPage else { return nil }
+        return start + t
     }
 
     /// Whether Split page can cut the page on screen at the playhead: it
@@ -47,15 +53,17 @@ extension DesignStore {
 
     /// The playhead at `t` seconds into the film, kept to the film, and the
     /// canvas showing the page there at that moment — brought on screen
-    /// when it is another — in silence, until endScrub.
+    /// when it is another — in silence, until endScrub. The playhead is kept
+    /// as that page and how far into it.
     func scrub(to t: Double) {
         let pages = timelinePages
         guard !pages.isEmpty else { return }
         let holds = pages.map { $0.hold }
-        playhead = min(max(t, 0), holds.reduce(0, +))
-        let spot = Timeline.locate(playhead, holds: holds)
+        let spot = Timeline.locate(min(max(t, 0), holds.reduce(0, +)), holds: holds)
         let index = pages[spot.page].index
         if index != pageIndex { setPage(index) }
+        playheadPage = design.pages[index].id
+        playhead = spot.time
         previewTime = spot.time
     }
 
@@ -69,14 +77,17 @@ extension DesignStore {
     /// page's start when it stood on another.
     func selectTimelinePage(_ index: Int) {
         setPage(index)
-        if playheadInPage == nil, let start = timelinePageStart { playhead = start }
     }
 
     /// Page `id`'s hold while its block's edge is dragged: set as it goes,
     /// with the step left open for commit() on release, so the whole drag is
-    /// one Undo.
+    /// one Undo. Words being typed or dictated are a step of their own,
+    /// closed first, so one Undo never takes back both — as apply() closes
+    /// them, and the Android twin's drag commits what is open.
     func dragHold(of id: String, to seconds: Double) {
         guard let i = design.pages.firstIndex(where: { $0.id == id }) else { return }
+        endTextEdit()
+        endDictation()
         beginGesture()
         design.pages[i].holdSeconds = seconds
     }
@@ -89,12 +100,36 @@ extension DesignStore {
 
     /// Split page: the page on screen cut in two at the playhead, as one
     /// step (Timeline.split), with the second part on screen and the
-    /// playhead at its start. Nothing when the playhead is not on the page
-    /// or too near either end of it.
+    /// playhead at its start. Nothing when the page is hidden or the
+    /// playhead too near either end of it. Its clips' lengths are read
+    /// first, off the main thread, so a clip that loops over its whole file
+    /// plays on from the right moment; the split waits for them, and is
+    /// let go if the page or the playhead moved meanwhile, as on Android.
     func splitPage() {
-        guard let t = playheadInPage, let start = timelinePageStart,
-              let parts = Timeline.split(page, at: t, hold: pageHold,
-                                         duration: { VideoStore.duration(of: $0) }) else {
+        guard let t = playheadInPage, canSplitPage else {
+            buzz(.reject)
+            return
+        }
+        let clips = Set(page.elements.compactMap { el in el.src.flatMap { VideoStore.split($0)?.id } })
+        guard !clips.isEmpty else {
+            split(at: t, lengths: [:])
+            return
+        }
+        let id = page.id
+        Task { @MainActor in
+            var lengths: [String: Double] = [:]
+            for clip in clips {
+                if let seconds = await VideoStore.loadedDuration(of: clip) { lengths[clip] = seconds }
+            }
+            guard page.id == id, playheadInPage == t else { return }
+            split(at: t, lengths: lengths)
+        }
+    }
+
+    /// The page on screen split at `t`, its clips `lengths` long by
+    /// VideoStore id.
+    private func split(at t: Double, lengths: [String: Double]) {
+        guard let parts = Timeline.split(page, at: t, hold: pageHold, duration: { lengths[$0] }) else {
             buzz(.reject)
             return
         }
@@ -106,7 +141,8 @@ extension DesignStore {
         }
         pageIndex = index + 1
         selection.removeAll()
-        playhead = start + (parts.first.holdSeconds ?? t)
+        playheadPage = parts.second.id
+        playhead = 0
         announce("Split page \(index + 1)")
     }
 

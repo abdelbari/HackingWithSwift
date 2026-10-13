@@ -118,16 +118,18 @@ enum Timeline {
 
     /// The hold a block's right edge sets, dragged `dx` points from where
     /// it stood at `hold` seconds, at `scale` points a second: to the
-    /// nearest tenth, kept to MotionSettings.pageHoldRange (0.5...60).
+    /// nearest tenth, kept to MotionSettings.pageHoldRange (0.5...60). At
+    /// no scale at all, the hold as it stood.
     static func draggedHold(_ hold: Double, by dx: Double, scale: Double) -> Double {
-        let seconds = tenth(hold + dx / max(scale, 0.001))
+        let seconds = scale > 0 ? tenth(hold + dx / scale) : tenth(hold)
         return min(max(seconds, MotionSettings.pageHoldRange.lowerBound), MotionSettings.pageHoldRange.upperBound)
     }
 
     /// Which of pages holding `holds` seconds the moment `t` seconds into
     /// the film falls on, and how far into it: a page owns its start, not
     /// its end; before the film is its first page's start, and past it its
-    /// last page's end.
+    /// last page's end. Not rounded: what is done at a moment rounds it
+    /// then (Show and Hide from playhead, Split page), as on Android.
     static func locate(_ t: Double, holds: [Double]) -> (page: Int, time: Double) {
         guard !holds.isEmpty else { return (0, 0) }
         var start = 0.0
@@ -151,26 +153,13 @@ enum Timeline {
     }
 
     /// Where a clip starts on the second page of a split `t` seconds in, so
-    /// it goes on from where the first page left it: `t` times its speed
-    /// further on — round again within its trim when it loops, the trim
-    /// ending at its end or else the file's (`duration`), as playback loops
-    /// it; held short of that end by ClipPlayback.minLength when it does
-    /// not; straight on when no end is known. To the millisecond.
+    /// it goes on from where the first page left it: the moment playback
+    /// shows `t` seconds into the page (VideoStore.clipTime) — `t` times its
+    /// speed further on, round again within its trim when it loops, held a
+    /// hundredth short of its end when it does not, straight on when no end
+    /// is known. To the hundredth, as the Android twin's splitClip.
     static func advancedClipStart(_ clip: ClipPlayback, by t: Double, duration: Double?) -> Double {
-        let start = max(0, clip.start)
-        let advance = max(0, t) * clip.playbackSpeed
-        let end = min(clip.end ?? .infinity, duration ?? .infinity)
-        let moved: Double
-        if !end.isFinite {
-            moved = start + advance
-        } else if end - start <= 0.01 {
-            moved = start
-        } else if clip.loop {
-            moved = start + advance.truncatingRemainder(dividingBy: end - start)
-        } else {
-            moved = max(start, min(start + advance, end - ClipPlayback.minLength))
-        }
-        return (moved * 1000).rounded() / 1000
+        (VideoStore.clipTime(t, clip: clip, duration: duration) * 100).rounded() / 100
     }
 
     /// An element's timing on the second page of a split `t` seconds in:
@@ -222,8 +211,10 @@ enum Timeline {
 
     /// An element's entrance, exit and timing at the clock's moment: none of
     /// it outside its timing; its entrance counted from its timing's start;
-    /// its exit over at its timing's end — played on the page's own clock —
-    /// else by the page's hold, on `exitTime` where Present holds exits back.
+    /// with a timing's end, its exit over at that end or the page's,
+    /// whichever comes first — played on the page's own clock — else by the
+    /// page's hold, on `exitTime` where Present holds exits back. The
+    /// Android twin's Timeline.motion.
     static func motion(of el: Element, time: Double, hold: Double, exitTime: Double?,
                        text: String?) -> ElementAnimation.State {
         guard ElementTiming.shows(el.timing, at: time) else {
@@ -237,7 +228,8 @@ enum Timeline {
         guard let exit = el.exitAnimation else { return entrance }
         if let end = el.timing?.end {
             // exitState is over `delay` before the hold it is given.
-            return entrance.combined(with: exit.exitState(at: time, hold: end + exit.delay, size: size))
+            let over = min(end, hold) + exit.delay
+            return entrance.combined(with: exit.exitState(at: time, hold: over, size: size))
         }
         return entrance.combined(with: exit.exitState(at: exitTime ?? time, hold: hold, size: size))
     }

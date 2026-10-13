@@ -118,14 +118,16 @@ final class TimelineTests: XCTestCase {
                                          settings: SnapSettings(toPage: false, toElements: false)).x.isEmpty)
     }
 
-    // MARK: the editor's timeline — shared rows
+    // MARK: the editor's timeline — shared rows, the same as Android's MovieTest
 
-    /// Side by side from 0, no gap, each as wide as its hold at the scale.
+    /// Holds, points a second, then each block's x and width: side by side
+    /// from 0, no gap, each as wide as its hold at the scale.
     func testBlocksSitSideBySideAsWideAsTheirHolds() {
         let rows: [([Double], Double, [Double], [Double])] = [
             ([2.5, 4, 0.5], 10, [0, 25, 65], [25, 40, 5]),
             ([1, 2], 12, [0, 12], [12, 24]),
             ([60], 2, [0], [120]),
+            ([2.5, 1, 4], 20, [0, 50, 70], [50, 20, 80]),
             ([], 10, [], []),
         ]
         for (holds, scale, xs, widths) in rows {
@@ -146,6 +148,10 @@ final class TimelineTests: XCTestCase {
             (2.5, 30, 12, 5.0),
             (2, -100, 10, 0.5),
             (59, 200, 10, 60),
+            (2.5, 0, 20, 2.5),
+            (2.5, 13.4, 20, 3.2),
+            (2.5, -40, 20, 0.5),
+            (3, 12, 40, 3.3),
         ]
         for (hold, dx, scale, expected) in rows {
             XCTAssertEqual(Timeline.draggedHold(hold, by: dx, scale: scale), expected, accuracy: 1e-9,
@@ -153,22 +159,26 @@ final class TimelineTests: XCTestCase {
         }
     }
 
-    /// A moment in the film: the page it falls on and how far into it. A
-    /// page owns its start, not its end; the film's ends hold.
+    /// Holds, a moment in the film, then the page it falls on and how far
+    /// into it, not rounded. A page owns its start, not its end; the film's
+    /// ends hold.
     func testAMomentFallsOnAPage() {
-        let holds: [Double] = [2, 3, 1]
-        let rows: [(Double, Int, Double)] = [
-            (-1, 0, 0), (0, 0, 0), (1.5, 0, 1.5), (2, 1, 0), (4.5, 1, 2.5), (5, 2, 0), (6, 2, 1), (9, 2, 1),
+        let rows: [([Double], Double, Int, Double)] = [
+            ([2, 3, 1], -1, 0, 0), ([2, 3, 1], 0, 0, 0), ([2, 3, 1], 1.5, 0, 1.5), ([2, 3, 1], 2, 1, 0),
+            ([2, 3, 1], 4.5, 1, 2.5), ([2, 3, 1], 5, 2, 0), ([2, 3, 1], 6, 2, 1), ([2, 3, 1], 9, 2, 1),
+            ([2.5, 1, 4], 1.23, 0, 1.23), ([2.5, 1, 4], 2.5, 1, 0), ([2.5, 1, 4], 3.46, 1, 0.96),
+            ([2.5, 1, 4], 3.5, 2, 0), ([2.5, 1, 4], 7.5, 2, 4), ([2.5, 1, 4], 99, 2, 4),
         ]
-        for (t, page, time) in rows {
+        for (holds, t, page, time) in rows {
             let spot = Timeline.locate(t, holds: holds)
-            XCTAssertEqual(spot.page, page, "page at \(t)")
-            XCTAssertEqual(spot.time, time, accuracy: 1e-9, "time at \(t)")
+            XCTAssertEqual(spot.page, page, "page at \(t) in \(holds)")
+            XCTAssertEqual(spot.time, time, accuracy: 1e-9, "time at \(t) in \(holds)")
         }
+        XCTAssertEqual(Timeline.locate(3, holds: []).page, 0)
     }
 
     /// Hold, cut, then the two holds, or nil: the cut to the tenth first,
-    /// and each part at least half a second.
+    /// the rest to the tenth too, and each part at least half a second.
     func testSplitHolds() {
         let rows: [(Double, Double, (Double, Double)?)] = [
             (3, 1.2, (1.2, 1.8)),
@@ -177,16 +187,20 @@ final class TimelineTests: XCTestCase {
             (3, 1.23, (1.2, 1.8)),
             (3, 0.46, (0.5, 2.5)),
             (1, 0.5, (0.5, 0.5)),
+            (2.5, 1.2, (1.2, 1.3)),
+            (5, 2, (2, 3)),
+            (10, 0.5, (0.5, 9.5)),
+            (2.5, 2, (2, 0.5)),
             (3, 0.4, nil),
             (3, 2.6, nil),
+            (2.5, 2.1, nil),
             (0.9, 0.5, nil),
         ]
         for (hold, t, expected) in rows {
             let holds = Timeline.splitHolds(hold: hold, at: t)
             if let expected {
-                let got = try? XCTUnwrap(holds, "\(hold) at \(t)")
-                XCTAssertEqual(got?.first ?? -1, expected.0, accuracy: 1e-9, "\(hold) at \(t)")
-                XCTAssertEqual(got?.second ?? -1, expected.1, accuracy: 1e-9, "\(hold) at \(t)")
+                XCTAssertEqual(holds?.first ?? -1, expected.0, accuracy: 1e-9, "\(hold) at \(t)")
+                XCTAssertEqual(holds?.second ?? -1, expected.1, accuracy: 1e-9, "\(hold) at \(t)")
             } else {
                 XCTAssertNil(holds, "\(hold) at \(t)")
             }
@@ -194,20 +208,25 @@ final class TimelineTests: XCTestCase {
     }
 
     /// Clip start, end, speed, loop, file length, cut, then where the clip
-    /// starts on the second page: t x speed on, round again within the trim
-    /// when it loops, short of its end by 0.1 s when it does not, straight
-    /// on with no known end; to the millisecond.
+    /// starts on the second page: VideoStore.clipTime at the cut — t x speed
+    /// on, round again within the trim when it loops, a hundredth short of
+    /// its end when it does not, straight on with no known end — to the
+    /// hundredth.
     func testAClipPicksUpWhereTheSplitLeftIt() {
         let rows: [(Double, Double?, Double, Bool, Double?, Double, Double)] = [
             (0, nil, 1, true, nil, 2, 2),
             (1, nil, 2, false, nil, 1.5, 4),
             (1, 3, 1, true, nil, 3, 2),
             (0, nil, 1, true, 5, 7, 2),
-            (0, 4, 1, false, 10, 6, 3.9),
+            (0, 4, 1, false, 10, 6, 3.99),
             (2, nil, 0.5, true, 10, 4, 4),
-            (0, nil, 8, true, nil, 1, 4),
             (1, 1.005, 1, true, nil, 2, 1),
             (0, nil, 1.5, true, 2, 1.2, 1.8),
+            (0.123, nil, 1, false, nil, 1, 1.12),
+            (1, nil, 1.5, true, nil, 2, 4),
+            (0, 3, 1, true, 10, 4, 1),
+            (1, 3, 2, true, 10, 1.5, 2),
+            (0, nil, 1, true, 2.5, 3, 0.5),
         ]
         for (start, end, speed, loop, duration, t, expected) in rows {
             let clip = ClipPlayback(start: start, end: end, speed: speed, loop: loop)
@@ -216,7 +235,7 @@ final class TimelineTests: XCTestCase {
         }
     }
 
-    /// Start, end, moment, then whether the element shows: from its start,
+    /// Timing, moment, then whether the element shows: from its start,
     /// gone at its end; always with no timing.
     func testAnElementShowsWithinItsTiming() {
         let rows: [(ElementTiming?, Double, Bool)] = [
@@ -226,6 +245,7 @@ final class TimelineTests: XCTestCase {
             (ElementTiming(start: 0, end: 2), 2, false),
             (ElementTiming(start: 1, end: 2), 0.5, false), (ElementTiming(start: 1, end: 2), 1.5, true),
             (ElementTiming(start: 1, end: 2), 2.5, false),
+            (ElementTiming(start: 2, end: 2), 2, false), (ElementTiming(start: 0, end: 0), 0, false),
         ]
         for (timing, t, shows) in rows {
             XCTAssertEqual(ElementTiming.shows(timing, at: t), shows, "\(String(describing: timing)) at \(t)")
@@ -239,8 +259,11 @@ final class TimelineTests: XCTestCase {
         XCTAssertEqual(ElementTiming.showing(nil, from: 1.23), ElementTiming(start: 1.2))
         XCTAssertEqual(ElementTiming.showing(ElementTiming(start: 0, end: 3), from: 1), ElementTiming(start: 1, end: 3))
         XCTAssertEqual(ElementTiming.showing(ElementTiming(start: 0, end: 3), from: 3), ElementTiming(start: 3))
-        XCTAssertNil(ElementTiming.showing(ElementTiming(start: 1), from: 0))
+        XCTAssertEqual(ElementTiming.showing(ElementTiming(start: 0, end: 1), from: 2), ElementTiming(start: 2))
+        XCTAssertEqual(ElementTiming.showing(ElementTiming(start: 1, end: 3), from: 0), ElementTiming(start: 0, end: 3))
         XCTAssertEqual(ElementTiming.showing(ElementTiming(start: 1, end: 2), from: 0.04), ElementTiming(start: 0, end: 2))
+        XCTAssertNil(ElementTiming.showing(ElementTiming(start: 1), from: 0))
+        XCTAssertNil(ElementTiming.showing(nil, from: 0))
         XCTAssertEqual(ElementTiming.hiding(nil, from: 2.5), ElementTiming(start: 0, end: 2.5))
         XCTAssertEqual(ElementTiming.hiding(ElementTiming(start: 1), from: 3), ElementTiming(start: 1, end: 3))
         XCTAssertEqual(ElementTiming.hiding(ElementTiming(start: 2), from: 1.5), ElementTiming(start: 0, end: 1.5))
@@ -248,13 +271,22 @@ final class TimelineTests: XCTestCase {
         XCTAssertNil(ElementTiming.hiding(nil, from: 0))
     }
 
-    /// On the second page of a split 1.5 s in, timings move 1.5 s earlier,
-    /// none before the page's start; one over before the cut never shows.
+    /// Timing, cut, then its timing on the second page: moved earlier by
+    /// the cut, to the tenth, none before the page's start; one over before
+    /// the cut never shows; the whole page is no timing.
     func testTimingsMoveEarlierOnTheSecondPage() {
-        XCTAssertEqual(Timeline.shiftedTiming(ElementTiming(start: 2, end: 3), by: 1.5), ElementTiming(start: 0.5, end: 1.5))
-        XCTAssertEqual(Timeline.shiftedTiming(ElementTiming(start: 0, end: 1), by: 1.5), ElementTiming(start: 0, end: 0))
-        XCTAssertEqual(Timeline.shiftedTiming(ElementTiming(start: 3), by: 1.5), ElementTiming(start: 1.5))
-        XCTAssertNil(Timeline.shiftedTiming(ElementTiming(start: 1), by: 1.5), "from the page's start with no end is the whole page")
+        let rows: [(ElementTiming, Double, ElementTiming?)] = [
+            (ElementTiming(start: 2, end: 3), 1.5, ElementTiming(start: 0.5, end: 1.5)),
+            (ElementTiming(start: 0, end: 1), 1.5, ElementTiming(start: 0, end: 0)),
+            (ElementTiming(start: 3), 1.5, ElementTiming(start: 1.5)),
+            (ElementTiming(start: 1), 1.5, nil),
+            (ElementTiming(start: 1, end: 3), 2, ElementTiming(start: 0, end: 1)),
+            (ElementTiming(start: 2.5), 1, ElementTiming(start: 1.5)),
+            (ElementTiming(start: 1.23, end: 3.47), 1, ElementTiming(start: 0.2, end: 2.5)),
+        ]
+        for (timing, t, expected) in rows {
+            XCTAssertEqual(Timeline.shiftedTiming(timing, by: t), expected, "\(timing) by \(t)")
+        }
         XCTAssertNil(Timeline.shiftedTiming(nil, by: 1.5))
         XCTAssertFalse(ElementTiming.shows(ElementTiming(start: 0, end: 0), at: 0))
     }
@@ -338,6 +370,9 @@ final class TimelineTests: XCTestCase {
         let odd = try JSONDecoder().decode(Element.self, from: Data(
             #"{"id":"e1","type":"shape","timing":{"start":"soon","end":3}}"#.utf8))
         XCTAssertEqual(odd.timing, ElementTiming(start: 0, end: 3), "a start that cannot be read is the page's start")
+        let early = try JSONDecoder().decode(Element.self, from: Data(
+            #"{"id":"e1","type":"shape","timing":{"start":-1,"end":2}}"#.utf8))
+        XCTAssertEqual(early.timing, ElementTiming(start: 0, end: 2), "a start below the page's is its start")
     }
 
     // MARK: playing a timed element
@@ -347,8 +382,8 @@ final class TimelineTests: XCTestCase {
         el.timing = ElementTiming(start: 1, end: 3)
         el.animation = ElementAnimation(kind: "fade", delay: 0, duration: 1)
         el.exitAnimation = ElementAnimation(kind: "fade", delay: 0, duration: 0.5)
-        func opacity(_ e: Element, _ t: Double, exitTime: Double? = nil) -> Double {
-            Timeline.motion(of: e, time: t, hold: 5, exitTime: exitTime, text: nil).opacity
+        func opacity(_ e: Element, _ t: Double, hold: Double = 5, exitTime: Double? = nil) -> Double {
+            Timeline.motion(of: e, time: t, hold: hold, exitTime: exitTime, text: nil).opacity
         }
         XCTAssertEqual(opacity(el, 0.5), 0, "not yet shown")
         XCTAssertEqual(opacity(el, 1.5), 0.875, accuracy: 1e-9, "the entrance counts from the start")
@@ -360,6 +395,9 @@ final class TimelineTests: XCTestCase {
         var delayed = el
         delayed.exitAnimation = ElementAnimation(kind: "fade", delay: 0.2, duration: 0.5)
         XCTAssertEqual(opacity(delayed, 2.75), 0.875, accuracy: 1e-9, "over at the end whatever its delay")
+        XCTAssertEqual(opacity(el, 2.25, hold: 2.5), 0.875, accuracy: 1e-9, "a page that ends first ends the exit")
+        XCTAssertEqual(opacity(delayed, 2.25, hold: 2.5), 0.875, accuracy: 1e-9)
+        XCTAssertEqual(opacity(el, 2.5, hold: 2.5), 0, accuracy: 1e-9)
 
         var untimed = el
         untimed.timing = nil
@@ -419,16 +457,35 @@ final class TimelineTests: XCTestCase {
         XCTAssertEqual(s.previewTime ?? -1, 0.5, accuracy: 1e-9)
         XCTAssertEqual(s.playheadInPage ?? -1, 0.5, accuracy: 1e-9)
         s.scrub(to: 99)
-        XCTAssertEqual(s.playhead, 5, "kept to the film")
+        XCTAssertEqual(s.filmPlayhead ?? -1, 5, accuracy: 1e-9, "kept to the film")
         XCTAssertEqual(s.previewTime ?? -1, 3, accuracy: 1e-9)
         s.endScrub()
         XCTAssertNil(s.previewTime, "the canvas at rest once the scrub ends")
-        XCTAssertEqual(s.playhead, 5, "the playhead stays")
+        XCTAssertEqual(s.playheadInPage ?? -1, 3, accuracy: 1e-9, "the playhead stays")
         XCTAssertFalse(s.canUndo, "scrubbing changes nothing")
 
         s.selectTimelinePage(0)
         XCTAssertEqual(s.pageIndex, 0)
-        XCTAssertEqual(s.playhead, 0, "brought to the page tapped")
+        XCTAssertEqual(s.playheadInPage, 0, "brought to the page tapped")
+        XCTAssertEqual(s.filmPlayhead, 0)
+    }
+
+    /// The playhead is kept as a page and how far into it: a page before it
+    /// held longer leaves it where it stands, and a page held shorter keeps
+    /// it within its hold.
+    func testThePlayheadStaysOnItsPageWhenAHoldChanges() {
+        let s = store(holds: [2.5, 3])
+        s.scrub(to: 3.5)
+        s.endScrub()
+        XCTAssertEqual(s.pageIndex, 1)
+        s.dragHold(of: s.design.pages[0].id, to: 3.5)
+        s.commit()
+        XCTAssertEqual(s.pageIndex, 1)
+        XCTAssertEqual(s.playheadInPage ?? -1, 1, accuracy: 1e-9)
+        XCTAssertEqual(s.filmPlayhead ?? -1, 4.5, accuracy: 1e-9)
+        XCTAssertTrue(s.canSplitPage)
+        s.setHold(of: s.design.pages[1].id, to: 0.8)
+        XCTAssertEqual(s.playheadInPage ?? -1, 0.8, accuracy: 1e-9)
     }
 
     func testSplitPageIsOneUndo() {
@@ -443,7 +500,8 @@ final class TimelineTests: XCTestCase {
         s.splitPage()
         XCTAssertEqual(s.design.pages.map(\.holdSeconds), [1.5, 2.5, 2])
         XCTAssertEqual(s.pageIndex, 1, "the second part on screen")
-        XCTAssertEqual(s.playhead, 1.5, accuracy: 1e-9)
+        XCTAssertEqual(s.playheadInPage, 0, "at its start")
+        XCTAssertEqual(s.filmPlayhead ?? -1, 1.5, accuracy: 1e-9)
         s.undo()
         XCTAssertEqual(s.design.pages.map(\.holdSeconds), [4, 2])
         XCTAssertEqual(s.pageIndex, 0)
@@ -467,9 +525,27 @@ final class TimelineTests: XCTestCase {
         s.undo()
         XCTAssertNil(s.design.pages[0].elements[0].timing)
 
-        s.playhead = 5
-        XCTAssertNil(s.playheadInPage, "the playhead on another page")
+        s.playhead = 0.02
+        s.hideSelectedFromPlayhead()
+        XCTAssertNil(s.design.pages[0].elements[0].timing, "nothing to hide from at the page's start")
+        s.setPageHidden(true)
+        XCTAssertNil(s.playheadInPage, "a hidden page has no playhead")
+        s.playhead = 1
         s.showSelectedFromPlayhead()
         XCTAssertNil(s.design.pages[0].elements[0].timing, "nothing to time by")
+    }
+
+    func testDraggingAnEdgeWhileTypingLeavesTheWordsTheirOwnStep() {
+        let s = store(holds: [2, 3])
+        let words = Element.text("Hi")
+        s.design.pages[0].elements = [words]
+        s.startTyping(words.id)
+        s.typeWords("Hello", into: words.id)
+        s.dragHold(of: s.design.pages[1].id, to: 4)
+        s.commit()
+        XCTAssertEqual(s.design.pages[1].holdSeconds, 4)
+        s.undo()
+        XCTAssertEqual(s.design.pages[1].holdSeconds, 3, "the drag is one step")
+        XCTAssertEqual(s.design.pages[0].elements.first?.text, "Hello", "the words are another")
     }
 }
