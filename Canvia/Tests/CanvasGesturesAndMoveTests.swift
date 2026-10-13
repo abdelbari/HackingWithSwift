@@ -187,6 +187,13 @@ final class CanvasGesturesAndMoveTests: XCTestCase {
         s.setPage(1)
         s.paste()
         XCTAssertEqual(s.selectedElements.map(\.x), [100], "on another page, in place")
+        // The rest of the Android twin's MoveToPageTest rows: each page
+        // counts its own pastes.
+        s.paste()
+        XCTAssertEqual(s.selectedElements.map(\.x), [124], "a repeat there steps")
+        s.setPage(0)
+        s.paste()
+        XCTAssertEqual(s.selectedElements.map(\.x), [124], "back beside the original, it counts afresh")
     }
 
     // MARK: select multiple

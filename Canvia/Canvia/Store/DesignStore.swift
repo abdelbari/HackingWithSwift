@@ -529,15 +529,27 @@ final class DesignStore {
         selection = [el.id]
     }
 
-    func deleteSelected() {
+    /// Delete asked for with something locked in position selected: the
+    /// editor asks first, and its Delete is deleteSelected(confirmed: true)
+    /// — the Android twin's confirmingDelete.
+    var askingDelete = false
+
+    func deleteSelected(confirmed: Bool = false) {
         // Only unlocked elements go; committing when nothing can be removed
         // would push a history entry identical to the previous one. A
         // refusal is felt, as on the Android twin, rather than silent.
-        let ids = Set(selectedElements.filter { !$0.holdsPlace }.map(\.id))
+        let ids = Set(selectedElements.filter { !$0.locked }.map(\.id))
         guard !ids.isEmpty else {
             if !selection.isEmpty { buzz(.reject) }
             return
         }
+        // The one exception to never asking: a position lock was set on
+        // purpose, by someone, often a template's author.
+        if !confirmed && selectedElements.contains(where: { ElementLock.mode(of: $0) == .position }) {
+            askingDelete = true
+            return
+        }
+        askingDelete = false
         applyToPage { page in
             page.elements.removeAll { ids.contains($0.id) }
         }
@@ -565,7 +577,9 @@ final class DesignStore {
     /// locked here (see ElementLock), so align, distribute, tidy, nudge and
     /// the Position numbers are offered only for what they would move.
     var movableSelectionCount: Int { selectedElements.filter { !$0.holdsPlace }.count }
-    var canGroup: Bool { movableSelectionCount >= 2 }
+    /// Grouping moves nothing, so a position lock groups, as on the Android
+    /// twin; only a whole lock keeps an element out.
+    var canGroup: Bool { unlockedSelectionCount >= 2 }
 
     // MARK: colour for a multi-selection
 
@@ -659,8 +673,10 @@ final class DesignStore {
     }
 
     func cutSelected() {
-        // Symmetric with deleteSelected: cut takes exactly what it removes,
-        // so a locked element is never both left behind and on the clipboard.
+        // Cut takes exactly what it removes, so a locked element is never
+        // both left behind and on the clipboard. A cut is a move by way of
+        // the clipboard, so, as with Move to page, a position lock stays
+        // too, as on the Android twin (its DesignStore.cutSelected).
         let removable = selectedElements.filter { !$0.holdsPlace }
         guard !removable.isEmpty else {
             if !selection.isEmpty { buzz(.reject) }
@@ -760,12 +776,12 @@ final class DesignStore {
     }
 
     func groupSelected() {
-        guard movableSelectionCount >= 2 else { return }
+        guard unlockedSelectionCount >= 2 else { return }
         buzz(.grouped)
         let gid = UID.make("grp")
         applyToPage { page in
             for i in page.elements.indices
-            where self.selection.contains(page.elements[i].id) && !page.elements[i].holdsPlace {
+            where self.selection.contains(page.elements[i].id) && !page.elements[i].locked {
                 page.elements[i].group = gid
             }
         }

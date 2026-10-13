@@ -866,11 +866,12 @@ struct PositionSheet: View {
     @State private var nudgeStep = 1.0
     @State private var nudges = 0
     /// Keep proportions as switched in this panel; nil until it is, when it
-    /// is what the selection starts with (RatioLock.startsOn). Never saved.
+    /// is what the one selected element starts with (RatioLock.startsOn).
+    /// Never saved.
     @State private var keepProportions: Bool?
 
     private var keepsProportions: Bool {
-        keepProportions ?? RatioLock.startsOn(store.selectedElements)
+        keepProportions ?? store.singleSelection.map(RatioLock.startsOn) ?? false
     }
 
     var body: some View {
@@ -970,16 +971,15 @@ struct PositionSheet: View {
                         numberRow("Y", value: box.minY) { v in
                             store.setSelectionBox(CGRect(x: box.minX, y: v, width: box.width, height: box.height))
                         }
+                        // Always scaled evenly, as on the Android twin: a
+                        // box of several things has no chain to switch off.
                         numberRow("Width", value: box.width) { v in
-                            let size = keepsProportions ? RatioLock.size(width: v, from: box.size)
-                                : CGSize(width: max(RatioLock.minSide, v), height: Double(box.height))
-                            store.setSelectionBox(CGRect(origin: box.origin, size: size))
+                            let w = max(RatioLock.minSide, v)
+                            store.setSelectionBox(CGRect(x: box.minX, y: box.minY, width: w, height: box.height * w / max(box.width, 1)))
                         }
-                        proportionsToggle
                         numberRow("Height", value: box.height) { v in
-                            let size = keepsProportions ? RatioLock.size(height: v, from: box.size)
-                                : CGSize(width: Double(box.width), height: max(RatioLock.minSide, v))
-                            store.setSelectionBox(CGRect(origin: box.origin, size: size))
+                            let h = max(RatioLock.minSide, v)
+                            store.setSelectionBox(CGRect(x: box.minX, y: box.minY, width: box.width * h / max(box.height, 1), height: h))
                         }
                         numberRow("Rotate by", value: 0) { v in store.rotateSelection(by: v) }
                     }
@@ -1008,15 +1008,14 @@ struct PositionSheet: View {
     }
 
     /// A width typed for one element: with the chain on, the height in
-    /// proportion, from the top-left corner as a corner drag sizes it — as
-    /// one step either way.
+    /// proportion, its turned top-left corner held as a corner drag holds
+    /// the opposite one (RatioLock.placed) — as one step either way.
     private func setWidth(_ typed: Double, of el: Element) {
         guard keepsProportions && el.type != .text else {
             store.updateSelectedPlacement { $0.w = max(RatioLock.minSide, typed) }
             return
         }
-        let size = RatioLock.size(width: typed, from: CGSize(width: el.w, height: el.h))
-        store.updateSelectedPlacement { $0.w = Double(size.width); $0.h = Double(size.height) }
+        place(el, at: RatioLock.size(width: typed, from: CGSize(width: el.w, height: el.h)))
     }
 
     /// A height typed for one element: the same, the other way round.
@@ -1025,8 +1024,17 @@ struct PositionSheet: View {
             store.updateSelectedPlacement { $0.h = max(RatioLock.minSide, typed) }
             return
         }
-        let size = RatioLock.size(height: typed, from: CGSize(width: el.w, height: el.h))
-        store.updateSelectedPlacement { $0.w = Double(size.width); $0.h = Double(size.height) }
+        place(el, at: RatioLock.size(height: typed, from: CGSize(width: el.w, height: el.h)))
+    }
+
+    private func place(_ el: Element, at size: CGSize) {
+        let box = RatioLock.placed(el, at: size)
+        store.updateSelectedPlacement {
+            $0.x = Double(box.minX)
+            $0.y = Double(box.minY)
+            $0.w = Double(box.width)
+            $0.h = Double(box.height)
+        }
     }
 
     /// Arrows that move the selection 1, 10 or 100 page units a tap, with
@@ -1124,6 +1132,8 @@ struct LayersSheet: View {
     /// The element Rename… is naming, and the name being typed.
     @State private var renaming: Element?
     @State private var typedName = ""
+    /// The rows' elements a swipe would delete, while it asks first.
+    @State private var askingDelete: [String]?
 
     private var rows: [LayerRows.Row] {
         switch filter {
@@ -1142,7 +1152,7 @@ struct LayersSheet: View {
                 ForEach(rows) { row in
                     rowView(row)
                         .moveDisabled(filter != .all || !row.movable)
-                        .deleteDisabled(!row.elements.contains { !$0.holdsPlace })
+                        .deleteDisabled(!row.elements.contains { !$0.locked })
                 }
                 .onMove(perform: moveAction(rows))
                 .onDelete { offsets in delete(offsets.map { rows[$0] }) }
@@ -1161,6 +1171,14 @@ struct LayersSheet: View {
                 Button("Cancel", role: .cancel) {}
             } message: { _ in
                 Text("Up to \(LayerNames.maxLength) characters. Leave it empty for the name Canvia gives it.")
+            }
+            .alert((askingDelete?.count ?? 0) > 1 ? "Delete these?" : "Delete this?",
+                   isPresented: Binding(get: { askingDelete != nil }, set: { if !$0 { askingDelete = nil } }),
+                   presenting: askingDelete) { ids in
+                Button("Delete", role: .destructive) { remove(Set(ids)) }
+                Button("Cancel", role: .cancel) {}
+            } message: { ids in
+                Text(ids.count > 1 ? "Some of them have their position locked." : "Its position is locked.")
             }
         }
         .presentationDetents(sheetDetents)
@@ -1204,15 +1222,23 @@ struct LayersSheet: View {
     }
 
     /// The rows swiped away, as one undo step: every unlocked element they
-    /// stand for — a group row its whole group. A position lock stays, as
-    /// Delete leaves it.
+    /// stand for — a group row its whole group. Something locked in
+    /// position among them asks first, as Delete does.
     private func delete(_ picked: [LayerRows.Row]) {
-        let removable = Set(picked.flatMap(\.elements).filter { !$0.holdsPlace }.map(\.id))
+        let removable = picked.flatMap(\.elements).filter { !$0.locked }
         guard !removable.isEmpty else { return }
-        store.applyToPage { page in
-            page.elements.removeAll { removable.contains($0.id) }
+        if removable.contains(where: { ElementLock.mode(of: $0) == .position }) {
+            askingDelete = removable.map(\.id)
+        } else {
+            remove(Set(removable.map(\.id)))
         }
-        store.selection.subtract(removable)
+    }
+
+    private func remove(_ ids: Set<String>) {
+        store.applyToPage { page in
+            page.elements.removeAll { ids.contains($0.id) }
+        }
+        store.selection.subtract(ids)
     }
 
     @ViewBuilder

@@ -700,7 +700,9 @@ struct CanvasView: View {
     private func pansFromPage(at point: CGPoint) -> Bool {
         guard store.drawing == nil, store.erasing == nil, store.cropping == nil else { return false }
         let target = Touch.pageUnits(Touch.minTarget, zoom: store.zoom)
+        // Only what is shown has a hit area: a hidden layer is empty page.
         let onElement = store.page.elements.contains { el in
+            guard !el.isHidden else { return false }
             var reach = el
             let grow = max(0, target - el.w) / 2, rise = max(0, target - el.h) / 2
             reach.x -= grow; reach.w += grow * 2
@@ -822,6 +824,14 @@ struct CanvasView: View {
             .rotationEffect(.degrees(el.rotation))
             .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
             .onTapGesture(count: 2) {
+                // Selecting several, taps are each their own, never a pair:
+                // two quick ones put the element in and take it out again,
+                // as on the Android twin, rather than typing or cropping.
+                if store.selectingMultiple {
+                    store.tapInSelectMultiple(el.id)
+                    store.tapInSelectMultiple(el.id)
+                    return
+                }
                 // A shape double-tapped is typed in, as a text box is; a
                 // table cell's rectangle, its words.
                 if let target = store.typedIn(el) {
@@ -880,7 +890,8 @@ struct CanvasView: View {
         if !el.locked {
             Button("Duplicate") { store.select(el.id); store.duplicateSelected() }
         }
-        if !el.holdsPlace {
+        // A position lock asks first (DesignStore.askingDelete).
+        if !el.locked {
             Button("Delete") { store.select(el.id); store.deleteSelected() }
         }
         Button("Bring forward") { store.select(el.id); store.reorderSelected(.forward) }

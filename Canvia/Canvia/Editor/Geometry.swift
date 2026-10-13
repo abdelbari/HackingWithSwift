@@ -705,15 +705,17 @@ enum Geometry {
     /// screen is `selection`, its handles standing `handleOutset` off it,
     /// in a canvas showing `viewport`: centred over it, bubbleGap above the
     /// handles — or as far below them when that would leave the bubble
-    /// within bubbleTopRoom of the canvas's top. Across, its middle is kept
-    /// on the canvas. All in screen points; the Android twin's
-    /// Geometry.bubbleAnchor, with the same tests.
+    /// within bubbleTopRoom of the canvas's top, kept bubbleTopRoom up from
+    /// the canvas's bottom (over the selection, when nothing else fits).
+    /// Across, its middle is kept on the canvas. All in screen points; the
+    /// Android twin's Geometry.bubbleAnchor, with the same tests.
     static func bubbleAnchor(_ selection: CGRect, viewport: CGRect, handleOutset: Double) -> BubbleAnchor {
         let x = Double(min(max(selection.midX, viewport.minX), viewport.maxX))
         let above = Double(selection.minY) - handleOutset - bubbleGap
         if above - Double(viewport.minY) >= bubbleTopRoom {
             return BubbleAnchor(point: CGPoint(x: x, y: above), side: .above)
         }
-        return BubbleAnchor(point: CGPoint(x: x, y: Double(selection.maxY) + handleOutset + bubbleGap), side: .below)
+        let below = min(Double(selection.maxY) + handleOutset + bubbleGap, Double(viewport.maxY) - bubbleTopRoom)
+        return BubbleAnchor(point: CGPoint(x: x, y: max(below, Double(viewport.minY))), side: .below)
     }
 }

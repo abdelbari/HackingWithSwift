@@ -76,7 +76,8 @@ final class LockPositionTests: XCTestCase {
     // MARK: what a lock allows
 
     func testWhatEachLockAllows() {
-        // The Android twin's rows: true is allowed.
+        // The Android twin's ElementLockTest rows, one for each action:
+        // true is allowed.
         let rows: [(ElementLock.Action, unlocked: Bool, position: Bool, full: Bool)] = [
             (.move, true, false, false),
             (.resize, true, false, false),
@@ -89,7 +90,7 @@ final class LockPositionTests: XCTestCase {
             (.recolour, true, true, false),
             (.crop, true, true, false),
             (.replace, true, true, false),
-            (.delete, true, false, false),
+            (.delete, true, true, false),
         ]
         XCTAssertEqual(rows.count, ElementLock.Action.allCases.count)
         for row in rows {
@@ -121,14 +122,50 @@ final class LockPositionTests: XCTestCase {
         XCTAssertFalse(s.canUndo, "and nothing took a step")
         s.recolourSelection("#ff0000")
         XCTAssertEqual(s.element("a")?.fill?.color, "#ff0000", "but it takes a colour")
-        s.deleteSelected()
-        XCTAssertNotNil(s.element("a"), "and is not deleted, as a whole lock is not")
         // With the free one, only the free one moves.
         s.selection = ["a", "b"]
         s.nudgeSelected(dx: 0, dy: 10)
         XCTAssertEqual(s.element("a")?.y, 100)
         XCTAssertEqual(s.element("b")?.y, 410)
-        XCTAssertFalse(s.canGroup)
+        XCTAssertTrue(s.canGroup, "grouping moves nothing, so it groups, as on the Android twin")
+        s.groupSelected()
+        XCTAssertEqual(Set(s.page.elements.compactMap(\.group)).count, 1)
+        XCTAssertEqual(s.page.elements.filter { $0.group != nil }.count, 2)
+    }
+
+    func testDeletingAPositionLockAsksFirst() {
+        let pinned = ElementLock.with(box("a", x: 100, y: 100), .position)
+        let s = store([(id: "p1", elements: [pinned, box("b", x: 400, y: 400)], size: nil)])
+        s.selection = ["a"]
+        s.deleteSelected()
+        XCTAssertTrue(s.askingDelete, "it asks")
+        XCTAssertNotNil(s.element("a"), "and deletes nothing yet")
+        XCTAssertFalse(s.canUndo)
+        s.deleteSelected(confirmed: true)
+        XCTAssertFalse(s.askingDelete)
+        XCTAssertNil(s.element("a"), "Delete there goes ahead")
+        // A free one alone goes at once.
+        s.selection = ["b"]
+        s.deleteSelected()
+        XCTAssertFalse(s.askingDelete)
+        XCTAssertNil(s.element("b"))
+    }
+
+    func testCutLeavesWhatIsLockedInPlaceWhichStaysSelected() {
+        // The Android twin's PositionLockTest row: a cut is a move by way of
+        // the clipboard, so neither lock goes.
+        let pinned = ElementLock.with(box("p", x: 0, y: 0), .position)
+        var locked = box("l", x: 0, y: 0)
+        locked.locked = true
+        let s = store([(id: "p1", elements: [box("a", x: 100, y: 100), pinned, locked], size: nil)])
+        s.selection = ["a", "p", "l"]
+        s.cutSelected()
+        XCTAssertEqual(s.page.elements.map(\.id), ["p", "l"])
+        XCTAssertEqual(s.selection, ["p", "l"])
+        s.cutSelected()
+        XCTAssertEqual(s.page.elements.map(\.id), ["p", "l"], "nothing more goes")
+        s.undo()
+        XCTAssertEqual(s.page.elements.map(\.id), ["a", "p", "l"])
     }
 
     func testTheLockMenuIsOneStepEachAndCopiesAreUnlocked() {

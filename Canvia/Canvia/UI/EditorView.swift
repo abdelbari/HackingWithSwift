@@ -170,6 +170,13 @@ struct EditorView: View {
             }
             if sheet != .colorWords, store.wordColourTarget != nil { store.wordColourTarget = nil }
         }
+        // Crop, typing, the pen or the eraser taking the page ends Select
+        // multiple as a panel does, the selection kept — as on the Android
+        // twin.
+        .onChange(of: store.cropping != nil || store.editingTextId != nil
+                  || store.drawing != nil || store.erasing != nil) { _, busy in
+            if busy { store.endSelectingMultiple() }
+        }
         // The typing bar's colour well asks for the colour sheet.
         .onChange(of: store.wordColourTarget) { _, target in
             if target != nil { activeSheet = .colorWords }
@@ -186,6 +193,14 @@ struct EditorView: View {
             if on { store.stopPreview() }
         }
         .customGridAlert(isPresented: $askingCustomGrid, store: store)
+        // Delete with something locked in position selected asks first, in
+        // the Android twin's words; Delete there goes ahead.
+        .alert(deletesSeveral ? "Delete these?" : "Delete this?", isPresented: $store.askingDelete) {
+            Button("Delete", role: .destructive) { store.deleteSelected(confirmed: true) }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(deletesSeveral ? "Some of them have their position locked." : "Its position is locked.")
+        }
         .alert("Name this component", isPresented: $namingComponent) {
             TextField("Footer, Price tag, Call-out…", text: $componentName)
             Button("Save") {
@@ -680,6 +695,11 @@ struct EditorView: View {
         .accessibilityLabel("More actions")
     }
 
+    /// Whether the Delete being asked about takes more than one thing.
+    private var deletesSeveral: Bool {
+        store.selectedElements.filter { !$0.locked }.count > 1
+    }
+
     /// Select multiple on, said to VoiceOver as TalkBack says it on the
     /// Android twin.
     private func startSelectingMultiple() {
@@ -687,14 +707,20 @@ struct EditorView: View {
         AccessibilityNotification.Announcement(DesignStore.selectMultipleOn).post()
     }
 
-    /// Select multiple's banner, over the toolbar while the mode is on: how
-    /// many are selected, Select all, and Done, which ends the mode and
-    /// keeps the selection — the Android twin's words.
+    /// Select multiple's banner, over the toolbar while the mode is on: what
+    /// a tap does now, how many are selected, Select all, and Done, which
+    /// ends the mode and keeps the selection — the Android twin's words.
     private var selectMultipleBanner: some View {
         HStack(spacing: 16) {
-            Text("\(store.selection.count) selected")
-                .font(.subheadline.weight(.semibold))
-                .monospacedDigit()
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Select multiple — tap to add or remove")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Text("\(store.selection.count) selected")
+                    .font(.subheadline.weight(.semibold))
+                    .monospacedDigit()
+            }
             Spacer(minLength: 8)
             Button("Select all") { store.selectAll() }
             Button("Done") { store.endSelectingMultiple() }

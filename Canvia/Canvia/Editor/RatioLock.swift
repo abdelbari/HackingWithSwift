@@ -2,8 +2,9 @@
 // On, a width typed brings the height with it in the box's own proportion,
 // and a height the width, as a corner drag does — from the top-left corner,
 // which stays put — so a photo or a group is never stretched by a number.
-// It starts on for a photo and for a group, off for the rest, as on the
-// Android twin; whether it is on is the panel's own, never saved.
+// It starts on for a photo and for a group's member, off for the rest, as on
+// the Android twin; whether it is on is the panel's own, never saved. Several
+// things selected have no chain: their box always scales evenly, as there.
 
 import CoreGraphics
 import Foundation
@@ -13,14 +14,25 @@ enum RatioLock {
     /// The smallest side the numbers make, on either axis.
     static let minSide = 8.0
 
-    /// Whether the chain starts on for `selected`: one photo (a frame, a
-    /// code and a clip are photos too), or several that are one group — a
-    /// chart is one.
-    static func startsOn(_ selected: [Element]) -> Bool {
-        guard let first = selected.first else { return false }
-        if selected.count == 1 { return first.type == .image }
-        guard let group = first.group else { return false }
-        return selected.allSatisfy { $0.group == group }
+    /// Whether the chain starts on for one selected element: a photo (a
+    /// frame, a code and a clip are photos too), or a member of a group — a
+    /// chart is one — picked out of it. The Android twin's
+    /// Resize.keepsProportionsAtFirst, with the same rows.
+    static func startsOn(_ el: Element) -> Bool {
+        el.type == .image || el.group != nil
+    }
+
+    /// `el`'s box at `size`, its top-left corner — turned with it — held
+    /// where it is, as a corner drag holds the opposite one: the Android
+    /// twin's Resize.anchored(el, -1, -1, …), which its keptProportions uses.
+    static func placed(_ el: Element, at size: CGSize) -> CGRect {
+        let w = Double(size.width), h = Double(size.height)
+        let corner = Geometry.rotate(CGPoint(x: -el.w / 2, y: -el.h / 2), around: .zero, degrees: el.rotation)
+        let sized = Geometry.rotate(CGPoint(x: -w / 2, y: -h / 2), around: .zero, degrees: el.rotation)
+        let centre = el.center
+        let x = Double(centre.x + corner.x - sized.x) - w / 2
+        let y = Double(centre.y + corner.y - sized.y) - h / 2
+        return CGRect(x: x, y: y, width: w, height: h)
     }
 
     /// A width typed with the chain on, for a box `box`: that width and the

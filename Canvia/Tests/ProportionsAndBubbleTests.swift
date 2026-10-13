@@ -18,15 +18,44 @@ final class ProportionsAndBubbleTests: XCTestCase {
 
     // MARK: keep proportions
 
-    func testKeepProportionsStartsOnForAPhotoAndAGroup() {
-        XCTAssertTrue(RatioLock.startsOn([Element.image("asset:mesh-sunset")]))
-        XCTAssertFalse(RatioLock.startsOn([Element.shape("rect")]))
-        XCTAssertFalse(RatioLock.startsOn([Element.line()]))
-        XCTAssertFalse(RatioLock.startsOn([Element.text("Hi")]))
-        XCTAssertFalse(RatioLock.startsOn([Element.sticker("⭐")]))
-        XCTAssertTrue(RatioLock.startsOn([box("a", x: 0, y: 0, group: "g"), box("b", x: 0, y: 0, group: "g")]))
-        XCTAssertFalse(RatioLock.startsOn([box("a", x: 0, y: 0), box("b", x: 0, y: 0)]))
-        XCTAssertFalse(RatioLock.startsOn([]))
+    func testKeepProportionsStartsOnForAPhotoAndAGroupsMember() {
+        // The Android twin's Resize.keepsProportionsAtFirst rows.
+        let rows: [(Element, Bool)] = [
+            (Element.image("asset:mesh-sunset"), true),
+            (Element.shape("rect"), false),
+            (Element.line(), false),
+            (Element.text("Hi"), false),
+            (Element.sticker("⭐"), false),
+            (box("a", x: 0, y: 0, group: "g"), true),
+        ]
+        for (el, on) in rows {
+            XCTAssertEqual(RatioLock.startsOn(el), on, "\(el.type) \(el.group ?? "")")
+        }
+    }
+
+    func testKeepProportionsHoldsTheTurnedTopLeftCorner() {
+        // The Android twin's ResizeTest rows: a 400 × 300 photo at 50, 60.
+        var photo = Element.image("p", w: 400, h: 300)
+        photo.x = 50
+        photo.y = 60
+        let size = RatioLock.size(width: 800, from: CGSize(width: photo.w, height: photo.h))
+        XCTAssertEqual(RatioLock.placed(photo, at: size), CGRect(x: 50, y: 60, width: 800, height: 600))
+        // Turned, its turned top left corner stays put.
+        photo.rotation = 30
+        let corner = Geometry.handlePoint(photo, .nw)
+        let box = RatioLock.placed(photo, at: size)
+        XCTAssertEqual(Double(box.minX), -51.794919, accuracy: 1e-6)
+        XCTAssertEqual(Double(box.minY), 139.903811, accuracy: 1e-6)
+        XCTAssertEqual(Double(box.width), 800)
+        XCTAssertEqual(Double(box.height), 600)
+        var grown = photo
+        grown.x = Double(box.minX)
+        grown.y = Double(box.minY)
+        grown.w = Double(box.width)
+        grown.h = Double(box.height)
+        let after = Geometry.handlePoint(grown, .nw)
+        XCTAssertEqual(Double(after.x), Double(corner.x), accuracy: 1e-9)
+        XCTAssertEqual(Double(after.y), Double(corner.y), accuracy: 1e-9)
     }
 
     func testKeepProportionsSizes() {
@@ -43,18 +72,29 @@ final class ProportionsAndBubbleTests: XCTestCase {
     // MARK: quick actions
 
     func testTheBubbleSitsAboveUnlessTooNearTheTop() {
+        // The Android twin's BubbleAnchorTest rows: selection x, y, w, h,
+        // handle outset -> side, point x, point y, in a 400 × 800 view.
         let screen = CGRect(x: 0, y: 0, width: 400, height: 800)
-        let above = Geometry.bubbleAnchor(CGRect(x: 100, y: 200, width: 200, height: 100), viewport: screen, handleOutset: 8)
-        XCTAssertEqual(above, Geometry.BubbleAnchor(point: CGPoint(x: 200, y: 180), side: .above))
-        let below = Geometry.bubbleAnchor(CGRect(x: 100, y: 60, width: 200, height: 100), viewport: screen, handleOutset: 8)
-        XCTAssertEqual(below, Geometry.BubbleAnchor(point: CGPoint(x: 200, y: 180), side: .below))
-        // Just room: its foot 56 from the top.
-        let edge = Geometry.bubbleAnchor(CGRect(x: 100, y: 76, width: 200, height: 100), viewport: screen, handleOutset: 8)
-        XCTAssertEqual(edge.side, .above)
-        XCTAssertEqual(edge.point.y, 56)
-        // Kept on screen across.
-        let left = Geometry.bubbleAnchor(CGRect(x: -150, y: 300, width: 200, height: 100), viewport: screen, handleOutset: 0)
-        XCTAssertEqual(left.point, CGPoint(x: 0, y: 288))
+        let rows: [(CGRect, Double, Geometry.BubbleSide, Double, Double)] = [
+            // Room above: 12 over the handles.
+            (CGRect(x: 100, y: 300, width: 200, height: 100), 46, .above, 200, 242),
+            // Exactly 56 left above.
+            (CGRect(x: 100, y: 114, width: 200, height: 100), 46, .above, 200, 56),
+            // Within 56 of the top: below, as far clear of the handles.
+            (CGRect(x: 100, y: 113, width: 200, height: 100), 46, .below, 200, 271),
+            (CGRect(x: 0, y: 20, width: 100, height: 100), 0, .below, 50, 132),
+            // Filling the view: below, kept 56 up from the bottom.
+            (CGRect(x: 0, y: 0, width: 400, height: 800), 46, .below, 200, 744),
+            // Mostly off to the side: kept across inside the view.
+            (CGRect(x: 350, y: 400, width: 200, height: 100), 0, .above, 400, 388),
+            (CGRect(x: -300, y: 400, width: 200, height: 100), 0, .above, 0, 388),
+        ]
+        for (rect, outset, side, x, y) in rows {
+            let anchor = Geometry.bubbleAnchor(rect, viewport: screen, handleOutset: outset)
+            XCTAssertEqual(anchor.side, side, "side of \(rect)")
+            XCTAssertEqual(Double(anchor.point.x), x, accuracy: 1e-9, "x of \(rect)")
+            XCTAssertEqual(Double(anchor.point.y), y, accuracy: 1e-9, "y of \(rect)")
+        }
         // Against a canvas that does not start at the top.
         let lower = Geometry.bubbleAnchor(CGRect(x: 100, y: 150, width: 100, height: 100),
                                           viewport: CGRect(x: 0, y: 100, width: 400, height: 700), handleOutset: 0)

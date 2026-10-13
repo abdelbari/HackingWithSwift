@@ -15,7 +15,8 @@ enum ElementLock {
         case unlocked, position, full
     }
 
-    /// What can be done to an element, for asking what a lock allows.
+    /// What can be done to an element, for asking what a lock allows — the
+    /// same list, in the same order, as the Android twin's ElementLock.Action.
     enum Action: CaseIterable {
         case move, resize, rotate, nudge, align, distribute, tidy
         case editText, recolour, crop, replace, delete
@@ -37,9 +38,9 @@ enum ElementLock {
 
     /// Whether an element locked by `mode` takes `action`. Nothing is done
     /// to a full lock. A position lock refuses whatever would move, size or
-    /// turn it — and delete, which a full lock refuses too — and takes the
-    /// rest: typing, colour, a crop's pan and zoom inside the frame that
-    /// stays put, and Replace.
+    /// turn it, and takes the rest: typing, colour, a crop's pan and zoom
+    /// inside the frame that stays put, Replace, and Delete — after asking
+    /// first, since someone pinned it on purpose.
     static func allows(_ mode: Mode, _ action: Action) -> Bool {
         switch mode {
         case .unlocked:
@@ -48,9 +49,9 @@ enum ElementLock {
             return false
         case .position:
             switch action {
-            case .move, .resize, .rotate, .nudge, .align, .distribute, .tidy, .delete:
+            case .move, .resize, .rotate, .nudge, .align, .distribute, .tidy:
                 return false
-            case .editText, .recolour, .crop, .replace:
+            case .editText, .recolour, .crop, .replace, .delete:
                 return true
             }
         }
