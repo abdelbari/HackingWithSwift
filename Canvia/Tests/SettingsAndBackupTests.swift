@@ -115,6 +115,83 @@ final class SettingsAndBackupTests: XCTestCase {
     func testTheCRCIsZipsOwn() {
         XCTAssertEqual(ZipStore.crc32(Data("123456789".utf8)), 0xcbf4_3926)
         XCTAssertEqual(ZipStore.crc32(Data()), 0)
+        // Summed a piece at a time, the same.
+        let running = ZipStore.crc32(continuing: 0xffff_ffff, Data("1234".utf8))
+        XCTAssertEqual(ZipStore.crc32(continuing: running, Data("56789".utf8)) ^ 0xffff_ffff, 0xcbf4_3926)
+    }
+
+    /// An entry streamed a piece at a time — as a backup writes each design
+    /// file and every upload — reads back as one added whole, its CRC and
+    /// size filled in in its local header, where the Android twin's
+    /// ZipInputStream reads them.
+    func testAnEntryStreamedInPiecesReadsBackWhole() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let clip = Data((0..<10_000).map { UInt8(truncatingIfNeeded: $0 &* 7) })
+        let clipURL = dir.appendingPathComponent("vid_a.mp4")
+        try clip.write(to: clipURL)
+        let url = dir.appendingPathComponent("streamed.canviabackup")
+        let writer = try ZipStore.Writer(url: url)
+        try writer.add("a.txt", Data("hello".utf8))
+        try writer.add("pieces.bin", pieces: { write in
+            try write(clip.prefix(4_000))
+            try write(clip.dropFirst(4_000))
+        })
+        let handle = try FileHandle(forReadingFrom: clipURL)
+        try writer.add("videos/vid_a.mp4", from: handle)
+        try handle.close()
+        try writer.finish()
+
+        let reader = try ZipStore.Reader(url: url)
+        XCTAssertEqual(reader.entries.count, 3)
+        XCTAssertEqual(reader.file("a.txt"), Data("hello".utf8))
+        XCTAssertEqual(reader.file("pieces.bin"), clip)
+        XCTAssertEqual(reader.file("videos/vid_a.mp4"), clip)
+
+        // The second entry's local header, after the first's 30 + 5 + 5
+        // bytes: its CRC, then both sizes.
+        func le32(_ v: UInt32) -> [UInt8] { (0..<4).map { UInt8((v >> (8 * UInt32($0))) & 0xff) } }
+        let bytes = try Data(contentsOf: url)
+        let second = 40
+        XCTAssertEqual(Array(bytes[second..<(second + 4)]), [0x50, 0x4b, 0x03, 0x04])
+        XCTAssertEqual(Array(bytes[(second + 14)..<(second + 26)]),
+                       le32(ZipStore.crc32(clip)) + le32(10_000) + le32(10_000))
+    }
+
+    /// A long clip goes into a backup's design file a piece at a time: no
+    /// piece handed on comes near the clip or its base64 — neither is ever
+    /// held whole — and the pieces join into a file that reads back with
+    /// the clip in it, byte for byte.
+    func testALongClipIsStreamedIntoTheDesignFileInPieces() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let clip = Data((0..<300_001).map { UInt8(truncatingIfNeeded: $0 &* 31) })
+        let clipURL = dir.appendingPathComponent("vid_long.mov")
+        try clip.write(to: clipURL)
+        var design = Design(title: "Long clip", width: 1080, height: 1920)
+        design.pages = [Page(elements: [Element.image(VideoStore.src("vid_long", at: nil), w: 16, h: 9)])]
+        let photo = DesignPackage.Media(ext: "png", data: Data([1, 2, 3]))
+        let package = DesignPackage.Package(design: design, media: ["img_a": photo])
+
+        var pieces: [Data] = []
+        try DesignPackage.stream(package, clips: ["vid_long": clipURL], pieceBytes: 3_000) { pieces.append($0) }
+        let largest = pieces.map(\.count).max() ?? 0
+        XCTAssertLessThan(largest, 20_000, "no piece near the clip's 300 KB, nor its 400 KB of base64")
+        XCTAssertGreaterThan(pieces.count, 100)
+
+        let file = pieces.reduce(into: Data()) { $0.append($1) }
+        let read = try JSONDecoder().decode(DesignPackage.Package.self, from: file)
+        XCTAssertEqual(read.format, DesignPackage.format)
+        XCTAssertEqual(read.videos?["vid_long"]?.data, clip)
+        XCTAssertEqual(read.videos?["vid_long"]?.ext, "mov")
+        XCTAssertEqual(read.media["img_a"]?.data, Data([1, 2, 3]))
+        XCTAssertEqual(read.design.title, "Long clip")
+        XCTAssertEqual(read.design.pages.first?.elements.first?.src, "video:vid_long")
+        let text = String(decoding: file, as: UTF8.self)
+        XCTAssertTrue(text.hasPrefix(#"{"design":"#), text.prefix(40).description)
+        XCTAssertTrue(text.hasSuffix(#""ext":"mov"}}}"#))
     }
 
     func testAStoreZipReadsBackFileForFile() throws {

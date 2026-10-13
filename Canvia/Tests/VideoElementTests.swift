@@ -256,7 +256,8 @@ final class VideoElementTests: XCTestCase {
 
     /// A backup packs every clip whole, of whatever type or length, as the
     /// Android twin's backup does: the design keeps pointing at the clip,
-    /// where a file to share would carry a still or nothing.
+    /// where a file to share would carry a still or nothing. The clip is
+    /// left as its file, to be streamed in, and is not read here.
     func testABackupPacksEveryClipWhole() throws {
         let bytes = Data([0, 0, 0, 24, 1, 2, 3, 4])
         let id = try XCTUnwrap(VideoStore.store(bytes, ext: "mkv"))
@@ -265,12 +266,21 @@ final class VideoElementTests: XCTestCase {
         d.pages = [Page(elements: [Element.image(VideoStore.src(id, at: nil), w: 16, h: 9)])]
 
         var media: [String: DesignPackage.Media] = [:]
-        var videos: [String: DesignPackage.Media] = [:]
-        let packed = DesignPackage.packingVideos(d, media: &media, videos: &videos, wholeClips: true)
+        var clipFiles: [String: URL] = [:]
+        let packed = DesignPackage.packingClipFiles(d, media: &media, clipFiles: &clipFiles)
         XCTAssertEqual(packed, d)
-        XCTAssertEqual(videos[id]?.data, bytes)
-        XCTAssertEqual(videos[id]?.ext, "mkv")
+        let clipFile = try XCTUnwrap(VideoStore.url(for: id))
+        XCTAssertEqual(clipFiles, [id: clipFile])
         XCTAssertTrue(media.isEmpty, "no still")
+
+        let gathered = DesignPackage.gatheredForBackup(d, media: [:])
+        XCTAssertNil(gathered.package.videos, "no clip held in the package")
+        XCTAssertEqual(Array(gathered.clips.keys), [id])
+        var file = Data()
+        try DesignPackage.stream(gathered.package, clips: gathered.clips) { file.append($0) }
+        let read = try JSONDecoder().decode(DesignPackage.Package.self, from: file)
+        XCTAssertEqual(read.videos?[id]?.data, bytes)
+        XCTAssertEqual(read.videos?[id]?.ext, "mkv")
 
         var shared: [String: DesignPackage.Media] = [:]
         _ = DesignPackage.packingVideos(d, media: &media, videos: &shared)

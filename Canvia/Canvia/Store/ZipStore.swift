@@ -26,13 +26,35 @@ enum ZipStore {
     /// The CRC-32 a ZIP entry carries (the IEEE polynomial, reflected), by
     /// table.
     static func crc32(_ data: Data) -> UInt32 {
-        var crc: UInt32 = 0xffff_ffff
+        crc32(continuing: 0xffff_ffff, data) ^ 0xffff_ffff
+    }
+
+    /// The CRC-32 taken on over `data` from `running`, a CRC not yet
+    /// finished (0xffffffff to start; finished by flipping every bit), so a
+    /// file can be summed a piece at a time.
+    static func crc32(continuing running: UInt32, _ data: Data) -> UInt32 {
+        var crc = running
         data.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) in
             for byte in bytes {
                 crc = table[Int((crc ^ UInt32(byte)) & 0xff)] ^ (crc >> 8)
             }
         }
-        return crc ^ 0xffff_ffff
+        return crc
+    }
+
+    /// How much of a file is read at a time when one is streamed: a
+    /// multiple of three, so each piece's base64 runs on from the last.
+    static let pieceBytes = 3 * 256 * 1024
+
+    /// The file open in `handle` handed to `each` a piece of at most `size`
+    /// bytes at a time, from where it stands to its end: a file of any
+    /// length, with only one piece of it in memory.
+    static func readPieces(of handle: FileHandle, size: Int = pieceBytes, _ each: (Data) throws -> Void) throws {
+        while true {
+            let read = try autoreleasepool { try handle.read(upToCount: size) }
+            guard let piece = read, !piece.isEmpty else { return }
+            try each(piece)
+        }
     }
 
     private static let table: [UInt32] = (0..<256).map { n -> UInt32 in
@@ -70,49 +92,76 @@ enum ZipStore {
 
         /// One file, as `name` ("designs/doc_1.canvia.json").
         func add(_ name: String, _ data: Data) throws {
+            try add(name, pieces: { write in try write(data) })
+        }
+
+        /// The file open in `file` as `name`, read and written a piece at a
+        /// time: a clip of any length goes in without being held.
+        func add(_ name: String, from file: FileHandle) throws {
+            try add(name, pieces: { write in try ZipStore.readPieces(of: file, write) })
+        }
+
+        /// One file, as `name`, whose bytes `body` hands to the `write` it
+        /// is given a piece at a time — never the whole of it at once. The
+        /// local header goes down first with its CRC and sizes blank, and is
+        /// filled in once the last piece is: the Android twin reads a backup
+        /// with ZipInputStream, which takes a stored entry's size from that
+        /// header, so a trailing data descriptor would not do. An entry that
+        /// would end at or past 4 GB, header and all, or a 65,536th, is
+        /// tooBig, and what is half written is the caller's to abandon.
+        func add(_ name: String, pieces body: ((Data) throws -> Void) throws -> Void) throws {
             let nameBytes = Data(name.utf8)
-            guard offset + UInt64(data.count) + UInt64(nameBytes.count) + 30 < UInt64(UInt32.max),
-                  data.count < Int(UInt32.max), count < 65_535 else { throw ZipError.tooBig }
-            let crc = ZipStore.crc32(data)
-            var local = Data()
-            local.le32(0x0403_4b50)
-            local.le16(20)                 // version needed
-            local.le16(0x0800)             // UTF-8 names
-            local.le16(0)                  // stored
-            local.le16(stamp.time)
-            local.le16(stamp.date)
-            local.le32(crc)
-            local.le32(UInt32(data.count))
-            local.le32(UInt32(data.count))
-            local.le16(UInt16(nameBytes.count))
-            local.le16(0)                  // no extra field
-            local.append(nameBytes)
-
-            var central = Data()
-            central.le32(0x0201_4b50)
-            central.le16(20)               // made by
-            central.le16(20)
-            central.le16(0x0800)
-            central.le16(0)
-            central.le16(stamp.time)
-            central.le16(stamp.date)
-            central.le32(crc)
-            central.le32(UInt32(data.count))
-            central.le32(UInt32(data.count))
-            central.le16(UInt16(nameBytes.count))
-            central.le16(0)                // extra
-            central.le16(0)                // comment
-            central.le16(0)                // disk
-            central.le16(0)                // internal attributes
-            central.le32(0)                // external attributes
-            central.le32(UInt32(offset))
-            central.append(nameBytes)
-
-            try handle.write(contentsOf: local)
-            try handle.write(contentsOf: data)
-            offset += UInt64(local.count + data.count)
-            directory.append(central)
+            let start = offset
+            let header = UInt64(30 + nameBytes.count)
+            guard start + header < UInt64(UInt32.max), count < 65_535 else { throw ZipError.tooBig }
+            try handle.write(contentsOf: record(local: true, name: nameBytes, crc: 0, size: 0, at: start))
+            var crc: UInt32 = 0xffff_ffff
+            var size: UInt64 = 0
+            try body { piece in
+                size += UInt64(piece.count)
+                guard start + header + size < UInt64(UInt32.max) else { throw ZipError.tooBig }
+                crc = ZipStore.crc32(continuing: crc, piece)
+                try self.handle.write(contentsOf: piece)
+            }
+            crc ^= 0xffff_ffff
+            // The CRC and both sizes, 14 bytes into the local header.
+            var filled = Data()
+            filled.le32(crc)
+            filled.le32(UInt32(size))
+            filled.le32(UInt32(size))
+            try handle.seek(toOffset: start + 14)
+            try handle.write(contentsOf: filled)
+            offset = start + header + size
+            try handle.seek(toOffset: offset)
+            directory.append(record(local: false, name: nameBytes, crc: crc, size: UInt32(size), at: start))
             count += 1
+        }
+
+        /// An entry's local header, or its line in the directory, for an
+        /// entry whose local header is at `at`.
+        private func record(local: Bool, name: Data, crc: UInt32, size: UInt32, at: UInt64) -> Data {
+            var out = Data()
+            out.le32(local ? 0x0403_4b50 : 0x0201_4b50)
+            if !local { out.le16(20) }     // made by
+            out.le16(20)                   // version needed
+            out.le16(0x0800)               // UTF-8 names
+            out.le16(0)                    // stored
+            out.le16(stamp.time)
+            out.le16(stamp.date)
+            out.le32(crc)
+            out.le32(size)
+            out.le32(size)
+            out.le16(UInt16(name.count))
+            out.le16(0)                    // no extra field
+            if !local {
+                out.le16(0)                // comment
+                out.le16(0)                // disk
+                out.le16(0)                // internal attributes
+                out.le32(0)                // external attributes
+                out.le32(UInt32(at))
+            }
+            out.append(name)
+            return out
         }
 
         /// The directory and its end record, and the file closed.

@@ -275,7 +275,11 @@ enum Backup {
     /// actor; its library photos drawn on it; its files read, packed and
     /// written away from it again. Every clip goes in whole, however long
     /// and of whatever type, as the Android twin's backup packs them: a
-    /// backup keeps the clip, where a file to share may carry a still.
+    /// backup keeps the clip, where a file to share may carry a still. Each
+    /// clip is streamed from its file into the backup a piece at a time
+    /// (DesignPackage.stream), as the Android twin streams it: held whole,
+    /// with its base64 and the encoded file beside it, a clip of a few
+    /// minutes would take gigabytes and the app with it.
     @MainActor
     private static func pack(_ file: URL, folder: String, into writer: ZipStore.Writer) async throws -> Bool {
         let read = await Task.detached(priority: .userInitiated) { () -> Design? in
@@ -286,8 +290,10 @@ enum Backup {
         let drawn = DesignPackage.withLibraryPhotos(design)
         let name = "\(folder)/\(design.id).\(DesignPackage.ext)"
         try await Task.detached(priority: .userInitiated) {
-            let contents = DesignPackage.gathered(drawn.design, media: drawn.media, wholeClips: true)
-            try writer.add(name, DesignPackage.encode(contents))
+            let gathered = DesignPackage.gatheredForBackup(drawn.design, media: drawn.media)
+            try writer.add(name, pieces: { write in
+                try DesignPackage.stream(gathered.package, clips: gathered.clips, into: write)
+            })
         }.value
         return true
     }
@@ -310,15 +316,16 @@ enum Backup {
         }
     }
 
-    /// A file into the backup as `name`, once, read and written away from
-    /// the main actor.
+    /// A file into the backup as `name`, once, read and written a piece at
+    /// a time away from the main actor; one that does not open is left out.
     @MainActor
     private static func add(_ file: URL, as name: String, into writer: ZipStore.Writer,
                             written: inout Set<String>) async throws {
         guard written.insert(name).inserted else { return }
         try await Task.detached(priority: .userInitiated) {
-            guard let data = try? Data(contentsOf: file, options: .mappedIfSafe) else { return }
-            try writer.add(name, data)
+            guard let handle = try? FileHandle(forReadingFrom: file) else { return }
+            defer { try? handle.close() }
+            try writer.add(name, from: handle)
         }.value
     }
 

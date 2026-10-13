@@ -97,11 +97,39 @@ enum DesignPackage {
 
     /// The design with each clip packed into `videos`, or — too long to
     /// carry, past the total, of a type the other phone cannot play, or
-    /// unreadable — replaced by its first frame packed as a photo. With
-    /// `wholeClips`, as a backup packs, every clip that reads goes in whole,
-    /// whatever its length or type, as the Android twin's backup packs them.
-    static func packingVideos(_ design: Design, media: inout [String: Media], videos: inout [String: Media],
-                              wholeClips: Bool = false) -> Design {
+    /// unreadable — replaced by its first frame packed as a photo.
+    static func packingVideos(_ design: Design, media: inout [String: Media], videos: inout [String: Media]) -> Design {
+        packingClips(design, media: &media, whole: packedVideoIDs) { id, url in
+            // Mapped rather than read: the clips a file carries can come to
+            // a hundred megabytes, and a mapped file's pages are the file's
+            // own rather than more of the app's memory.
+            guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { return false }
+            videos[id] = Media(ext: url.pathExtension.lowercased(), data: data)
+            return true
+        }
+    }
+
+    /// As a backup packs: every clip that reads goes in whole, whatever its
+    /// length or type, as the Android twin's backup packs them — left as
+    /// its file in `clipFiles`, by id, rather than read in, for
+    /// `stream(_:clips:into:)` to write a piece at a time. Only a clip that
+    /// does not read becomes a still.
+    static func packingClipFiles(_ design: Design, media: inout [String: Media],
+                                 clipFiles: inout [String: URL]) -> Design {
+        packingClips(design, media: &media, whole: { Set($0.keys) }) { id, url in
+            guard FileManager.default.isReadableFile(atPath: url.path) else { return false }
+            clipFiles[id] = url
+            return true
+        }
+    }
+
+    /// The design's clips, those `whole` picks (from each one's size and
+    /// type, by id) handed to `take` with their files — and any it does not
+    /// pick, or `take` turns away, replaced by its first frame packed as a
+    /// photo.
+    private static func packingClips(_ design: Design, media: inout [String: Media],
+                                     whole wholeIDs: ([String: (bytes: Int, ext: String)]) -> Set<String>,
+                                     take: (String, URL) -> Bool) -> Design {
         var files: [String: URL] = [:]
         var clips: [String: (bytes: Int, ext: String)] = [:]
         for id in videoIDs(in: design) {
@@ -110,15 +138,12 @@ enum DesignPackage {
             files[id] = url
             clips[id] = (bytes: size, ext: url.pathExtension.lowercased())
         }
-        let whole = wholeClips ? Set(files.keys) : packedVideoIDs(clips)
+        let whole = wholeIDs(clips)
         var stills: [String: String] = [:]
         for id in files.keys.sorted() {
             guard let url = files[id] else { continue }
-            // Mapped rather than read: the clips a file carries can come to
-            // a hundred megabytes, and a mapped file's pages are the file's
-            // own rather than more of the app's memory.
-            if whole.contains(id), let data = try? Data(contentsOf: url, options: .mappedIfSafe) {
-                videos[id] = Media(ext: url.pathExtension.lowercased(), data: data)
+            if whole.contains(id), take(id, url) {
+                continue
             } else if let still = VideoStore.poster(id)?.jpegData(compressionQuality: 0.9) {
                 let newId = UID.make("img")
                 media[newId] = Media(ext: "jpg", data: still)
@@ -192,14 +217,32 @@ enum DesignPackage {
     }
 
     /// The rest of `contents(of:)`: the clips, photos, music and fonts the
-    /// design (from `withLibraryPhotos`) shows, read from their files — so
-    /// a backup can run it away from the main actor. `wholeClips` as for
-    /// `packingVideos`.
+    /// design (from `withLibraryPhotos`) shows, read from their files.
     static func gathered(_ drawn: Design, media drawnMedia: [String: Media],
-                         mediaDirectory: URL = MediaStore.directory, wholeClips: Bool = false) -> Package {
+                         mediaDirectory: URL = MediaStore.directory) -> Package {
         var media = drawnMedia
         var videos: [String: Media] = [:]
-        let design = packingVideos(drawn, media: &media, videos: &videos, wholeClips: wholeClips)
+        let design = packingVideos(drawn, media: &media, videos: &videos)
+        return packed(design, media: media, videos: videos, mediaDirectory: mediaDirectory)
+    }
+
+    /// `gathered`, as a backup packs a design, away from the main actor:
+    /// every clip whole, left as its file (`packingClipFiles`), for
+    /// `stream(_:clips:into:)` to write in — never read in whole, nor its
+    /// base64, however long it is.
+    static func gatheredForBackup(_ drawn: Design, media drawnMedia: [String: Media],
+                                  mediaDirectory: URL = MediaStore.directory) -> (package: Package, clips: [String: URL]) {
+        var media = drawnMedia
+        var clips: [String: URL] = [:]
+        let design = packingClipFiles(drawn, media: &media, clipFiles: &clips)
+        return (packed(design, media: media, videos: [:], mediaDirectory: mediaDirectory), clips)
+    }
+
+    /// The package of a design whose clips are settled: its photos read in,
+    /// and its music and fonts.
+    private static func packed(_ design: Design, media drawnMedia: [String: Media], videos: [String: Media],
+                               mediaDirectory: URL) -> Package {
+        var media = drawnMedia
         for id in mediaIDs(in: design) {
             for ext in MediaStore.extensions {
                 let url = mediaDirectory.appendingPathComponent("\(id).\(ext)")
@@ -250,6 +293,72 @@ enum DesignPackage {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
         return try encoder.encode(contents)
+    }
+
+    /// The file `encode` makes of `contents`, with each clip in `clips`
+    /// (by id) put among its videos, handed to `write` a piece at a time:
+    /// each clip read from its file and turned to base64 `pieceBytes` at a
+    /// time, so neither a clip nor its text is ever held whole — as the
+    /// Android twin's DesignPackage.writeTo streams them. Keys are sorted,
+    /// as `encode` sorts them; it reads back as any package does.
+    static func stream(_ contents: Package, clips: [String: URL], pieceBytes: Int = ZipStore.pieceBytes,
+                       into write: (Data) throws -> Void) throws {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        // Everything but the clips first, in one piece: the design and the
+        // photos, music and fonts it holds already.
+        var members: [(key: String, json: Data)] = try [
+            ("design", encoder.encode(contents.design)),
+            ("format", encoder.encode(contents.format)),
+            ("media", encoder.encode(contents.media)),
+            ("version", encoder.encode(contents.version)),
+        ]
+        if let audio = contents.audio { try members.append(("audio", encoder.encode(audio))) }
+        if let fonts = contents.fonts { try members.append(("fonts", encoder.encode(fonts))) }
+        var head = Data("{".utf8)
+        for (n, member) in members.sorted(by: { $0.key < $1.key }).enumerated() {
+            if n > 0 { head.append(Data(",".utf8)) }
+            head.append(Data("\"\(member.key)\":".utf8))
+            head.append(member.json)
+        }
+        try write(head)
+        // Then the clips, last as "videos" sorts after every other key.
+        let held = contents.videos ?? [:]
+        let ids = Set(held.keys).union(clips.keys).sorted()
+        if !ids.isEmpty {
+            try write(Data(",\"videos\":{".utf8))
+            for (n, id) in ids.enumerated() {
+                let key = try encoder.encode(id)
+                try write(Data((n > 0 ? "," : "").utf8) + key + Data(":".utf8))
+                if let url = clips[id] {
+                    try write(Data("{\"data\":\"".utf8))
+                    try base64(of: url, pieceBytes: pieceBytes, into: write)
+                    let ext = try encoder.encode(url.pathExtension.lowercased())
+                    try write(Data("\",\"ext\":".utf8) + ext + Data("}".utf8))
+                } else if let media = held[id] {
+                    try write(encoder.encode(media))
+                }
+            }
+            try write(Data("}".utf8))
+        }
+        try write(Data("}".utf8))
+    }
+
+    /// The file at `url` as base64, a piece at a time: each piece's bytes
+    /// that do not make a whole three are carried on to the next, so the
+    /// pieces join into the base64 of the whole file.
+    private static func base64(of url: URL, pieceBytes: Int, into write: (Data) throws -> Void) throws {
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        var carry = Data()
+        try ZipStore.readPieces(of: handle, size: pieceBytes) { piece in
+            var bytes = carry
+            bytes.append(piece)
+            let whole = bytes.count - bytes.count % 3
+            if whole > 0 { try write(bytes.prefix(whole).base64EncodedData()) }
+            carry = Data(bytes.suffix(bytes.count - whole))
+        }
+        if !carry.isEmpty { try write(carry.base64EncodedData()) }
     }
 
     /// The design with every library photo (`asset:<id>`) that this app can
