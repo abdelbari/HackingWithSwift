@@ -1,10 +1,12 @@
 // Fonts of your own, as the Android twin's CustomFontsTest has them: the
 // key from the file's SHA-1, the checks a file passes before it is added,
 // the design's "fonts" record through JSON and kept in step on save, the
-// fallback and the words for a missing one, the package carrying the bytes
-// and an import storing them, and the uploads.json entry.
+// fallback and the words for a missing one, the weight one is drawn at, the
+// package carrying the bytes and an import storing them, and the
+// uploads.json entry.
 
 import XCTest
+import CoreText
 import UIKit
 @testable import Canvia
 
@@ -220,6 +222,41 @@ final class CustomFontsTests: XCTestCase {
         defer { DesignLibrary.delete(id: d.id) }
         XCTAssertEqual(DesignLibrary.load(id: d.id)?.fonts,
                        [CustomFonts.Record(id: "custom:\(sha)", name: "Sacramento", file: "\(sha).ttf")])
+    }
+
+    /// A font of your own is one face, drawn at its own weight whatever the
+    /// text asks — the rows of the Android twin's FontLibraryTest: bold
+    /// neither thickens it nor swaps it for another face of its family
+    /// registered here (Lora's Bold and Italic are bundled), and italic
+    /// slants it. A bundled family is drawn at its nearest face, and a
+    /// missing font of your own as Modern Sans, bold as the system's is.
+    func testAFontOfYourOwnIsDrawnAtItsOwnWeight() throws {
+        let bytes = try bundled("lora-400.ttf")
+        let sha = CustomFonts.sha12(bytes)
+        defer { FontStore.remove(sha) }
+        let key = try FontStore.add(bytes).get()
+        func font(_ key: String?, _ weight: Int, italic: Bool = false) -> UIFont {
+            FontLibrary.uiFont(family: key, size: 40, weight: weight, italic: italic)
+        }
+        XCTAssertEqual(font("lora", 700).fontName, "Lora-Bold")
+        XCTAssertEqual(font("lora", 900).fontName, "Lora-Bold")
+        XCTAssertEqual(font("impact", 900).fontName, "Anton-Regular")
+        XCTAssertEqual(font("condensed", 700, italic: true).fontName, "Oswald-Bold")
+
+        XCTAssertEqual(font(key, 400).fontName, "Lora-Regular")
+        XCTAssertEqual(font(key, 700).fontName, "Lora-Regular")
+        XCTAssertFalse(font(key, 700).fontDescriptor.symbolicTraits.contains(.traitBold))
+        let leaning = font(key, 700, italic: true)
+        XCTAssertEqual(leaning.fontName, "Lora-Regular")
+        XCTAssertEqual(CTFontGetMatrix(leaning as CTFont).c, CGFloat(FontLibrary.slant), accuracy: 0.001)
+        // A bold file of your own stays bold at 400.
+        let heavy = try bundled("lora-700.ttf")
+        defer { FontStore.remove(CustomFonts.sha12(heavy)) }
+        XCTAssertEqual(font(try FontStore.add(heavy).get(), 400).fontName, "Lora-Bold")
+
+        let missing = font("custom:0123456789ab", 700)
+        XCTAssertEqual(missing.fontName, font("sans", 700).fontName)
+        XCTAssertTrue(missing.fontDescriptor.symbolicTraits.contains(.traitBold))
     }
 
     func testAFontIsAnUploadOfKindFontWithItsNameAndFile() throws {

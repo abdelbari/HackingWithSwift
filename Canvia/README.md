@@ -82,9 +82,10 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   beside them in `Fonts/licenses`, registered with CoreText at launch, plus the system's sans, serif and mono — in a
   picker with search (case and accents aside), category chips, the brand
   kit's fonts, Recently used, In this design and every row drawn in its own
-  face; your own .ttf or .otf added with "Add a font…", carried inside a
-  `.canvia.json` file and drawn in Modern Sans with "Font missing: <name>"
-  on a phone without it; the twelve older personality keys still open as
+  face; your own .ttf or .otf added with "Add a font…", drawn at its own
+  weight as Anton is (bold leaves it as it is, on both phones), carried
+  inside a `.canvia.json` file and drawn in Modern Sans with "Font
+  missing: <name>" on a phone without it; the twelve older personality keys still open as
   aliases, 8 text effects (shadow, lift, hollow, splice, neon,
   echo, highlight) drawn through one CoreText pipeline shared by canvas,
   thumbnails and export — inline bold and italic words keep their style

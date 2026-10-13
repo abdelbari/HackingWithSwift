@@ -336,14 +336,17 @@ enum FontLibrary {
     /// system's — Modern Sans for a font of your own that is missing. A
     /// bundled face is used at its own weight — Anton has only one, and it is
     /// already black — and only italic is made on top, by slanting, where
-    /// the family has no italic of its own. A font of your own is one face:
-    /// its own bold or italic when the family has one registered here, else
-    /// slanted for italic and drawn at its own weight.
+    /// the family has no italic of its own. A font of your own is one face,
+    /// as Anton is, and is drawn at its own weight whatever the text asks:
+    /// bold neither thickens it nor swaps it for another face of its family
+    /// registered here — another font of your own, or a bundled one — and
+    /// italic slants it unless it is an italic itself. The Android twin's
+    /// FontLibrary.drawnWeight is the same rule.
     private static func buildFont(family key: String?, size: Double,
                                   weight: Int, italic: Bool) -> UIFont {
         registerBundledFonts()
         if CustomFonts.isCustom(key), let own = FontStore.uiFont(key, size: size) {
-            return styled(own, size: size, bold: weight >= 600, italic: italic)
+            return italic && !own.fontDescriptor.symbolicTraits.contains(.traitItalic) ? slanted(own, size: size) : own
         }
         let font = of(key)
         if !font.system {
@@ -361,16 +364,15 @@ enum FontLibrary {
                       size: size, bold: weight >= 600, italic: italic)
     }
 
-    /// The font with bold and italic from its family where it has them; an
-    /// italic it has not, slanted.
+    /// A system font with bold and italic from its family where it has
+    /// them; an italic it has not, slanted.
     private static func styled(_ font: UIFont, size: Double, bold: Bool, italic: Bool) -> UIFont {
         var traits: UIFontDescriptor.SymbolicTraits = []
         if bold { traits.insert(.traitBold) }
         if italic { traits.insert(.traitItalic) }
         guard !traits.isEmpty else { return font }
         var out = font
-        // Only the family's own: a font of your own with no bold is not
-        // swapped for some other family's.
+        // Only the family's own, never some other family's.
         if let d = font.fontDescriptor.withSymbolicTraits(font.fontDescriptor.symbolicTraits.union(traits)) {
             let traited = UIFont(descriptor: d, size: size)
             if traited.familyName == font.familyName { out = traited }

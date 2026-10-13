@@ -161,7 +161,7 @@ enum TextOutliner {
             guard count > 0 else { continue }
             let attributes = CTRunGetAttributes(run) as? [String: Any]
             let uiFont = attributes?[kCTFontAttributeName as String] as? UIFont ?? declared
-            let font = CTFontCreateWithName(uiFont.fontName as CFString, uiFont.pointSize, nil)
+            let font = uiFont as CTFont
             let tint = colour(of: run)
             var glyphs = [CGGlyph](repeating: 0, count: count)
             var positions = [CGPoint](repeating: .zero, count: count)
@@ -269,7 +269,7 @@ enum TextOutliner {
                     guard count > 0 else { continue }
                     let attributes = CTRunGetAttributes(run) as? [String: Any]
                     let uiFont = attributes?[kCTFontAttributeName as String] as? UIFont ?? declared
-                    let font = CTFontCreateWithName(uiFont.fontName as CFString, uiFont.pointSize, nil)
+                    let font = uiFont as CTFont
                     var glyphs = [CGGlyph](repeating: 0, count: count)
                     var positions = [CGPoint](repeating: .zero, count: count)
                     CTRunGetGlyphs(run, CFRange(location: 0, length: count), &glyphs)
@@ -344,7 +344,7 @@ enum TextOutliner {
         let struck = (attributes[NSAttributedString.Key.strikethroughStyle.rawValue] as? Int ?? 0) != 0
         guard underlined || struck else { return }
         let uiFont = attributes[kCTFontAttributeName as String] as? UIFont ?? fallback
-        let font = CTFontCreateWithName(uiFont.fontName as CFString, uiFont.pointSize, nil)
+        let font = uiFont as CTFont
         var first = CGPoint.zero
         CTRunGetPositions(run, CFRange(location: 0, length: 1), &first)
         let width = CTRunGetTypographicBounds(run, CFRange(location: 0, length: 0), nil, nil, nil)
@@ -371,10 +371,13 @@ enum TextOutliner {
         guard count > 0 else { return }
         let attributes = CTRunGetAttributes(run) as? [String: Any]
         let uiFont = attributes?[kCTFontAttributeName as String] as? UIFont ?? fallback
-        // Rebuilt by name rather than cast: UIFont and CTFont are bridged, but
-        // rebuilding is expressible in plain Swift and a font of the same face
-        // at the same size traces identical outlines.
-        let font = CTFontCreateWithName(uiFont.fontName as CFString, uiFont.pointSize, nil)
+        // The run's own font, cast rather than rebuilt by name: a font
+        // rebuilt by name loses its matrix, so an italic slanted where the
+        // family has none (FontLibrary.slanted) — Oswald, Anton, a font of
+        // your own — would trace upright here while the canvas, PNG, PDF and
+        // the Android twin's SVG lean it. CTFontCreatePathForGlyph applies
+        // the font's matrix.
+        let font = uiFont as CTFont
 
         var glyphs = [CGGlyph](repeating: 0, count: count)
         var positions = [CGPoint](repeating: .zero, count: count)
@@ -430,7 +433,7 @@ enum TextOutliner {
             guard count > 0 else { continue }
             let attributes = CTRunGetAttributes(run) as? [String: Any]
             let uiFont = attributes?[kCTFontAttributeName as String] as? UIFont ?? declared
-            let font = CTFontCreateWithName(uiFont.fontName as CFString, uiFont.pointSize, nil)
+            let font = uiFont as CTFont
             let tint = colour(of: run)
 
             var glyphs = [CGGlyph](repeating: 0, count: count)
