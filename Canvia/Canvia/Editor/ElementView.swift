@@ -741,6 +741,14 @@ struct ImageElementView: View {
             // Keyed by the frame shown, not the moment asked for, so a
             // filtered copy is never kept of a stand-in frame.
             key = shown.key
+        } else if onScreen, let src = element.src, AnimStore.split(src)?.time != nil {
+            // An animated picture playing on screen — Play in the editor,
+            // Present — never waits for a frame either: small frames are
+            // decoded on a worker, and the version read here draws the next.
+            _ = AnimStore.live.version
+            guard let shown = AnimStore.peek(src) else { return nil }
+            base = shown.image
+            key = shown.key
         } else {
             guard let image = PhotoLibrary.resolve(element.src) else { return nil }
             base = image
