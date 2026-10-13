@@ -223,6 +223,22 @@ final class AudioTracksTests: XCTestCase {
         XCTAssertNil(none.audio)
     }
 
+    /// The same rows as the Android twin's: only an `audio:` source reads
+    /// as a track, and with none that reads the old soundtrack plays.
+    func testOnlyAnAudioSourceReadsAsATrackAndWithNoneTheOldSoundtrackPlays() throws {
+        func tracks(_ json: String) throws -> [String] {
+            try JSONDecoder().decode(Design.self, from: Data(json.utf8)).audioTracks.compactMap(\.audioId)
+        }
+        let mixed = #"{"audio":[{"src":"audio:a.m4a"},{"src":"media:img"},{"src":"audio:"},{"src":"audio:v.m4a"}]}"#
+        XCTAssertEqual(try tracks(mixed), ["a.m4a", "v.m4a"])
+        XCTAssertEqual(try tracks(#"{"audio":[{"src":"audio:"}]}"#), [])
+        // No track that reads: the old soundtrack is the one track.
+        let old = #""motion":{"soundtrack":"old.m4a"}"#
+        XCTAssertEqual(try tracks(#"{"audio":[],"# + old + "}"), ["old.m4a"])
+        XCTAssertEqual(try tracks(#"{"audio":[{"src":"media:img"}],"# + old + "}"), ["old.m4a"])
+        XCTAssertEqual(try tracks(#"{"audio":[{"src":"audio:a.m4a"}],"# + old + "}"), ["a.m4a"])
+    }
+
     func testMusicPacksInIdOrderWithinItsBudget() {
         let mb = 1024 * 1024
         let files: [String: (bytes: Int, ext: String)] = [
