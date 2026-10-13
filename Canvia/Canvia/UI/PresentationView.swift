@@ -9,6 +9,7 @@
 // The clips on the page are heard while it is up, and the music runs on
 // under the whole talk from where the first page comes in the video, fading
 // out as it ends; a speaker button turns the sound off for this talk.
+// Pages turn as PageTransitions lays them out, as the video draws them.
 
 import SwiftUI
 
@@ -405,25 +406,23 @@ struct PresentationView: View {
         guard let next = target, next != index, design.pages.indices.contains(next) else { return }
         let forward = next > index
         // Going on, the page being left decides; going back, the page being
-        // returned to, played in reverse.
-        let via = transition(after: forward ? page : design.pages[next])
+        // returned to, played in reverse. With a hidden page between, that
+        // is the page before the gap, as the video plays it.
+        let earlier = forward ? page : design.pages[next]
+        let via = transition(after: earlier)
         let animation: Animation?
-        switch via {
-        case "cut":
+        if via == "cut" || reduceMotion {
             moving = .identity
             animation = nil
-        case "slide" where !reduceMotion:
-            // Forward: the next page slides in from the right over this one,
-            // which goes once it is covered. Back: this one slides away to
-            // the right, showing the earlier page beneath.
-            moving = forward
-                ? .asymmetric(insertion: .move(edge: .trailing),
-                              removal: .opacity.animation(.linear(duration: 0.01).delay(0.5)))
-                : .asymmetric(insertion: .identity, removal: .move(edge: .trailing))
-            animation = .easeOut(duration: 0.5)
-        default:
-            moving = .opacity
-            animation = .easeInOut(duration: 0.25)
+        } else {
+            // Both pages laid out by PageTransitions as the turn goes, the
+            // later page on top (zIndex); a fade over its own curve, the
+            // others at an even pace, since the layers ease themselves.
+            let seconds = PageTransitions.presentSeconds(via, own: earlier.transitionSeconds)
+            moving = PageTurnEffect.transition(via, forward: forward,
+                                               leaving: design.size(for: page),
+                                               coming: design.size(for: design.pages[next]))
+            animation = via == "fade" ? .easeInOut(duration: seconds) : .linear(duration: seconds)
         }
         // The transition is read when the views change, so it is set first,
         // and the page moves on the next turn of the run loop.
@@ -448,5 +447,82 @@ struct PresentationView: View {
                 autoplay = false
             }
         }
+    }
+}
+
+/// One page of a turn in Present, as PageTransitions lays it out at
+/// `progress` of the way through: SwiftUI animates the progress from the
+/// transition's active state to its identity, a page coming from 0 to 1 and
+/// a page leaving from 0 to 1 the other way round.
+private struct PageTurnEffect: ViewModifier, Animatable {
+    let kind: String
+    let forward: Bool
+    /// The page coming, rather than the page leaving.
+    let coming: Bool
+    /// The page's own size, so a wipe or a circle clips to the page as it
+    /// is fitted, not to the screen round it.
+    let pageSize: CGSize
+    var progress: Double
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func body(content: Content) -> some View {
+        let both = PageTransitions.layers(kind, t: progress, forward: forward)
+        let layer = coming ? both.incoming : both.outgoing
+        return content
+            .mask { PageTurnMask(clip: layer.clip, pageSize: pageSize) }
+            .modifier(PageTurnShift(dx: layer.dx, scale: layer.scale))
+            .opacity(layer.alpha)
+    }
+
+    /// The turn from a page of size `leaving` to one of size `coming`.
+    static func transition(_ kind: String, forward: Bool, leaving: CGSize, coming: CGSize) -> AnyTransition {
+        .asymmetric(
+            insertion: .modifier(
+                active: PageTurnEffect(kind: kind, forward: forward, coming: true, pageSize: coming, progress: 0),
+                identity: PageTurnEffect(kind: kind, forward: forward, coming: true, pageSize: coming, progress: 1)),
+            removal: .modifier(
+                active: PageTurnEffect(kind: kind, forward: forward, coming: false, pageSize: leaving, progress: 1),
+                identity: PageTurnEffect(kind: kind, forward: forward, coming: false, pageSize: leaving, progress: 0)))
+    }
+}
+
+/// What shows of a page while it turns: everything, a strip from the page's
+/// left edge, or a circle from its centre, the page fitted to the middle of
+/// the screen as Present shows it.
+private struct PageTurnMask: Shape {
+    let clip: PageTransitions.Clip
+    let pageSize: CGSize
+
+    func path(in rect: CGRect) -> Path {
+        let scale = min(rect.width / max(pageSize.width, 1), rect.height / max(pageSize.height, 1))
+        let w = pageSize.width * scale, h = pageSize.height * scale
+        let page = CGRect(x: rect.midX - w / 2, y: rect.midY - h / 2, width: w, height: h)
+        switch clip {
+        case .none:
+            return Path(rect)
+        case .rect(let fraction):
+            return Path(CGRect(x: page.minX, y: page.minY, width: page.width * fraction, height: page.height))
+        case .circle(let fraction):
+            let radius = fraction * hypot(page.width, page.height) / 2
+            return Path(ellipseIn: CGRect(x: page.midX - radius, y: page.midY - radius,
+                                          width: radius * 2, height: radius * 2))
+        }
+    }
+}
+
+/// A page shifted sideways by a share of the screen's width and scaled about
+/// its centre.
+private struct PageTurnShift: GeometryEffect {
+    let dx: Double
+    let scale: Double
+
+    func effectValue(size: CGSize) -> ProjectionTransform {
+        ProjectionTransform(CGAffineTransform(translationX: size.width / 2 + size.width * dx, y: size.height / 2)
+            .scaledBy(x: scale, y: scale)
+            .translatedBy(x: -size.width / 2, y: -size.height / 2))
     }
 }
