@@ -135,17 +135,18 @@ enum LayerRows {
         return rest.reversed()
     }
 
-    /// The elements whose boxes overlap any selected element's — the
-    /// selected ones among them — in the page's order. None when nothing is
-    /// selected. Boxes that only touch do not overlap.
+    /// The elements whose boxes overlap the box round the whole selection —
+    /// the selected ones among them — in the page's order, as Android lists
+    /// them. None when nothing is selected. Boxes that only touch do not
+    /// overlap.
     static func overlapping(_ elements: [Element], selection: Set<String>) -> [Element] {
         let boxes = elements.filter { selection.contains($0.id) }.map(Geometry.aabb)
         guard !boxes.isEmpty else { return [] }
+        let around = Geometry.union(boxes)
         return elements.filter { el in
             let box = Geometry.aabb(el)
-            return boxes.contains { other in
-                box.minX < other.maxX && other.minX < box.maxX && box.minY < other.maxY && other.minY < box.maxY
-            }
+            return selection.contains(el.id)
+                || (box.minX < around.maxX && around.minX < box.maxX && box.minY < around.maxY && around.minY < box.maxY)
         }
     }
 }

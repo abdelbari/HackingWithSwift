@@ -290,7 +290,8 @@ final class LayersTests: XCTestCase {
                     box("d", x: 100, y: 0, w: 50, h: 50)]
         XCTAssertEqual(LayerRows.overlapping(page, selection: ["a"]).map(\.id), ["a", "b"],
                        "the selection itself, and what overlaps it; d only touches")
-        XCTAssertEqual(LayerRows.overlapping(page, selection: ["a", "c"]).map(\.id), ["a", "b", "c"])
+        XCTAssertEqual(LayerRows.overlapping(page, selection: ["a", "c"]).map(\.id), ["a", "b", "c", "d"],
+                       "d is inside the box round a and c, as Android lists it")
         XCTAssertTrue(LayerRows.overlapping(page, selection: []).isEmpty)
         XCTAssertEqual(LayerRows.flat(page).map(\.id), ["d", "c", "b", "a"], "top-most first")
         XCTAssertEqual(LayerRows.Filter.allCases.map(\.rawValue), ["All", "Overlapping"])
