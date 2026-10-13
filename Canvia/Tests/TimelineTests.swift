@@ -1,4 +1,7 @@
-// Per-page timing and transitions, the GIF budget, and margins.
+// Per-page timing and transitions, the GIF budget, and margins; and the
+// editor's timeline: its blocks, a dragged edge's hold, Split page's
+// arithmetic, and elements shown for part of their page. The timeline's rows
+// are the same as the Android twin's MovieTest.
 
 import XCTest
 import CoreGraphics
@@ -113,5 +116,274 @@ final class TimelineTests: XCTestCase {
         XCTAssertEqual(lines.y, [20, 380])
         XCTAssertTrue(Geometry.snapLines(design: d, page: Page(), excluding: [],
                                          settings: SnapSettings(toPage: false, toElements: false)).x.isEmpty)
+    }
+
+    // MARK: the editor's timeline — shared rows
+
+    /// Side by side from 0, no gap, each as wide as its hold at the scale.
+    func testBlocksSitSideBySideAsWideAsTheirHolds() {
+        let rows: [([Double], Double, [Double], [Double])] = [
+            ([2.5, 4, 0.5], 10, [0, 25, 65], [25, 40, 5]),
+            ([1, 2], 12, [0, 12], [12, 24]),
+            ([60], 2, [0], [120]),
+            ([], 10, [], []),
+        ]
+        for (holds, scale, xs, widths) in rows {
+            let blocks = Timeline.blocks(holds: holds, scale: scale)
+            XCTAssertEqual(blocks.map(\.x), xs, "\(holds) at \(scale)")
+            XCTAssertEqual(blocks.map(\.width), widths, "\(holds) at \(scale)")
+        }
+    }
+
+    /// Hold, points dragged, points a second, then the hold set: to the
+    /// nearest tenth, within 0.5...60.
+    func testADraggedEdgeSetsTheHoldToATenthWithinItsRange() {
+        let rows: [(Double, Double, Double, Double)] = [
+            (2, 13, 10, 3.3),
+            (2, -4, 10, 1.6),
+            (2, 0.4, 10, 2.0),
+            (2, 0.6, 10, 2.1),
+            (2.5, 30, 12, 5.0),
+            (2, -100, 10, 0.5),
+            (59, 200, 10, 60),
+        ]
+        for (hold, dx, scale, expected) in rows {
+            XCTAssertEqual(Timeline.draggedHold(hold, by: dx, scale: scale), expected, accuracy: 1e-9,
+                           "\(hold) dragged \(dx) at \(scale)")
+        }
+    }
+
+    /// A moment in the film: the page it falls on and how far into it. A
+    /// page owns its start, not its end; the film's ends hold.
+    func testAMomentFallsOnAPage() {
+        let holds: [Double] = [2, 3, 1]
+        let rows: [(Double, Int, Double)] = [
+            (-1, 0, 0), (0, 0, 0), (1.5, 0, 1.5), (2, 1, 0), (4.5, 1, 2.5), (5, 2, 0), (6, 2, 1), (9, 2, 1),
+        ]
+        for (t, page, time) in rows {
+            let spot = Timeline.locate(t, holds: holds)
+            XCTAssertEqual(spot.page, page, "page at \(t)")
+            XCTAssertEqual(spot.time, time, accuracy: 1e-9, "time at \(t)")
+        }
+    }
+
+    /// Hold, cut, then the two holds, or nil: the cut to the tenth first,
+    /// and each part at least half a second.
+    func testSplitHolds() {
+        let rows: [(Double, Double, (Double, Double)?)] = [
+            (3, 1.2, (1.2, 1.8)),
+            (3, 0.5, (0.5, 2.5)),
+            (3, 2.5, (2.5, 0.5)),
+            (3, 1.23, (1.2, 1.8)),
+            (3, 0.46, (0.5, 2.5)),
+            (1, 0.5, (0.5, 0.5)),
+            (3, 0.4, nil),
+            (3, 2.6, nil),
+            (0.9, 0.5, nil),
+        ]
+        for (hold, t, expected) in rows {
+            let holds = Timeline.splitHolds(hold: hold, at: t)
+            if let expected {
+                let got = try? XCTUnwrap(holds, "\(hold) at \(t)")
+                XCTAssertEqual(got?.first ?? -1, expected.0, accuracy: 1e-9, "\(hold) at \(t)")
+                XCTAssertEqual(got?.second ?? -1, expected.1, accuracy: 1e-9, "\(hold) at \(t)")
+            } else {
+                XCTAssertNil(holds, "\(hold) at \(t)")
+            }
+        }
+    }
+
+    /// Clip start, end, speed, loop, file length, cut, then where the clip
+    /// starts on the second page: t x speed on, round again within the trim
+    /// when it loops, short of its end by 0.1 s when it does not, straight
+    /// on with no known end; to the millisecond.
+    func testAClipPicksUpWhereTheSplitLeftIt() {
+        let rows: [(Double, Double?, Double, Bool, Double?, Double, Double)] = [
+            (0, nil, 1, true, nil, 2, 2),
+            (1, nil, 2, false, nil, 1.5, 4),
+            (1, 3, 1, true, nil, 3, 2),
+            (0, nil, 1, true, 5, 7, 2),
+            (0, 4, 1, false, 10, 6, 3.9),
+            (2, nil, 0.5, true, 10, 4, 4),
+            (0, nil, 8, true, nil, 1, 4),
+            (1, 1.005, 1, true, nil, 2, 1),
+            (0, nil, 1.5, true, 2, 1.2, 1.8),
+        ]
+        for (start, end, speed, loop, duration, t, expected) in rows {
+            let clip = ClipPlayback(start: start, end: end, speed: speed, loop: loop)
+            XCTAssertEqual(Timeline.advancedClipStart(clip, by: t, duration: duration), expected, accuracy: 1e-9,
+                           "start \(start) end \(String(describing: end)) speed \(speed) loop \(loop) at \(t)")
+        }
+    }
+
+    /// Start, end, moment, then whether the element shows: from its start,
+    /// gone at its end; always with no timing.
+    func testAnElementShowsWithinItsTiming() {
+        let rows: [(ElementTiming?, Double, Bool)] = [
+            (nil, 0, true), (nil, 100, true),
+            (ElementTiming(start: 1), 0.99, false), (ElementTiming(start: 1), 1, true), (ElementTiming(start: 1), 100, true),
+            (ElementTiming(start: 0, end: 2), 0, true), (ElementTiming(start: 0, end: 2), 1.99, true),
+            (ElementTiming(start: 0, end: 2), 2, false),
+            (ElementTiming(start: 1, end: 2), 0.5, false), (ElementTiming(start: 1, end: 2), 1.5, true),
+            (ElementTiming(start: 1, end: 2), 2.5, false),
+        ]
+        for (timing, t, shows) in rows {
+            XCTAssertEqual(ElementTiming.shows(timing, at: t), shows, "\(String(describing: timing)) at \(t)")
+        }
+    }
+
+    /// Show and Hide from playhead: to the tenth; an end at or before a new
+    /// start dropped, a start at or after a new end back to 0; the whole
+    /// page is no timing; hiding from the very start changes nothing.
+    func testShowAndHideFromThePlayhead() {
+        XCTAssertEqual(ElementTiming.showing(nil, from: 1.23), ElementTiming(start: 1.2))
+        XCTAssertEqual(ElementTiming.showing(ElementTiming(start: 0, end: 3), from: 1), ElementTiming(start: 1, end: 3))
+        XCTAssertEqual(ElementTiming.showing(ElementTiming(start: 0, end: 3), from: 3), ElementTiming(start: 3))
+        XCTAssertNil(ElementTiming.showing(ElementTiming(start: 1), from: 0))
+        XCTAssertEqual(ElementTiming.showing(ElementTiming(start: 1, end: 2), from: 0.04), ElementTiming(start: 0, end: 2))
+        XCTAssertEqual(ElementTiming.hiding(nil, from: 2.5), ElementTiming(start: 0, end: 2.5))
+        XCTAssertEqual(ElementTiming.hiding(ElementTiming(start: 1), from: 3), ElementTiming(start: 1, end: 3))
+        XCTAssertEqual(ElementTiming.hiding(ElementTiming(start: 2), from: 1.5), ElementTiming(start: 0, end: 1.5))
+        XCTAssertEqual(ElementTiming.hiding(ElementTiming(start: 1, end: 4), from: 0.02), ElementTiming(start: 1, end: 4))
+        XCTAssertNil(ElementTiming.hiding(nil, from: 0))
+    }
+
+    /// On the second page of a split 1.5 s in, timings move 1.5 s earlier,
+    /// none before the page's start; one over before the cut never shows.
+    func testTimingsMoveEarlierOnTheSecondPage() {
+        XCTAssertEqual(Timeline.shiftedTiming(ElementTiming(start: 2, end: 3), by: 1.5), ElementTiming(start: 0.5, end: 1.5))
+        XCTAssertEqual(Timeline.shiftedTiming(ElementTiming(start: 0, end: 1), by: 1.5), ElementTiming(start: 0, end: 0))
+        XCTAssertEqual(Timeline.shiftedTiming(ElementTiming(start: 3), by: 1.5), ElementTiming(start: 1.5))
+        XCTAssertNil(Timeline.shiftedTiming(ElementTiming(start: 1), by: 1.5), "from the page's start with no end is the whole page")
+        XCTAssertNil(Timeline.shiftedTiming(nil, by: 1.5))
+        XCTAssertFalse(ElementTiming.shows(ElementTiming(start: 0, end: 0), at: 0))
+    }
+
+    // MARK: split page
+
+    func testSplitPageMakesTwoPagesThatPlayAsOne() throws {
+        var page = Page()
+        page.holdSeconds = 4
+        page.transition = "slide"
+        page.transitionSeconds = 1
+        var title = Element.text("Hello")
+        title.animation = ElementAnimation(kind: "rise", delay: 0, duration: 0.6)
+        title.exitAnimation = ElementAnimation(kind: "fade", delay: 0, duration: 0.6)
+        var star = Element.sticker("★")
+        star.animation = ElementAnimation(kind: "pulse", delay: 0, duration: 0.6)
+        star.timing = ElementTiming(start: 2, end: 3)
+        var clip = Element.image("video:abc")
+        clip.clip = ClipPlayback(start: 1, speed: 2, loop: false)
+        var still = Element.image("video:still")
+        still.clip = nil
+        page.elements = [title, star, clip, still]
+
+        let parts = try XCTUnwrap(Timeline.split(page, at: 1.5, hold: 4, duration: { $0 == "abc" ? 20 : 10 }))
+        let first = parts.first, second = parts.second
+
+        XCTAssertEqual(first.id, page.id, "the first part is the page")
+        XCTAssertEqual(first.elements.map(\.id), page.elements.map(\.id))
+        XCTAssertEqual(first.holdSeconds, 1.5)
+        XCTAssertEqual(first.transition, "cut", "no transition between the parts: a cut")
+        XCTAssertNil(first.transitionSeconds)
+        XCTAssertEqual(first.elements[0].animation?.kind, "rise", "entrances stay on the first part")
+        XCTAssertNil(first.elements[0].exitAnimation, "exits leave the first part")
+        XCTAssertEqual(first.elements[1].timing, ElementTiming(start: 2, end: 3))
+        XCTAssertEqual(first.elements[2].clip?.start, 1)
+
+        XCTAssertNotEqual(second.id, page.id)
+        XCTAssertTrue(Set(second.elements.map(\.id)).isDisjoint(with: page.elements.map(\.id)), "new ids")
+        XCTAssertEqual(second.elements.count, 4, "both parts keep every element")
+        XCTAssertEqual(second.holdSeconds, 2.5)
+        XCTAssertEqual(second.transition, "slide", "the second part hands over as the page did")
+        XCTAssertEqual(second.transitionSeconds, 1)
+        XCTAssertNil(second.elements[0].animation, "entrances leave the second part")
+        XCTAssertEqual(second.elements[0].exitAnimation?.kind, "fade", "exits stay on the second part")
+        XCTAssertEqual(second.elements[1].animation?.kind, "pulse", "a loop is no entrance: it plays on both")
+        XCTAssertEqual(second.elements[1].timing, ElementTiming(start: 0.5, end: 1.5))
+        XCTAssertEqual(second.elements[2].clip?.start, 4, "1 + 1.5 s at double speed")
+        XCTAssertEqual(second.elements[2].clip?.speed, 2)
+        XCTAssertEqual(second.elements[3].clip?.start, 1.5, "a clip at its defaults picks up too")
+
+        XCTAssertNil(Timeline.split(page, at: 0.3, hold: 4, duration: { _ in nil }))
+        XCTAssertNil(Timeline.split(page, at: 3.7, hold: 4, duration: { _ in nil }))
+    }
+
+    // MARK: element timing in the file
+
+    func testTimingIsReadAndWrittenWithTheSharedKeys() throws {
+        let read = try JSONDecoder().decode(Element.self, from: Data(
+            #"{"id":"e1","type":"shape","timing":{"start":1.5,"end":4}}"#.utf8))
+        XCTAssertEqual(read.timing, ElementTiming(start: 1.5, end: 4))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(read)) as? [String: Any])
+        let timing = try XCTUnwrap(json["timing"] as? [String: Any])
+        XCTAssertEqual(timing["start"] as? Double, 1.5)
+        XCTAssertEqual(timing["end"] as? Double, 4)
+
+        var open = Element()
+        open.timing = ElementTiming(start: 2)
+        let openJSON = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(open)) as? [String: Any])
+        XCTAssertEqual((openJSON["timing"] as? [String: Any])?.keys.sorted(), ["start"], "no end is no key")
+
+        let nullEnd = try JSONDecoder().decode(Element.self, from: Data(
+            #"{"id":"e1","type":"shape","timing":{"start":2,"end":null}}"#.utf8))
+        XCTAssertEqual(nullEnd.timing, ElementTiming(start: 2))
+
+        let whole = try JSONDecoder().decode(Element.self, from: Data(
+            #"{"id":"e1","type":"shape","timing":{"start":0}}"#.utf8))
+        XCTAssertNil(whole.timing, "the whole page is no timing")
+        let plain = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(Element())) as? [String: Any])
+        XCTAssertNil(plain["timing"])
+
+        let odd = try JSONDecoder().decode(Element.self, from: Data(
+            #"{"id":"e1","type":"shape","timing":{"start":"soon","end":3}}"#.utf8))
+        XCTAssertEqual(odd.timing, ElementTiming(start: 0, end: 3), "a start that cannot be read is the page's start")
+    }
+
+    // MARK: playing a timed element
+
+    func testATimedElementComesAndGoesWithItsAnimations() {
+        var el = Element()
+        el.timing = ElementTiming(start: 1, end: 3)
+        el.animation = ElementAnimation(kind: "fade", delay: 0, duration: 1)
+        el.exitAnimation = ElementAnimation(kind: "fade", delay: 0, duration: 0.5)
+        func opacity(_ e: Element, _ t: Double, exitTime: Double? = nil) -> Double {
+            Timeline.motion(of: e, time: t, hold: 5, exitTime: exitTime, text: nil).opacity
+        }
+        XCTAssertEqual(opacity(el, 0.5), 0, "not yet shown")
+        XCTAssertEqual(opacity(el, 1.5), 0.875, accuracy: 1e-9, "the entrance counts from the start")
+        XCTAssertEqual(opacity(el, 2.75), 0.875, accuracy: 1e-9, "the exit ends at the end")
+        XCTAssertEqual(opacity(el, 2.75, exitTime: 0), 0.875, accuracy: 1e-9, "played on the page's own clock")
+        XCTAssertEqual(opacity(el, 3), 0, "gone at the end")
+        XCTAssertEqual(opacity(el, 4), 0)
+
+        var delayed = el
+        delayed.exitAnimation = ElementAnimation(kind: "fade", delay: 0.2, duration: 0.5)
+        XCTAssertEqual(opacity(delayed, 2.75), 0.875, accuracy: 1e-9, "over at the end whatever its delay")
+
+        var untimed = el
+        untimed.timing = nil
+        XCTAssertEqual(opacity(untimed, 0.5), 0.875, accuracy: 1e-9)
+        XCTAssertEqual(opacity(untimed, 4.75), 0.875, accuracy: 1e-9, "an untimed exit ends at the hold")
+        XCTAssertEqual(opacity(untimed, 4.75, exitTime: 0), 1, accuracy: 1e-9, "on the exits' clock")
+    }
+
+    @MainActor
+    func testATimedElementMakesThePagePlayAndLeavesOnItsOwn() {
+        var d = Design(title: "t", width: 400, height: 300)
+        var el = Element()
+        d.pages = [Page(elements: [el])]
+        XCTAssertFalse(MovieExporter.isAnimated(d.pages[0], in: d))
+        el.timing = ElementTiming(start: 1)
+        d.pages[0].elements = [el]
+        XCTAssertTrue(MovieExporter.isAnimated(d.pages[0], in: d), "drawn frame by frame, to come in at its time")
+        XCTAssertTrue(PresentSession.moves(d.pages[0], in: d))
+
+        var leaving = Element()
+        leaving.exitAnimation = ElementAnimation(kind: "fade", delay: 0, duration: 0.6)
+        leaving.timing = ElementTiming(start: 0, end: 2)
+        XCTAssertEqual(ElementAnimation.exitSpan([leaving]), 0, "it leaves at its own end, not as the page ends")
+        leaving.timing = nil
+        XCTAssertEqual(ElementAnimation.exitSpan([leaving]), 0.6, accuracy: 1e-9)
     }
 }

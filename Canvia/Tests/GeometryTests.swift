@@ -191,6 +191,7 @@ final class ElementEqualityTests: XCTestCase {
             ("animation", { $0.animation = ElementAnimation(kind: "rise", delay: 0.2, duration: 0.5) }),
             ("exitAnimation", { $0.exitAnimation = ElementAnimation(kind: "pop", delay: 0.2, duration: 0.5) }),
             ("kenBurns", { $0.kenBurns = KenBurns() }),
+            ("timing", { $0.timing = ElementTiming(start: 1, end: 2) }),
             ("straighten", { $0.straighten = 7 }),
             ("vAlign", { $0.vAlign = "middle" }),
             ("fitText", { $0.fitText = true }),

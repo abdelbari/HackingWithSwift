@@ -52,16 +52,15 @@ struct ElementView: View {
         return el
     }
 
-    /// The element's entrance and exit state at the environment's time;
-    /// settled when there is no time, which is the editor at rest.
+    /// The element's entrance and exit state at the environment's time, and
+    /// nothing outside its timing; settled when there is no time, which is
+    /// the editor at rest.
     private var motion: ElementAnimation.State {
         guard let clock = animationTime else { return .settled }
-        let size = max(element.w, element.h)
         // A reveal counts the characters as they read, style marks left out.
-        let entrance = element.animation?.state(at: clock.time, text: resolved.text.map(RichText.strip), size: size) ?? .settled
-        guard let exit = element.exitAnimation else { return entrance }
-        // Played by their own clock where Present holds them back.
-        return entrance.combined(with: exit.exitState(at: exitTime ?? clock.time, hold: clock.hold, size: size))
+        // Exits are played by their own clock where Present holds them back.
+        return Timeline.motion(of: element, time: clock.time, hold: clock.hold, exitTime: exitTime,
+                               text: resolved.text.map(RichText.strip))
     }
 
     /// The element as drawn now: text cut to the revealed characters, a

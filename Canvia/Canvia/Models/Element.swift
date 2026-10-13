@@ -482,6 +482,9 @@ struct Element: Codable, Equatable, Identifiable {
     var exitAnimation: ElementAnimation?
     /// For photos: a slow drift of the crop over the page's hold.
     var kenBurns: KenBurns?
+    /// When the element shows within its page, in seconds; nil is the
+    /// whole page (see ElementTiming).
+    var timing: ElementTiming?
     /// A gradient behind the letters. nil paints `color`; a solid Paint here
     /// is never stored, since `color` already is one.
     var textFill: Paint?
@@ -613,6 +616,7 @@ struct Element: Codable, Equatable, Identifiable {
         animation = try? c.decode(ElementAnimation.self, forKey: .animation)
         exitAnimation = try? c.decode(ElementAnimation.self, forKey: .exitAnimation)
         kenBurns = try? c.decode(KenBurns.self, forKey: .kenBurns)
+        timing = (try? c.decode(ElementTiming.self, forKey: .timing)).flatMap(ElementTiming.kept)
         textFill = try? c.decode(Paint.self, forKey: .textFill)
         effect = try? c.decode(TextEffectSpec.self, forKey: .effect)
         curve = try? c.decode(Double.self, forKey: .curve)
@@ -676,7 +680,7 @@ struct Element: Codable, Equatable, Identifiable {
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
         case spans, spansText
-        case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns
+        case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns, timing
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit, clip
         case filterStrength, pixelate, focusBlur, edge
         case glyph
