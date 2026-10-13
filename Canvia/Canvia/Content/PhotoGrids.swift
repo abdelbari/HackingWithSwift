@@ -75,6 +75,18 @@ enum PhotoGrids {
         layouts.first { $0.id == id }
     }
 
+    /// The margin a grid is laid out with on a page `width` wide.
+    static func margin(forWidth width: Double) -> Double {
+        (width * 0.04).rounded()
+    }
+
+    /// The gutter a grid is laid out with inside `margin`: half of it, but
+    /// never past Spacing's track, so the slider can always set a grid back
+    /// to the spacing it came with — as on the Android twin.
+    static func gutter(margin: Double) -> Double {
+        min((margin / 2).rounded(), maxSpacing)
+    }
+
     /// Empty photo frames for the layout on a page of `width` × `height`,
     /// with `margin` around the outside and `gutter` between cells, grouped
     /// so they move together, each carrying its `grid`.

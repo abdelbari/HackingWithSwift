@@ -30,6 +30,15 @@ final class AnimatedPicturesTests: XCTestCase {
         XCTAssertEqual(AnimStore.frame(at: 3.0, delays: []), 0)
         // All asking for nothing: 20 ms each.
         XCTAssertEqual(AnimStore.frame(at: 0.045, delays: [0, 10, 0]), 2)
+        // A moment that is no number, or endless, is frame 0: a design file
+        // can say anything after the "@".
+        let odd: [Double] = [.nan, .infinity, -.infinity]
+        for t in odd {
+            XCTAssertEqual(AnimStore.frame(at: t, delays: delays), 0, "t = \(t)")
+        }
+        let stamped = AnimStore.split("anim:anim-1@NaN")?.time ?? 0
+        XCTAssertTrue(stamped.isNaN)
+        XCTAssertEqual(AnimStore.frame(at: stamped, delays: delays), 0)
         XCTAssertEqual(AnimStore.start(of: 2, delays: delays), 0.15, accuracy: 1e-12)
     }
 

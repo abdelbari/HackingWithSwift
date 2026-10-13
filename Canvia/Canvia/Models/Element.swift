@@ -420,6 +420,10 @@ struct Element: Codable, Equatable, Identifiable {
     /// For an empty frame laid out by a photo grid: which grid, which of its
     /// cells, and the spacing it was laid with (see PhotoGrids).
     var grid: GridCell?
+    /// A decorative frame's window (see DecorativeFrames): a frame for a
+    /// photo however full it is, so one dropped on it goes in. Never false:
+    /// written only when true, as `hidden`.
+    var photoFrame: Bool?
 
     // shape
     var shapeId: String?
@@ -579,6 +583,7 @@ struct Element: Codable, Equatable, Identifiable {
         chart = try? c.decode(ChartSpec.self, forKey: .chart)
         chartPart = try? c.decode(String.self, forKey: .chartPart)
         grid = try? c.decode(GridCell.self, forKey: .grid)
+        photoFrame = (try? c.decode(Bool.self, forKey: .photoFrame)) == true ? true : nil
         shapeId = try? c.decode(String.self, forKey: .shapeId)
         pathData = try? c.decode(String.self, forKey: .pathData)
         iconId = try? c.decode(String.self, forKey: .iconId)
@@ -666,7 +671,7 @@ struct Element: Codable, Equatable, Identifiable {
     private enum CodingKeys: String, CodingKey {
         case id, type, x, y, w, h, rotation, opacity, locked, lockPosition, flipH, flipV, group, shadow, blendMode, altText
         case decorative
-        case connectFrom, connectTo, link, hidden, layerName, table, chart, chartPart, grid
+        case connectFrom, connectTo, link, hidden, layerName, table, chart, chartPart, grid, photoFrame
         case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical

@@ -101,7 +101,9 @@ enum AnimStore {
     /// nearest millisecond, looped over one pass (`duration`), and the frame
     /// whose turn — from the sum of the delays before it, up to but not
     /// including the sum with its own — holds it. Before the page starts is
-    /// its start; one frame, or none, is frame 0.
+    /// its start; one frame, or none, is frame 0, and so is a moment that is
+    /// no number or endless — a design file's "anim:<id>@NaN" — as on the
+    /// Android twin.
     static func frame(at time: Double, delays: [Int]) -> Int {
         guard delays.count > 1 else { return 0 }
         let total = duration(delays)

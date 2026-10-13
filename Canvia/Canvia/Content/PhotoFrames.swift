@@ -13,14 +13,15 @@ import Foundation
 enum PhotoFrames {
 
     /// Whether a picture can be put into `el`: an unlocked image that is an
-    /// empty frame, or has a frame's shape, or is a cell of a grid — grouped
+    /// empty frame, or has a frame's shape, or is a decorative frame's
+    /// window (`photoFrame`) full or not, or is a cell of a grid — grouped
     /// with at least one other image. A plain free photo is not one, or
     /// every photo dragged across another would swallow it. Nor is a code,
     /// which a picture would replace, and a code grouped with a logo does
     /// not make the logo a cell, as on the Android twin.
     static func isFrameLike(_ el: Element, among elements: [Element]) -> Bool {
         guard el.type == .image, !el.locked, !isCode(el) else { return false }
-        if isEmpty(el) || el.maskShapeId != nil { return true }
+        if isEmpty(el) || el.maskShapeId != nil || el.photoFrame == true { return true }
         guard let group = el.group else { return false }
         return elements.contains { $0.id != el.id && $0.type == .image && !isCode($0) && $0.group == group }
     }

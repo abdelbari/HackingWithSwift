@@ -93,9 +93,9 @@ extension DesignStore {
 
     /// `grid` laid out again within the box round it now, with `spacing`
     /// between its cells and its corners `corners` percent of each cell's
-    /// shorter side, as the Android twin lays it. The slider closes the
-    /// step on release, so each release is one Undo. Nothing when a cell
-    /// keeps its place.
+    /// shorter side, as the Android twin lays it, and any line joined to a
+    /// cell laid again with it. The slider closes the step on release, so
+    /// each release is one Undo. Nothing when a cell keeps its place.
     private func relayGrid(_ grid: (layout: PhotoGrids.Layout, cells: [Element]), spacing: Double, corners: Double) {
         guard selectedGridCanRelay else { return }
         let laid = PhotoGrids.relaid(grid.layout, cells: grid.cells, gutter: spacing, corners: corners)
@@ -105,5 +105,6 @@ extension DesignStore {
                 design.pages[pageIndex].elements[i] = cell
             }
         }
+        Connectors.resolve(&design.pages[pageIndex])
     }
 }

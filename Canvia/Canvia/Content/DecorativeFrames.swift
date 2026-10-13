@@ -5,14 +5,18 @@
 // of PhotoFrames.json, the Android twin's file byte for byte (see
 // PhotoGrids), so both phones draw them identically and neither needs a new
 // kind of element. A photo picked or dropped goes into the window by the
-// rules every empty frame follows (PhotoFrames).
+// rules every empty frame follows (PhotoFrames); the window carries
+// `photoFrame`, so a full one still takes a photo dropped on it, in place of
+// the one it has.
 
 import CoreGraphics
 import Foundation
 
 /// One element of a frame as the file has it, in the frame's own box.
-/// Every field is read on its own, so one odd value loses that element
-/// at most, never the frame.
+/// Every field is read on its own, and only as the kind it should be, so
+/// one odd value loses that element at most, never the frame; something in
+/// the list that is not an element at all reads as one with nothing set,
+/// and is passed over, as on the Android twin.
 struct FramePart: Decodable {
     var type: String?
     var x: Double?
@@ -40,7 +44,7 @@ struct FramePart: Decodable {
     }
 
     init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
+        guard let c = try? decoder.container(keyedBy: CodingKeys.self) else { return }
         type = try? c.decode(String.self, forKey: .type)
         x = try? c.decode(Double.self, forKey: .x)
         y = try? c.decode(Double.self, forKey: .y)
@@ -120,8 +124,9 @@ enum DecorativeFrames {
     }
 
     /// One of a preset's elements, at `scale`, placed within the preset's
-    /// box: a shape from its path, the window as an empty frame — clipped
-    /// to a library shape when the file names one — or the caption.
+    /// box: a shape from its path, the window as an empty frame marked as
+    /// one — clipped to a library shape when the file names one — or the
+    /// caption.
     static func element(_ part: FramePart, scale: Double) -> Element? {
         guard let w = part.w, let h = part.h else { return nil }
         var el: Element
@@ -141,6 +146,7 @@ enum DecorativeFrames {
             el.h = h * scale
             el.radius = (part.radius ?? 0) * scale
             el.maskShapeId = part.maskShapeId
+            el.photoFrame = true
         case "text":
             guard let text = part.text else { return nil }
             el = Element.text(text, fontSize: (part.fontSize ?? 42) * scale, w: w * scale)

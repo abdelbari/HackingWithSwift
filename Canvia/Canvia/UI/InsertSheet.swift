@@ -873,9 +873,9 @@ struct InsertSheet: View {
                             // Laid out across this page, which may be a size
                             // of its own, not the document's.
                             let width = store.pageWidth, height = store.pageHeight
-                            let margin = (width * 0.04).rounded()
+                            let margin = PhotoGrids.margin(forWidth: width)
                             let frames = PhotoGrids.elements(for: layout, width: width, height: height,
-                                                             margin: margin, gutter: (margin / 2).rounded())
+                                                             margin: margin, gutter: PhotoGrids.gutter(margin: margin))
                             store.applyToPage { $0.elements.append(contentsOf: frames) }
                             store.selection = Set(frames.map(\.id))
                             dismiss()

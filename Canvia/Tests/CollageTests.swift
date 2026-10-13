@@ -285,6 +285,17 @@ final class CollageTests: XCTestCase {
         XCTAssertEqual(try layout("eightMixed").cells[7], CGRect(x: 2 / 4.0, y: 2 / 3.0, width: 2 / 4.0, height: 1 / 3.0))
     }
 
+    /// page width → margin, gutter: half the margin, never past Spacing's
+    /// track, so the slider can always set a grid back to how it came.
+    func testAGridComesWithAGutterSpacingCanGiveItBack() {
+        let rows: [(Double, Double, Double)] = [(1080, 43, 22), (1920, 77, 39), (2480, 99, 40)]
+        for (width, margin, gutter) in rows {
+            XCTAssertEqual(PhotoGrids.margin(forWidth: width), margin, "\(width)")
+            XCTAssertEqual(PhotoGrids.gutter(margin: PhotoGrids.margin(forWidth: width)), gutter, "\(width)")
+        }
+        XCTAssertEqual(PhotoGrids.gutter(margin: 99), PhotoGrids.maxSpacing)
+    }
+
     /// layout, box, gutter → each cell's x, y, w and h: half a gutter in
     /// from every inner edge, the outer edges on the box, nothing rounded.
     func testCellsAreLaidInTheirBoxHalfAGutterInFromEveryInnerEdge() throws {
@@ -412,6 +423,23 @@ final class CollageTests: XCTestCase {
         XCTAssertFalse(pinned.hasPendingChanges)
     }
 
+    /// A line joined to two cells is laid again as Spacing is dragged, not
+    /// only once it is let go.
+    func testALineJoinedToCellsFollowsSpacingAsItIsDragged() throws {
+        let cells = PhotoGrids.elements(for: try layout("three"), width: 1000, height: 1000, margin: 40, gutter: 20)
+        var line = Element.line(w: 100)
+        line.connectFrom = cells[0].id
+        line.connectTo = cells[2].id
+        let s = store(cells + [line])
+        s.select(cells[0].id)
+        s.setGridSpacingTransient(40)
+        let a = try XCTUnwrap(s.element(cells[0].id)), b = try XCTUnwrap(s.element(cells[2].id))
+        let g = Connectors.geometry(from: a.frame, to: b.frame, thickness: line.thickness ?? 4)
+        let joined = try XCTUnwrap(s.element(line.id))
+        XCTAssertEqual(joined.x, g.x, accuracy: 1e-9)
+        XCTAssertEqual(joined.w, g.w, accuracy: 1e-9)
+    }
+
     // MARK: decorative frames — the same rows as the Android twin's
 
     func testTheDecorativeFramesAreTheSharedFilesEightEachWithOneWindow() {
@@ -452,6 +480,44 @@ final class CollageTests: XCTestCase {
         XCTAssertEqual(stamp[0].x, (1920 - 648) / 2, accuracy: 1e-9)
     }
 
+    func testAFullWindowStillTakesADroppedPhotoInPlaceOfItsOwn() throws {
+        let els = DecorativeFrames.elements(try XCTUnwrap(DecorativeFrames.preset("polaroid")),
+                                            page: CGSize(width: 1080, height: 1080))
+        let window = try XCTUnwrap(els.first { $0.type == .image })
+        XCTAssertEqual(window.photoFrame, true)
+        let first = photo("media:x")
+        let filled = try XCTUnwrap(PhotoFrames.dropped(els + [first], dragged: first.id, onto: window.id, home: .zero))
+        let full = try XCTUnwrap(filled.first { $0.id == window.id })
+        XCTAssertEqual(full.src, "media:x")
+        // The only photo in its group, and no shape to it: a frame all the same.
+        XCTAssertTrue(PhotoFrames.isFrameLike(full, among: filled))
+        let second = photo("media:y")
+        let out = try XCTUnwrap(PhotoFrames.dropped(filled + [second], dragged: second.id, onto: window.id, home: .zero))
+        XCTAssertEqual(out.first { $0.id == window.id }?.src, "media:y")
+        XCTAssertNil(out.first { $0.id == second.id }, "used up")
+        // Only the window is marked, and only by true.
+        XCTAssertTrue(els.filter { $0.id != window.id }.allSatisfy { $0.photoFrame == nil })
+        let words = #"{"type":"image","photoFrame":"true"}"#
+        XCTAssertNil(try JSONDecoder().decode(Element.self, from: Data(words.utf8)).photoFrame)
+        // Written as its own top-level key, as the Android twin writes it.
+        let written = try JSONSerialization.jsonObject(with: JSONEncoder().encode(window)) as? [String: Any]
+        XCTAssertEqual(written?["photoFrame"] as? Bool, true)
+        let plain = try JSONSerialization.jsonObject(with: JSONEncoder().encode(els[0])) as? [String: Any]
+        XCTAssertNil(plain?["photoFrame"])
+        XCTAssertEqual(try JSONDecoder().decode(Element.self, from: JSONEncoder().encode(window)), window)
+    }
+
+    /// Hit testing goes by an element's box: over the middle of each frame's
+    /// window, the window is the topmost thing, so a tap there picks it.
+    func testEachFramesWindowIsTheTopmostThingAtItsMiddle() throws {
+        for preset in DecorativeFrames.presets {
+            let els = DecorativeFrames.elements(preset, page: CGSize(width: 1080, height: 1080))
+            let window = try XCTUnwrap(els.first { $0.type == .image })
+            let top = els.last { Geometry.hits($0, point: window.center) }
+            XCTAssertEqual(top?.id, window.id, preset.id)
+        }
+    }
+
     func testADecorativeFramesWindowTakesAPickedOrDroppedPhoto() throws {
         let els = DecorativeFrames.elements(try XCTUnwrap(DecorativeFrames.preset("phone")),
                                             page: CGSize(width: 1080, height: 1920))
@@ -463,19 +529,23 @@ final class CollageTests: XCTestCase {
         XCTAssertEqual(out.first { $0.id == window.id }?.src, "media:x")
     }
 
-    /// Under the arch's mat, which is drawn over its window, a photo let go
-    /// still finds the window.
-    func testAPhotoFindsTheArchsWindowUnderItsMat() throws {
+    /// Under the arch's top corners, which are drawn over its window, a
+    /// photo let go still finds the window.
+    func testAPhotoFindsTheArchsWindowUnderItsCorners() throws {
         let els = DecorativeFrames.elements(try XCTUnwrap(DecorativeFrames.preset("arch")),
                                             page: CGSize(width: 1000, height: 1000))
         let window = try XCTUnwrap(els.first { $0.type == .image })
+        let corner = CGPoint(x: window.x + 10, y: window.y + 10)
+        let top = els.last { Geometry.hits($0, point: corner) }
+        XCTAssertEqual(top?.type, ElementType.shape)
         let free = photo("asset:mesh-sunset")
         let s = store(els + [free])
-        XCTAssertEqual(s.frameDropTarget(at: window.center, dragging: free.id), window.id)
+        XCTAssertEqual(s.frameDropTarget(at: corner, dragging: free.id), window.id)
     }
 
-    /// One odd value loses that element at most; a frame without a size is
-    /// passed over.
+    /// One odd value loses that element at most; a frame without an id, a
+    /// name or a size is passed over. A value is read only as the kind it
+    /// should be. The same rows as the Android twin's.
     func testFrameJSONIsReadLeniently() throws {
         let json = """
         [{"id":"a","name":"A","width":100,"height":50,"elements":[
@@ -483,11 +553,16 @@ final class CollageTests: XCTestCase {
            {"type":"image","x":"ten","y":5,"w":20,"h":20},
            {"type":"sprite","w":5,"h":5},
            {"type":"shape","w":5,"h":5},
-           {"type":"text","w":50,"h":10}]},
-         {"id":"b","name":"B","height":50,"elements":[]}]
+           {"type":"text","w":50,"h":10},
+           {"type":"text","w":50,"h":10,"text":5},
+           {"type":"image","w":"20","h":20},
+           7]},
+         {"id":"b","name":"B","height":50,"elements":[]},
+         {"id":"c","name":"C","width":"100","height":50,"elements":[]},
+         {"id":"","name":"D","width":100,"height":50,"elements":[]}]
         """
         let presets = try JSONDecoder().decode([FrameDef].self, from: Data(json.utf8))
-        XCTAssertEqual(presets.map(\.isUsable), [true, false])
+        XCTAssertEqual(presets.map(\.isUsable), [true, false, false, false])
         let made = DecorativeFrames.elements(presets[0], page: CGSize(width: 1000, height: 500))
         XCTAssertEqual(made.map(\.type), [.shape, .image],
                        "an unknown kind, a shape with no path and a text with no words are left out")
