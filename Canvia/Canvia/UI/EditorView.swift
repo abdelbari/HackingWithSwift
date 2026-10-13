@@ -22,7 +22,7 @@ private struct AccentButtonStyle: ButtonStyle {
 enum EditorSheet: String, Identifiable {
     case insert, colorFill, colorText, colorLine, colorStroke, colorSelection, colorWords, background
     case fonts, effects, spacing, filters, crop, position, layers, export, resize, find, frame, shadow
-    case history, proofread, theme, help, contrast, brand, shapes, clip, shapeText
+    case history, proofread, theme, help, contrast, brand, shapes, clip, shapeText, table
     /// Opened by Help's "Show me": the page organiser, and the snapping
     /// switches as a sheet (a Menu cannot be opened from code).
     case pages, snapping
@@ -963,6 +963,8 @@ struct EditorView: View {
             ClipSheet(store: store)
         case .shapeText:
             ShapeTextSheet(store: store)
+        case .table:
+            TableSheet(store: store)
         case .history:
             VersionHistorySheet(store: store)
         case .proofread:
