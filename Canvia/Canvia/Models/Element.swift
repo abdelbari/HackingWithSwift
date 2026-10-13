@@ -338,6 +338,10 @@ struct Element: Codable, Equatable, Identifiable {
     /// What the element shows, for people who cannot see it: read by
     /// VoiceOver and written into the SVG. Photos mostly.
     var altText: String?
+    /// Only there to look at — a flourish, a background shape — so Check
+    /// accessibility does not ask for its alt text. Never false: written
+    /// only when true, as `hidden`.
+    var decorative: Bool?
     /// A line that joins two elements holds their ids and is laid again
     /// whenever either moves (see Connectors).
     var connectFrom: String?
@@ -497,6 +501,7 @@ struct Element: Codable, Equatable, Identifiable {
         shadow = try? c.decode(Shadow.self, forKey: .shadow)
         blendMode = try? c.decode(String.self, forKey: .blendMode)
         altText = try? c.decode(String.self, forKey: .altText)
+        decorative = (try? c.decode(Bool.self, forKey: .decorative)) == true ? true : nil
         connectFrom = try? c.decode(String.self, forKey: .connectFrom)
         connectTo = try? c.decode(String.self, forKey: .connectTo)
         link = try? c.decode(String.self, forKey: .link)
@@ -583,6 +588,7 @@ struct Element: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case id, type, x, y, w, h, rotation, opacity, locked, flipH, flipV, group, shadow, blendMode, altText
+        case decorative
         case connectFrom, connectTo, link, hidden, layerName, table, chart, chartPart
         case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align

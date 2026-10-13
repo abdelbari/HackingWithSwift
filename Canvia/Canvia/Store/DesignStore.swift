@@ -69,6 +69,10 @@ final class DesignStore {
     /// alerts — has the keyboard, so plain keys are left to it.
     var textFieldOpen = false
 
+    /// Check accessibility's "Show reading order": each element numbered on
+    /// the canvas in the order VoiceOver reads it. View state only.
+    var showsReadingOrder = false
+
     // The canvas's view of the page, mirrored from the scroll view: the part
     // of the page on screen, in page units, and the zoom that fits it all.
     // View state only — never saved.
@@ -1242,9 +1246,16 @@ final class DesignStore {
 
     /// Show a match: switch to its page and select its element.
     func reveal(_ match: TextMatch) {
-        guard design.pages.indices.contains(match.pageIndex) else { return }
-        pageIndex = match.pageIndex
-        selection = [match.elementId]
+        reveal(elementId: match.elementId, onPage: match.pageIndex)
+    }
+
+    /// Switch to page `index` and select `elementId` there — or only the
+    /// page, for a finding about the page as a whole. The editor keeps the
+    /// selection in sight under the sheet.
+    func reveal(elementId: String?, onPage index: Int) {
+        guard design.pages.indices.contains(index) else { return }
+        pageIndex = index
+        selection = elementId.map { Set([$0]) } ?? []
     }
 
     // MARK: style

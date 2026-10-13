@@ -22,7 +22,7 @@ private struct AccentButtonStyle: ButtonStyle {
 enum EditorSheet: String, Identifiable {
     case insert, colorFill, colorText, colorLine, colorStroke, colorSelection, colorWords, background
     case fonts, effects, spacing, filters, crop, position, layers, export, resize, find, frame, shadow
-    case history, proofread, theme, help, contrast, brand, shapes, clip, shapeText, table
+    case history, proofread, theme, help, accessibility, brand, shapes, clip, shapeText, table
     /// Edit chart: the chart sheet again, filled in from the selected chart.
     case chart
     /// Opened by Help's "Show me": the page organiser, and the snapping
@@ -576,8 +576,8 @@ struct EditorView: View {
                 } label: { Label("Document theme", systemImage: "paintpalette") }
 
                 Button {
-                    activeSheet = .contrast
-                } label: { Label("Check contrast", systemImage: "circle.lefthalf.striped.horizontal") }
+                    activeSheet = .accessibility
+                } label: { Label("Check accessibility", systemImage: "accessibility") }
 
                 Button {
                     activeSheet = .brand
@@ -1000,8 +1000,8 @@ struct EditorView: View {
             ProofreadSheet(store: store)
         case .theme:
             ThemeSheet(store: store)
-        case .contrast:
-            ContrastSheet(store: store)
+        case .accessibility:
+            AccessibilitySheet(store: store)
         case .brand:
             BrandKitSheet(store: store)
         case .pages:
