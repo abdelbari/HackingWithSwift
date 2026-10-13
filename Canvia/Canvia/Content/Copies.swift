@@ -56,6 +56,19 @@ enum Copies {
         }
     }
 
+    /// How far the `nth` paste (one-based) of a clipboard is moved down and
+    /// right. Pasted onto another page than the one it was copied from, or
+    /// where none of the copied elements is any longer — after a cut — the
+    /// first paste lands where the copy was, and each one after steps 24
+    /// further; on the page beside the originals, every paste steps, the
+    /// first by 24. A clipboard whose page is not known (nil) goes by the
+    /// elements alone. The Android twin pastes by the same rule.
+    static func pasteOffset(nth: Int, sourcePage: String?, onto page: Page, copied ids: [String]) -> Double {
+        let here = Set(page.elements.map(\.id))
+        let inPlace = (sourcePage != nil && sourcePage != page.id) || !ids.contains(where: here.contains)
+        return 24 * Double(inPlace ? max(nth - 1, 0) : nth)
+    }
+
     /// A page copied whole: a fresh id, and its elements copied in place —
     /// locks and all, since it is the same page again.
     static func of(_ page: Page) -> Page {

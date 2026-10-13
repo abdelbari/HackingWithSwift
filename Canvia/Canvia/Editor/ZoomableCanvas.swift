@@ -14,14 +14,19 @@
 // every professional canvas app uses:
 //
 //   one finger on an element      move that element   (SwiftUI, inside)
-//   one finger on empty workspace pan the canvas      (backgroundPan, below)
+//   one finger on empty page      pan the canvas      (backgroundPan, below)
+//     or empty workspace
+//   hold, then drag, empty page   draw the band       (SwiftUI, inside)
 //   two fingers anywhere          pan the canvas      (scroll view)
 //   pinch anywhere                zoom the canvas     (scroll view)
 //   double tap                    toggle fit / 2x     (scroll view)
 //
 // The scroll view's own pan is raised to two fingers so it never competes with
 // dragging an element, and a separate one-finger recogniser handles panning
-// from the empty workspace, refusing to begin when the touch lands on the page.
+// from the empty workspace and the empty page — Canva's model and the
+// Android twin's (see CanvasGestures). On the page it refuses a touch that
+// lands on something to work, and a drag that began only after a hold, which
+// is the band's.
 
 import SwiftUI
 import UIKit
@@ -65,11 +70,17 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     /// photo opening crop, a text box its editor — rather than the canvas
     /// zooming. Without it, double-tapping a photo zoomed the canvas as well.
     var claimsDoubleTap: (CGPoint) -> Bool = { _ in false }
+    /// Whether one finger dragged from this point on the page moves the
+    /// view: nothing there to work.
+    var pansFromPage: (CGPoint) -> Bool = { _ in false }
     /// The latest change of view asked for.
     var request: CanvasRequest? = nil
     /// Told the part of the page on screen, in page units, and the zoom that
     /// fits the page, whenever either changes.
     var onViewport: (CGRect, Double) -> Void = { _, _ in }
+    /// Told when the view starts moving — a pan, a pinch, a glide — and when
+    /// it comes to rest.
+    var onMotion: (Bool) -> Void = { _ in }
     @ViewBuilder var content: () -> Content
 
     func makeUIView(context: Context) -> UIScrollView {
@@ -102,8 +113,9 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         scroll.addSubview(host.view)
         scroll.contentSize = contentSize
 
-        // One finger on the grey workspace pans; the delegate below refuses to
-        // start it when the touch begins over the page itself.
+        // One finger on the grey workspace or the empty page pans; the
+        // delegate below refuses it a touch on something to work, or one held
+        // before it moved.
         let backgroundPan = UIPanGestureRecognizer(
             target: context.coordinator, action: #selector(Coordinator.handleBackgroundPan(_:)))
         backgroundPan.delegate = context.coordinator
@@ -125,6 +137,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
 
         context.coordinator.scrollView = scroll
         context.coordinator.doubleTap = doubleTap
+        context.coordinator.backgroundPan = backgroundPan
         return scroll
     }
 
@@ -175,6 +188,11 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         let host: UIHostingController<Content>
         weak var scrollView: UIScrollView?
         weak var doubleTap: UITapGestureRecognizer?
+        weak var backgroundPan: UIPanGestureRecognizer?
+        /// When the touch the one-finger pan is following landed, and
+        /// whether on the page, for telling a drag from a hold and a drag.
+        private var panTouchStart: TimeInterval = 0
+        private var panTouchOnPage = false
         var contentSize: CGSize = .zero
         var fitToken: String = ""
         var needsFit = true
@@ -225,6 +243,35 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
 
         func scrollViewDidScroll(_ scrollView: UIScrollView) {
             publishViewport()
+        }
+
+        func scrollViewWillBeginDragging(_ scrollView: UIScrollView) { publishMotion(true) }
+
+        func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+            if !decelerate { publishMotion(false) }
+        }
+
+        func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) { publishMotion(false) }
+
+        /// A glide cut short by a move asked for in code ends here instead.
+        func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) { publishMotion(false) }
+
+        func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) { publishMotion(true) }
+
+        func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
+            publishMotion(false)
+        }
+
+        /// The view moving or at rest, told outward — after an update, as
+        /// the zoom is, when one is under way.
+        private func publishMotion(_ moving: Bool) {
+            guard isUpdating else {
+                parent.onMotion(moving)
+                return
+            }
+            DispatchQueue.main.async { [weak self] in
+                self?.parent.onMotion(moving)
+            }
         }
 
         /// The part of the page on screen, and the zoom that fits it — for
@@ -359,9 +406,12 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             switch pan.state {
             case .began:
                 panOrigin = scroll.contentOffset
+                publishMotion(true)
             case .changed:
                 let t = pan.translation(in: scroll)
                 scroll.contentOffset = CGPoint(x: panOrigin.x - t.x, y: panOrigin.y - t.y)
+            case .ended, .cancelled, .failed:
+                publishMotion(false)
             default:
                 break
             }
@@ -388,17 +438,33 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             }
         }
 
-        /// The one-finger pan and the background tap belong to the workspace,
-        /// not the page: refuse them when the touch lands on the page, so the
-        /// SwiftUI gestures inside keep working untouched. The double tap
-        /// zooms anywhere, except where the page claims it for itself.
+        /// The background tap belongs to the workspace, not the page: it is
+        /// refused a touch on the page, so the SwiftUI gestures inside keep
+        /// working untouched. The one-finger pan takes the workspace and the
+        /// page where there is nothing to work. The double tap zooms
+        /// anywhere, except where the page claims it for itself.
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                                shouldReceive touch: UITouch) -> Bool {
             let point = touch.location(in: host.view)
+            let onPage = host.view.bounds.contains(point)
             if gestureRecognizer === doubleTap {
-                return !(host.view.bounds.contains(point) && parent.claimsDoubleTap(point))
+                return !(onPage && parent.claimsDoubleTap(point))
             }
-            return !host.view.bounds.contains(point)
+            if gestureRecognizer === backgroundPan {
+                guard !onPage || parent.pansFromPage(point) else { return false }
+                panTouchStart = touch.timestamp
+                panTouchOnPage = onPage
+                return true
+            }
+            return !onPage
+        }
+
+        /// On the page, a drag that waited for a hold before it moved is the
+        /// band's, not the view's (CanvasGestures.holdSeconds).
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            guard gestureRecognizer === backgroundPan, panTouchOnPage else { return true }
+            let held = ProcessInfo.processInfo.systemUptime - panTouchStart
+            return CanvasGestures.pansFromPage(onElement: false, held: held)
         }
     }
 }

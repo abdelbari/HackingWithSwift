@@ -39,6 +39,9 @@ final class DesignStore {
     /// Keeping the selection in view waits for it to lift, so the page never
     /// slides out from under a drag.
     var canvasTouchActive = false
+    /// True while the view itself moves — a pan, a pinch, the glide after
+    /// one — so what floats over the selection on screen waits for it.
+    var canvasMoving = false
     /// Mirrors the canvas scroll view's zoomScale, so selection handles can
     /// stay a constant size on screen. The scroll view owns pan entirely.
     var zoom: Double = 1
@@ -87,7 +90,17 @@ final class DesignStore {
     var replaceTargetId: String?
 
     private var clipboard: [Element] = []
+    /// The page the clipboard was copied from, and the page pasted onto
+    /// last: a paste somewhere new lands in place (Copies.pasteOffset).
+    private var clipboardPage: String?
+    private var pastePage: String?
     private var pasteCount = 0
+
+    /// Select multiple: while on, a tap on an element adds it to the
+    /// selection or takes it out, a tap on the empty page leaves the
+    /// selection be, and a banner stands in for the toolbar. View state
+    /// only — never saved — as on the Android twin.
+    var selectingMultiple = false
 
     private struct HistoryEntry {
         var design: Design
@@ -637,8 +650,10 @@ final class DesignStore {
         let selected = selectedElements
         guard !selected.isEmpty else { return }
         clipboard = selected
+        clipboardPage = page.id
+        pastePage = nil
         pasteCount = 0
-        ElementClipboard.write(selected)
+        ElementClipboard.write(selected, sourcePage: page.id)
         buzz(.tick)
         announce(selected.count == 1 ? "Copied" : "Copied \(selected.count) things", undoable: false)
     }
@@ -652,8 +667,10 @@ final class DesignStore {
             return
         }
         clipboard = removable
+        clipboardPage = page.id
+        pastePage = nil
         pasteCount = 0
-        ElementClipboard.write(removable)
+        ElementClipboard.write(removable, sourcePage: page.id)
         let ids = Set(removable.map(\.id))
         applyToPage { page in
             page.elements.removeAll { ids.contains($0.id) }
@@ -668,6 +685,8 @@ final class DesignStore {
         if clipboard.isEmpty {
             if let mine = ElementClipboard.read() {
                 clipboard = mine
+                clipboardPage = ElementClipboard.sourcePage()
+                pastePage = nil
                 pasteCount = 0
             } else if let stranger = ElementClipboard.foreign(designWidth: pageWidth) {
                 add(stranger)
@@ -682,10 +701,18 @@ final class DesignStore {
                      undoable: false)
             return
         }
+        // Each page counts its own pastes: the first onto a page other than
+        // the copy's lands in place, and only a repeat there steps.
+        if pastePage != page.id {
+            pastePage = page.id
+            pasteCount = 0
+        }
         pasteCount += 1
         // Copies arrive unlocked: locked is a property of the original, and a
         // pasted element the user cannot move, edit or delete is a dead end.
-        let copies = Copies.of(clipboard, offset: 24 * Double(pasteCount))
+        let offset = Copies.pasteOffset(nth: pasteCount, sourcePage: clipboardPage, onto: page,
+                                        copied: clipboard.map(\.id))
+        let copies = Copies.of(clipboard, offset: offset)
         applyToPage { $0.elements.append(contentsOf: copies) }
         selection = Set(copies.map(\.id))
     }

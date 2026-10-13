@@ -18,7 +18,7 @@ enum Onboarding {
              text: "Pick a size for a post, a story, a poster or a slide — or a template with the layout already done. Everything saves itself as you go.",
              systemImage: "rectangle.stack.badge.plus"),
         Card(id: "hands", title: "Made for your hands",
-             text: "Pinch anywhere to zoom, even over what you just added. Drag on empty page to select several things at once. Rotation and alignment snap, and you feel it when they do.",
+             text: "Two fingers zoom and move the page, even over what you just added. Hold on the empty page and drag to select several things at once. Rotation and alignment snap, and you feel it when they do.",
              systemImage: "hand.draw"),
         Card(id: "add", title: "Tap + to add",
              text: "Text, photos, shapes, stickers, charts and QR codes. Draw freehand with the pencil, drop pictures in from other apps, or scan a document straight onto the page.",

@@ -37,7 +37,7 @@ final class TipEngine {
     }
 
     static let tips: [TipEvent: Tip] = [
-        .firstElementAdded: Tip(id: "first", text: "Pinch anywhere to zoom — even over what you just added. Drag from empty page to select several things.",
+        .firstElementAdded: Tip(id: "first", text: "Pinch anywhere to zoom — even over what you just added. Hold on the empty page and drag to select several things.",
                                 systemImage: "hand.draw"),
         .textAdded: Tip(id: "text", text: "Double-tap text to edit it in place. The Curve slider bends it; Effects and gradients are in the toolbar.",
                         systemImage: "textformat"),

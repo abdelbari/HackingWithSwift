@@ -11,10 +11,16 @@ import UIKit
 enum ElementClipboard {
 
     static let type = "com.canvia.elements"
+    /// The id of the page the elements were copied from — the payload's
+    /// `sourcePage`, as the Android twin's clipboard keeps it — beside them,
+    /// so a paste onto another page lands in place (Copies.pasteOffset).
+    static let sourcePageType = "com.canvia.elements.sourcePage"
 
-    static func write(_ elements: [Element], to pasteboard: UIPasteboard = .general) {
+    /// `sourcePage` empty when the page is not known.
+    static func write(_ elements: [Element], sourcePage: String = "", to pasteboard: UIPasteboard = .general) {
         guard let data = try? JSONEncoder().encode(elements) else { return }
         var item: [String: Any] = [type: data]
+        if !sourcePage.isEmpty { item[sourcePageType] = Data(sourcePage.utf8) }
         let text = plainText(of: elements)
         if !text.isEmpty { item["public.utf8-plain-text"] = text }
         pasteboard.items = [item]
@@ -40,6 +46,14 @@ enum ElementClipboard {
               let elements = try? JSONDecoder().decode([Element].self, from: data),
               !elements.isEmpty else { return nil }
         return elements
+    }
+
+    /// The page our own elements were copied from, when the pasteboard
+    /// says; nil from a build that did not write it.
+    static func sourcePage(from pasteboard: UIPasteboard = .general) -> String? {
+        guard let data = pasteboard.data(forPasteboardType: sourcePageType),
+              let id = String(data: data, encoding: .utf8), !id.isEmpty else { return nil }
+        return id
     }
 
     /// Whether the pasteboard carries our own elements. Asking what types are

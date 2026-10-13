@@ -48,6 +48,11 @@ struct SelectionOverlay: View {
                 }
             }
 
+            // Select multiple: a tick on everything in the selection.
+            if store.selectingMultiple {
+                ForEach(selected) { el in tick(el) }
+            }
+
             if let el = store.singleSelection, !el.holdsPlace, !el.isHidden, store.editingTextId != el.id {
                 handleRing(for: el, handles: Touch.handleSet(for: el))
             }
@@ -108,6 +113,21 @@ struct SelectionOverlay: View {
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+
+    /// Select multiple's tick: a 20-point disc at the top-right corner of
+    /// the element's box, as the Android twin's 20dp one.
+    private func tick(_ el: Element) -> some View {
+        let box = Geometry.aabb(el)
+        return Image(systemName: "checkmark")
+            .font(.system(size: 10 * iz, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: 20 * iz, height: 20 * iz)
+            .background(Circle().fill(Theme.accent))
+            .overlay(Circle().stroke(Color.white, lineWidth: 1.5 * iz))
+            .position(x: box.maxX, y: box.minY)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 
     /// A small label on the canvas, the same size on screen at any zoom,

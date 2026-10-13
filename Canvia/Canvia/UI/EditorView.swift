@@ -112,11 +112,16 @@ struct EditorView: View {
             // trying to look at it.
             // Still there in crop mode, so the canvas keeps its size, but
             // resting: the crop bar is where the photo is worked then.
+            // Select multiple lays its banner over the bar, in the bar's own
+            // room, so the canvas keeps its size as the mode comes and goes.
             ContextToolbar(store: store, activeSheet: $activeSheet)
-                .frame(height: store.selection.isEmpty ? 0 : nil)
+                .frame(height: store.selection.isEmpty && !store.selectingMultiple ? 0 : nil)
                 .opacity(store.selection.isEmpty ? 0 : store.cropping == nil ? 1 : 0.35)
                 .clipped()
-                .allowsHitTesting(!store.selection.isEmpty && store.cropping == nil)
+                .allowsHitTesting(!store.selection.isEmpty && store.cropping == nil && !store.selectingMultiple)
+                .overlay {
+                    if store.selectingMultiple { selectMultipleBanner }
+                }
             PagesBar(store: store)
         }
         .background(keyboardCommands)
@@ -155,7 +160,11 @@ struct EditorView: View {
         // kept in the half still showing — as the sheet opens, and as the
         // selection changes under it, a Layers row picked, say.
         .onChange(of: activeSheet) { _, sheet in
-            if sheet != nil { revealSelection() }
+            if sheet != nil {
+                // A panel opening ends Select multiple; the selection stays.
+                store.endSelectingMultiple()
+                revealSelection()
+            }
             if sheet != .colorWords, store.wordColourTarget != nil { store.wordColourTarget = nil }
         }
         // The typing bar's colour well asks for the colour sheet.
@@ -272,7 +281,10 @@ struct EditorView: View {
                 shortcut("d", [.command], "Duplicate") { store.duplicateSelected() }
                 shortcut("a", [.command], "Select all") { store.selectAll() }
                 shortcut(.delete, [.command], "Delete") { store.deleteSelected() }
-                shortcut(.escape, [], "Deselect") { store.select(nil) }
+                // Escape ends Select multiple first, keeping the selection.
+                shortcut(.escape, [], store.selectingMultiple ? "Done" : "Deselect") {
+                    if store.selectingMultiple { store.endSelectingMultiple() } else { store.select(nil) }
+                }
             }
             // Arrow keys nudge a page unit, ten with Shift — only while no
             // text field has the keyboard, or the arrows would never reach
@@ -398,6 +410,7 @@ struct EditorView: View {
         HStack(spacing: 10) {
             Button {
                 closeRename()
+                store.endSelectingMultiple()
                 saveNow()
                 onHome()
             } label: {
@@ -618,6 +631,10 @@ struct EditorView: View {
                 } label: { Label("Select all", systemImage: "checkmark.circle") }
 
                 Button {
+                    startSelectingMultiple()
+                } label: { Label("Select multiple", systemImage: "checklist") }
+
+                Button {
                     store.copySelected()
                 } label: { Label("Copy", systemImage: "doc.on.doc") }
                     .disabled(store.selection.isEmpty)
@@ -631,6 +648,14 @@ struct EditorView: View {
                     store.paste()
                 } label: { Label("Paste", systemImage: "doc.on.clipboard") }
                     .disabled(!store.hasClipboard)
+
+                // The selection carried to another page, where it sat.
+                Menu {
+                    ForEach(store.moveTargets) { target in
+                        Button(target.name) { store.moveSelectedToPage(target.index) }
+                    }
+                } label: { Label("Move to page…", systemImage: "rectangle.portrait.and.arrow.right") }
+                    .disabled(store.selection.isEmpty || store.design.pages.count < 2)
             }
 
             Section {
@@ -649,6 +674,35 @@ struct EditorView: View {
             Image(systemName: "ellipsis.circle")
         }
         .accessibilityLabel("More actions")
+    }
+
+    /// Select multiple on, said to VoiceOver as TalkBack says it on the
+    /// Android twin.
+    private func startSelectingMultiple() {
+        store.startSelectingMultiple()
+        AccessibilityNotification.Announcement(DesignStore.selectMultipleOn).post()
+    }
+
+    /// Select multiple's banner, over the toolbar while the mode is on: how
+    /// many are selected, Select all, and Done, which ends the mode and
+    /// keeps the selection — the Android twin's words.
+    private var selectMultipleBanner: some View {
+        HStack(spacing: 16) {
+            Text("\(store.selection.count) selected")
+                .font(.subheadline.weight(.semibold))
+                .monospacedDigit()
+            Spacer(minLength: 8)
+            Button("Select all") { store.selectAll() }
+            Button("Done") { store.endSelectingMultiple() }
+                .fontWeight(.semibold)
+        }
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(minHeight: Touch.minTarget)
+        .background(Theme.chrome)
+        .overlay(alignment: .top) { Divider() }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Select multiple")
     }
 
     /// The pen's colour and width, floating over the canvas while drawing.

@@ -1057,6 +1057,12 @@ struct ContextToolbar: View {
         lockMenu
         if let el = store.singleSelection, !el.locked { linkButton(el) }
         toolButton("plus.square.on.square", "Duplicate") { store.duplicateSelected() }
+        // A selection built a tap at a time; the banner over this bar says
+        // how many, with Select all and Done.
+        toolButton("checklist", "Select multiple") {
+            store.startSelectingMultiple()
+            AccessibilityNotification.Announcement(DesignStore.selectMultipleOn).post()
+        }
         if store.selection.count == 2 {
             toolButton("arrow.right", "Connect") { store.connectSelected() }
         }
