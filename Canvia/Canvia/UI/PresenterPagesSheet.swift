@@ -10,10 +10,14 @@ import SwiftUI
 enum PresenterPointing {
     @MainActor
     static func gesture(session: PresentSession, in size: CGSize) -> some Gesture {
+        // The drag alongside knows where the finger is from the moment it
+        // lands, so a hold that has not moved yet shows the dot at once, as
+        // on the Android twin; the sequence only says the hold is long enough.
         LongPressGesture(minimumDuration: 0.3)
             .sequenced(before: DragGesture(minimumDistance: 0))
+            .simultaneously(with: DragGesture(minimumDistance: 0))
             .onChanged { value in
-                guard case .second(true, let drag?) = value else { return }
+                guard case .second(true, _)? = value.first, let drag = value.second else { return }
                 session.pointer = Presenter.pagePoint(drag.location, in: size,
                                                       page: session.design.size(for: session.page))
             }

@@ -107,7 +107,7 @@ struct EditorView: View {
             if let tip { tipBanner(tip) }
             ZStack(alignment: .bottomTrailing) {
                 CanvasView(store: store)
-                    .overlay { if rulers { RulersView(store: store) } }
+                    .overlay { if rulers { RulersView(store: store).allowsHitTesting(!pageTaken) } }
                     .overlay { SelectionBubble(store: store) }
                     .overlay(alignment: .top) {
                         CanvasChips(store: store).padding(.top, CGFloat(rulers ? Guides.rulerThickness : 0))

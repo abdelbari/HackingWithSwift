@@ -73,7 +73,10 @@ struct PresentationView: View {
     private var autoplay: Bool { session.autoplay }
 
     var body: some View {
-        Group {
+        // A ZStack, not a Group: a Group hands its modifiers to each branch,
+        // so a screen plugged in or pulled out mid-talk would run onAppear
+        // again and start the talk over. Here the talk lives on the stack.
+        ZStack {
             // With a second screen the slides are there, and the phone is
             // the presenter's console; without one, the phone presents.
             if ExternalDisplay.shared.attached {
