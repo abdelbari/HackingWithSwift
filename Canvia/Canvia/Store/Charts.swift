@@ -55,8 +55,8 @@ extension DesignStore {
     /// never shrinks or grows it — as the chart before did (see
     /// DataGraphics.frameFilling), at the place in the stack of the lowest
     /// of them, under the group of the lowest one in a group, with the
-    /// colours they had by series ("series:<n>") — as one step, the new
-    /// chart's whole group selected.
+    /// colours they had by series ("series:<n>"), still hidden when the
+    /// whole of it was — as one step, the new chart's whole group selected.
     /// False, and nothing recorded, when the chart is not on the page or the
     /// data draws nothing.
     @discardableResult
@@ -70,10 +70,15 @@ extension DesignStore {
                   let paint = Self.chartColour(of: el) else { continue }
             colours[n] = paint
         }
-        let made = DataGraphics.chart(spec, in: frame, palette: DataGraphics.palette(for: design, page: page),
+        var made = DataGraphics.chart(spec, in: frame, palette: DataGraphics.palette(for: design, page: page),
                                       ink: DataGraphics.ink(for: page), colours: colours,
                                       group: members.first(where: { $0.group != nil })?.group ?? UID.make("grp"))
         guard !made.isEmpty else { return false }
+        // A chart hidden whole stays hidden; one only partly hidden comes
+        // back whole, as on Android.
+        if members.allSatisfy(\.isHidden) {
+            for i in made.indices { made[i].hidden = true }
+        }
         let ids = Set(members.map(\.id))
         applyToPage { page in
             guard let at = page.elements.firstIndex(where: { ids.contains($0.id) }) else { return }

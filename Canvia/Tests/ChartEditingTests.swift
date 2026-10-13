@@ -136,4 +136,42 @@ final class ChartEditingTests: XCTestCase {
         line.fill = .solid("#00000000"); line.stroke = "#abcdef"; line.strokeWidth = 4
         XCTAssertEqual(DesignStore.chartColour(of: line), .solid("#abcdef"), "a line's colour is its stroke")
     }
+
+    func testAChartHiddenWholeStaysHiddenThroughUpdate() {
+        let spec = ChartSpec(kind: "column", data: "A, 10\nB, 5")
+        var edited = spec
+        edited.kind = "bar"
+        edited.data = "A, 10\nB, 5\nC, 7"
+        var hidden = DataGraphics.chart(spec, in: frame, palette: ["#ff0000"])
+        for i in hidden.indices { hidden[i].hidden = true }
+        let s = store(hidden)
+        XCTAssertTrue(s.updateChart(edited))
+        XCTAssertTrue(s.page.elements.allSatisfy(\.isHidden), "hidden whole, it stays hidden")
+
+        var partly = DataGraphics.chart(spec, in: frame, palette: ["#ff0000"])
+        partly[0].hidden = true
+        let t = store(partly)
+        XCTAssertTrue(t.updateChart(edited))
+        XCTAssertFalse(t.page.elements.contains(where: \.isHidden), "partly hidden, it comes back whole")
+    }
+
+    func testAChartAndATableCopiedTogetherAreEachOneOfTheirOwn() throws {
+        let spec = ChartSpec(kind: "column", data: "A, 10\nB, 5")
+        let chart = DataGraphics.chart(spec, in: frame, palette: ["#ff0000"])
+        let table = DataGraphics.table(DataGraphics.parseTable("Item, Qty\nCoffee, 2"), in: frame, accent: "#ff0000",
+                                       heightFor: { _ in 20 })
+        let tableId = try XCTUnwrap(table.first?.table?.id)
+        let copies = Copies.of(chart + table, offset: 24)
+        let copiedChart = Array(copies.prefix(chart.count))
+        let copiedTable = Array(copies.dropFirst(chart.count))
+        let chartIds = Set(copiedChart.compactMap { $0.chart?.id })
+        XCTAssertEqual(chartIds.count, 1)
+        XCTAssertNotEqual(chartIds.first, spec.id)
+        XCTAssertTrue(copiedChart.allSatisfy { $0.chart != nil })
+        let tableIds = Set(copiedTable.compactMap { $0.table?.id })
+        XCTAssertEqual(tableIds.count, 1)
+        XCTAssertNotEqual(tableIds.first, tableId)
+        XCTAssertEqual(copiedTable.filter { $0.table != nil }.count, table.count)
+        XCTAssertTrue(copiedTable.allSatisfy { $0.chart == nil })
+    }
 }

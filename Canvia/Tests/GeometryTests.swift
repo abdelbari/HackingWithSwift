@@ -182,6 +182,8 @@ final class ElementEqualityTests: XCTestCase {
             ("hidden", { $0.hidden = true }),
             ("layerName", { $0.layerName = "Logo" }),
             ("table", { $0.table = TableCell(id: "tbl_a", row: 1, col: 2) }),
+            ("chart", { $0.chart = ChartSpec(id: "chart_a", kind: "column", data: "A, 1") }),
+            ("chartPart", { $0.chartPart = "series:0" }),
             ("corners", { $0.corners = [10, 0, 10, 0] }),
             ("dropCap", { $0.dropCap = true }),
             ("animation", { $0.animation = ElementAnimation(kind: "rise", delay: 0.2, duration: 0.5) }),
