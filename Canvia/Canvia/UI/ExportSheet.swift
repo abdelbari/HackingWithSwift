@@ -40,6 +40,9 @@ struct ExportSheet: View {
     @State private var photosFormat = DesignExporter.RasterFormat.png
     /// Said under Motion when a video's music could not be put in.
     @State private var musicNote: String?
+    /// Each track's music's length in seconds, by AudioStore id, read as
+    /// Motion's track rows show.
+    @State private var trackLengths: [String: Double] = [:]
     /// What the progress card says is happening.
     @State private var workingLabel = "Rendering"
 
@@ -720,31 +723,21 @@ struct ExportSheet: View {
         }
     }
 
-    /// What the motion note says of the music: nothing without tracks,
-    /// that the video has it, or that some or all of it was chosen on
-    /// another phone and is not on this one.
+    /// What the motion note says of the music (AudioTracks.musicNote): the
+    /// tracks whose music is not on this phone counted.
     static func musicSentence(_ tracks: [AudioTrack]) -> String {
-        guard !tracks.isEmpty else { return "" }
-        let away = tracks.filter { AudioStore.url(for: $0.audioId) == nil }.count
-        if away == 0 { return " The video has music under it." }
-        if away == tracks.count { return " The music was chosen on another phone and isn't on this one." }
-        return " Some of the music was chosen on another phone and isn't on this one."
+        AudioTracks.musicNote(tracks: tracks.count, away: tracks.filter(AudioTracks.isMissing).count)
     }
 
-    /// The design's audio tracks, each by its name with where it starts in
-    /// the video — trimmed, faded and moved in the editor's Audio sheet —
-    /// and music from Files added as another track from the start.
+    /// The design's audio tracks as the Android twin lists them: each by
+    /// its name with where it starts, how long it plays and whether its
+    /// music is on this phone, and Remove — trimmed, faded and moved in the
+    /// editor's Audio sheet — and music from Files added as another track
+    /// from the start.
     @ViewBuilder
     private var trackRows: some View {
         ForEach(store.design.audioTracks) { track in
-            HStack {
-                Label(AudioTracks.name(of: track), systemImage: "waveform")
-                    .lineLimit(1)
-                Spacer()
-                Text("from \(VideoStore.timeLabel(track.start))")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            .accessibilityElement(children: .combine)
+            trackRow(track)
         }
         Button("Add music…") { pickingAudio = true }
             .fileImporter(isPresented: $pickingAudio, allowedContentTypes: [.audio]) { result in
@@ -756,6 +749,37 @@ struct ExportSheet: View {
         Text("Set where each track starts, its trim, volume and fades under More > Audio.")
             .font(.footnote)
             .foregroundStyle(.secondary)
+            .task(id: store.design.audioTracks.compactMap(\.audioId)) { await readTrackLengths() }
+    }
+
+    /// One track: its name and line (AudioTracks.summary), and Remove.
+    private func trackRow(_ track: AudioTrack) -> some View {
+        let name = AudioTracks.name(of: track)
+        let line = AudioTracks.summary(of: track, duration: track.audioId.flatMap { trackLengths[$0] },
+                                       missing: AudioTracks.isMissing(track))
+        return HStack {
+            Image(systemName: "waveform")
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name).lineLimit(1)
+                Text(line).font(.caption).foregroundStyle(.secondary)
+            }
+            .accessibilityElement(children: .combine)
+            Spacer()
+            Button { store.removeAudioTrack(track.id) } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.borderless)
+            .disabled(progress != nil)
+            .accessibilityLabel("Remove \(name)")
+        }
+    }
+
+    private func readTrackLengths() async {
+        for id in Set(store.design.audioTracks.compactMap(\.audioId)) where trackLengths[id] == nil {
+            if let seconds = await AudioStore.duration(of: id) { trackLengths[id] = seconds }
+        }
     }
 
     /// Music picked in Files as another track, one Undo: only music that

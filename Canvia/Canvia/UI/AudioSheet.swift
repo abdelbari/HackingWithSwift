@@ -109,7 +109,7 @@ struct AudioSheet: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(AudioTracks.name(of: track))
                     .lineLimit(1)
-                Text(AudioTracks.summary(of: track, duration: duration))
+                Text(AudioTracks.summary(of: track, duration: duration, missing: AudioTracks.isMissing(track)))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -126,11 +126,16 @@ struct AudioSheet: View {
             Button { startRecording() } label: {
                 Label("Record voice-over", systemImage: "mic")
             }
-            if !tracks.isEmpty {
-                Button { store.playPreview() } label: {
-                    Label("Play this page", systemImage: "play.circle")
-                }
-            }
+            if !tracks.isEmpty { playButton }
+        }
+    }
+
+    /// The page played with the tracks under it, as Present plays them;
+    /// again, to stop — as on Android.
+    private var playButton: some View {
+        let playing = store.previewTime != nil
+        return Button { if playing { store.stopPreview() } else { store.playPreview() } } label: {
+            Label(playing ? "Stop" : "Play this page", systemImage: playing ? "stop.circle" : "play.circle")
         }
     }
 
