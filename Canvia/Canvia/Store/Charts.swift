@@ -56,7 +56,7 @@ extension DesignStore {
     /// DataGraphics.frameFilling), at the place in the stack of the lowest
     /// of them, under the group of the lowest one in a group, with the
     /// colours they had by series ("series:<n>") — as one step, the new
-    /// chart selected.
+    /// chart's whole group selected.
     /// False, and nothing recorded, when the chart is not on the page or the
     /// data draws nothing.
     @discardableResult
@@ -80,7 +80,8 @@ extension DesignStore {
             page.elements.removeAll { ids.contains($0.id) }
             page.elements.insert(contentsOf: made, at: at)
         }
-        selection = Set(made.map(\.id))
+        // The new chart's whole group, as a tap on it selects, as on Android.
+        selection = Set(page.elements.filter { $0.group == made[0].group }.map(\.id))
         return true
     }
 }

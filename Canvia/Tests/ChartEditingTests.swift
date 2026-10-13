@@ -53,6 +53,21 @@ final class ChartEditingTests: XCTestCase {
         XCTAssertEqual(s.page.elements.map(\.id), ([below] + chart + [above]).map(\.id), "one step")
     }
 
+    func testUpdateSelectsTheWholeGroupAsAndroidDoes() {
+        let spec = ChartSpec(kind: "column", data: "A, 10\nB, 5")
+        let chart = DataGraphics.chart(spec, in: frame, palette: ["#ff0000"])
+        var title = Element.text("Sales")
+        title.group = chart[0].group
+        let other = Element.shape("rect")
+        let s = store([other] + chart + [title])
+        var edited = spec
+        edited.kind = "bar"
+        edited.data = "A, 10\nB, 5\nC, 7"
+        XCTAssertTrue(s.updateChart(edited))
+        let made = s.page.elements.filter { $0.chart == edited }
+        XCTAssertEqual(s.selection, Set(made.map(\.id) + [title.id]), "the title grouped with it too")
+    }
+
     /// A chart never fills its frame to the edge, so drawn again into the
     /// box it left it would shrink at every Update; it is drawn into the
     /// frame that fills that box instead.

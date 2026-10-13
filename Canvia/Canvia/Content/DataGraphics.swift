@@ -100,10 +100,12 @@ enum DataGraphics {
         return ChartData.Row(label: cells[0].isEmpty ? "Item \(n + 1)" : cells[0], values: read.map { max(0, $0 ?? 0) })
     }
 
-    /// A cell as a number: "65%" is 65; words, blanks and infinities are none.
+    /// A cell as a number: "65%" is 65; words, blanks and infinities are
+    /// none. Beyond 1e300 either way it reads as 1e300, so no stack of them
+    /// adds up to infinity.
     private static func number(_ cell: String) -> Double? {
         guard let value = Double(cell.replacingOccurrences(of: "%", with: "")), value.isFinite else { return nil }
-        return value
+        return min(max(value, -1e300), 1e300)
     }
 
     /// The hint under the chart's text, for a kind with rows to read.
@@ -306,7 +308,7 @@ enum DataGraphics {
         }
         /// A value's label centred on `cx`, its foot at `foot`.
         func valueAbove(_ v: Double, cx: Double, foot: Double, w: Double) -> Element {
-            var t = label(num(v), x: 0, y: 0, w: max(w, labelSize * 3), part: "value")
+            var t = label(valueText(v), x: 0, y: 0, w: max(w, labelSize * 3), part: "value")
             t.x = cx - t.w / 2
             t.y = foot - labelSize * 0.3 - t.h
             return t
@@ -388,7 +390,7 @@ enum DataGraphics {
             let longest = stacked ? (rows.map { $0.values.reduce(0, +) }.max() ?? 0) : peak
             gridDown(left: left, plotW: plotW)
             func valueBeside(_ v: Double, end: Double, y: Double, h: Double) -> Element {
-                var t = label(num(v), x: end + labelSize * 0.3, y: 0, w: valueW - labelSize * 0.3, align: "left", part: "value")
+                var t = label(valueText(v), x: end + labelSize * 0.3, y: 0, w: valueW - labelSize * 0.3, align: "left", part: "value")
                 t.y = y + (h - t.h) / 2
                 return t
             }
@@ -596,6 +598,29 @@ enum DataGraphics {
     private static func num(_ v: Double) -> String {
         let r = (v * 100).rounded() / 100
         return r == r.rounded() ? String(Int(r)) : String(r)
+    }
+
+    /// A value's label, as the Android twin writes it: to the hundredth
+    /// below 1e13 ("12.5", "40"); from there three figures and a power of
+    /// ten ("1.23e15", "1e19"), worked out in steps both phones take alike;
+    /// "∞" past the largest number.
+    static func valueText(_ v: Double) -> String {
+        if v.isNaN { return "" }
+        let sign = v < 0 ? "-" : ""
+        let a = abs(v)
+        if a.isInfinite { return sign + "∞" }
+        if a < 1e13 { return num(v) }
+        var p = 1.0, k = 0
+        while a / p >= 1000 { p *= 10; k += 1 }
+        let m = a / p
+        let whole = m.rounded(.down)
+        var d = Int(m - whole >= 0.5 ? whole + 1 : whole)
+        if d >= 1000 { d = 100; k += 1 }
+        let rest = d % 100
+        let mantissa = rest == 0 ? "\(d / 100)"
+            : rest % 10 == 0 ? "\(d / 100).\(rest / 10)"
+            : "\(d / 100).\(rest < 10 ? "0" : "")\(rest)"
+        return "\(sign)\(mantissa)e\(k + 2)"
     }
 
     // MARK: tables

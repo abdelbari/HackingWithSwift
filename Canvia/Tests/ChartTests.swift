@@ -177,6 +177,26 @@ final class ChartDataTests: XCTestCase {
         XCTAssertEqual(pie.filter { $0.chartPart == "value" }.map(\.text), ["75%", "25%"])
     }
 
+    func testValueLabelsReadAlikeOnBothPhonesHoweverLargeTheNumber() {
+        // The Android twin's table, case for case.
+        let table: [(Double, String)] = [
+            (40, "40"), (12.5, "12.5"), (0.004, "0"), (9999999999999.99, "9999999999999.99"),
+            (1e13, "1e13"), (1.05e14, "1.05e14"), (-2.5e14, "-2.5e14"), (1.2345e15, "1.23e15"),
+            (9.996e15, "1e16"), (1.5e19, "1.5e19"), (1e300, "1e300"),
+            (.infinity, "∞"), (.nan, ""),
+        ]
+        for (v, text) in table { XCTAssertEqual(DataGraphics.valueText(v), text, "\(v)") }
+        func values(_ kind: DataGraphics.ChartKind, _ data: String) -> [String?] {
+            made(spec(kind, data, values: true)).filter { $0.chartPart == "value" }.map(\.text)
+        }
+        XCTAssertEqual(values(.column, "A, 1e19"), ["1e19"])
+        XCTAssertEqual(values(.bar, "A, 99999999999999999999"), ["1e20"])
+        // Past 1e300 a cell reads as 1e300, so a stack of them adds up.
+        let stack = made(spec(.stackedColumn, "Q, N, S\nA, 1e308, 1e308", values: true))
+        XCTAssertEqual(stack.filter { $0.chartPart == "value" }.map(\.text), ["2e300"])
+        XCTAssertTrue(stack.allSatisfy { rect($0).allSatisfy(\.isFinite) })
+    }
+
     func testDrawnIntoTheFrameThatFillsItsOwnBoxAChartStaysWhereItIs() {
         for kind in DataGraphics.ChartKind.allCases {
             let s = spec(kind, "Quarter, North, South\nQ1, 40, 20\nQ2, 30, 10\nQ3, 50, 25", legend: true)
