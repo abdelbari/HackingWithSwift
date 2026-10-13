@@ -268,6 +268,51 @@ struct TableCell: Codable, Equatable, Hashable {
     }
 }
 
+/// The photo grid an empty frame was laid out as a cell of: the grid's id
+/// (its group's when it was made), the layout's id (PhotoGrids), the cell's
+/// index in that layout, and the spacing (`gutter`) and margin it was laid
+/// with — what lets Spacing and Corners lay the whole grid out again after
+/// it is placed. Written as the element's `grid` object, every field always,
+/// as the Android twin writes it; one without an id, a layout, a cell or a
+/// gutter is no key at all, and a missing margin is nought. A grid made
+/// before there was a `grid` key has none, and offers neither slider.
+struct GridCell: Codable, Equatable, Hashable {
+    var id: String
+    var layout: String
+    var cell: Int
+    var gutter: Double
+    var margin: Double
+
+    private enum CodingKeys: String, CodingKey { case id, layout, cell, gutter, margin }
+
+    init(id: String, layout: String, cell: Int, gutter: Double, margin: Double) {
+        self.id = id
+        self.layout = layout
+        self.cell = cell
+        self.gutter = gutter
+        self.margin = margin
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        layout = try c.decode(String.self, forKey: .layout)
+        // A whole number either way it is written, as the Android twin
+        // reads it.
+        if let n = try? c.decode(Int.self, forKey: .cell) {
+            cell = n
+        } else {
+            let d = try c.decode(Double.self, forKey: .cell)
+            guard d.isFinite, abs(d) < 1_000_000 else {
+                throw DecodingError.dataCorrupted(.init(codingPath: c.codingPath, debugDescription: "Not a cell"))
+            }
+            cell = Int(d)
+        }
+        gutter = try c.decode(Double.self, forKey: .gutter)
+        margin = (try? c.decodeIfPresent(Double.self, forKey: .margin)) ?? 0
+    }
+}
+
 /// The chart an element was drawn as part of: what Edit chart reopens. Every
 /// element of one chart carries the same object — its id, its kind, the data
 /// exactly as typed and its three switches — beside a `chartPart` of its
@@ -372,6 +417,13 @@ struct Element: Codable, Equatable, Identifiable {
     /// DataGraphics.chart.
     var chart: ChartSpec?
     var chartPart: String?
+    /// For an empty frame laid out by a photo grid: which grid, which of its
+    /// cells, and the spacing it was laid with (see PhotoGrids).
+    var grid: GridCell?
+    /// A decorative frame's window (see DecorativeFrames): a frame for a
+    /// photo however full it is, so one dropped on it goes in. Never false:
+    /// written only when true, as `hidden`.
+    var photoFrame: Bool?
 
     // shape
     var shapeId: String?
@@ -530,6 +582,8 @@ struct Element: Codable, Equatable, Identifiable {
         table = try? c.decode(TableCell.self, forKey: .table)
         chart = try? c.decode(ChartSpec.self, forKey: .chart)
         chartPart = try? c.decode(String.self, forKey: .chartPart)
+        grid = try? c.decode(GridCell.self, forKey: .grid)
+        photoFrame = (try? c.decode(Bool.self, forKey: .photoFrame)) == true ? true : nil
         shapeId = try? c.decode(String.self, forKey: .shapeId)
         pathData = try? c.decode(String.self, forKey: .pathData)
         iconId = try? c.decode(String.self, forKey: .iconId)
@@ -617,7 +671,7 @@ struct Element: Codable, Equatable, Identifiable {
     private enum CodingKeys: String, CodingKey {
         case id, type, x, y, w, h, rotation, opacity, locked, lockPosition, flipH, flipV, group, shadow, blendMode, altText
         case decorative
-        case connectFrom, connectTo, link, hidden, layerName, table, chart, chartPart
+        case connectFrom, connectTo, link, hidden, layerName, table, chart, chartPart, grid, photoFrame
         case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical

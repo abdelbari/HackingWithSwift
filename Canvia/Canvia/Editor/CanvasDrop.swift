@@ -128,7 +128,10 @@ enum CanvasDrop {
             provider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { data, _ in
                 // Called off the main thread, where the decode belongs.
                 var stored: (src: String, natural: CGSize)?
-                if let data, let prepared = ImageDownsampler.prepare(data), let src = MediaStore.store(prepared) {
+                if let data, let animated = AnimStore.bringIn(data) {
+                    // An animated GIF or WebP, kept as it came, to play.
+                    stored = animated
+                } else if let data, let prepared = ImageDownsampler.prepare(data), let src = MediaStore.store(prepared) {
                     Uploads.record(source: src)
                     stored = (src, prepared.natural)
                 }

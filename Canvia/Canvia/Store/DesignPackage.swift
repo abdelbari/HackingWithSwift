@@ -1,5 +1,5 @@
-// A design as one file: the document plus every photo and clip it uses,
-// its music, and the fonts of your own its texts are set in.
+// A design as one file: the document plus every photo, clip and animated
+// picture it uses, its music, and the fonts of your own its texts are set in.
 //
 // The JSON on disk points at media by id, which means nothing outside this
 // app. A package inlines those files, so the design can be sent to someone,
@@ -39,6 +39,12 @@ enum DesignPackage {
         /// one past it stays behind, and its texts fall back where they
         /// arrive. Optional like `videos`, and left out when there are none.
         var fonts: [String: Media]?
+        /// The animated GIFs and WebPs the design shows, by the id its
+        /// "anim:" sources name — {"<id>": {"data", "ext"}}, at most
+        /// AnimStore.maxPackedBytes each and maxPackedTotalBytes in all;
+        /// the rest travel as their first frame (`packingAnimations`).
+        /// Optional like `videos`, and left out when there are none.
+        var animations: [String: Media]?
     }
 
     /// The longest clip a file carries, in bytes; a longer one travels as
@@ -177,6 +183,58 @@ enum DesignPackage {
         return out
     }
 
+    /// The design with each animated picture `whole` picks (from each one's
+    /// size and type, by id) packed into `animations`, and every other —
+    /// past the limits, or whose file does not read — shown by its first
+    /// frame packed as a photo, "media:still-<id>", wherever it appears, as
+    /// the Android twin packs them.
+    static func packingAnimations(_ design: Design, media: inout [String: Media],
+                                  animations: inout [String: Media],
+                                  whole wholeIDs: ([String: (bytes: Int, ext: String)]) -> Set<String>) -> Design {
+        var files: [String: URL] = [:]
+        var sizes: [String: (bytes: Int, ext: String)] = [:]
+        for id in AnimStore.ids(in: design) {
+            guard let url = AnimStore.url(for: id) else { continue }
+            files[id] = url
+            sizes[id] = (bytes: (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? Int.max,
+                         ext: url.pathExtension.lowercased())
+        }
+        let whole = wholeIDs(sizes)
+        var stills = Set<String>()
+        for id in files.keys.sorted() {
+            guard let url = files[id] else { continue }
+            if whole.contains(id), let data = try? Data(contentsOf: url) {
+                animations[id] = Media(ext: url.pathExtension.lowercased(), data: data)
+            } else if let still = AnimStore.poster(id)?.pngData() {
+                // PNG, so a sticker's see-through surround stays clear.
+                media[AnimStore.stillID(id)] = Media(ext: "png", data: still)
+                stills.insert(id)
+            }
+        }
+        guard !stills.isEmpty else { return design }
+        /// The still an animated source becomes; nil for anything else.
+        func still(_ src: String?) -> String? {
+            guard let src, let parts = AnimStore.split(src), stills.contains(parts.id) else { return nil }
+            return "media:" + AnimStore.stillID(parts.id)
+        }
+        var out = design
+        for p in out.pages.indices {
+            if case .image(let src) = out.pages[p].background, let moved = still(src) {
+                out.pages[p].background = .image(moved)
+            }
+            for i in out.pages[p].elements.indices {
+                if let moved = still(out.pages[p].elements[i].src) {
+                    out.pages[p].elements[i].src = moved
+                }
+                if var fill = out.pages[p].elements[i].fill, fill.kind == "image", let moved = still(fill.src) {
+                    fill.src = moved
+                    out.pages[p].elements[i].fill = fill
+                }
+            }
+        }
+        return out
+    }
+
     /// Ids of the media files a design references.
     static func mediaIDs(in design: Design) -> Set<String> {
         var ids = Set<String>()
@@ -222,26 +280,31 @@ enum DesignPackage {
                          mediaDirectory: URL = MediaStore.directory) -> Package {
         var media = drawnMedia
         var videos: [String: Media] = [:]
-        let design = packingVideos(drawn, media: &media, videos: &videos)
-        return packed(design, media: media, videos: videos, mediaDirectory: mediaDirectory)
+        var animations: [String: Media] = [:]
+        let clipped = packingVideos(drawn, media: &media, videos: &videos)
+        let design = packingAnimations(clipped, media: &media, animations: &animations, whole: AnimStore.packedIDs)
+        return packed(design, media: media, videos: videos, animations: animations, mediaDirectory: mediaDirectory)
     }
 
     /// `gathered`, as a backup packs a design, away from the main actor:
     /// every clip whole, left as its file (`packingClipFiles`), for
     /// `stream(_:clips:into:)` to write in — never read in whole, nor its
-    /// base64, however long it is.
+    /// base64, however long it is — and every animated picture whole too,
+    /// each no more than AnimStore.maxBytes.
     static func gatheredForBackup(_ drawn: Design, media drawnMedia: [String: Media],
                                   mediaDirectory: URL = MediaStore.directory) -> (package: Package, clips: [String: URL]) {
         var media = drawnMedia
         var clips: [String: URL] = [:]
-        let design = packingClipFiles(drawn, media: &media, clipFiles: &clips)
-        return (packed(design, media: media, videos: [:], mediaDirectory: mediaDirectory), clips)
+        var animations: [String: Media] = [:]
+        let clipped = packingClipFiles(drawn, media: &media, clipFiles: &clips)
+        let design = packingAnimations(clipped, media: &media, animations: &animations, whole: { Set($0.keys) })
+        return (packed(design, media: media, videos: [:], animations: animations, mediaDirectory: mediaDirectory), clips)
     }
 
-    /// The package of a design whose clips are settled: its photos read in,
-    /// and its music and fonts.
+    /// The package of a design whose clips and animated pictures are
+    /// settled: its photos read in, and its music and fonts.
     private static func packed(_ design: Design, media drawnMedia: [String: Media], videos: [String: Media],
-                               mediaDirectory: URL) -> Package {
+                               animations: [String: Media], mediaDirectory: URL) -> Package {
         var media = drawnMedia
         for id in mediaIDs(in: design) {
             for ext in MediaStore.extensions {
@@ -253,7 +316,8 @@ enum DesignPackage {
             }
         }
         return Package(design: design, media: media, videos: videos.isEmpty ? nil : videos,
-                       audio: packedAudio(of: design), fonts: packedFonts(of: design))
+                       audio: packedAudio(of: design), fonts: packedFonts(of: design),
+                       animations: animations.isEmpty ? nil : animations)
     }
 
     /// Whether a font file of `bytes` travels in a package: one past the
@@ -316,13 +380,14 @@ enum DesignPackage {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
         // Everything but the clips first, in one piece: the design and the
-        // photos, music and fonts it holds already.
+        // photos, animated pictures, music and fonts it holds already.
         var members: [(key: String, json: Data)] = try [
             ("design", encoder.encode(contents.design)),
             ("format", encoder.encode(contents.format)),
             ("media", encoder.encode(contents.media)),
             ("version", encoder.encode(contents.version)),
         ]
+        if let animations = contents.animations { try members.append(("animations", encoder.encode(animations))) }
         if let audio = contents.audio { try members.append(("audio", encoder.encode(audio))) }
         if let fonts = contents.fonts { try members.append(("fonts", encoder.encode(fonts))) }
         var head = Data("{".utf8)
@@ -486,6 +551,11 @@ enum DesignPackage {
                 try? item.data.write(to: VideoStore.directory.appendingPathComponent("\(id).\(item.ext.lowercased())"))
             }
         }
+        for (id, item) in package.animations ?? [:] where isSafeFileName(id) && isSafeFileName(item.ext) {
+            if AnimStore.url(for: id) == nil {
+                try? item.data.write(to: AnimStore.directory.appendingPathComponent("\(id).\(item.ext.lowercased())"))
+            }
+        }
         for (sha, item) in package.fonts ?? [:] where CustomFonts.sha12(item.data) == sha {
             _ = FontStore.add(item.data)
         }
@@ -514,6 +584,11 @@ enum DesignPackage {
         for (oldId, item) in package.videos ?? [:] {
             if let newId = VideoStore.store(item.data, ext: item.ext) { clips[oldId] = newId }
         }
+        // And each animated picture, its moments kept likewise.
+        var animated: [String: String] = [:]
+        for (oldId, item) in package.animations ?? [:] {
+            if let newId = AnimStore.write(item.data, ext: item.ext) { animated[oldId] = newId }
+        }
         // A font of your own under its own hash, which is what the texts
         // name: stored only when its bytes are the file the key names, and
         // one this phone has already is the same file. One left out draws
@@ -532,6 +607,10 @@ enum DesignPackage {
             if let parts = VideoStore.split(src) {
                 guard let newId = clips[parts.id] else { return src }
                 return VideoStore.src(newId, at: parts.time)
+            }
+            if let parts = AnimStore.split(src) {
+                guard let newId = animated[parts.id] else { return src }
+                return AnimStore.src(newId, at: parts.time)
             }
             guard src.hasPrefix("media:"), let newId = remap[String(src.dropFirst(6))] else { return src }
             return "media:\(newId)"

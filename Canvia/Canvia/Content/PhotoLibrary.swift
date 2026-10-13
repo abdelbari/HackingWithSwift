@@ -51,7 +51,8 @@ enum PhotoLibrary {
     }
 
     /// Resolve an element src: "asset:<id>" -> library, "media:<id>" -> user
-    /// file, "qr:<payload>" -> a generated code.
+    /// file, "video:" and "anim:" -> a clip's or an animated picture's frame,
+    /// "qr:<payload>" -> a generated code.
     ///
     /// Every branch is synchronous and deterministic in the src alone. That is
     /// what ElementView's Equatable conformance rests on — see the note above
@@ -62,6 +63,7 @@ enum PhotoLibrary {
         if src.hasPrefix("asset:") { return image(id: String(src.dropFirst(6))) }
         if src.hasPrefix("media:") { return MediaStore.load(String(src.dropFirst(6))) }
         if VideoStore.isVideo(src) { return VideoStore.resolve(src) }
+        if AnimStore.isAnim(src) { return AnimStore.resolve(src) }
         if let payload = CodeGenerator.payload(from: src) { return CodeGenerator.qr(payload) }
         return nil
     }

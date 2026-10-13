@@ -211,6 +211,8 @@ struct ContentBundle: Codable {
     var gradients: [GradientPreset]
     var pairings: [FontPairing]
     var stickerGroups: [StickerGroup]
+    /// Words to find each sticker by, by glyph (see Stickers).
+    var stickerNames: [String: [String]]?
     var photoSpecs: PhotoSpecs
     /// The design types: every size a design can start at.
     var sizes: [SizePreset]?

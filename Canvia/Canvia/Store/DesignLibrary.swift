@@ -408,9 +408,9 @@ enum DesignLibrary {
         try? FileManager.default.removeItem(at: historyDir(for: id))
     }
 
-    /// The launch sweep: photos, soundtracks and clips nothing uses any
-    /// more, with every design, trashed design and kept version read once
-    /// for all three. Each sweep used to read the whole library again for
+    /// The launch sweep: photos, soundtracks, clips and animated pictures
+    /// nothing uses any more, with every design, trashed design and kept
+    /// version read once for all four. Each sweep used to read the whole library again for
     /// itself — three full passes of decoding before the first frame, where
     /// the Android twin makes one.
     ///
@@ -432,11 +432,13 @@ enum DesignLibrary {
         let photos = mediaCandidates()
         let tracks = AudioStore.all()
         let clips = VideoStore.all()
-        guard photos?.isEmpty == false || !tracks.isEmpty || !clips.isEmpty else { return }
+        let animations = AnimStore.all()
+        guard photos?.isEmpty == false || !tracks.isEmpty || !clips.isEmpty || !animations.isEmpty else { return }
         guard let designs = everyDesign() else { return }
         if let photos { pruneUnusedMedia(photos, designs: designs, pasteboard: pasteboard) }
         pruneUnusedAudio(tracks, designs: designs)
         pruneUnusedVideos(clips, designs: designs, pasteboard: pasteboard)
+        pruneUnusedAnimations(animations, designs: designs, pasteboard: pasteboard)
     }
 
     /// The photo files there are, or nil when the folder cannot be read.
@@ -621,6 +623,59 @@ enum DesignLibrary {
         }
         if PageClipboard.hasPage(in: pasteboard), let payload = PageClipboard.paste(from: pasteboard) {
             collectClips(on: payload.page, into: &found)
+        }
+        return found
+    }
+
+    /// Delete animated pictures nothing shows any more; see
+    /// `pruneUnusedAnimations(_:designs:pasteboard:)`. Listed first, as the
+    /// clips are, so one stored while the designs are being read is never
+    /// taken for an orphan.
+    static func pruneUnusedAnimations(pasteboard: UIPasteboard = .general) {
+        let stored = AnimStore.all()
+        guard !stored.isEmpty, let designs = everyDesign() else { return }
+        pruneUnusedAnimations(stored, designs: designs, pasteboard: pasteboard)
+    }
+
+    /// The animated-picture sweep over `stored`, listed before `designs` were
+    /// read: an animated GIF or WebP nothing shows — no design, version or
+    /// trashed design, component, brand logo, nor what was cut or copied
+    /// but not yet pasted — goes, as a clip does. Not being an upload, it
+    /// lives and goes with what shows it.
+    private static func pruneUnusedAnimations(_ stored: [String], designs: [Design], pasteboard: UIPasteboard) {
+        guard !stored.isEmpty else { return }
+        let shown = animations(in: designs).union(animationsKeptOutsideDesigns(pasteboard: pasteboard))
+        for id in stored where !shown.contains(id) {
+            AnimStore.delete(id)
+        }
+    }
+
+    /// The animated pictures these designs show, by AnimStore id.
+    static func animations(in designs: [Design]) -> Set<String> {
+        designs.reduce(into: Set<String>()) { $0.formUnion(AnimStore.ids(in: $1)) }
+    }
+
+    /// The animated pictures kept outside the designs, as the clips are
+    /// (`clipsKeptOutsideDesigns`).
+    static func animationsKeptOutsideDesigns(pasteboard: UIPasteboard) -> Set<String> {
+        var found = Set<String>()
+        func collect(_ elements: [Element]) {
+            for el in elements {
+                for src in [el.src, el.fill?.src] {
+                    if let id = src.flatMap({ AnimStore.split($0)?.id }) { found.insert(id) }
+                }
+            }
+        }
+        for component in Components.load() { collect(component.elements) }
+        for src in BrandKits.load().allLogos { if let id = AnimStore.split(src)?.id { found.insert(id) } }
+        if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
+            collect(elements)
+        }
+        if PageClipboard.hasPage(in: pasteboard), let payload = PageClipboard.paste(from: pasteboard) {
+            // Behind the page too, as AnimStore counts a design's.
+            var holder = Design(title: "", width: 1, height: 1)
+            holder.pages = [payload.page]
+            found.formUnion(AnimStore.ids(in: holder))
         }
         return found
     }

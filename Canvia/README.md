@@ -297,9 +297,16 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   page backgrounds. "In this design" leaves out faint colours, and a
   Fill chip whose fill is not one colour says so ("photo", "no fill"). Text takes colours
   and gradients only, since it never draws a pattern or a photo.
-- Photo grids: six layouts of empty frames (2 across, 3 across, 2 by 2,
-  1 + 2, 1 over 3, 3 by 3) flush to the margins and one gutter apart,
-  grouped, filled with Replace.
+- Photo grids: nineteen layouts of two to nine empty frames (2 across,
+  3 across, 2 by 2, 1 + 2, 1 over 3, 3 by 3, stacks, mosaics…) flush to
+  the margins and one gutter apart, grouped, filled with Replace. With a
+  whole grid selected, Spacing (0–40) and Corners (0–50% of each cell's
+  shorter side) lay every cell out again in the grid's box, pictures and
+  crops kept, one Undo a release; each cell records its grid in `grid`
+  {id, layout, cell, gutter, margin}. Eight photo frames — Polaroid, Film
+  strip, Phone, Laptop, Browser window, Torn paper, Circle stamp, Arch —
+  are plain shapes round one empty frame. Grids and frames both come from
+  PhotoFrames.json, the Android twin's file byte for byte.
 - Copy and paste go through the system pasteboard too: elements survive
   switching designs or quitting, a copied text element pastes into other
   apps as text, without the asterisks and underscores that style it, and
@@ -578,7 +585,12 @@ or no code to read, says so.
 
 **Loops** — Animate offers Pulse, Wiggle, Bounce and Spin: moves that
 never settle, for stickers and badges, on the canvas preview and in the
-video and GIF alike.
+video and GIF alike. Add ▸ Stickers leads with an Animated row of
+twenty-four stickers with a loop already set, six of each, shown moving
+(still with Reduce Motion); they are ordinary stickers with a loop, so
+they open on either phone. A sticker search finds stickers by their own
+words too — party, heart, pizza — from Content.json's `stickerNames`, the
+Android twin's table glyph for glyph.
 
 **Apple Pencil** — drawing takes a Pencil like a finger, and the Pencil's
 double tap toggles the pen on and off (honouring the system setting).
@@ -647,6 +659,17 @@ carries a clip. Played live — Present, and Play in the editor — a clip
 never holds up the screen: it shows the latest frame decoded while the
 next is decoded off the main thread; the exports wait for every frame.
 The clip's own sound is not carried; a soundtrack is.
+
+**Animated GIFs and WebPs** — a GIF or WebP that moves, picked or dropped
+in, is kept as it came and placed as a picture element whose source is
+`anim:<id>`: its first frame at rest and in still exports, so crop,
+frames, filters and transparency work as on a photo; looping, frame by
+frame, in Present, Play, the MP4 and the GIF, and on the canvas too with
+the photo bar's "Play in the editor" on. Delays and frames come from
+ImageIO; each frame is shown for its delay with a 20 ms floor, by the
+frame-at-time rule the Android twin shares. Design files carry them under
+"animations", 10 MB each and 50 MB in all; the rest travel as their
+first frame.
 
 **Keyboard** — with a hardware keyboard, the usual shortcuts, each with
 a title in the discoverability overlay: ⌘Z / ⇧⌘Z (or ⌘Y), ⌘C / ⌘X / ⌘V, ⌘D

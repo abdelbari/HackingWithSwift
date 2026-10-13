@@ -59,10 +59,11 @@ final class PresentSession {
     }
 
     /// Whether anything on the page moves: an entrance, an exit, a loop, a
-    /// drift, a clip playing.
+    /// drift, a clip playing, an animated picture.
     static func moves(_ page: Page, in design: Design) -> Bool {
         design.drawnElements(on: page).contains {
             $0.animation != nil || $0.exitAnimation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src)
+                || AnimStore.isAnim($0.src)
         }
     }
 }

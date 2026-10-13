@@ -1,6 +1,7 @@
 // Pictures into frames, as steps: Replace, a photo dragged onto a frame, a
 // picture dropped onto one from another app, and photos picked while frames
-// are selected. Which elements are frames is PhotoFrames' to say.
+// are selected. Which elements are frames is PhotoFrames' to say. And a
+// grid's Spacing and Corners, laid out again live as their sliders move.
 
 import CoreGraphics
 import Foundation
@@ -57,5 +58,53 @@ extension DesignStore {
         selection = [target]
         buzz(.confirm)
         return true
+    }
+
+    // MARK: grid spacing and corners
+
+    /// The selection when it is exactly one grid's cells — a grid laid out
+    /// with a `grid` key, every cell of it and nothing else — with its
+    /// layout, cells in cell order; nil otherwise (PhotoGrids.grid(of:)).
+    var selectedGrid: (layout: PhotoGrids.Layout, cells: [Element])? {
+        guard selection.count > 1 else { return nil }
+        return PhotoGrids.grid(of: selectedElements)
+    }
+
+    /// Whether the selected grid can be laid out again: none of its cells
+    /// keeps its place, as relaying moves and resizes every one.
+    var selectedGridCanRelay: Bool {
+        guard let grid = selectedGrid else { return false }
+        return !grid.cells.contains { $0.holdsPlace }
+    }
+
+    /// The selected grid's spacing set to `spacing`, live, as its slider is
+    /// dragged (see `relayGrid`).
+    func setGridSpacingTransient(_ spacing: Double) {
+        guard let grid = selectedGrid else { return }
+        relayGrid(grid, spacing: spacing, corners: PhotoGrids.corners(of: grid.cells))
+    }
+
+    /// The selected grid's corners set to `corners` percent, live, as its
+    /// slider is dragged (see `relayGrid`).
+    func setGridCornersTransient(_ corners: Double) {
+        guard let grid = selectedGrid else { return }
+        relayGrid(grid, spacing: PhotoGrids.spacing(of: grid.cells), corners: corners)
+    }
+
+    /// `grid` laid out again within the box round it now, with `spacing`
+    /// between its cells and its corners `corners` percent of each cell's
+    /// shorter side, as the Android twin lays it, and any line joined to a
+    /// cell laid again with it. The slider closes the step on release, so
+    /// each release is one Undo. Nothing when a cell keeps its place.
+    private func relayGrid(_ grid: (layout: PhotoGrids.Layout, cells: [Element]), spacing: Double, corners: Double) {
+        guard selectedGridCanRelay else { return }
+        let laid = PhotoGrids.relaid(grid.layout, cells: grid.cells, gutter: spacing, corners: corners)
+        beginGesture()
+        for cell in laid {
+            if let i = design.pages[pageIndex].elements.firstIndex(where: { $0.id == cell.id }) {
+                design.pages[pageIndex].elements[i] = cell
+            }
+        }
+        Connectors.resolve(&design.pages[pageIndex])
     }
 }

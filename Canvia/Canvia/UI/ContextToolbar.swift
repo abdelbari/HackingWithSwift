@@ -41,6 +41,8 @@ struct ContextToolbar: View {
     @State private var enteringSize = false
     @Bindable var store: DesignStore
     @Binding var activeSheet: EditorSheet?
+    /// Animated pictures play on the canvas, not only in Present and video.
+    @AppStorage(AnimStore.playKey) private var playAnimated = false
 
     /// The border as a drag of its slider began, so going back to None puts
     /// back what was there.
@@ -927,6 +929,18 @@ struct ContextToolbar: View {
                 .sheet(isPresented: $editingCode) {
                     QRCodeSheet(store: store, id: el.id, payload: payload)
                 }
+        } else if AnimStore.isAnim(el.src) {
+            // An animated picture always plays in Present and in a video or
+            // GIF; here, only when asked, and otherwise shows its first
+            // frame. Erasing a frame would leave a still, so that is not
+            // offered.
+            Button {
+                playAnimated.toggle()
+            } label: {
+                toolLabel(playAnimated ? "pause.circle" : "play.circle", "Play in the editor", active: playAnimated)
+            }
+            .buttonStyle(ToolButtonStyle())
+            .accessibilityAddTraits(playAnimated ? [.isSelected] : [])
         } else {
             toolButton("eraser", "Erase") { store.beginErasing(el.id) }
         }
@@ -1097,11 +1111,18 @@ struct ContextToolbar: View {
 
     @ViewBuilder
     private var universalControls: some View {
-        // Several things selected — a sticky group, a band's worth — recolour
-        // together, each its own way: text, lines, shapes and drawn strokes.
-        // Several texts have the text controls' own Colour chip.
-        if store.selection.count > 1 && store.selectionTakesColour && store.textSelection == nil {
-            multiColourChip
+        // Grouped to keep this block within a ViewBuilder's ten children.
+        Group {
+            // One grid's cells, every one: its spacing and corners, the
+            // whole grid laid out again as they move.
+            if store.selectedGridCanRelay, let grid = store.selectedGrid { gridControls(grid.cells) }
+            // Several things selected — a sticky group, a band's worth —
+            // recolour together, each its own way: text, lines, shapes and
+            // drawn strokes. Several texts have the text controls' own
+            // Colour chip.
+            if store.selection.count > 1 && store.selectionTakesColour && store.textSelection == nil {
+                multiColourChip
+            }
         }
         // Grouped to keep this block within a ViewBuilder's ten children.
         Group {
@@ -1143,6 +1164,18 @@ struct ContextToolbar: View {
         Group {
             toolButton("square.2.layers.3d.top.filled", "Forward") { store.reorderSelected(.forward) }
             toolButton("square.2.layers.3d.bottom.filled", "Backward") { store.reorderSelected(.backward) }
+        }
+    }
+
+    /// A grid's Spacing, in page units, and Corners, in percent of each
+    /// cell's shorter side — each release one Undo, as every slider here.
+    @ViewBuilder
+    private func gridControls(_ cells: [Element]) -> some View {
+        sliderControl("Spacing", value: PhotoGrids.spacing(of: cells), in: 0...PhotoGrids.maxSpacing) { v in
+            store.setGridSpacingTransient(v)
+        }
+        sliderControl("Corners", value: PhotoGrids.corners(of: cells), in: 0...PhotoGrids.maxCorners) { v in
+            store.setGridCornersTransient(v)
         }
     }
 
@@ -1415,9 +1448,11 @@ struct ContextToolbar: View {
         "\(label) \(Self.readoutValue(label, value))"
     }
 
-    /// The number a slider shows: a percentage for opacity, else whole.
+    /// The number a slider shows: a percentage for opacity and a grid's
+    /// corners, else whole.
     static func readoutValue(_ label: String, _ value: Double) -> String {
-        label == "Opacity" ? "\(Int((value * 100).rounded()))%" : "\(Int(value.rounded()))"
+        if label == "Opacity" { return "\(Int((value * 100).rounded()))%" }
+        return label == "Corners" ? "\(Int(value.rounded()))%" : "\(Int(value.rounded()))"
     }
 
     private func alignIcon(_ align: String?) -> String {

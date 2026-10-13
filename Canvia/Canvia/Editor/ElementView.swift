@@ -40,6 +40,7 @@ struct ElementView: View {
     @Environment(\.exitTime) private var exitTime
     @Environment(\.pageNumber) private var pageNumber
     @Environment(\.liveVideo) private var liveVideo
+    @Environment(\.playsPictures) private var playsPictures
 
     /// The element with "{page}" and "{pages}" filled in, where the page is
     /// known: what a reveal counts and cuts, so the words that appear are the
@@ -95,7 +96,20 @@ struct ElementView: View {
                 el.src = VideoStore.atRest(el)
             }
         }
+        // An animated picture shows the frame the page's moment falls on
+        // while the page plays, looping; at rest, its first.
+        if let clock = animationTime, AnimStore.isAnim(el.src) {
+            el.src = AnimStore.playing(el.src, at: clock.time)
+        }
         return el
+    }
+
+    /// `el` as it shows at `date` on a picture's own clock, which goes
+    /// round from the start of the hour.
+    private static func playing(_ el: Element, at date: Date) -> Element {
+        var out = el
+        out.src = AnimStore.playing(el.src, at: date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3600))
+        return out
     }
 
     var body: some View {
@@ -130,7 +144,16 @@ struct ElementView: View {
         switch el.type {
         case .shape: ShapeElementView(element: el)
         case .text: TextElementView(element: el)
-        case .image: ImageElementView(element: el)
+        case .image:
+            if playsPictures && animationTime == nil && AnimStore.isAnim(el.src) {
+                // Play in the editor: the picture on a clock of its own, going
+                // round for as long as it is on the canvas.
+                TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
+                    ImageElementView(element: Self.playing(el, at: context.date))
+                }
+            } else {
+                ImageElementView(element: el)
+            }
         case .sticker: StickerElementView(element: el)
         case .line: LineElementView(element: el)
         }
@@ -721,7 +744,9 @@ struct ImageElementView: View {
         } else {
             guard let image = PhotoLibrary.resolve(element.src) else { return nil }
             base = image
-            key = element.src ?? ""
+            // An animated picture's looks are kept by the frame shown, not
+            // the moment asked for, so a frame held is never made again.
+            key = element.src.map { AnimStore.isAnim($0) ? AnimStore.shownKey($0) : $0 } ?? ""
         }
         return (base, key)
     }

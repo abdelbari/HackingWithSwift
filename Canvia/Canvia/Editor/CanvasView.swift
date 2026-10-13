@@ -32,6 +32,8 @@ struct CanvasView: View {
     @State private var guidePositionText = ""
     /// Scroll through pages, from the More menu: on unless turned off.
     @AppStorage(PageColumn.key) private var pageScroll = true
+    /// Play in the editor: animated pictures play on the canvas.
+    @AppStorage(AnimStore.playKey) private var playAnimated = false
     /// The canvas's width, which the column of pages is fitted to.
     @State private var canvasWidth = 0.0
     /// A page the column itself made the one worked — scrolled to, tapped
@@ -284,6 +286,7 @@ struct CanvasView: View {
                 .environment(\.liveVideo, store.previewTime != nil)
                 // A photo's subject is found for focus off the main thread.
                 .environment(\.onScreen, true)
+                .environment(\.playsPictures, playAnimated)
                 // Carries the document edge in dark mode, where a shadow on a
                 // dark workspace is invisible.
                 .overlay(Rectangle().stroke(Theme.hairline, lineWidth: 1 * iz))
