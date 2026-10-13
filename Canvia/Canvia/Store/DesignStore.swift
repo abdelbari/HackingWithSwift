@@ -72,6 +72,10 @@ final class DesignStore {
     /// alerts — has the keyboard, so plain keys are left to it.
     var textFieldOpen = false
 
+    /// Check accessibility's "Show reading order": each element numbered on
+    /// the canvas in the order VoiceOver reads it. View state only.
+    var showsReadingOrder = false
+
     // The canvas's view of the page, mirrored from the scroll view: the part
     // of the page on screen, in page units, and the zoom that fits it all.
     // View state only — never saved.
@@ -1302,9 +1306,16 @@ final class DesignStore {
 
     /// Show a match: switch to its page and select its element.
     func reveal(_ match: TextMatch) {
-        guard design.pages.indices.contains(match.pageIndex) else { return }
-        pageIndex = match.pageIndex
-        selection = [match.elementId]
+        reveal(elementId: match.elementId, onPage: match.pageIndex)
+    }
+
+    /// Switch to page `index` and select `elementId` there — or only the
+    /// page, for a finding about the page as a whole. The editor keeps the
+    /// selection in sight under the sheet.
+    func reveal(elementId: String?, onPage index: Int) {
+        guard design.pages.indices.contains(index) else { return }
+        pageIndex = index
+        selection = elementId.map { Set([$0]) } ?? []
     }
 
     // MARK: style
@@ -2038,20 +2049,55 @@ final class DesignStore {
     }
 
     func magicResize(width: Double, height: Double) {
-        guard width != design.width || height != design.height || design.hasMixedPageSizes else { return }
-        let next = Self.reflowed(design, width: width, height: height)
+        reflowWhole(width: width, height: height, units: nil)
+    }
+
+    /// Reflowed in place, and the design takes that unit and dpi in the same
+    /// step — an A4 size chosen makes it an A4 page.
+    func magicResize(width: Double, height: Double, units: UnitChoice) {
+        reflowWhole(width: width, height: height, units: units)
+    }
+
+    private func reflowWhole(width: Double, height: Double, units: UnitChoice?) {
+        guard width != design.width || height != design.height || design.hasMixedPageSizes
+                || changesUnits(units) else { return }
+        var next = Self.reflowed(design, width: width, height: height)
+        if let units {
+            next.unit = units.unit
+            next.dpi = units.dpi
+        }
         apply { $0 = next }
         announce("Reflowed to \(Int(width)) × \(Int(height))")
         buzz(.confirm)
+    }
+
+    /// Whether `units` would change the design's unit or dpi.
+    private func changesUnits(_ units: UnitChoice?) -> Bool {
+        guard let units else { return false }
+        return units.unit != design.unit || units.dpi != design.dpi
     }
 
     /// Uniformly rescale all content to a new canvas size. Scaling to *fit*
     /// (and centring on both axes) keeps content on the page when the aspect
     /// ratio changes; scaling by width alone would push it off the bottom.
     func resizeDesign(width: Double, height: Double) {
-        guard width != design.width || height != design.height || design.hasMixedPageSizes else { return }
+        scaleWhole(width: width, height: height, units: nil)
+    }
+
+    /// The same, the design taking that unit and dpi in the same step.
+    func resizeDesign(width: Double, height: Double, units: UnitChoice) {
+        scaleWhole(width: width, height: height, units: units)
+    }
+
+    private func scaleWhole(width: Double, height: Double, units: UnitChoice?) {
+        guard width != design.width || height != design.height || design.hasMixedPageSizes
+                || changesUnits(units) else { return }
         let new = CGSize(width: width, height: height)
         apply { d in
+            if let units {
+                d.unit = units.unit
+                d.dpi = units.dpi
+            }
             // Guides go where the content they line up goes: scaled with the
             // page and centred with it. Left where they were, they sat on
             // empty space after a change of shape.

@@ -31,6 +31,10 @@ struct ElementAnimation: Codable, Equatable {
 
     var loops: Bool { Self.loopKinds.contains(kind) }
 
+    /// How long one cycle of a loop takes, in seconds; nil for a move that
+    /// settles. What Check accessibility measures for flashing.
+    var period: Double? { loops ? Self.loopPeriod : nil }
+
     /// The ways out, in the order the Exit menu offers them. Any other kind
     /// leaves as a fade.
     static let exitKinds = ["fade", "rise", "pop", "slideLeft", "slideRight"]

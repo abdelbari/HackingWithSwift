@@ -36,6 +36,9 @@ extension DesignLibrary {
         /// The design file's modification time when this was read from it,
         /// in epoch milliseconds.
         var modified: Double
+        /// Its unit and dpi, when it is measured in mm, cm or inches.
+        var unit: String?
+        var dpi: Double?
 
         init(_ design: Design, id: String, modified: Double) {
             self.id = id
@@ -47,6 +50,8 @@ extension DesignLibrary {
             createdAt = design.createdAt
             folder = design.folder
             self.modified = modified
+            unit = design.physicalUnit
+            dpi = design.physicalUnit == nil ? nil : design.dpi
         }
     }
 
@@ -115,7 +120,7 @@ extension DesignLibrary {
         shelf.designs = entries.map { entry in
             RecentDesign(id: entry.id, title: entry.title, width: entry.width, height: entry.height,
                          pages: entry.pages, updatedAt: entry.updatedAt, folder: entry.folder,
-                         thumbnailStamp: stamps[entry.id])
+                         thumbnailStamp: stamps[entry.id], unit: entry.unit, dpi: entry.dpi)
         }
         .sorted { $0.updatedAt > $1.updatedAt }
         return shelf

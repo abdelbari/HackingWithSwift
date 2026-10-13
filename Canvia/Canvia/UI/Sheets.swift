@@ -1398,24 +1398,30 @@ struct LayersSheet: View {
 /// under the fields, and applied only when both sides are in it — as the
 /// custom-size sheet on Home checks it, and as the Android twin's Resize
 /// does. It used to clamp whatever was typed, and make a size nobody asked
-/// for.
+/// for. Typed in px, in, mm or cm; a physical unit is made at 300 dpi.
 private struct ResizeCustomSection: View {
     @Binding var customW: String
     @Binding var customH: String
+    @Binding var unit: String
     let onResize: (Double, Double) -> Void
 
     var body: some View {
-        let size = CustomSizes.size(width: customW, height: customH)
-        let typedWrong = !customW.isEmpty && CustomSizes.side(customW) == nil
-            || !customH.isEmpty && CustomSizes.side(customH) == nil
+        let size = CustomSizes.size(width: customW, height: customH, unit: unit)
+        let typedWrong = !customW.isEmpty && CustomSizes.side(customW, unit: unit) == nil
+            || !customH.isEmpty && CustomSizes.side(customH, unit: unit) == nil
         return Section {
+            UnitPicker(unit: $unit)
+                .onChange(of: unit) { old, new in
+                    customW = CustomSizes.convert(customW, from: old, to: new)
+                    customH = CustomSizes.convert(customH, from: old, to: new)
+                }
             HStack {
-                TextField("Width", text: $customW).keyboardType(.numberPad)
+                TextField("Width", text: $customW).keyboardType(unit == "px" ? .numberPad : .decimalPad)
                 Text("×")
-                TextField("Height", text: $customH).keyboardType(.numberPad)
-                Text("px").foregroundStyle(.secondary)
+                TextField("Height", text: $customH).keyboardType(unit == "px" ? .numberPad : .decimalPad)
+                Text(unit).foregroundStyle(.secondary)
             }
-            Button(CustomSizes.resizeTitle(width: customW, height: customH)) {
+            Button(CustomSizes.resizeTitle(width: customW, height: customH, unit: unit)) {
                 guard let size else { return }
                 onResize(size.width, size.height)
             }
@@ -1424,36 +1430,66 @@ private struct ResizeCustomSection: View {
         } header: {
             Text("Custom")
         } footer: {
-            Text(typedWrong ? CustomSizes.outOfRangeText : "Each side \(CustomSizes.rangeText) pixels.")
+            Text(typedWrong ? CustomSizes.outOfRangeText : "Each side \(CustomSizes.rangeText).")
                 .foregroundStyle(typedWrong ? Color(.systemRed) : Color.secondary)
         }
-        // Digits only, five at most, however they arrive.
+        // Digits only, five at most, however they arrive; one decimal point
+        // in a physical unit.
         .onChange(of: customW) { _, typed in
-            let clean = CustomSizes.digits(typed)
+            let clean = CustomSizes.field(typed, unit: unit)
             if clean != typed { customW = clean }
         }
         .onChange(of: customH) { _, typed in
-            let clean = CustomSizes.digits(typed)
+            let clean = CustomSizes.field(typed, unit: unit)
             if clean != typed { customH = clean }
         }
     }
 }
 
+/// Two ways to a new size: resize this design in place — reflowed or
+/// scaled, the whole of it or this page — or Copy & resize, which ticks any
+/// number of sizes and makes a new design at each, leaving this one alone.
+/// Copy & resize is where it opens when there is anything on the page.
 struct ResizeSheet: View {
     @Bindable var store: DesignStore
+    /// Told the copies Copy & resize made, for the editor's "Made 3 resized
+    /// copies".
+    var onCopies: ([Design]) -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var copying: Bool
     @State private var customW = ""
     @State private var customH = ""
+    @State private var unit = "px"
     @State private var reflow = true
     @State private var pageOnly = false
+    @State private var ticked: [ResizeTarget] = []
+    @State private var progress: String?
+    @State private var task: Task<Void, Never>?
 
-    private func resize(_ w: Double, _ h: Double) {
+    /// `copying` picks the mode it opens in; nil is Copy & resize when the
+    /// design has anything on it, else Resize this design.
+    init(store: DesignStore, copying: Bool? = nil, onCopies: @escaping ([Design]) -> Void = { _ in }) {
+        _store = Bindable(wrappedValue: store)
+        self.onCopies = onCopies
+        _copying = State(initialValue: copying ?? CopyResize.hasContent(store.design))
+        // In the design's own unit, at its size as it reads — a poster at
+        // 96 dpi is 420 × 594 mm — as Android's Resize fills it. Set here
+        // rather than on appear, so the unit picker's change never converts
+        // the fields a second time; a size typed on paper is made at 300 dpi.
+        let own = store.design.physicalUnit ?? "px"
+        let dpi = store.design.effectiveDPI
+        _unit = State(initialValue: own)
+        _customW = State(initialValue: Units.format(Units.value(ofPixels: store.pageWidth, unit: own, dpi: dpi), unit: own))
+        _customH = State(initialValue: Units.format(Units.value(ofPixels: store.pageHeight, unit: own, dpi: dpi), unit: own))
+    }
+
+    private func resize(_ w: Double, _ h: Double, units: UnitChoice) {
         if pageOnly {
             store.resizePage(width: w, height: h, reflow: reflow)
         } else if reflow {
-            store.magicResize(width: w, height: h)
+            store.magicResize(width: w, height: h, units: units)
         } else {
-            store.resizeDesign(width: w, height: h)
+            store.resizeDesign(width: w, height: h, units: units)
         }
     }
 
@@ -1461,59 +1497,98 @@ struct ResizeSheet: View {
         NavigationStack {
             List {
                 Section {
-                    Picker("How", selection: $reflow) {
-                        Text("Reflow").tag(true)
-                        Text("Scale").tag(false)
+                    Picker("Mode", selection: $copying) {
+                        Text("Resize this design").tag(false)
+                        Text("Copy & resize").tag(true)
                     }
                     .pickerStyle(.segmented)
                 } footer: {
-                    Text(reflow
-                         ? "Reflow keeps each element's place on the new page — a footer stays at the foot, a corner logo in its corner — and sizes follow the smaller ratio."
-                         : "Scale shrinks or grows everything uniformly to fit, centred, leaving margins when the shape changes.")
+                    Text(copying
+                         ? "A new design for each size ticked, reflowed to fit, in the same folder. This design stays as it is."
+                         : "Changes this design. Undo brings it back.")
                 }
-                if store.design.pages.count > 1 {
-                    Section {
-                        Picker("Apply to", selection: $pageOnly) {
-                            Text("Whole design").tag(false)
-                            Text("This page only").tag(true)
-                        }
-                        .pickerStyle(.segmented)
-                    } footer: {
-                        Text(pageOnly
-                             ? "Pages can have sizes of their own — a story after a square post. Exports, the video and the PDF keep each page's shape."
-                             : "Every page takes the new size; pages that had their own size join it.")
-                    }
-                }
-                Section("Presets") {
-                    ForEach(SizePreset.all) { preset in
-                        Button {
-                            resize(preset.w, preset.h)
-                            dismiss()
-                        } label: {
-                            HStack {
-                                Label(preset.name, systemImage: preset.icon)
-                                Spacer()
-                                Text("\(Int(preset.w)) × \(Int(preset.h))")
-                                    .foregroundStyle(.secondary)
-                                    .font(.footnote)
-                            }
-                        }
-                        .foregroundStyle(.primary)
-                    }
-                }
-                ResizeCustomSection(customW: $customW, customH: $customH) { w, h in
-                    resize(w, h)
-                    dismiss()
+                if copying {
+                    CopyResizeRows(ticked: $ticked)
+                } else {
+                    resizeRows
                 }
             }
-            .navigationTitle("Resize design")
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if copying {
+                    CopyResizeButton(count: ticked.count, progress: progress) { makeCopies() }
+                }
+            }
+            .navigationTitle(copying ? "Copy & resize" : "Resize design")
             .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                customW = String(Int(store.pageWidth))
-                customH = String(Int(store.pageHeight))
-            }
         }
         .presentationDetents(sheetDetents)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        .interactiveDismissDisabled(progress != nil)
+        .onDisappear { task?.cancel() }
+    }
+
+    @ViewBuilder
+    private var resizeRows: some View {
+        Section {
+            Picker("How", selection: $reflow) {
+                Text("Reflow").tag(true)
+                Text("Scale").tag(false)
+            }
+            .pickerStyle(.segmented)
+        } footer: {
+            Text(reflow
+                 ? "Reflow keeps each element's place on the new page — a footer stays at the foot, a corner logo in its corner — and sizes follow the smaller ratio."
+                 : "Scale shrinks or grows everything uniformly to fit, centred, leaving margins when the shape changes.")
+        }
+        if store.design.pages.count > 1 {
+            Section {
+                Picker("Apply to", selection: $pageOnly) {
+                    Text("Whole design").tag(false)
+                    Text("This page only").tag(true)
+                }
+                .pickerStyle(.segmented)
+            } footer: {
+                Text(pageOnly
+                     ? "Pages can have sizes of their own — a story after a square post. Exports, the video and the PDF keep each page's shape."
+                     : "Every page takes the new size; pages that had their own size join it.")
+            }
+        }
+        Section("Presets") {
+            ForEach(SizePreset.all) { preset in
+                Button {
+                    resize(preset.w, preset.h, units: UnitChoice(unit: preset.unit, dpi: preset.dpi))
+                    dismiss()
+                } label: {
+                    HStack {
+                        Label(preset.name, systemImage: preset.icon)
+                        Spacer()
+                        Text(preset.dimensions)
+                            .foregroundStyle(.secondary)
+                            .font(.footnote)
+                    }
+                }
+                .foregroundStyle(.primary)
+            }
+        }
+        ResizeCustomSection(customW: $customW, customH: $customH, unit: $unit) { w, h in
+            resize(w, h, units: .typed(unit))
+            dismiss()
+        }
+    }
+
+    /// One copy per size ticked, of the design as it is on screen; this
+    /// design is not touched and no undo step is recorded.
+    private func makeCopies() {
+        store.finishCrop()
+        store.endTextEdit()
+        let source = store.design
+        let targets = ticked
+        task = Task { @MainActor in
+            defer { progress = nil; task = nil }
+            guard let made = try? await CopyResize.make(source, targets: targets, progress: { progress = $0 }),
+                  !made.isEmpty else { return }
+            onCopies(made)
+            dismiss()
+        }
     }
 }

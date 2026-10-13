@@ -9,6 +9,9 @@ enum LaunchRequest {
 
     enum Request: Equatable {
         case newDesign(width: Double, height: Double, title: String)
+        /// A design type from the catalogue, by id, so it starts in its
+        /// unit: an A4 page as 210 × 297 mm.
+        case newType(id: String, title: String)
         case open(id: String)
     }
 
@@ -18,6 +21,8 @@ enum LaunchRequest {
         switch request {
         case .newDesign(let w, let h, let title):
             defaults.set(["kind": "new", "width": w, "height": h, "title": title] as [String: Any], forKey: key)
+        case .newType(let id, let title):
+            defaults.set(["kind": "type", "id": id, "title": title] as [String: Any], forKey: key)
         case .open(let id):
             defaults.set(["kind": "open", "id": id] as [String: Any], forKey: key)
         }
@@ -33,6 +38,9 @@ enum LaunchRequest {
         case "new":
             guard let w = dict["width"] as? Double, let h = dict["height"] as? Double, w > 0, h > 0 else { return nil }
             return .newDesign(width: w, height: h, title: dict["title"] as? String ?? "Untitled design")
+        case "type":
+            guard let id = dict["id"] as? String, !id.isEmpty else { return nil }
+            return .newType(id: id, title: dict["title"] as? String ?? "Untitled design")
         case "open":
             guard let id = dict["id"] as? String, !id.isEmpty else { return nil }
             return .open(id: id)

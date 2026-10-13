@@ -217,6 +217,7 @@ struct CanvasView: View {
                 if store.snapping.showGrid { gridOverlay }
                 if store.snapping.marginEnabled && store.snapping.showMargins { marginOverlay }
                 ForEach(store.design.guides) { guide in guideLine(guide) }
+                if store.showsReadingOrder { readingOrderOverlay }
             }
 
             if store.page.elements.isEmpty {
@@ -805,6 +806,31 @@ struct CanvasView: View {
     }
 
     /// The safe area as a dashed inset. Like the grid, never exported.
+    /// Check accessibility's "Show reading order": each element shown on
+    /// the page numbered in the order VoiceOver reads it, at its top left.
+    /// Never in an export, and nothing to touch.
+    private var readingOrderOverlay: some View {
+        let shown = store.page.elements.filter { !$0.isHidden }
+        let order = CanvasAccessibility.readingOrder(shown, pageHeight: store.pageHeight)
+        let boxes = Dictionary(shown.map { ($0.id, Geometry.aabb($0)) }, uniquingKeysWith: { first, _ in first })
+        return ZStack {
+            ForEach(order.indices, id: \.self) { n in
+                if let box = boxes[order[n]] {
+                    Text("\(n + 1)")
+                        .font(.system(size: 13, weight: .bold).monospacedDigit())
+                        .foregroundStyle(.white)
+                        .frame(minWidth: 22, minHeight: 22)
+                        .background(Theme.accent, in: Capsule())
+                        .scaleEffect(iz)
+                        .position(x: box.minX, y: box.minY)
+                }
+            }
+        }
+        .frame(width: store.pageWidth, height: store.pageHeight)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
     private var marginOverlay: some View {
         let m = store.snapping.marginInset(for: store.pageSize)
         return Rectangle()

@@ -18,13 +18,14 @@ final class PagesAndResizeParityTests: XCTestCase {
 
     func testASideOutOfRangeIsRefusedRatherThanClamped() {
         XCTAssertNil(CustomSizes.size(width: "39", height: "1000"))
-        XCTAssertNil(CustomSizes.size(width: "1000", height: "4001"))
+        XCTAssertNil(CustomSizes.size(width: "1000", height: "8001"))
         XCTAssertNil(CustomSizes.size(width: "", height: "1000"))
-        XCTAssertEqual(CustomSizes.resizeTitle(width: "8000", height: "8000"), "Enter a size from 40 to 4000")
+        XCTAssertEqual(CustomSizes.resizeTitle(width: "9000", height: "9000"), "Enter a size from 40 to 8000 px")
     }
 
+    /// 40 to 8000 px on both phones, as the Android twin has it.
     func testTheRangeEndsAreAllowed() {
-        XCTAssertNotNil(CustomSizes.size(width: "40", height: "4000"))
+        XCTAssertNotNil(CustomSizes.size(width: "40", height: "8000"))
     }
 
     // MARK: resize says so

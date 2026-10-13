@@ -62,7 +62,7 @@ enum HelpTopics {
                   body: "Export makes PNG, JPEG, PDF, SVG, MP4 and GIF at any size, saves straight to Photos, copies to the clipboard, or prints. Choose this page, every page, or just the selection.",
                   keywords: ["share", "png", "pdf", "video", "gif", "print", "save", "size"], opens: .export),
         HelpTopic(id: "resize", title: "Changing the design's size",
-                  body: "Resize takes the design — or just this page — to another size. Reflow rearranges everything to fit the new shape, a footer staying at the foot and a logo in its corner; Scale shrinks or grows it whole, centred. Pick a preset or type a size, and one Undo takes it back.",
+                  body: "Resize takes the design — or just this page — to another size. Reflow rearranges everything to fit the new shape, a footer staying at the foot and a logo in its corner; Scale shrinks or grows it whole, centred. Pick a preset or type a size — in px, in, mm or cm — and one Undo takes it back. Copy & resize instead makes a new design at each size you tick and leaves this one as it is.",
                   keywords: ["size", "dimensions", "canvas", "reflow", "scale", "page"], opens: .resize),
         HelpTopic(id: "snap", title: "Snapping and the grid",
                   body: "Snapping to the page, to other elements and to a grid each have a switch under Snapping in the menu. A snap line says what it has lined things up with — the centre of the page, another element, your own guide. The grid can be shown on the canvas; it is never exported. Add guides lays out columns, rows and margins as guides, and pressing and holding a guide places it at a position you type. Position has arrows that nudge by 1, 10 or 100.",
@@ -71,7 +71,7 @@ enum HelpTopics {
                   body: "With a hardware keyboard: ⌘Z undo, ⇧⌘Z or ⌘Y redo, ⌘C/⌘X/⌘V copy, cut, paste, ⌘D duplicate, ⌘A select all, ⌘G group, ⌘F find, ⌘E export.",
                   keywords: ["shortcut", "ipad", "command"], opens: nil),
         HelpTopic(id: "voiceover", title: "VoiceOver and accessibility",
-                  body: "Every element on the canvas is named and can be moved, duplicated, deleted or reordered from the VoiceOver actions rotor. Reduce Motion, Increase Contrast and Differentiate Without Colour are honoured.",
+                  body: "Every element on the canvas is named and can be moved, duplicated, deleted or reordered from the VoiceOver actions rotor. Reduce Motion, Increase Contrast and Differentiate Without Colour are honoured. More ▸ Check accessibility finds hard-to-read text, pictures with no alt text, text under 12 px and flashing, each with a way to fix it.",
                   keywords: ["accessibility", "voice", "motion", "contrast"], opens: nil),
     ]
 

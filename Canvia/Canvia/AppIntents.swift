@@ -4,7 +4,9 @@
 import AppIntents
 import Foundation
 
-enum DesignSizeChoice: String, AppEnum {
+enum DesignSizeChoice: String, AppEnum, CaseIterable {
+    // Every design type in the catalogue, by its id and in its order — the
+    // shared sizes.json — so a size Android asks for by id is one here too.
     case instagramPost = "insta-post"
     case instagramStory = "insta-story"
     case presentation
@@ -12,6 +14,39 @@ enum DesignSizeChoice: String, AppEnum {
     case facebookPost = "facebook-post"
     case poster
     case flyer
+    case a4
+    case businessCard = "business-card"
+    case quoteCard = "quote-card"
+    case logo
+    case usLetter = "us-letter"
+    case tiktokVideo = "tiktok-video"
+    case instaReel = "insta-reel"
+    case youtubeVideo = "youtube-video"
+    case youtubeBanner = "youtube-banner"
+    case videoCallBackground = "video-call-background"
+    case instaPortrait = "insta-portrait"
+    case facebookStory = "facebook-story"
+    case facebookCover = "facebook-cover"
+    case linkedinPost = "linkedin-post"
+    case linkedinBanner = "linkedin-banner"
+    case xPost = "x-post"
+    case xHeader = "x-header"
+    case pinterestPin = "pinterest-pin"
+    case phoneWallpaper = "phone-wallpaper"
+    case desktopWallpaper = "desktop-wallpaper"
+    case presentation43 = "presentation-4x3"
+    case invitation
+    case postcard
+    case menu
+    case flyerLetter = "flyer-letter"
+    case posterA3 = "a3-poster"
+    case resumeA4 = "resume-a4"
+    case resumeLetter = "resume-letter"
+    case certificate
+    case infographic
+    case emailHeader = "email-header"
+    case brochure
+    case displayAd = "display-ad"
 
     static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Design Size")
     static var caseDisplayRepresentations: [DesignSizeChoice: DisplayRepresentation] = [
@@ -22,6 +57,39 @@ enum DesignSizeChoice: String, AppEnum {
         .facebookPost: "Facebook Post",
         .poster: "Poster",
         .flyer: "Flyer",
+        .a4: "A4 Document",
+        .businessCard: "Business Card",
+        .quoteCard: "Quote Card",
+        .logo: "Logo",
+        .usLetter: "US Letter Document",
+        .tiktokVideo: "TikTok Video",
+        .instaReel: "Instagram Reel",
+        .youtubeVideo: "YouTube Video",
+        .youtubeBanner: "YouTube Banner",
+        .videoCallBackground: "Video Call Background",
+        .instaPortrait: "Instagram Portrait Post",
+        .facebookStory: "Facebook Story",
+        .facebookCover: "Facebook Cover",
+        .linkedinPost: "LinkedIn Post",
+        .linkedinBanner: "LinkedIn Banner",
+        .xPost: "X Post",
+        .xHeader: "X Header",
+        .pinterestPin: "Pinterest Pin",
+        .phoneWallpaper: "Phone Wallpaper",
+        .desktopWallpaper: "Desktop Wallpaper",
+        .presentation43: "Presentation (4:3)",
+        .invitation: "Invitation",
+        .postcard: "Postcard",
+        .menu: "Menu",
+        .flyerLetter: "Flyer (US Letter)",
+        .posterA3: "Poster (A3)",
+        .resumeA4: "Resume (A4)",
+        .resumeLetter: "Resume (US Letter)",
+        .certificate: "Certificate",
+        .infographic: "Infographic",
+        .emailHeader: "Email Header",
+        .brochure: "Brochure",
+        .displayAd: "Display Ad",
     ]
 
     /// The home screen's preset this stands for.
@@ -44,10 +112,12 @@ struct NewDesignIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        let preset = size.preset ?? SizePreset.all.first ?? SizePreset(id: "square", name: "Square", w: 1080, h: 1080, icon: "square")
+        let typeName = size.preset?.name ?? "Design"
         let title = name?.trimmingCharacters(in: .whitespaces)
-        LaunchRequest.set(.newDesign(width: preset.w, height: preset.h,
-                                     title: (title?.isEmpty ?? true) ? "Untitled \(preset.name)" : title!))
+        // By id, so the design starts in its type's unit; a type this build
+        // no longer lists is the first one.
+        LaunchRequest.set(.newType(id: size.rawValue,
+                                   title: (title?.isEmpty ?? true) ? "Untitled \(typeName)" : title!))
         return .result()
     }
 }

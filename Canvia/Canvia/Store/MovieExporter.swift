@@ -132,6 +132,61 @@ enum MovieExporter {
         Double(frameCount(design: design, settings: settings)) / Double(max(settings.fps, 1))
     }
 
+    /// The same for the pages Export plays: all shown, the page on screen
+    /// (`current`), or those chosen.
+    static func seconds(design: Design, settings: Settings, range: DesignExporter.PageRange,
+                        current: Int) -> Double {
+        let pages = playedPages(design: design, range: range, current: current)
+        let frames = timeline(design: design, pages: pages, settings: settings).last?.end ?? 1
+        return Double(frames) / Double(max(settings.fps, 1))
+    }
+
+    /// The pages a video plays, by index, in the design's order: every page
+    /// shown, as Present shows them, for `.all`; the page on screen; or the
+    /// pages chosen in Export — a hidden one too, since it was ticked.
+    static func playedPages(design: Design, range: DesignExporter.PageRange, current: Int) -> [Int] {
+        range.indices(in: design, current: current)
+    }
+
+    // MARK: resolution
+
+    /// The video's size as Export offers it: 720p, 1080p or 4K, each a
+    /// longest side the design is fitted under — never enlarged past its
+    /// own pixels — with the same frame maths as on Android.
+    enum Resolution: String, CaseIterable, Identifiable {
+        case hd = "720p", fullHD = "1080p", uhd = "4K"
+
+        var id: String { rawValue }
+
+        var maxEdge: Double {
+            switch self {
+            case .hd: return 1280
+            case .fullHD: return 1920
+            case .uhd: return 3840
+            }
+        }
+
+        static let standard = Resolution.fullHD
+    }
+
+    /// Whether this phone's encoder takes a 4K H.264 video; 4K is offered
+    /// only then.
+    static let supports4K: Bool = {
+        let probe = FileManager.default.temporaryDirectory.appendingPathComponent("canvia-4k-probe.mp4")
+        try? FileManager.default.removeItem(at: probe)
+        guard let writer = try? AVAssetWriter(outputURL: probe, fileType: .mp4) else { return false }
+        return writer.canApply(outputSettings: [
+            AVVideoCodecKey: AVVideoCodecType.h264,
+            AVVideoWidthKey: 3840,
+            AVVideoHeightKey: 2160,
+        ], forMediaType: .video)
+    }()
+
+    /// The resolutions this phone can make.
+    static var resolutions: [Resolution] {
+        Resolution.allCases.filter { $0 != .uhd || supports4K }
+    }
+
     /// The page a frame belongs to, and how far through it.
     static func locate(frame index: Int, in timings: [Timing]) -> (page: Int, progress: Double, remaining: Int) {
         guard !timings.isEmpty else { return (0, 0, 1) }
@@ -158,8 +213,10 @@ enum MovieExporter {
 
     static let gifBudget = 8_000_000
 
-    static func gifPlan(design: Design, settings: Settings, budget: Int = gifBudget) -> GIFPlan {
-        let seconds = timeline(design: design, settings: settings)
+    static func gifPlan(design: Design, settings: Settings, budget: Int = gifBudget,
+                        range: DesignExporter.PageRange = .all, current: Int = 0) -> GIFPlan {
+        let played = playedPages(design: design, range: range, current: current)
+        let seconds = timeline(design: design, pages: played, settings: settings)
             .reduce(0.0) { $0 + Double($1.frames) / Double(max(settings.fps, 1)) }
         let aspect = max(design.width, 1) / max(design.height, 1)
         var last = GIFPlan(maxEdge: 240, fps: 10)
@@ -379,15 +436,16 @@ enum MovieExporter {
     /// and the caller says so.
     @MainActor
     @discardableResult
-    static func exportMP4(design: Design, settings: Settings = Settings(), to url: URL,
+    static func exportMP4(design: Design, settings: Settings = Settings(),
+                          range: DesignExporter.PageRange = .all, current: Int = 0, to url: URL,
                           progress: (@Sendable (Double) -> Void)? = nil) async throws -> Outcome {
         try? FileManager.default.removeItem(at: url)
         let size = videoSize(for: design, maxEdge: settings.maxEdge)
         var pacer = DesignExporter.Pacer()
         // The pages Present shows: hidden ones are left out of the video,
         // and so of the length its music is fitted to, and their clips out
-        // of its sound.
-        let shown = design.visiblePageIndices
+        // of its sound. Or the pages chosen in Export, in order.
+        let shown = playedPages(design: design, range: range, current: current)
         let pages = try await pageImages(design: design, pages: shown, size: size, pacer: &pacer)
         guard !pages.isEmpty else { throw MovieError.nothingToRender }
 
@@ -637,19 +695,20 @@ enum MovieExporter {
     /// actor with a pause every so often, so the progress bar moves and a
     /// Cancel stops it between frames, leaving no file behind.
     @MainActor
-    static func exportGIF(design: Design, settings: Settings = Settings(), to url: URL,
+    static func exportGIF(design: Design, settings: Settings = Settings(),
+                          range: DesignExporter.PageRange = .all, current: Int = 0, to url: URL,
                           progress: ((Double) -> Void)? = nil) async throws {
         // Sized to a budget and paced at a rate the format can state
         // exactly; see gifPlan.
-        let plan = gifPlan(design: design, settings: settings)
+        let plan = gifPlan(design: design, settings: settings, range: range, current: current)
         var gifSettings = settings
         gifSettings.fps = plan.fps
         gifSettings.maxEdge = min(settings.maxEdge, plan.maxEdge)
 
         let size = videoSize(for: design, maxEdge: gifSettings.maxEdge)
         var pacer = DesignExporter.Pacer()
-        // The pages shown, as the video plays them.
-        let shown = design.visiblePageIndices
+        // The pages shown, as the video plays them, or those chosen.
+        let shown = playedPages(design: design, range: range, current: current)
         let pages = try await pageImages(design: design, pages: shown, size: size, pacer: &pacer)
         guard !pages.isEmpty else { throw MovieError.nothingToRender }
 

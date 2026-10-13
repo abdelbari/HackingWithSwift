@@ -22,14 +22,15 @@ enum CustomSizes {
     /// As many as fit on one row of chips.
     static let limit = 4
 
-    /// The sides this app makes. Held where they were rather than widened
-    /// to the Android twin's 32 to 10000: the canvas and the export budget
-    /// were both sized around a 4000 × 4000 page.
-    static let range: ClosedRange<Double> = 40...4000
+    /// The sides this app makes, in pixels once a size typed in another
+    /// unit is converted: 40 to 8000, the same limit and words on both
+    /// phones. The export budget renders a page this big at a lower scale
+    /// rather than refusing it.
+    static let range: ClosedRange<Double> = Units.pixelRange
     /// Stated up front, under the field, rather than first heard of as a
     /// Create button that does nothing.
-    static let rangeText = "40 to 4000"
-    static let outOfRangeText = "Must be 40 to 4000"
+    static let rangeText = Units.rangeText
+    static let outOfRangeText = Units.outOfRangeText
 
     /// Four ratios, each keeping the width and setting the height from it.
     static let ratios: [(label: String, ratio: Double)] = [
@@ -42,38 +43,85 @@ enum CustomSizes {
         String(text.filter { $0.isASCII && $0.isNumber }.prefix(5))
     }
 
-    /// The side a field holds, or nil when it is empty or out of range.
-    static func side(_ text: String) -> Double? {
-        guard let value = Double(text), range.contains(value) else { return nil }
-        return value
+    /// What a side's field keeps in `unit`: digits in pixels; digits and
+    /// one decimal point, seven characters at most, in mm, cm or inches.
+    static func field(_ text: String, unit: String) -> String {
+        guard Units.isPhysical(unit) else { return digits(text) }
+        var out = ""
+        var point = false
+        for ch in text where ch.isASCII && (ch.isNumber || ch == "." || ch == ",") {
+            if ch == "." || ch == "," {
+                guard !point else { continue }
+                point = true
+                out.append(".")
+            } else {
+                out.append(ch)
+            }
+        }
+        return String(out.prefix(7))
     }
 
-    /// Both sides as typed, when both are in range; nil otherwise.
-    static func size(width: String, height: String) -> (width: Double, height: Double)? {
-        guard let w = side(width), let h = side(height) else { return nil }
+    /// The side a field holds, in whole pixels — typed in `unit`, at 300
+    /// dpi when that is a physical one — or nil when it is empty or out of
+    /// range once converted.
+    static func side(_ text: String, unit: String = "px") -> Double? {
+        guard let value = Double(text), value > 0 else { return nil }
+        let px = Units.pixels(value, unit: unit, dpi: Units.printDPI)
+        return range.contains(px) ? px : nil
+    }
+
+    /// Both sides as typed, in pixels, when both are in range; nil otherwise.
+    static func size(width: String, height: String, unit: String = "px") -> (width: Double, height: Double)? {
+        guard let w = side(width, unit: unit), let h = side(height, unit: unit) else { return nil }
         return (w, h)
     }
 
     /// What Resize's custom button says: the size it will make, or, until
     /// both sides are in range, the range to type — as the Android twin's
     /// Resize button reads.
-    static func resizeTitle(width: String, height: String) -> String {
-        guard let size = size(width: width, height: height) else { return "Enter a size from \(rangeText)" }
-        return "Resize to \(Int(size.width)) × \(Int(size.height))"
+    static func resizeTitle(width: String, height: String, unit: String = "px") -> String {
+        guard let size = size(width: width, height: height, unit: unit) else { return "Enter a size from \(rangeText)" }
+        return "Resize to \(title(width: size.width, height: size.height, unit: unit))"
     }
 
     /// The height a ratio gives the width in the field — 1080 when the
     /// field holds nothing — truncated as the Android twin truncates it,
     /// and not clamped: a ratio that runs past the range says so under the
-    /// field rather than quietly becoming another ratio.
-    static func height(forWidth text: String, ratio: Double) -> String {
+    /// field rather than quietly becoming another ratio. In mm, cm or
+    /// inches, to the places the unit is shown in.
+    static func height(forWidth text: String, ratio: Double, unit: String = "px") -> String {
         let base = Double(text) ?? 1080
-        return String(Int(base / ratio))
+        guard Units.isPhysical(unit) else { return String(Int(base / ratio)) }
+        return Units.format(base / ratio, unit: unit)
+    }
+
+    /// A side typed in one unit, written in another: what a field holds
+    /// when the unit picker changes, so the size stays the size.
+    static func convert(_ text: String, from old: String, to new: String) -> String {
+        guard old != new, let value = Double(text), value > 0 else { return text }
+        let px = Units.pixels(value, unit: old, dpi: Units.printDPI)
+        return Units.format(Units.value(ofPixels: px, unit: new, dpi: Units.printDPI), unit: new)
     }
 
     /// A new design's name: its size, "1600 × 900".
     static func title(width: Double, height: Double) -> String {
         "\(Int(width)) × \(Int(height))"
+    }
+
+    /// The same in the unit it was typed in: "210 × 297 mm".
+    static func title(width: Double, height: Double, unit: String) -> String {
+        Units.dimensions(width: width, height: height, unit: unit, dpi: Units.printDPI)
+    }
+
+    /// A blank design of the size typed: whole pixels, and in a physical
+    /// unit that unit at 300 dpi.
+    static func design(width: Double, height: Double, unit: String) -> Design {
+        var design = Design(title: title(width: width, height: height, unit: unit), width: width, height: height)
+        if Units.isPhysical(unit) {
+            design.unit = unit
+            design.dpi = Units.printDPI
+        }
+        return design
     }
 
     /// The sizes last made here, newest first; entries that do not read as

@@ -277,6 +277,13 @@ struct Design: Codable, Equatable, Identifiable {
     /// CustomFonts). Nil, and not written, when there are none; brought up
     /// to date by every save.
     var fonts: [CustomFonts.Record]?
+    /// The unit the design is measured in: "mm", "cm" or "in"; nil is
+    /// pixels, and a design in pixels never writes the key. Only how its
+    /// size is read and printed — pages and elements stay in pixels.
+    var unit: String?
+    /// Its pixels per inch; nil is 96, what every design was drawn at before
+    /// units. Written with a physical unit, at 300 for a size typed in one.
+    var dpi: Double?
 
     var size: CGSize { CGSize(width: width, height: height) }
 
@@ -321,11 +328,15 @@ struct Design: Codable, Equatable, Identifiable {
         titleAuto = (try? c.decode(Bool.self, forKey: .titleAuto)) ?? true
         let records = (try? c.decode([CustomFonts.Lenient].self, forKey: .fonts))?.compactMap(\.record) ?? []
         fonts = records.isEmpty ? nil : records
+        // "px" is pixels, as no key is: kept as none, so the file reads as
+        // it would have.
+        unit = (try? c.decode(String.self, forKey: .unit)).flatMap { $0 == "px" ? nil : $0 }
+        dpi = (try? c.decode(Double.self, forKey: .dpi)).flatMap { $0 > 0 && $0.isFinite ? $0 : nil }
     }
 
     private enum CodingKeys: String, CodingKey {
         case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides, folder
-        case titleAuto, fonts
+        case titleAuto, fonts, unit, dpi
     }
 
     /// The master page, if one is set and still exists.

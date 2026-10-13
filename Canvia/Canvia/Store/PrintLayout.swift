@@ -1,7 +1,8 @@
 // Paper: fitting a page onto a sheet, printing at actual size, tiling a
 // poster across sheets, and the marks a print shop wants.
 //
-// A design is pixels at 96 dpi; paper is points at 72. Fit shrinks or grows
+// A design is pixels at its own dpi — 96 when it has none; paper is points
+// at 72. Fit shrinks or grows
 // the page to the printable area; actual size prints it at its true
 // dimensions and, when that is bigger than the sheet, tiles it with an
 // overlap so the pieces can be trimmed and joined. Bleed extends the page
@@ -58,14 +59,24 @@ enum PrintLayout {
         }
     }
 
-    /// The design page in points, bleed included.
-    static func pagePoints(design: Design, bleed: Double) -> CGSize {
-        pagePoints(size: design.size, bleed: bleed)
+    /// PDF points per page pixel: 72 / the design's dpi, and 72 / 96 for a
+    /// design with none — exactly what every PDF came out at before units.
+    /// The plain PDF, the print PDF and the PDF's links all go by it, so an
+    /// A4 page at 300 dpi is a 595 × 842 pt page.
+    static func pxToPt(_ design: Design) -> Double {
+        design.pointsPerPixel
     }
 
-    static func pagePoints(size: CGSize, bleed: Double) -> CGSize {
-        CGSize(width: Double(size.width) * DesignExporter.pxToPt + 2 * bleed,
-               height: Double(size.height) * DesignExporter.pxToPt + 2 * bleed)
+    /// The design page in points, bleed included.
+    static func pagePoints(design: Design, bleed: Double) -> CGSize {
+        pagePoints(size: design.size, dpi: design.effectiveDPI, bleed: bleed)
+    }
+
+    /// A page of `size` pixels at `dpi` in points: at 96 unless told.
+    static func pagePoints(size: CGSize, dpi: Double = Units.screenDPI, bleed: Double) -> CGSize {
+        let scale = Units.pointsPerPixel(dpi: dpi)
+        return CGSize(width: Double(size.width) * scale + 2 * bleed,
+                      height: Double(size.height) * scale + 2 * bleed)
     }
 
     /// Where the page lands on the sheet when fitted: centred, as large as
