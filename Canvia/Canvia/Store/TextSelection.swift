@@ -26,21 +26,38 @@ enum TextToggle: CaseIterable {
 
     func isOn(_ el: Element) -> Bool {
         switch self {
-        case .bold: return (el.fontWeight ?? 400) >= 700
+        case .bold: return Self.isBold(el)
         case .italic: return el.italic == true
         case .underline: return el.underline == true
         case .uppercase: return el.uppercase == true
         }
     }
 
-    /// Bold turned on leaves a heavier weight as it is, and turned off is
-    /// regular again; capitals turned off leave no key behind.
+    /// Whether Bold reads on for `el`: the weight it is drawn at
+    /// (FontLibrary.resolveWeight) is 700 or more, so Bold and the Weight
+    /// row never disagree — 600 in Modern Sans (300, 400, 500, 700) is
+    /// drawn Bold and reads on, 600 in Roboto, which has a Semibold, reads
+    /// off. A font of your own, or one with no weight of 700 or more
+    /// (Anton), is one face drawn at its own weight whatever is asked, so
+    /// its stored weight is read, and Bold still turns on and off. As on
+    /// the Android twin.
+    static func isBold(_ el: Element) -> Bool {
+        let weight = el.fontWeight ?? 400
+        let oneFace = CustomFonts.isCustom(el.fontFamily)
+            || !FontLibrary.weights(el.fontFamily).contains { $0 >= 700 }
+        return (oneFace ? weight : FontLibrary.resolveWeight(el.fontFamily, weight)) >= 700
+    }
+
+    /// Bold turned on sets 700 where it reads off (isBold) and leaves a
+    /// weight already drawn bold (600 in Modern Sans, 800, 900) as it is,
+    /// and turned off is regular again; capitals turned off leave no key
+    /// behind.
     func apply(_ on: Bool, to el: inout Element) {
         switch self {
         case .bold:
             if !on {
                 el.fontWeight = 400
-            } else if (el.fontWeight ?? 400) < 700 {
+            } else if !Self.isBold(el) {
                 el.fontWeight = 700
             }
         case .italic: el.italic = on

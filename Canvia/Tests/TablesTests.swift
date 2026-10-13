@@ -264,6 +264,33 @@ final class TablesTests: XCTestCase {
         XCTAssertEqual(DataGraphics.tableText(merged, id: id), "Item, Qty\nCoffee 2, \nBagel, 1")
     }
 
+    func testWordsTheGridPutsAtAPlaceAMergedCellCoversJoinTheMergedCells() throws {
+        let table = made()
+        let side = try XCTUnwrap(merging(table, [(1, 0), (1, 1)]))
+        let id = tableId(side)
+        // Pasted across the merged cell: the word on its covered place is
+        // added to its own, not lost.
+        let pasted = DataGrid.pasting("x\ty", into: DataGraphics.tableGrid(side, id: id), row: 1, col: 0)
+        XCTAssertEqual(pasted, [["Item", "Qty"], ["x", "y"], ["Bagel", "1"]])
+        let joined = try XCTUnwrap(DataGraphics.rebuiltTable(side, id: id, rows: pasted, heightFor: heightFor))
+        XCTAssertEqual(joined.count, 10)
+        XCTAssertEqual(words(joined), ["Item", "Qty", "x\ny", "Bagel", "1"])
+        XCTAssertEqual(DataGraphics.tableCovered(joined, id: id), [[1, 1]])
+        // Its own place blank: the covered place's words alone.
+        let only = try XCTUnwrap(DataGraphics.rebuiltTable(
+            side, id: id, rows: [["Item", "Qty"], ["", "y"], ["Bagel", "1"]], heightFor: heightFor))
+        XCTAssertEqual(text(only, 1, 0).text, "y")
+        // The grid as it was read: the merged cell is left as it is.
+        let same = try XCTUnwrap(DataGraphics.rebuiltTable(
+            side, id: id, rows: DataGraphics.tableGrid(side, id: id), heightFor: heightFor))
+        XCTAssertEqual(text(same, 1, 0), text(side, 1, 0))
+        // A cell merged down: words below its own join after them.
+        let down = try XCTUnwrap(merging(table, [(1, 0), (2, 0)]))
+        let below = try XCTUnwrap(DataGraphics.rebuiltTable(
+            down, id: tableId(down), rows: [["Item", "Qty"], ["Coffee Bagel", "2"], ["c3", "1"]], heightFor: heightFor))
+        XCTAssertEqual(words(below), ["Item", "Qty", "Coffee Bagel\nc3", "2", "1"])
+    }
+
     func testCellsOneAboveAnotherMergeAsTallAsTheirRowsTogether() throws {
         let table = made()
         let id = tableId(table)
