@@ -415,10 +415,12 @@ extension DataGraphics {
         }
     }
 
-    /// A cell's copy for a new row or column: a new element, no words.
+    /// A cell's copy for a new row or column: a new element, no words, and
+    /// no name of its own — the layers list gives it the generated one.
     private static func blank(_ el: Element, row: Int, col: Int) -> Element {
         var copy = el
         copy.id = UID.make()
+        copy.layerName = nil
         if el.type == .text { copy.setText("") }
         if let cell = el.table { copy.table = TableCell(id: cell.id, row: row, col: col) }
         return copy

@@ -145,6 +145,25 @@ final class TablesTests: XCTestCase {
         XCTAssertEqual(text(left, 0, 1).text, "Item")
     }
 
+    func testANamedCellsNewNeighboursHaveNoNameOfTheirOwn() {
+        let table = made()
+        let named = text(table, 1, 0).id
+        let total = table.map { el -> Element in
+            var out = el
+            if el.id == named { out.layerName = "Total" }
+            return out
+        }
+        let row = DataGraphics.addingTableRow(total, id: tableId(total), row: 1, below: true, heightFor: heightFor)
+        XCTAssertEqual(text(row, 1, 0).layerName, "Total")
+        XCTAssertNil(text(row, 2, 0).layerName)
+        XCTAssertEqual(row.compactMap(\.layerName), ["Total"])
+        let column = DataGraphics.addingTableColumn(total, id: tableId(total), col: 0, right: true,
+                                                    heightFor: heightFor)
+        XCTAssertEqual(text(column, 1, 0).layerName, "Total")
+        XCTAssertNil(text(column, 1, 1).layerName)
+        XCTAssertEqual(column.compactMap(\.layerName), ["Total"])
+    }
+
     func testARowOrAColumnIsDeletedButNeverTheLastOne() throws {
         let table = made()
         let noHeader = try XCTUnwrap(DataGraphics.deletingTableRow(table, id: tableId(table), row: 0, heightFor: heightFor))
