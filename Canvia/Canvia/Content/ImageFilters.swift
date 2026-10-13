@@ -4,6 +4,7 @@
 import UIKit
 import CoreImage
 import CoreImage.CIFilterBuiltins
+import Observation
 
 enum ImageFilterPreset: String, CaseIterable, Identifiable {
     case none, vivid, warm, cool, mono, noir, fade, retro, dramatic, dreamy
@@ -423,13 +424,132 @@ enum PhotoLook {
         return min(max(Int((v + 0.5).rounded(.down)), 0), 255)
     }
 
+    // MARK: clarity
+
+    /// A colour's lightness, 0xRRGGBB, as clarity reads it: 0.299 red,
+    /// 0.587 green and 0.114 blue, in single precision as the Android
+    /// twin's PixelLook holds it.
+    static func lightness(_ rgb: Int) -> Float {
+        let r = Float((rgb >> 16) & 0xff), g = Float((rgb >> 8) & 0xff), b = Float(rgb & 0xff)
+        return 0.299 * r + 0.587 * g + 0.114 * b
+    }
+
+    /// One pixel of clarity, 0xRRGGBB: its detail — its lightness `light`
+    /// less the lightness `around` it — `k` times added to each channel,
+    /// rounded half up. The shared table's clarity rows check it.
+    static func lifted(_ rgb: Int, light: Float, around: Float, k: Float) -> Int {
+        let d = k * (light - around)
+        func channel(_ v: Int) -> Int { byte(Double(Float(v) + d)) }
+        return (channel((rgb >> 16) & 0xff) << 16) | (channel((rgb >> 8) & 0xff) << 8) | channel(rgb & 0xff)
+    }
+
+    /// Clarity on `bytes` — RGBA, premultiplied, `width` × `height`, top
+    /// row first — by `amount`, −1…1: each pixel `lifted` by its lightness
+    /// less a Gaussian of the lightness about it, spread `clarityRadius` of
+    /// the shorter side, as the Android twin's PixelLook does it. Below zero
+    /// the detail is taken away, which softens.
+    static func clarify(_ bytes: inout [UInt8], width: Int, height: Int, amount: Double) {
+        let n = width * height
+        let k = Float(min(max(amount, -1), 1))
+        guard k != 0, width > 0, height > 0, bytes.count >= n * 4 else { return }
+        var colours = [Int](repeating: 0, count: n)
+        var light = [Float](repeating: 0, count: n)
+        for i in 0..<n {
+            colours[i] = unpremultiplied(bytes, at: i)
+            light[i] = lightness(colours[i])
+        }
+        var around = light
+        gauss(&around, width: width, height: height, sigma: clarityRadius * Double(min(width, height)))
+        for i in 0..<n {
+            let a = Int(bytes[i * 4 + 3])
+            guard a > 0 else { continue }
+            let c = lifted(colours[i], light: light[i], around: around[i], k: k)
+            bytes[i * 4] = UInt8((((c >> 16) & 0xff) * a + 127) / 255)
+            bytes[i * 4 + 1] = UInt8((((c >> 8) & 0xff) * a + 127) / 255)
+            bytes[i * 4 + 2] = UInt8(((c & 0xff) * a + 127) / 255)
+        }
+    }
+
+    /// Pixel `i` of premultiplied RGBA `bytes` as 0xRRGGBB at the colour it
+    /// is, as the Android twin's pixels hold it; 0 where it is clear.
+    static func unpremultiplied(_ bytes: [UInt8], at i: Int) -> Int {
+        let a = Int(bytes[i * 4 + 3])
+        guard a > 0 else { return 0 }
+        func channel(_ v: UInt8) -> Int { min(255, (Int(v) * 255 + a / 2) / a) }
+        return (channel(bytes[i * 4]) << 16) | (channel(bytes[i * 4 + 1]) << 8) | channel(bytes[i * 4 + 2])
+    }
+
+    /// A Gaussian of spread `sigma` over a plane `width` × `height`, its
+    /// edges held: three box blurs, each across then down, or below a spread
+    /// of 2 a small exact kernel — step for step the Android twin's
+    /// `PixelLook.gauss`, so clarity reads the same lightness about a pixel
+    /// there.
+    static func gauss(_ v: inout [Float], width w: Int, height h: Int, sigma: Double) {
+        guard sigma > 0, w > 0, h > 0, v.count >= w * h else { return }
+        var tmp = [Float](repeating: 0, count: v.count)
+        if sigma < 2 {
+            let radius = max(1, Int((sigma * 3 + 0.5).rounded(.down)))
+            var kernel = (0...(2 * radius)).map { i -> Float in
+                let d = Double(i - radius)
+                return Float(exp(-(d * d) / (2 * sigma * sigma)))
+            }
+            let total = kernel.reduce(0, +)
+            for i in kernel.indices { kernel[i] /= total }
+            for y in 0..<h {
+                let row = y * w
+                for x in 0..<w {
+                    var sum: Float = 0
+                    for j in -radius...radius { sum += kernel[j + radius] * v[row + min(w - 1, max(0, x + j))] }
+                    tmp[row + x] = sum
+                }
+            }
+            for y in 0..<h {
+                for x in 0..<w {
+                    var sum: Float = 0
+                    for j in -radius...radius { sum += kernel[j + radius] * tmp[min(h - 1, max(0, y + j)) * w + x] }
+                    v[y * w + x] = sum
+                }
+            }
+            return
+        }
+        // Three box widths that together blur like the Gaussian.
+        let ideal = (12 * sigma * sigma / 3 + 1).squareRoot()
+        var lower = Int(ideal)
+        if lower % 2 == 0 { lower -= 1 }
+        let upper = lower + 2
+        let m = Int(((12 * sigma * sigma - Double(3 * lower * lower) - Double(12 * lower) - 9)
+                     / Double(-4 * lower - 4) + 0.5).rounded(.down))
+        for pass in 0..<3 {
+            let r = ((pass < m ? lower : upper) - 1) / 2
+            guard r > 0 else { continue }
+            let span = Float(2 * r) + 1
+            for y in 0..<h {
+                let row = y * w
+                var sum: Float = 0
+                for j in -r...r { sum += v[row + min(w - 1, max(0, j))] }
+                for x in 0..<w {
+                    tmp[row + x] = sum / span
+                    sum += v[row + min(w - 1, x + r + 1)] - v[row + max(0, x - r)]
+                }
+            }
+            for x in 0..<w {
+                var sum: Float = 0
+                for j in -r...r { sum += tmp[min(h - 1, max(0, j)) * w + x] }
+                for y in 0..<h {
+                    v[y * w + x] = sum / span
+                    sum += tmp[min(h - 1, y + r + 1) * w + x] - tmp[max(0, y - r) * w + x]
+                }
+            }
+        }
+    }
+
     // MARK: auto adjust
 
     /// Auto adjust's reading of a picture: how many of its pixels sit at
     /// each of 256 levels of lightness — Rec. 709 luma of the 0…255
     /// channels, rounded half up. `pixels` are 0xAARRGGBB, not
     /// premultiplied; clear ones are not counted. Both phones read it from
-    /// the picture drawn at 64 × 64 (see `histogram(of:)`).
+    /// the picture boiled down to 64 × 64 by `reduced` (see `histogram(of:)`).
     static func histogram(_ pixels: [Int]) -> [Int] {
         var counts = [Int](repeating: 0, count: 256)
         for c in pixels where (c >> 24) & 0xff != 0 {
@@ -443,31 +563,71 @@ enum PhotoLook {
     /// The side of the picture auto adjust reads.
     static let autoSide = 64
 
-    /// `image` drawn at 64 × 64 and read as a `histogram`; nil when it
-    /// cannot be drawn.
+    /// `pixels` — 0xAARRGGBB, not premultiplied, `width` × `height`, top
+    /// row first — boiled down to `side` × `side` for auto adjust to read:
+    /// each cell the mean of the picture's pixels in it, its colour weighted
+    /// by alpha so a clear pixel adds no black, every channel rounded half
+    /// up; a cell with nothing but clear pixels is clear. Cell column i
+    /// holds the columns from i × width / side up to (i + 1) × width / side,
+    /// in whole numbers and at least one, counted from the top left; rows
+    /// alike. Both phones boil the picture down so, rather than leaving it
+    /// to their scalers, which keep a speck of highlight or lose it as they
+    /// please.
+    static func reduced(_ pixels: [Int], width: Int, height: Int, side: Int = PhotoLook.autoSide) -> [Int] {
+        var out = [Int](repeating: 0, count: side * side)
+        guard width > 0, height > 0, side > 0, pixels.count >= width * height else { return out }
+        func mean(_ sum: Int, _ of: Int) -> Int { min(max((2 * sum + of) / (2 * of), 0), 255) }
+        for row in 0..<side {
+            let top = row * height / side
+            let bottom = max((row + 1) * height / side, top + 1)
+            for col in 0..<side {
+                let left = col * width / side
+                let right = max((col + 1) * width / side, left + 1)
+                var alpha = 0, r = 0, g = 0, b = 0
+                for y in top..<bottom {
+                    for x in left..<right {
+                        let c = pixels[y * width + x]
+                        let a = (c >> 24) & 0xff
+                        alpha += a
+                        r += ((c >> 16) & 0xff) * a
+                        g += ((c >> 8) & 0xff) * a
+                        b += (c & 0xff) * a
+                    }
+                }
+                guard alpha > 0 else { continue }
+                let n = (bottom - top) * (right - left)
+                out[row * side + col] = (mean(alpha, n) << 24) | (mean(r, alpha) << 16) | (mean(g, alpha) << 8) | mean(b, alpha)
+            }
+        }
+        return out
+    }
+
+    /// `image` upright at its own pixels, boiled down by `reduced` and read
+    /// as a `histogram`; nil when it cannot be drawn.
     static func histogram(of image: UIImage) -> [Int]? {
-        let side = autoSide
-        guard image.size.width > 0, image.size.height > 0, let cg = image.cgImage else { return nil }
-        var bytes = [UInt8](repeating: 0, count: side * side * 4)
+        let width = Int((image.size.width * image.scale).rounded())
+        let height = Int((image.size.height * image.scale).rounded())
+        guard width > 0, height > 0 else { return nil }
+        var bytes = [UInt8](repeating: 0, count: width * height * 4)
         let drawn: Bool = bytes.withUnsafeMutableBytes { raw in
-            guard let ctx = CGContext(data: raw.baseAddress, width: side, height: side, bitsPerComponent: 8,
-                                      bytesPerRow: side * 4, space: CGColorSpaceCreateDeviceRGB(),
+            guard let ctx = CGContext(data: raw.baseAddress, width: width, height: height, bitsPerComponent: 8,
+                                      bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
                                       bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
-            ctx.interpolationQuality = .medium
-            ctx.draw(cg, in: CGRect(x: 0, y: 0, width: side, height: side))
+            // Drawn by UIKit, top down, so a photo that carries a turn is
+            // read the way it shows — cell for cell as the Android twin
+            // reads it.
+            ctx.translateBy(x: 0, y: CGFloat(height))
+            ctx.scaleBy(x: 1, y: -1)
+            UIGraphicsPushContext(ctx)
+            image.draw(in: CGRect(x: 0, y: 0, width: width, height: height))
+            UIGraphicsPopContext()
             return true
         }
         guard drawn else { return nil }
-        var pixels = [Int]()
-        pixels.reserveCapacity(side * side)
-        for i in 0..<(side * side) {
-            let a = Int(bytes[i * 4 + 3])
-            // Undone from premultiplied, so a half-clear pixel reads at the
-            // colour it is, as the Android twin's pixels are.
-            func channel(_ v: UInt8) -> Int { a == 0 ? 0 : min(255, (Int(v) * 255 + a / 2) / a) }
-            pixels.append((a << 24) | (channel(bytes[i * 4]) << 16) | (channel(bytes[i * 4 + 1]) << 8) | channel(bytes[i * 4 + 2]))
-        }
-        return histogram(pixels)
+        // Undone from premultiplied, so a half-clear pixel reads at the
+        // colour it is, as the Android twin's pixels are.
+        let pixels = (0..<(width * height)).map { i in (Int(bytes[i * 4 + 3]) << 24) | unpremultiplied(bytes, at: i) }
+        return histogram(reduced(pixels, width: width, height: height))
     }
 
     /// The three dials auto adjust sets.
@@ -548,17 +708,25 @@ enum ImageFilterEngine {
     /// The whole look of the photo `el` on `image`, its picture: the filter
     /// at its strength, the dials, the effects drawn into the picture
     /// (pixelate and focus) and the duotone. The edge is drawn behind the
-    /// frame, not here (see `PhotoEffects.edge`).
-    static func apply(look el: Element, to image: UIImage, cacheKey: String) -> UIImage {
+    /// frame, not here (see `PhotoEffects.edge`). `waits` for the subject a
+    /// focus keeps sharp to be found, as a file must; on screen it does not
+    /// (see `apply(_:adjustments:duotone:strength:effects:waits:to:cacheKey:)`).
+    static func apply(look el: Element, to image: UIImage, cacheKey: String, waits: Bool = true) -> UIImage {
         let pixels = CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
         return apply(ImageFilterPreset.from(el.filter), adjustments: el.adjustments ?? .neutral,
                      duotone: el.duotone, strength: PhotoLook.strength(el.filterStrength),
-                     effects: PhotoEffects.plan(el, picture: pixels), to: image, cacheKey: cacheKey)
+                     effects: PhotoEffects.plan(el, picture: pixels), waits: waits, to: image, cacheKey: cacheKey)
     }
 
+    /// The look on `image`, in the Android twin's order: the filter at its
+    /// strength, the dials, clarity and sharpness, focus, pixelate, the
+    /// vignette, the duotone. A focus that keeps its subject sharp finds the
+    /// subject first; unless the call `waits`, that is done off the main
+    /// thread, the circle drawn meanwhile and not kept, and `subjectsFound`
+    /// moves on when it is ready, so the photo is drawn again with it.
     static func apply(_ preset: ImageFilterPreset, adjustments: Adjustments,
                       duotone: Duotone?, strength: Double = 1, effects: PhotoEffects.Plan = .none,
-                      to image: UIImage, cacheKey: String) -> UIImage {
+                      waits: Bool = true, to image: UIImage, cacheKey: String) -> UIImage {
         if preset == .none && adjustments.isNeutral && duotone == nil && effects.isNone { return image }
         let share = min(max(strength, 0), 1)
         let partly = preset != .none && share < 1
@@ -567,6 +735,7 @@ enum ImageFilterEngine {
         let key = "\(cacheKey)|\(preset.rawValue)\(mix)\(adjustments.signature)\(tone)\(effects.signature)"
         if let cached = cache.object(forKey: key as NSString) { return cached }
         guard let input = CIImage(image: image) else { return image }
+        let extent = input.extent
         // Preset first, adjustments second: the preset is the look, the dials
         // are the correction on top of it. The other order would have a dial
         // silently undone by whichever preset was picked afterwards.
@@ -575,24 +744,36 @@ enum ImageFilterEngine {
         // the plain one, on the encoded values, as the Android twin moves
         // its matrix towards the identity.
         if partly { output = dissolved(input, into: output, share) }
-        output = adjusted(output, adjustments, extent: input.extent)
+        output = adjusted(output, adjustments, extent: extent)
         // Focus on the corrected picture, before the blocks, as the Android
         // twin bakes them.
+        var stopgap = false
         if let focus = effects.focus {
-            let subject = focus.subject ? subjectMask(of: image, key: cacheKey, extent: input.extent) : nil
-            output = PhotoEffects.focused(output, focus: focus, subject: subject, extent: input.extent)
+            var subject: CIImage?
+            if focus.subject {
+                switch subjectMask(of: image, key: cacheKey, extent: extent, waits: waits) {
+                case .found(let mask): subject = mask
+                case .finding: stopgap = true
+                }
+            }
+            output = PhotoEffects.focused(output, focus: focus, subject: subject, extent: extent)
         }
+        // Pixelate on the drawn pixels, block by block from the top left as
+        // the Android twin counts them.
+        if effects.block > 1 {
+            output = throughPixels(output, extent: extent) { bytes, width, height in
+                PhotoEffects.pixelate(&bytes, width: width, height: height, block: effects.block)
+            }
+        }
+        // The vignette over the blur and the blocks, a smooth fade as the
+        // Android twin lays it over the drawn picture.
+        output = vignetted(output, adjustments, extent: extent)
         // Duotone last, because it replaces colour outright — running it
         // before a saturation dial would leave that dial with nothing to do.
         if let duotone { output = mapped(output, to: duotone) }
-        guard var cg = context.createCGImage(output, from: input.extent) else { return image }
-        // Pixelate on the drawn pixels, block by block from the top left as
-        // the Android twin counts them. After the duotone rather than before
-        // it is the same picture: the duotone is a straight line in the
-        // colour, and a block's mean goes through it unchanged.
-        if effects.block > 1, let blocked = PhotoEffects.pixelated(cg, block: effects.block) { cg = blocked }
+        guard let cg = context.createCGImage(output, from: extent) else { return image }
         let result = UIImage(cgImage: cg, scale: image.scale, orientation: image.imageOrientation)
-        cache.setObject(result, forKey: key as NSString)
+        if !stopgap { cache.setObject(result, forKey: key as NSString) }
         return result
     }
 
@@ -601,30 +782,100 @@ enum ImageFilterEngine {
         context.createCGImage(image, from: rect)
     }
 
+    /// `image` drawn, `work` done to its pixels (see
+    /// `PhotoEffects.withPixels`) and taken up again where it was: the steps
+    /// the shared maths does a pixel at a time, on the values as a picture
+    /// stores them.
+    private static func throughPixels(_ image: CIImage, extent: CGRect,
+                                      _ work: (inout [UInt8], Int, Int) -> Void) -> CIImage {
+        guard let cg = context.createCGImage(image, from: extent),
+              let done = PhotoEffects.withPixels(cg, work) else { return image }
+        return CIImage(cgImage: done).transformed(by: CGAffineTransform(translationX: extent.minX, y: extent.minY))
+    }
+
+    // MARK: the subject focus keeps sharp
+
     /// The subject of each picture focus keeps sharp, by picture: finding it
     /// takes the better part of a second, and a focus dial moved under the
     /// thumb must not find it again. A picture with no subject keeps an
-    /// empty image here, so it is not looked for again either.
+    /// empty image here, so it is not looked for again either. Kept at most
+    /// `subjectSide` across, so a page of them stays kept.
     private static let subjects: NSCache<NSString, CIImage> = {
         let c = NSCache<NSString, CIImage>()
-        c.countLimit = 8
+        c.countLimit = 32
         return c
     }()
 
-    /// The subject of `image` as a mask (its cut-out, clear round it) the
-    /// size of `extent`, or nil when there is none to find — then focus
-    /// keeps its circle sharp.
-    private static func subjectMask(of image: UIImage, key: String, extent: CGRect) -> CIImage? {
-        let id = "\(key)|\(Int(extent.width))x\(Int(extent.height))" as NSString
-        if let known = subjects.object(forKey: id) { return known.extent.isEmpty ? nil : known }
-        var mask: CIImage?
-        if let cut = (try? SubjectMask.cutout(image))?.cgImage {
-            let found = CIImage(cgImage: cut)
-            mask = found.transformed(by: CGAffineTransform(scaleX: extent.width / found.extent.width,
-                                                           y: extent.height / found.extent.height))
+    /// The longest side a found subject is kept at.
+    private static let subjectSide: CGFloat = 1024
+
+    /// What focus keeps sharp of a picture: its subject as a mask, nil when
+    /// it has none (focus keeps its circle then) — or `finding`, while it is
+    /// looked for off the main thread.
+    private enum Subject {
+        case found(CIImage?)
+        case finding
+    }
+
+    /// Moves on each time a subject is found off the main thread, so the
+    /// photos showing focus on screen — which read it — draw again with it.
+    @Observable
+    final class Subjects {
+        fileprivate(set) var version = 0
+    }
+
+    static let subjectsFound = Subjects()
+
+    /// The pictures whose subject is being looked for, by the key it is
+    /// kept under; guarded by `findingLock`, never held while one is found.
+    private static var finding = Set<String>()
+    private static let findingLock = NSLock()
+    private static let finder = DispatchQueue(label: "canvia.photo-subjects", qos: .userInitiated)
+
+    /// The subject of `image` as a mask the size of `extent`: kept, found
+    /// there and then when the call `waits`, or else looked for on a worker
+    /// — once, however often it is asked for meanwhile — and `finding`.
+    private static func subjectMask(of image: UIImage, key: String, extent: CGRect, waits: Bool) -> Subject {
+        let id = "\(key)|\(Int(extent.width))x\(Int(extent.height))"
+        if let known = subjects.object(forKey: id as NSString) { return .found(fitted(known, to: extent)) }
+        guard !waits else {
+            let found = findSubject(of: image)
+            subjects.setObject(found, forKey: id as NSString)
+            return .found(fitted(found, to: extent))
         }
-        subjects.setObject(mask ?? CIImage.empty(), forKey: id)
-        return mask
+        findingLock.lock()
+        let start = finding.insert(id).inserted
+        findingLock.unlock()
+        if start {
+            finder.async {
+                let found = ImageFilterEngine.findSubject(of: image)
+                ImageFilterEngine.subjects.setObject(found, forKey: id as NSString)
+                ImageFilterEngine.findingLock.lock()
+                ImageFilterEngine.finding.remove(id)
+                ImageFilterEngine.findingLock.unlock()
+                DispatchQueue.main.async { ImageFilterEngine.subjectsFound.version &+= 1 }
+            }
+        }
+        return .finding
+    }
+
+    /// A kept subject stretched over `extent`; nil for a picture with none.
+    private static func fitted(_ mask: CIImage, to extent: CGRect) -> CIImage? {
+        guard !mask.extent.isEmpty, mask.extent.width > 0, mask.extent.height > 0 else { return nil }
+        return mask.transformed(by: CGAffineTransform(scaleX: extent.width / mask.extent.width,
+                                                      y: extent.height / mask.extent.height))
+    }
+
+    /// `image`'s subject as Cut out finds it — its cut-out, clear round it —
+    /// at most `subjectSide` across; an empty image when it has none.
+    private static func findSubject(of image: UIImage) -> CIImage {
+        guard let cut = (try? SubjectMask.cutout(image))?.cgImage else { return CIImage.empty() }
+        let found = CIImage(cgImage: cut)
+        let shrink = min(1, subjectSide / max(found.extent.width, found.extent.height, 1))
+        guard shrink < 1 else { return found }
+        let small = found.transformed(by: CGAffineTransform(scaleX: shrink, y: shrink))
+        guard let kept = context.createCGImage(small, from: small.extent.integral) else { return found }
+        return CIImage(cgImage: kept)
     }
 
     /// `image` turned into `target` by `share`, on sRGB's encoded values —
@@ -724,7 +975,8 @@ enum ImageFilterEngine {
         return map.outputImage ?? input
     }
 
-    /// The dials, in the order a photographer would reach for them.
+    /// The dials, in the order a photographer would reach for them; the
+    /// vignette waits for the effects (`vignetted`).
     private static func adjusted(_ input: CIImage, _ a: Adjustments,
                                  extent: CGRect) -> CIImage {
         guard !a.isNeutral else { return input }
@@ -771,15 +1023,15 @@ enum ImageFilterEngine {
             image = ToneCurve.apply(a.curve, to: image)
         }
 
-        // Clarity: the detail in lightness, 2% of the picture's shorter side
-        // across, added back (or taken away) by the dial.
+        // Clarity: the detail in lightness, about 2% of the picture's shorter
+        // side, added back (or taken away) by the dial — the shared maths on
+        // the picture's own pixels (`PhotoLook.clarify`), so it draws what
+        // the Android twin draws, softening too.
         let clarity = min(max(a.clarity, -1), 1)
         if clarity != 0 {
-            let f = CIFilter.sharpenLuminance()
-            f.inputImage = image.clampedToExtent()
-            f.sharpness = Float(clarity)
-            f.radius = Float(PhotoLook.clarityRadius * Double(min(extent.width, extent.height)))
-            image = (f.outputImage ?? image).cropped(to: extent)
+            image = throughPixels(image, extent: extent) { bytes, width, height in
+                PhotoLook.clarify(&bytes, width: width, height: height, amount: clarity)
+            }
         }
 
         if a.sharpness > 0 {
@@ -793,15 +1045,18 @@ enum ImageFilterEngine {
             f.radius = Float(-a.sharpness * 12)
             image = (f.outputImage ?? image).cropped(to: extent)
         }
-
-        if a.vignette > 0 {
-            let f = CIFilter.vignette()
-            f.inputImage = image
-            f.intensity = Float(a.vignette * 2)
-            f.radius = Float(1.4)
-            image = (f.outputImage ?? image).cropped(to: extent)
-        }
         return image
+    }
+
+    /// The vignette dial, after the effects (see `apply`) and before the
+    /// duotone, so a duotoned photo's corners fall into its dark colour.
+    private static func vignetted(_ input: CIImage, _ a: Adjustments, extent: CGRect) -> CIImage {
+        guard a.vignette > 0 else { return input }
+        let f = CIFilter.vignette()
+        f.inputImage = input
+        f.intensity = Float(a.vignette * 2)
+        f.radius = Float(1.4)
+        return (f.outputImage ?? input).cropped(to: extent)
     }
 
     private static func filtered(_ input: CIImage, preset: ImageFilterPreset) -> CIImage {

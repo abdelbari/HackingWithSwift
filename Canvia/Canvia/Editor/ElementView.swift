@@ -29,7 +29,10 @@ import CoreGraphics
 /// clip's length once the live path has read it. ImageElementView reads the
 /// store's frame version itself, so it is that view, not this one, that
 /// SwiftUI draws again when a frame lands, and this view's equality still
-/// holds.
+/// holds. So does a photo whose focus keeps its subject sharp, on screen:
+/// it reads the engine's count of subjects found
+/// (`ImageFilterEngine.subjectsFound`) and is drawn again when its subject
+/// is found.
 struct ElementView: View {
     let element: Element
     @Environment(\.animationTime) private var animationTime
@@ -567,13 +570,16 @@ struct TextElementView: View {
 struct ImageElementView: View {
     let element: Element
     @Environment(\.liveVideo) private var liveVideo
+    @Environment(\.onScreen) private var onScreen
 
     var body: some View {
         // Resolved here, not inside the GeometryReader, so that a clip played
         // live — whose frame version is read on the way — is watched by this
-        // view, and drawn again when its next frame lands.
+        // view, and drawn again when its next frame lands; and so is a
+        // subject found for focus.
         let picture = resolvedPicture()
-        let resolved = picture.map { ImageFilterEngine.apply(look: element, to: $0.image, cacheKey: $0.key) }
+        let waits = waitsForSubject()
+        let resolved = picture.map { ImageFilterEngine.apply(look: element, to: $0.image, cacheKey: $0.key, waits: waits) }
         GeometryReader { _ in
             if let ui = resolved {
                 let frameW = element.w, frameH = element.h
@@ -622,7 +628,9 @@ struct ImageElementView: View {
             }
         }
         // An outline or glow round what the photo shows, behind it and past
-        // its frame — after the clip, so the frame does not cut it away.
+        // its frame — after the clip, so the frame does not cut it away. It
+        // is part of what casts the element's shadow (ElementView's), as the
+        // Android twin casts a photo's shadow from its edge.
         .background {
             if let picture, let edge = PhotoEffects.edge(element, picture: picture.image, key: picture.key) {
                 Image(uiImage: edge.image)
@@ -636,6 +644,16 @@ struct ImageElementView: View {
     private var frame: FrameShape {
         FrameShape(definition: element.maskShapeId.flatMap { ContentLibrary.shapeMap[$0] },
                    cornerRadius: element.radius ?? 0)
+    }
+
+    /// Whether the look waits for the subject its focus keeps sharp to be
+    /// found: a file does; on screen the photo shows the focus circle
+    /// meanwhile, and reading the count of subjects found draws it again
+    /// when its subject lands.
+    private func waitsForSubject() -> Bool {
+        guard onScreen, element.focusBlur?.subject == true else { return true }
+        _ = ImageFilterEngine.subjectsFound.version
+        return false
     }
 
     /// The picture before its look, and the key its looks are kept by.

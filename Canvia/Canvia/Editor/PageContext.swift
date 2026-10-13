@@ -31,6 +31,15 @@ struct LiveVideoKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+/// Whether the page is on a screen that draws it again when slow work lands
+/// — the editor's canvas, its page strip, Present — rather than drawn once
+/// for a file. On screen, a photo whose focus keeps its subject sharp shows
+/// the focus circle while the subject is found off the main thread, and the
+/// subject once it is; a file waits for it.
+struct OnScreenKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 extension EnvironmentValues {
     var pageNumber: (number: Int, count: Int)? {
         get { self[PageNumberKey.self] }
@@ -50,5 +59,10 @@ extension EnvironmentValues {
     var liveVideo: Bool {
         get { self[LiveVideoKey.self] }
         set { self[LiveVideoKey.self] = newValue }
+    }
+
+    var onScreen: Bool {
+        get { self[OnScreenKey.self] }
+        set { self[OnScreenKey.self] = newValue }
     }
 }

@@ -3,7 +3,8 @@
 // the sharpness dial below zero. The numbers are pure and tested
 // (PhotoEffectsTests, the Android twin's PhotoEffectsTest); the drawing is
 // Core Image's in the filter engine's pass (pixelate on the picture's own
-// pixels, after it) and, for the edge, behind the photo's frame.
+// pixels, before the vignette and the duotone) and, for the edge, behind
+// the photo's frame.
 
 import CoreImage
 import CoreImage.CIFilterBuiltins
@@ -194,11 +195,11 @@ enum PhotoEffects {
         }
     }
 
-    /// `image` pixelated in blocks of `block` of its pixels; nil when it
-    /// cannot be drawn.
-    static func pixelated(_ image: CGImage, block: Int) -> CGImage? {
+    /// `image` with `work` done to its pixels — RGBA, premultiplied, sRGB,
+    /// `width` × `height`, top row first; nil when it cannot be drawn.
+    static func withPixels(_ image: CGImage, _ work: (inout [UInt8], Int, Int) -> Void) -> CGImage? {
         let width = image.width, height = image.height
-        guard block > 1, width > 0, height > 0,
+        guard width > 0, height > 0,
               let space = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
         var bytes = [UInt8](repeating: 0, count: width * height * 4)
         let drawn: Bool = bytes.withUnsafeMutableBytes { raw in
@@ -209,7 +210,7 @@ enum PhotoEffects {
             return true
         }
         guard drawn else { return nil }
-        pixelate(&bytes, width: width, height: height, block: block)
+        work(&bytes, width, height)
         guard let provider = CGDataProvider(data: Data(bytes) as CFData) else { return nil }
         return CGImage(width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: width * 4,
                        space: space, bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),

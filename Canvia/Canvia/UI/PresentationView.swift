@@ -152,6 +152,7 @@ struct PresentationView: View {
                 // on the next: this redraws every display frame, and a
                 // decode on the main thread each time made it stutter.
                 .environment(\.liveVideo, true)
+                .environment(\.onScreen, true)
         }
         .scaleEffect(scale)
         .frame(width: pageSize.width * scale, height: pageSize.height * scale)
