@@ -54,6 +54,23 @@ final class TablesTests: XCTestCase {
         DataGraphics.tableColumns(els, id: tableId(els)).map { rect(els, 0, $0).w }
     }
 
+    /// The cells' words, row by row.
+    private func words(_ els: [Element]) -> [String] {
+        els.filter { $0.type == .text }
+            .sorted { a, b in (a.table?.row ?? 0, a.table?.col ?? 0) < (b.table?.row ?? 0, b.table?.col ?? 0) }
+            .map { $0.text ?? "" }
+    }
+
+    /// `els` with cell (`row`, `col`)'s words set to `words`.
+    private func withWords(_ els: [Element], _ row: Int, _ col: Int, _ words: String) -> [Element] {
+        let cell = text(els, row, col).id
+        return els.map { el -> Element in
+            var out = el
+            if el.id == cell { out.text = words }
+            return out
+        }
+    }
+
     // MARK: the test table, as on the Android twin
 
     func testANewTablesCellsKnowTheirPlacesAndLayingItOutAgainChangesNothing() {
@@ -74,13 +91,7 @@ final class TablesTests: XCTestCase {
 
     func testACellsWordsGrowingGrowItsRowAndPushTheRowsBelowDown() {
         let table = made()
-        let tea = text(table, 1, 0).id
-        let grown = table.map { el -> Element in
-            var out = el
-            if el.id == tea { out.text = "Tea\nwith milk" }
-            return out
-        }
-        let laid = DataGraphics.relayout(grown, heightFor: heightFor)
+        let laid = DataGraphics.relayout(withWords(table, 1, 0, "Tea\nwith milk"), heightFor: heightFor)
         XCTAssertEqual(rect(laid, 1, 0).h, 66)
         XCTAssertEqual(rect(laid, 1, 1).h, 66)
         XCTAssertEqual(text(laid, 1, 0).h, 40)
@@ -94,10 +105,9 @@ final class TablesTests: XCTestCase {
         let below = DataGraphics.addingTableRow(table, id: tableId(table), row: 1, below: true, heightFor: heightFor)
         XCTAssertEqual(below.count, 16)
         XCTAssertEqual(rowTops(below), [200, 246, 292, 338])
-        XCTAssertEqual(text(below, 2, 0).text, "")
+        XCTAssertEqual(words(below), ["Item", "Qty", "Tea", "2", "", "", "Cake", "1"])
         XCTAssertEqual(rect(table, 1, 0).fill, rect(below, 2, 0).fill)
         XCTAssertEqual(text(below, 2, 1).fontWeight, 400)
-        XCTAssertEqual(text(below, 3, 0).text, "Cake")
         XCTAssertEqual(rect(table, 1, 0).group, rect(below, 2, 0).group)
         XCTAssertEqual(Set(below.map(\.id)).count, 16, "the new row has ids of its own")
         // In the table's layer, under what was above it.
@@ -109,26 +119,28 @@ final class TablesTests: XCTestCase {
         let above = DataGraphics.addingTableRow(table, id: tableId(table), row: 0, below: false, heightFor: heightFor)
         XCTAssertEqual(rowTops(above), [200, 246, 292, 338])
         XCTAssertEqual(rect(above, 0, 1).fill?.color, "#1f2430")
-        XCTAssertEqual(text(above, 0, 0).text, "")
-        XCTAssertEqual(text(above, 1, 0).text, "Item")
+        XCTAssertEqual(text(above, 0, 0).fontWeight, 700)
+        XCTAssertEqual(words(above), ["", "", "Item", "Qty", "Tea", "2", "Cake", "1"])
     }
 
     func testAColumnIsAddedAtTheAverageWidthTheTableAsWideAsItWas() {
         let table = made()
+        // 229 and 171 halved make room for 200; 114.5 rounds up, so the
+        // last column takes the 85 left of the 400.
         let right = DataGraphics.addingTableColumn(table, id: tableId(table), col: 0, right: true, heightFor: heightFor)
         XCTAssertEqual(right.count, 18)
-        XCTAssertEqual(columnWidths(right), [153, 133, 114])
-        XCTAssertEqual(columnLefts(right), [100, 253, 386])
-        XCTAssertEqual(columnWidths(right).reduce(0, +), 400)
+        XCTAssertEqual(columnWidths(right), [115, 200, 85])
+        XCTAssertEqual(columnLefts(right), [100, 215, 415])
         XCTAssertEqual(text(right, 0, 1).text, "")
         XCTAssertEqual(text(right, 0, 1).fontWeight, 700)
         XCTAssertEqual(text(right, 0, 2).text, "Qty")
-        XCTAssertEqual(text(right, 1, 1).w, 106.6, accuracy: 1e-9)
-        XCTAssertEqual(text(right, 1, 1).x, 266)
+        XCTAssertEqual(text(right, 1, 1).w, 173.6, accuracy: 1e-9)
+        XCTAssertEqual(text(right, 1, 1).x, 228)
+        XCTAssertEqual(words(right), ["Item", "", "Qty", "Tea", "", "2", "Cake", "", "1"])
 
         let left = DataGraphics.addingTableColumn(table, id: tableId(table), col: 0, right: false, heightFor: heightFor)
-        XCTAssertEqual(columnWidths(left), [133, 153, 114])
-        XCTAssertEqual(columnLefts(left), [100, 233, 386])
+        XCTAssertEqual(columnWidths(left), [200, 115, 85])
+        XCTAssertEqual(columnLefts(left), [100, 300, 415])
         XCTAssertEqual(text(left, 0, 1).text, "Item")
     }
 
@@ -136,17 +148,26 @@ final class TablesTests: XCTestCase {
         let table = made()
         let noHeader = try XCTUnwrap(DataGraphics.deletingTableRow(table, id: tableId(table), row: 0, heightFor: heightFor))
         XCTAssertEqual(rowTops(noHeader), [200, 246])
-        XCTAssertEqual(text(noHeader, 0, 0).text, "Tea")
+        XCTAssertEqual(words(noHeader), ["Tea", "2", "Cake", "1"])
         XCTAssertEqual(text(noHeader, 0, 0).y, 213)
+        let middle = try XCTUnwrap(DataGraphics.deletingTableRow(table, id: tableId(table), row: 1, heightFor: heightFor))
+        XCTAssertEqual(words(middle), ["Item", "Qty", "Cake", "1"])
+        XCTAssertEqual(rowTops(middle), [200, 246])
 
-        let narrower = try XCTUnwrap(DataGraphics.deletingTableColumn(table, id: tableId(table), col: 0,
-                                                                      heightFor: heightFor))
-        XCTAssertEqual(columnLefts(narrower), [100])
-        XCTAssertEqual(columnWidths(narrower), [171])
-        XCTAssertEqual(text(narrower, 0, 0).text, "Qty")
-        XCTAssertEqual(text(narrower, 0, 0).x, 113)
+        // The columns left widen in proportion, so the table keeps its width.
+        let wide = try XCTUnwrap(DataGraphics.deletingTableColumn(table, id: tableId(table), col: 0,
+                                                                  heightFor: heightFor))
+        XCTAssertEqual(columnLefts(wide), [100])
+        XCTAssertEqual(columnWidths(wide), [400])
+        XCTAssertEqual(text(wide, 0, 0).text, "Qty")
+        XCTAssertEqual(text(wide, 0, 0).x, 113)
+        XCTAssertEqual(text(wide, 0, 0).w, 373.6, accuracy: 1e-9)
+        let three = DataGraphics.addingTableColumn(table, id: tableId(table), col: 0, right: true, heightFor: heightFor)
+        let two = try XCTUnwrap(DataGraphics.deletingTableColumn(three, id: tableId(three), col: 1, heightFor: heightFor))
+        XCTAssertEqual(columnWidths(two), [230, 170])
+        XCTAssertEqual(columnLefts(two), [100, 330])
 
-        var one = narrower
+        var one = wide
         one = try XCTUnwrap(DataGraphics.deletingTableRow(one, id: tableId(one), row: 2, heightFor: heightFor))
         one = try XCTUnwrap(DataGraphics.deletingTableRow(one, id: tableId(one), row: 1, heightFor: heightFor))
         XCTAssertEqual(one.count, 2)
@@ -159,16 +180,19 @@ final class TablesTests: XCTestCase {
         XCTAssertTrue(DataGraphics.tableHasHeader(table, id: tableId(table)))
         let off = DataGraphics.withTableHeader(table, id: tableId(table), on: false, accent: "#1f2430", heightFor: heightFor)
         XCTAssertFalse(DataGraphics.tableHasHeader(off, id: tableId(off)))
-        XCTAssertEqual(rect(off, 0, 0).fill?.color, "#f3f4f6")
-        XCTAssertEqual(text(off, 0, 1).fontWeight, 400)
-        XCTAssertEqual(text(off, 0, 1).color, "#1f2430")
+        XCTAssertEqual([rect(off, 0, 0), rect(off, 0, 1)].map { $0.fill?.color }, ["#f3f4f6", "#f3f4f6"])
+        XCTAssertEqual([text(off, 0, 0), text(off, 0, 1)].map(\.fontWeight), [400, 400])
+        XCTAssertEqual([text(off, 0, 0), text(off, 0, 1)].map(\.color), ["#1f2430", "#1f2430"])
         let on = DataGraphics.withTableHeader(off, id: tableId(off), on: true, accent: "#ffd166", heightFor: heightFor)
         XCTAssertTrue(DataGraphics.tableHasHeader(on, id: tableId(on)))
         XCTAssertEqual(rect(on, 0, 1).fill?.color, "#ffd166")
         XCTAssertEqual(text(on, 0, 0).fontWeight, 700)
+        // A light accent takes dark ink, a dark one light.
         XCTAssertEqual(text(on, 0, 0).color, "#16181d")
+        XCTAssertEqual(text(DataGraphics.withTableHeader(off, id: tableId(off), on: true, accent: "#123456",
+                                                         heightFor: heightFor), 0, 0).color, "#ffffff")
         // The body is untouched.
-        XCTAssertEqual(rect(table, 1, 0), rect(on, 1, 0))
+        XCTAssertEqual(table.filter { $0.table?.row != 0 }, on.filter { $0.table?.row != 0 })
     }
 
     func testACellsColourFillsItsRectangleOnly() {
@@ -181,35 +205,57 @@ final class TablesTests: XCTestCase {
         XCTAssertEqual(rect(table, 1, 0), rect(coloured, 1, 0))
     }
 
-    func testEditedAsTextTheTableKeepsItsColumnWidthsAndItsUntouchedCells() throws {
+    // MARK: as text
+
+    func testATableReadsAsALinePerRow() {
         let table = made()
         XCTAssertEqual(DataGraphics.tableText(table, id: tableId(table)), "Item, Qty\nTea, 2\nCake, 1")
+        // A cell with a comma in it: its row's cells go apart with tabs,
+        // which parse back.
+        let comma = withWords(table, 1, 0, "Tea, green")
+        XCTAssertEqual(DataGraphics.tableText(comma, id: tableId(comma)), "Item, Qty\nTea, green\t2\nCake, 1")
+        XCTAssertEqual(DataGraphics.parseTable(DataGraphics.tableText(comma, id: tableId(comma))),
+                       [["Item", "Qty"], ["Tea, green", "2"], ["Cake", "1"]])
+        // Line breaks and tabs in a cell are spaces.
+        let broken = withWords(table, 1, 0, "Tea\tgreen\nhot")
+        XCTAssertEqual(DataGraphics.tableText(broken, id: tableId(broken)), "Item, Qty\nTea green hot, 2\nCake, 1")
+    }
+
+    func testEditedAsTextTheTableKeepsItsColumnWidthsAndItsUntouchedCells() throws {
+        let table = made()
         let rebuilt = try XCTUnwrap(DataGraphics.rebuiltTable(
             table, id: tableId(table), rows: DataGraphics.parseTable("Item, Qty, Price\nTea, 2, 3.50"), heightFor: heightFor))
         XCTAssertEqual(rebuilt.count, 12)
+        // A column more is the width the columns average; the table grows
+        // to the right.
         XCTAssertEqual(columnWidths(rebuilt), [229, 171, 200])
         XCTAssertEqual(columnLefts(rebuilt), [100, 329, 500])
         XCTAssertEqual(text(rebuilt, 1, 2).text, "3.50")
         XCTAssertEqual(text(table, 1, 0), text(rebuilt, 1, 0))
         XCTAssertEqual(rowTops(rebuilt), [200, 246])
-
-        let longer = try XCTUnwrap(DataGraphics.rebuiltTable(
-            table, id: tableId(table), rows: DataGraphics.parseTable("A, B\nC, D\nE, F\nG, H\nI, J"), heightFor: heightFor))
-        XCTAssertEqual(DataGraphics.tableRows(longer, id: tableId(longer)).map { text(longer, $0, 0).text },
-                       ["A", "C", "E", "G", "I"])
-        // New rows keep the bands.
-        XCTAssertEqual(rect(longer, 2, 0).fill, rect(longer, 4, 0).fill)
-        XCTAssertEqual(rect(longer, 1, 0).fill, rect(longer, 3, 0).fill)
+        XCTAssertEqual(Set(rebuilt.compactMap { $0.table?.id }), [tableId(table)])
+        // A column fewer: the table narrows from the right.
+        let narrower = try XCTUnwrap(DataGraphics.rebuiltTable(
+            table, id: tableId(table), rows: DataGraphics.parseTable("A\nB"), heightFor: heightFor))
+        XCTAssertEqual(columnWidths(narrower), [229])
+        XCTAssertEqual(words(narrower), ["A", "B"])
         XCTAssertNil(DataGraphics.rebuiltTable(table, id: tableId(table), rows: [], heightFor: heightFor))
 
-        // A cell with a comma in it is set off by tabs.
+        // A cell whose words did not change keeps its own styles; new rows
+        // keep the bands.
         let tea = text(table, 1, 0).id
-        let comma = table.map { el -> Element in
+        let styled = table.map { el -> Element in
             var out = el
-            if el.id == tea { out.text = "Tea, green" }
+            if el.id == tea { out.italic = true }
             return out
         }
-        XCTAssertEqual(DataGraphics.tableText(comma, id: tableId(comma)), "Item, Qty\nTea, green\t2\nCake, 1")
+        let longer = try XCTUnwrap(DataGraphics.rebuiltTable(
+            styled, id: tableId(styled), rows: DataGraphics.parseTable("Item, Qty\nTea, 2\nCake, 1\nJam, 3\nBun, 4"),
+            heightFor: heightFor))
+        XCTAssertEqual(words(longer), ["Item", "Qty", "Tea", "2", "Cake", "1", "Jam", "3", "Bun", "4"])
+        XCTAssertEqual(text(longer, 1, 0).italic, true)
+        XCTAssertEqual(rect(longer, 2, 0).fill, rect(longer, 4, 0).fill)
+        XCTAssertEqual(rect(longer, 1, 0).fill, rect(longer, 3, 0).fill)
     }
 
     // MARK: the file
@@ -334,7 +380,7 @@ final class TablesTests: XCTestCase {
         XCTAssertEqual(rowTops(s.page.elements), [200, 246])
         XCTAssertEqual(s.selection, [text(s.page.elements, 1, 1).id])
         s.deleteTableColumn()
-        XCTAssertEqual(columnWidths(s.page.elements), [229])
+        XCTAssertEqual(columnWidths(s.page.elements), [400], "the table keeps its width")
         XCTAssertEqual(s.selection, [text(s.page.elements, 1, 0).id])
         XCTAssertEqual(s.tableSelection?.deleteNote, "A table keeps at least one column.")
         s.deleteTableColumn()

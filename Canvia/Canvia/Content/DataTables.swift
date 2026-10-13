@@ -133,20 +133,22 @@ extension DataGraphics {
     }
 
     /// A column added left or right of `col` (right with `right`), copying
-    /// that column's cells with no words. It is the width the columns then
-    /// average, the total width over their new number, and the others are
-    /// narrowed in proportion, so the table is as wide as it was.
+    /// that column's cells with no words. It is as wide as the columns were
+    /// on average, and the others are narrowed in proportion to make room,
+    /// so the table is as wide as it was; the last column takes what
+    /// rounding leaves over.
     static func addingTableColumn(_ elements: [Element], id: String, col: Int, right: Bool,
                                   heightFor: (Element) -> Double) -> [Element] {
         let boxes = columnBoxes(elements, id: id)
-        guard let left = boxes.values.map({ $0.x }).min(), boxes[col] != nil else { return elements }
-        let n = Double(boxes.count)
         let total = boxes.values.map { $0.w }.reduce(0, +)
+        guard let left = boxes.values.map({ $0.x }).min(), boxes[col] != nil, total > 0 else { return elements }
+        let average = total / Double(boxes.count)
         let at = right ? col + 1 : col
         var widths: [Int: Double] = [:]
-        for (c, box) in boxes { widths[c >= at ? c + 1 : c] = (box.w * n / (n + 1)).rounded() }
-        widths[at] = (total / (n + 1)).rounded()
-        return relaidTable(insertingColumn(elements, id: id, source: col, at: at, left: left, widths: widths),
+        for (c, box) in boxes { widths[c >= at ? c + 1 : c] = box.w * (total - average) / total }
+        widths[at] = average
+        let added = insertingColumn(elements, id: id, source: col, at: at)
+        return relaidTable(placingColumns(added, id: id, left: left, widths: roundedWidths(widths, total: total)),
                            id: id, heightFor: heightFor)
     }
 
@@ -159,14 +161,22 @@ extension DataGraphics {
         return relaidTable(removingRow(elements, id: id, row: row), id: id, heightFor: heightFor)
     }
 
-    /// Column `col` taken out, the columns right of it moved left into its
-    /// place, so the table is that much narrower; nil when it is the
-    /// table's last column, which never goes.
+    /// Column `col` taken out and the columns left widened in proportion,
+    /// so the table keeps its width, as adding one keeps it, the last column
+    /// taking what rounding leaves over; nil when it is the table's last
+    /// column, which never goes.
     static func deletingTableColumn(_ elements: [Element], id: String, col: Int,
                                     heightFor: (Element) -> Double) -> [Element]? {
         let boxes = columnBoxes(elements, id: id)
-        guard let box = boxes[col], boxes.count > 1 else { return nil }
-        return relaidTable(removingColumn(elements, id: id, col: col, width: box.w), id: id, heightFor: heightFor)
+        guard let box = boxes[col], boxes.count > 1, let left = boxes.values.map({ $0.x }).min() else { return nil }
+        let total = boxes.values.map { $0.w }.reduce(0, +)
+        let rest = total - box.w
+        guard rest > 0 else { return nil }
+        var widths: [Int: Double] = [:]
+        for (c, b) in boxes where c != col { widths[c > col ? c - 1 : c] = b.w * total / rest }
+        let removed = removingColumn(elements, id: id, col: col)
+        return relaidTable(placingColumns(removed, id: id, left: left, widths: roundedWidths(widths, total: total)),
+                           id: id, heightFor: heightFor)
     }
 
     // MARK: look
@@ -214,9 +224,9 @@ extension DataGraphics {
     // MARK: as text
 
     /// Table `id`'s words as rows of cells, for the editor tables are typed
-    /// in (parseTable reads them back): commas between cells, or tabs in a
-    /// row whose words hold a comma; each cell's plain words, its line
-    /// breaks spaces.
+    /// in (parseTable reads them back, a line at a time): commas between
+    /// cells, or tabs in a row whose words hold a comma; each cell's plain
+    /// words, its line breaks and tabs spaces.
     static func tableText(_ elements: [Element], id: String) -> String {
         var words: [TableCell: String] = [:]
         for el in tableMembers(elements, id: id) where el.type == .text {
@@ -256,12 +266,12 @@ extension DataGraphics {
                   let left = boxes.values.map({ $0.x }).min() else { break }
             var widths = boxes.mapValues { $0.w }
             widths[last + 1] = (boxes.values.map { $0.w }.reduce(0, +) / Double(boxes.count)).rounded()
-            out = insertingColumn(out, id: id, source: last, at: last + 1, left: left, widths: widths)
+            out = placingColumns(insertingColumn(out, id: id, source: last, at: last + 1), id: id, left: left, widths: widths)
         }
         while true {
             let boxes = columnBoxes(out, id: id)
-            guard boxes.count > wanted, let last = boxes.keys.max(), let box = boxes[last] else { break }
-            out = removingColumn(out, id: id, col: last, width: box.w)
+            guard boxes.count > wanted, let last = boxes.keys.max() else { break }
+            out = removingColumn(out, id: id, col: last)
         }
         let rowAt = Dictionary(uniqueKeysWithValues: tableRows(out, id: id).enumerated().map { ($0.element, $0.offset) })
         let colAt = Dictionary(uniqueKeysWithValues: tableColumns(out, id: id).enumerated().map { ($0.element, $0.offset) })
@@ -322,32 +332,37 @@ extension DataGraphics {
     }
 
     /// Column `source` copied, without words, in as column `at`; columns
-    /// from `at` on moved right one; every column then at its width in
-    /// `widths` (by its new number), side by side from `left`.
-    private static func insertingColumn(_ elements: [Element], id: String, source: Int, at: Int,
-                                        left: Double, widths: [Int: Double]) -> [Element] {
+    /// from `at` on moved right one.
+    private static func insertingColumn(_ elements: [Element], id: String, source: Int, at: Int) -> [Element] {
+        let copies = tableMembers(elements, id: id).filter { $0.table?.col == source }
+        let shifted = elements.map { el -> Element in
+            guard let cell = el.table, cell.id == id, cell.col >= at else { return el }
+            var out = el
+            out.table = TableCell(id: id, row: cell.row, col: cell.col + 1)
+            return out
+        }
+        return inserting(copies.map { blank($0, row: $0.table?.row ?? 0, col: at) }, into: shifted, id: id)
+    }
+
+    /// Table `id`'s rectangles each at its column's width in `widths` (by
+    /// column), the columns side by side from `left`; the relayout then
+    /// fits the words to them.
+    private static func placingColumns(_ elements: [Element], id: String, left: Double,
+                                       widths: [Int: Double]) -> [Element] {
         var xs: [Int: Double] = [:]
         var x = left
         for c in widths.keys.sorted() {
             xs[c] = x
             x += widths[c] ?? 0
         }
-        func placed(_ el: Element, _ col: Int) -> Element {
-            guard el.type == .shape, let cx = xs[col], let w = widths[col] else { return el }
+        return elements.map { el in
+            guard el.type == .shape, let cell = el.table, cell.id == id,
+                  let cx = xs[cell.col], let w = widths[cell.col] else { return el }
             var out = el
             out.x = cx
             out.w = w
             return out
         }
-        let copies = tableMembers(elements, id: id).filter { $0.table?.col == source }
-        let shifted = elements.map { el -> Element in
-            guard let cell = el.table, cell.id == id else { return el }
-            let col = cell.col >= at ? cell.col + 1 : cell.col
-            var out = el
-            out.table = TableCell(id: id, row: cell.row, col: col)
-            return placed(out, col)
-        }
-        return inserting(copies.map { placed(blank($0, row: $0.table?.row ?? 0, col: at), at) }, into: shifted, id: id)
     }
 
     /// Row `row` gone, the rows below numbered up one, the table's top kept
@@ -370,14 +385,12 @@ extension DataGraphics {
         }
     }
 
-    /// Column `col`, `width` wide, gone, the columns right of it moved left
-    /// by as much and numbered down one.
-    private static func removingColumn(_ elements: [Element], id: String, col: Int, width: Double) -> [Element] {
+    /// Column `col` gone, the columns right of it numbered down one.
+    private static func removingColumn(_ elements: [Element], id: String, col: Int) -> [Element] {
         elements.filter { !($0.table?.id == id && $0.table?.col == col) }.map { el in
             guard let cell = el.table, cell.id == id, cell.col > col else { return el }
             var out = el
             out.table = TableCell(id: id, row: cell.row, col: cell.col - 1)
-            if el.type == .shape { out.x = el.x - width }
             return out
         }
     }
@@ -401,6 +414,15 @@ extension DataGraphics {
         return out
     }
 
+    /// `widths` (by column) each rounded, the last column given what is
+    /// left of `total`, so they add up to it exactly.
+    private static func roundedWidths(_ widths: [Int: Double], total: Double) -> [Int: Double] {
+        var out = widths.mapValues { $0.rounded() }
+        guard let last = out.keys.max(), let own = out[last] else { return out }
+        out[last] = total - (out.values.reduce(0, +) - own)
+        return out
+    }
+
     /// Each column's x and width, as its top cell's rectangle has them.
     private static func columnBoxes(_ elements: [Element], id: String) -> [Int: (x: Double, w: Double)] {
         var boxes: [Int: (x: Double, w: Double)] = [:]
@@ -414,9 +436,11 @@ extension DataGraphics {
     }
 
     /// A cell's words as they are typed in the table editor: no style
-    /// marks, line breaks as spaces.
+    /// marks, line breaks and tabs as spaces, so each reads back in its own
+    /// cell.
     private static func plainWords(_ text: String) -> String {
-        RichText.strip(text).components(separatedBy: .newlines).joined(separator: " ")
+        RichText.strip(text).components(separatedBy: CharacterSet.newlines.union(CharacterSet(charactersIn: "\t")))
+            .joined(separator: " ")
     }
 
     /// Whether a cell's words, or anything that sets how much room they
