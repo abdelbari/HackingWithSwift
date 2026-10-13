@@ -677,7 +677,17 @@ and read as "Notes, none for this page", when the page has none), and
 autoplay on each page's own timing. VoiceOver has Next
 page and Previous page among the page's actions. Every page can set
 its own hold and its transition to the next (fade, cut or slide) from
-its notes sheet; the video honours both.
+its notes sheet; the video honours both. With a screen attached by
+HDMI, USB-C or AirPlay, the slides go to that screen (an
+external-display scene named in Canvia-Info.plist) and the phone becomes
+the presenter's console: the page up, small (press and hold to point on
+the screen), the page coming or "End of presentation", the page's title
+and "This page 0:07 · holds 2.5 s", the notes in large type with A− and
+A+, the talk's timer (a tap pauses or resumes it, a press and hold
+offers Reset), "3 / 12", and Previous, Pages (a grid of the pages
+shown) and Next. The notes never reach the screen; taking the screen
+away mid-talk carries on on the phone, on the same page, with a paused
+timer running again. Without a screen, Present is as it was.
 
 **MP4 and animated GIF** — a multi-page design is already a sequence, so
 it exports as one: each page holds for 2.5 seconds with a slow push in
