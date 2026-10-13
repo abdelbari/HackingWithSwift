@@ -38,6 +38,9 @@ struct PresentationView: View {
     /// When the person went on from a page whose elements leave, so its
     /// clock runs on through the exits; nil before that.
     @State private var exitFrom: Date?
+    /// Where the page's clock stood when autoplay was turned off, so a page
+    /// whose exits had begun keeps it there; nil before that.
+    @State private var stoppedAt: Double?
     @State private var exitTask: Task<Void, Never>?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openURL) private var openURL
@@ -277,9 +280,16 @@ struct PresentationView: View {
     /// begin. None with autoplay, which runs the clock freely — unless the
     /// exits are already playing — or when nothing leaves.
     private func heldAt(_ page: Page) -> Double? {
-        let span = exitSpan(page)
-        guard span > 0, !autoplay || exitFrom != nil else { return nil }
-        return max(0, holdSeconds(page) - span)
+        guard !autoplay || exitFrom != nil else { return nil }
+        return Self.heldPoint(hold: holdSeconds(page), span: exitSpan(page), stoppedAt: stoppedAt)
+    }
+
+    /// Where the exits begin, `span` before the hold — or later, where the
+    /// clock stood when autoplay was turned off after they had begun, so
+    /// elements already gone stay gone; none when nothing leaves.
+    static func heldPoint(hold: Double, span: Double, stoppedAt: Double?) -> Double? {
+        guard span > 0 else { return nil }
+        return max(0, hold - span, stoppedAt ?? 0)
     }
 
     private func holdSeconds(_ page: Page) -> Double {
@@ -303,6 +313,7 @@ struct PresentationView: View {
     /// at rest; its clips are heard from now, the music playing on.
     private func pageArrived() {
         shownAt = Date()
+        stoppedAt = nil
         startSound()
         settle(after: motionEnd(page))
     }
@@ -352,11 +363,19 @@ struct PresentationView: View {
             scheduleAdvance()
             return
         }
-        let held = max(0, hold - span)
+        let held = Self.heldPoint(hold: hold, span: span, stoppedAt: stoppedAt) ?? 0
         let now = min(Date().timeIntervalSince(shownAt), held)
         shownAt = Date().addingTimeInterval(-now)
         settle(after: max(motionEnd(page) - now, 0))
         scheduleAdvance(after: max(hold - now, 0.1))
+    }
+
+    /// Autoplay turned off: the page's clock stays where it stands, waiting
+    /// there for the person to go on, rather than going back to where its
+    /// exits begin and bringing back elements that have already left.
+    private func autoplayStopped() {
+        guard exitFrom == nil else { return }
+        stoppedAt = min(Date().timeIntervalSince(shownAt), holdSeconds(page))
     }
 
     /// The sound with the page's clock: the clips of the page up, the music
@@ -399,7 +418,12 @@ struct PresentationView: View {
                 }
                 Button {
                     autoplay.toggle()
-                    if autoplay { autoplayFromHere() } else { autoplayTask?.cancel() }
+                    if autoplay {
+                        autoplayFromHere()
+                    } else {
+                        autoplayTask?.cancel()
+                        autoplayStopped()
+                    }
                 } label: { Image(systemName: autoplay ? "pause.fill" : "play.fill").padding(10) }
                     .accessibilityLabel(autoplay ? "Pause autoplay" : "Autoplay")
                 Button { showingNotes.toggle() } label: {
@@ -538,6 +562,7 @@ struct PresentationView: View {
                 go(1)
             } else {
                 autoplay = false
+                autoplayStopped()
             }
         }
     }

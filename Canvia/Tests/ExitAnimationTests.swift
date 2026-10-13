@@ -227,4 +227,21 @@ final class ExitAnimationTests: XCTestCase {
         XCTAssertEqual(try time(20, heldAt: 2.4, exitAfter: 9.7), 3, accuracy: 1e-9, "to the hold, no further")
         XCTAssertNil(PresentationView.clock(at: start, from: start, hold: 3, playing: false, heldAt: 2.4, exitFrom: nil))
     }
+
+    /// Autoplay turned off once the exits of a page held 3 s, leaving over
+    /// its last 0.6 s, have begun: the clock stays where it stood, rather
+    /// than going back to 2.4 s and the elements that have left coming back.
+    @MainActor
+    func testTurningAutoplayOffKeepsTheClockWhereItStands() throws {
+        XCTAssertNil(PresentationView.heldPoint(hold: 3, span: 0, stoppedAt: 2.8), "nothing leaves: never held")
+        XCTAssertEqual(try XCTUnwrap(PresentationView.heldPoint(hold: 3, span: 0.6, stoppedAt: nil)), 2.4, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(PresentationView.heldPoint(hold: 3, span: 0.6, stoppedAt: 1)), 2.4, accuracy: 1e-9,
+                       "stopped before the exits: held where they begin")
+        let partway = try XCTUnwrap(PresentationView.heldPoint(hold: 3, span: 0.6, stoppedAt: 2.8))
+        XCTAssertEqual(partway, 2.8, accuracy: 1e-9)
+        XCTAssertEqual(try time(9, heldAt: partway), 2.8, accuracy: 1e-9, "partway out, it stays partway out")
+        XCTAssertEqual(try time(10, heldAt: partway, exitAfter: 9.9), 2.9, accuracy: 1e-9, "going on runs it on from there")
+        let atTheEnd = try XCTUnwrap(PresentationView.heldPoint(hold: 3, span: 0.6, stoppedAt: 3))
+        XCTAssertEqual(try time(3.05, heldAt: atTheEnd), 3, accuracy: 1e-9, "at the last page's hold, gone stays gone")
+    }
 }
