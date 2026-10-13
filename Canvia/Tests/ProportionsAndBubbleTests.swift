@@ -69,6 +69,25 @@ final class ProportionsAndBubbleTests: XCTestCase {
         XCTAssertEqual(RatioLock.size(height: 2, from: CGSize(width: 100, height: 100)), CGSize(width: 8, height: 8))
     }
 
+    func testATypedSizeOnABoxWithASideOfZeroIsTaken() {
+        // The Android twin's ResizeTest rows: box w, h, typed width, typed
+        // height -> width, height, the top left held at 50, 60.
+        let rows: [(Double, Double, Double?, Double?, Double, Double)] = [
+            (400, 0, 200, nil, 200, 8),
+            (400, 0, nil, 30, 400, 30),
+            (0, 300, 200, nil, 200, 300),
+            (0, 300, nil, 2, 8, 8),
+        ]
+        for (w, h, typedW, typedH, wantW, wantH) in rows {
+            var flat = Element.image("p", w: w, h: h)
+            flat.x = 50
+            flat.y = 60
+            let box = CGSize(width: w, height: h)
+            let size = typedW.map { RatioLock.size(width: $0, from: box) } ?? RatioLock.size(height: typedH ?? 0, from: box)
+            XCTAssertEqual(RatioLock.placed(flat, at: size), CGRect(x: 50, y: 60, width: wantW, height: wantH), "\(w) × \(h)")
+        }
+    }
+
     // MARK: quick actions
 
     func testTheBubbleSitsAboveUnlessTooNearTheTop() {

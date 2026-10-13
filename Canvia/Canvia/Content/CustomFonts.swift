@@ -132,6 +132,28 @@ enum CustomFonts {
         return with(design, now)
     }
 
+    /// The entries the design records for the fonts of your own `elements`
+    /// are set in, each once, in their order: what a copy of them carries,
+    /// so a paste into another design still names a font this phone does
+    /// not have.
+    static func carried(_ elements: [Element], from design: Design) -> [Record] {
+        let had = records(in: design)
+        var seen = Set<String>()
+        return elements.compactMap { el -> Record? in
+            guard let found = sha(el.fontFamily), seen.insert(found).inserted else { return nil }
+            return had.first { $0.id == key(found) }
+        }
+    }
+
+    /// The design recording, after its own, each of `brought` it has no
+    /// entry for: what a paste brings with it. Unchanged when it lacks none.
+    static func adopting(_ brought: [Record], into design: Design) -> Design {
+        let had = records(in: design)
+        var ids = Set(had.map(\.id))
+        let more = brought.filter { ids.insert($0.id).inserted }
+        return more.isEmpty ? design : with(design, had + more)
+    }
+
     /// The name the design records for `key`, if it records one.
     static func name(in design: Design, of key: String?) -> String? {
         records(in: design).first { $0.id == key }?.name

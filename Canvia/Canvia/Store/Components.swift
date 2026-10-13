@@ -32,15 +32,15 @@ enum Components {
         if let data = try? JSONEncoder().encode(list) { try? data.write(to: url, options: .atomic) }
     }
 
-    /// The elements moved so their union sits at the origin.
+    /// The elements moved so their union sits at the origin, with neither
+    /// lock, so every copy put in can be moved into place.
     static func make(named name: String, from elements: [Element]) -> Component? {
         guard !elements.isEmpty else { return nil }
         let box = Geometry.union(elements.map(Geometry.aabb))
         let moved = elements.map { el in
-            var e = el
+            var e = ElementLock.with(el, .unlocked)
             e.x -= box.minX
             e.y -= box.minY
-            e.locked = false
             return e
         }
         return Component(name: name, width: box.width, height: box.height, elements: moved)

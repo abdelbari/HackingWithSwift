@@ -12,18 +12,21 @@ enum PageClipboard {
 
     static let type = "com.canvia.page"
 
-    /// What travels: the page, and the size of the page it came from, so a
-    /// paste into a differently sized design can scale it to fit.
+    /// What travels: the page, the size of the page it came from, so a
+    /// paste into a differently sized design can scale it to fit, and the
+    /// records of the fonts of your own on it (CustomFonts.carried) — none
+    /// from a build that did not write them.
     struct Payload: Codable {
         var page: Page
         var width: Double
         var height: Double
+        var fonts: [CustomFonts.Record]?
     }
 
-    static func copy(_ page: Page, width: Double, height: Double,
+    static func copy(_ page: Page, width: Double, height: Double, fonts: [CustomFonts.Record] = [],
                      to pasteboard: UIPasteboard = .general) {
-        guard let data = try? JSONEncoder().encode(Payload(page: page, width: width, height: height))
-        else { return }
+        let payload = Payload(page: page, width: width, height: height, fonts: fonts.isEmpty ? nil : fonts)
+        guard let data = try? JSONEncoder().encode(payload) else { return }
         pasteboard.setData(data, forPasteboardType: type)
     }
 

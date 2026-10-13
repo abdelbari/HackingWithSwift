@@ -174,12 +174,20 @@ struct EditorView: View {
     var body: some View {
         editorStack
         .sheet(item: $activeSheet) { sheet in
+            // The canvas, the quick actions and the keys still take Delete
+            // under a sheet: its question is asked from the sheet, since the
+            // editor beneath cannot present while the sheet is up.
             sheetView(sheet)
+                .asksBeforeLockedDelete(Binding(get: { store.askingDelete && activeSheet != nil },
+                                                set: { store.askingDelete = $0 }),
+                                        several: deletesSeveral, store: store)
         }
         // A sheet rises over the lower half of the canvas: the selection is
         // kept in the half still showing — as the sheet opens, and as the
         // selection changes under it, a Layers row picked, say.
         .onChange(of: activeSheet) { _, sheet in
+            // A question left from before is not asked out of place.
+            store.askingDelete = false
             if sheet != nil {
                 // A panel opening ends Select multiple; the selection stays.
                 store.endSelectingMultiple()
@@ -209,14 +217,9 @@ struct EditorView: View {
             if on { store.stopPreview() }
         }
         .customGridAlert(isPresented: $askingCustomGrid, store: store)
-        // Delete with something locked in position selected asks first, in
-        // the Android twin's words; Delete there goes ahead.
-        .alert(deletesSeveral ? "Delete these?" : "Delete this?", isPresented: $store.askingDelete) {
-            Button("Delete", role: .destructive) { store.deleteSelected(confirmed: true) }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(deletesSeveral ? "Some of them have their position locked." : "Its position is locked.")
-        }
+        .asksBeforeLockedDelete(Binding(get: { store.askingDelete && activeSheet == nil },
+                                        set: { store.askingDelete = $0 }),
+                                several: deletesSeveral, store: store)
         .alert("Name this component", isPresented: $namingComponent) {
             TextField("Footer, Price tag, Call-out…", text: $componentName)
             Button("Save") {
@@ -1441,5 +1444,19 @@ struct EditorView: View {
         // Leaving the editor is a moment worth keeping whatever the timer says.
         DesignLibrary.snapshot(store.design, force: true)
         DesignLibrary.writeThumbnail(for: store.design)
+    }
+}
+
+private extension View {
+    /// Delete with something locked in position selected asks first, in
+    /// the Android twin's words; Delete there goes ahead. Shown from the
+    /// editor, or from the sheet over it while one is up.
+    func asksBeforeLockedDelete(_ isPresented: Binding<Bool>, several: Bool, store: DesignStore) -> some View {
+        alert(several ? "Delete these?" : "Delete this?", isPresented: isPresented) {
+            Button("Delete", role: .destructive) { store.deleteSelected(confirmed: true) }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(several ? "Some of them have their position locked." : "Its position is locked.")
+        }
     }
 }
