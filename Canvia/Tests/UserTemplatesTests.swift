@@ -107,9 +107,13 @@ final class UserTemplatesTests: XCTestCase {
 
         UserTemplates.rename(saved.id, to: "  ")
         XCTAssertEqual(UserTemplates.all().first { $0.id == saved.id }?.name, "Pitch deck", "an empty name changes nothing")
-        UserTemplates.rename(saved.id, to: "Launch")
+        UserTemplates.rename(saved.id, to: "Launch", now: Date(timeIntervalSince1970: 1_800_000_000.0004))
         XCTAssertEqual(UserTemplates.all().first { $0.id == saved.id }?.name, "Launch")
         XCTAssertEqual(UserTemplates.load(id: saved.id)?.title, "Launch")
+        // Changed then, in whole milliseconds, in the list and the design
+        // alike, so a backup carries the rename as the newer template.
+        XCTAssertEqual(UserTemplates.all().first { $0.id == saved.id }?.updatedAt, 1_800_000_000_000)
+        XCTAssertEqual(UserTemplates.load(id: saved.id)?.updatedAt, 1_800_000_000_000)
 
         var shorter = source
         shorter.pages.removeLast()
@@ -159,6 +163,57 @@ final class UserTemplatesTests: XCTestCase {
         XCTAssertEqual(fitted.w, 200, accuracy: 0.001)
         XCTAssertEqual(fitted.strokeWidth, 10)
         XCTAssertEqual(fitted.radius ?? 0, 12, accuracy: 0.001)
+    }
+
+    /// The rows the Android twin's "a template back from a backup takes its
+    /// listed name and time" checks: renamed in the list, it comes back
+    /// under that name, at the later time; unlisted, as it was, in Personal.
+    func testATemplateBackFromABackupTakesItsListedNameAndTime() {
+        var d = Design(title: "Sale", width: 1080, height: 1080)
+        d.id = "tpl_a"
+        d.updatedAt = 1000
+        let listed = UserTemplate(id: "tpl_a", name: "Spring sale", category: "Events", width: 1080,
+                                  height: 1080, pageCount: 1, updatedAt: 2000)
+        let back = UserTemplates.restored(d, listed: listed)
+        XCTAssertEqual(back.design.title, "Spring sale")
+        XCTAssertEqual(back.design.updatedAt, 2000)
+        XCTAssertEqual(UserTemplates.entry(for: back.design, category: back.category), listed)
+        let alone = UserTemplates.restored(d, listed: nil)
+        XCTAssertEqual(alone.design.title, "Sale")
+        XCTAssertEqual(alone.design.updatedAt, 1000)
+        XCTAssertEqual(alone.category, "Personal")
+        var newer = d
+        newer.updatedAt = 3000
+        XCTAssertEqual(UserTemplates.restored(newer, listed: listed).design.updatedAt, 3000)
+    }
+
+    /// The row the Android twin's "a template keeps its arrows joined and
+    /// its groups apart" checks: laid on, a template is copied as any copy
+    /// is — its arrow follows the copies of its boxes, and its group is a
+    /// new one each time.
+    func testATemplateKeepsItsArrowsJoinedAndItsGroupsApart() {
+        var box = Element.shape("rect")
+        box.id = "box"
+        box.group = "g1"
+        var other = Element.shape("oval")
+        other.id = "other"
+        other.group = "g1"
+        var arrow = Element.shape("rect")
+        arrow.id = "arrow"
+        arrow.connectFrom = "box"
+        arrow.connectTo = "other"
+        var d = Design(title: "Joined", width: 1080, height: 1080)
+        d.pages = [Page(elements: [box, other, arrow])]
+        let first = UserTemplates.pages(of: d, width: 540, height: 540)[0].elements
+        let second = UserTemplates.pages(of: d, width: 540, height: 540)[0].elements
+        XCTAssertEqual(first[2].connectFrom, first[0].id)
+        XCTAssertEqual(first[2].connectTo, first[1].id)
+        XCTAssertEqual(first[0].group, first[1].group)
+        XCTAssertNotEqual(first[0].group, "g1")
+        XCTAssertNotEqual(first[0].group, second[0].group)
+        let made = UserTemplates.newDesign(from: d).pages[0].elements
+        XCTAssertEqual(made[2].connectFrom, made[0].id)
+        XCTAssertNotEqual(made[0].group, "g1")
     }
 
     func testApplyingSeveralPagesReplacesThisOneAndAddsTheRestAfterIt() {

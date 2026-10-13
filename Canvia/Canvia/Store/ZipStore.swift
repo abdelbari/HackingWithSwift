@@ -2,7 +2,9 @@
 // written and read by hand, as the app takes no dependencies: what a
 // backup is. The Android twin writes the same with java.util.zip's STORED
 // entries, so either phone reads the other's. Names are UTF-8 (flag bit
-// 11); no ZIP64, so an archive stays under 4 GB and 65,535 files.
+// 11); no ZIP64, so an archive stays under 4 GB and 65,535 files — the
+// Android twin's writer turns an entry away by the same rule (tooBig), as
+// this reader reads no ZIP64.
 
 import Foundation
 

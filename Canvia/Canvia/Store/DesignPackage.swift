@@ -97,8 +97,11 @@ enum DesignPackage {
 
     /// The design with each clip packed into `videos`, or — too long to
     /// carry, past the total, of a type the other phone cannot play, or
-    /// unreadable — replaced by its first frame packed as a photo.
-    static func packingVideos(_ design: Design, media: inout [String: Media], videos: inout [String: Media]) -> Design {
+    /// unreadable — replaced by its first frame packed as a photo. With
+    /// `wholeClips`, as a backup packs, every clip that reads goes in whole,
+    /// whatever its length or type, as the Android twin's backup packs them.
+    static func packingVideos(_ design: Design, media: inout [String: Media], videos: inout [String: Media],
+                              wholeClips: Bool = false) -> Design {
         var files: [String: URL] = [:]
         var clips: [String: (bytes: Int, ext: String)] = [:]
         for id in videoIDs(in: design) {
@@ -107,7 +110,7 @@ enum DesignPackage {
             files[id] = url
             clips[id] = (bytes: size, ext: url.pathExtension.lowercased())
         }
-        let whole = packedVideoIDs(clips)
+        let whole = wholeClips ? Set(files.keys) : packedVideoIDs(clips)
         var stills: [String: String] = [:]
         for id in files.keys.sorted() {
             guard let url = files[id] else { continue }
@@ -170,17 +173,33 @@ enum DesignPackage {
     /// library photos drawn and clips too big to carry turned to stills.
     /// Stays where the caller is, since drawing a library photo does.
     static func contents(of design: Design, mediaDirectory: URL = MediaStore.directory) -> Package {
+        let drawn = withLibraryPhotos(design)
+        return gathered(drawn.design, media: drawn.media, mediaDirectory: mediaDirectory)
+    }
+
+    /// The first part of `contents(of:)`, the one that stays on the main
+    /// actor: the record of fonts of your own as a save writes it, so the
+    /// other phone can name one it cannot draw, and every library photo
+    /// drawn. A photo from the app's own library is drawn by this app on
+    /// demand and exists nowhere else — not on the other platform, not on
+    /// an older install. The file carries it as a picture like any other,
+    /// under a fresh id, and only the exported copy is re-pointed.
+    static func withLibraryPhotos(_ design: Design) -> (design: Design, media: [String: Media]) {
         var media: [String: Media] = [:]
-        // A photo from the app's own library is drawn by this app on demand
-        // and exists nowhere else — not on the other platform, not on an
-        // older install. The file carries it as a picture like any other,
-        // under a fresh id, and only the exported copy is re-pointed.
-        var videos: [String: Media] = [:]
-        // The record of fonts of your own as a save writes it, so the
-        // other phone can name one it cannot draw.
         let synced = CustomFonts.synced(design, installed: FontStore.record)
-        let withClips = packingVideos(synced, media: &media, videos: &videos)
-        let design = packingLibraryPhotos(withClips, into: &media)
+        let drawn = packingLibraryPhotos(synced, into: &media)
+        return (drawn, media)
+    }
+
+    /// The rest of `contents(of:)`: the clips, photos, music and fonts the
+    /// design (from `withLibraryPhotos`) shows, read from their files — so
+    /// a backup can run it away from the main actor. `wholeClips` as for
+    /// `packingVideos`.
+    static func gathered(_ drawn: Design, media drawnMedia: [String: Media],
+                         mediaDirectory: URL = MediaStore.directory, wholeClips: Bool = false) -> Package {
+        var media = drawnMedia
+        var videos: [String: Media] = [:]
+        let design = packingVideos(drawn, media: &media, videos: &videos, wholeClips: wholeClips)
         for id in mediaIDs(in: design) {
             for ext in MediaStore.extensions {
                 let url = mediaDirectory.appendingPathComponent("\(id).\(ext)")

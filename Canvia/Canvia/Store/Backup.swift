@@ -15,7 +15,7 @@
 //   uploads.json             your uploads' list, as kept in Documents
 //   media/<id>.<ext>         the photos your uploads and logos are,
 //   videos/<id>.<ext>        their clips,
-//   audio/<id>               the music,
+//   audio/<id>               the music, and <id>.name beside it, its name,
 //   fonts/<sha12>.<ext>      and your fonts.
 //
 // Restoring merges, keeping every id: what is not here is added; a design
@@ -174,9 +174,9 @@ enum Backup {
     // MARK: writing
 
     /// Everything, into a backup at `url`, `progress` told the fraction done
-    /// as it goes. Cancelled, the half-written file is removed. The design
-    /// files are gathered here, on the main actor, where a library photo is
-    /// drawn; each is written out away from it.
+    /// as it goes. Cancelled, the half-written file is removed. Only a
+    /// design's library photos are drawn here, on the main actor; every
+    /// file is read, packed and written away from it.
     @MainActor
     static func write(to url: URL, now: Date = Date(),
                       progress: @escaping @MainActor (Double) -> Void) async throws -> Manifest {
@@ -238,6 +238,12 @@ enum Backup {
             case .audio:
                 if let file = AudioStore.url(for: entry.id) {
                     try await add(file, as: "audio/\(entry.id)", into: writer, written: &written)
+                    // The name it came with beside it, audio/<id>.name, as
+                    // the Android twin writes it; a restore puts it back.
+                    let name = AudioStore.nameFile(for: entry.id)
+                    if FileManager.default.fileExists(atPath: name.path) {
+                        try await add(name, as: "audio/\(name.lastPathComponent)", into: writer, written: &written)
+                    }
                 }
             }
             manifest.counts.uploads += 1
@@ -265,14 +271,22 @@ enum Backup {
     }
 
     /// One design as a design file under `folder`; false when its file does
-    /// not read, and it is left out.
+    /// not read, and it is left out. Read and decoded away from the main
+    /// actor; its library photos drawn on it; its files read, packed and
+    /// written away from it again. Every clip goes in whole, however long
+    /// and of whatever type, as the Android twin's backup packs them: a
+    /// backup keeps the clip, where a file to share may carry a still.
     @MainActor
     private static func pack(_ file: URL, folder: String, into writer: ZipStore.Writer) async throws -> Bool {
-        guard let data = try? Data(contentsOf: file),
-              let design = try? JSONDecoder().decode(Design.self, from: data) else { return false }
-        let contents = DesignPackage.contents(of: design)
+        let read = await Task.detached(priority: .userInitiated) { () -> Design? in
+            guard let data = try? Data(contentsOf: file) else { return nil }
+            return try? JSONDecoder().decode(Design.self, from: data)
+        }.value
+        guard let design = read else { return false }
+        let drawn = DesignPackage.withLibraryPhotos(design)
         let name = "\(folder)/\(design.id).\(DesignPackage.ext)"
         try await Task.detached(priority: .userInitiated) {
+            let contents = DesignPackage.gathered(drawn.design, media: drawn.media, wholeClips: true)
             try writer.add(name, DesignPackage.encode(contents))
         }.value
         return true
@@ -366,20 +380,21 @@ enum Backup {
             try step()
         }
 
+        // Templates of your own: each read, and its files stored, away from
+        // the main actor; listed, measured and drawn back on it.
         let listed = reader.file(UserTemplates.indexName).map(UserTemplates.read) ?? []
         for name in templates {
-            guard let data = reader.file(name),
-                  let package = try? JSONDecoder().decode(DesignPackage.Package.self, from: data),
-                  package.format == DesignPackage.format else { try step(); continue }
-            let id = package.design.id
-            let here = UserTemplates.index().first { $0.id == id }?.updatedAt
-            switch merge(incoming: package.design.updatedAt, existing: here) {
-            case .keep:
+            let here = UserTemplates.index()
+            let outcome = await Task.detached(priority: .userInitiated) {
+                Backup.restoreTemplate(reader.file(name), listed: listed, here: here)
+            }.value
+            switch outcome {
+            case .kept:
                 report.kept += 1
-            case .add, .replace:
-                var design = DesignPackage.storeKeepingIds(package)
+            case .unreadable:
+                break
+            case .restored(var design, let category):
                 design.normalizeTextHeights()
-                let category = listed.first { $0.id == id }?.category ?? UserTemplates.defaultCategory
                 if UserTemplates.store(design, category: category) {
                     UserTemplates.writeThumbnail(for: design)
                     report.templates += 1
@@ -411,6 +426,31 @@ enum Backup {
         case .kept: report.kept += 1
         case .unreadable: break
         }
+    }
+
+    /// What became of one template in the backup.
+    enum TemplateOutcome {
+        case kept
+        case unreadable
+        /// Its files stored here; the design to list, and its category.
+        case restored(Design, String)
+    }
+
+    /// One template's file from the backup weighed against those `here`,
+    /// named and timed as the backup's list (`listed`) has it
+    /// (UserTemplates.restored), and, when it is to come in, its photos,
+    /// clips and fonts stored under their own ids. Touches files only, for
+    /// a caller away from the main actor; listing it is the caller's.
+    private static func restoreTemplate(_ data: Data?, listed: [UserTemplate], here: [UserTemplate]) -> TemplateOutcome {
+        guard let data, let package = try? JSONDecoder().decode(DesignPackage.Package.self, from: data),
+              package.format == DesignPackage.format else { return .unreadable }
+        let id = package.design.id
+        let listing = listed.first { $0.id == id }
+        let incoming = UserTemplates.restored(package.design, listed: listing).design.updatedAt
+        let existing = here.first { $0.id == id }?.updatedAt
+        guard merge(incoming: incoming, existing: existing) != .keep else { return .kept }
+        let restored = UserTemplates.restored(DesignPackage.storeKeepingIds(package), listed: listing)
+        return .restored(restored.design, restored.category)
     }
 
     /// When the design file at `url` was last edited; nil when there is none

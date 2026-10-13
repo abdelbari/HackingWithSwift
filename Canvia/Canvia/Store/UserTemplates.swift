@@ -194,19 +194,37 @@ enum UserTemplates {
         return entries[i]
     }
 
-    /// A new name for a template, in the list and in its design; an empty
-    /// one changes nothing.
-    static func rename(_ id: String, to typed: String) {
+    /// A new name for a template, in the list and in its design, both
+    /// changed `now` (in whole milliseconds), so a backup carries the rename
+    /// to either phone as the newer template; an empty one changes nothing.
+    /// As the Android twin's TemplateStore.rename.
+    static func rename(_ id: String, to typed: String, now: Date = Date()) {
         let name = typed.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
         var entries = index()
         guard let i = entries.firstIndex(where: { $0.id == id }) else { return }
+        let stamp = (now.timeIntervalSince1970 * 1000).rounded()
         entries[i].name = name
+        entries[i].updatedAt = stamp
         write(entries)
         if var design = load(id: id) {
             design.title = name
+            design.updatedAt = stamp
             write(design: design)
         }
+    }
+
+    /// A template back from a backup: named as the backup's list has it
+    /// (`listed`) — a rename changes the list, and Android builds before
+    /// this changed only the list — and made at the later of the list's
+    /// time and the design's, in whole milliseconds, so a rename on either
+    /// phone counts as newer; in "Personal" when it is not listed. The
+    /// Android twin's UserTemplates.restored does the same.
+    static func restored(_ design: Design, listed: UserTemplate?) -> (design: Design, category: String) {
+        var out = design
+        if let name = listed?.name, !name.isEmpty { out.title = name }
+        out.updatedAt = max(listed?.updatedAt ?? design.updatedAt, design.updatedAt).rounded()
+        return (out, listed?.category ?? defaultCategory)
     }
 
     /// A template gone for good, its file, picture and entry. What it

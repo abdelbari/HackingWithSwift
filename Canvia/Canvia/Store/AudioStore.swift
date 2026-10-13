@@ -44,8 +44,9 @@ enum AudioStore {
         }
     }
 
-    /// Where a soundtrack's original file name is kept.
-    private static func nameFile(for id: String) -> URL {
+    /// Where a soundtrack's original file name is kept — a file a backup
+    /// carries beside the music, as the Android twin's does.
+    static func nameFile(for id: String) -> URL {
         directory.appendingPathComponent(id + nameSuffix)
     }
 
