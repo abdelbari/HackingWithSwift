@@ -107,6 +107,145 @@ final class FindReplaceTests: XCTestCase {
         XCTAssertEqual(s.selection, [match.elementId])
     }
 
+    // MARK: the shared matcher
+
+    /// One row of the table the Android twin's FindReplaceTest runs too, row
+    /// for row: the needle, the words, Match case and Whole words, and the
+    /// UTF-16 start and end of every match. A dropped occurrence is searched
+    /// again from its second character: "ha ha" in "aha ha ha" is at 4.
+    private struct MatchRow {
+        var needle: String
+        var body: String
+        var matchCase: Bool
+        var wholeWord: Bool
+        var expected: [[Int]]
+    }
+
+    private var rows: [MatchRow] {
+        [
+            MatchRow(needle: "cat", body: "cat, catalog", matchCase: false, wholeWord: true, expected: [[0, 3]]),
+            MatchRow(needle: "cat", body: "cat, catalog", matchCase: false, wholeWord: false, expected: [[0, 3], [5, 8]]),
+            MatchRow(needle: "cat", body: "Cat cat CAT", matchCase: false, wholeWord: true, expected: [[0, 3], [4, 7], [8, 11]]),
+            MatchRow(needle: "cat", body: "Cat cat CAT", matchCase: true, wholeWord: true, expected: [[4, 7]]),
+            MatchRow(needle: "cat", body: "concat cat", matchCase: false, wholeWord: true, expected: [[7, 10]]),
+            MatchRow(needle: "cat", body: "cat2 cat_ cat- 2cat", matchCase: false, wholeWord: true, expected: [[5, 8], [10, 13]]),
+            MatchRow(needle: "cat", body: "cats cat's", matchCase: false, wholeWord: true, expected: [[5, 8]]),
+            MatchRow(needle: "caf\u{00E9}", body: "le caf\u{00E9}, caf\u{00E9}s", matchCase: false, wholeWord: true, expected: [[3, 7]]),
+            MatchRow(needle: "x", body: "x\u{00B2} x", matchCase: false, wholeWord: true, expected: [[3, 4]]),
+            MatchRow(needle: "cat", body: "**cat** and cat", matchCase: false, wholeWord: true, expected: [[2, 5], [12, 15]]),
+            MatchRow(needle: "ice cream", body: "ice cream, ice-cream", matchCase: false, wholeWord: true, expected: [[0, 9]]),
+            MatchRow(needle: "aa", body: "aaaa", matchCase: false, wholeWord: false, expected: [[0, 2], [2, 4]]),
+            MatchRow(needle: "aa", body: "aaa", matchCase: false, wholeWord: true, expected: []),
+            MatchRow(needle: "aa", body: "aaa aa", matchCase: false, wholeWord: true, expected: [[4, 6]]),
+            MatchRow(needle: "ha ha", body: "aha ha ha", matchCase: false, wholeWord: true, expected: [[4, 9]]),
+            MatchRow(needle: "cat", body: "\u{732B}cat", matchCase: false, wholeWord: true, expected: []),
+            MatchRow(needle: "ok", body: "\u{1F600}ok\u{1F600}", matchCase: false, wholeWord: true, expected: [[2, 4]]),
+            MatchRow(needle: "ab", body: "ab-ab.ab", matchCase: false, wholeWord: true, expected: [[0, 2], [3, 5], [6, 8]]),
+            MatchRow(needle: "", body: "anything", matchCase: false, wholeWord: false, expected: []),
+            MatchRow(needle: "cat", body: "", matchCase: false, wholeWord: true, expected: []),
+        ]
+    }
+
+    func testTheSharedMatcherRows() {
+        XCTAssertEqual(rows.count, 20)
+        for row in rows {
+            let found = FindReplace.ranges(of: row.needle, in: row.body,
+                                           caseSensitive: row.matchCase, wholeWord: row.wholeWord)
+            XCTAssertEqual(found.map { [$0.location, NSMaxRange($0)] }, row.expected, "\(row.needle) in \(row.body)")
+        }
+    }
+
+    func testWholeWordsAcrossTheDesign() {
+        let s = store([["cat, catalog"], ["Concat the cat"]])
+        XCTAssertEqual(s.matches(for: "cat").count, 4)
+        let whole = s.matches(for: "cat", wholeWord: true)
+        XCTAssertEqual(whole.map(\.pageIndex), [0, 1])
+        XCTAssertEqual(whole.map(\.range.location), [0, 11])
+        XCTAssertEqual(s.replaceAll("cat", with: "dog", wholeWord: true), 2)
+        XCTAssertEqual(s.design.pages.map { $0.elements[0].text }, ["dog, catalog", "Concat the dog"])
+    }
+
+    /// Hidden and locked boxes are left alone, the same rule on both phones;
+    /// a position lock still takes new words.
+    func testHiddenAndLockedBoxesAreSkipped() {
+        var design = Design(title: "search", width: 800, height: 600)
+        var hidden = Element.text("Acme", fontSize: 24, w: 400)
+        hidden.hidden = true
+        var locked = Element.text("Acme", fontSize: 24, w: 400)
+        locked.locked = true
+        var pinned = Element.text("Acme", fontSize: 24, w: 400)
+        pinned.lockPosition = true
+        design.pages = [Page(background: .color("#ffffff"), elements: [hidden, locked, pinned])]
+        let s = DesignStore(design: design)
+        XCTAssertEqual(s.matches(for: "Acme").map(\.elementId), [pinned.id])
+        XCTAssertEqual(s.replaceAll("Acme", with: "Globex"), 1)
+        XCTAssertEqual(s.element(hidden.id)?.text, "Acme")
+        XCTAssertEqual(s.element(locked.id)?.text, "Acme")
+        XCTAssertEqual(s.element(pinned.id)?.text, "Globex")
+    }
+
+    // MARK: one at a time
+
+    func testReplaceChangesOnlyTheOneMatchAsOneStep() throws {
+        let s = store([["Acme and Acme"], ["Acme"]])
+        let found = s.matches(for: "Acme")
+        XCTAssertEqual(found.count, 3)
+        XCTAssertTrue(s.replaceOne(found[1], with: "Globex"))
+        XCTAssertEqual(s.design.pages[0].elements[0].text, "Acme and Globex")
+        XCTAssertEqual(s.design.pages[1].elements[0].text, "Acme")
+        s.undo()
+        XCTAssertEqual(s.design.pages[0].elements[0].text, "Acme and Acme")
+        XCTAssertFalse(s.canUndo, "one Replace, one step")
+    }
+
+    func testReplaceKeepsTheMarkersAndWordStylesOutsideTheMatch() throws {
+        var text = Element.text("**red** car, red", fontSize: 24, w: 400)
+        text.setSpans([TextSpan(start: 4, end: 7, color: "#0000ff")])
+        var design = Design(title: "one", width: 800, height: 600)
+        design.pages[0].elements = [text]
+        let found = DesignStore.matches(in: design, for: "red", caseSensitive: false, wholeWord: true)
+        XCTAssertEqual(found.count, 2)
+        let after = try XCTUnwrap(DesignStore.replacingOne(design, found[1], with: "green"))
+        let el = after.pages[0].elements[0]
+        XCTAssertEqual(el.text, "**red** car, green")
+        XCTAssertEqual(el.liveSpans, [TextSpan(start: 4, end: 7, color: "#0000ff")])
+        XCTAssertEqual(design.pages[0].elements[0].text, "**red** car, red", "the design given is left as it was")
+    }
+
+    func testAMatchNoLongerThereIsNotReplaced() {
+        let s = store([["Acme"]])
+        var gone = s.matches(for: "Acme")[0]
+        gone.range = NSRange(location: 2, length: 10)
+        XCTAssertFalse(s.replaceOne(gone, with: "x"))
+        XCTAssertFalse(s.canUndo)
+    }
+
+    func testReplaceMovesOnToTheNextMatch() {
+        let s = store([["cat cat"], ["cat"]])
+        let found = s.matches(for: "cat")
+        s.replaceOne(found[0], with: "cats")
+        let now = s.matches(for: "cat")
+        // "cats cat" / "cat": the replacement holds a match of its own, so
+        // the next is the second word, not the word just written.
+        XCTAssertEqual(now.count, 3)
+        XCTAssertEqual(DesignStore.matchAfter(replacing: found[0], at: 0, length: 4, in: now), 1)
+        // After the last, round to the first.
+        let last = now[2]
+        s.replaceOne(last, with: "dog")
+        let left = s.matches(for: "cat")
+        XCTAssertEqual(DesignStore.matchAfter(replacing: last, at: 2, length: 3, in: left), 0)
+    }
+
+    func testPreviousAndNextGoRoundAndTheReadoutCountsFromOne() {
+        XCTAssertEqual(FindReplace.step(from: 0, by: 1, count: 12), 1)
+        XCTAssertEqual(FindReplace.step(from: 11, by: 1, count: 12), 0)
+        XCTAssertEqual(FindReplace.step(from: 0, by: -1, count: 12), 11)
+        XCTAssertEqual(FindReplace.step(from: 5, by: -1, count: 0), 0)
+        XCTAssertEqual(FindReplace.position(2, of: 12), "3 of 12")
+        XCTAssertEqual(FindReplace.position(20, of: 3), "3 of 3", "held to the last")
+        XCTAssertEqual(FindReplace.position(0, of: 0), "")
+    }
+
     // MARK: style
 
     func testCopyingAStyleCarriesLookAndNotContent() {

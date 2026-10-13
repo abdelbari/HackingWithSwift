@@ -32,6 +32,10 @@ final class DesignStore {
     /// The words the colour sheet is open for, from the typing bar's colour
     /// well (see WordStyles).
     var wordColourTarget: WordRange?
+    /// The words the font sheet is open for, from the typing bar's Aa.
+    var wordFontTarget: WordRange?
+    /// The words the link prompt is open for, from the typing bar's Link.
+    var wordLinkTarget: WordRange?
     /// The text box dictation writes into while the microphone is on. Its
     /// words go there and nowhere else, whatever is selected meanwhile.
     var dictationTarget: String?
@@ -1225,40 +1229,36 @@ final class DesignStore {
     }
 
     /// Every occurrence of `needle` across every page, in reading order:
-    /// in text boxes, and in the words shapes carry.
+    /// in text boxes, and in the words shapes carry — not in a hidden or
+    /// locked one (FindReplace.searches). With `wholeWord`, only where no
+    /// letter or digit touches it (FindReplace.ranges).
     ///
     /// Pure and non-mutating, so the sheet can show a live count while typing
     /// without touching the document or the undo stack.
-    func matches(for needle: String, caseSensitive: Bool = false) -> [TextMatch] {
+    func matches(for needle: String, caseSensitive: Bool = false, wholeWord: Bool = false) -> [TextMatch] {
+        Self.matches(in: design, for: needle, caseSensitive: caseSensitive, wholeWord: wholeWord)
+    }
+
+    static func matches(in design: Design, for needle: String, caseSensitive: Bool,
+                        wholeWord: Bool) -> [TextMatch] {
         guard !needle.isEmpty else { return [] }
         var found: [TextMatch] = []
         for (index, page) in design.pages.enumerated() {
-            for element in page.elements where ShapeText.carriesWords(element) {
+            for element in page.elements where FindReplace.searches(element) {
                 let body = element.text ?? ""
-                guard !body.isEmpty else { continue }
-                let options: String.CompareOptions = caseSensitive ? [.literal] : [.caseInsensitive]
-                var searchStart = body.startIndex
-                while let range = body.range(of: needle, options: options,
-                                             range: searchStart..<body.endIndex) {
-                    let ns = NSRange(range, in: body)
+                for hit in FindReplace.ranges(of: needle, in: body, caseSensitive: caseSensitive, wholeWord: wholeWord) {
                     found.append(TextMatch(pageIndex: index, elementId: element.id,
-                                           range: ns, preview: line(of: body, containing: range)))
-                    // Advance past this match, never past the end.
-                    searchStart = range.upperBound > range.lowerBound
-                        ? range.upperBound
-                        : body.index(after: range.lowerBound)
-                    if searchStart >= body.endIndex { break }
+                                           range: hit, preview: line(of: body, containing: hit)))
                 }
             }
         }
         return found
     }
 
-    private func line(of body: String, containing range: Range<String.Index>) -> String {
-        let lower = body[body.startIndex..<range.lowerBound].lastIndex(of: "\n")
-            .map { body.index(after: $0) } ?? body.startIndex
-        let upper = body[range.upperBound...].firstIndex(of: "\n") ?? body.endIndex
-        return String(body[lower..<upper]).trimmingCharacters(in: .whitespaces)
+    private static func line(of body: String, containing hit: NSRange) -> String {
+        let ns = body as NSString
+        let lineRange = ns.lineRange(for: NSRange(location: hit.location, length: 0))
+        return ns.substring(with: lineRange).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// Replace every occurrence across every page, as one undo step.
@@ -1267,32 +1267,23 @@ final class DesignStore {
     /// be worse than no undo at all. Returns how many were replaced.
     @discardableResult
     func replaceAll(_ needle: String, with replacement: String,
-                    caseSensitive: Bool = false) -> Int {
-        guard !needle.isEmpty else { return 0 }
-        let total = matches(for: needle, caseSensitive: caseSensitive).count
+                    caseSensitive: Bool = false, wholeWord: Bool = false) -> Int {
+        let total = matches(for: needle, caseSensitive: caseSensitive, wholeWord: wholeWord).count
         guard total > 0 else { return 0 }
-        let options: String.CompareOptions = caseSensitive ? [.literal] : [.caseInsensitive]
         apply { design in
             for p in design.pages.indices {
                 for i in design.pages[p].elements.indices
-                where ShapeText.carriesWords(design.pages[p].elements[i]) {
+                where FindReplace.searches(design.pages[p].elements[i]) {
                     guard let body = design.pages[p].elements[i].text, !body.isEmpty else { continue }
-                    let replaced = body.replacingOccurrences(of: needle, with: replacement,
-                                                             options: options)
-                    guard replaced != body else { continue }
-                    if design.pages[p].elements[i].liveSpans.isEmpty {
-                        design.pages[p].elements[i].text = replaced
-                    } else {
-                        // One occurrence at a time, the last first, so the
-                        // colours and sizes on the words between them stay
-                        // on those words.
-                        for found in Self.occurrences(of: needle, in: body, options: options).reversed() {
-                            let now = (design.pages[p].elements[i].text ?? "") as NSString
-                            design.pages[p].elements[i].setText(now.replacingCharacters(in: found, with: replacement))
-                        }
+                    let found = FindReplace.ranges(of: needle, in: body, caseSensitive: caseSensitive,
+                                                   wholeWord: wholeWord)
+                    guard !found.isEmpty else { continue }
+                    // One occurrence at a time, the last first, so the
+                    // colours, sizes, fonts and links on the words between
+                    // them stay on those words.
+                    for hit in found.reversed() {
+                        Self.replaceWords(hit, with: replacement, in: &design.pages[p].elements[i])
                     }
-                    design.pages[p].elements[i].h =
-                        ShapeText.heightForWords(design.pages[p].elements[i])
                 }
             }
         }
@@ -1300,19 +1291,52 @@ final class DesignStore {
         return total
     }
 
-    /// Where `needle` is in `body`, as UTF-16 ranges, one after another
-    /// without overlapping — the ones replacingOccurrences replaces.
-    static func occurrences(of needle: String, in body: String, options: String.CompareOptions) -> [NSRange] {
-        let ns = body as NSString
-        var found: [NSRange] = []
-        var from = 0
-        while from < ns.length {
-            let hit = ns.range(of: needle, options: options, range: NSRange(location: from, length: ns.length - from))
-            guard hit.location != NSNotFound, hit.length > 0 else { break }
-            found.append(hit)
-            from = NSMaxRange(hit)
+    /// The design with only `match` replaced — the words around it, their
+    /// markers and the colours, sizes, fonts and links on them as they were
+    /// (Element.setText moves them along) — or nil when the match is no
+    /// longer in the design to replace.
+    static func replacingOne(_ design: Design, _ match: TextMatch, with replacement: String) -> Design? {
+        guard design.pages.indices.contains(match.pageIndex),
+              let i = design.pages[match.pageIndex].elements.firstIndex(where: { $0.id == match.elementId }),
+              FindReplace.searches(design.pages[match.pageIndex].elements[i]) else { return nil }
+        let length = ((design.pages[match.pageIndex].elements[i].text ?? "") as NSString).length
+        guard match.range.length > 0, NSMaxRange(match.range) <= length else { return nil }
+        var out = design
+        replaceWords(match.range, with: replacement, in: &out.pages[match.pageIndex].elements[i])
+        return out
+    }
+
+    /// Replace: the one match, as one undo step. False when it is no longer
+    /// there.
+    @discardableResult
+    func replaceOne(_ match: TextMatch, with replacement: String) -> Bool {
+        guard let next = Self.replacingOne(design, match, with: replacement) else { return false }
+        apply { $0 = next }
+        return true
+    }
+
+    /// The words in `range` of `el` replaced, everything on the words moved
+    /// along, and the box grown or shrunk to its words.
+    private static func replaceWords(_ range: NSRange, with replacement: String, in el: inout Element) {
+        let now = (el.text ?? "") as NSString
+        el.setText(now.replacingCharacters(in: range, with: replacement))
+        el.h = ShapeText.heightForWords(el)
+    }
+
+    /// After Replace, the match the sheet moves on to in `matches`, the
+    /// design's matches now: the one that took the replaced one's place in
+    /// reading order, past any the replacement itself holds — round to the
+    /// first after the last.
+    static func matchAfter(replacing replaced: TextMatch, at current: Int, length: Int,
+                           in matches: [TextMatch]) -> Int {
+        guard !matches.isEmpty else { return 0 }
+        let end = replaced.range.location + length
+        var i = min(max(current, 0), matches.count)
+        while i < matches.count, matches[i].pageIndex == replaced.pageIndex,
+              matches[i].elementId == replaced.elementId, matches[i].range.location < end {
+            i += 1
         }
-        return found
+        return i < matches.count ? i : 0
     }
 
     /// Show a match: switch to its page and select its element.
@@ -1726,7 +1750,7 @@ final class DesignStore {
                 for i in out.pages[p].elements.indices where out.pages[p].elements[i].type == .text {
                     let spec = (out.pages[p].elements[i].fontSize ?? 42) >= headingSize
                         ? pairing.heading : pairing.body
-                    out.pages[p].elements[i].fontFamily = spec.fontFamily
+                    out.pages[p].elements[i].setFontFamily(spec.fontFamily)
                     out.pages[p].elements[i].fontWeight = spec.fontWeight
                     if let spacing = spec.letterSpacing { out.pages[p].elements[i].letterSpacing = spacing }
                     out.pages[p].elements[i].h = FontLibrary.layoutHeight(for: out.pages[p].elements[i])

@@ -125,7 +125,7 @@ final class LayersTests: XCTestCase {
         XCTAssertEqual(ReadAloud.script(for: d.pages[0], in: d), "Hello.")
     }
 
-    func testProofreadSkipsHiddenWordsButFindStillFindsThem() throws {
+    func testProofreadAndFindSkipHiddenWords() throws {
         var typo = Element.text("Teh end")
         typo.hidden = true
         let d = design([typo], width: 800, height: 600)
@@ -133,7 +133,7 @@ final class LayersTests: XCTestCase {
             XCTAssertTrue(Proofreader.misspellings(in: d, language: "en_US").isEmpty)
         }
         let s = DesignStore(design: d)
-        XCTAssertEqual(s.matches(for: "end").count, 1, "Find still finds it, so it can be found and shown")
+        XCTAssertTrue(s.matches(for: "end").isEmpty, "Find passes over a hidden box, as on the Android twin")
     }
 
     func testAHiddenElementIsNotHitBandedSnappedToOrSelectedByAll() {

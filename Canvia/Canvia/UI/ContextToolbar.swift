@@ -187,9 +187,10 @@ struct ContextToolbar: View {
         }
         HStack(spacing: 14) {
             stylesMenu(el)
-            // Only when some words have a colour or a size of their own, and
-            // not for a locked box, which it cannot change — as on Android.
-            if !el.liveSpans.isEmpty && !el.locked {
+            // Only when some words have a colour, a size or a font of their
+            // own, and not for a locked box, which it cannot change — as on
+            // Android. It leaves links.
+            if Spans.hasStyles(el.liveSpans) && !el.locked {
                 toolButton("eraser", "Clear word colours and sizes") { store.clearWordStyles() }
             }
             toolButton("wand.and.stars", "Effects") { activeSheet = .effects }
@@ -1202,44 +1203,7 @@ struct ContextToolbar: View {
             toolLabel("link", linked ? "Linked" : "Link", active: linked)
         }
         .buttonStyle(ToolButtonStyle())
-        .alert(linked ? "Edit link" : "Link", isPresented: $editingLink) {
-            TextField("canvia.app", text: $linkDraft)
-                .keyboardType(.URL)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            // Save is off while what is typed reads as no link, as the
-            // Android twin's Done is, and the message below says why: an
-            // alert cannot ask again from its own button, so the typing was
-            // being dropped without a word.
-            Button("Save") { saveLink() }
-                .disabled(linkUnreadable)
-            if linked {
-                Button("Remove", role: .destructive) {
-                    store.updateSelected { $0.link = nil }
-                }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(linkUnreadable
-                 ? "That doesn't read as a link. Try a web address like canvia.app, an email address or a phone number."
-                 : "A web address, email or phone number. Clickable in a PDF, and opened by a tap in Present.")
-        }
-    }
-
-    /// Whether something is typed that does not read as a link. Nothing at
-    /// all is fine: saving it takes the link off.
-    private var linkUnreadable: Bool {
-        let draft = linkDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !draft.isEmpty && Links.normalized(draft) == nil
-    }
-
-    /// Saves what was typed as a link, or clears it when nothing was. Save
-    /// is off for anything else, so there is nothing else to handle.
-    private func saveLink() {
-        let draft = linkDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        if draft.isEmpty {
-            store.updateSelected { $0.link = nil }
-        } else if let url = Links.normalized(draft) {
+        .linkAlert(isPresented: $editingLink, draft: $linkDraft, linked: linked) { url in
             store.updateSelected { $0.link = url }
         }
     }

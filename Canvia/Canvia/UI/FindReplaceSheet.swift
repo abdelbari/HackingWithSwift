@@ -5,8 +5,12 @@
 // that makes people go back to a desktop tool.
 //
 // The search is non-mutating and runs on every keystroke, so the count is
-// live. Replace-all is one undo step: forty separate steps to undo a mistaken
-// replace would be worse than no undo at all.
+// live. Previous and Next step through the matches — "3 of 12" between them
+// — each switching to its page and selecting its box, with the sheet at
+// half height so the canvas shows; Replace changes the one match showing and
+// moves on to the next. Replace all is one undo step: forty separate steps
+// to undo a mistaken replace would be worse than no undo at all. Match case
+// and Whole words narrow the search (FindReplace), as on the Android twin.
 
 import SwiftUI
 
@@ -17,15 +21,20 @@ struct FindReplaceSheet: View {
     @State private var needle = ""
     @State private var replacement = ""
     @State private var caseSensitive = false
+    @State private var wholeWord = false
     @State private var replacedCount: Int?
+    /// Which match Previous, Next and Replace are at.
+    @State private var current = 0
+    @State private var detent: PresentationDetent = .medium
     @FocusState private var needleFocused: Bool
 
     private var matches: [DesignStore.TextMatch] {
-        store.matches(for: needle, caseSensitive: caseSensitive)
+        store.matches(for: needle, caseSensitive: caseSensitive, wholeWord: wholeWord)
     }
 
     var body: some View {
-        NavigationStack {
+        let found = matches
+        return NavigationStack {
             Form {
                 Section {
                     TextField("Find", text: $needle)
@@ -36,47 +45,13 @@ struct FindReplaceSheet: View {
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                     Toggle("Match case", isOn: $caseSensitive)
+                    Toggle("Whole words", isOn: $wholeWord)
                 } footer: {
                     Text(summary)
                 }
-
-                Section {
-                    // How many it will change, on the button that changes
-                    // them, as on the Android twin.
-                    Button(matches.isEmpty ? "Replace all" : "Replace all \(matches.count)") {
-                        replacedCount = store.replaceAll(needle, with: replacement,
-                                                         caseSensitive: caseSensitive)
-                    }
-                    .disabled(needle.isEmpty || matches.isEmpty)
-                }
-
-                if !matches.isEmpty {
-                    Section("Matches") {
-                        // Capped: a search for "e" in a long document would
-                        // otherwise build a list of thousands of rows on every
-                        // keystroke. The count above always tells the truth.
-                        ForEach(matches.prefix(50)) { match in
-                            Button {
-                                store.reveal(match)
-                                dismiss()
-                            } label: {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(match.preview)
-                                        .lineLimit(1)
-                                        .foregroundStyle(.primary)
-                                    Text(PageTitles.named(match.pageIndex + 1, title: pageTitle(match.pageIndex)))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                        if matches.count > 50 {
-                            Text("…and \(matches.count - 50) more")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
+                if !found.isEmpty { stepping(found) }
+                replaceSection(found)
+                if !found.isEmpty { matchList(found) }
             }
             .navigationTitle("Find and replace")
             .navigationBarTitleDisplayMode(.inline)
@@ -84,7 +59,9 @@ struct FindReplaceSheet: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
             .onAppear { needleFocused = true }
-            .onChange(of: needle) { replacedCount = nil }
+            .onChange(of: needle) { replacedCount = nil; current = 0 }
+            .onChange(of: caseSensitive) { current = 0 }
+            .onChange(of: wholeWord) { current = 0 }
             // The count spoken as it changes, once typing pauses, so a
             // VoiceOver user hears what the footer shows.
             .task(id: summary) {
@@ -94,7 +71,99 @@ struct FindReplaceSheet: View {
             }
             .feel(trigger: replacedCount) { _, count in count != nil ? .success : nil }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.medium, .large], selection: $detent)
+        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+    }
+
+    /// Previous, "k of N" and Next.
+    private func stepping(_ found: [DesignStore.TextMatch]) -> some View {
+        Section {
+            HStack {
+                Button { step(-1, in: found) } label: {
+                    Label("Previous", systemImage: "chevron.up").labelStyle(.iconOnly)
+                }
+                Spacer()
+                Text(FindReplace.position(current, of: found.count))
+                    .monospacedDigit()
+                    .accessibilityLabel("Match \(FindReplace.position(current, of: found.count))")
+                Spacer()
+                Button { step(1, in: found) } label: {
+                    Label("Next", systemImage: "chevron.down").labelStyle(.iconOnly)
+                }
+            }
+            .buttonStyle(.borderless)
+        }
+    }
+
+    /// Replace, for the match showing, and Replace all.
+    private func replaceSection(_ found: [DesignStore.TextMatch]) -> some View {
+        Section {
+            Button("Replace") { replaceCurrent(in: found) }
+                .disabled(needle.isEmpty || found.isEmpty)
+            // How many it will change, on the button that changes them, as
+            // on the Android twin.
+            Button(found.isEmpty ? "Replace all" : "Replace all \(found.count)") {
+                replacedCount = store.replaceAll(needle, with: replacement,
+                                                 caseSensitive: caseSensitive, wholeWord: wholeWord)
+                current = 0
+            }
+            .disabled(needle.isEmpty || found.isEmpty)
+        }
+    }
+
+    private func matchList(_ found: [DesignStore.TextMatch]) -> some View {
+        Section("Matches") {
+            // Capped: a search for "e" in a long document would otherwise
+            // build a list of thousands of rows on every keystroke. The count
+            // above always tells the truth. A tap makes the match the one
+            // showing, as Previous and Next do.
+            ForEach(Array(found.prefix(50).enumerated()), id: \.element.id) { entry in
+                Button { show(entry.offset, in: found) } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(entry.element.preview)
+                            .lineLimit(1)
+                            .foregroundStyle(.primary)
+                        Text(PageTitles.named(entry.element.pageIndex + 1, title: pageTitle(entry.element.pageIndex)))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            if found.count > 50 {
+                Text("…and \(found.count - 50) more")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// Previous or Next: the match before or after, round at either end.
+    private func step(_ delta: Int, in found: [DesignStore.TextMatch]) {
+        show(FindReplace.step(from: current, by: delta, count: found.count), in: found)
+    }
+
+    /// Match `index` showing: its page, its box selected under the sheet,
+    /// kept at half height so the canvas shows.
+    private func show(_ index: Int, in found: [DesignStore.TextMatch]) {
+        guard found.indices.contains(index) else { return }
+        current = index
+        replacedCount = nil
+        detent = .medium
+        needleFocused = false
+        store.reveal(found[index])
+    }
+
+    /// Replace: the match showing changed, as one step, and the next one
+    /// shown.
+    private func replaceCurrent(in found: [DesignStore.TextMatch]) {
+        guard !found.isEmpty else { return }
+        let at = min(max(current, 0), found.count - 1)
+        guard store.replaceOne(found[at], with: replacement) else { return }
+        replacedCount = nil
+        let now = matches
+        let next = DesignStore.matchAfter(replacing: found[at], at: at,
+                                          length: (replacement as NSString).length, in: now)
+        if now.isEmpty { current = 0 } else { show(next, in: now) }
     }
 
     private var summary: String {

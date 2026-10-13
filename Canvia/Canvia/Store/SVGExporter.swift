@@ -83,11 +83,30 @@ enum SVGExporter {
         // and browsers read for an SVG element.
         let title = el.altText.map { "<title>\(escape($0))</title>" } ?? ""
         let group = "<g\(attributes)>\(title)\(markup(el, index: index, defs: &defs))</g>"
+        let words = wordLinksMarkup(el, transforms: transforms)
         // A link wraps the element, so a browser follows it on a click —
         // one of the kinds a link is, never a script or a file.
-        guard let link = Links.followable(el.link) else { return group }
+        guard let link = Links.followable(el.link) else { return group + words }
         let href = escape(link)
-        return "<a href=\"\(href)\" xlink:href=\"\(href)\">\(group)</a>"
+        return "<a href=\"\(href)\" xlink:href=\"\(href)\">\(group)</a>" + words
+    }
+
+    /// Linked words (WordLinks): each word of them a clear rectangle in an
+    /// <a>, laid over the element in its turn and flip — beside its group,
+    /// not inside its own link, which an <a> cannot hold — so a browser
+    /// follows the words' link over them and the element's elsewhere.
+    private static func wordLinksMarkup(_ el: Element, transforms: [String]) -> String {
+        let anchors = WordLinks.rects(for: el).compactMap { entry -> String? in
+            guard let url = Links.followable(entry.url) else { return nil }
+            let href = escape(url)
+            let r = entry.rect
+            let box = "x=\"\(num(el.x + Double(r.minX)))\" y=\"\(num(el.y + Double(r.minY)))\" " +
+                "width=\"\(num(Double(r.width)))\" height=\"\(num(Double(r.height)))\""
+            return "<a href=\"\(href)\" xlink:href=\"\(href)\"><rect \(box) fill=\"#000000\" fill-opacity=\"0\"/></a>"
+        }
+        guard !anchors.isEmpty else { return "" }
+        let transform = transforms.isEmpty ? "" : " transform=\"\(transforms.joined(separator: " "))\""
+        return "<g\(transform)>" + anchors.joined() + "</g>"
     }
 
     /// feDropShadow, which every current renderer supports. stdDeviation is
@@ -205,12 +224,16 @@ enum SVGExporter {
         let d = data(outlines.whole)
         guard !d.isEmpty else { return "" }
         let gradient = el.textFill?.kind == "gradient" && !(el.textFill?.stops ?? []).isEmpty
+        // Outline's stroke as a pass of its own under every fill, as the
+        // canvas strokes all the letters before it fills any.
+        let stroke = outlinedStroke(drawn)
+        let ring = stroke.isEmpty ? "" : "<path d=\"\(d)\" fill=\"none\"\(stroke)/>"
         if !gradient, outlines.parts.contains(where: { $0.color != nil }) {
             // Words in colours of their own: a path for each colour.
             let paths = outlines.parts.map { part in
                 "<path d=\"\(data(part.path))\" fill=\"\(escape(part.color ?? el.color ?? "#1f2430"))\" fill-rule=\"nonzero\"/>"
             }
-            return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + paths.joined() + "</g>"
+            return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + ring + paths.joined() + "</g>"
         }
         let paint: String
         if let fill = el.textFill, fill.kind == "gradient", let stops = fill.stops, !stops.isEmpty {
@@ -225,8 +248,19 @@ enum SVGExporter {
         } else {
             paint = escape(el.color ?? "#1f2430")
         }
-        return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" +
+        return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + ring +
                "<path d=\"\(d)\" fill=\"\(paint)\" fill-rule=\"nonzero\"/></g>"
+    }
+
+    /// Outline's stroke round the letters as path attributes, for a pass
+    /// drawn before the fill so the letters keep their full width; nothing
+    /// for any other effect, or at no thickness.
+    static func outlinedStroke(_ el: Element) -> String {
+        guard TextEffect.from(el.effect) == .outlined else { return "" }
+        let fx = TextEffect.resolve(el.effect, fontSize: el.fontSize ?? 42, ink: el.color ?? "#1f2430")
+        guard fx.stroke > 0 else { return "" }
+        return " stroke=\"\(escape(fx.color))\" stroke-width=\"\(num(fx.stroke))\"" +
+            " stroke-linejoin=\"round\""
     }
 
     /// A shape's words as glyph outlines, set in its text-safe box as the

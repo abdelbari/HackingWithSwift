@@ -5,7 +5,10 @@
 // "Add a font…", and then every font (see FontChoices). A tap sets every
 // unlocked text selected, as one Undo, and the sheet stays up to try
 // another; for the brand kit it chooses a face, None first, and closes.
-// The Android twin's FontSheet, in the same words.
+// Opened from the typing bar's Aa it sets the words chosen instead, under a
+// note that says so, as the colour sheet does for their colour; the box's
+// own face gives them back to it. The Android twin's FontSheet, in the same
+// words.
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -15,6 +18,9 @@ struct FontSheet: View {
     /// Set when the sheet chooses for something other than the texts
     /// selected — the brand kit's faces.
     var choice: Choice? = nil
+    /// Set when the sheet chooses for the words chosen while typing
+    /// (DesignStore.wordFontTarget).
+    var words = false
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @State private var category = FontLibrary.allCategories
@@ -39,6 +45,7 @@ struct FontSheet: View {
     /// or the face being chosen.
     private var chosen: String? {
         if let choice { return choice.current.map { FontLibrary.resolve($0) } }
+        if words { return store.wordFont.map { FontLibrary.resolve($0) } }
         return store.sharedText { FontLibrary.resolve($0.fontFamily) }
     }
 
@@ -46,6 +53,13 @@ struct FontSheet: View {
         let browsing = FontChoices.isBrowsing(query: query, category: category)
         NavigationStack {
             List {
+                if words {
+                    Section {
+                        Text(DesignStore.wordFontNote)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Section { categoryChips }
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets())
@@ -168,8 +182,9 @@ struct FontSheet: View {
         .accessibilityAddTraits(ticked ? .isSelected : [])
     }
 
-    /// The face picked: the brand kit's, which closes the sheet, or every
-    /// unlocked text selected and a shape's words, as one Undo. Either way
+    /// The face picked: the brand kit's, which closes the sheet, the words
+    /// chosen while typing, or every unlocked text selected and a shape's
+    /// words, as one Undo. Either way
     /// it heads this phone's Recently used. Each box is measured again even
     /// when its face is unchanged, so a font of your own just added snaps
     /// its words out of Modern Sans's height.
@@ -181,9 +196,14 @@ struct FontSheet: View {
             return
         }
         guard let key else { return }
+        if words {
+            store.fontWords(key)
+            return
+        }
+        // A face for the whole box takes the faces chosen for its words away.
         store.updateSelected { el in
             guard ShapeText.carriesWords(el) else { return }
-            el.fontFamily = key
+            el.setFontFamily(key)
             el.h = ShapeText.heightForWords(el)
         }
     }

@@ -60,6 +60,53 @@ final class TextEffectSettingsTests: XCTestCase {
         XCTAssertEqual(try resolve(#"{"type":"outline","thickness":100}"#, fontSize: 10).stroke, 5, accuracy: 0.001)
     }
 
+    /// Outline's stroke round its filled letters, max(1.5, 0.04 · fs) · t / 50:
+    /// the effect as a file has it, the type size, and the stroke's width —
+    /// the Android twin's TextEffectsTest, row for row.
+    private let outlineRows: [(json: String, fontSize: Double, width: Double)] = [
+        (#"{"type":"outlined"}"#, 100, 4.0),
+        (#"{"type":"outlined","thickness":100}"#, 100, 8.0),
+        (#"{"type":"outlined"}"#, 10, 1.5),
+        (#"{"type":"outlined","thickness":100}"#, 10, 3.0),
+        (#"{"type":"outlined","thickness":25}"#, 200, 4.0),
+        (#"{"type":"outlined","thickness":25}"#, 50, 1.0),
+        (#"{"type":"outlined","thickness":25}"#, 20, 0.75),
+        (#"{"type":"outlined","thickness":0}"#, 100, 0.0),
+    ]
+
+    func testOutline() throws {
+        XCTAssertEqual(outlineRows.count, 8)
+        for row in outlineRows {
+            XCTAssertEqual(try resolve(row.json, fontSize: row.fontSize).stroke, row.width, accuracy: 0.001,
+                           "\(row.json) at \(row.fontSize)")
+        }
+        let plain = try resolve(#"{"type":"outlined"}"#)
+        XCTAssertEqual(plain.color, "#000000")
+        XCTAssertTrue(plain.copies.isEmpty)
+        XCTAssertFalse(plain.casts)
+        XCTAssertEqual(try resolve(##"{"type":"outlined","color":"#ff0000"}"##).color, "#ff0000")
+        // Hollow is unchanged, under its own key.
+        XCTAssertEqual(try resolve(#"{"type":"outline"}"#).stroke, 3.5, accuracy: 0.001)
+    }
+
+    func testOutlineHasAThicknessAndAColourOfItsOwn() throws {
+        XCTAssertEqual(TextEffect.outlined.rawValue, "outlined")
+        XCTAssertEqual(TextEffect.outlined.params, [.thickness])
+        XCTAssertEqual(TextEffect.outlined.defaultValue(.thickness), 50)
+        XCTAssertTrue(TextEffect.outlined.takesColor)
+        XCTAssertEqual(TextEffect.outlined.defaultColor, "#000000", "not optional: no Auto")
+        var spec = TextEffectSpec(type: "outlined")
+        spec.adjust(.thickness, to: 50)
+        spec.setColor("#000000")
+        XCTAssertTrue(spec.isAtDefaults)
+        XCTAssertEqual(Array(try keys(spec).keys), ["type"], "defaults are left out")
+        spec.adjust(.thickness, to: 80)
+        spec.setColor("#ff0000")
+        let written = try keys(spec)
+        XCTAssertEqual(written["thickness"] as? Double, 80)
+        XCTAssertEqual(written["color"] as? String, "#ff0000")
+    }
+
     func testSplice() throws {
         let plain = try resolve(#"{"type":"splice"}"#)
         XCTAssertEqual(plain.stroke, 3, accuracy: 0.001)
@@ -129,7 +176,9 @@ final class TextEffectSettingsTests: XCTestCase {
 
     func testTilesAreInTheTwinsOrderAndGlitchIsCalledGlitch() {
         XCTAssertEqual(TextEffect.allCases.map(\.displayName),
-                       ["None", "Shadow", "Lift", "Hollow", "Splice", "Echo", "Glitch", "Neon", "Highlight"])
+                       ["None", "Shadow", "Lift", "Hollow", "Outline", "Splice", "Echo", "Glitch", "Neon", "Highlight"])
+        XCTAssertEqual(TextEffect.allCases.map(\.rawValue),
+                       ["none", "shadow", "lift", "outline", "outlined", "splice", "echo", "glitch", "neon", "highlight"])
         XCTAssertEqual(TextEffect.glitch.rawValue, "glitch")
         XCTAssertEqual(TextEffect.echo.rawValue, "echo")
     }

@@ -9,8 +9,10 @@ import SwiftUI
 import UIKit
 
 enum TextEffect: String, CaseIterable, Identifiable {
-    // In the picker's order.
-    case none, shadow, lift, outline, splice, echo, glitch, neon, highlight
+    // In the picker's order. "outline" is Hollow, the letters stroked and
+    // left empty; "outlined" is Outline, filled letters with a coloured
+    // stroke round them, its tile after Hollow's as on the Android twin.
+    case none, shadow, lift, outline, outlined, splice, echo, glitch, neon, highlight
 
     var id: String { rawValue }
 
@@ -20,6 +22,7 @@ enum TextEffect: String, CaseIterable, Identifiable {
         case .shadow: return "Shadow"
         case .lift: return "Lift"
         case .outline: return "Hollow"
+        case .outlined: return "Outline"
         case .splice: return "Splice"
         case .echo: return "Echo"
         case .glitch: return "Glitch"
@@ -50,7 +53,7 @@ enum TextEffect: String, CaseIterable, Identifiable {
         case .none: return []
         case .shadow: return [.offset, .direction, .blur, .transparency]
         case .lift, .neon: return [.intensity]
-        case .outline: return [.thickness]
+        case .outline, .outlined: return [.thickness]
         case .splice: return [.thickness, .offset, .direction]
         case .echo, .glitch: return [.offset, .direction]
         case .highlight: return [.spread, .roundness, .transparency]
@@ -73,10 +76,10 @@ enum TextEffect: String, CaseIterable, Identifiable {
 
     /// Whether the effect takes a colour, and whether it has one of its own
     /// (shadow, glitch) or follows the text when none is set ("Auto").
-    var takesColor: Bool { [.shadow, .splice, .echo, .glitch, .highlight].contains(self) }
+    var takesColor: Bool { [.shadow, .outlined, .splice, .echo, .glitch, .highlight].contains(self) }
     var defaultColor: String? {
         switch self {
-        case .shadow: return "#000000"
+        case .shadow, .outlined: return "#000000"
         case .glitch: return "#00e5ff"
         default: return nil
         }
@@ -93,6 +96,14 @@ enum TextEffect: String, CaseIterable, Identifiable {
     /// with it too, being a stroke on the outline.
     static func outlineStroke(fontSize: Double, thickness: Double) -> Double {
         max(2.5, 0.035 * fontSize) * max(thickness, 1) / 50
+    }
+
+    /// Outline's stroke round the filled letters at a thickness: centred on
+    /// the glyphs' edges, so half of it lies outside them. At 0 there is
+    /// none — the letters as they are — unlike Hollow, whose letters would
+    /// vanish. The Android twin's TextEffects has the same sum.
+    static func outlinedStroke(fontSize: Double, thickness: Double) -> Double {
+        max(1.5, 0.04 * fontSize) * thickness / 50
     }
 
     /// The spec worked out into what is drawn at a type size, for letters
@@ -124,6 +135,9 @@ enum TextEffect: String, CaseIterable, Identifiable {
             out.color = "#000000"
         case .outline:
             out.stroke = outlineStroke(fontSize: fs, thickness: v(.thickness))
+        case .outlined:
+            out.stroke = outlinedStroke(fontSize: fs, thickness: v(.thickness))
+            out.color = spec?.color ?? "#000000"
         case .splice:
             out.stroke = max(2.5, 0.03 * fs) * max(v(.thickness), 1) / 50
             let d = along(0.08 * 2.0.squareRoot() * fs * v(.offset) / 50)
@@ -183,7 +197,8 @@ enum TextEffectParam: String, CaseIterable, Identifiable {
 /// A text effect in the numbers the renderers draw with, in points at the
 /// drawn type size. Which fields mean anything depends on the type:
 /// shadow, lift and neon cast (dx, dy, blur, color, alpha); outline and
-/// splice stroke; splice, glitch and echo lay copies behind the letters;
+/// splice stroke; outlined strokes in a colour (stroke, color) under the
+/// filled letters; splice, glitch and echo lay copies behind the letters;
 /// highlight pads its bars, rounds them and tints them (color, alpha).
 struct ResolvedEffect: Equatable {
     /// A copy of the letters, shifted, in a colour at an alpha.
@@ -225,8 +240,8 @@ struct TextEffectModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         switch effect {
-        case .none, .outline, .splice, .echo, .highlight:
-            // outline/splice/echo/highlight are handled inside TextElementView
+        case .none, .outline, .outlined, .splice, .echo, .highlight:
+            // outline/outlined/splice/echo/highlight are handled inside TextElementView
             // (they change how the string itself is drawn).
             content
         case .shadow:

@@ -1,9 +1,10 @@
-// Colours and sizes on chosen words, from the bar over the keyboard while a
-// box is typed in: its colour well opens the colour sheet for the words
-// chosen, and A- and A+ set them a step smaller or larger. Each is a step of
-// its own, between the words typed before it and after, as on the Android
-// twin; and the Text controls take every colour and size off the words at
-// once. The words themselves are in Spans.
+// Colours, sizes, fonts and links on chosen words, from the bar over the
+// keyboard while a box is typed in: its colour well opens the colour sheet
+// for the words chosen, A- and A+ set them a step smaller or larger, Aa opens
+// the font sheet for them and Link asks for a link, as the element's own Link
+// does. Each is a step of its own, between the words typed before it and
+// after, as on the Android twin; and the Text controls take every colour,
+// size and font off the words at once. The words themselves are in Spans.
 
 import Foundation
 
@@ -86,11 +87,12 @@ extension DesignStore {
     }
 
     /// Clear word colours and sizes: every word of the selected text back in
-    /// the box's own colour and size, as one step.
+    /// the box's own colour, size and face, as one step. Links stay: a link
+    /// is not a look, and it has its own Remove.
     func clearWordStyles() {
         updateSelected { el in
             guard el.type == .text, el.spans != nil || el.spansText != nil else { return }
-            el.setSpans([])
+            el.setSpans(Spans.linksOnly(el.liveSpans))
         }
     }
 
@@ -103,5 +105,71 @@ extension DesignStore {
         let lo = min(max(range.location, 0), length), hi = min(NSMaxRange(range), length)
         guard hi > lo else { return }
         el.setSpans(change(el.liveSpans, NSRange(location: lo, length: hi - lo)))
+    }
+
+    // MARK: fonts on words
+
+    /// What the font sheet says over its fonts when it is open for the words
+    /// chosen, in the words the Android twin's font sheet uses.
+    static let wordFontNote = "For the selected words"
+
+    /// Aa on the typing bar: the typing so far kept as its own step, and the
+    /// font sheet asked for the words chosen.
+    func chooseWordFont(_ id: String, range: NSRange) {
+        guard let el = element(id), el.type == .text, !el.locked, range.length > 0 else { return }
+        commit()
+        wordFontTarget = WordRange(id: id, range: range)
+    }
+
+    /// The face the words the sheet is open for share — the box's own where
+    /// they have none of their own — or nil when they differ.
+    var wordFont: String? {
+        guard let target = wordFontTarget, let el = element(target.id) else { return nil }
+        let shared = Spans.font(of: el.liveSpans, in: target.range)
+        return shared.shared ? (shared.font ?? el.fontFamily ?? "sans") : nil
+    }
+
+    /// The words the sheet is open for in face `key`, as one step, the box
+    /// measured again. The box's own face takes the words' own away.
+    func fontWords(_ key: String) {
+        guard let target = wordFontTarget else { return }
+        updateSelected { el in
+            guard el.id == target.id else { return }
+            let own = Self.wordFontKey(key, in: el)
+            Self.restyleWords(&el, target.range) { Spans.fonting($0, range: $1, font: own) }
+        }
+    }
+
+    /// `key` as the words' own face: none when it is the box's, an old name
+    /// counting as the family it means.
+    static func wordFontKey(_ key: String, in el: Element) -> String? {
+        FontLibrary.resolve(key) == FontLibrary.resolve(el.fontFamily) ? nil : key
+    }
+
+    // MARK: links on words
+
+    /// Link on the typing bar: the typing so far kept as its own step, and
+    /// the link asked for the words chosen.
+    func chooseWordLink(_ id: String, range: NSRange) {
+        guard let el = element(id), el.type == .text, !el.locked, range.length > 0 else { return }
+        commit()
+        wordLinkTarget = WordRange(id: id, range: range)
+    }
+
+    /// The link every word in `target` has, if they share one.
+    func sharedLink(of target: WordRange) -> String? {
+        guard let el = element(target.id) else { return nil }
+        let shared = Spans.link(of: el.liveSpans, in: target.range)
+        return shared.shared ? shared.link : nil
+    }
+
+    /// The words in `target` linked to `link` — as Links reads what was
+    /// typed — or unlinked with nil, as one step.
+    func linkWords(_ link: String?, in target: WordRange) {
+        let url = link.flatMap(Links.normalized)
+        updateSelected { el in
+            guard el.id == target.id else { return }
+            Self.restyleWords(&el, target.range) { Spans.linking($0, range: $1, link: url) }
+        }
     }
 }

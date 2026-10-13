@@ -437,13 +437,16 @@ enum RichText {
 
     /// The plain text with the base attributes, and each run's style on top;
     /// in capitals when `uppercase`, each run still on its own words. Then
-    /// the colours and sizes on words, `spans` over the plain text before
-    /// capitals (see Spans): a colour in place of the base one, a size as
-    /// the run's own font scaled, and the lines of a paragraph with larger
-    /// words in it given room for them (makeRoom), as the Android twin sets
-    /// them.
+    /// the colours, sizes, fonts and links on words, `spans` over the plain
+    /// text before capitals (see Spans): a face of its own from `face`, bold
+    /// and italic as the run under each letter has them; a colour in place
+    /// of the base one; a size as the letter's font scaled, and the lines of
+    /// a paragraph with larger words in it given room for them (makeRoom);
+    /// and a link underlined, in the link colour unless the words have a
+    /// colour of their own — as the Android twin sets them.
     static func attributed(_ marked: String, base: [NSAttributedString.Key: Any], uppercase: Bool = false,
                            spans: [TextSpan] = [],
+                           face: ((_ family: String, _ bold: Bool, _ italic: Bool) -> UIFont)? = nil,
                            font: (_ bold: Bool, _ italic: Bool) -> UIFont) -> NSAttributedString {
         var parsed = parse(marked)
         var spans = spans
@@ -461,6 +464,12 @@ enum RichText {
             out.addAttributes(attrs, range: run.range)
         }
         let length = out.length
+        if let face {
+            for span in spans {
+                guard let family = span.font else { continue }
+                setFaces(family, in: out, runs: parsed.runs, from: span.start, to: span.end, face: face)
+            }
+        }
         for span in spans {
             let start = min(max(span.start, 0), length), end = min(span.end, length)
             guard end > start else { continue }
@@ -468,6 +477,14 @@ enum RichText {
             if let color = span.color {
                 out.addAttribute(.foregroundColor, value: UIColor(hex: color), range: range)
                 out.addAttribute(Spans.colourKey, value: color, range: range)
+            }
+            if let link = span.link {
+                out.addAttribute(Spans.linkKey, value: link, range: range)
+                out.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: range)
+                if span.color == nil {
+                    out.addAttribute(.foregroundColor, value: UIColor(hex: Spans.linkColour), range: range)
+                    out.addAttribute(Spans.colourKey, value: Spans.linkColour, range: range)
+                }
             }
             if let scale = span.scale {
                 out.enumerateAttribute(.font, in: range) { value, part, _ in
@@ -478,6 +495,27 @@ enum RichText {
             }
         }
         return out
+    }
+
+    /// Letters `from..<to` of `out` in `family`, cut where the runs' styles
+    /// change so a **bold** word in the face stays bold.
+    private static func setFaces(_ family: String, in out: NSMutableAttributedString, runs: [Run],
+                                 from: Int, to: Int,
+                                 face: (_ family: String, _ bold: Bool, _ italic: Bool) -> UIFont) {
+        let start = min(max(from, 0), out.length), end = min(to, out.length)
+        guard end > start else { return }
+        var cuts: Set<Int> = [start, end]
+        for run in runs {
+            for edge in [run.range.location, NSMaxRange(run.range)] where edge > start && edge < end {
+                cuts.insert(edge)
+            }
+        }
+        let sorted = cuts.sorted()
+        for (lo, hi) in zip(sorted, sorted.dropFirst()) {
+            let style = runs.first { NSLocationInRange(lo, $0.range) }?.style ?? Style()
+            out.addAttribute(.font, value: face(family, style.bold, style.italic),
+                             range: NSRange(location: lo, length: hi - lo))
+        }
     }
 
     /// The lines of the paragraphs `range` is in allowed to grow to fit
