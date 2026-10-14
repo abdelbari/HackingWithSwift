@@ -385,9 +385,12 @@ enum LineRoutes {
         return out
     }
 
-    /// The readout while an end is dragged: its length, whole, and its
-    /// angle, whole degrees — "240 · 45°".
-    static func readout(_ drag: EndDrag) -> String {
-        "\(Int(drag.length.rounded())) · \(Int(drag.angle.rounded()) % 360)°"
+    /// The readout while an end is dragged: its length in `design`'s
+    /// unit, as the move and size readouts beside it, and its angle in
+    /// whole degrees — "240 · 45°", "6.8 mm · 90°". The Android twin's
+    /// LineRoutes.readout.
+    static func readout(_ drag: EndDrag, design: Design) -> String {
+        let length = Units.readout(drag.length, design) + Units.suffix(design)
+        return length + " · \(Int(drag.angle.rounded()) % 360)°"
     }
 }

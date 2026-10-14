@@ -146,6 +146,21 @@ final class TemplateSetsTests: XCTestCase {
         XCTAssertNil(applied.design.masterPageId)
     }
 
+    /// Nothing on any page, but one is locked: it is kept, and the set
+    /// follows the page open. The Android twin's UserTemplatesTest row.
+    func testAllPagesFollowThePageOpenWhenAPageIsLocked() {
+        var d = Design(title: "Blank", width: 1080, height: 1080)
+        var locked = Page(background: .color("#ff0000"))
+        locked.locked = true
+        d.pages = [Page(), locked]
+        XCTAssertFalse(DesignStore.isEmptyForTemplates(d))
+        let applied = DesignStore.appliedTemplateSet(d, pages: fitted(3), at: 0)
+        XCTAssertEqual(applied.design.pages.count, 5)
+        XCTAssertEqual(applied.design.pages[0].id, d.pages[0].id)
+        XCTAssertEqual(applied.design.pages[4], locked)
+        XCTAssertEqual(applied.first, 1)
+    }
+
     /// Anything on any page, and the set follows the page open, in order,
     /// at its size, everything there kept.
     func testAllPagesFollowThePageOpenOtherwise() {

@@ -482,7 +482,7 @@ struct PageThumbnail: View {
                 Color.white
             }
         }
-        .task(id: ThumbKey(page: page, baked: bakedVersion, subjects: subjectsVersion, width: pixelWidth)) {
+        .task(id: thumbKey) {
             // Debounced once drawn, because a drag rewrites the page on every
             // frame. Without the wait, each of those frames started a full
             // ImageRenderer pass over the whole page — rasterising every
@@ -511,16 +511,29 @@ struct PageThumbnail: View {
         }
     }
 
-    /// The thumbnail's task id: the page, for a page with a photo whose
-    /// clarity or pixelate is made off the main thread how many such looks
-    /// are made, for one with a photo whose focus keeps its subject sharp
-    /// how many subjects are found — so a new one draws it again — and its
-    /// width.
+    /// The thumbnail's task id: the page, the master's elements drawn
+    /// behind it, its number and the page count when it shows one
+    /// (Design.pageNumbering) — so an edit of the master, or pages moved,
+    /// draws it again, as ThumbnailCache.key keeps it apart — for a page
+    /// with a photo whose clarity or pixelate is made off the main thread
+    /// how many such looks are made, for one with a photo whose focus keeps
+    /// its subject sharp how many subjects are found — so a new one draws
+    /// it again — and its width.
     private struct ThumbKey: Equatable {
         let page: Page
+        let master: [Element]
+        let number: Int
+        let count: Int
         let baked: Int
         let subjects: Int
         let width: Int
+    }
+
+    private var thumbKey: ThumbKey {
+        let numbering = design.pageNumbering(shownOn: page)
+        return ThumbKey(page: page, master: design.masterElements(behind: page),
+                        number: numbering?.number ?? 0, count: numbering?.count ?? 0,
+                        baked: bakedVersion, subjects: subjectsVersion, width: pixelWidth)
     }
 
     /// The count of looks made off the main thread, read only by a page

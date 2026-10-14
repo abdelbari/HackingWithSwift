@@ -732,9 +732,13 @@ final class DesignStore {
 
     // MARK: element commands
 
-    func add(_ element: Element, centered: Bool = true) {
+    /// `element` added and selected, as one step; false when it went
+    /// nowhere — every page from here on locked — so Add's Recently used
+    /// keeps only what went on, as on the Android twin.
+    @discardableResult
+    func add(_ element: Element, centered: Bool = true) -> Bool {
         // Onto the next unlocked page when this one is locked, or not at all.
-        guard landsOnUnlockedPage() else { return }
+        guard landsOnUnlockedPage() else { return false }
         defer {
             let count = page.elements.count
             tipEvent = count == 1 ? .firstElementAdded
@@ -749,6 +753,7 @@ final class DesignStore {
         }
         applyToPage { $0.elements.append(el) }
         selection = [el.id]
+        return true
     }
 
     /// A graphic brought in from an SVG file (see SvgImport): every part on
@@ -1666,9 +1671,10 @@ final class DesignStore {
 
     /// Every occurrence of `needle` across every page, in reading order:
     /// in text boxes, and in the words shapes carry — not in a hidden or
-    /// locked one (FindReplace.searches) — as the words read, style markers
-    /// left out (FindReplace.matches). With `wholeWord`, only where no
-    /// letter or digit touches it (FindReplace.ranges).
+    /// locked one (FindReplace.searches), nor on a locked page — as the
+    /// words read, style markers left out (FindReplace.matches). With
+    /// `wholeWord`, only where no letter or digit touches it
+    /// (FindReplace.ranges).
     ///
     /// Pure and non-mutating, so the sheet can show a live count while typing
     /// without touching the document or the undo stack.
@@ -1680,7 +1686,7 @@ final class DesignStore {
                         wholeWord: Bool) -> [TextMatch] {
         guard !needle.isEmpty else { return [] }
         var found: [TextMatch] = []
-        for (index, page) in design.pages.enumerated() {
+        for (index, page) in design.pages.enumerated() where !PageLocks.isLocked(page) {
             for element in page.elements where FindReplace.searches(element) {
                 let body = element.text ?? ""
                 let plain = RichText.strip(body)
@@ -1709,7 +1715,7 @@ final class DesignStore {
         let total = matches(for: needle, caseSensitive: caseSensitive, wholeWord: wholeWord).count
         guard total > 0 else { return 0 }
         apply { design in
-            for p in design.pages.indices {
+            for p in design.pages.indices where !PageLocks.isLocked(design.pages[p]) {
                 for i in design.pages[p].elements.indices
                 where FindReplace.searches(design.pages[p].elements[i]) {
                     guard let body = design.pages[p].elements[i].text, !body.isEmpty else { continue }
@@ -1734,9 +1740,11 @@ final class DesignStore {
     /// The design with only `match` replaced — the words around it, their
     /// markers and the colours, sizes, fonts and links on them as they were
     /// (FindReplace.replacing; Element.setText moves them along) — or nil
-    /// when the match is no longer in the design to replace.
+    /// when the match is no longer in the design to replace, or its page
+    /// has been locked since.
     static func replacingOne(_ design: Design, _ match: TextMatch, with replacement: String) -> Design? {
         guard design.pages.indices.contains(match.pageIndex),
+              !PageLocks.isLocked(design.pages[match.pageIndex]),
               let i = design.pages[match.pageIndex].elements.firstIndex(where: { $0.id == match.elementId }),
               FindReplace.searches(design.pages[match.pageIndex].elements[i]) else { return nil }
         let body = design.pages[match.pageIndex].elements[i].text ?? ""
@@ -2136,8 +2144,8 @@ final class DesignStore {
 
     /// The design with a template set's `pages` applied from page `index`,
     /// and where the first of them landed. A design with nothing on it —
-    /// no element on any page; a background alone is not something — is
-    /// replaced by them, every page; any other gets them after page
+    /// no element on any page, none locked; a background alone is not
+    /// something — is replaced by them, every page; any other gets them after page
     /// `index`, in order, keeping all it had. Each takes page `index`'s size.
     /// The simplest rule, kept on both phones. Pure.
     static func appliedTemplateSet(_ design: Design, pages: [Page], at index: Int) -> (design: Design, first: Int) {
@@ -2160,9 +2168,9 @@ final class DesignStore {
     }
 
     /// Whether a design has nothing on it for a template set to keep: no
-    /// element on any page.
+    /// element on any page, and no locked page, which nothing may take away.
     static func isEmptyForTemplates(_ design: Design) -> Bool {
-        design.pages.allSatisfy { $0.elements.isEmpty }
+        design.pages.allSatisfy { $0.elements.isEmpty } && !design.pages.contains(where: PageLocks.isLocked)
     }
 
     func duplicatePage() {
@@ -2300,8 +2308,8 @@ final class DesignStore {
 
     /// The design with a palette and a type pairing applied to every page:
     /// colours remapped by luminance rank onto the palette, headings and body
-    /// text given the pairing's faces at their own sizes. Pure, so the sheet
-    /// can preview it before anyone commits.
+    /// text given the pairing's faces at their own sizes; a locked page left
+    /// as it is. Pure, so the sheet can preview it before anyone commits.
     ///
     /// With `brandFonts` setting any ranked role, the brand kit's text roles
     /// are applied by size rank in place of a pairing (see brandFaces).
@@ -2341,6 +2349,10 @@ final class DesignStore {
                     out.pages[p].elements[i].h = FontLibrary.layoutHeight(for: out.pages[p].elements[i])
                 }
             }
+        }
+        // A locked page is kept as it was, its background and words alike.
+        for p in out.pages.indices where PageLocks.isLocked(design.pages[p]) {
+            out.pages[p] = design.pages[p]
         }
         return out
     }

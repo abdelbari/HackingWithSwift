@@ -1560,7 +1560,7 @@ struct CanvasView: View {
         store.updateSelectedTransient { el in
             if el.id == drag.line.id { el = drag.line }
         }
-        store.badge = LineRoutes.readout(drag)
+        store.badge = LineRoutes.readout(drag, design: store.design)
     }
 
     /// The end let go: on an element's edge or centre it is tied to that

@@ -43,7 +43,8 @@ enum Proofreader {
         let checker = UITextChecker()
         let lang = checkerLanguage(language ?? design.language)
         var found: [Misspelling] = []
-        for (p, page) in design.pages.enumerated() {
+        // A locked page is not read: no fix may change its words.
+        for (p, page) in design.pages.enumerated() where !PageLocks.isLocked(page) {
             // A hidden element is not read: nobody sees its words.
             for el in page.elements where ShapeText.carriesWords(el) && !el.isHidden {
                 guard let text = el.text, !text.isEmpty else { continue }
@@ -176,9 +177,10 @@ enum Proofreader {
     /// The design with one misspelling fixed and its box measured again — a
     /// shape grown when its words need it — or nil when the word no longer
     /// reads where it was found, so a stale row never rewrites the wrong
-    /// letters.
+    /// letters, or its page has been locked since.
     static func fixed(_ design: Design, _ m: Misspelling, with replacement: String) -> Design? {
         guard design.pages.indices.contains(m.pageIndex),
+              !PageLocks.isLocked(design.pages[m.pageIndex]),
               let i = design.pages[m.pageIndex].elements.firstIndex(where: { $0.id == m.elementId }),
               let text = design.pages[m.pageIndex].elements[i].text,
               let r = Range(m.range, in: text) else { return nil }

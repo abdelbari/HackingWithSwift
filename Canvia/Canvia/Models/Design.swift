@@ -577,6 +577,18 @@ struct Design: Codable, Equatable, Identifiable {
         masterElements(behind: page) + page.elements.filter { !$0.isHidden }
     }
 
+    /// The numbering `page` shows — its number, counting from one, and the
+    /// page count — when something drawn on it, its own or the master's
+    /// behind it, has "{page" in its words; nil when nothing does. What a
+    /// kept thumbnail is told apart by, so a numbered page is drawn again
+    /// when pages move, are added or deleted, and any other page keeps its
+    /// thumbnail. The Android twin's PageNumbers.shownOn.
+    func pageNumbering(shownOn page: Page) -> (number: Int, count: Int)? {
+        guard drawnElements(on: page).contains(where: { $0.text?.contains("{page") == true }),
+              let index = pages.firstIndex(where: { $0.id == page.id }) else { return nil }
+        return (index + 1, pages.count)
+    }
+
     /// Grow any text box that is shorter than the text actually needs.
     ///
     /// Template specs carry no height (the decoder estimates one from the

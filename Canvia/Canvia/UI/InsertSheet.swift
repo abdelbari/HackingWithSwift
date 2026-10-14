@@ -244,6 +244,12 @@ struct InsertSheet: View {
         case .grid: if let layout = PhotoGrids.layout(hit.id) { addGrid(layout) }
         case .line: if let preset = ElementSearch.linePresets.first(where: { $0.name == hit.id }) { addLinePreset(preset) }
         case .stockArt:
+            // Onto the next unlocked page when this one is locked, or not
+            // at all — and remembered only when it goes on.
+            guard store.landsOnUnlockedPage() else {
+                dismiss()
+                return
+            }
             ElementSearch.remember(.stockArt, hit.id)
             pickLibraryPicture("asset:\(hit.id)", natural: PhotoLibrary.size)
         case .chart, .table:
@@ -432,8 +438,7 @@ struct InsertSheet: View {
     /// From this page's size — a page may have its own.
     private func addShape(_ id: String) {
         let size = min(store.pageWidth, store.pageHeight) * 0.28
-        store.add(.shape(id, w: size, h: size))
-        ElementSearch.remember(.shape, id)
+        if store.add(.shape(id, w: size, h: size)) { ElementSearch.remember(.shape, id) }
         dismiss()
     }
 
@@ -492,8 +497,9 @@ struct InsertSheet: View {
         // From this page's size — a page may have its own — as the Android
         // twin sizes a code.
         let size = min(store.pageWidth, store.pageHeight) * 0.3
-        store.add(.image(CodeGenerator.source(for: payload), w: size.rounded(), h: size.rounded()))
-        ElementSearch.remember(.qr, "qr")
+        if store.add(.image(CodeGenerator.source(for: payload), w: size.rounded(), h: size.rounded())) {
+            ElementSearch.remember(.qr, "qr")
+        }
         qrPayload = ""
         dismiss()
     }
@@ -527,8 +533,7 @@ struct InsertSheet: View {
         var el = Element.line(w: store.pageWidth * 0.3)
         el.startCap = preset.start ?? "none"
         el.endCap = preset.end ?? "none"
-        store.add(el)
-        ElementSearch.remember(.line, preset.name)
+        if store.add(el) { ElementSearch.remember(.line, preset.name) }
         dismiss()
     }
 
@@ -584,8 +589,8 @@ struct InsertSheet: View {
     /// selected: one Undo, as on the Android twin.
     private func addIcon(_ icon: IconDef) {
         let fill = IconLibrary.fill(for: store.page, brandColours: BrandKit.load().colors)
-        store.add(IconLibrary.element(icon, pageWidth: store.pageWidth, pageHeight: store.pageHeight, fill: fill))
-        ElementSearch.remember(.icon, icon.id)
+        let el = IconLibrary.element(icon, pageWidth: store.pageWidth, pageHeight: store.pageHeight, fill: fill)
+        if store.add(el) { ElementSearch.remember(.icon, icon.id) }
         dismiss()
     }
 
@@ -1360,7 +1365,15 @@ struct InsertSheet: View {
         let starred = Favorites.isFavorite("photo", photo.id)
         let inFrame = src == replaceSource
         return Button {
-            if !isReplacing { ElementSearch.remember(.stockArt, photo.id) }
+            if !isReplacing {
+                // Onto the next unlocked page when this one is locked, or
+                // not at all — and remembered only when it goes on.
+                guard store.landsOnUnlockedPage() else {
+                    dismiss()
+                    return
+                }
+                ElementSearch.remember(.stockArt, photo.id)
+            }
             pickLibraryPicture(src, natural: PhotoLibrary.size)
         } label: {
             photoThumb(photo.id)
@@ -1566,8 +1579,9 @@ struct InsertSheet: View {
     }
 
     private func addSticker(_ glyph: String) {
-        store.add(.sticker(glyph, size: min(store.pageWidth, store.pageHeight) * 0.18))
-        ElementSearch.remember(.sticker, glyph)
+        if store.add(.sticker(glyph, size: min(store.pageWidth, store.pageHeight) * 0.18)) {
+            ElementSearch.remember(.sticker, glyph)
+        }
         dismiss()
     }
 

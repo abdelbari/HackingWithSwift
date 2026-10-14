@@ -149,13 +149,13 @@ final class PageLocksTests: XCTestCase {
     @MainActor
     func testAddGoesToTheNextUnlockedPageOrAsks() {
         let store = DesignStore(design: design(locked: [true, false]))
-        store.add(Element.shape("circle", w: 50, h: 50))
+        XCTAssertTrue(store.add(Element.shape("circle", w: 50, h: 50)))
         XCTAssertEqual(store.pageIndex, 1, "the next unlocked page is brought up")
         XCTAssertEqual(store.design.pages[1].elements.count, 2)
         XCTAssertEqual(store.design.pages[0].elements.count, 1)
 
         let all = DesignStore(design: design(locked: [true, true]))
-        all.add(Element.shape("circle", w: 50, h: 50))
+        XCTAssertFalse(all.add(Element.shape("circle", w: 50, h: 50)), "went nowhere, so never Recently used")
         XCTAssertEqual(all.design.pages.map(\.elements.count), [1, 1])
         XCTAssertEqual(all.announcement, PageLocks.lockedNote, "every page locked: asked to unlock")
         all.unlockPage(all.design.pages[0].id)
@@ -183,6 +183,43 @@ final class PageLocksTests: XCTestCase {
         store.undo()
         XCTAssertEqual(store.design.pages.map { $0.locked == true }, [false, false, false])
         XCTAssertFalse(store.canUndo)
+    }
+
+    /// Proofread, Find and replace and a theme pass a locked page by; the
+    /// Android twin's PageLocksTest has the same rows.
+    @MainActor
+    func testProofreadFindAndThemesPassALockedPageBy() {
+        let open = Page(elements: [Element.text("Teh cat", fontSize: 18)])
+        var locked = Page(elements: [Element.text("Teh cat", fontSize: 18)])
+        locked.locked = true
+        var d = Design(title: "l", width: 400, height: 300)
+        d.pages = [open, locked]
+        let a = open.elements[0].id, b = locked.elements[0].id
+        // A stale Proofread row for the locked page fixes nothing.
+        let word = NSRange(location: 0, length: 3)
+        let stale = Proofreader.Misspelling(pageIndex: 1, elementId: b, range: word, word: "Teh", suggestions: [])
+        XCTAssertNil(Proofreader.fixed(d, stale, with: "The"))
+        let row = Proofreader.Misspelling(pageIndex: 0, elementId: a, range: word, word: "Teh", suggestions: [])
+        XCTAssertEqual(Proofreader.fixed(d, row, with: "The")?.pages[0].elements[0].text, "The cat")
+        // Find and replace finds and changes the unlocked page alone.
+        let found = DesignStore.matches(in: d, for: "cat", caseSensitive: false, wholeWord: false)
+        XCTAssertEqual(found.map(\.pageIndex), [0])
+        let store = DesignStore(design: d)
+        let kept = store.design.pages[1]
+        XCTAssertEqual(store.replaceAll("cat", with: "dog"), 1)
+        XCTAssertEqual(store.design.pages[0].elements[0].text, "Teh dog")
+        XCTAssertEqual(store.design.pages[1], kept)
+        let cat = NSRange(location: 4, length: 3)
+        let match = DesignStore.TextMatch(pageIndex: 1, elementId: b, range: cat, plain: cat, preview: "Teh cat")
+        XCTAssertNil(DesignStore.replacingOne(d, match, with: "dog"))
+        // A theme leaves a locked page as it was, background and all.
+        let body = PairingSpec(fontFamily: "mono", fontWeight: 400, fontSize: 18, letterSpacing: nil, text: "Body")
+        var heading = body
+        heading.fontFamily = "serif"
+        let pairing = FontPairing(name: "Test", heading: heading, body: body)
+        let themed = DesignStore.themed(d, palette: ["#0a0a0a", "#fafafa"], pairing: pairing)
+        XCTAssertEqual(themed.pages[0].elements[0].fontFamily, "mono")
+        XCTAssertEqual(themed.pages[1], d.pages[1])
     }
 
     @MainActor

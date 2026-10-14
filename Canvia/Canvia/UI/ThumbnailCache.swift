@@ -37,9 +37,11 @@ final class ThumbnailCache {
     private var scheduled = false
 
     /// What a thumbnail is kept under: the page's id, a hash of the page as
-    /// it is written — and of what the master draws behind it, and its size
-    /// — how many looks made off the main thread (`baked`) and focus
-    /// subjects found (`subjects`) it has seen, and how many pixels wide it
+    /// it is written — and of what the master draws behind it, its size,
+    /// and for a page that shows a "{page}" its number and the page count
+    /// (Design.pageNumbering), so it is drawn again when pages move — how
+    /// many looks made off the main thread (`baked`) and focus subjects
+    /// found (`subjects`) it has seen, and how many pixels wide it
     /// is drawn. Any change to what is drawn is another key, so a kept
     /// thumbnail is never out of date.
     nonisolated static func key(page: Page, design: Design, baked: Int, subjects: Int, pixelWidth: Int) -> String {
@@ -51,6 +53,10 @@ final class ThumbnailCache {
         let size = design.size(for: page)
         hasher.combine(size.width)
         hasher.combine(size.height)
+        if let numbering = design.pageNumbering(shownOn: page) {
+            hasher.combine(numbering.number)
+            hasher.combine(numbering.count)
+        }
         return "\(page.id)|\(hasher.finalize())|\(baked)|\(subjects)|\(pixelWidth)"
     }
 

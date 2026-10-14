@@ -71,7 +71,12 @@ final class LineRoutesTests: XCTestCase {
         let down = LineRoutes.endDragged(flat, atStart: false, pointer: CGPoint(x: 2, y: 80), others: [], reach: 10)
         XCTAssertEqual(down.angle, 90, accuracy: 1e-9)
         XCTAssertEqual(down.length, 80.02499609497022, accuracy: 1e-9)
-        XCTAssertEqual(LineRoutes.readout(down), "80 · 90°")
+        var paper = Design(title: "l", width: 2480, height: 3508)
+        XCTAssertEqual(LineRoutes.readout(down, design: paper), "80 · 90°")
+        // In the design's unit, as the move and size readouts beside it.
+        paper.unit = "mm"
+        paper.dpi = 300
+        XCTAssertEqual(LineRoutes.readout(down, design: paper), "6.8 mm · 90°")
         // The start dragged: the end holds, the angle still read start to end.
         let left = LineRoutes.endDragged(flat, atStart: true, pointer: CGPoint(x: -50, y: 1), others: [], reach: 10)
         near(CGPoint(x: 100, y: 0), LineRoutes.ends(of: left.line).end)

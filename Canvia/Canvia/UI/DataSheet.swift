@@ -451,22 +451,31 @@ struct DataSheet: View {
                                   legend: legend, values: values, gridlines: gridlines))
         // Drawn again where it was, as one step, keeping its colours.
         if mode == 0, editing != nil { return store.updateChart(spec) }
+        // Data that draws nothing is refused before a locked page turns to
+        // the next, so nothing added never takes anyone to another page.
+        guard !builtForPage(spec).isEmpty else { return false }
         // A new one goes onto the next unlocked page when this one is locked.
         guard store.landsOnUnlockedPage() else { return false }
-        let w = store.pageWidth, h = store.pageHeight
-        let frame = CGRect(x: (w * 0.1).rounded(), y: (h * 0.2).rounded(), width: (w * 0.8).rounded(), height: (h * 0.6).rounded())
-        // The design's colours that show on this page, and labels in an ink
-        // that reads on it — as the Android twin chooses them.
-        let colors = DataGraphics.palette(for: store.design, page: store.page)
-        let elements = mode == 0
-            ? DataGraphics.chart(spec, in: frame, palette: colors, ink: DataGraphics.ink(for: store.page))
-            : newTable(in: frame, accent: colors[0])
+        let elements = builtForPage(spec)
         guard !elements.isEmpty else { return false }
         store.applyToPage { $0.elements.append(contentsOf: elements) }
         store.selection = Set(elements.map(\.id))
         // Add's Recently used: the kind of chart, or the table.
         if mode == 0 { ElementSearch.remember(.chart, kind.rawValue) } else { ElementSearch.remember(.table, "table") }
         return true
+    }
+
+    /// The new chart or table for the page on screen, across its middle:
+    /// the design's colours that show on this page, and labels in an ink
+    /// that reads on it — as the Android twin chooses them.
+    private func builtForPage(_ spec: ChartSpec) -> [Element] {
+        let w = store.pageWidth, h = store.pageHeight
+        let frame = CGRect(x: (w * 0.1).rounded(), y: (h * 0.2).rounded(), width: (w * 0.8).rounded(), height: (h * 0.6).rounded())
+        let colors = DataGraphics.palette(for: store.design, page: store.page)
+        if mode == 0 {
+            return DataGraphics.chart(spec, in: frame, palette: colors, ink: DataGraphics.ink(for: store.page))
+        }
+        return newTable(in: frame, accent: colors[0])
     }
 
     /// A new table of the rows typed, its header row off when it was turned
