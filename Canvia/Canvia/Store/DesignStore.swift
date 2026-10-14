@@ -643,6 +643,54 @@ final class DesignStore {
         updateSelected { $0 = Self.withGradient($0, paint) }
     }
 
+    /// One colour of the selection painted `to`, wherever the selection
+    /// uses it (see ColourSwap), as one step.
+    func swapSelectionColour(from: String, to: String) {
+        swapSelectionColourTransient(from: from, to: to)
+        commit()
+    }
+
+    /// The same, live, for the colour wheel: each tick swaps from the
+    /// selection as it was when the step opened, so a drag that passes
+    /// through another of its colours never takes that one along. The sheet
+    /// commits when the target changes or it closes.
+    func swapSelectionColourTransient(from: String, to: String) {
+        beginGesture()
+        guard let snapshot = pending?.design, snapshot.pages.indices.contains(pageIndex) else { return }
+        let before = snapshot.pages[pageIndex]
+        for i in design.pages[pageIndex].elements.indices {
+            let el = design.pages[pageIndex].elements[i]
+            guard selection.contains(el.id), ColourSwap.takesSwap(el),
+                  let was = before.elements.first(where: { $0.id == el.id }) else { continue }
+            design.pages[pageIndex].elements[i] = ColourSwap.swapped([was], from: from, to: to)[0]
+        }
+    }
+
+    /// Change all: `from` painted `to` on every element of every page that
+    /// uses it and is not locked, as one step with an Undo. Returns how many
+    /// elements changed.
+    @discardableResult
+    func swapColourEverywhere(from: String, to: String) -> Int {
+        commit()
+        let total = ColourSwap.count(design, from: from)
+        guard total > 0 else { return 0 }
+        apply { design in
+            for p in design.pages.indices {
+                for i in design.pages[p].elements.indices where ColourSwap.takesSwap(design.pages[p].elements[i]) {
+                    design.pages[p].elements[i] = ColourSwap.swapped([design.pages[p].elements[i]], from: from, to: to)[0]
+                }
+            }
+        }
+        buzz(.confirm)
+        announce(Self.changedAllNote(total))
+        return total
+    }
+
+    /// What Change all says it did.
+    static func changedAllNote(_ count: Int) -> String {
+        count == 1 ? "Changed the colour of 1 element" : "Changed the colour of \(count) elements"
+    }
+
     /// `el` in colour `hex`, by what it is; unchanged when it already is —
     /// compared ignoring case — or takes no colour.
     static func recoloured(_ el: Element, to hex: String) -> Element {

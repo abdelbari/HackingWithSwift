@@ -1052,7 +1052,8 @@ struct EditorView: View {
                              currentPaint: store.singleSelection?.fill,
                              onPick: { c in store.updateSelected { $0.fill = .solid(c) } },
                              onPickGradient: { p in store.updateSelected { $0.fill = p } },
-                             onPickTransient: { c in store.updateSelectedTransient { $0.fill = .solid(c) } })
+                             onPickTransient: { c in store.updateSelectedTransient { $0.fill = .solid(c) } },
+                             swapsColours: true)
         case .colorText:
             // A gradient on text is a fill, not a colour, so it lives in its
             // own field; picking a plain colour clears it.
@@ -1106,7 +1107,8 @@ struct EditorView: View {
                              allowPatterns: FillChoices.offersPatterns(for: store.selectedElements),
                              onPick: { c in store.recolourSelection(c) },
                              onPickGradient: { p in store.recolourSelection(gradient: p) },
-                             onPickTransient: { c in store.recolourSelectionTransient(c) })
+                             onPickTransient: { c in store.recolourSelectionTransient(c) },
+                             swapsColours: true)
         case .background:
             BackgroundSheet(store: store)
         case .fonts:

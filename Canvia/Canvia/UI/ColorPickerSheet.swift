@@ -29,7 +29,21 @@ struct ColorPickerSheet: View {
     /// Continuous variant for the system ColorPicker, which updates its
     /// binding on every drag tick; falls back to onPick when absent.
     var onPickTransient: ((String) -> Void)?
+    /// Offer the selection's own colours as swatches, when it has two or
+    /// more, each changed on its own (see ColourSwap).
+    var swapsColours = false
     @Environment(\.dismiss) private var dismiss
+    /// The selection's colour being changed, as it is now; nil changes the
+    /// whole selection as before.
+    @State private var swapTarget: String?
+    /// That colour as it was when the open step began, which every tick of
+    /// the wheel swaps from.
+    @State private var swapFrom: String?
+    /// That colour as it was when its swatch was tapped: what Change all
+    /// looks for across the design.
+    @State private var swapOrigin: String?
+    /// Change all, offered for ten seconds after a swap.
+    @State private var changeAll: ChangeAllOffer?
     @State private var custom = Color.white
     /// Read once when the sheet opens: the picture does not change while it
     /// is up, and the body runs on every tick of the colour wheel.
@@ -49,11 +63,9 @@ struct ColorPickerSheet: View {
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
+                        swapRow
                         ColorPicker("A colour of your own", selection: $custom, supportsOpacity: false)
-                            .onChange(of: custom) {
-                                let hex = UIColor(custom).hexString
-                                if let onPickTransient { onPickTransient(hex) } else { onPick(hex) }
-                            }
+                            .onChange(of: custom) { pickLive(UIColor(custom).hexString) }
                             // Recorded when the picker closes, not on every drag
                             // tick: a slow sweep through the colour wheel would
                             // otherwise fill the recents with eighteen shades of
@@ -117,7 +129,7 @@ struct ColorPickerSheet: View {
 
                     section("Default colours", colors: ContentLibrary.defaultSwatches)
 
-                    if allowGradients, let onPickGradient {
+                    if allowGradients, swapTarget == nil, let onPickGradient {
                         Text("Gradients").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
                         Picker("Gradient shape", selection: $gradientKind) {
                             Text("Linear").tag("linear")
@@ -132,7 +144,7 @@ struct ColorPickerSheet: View {
                         }
                     }
 
-                    if allowGradients, allowPatterns, let onPickGradient {
+                    if allowGradients, allowPatterns, swapTarget == nil, let onPickGradient {
                         patternsSection(onPickGradient)
                         photoFillSection(onPickGradient)
                     }
@@ -173,6 +185,100 @@ struct ColorPickerSheet: View {
         .onDisappear {
             if store.hasPendingChanges { store.commit() }
         }
+        // Change all goes after ten seconds, counted again from each swap.
+        .task(id: changeAll) {
+            guard changeAll != nil else { return }
+            try? await Task.sleep(for: .seconds(ChangeAllOffer.seconds))
+            if !Task.isCancelled { changeAll = nil }
+        }
+    }
+
+    /// The colour the swatches ring: the one being changed, else the one
+    /// there now.
+    private var shownCurrent: String? { swapTarget ?? current }
+
+    /// The selection's colours, one swatch each, when it has two or more:
+    /// tapping one makes it the colour every pick below changes, and
+    /// tapping it again goes back to colouring the whole selection. After
+    /// a swap, Change all offers the same swap everywhere else in the
+    /// design.
+    @ViewBuilder
+    private var swapRow: some View {
+        let colours = swapsColours
+            ? ColourSwap.colours(store.selectedElements.filter(ColourSwap.takesSwap)) : []
+        if colours.count >= 2 || (swapsColours && swapTarget != nil) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Colours in selection").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(colours, id: \.self) { hex in swapSwatch(hex) }
+                    }
+                    .padding(4)
+                }
+                if let offer = changeAll {
+                    Button {
+                        store.swapColourEverywhere(from: offer.from, to: offer.to)
+                        swapFrom = swapTarget
+                        changeAll = nil
+                    } label: {
+                        Label("Change all (\(offer.count))", systemImage: "paintbrush")
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Capsule().fill(Theme.accentSubtle))
+                    }
+                    .transition(.opacity)
+                }
+            }
+        }
+    }
+
+    private func swapSwatch(_ hex: String) -> some View {
+        let chosen = swapTarget == hex
+        return Button {
+            // A step left open by the wheel is kept before the target moves,
+            // so the next swap starts from the colours as they now are.
+            if store.hasPendingChanges { store.commit() }
+            swapTarget = chosen ? nil : hex
+            swapFrom = swapTarget
+            swapOrigin = swapTarget
+            changeAll = nil
+        } label: {
+            Circle()
+                .fill(Color(hex: hex))
+                .frame(width: 34, height: 34)
+                .overlay(Circle().stroke(Theme.hairline))
+                .overlay { if chosen { Circle().stroke(Theme.accent, lineWidth: 3).padding(-4) } }
+        }
+        // Named in words, as every swatch is.
+        .accessibilityLabel(ElementNames.spokenColour(hex))
+        .accessibilityAddTraits(chosen ? .isSelected : [])
+    }
+
+    /// A colour from the wheel, live: the target's swap while one is
+    /// chosen, else the sheet's own transient pick.
+    private func pickLive(_ hex: String) {
+        if swapTarget != nil, let from = swapFrom {
+            store.swapSelectionColourTransient(from: from, to: hex)
+            swapTarget = Self.swatchKey(hex)
+            offerChangeAll(to: hex)
+        } else if let onPickTransient {
+            onPickTransient(hex)
+        } else {
+            onPick(hex)
+        }
+    }
+
+    /// A colour as the selection's swatches name it: lowercase "#rrggbb".
+    private static func swatchKey(_ hex: String) -> String {
+        ColourSwap.parse(hex)?.rgb ?? hex
+    }
+
+    /// Change all for the swap just made, when anything else in the design
+    /// still has the colour it was.
+    private func offerChangeAll(to hex: String) {
+        guard let origin = swapOrigin, origin != hex else { changeAll = nil; return }
+        let count = ColourSwap.count(store.design, from: origin)
+        changeAll = count > 0 ? ChangeAllOffer(from: origin, to: hex, count: count) : nil
     }
 
     /// Companions for whatever is currently chosen. Picking a second colour
@@ -180,7 +286,7 @@ struct ColorPickerSheet: View {
     /// designed, and it is the part arithmetic can actually do.
     @ViewBuilder
     private var harmonySection: some View {
-        let seed = current ?? UIColor(custom).hexString
+        let seed = shownCurrent ?? UIColor(custom).hexString
         Text("Goes with this colour")
             .font(.footnote.weight(.bold))
             .foregroundStyle(.secondary)
@@ -274,8 +380,16 @@ struct ColorPickerSheet: View {
     private func choose(_ hex: String) {
         RecentColors.record(hex)
         // Felt when it changes something, as on the Android twin.
-        if current?.lowercased() != hex.lowercased() { store.buzz(.tick) }
-        onPick(hex)
+        if shownCurrent?.lowercased() != hex.lowercased() { store.buzz(.tick) }
+        if swapTarget != nil, let from = swapFrom {
+            // One colour of the selection, as one step.
+            store.swapSelectionColour(from: from, to: hex)
+            swapTarget = Self.swatchKey(hex)
+            swapFrom = swapTarget
+            offerChangeAll(to: hex)
+        } else {
+            onPick(hex)
+        }
     }
 
     /// One of the gradients, in the shape chosen above: ringed when it is
@@ -326,7 +440,7 @@ struct ColorPickerSheet: View {
                                 .stroke(Color.black.opacity(0.12)))
                             .frame(height: 40)
                             .overlay {
-                                if current?.lowercased() == hex.lowercased() {
+                                if shownCurrent?.lowercased() == hex.lowercased() {
                                     Image(systemName: "checkmark")
                                         .fontWeight(.bold)
                                         .foregroundStyle(UIColor(hex: hex).isLight ? .black : .white)
@@ -336,9 +450,20 @@ struct ColorPickerSheet: View {
                     }
                     // Named in words, and the chosen one said to be chosen.
                     .accessibilityLabel(ElementNames.spokenColour(hex))
-                    .accessibilityAddTraits(current?.lowercased() == hex.lowercased() ? .isSelected : [])
+                    .accessibilityAddTraits(shownCurrent?.lowercased() == hex.lowercased() ? .isSelected : [])
                 }
             }
         }
     }
+}
+
+/// Change all, as offered after a swap: the colour the selection had, the
+/// one it has now, and how many other elements still have the first.
+struct ChangeAllOffer: Equatable {
+    var from: String
+    var to: String
+    var count: Int
+
+    /// How long the offer stays.
+    static let seconds = 10
 }
