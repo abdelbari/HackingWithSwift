@@ -47,13 +47,14 @@ enum TextToggle: CaseIterable {
     /// (FontLibrary.resolveWeight) is 700 or more, so Bold and the Weight
     /// row never disagree — 600 in Modern Sans (300, 400, 500, 700) is
     /// drawn Bold and reads on, 600 in Roboto, which has a Semibold, reads
-    /// off. A font of your own, or one with no weight of 700 or more
-    /// (Anton), is one face drawn at its own weight whatever is asked, so
-    /// its stored weight is read, and Bold still turns on and off. As on
+    /// off. A font of your own of one face, or one with no weight of 700 or
+    /// more (Anton), is one face drawn at its own weight whatever is asked,
+    /// so its stored weight is read, and Bold still turns on and off. A
+    /// family of your own with a Bold reads as a library family does. As on
     /// the Android twin.
     static func isBold(_ el: Element) -> Bool {
         let weight = el.fontWeight ?? 400
-        let oneFace = CustomFonts.isCustom(el.fontFamily)
+        let oneFace = !TypeReadouts.isWeighable(el)
             || !FontLibrary.weights(el.fontFamily).contains { $0 >= 700 }
         return (oneFace ? weight : FontLibrary.resolveWeight(el.fontFamily, weight)) >= 700
     }

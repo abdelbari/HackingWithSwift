@@ -144,14 +144,22 @@ enum TypeReadouts {
     // MARK: weights
 
     /// The texts the Weight row is for: every one not set in a font of your
-    /// own, which is one face, drawn at its own weight whatever is asked.
+    /// own of one face, which is drawn at its own weight whatever is asked —
+    /// a family of yours with several weights here is.
     private static func weighable(_ texts: [Element]) -> [Element] {
-        texts.filter { !CustomFonts.isCustom($0.fontFamily) }
+        texts.filter(isWeighable)
+    }
+
+    /// Whether the Weight row is for `el`: not a font of your own, or one
+    /// whose family offers more than one weight on this phone.
+    static func isWeighable(_ el: Element) -> Bool {
+        !CustomFonts.isCustom(el.fontFamily) || (FontLibrary.customWeights(el.fontFamily)?.count ?? 0) > 1
     }
 
     /// The weights the Weight row offers `texts`: every weight their fonts
     /// have, together, lightest first — none, and no row, when they are all
-    /// in fonts of your own. The Android twin's TextSelection.weights.
+    /// in fonts of your own of one face. The Android twin's
+    /// TextSelection.weights.
     static func weights(_ texts: [Element]) -> [Int] {
         Array(Set(weighable(texts).flatMap { FontLibrary.weights($0.fontFamily) })).sorted()
     }
