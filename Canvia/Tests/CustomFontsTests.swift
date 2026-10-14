@@ -607,6 +607,50 @@ final class CustomFontsTests: XCTestCase {
         XCTAssertEqual(CustomFonts.synced(said) { _ in here }, said)
     }
 
+    /// The rows of the Android twin's "a text an earlier build set in a Bold
+    /// or Italic file keeps that face's weight and slant": before faces were
+    /// grouped the picker kept a text's weight (400) and each file drew at
+    /// its own.
+    func testATextAnEarlierBuildSetInABoldOrItalicFileKeepsThatFacesWeightAndItalic() {
+        let here = [face("bbbbbbbbbbbb", "Acme Sans", 700), face("cccccccccccc", "Acme Sans", 400, italic: true),
+                    face("aaaaaaaaaaaa", "Acme Sans", 400), face("eeeeeeeeeeee", "Acme Sans", 300)]
+        let older = ["bbbbbbbbbbbb", "cccccccccccc", "aaaaaaaaaaaa", "eeeeeeeeeeee"].map { sha -> CustomFonts.Record in
+            CustomFonts.Record(id: "custom:\(sha)", name: "Acme Sans", file: "\(sha).ttf")
+        }
+        var d = CustomFonts.with(design("custom:bbbbbbbbbbbb", "custom:cccccccccccc", "custom:aaaaaaaaaaaa",
+                                        "custom:eeeeeeeeeeee", "custom:000000000000", "lora"), older)
+        d.pages[0].elements[2].fontWeight = 700
+        let kept = CustomFonts.keptFaces(d, faces: here)
+        let els = kept.pages[0].elements
+        XCTAssertEqual(els.map(\.fontWeight), [700, 400, 700, 300, 400, 400])
+        XCTAssertEqual(els.map(\.italic), [nil, true, nil, nil, nil, nil])
+        XCTAssertEqual([2, 4, 5].map { els[$0] }, [2, 4, 5].map { d.pages[0].elements[$0] },
+                       "a Regular, one not here and a library font as they were")
+        // Again, the same; a record that says its family, or no faces, leaves it.
+        XCTAssertEqual(CustomFonts.keptFaces(kept, faces: here), kept)
+        let said = CustomFonts.with(d, older.map { old -> CustomFonts.Record in
+            var record = old
+            record.family = "Acme Sans"
+            return record
+        })
+        XCTAssertEqual(CustomFonts.keptFaces(said, faces: here), said)
+        XCTAssertEqual(CustomFonts.keptFaces(d, faces: []), d)
+        // A save does it before it fills the family in, and only once: a
+        // weight chosen after stays.
+        let record = { (sha: String) -> CustomFonts.Record? in
+            here.first(where: { $0.id == sha }).map { entry -> CustomFonts.Record in
+                CustomFonts.Record(id: entry.key, name: entry.family, file: "\(sha).ttf",
+                                   family: entry.family, weight: entry.weight, italic: entry.italic)
+            }
+        }
+        let saved = CustomFonts.synced(d, installed: record, faces: here)
+        XCTAssertEqual(saved.pages[0].elements[0].fontWeight, 700)
+        XCTAssertTrue(CustomFonts.records(in: saved).allSatisfy { $0.family == "Acme Sans" })
+        var chosen = saved
+        chosen.pages[0].elements[0].fontWeight = 400
+        XCTAssertEqual(CustomFonts.synced(chosen, installed: record, faces: here).pages[0].elements[0].fontWeight, 400)
+    }
+
     /// The design's record carries the face, so a phone without the files
     /// still groups them; an earlier build's record reads without it.
     func testTheRecordCarriesTheFamilyWeightAndItalic() throws {

@@ -70,12 +70,23 @@ enum DesignLibrary {
         try? data.write(to: thumbsDir.appendingPathComponent("\(id).jpg"), options: .atomic)
     }
 
+    /// Design `id`, its fonts of your own brought up to date as a save
+    /// would (opened): a text an earlier build set in a Bold or Italic file
+    /// opens at that face's weight and italic.
     static func load(id: String) -> Design? {
         let url = designsDir.appendingPathComponent("\(id).json")
         guard let data = try? Data(contentsOf: url),
-              var design = try? JSONDecoder().decode(Design.self, from: data) else { return nil }
+              let read = try? JSONDecoder().decode(Design.self, from: data) else { return nil }
+        var design = opened(read)
         design.normalizeTextHeights()
         return design
+    }
+
+    /// A design as it is opened: its record of fonts of your own, and the
+    /// texts an earlier build set in them, brought up to date as a save
+    /// would (CustomFonts.synced). The Android twin's DesignRepository.load.
+    static func opened(_ design: Design) -> Design {
+        CustomFonts.synced(design, installed: FontStore.record, faces: FontStore.faces())
     }
 
     static func copyThumbnail(from oldId: String, to newId: String) {
@@ -375,7 +386,8 @@ enum DesignLibrary {
 
     static func load(version: Version) -> Design? {
         guard let data = try? Data(contentsOf: version.url),
-              var design = try? JSONDecoder().decode(Design.self, from: data) else { return nil }
+              let read = try? JSONDecoder().decode(Design.self, from: data) else { return nil }
+        var design = opened(read)
         design.normalizeTextHeights()
         return design
     }

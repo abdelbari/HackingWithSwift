@@ -644,7 +644,10 @@ enum PptxExporter {
         let marked = FontLibrary.markedDisplayText(for: unlisted, pageNumber: nil, pageCount: nil)
         let parsed = RichText.parse(marked)
         let spans = FontLibrary.displaySpans(for: unlisted, marked: marked)
-        let box = RichText.Style(bold: (el.fontWeight ?? 400) >= 700, italic: el.italic == true,
+        // At the weight and italic the box is drawn at: a text an earlier
+        // build set in a Bold or Italic file is bold or italic here too
+        // (FontLibrary.weight(of:)), as on the Android twin.
+        let box = RichText.Style(bold: FontLibrary.weight(of: el) >= 700, italic: FontLibrary.isItalic(el),
                                  underline: el.underline == true)
         let ns = parsed.plain as NSString
         let length = ns.length

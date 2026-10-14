@@ -35,9 +35,12 @@ enum ContrastAudit {
         return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
     }
 
+    /// Whether the text is large: 24 or more, or 19 or more and bold — by
+    /// its weight as FontLibrary.weight(of:) reads it, so a text set in a
+    /// Bold file with no weight of its own counts — as on the Android twin.
     static func isLarge(_ el: Element) -> Bool {
         let size = el.fontSize ?? 42
-        return size >= 24 || (size >= 19 && (el.fontWeight ?? 400) >= 700)
+        return size >= 24 || (size >= 19 && FontLibrary.weight(of: el) >= 700)
     }
 
     static func required(for el: Element) -> Double { isLarge(el) ? 3 : 4.5 }

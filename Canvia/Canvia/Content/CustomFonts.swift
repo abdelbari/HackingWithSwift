@@ -156,9 +156,17 @@ enum CustomFonts {
     /// order, the entry it had kept as it was, and a new one made from
     /// `installed` — this phone's font of that hash, if it has it. An entry
     /// an earlier build wrote, with no family, weight or italic, gains this
-    /// phone's (withFace), so the other phone groups its faces too.
+    /// phone's (withFace), so the other phone groups its faces too — its
+    /// texts first given their face's weight and italic (keptFaces), as
+    /// that missing family is the only sign they were set before families.
+    /// Opening a design does the same, so what shows is what is saved.
     static func synced(_ design: Design, installed: (String) -> Record?,
                        faces: [Uploads.FontEntry] = []) -> Design {
+        syncedKept(keptFaces(design, faces: faces), installed: installed, faces: faces)
+    }
+
+    private static func syncedKept(_ design: Design, installed: (String) -> Record?,
+                                   faces: [Uploads.FontEntry]) -> Design {
         let had = records(in: design)
         var byID: [String: Record] = [:]
         for record in had where byID[record.id] == nil { byID[record.id] = record }
@@ -183,6 +191,45 @@ enum CustomFonts {
         out.family = record.family ?? here.family
         out.weight = record.weight ?? here.weight
         out.italic = record.italic ?? here.italic
+        return out
+    }
+
+    /// The design with each element an earlier build set in a face of your
+    /// own that is not a Regular — a Bold, Light or Italic file — given that
+    /// face's weight, and its italic when it is one. Before faces were
+    /// grouped into families each file was its own font, drawn at its own
+    /// weight and slant whatever the text asked, and the picker left the
+    /// text's weight (400) as it was; now the face nearest that weight would
+    /// be drawn, the family's Regular. Only for a font the design records
+    /// with no family — the mark of an earlier build's record, which a save
+    /// then fills in (synced) — and that is among `faces`. A word's own font
+    /// is left as it is: words hold no weight of their own. Unchanged when
+    /// nothing changes. The Android twin's CustomFonts.keptFaces.
+    static func keptFaces(_ design: Design, faces: [Uploads.FontEntry]) -> Design {
+        let earlier = Set(records(in: design).filter { $0.family == nil }.map(\.id))
+        if earlier.isEmpty || faces.isEmpty { return design }
+        var out = design
+        for p in out.pages.indices {
+            for e in out.pages[p].elements.indices {
+                if let kept = keptFace(out.pages[p].elements[e], earlier: earlier, faces: faces) {
+                    out.pages[p].elements[e] = kept
+                }
+            }
+        }
+        return out
+    }
+
+    /// The element at its own face's weight and italic (keptFaces' rule),
+    /// or nil when it keeps its own.
+    private static func keptFace(_ el: Element, earlier: Set<String>, faces: [Uploads.FontEntry]) -> Element? {
+        guard let key = el.fontFamily, earlier.contains(key), let sha = sha(key),
+              let face = faces.first(where: { $0.id == sha }) else { return nil }
+        if face.weight == 400 && !face.italic { return nil }
+        let italic: Bool? = face.italic ? true : el.italic
+        if el.fontWeight == face.weight && el.italic == italic { return nil }
+        var out = el
+        out.fontWeight = face.weight
+        out.italic = italic
         return out
     }
 
