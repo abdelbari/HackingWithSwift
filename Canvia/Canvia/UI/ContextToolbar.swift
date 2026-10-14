@@ -1021,6 +1021,22 @@ struct ContextToolbar: View {
         .accessibilityValue(current?.name ?? tr("Square"))
     }
 
+    /// Erase: the brush that makes parts of the photo clear and brings them
+    /// back, and the one that takes an object away, filling where it was
+    /// from what is round it.
+    private func eraseMenu(_ el: Element) -> some View {
+        Menu {
+            Button {
+                store.beginBrush(el.id, kind: .mask)
+            } label: { Label("Erase and restore", systemImage: "eraser.line.dashed") }
+            Button {
+                store.beginErasing(el.id)
+            } label: { Label("Remove an object", systemImage: "wand.and.rays") }
+        } label: {
+            toolLabel("eraser", "Erase", active: el.mask?.strokes.isEmpty == false)
+        }
+    }
+
     private var lockedPhotoNote: some View {
         Label("This photo is locked. Tap Unlock to edit it.", systemImage: "lock")
             .font(.footnote)
@@ -1064,7 +1080,7 @@ struct ContextToolbar: View {
             .buttonStyle(ToolButtonStyle())
             .accessibilityAddTraits(playAnimated ? [.isSelected] : [])
         } else {
-            toolButton("eraser", "Erase") { store.beginErasing(el.id) }
+            eraseMenu(el)
         }
         Menu {
             Button {
@@ -1490,8 +1506,14 @@ struct ContextToolbar: View {
                 // Committed through the page so it lands in undo as one step,
                 // and addressed by id rather than by selection: the cutout
                 // finishes asynchronously and the selection may have moved on.
+                // The picture before the cut is kept as the mask's base, so
+                // the Restore brush can paint back what the cut took away —
+                // the first picture's, however often it is cut again.
                 store.applyToPage { page in
                     if let i = page.elements.firstIndex(where: { $0.id == id }) {
+                        var mask = page.elements[i].mask ?? ImageMask()
+                        if mask.base == nil { mask.base = src }
+                        page.elements[i].mask = ImageMask.kept(mask)
                         page.elements[i].src = newSrc
                     }
                 }

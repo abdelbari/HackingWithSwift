@@ -139,7 +139,12 @@ enum PhotoEffects {
     /// drawn as `el` draws it — page units over the page units each of its
     /// pixels covers, rounded, at least one. 0 when it has none.
     static func blockPixels(_ el: Element, picture: CGSize) -> Int {
-        let page = blockSize(el.pixelate)
+        blockPixels(el, picture: picture, pixelate: el.pixelate)
+    }
+
+    /// The same for a pixelate of `pixelate` — a pixelate brush's amount.
+    static func blockPixels(_ el: Element, picture: CGSize, pixelate: Double?) -> Int {
+        let page = blockSize(pixelate)
         guard page > 0, picture.width > 0, picture.height > 0 else { return 0 }
         let drawn = Crop.drawnPicture(el, image: picture)
         guard drawn.width > 0 else { return 0 }
@@ -185,11 +190,16 @@ enum PhotoEffects {
     // MARK: drawing, in the filter engine's pass
 
     /// The effects the filter engine draws into the picture itself: pixelate
-    /// (its block in the picture's pixels), focus, and the fx.
+    /// (its block in the picture's pixels), focus, and the fx; the blur and
+    /// pixelate brushed on (`retouch`, each pixelate's block in `blocks`);
+    /// and the mask, while it has strokes.
     struct Plan: Hashable {
         var block = 0
         var focus: FocusBlur?
         var fx: PhotoFx?
+        var retouch: [RetouchLayer] = []
+        var blocks: [Int] = []
+        var mask: ImageMask?
 
         static let none = Plan()
         var isNone: Bool { self == Plan() }
@@ -202,6 +212,8 @@ enum PhotoEffects {
                 out += "|fo\(f.x),\(f.y),\(f.radius),\(f.amount)\(f.subject ? "s" : "")"
             }
             if let fx { out += "|fx\(fx.kind)\(fx.share),\(fx.seed)" }
+            if !retouch.isEmpty { out += "|rt\(retouch.hashValue),\(blocks)" }
+            if let mask { out += "|mk\(mask.hashValue)" }
             return out
         }
     }
@@ -209,8 +221,13 @@ enum PhotoEffects {
     /// `el`'s plan for a picture `picture` pixels in size.
     static func plan(_ el: Element, picture: CGSize) -> Plan {
         let block = blockPixels(el, picture: picture)
+        let retouch = RetouchLayer.kept(el.retouch) ?? []
+        let blocks = retouch.map { layer in
+            layer.kind == RetouchLayer.pixelate ? blockPixels(el, picture: picture, pixelate: layer.share) : 0
+        }
         return Plan(block: block > 1 ? block : 0, focus: el.focusBlur.flatMap { $0.amount > 0 ? $0 : nil },
-                    fx: el.fx.flatMap { $0.draws ? $0 : nil })
+                    fx: el.fx.flatMap { $0.draws ? $0 : nil }, retouch: retouch, blocks: blocks,
+                    mask: el.mask.flatMap { $0.strokes.isEmpty ? nil : $0 })
     }
 
     /// `bytes` — RGBA, premultiplied, `width` × `height` — in square blocks
@@ -341,8 +358,12 @@ enum PhotoEffects {
         let pad = ((far * scale).rounded(.up) + 1) / scale
         let id = [key, "\(el.w)x\(el.h)", "\(el.cropScale ?? 1),\(el.cropX ?? 0.5),\(el.cropY ?? 0.5)",
                   "\(el.cropFit == true)", "\(el.straighten ?? 0)", el.maskShapeId ?? "", "\(el.radius ?? 0)",
-                  "\(edge.kind)\(edge.color)\(edge.width)", "\(scale)"].joined(separator: "|") as NSString
+                  "\(edge.kind)\(edge.color)\(edge.width)", "\(scale)",
+                  "\(el.mask?.hashValue ?? 0)"].joined(separator: "|") as NSString
         if let made = edges.object(forKey: id) { return made }
+        // What the photo shows once its mask is laid over it, so the edge
+        // follows what was erased and restored.
+        let shown = ImageMasking.drawn(el, picture: picture, key: key)
 
         let canvas = CGSize(width: el.w + 2 * pad, height: el.h + 2 * pad)
         let format = UIGraphicsImageRendererFormat()
@@ -370,7 +391,16 @@ enum PhotoEffects {
             cg.translateBy(x: -cropX * el.w, y: -cropY * el.h)
             cg.translateBy(x: el.w / 2 + (dispW - el.w) * (0.5 - cropX), y: el.h / 2 + (dispH - el.h) * (0.5 - cropY))
             cg.rotate(by: tilt * .pi / 180)
-            picture.draw(in: CGRect(x: -dispW / 2, y: -dispH / 2, width: dispW, height: dispH))
+            let placed = CGRect(x: -dispW / 2, y: -dispH / 2, width: dispW, height: dispH)
+            if let alpha = shown.alpha {
+                // The mask's top row at the picture's top: the context's own
+                // way up turned over to clip, and back.
+                let over = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: placed.minX, ty: placed.maxY)
+                cg.concatenate(over)
+                cg.clip(to: CGRect(origin: .zero, size: placed.size), mask: alpha)
+                cg.concatenate(over.inverted())
+            }
+            shown.picture.draw(in: placed)
         }
         guard let cg = silhouette.cgImage else { return nil }
         let shape = CIImage(cgImage: cg)

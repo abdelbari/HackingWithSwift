@@ -23,10 +23,12 @@ enum ImageFilterPreset: String, CaseIterable, Identifiable {
 
 /// Every edit made to how a photo looks — filter and its strength, dials
 /// and curve, duotone, straighten, show-whole and the effects (pixelate,
-/// focus, outline or glow, and glitch, slice, halftone or grain) — as one
-/// thing to see or take off, as the Android twin's "Reset photo edits". The
-/// crop, frame, corners and Ken Burns drift are where the photo sits, not
-/// how it looks, and stay.
+/// focus, outline or glow, glitch, slice, halftone or grain, and the blur
+/// and pixelate brushed on) — as one thing to see or take off, as the
+/// Android twin's "Reset photo edits". The crop, frame, corners and Ken
+/// Burns drift are where the photo sits, not how it looks, and stay; so
+/// does what the Erase and Restore brushes made clear, which is the
+/// picture's shape.
 enum PhotoEdits {
     static func any(_ el: Element) -> Bool {
         ImageFilterPreset.from(el.filter) != .none
@@ -39,6 +41,7 @@ enum PhotoEdits {
             || el.focusBlur != nil
             || el.edge != nil
             || el.fx != nil
+            || el.retouch != nil
     }
 
     static func reset(_ el: inout Element) {
@@ -52,6 +55,7 @@ enum PhotoEdits {
         el.focusBlur = nil
         el.edge = nil
         el.fx = nil
+        el.retouch = nil
     }
 
     /// The photo as Hold to compare shows it: its filter, dials, duotone
@@ -67,6 +71,7 @@ enum PhotoEdits {
         out.focusBlur = nil
         out.edge = nil
         out.fx = nil
+        out.retouch = nil
         return out
     }
 
@@ -1022,7 +1027,8 @@ enum ImageFilterEngine {
     /// drawn again when `looksBaked` moves on.
     static func makesLater(_ el: Element) -> Bool {
         guard !isCode(el) else { return false }
-        return (el.adjustments?.clarity ?? 0) != 0 || (el.pixelate ?? 0) > 0 || el.fx?.draws == true
+        let brushed = el.mask?.strokes.isEmpty == false || RetouchLayer.kept(el.retouch) != nil
+        return (el.adjustments?.clarity ?? 0) != 0 || (el.pixelate ?? 0) > 0 || el.fx?.draws == true || brushed
     }
 
     /// The look on `image`, in the Android twin's order: the filter at its
@@ -1052,7 +1058,8 @@ enum ImageFilterEngine {
         let mix = partly ? "@\(Int((share * 100).rounded()))" : ""
         let soft = crisp && preset == .dreamy ? "|crisp" : ""
         let key = "\(cacheKey)|\(preset.rawValue)\(mix)\(adjustments.signature)\(tone)\(effects.signature)\(soft)"
-        let madeLater = later && (adjustments.clarity != 0 || effects.block > 1 || effects.fx != nil)
+        let brushed = effects.mask != nil || !effects.retouch.isEmpty
+        let madeLater = later && (adjustments.clarity != 0 || effects.block > 1 || effects.fx != nil || brushed)
         let slot = madeLater ? bakeSlot(picture: cacheKey, owner: owner) : ""
         if let cached = cache.object(forKey: key as NSString) {
             if madeLater { lastBaked.setObject(cached, forKey: slot as NSString) }
@@ -1070,6 +1077,8 @@ enum ImageFilterEngine {
             var plain = effects
             plain.block = 0
             plain.fx = nil
+            plain.retouch = []
+            plain.blocks = []
             return rendered(preset, adjustments: quick, duotone: duotone, share: share, partly: partly,
                             effects: plain, crisp: crisp, waits: waits, image: image, cacheKey: cacheKey).image
         }
@@ -1085,8 +1094,13 @@ enum ImageFilterEngine {
     private static func rendered(_ preset: ImageFilterPreset, adjustments: Adjustments, duotone: Duotone?,
                                  share: Double, partly: Bool, effects: PhotoEffects.Plan, crisp: Bool,
                                  waits: Bool, image: UIImage, cacheKey: String) -> (image: UIImage, stopgap: Bool) {
-        guard let input = CIImage(image: image) else { return (image, true) }
-        let extent = input.extent
+        guard let picture = CIImage(image: image) else { return (image, true) }
+        let extent = picture.extent
+        // A mask with Restore over a cut-out is laid over the picture before
+        // the cut (ImageMasking.masking), at the cut-out's size; anything
+        // else over the picture itself.
+        let masking = ImageMasking.masking(effects.mask, picture: image, key: cacheKey)
+        let input = masking.picture === image ? picture : Self.stretched(masking.picture, over: extent) ?? picture
         // Preset first, adjustments second: the preset is the look, the dials
         // are the correction on top of it. The other order would have a dial
         // silently undone by whichever preset was picked afterwards.
@@ -1125,6 +1139,10 @@ enum ImageFilterEngine {
                 PhotoLook.fx(&bytes, width: width, height: height, fx: fx)
             }
         }
+        // The blur and pixelate brushed on, each over what its strokes
+        // cover: after the filter, the dials and the effects, before the
+        // vignette and the duotone.
+        output = retouched(output, effects, extent: extent)
         // The vignette over the blur, the blocks and the fx, a smooth fade as
         // the Android twin lays it over the drawn picture — the filter's own
         // added to the dial's, at the filter's strength.
@@ -1133,8 +1151,44 @@ enum ImageFilterEngine {
         // Duotone last, because it replaces colour outright — running it
         // before a saturation dial would leave that dial with nothing to do.
         if let duotone { output = mapped(output, to: duotone) }
+        // The mask last of all: what Erase made clear is clear whatever the
+        // look, and the edge and shadow, drawn after, follow it.
+        if let alpha = masking.alpha { output = ImageMasking.masked(output, by: alpha, extent: extent) }
         guard let cg = context.createCGImage(output, from: extent) else { return (image, true) }
         return (UIImage(cgImage: cg, scale: image.scale, orientation: image.imageOrientation), stopgap)
+    }
+
+    // MARK: brushed on
+
+    /// `picture` stretched over `extent`; nil when it cannot be read.
+    private static func stretched(_ picture: UIImage, over extent: CGRect) -> CIImage? {
+        guard let image = CIImage(image: picture), image.extent.width > 0, image.extent.height > 0 else { return nil }
+        return image.transformed(by: CGAffineTransform(scaleX: extent.width / image.extent.width,
+                                                       y: extent.height / image.extent.height))
+            .transformed(by: CGAffineTransform(translationX: extent.minX - image.extent.minX * extent.width / image.extent.width,
+                                               y: extent.minY - image.extent.minY * extent.height / image.extent.height))
+    }
+
+    /// `image` with each retouch layer of `effects` laid over what its
+    /// strokes cover (MaskRaster): blurred, or in blocks of its own.
+    private static func retouched(_ image: CIImage, _ effects: PhotoEffects.Plan, extent: CGRect) -> CIImage {
+        var output = image
+        for (i, layer) in effects.retouch.enumerated() {
+            guard let cover = ImageMasking.coverage(layer, picture: extent.size) else { continue }
+            var effect: CIImage?
+            if layer.kind == RetouchLayer.blur {
+                effect = ImageMasking.blurred(output, amount: layer.share, extent: extent)
+            } else {
+                let block = i < effects.blocks.count ? effects.blocks[i] : 0
+                if block > 1 {
+                    effect = throughPixels(output, extent: extent) { bytes, width, height in
+                        PhotoEffects.pixelate(&bytes, width: width, height: height, block: block)
+                    }
+                }
+            }
+            if let effect { output = ImageMasking.mixed(effect, over: output, by: cover, extent: extent) }
+        }
+        return output
     }
 
     // MARK: looks made off the main thread

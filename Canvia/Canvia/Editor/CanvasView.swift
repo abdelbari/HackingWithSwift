@@ -31,6 +31,14 @@ struct CanvasView: View {
     /// cancels never ends, so a new touch — a new start — begins a stroke
     /// afresh rather than joining the one cut short with a straight jump.
     @State private var strokeStart: CGPoint?
+    /// Shape assist: the shape the stroke under way snapped to as the
+    /// finger rested at its end, where the finger came to rest, and the
+    /// wait for it to rest long enough.
+    @State private var snapped: ShapeAssist.Snap?
+    @State private var restAt: CGPoint?
+    @State private var restWait: Task<Void, Never>?
+    /// Shape assist, from the Draw bar: on unless turned off.
+    @AppStorage(ShapeAssist.key) private var shapeAssist = true
     @State private var dropTargeted = false
     /// When a tap on the photo in crop mode last landed, for the double tap
     /// that finishes it.
@@ -469,6 +477,7 @@ struct CanvasView: View {
             Group {
                 if let tool = store.drawing { drawingLayer(tool) }
                 if store.erasing != nil { eraserLayer }
+                if let brush = store.brushing, let photo = store.brushElement { brushLayer(brush, photo) }
                 if let crop = store.cropping, let photo = store.cropElement { cropLayer(photo, crop) }
             }
         }
@@ -580,6 +589,11 @@ struct CanvasView: View {
         // written.
         var page = Trimming.scrubbed(store.page, store.clipScrub)
         if store.comparing, let id = store.singleSelection?.id { page = PhotoEdits.comparing(page, id) }
+        // Show original, held in a brush: the photo as it was before it.
+        if let brush = store.brushing, brush.comparing,
+           let i = page.elements.firstIndex(where: { $0.id == brush.id }) {
+            page.elements[i] = ImageMasking.original(page.elements[i], retouching: brush.retouching)
+        }
         let hidden = [store.cropping?.id, store.editingTextId].compactMap { $0 }
         guard !hidden.isEmpty else { return page }
         if let id = store.editingTextId, let i = page.elements.firstIndex(where: { $0.id == id && $0.type == .shape }) {
@@ -839,16 +853,21 @@ struct CanvasView: View {
         .onDisappear { strokePoints = []; strokeStart = nil }
     }
 
-    // MARK: drawing
+    // MARK: brushes
 
-    /// Above everything while the pen is on, so a stroke never selects or
-    /// moves what it crosses. The live line is the same smoothed curve the
-    /// finished element will hold.
-    private func drawingLayer(_ tool: Freehand.Tool) -> some View {
-        ZStack {
+    /// Painting a photo with a brush: the stroke under the finger, as wide
+    /// as it paints, in red to erase, green to restore, and blue for a blur
+    /// or pixelate (grey to take it off); each stroke lands on the photo as
+    /// the finger lifts. Over the whole page, so a stroke never selects or
+    /// moves what it crosses.
+    private func brushLayer(_ brush: BrushSession, _ photo: Element) -> some View {
+        let width = ObjectEraser.pageWidth(share: brush.size, element: photo, imageSize: brush.imageSize)
+        return ZStack {
             Color.clear.contentShape(Rectangle())
             if !strokePoints.isEmpty {
-                livePen(tool)
+                Path(Freehand.cgPath(strokePoints))
+                    .stroke(Self.brushInk(brush).opacity(0.45),
+                            style: StrokeStyle(lineWidth: width, lineCap: .round, lineJoin: .round))
             }
         }
         .frame(width: store.pageWidth, height: store.pageHeight)
@@ -862,16 +881,104 @@ struct CanvasView: View {
                     strokePoints.append(value.location)
                 }
                 .onEnded { _ in
-                    store.finishStroke(strokePoints)
+                    store.brushStroke(Freehand.thinned(strokePoints))
                     strokePoints = []
                     strokeStart = nil
+                }
+        )
+        .accessibilityLabel("Brush")
+        .accessibilityHint("Drag over the photo to paint, then tap Done")
+        .onDisappear { strokePoints = []; strokeStart = nil }
+    }
+
+    /// The colour a brush's stroke shows in under the finger.
+    private static func brushInk(_ brush: BrushSession) -> Color {
+        switch (brush.retouching, brush.reverse) {
+        case (false, false): return .red
+        case (false, true): return .green
+        case (true, false): return .blue
+        case (true, true): return .gray
+        }
+    }
+
+    // MARK: drawing
+
+    /// Above everything while the pen is on, so a stroke never selects or
+    /// moves what it crosses. The live line is the same smoothed curve the
+    /// finished element will hold.
+    private func drawingLayer(_ tool: Freehand.Tool) -> some View {
+        ZStack {
+            Color.clear.contentShape(Rectangle())
+            if let snap = snapped, let shape = ShapeAssist.element(snap, tool: tool) {
+                // The shape the stroke will become, as it will be drawn.
+                ElementView(element: shape).allowsHitTesting(false)
+            } else if !strokePoints.isEmpty {
+                livePen(tool)
+            }
+        }
+        .frame(width: store.pageWidth, height: store.pageHeight)
+        .gesture(
+            DragGesture(minimumDistance: 0, coordinateSpace: .named("page"))
+                .onChanged { value in drawn(to: value, tool: tool) }
+                .onEnded { _ in
+                    restWait?.cancel()
+                    if let snap = snapped {
+                        store.finishSnappedStroke(snap)
+                    } else {
+                        store.finishStroke(strokePoints)
+                    }
+                    endStroke()
                 }
         )
         .accessibilityLabel("Drawing surface")
         .accessibilityHint("Drag to draw a stroke")
         // A stroke a two-finger pan cut short never ended; putting the pen
         // away takes its stub with it.
-        .onDisappear { strokePoints = []; strokeStart = nil }
+        .onDisappear { endStroke() }
+    }
+
+    /// The pen moved on to `value`'s point. A stroke snapped by shape
+    /// assist stays snapped while the finger rests, and is a stroke again
+    /// once it moves on; a pen with ink waits, each time the finger comes to
+    /// rest, for it to rest long enough (awaitRest).
+    private func drawn(to value: DragGesture.Value, tool: Freehand.Tool) {
+        if strokePoints.isEmpty || strokeStart != value.startLocation {
+            endStroke()
+            strokeStart = value.startLocation
+            strokePoints = [value.startLocation]
+        }
+        if snapped != nil {
+            guard let rest = restAt, ShapeAssist.movedOn(from: rest, to: value.location, zoom: store.zoom) else { return }
+            snapped = nil
+        }
+        strokePoints.append(value.location)
+        if shapeAssist && tool.pen.hasInk { awaitRest(at: value.location) }
+    }
+
+    /// Shape assist: the finger come to rest at `point` — or still resting,
+    /// within ShapeAssist.holdSlop of where it did — and, once it has rested
+    /// for ShapeAssist.holdSeconds, the stroke read as a shape: shown as it
+    /// will be drawn, with a tick.
+    private func awaitRest(at point: CGPoint) {
+        if let rest = restAt, !ShapeAssist.movedOn(from: rest, to: point, zoom: store.zoom) { return }
+        restAt = point
+        restWait?.cancel()
+        restWait = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(ShapeAssist.holdSeconds * 1_000_000_000))
+            guard !Task.isCancelled, snapped == nil, let snap = ShapeAssist.classify(strokePoints) else { return }
+            snapped = snap
+            store.buzz(.tick)
+        }
+    }
+
+    /// The stroke under way let go of, snapped or not.
+    private func endStroke() {
+        restWait?.cancel()
+        restWait = nil
+        restAt = nil
+        snapped = nil
+        strokePoints = []
+        strokeStart = nil
     }
 
     /// The stroke under the finger, as the finished one will be drawn: a
@@ -896,7 +1003,7 @@ struct CanvasView: View {
                         style: StrokeStyle(lineWidth: Freehand.drawnWidth(tool), lineCap: .round, lineJoin: .round))
                 .blendMode(tool.pen == .highlighter ? .multiply : .normal)
                 .shadow(color: halo, radius: spread)
-                .opacity(Freehand.opacity(transparency: tool.transparency))
+                .opacity(Freehand.strokeOpacity(tool))
         }
     }
 
@@ -1030,7 +1137,7 @@ struct CanvasView: View {
     /// target's size), no handle of the selection, no guide — and never
     /// while the pen, the eraser or crop mode has the page's touches.
     private func pansFromPage(at point: CGPoint) -> Bool {
-        guard store.drawing == nil, store.erasing == nil, store.cropping == nil else { return false }
+        guard store.drawing == nil, store.erasing == nil, store.cropping == nil, store.brushing == nil else { return false }
         let guideReach = Touch.pageUnits(12, zoom: store.zoom)
         let onGuide = store.design.guides.contains { guide in
             abs(Double(guide.vertical ? point.x : point.y) - guide.position) <= guideReach
@@ -1463,6 +1570,21 @@ struct CanvasView: View {
         if el.type == .image && !el.locked {
             Button("Crop") { store.startCrop(el.id) }
         }
+        // A table's cell moves its row or column, as the Table panel's
+        // arrows do — the cell alone selected first, not its whole table.
+        if el.table != nil && !el.locked {
+            Button("Move row up") { inCell(el) { store.moveTableRow(by: -1) } }
+            Button("Move row down") { inCell(el) { store.moveTableRow(by: 1) } }
+            Button("Move column left") { inCell(el) { store.moveTableColumn(by: -1) } }
+            Button("Move column right") { inCell(el) { store.moveTableColumn(by: 1) } }
+        }
+    }
+
+    /// `action` done with table cell `el` alone selected.
+    private func inCell(_ el: Element, _ action: () -> Void) {
+        store.endTextEdit()
+        store.selection = [el.id]
+        action()
     }
 
     /// Where `id` is and how big, said: its VoiceOver value, as a resize or
@@ -2097,6 +2219,7 @@ struct CanvasView: View {
                                onWordFont: { store.chooseWordFont(id, range: $0) },
                                onWordLink: { store.chooseWordLink(id, range: $0) },
                                onLines: { store.changeLines(id, covering: $0, $1) },
+                               onNextCell: nextCell(el),
                                typing: typingHooks)
             .frame(width: el.w)
             .frame(width: el.w, height: el.h, alignment: sits)
@@ -2135,6 +2258,17 @@ struct CanvasView: View {
             .background(Color.clear.contentShape(Rectangle()).onTapGesture {})
             .rotationEffect(.degrees(el.rotation))
             .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
+    }
+
+    /// Tab, and the typing bar's arrow, in a table's cell: typing goes on in
+    /// the next cell (DesignStore.typeInNextCell) — once the key or the tap
+    /// is done with, as this field goes and the next cell's opens. Nil for
+    /// words that are no cell's.
+    private func nextCell(_ el: Element) -> ((Bool) -> Void)? {
+        guard el.table != nil else { return nil }
+        return { back in
+            DispatchQueue.main.async { _ = store.typeInNextCell(back: back) }
+        }
     }
 
     private func typeInline(_ id: String, _ words: String) {
@@ -2191,7 +2325,7 @@ struct CanvasView: View {
     /// headers only say which page is which.
     private var pagePinned: Bool {
         store.cropping != nil || store.editingTextId != nil || store.drawing != nil
-            || store.erasing != nil || store.previewTime != nil
+            || store.erasing != nil || store.brushing != nil || store.previewTime != nil
     }
 
     // MARK: the view

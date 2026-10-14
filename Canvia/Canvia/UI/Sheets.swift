@@ -819,6 +819,10 @@ struct FiltersSheet: View {
                 }
                 .padding(.vertical, 2)
             }
+            HStack(spacing: 10) {
+                brushButton(tr("Blur brush"), kind: .blur)
+                brushButton(tr("Pixelate brush"), kind: .pixelate)
+            }
             if blurred {
                 effectSlider(tr("Blur"), value: -sharpness, in: 0.01...1,
                              readout: "\(Int((-sharpness * 100).rounded()))") { v, el in
@@ -835,6 +839,21 @@ struct FiltersSheet: View {
             if let edge { edgeControls(edge) }
             if let fx = photo?.fx { fxControls(fx) }
         }
+    }
+
+    /// A blur or pixelate brushed onto part of the photo: the sheet goes and
+    /// the brush is taken up on the canvas (BrushMode.swift).
+    private func brushButton(_ name: String, kind: BrushSession.Kind) -> some View {
+        Button {
+            guard let id = store.singleSelection?.id else { return }
+            dismiss()
+            store.beginBrush(id, kind: kind)
+        } label: {
+            Label(name, systemImage: kind == .blur ? "drop" : "square.grid.3x3")
+                .font(.callout)
+        }
+        .buttonStyle(.bordered)
+        .disabled(store.singleSelection?.type != .image)
     }
 
     /// Glitch, slice, halftone or grain: one at a time, from one to another

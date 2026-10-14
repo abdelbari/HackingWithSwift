@@ -259,15 +259,24 @@ struct TableCell: Codable, Equatable, Hashable {
     var col: Int
     var rowSpan = 1
     var colSpan = 1
+    /// The table's cell spacing — each cell's words inset this far, in page
+    /// units — on every cell of it alike; nil is the inset a table is made
+    /// with (DataGraphics.tablePad times its type), and is not written.
+    var pad: Double?
+    /// The table's alternating rows' colour, "#rrggbb", on every cell of it
+    /// alike; nil is no alternating rows kept (DataGraphics.withTableBands).
+    var bands: String?
 
-    private enum CodingKeys: String, CodingKey { case id, row, col, rowSpan, colSpan }
+    private enum CodingKeys: String, CodingKey { case id, row, col, rowSpan, colSpan, pad, bands }
 
-    init(id: String, row: Int, col: Int, rowSpan: Int = 1, colSpan: Int = 1) {
+    init(id: String, row: Int, col: Int, rowSpan: Int = 1, colSpan: Int = 1, pad: Double? = nil, bands: String? = nil) {
         self.id = id
         self.row = row
         self.col = col
         self.rowSpan = max(1, rowSpan)
         self.colSpan = max(1, colSpan)
+        self.pad = pad
+        self.bands = bands
     }
 
     init(from decoder: Decoder) throws {
@@ -281,6 +290,10 @@ struct TableCell: Codable, Equatable, Hashable {
         self.col = col
         rowSpan = Self.span(c, .rowSpan)
         colSpan = Self.span(c, .colSpan)
+        // Read tolerantly: a spacing that is no number or below none, or a
+        // colour that is none, is no key.
+        pad = (try? c.decode(Double.self, forKey: .pad)).flatMap { $0.isFinite && $0 >= 0 ? $0 : nil }
+        bands = (try? c.decode(String.self, forKey: .bands)).flatMap { ColorTools.rgb255($0) != nil ? $0 : nil }
     }
 
     func encode(to encoder: Encoder) throws {
@@ -290,6 +303,8 @@ struct TableCell: Codable, Equatable, Hashable {
         try c.encode(col, forKey: .col)
         if rowSpan > 1 { try c.encode(rowSpan, forKey: .rowSpan) }
         if colSpan > 1 { try c.encode(colSpan, forKey: .colSpan) }
+        try c.encodeIfPresent(pad, forKey: .pad)
+        try c.encodeIfPresent(bands, forKey: .bands)
     }
 
     /// The rows the cell covers: its own, and those merged into it below.
@@ -554,6 +569,10 @@ struct Element: Codable, Equatable, Identifiable {
     /// for nonzero, which is never written. Kept as read otherwise, and any
     /// value but "evenodd" is drawn nonzero. Set by an imported SVG graphic.
     var fillRule: String?
+    /// The pen a drawn stroke was laid down with, where its look is more
+    /// than its ink, width and opacity say: "marker" (see Freehand.Pen);
+    /// nil for every other. A build without the marker draws it as ink.
+    var pen: String?
 
     // text
     var text: String?
@@ -657,6 +676,13 @@ struct Element: Codable, Equatable, Identifiable {
     /// Glitch, slice, halftone or grain on the photo's pixels (PhotoFx); nil
     /// is none, and no key in the file.
     var fx: PhotoFx?
+    /// Parts of the picture made clear, or brought back, with the Erase and
+    /// Restore brushes, and the picture before a Cut out (see MaskRaster);
+    /// nil is none, and no key in the file.
+    var mask: ImageMask?
+    /// Blur and pixelate brushed onto parts of the picture, in order (see
+    /// MaskRaster); nil is none, and no key in the file.
+    var retouch: [RetouchLayer]?
     /// For a clip ("video:" source): its trim, speed, loop and sound. Never a
     /// clip at all its defaults — that is nil, and no key in the file.
     var clip: ClipPlayback?
@@ -733,6 +759,7 @@ struct Element: Codable, Equatable, Identifiable {
         radius = try? c.decode(Double.self, forKey: .radius)
         corners = try? c.decode([Double].self, forKey: .corners)
         fillRule = (try? c.decode(String.self, forKey: .fillRule)).flatMap { $0 == "nonzero" ? nil : $0 }
+        pen = try? c.decode(String.self, forKey: .pen)
         text = try? c.decode(String.self, forKey: .text)
         fontFamily = try? c.decode(String.self, forKey: .fontFamily)
         fontSize = try? c.decode(Double.self, forKey: .fontSize)
@@ -791,6 +818,8 @@ struct Element: Codable, Equatable, Identifiable {
         focusBlur = try? c.decode(FocusBlur.self, forKey: .focusBlur)
         edge = try? c.decode(PhotoEdge.self, forKey: .edge)
         fx = try? c.decode(PhotoFx.self, forKey: .fx)
+        mask = ImageMask.kept(try? c.decode(ImageMask.self, forKey: .mask))
+        retouch = RetouchLayer.kept((try? c.decode([Lossy<RetouchLayer>].self, forKey: .retouch))?.compactMap(\.value))
         clip = (try? c.decode(ClipPlayback.self, forKey: .clip)).flatMap { $0.isDefault ? nil : $0 }
         // Read tolerantly, as the Android twin reads them: a colour that is
         // none, or a margin out of 0…4, is the default — and a default is no
@@ -829,13 +858,13 @@ struct Element: Codable, Equatable, Identifiable {
         case id, type, x, y, w, h, rotation, opacity, locked, lockPosition, flipH, flipV, group, shadow, blendMode, altText
         case decorative
         case connectFrom, connectTo, link, hidden, layerName, table, chart, chartPart, grid, photoFrame
-        case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners, fillRule
+        case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners, fillRule, pen
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
         case spans, spansText, paragraphs, paragraphsText
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns, timing
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit, clip
-        case filterStrength, pixelate, focusBlur, edge, fx
+        case filterStrength, pixelate, focusBlur, edge, fx, mask, retouch
         case qrColor, qrBackground, qrMargin
         case glyph
         case thickness, dash, startCap, endCap

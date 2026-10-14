@@ -4664,6 +4664,24 @@
     "ja": "代替テキスト",
     "pt-BR": "Texto alternativo"
   },
+  "Alternating row colour": {
+    "ar": "لون الصفوف المتناوبة",
+    "de": "Farbe der abwechselnden Zeilen",
+    "es": "Color de filas alternas",
+    "fr": "Couleur des lignes alternées",
+    "it": "Colore delle righe alternate",
+    "ja": "交互の行の色",
+    "pt-BR": "Cor das linhas alternadas"
+  },
+  "Alternating rows": {
+    "ar": "صفوف متناوبة",
+    "de": "Abwechselnde Zeilen",
+    "es": "Filas alternas",
+    "fr": "Lignes alternées",
+    "it": "Righe alternate",
+    "ja": "行の交互色",
+    "pt-BR": "Linhas alternadas"
+  },
   "Analogous": {
     "ar": "متجاورة",
     "de": "Analog",
@@ -5471,6 +5489,15 @@
     "ja": "ぼかし",
     "pt-BR": "Desfoque"
   },
+  "Blur brush": {
+    "ar": "فرشاة التمويه",
+    "de": "Weichzeichnerpinsel",
+    "es": "Pincel de desenfoque",
+    "fr": "Pinceau de flou",
+    "it": "Pennello sfocatura",
+    "ja": "ぼかしブラシ",
+    "pt-BR": "Pincel de desfoque"
+  },
   "Body": {
     "ar": "النص الأساسي",
     "de": "Fließtext",
@@ -6187,6 +6214,15 @@
     "it": "Colore cella",
     "ja": "セルの色",
     "pt-BR": "Cor da célula"
+  },
+  "Cell spacing": {
+    "ar": "تباعد الخلايا",
+    "de": "Zellenabstand",
+    "es": "Espaciado de celdas",
+    "fr": "Espacement des cellules",
+    "it": "Spaziatura celle",
+    "ja": "セルの余白",
+    "pt-BR": "Espaçamento das células"
   },
   "Center": {
     "ar": "توسيط",
@@ -8999,6 +9035,15 @@
     "ja": "テキスト素材をダブルタップすると、その場で編集できます。ツールバーには、フォント、サイズ、色、太字、斜体、下線、大文字（aA）、リスト、インデント、配置、エフェクト、間隔、カーブスライダーがあります。サイズをタップすると正確な値を入力するか、リストから選べます。複数のテキストを選択すると、フォント、サイズ、スタイル、配置、色をまとめて設定できます。",
     "pt-BR": "Toque duas vezes em um elemento de texto para editá-lo no lugar. A barra de ferramentas tem fonte, tamanho, cor, negrito, itálico, sublinhado, maiúsculas (aA), listas, recuos, alinhamento, efeitos, espaçamento e um controle de curva. Toque no tamanho para digitar um valor exato ou escolher de uma lista. Selecione vários textos para definir fonte, tamanho, estilo, alinhamento e cor de uma só vez."
   },
+  "Double-tap and hold to see the photo as it was": {
+    "ar": "انقر نقرًا مزدوجًا مع الاستمرار لرؤية الصورة كما كانت",
+    "de": "Doppeltippen und halten, um das Foto wie vorher zu sehen",
+    "es": "Toca dos veces y mantén pulsado para ver la foto como era",
+    "fr": "Touchez deux fois et maintenez pour voir la photo telle qu’elle était",
+    "it": "Tocca due volte e tieni premuto per vedere la foto com’era",
+    "ja": "ダブルタップして押したままにすると、元の写真が表示されます",
+    "pt-BR": "Toque duas vezes e segure para ver a foto como era"
+  },
   "Double-tap and hold to see the photo without its edits": {
     "ar": "انقر مرتين مع الاستمرار لرؤية الصورة دون تعديلاتها",
     "de": "Doppeltippen und halten, um das Foto ohne Bearbeitungen zu sehen",
@@ -9106,6 +9151,15 @@
     "it": "Trascina sui tratti per rimuoverli",
     "ja": "ストロークの上をドラッグすると消せます",
     "pt-BR": "Arraste sobre os traços para removê-los"
+  },
+  "Drag over the photo to paint, then tap Done": {
+    "ar": "اسحب فوق الصورة للطلاء، ثم انقر على تم",
+    "de": "Zum Malen über das Foto ziehen, dann auf Fertig tippen",
+    "es": "Arrastra sobre la foto para pintar y luego toca Listo",
+    "fr": "Faites glisser sur la photo pour peindre, puis touchez OK",
+    "it": "Trascina sulla foto per dipingere, poi tocca Fine",
+    "ja": "写真の上をドラッグして塗り、「完了」をタップします",
+    "pt-BR": "Arraste sobre a foto para pintar e toque em Concluído"
   },
   "Drag over what should go, then tap Erase": {
     "ar": "اسحب فوق ما يجب إزالته، ثم انقر على «مسح»",
@@ -9853,6 +9907,24 @@
     "it": "Cancella",
     "ja": "消去",
     "pt-BR": "Apagar"
+  },
+  "Erase and restore": {
+    "ar": "مسح واستعادة",
+    "de": "Radieren und wiederherstellen",
+    "es": "Borrar y restaurar",
+    "fr": "Effacer et restaurer",
+    "it": "Cancella e ripristina",
+    "ja": "消去と復元",
+    "pt-BR": "Apagar e restaurar"
+  },
+  "Erase from effect": {
+    "ar": "مسح من التأثير",
+    "de": "Effekt wegradieren",
+    "es": "Borrar del efecto",
+    "fr": "Effacer l’effet",
+    "it": "Cancella dall’effetto",
+    "ja": "効果を消す",
+    "pt-BR": "Apagar do efeito"
   },
   "Erase part": {
     "ar": "مسح جزء",
@@ -13301,6 +13373,15 @@
     "ja": "大きくする",
     "pt-BR": "Aumentar"
   },
+  "Make parts of the photo clear, and paint them back.": {
+    "ar": "اجعل أجزاء من الصورة شفافة، وأعد رسمها.",
+    "de": "Teile des Fotos durchsichtig machen und wieder einmalen.",
+    "es": "Haz transparentes partes de la foto y vuelve a pintarlas.",
+    "fr": "Rendez des parties de la photo transparentes, puis repeignez-les.",
+    "it": "Rendi trasparenti parti della foto e ridipingile.",
+    "ja": "写真の一部を透明にし、また塗り戻せます。",
+    "pt-BR": "Deixe partes da foto transparentes e pinte-as de volta."
+  },
   "Make smaller": {
     "ar": "تصغير",
     "de": "Verkleinern",
@@ -13441,6 +13522,15 @@
     "it": "Segna come decorativa",
     "ja": "装飾としてマーク",
     "pt-BR": "Marcar como decorativo"
+  },
+  "Marker": {
+    "ar": "قلم عريض",
+    "de": "Marker",
+    "es": "Rotulador",
+    "fr": "Marqueur",
+    "it": "Pennarello",
+    "ja": "マーカー",
+    "pt-BR": "Marcador"
   },
   "Marks": {
     "ar": "علامات",
@@ -13880,6 +13970,24 @@
     "ja": "%@ ずつ移動",
     "pt-BR": "Mover %@ por vez"
   },
+  "Move column left": {
+    "ar": "نقل العمود لليسار",
+    "de": "Spalte nach links",
+    "es": "Mover columna a la izquierda",
+    "fr": "Déplacer la colonne à gauche",
+    "it": "Sposta colonna a sinistra",
+    "ja": "列を左へ移動",
+    "pt-BR": "Mover coluna para a esquerda"
+  },
+  "Move column right": {
+    "ar": "نقل العمود لليمين",
+    "de": "Spalte nach rechts",
+    "es": "Mover columna a la derecha",
+    "fr": "Déplacer la colonne à droite",
+    "it": "Sposta colonna a destra",
+    "ja": "列を右へ移動",
+    "pt-BR": "Mover coluna para a direita"
+  },
   "Move down": {
     "ar": "تحريك لأسفل",
     "de": "Nach unten verschieben",
@@ -13960,6 +14068,24 @@
     "it": "Sposta a destra",
     "ja": "右へ移動",
     "pt-BR": "Mover para a direita"
+  },
+  "Move row down": {
+    "ar": "نقل الصف لأسفل",
+    "de": "Zeile nach unten",
+    "es": "Bajar fila",
+    "fr": "Descendre la ligne",
+    "it": "Sposta riga giù",
+    "ja": "行を下へ移動",
+    "pt-BR": "Mover linha para baixo"
+  },
+  "Move row up": {
+    "ar": "نقل الصف لأعلى",
+    "de": "Zeile nach oben",
+    "es": "Subir fila",
+    "fr": "Monter la ligne",
+    "it": "Sposta riga su",
+    "ja": "行を上へ移動",
+    "pt-BR": "Mover linha para cima"
   },
   "Move the picture down": {
     "ar": "تحريك الصورة لأسفل",
@@ -14443,6 +14569,15 @@
     "it": "Avanti",
     "ja": "次へ",
     "pt-BR": "Avançar"
+  },
+  "Next cell": {
+    "ar": "الخلية التالية",
+    "de": "Nächste Zelle",
+    "es": "Celda siguiente",
+    "fr": "Cellule suivante",
+    "it": "Cella successiva",
+    "ja": "次のセル",
+    "pt-BR": "Próxima célula"
   },
   "Next page": {
     "ar": "الصفحة التالية",
@@ -16871,6 +17006,15 @@
     "ja": "ピクセル化",
     "pt-BR": "Pixelizar"
   },
+  "Pixelate brush": {
+    "ar": "فرشاة البكسلة",
+    "de": "Verpixelungspinsel",
+    "es": "Pincel de pixelado",
+    "fr": "Pinceau de pixellisation",
+    "it": "Pennello pixel",
+    "ja": "モザイクブラシ",
+    "pt-BR": "Pincel de pixelização"
+  },
   "Pixels": {
     "ar": "بكسلات",
     "de": "Pixel",
@@ -17723,6 +17867,15 @@
     "ja": "すべてのガイドを削除",
     "pt-BR": "Remover todas as guias"
   },
+  "Remove an object": {
+    "ar": "إزالة عنصر",
+    "de": "Objekt entfernen",
+    "es": "Quitar un objeto",
+    "fr": "Supprimer un objet",
+    "it": "Rimuovi un oggetto",
+    "ja": "オブジェクトを消す",
+    "pt-BR": "Remover um objeto"
+  },
   "Remove background": {
     "ar": "إزالة الخلفية",
     "de": "Hintergrund entfernen",
@@ -18217,6 +18370,15 @@
     "it": "Ridimensiona…",
     "ja": "サイズを変更…",
     "pt-BR": "Redimensionar…"
+  },
+  "Rest your finger at the end of a stroke to make it a clean shape": {
+    "ar": "أبقِ إصبعك ثابتًا في نهاية الخط لتحويله إلى شكل نظيف",
+    "de": "Den Finger am Ende eines Strichs ruhen lassen, um daraus eine saubere Form zu machen",
+    "es": "Deja el dedo quieto al final de un trazo para convertirlo en una forma limpia",
+    "fr": "Laissez le doigt immobile à la fin d’un trait pour en faire une forme nette",
+    "it": "Tieni fermo il dito alla fine di un tratto per trasformarlo in una forma pulita",
+    "ja": "線の終わりで指を止めると、きれいな図形になります",
+    "pt-BR": "Deixe o dedo parado no fim de um traço para transformá-lo em uma forma limpa"
   },
   "Restore": {
     "ar": "استعادة",
@@ -19598,6 +19760,15 @@
     "ja": "図形",
     "pt-BR": "Forma"
   },
+  "Shape assist": {
+    "ar": "مساعد الأشكال",
+    "de": "Formhilfe",
+    "es": "Asistente de formas",
+    "fr": "Aide aux formes",
+    "it": "Assistente forme",
+    "ja": "図形アシスト",
+    "pt-BR": "Assistente de formas"
+  },
   "Shapes": {
     "ar": "الأشكال",
     "de": "Formen",
@@ -19948,6 +20119,15 @@
     "it": "Mostra note",
     "ja": "ノートを表示",
     "pt-BR": "Mostrar anotações"
+  },
+  "Show original": {
+    "ar": "عرض الأصل",
+    "de": "Original zeigen",
+    "es": "Mostrar original",
+    "fr": "Afficher l’original",
+    "it": "Mostra originale",
+    "ja": "元の画像を表示",
+    "pt-BR": "Mostrar original"
   },
   "Show page": {
     "ar": "إظهار الصفحة",
@@ -20404,6 +20584,15 @@
     "it": "Luce soffusa",
     "ja": "ソフトライト",
     "pt-BR": "Luz suave"
+  },
+  "Softness": {
+    "ar": "النعومة",
+    "de": "Weichheit",
+    "es": "Suavidad",
+    "fr": "Douceur",
+    "it": "Morbidezza",
+    "ja": "ぼかし幅",
+    "pt-BR": "Suavidade"
   },
   "Solar": {
     "ar": "شمسي",
@@ -21058,6 +21247,15 @@
     "it": "Strada",
     "ja": "ストリート",
     "pt-BR": "Rua"
+  },
+  "Strength": {
+    "ar": "القوة",
+    "de": "Stärke",
+    "es": "Intensidad",
+    "fr": "Intensité",
+    "it": "Intensità",
+    "ja": "強さ",
+    "pt-BR": "Intensidade"
   },
   "Strikethrough": {
     "ar": "يتوسطه خط",
@@ -22511,6 +22709,15 @@
     "ja": "この写真はロックされています。置き換えるには「その他」からロックを解除してください。",
     "pt-BR": "Esta foto está bloqueada. Desbloqueie-a em Mais para substituí-la."
   },
+  "This picture can't be brushed.": {
+    "ar": "لا يمكن استخدام الفرشاة على هذه الصورة.",
+    "de": "Dieses Bild kann nicht mit dem Pinsel bearbeitet werden.",
+    "es": "Esta imagen no se puede pintar con pincel.",
+    "fr": "Cette image ne peut pas être retouchée au pinceau.",
+    "it": "Questa immagine non si può ritoccare col pennello.",
+    "ja": "この画像にはブラシを使えません。",
+    "pt-BR": "Esta imagem não pode ser pintada com pincel."
+  },
   "This song isn't on this phone: it was chosen on another one. It plays there.": {
     "ar": "هذه الأغنية ليست على هذا الهاتف: اختيرت على هاتف آخر. وتُشغَّل هناك.",
     "de": "Dieser Song ist nicht auf diesem Telefon: Er wurde auf einem anderen gewählt. Dort wird er abgespielt.",
@@ -23302,6 +23509,24 @@
     "it": "Dividi celle",
     "ja": "結合を解除",
     "pt-BR": "Separar células"
+  },
+  "Unmerge first to move this column": {
+    "ar": "ألغِ الدمج أولًا لنقل هذا العمود",
+    "de": "Zuerst die Verbindung aufheben, um diese Spalte zu verschieben",
+    "es": "Separa las celdas primero para mover esta columna",
+    "fr": "Annulez d’abord la fusion pour déplacer cette colonne",
+    "it": "Dividi prima le celle per spostare questa colonna",
+    "ja": "この列を移動するには、先に結合を解除してください",
+    "pt-BR": "Desfaça a mesclagem primeiro para mover esta coluna"
+  },
+  "Unmerge first to move this row": {
+    "ar": "ألغِ الدمج أولًا لنقل هذا الصف",
+    "de": "Zuerst die Verbindung aufheben, um diese Zeile zu verschieben",
+    "es": "Separa las celdas primero para mover esta fila",
+    "fr": "Annulez d’abord la fusion pour déplacer cette ligne",
+    "it": "Dividi prima le celle per spostare questa riga",
+    "ja": "この行を移動するには、先に結合を解除してください",
+    "pt-BR": "Desfaça a mesclagem primeiro para mover esta linha"
   },
   "Unpin": {
     "ar": "إلغاء التثبيت",

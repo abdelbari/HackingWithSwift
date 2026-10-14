@@ -228,7 +228,11 @@ struct ShapeElementView: View {
                 shape.fill(Color(hex: fill.color ?? "#8b5cf6"), style: rule)
             }
             if let stroke = element.stroke, let sw = element.strokeWidth, sw > 0 {
-                shape.stroke(Color(hex: stroke), style: .border(element.dash, width: sw))
+                if Freehand.isMarker(element) {
+                    MarkerInk(element: element, shape: shape, ink: stroke, width: sw)
+                } else {
+                    shape.stroke(Color(hex: stroke), style: .border(element.dash, width: sw))
+                }
             }
             // Its words, over the fill and the border, set in its text-safe
             // box as a text box sets them. Turned back where the shape is
@@ -240,6 +244,37 @@ struct ShapeElementView: View {
                     .position(x: box.midX, y: box.midY)
             }
         }
+    }
+}
+
+/// A marker's stroke: round at its ends, in pieces each twice its width
+/// along it, each a little thinner or not by its share of the stroke's
+/// texture (Freehand.markerAlphas, seeded from its own path, so it is the
+/// same every time it is drawn) — laid over the last in a layer of their
+/// own, each replacing what is under it, so the round ends where they meet
+/// do not darken. The Android twin draws it the same way.
+struct MarkerInk: View {
+    let element: Element
+    let shape: LibraryShape
+    let ink: String
+    let width: Double
+
+    var body: some View {
+        Canvas { context, size in
+            let colour = Color(hex: ink)
+            let line = shape.path(in: CGRect(origin: .zero, size: size))
+            let count = Freehand.markerPieceCount(length: Freehand.markerLength(element, size: size), width: width)
+            let alphas = Freehand.markerAlphas(count: count, seed: Freehand.markerSeed(element.pathData ?? ""))
+            let style = StrokeStyle(lineWidth: width, lineCap: .round, lineJoin: .round)
+            context.drawLayer { layer in
+                layer.blendMode = .copy
+                for i in 0..<count {
+                    let piece = line.trimmedPath(from: CGFloat(i) / CGFloat(count), to: CGFloat(i + 1) / CGFloat(count))
+                    layer.stroke(piece, with: .color(colour.opacity(alphas[i])), style: style)
+                }
+            }
+        }
+        .frame(width: element.w, height: element.h)
     }
 }
 

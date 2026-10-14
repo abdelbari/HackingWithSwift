@@ -55,6 +55,7 @@ extension DesignStore {
         }
         drawing = nil
         cancelErasing()
+        finishBrush()
         stopPreview()
         endTextEdit()
         // Whatever was under way is its own step, not the start of the crop.
@@ -74,8 +75,11 @@ extension DesignStore {
         return true
     }
 
-    /// Keeps the crop, as one step — or as none, if nothing changed.
+    /// Keeps the crop, as one step — or as none, if nothing changed. Every
+    /// way out that keeps a crop keeps a brush's strokes too, as its own
+    /// step (finishBrush).
     func finishCrop() {
+        finishBrush()
         guard cropping != nil else { return }
         cropping = nil
         badge = nil

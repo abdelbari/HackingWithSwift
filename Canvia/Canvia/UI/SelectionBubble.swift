@@ -42,7 +42,7 @@ struct SelectionBubble: View {
     private var shown: Bool {
         on && !store.selection.isEmpty && !store.canvasTouchActive && !store.canvasMoving
             && store.cropping == nil && store.editingTextId == nil && store.drawing == nil
-            && store.erasing == nil && !store.selectingMultiple && store.previewTime == nil
+            && store.erasing == nil && store.brushing == nil && !store.selectingMultiple && store.previewTime == nil
             && store.holdMenuAt == nil
     }
 
