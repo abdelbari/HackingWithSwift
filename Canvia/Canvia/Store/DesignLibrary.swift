@@ -293,10 +293,13 @@ enum DesignLibrary {
 
     /// Whether everything on the shelf is one of the samples seeded at the
     /// first launch — or nothing is: Home then offers "Start from a photo".
-    /// A sample is known by the name it was given, "Sample: <template>".
-    static func onlySamples(_ designs: [RecentDesign], templates: [Template] = ContentLibrary.templates) -> Bool {
-        let samples = Set(templates.prefix(2).map { tr("Sample: %@", $0.name) })
-        return designs.allSatisfy { samples.contains($0.title) }
+    /// The simplest rule, by title, as the Android twin's Shelf.onlySamples:
+    /// a sample's starts "Sample: ", a copy of one's too, and a sample
+    /// renamed is a design of your own.
+    static func onlySamples(_ designs: [RecentDesign]) -> Bool {
+        let marked = tr("Sample: %@", "\u{1}")
+        let prefix = marked.components(separatedBy: "\u{1}").first ?? marked
+        return designs.allSatisfy { $0.title.hasPrefix(prefix) }
     }
 
     // MARK: version history

@@ -75,7 +75,9 @@ enum HomeExports {
     }
 
     /// Part `index` of `total`: the design read when its turn comes, then
-    /// made as `format`, reporting the whole batch's progress.
+    /// made as `format`, reporting the whole batch's progress — from the
+    /// part's start to its end, whatever it is made as, so the pill reads
+    /// "Exporting 2 of 5 designs 40%" as the second ends, as on Android.
     @MainActor
     static func designWork(id: String, format: Format, settings: ExportLast, batch: UUID,
                            index: Int, total: Int) -> ExportQueue.Work {
@@ -83,6 +85,7 @@ enum HomeExports {
             let part: @Sendable (Double) -> Void = { fraction in
                 report(overall(fraction, index: index, total: total))
             }
+            part(0)
             let design = try await load(id)
             let made = Self.snapshot(design)
             let render: ExportQueue.Work
@@ -98,6 +101,7 @@ enum HomeExports {
             }
             var result = try await render(part)
             result.urls = setApart(result.urls, batch: batch, index: index)
+            part(1)
             return result
         }
     }

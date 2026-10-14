@@ -1,12 +1,15 @@
 // Share… and Present from a design's card on Home (HomeExports): the Export
 // sheet over Home for the design as saved, with no editor behind it; and
-// Present from its first page.
+// Present from its first page. Home only reads the design: Loop turned on or
+// off there lasts for that presentation and is not saved, as the Android twin's.
 
 import SwiftUI
 
 struct HomeSharing: ViewModifier {
     @Binding var exporting: Design?
     @Binding var presenting: Design?
+    /// Either asked for on a design whose file does not read.
+    @Binding var unopened: Bool
 
     func body(content: Content) -> some View {
         content
@@ -14,17 +17,11 @@ struct HomeSharing: ViewModifier {
                 HomeExportSheet(design: design)
             }
             .fullScreenCover(item: $presenting) { design in
-                PresentationView(design: design, startPage: 0) { on in Self.keepLoop(on, of: design.id) }
+                PresentationView(design: design, startPage: 0)
             }
-    }
-
-    /// Loop turned on or off in Present, kept with the design, as the
-    /// editor keeps it.
-    private static func keepLoop(_ on: Bool, of id: String) {
-        guard var design = DesignLibrary.load(id: id), design.presentLoops != on else { return }
-        design.presentLoops = on
-        design.updatedAt = Date().timeIntervalSince1970 * 1000
-        DesignLibrary.save(design)
+            .alert("That design can't be opened", isPresented: $unopened) {
+                Button("OK", role: .cancel) {}
+            }
     }
 }
 

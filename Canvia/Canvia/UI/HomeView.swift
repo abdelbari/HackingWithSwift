@@ -129,6 +129,8 @@ struct HomeView: View {
     @State private var exporting: Design?
     /// The design presented from its card.
     @State private var presenting: Design?
+    /// Share… or Present on a design whose file does not read, said.
+    @State private var unopened = false
     /// Select's Share, asking what as.
     @State private var sharingPicked = false
     /// The last export's settings, which sharing from Home uses.
@@ -158,7 +160,7 @@ struct HomeView: View {
             // A deck as a new design, then the sheet that says what came in.
             .background { deckPicker }
             .background { designFilePicker }
-            .modifier(HomeSharing(exporting: $exporting, presenting: $presenting))
+            .modifier(HomeSharing(exporting: $exporting, presenting: $presenting, unopened: $unopened))
             .importPickers(media: $pickingMedia, pdf: $pickingPDF, onLanded: onImport) { importError = $0 }
             .powerPointImport($deckURLs, onOpen: onOpen)
             .onReceive(NotificationCenter.default.publisher(for: PowerPoints.didImport)) { _ in reload() }
@@ -1210,18 +1212,31 @@ struct HomeView: View {
     @ViewBuilder
     private func shareItems(_ recent: RecentDesign) -> some View {
         Button {
-            exporting = DesignLibrary.load(id: recent.id)
+            withDesign(recent.id) { exporting = $0 }
         } label: { Label("Share…", systemImage: "square.and.arrow.up") }
         Button {
             HomeExports.sendCopy(recent.id, queue: ExportQueue.shared)
         } label: { Label("Send a copy", systemImage: "paperplane") }
         Button {
-            presenting = DesignLibrary.load(id: recent.id)
+            withDesign(recent.id) { presenting = $0 }
         } label: { Label("Present", systemImage: "play.rectangle") }
         if UIPrintInteractionController.isPrintingAvailable {
             Button {
                 HomeExports.printDesign(recent.id, queue: ExportQueue.shared)
             } label: { Label("Print…", systemImage: "printer") }
+        }
+    }
+
+    /// Design `id` read from its file off the main thread, then `use`d;
+    /// "That design can't be opened" when it does not read, as the Android
+    /// twin's withDesign says.
+    private func withDesign(_ id: String, _ use: @escaping (Design) -> Void) {
+        Task { @MainActor in
+            guard let design = try? await HomeExports.load(id) else {
+                unopened = true
+                return
+            }
+            use(design)
         }
     }
 

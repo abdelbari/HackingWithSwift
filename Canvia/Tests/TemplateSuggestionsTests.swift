@@ -130,6 +130,9 @@ final class TemplateSuggestionsTests: XCTestCase {
             XCTAssertEqual(item.design.height, poster.h)
             XCTAssertEqual(item.design.unit, "mm")
             XCTAssertEqual(item.design.title, item.template.name)
+            // As any template's start: named by its headline, in no folder.
+            XCTAssertTrue(item.design.titleAuto)
+            XCTAssertNil(item.design.folder)
             XCTAssertEqual(item.design.pages.count, item.template.pageCount)
             XCTAssertFalse(Templates.isOwn(item.template, of: poster))
         }

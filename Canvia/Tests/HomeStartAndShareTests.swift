@@ -17,18 +17,20 @@ final class HomeStartAndShareTests: XCTestCase {
                        ["Photo or video…", "PDF…", "PowerPoint…", "Canvia design file…"])
     }
 
-    /// A shelf of only the two samples — or nothing — offers "Start from a
-    /// photo"; one design of your own and it goes.
+    /// A shelf of only the samples — or nothing — offers "Start from a
+    /// photo"; one design of your own and it goes. The Android twin's
+    /// ShelfTest holds the same rows.
     func testThePhotoStartShowsWhileOnlyTheSamplesAreThere() {
-        let templates = Array(ContentLibrary.templates.prefix(2))
-        func recent(_ title: String) -> RecentDesign {
-            RecentDesign(id: UID.make("doc"), title: title, width: 100, height: 100, pages: 1, updatedAt: 0)
+        func shelf(_ titles: [String]) -> [RecentDesign] {
+            titles.map { RecentDesign(id: UID.make("doc"), title: $0, width: 100, height: 100, pages: 1, updatedAt: 0) }
         }
-        let samples = templates.map { recent(tr("Sample: %@", $0.name)) }
-        XCTAssertTrue(DesignLibrary.onlySamples([], templates: templates))
-        XCTAssertTrue(DesignLibrary.onlySamples(samples, templates: templates))
-        XCTAssertTrue(DesignLibrary.onlySamples([samples[0]], templates: templates))
-        XCTAssertFalse(DesignLibrary.onlySamples(samples + [recent("Poster")], templates: templates))
+        XCTAssertEqual(tr("Sample: %@", "Mega Sale"), "Sample: Mega Sale")
+        XCTAssertTrue(DesignLibrary.onlySamples([]))
+        XCTAssertTrue(DesignLibrary.onlySamples(shelf(["Sample: Mega Sale", "Sample: Event Story"])))
+        XCTAssertFalse(DesignLibrary.onlySamples(shelf(["Sample: Mega Sale", "Poster"])))
+        // A copy of a sample is still a sample; one renamed is your own.
+        XCTAssertTrue(DesignLibrary.onlySamples(shelf(["Sample: Mega Sale", "Sample: Mega Sale copy"])))
+        XCTAssertFalse(DesignLibrary.onlySamples(shelf(["Mega Sale"])))
     }
 
     // MARK: sharing several designs

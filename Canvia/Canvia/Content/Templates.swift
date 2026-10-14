@@ -99,7 +99,8 @@ enum Templates {
 
     /// A template of another size, as a design of the type would start
     /// from it: every page reflowed to the type's size by Copy & resize's
-    /// rule, in the type's unit, under the template's name.
+    /// rule, in the type's unit, under the template's name — and, as any
+    /// template's start, named by its headline and in no folder.
     struct Adapted: Identifiable {
         let template: Template
         let design: Design
@@ -107,7 +108,10 @@ enum Templates {
     }
 
     static func adapted(_ template: Template, to preset: SizePreset) -> Design {
-        CopyResize.copy(of: template.instantiate(), to: .preset(preset), title: template.name)
+        var copy = CopyResize.copy(of: template.instantiate(), to: .preset(preset), title: template.name)
+        copy.titleAuto = true
+        copy.folder = nil
+        return copy
     }
 
     /// nearbyTemplates, each made at the type's size.
