@@ -16,6 +16,13 @@ struct CanviaApp: App {
     @State private var openingFile = false
     /// A quick action or Siri asked for a design that has since gone.
     @State private var designMissing = false
+    /// Photos, videos, PDFs or SVGs opened in Canvia, landed in the inbox,
+    /// while the "New design from shared" sheet is up.
+    @State private var sharedBox: SharedInbox.Box?
+    /// Files opened in Canvia together arrive one at a time; they are
+    /// gathered for a moment, then landed as one share.
+    @State private var arriving: [URL] = []
+    @State private var arrivingTask: Task<Void, Never>?
     @Environment(\.scenePhase) private var scenePhase
     /// Settings' Appearance: System, Light or Dark.
     @AppStorage(Appearance.key) private var appearance = Appearance.system.rawValue
@@ -65,6 +72,27 @@ struct CanviaApp: App {
                 withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
             } catch {
                 openError = error.localizedDescription
+            }
+        }
+    }
+
+    /// A photo, video, PDF or SVG handed to the app, gathered with any that
+    /// come with it, copied into the inbox and offered as a new design
+    /// (SharedInbox). The copies handed over go once landed.
+    private func receiveShared(_ url: URL) {
+        arriving.append(url)
+        arrivingTask?.cancel()
+        arrivingTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(400))
+            guard !Task.isCancelled else { return }
+            let urls = arriving
+            arriving = []
+            let box = await Task.detached(priority: .userInitiated) { SharedInbox.land(urls) }.value
+            for url in urls { DesignPackage.discardInboxCopy(url) }
+            if let box {
+                sharedBox = box
+            } else {
+                openError = SharedInbox.failureText(failed: urls.count, total: urls.count)
             }
         }
     }
@@ -182,7 +210,11 @@ struct CanviaApp: App {
             }
             // A design file tapped in Files, opened from Mail or shared from
             // another app — at launch or while the app is open, once each.
-            .onOpenURL { url in openDesignFile(url) }
+            // A photo, video, PDF or SVG opened in Canvia becomes a design.
+            .onOpenURL { url in
+                if SharedInbox.kind(of: url) != nil { receiveShared(url) } else { openDesignFile(url) }
+            }
+            .sharedDesignSheet($sharedBox, editing: $editingStore, failure: $openError)
             .overlay { if openingFile { OpeningDesignCard() } }
             .preferredColorScheme(Appearance.scheme(appearance))
             .alert("Couldn't open that file", isPresented: Binding(

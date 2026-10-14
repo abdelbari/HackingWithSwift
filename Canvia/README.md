@@ -280,6 +280,19 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   in id order, and only as MP4, M4V, MOV or 3GP; any other clip travels
   as its first frame — the same choice the Android twin makes, so the
   same design packs the same on either phone.
+- Edit in Canvia: photos (animated GIF and WebP included), videos, PDFs
+  and SVGs opened in Canvia from Photos, Files or another app ("Open
+  in") land in inbox/<uuid>/ in Application Support with the manifest.json the
+  Android twin writes, and a "New design from shared" sheet offers "Fit
+  to the photo" (its pixel size, 4000 px at most on the long edge), the
+  four design types nearest its shape, or "Add to an open design…". Each
+  photo or clip goes on a page of its own and among your uploads, a PDF
+  a page for each of its pages; what will not open is skipped and said
+  ("Couldn't open 1 of 3 items"), and the inbox folder goes once they
+  are in. One difference from the Android twin: there it is the share
+  sheet; here it is the document types the app declares, since a Share
+  Extension would be a target of its own. Files opened together are
+  gathered into one share, up to 20.
 - A contrast check across the document: every text against what is
   actually behind it (the topmost flat shape under it, or the page),
   WCAG AA thresholds by text size, and a one-tap fix to a colour that

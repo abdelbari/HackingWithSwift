@@ -8,6 +8,11 @@
 	the Android twin does. A copy is handed over (not opened in place), and
 	the app deletes it once it has been read in.
 
+	Photos, videos, PDFs and SVGs open in Canvia the same way ("Open in"),
+	and become a new design or pages of one (SharedInbox). The Android twin
+	takes them from the share sheet; a Share Extension, its own target,
+	would do that here.
+
 	The scene manifest is kept here, not generated, so that it can name a
 	configuration for a screen attached by HDMI, USB-C or AirPlay: Present
 	shows the slides there, and the presenter's console on the phone.
@@ -26,6 +31,21 @@
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>public.json</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Photo, video or PDF</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.image</string>
+				<string>public.svg-image</string>
+				<string>public.movie</string>
+				<string>com.adobe.pdf</string>
 			</array>
 		</dict>
 	</array>
