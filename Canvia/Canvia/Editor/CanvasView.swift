@@ -422,8 +422,8 @@ struct CanvasView: View {
                              moveEnded(from: start, to: at)
                          },
                          onBodyTap: { at, count in bodyTap(at: at, count: count) },
-                         onBodyPressing: pressed,
-                         onBodyHold: { if let at = pagePress { bodyHold(at: at) } })
+                         onBodyHold: { if let at = pagePress { bodyHold(at: at) } },
+                         onBodyPressing: pressed)
     }
 
     // MARK: move
@@ -847,7 +847,8 @@ struct CanvasView: View {
                 edges.stop()
                 // Let go without having drawn a band, the hold was a still
                 // one: the menu at the finger (CanvasGestures).
-                let drawn = gesture.marquee.map { max($0.width, $0.height) * store.zoom } ?? 0
+                var drawn = 0.0
+                if let band = gesture.marquee { drawn = Double(max(band.width, band.height)) * store.zoom }
                 let held = gesture.banding
                 gesture.marquee = nil
                 gesture.banding = false

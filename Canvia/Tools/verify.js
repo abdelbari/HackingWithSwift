@@ -21,6 +21,8 @@
 //   9. no file-scope `private` declaration is referenced from another file
 //  10. no subclass of a system class declares a property under a name the
 //      superclass already uses for one (including Objective-C getter names)
+//  11. a struct built through its memberwise initialiser gets its arguments
+//      in the order the properties are declared
 //
 // It does NOT type-check. A clean run means the syntax and the project's
 // internal API surface are consistent; it cannot prove the app builds.
@@ -58,7 +60,7 @@ const rel = f => path.relative(process.cwd(), f);
 let FAILURES = 0;
 
 // ---------------------------------------------------------------- 1. parse
-console.log('\n[1/10] parsing');
+console.log('\n[1/11] parsing');
 for (const f of FILES) {
   const tree = parse(fs.readFileSync(f, 'utf8'));
   const problems = [];
@@ -71,7 +73,7 @@ for (const f of FILES) {
 console.log(`      ${FILES.length} files`);
 
 // ------------------------------------------------- 2. argument labels
-console.log('[2/10] argument labels');
+console.log('[2/11] argument labels');
 const decls = new Map(), ourTypes = new Set();
 for (const f of FILES) {
   const tree = parse(fs.readFileSync(f, 'utf8'));
@@ -172,7 +174,7 @@ for (const f of FILES) {
 console.log(`      ${calls} internal calls`);
 
 // --------------------------------------- 3 & 4. enum cases + exhaustiveness
-console.log('[3/10] enum-case arguments');
+console.log('[3/11] enum-case arguments');
 const enums = new Map();
 for (const f of FILES) {
   const tree = parse(fs.readFileSync(f, 'utf8'));
@@ -234,7 +236,7 @@ for (const f of FILES) {
 }
 console.log(`      ${caseArgs} enum-case arguments`);
 
-console.log('[4/10] switch exhaustiveness');
+console.log('[4/11] switch exhaustiveness');
 let switches = 0;
 for (const f of FILES) {
   const tree = parse(fs.readFileSync(f, 'utf8'));
@@ -265,7 +267,7 @@ console.log(`      ${switches} switches over project enums`);
 // ------------------------------------------- 5. ViewBuilder child limits
 // A ViewBuilder block accepts at most ten child views; exceeding it fails
 // with an opaque type-inference error rather than a clear diagnostic.
-console.log('[5/10] ViewBuilder child counts');
+console.log('[5/11] ViewBuilder child counts');
 const CONTAINERS = new Set(['HStack','VStack','ZStack','Group','Form','List','Section','Menu',
   'ScrollView','NavigationStack','LazyVStack','LazyHStack','LazyVGrid','LazyHGrid','ToolbarItemGroup']);
 const countViews = stmts => stmts.namedChildren.filter(c =>
@@ -307,7 +309,7 @@ console.log(`      ${builders} ViewBuilder blocks`);
 // list expects 1 argument, which cannot be implicitly ignored") — and usually
 // signals a predicate that forgot to look at the element. A shorthand closure
 // passed to one of these methods must reference the arguments it is given.
-console.log('[6/10] closure arguments');
+console.log('[6/11] closure arguments');
 const HOF = new Map([
   ['filter', 1], ['map', 1], ['compactMap', 1], ['flatMap', 1], ['forEach', 1],
   ['first', 1], ['firstIndex', 1], ['last', 1], ['lastIndex', 1],
@@ -375,7 +377,7 @@ console.log(`      ${closures} shorthand closures`);
 // grammar makes it cheap to catch here: a parameter carries `inout` as a
 // modifier node, which a closure-typed parameter such as `(inout Design) ->
 // Void` does not.
-console.log('[7/10] inout arguments');
+console.log('[7/11] inout arguments');
 const requiredAmps = new Map();
 for (const [name, ds] of decls) {
   // The minimum across overloads: if any declaration of this name takes no
@@ -425,7 +427,7 @@ console.log(`      ${inoutCalls} calls to ${requiredAmps.size} inout function(s)
 // counts as main-actor only if EVERY declaration of it is, and only direct
 // calls in a function's own body are examined — a call inside a closure may
 // well be inside a `Task { @MainActor in ... }`.
-console.log('[8/10] main-actor isolation');
+console.log('[8/11] main-actor isolation');
 const MAIN_ACTOR_PROTOCOLS = new Set([
   'View', 'App', 'Scene', 'Shape', 'ViewModifier', 'ButtonStyle', 'PrimitiveButtonStyle',
   'UIViewRepresentable', 'UIViewControllerRepresentable', 'InsettableShape',
@@ -542,7 +544,7 @@ console.log(`      ${isolationChecks} non-isolated functions, ${mainActorOnly.si
 // ------------------------------------------------ 9. file-scope private use
 // `private` at file scope means this file only, which is easy to forget when
 // a file is split in two — the symbol is still right there in the editor.
-console.log('[9/10] file-scope private');
+console.log('[9/11] file-scope private');
 const privateAtFileScope = new Map();   // name -> file that declares it
 const declaredAnywhere = new Map();     // file -> Set of names it declares
 for (const f of FILES) {
@@ -612,7 +614,7 @@ console.log(`      ${privateAtFileScope.size} file-scope private names, ${privat
 // this easy to miss: UndoManager's `isUndoing` is also `undoing` to the
 // compiler, so `var undoing: () -> Void` fails to build. A short table of the
 // classes the app subclasses, with the names they reserve.
-console.log('[10/10] inherited system names');
+console.log('[10/11] inherited system names');
 const RESERVED = {
   UndoManager: ['undoing', 'redoing', 'isUndoing', 'isRedoing', 'canUndo', 'canRedo',
     'groupingLevel', 'levelsOfUndo', 'undoActionName', 'redoActionName',
@@ -655,6 +657,63 @@ for (const f of FILES) {
   });
 }
 console.log(`      ${inherited} clash(es) with inherited names`);
+
+// ------------------------------------ 11. memberwise initialiser order
+// A struct with no init of its own is built with one argument per stored
+// property, in declaration order, and arguments out of that order are a
+// hard error ("argument 'b' must precede argument 'a'"). Labels that are
+// not stored properties are left alone: some other initialiser may be
+// meant.
+console.log('[11/11] memberwise argument order');
+const structs = new Map();   // name -> stored property names, or null if ambiguous
+for (const f of FILES) {
+  const tree = parse(fs.readFileSync(f, 'utf8'));
+  each(tree.rootNode, n => {
+    if (n.type !== 'class_declaration') return;
+    if (!n.children.some(c => c.type === 'struct')) return;
+    const id = n.namedChildren.find(c => c.type === 'type_identifier');
+    const body = n.namedChildren.find(c => c.type === 'class_body');
+    if (!id || !body) return;
+    if (structs.has(id.text)) { structs.set(id.text, null); return; }
+    if (body.namedChildren.some(c => c.type === 'init_declaration')) { structs.set(id.text, null); return; }
+    const stored = [];
+    for (const m of body.namedChildren) {
+      if (m.type !== 'property_declaration') continue;
+      const mods = m.namedChildren.find(c => c.type === 'modifiers');
+      if (mods && /\b(static|class|lazy)\b/.test(mods.text)) continue;
+      if (m.childForFieldName('computed_value')) continue;
+      const binding = m.namedChildren.find(c => c.type === 'value_binding_pattern');
+      if (binding && binding.text === 'let' && m.childForFieldName('value')) continue;
+      const pattern = m.namedChildren.find(c => c.type === 'pattern');
+      const pid = pattern && pattern.namedChildren.find(c => c.type === 'simple_identifier');
+      if (pid) stored.push(pid.text);
+    }
+    structs.set(id.text, stored);
+  });
+}
+let orderCalls = 0;
+for (const f of FILES) {
+  const tree = parse(fs.readFileSync(f, 'utf8'));
+  each(tree.rootNode, n => {
+    if (n.type !== 'call_expression') return;
+    const callee = n.namedChild(0), suffix = n.namedChildren.find(c => c.type === 'call_suffix');
+    if (!callee || !suffix || callee.type !== 'simple_identifier') return;
+    const stored = structs.get(callee.text);
+    if (!stored) return;
+    const given = argLabels(suffix).filter(l => l !== '_TRAILING_' && l !== '_');
+    const at = given.map(l => stored.indexOf(l));
+    if (at.some(i => i < 0)) return;
+    orderCalls++;
+    for (let i = 1; i < at.length; i++) {
+      if (at[i] > at[i - 1]) continue;
+      FAILURES++;
+      console.log(`  FAIL ${rel(f)}:${n.startPosition.row + 1}  ${callee.text}(...): argument `
+        + `'${given[i]}' must precede argument '${given[i - 1]}'`);
+      break;
+    }
+  });
+}
+console.log(`      ${orderCalls} memberwise calls`);
 
 console.log(FAILURES === 0 ? '\nOK — no static problems found\n' : `\n${FAILURES} PROBLEM(S)\n`);
 process.exit(FAILURES === 0 ? 0 : 1);
