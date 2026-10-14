@@ -149,4 +149,36 @@ final class TextOutlinerTests: XCTestCase {
             XCTAssertLessThanOrEqual(decimals, 2, "coordinate \(token) kept too many decimals")
         }
     }
+
+    /// A curved box's outlines are made once (TextOutliner.outline): drawn
+    /// again unchanged — or moved, turned, faded or animated — the very same
+    /// outlines come back, and nothing is made; other words, another size
+    /// or another effect make new ones, and so does a font of your own
+    /// arriving or going.
+    func testOutlinesAreKeptByWhatShapesThem() throws {
+        var el = text("Round and round", w: 400, size: 40)
+        el.curve = 90
+        el.effect = TextEffectSpec(type: "splice")
+        let first = try XCTUnwrap(TextOutliner.path(for: el))
+        XCTAssertTrue(first === TextOutliner.path(for: el), "the second draw makes no outlines")
+        XCTAssertTrue(first === TextOutliner.inkedPaths(for: el)?.whole)
+        var moved = el
+        moved.x = 300
+        moved.y = -40
+        moved.rotation = 30
+        moved.opacity = 0.5
+        moved.animation = ElementAnimation(kind: "fade", delay: 0, duration: 0.6)
+        XCTAssertTrue(first === TextOutliner.path(for: moved), "moving or turning a box keeps its outlines")
+        var worded = el
+        worded.text = "Round and round we go"
+        XCTAssertFalse(first === TextOutliner.path(for: worded))
+        var sized = el
+        sized.fontSize = 48
+        XCTAssertFalse(first === TextOutliner.path(for: sized))
+        var effected = el
+        effected.effect = TextEffectSpec(type: "echo")
+        XCTAssertFalse(first === TextOutliner.path(for: effected))
+        FontLibrary.fontsChanged()
+        XCTAssertFalse(first === TextOutliner.path(for: el), "a font of your own arriving makes them again")
+    }
 }

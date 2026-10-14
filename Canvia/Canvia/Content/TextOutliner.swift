@@ -30,15 +30,112 @@ enum TextOutliner {
     static let straightBelowDegrees = 1.0
 
     static func path(for el: Element) -> CGPath? {
-        ink(for: el)?.joined
+        outline(of: el)?.whole
     }
 
     /// The same glyphs, whole and apart by the colour each word is set in
     /// (see Spans): nil for the element's own, which comes first when it is
     /// there. One part, in nil, when no word has a colour of its own.
     static func inkedPaths(for el: Element) -> (whole: CGPath, parts: [InkedPath])? {
-        guard let ink = ink(for: el), let whole = ink.joined else { return nil }
-        return (whole, ink.parts)
+        guard let outline = outline(of: el) else { return nil }
+        return (outline.whole, outline.parts)
+    }
+
+    // MARK: memoisation
+    //
+    // Curved, path and vertical text — and every effect drawn on them,
+    // Hollow, Splice, Echo and Glitch among them — is drawn from these
+    // outlines, which were made again glyph by glyph on every render: every
+    // frame of a pan, a zoom or a drag over a page of such text. They are
+    // kept now, by what shapes them (OutlineKey), as FontLibrary keeps its
+    // fonts, attributes and heights: the same limit, and forgotten with them
+    // when a font of your own arrives or goes. Where the box is, its turn,
+    // its opacity and its motion are not in the key, so moving or turning
+    // a box draws the outlines already made.
+
+    /// Everything an element's outlines are made from: its type
+    /// (FontLibrary.TypographyKey), its words and their styles, its box's
+    /// size, how its text sits in it, its effect, and its curve, path or
+    /// column — not where the box is, its turn, opacity, animation or
+    /// timing.
+    struct OutlineKey: Hashable {
+        let typography: FontLibrary.TypographyKey
+        let text: String?
+        let uppercase: Bool
+        let spans: [TextSpan]?
+        let spansText: String?
+        let paragraphs: [TextParagraph]?
+        let paragraphsText: String?
+        let textFill: Paint?
+        let dropCap: Bool
+        let fitText: Bool
+        let vAlign: String?
+        let w: Double
+        let h: Double
+        let effect: TextEffectSpec?
+        let curve: Double?
+        let textPath: String?
+        let vertical: Bool
+
+        init(_ el: Element) {
+            typography = FontLibrary.TypographyKey(el)
+            text = el.text
+            uppercase = el.uppercase == true
+            spans = el.spans
+            spansText = el.spansText
+            paragraphs = el.paragraphs
+            paragraphsText = el.paragraphsText
+            textFill = el.textFill
+            dropCap = el.dropCap == true
+            fitText = el.fitText == true
+            vAlign = el.vAlign
+            w = el.w
+            h = el.h
+            effect = el.effect
+            curve = el.curve
+            textPath = el.textPath
+            vertical = el.vertical == true
+        }
+    }
+
+    /// An element's outlines as kept: whole, and by colour.
+    struct Outline {
+        let whole: CGPath
+        let parts: [InkedPath]
+    }
+
+    private static let lock = NSLock()
+    private static var outlines: [OutlineKey: Outline] = [:]
+    /// Text with nothing to outline, kept apart so it is not tried again.
+    private static var blank = Set<OutlineKey>()
+
+    /// The outlines of `el`, made once for what shapes them; nil when it
+    /// has nothing to outline.
+    static func outline(of el: Element) -> Outline? {
+        let key = OutlineKey(el)
+        lock.lock()
+        if let hit = outlines[key] { lock.unlock(); return hit }
+        let none = blank.contains(key)
+        lock.unlock()
+        if none { return nil }
+        let made = ink(for: el).flatMap { ink in ink.joined.map { Outline(whole: $0, parts: ink.parts) } }
+        lock.lock()
+        if outlines.count + blank.count >= FontLibrary.cacheLimit {
+            outlines.removeAll(keepingCapacity: true)
+            blank.removeAll(keepingCapacity: true)
+        }
+        if let made { outlines[key] = made } else { blank.insert(key) }
+        lock.unlock()
+        return made
+    }
+
+    /// Forgets every outline made so far: a font of your own has arrived or
+    /// gone (FontLibrary.fontsChanged).
+    static func fontsChanged() {
+        lock.lock()
+        outlines.removeAll()
+        blank.removeAll()
+        lock.unlock()
     }
 
     /// Glyphs in one colour.
