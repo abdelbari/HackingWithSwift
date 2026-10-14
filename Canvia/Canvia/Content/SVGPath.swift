@@ -296,6 +296,18 @@ enum SVGPath {
                 else if (c == "-" || c == "+") && s.isEmpty { s.append(c); index += 1 }
                 else { break }
             }
+            // An exponent, as files from drawing programs write tiny
+            // numbers ("1e-5"): only with a digit after it, so an "e" is
+            // never taken from what follows.
+            if !s.isEmpty, index < chars.count, chars[index] == "e" || chars[index] == "E" {
+                var j = index + 1
+                if j < chars.count, chars[j] == "-" || chars[j] == "+" { j += 1 }
+                if j < chars.count, chars[j].isNumber {
+                    s += String(chars[index..<j])
+                    index = j
+                    while index < chars.count, chars[index].isNumber { s.append(chars[index]); index += 1 }
+                }
+            }
             return s.isEmpty ? nil : Double(s)
         }
     }

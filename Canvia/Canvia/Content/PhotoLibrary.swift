@@ -380,10 +380,15 @@ enum MediaStore {
         memory.setObject(image, forKey: id as NSString, cost: Int(pixels * 4))
     }
 
-    /// What we write, in the order load() looks for them. JPEG for
-    /// photographs; PNG when the picture has to keep an alpha channel, which
-    /// JPEG cannot carry — a background-removed cutout, most of all.
-    static let extensions = ["jpg", "png"]
+    /// What we write. JPEG for photographs; PNG when the picture has to
+    /// keep an alpha channel, which JPEG cannot carry — a background-removed
+    /// cutout, most of all; and SVG, a graphic brought in from a file, kept
+    /// as it came among your uploads so it can be placed again (see
+    /// SvgImport). Backups, the sweep and your uploads take all three.
+    static let extensions = ["jpg", "png", graphicExtension]
+    /// The pictures among them, in the order load() looks for them.
+    static let pictureExtensions = ["jpg", "png"]
+    static let graphicExtension = "svg"
 
     static var directory: URL {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -416,7 +421,7 @@ enum MediaStore {
     static func all() -> [String] {
         guard let files = try? FileManager.default.contentsOfDirectory(
             at: directory, includingPropertiesForKeys: [.contentModificationDateKey]) else { return [] }
-        return files.filter { extensions.contains($0.pathExtension) }
+        return files.filter { pictureExtensions.contains($0.pathExtension) }
             .map { url -> (String, Date) in
                 let date = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
                 return (url.deletingPathExtension().lastPathComponent, date)
@@ -431,6 +436,27 @@ enum MediaStore {
             try? FileManager.default.removeItem(at: directory.appendingPathComponent("\(id).\(ext)"))
         }
         memory.removeObject(forKey: id as NSString)
+    }
+
+    /// Keep an SVG file as it came, among the uploads; returns its id.
+    static func storeGraphic(_ data: Data) -> String? {
+        let id = UID.make("img")
+        do {
+            try data.write(to: graphicURL(id))
+            return id
+        } catch {
+            return nil
+        }
+    }
+
+    /// Where an SVG kept by storeGraphic is.
+    static func graphicURL(_ id: String) -> URL {
+        directory.appendingPathComponent("\(id).\(graphicExtension)")
+    }
+
+    /// Whether an upload is an SVG graphic rather than a picture.
+    static func isGraphic(_ id: String) -> Bool {
+        FileManager.default.fileExists(atPath: graphicURL(id).path)
     }
 
     /// Store a picture that is already the right size and has nothing
@@ -463,7 +489,7 @@ enum MediaStore {
 
     static func load(_ id: String) -> UIImage? {
         if let cached = memory.object(forKey: id as NSString) { return cached }
-        for ext in extensions {
+        for ext in pictureExtensions {
             let url = directory.appendingPathComponent("\(id).\(ext)")
             guard let data = try? Data(contentsOf: url),
                   let img = UIImage(data: data) else { continue }

@@ -485,6 +485,10 @@ struct Element: Codable, Equatable, Identifiable {
     /// Per-corner radii — top-left, top-right, bottom-right, bottom-left —
     /// for rect-like shapes; nil means `radius` on all four.
     var corners: [Double]?
+    /// How a path that crosses or nests itself is filled: "evenodd", or nil
+    /// for nonzero, which is never written. Kept as read otherwise, and any
+    /// value but "evenodd" is drawn nonzero. Set by an imported SVG graphic.
+    var fillRule: String?
 
     // text
     var text: String?
@@ -638,6 +642,7 @@ struct Element: Codable, Equatable, Identifiable {
         strokeWidth = try? c.decode(Double.self, forKey: .strokeWidth)
         radius = try? c.decode(Double.self, forKey: .radius)
         corners = try? c.decode([Double].self, forKey: .corners)
+        fillRule = (try? c.decode(String.self, forKey: .fillRule)).flatMap { $0 == "nonzero" ? nil : $0 }
         text = try? c.decode(String.self, forKey: .text)
         fontFamily = try? c.decode(String.self, forKey: .fontFamily)
         fontSize = try? c.decode(Double.self, forKey: .fontSize)
@@ -719,7 +724,7 @@ struct Element: Codable, Equatable, Identifiable {
         case id, type, x, y, w, h, rotation, opacity, locked, lockPosition, flipH, flipV, group, shadow, blendMode, altText
         case decorative
         case connectFrom, connectTo, link, hidden, layerName, table, chart, chartPart, grid, photoFrame
-        case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners
+        case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners, fillRule
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
         case spans, spansText

@@ -592,7 +592,9 @@ struct InsertSheet: View {
     private var uploadsSection: some View {
         let kind = isReplacing ? Uploads.Kind.image : uploadKind
         let entries = Uploads.all()
+        // A graphic cannot fill a photo's frame, so a replace leaves them out.
         let shown = favoritesFirst(entries.filter { $0.kind == kind }.map(\.id), kind: "upload", id: { $0 })
+            .filter { !isReplacing || !MediaStore.isGraphic($0) }
         let offered = isReplacing ? !shown.isEmpty : !entries.isEmpty
         if offered {
             sectionHeader("Your uploads")
@@ -612,6 +614,8 @@ struct InsertSheet: View {
                     ForEach(Array(shown.enumerated()), id: \.element) { index, id in
                         if kind == .video {
                             videoTile(id, index: index, count: shown.count)
+                        } else if MediaStore.isGraphic(id) {
+                            graphicTile(id, index: index, count: shown.count)
                         } else {
                             uploadTile(id, index: index, count: shown.count)
                         }
@@ -661,6 +665,32 @@ struct InsertSheet: View {
         }
         .accessibilityLabel(AddSheetNames.picture(AddSheetNames.upload(index, of: count),
                                               starred: starred, inFrame: inFrame))
+        .contextMenu {
+            favoriteButton("upload", id)
+            deleteUploadButton(id, kind: .image)
+        }
+    }
+
+    /// An SVG brought in as a graphic, kept to place again: a tap puts the
+    /// whole graphic on the page once more.
+    private func graphicTile(_ id: String, index: Int, count: Int) -> some View {
+        let starred = Favorites.isFavorite("upload", id)
+        return Button {
+            placeGraphic(id)
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: "square.on.circle").font(.title2)
+                Text("SVG").font(.caption.weight(.semibold))
+            }
+            .foregroundStyle(.secondary)
+            .frame(height: 72)
+            .frame(maxWidth: .infinity)
+            .background(Color(.systemGray6))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(alignment: .topTrailing) { if starred { starBadge } }
+        }
+        .accessibilityLabel(AddSheetNames.picture(AddSheetNames.uploadedGraphic(index, of: count),
+                                                  starred: starred, inFrame: false))
         .contextMenu {
             favoriteButton("upload", id)
             deleteUploadButton(id, kind: .image)
@@ -823,35 +853,83 @@ struct InsertSheet: View {
     // MARK: svg
 
     @State private var importingSVG = false
+    /// Whether the file picked comes in whole, as a graphic, or as its
+    /// first path, as a custom shape.
+    @State private var svgWhole = true
 
+    /// A whole SVG as a recolourable graphic, and its first path alone as
+    /// a custom shape. One file importer serves both.
     private var svgImportRow: some View {
-        Button {
-            importingSVG = true
-        } label: {
-            Label("Custom shape from an SVG file", systemImage: "scribble.variable")
-                .frame(maxWidth: .infinity)
-                .padding(10)
-                .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
+        VStack(spacing: 8) {
+            svgButton("Graphic from an SVG file", symbol: "square.on.circle", whole: true)
+            svgButton("Custom shape from an SVG file", symbol: "scribble.variable", whole: false)
         }
         .fileImporter(isPresented: $importingSVG, allowedContentTypes: [.svg]) { result in
             guard case .success(let url) = result else { return }
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            guard let d = SVGPath.importFirstPath(fromFileAt: url) else {
-                // Said, and out of the way, as the Android twin refuses it.
-                store.buzz(.reject)
-                store.announce("No shape to take from that file", undoable: false)
-                dismiss()
-                return
-            }
-            let size = min(store.pageWidth, store.pageHeight) * 0.4
-            var el = Element.shape("rect", w: size.rounded(), h: size.rounded())
-            el.pathData = d
-            el.radius = 0
-            store.add(el)
-            store.buzz(.confirm)
-            dismiss()
+            if svgWhole { importGraphic(from: url) } else { importFirstPath(from: url) }
         }
+    }
+
+    private func svgButton(_ title: String, symbol: String, whole: Bool) -> some View {
+        Button {
+            svgWhole = whole
+            importingSVG = true
+        } label: {
+            Label(title, systemImage: symbol)
+                .frame(maxWidth: .infinity)
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
+        }
+    }
+
+    private func importFirstPath(from url: URL) {
+        guard let d = SVGPath.importFirstPath(fromFileAt: url) else {
+            // Said, and out of the way, as the Android twin refuses it.
+            refuseSVG()
+            return
+        }
+        let size = min(store.pageWidth, store.pageHeight) * 0.4
+        var el = Element.shape("rect", w: size.rounded(), h: size.rounded())
+        el.pathData = d
+        el.radius = 0
+        store.add(el)
+        store.buzz(.confirm)
+        dismiss()
+    }
+
+    /// The whole file as a graphic, and the file kept among your uploads to
+    /// place again.
+    private func importGraphic(from url: URL) {
+        let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+        guard size <= SvgImport.maxBytes, let data = try? Data(contentsOf: url), data.count <= SvgImport.maxBytes,
+              let text = String(data: data, encoding: .utf8),
+              let graphic = SvgImport.graphic(text, pageWidth: store.pageWidth, pageHeight: store.pageHeight) else {
+            refuseSVG()
+            return
+        }
+        if let id = MediaStore.storeGraphic(data) { Uploads.record(id, kind: .image) }
+        store.addGraphic(graphic)
+        dismiss()
+    }
+
+    /// An SVG from your uploads placed again.
+    private func placeGraphic(_ id: String) {
+        guard let data = try? Data(contentsOf: MediaStore.graphicURL(id)),
+              let text = String(data: data, encoding: .utf8),
+              let graphic = SvgImport.graphic(text, pageWidth: store.pageWidth, pageHeight: store.pageHeight) else {
+            refuseSVG()
+            return
+        }
+        store.addGraphic(graphic)
+        dismiss()
+    }
+
+    private func refuseSVG() {
+        store.buzz(.reject)
+        store.announce("No shape to take from that file", undoable: false)
+        dismiss()
     }
 
     // MARK: layouts

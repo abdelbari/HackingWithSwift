@@ -549,6 +549,21 @@ final class DesignStore {
         selection = [el.id]
     }
 
+    /// A graphic brought in from an SVG file (see SvgImport): every part on
+    /// the page as one step, the whole graphic selected, and a word when
+    /// some of the file could not come with it.
+    func addGraphic(_ graphic: SvgImport.Graphic) {
+        guard !graphic.elements.isEmpty else { return }
+        applyToPage { $0.elements += graphic.elements }
+        selection = Set(graphic.elements.map(\.id))
+        if graphic.skipped {
+            buzz(.reject)
+            announce(SvgImport.partialNote, undoable: false)
+        } else {
+            buzz(.confirm)
+        }
+    }
+
     /// Delete asked for with something locked in position selected: the
     /// editor asks first, and its Delete is deleteSelected(confirmed: true)
     /// — the Android twin's confirmingDelete.

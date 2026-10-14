@@ -206,21 +206,24 @@ struct ShapeElementView: View {
         let def = ContentLibrary.shape(for: element)
         let shape = LibraryShape(definition: def, cornerRadius: element.radius ?? 0, corners: element.corners)
         let fill = element.fill ?? .solid("#8b5cf6")
+        // Where its outline crosses itself or nests — a ring, a letter's
+        // hole in an imported graphic — even-odd leaves the inside empty.
+        let rule = FillStyle(eoFill: element.fillRule == "evenodd")
         ZStack {
             if fill.kind == "gradient", fill.stops != nil {
-                shape.fill(fill.gradientStyle())
+                shape.fill(fill.gradientStyle(), style: rule)
             } else if fill.kind == "pattern" || fill.kind == "image" {
                 // A pattern or a photo is a view, not a ShapeStyle, so it is
                 // clipped to the shape rather than poured into it.
                 fill.fillView()
                     .frame(width: element.w, height: element.h)
-                    .clipShape(shape)
+                    .clipShape(shape, style: rule)
             } else if fill.kind == "none" {
                 // An outline only — a drawn stroke, or a shape whose fill
                 // was cleared. The transparent rectangle keeps the frame.
                 Color.clear
             } else {
-                shape.fill(Color(hex: fill.color ?? "#8b5cf6"))
+                shape.fill(Color(hex: fill.color ?? "#8b5cf6"), style: rule)
             }
             if let stroke = element.stroke, let sw = element.strokeWidth, sw > 0 {
                 shape.stroke(Color(hex: stroke), style: .border(element.dash, width: sw))

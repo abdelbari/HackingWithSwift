@@ -193,9 +193,11 @@ enum SVGExporter {
             stroke = " stroke=\"\(escape(color))\" stroke-width=\"\(num(width))\"" +
                      " stroke-linejoin=\"round\"" + borderDash(el.dash, width: width)
         }
+        // Even-odd only when asked for: nonzero is SVG's own default.
+        let rule = el.fillRule == "evenodd" ? " fill-rule=\"evenodd\"" : ""
 
         return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" +
-               "<path d=\"\(d)\" fill=\"\(paint)\"\(stroke)/></g>"
+               "<path d=\"\(d)\" fill=\"\(paint)\"\(rule)\(stroke)/></g>"
     }
 
     /// A border's ends and, when it is dashed or dotted, its pattern and
