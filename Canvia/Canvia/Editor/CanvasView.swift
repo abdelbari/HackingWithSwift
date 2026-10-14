@@ -229,6 +229,8 @@ struct CanvasView: View {
             movesOtherPage: { point in otherPageHit(at: point) != nil },
             onOtherPageDrag: { phase, start, now in otherPageDrag(phase, from: start, to: now) },
             onOtherPageDoubleTap: { point in otherPageDoubleTap(at: point) },
+            holdsOtherPage: { point in otherPageEmpty(at: point) },
+            onOtherPageHold: { phase, start, now in otherPageHold(phase, from: start, to: now) },
             onViewport: { visible, fit in viewportChanged(visible, fit: fit) },
             onMotion: { moving in motionChanged(moving) },
             edgeScroller: edges,
@@ -1962,7 +1964,10 @@ struct CanvasView: View {
     /// A tap off the page being worked: on another page in the column, that
     /// page becomes the one worked and what was tapped on it is selected;
     /// anywhere else the selection goes — Select multiple keeps what it has
-    /// built.
+    /// built. Painting a style, what was tapped on the other page takes it,
+    /// and a tap on nothing there or on the workspace puts the roller down,
+    /// as on the Android twin, where the page under the finger is the one
+    /// worked as it lands.
     private func backgroundTap(at point: CGPoint) {
         // What of the page worked hangs off it there is that page's, not
         // the column's (ZoomableCanvas.holdsPage).
@@ -1973,10 +1978,16 @@ struct CanvasView: View {
         if let index = PageColumn.pageAt(point, in: slots), index != store.pageIndex, !pagePinned {
             let hit = otherPageElement(index, at: slots[index].toPage(point))
             pageFromColumn = index
+            // The page first: the style is pasted onto the page worked.
             store.setPage(index)
-            if let hit { store.select(hit.id) }
+            if store.stylePainting {
+                if let hit { store.paintStyle(onto: hit.id) } else { store.stylePainting = false }
+            } else if let hit {
+                store.select(hit.id)
+            }
             return
         }
+        if store.stylePainting { store.stylePainting = false }
         if !store.selectingMultiple { store.select(nil) }
     }
 
@@ -2016,6 +2027,14 @@ struct CanvasView: View {
         if let slot = columnSlot, holdsWorkedPage(at: slot.toPage(point)) { return false }
         guard let found = otherPageHit(at: point) else { return false }
         let hit = found.element
+        // Painting a style, a double tap pastes it, as two taps would,
+        // rather than typing or cropping.
+        if store.stylePainting {
+            pageFromColumn = found.page
+            store.setPage(found.page)
+            store.paintStyle(onto: hit.id)
+            return true
+        }
         let typed = store.typedIn(hit, among: store.design.pages[found.page].elements)
         guard hit.type == .image || hit.type == .text || typed != nil else { return false }
         commitTextEditIfAny()
@@ -2029,6 +2048,59 @@ struct CanvasView: View {
             store.startCrop(hit.id)
         }
         return true
+    }
+
+    /// Whether `point` in the column is on the empty part of a page other
+    /// than the one worked — nothing shown there — while the view is free
+    /// to change page.
+    private func otherPageEmpty(at point: CGPoint) -> Bool {
+        let slots = columnSlots
+        guard !pagePinned, let index = PageColumn.pageAt(point, in: slots), index != store.pageIndex else { return false }
+        return otherPageElement(index, at: slots[index].toPage(point)) == nil
+    }
+
+    /// A hold on the empty part of another page (ZoomableCanvas's
+    /// onOtherPageHold), `start` and `now` in column units: as it is felt,
+    /// that page becomes the one worked, with the hold's tick, as the
+    /// Android twin's page under the finger is; dragged on, it draws the
+    /// band there, and let go without one, the menu at the finger comes up,
+    /// as a hold on the page worked does (marqueeGesture). `now` is nil when
+    /// the hold was taken away — a second finger — which opens no menu.
+    private func otherPageHold(_ phase: CanvasDrag, from start: CGPoint, to now: CGPoint?) {
+        switch phase {
+        case .began:
+            otherPageHoldBegan(at: start)
+        case .moved:
+            guard gesture.banding, let slot = columnSlot, let now else { return }
+            let from = slot.toPage(start)
+            drawBand(from: from, to: slot.toPage(now))
+            edgeTrack(slot.toPage(now)) { drawBand(from: from, to: $0) }
+        case .ended:
+            guard gesture.banding else { return }
+            edges.stop()
+            let drawn = gesture.marquee.map { max($0.width, $0.height) * store.zoom } ?? 0
+            gesture.marquee = nil
+            gesture.banding = false
+            store.canvasTouchActive = false
+            guard now != nil, drawn < Touch.dragSlop, let slot = columnSlot else { return }
+            let at = slot.toPage(start)
+            guard !holdsWorkedPage(at: at), CanvasGestures.action(.hold, on: .emptyPage) == .menu else { return }
+            store.holdMenuAt = at
+        }
+    }
+
+    /// The hold on another page taking, `point` in column units: that page
+    /// is made the one worked and the band is held out from there.
+    private func otherPageHoldBegan(at point: CGPoint) {
+        let slots = columnSlots
+        guard !pagePinned, let index = PageColumn.pageAt(point, in: slots), index != store.pageIndex else { return }
+        commitTextEditIfAny()
+        dismissHoldMenu()
+        pageFromColumn = index
+        store.setPage(index)
+        gesture.banding = true
+        store.canvasTouchActive = true
+        store.buzz(.tick)
     }
 
     /// One finger dragged from something on another page (ZoomableCanvas's

@@ -292,8 +292,11 @@ struct SelectionOverlay: View {
     /// selection whatever lies on top (CanvasGestures.onSelectedBody): one
     /// element free to move, shown and not being typed in, as its turned
     /// frame; several, any of them free, as the box round those free to move
-    /// (CanvasGestures.bodyBox). Nil when there is none.
+    /// (CanvasGestures.bodyBox). Nil when there is none — and in Select
+    /// multiple, where a drag from a thing takes it in with the rest and a
+    /// drag from the gap pans, as on the Android twin.
     static func bodyZone(_ store: DesignStore) -> CGPath? {
+        guard !store.selectingMultiple else { return nil }
         if let el = store.singleSelection {
             guard !el.holdsPlace, !el.isHidden, store.editingTextId != el.id else { return nil }
             let c = el.center

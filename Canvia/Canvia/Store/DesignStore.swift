@@ -390,13 +390,21 @@ final class DesignStore {
     /// Undo offered in a toast is only honest while this is what it was
     /// when the offer was made, as on the Android twin.
     private(set) var historyVersion = 0
-    var canRedo: Bool { !future.isEmpty }
+    /// Steps to make again — none while words being typed have changed
+    /// anything since the last step, which a Redo would only close (and the
+    /// steps after it go with that), as on the Android twin.
+    var canRedo: Bool {
+        !future.isEmpty && !(editingTextId != nil && pending.map { $0.design != design } == true)
+    }
 
     /// Undo; `reveal` false while Undo is held to rewind, which brings what
     /// it changed into view once, as the finger lifts (revealSelection).
     /// While typing in place, a burst of the typing at a time (undoTyping).
     func undo(reveal: Bool = true) {
         if undoTyping(reveal: reveal) { return }
+        // Typing, with nothing before it to take back either: the typing
+        // stays open, as on the Android twin.
+        if editingTextId != nil && past.isEmpty { return }
         // Typing, dictation or a crop under way is kept as its own step
         // first, so Undo takes back that rather than whatever came before
         // it — and the words typed are never thrown away with that step.
@@ -409,6 +417,10 @@ final class DesignStore {
 
     func redo() {
         if redoTyping() { return }
+        // Typing, with nothing to make again — words typed since the last
+        // Undo close their step and clear what was to be redone: the typing
+        // stays open, as on the Android twin.
+        if editingTextId != nil && future.isEmpty { return }
         closeOpenSteps()
         guard let entry = future.popLast() else { return }
         past.append(HistoryEntry(design: design, pageIndex: pageIndex))
@@ -429,7 +441,8 @@ final class DesignStore {
     /// or a style put on meanwhile, taken back with the caret where it
     /// was, the typing still open — as in Canva, as on the Android twin.
     /// False when nothing typed since it opened is left to take back, and
-    /// Undo ends the typing and goes on as ever.
+    /// Undo ends the typing and goes on as ever, as on the Android twin —
+    /// unless there is nothing at all to take back, when it stays open.
     private func undoTyping(reveal: Bool = true) -> Bool {
         guard editingTextId != nil else { return false }
         commit()
@@ -645,7 +658,15 @@ final class DesignStore {
     /// remembered as just added (freshTexts).
     func addText(_ el: Element) {
         add(el)
-        freshTexts[el.id] = el.text ?? ""
+        markFresh([el])
+    }
+
+    /// `elements`' text boxes, just added, as the only freshTexts: an add
+    /// forgets those added before it, so only the latest add opens with its
+    /// words chosen, as on the Android twin.
+    private func markFresh(_ elements: [Element]) {
+        freshTexts.removeAll()
+        for el in elements where el.type == .text { freshTexts[el.id] = el.text ?? "" }
     }
 
     /// The words typed in place, into the open step: a text box measured
@@ -1037,7 +1058,7 @@ final class DesignStore {
         design.pages[pageIndex].elements.append(el)
         commit()
         // Just added (freshTexts): the field opens with its words chosen.
-        freshTexts[el.id] = el.text ?? ""
+        markFresh([el])
         startTyping(el.id)
     }
 
@@ -2261,7 +2282,7 @@ final class DesignStore {
         guard !made.isEmpty else { return }
         applyToPage { $0.elements.append(contentsOf: made) }
         selection = Set(made.map(\.id))
-        for el in made where el.type == .text { freshTexts[el.id] = el.text ?? "" }
+        markFresh(made)
         buzz(.confirm)
     }
 

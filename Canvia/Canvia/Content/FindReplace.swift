@@ -104,8 +104,13 @@ enum FindReplace {
     static func matches(of needle: String, in text: String, caseSensitive: Bool,
                         wholeWord: Bool) -> [(plain: NSRange, stored: NSRange)] {
         let plain = RichText.strip(text)
-        return ranges(of: needle, in: plain, caseSensitive: caseSensitive, wholeWord: wholeWord).map { hit in
-            (plain: hit, stored: RichText.storedRange(of: hit, in: text))
+        let hits = ranges(of: needle, in: plain, caseSensitive: caseSensitive, wholeWord: wholeWord)
+        guard !hits.isEmpty else { return [] }
+        // The words' map worked out once for every match, not once each.
+        let units = RichText.typedUnits(text)
+        let length = (text as NSString).length
+        return hits.map { hit in
+            (plain: hit, stored: RichText.storedRange(of: hit, units: units, length: length))
         }
     }
 
