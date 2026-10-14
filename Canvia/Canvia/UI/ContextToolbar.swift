@@ -329,14 +329,17 @@ struct ContextToolbar: View {
         }
     }
 
-    /// Bold, italic, underline and capitals, for every text selected: on for
-    /// all of them, or off for all when every one has it already. Capitals
-    /// have no symbol; "aA" says what they do.
+    /// Bold, italic, underline, strikethrough and capitals, for every text
+    /// selected: on for all of them, or off for all when every one has it
+    /// already — Mixed while some are and some are not. Strikethrough strikes
+    /// every word of each box (TextToggle.strike). Capitals have no symbol;
+    /// "aA" says what they do.
     @ViewBuilder
     private var styleToggles: some View {
         styleToggle(.bold, "Bold", glyph: Image(systemName: "bold"))
         styleToggle(.italic, "Italic", glyph: Image(systemName: "italic"))
         styleToggle(.underline, "Underline", glyph: Image(systemName: "underline"))
+        styleToggle(.strike, "Strikethrough", glyph: Image(systemName: "strikethrough"))
         styleToggle(.uppercase, "Uppercase", glyph: Text(verbatim: "aA"))
     }
 
@@ -1603,7 +1606,7 @@ struct ContextToolbar: View {
 }
 
 /// A type size typed on the number pad, or one of the usual ones picked: in
-/// whole points from 6 to 500, for every text selected, each box fitted to
+/// whole points from 1 to 800, for every text selected, each box fitted to
 /// it again — as the Android twin's size readout opens.
 private struct TypeSizeEntry: View {
     /// The size now; nil when the texts selected differ.

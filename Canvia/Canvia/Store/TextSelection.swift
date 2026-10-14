@@ -1,5 +1,6 @@
 // Type set on several text boxes at once, and the switches the text
-// controls and the typing bar share: bold, italic, underline and capitals.
+// controls and the typing bar share: bold, italic, underline, strikethrough
+// and capitals.
 //
 // A band's worth of captions, or a group of nothing but text, is styled in
 // one step as one box is: every selected, unlocked text takes the change and
@@ -11,16 +12,15 @@ import Foundation
 
 /// A style a text box has, or has not, as a whole.
 enum TextToggle: CaseIterable {
-    case bold, italic, underline, uppercase
+    case bold, italic, underline, strike, uppercase
 
-    /// The box's own switch for a style the typing bar marks on words;
-    /// strike has none, since no box is struck through as a whole.
+    /// The box's own switch for a style the typing bar marks on words.
     init?(_ mark: RichText.Mark) {
         switch mark {
         case .bold: self = .bold
         case .italic: self = .italic
         case .underline: self = .underline
-        case .strike: return nil
+        case .strike: self = .strike
         }
     }
 
@@ -29,8 +29,18 @@ enum TextToggle: CaseIterable {
         case .bold: return Self.isBold(el)
         case .italic: return el.italic == true
         case .underline: return el.underline == true
+        case .strike: return Self.isStruck(el)
         case .uppercase: return el.uppercase == true
         }
+    }
+
+    /// Whether Strikethrough reads on for `el`: every letter of its words —
+    /// spaces aside — is struck (RichText.selectionHas over the whole box).
+    /// There is no box-wide strike key; the words carry it, as the typing
+    /// bar strikes them. The Android twin's TextSelection.isStruck.
+    static func isStruck(_ el: Element) -> Bool {
+        let text = el.text ?? ""
+        return RichText.selectionHas(.strike, in: text, selection: NSRange(location: 0, length: (text as NSString).length))
     }
 
     /// Whether Bold reads on for `el`: the weight it is drawn at
@@ -62,8 +72,22 @@ enum TextToggle: CaseIterable {
             }
         case .italic: el.italic = on
         case .underline: el.underline = on
+        case .strike: Self.strike(on, &el)
         case .uppercase: el.uppercase = on ? true : nil
         }
+    }
+
+    /// Every word of `el` struck through, or none: the whole box's words
+    /// wrapped in, or taken out of, strike markers (RichText.toggling over
+    /// all of it) — what the typing bar's Strikethrough does with the whole
+    /// box chosen — its spans and paragraphs moved with the words. A box
+    /// already as asked is left as it is.
+    private static func strike(_ on: Bool, _ el: inout Element) {
+        guard isStruck(el) != on else { return }
+        let text = el.text ?? ""
+        let whole = NSRange(location: 0, length: (text as NSString).length)
+        guard let edit = RichText.toggling(.strike, in: text, selection: whole), edit.text != text else { return }
+        el.setText(edit.text)
     }
 }
 
@@ -95,8 +119,8 @@ extension DesignStore {
         return reached.isEmpty ? texts : reached
     }
 
-    /// Bold, italic, underline or capitals on for every selected, unlocked
-    /// text, a shape's words among them — or off for all of them when every
+    /// Bold, italic, underline, strikethrough or capitals on for every
+    /// selected, unlocked text, a shape's words among them — or off for all of them when every
     /// one has it already. One step, each box measured again.
     func toggleText(_ toggle: TextToggle) {
         let texts = selectedElements.filter { ShapeText.carriesWords($0) && !$0.locked }
@@ -129,7 +153,7 @@ extension DesignStore {
     }
 
     /// Every selected, unlocked text at one type size, in whole points from
-    /// 6 to 500, each box measured again to fit — a shape grown for its
+    /// 1 to 800, each box measured again to fit — a shape grown for its
     /// words when they need it. One step.
     func setFontSize(_ size: Double) {
         let size = TypeReadouts.wholeSize(size)

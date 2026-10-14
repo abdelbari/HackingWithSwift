@@ -307,15 +307,35 @@ struct SpacingSheet: View {
     @State private var letterRange: ClosedRange<Double>?
     @State private var letterRangeFor = ""
     @State private var letterSliding = false
+    /// The spacing whose readout was tapped, a value to type for it, and
+    /// what is typed so far.
+    @State private var typing: TypedSpacing?
+    @State private var typedDraft = ""
+
+    /// The spacings a value can be typed for, by the name the alert has.
+    private enum TypedSpacing: String {
+        case line = "Line height"
+        case letter = "Letter spacing"
+        case paragraph = "Paragraph spacing"
+
+        /// What the alert asks for, in the readout's own terms.
+        var message: String {
+            switch self {
+            case .line: return "A multiple of the type size, 0.5 to 2.5."
+            case .letter: return "A share of the type size in percent, -20 to 80."
+            case .paragraph: return "Ems after each line break, 0 to 2."
+            }
+        }
+    }
 
     var body: some View {
         NavigationStack {
-            Form {
+            typedEntry(Form {
                 if let el = store.singleSelection {
                     spacingSections(el)
                     textBoxSection(el)
                 }
-            }
+            })
             .navigationTitle("Spacing")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -328,6 +348,61 @@ struct SpacingSheet: View {
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
         .onDisappear {
             if store.hasPendingChanges { store.commit() }
+        }
+    }
+
+    /// The alert a tapped readout opens: a value typed for that spacing, as
+    /// the size's number takes one, set as one step — or nothing, for
+    /// anything that is not a number. The Android twin's readouts open the
+    /// same, with the same rules (TypeReadouts.typedLetterSpacing and the
+    /// rest).
+    private func typedEntry<Content: View>(_ content: Content) -> some View {
+        content
+            .alert(typing?.rawValue ?? "", isPresented: Binding(get: { typing != nil },
+                                                                set: { if !$0 { typing = nil } })) {
+                TextField(typing?.rawValue ?? "", text: $typedDraft)
+                    .keyboardType(typing == .letter ? .numbersAndPunctuation : .decimalPad)
+                Button("Set") { setTyped() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text(typing?.message ?? "")
+            }
+            // The editor's plain Delete key must leave the field be.
+            .onChange(of: typing != nil) { _, open in store.textFieldOpen = open }
+    }
+
+    /// The readout tapped: its value as it reads, to type over.
+    private func startTyping(_ spacing: TypedSpacing, _ el: Element) {
+        let size = FontLibrary.effectiveFontSize(for: el)
+        switch spacing {
+        case .line: typedDraft = TypeReadouts.lineHeight(el.lineHeight ?? 1.25)
+        case .letter: typedDraft = "\(Int(((el.letterSpacing ?? 0) / max(size, 1) * 100).rounded()))"
+        case .paragraph: typedDraft = "\(Double(((el.paragraphSpacing ?? 0) * 10).rounded()) / 10)"
+        }
+        typing = spacing
+    }
+
+    /// The value typed set on the box, as one step, the box measured again.
+    private func setTyped() {
+        guard let spacing = typing, let el = store.singleSelection else { return }
+        let size = FontLibrary.effectiveFontSize(for: el)
+        switch spacing {
+        case .line:
+            guard let value = TypeReadouts.typedLineHeight(typedDraft) else { return }
+            setSpacing { $0.lineHeight = value }
+        case .letter:
+            guard let value = TypeReadouts.typedLetterSpacing(typedDraft, size: size) else { return }
+            setSpacing { $0.letterSpacing = value }
+        case .paragraph:
+            guard let value = TypeReadouts.typedParagraphSpacing(typedDraft) else { return }
+            setSpacing { $0.paragraphSpacing = value < 0.01 ? nil : value }
+        }
+    }
+
+    private func setSpacing(_ change: (inout Element) -> Void) {
+        store.updateSelected { el in
+            change(&el)
+            if el.type == .text { el.h = FontLibrary.layoutHeight(for: el) }
         }
     }
 
@@ -351,13 +426,15 @@ struct SpacingSheet: View {
         let paragraph = min(el.paragraphSpacing ?? 0, TypeReadouts.paragraphSpacingRange.upperBound)
         Section("Line height") {
             valueSlider("Line height", value: lineHeight, in: TypeReadouts.lineHeightRange,
-                        readout: TypeReadouts.lineHeight(lineHeight)) { v, e in e.lineHeight = v }
+                        readout: TypeReadouts.lineHeight(lineHeight),
+                        onReadout: { startTyping(.line, el) }) { v, e in e.lineHeight = v }
         }
         Section("Letter spacing") {
             valueSlider("Letter spacing", value: tracking,
                         in: min(range.lowerBound, tracking)...max(range.upperBound, tracking),
                         readout: TypeReadouts.letterSpacing(tracking, size: size),
-                        sliding: $letterSliding) { v, e in e.letterSpacing = v }
+                        sliding: $letterSliding,
+                        onReadout: { startTyping(.letter, el) }) { v, e in e.letterSpacing = v }
         }
         .onChange(of: key, initial: true) { _, next in
             guard !letterSliding else { return }
@@ -366,7 +443,8 @@ struct SpacingSheet: View {
         }
         Section {
             valueSlider("Paragraph spacing", value: paragraph, in: TypeReadouts.paragraphSpacingRange,
-                        readout: TypeReadouts.paragraphSpacing(paragraph)) { v, e in
+                        readout: TypeReadouts.paragraphSpacing(paragraph),
+                        onReadout: { startTyping(.paragraph, el) }) { v, e in
                 e.paragraphSpacing = v < 0.01 ? nil : v
             }
         } header: {
@@ -428,9 +506,10 @@ struct SpacingSheet: View {
     }
 
     /// A slider with its value beside it, named and valued for VoiceOver,
-    /// and one undo step per drag.
+    /// and one undo step per drag. The value is a button: tapped, a value
+    /// is typed instead (`onReadout`), as the type size's number is.
     private func valueSlider(_ name: String, value: Double, in range: ClosedRange<Double>, readout: String,
-                             sliding: Binding<Bool>? = nil,
+                             sliding: Binding<Bool>? = nil, onReadout: @escaping () -> Void,
                              _ set: @escaping (Double, inout Element) -> Void) -> some View {
         HStack(spacing: 12) {
             Slider(value: transientBinding(value, set), in: range, onEditingChanged: { editing in
@@ -439,11 +518,14 @@ struct SpacingSheet: View {
             })
             .accessibilityLabel(name)
             .accessibilityValue(readout)
-            Text(readout)
-                .font(.subheadline.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .frame(minWidth: 56, alignment: .trailing)
-                .accessibilityHidden(true)
+            .accessibilityAction(named: "Type a value", onReadout)
+            Button(action: onReadout) {
+                Text(readout)
+                    .font(.subheadline.monospacedDigit())
+                    .frame(minWidth: 56, alignment: .trailing)
+            }
+            .buttonStyle(.borderless)
+            .accessibilityHidden(true)
         }
     }
 
