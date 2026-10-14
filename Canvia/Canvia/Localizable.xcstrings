@@ -21805,6 +21805,59 @@
         }
       }
     },
+    "Add as new page" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إضافة كصفحة جديدة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als neue Seite hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add as new page"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir como página nueva"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter comme nouvelle page"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi come nuova pagina"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいページとして追加"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicionar como nova página"
+          }
+        }
+      }
+    },
     "Add body text" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23770,6 +23823,59 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "Added a page from “%@”" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تمت إضافة صفحة من «%@»"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seite aus „%@“ hinzugefügt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added a page from “%@”"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se añadió una página de “%@”"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page ajoutée à partir de « %@ »"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiunta una pagina da “%@”"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」からページを追加しました"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Página adicionada a partir de “%@”"
           }
         }
       }
@@ -51527,6 +51633,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Holandês"
+          }
+        }
+      }
+    },
+    "Each one goes on a new page after this one. Hold one to use it on this page instead." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يُضاف كل قالب في صفحة جديدة بعد هذه الصفحة. اضغط مطولًا على أحدها لاستخدامه في هذه الصفحة بدلًا من ذلك."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jede kommt auf eine neue Seite nach dieser. Halte eine gedrückt, um sie stattdessen auf dieser Seite zu verwenden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each one goes on a new page after this one. Hold one to use it on this page instead."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada una va en una página nueva después de esta. Mantén pulsada una para usarla en esta página."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chacun s’ajoute sur une nouvelle page après celle-ci. Maintenez-en un pour l’utiliser plutôt sur cette page."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ognuno va su una nuova pagina dopo questa. Tieni premuto su uno per usarlo invece in questa pagina."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "それぞれこのページの後の新しいページに追加されます。このページで使うには長押ししてください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada um vai para uma nova página depois desta. Toque e segure um para usá-lo nesta página."
           }
         }
       }
@@ -132605,6 +132764,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usar como fundo"
+          }
+        }
+      }
+    },
+    "Use on this page" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استخدام في هذه الصفحة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf dieser Seite verwenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use on this page"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar en esta página"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser sur cette page"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa in questa pagina"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このページで使用"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar nesta página"
           }
         }
       }

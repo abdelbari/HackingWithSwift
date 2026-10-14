@@ -4028,6 +4028,15 @@
     "ja": "トラックとして追加",
     "pt-BR": "Adicionar como faixa"
   },
+  "Add as new page": {
+    "ar": "إضافة كصفحة جديدة",
+    "de": "Als neue Seite hinzufügen",
+    "es": "Añadir como página nueva",
+    "fr": "Ajouter comme nouvelle page",
+    "it": "Aggiungi come nuova pagina",
+    "ja": "新しいページとして追加",
+    "pt-BR": "Adicionar como nova página"
+  },
   "Add body text": {
     "ar": "إضافة نص أساسي",
     "de": "Fließtext hinzufügen",
@@ -4366,6 +4375,15 @@
       "one": "%d guia adicionada",
       "other": "%d guias adicionadas"
     }
+  },
+  "Added a page from “%@”": {
+    "ar": "تمت إضافة صفحة من «%@»",
+    "de": "Seite aus „%@“ hinzugefügt",
+    "es": "Se añadió una página de “%@”",
+    "fr": "Page ajoutée à partir de « %@ »",
+    "it": "Aggiunta una pagina da “%@”",
+    "ja": "「%@」からページを追加しました",
+    "pt-BR": "Página adicionada a partir de “%@”"
   },
   "Added to the audio.": {
     "ar": "تمت الإضافة إلى الصوت.",
@@ -9199,6 +9217,15 @@
     "it": "Olandese",
     "ja": "ダッチ",
     "pt-BR": "Holandês"
+  },
+  "Each one goes on a new page after this one. Hold one to use it on this page instead.": {
+    "ar": "يُضاف كل قالب في صفحة جديدة بعد هذه الصفحة. اضغط مطولًا على أحدها لاستخدامه في هذه الصفحة بدلًا من ذلك.",
+    "de": "Jede kommt auf eine neue Seite nach dieser. Halte eine gedrückt, um sie stattdessen auf dieser Seite zu verwenden.",
+    "es": "Cada una va en una página nueva después de esta. Mantén pulsada una para usarla en esta página.",
+    "fr": "Chacun s’ajoute sur une nouvelle page après celle-ci. Maintenez-en un pour l’utiliser plutôt sur cette page.",
+    "it": "Ognuno va su una nuova pagina dopo questa. Tieni premuto su uno per usarlo invece in questa pagina.",
+    "ja": "それぞれこのページの後の新しいページに追加されます。このページで使うには長押ししてください。",
+    "pt-BR": "Cada um vai para uma nova página depois desta. Toque e segure um para usá-lo nesta página."
   },
   "Each page holds %@s unless it has its own time, and cuts to the next.": {
     "ar": "تبقى كل صفحة %@ ث ما لم يكن لها وقتها الخاص، ثم تنتقل مباشرةً إلى التالية.",
@@ -23083,6 +23110,15 @@
     "it": "Usa come sfondo",
     "ja": "背景として使用",
     "pt-BR": "Usar como fundo"
+  },
+  "Use on this page": {
+    "ar": "استخدام في هذه الصفحة",
+    "de": "Auf dieser Seite verwenden",
+    "es": "Usar en esta página",
+    "fr": "Utiliser sur cette page",
+    "it": "Usa in questa pagina",
+    "ja": "このページで使用",
+    "pt-BR": "Usar nesta página"
   },
   "Use the design's time": {
     "ar": "استخدام وقت التصميم",

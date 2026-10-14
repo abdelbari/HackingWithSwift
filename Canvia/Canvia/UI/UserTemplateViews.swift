@@ -78,7 +78,8 @@ struct EditorYourTemplates: View {
         .sheet(item: $choice) { shown in
             TemplateSetSheet(name: shown.name, design: shown.design,
                              note: TemplateSetSheet.editorNote(empty: DesignStore.isEmptyForTemplates(store.design)),
-                             applyAll: { applyAll(shown) }, usePage: { usePage($0, of: shown) })
+                             applyAll: { applyAll(shown) }, usePage: { usePage($0, of: shown) },
+                             addPage: { addPage($0, of: shown) })
         }
         .modifier(UserTemplateDialogs(renaming: $renaming, renameText: $renameText, deleting: $deleting) {
             entries = UserTemplates.all()
@@ -99,6 +100,14 @@ struct EditorYourTemplates: View {
         }
         .accessibilityLabel(entry.pageCount == 1 ? entry.name : entry.name + ", " + trn("%d page|%d pages", entry.pageCount))
         .contextMenu {
+            // Both, whatever a tap would do; one of several gives its first
+            // page, as on the Android twin.
+            Button { useEntryPage(0, of: entry) } label: {
+                Label("Use on this page", systemImage: "arrow.triangle.2.circlepath")
+            }
+            Button { addEntryPage(0, of: entry) } label: {
+                Label("Add as new page", systemImage: "plus.rectangle.on.rectangle")
+            }
             Button { renameText = entry.name; renaming = entry } label: { Label("Rename", systemImage: "pencil") }
             Button {
                 update(entry)
@@ -107,18 +116,39 @@ struct EditorYourTemplates: View {
         }
     }
 
-    /// One page replaces this page, as a built-in template does; several
-    /// show their strip first.
+    /// One page goes as a built-in template's does — on a new page after
+    /// this one when this page has something on it, else in its place
+    /// (DesignStore.useTemplatePage); several show their strip first.
     private func use(_ entry: UserTemplate) {
+        guard let shown = loaded(entry) else { return }
+        if shown.design.pages.count > 1 {
+            choice = shown
+        } else {
+            let pages = UserTemplates.pages(of: shown.design, width: store.pageWidth, height: store.pageHeight)
+            guard let page = pages.first else { return }
+            store.useTemplatePage(page, name: shown.name)
+            onApplied()
+        }
+    }
+
+    /// The template of your own as saved, or said when it cannot be read.
+    private func loaded(_ entry: UserTemplate) -> TemplateChoice? {
         guard let design = UserTemplates.load(id: entry.id) else {
             store.announce(tr("Couldn't open that template"), undoable: false)
-            return
+            return nil
         }
-        if design.pages.count > 1 {
-            choice = TemplateChoice(id: entry.id, name: entry.name, design: design)
-        } else {
-            usePage(0, of: TemplateChoice(id: entry.id, name: entry.name, design: design))
-        }
+        return TemplateChoice(id: entry.id, name: entry.name, design: design)
+    }
+
+    /// Page `index` of a template of your own from a hold: in place of this
+    /// page.
+    private func useEntryPage(_ index: Int, of entry: UserTemplate) {
+        if let shown = loaded(entry) { usePage(index, of: shown) }
+    }
+
+    /// Page `index` of a template of your own from a hold: on a new page.
+    private func addEntryPage(_ index: Int, of entry: UserTemplate) {
+        if let shown = loaded(entry) { addPage(index, of: shown) }
     }
 
     /// "Apply all N pages": every page fitted to this one, by the rule a
@@ -137,6 +167,15 @@ struct EditorYourTemplates: View {
         let pages = UserTemplates.pages(of: shown.design, width: store.pageWidth, height: store.pageHeight)
         guard pages.indices.contains(index) else { return }
         store.applyTemplatePage(pages[index], name: shown.name)
+        onApplied()
+    }
+
+    /// "Add as new page": page `index` alone, fitted to this page, on a new
+    /// page after it.
+    private func addPage(_ index: Int, of shown: TemplateChoice) {
+        let pages = UserTemplates.pages(of: shown.design, width: store.pageWidth, height: store.pageHeight)
+        guard pages.indices.contains(index) else { return }
+        store.addTemplatePage(pages[index], name: shown.name)
         onApplied()
     }
 

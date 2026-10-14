@@ -2133,6 +2133,47 @@ final class DesignStore {
         announce(tr("Started over from \u{201C}%@\u{201D}", name))
     }
 
+    /// "Add as new page": one page of a template, fitted to this page,
+    /// put in after it and shown, as one undo step — its background and
+    /// everything on it, overwriting nothing, so a locked page does not stop
+    /// it (insertedTemplatePage). As the Android twin's addTemplatePage.
+    func addTemplatePage(_ page: Page, name: String) {
+        let at = pageIndex + 1
+        apply { $0 = Self.insertedTemplatePage($0, page: page, at: at) }
+        pageIndex = at
+        selection.removeAll()
+        buzz(.confirm)
+        announce(tr("Added a page from \u{201C}%@\u{201D}", name))
+    }
+
+    /// What a tap on a template does in the editor: on a page with nothing
+    /// on it, it replaces the page, as ever; on one with something on it —
+    /// or a locked one, which nothing may replace — it goes on a new page
+    /// after it, so a filled page is never overwritten by mistake. A hold
+    /// offers both. As the Android twin's templateAddsPage.
+    var templateAddsPage: Bool { isPageLocked || !page.elements.isEmpty }
+
+    /// One page of a template, the way templateAddsPage says.
+    func useTemplatePage(_ page: Page, name: String) {
+        if templateAddsPage { addTemplatePage(page, name: name) } else { applyTemplatePage(page, name: name) }
+    }
+
+    /// The design with a template's `page` put in at `index`, kept to the
+    /// design's ends. It takes the size of the page it follows (the first
+    /// page's, at 0) — its width and height kept, its own or none — as
+    /// Apply all fits each page. Nothing else changes. The Android twin's
+    /// Templates.insertedTemplatePage. Pure.
+    static func insertedTemplatePage(_ design: Design, page: Page, at index: Int) -> Design {
+        let at = min(max(index, 0), design.pages.count)
+        let beside = design.pages.indices.contains(at - 1) ? design.pages[at - 1] : design.pages.first
+        var sized = page
+        sized.width = beside?.width
+        sized.height = beside?.height
+        var out = design
+        out.pages.insert(sized, at: at)
+        return out
+    }
+
     /// The design with `pages` applied at page `index`: the first in its
     /// place, any more after it at its size. Pure.
     static func appliedTemplate(_ design: Design, pages: [Page], at index: Int) -> Design {
