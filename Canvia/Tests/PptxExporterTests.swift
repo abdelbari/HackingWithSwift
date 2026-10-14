@@ -427,6 +427,28 @@ final class PptxExporterTests: XCTestCase {
         XCTAssertTrue(slideXML([bold]).contains(run))
     }
 
+    /// The Android twin's "a text set in a Bold or Italic file with no
+    /// weight goes out bold or italic": a text an earlier build set in such
+    /// a file, with no weight or italic of its own, goes out as it is drawn.
+    func testATextSetInABoldOrItalicFileWithNoWeightGoesOutBoldOrItalic() throws {
+        let heavy = try Data(contentsOf: try XCTUnwrap(FontLibrary.bundledURL("lora-700.ttf")))
+        let slanted = try Data(contentsOf: try XCTUnwrap(FontLibrary.bundledURL("lora-400i.ttf")))
+        defer {
+            FontStore.remove(CustomFonts.sha12(heavy))
+            FontStore.remove(CustomFonts.sha12(slanted))
+        }
+        var bold = Element.text("Hi")
+        bold.fontFamily = try FontStore.add(heavy).get()
+        bold.fontWeight = nil
+        var leaning = Element.text("Hi")
+        leaning.fontFamily = try FontStore.add(slanted).get()
+        leaning.fontWeight = nil
+        XCTAssertTrue(slideXML([bold]).contains("<a:rPr sz=\"3150\" b=\"1\">"))
+        XCTAssertTrue(slideXML([leaning]).contains("<a:rPr sz=\"3150\" i=\"1\">"))
+        bold.fontWeight = 400
+        XCTAssertTrue(slideXML([bold]).contains("<a:rPr sz=\"3150\"><a:solidFill>"), "its own weight first")
+    }
+
     /// A colour or a size of its own on some words is a run of its own.
     func testColouredAndSizedWordsAreRunsOfTheirOwn() {
         var el = Element.text("one two")

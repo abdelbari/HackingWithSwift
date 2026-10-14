@@ -27,7 +27,7 @@ enum TextToggle: CaseIterable {
     func isOn(_ el: Element) -> Bool {
         switch self {
         case .bold: return Self.isBold(el)
-        case .italic: return el.italic == true
+        case .italic: return FontLibrary.isItalic(el)
         case .underline: return el.underline == true
         case .strike: return Self.isStruck(el)
         case .uppercase: return el.uppercase == true
@@ -53,7 +53,7 @@ enum TextToggle: CaseIterable {
     /// family of your own with a Bold reads as a library family does. As on
     /// the Android twin.
     static func isBold(_ el: Element) -> Bool {
-        let weight = el.fontWeight ?? 400
+        let weight = FontLibrary.weight(of: el)
         let oneFace = !TypeReadouts.isWeighable(el)
             || !FontLibrary.weights(el.fontFamily).contains { $0 >= 700 }
         return (oneFace ? weight : FontLibrary.resolveWeight(el.fontFamily, weight)) >= 700

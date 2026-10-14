@@ -10,6 +10,7 @@
 
 import XCTest
 import CoreGraphics
+import CoreText
 @testable import Canvia
 
 final class CurvedTextTests: XCTestCase {
@@ -195,6 +196,23 @@ final class CurvedTextTests: XCTestCase {
         let struck = try XCTUnwrap(TextOutliner.path(for: text("~~SALE~~ NOW", curve: 90)))
         let bare = try XCTUnwrap(TextOutliner.path(for: text("SALE NOW", curve: 90)))
         XCTAssertNotEqual(TextOutliner.svgPathData(struck), TextOutliner.svgPathData(bare), "the strike is drawn")
+    }
+
+    /// An underline runs on through the spaces between words, as on the
+    /// Android twin: a space has no outline but keeps its rule.
+    func testAnUnderlineRunsThroughSpacesAlongAPath() throws {
+        var el = text("__I I__", w: 600)
+        el.textPath = "M0 50 L100 50"
+        el.h = 100
+        let path = try XCTUnwrap(TextOutliner.path(for: el))
+        let font = FontLibrary.uiFont(family: nil, size: 40, weight: 400, italic: false) as CTFont
+        let y = 50 + Double(CTFontGetDescent(font)) / 2
+        let box = path.boundingBox
+        var x = Double(box.minX) + 1
+        while x < Double(box.maxX) - 1 {
+            XCTAssertTrue(path.contains(CGPoint(x: x, y: y)), "the underline at \(x)")
+            x += 1
+        }
     }
 
     /// Text along a path keeps a word's bold, as round a curve.

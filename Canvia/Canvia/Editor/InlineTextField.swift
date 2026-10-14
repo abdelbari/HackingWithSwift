@@ -145,7 +145,7 @@ struct InlineTextField: UIViewRepresentable {
     /// What the field's look depends on; when it changes, the words are set
     /// again in the new look.
     static func signature(_ el: Element) -> String {
-        [el.fontFamily ?? "", "\(el.fontSize ?? 42)", "\(el.fontWeight ?? 400)", "\(el.italic == true)",
+        [el.fontFamily ?? "", "\(el.fontSize ?? 42)", "\(FontLibrary.weight(of: el))", "\(FontLibrary.isItalic(el))",
          "\(el.underline == true)", el.align ?? "", "\(el.lineHeight ?? 1.25)", "\(el.letterSpacing ?? 0)",
          el.color ?? "", "\(el.paragraphSpacing ?? 0)", "\(el.indent ?? 0)", el.listStyle ?? "",
          (el.paragraphs ?? []).map { "\($0.list)\($0.level)" }.joined(separator: ",")]
@@ -242,8 +242,7 @@ struct InlineTextField: UIViewRepresentable {
             // typed since the box was last given them.
             var lined = drawn
             if lined.text != words { lined.setText(words) }
-            InlineTextField.paint(view.textStorage, words: words, spans: spans, attrs: attrs,
-                                  weight: drawn.fontWeight ?? 400, italic: drawn.italic == true,
+            InlineTextField.paint(view.textStorage, words: words, spans: spans, attrs: attrs, drawn: drawn,
                                   gradient: el.textFill?.kind == "gradient",
                                   runFont: InlineTextField.runFont(for: drawn))
             FontLibrary.setParagraphStyles(view.textStorage, for: lined)
@@ -703,8 +702,8 @@ struct InlineTextField: UIViewRepresentable {
     static func runFont(for drawn: Element) -> (_ bold: Bool, _ italic: Bool) -> UIFont? {
         { bold, slanted in
             var styled = drawn
-            styled.fontWeight = FontLibrary.resolveWeight(drawn.fontWeight ?? 400, bold: bold)
-            styled.italic = slanted || drawn.italic == true
+            styled.fontWeight = FontLibrary.resolveWeight(FontLibrary.weight(of: drawn), bold: bold)
+            styled.italic = slanted || FontLibrary.isItalic(drawn)
             return FontLibrary.attributes(for: styled)[.font] as? UIFont
         }
     }
@@ -713,12 +712,14 @@ struct InlineTextField: UIViewRepresentable {
     /// the runs in their styles — bold and italic in `runFont`'s faces —
     /// and the markers drawn as nothing (hideMarkers). Then the colours,
     /// sizes and faces of `spans` — counted in the words as they read — on
-    /// the letters they belong to, a face at the box's `weight` and slant
-    /// and the run's, and linked words underlined in the link colour unless
-    /// coloured — or, in `gradient` letters, in the text's ink, as the
-    /// canvas draws them.
+    /// the letters they belong to: a bold or italic word's face at the
+    /// weight and slant of the box `drawn` and the run's, a plain word's at
+    /// `drawn`'s weight and slant in its own font (FontLibrary.weight(of:in:)),
+    /// as the canvas sets them; and linked words underlined in the link
+    /// colour unless coloured — or, in `gradient` letters, in the text's
+    /// ink, as the canvas draws them.
     static func paint(_ storage: NSTextStorage, words: String, spans: [TextSpan],
-                      attrs: [NSAttributedString.Key: Any], weight: Int = 400, italic: Bool = false,
+                      attrs: [NSAttributedString.Key: Any], drawn: Element = Element.text(""),
                       gradient: Bool = false,
                       runFont: (_ bold: Bool, _ italic: Bool) -> UIFont? = { _, _ in nil }) {
         let whole = NSRange(location: 0, length: storage.length)
@@ -728,9 +729,10 @@ struct InlineTextField: UIViewRepresentable {
             let units = RichText.typedUnits(words)
             let runs = RichText.parse(words).runs
             styleRuns(storage, runs: runs, units: units, runFont: runFont)
+            let look = (weight: FontLibrary.weight(of: drawn), italic: FontLibrary.isItalic(drawn), gradient: gradient)
             for span in spans {
                 paintSpan(span, in: storage, runs: runs, units: units, attrs: attrs,
-                          look: (weight: weight, italic: italic, gradient: gradient), runFont: runFont)
+                          look: look, drawn: drawn, runFont: runFont)
             }
             hideMarkers(storage, units: units)
         }
@@ -757,7 +759,7 @@ struct InlineTextField: UIViewRepresentable {
     /// One span's colour, link, face and size on the letters it belongs to.
     private static func paintSpan(_ span: TextSpan, in storage: NSTextStorage, runs: [RichText.Run], units: [Int],
                                   attrs: [NSAttributedString.Key: Any],
-                                  look: (weight: Int, italic: Bool, gradient: Bool),
+                                  look: (weight: Int, italic: Bool, gradient: Bool), drawn: Element,
                                   runFont: (_ bold: Bool, _ italic: Bool) -> UIFont?) {
         for range in RichText.typedRanges(of: span.range, units: units) {
             if let color = span.color ?? (span.link != nil && !look.gradient ? Spans.linkColour : nil) {
@@ -775,9 +777,19 @@ struct InlineTextField: UIViewRepresentable {
             let style = piece.style
             var face = style.bold || style.italic ? runFont(style.bold, style.italic) ?? font : font
             if let family = span.font {
+                // A plain word at the box's own weight and slant in its own
+                // font — that face's, where the box has none (styledWords'
+                // rule, and the Android twin's) — a bold or italic one at
+                // the box's.
+                var weight = look.weight
+                var italic = look.italic
+                if !style.bold && !style.italic {
+                    weight = FontLibrary.weight(of: drawn, in: family)
+                    italic = FontLibrary.isItalic(drawn, in: family)
+                }
                 face = FontLibrary.uiFont(family: family, size: Double(font.pointSize),
-                                          weight: FontLibrary.resolveWeight(look.weight, bold: style.bold),
-                                          italic: look.italic || style.italic)
+                                          weight: FontLibrary.resolveWeight(weight, bold: style.bold),
+                                          italic: italic || style.italic)
             }
             for range in RichText.typedRanges(of: piece.range, units: units) {
                 storage.addAttribute(.font, value: face.withSize(face.pointSize * scale), range: range)

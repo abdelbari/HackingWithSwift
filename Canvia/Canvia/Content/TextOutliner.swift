@@ -156,7 +156,7 @@ enum TextOutliner {
         guard width > 0.5, let runs = CTLineGetGlyphRuns(line) as? [CTRun] else { return nil }
         let start = max(0, (walker.length - width) / 2)
         let declared = FontLibrary.uiFont(family: el.fontFamily, size: el.fontSize ?? 42,
-                                          weight: el.fontWeight ?? 400, italic: el.italic ?? false)
+                                          weight: FontLibrary.weight(of: el), italic: FontLibrary.isItalic(el))
 
         let ink = Ink()
         for run in runs {
@@ -174,14 +174,17 @@ enum TextOutliner {
             CTRunGetPositions(run, range, &positions)
             CTRunGetAdvances(run, range, &advances)
             for i in 0..<count {
-                guard let glyph = CTFontCreatePathForGlyph(font, glyphs[i], nil) else { continue }
                 let centre = start + Double(positions[i].x) + Double(advances[i].width) / 2
                 let here = walker.locate(centre)
                 let transform = CGAffineTransform(translationX: here.point.x, y: here.point.y)
                     .rotated(by: here.angle)
                     .translatedBy(x: -advances[i].width / 2, y: 0)
                     .scaledBy(x: 1, y: -1)
-                ink.add(glyph, transform: transform, color: tint)
+                // A space has no outline but keeps its rule, so an underline
+                // runs on between words (as Android's TextOutlines does).
+                if let glyph = CTFontCreatePathForGlyph(font, glyphs[i], nil) {
+                    ink.add(glyph, transform: transform, color: tint)
+                }
                 for rule in rules(attributes, font: font, advance: advances[i].width) {
                     ink.addRule(rule, transform: transform, color: tint)
                 }
@@ -253,7 +256,9 @@ enum TextOutliner {
         let columnWidth = size * 1.3
         let attrs = FontLibrary.attributes(for: el)
         let declared = FontLibrary.uiFont(family: el.fontFamily, size: size,
-                                          weight: el.fontWeight ?? 400, italic: el.italic ?? false)
+                                          weight: FontLibrary.weight(of: el), italic: FontLibrary.isItalic(el))
+        let boxAscent = Double(CTFontGetAscent(declared as CTFont))
+        let boxDescent = Double(CTFontGetDescent(declared as CTFont))
         // Each word's own face — bold, italic, a font or size of its own —
         // read where the character is in the styled text, when that reads
         // as the text does; else the box's.
@@ -302,12 +307,13 @@ enum TextOutliner {
             for (r, entry) in column.enumerated() where entry.char != " " {
                 let line = CTLineCreateWithAttributedString(NSAttributedString(string: String(entry.char),
                                                                                attributes: style(at: entry.at)))
-                var ascent: CGFloat = 0, descent: CGFloat = 0
-                let advance = CTLineGetTypographicBounds(line, &ascent, &descent, nil)
+                let advance = CTLineGetTypographicBounds(line, nil, nil, nil)
                 guard let runs = CTLineGetGlyphRuns(line) as? [CTRun] else { continue }
                 // The glyph's centre at the column's centre, its baseline so
-                // the letter is centred in its step.
-                let baselineY = top + Double(r) * step + (step + Double(ascent) - Double(descent)) / 2
+                // a letter of the box's own face is centred in its step: the
+                // box's metrics for every character, a word's own size or
+                // face too, as on the Android twin.
+                let baselineY = top + Double(r) * step + (step + boxAscent - boxDescent) / 2
                 for run in runs {
                     let count = CTRunGetGlyphCount(run)
                     guard count > 0 else { continue }
@@ -355,8 +361,8 @@ enum TextOutliner {
         // carries glyph ids that only its own font can trace.
         let declared = FontLibrary.uiFont(family: el.fontFamily,
                                           size: el.fontSize ?? 42,
-                                          weight: el.fontWeight ?? 400,
-                                          italic: el.italic ?? false)
+                                          weight: FontLibrary.weight(of: el),
+                                          italic: FontLibrary.isItalic(el))
 
         let ink = Ink()
         for (index, line) in lines.enumerated() {
@@ -468,8 +474,8 @@ enum TextOutliner {
         let radius = width / theta
         let declared = FontLibrary.uiFont(family: el.fontFamily,
                                           size: el.fontSize ?? 42,
-                                          weight: el.fontWeight ?? 400,
-                                          italic: el.italic ?? false)
+                                          weight: FontLibrary.weight(of: el),
+                                          italic: FontLibrary.isItalic(el))
 
         let ink = Ink()
         for run in runs {
@@ -489,7 +495,6 @@ enum TextOutliner {
             CTRunGetAdvances(run, range, &advances)
 
             for i in 0..<count {
-                guard let glyph = CTFontCreatePathForGlyph(font, glyphs[i], nil) else { continue }
                 // Place each glyph by its own centre rather than its left edge,
                 // so wide and narrow letters sit evenly around the arc instead
                 // of drifting anticlockwise as the line goes on.
@@ -500,7 +505,11 @@ enum TextOutliner {
                     .rotated(by: angle)
                     .translatedBy(x: -advances[i].width / 2, y: 0)
                     .scaledBy(x: 1, y: -1)
-                ink.add(glyph, transform: transform, color: tint)
+                // A space has no outline but keeps its rule, so an underline
+                // runs on between words (as Android's TextOutlines does).
+                if let glyph = CTFontCreatePathForGlyph(font, glyphs[i], nil) {
+                    ink.add(glyph, transform: transform, color: tint)
+                }
                 for rule in rules(attributes, font: font, advance: advances[i].width) {
                     ink.addRule(rule, transform: transform, color: tint)
                 }

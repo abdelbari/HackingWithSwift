@@ -434,7 +434,7 @@ struct TextElementView: View {
         capEl.fontSize = layout.capFontSize
         capEl.lineHeight = 1
         capAttrs[.font] = FontLibrary.uiFont(family: el.fontFamily, size: layout.capFontSize,
-                                             weight: el.fontWeight ?? 400, italic: el.italic ?? false)
+                                             weight: FontLibrary.weight(of: el), italic: FontLibrary.isItalic(el))
         capAttrs[.paragraphStyle] = nil
         // The cap in the colour of the word it starts; the body with every
         // word's own colour and size, as the Android twin draws them.

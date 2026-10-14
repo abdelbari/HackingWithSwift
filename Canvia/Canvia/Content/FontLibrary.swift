@@ -337,8 +337,8 @@ enum FontLibrary {
             paragraphSpacing = el.paragraphSpacing ?? 0
             family = el.fontFamily
             size = el.fontSize ?? 42
-            weight = el.fontWeight ?? 400
-            italic = el.italic ?? false
+            weight = FontLibrary.weight(of: el)
+            italic = FontLibrary.isItalic(el)
             underline = el.underline ?? false
             align = el.align
             lineHeight = el.lineHeight ?? 1.25
@@ -495,7 +495,7 @@ enum FontLibrary {
     private static func buildAttributes(for el: Element) -> [NSAttributedString.Key: Any] {
         let size = el.fontSize ?? 42
         let font = uiFont(family: el.fontFamily, size: size,
-                          weight: el.fontWeight ?? 400, italic: el.italic ?? false)
+                          weight: FontLibrary.weight(of: el), italic: FontLibrary.isItalic(el))
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = {
             switch el.align ?? "center" {
@@ -631,13 +631,18 @@ enum FontLibrary {
             return plain
         }
         let size = el.fontSize ?? 42
-        let weight = el.fontWeight ?? 400
-        let italic = el.italic == true
+        let weight = FontLibrary.weight(of: el)
+        let italic = FontLibrary.isItalic(el)
         // A word's own face at the box's size and weight, bold and italic
-        // by the same rule as the box's own words.
+        // by the same rule as the box's own words; a plain word in a font
+        // of its own with no weight or slant set is drawn at that face's
+        // (weight(of:in:)), as on the Android twin.
         let face = { (family: String, bold: Bool, slanted: Bool) -> UIFont in
-            FontLibrary.uiFont(family: family, size: size, weight: FontLibrary.resolveWeight(weight, bold: bold),
-                               italic: slanted || italic)
+            let plain = !bold && !slanted
+            let base = plain ? FontLibrary.weight(of: el, in: family) : weight
+            let lean = plain ? FontLibrary.isItalic(el, in: family) : italic
+            return FontLibrary.uiFont(family: family, size: size, weight: FontLibrary.resolveWeight(base, bold: bold),
+                                      italic: slanted || lean)
         }
         // Under gradient letters a link takes no colour, as words' colours
         // do not (displaySpans), on both phones.
@@ -650,6 +655,36 @@ enum FontLibrary {
         let lined = NSMutableAttributedString(attributedString: styled)
         setParagraphStyles(lined, for: el)
         return lined
+    }
+
+    /// The weight `el` is set at: its own weight, else — set in a font of
+    /// your own — that face's (CustomFonts.ownWeight), so a text set in a
+    /// Bold file before faces were grouped still draws bold; else 400. The
+    /// Android twin's FontLibrary.weightOf.
+    static func weight(of el: Element) -> Int {
+        weight(of: el, in: el.fontFamily)
+    }
+
+    /// The weight `el`'s words in the font `key` are set at (weight(of:)'s
+    /// rule, with that font's face).
+    static func weight(of el: Element, in key: String?) -> Int {
+        if let own = el.fontWeight { return own }
+        guard CustomFonts.isCustom(key) else { return 400 }
+        return CustomFonts.ownWeight(key, among: FontStore.faces()) ?? 400
+    }
+
+    /// Whether `el` is set in italic: its own say, else its font of your
+    /// own's face's (weight(of:)'s rule). The Android twin's
+    /// FontLibrary.italicOf.
+    static func isItalic(_ el: Element) -> Bool {
+        isItalic(el, in: el.fontFamily)
+    }
+
+    /// Whether `el`'s words in the font `key` are set in italic.
+    static func isItalic(_ el: Element, in key: String?) -> Bool {
+        if let own = el.italic { return own }
+        guard CustomFonts.isCustom(key) else { return false }
+        return CustomFonts.ownItalic(key, among: FontStore.faces()) ?? false
     }
 
     /// The weight a box's words at `weight` are drawn at, **bold** ones

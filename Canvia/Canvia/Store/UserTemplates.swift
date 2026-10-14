@@ -104,10 +104,12 @@ enum UserTemplates {
         if let data = try? encoder.encode(entries) { try? data.write(to: indexURL, options: .atomic) }
     }
 
-    /// A template's design, as saved.
+    /// A template's design, as saved, opened as DesignLibrary.opened opens
+    /// a design.
     static func load(id: String) -> Design? {
         guard let data = try? Data(contentsOf: fileURL(for: id)),
-              var design = try? JSONDecoder().decode(Design.self, from: data) else { return nil }
+              let read = try? JSONDecoder().decode(Design.self, from: data) else { return nil }
+        var design = DesignLibrary.opened(read)
         design.normalizeTextHeights()
         return design
     }

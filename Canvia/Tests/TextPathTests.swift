@@ -2,6 +2,7 @@
 
 import XCTest
 import CoreGraphics
+import CoreText
 @testable import Canvia
 
 final class TextPathTests: XCTestCase {
@@ -125,5 +126,21 @@ final class VerticalTextTests: XCTestCase {
         let box = try XCTUnwrap(TextOutliner.path(for: el)).boundingBoxOfPath
         XCTAssertGreaterThan(box.width, 80)
         XCTAssertLessThanOrEqual(box.height, 120 + 5)
+    }
+
+    /// A character set larger sits on the baseline the box's own metrics
+    /// give its step, as on the Android twin: its own font's ascent and
+    /// descent never move it.
+    @MainActor
+    func testALargerCharacterSitsOnTheBoxBaselineDownAColumn() throws {
+        var el = Element.text("HH", fontSize: 30, w: 200)
+        el.h = 300
+        el.vertical = true
+        el.setSpans([TextSpan(start: 1, end: 2, scale: 2)])
+        let box = try XCTUnwrap(TextOutliner.path(for: el)).boundingBoxOfPath
+        let font = FontLibrary.uiFont(family: "sans", size: 30, weight: 400, italic: false) as CTFont
+        let step = 30 * 1.25
+        let baseline = step + (step + Double(CTFontGetAscent(font)) - Double(CTFontGetDescent(font))) / 2
+        XCTAssertEqual(Double(box.maxY), baseline, accuracy: 1)
     }
 }

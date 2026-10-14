@@ -357,7 +357,11 @@ struct BrandKitSheet: View {
     /// graphic. The Brand tab of Add offers them.
     private func assetSection(_ list: AssetList) -> some View {
         let sources = kit[keyPath: list.keyPath]
-        let selected = store.selectedElements.lazy.compactMap { BrandKit.picture(of: $0) }.first
+        // The one picture selected, not yet in the list; nothing with
+        // several selected, as on the Android twin.
+        let only = store.selectedElements.count == 1 ? store.selectedElements.first : nil
+        let picked = only.flatMap { BrandKit.picture(of: $0) }
+        let selected: String? = picked.flatMap { src -> String? in sources.contains(src) ? nil : src }
         return Section {
             if !sources.isEmpty {
                 LazyVGrid(columns: assetColumns, spacing: 10) {
