@@ -156,7 +156,7 @@ enum TextOutliner {
         guard width > 0.5, let runs = CTLineGetGlyphRuns(line) as? [CTRun] else { return nil }
         let start = max(0, (walker.length - width) / 2)
         let declared = FontLibrary.uiFont(family: el.fontFamily, size: el.fontSize ?? 42,
-                                          weight: el.fontWeight ?? 400, italic: el.italic ?? false)
+                                          weight: FontLibrary.weight(of: el), italic: FontLibrary.isItalic(el))
 
         let ink = Ink()
         for run in runs {
@@ -256,7 +256,7 @@ enum TextOutliner {
         let columnWidth = size * 1.3
         let attrs = FontLibrary.attributes(for: el)
         let declared = FontLibrary.uiFont(family: el.fontFamily, size: size,
-                                          weight: el.fontWeight ?? 400, italic: el.italic ?? false)
+                                          weight: FontLibrary.weight(of: el), italic: FontLibrary.isItalic(el))
         let boxAscent = Double(CTFontGetAscent(declared as CTFont))
         let boxDescent = Double(CTFontGetDescent(declared as CTFont))
         // Each word's own face — bold, italic, a font or size of its own —
@@ -361,8 +361,8 @@ enum TextOutliner {
         // carries glyph ids that only its own font can trace.
         let declared = FontLibrary.uiFont(family: el.fontFamily,
                                           size: el.fontSize ?? 42,
-                                          weight: el.fontWeight ?? 400,
-                                          italic: el.italic ?? false)
+                                          weight: FontLibrary.weight(of: el),
+                                          italic: FontLibrary.isItalic(el))
 
         let ink = Ink()
         for (index, line) in lines.enumerated() {
@@ -474,8 +474,8 @@ enum TextOutliner {
         let radius = width / theta
         let declared = FontLibrary.uiFont(family: el.fontFamily,
                                           size: el.fontSize ?? 42,
-                                          weight: el.fontWeight ?? 400,
-                                          italic: el.italic ?? false)
+                                          weight: FontLibrary.weight(of: el),
+                                          italic: FontLibrary.isItalic(el))
 
         let ink = Ink()
         for run in runs {

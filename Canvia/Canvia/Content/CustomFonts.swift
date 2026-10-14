@@ -154,17 +154,36 @@ enum CustomFonts {
     /// writes it: one entry for each font of your own still used — with the
     /// other faces of its family among `faces` (used(in:faces:)) — in that
     /// order, the entry it had kept as it was, and a new one made from
-    /// `installed` — this phone's font of that hash, if it has it.
+    /// `installed` — this phone's font of that hash, if it has it. An entry
+    /// an earlier build wrote, with no family, weight or italic, gains this
+    /// phone's (withFace), so the other phone groups its faces too.
     static func synced(_ design: Design, installed: (String) -> Record?,
                        faces: [Uploads.FontEntry] = []) -> Design {
         let had = records(in: design)
         var byID: [String: Record] = [:]
         for record in had where byID[record.id] == nil { byID[record.id] = record }
-        let now = used(in: design, faces: faces).compactMap { sha in byID[key(sha)] ?? installed(sha) }
+        let now = used(in: design, faces: faces).compactMap { sha -> Record? in
+            guard let kept = byID[key(sha)] else { return installed(sha) }
+            return withFace(kept, installed: installed)
+        }
         // Unchanged, the design is left as it was — unless it holds an empty
         // list, which is no record at all.
         if now == had && design.fonts?.isEmpty != true { return design }
         return with(design, now)
+    }
+
+    /// `record` with the family, weight and italic it lacks taken from
+    /// `installed`'s entry for its hash, its id, name and file kept; itself
+    /// when it lacks none or this phone has no such font. The Android
+    /// twin's rule.
+    private static func withFace(_ record: Record, installed: (String) -> Record?) -> Record {
+        if record.family != nil && record.weight != nil && record.italic != nil { return record }
+        guard let here = installed(record.sha) else { return record }
+        var out = record
+        out.family = record.family ?? here.family
+        out.weight = record.weight ?? here.weight
+        out.italic = record.italic ?? here.italic
+        return out
     }
 
     /// The entries the design records for the fonts of your own `elements`
@@ -322,6 +341,25 @@ enum CustomFonts {
         return Array(Set((upright.isEmpty ? family : upright).flatMap(offered))).sorted()
     }
 
+    /// The weight of the font `key`'s own face, or nil when it is not among
+    /// `faces`: what a text set in it with no weight of its own is drawn at
+    /// (FontLibrary.weight(of:in:)). Before faces were grouped into
+    /// families each file was its own font, and a text set in the Bold file
+    /// kept no weight; it still draws bold. The Android twin's
+    /// CustomFonts.ownWeight.
+    static func ownWeight(_ key: String?, among faces: [Uploads.FontEntry]) -> Int? {
+        guard let sha = sha(key) else { return nil }
+        return faces.first { $0.id == sha }?.weight
+    }
+
+    /// Whether the font `key`'s own face is an italic, or nil when it is
+    /// not among `faces`: what a text set in it with no slant of its own is
+    /// drawn in (ownWeight's rule).
+    static func ownItalic(_ key: String?, among faces: [Uploads.FontEntry]) -> Bool? {
+        guard let sha = sha(key) else { return nil }
+        return faces.first { $0.id == sha }?.italic
+    }
+
     /// The face a text set in the font `sha` at `weight` and `italic` is
     /// drawn from, and the weight it draws at: among the family's faces of
     /// that slant (all of them when it has none), the weight nearest the
@@ -380,11 +418,13 @@ enum CustomFonts {
     /// The key of the Regular face of the family a design records the font
     /// `key` in — the record of that family nearest 400 upright, as
     /// families(_:) chooses — so a phone without the files still groups
-    /// them; `key` itself when the design records no family for it.
+    /// them — a record with no family by its name, as the Android twin's
+    /// Record.face groups it; `key` itself when the design has no record of it.
     static func familyKey(_ key: String, in design: Design) -> String {
         let had = records(in: design)
-        guard let name = had.first(where: { $0.id == key })?.family else { return key }
-        let family = had.filter { $0.family == name }
+        guard let own = had.first(where: { $0.id == key }) else { return key }
+        let name = own.family ?? own.name
+        let family = had.filter { ($0.family ?? $0.name) == name }
         let upright = family.filter { $0.italic != true }
         return (upright.isEmpty ? family : upright).min { a, b in
             let da = abs((a.weight ?? 400) - 400), db = abs((b.weight ?? 400) - 400)

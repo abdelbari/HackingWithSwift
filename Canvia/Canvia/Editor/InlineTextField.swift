@@ -145,7 +145,7 @@ struct InlineTextField: UIViewRepresentable {
     /// What the field's look depends on; when it changes, the words are set
     /// again in the new look.
     static func signature(_ el: Element) -> String {
-        [el.fontFamily ?? "", "\(el.fontSize ?? 42)", "\(el.fontWeight ?? 400)", "\(el.italic == true)",
+        [el.fontFamily ?? "", "\(el.fontSize ?? 42)", "\(FontLibrary.weight(of: el))", "\(FontLibrary.isItalic(el))",
          "\(el.underline == true)", el.align ?? "", "\(el.lineHeight ?? 1.25)", "\(el.letterSpacing ?? 0)",
          el.color ?? "", "\(el.paragraphSpacing ?? 0)", "\(el.indent ?? 0)", el.listStyle ?? "",
          (el.paragraphs ?? []).map { "\($0.list)\($0.level)" }.joined(separator: ",")]
@@ -243,7 +243,7 @@ struct InlineTextField: UIViewRepresentable {
             var lined = drawn
             if lined.text != words { lined.setText(words) }
             InlineTextField.paint(view.textStorage, words: words, spans: spans, attrs: attrs,
-                                  weight: drawn.fontWeight ?? 400, italic: drawn.italic == true,
+                                  weight: FontLibrary.weight(of: drawn), italic: FontLibrary.isItalic(drawn),
                                   gradient: el.textFill?.kind == "gradient",
                                   runFont: InlineTextField.runFont(for: drawn))
             FontLibrary.setParagraphStyles(view.textStorage, for: lined)
@@ -703,8 +703,8 @@ struct InlineTextField: UIViewRepresentable {
     static func runFont(for drawn: Element) -> (_ bold: Bool, _ italic: Bool) -> UIFont? {
         { bold, slanted in
             var styled = drawn
-            styled.fontWeight = FontLibrary.resolveWeight(drawn.fontWeight ?? 400, bold: bold)
-            styled.italic = slanted || drawn.italic == true
+            styled.fontWeight = FontLibrary.resolveWeight(FontLibrary.weight(of: drawn), bold: bold)
+            styled.italic = slanted || FontLibrary.isItalic(drawn)
             return FontLibrary.attributes(for: styled)[.font] as? UIFont
         }
     }

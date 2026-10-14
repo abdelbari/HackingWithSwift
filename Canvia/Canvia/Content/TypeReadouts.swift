@@ -167,7 +167,7 @@ enum TypeReadouts {
     /// The weight every text is drawn at (FontLibrary.resolveWeight), or nil
     /// when they differ — the chip the Weight row shows chosen.
     static func drawnWeight(_ texts: [Element]) -> Int? {
-        shared(weighable(texts).map { FontLibrary.resolveWeight($0.fontFamily, $0.fontWeight ?? 400) })
+        shared(weighable(texts).map { FontLibrary.resolveWeight($0.fontFamily, FontLibrary.weight(of: $0)) })
     }
 
     /// The Weight row's readout: the name of the weight they are drawn at

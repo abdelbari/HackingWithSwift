@@ -340,6 +340,13 @@ final class CustomFontsTests: XCTestCase {
         XCTAssertEqual(Set(packed.keys), [sha, CustomFonts.sha12(heavy), CustomFonts.sha12(slanted)],
                        "the family's Bold and Italic travel with the Regular")
         XCTAssertEqual(FontStore.familyKey(heavyKey, in: nil), key)
+        // A text set in the Bold file before faces were grouped, with no
+        // weight of its own, still draws bold.
+        var legacy = text(in: heavyKey)
+        legacy.fontWeight = nil
+        XCTAssertEqual(FontLibrary.weight(of: legacy), 700)
+        XCTAssertTrue(TextToggle.isBold(legacy))
+        XCTAssertEqual((FontLibrary.attributes(for: legacy)[.font] as? UIFont)?.fontName, "Lora-Bold")
 
         let missing = font("custom:0123456789ab", 700)
         XCTAssertEqual(missing.fontName, font("sans", 700).fontName)
@@ -551,6 +558,55 @@ final class CustomFontsTests: XCTestCase {
         XCTAssertEqual(CustomFonts.synced(other, installed: { _ in nil }, faces: faces), other)
     }
 
+    /// The rows of the Android twin's "a text set in a face with no weight
+    /// or slant of its own is drawn at that face's": before faces were
+    /// grouped each file was its own font, and a text set in the Bold file
+    /// kept no weight.
+    func testATextSetInAFaceWithNoWeightOrSlantOfItsOwnIsDrawnAtThatFaces() throws {
+        let faces = [face("bbbbbbbbbbbb", "Acme Sans", 700), face("cccccccccccc", "Acme Sans", 400, italic: true),
+                     face("aaaaaaaaaaaa", "Acme Sans", 400)]
+        XCTAssertEqual(CustomFonts.ownWeight("custom:bbbbbbbbbbbb", among: faces), 700)
+        XCTAssertEqual(CustomFonts.ownWeight("custom:cccccccccccc", among: faces), 400)
+        XCTAssertEqual(CustomFonts.ownItalic("custom:bbbbbbbbbbbb", among: faces), false)
+        XCTAssertEqual(CustomFonts.ownItalic("custom:cccccccccccc", among: faces), true)
+        XCTAssertNil(CustomFonts.ownWeight("custom:000000000000", among: faces))
+        XCTAssertNil(CustomFonts.ownItalic("lora", among: faces))
+        XCTAssertEqual(CustomFonts.drawnFace(for: "bbbbbbbbbbbb", weight: 700, italic: false, among: faces)?.face.id,
+                       "bbbbbbbbbbbb")
+        XCTAssertEqual(CustomFonts.drawnFace(for: "cccccccccccc", weight: 400, italic: true, among: faces)?.face.id,
+                       "cccccccccccc")
+        // Not on this phone: 400, upright.
+        var legacy = Element.text("Sale")
+        legacy.fontFamily = "custom:0123456789ab"
+        legacy.fontWeight = nil
+        XCTAssertEqual(FontLibrary.weight(of: legacy), 400)
+        XCTAssertFalse(FontLibrary.isItalic(legacy))
+        legacy.fontWeight = 600
+        XCTAssertEqual(FontLibrary.weight(of: legacy), 600, "its own weight first")
+    }
+
+    /// The rows of the Android twin's "a save gives a record an earlier
+    /// build wrote this phone's family, weight and slant": the name and file
+    /// kept, the face added.
+    func testASaveGivesARecordAnEarlierBuildWroteThisPhonesFace() {
+        let older = CustomFonts.Record(id: "custom:bbbbbbbbbbbb", name: "Acme Sans Bold", file: "bbbbbbbbbbbb.ttf")
+        let here = CustomFonts.Record(id: "custom:bbbbbbbbbbbb", name: "Acme Sans", file: "bbbbbbbbbbbb.otf",
+                                      family: "Acme Sans", weight: 700, italic: false)
+        let d = CustomFonts.with(design("custom:bbbbbbbbbbbb"), [older])
+        let saved = CustomFonts.synced(d) { $0 == "bbbbbbbbbbbb" ? here : nil }
+        XCTAssertEqual(CustomFonts.records(in: saved), [
+            CustomFonts.Record(id: "custom:bbbbbbbbbbbb", name: "Acme Sans Bold", file: "bbbbbbbbbbbb.ttf",
+                               family: "Acme Sans", weight: 700, italic: false),
+        ])
+        // Not on this phone: kept as it was.
+        XCTAssertEqual(CustomFonts.synced(d) { _ in nil }, d)
+        // One that says its face keeps it.
+        var other = here
+        other.weight = 600
+        let said = CustomFonts.with(d, [other])
+        XCTAssertEqual(CustomFonts.synced(said) { _ in here }, said)
+    }
+
     /// The design's record carries the face, so a phone without the files
     /// still groups them; an earlier build's record reads without it.
     func testTheRecordCarriesTheFamilyWeightAndItalic() throws {
@@ -569,7 +625,9 @@ final class CustomFontsTests: XCTestCase {
 
         let d = CustomFonts.with(design("custom:aaaaaaaaaa01", "custom:aaaaaaaaaa00"), [bold, regular, acme])
         XCTAssertEqual(CustomFonts.familyKey("custom:aaaaaaaaaa01", in: d), "custom:aaaaaaaaaa00")
-        XCTAssertEqual(CustomFonts.familyKey("custom:ab12cd34ef56", in: d), "custom:ab12cd34ef56", "no family recorded")
+        XCTAssertEqual(CustomFonts.familyKey("custom:ab12cd34ef56", in: d), "custom:aaaaaaaaaa00",
+                       "no family recorded: grouped by its name, as the Android twin's Record.face")
+        XCTAssertEqual(CustomFonts.familyKey("custom:0123456789ab", in: d), "custom:0123456789ab", "no record")
         XCTAssertEqual(FontChoices.families(["lora", "custom:aaaaaaaaaa01", "custom:aaaaaaaaaa00"], design: d),
                        ["lora", "custom:aaaaaaaaaa00"], "In this design, a family a row")
     }
