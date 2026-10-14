@@ -224,6 +224,8 @@ final class DesignStore {
         // A table's rows follow its words, and connectors their ends, as
         // part of the same step.
         design = DataGraphics.settlingTables(design, since: entry.design, heightFor: measure)
+        // A font or colour given to a chart's words is kept for its Update.
+        design = DataGraphics.styleKept(design, since: entry.design)
         Connectors.resolve(in: &design)
         // A step that changed nothing — a text box opened and left as it
         // was, a crop opened and closed untouched — would be an Undo that
@@ -1910,11 +1912,12 @@ final class DesignStore {
             el.dash = BorderDash.kept(style.dash)
         case .line:
             el.color = style.color
-            el.thickness = style.thickness
             el.dash = style.dash
             el.startCap = style.startCap
             el.endCap = style.endCap
-            if let thickness = style.thickness { el.h = max(8, thickness) }
+            // An elbow's or a curve's box is its ends padded by its weight:
+            // laid round the same ends again.
+            el = LineRoutes.withThickness(el, style.thickness)
         case .sticker:
             break
         }

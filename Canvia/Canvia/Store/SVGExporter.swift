@@ -119,7 +119,7 @@ enum SVGExporter {
     /// of the box, which for a flat line has no height at all (a filter with
     /// no room draws nothing), and for a heading is too little for its glow.
     static func shadowDef(id: String, shadow: Shadow, element el: Element) -> String {
-        let ends: Double = el.type == .line ? arrowSize(el.thickness ?? 4) : 0
+        let ends: Double = el.type == .line ? arrowSize(el.thickness ?? 4) + LineRoutes.bow(el) : 0
         let pad: Double = max(64, shadow.blur * 1.5 + max(abs(shadow.offsetX), abs(shadow.offsetY)) + ends)
         return "<filter id=\"\(id)\" filterUnits=\"userSpaceOnUse\" x=\"\(num(el.x - pad))\" y=\"\(num(el.y - pad))\" " +
         "width=\"\(num(el.w + 2 * pad))\" height=\"\(num(el.h + 2 * pad))\">" +
@@ -139,8 +139,31 @@ enum SVGExporter {
             return shapeMarkup(bare, index: index, defs: &defs) + shapeWordsMarkup(el, index: index, defs: &defs)
         case .text: return textMarkup(el, index: index, defs: &defs)
         case .line: return lineMarkup(el)
-        case .image, .sticker: return bitmapMarkup(el)
+        case .image:
+            if let code = CodeGenerator.vector(el) { return codeMarkup(el, code) }
+            return bitmapMarkup(el)
+        case .sticker: return bitmapMarkup(el)
         }
+    }
+
+    /// A QR code as rectangles (CodeGenerator.vector): its background,
+    /// unless it has none, then one path of its dark modules in its colour,
+    /// each run along a row a rectangle, at the edges' own places so rows
+    /// meet with no seam — as the Android twin writes it.
+    static func codeMarkup(_ el: Element, _ code: CodeGenerator.Vector) -> String {
+        func rect(_ r: CGRect) -> String {
+            "M\(num(el.x + Double(r.minX))) \(num(el.y + Double(r.minY)))H\(num(el.x + Double(r.maxX)))" +
+                "V\(num(el.y + Double(r.maxY)))H\(num(el.x + Double(r.minX)))Z"
+        }
+        var out = ""
+        if let paper = code.style.background, let box = code.background {
+            out += "<path d=\"\(rect(box))\" fill=\"\(escape(paper))\"/>"
+        }
+        if !code.modules.isEmpty {
+            let d = code.modules.map(rect).joined()
+            out += "<path d=\"\(d)\" fill=\"\(escape(code.style.color))\" shape-rendering=\"crispEdges\"/>"
+        }
+        return out
     }
 
     @MainActor
@@ -310,6 +333,7 @@ enum SVGExporter {
     /// every 2.2 of its thickness, stopping short of an arrowhead whose tip
     /// is the line's end, and dots a thickness in from the ends.
     private static func lineMarkup(_ el: Element) -> String {
+        if LineRoutes.keepsLevel(el) { return routeMarkup(el) }
         let y = el.y + el.h / 2
         let t: Double = max(el.thickness ?? 4, 0.5)
         let arrow = arrowSize(t)
@@ -328,6 +352,48 @@ enum SVGExporter {
         markup += capMarkup(el.startCap, x: el.x, y: y, atStart: true, thickness: t, color: stroke)
         markup += capMarkup(el.endCap, x: el.x + el.w, y: y, atStart: false, thickness: t, color: stroke)
         return markup
+    }
+
+    /// An elbowed or curved line (LineRoutes) as one path along its route
+    /// — its corners round, a curve a quadratic — dashed and capped as a
+    /// straight one is, each end's arrowhead or dot pointing along its
+    /// segment. As the Android twin writes it.
+    private static func routeMarkup(_ el: Element) -> String {
+        let t: Double = max(el.thickness ?? 4, 0.5)
+        let route = LineRoutes.route(el)
+        let points = LineRoutes.trimmed(route, startBack: LineRoutes.strokeBack(el, cap: el.startCap),
+                                        endBack: LineRoutes.strokeBack(el, cap: el.endCap))
+        func at(_ p: CGPoint) -> String { "\(num(el.x + Double(p.x))) \(num(el.y + Double(p.y)))" }
+        var d = "M\(at(points[0]))"
+        if route.curved && points.count == 3 {
+            d += "Q\(at(points[1])) \(at(points[2]))"
+        } else {
+            for p in points.dropFirst() { d += "L\(at(p))" }
+        }
+        var dash = ""
+        switch el.dash {
+        case "dashed": dash = " stroke-dasharray=\"\(num(t * 3)) \(num(t * 2))\""
+        case "dotted": dash = " stroke-dasharray=\"0 \(num(t * 2.2))\""
+        default: dash = ""
+        }
+        let stroke = escape(el.color ?? "#1f2430")
+        func cap(_ kind: String?, tip: CGPoint, angle: Double) -> String {
+            switch kind {
+            case "arrow":
+                let head = LineRoutes.arrowhead(tip: tip, angle: angle, size: LineRoutes.arrowSize(t))
+                return "<path d=\"M\(at(head[0]))L\(at(head[1]))L\(at(head[2]))Z\" fill=\"\(stroke)\"/>"
+            case "dot":
+                let c = LineRoutes.dotCentre(tip: tip, angle: angle, t: t)
+                return "<circle cx=\"\(num(el.x + Double(c.x)))\" cy=\"\(num(el.y + Double(c.y)))\" " +
+                    "r=\"\(num(LineRoutes.dotRadius(t)))\" fill=\"\(stroke)\"/>"
+            default:
+                return ""
+            }
+        }
+        let path = "<path d=\"\(d)\" fill=\"none\" stroke=\"\(stroke)\" stroke-width=\"\(num(t))\" " +
+            "stroke-linecap=\"round\" stroke-linejoin=\"round\"\(dash)/>"
+        return path + cap(el.startCap, tip: route.start, angle: route.startAngle)
+            + cap(el.endCap, tip: route.end, angle: route.endAngle)
     }
 
     private static func capMarkup(_ cap: String?, x: Double, y: Double, atStart: Bool,

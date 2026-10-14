@@ -1,5 +1,11 @@
 // Insert sheet: templates, shapes, lines, icons, text presets & font
 // combinations, photos, stickers, and photo-library uploads.
+//
+// The search above the tabs finds every kind of element at once — shapes,
+// icons, stickers, frames, grids, lines, charts and tables, artwork — in
+// sections (ElementSearch, ElementResults), on every tab but Templates and
+// Text, which search their own. What was put on a page lately leads
+// Elements as Recently used, as on the Android twin.
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -27,6 +33,8 @@ struct InsertSheet: View {
     /// The words typed for a code are more than a code holds.
     @State private var qrTooLong = false
     @FocusState private var qrFocused: Bool
+    /// Recently used, read as the sheet opens.
+    @State private var recent: [ElementSearch.Hit] = []
 
     // Six at most: a segmented control gives each the same width, and a
     // seventh cuts the longer names short on a small phone. Icons are a
@@ -47,7 +55,9 @@ struct InsertSheet: View {
 
                 ScrollView {
                     Color.clear.frame(height: 0).id(favoritesVersion)
-                    if nothingMatches {
+                    if searchesElements {
+                        ElementResults(query: search) { insertHit($0) }
+                    } else if nothingMatches {
                         ContentUnavailableView.search(text: search)
                             .padding(.top, 40)
                     } else {
@@ -60,6 +70,11 @@ struct InsertSheet: View {
                         default: backgroundNote
                         }
                     }
+                }
+                // Here rather than on its row, which a search puts away.
+                .sheet(isPresented: $showingData) {
+                    DataSheet(store: store, start: dataStart)
+                        .onDisappear { if !store.selection.isEmpty { dismiss() } }
                 }
             }
             .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always),
@@ -75,6 +90,7 @@ struct InsertSheet: View {
         .onAppear {
             // Replacing? Go straight to the picture sources.
             if isReplacing { tab = "Photos" }
+            recent = ElementSearch.recent()
         }
         .fileImporter(isPresented: $importingPDF, allowedContentTypes: [.pdf]) { result in
             guard case .success(let url) = result else { return }
@@ -198,12 +214,50 @@ struct InsertSheet: View {
         }.value
     }
 
-    /// What the search field says on the tabs whose search is their own.
+    /// What the search field says: the tabs whose search is their own say
+    /// what they find, the rest find every kind of element.
     private var searchPrompt: Text? {
         switch tab {
-        case "Elements": return Text("Search shapes and icons")
+        case "Templates": return nil
         case "Text": return Text("Search font combinations")
-        default: return nil
+        default: return isReplacing ? nil : Text("Search elements")
+        }
+    }
+
+    /// Whether the search shows every kind of element (ElementResults) in
+    /// place of the tab: on any tab but Templates and Text, which search
+    /// their own, and not while a picture is being replaced, when Photos
+    /// searches its pictures.
+    private var searchesElements: Bool {
+        tab != "Templates" && tab != "Text" && !isReplacing && !ElementSearch.normalised(search).isEmpty
+    }
+
+    /// A thing found by the search, or in Recently used, put on the page as
+    /// its own tab puts it; a chart or the table opens the data sheet on
+    /// it, and the QR code its field, where what it is made from is typed.
+    private func insertHit(_ hit: ElementSearch.Hit) {
+        switch hit.kind {
+        case .shape: addShape(hit.id)
+        case .icon: if let icon = IconLibrary.icon(hit.id) { addIcon(icon) }
+        case .sticker: addSticker(hit.id)
+        case .photoFrame: if let preset = DecorativeFrames.preset(hit.id) { insertDecorativeFrame(preset) }
+        case .grid: if let layout = PhotoGrids.layout(hit.id) { addGrid(layout) }
+        case .line: if let preset = ElementSearch.linePresets.first(where: { $0.name == hit.id }) { addLinePreset(preset) }
+        case .stockArt:
+            ElementSearch.remember(.stockArt, hit.id)
+            pickLibraryPicture("asset:\(hit.id)", natural: PhotoLibrary.size)
+        case .chart, .table:
+            dataStart = hit.id
+            search = ""
+            showingData = true
+        case .qr:
+            search = ""
+            tab = "Elements"
+            // Once the tab is there to hold the field.
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(300))
+                qrFocused = true
+            }
         }
     }
 
@@ -219,9 +273,6 @@ struct InsertSheet: View {
             return ContentLibrary.editorTemplates(width: store.pageWidth, height: store.pageHeight,
                                                   everySize: true, matching: search).isEmpty
                 && UserTemplates.matching(UserTemplates.all(), query: search).isEmpty
-        case "Elements":
-            return !ContentLibrary.shapes.contains { ContentLibrary.shape($0, matches: search) }
-                && IconLibrary.search(search).isEmpty
         case "Photos": return filteredPhotos.isEmpty
         case "Stickers":
             return filteredStickerGroups.allSatisfy { $0.emoji.isEmpty } && Stickers.searchAnimated(search).isEmpty
@@ -311,14 +362,16 @@ struct InsertSheet: View {
 
     private var elementsGrid: some View {
         VStack(alignment: .leading, spacing: 8) {
+            // What was put on a page lately, of every kind, first.
+            if !recent.isEmpty {
+                sectionHeader("Recently used")
+                HitRow(hits: recent) { insertHit($0) }
+            }
             sectionHeader("QR code")
             qrRow
             sectionHeader("Lines")
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 10)], spacing: 10) {
-                lineTile("Line", "line.diagonal", nil, nil)
-                lineTile("Arrow", "arrow.right", nil, "arrow")
-                lineTile("Double arrow", "arrow.left.and.right", "arrow", "arrow")
-                lineTile("Dot ends", "ellipsis", "dot", "dot")
+                ForEach(ElementSearch.linePresets, id: \.name) { preset in lineTile(preset) }
             }
             dataRow
             svgImportRow
@@ -343,10 +396,7 @@ struct InsertSheet: View {
     private func shapeTile(_ shape: ShapeDef) -> some View {
         let starred = Favorites.isFavorite("shape", shape.id)
         return Button {
-            // From this page's size — a page may have its own.
-            let size = min(store.pageWidth, store.pageHeight) * 0.28
-            store.add(.shape(shape.id, w: size, h: size))
-            dismiss()
+            addShape(shape.id)
         } label: {
             LibraryShape(definition: shape, cornerRadius: 0)
                 .fill(Color(hex: "#545d6b"))
@@ -357,6 +407,14 @@ struct InsertSheet: View {
         }
         .accessibilityLabel(starred ? "\(shape.name), favourite" : shape.name)
         .contextMenu { favoriteButton("shape", shape.id) }
+    }
+
+    /// From this page's size — a page may have its own.
+    private func addShape(_ id: String) {
+        let size = min(store.pageWidth, store.pageHeight) * 0.28
+        store.add(.shape(id, w: size, h: size))
+        ElementSearch.remember(.shape, id)
+        dismiss()
     }
 
     /// A code is generated from its payload every time it is drawn, so the
@@ -415,22 +473,20 @@ struct InsertSheet: View {
         // twin sizes a code.
         let size = min(store.pageWidth, store.pageHeight) * 0.3
         store.add(.image(CodeGenerator.source(for: payload), w: size.rounded(), h: size.rounded()))
+        ElementSearch.remember(.qr, "qr")
         qrPayload = ""
         dismiss()
     }
 
     /// A line with its ends, named under the tile as the Android twin's
     /// line presets are, so it can be told apart by eye and by VoiceOver.
-    private func lineTile(_ name: String, _ icon: String, _ start: String?, _ end: String?) -> some View {
-        Button {
-            var el = Element.line(w: store.pageWidth * 0.3)
-            el.startCap = start ?? "none"
-            el.endCap = end ?? "none"
-            store.add(el)
-            dismiss()
+    private func lineTile(_ preset: ElementSearch.LinePreset) -> some View {
+        let name = preset.name
+        return Button {
+            addLinePreset(preset)
         } label: {
             VStack(spacing: 4) {
-                Image(systemName: icon)
+                Image(systemName: preset.symbol)
                     .font(.system(size: 20))
                     .frame(width: 64, height: 52)
                     .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
@@ -444,6 +500,16 @@ struct InsertSheet: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(name)
         .accessibilityAddTraits(.isButton)
+    }
+
+    /// 30% of the page wide, with the preset's ends.
+    private func addLinePreset(_ preset: ElementSearch.LinePreset) {
+        var el = Element.line(w: store.pageWidth * 0.3)
+        el.startCap = preset.start ?? "none"
+        el.endCap = preset.end ?? "none"
+        store.add(el)
+        ElementSearch.remember(.line, preset.name)
+        dismiss()
     }
 
     // MARK: icons
@@ -499,6 +565,7 @@ struct InsertSheet: View {
     private func addIcon(_ icon: IconDef) {
         let fill = IconLibrary.fill(for: store.page, brandColours: BrandKit.load().colors)
         store.add(IconLibrary.element(icon, pageWidth: store.pageWidth, pageHeight: store.pageHeight, fill: fill))
+        ElementSearch.remember(.icon, icon.id)
         dismiss()
     }
 
@@ -977,21 +1044,10 @@ struct InsertSheet: View {
                 HStack(spacing: 10) {
                     ForEach(PhotoGrids.layouts) { layout in
                         Button {
-                            // Onto the next unlocked page when this one is
-                            // locked, or not at all.
-                            guard store.landsOnUnlockedPage() else { return }
-                            // Laid out across this page, which may be a size
-                            // of its own, not the document's.
-                            let width = store.pageWidth, height = store.pageHeight
-                            let margin = PhotoGrids.margin(forWidth: width)
-                            let frames = PhotoGrids.elements(for: layout, width: width, height: height,
-                                                             margin: margin, gutter: PhotoGrids.gutter(margin: margin))
-                            store.applyToPage { $0.elements.append(contentsOf: frames) }
-                            store.selection = Set(frames.map(\.id))
-                            dismiss()
+                            addGrid(layout)
                         } label: {
                             VStack(spacing: 4) {
-                                layoutThumb(layout)
+                                Self.layoutThumb(layout)
                                 Text(layout.name).font(.caption2)
                             }
                             .frame(width: 72)
@@ -1004,7 +1060,24 @@ struct InsertSheet: View {
         }
     }
 
-    private func layoutThumb(_ layout: PhotoGrids.Layout) -> some View {
+    /// Laid out across this page, which may be a size of its own, not the
+    /// document's.
+    private func addGrid(_ layout: PhotoGrids.Layout) {
+        // Onto the next unlocked page when this one is locked, or not at all.
+        guard store.landsOnUnlockedPage() else { return }
+        // Laid out across this page, which may be a size of its own, not
+        // the document's.
+        let width = store.pageWidth, height = store.pageHeight
+        let margin = PhotoGrids.margin(forWidth: width)
+        let frames = PhotoGrids.elements(for: layout, width: width, height: height,
+                                         margin: margin, gutter: PhotoGrids.gutter(margin: margin))
+        store.applyToPage { $0.elements.append(contentsOf: frames) }
+        store.selection = Set(frames.map(\.id))
+        ElementSearch.remember(.grid, layout.id)
+        dismiss()
+    }
+
+    static func layoutThumb(_ layout: PhotoGrids.Layout) -> some View {
         Canvas { context, size in
             for cell in layout.cells {
                 let r = CGRect(x: cell.minX * size.width + 1.5, y: cell.minY * size.height + 1.5,
@@ -1031,7 +1104,7 @@ struct InsertSheet: View {
                             insertDecorativeFrame(preset)
                         } label: {
                             VStack(spacing: 4) {
-                                decorativeFrameThumb(preset)
+                                Self.decorativeFrameThumb(preset)
                                 Text(preset.name).font(.caption2).lineLimit(1)
                             }
                             .frame(width: 72)
@@ -1051,11 +1124,12 @@ struct InsertSheet: View {
         guard !made.isEmpty else { return }
         store.applyToPage { $0.elements.append(contentsOf: made) }
         store.selection = Set(made.map(\.id))
+        ElementSearch.remember(.photoFrame, preset.id)
         dismiss()
     }
 
     /// The frame drawn by the page renderer at its own size, scaled down.
-    private func decorativeFrameThumb(_ preset: FrameDef) -> some View {
+    static func decorativeFrameThumb(_ preset: FrameDef) -> some View {
         var design = Design(title: preset.name, width: preset.width, height: preset.height)
         design.pages[0] = Page(background: .color("#eef0f3"),
                                elements: preset.parts.compactMap { DecorativeFrames.element($0, scale: 1) })
@@ -1266,6 +1340,7 @@ struct InsertSheet: View {
         let starred = Favorites.isFavorite("photo", photo.id)
         let inFrame = src == replaceSource
         return Button {
+            if !isReplacing { ElementSearch.remember(.stockArt, photo.id) }
             pickLibraryPicture(src, natural: PhotoLibrary.size)
         } label: {
             photoThumb(photo.id)
@@ -1300,19 +1375,19 @@ struct InsertSheet: View {
     // MARK: data
 
     @State private var showingData = false
+    /// What the data sheet opens on when the search found it: a chart's
+    /// kind, or "table".
+    @State private var dataStart: String?
 
     private var dataRow: some View {
         Button {
+            dataStart = nil
             showingData = true
         } label: {
             Label("Chart or table from typed data", systemImage: "chart.bar.xaxis")
                 .frame(maxWidth: .infinity)
                 .padding(10)
                 .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
-        }
-        .sheet(isPresented: $showingData) {
-            DataSheet(store: store)
-                .onDisappear { if !store.selection.isEmpty { dismiss() } }
         }
     }
 
@@ -1460,8 +1535,7 @@ struct InsertSheet: View {
     private func stickerTile(_ glyph: String) -> some View {
         let starred = Favorites.isFavorite("sticker", glyph)
         return Button {
-            store.add(.sticker(glyph, size: min(store.pageWidth, store.pageHeight) * 0.18))
-            dismiss()
+            addSticker(glyph)
         } label: {
             Text(glyph).font(.system(size: 34))
                 .frame(width: 52, height: 52)
@@ -1469,6 +1543,12 @@ struct InsertSheet: View {
         }
         .accessibilityValue(starred ? "Favourite" : "")
         .contextMenu { favoriteButton("sticker", glyph) }
+    }
+
+    private func addSticker(_ glyph: String) {
+        store.add(.sticker(glyph, size: min(store.pageWidth, store.pageHeight) * 0.18))
+        ElementSearch.remember(.sticker, glyph)
+        dismiss()
     }
 
     /// The stickers that keep moving, each shown moving as it will in
@@ -1511,6 +1591,11 @@ struct InsertSheet: View {
     }
 
     private func sectionHeader(_ title: String) -> some View {
+        Self.header(title)
+    }
+
+    /// A section's heading, as every list in the sheet heads one.
+    static func header(_ title: String) -> some View {
         Text(title.uppercased())
             .font(.system(size: 11, weight: .bold))
             .foregroundStyle(.secondary)

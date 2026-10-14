@@ -545,7 +545,8 @@ struct ContextToolbar: View {
     /// The picture's ink — its opaque part, or its dark part — becomes a
     /// path shape over the same spot, in the ink's own colour.
     private func traceImage(_ el: Element) {
-        guard let image = PhotoLibrary.resolve(el.src) else { return }
+        // A code is traced in its own colours, its background round it.
+        guard let image = CodeGenerator.picture(of: el)?.image ?? PhotoLibrary.resolve(el.src) else { return }
         let size = image.size
         Task.detached(priority: .userInitiated) {
             let traced = Tracer.trace(image)
@@ -1138,9 +1139,19 @@ struct ContextToolbar: View {
         let weightReach = reach("Weight", 1...60, weight)
         sliderControl("Weight", value: weight, in: weightReach,
                       onEditing: { holdReach("Weight", weightReach, $0) }) { v in
-            store.updateSelectedTransient {
-                $0.thickness = v
-                $0.h = max(8, v)
+            // An elbow's or a curve's box is its ends padded by its weight:
+            // laid round the same ends again.
+            store.updateSelectedTransient { $0 = LineRoutes.withThickness($0, v) }
+        }
+        lineTypePicker(el)
+        if LineRoutes.keepsLevel(el) {
+            // Where an elbow's corner sits, or how far a curve bows: live,
+            // one step a drag.
+            let label = LineRoutes.routeType(of: el) == .elbow ? "Corner" : "Bend"
+            sliderControl(label, value: (LineRoutes.bend(of: el) * 100).rounded(), in: -100...100) { v in
+                store.updateSelectedTransient { e in
+                    if LineRoutes.keepsLevel(e) { e = LineRoutes.withBend(e, v.rounded() / 100) }
+                }
             }
         }
         dashMenu(el)
@@ -1165,6 +1176,26 @@ struct ContextToolbar: View {
             toolLabel("arrow.left.and.right", "Ends")
         }
         .accessibilityLabel("Line ends")
+    }
+
+    /// Straight, Elbow or Curve (LineRoutes), the line's ends staying where
+    /// they are: one step a tap, on every unlocked line selected, and
+    /// nothing recorded when they already are.
+    private func lineTypePicker(_ el: Element) -> some View {
+        let current = LineRoutes.routeType(of: el)
+        return Picker("Line type", selection: Binding(get: { current }, set: { type in
+            let lines = store.selectedElements.filter { $0.type == .line && !$0.locked }
+            guard lines.contains(where: { LineRoutes.routeType(of: $0) != type }) else { return }
+            store.updateSelected { e in
+                if e.type == .line { e = LineRoutes.withType(e, type) }
+            }
+            store.buzz(.tick)
+        })) {
+            ForEach(LineRoutes.RouteType.allCases) { type in Text(type.label).tag(type) }
+        }
+        .pickerStyle(.segmented)
+        .frame(width: 210)
+        .accessibilityLabel("Line type")
     }
 
     /// Solid, dashed or dotted: captioned like the rest of the bar, the

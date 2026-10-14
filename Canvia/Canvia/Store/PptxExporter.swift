@@ -171,6 +171,9 @@ enum PptxExporter {
         case shape(String)
         case line
         case picture
+        /// A QR code drawn in its colours alone (CodeGenerator.vector):
+        /// its background and its modules, free-form rectangles.
+        case code
     }
 
     /// What `el` becomes, by the rule the Android twin's kindOf follows.
@@ -205,7 +208,11 @@ enum PptxExporter {
         case .line:
             // A flip turns its ends round (lineXML).
             return .line
-        case .image, .sticker:
+        case .image:
+            // A code drawn in its colours alone, and not flipped, goes out
+            // as rectangles; any other photo as its picture.
+            return !flipped && CodeGenerator.vector(el) != nil ? .code : .picture
+        case .sticker:
             return .picture
         }
     }
@@ -234,7 +241,7 @@ enum PptxExporter {
             let size = FontLibrary.effectiveFontSize(for: el)
             reach += TextEffect.resolve(el.effect, fontSize: size, ink: el.color ?? "#1f2430").reach
         }
-        if el.type == .line { reach += SVGExporter.arrowSize(max(el.thickness ?? 4, 0.5)) }
+        if el.type == .line { reach += SVGExporter.arrowSize(max(el.thickness ?? 4, 0.5)) + LineRoutes.bow(el) }
         return reach
     }
 
@@ -405,6 +412,21 @@ enum PptxExporter {
                 shapes.append(shapeXML(el, preset: preset, id: id, link: link, frame: frame))
             case .line:
                 shapes.append(lineXML(el, id: id, link: link, frame: frame))
+            case .code:
+                guard let code = CodeGenerator.vector(el) else { continue }
+                // Its background first, a shape of its own under the
+                // modules, which carry the element's name and link.
+                var modulesId = id
+                if let paper = code.style.background, let box = code.background {
+                    let properties = "<p:cNvPr id=\"\(id)\" name=\"\(SVGExporter.escape(el.id)) background\"/>"
+                    shapes.append(rectanglesXML(el, properties: properties, rects: [box], colour: paper, frame: frame))
+                    modulesId = nextId
+                    nextId += 1
+                }
+                if !code.modules.isEmpty {
+                    shapes.append(rectanglesXML(el, properties: cNvPr(el, id: modulesId, link: link),
+                                                rects: code.modules, colour: code.style.color, frame: frame))
+                }
             case .picture:
                 let embed = rels.add("image", "../media/\(picture?.name ?? "")")
                 let pad = margin(el)
@@ -497,10 +519,40 @@ enum PptxExporter {
         return "<p:sp>\(properties)<p:spPr>\(look)</p:spPr></p:sp>"
     }
 
+    /// `rects`, in `el`'s own space, as one free-form shape on its box,
+    /// turned with it, filled with `colour` at its opacity and unbordered:
+    /// a QR code's background, or its modules a rectangle a run — as the
+    /// Android twin writes them.
+    private static func rectanglesXML(_ el: Element, properties: String, rects: [CGRect], colour: String,
+                                      frame: Frame) -> String {
+        let w = max(1, emu(el.w * frame.unit))
+        let h = max(1, emu(el.h * frame.unit))
+        func pt(_ x: Double, _ y: Double) -> String {
+            "<a:pt x=\"\(emu(x * frame.unit))\" y=\"\(emu(y * frame.unit))\"/>"
+        }
+        var path = "<a:path w=\"\(w)\" h=\"\(h)\">"
+        for r in rects {
+            let x0 = Double(r.minX), y0 = Double(r.minY), x1 = Double(r.maxX), y1 = Double(r.maxY)
+            path += "<a:moveTo>\(pt(x0, y0))</a:moveTo>"
+            path += "<a:lnTo>\(pt(x1, y0))</a:lnTo><a:lnTo>\(pt(x1, y1))</a:lnTo><a:lnTo>\(pt(x0, y1))</a:lnTo>"
+            path += "<a:close/>"
+        }
+        path += "</a:path>"
+        let geometry = "<a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l=\"0\" t=\"0\" r=\"r\" b=\"b\"/>" +
+            "<a:pathLst>\(path)</a:pathLst></a:custGeom>"
+        let paint = "<a:solidFill>\(color(colour, opacity: el.opacity))</a:solidFill><a:ln><a:noFill/></a:ln>"
+        let shape = "<p:nvSpPr>\(properties)<p:cNvSpPr/><p:nvPr/></p:nvSpPr>"
+        return "<p:sp>\(shape)<p:spPr>\(elementBox(el, frame: frame))\(geometry)\(paint)</p:spPr></p:sp>"
+    }
+
     /// A preset line across the middle of the element's box, with its
     /// ends — swapped when the line is flipped across.
     private static func lineXML(_ el: Element, id: Int, link: String?, frame: Frame) -> String {
         let thickness = max(el.thickness ?? 4, 0.5)
+        if LineRoutes.keepsLevel(el) {
+            let caps = "\(lineEnd("headEnd", el.startCap))\(lineEnd("tailEnd", el.endCap))"
+            return connectorXML(el, id: id, link: link, frame: frame, caps: caps, thickness: thickness)
+        }
         var ends = [el.startCap, el.endCap]
         if el.flipH { ends.reverse() }
         let dash = dashXML(el.dash)
@@ -510,6 +562,35 @@ enum PptxExporter {
         let box = xfrm(x: el.x, y: el.y + el.h / 2, w: el.w, h: 0, rotation: el.rotation, frame: frame)
         let properties = "<p:nvSpPr>\(cNvPr(el, id: id, link: link))<p:cNvSpPr/><p:nvPr/></p:nvSpPr>"
         return "<p:sp>\(properties)<p:spPr>\(box)\(geometry("line"))\(stroke)</p:spPr></p:sp>"
+    }
+
+    /// An elbowed or curved line as PowerPoint's connector between its two
+    /// ends on the slide: bentConnector3, its corner where the bend puts it
+    /// (adj1, from the start), or curvedConnector3 — PowerPoint's S-curve
+    /// between the ends, which has no bow of its own to set. Flipped so it
+    /// runs from the start to the end, with the line's dashes and its ends
+    /// (`caps`) as a straight line has them. As the Android twin writes it.
+    private static func connectorXML(_ el: Element, id: Int, link: String?, frame: Frame,
+                                     caps: String, thickness: Double) -> String {
+        let ends = LineRoutes.ends(of: el)
+        let start = ends.start, end = ends.end
+        let x = Double(min(start.x, end.x)), y = Double(min(start.y, end.y))
+        var flips = ""
+        if end.x < start.x { flips += " flipH=\"1\"" }
+        if end.y < start.y { flips += " flipV=\"1\"" }
+        let off = "<a:off x=\"\(emu(x * frame.unit + frame.dx))\" y=\"\(emu(y * frame.unit + frame.dy))\"/>"
+        let cx = max(0, emu(abs(Double(end.x - start.x)) * frame.unit))
+        let cy = max(0, emu(abs(Double(end.y - start.y)) * frame.unit))
+        let box = "<a:xfrm\(flips)>\(off)<a:ext cx=\"\(cx)\" cy=\"\(cy)\"/></a:xfrm>"
+        var geometry = "<a:prstGeom prst=\"curvedConnector3\"><a:avLst/></a:prstGeom>"
+        if LineRoutes.routeType(of: el) == .elbow {
+            let adj = Int(((1 + LineRoutes.bend(of: el)) / 2 * 100_000).rounded())
+            geometry = "<a:prstGeom prst=\"bentConnector3\"><a:avLst><a:gd name=\"adj1\" fmla=\"val \(adj)\"/></a:avLst></a:prstGeom>"
+        }
+        let paint = "<a:solidFill>\(color(el.color ?? "#1f2430", opacity: el.opacity))</a:solidFill>"
+        let stroke = "<a:ln w=\"\(emu(thickness * frame.unit))\" cap=\"rnd\">\(paint)\(dashXML(el.dash))\(caps)</a:ln>"
+        let properties = "<p:nvCxnSpPr>\(cNvPr(el, id: id, link: link))<p:cNvCxnSpPr/><p:nvPr/></p:nvCxnSpPr>"
+        return "<p:cxnSp>\(properties)<p:spPr>\(box)\(geometry)\(stroke)</p:spPr></p:cxnSp>"
     }
 
     /// A line's or a border's dash as PowerPoint's preset: dashed is

@@ -643,14 +643,19 @@ struct ImageElementView: View {
         // live — whose frame version is read on the way — is watched by this
         // view, and drawn again when its next frame lands; and so is a
         // subject found for focus.
-        let picture = resolvedPicture()
+        // A plain code is drawn as rectangles, sharp at any size and vectors
+        // in a PDF; any other picture through its look.
+        let code = CodeGenerator.vector(element)
+        let picture = code == nil ? resolvedPicture() : nil
         let waits = waitsForSubject()
         let later = makesLookLater()
         let resolved = picture.map {
             ImageFilterEngine.apply(look: element, to: $0.image, cacheKey: $0.key, waits: waits, later: later)
         }
         GeometryReader { _ in
-            if let ui = resolved {
+            if let code {
+                CodeVectorView(code: code)
+            } else if let ui = resolved {
                 let frameW = element.w, frameH = element.h
                 // Fill covers the frame and crops; fit shows the whole picture
                 // and leaves the frame's remainder empty.
@@ -764,6 +769,12 @@ struct ImageElementView: View {
             guard let shown = AnimStore.peek(src) else { return nil }
             base = shown.image
             key = shown.key
+        } else if let src = element.src, CodeGenerator.payload(from: src) != nil {
+            // A code in its own colours and margin, its looks kept apart by
+            // them.
+            guard let code = CodeGenerator.picture(of: element) else { return nil }
+            base = code.image
+            key = code.key
         } else {
             guard let image = PhotoLibrary.resolve(element.src) else { return nil }
             base = image
@@ -772,6 +783,23 @@ struct ImageElementView: View {
             key = element.src.map { AnimStore.isAnim($0) ? AnimStore.shownKey($0) : $0 } ?? ""
         }
         return (base, key)
+    }
+}
+
+/// A QR code as rectangles (CodeGenerator.vector): its background, unless
+/// it has none, then its modules in its colour, in the element's own space.
+/// Shapes, not pixels, so a PDF of the page keeps them as vectors.
+struct CodeVectorView: View {
+    let code: CodeGenerator.Vector
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            if let paper = code.style.background, let box = code.background {
+                Path(box).fill(Color(hex: paper))
+            }
+            Path { path in path.addRects(code.modules) }
+                .fill(Color(hex: code.style.color))
+        }
     }
 }
 
@@ -796,6 +824,11 @@ struct LineElementView: View {
     var body: some View {
         SwiftUI.Canvas { context, size in
             let el = element
+            // An elbowed or curved line along its route.
+            if LineRoutes.keepsLevel(el) {
+                Self.drawRoute(el, in: context)
+                return
+            }
             let t = el.thickness ?? 4
             let y = size.height / 2
             let color = Color(hex: el.color ?? "#1f2430")
@@ -834,6 +867,42 @@ struct LineElementView: View {
             cap(atStart: false, kind: el.endCap)
         }
         .frame(width: element.w, height: element.h)
+    }
+
+    /// An elbowed or curved line (LineRoutes) in its own box: one stroke
+    /// along its route — its corners round, a curve a quadratic — dashed as
+    /// a straight one is, stopping short of an arrowhead whose tip is the
+    /// end, and each end's arrowhead or dot pointing along its segment.
+    static func drawRoute(_ el: Element, in context: GraphicsContext) {
+        let t = max(el.thickness ?? 4, 0.5)
+        let color = Color(hex: el.color ?? "#1f2430")
+        let route = LineRoutes.route(el)
+        let points = LineRoutes.trimmed(route, startBack: LineRoutes.strokeBack(el, cap: el.startCap),
+                                        endBack: LineRoutes.strokeBack(el, cap: el.endCap))
+        var stroke = Path()
+        stroke.move(to: points[0])
+        if route.curved && points.count == 3 {
+            stroke.addQuadCurve(to: points[2], control: points[1])
+        } else {
+            for p in points.dropFirst() { stroke.addLine(to: p) }
+        }
+        var style = StrokeStyle(lineWidth: t, lineCap: .round, lineJoin: .round)
+        if el.dash == "dashed" { style.dash = [t * 3, t * 2] }
+        if el.dash == "dotted" { style.dash = [0.01, t * 2.2] }
+        context.stroke(stroke, with: .color(color), style: style)
+        for (kind, tip, angle) in [(el.startCap, route.start, route.startAngle), (el.endCap, route.end, route.endAngle)] {
+            if kind == "arrow" {
+                let head = LineRoutes.arrowhead(tip: tip, angle: angle, size: LineRoutes.arrowSize(t))
+                var p = Path()
+                p.addLines(head)
+                p.closeSubpath()
+                context.fill(p, with: .color(color))
+            } else if kind == "dot" {
+                let c = LineRoutes.dotCentre(tip: tip, angle: angle, t: t)
+                let r = LineRoutes.dotRadius(t)
+                context.fill(Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)), with: .color(color))
+            }
+        }
     }
 }
 

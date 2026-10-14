@@ -202,6 +202,9 @@ final class ElementEqualityTests: XCTestCase {
             ("focusBlur", { $0.focusBlur = FocusBlur() }),
             ("edge", { $0.edge = PhotoEdge() }),
             ("clip", { $0.clip = ClipPlayback(start: 2) }),
+            ("qrColor", { $0.qrColor = "#1a237e" }),
+            ("qrBackground", { $0.qrBackground = "none" }),
+            ("qrMargin", { $0.qrMargin = 2 }),
             ("textFill", { $0.textFill = Paint(kind: "gradient", color: nil, angle: 90,
                                                 stops: [GradientStop(offset: 0, color: "#ff0000"),
                                                         GradientStop(offset: 1, color: "#0000ff")]) }),
@@ -214,6 +217,9 @@ final class ElementEqualityTests: XCTestCase {
             ("dash", { $0.dash = "dashed" }),
             ("startCap", { $0.startCap = "arrow" }),
             ("endCap", { $0.endCap = "dot" }),
+            ("lineType", { $0.lineType = "elbow" }),
+            ("ends", { $0.ends = [0, 0, 1, 1] }),
+            ("bend", { $0.bend = 0.25 }),
         ]
 
         for (name, mutate) in mutations {
@@ -503,9 +509,14 @@ final class TouchTests: XCTestCase {
         XCTAssertEqual(turned.y, 125, accuracy: 0.001)
     }
 
-    /// A line only ever resizes along its length.
+    /// A line's ends are discs of their own to drag (LineRoutes); one tied
+    /// at both ends only ever resizes along its length.
     func testLineKeepsOnlyEndHandles() {
-        XCTAssertEqual(Set(Touch.handleSet(for: shape(w: 600, h: 8, type: .line))), [.e, .w])
+        var line = shape(w: 600, h: 8, type: .line)
+        XCTAssertEqual(Touch.handleSet(for: line), [])
+        line.connectFrom = "a"
+        line.connectTo = "b"
+        XCTAssertEqual(Set(Touch.handleSet(for: line)), [.e, .w])
     }
 
     /// Stickers and QR codes scale from their corners; a photo's sides trim.

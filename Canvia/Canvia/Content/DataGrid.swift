@@ -128,6 +128,126 @@ enum DataGrid {
         return [names] + body.map { $0 + Array(repeating: "", count: max(0, width - $0.count)) }
     }
 
+    // MARK: Import CSV
+
+    /// The most of a CSV file the grid takes in, rows and columns, and the
+    /// largest file Import CSV opens.
+    static let csvRows = 50
+    static let csvColumns = 12
+    static let csvBytes = 1024 * 1024
+
+    /// A CSV file in the grid: its first csvRows rows of its first
+    /// csvColumns columns, and how many of each the file had.
+    struct CsvImport: Equatable {
+        var cells: [[String]]
+        var rows: Int
+        var columns: Int
+
+        /// What was left out, when anything was: "Imported 50 of 212 rows",
+        /// "Imported 12 of 20 columns", or both — "Imported 50 of 212 rows
+        /// and 12 of 20 columns" — in the Android twin's words.
+        var note: String? {
+            let r = rows > DataGrid.csvRows ? "\(DataGrid.csvRows) of \(rows) rows" : nil
+            let c = columns > DataGrid.csvColumns ? "\(DataGrid.csvColumns) of \(columns) columns" : nil
+            switch (r, c) {
+            case let (r?, c?): return "Imported \(r) and \(c)"
+            case let (r?, nil): return "Imported \(r)"
+            case let (nil, c?): return "Imported \(c)"
+            default: return nil
+            }
+        }
+    }
+
+    /// A CSV file's rows as RFC 4180 has them, as the Android twin reads
+    /// one (the test rows are shared): a byte-order mark at the start
+    /// dropped; cells split at commas — or at tabs, when the file's first
+    /// line has one (a TSV); a cell in double quotes holding commas, line
+    /// breaks and doubled quotes ("" for "); rows ending at CRLF, LF or CR.
+    /// A quote opens a quoted cell only where the cell begins, spaces
+    /// before it aside; anywhere else it is a quote. Each cell's spaces are
+    /// trimmed, as cells trims them, and rows with no words are left out.
+    /// The first csvRows rows and csvColumns columns are kept, every row as
+    /// wide as the widest kept.
+    static func fromCsv(_ text: String) -> CsvImport {
+        var body = Array(text.unicodeScalars)
+        if body.first == "\u{FEFF}" { body.removeFirst() }
+        let firstLine = body.prefix { $0 != "\n" && $0 != "\r" }
+        let split: Unicode.Scalar = firstLine.contains("\t") ? "\t" : ","
+        var rows: [[String]] = []
+        var row: [String] = []
+        var cell = String.UnicodeScalarView()
+        var quoted = false
+        var started = false
+        func endCell() {
+            row.append(String(cell).trimmingCharacters(in: .whitespaces))
+            cell = String.UnicodeScalarView()
+            started = false
+        }
+        func endRow() {
+            endCell()
+            if row.contains(where: { !$0.isEmpty }) { rows.append(row) }
+            row = []
+        }
+        var i = 0
+        while i < body.count {
+            let ch = body[i]
+            if quoted {
+                if ch == "\"" {
+                    if i + 1 < body.count && body[i + 1] == "\"" {
+                        cell.append("\"")
+                        i += 1
+                    } else {
+                        quoted = false
+                    }
+                } else {
+                    cell.append(ch)
+                }
+            } else if ch == "\"" && !started && String(cell).trimmingCharacters(in: .whitespaces).isEmpty {
+                cell = String.UnicodeScalarView()
+                quoted = true
+                started = true
+            } else if ch == split {
+                endCell()
+            } else if ch == "\r" || ch == "\n" {
+                if ch == "\r" && i + 1 < body.count && body[i + 1] == "\n" { i += 1 }
+                endRow()
+            } else {
+                cell.append(ch)
+            }
+            i += 1
+        }
+        if !cell.isEmpty || started || !row.isEmpty { endRow() }
+        let columns = rows.map(\.count).max() ?? 0
+        let kept = padded(rows.prefix(csvRows).map { Array($0.prefix(csvColumns)) })
+        return CsvImport(cells: kept, rows: rows.count, columns: columns)
+    }
+
+    /// What Import CSV makes of a file: its rows, or why it brought none.
+    enum CsvRead: Equatable {
+        case rows(CsvImport)
+        case refused(String)
+    }
+
+    /// A file's bytes for the grid, in the Android twin's words when they
+    /// will not do: none read, more than csvBytes, or no rows with words.
+    /// Read as UTF-8, anything that is not standing in for a character.
+    static func read(csv data: Data?) -> CsvRead {
+        guard let data else { return .refused("That file could not be read") }
+        guard data.count <= csvBytes else { return .refused("That file is over 1 MB") }
+        let read = fromCsv(String(decoding: data, as: UTF8.self))
+        return read.cells.isEmpty ? .refused("No rows to import in that file") : .rows(read)
+    }
+
+    /// The file at `url` — one the file picker handed over — read for the
+    /// grid, no more of it than one byte past csvBytes.
+    static func read(csvAt url: URL) -> CsvRead {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return read(csv: nil) }
+        defer { try? handle.close() }
+        return read(csv: (try? handle.read(upToCount: csvBytes + 1)) ?? Data())
+    }
+
     /// Every row as wide as the widest.
     static func padded(_ rows: [[String]]) -> [[String]] {
         let width = rows.map(\.count).max() ?? 0
