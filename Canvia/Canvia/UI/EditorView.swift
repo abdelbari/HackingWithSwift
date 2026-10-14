@@ -393,7 +393,7 @@ struct EditorView: View {
             if store.editingTextId == nil && !titleFocused {
                 let step = Units.arrowStep(store.design, shift: false)
                 let big = Units.arrowStep(store.design, shift: true)
-                let bigName = Units.readout(big, store.design)
+                let bigName = Units.readout(big, store.design) + Units.suffix(store.design)
                 Group {
                     shortcut(.leftArrow, [], "Nudge left") { store.nudgeSelected(dx: -step, dy: 0) }
                     shortcut(.rightArrow, [], "Nudge right") { store.nudgeSelected(dx: step, dy: 0) }

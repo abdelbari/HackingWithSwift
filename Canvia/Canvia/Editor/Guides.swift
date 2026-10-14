@@ -218,12 +218,10 @@ enum Guides {
 
     /// The same in a design measured in `unit` (mm, cm or in) at `dpi`: typed
     /// in that unit — "12.5", "12.5 mm" — as Position's numbers are, and
-    /// given back in page pixels. Pixels with no unit.
+    /// given back in whole page pixels (Units.typedLength), as Android does.
+    /// Pixels with no unit, as typed.
     static func typedPosition(_ typed: String, limit: Double, unit: String?, dpi: Double) -> Double? {
-        var text = typed.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let suffix = unit.flatMap { Units.isPhysical($0) ? $0 : nil } ?? "px"
-        if text.hasSuffix(suffix) { text = String(text.dropLast(suffix.count)).trimmingCharacters(in: .whitespaces) }
-        guard let value = Double(text.replacingOccurrences(of: ",", with: ".")), value.isFinite else { return nil }
-        return min(max(Units.exactPixels(value, unit: unit, dpi: dpi), 0), max(limit, 0))
+        guard let px = Units.typedLength(typed, unit: unit, dpi: dpi) else { return nil }
+        return min(max(px, 0), max(limit, 0))
     }
 }

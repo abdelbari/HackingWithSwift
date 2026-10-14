@@ -1257,7 +1257,7 @@ struct PositionSheet: View {
     }
 
     /// The step picked as it reads: "10", "0.1 mm".
-    private var nudgeStepName: String { Units.readout(nudgeStep, store.design) }
+    private var nudgeStepName: String { Units.readout(nudgeStep, store.design) + Units.suffix(store.design) }
 
     /// Arrows that move the selection by one of three steps a tap — 1, 10
     /// or 100 pixels, or the design's own unit's (Units.nudgeSteps) — with
@@ -1325,7 +1325,7 @@ struct PositionSheet: View {
         guard store.design.physicalUnit != nil else {
             return "\(Int(box.minX)), \(Int(box.minY))  ·  \(Int(box.width)) × \(Int(box.height))"
         }
-        let at = Units.readoutNumber(box.minX, store.design) + ", " + Units.readoutNumber(box.minY, store.design)
+        let at = Units.readout(box.minX, store.design) + ", " + Units.readout(box.minY, store.design)
         return at + "  ·  " + Units.readout(width: box.width, height: box.height, store.design)
     }
 
@@ -1408,14 +1408,15 @@ struct PositionSheet: View {
 
     /// A length on the page: shown and typed in the design's unit when it
     /// has a physical one — "X (mm)", to a tenth of a millimetre or a
-    /// hundredth of a centimetre or inch — and handed on in page pixels.
+    /// hundredth of a centimetre or inch — and handed on in whole page
+    /// pixels (Units.pixels), as Android's Units.typedLength makes them.
     private func lengthRow(_ label: String, px: Double, commit: @escaping (Double) -> Void) -> some View {
         let design = store.design
         guard let unit = design.physicalUnit else { return numberRow(label, value: px, commit: commit) }
         let dpi = design.effectiveDPI
         return numberRow("\(label) (\(unit))", value: Units.value(ofPixels: px, unit: unit, dpi: dpi),
                          places: Units.places(unit)) { typed in
-            commit(Units.exactPixels(typed, unit: unit, dpi: dpi))
+            commit(Units.pixels(typed, unit: unit, dpi: dpi))
         }
     }
 

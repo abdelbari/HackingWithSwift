@@ -25,7 +25,7 @@ enum Readouts {
     /// design.
     static func move(x: Double, y: Double, heldX: Bool, heldY: Bool,
                      gapX: Double?, gapY: Double?, in design: Design?) -> [BadgeRun] {
-        func length(_ px: Double) -> String { design.map { Units.readout(px, $0) } ?? String(Int(px.rounded())) }
+        func length(_ px: Double) -> String { design.map { Units.readout(px, $0) + Units.suffix($0) } ?? String(Int(px.rounded())) }
         var runs: [BadgeRun] = []
         if heldX { runs.append(BadgeRun(text: "● ", accent: true)) }
         runs.append(BadgeRun(text: "x " + length(x)))

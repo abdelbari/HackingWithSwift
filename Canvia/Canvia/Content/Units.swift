@@ -41,11 +41,12 @@ enum Units {
         }
     }
 
-    /// A length typed in `unit` as whole pixels at `dpi`, rounded half up:
-    /// 85 mm at 300 dpi is 1004 px.
+    /// A length typed in `unit` as whole pixels at `dpi`, rounded half up —
+    /// -1.5 to -1 as well, as Android's floor(x + 0.5) takes it: 85 mm at
+    /// 300 dpi is 1004 px.
     static func pixels(_ value: Double, unit: String, dpi: Double) -> Double {
         guard isPhysical(unit), dpi > 0 else { return value.rounded() }
-        return (value / perInch(unit) * dpi).rounded()
+        return (value / perInch(unit) * dpi + 0.5).rounded(.down)
     }
 
     /// Pixels read in `unit` at `dpi`: 1004 px at 300 dpi is 85.01 mm.
@@ -121,25 +122,27 @@ enum Units {
         return text
     }
 
-    /// A length typed in `unit` as pixels at `dpi`, not rounded — a
-    /// position or a nudge of 0.1 mm stays 0.1 mm, where a page's side is
-    /// made whole (`pixels`). Pixels as they are.
+    /// A length in `unit` as pixels at `dpi`, not rounded — a nudge of
+    /// 0.1 mm stays 0.1 mm, where a typed length is made whole (`pixels`,
+    /// `typedLength`), as on Android. Pixels as they are.
     static func exactPixels(_ value: Double, unit: String?, dpi: Double) -> Double {
         guard let unit, isPhysical(unit), dpi > 0 else { return value }
         return value / perInch(unit) * dpi
     }
 
-    /// A length on the page, `px` pixels, as `design` reads it: "12.5 mm",
-    /// "0.33 in"; in pixels the whole number alone, "120".
+    /// A length on the page, `px` pixels, as `design` reads it — the number
+    /// alone, its unit said after it (`suffix`) or in the field's label:
+    /// "12.5", "0.33"; in pixels the nearest whole pixel, halves up, "120".
+    /// Never "-0". Android's Units.readout, with the same rows.
     static func readout(_ px: Double, _ design: Design) -> String {
-        guard let unit = design.physicalUnit else { return readoutNumber(px, design) }
-        return readoutNumber(px, design) + " " + unit
+        guard let unit = design.physicalUnit else { return px.isFinite ? String(Int((px + 0.5).rounded(.down))) : "0" }
+        return decimal(value(ofPixels: px, unit: unit, dpi: design.effectiveDPI), unit: unit)
     }
 
-    /// The number alone: "12.5", or the nearest whole pixel.
-    static func readoutNumber(_ px: Double, _ design: Design) -> String {
-        guard let unit = design.physicalUnit else { return px.isFinite ? String(Int(px.rounded())) : "0" }
-        return decimal(value(ofPixels: px, unit: unit, dpi: design.effectiveDPI), unit: unit)
+    /// What follows a readout of `design`'s: " mm", " cm" or " in", and
+    /// nothing for pixels — "x 12.5 mm", "x 120".
+    static func suffix(_ design: Design) -> String {
+        design.physicalUnit.map { " " + $0 } ?? ""
     }
 
     /// A box's size as the size badge reads it: "210 × 99 mm"; in pixels
@@ -149,7 +152,7 @@ enum Units {
             guard width.isFinite, height.isFinite else { return "0 × 0" }
             return "\(Int(width)) × \(Int(height))"
         }
-        return "\(readoutNumber(width, design)) × \(readoutNumber(height, design)) \(unit)"
+        return "\(readout(width, design)) × \(readout(height, design)) \(unit)"
     }
 
     /// The Position panel's nudge steps in `unit`, smallest first: 0.1, 1
@@ -160,6 +163,26 @@ enum Units {
         case "cm", "in": return [0.01, 0.1, 1]
         default: return [1, 10, 100]
         }
+    }
+
+    /// A position or a length typed in `unit` at `dpi` — "12.5", "12,5",
+    /// "-3", "12.5 mm" — as page pixels: whole pixels for a physical unit
+    /// (`pixels`), and as typed for pixels, where "120 px" reads too. Only
+    /// that unit may follow the number; nil when it is not a number.
+    /// Android's Units.typedLength, row for row.
+    static func typedLength(_ text: String, unit: String?, dpi: Double) -> Double? {
+        let physical = unit.flatMap { isPhysical($0) ? $0 : nil }
+        let name = physical ?? "px"
+        var t = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if t.hasSuffix(name) { t = String(t.dropLast(name.count)).trimmingCharacters(in: .whitespaces) }
+        guard let value = Double(t.replacingOccurrences(of: ",", with: ".")), value.isFinite else { return nil }
+        if let physical { return pixels(value, unit: physical, dpi: dpi) }
+        return value
+    }
+
+    /// The same, typed in `design`'s unit.
+    static func typedLength(_ text: String, _ design: Design) -> Double? {
+        typedLength(text, unit: design.physicalUnit, dpi: design.effectiveDPI)
     }
 
     /// One of those steps in `design` as page pixels.

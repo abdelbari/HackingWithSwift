@@ -208,7 +208,7 @@ struct CanvasView: View {
             Button("Cancel", role: .cancel) {}
         } message: { guide in
             Text("From 0 to " + Units.readout(guide.vertical ? store.pageWidth : store.pageHeight, store.design)
-                 + (store.design.physicalUnit == nil ? " px" : ""))
+                 + (store.design.physicalUnit == nil ? " px" : Units.suffix(store.design)))
         }
         // Typing in place stays above the keyboard: when it starts, when the
         // keyboard arrives or changes, and as the box grows line by line.
@@ -1065,7 +1065,7 @@ struct CanvasView: View {
     private func askPosition(_ guide: Guide) {
         let at = guide.position
         // In the design's unit when it has a physical one.
-        guidePositionText = store.design.physicalUnit != nil ? Units.readoutNumber(at, store.design)
+        guidePositionText = store.design.physicalUnit != nil ? Units.readout(at, store.design)
             : at == at.rounded() ? String(Int(at)) : String(at)
         positioningGuide = guide
     }

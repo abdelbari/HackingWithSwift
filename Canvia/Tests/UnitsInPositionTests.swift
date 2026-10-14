@@ -17,24 +17,46 @@ final class UnitsInPositionTests: XCTestCase {
 
     // MARK: Units.readout
 
-    func testALengthReadsInTheDesignsUnit() {
-        let a4 = design("mm", dpi: 300)
-        XCTAssertEqual(Units.readout(147.6378, a4), "12.5 mm")
-        XCTAssertEqual(Units.readout(472.4409, a4), "40 mm")
-        XCTAssertEqual(Units.readout(2480, a4), "210 mm", "209.97 to a tenth")
-        XCTAssertEqual(Units.readout(1, a4), "0.1 mm")
-        XCTAssertEqual(Units.readout(300, design("cm", dpi: 300)), "2.54 cm")
-        XCTAssertEqual(Units.readout(300, design("in", dpi: 300)), "1 in")
-        XCTAssertEqual(Units.readout(100, design("in", dpi: 300)), "0.33 in")
-        XCTAssertEqual(Units.readout(118.11, design("mm")), "10 mm", "a unit with no dpi is at 300")
-        XCTAssertEqual(Units.readout(-147.6378, a4), "-12.5 mm")
+    /// Android's UnitsTest readout rows, verbatim: the number alone, its
+    /// unit after it (Units.suffix).
+    func testAReadoutIsInTheDesignsUnitToATenthOfAMillimetreOrAHundredthOfACentimetreOrInch() {
+        // (pixels, unit, dpi, readout)
+        let rows: [(Double, String, Double, String)] = [
+            (2480, "mm", 300, "210"),
+            (1169, "mm", 300, "99"),
+            (12.5 / 25.4 * 300, "mm", 300, "12.5"),
+            (40 / 25.4 * 300, "mm", 300, "40"),
+            (1, "mm", 300, "0.1"),
+            (0, "mm", 300, "0"),
+            (-1, "mm", 300, "-0.1"),
+            // Too small to show is nought, never minus nought.
+            (-0.1, "mm", 300, "0"),
+            (96, "mm", 96, "25.4"),
+            (2480, "cm", 300, "21"),
+            (1000, "cm", 300, "8.47"),
+            (2550, "in", 300, "8.5"),
+            (100, "in", 300, "0.33"),
+            // Pixels are whole, halves up, as the readouts always were.
+            (120.4, "px", 300, "120"),
+            (120.5, "px", 300, "121"),
+            (-3.6, "px", 300, "-4"),
+            (-120.5, "px", 300, "-120"),
+        ]
+        for (px, unit, dpi, text) in rows {
+            XCTAssertEqual(Units.readout(px, design(unit, dpi: dpi)), text, "\(px) \(unit)")
+        }
+        XCTAssertEqual(Units.suffix(design("mm", dpi: 300)), " mm")
+        XCTAssertEqual(Units.suffix(design("in", dpi: 300)), " in")
+        XCTAssertEqual(Units.suffix(design("px", dpi: 300)), "")
+    }
+
+    func testAUnitWithNoDpiIsAt300() {
+        XCTAssertEqual(Units.readout(118.11, design("mm")), "10")
+        XCTAssertEqual(Units.readout(-147.6378, design("mm", dpi: 300)), "-12.5")
     }
 
     func testPixelsReadAsTheyAlwaysDid() {
-        let px = design(nil)
-        XCTAssertEqual(Units.readout(120.4, px), "120")
-        XCTAssertEqual(Units.readout(120.5, px), "121")
-        XCTAssertEqual(Units.readout(width: 120.9, height: 48, px), "120 × 48", "the size badge cuts")
+        XCTAssertEqual(Units.readout(width: 120.9, height: 48, design(nil)), "120 × 48", "the size badge cuts")
     }
 
     func testASizeReadsWithItsUnitOnce() {
@@ -56,15 +78,45 @@ final class UnitsInPositionTests: XCTestCase {
 
     // MARK: nudges
 
-    func testNudgeStepsAreInTheDesignsUnit() {
-        XCTAssertEqual(Units.nudgeSteps(nil), [1, 10, 100])
+    /// Android's nudge rows: the steps in the design's unit, and the pixels
+    /// they move by, unrounded.
+    func testNudgeStepsAreInTheDesignsUnitAndMoveByTheirPixels() {
         XCTAssertEqual(Units.nudgeSteps("mm"), [0.1, 1, 10])
         XCTAssertEqual(Units.nudgeSteps("cm"), [0.01, 0.1, 1])
         XCTAssertEqual(Units.nudgeSteps("in"), [0.01, 0.1, 1])
-        let a4 = design("mm", dpi: 300)
-        XCTAssertEqual(Units.stepPixels(0.1, a4), 300 / 254, accuracy: 1e-9, "0.1 mm, not rounded to a pixel")
-        XCTAssertEqual(Units.stepPixels(1, design("in", dpi: 300)), 300, accuracy: 1e-9)
-        XCTAssertEqual(Units.stepPixels(10, design(nil)), 10)
+        XCTAssertEqual(Units.nudgeSteps("px"), [1, 10, 100])
+        XCTAssertEqual(Units.nudgeSteps(nil), [1, 10, 100])
+        XCTAssertEqual(Units.stepPixels(1, design("mm", dpi: 300)), 300 / 25.4, accuracy: 1e-9)
+        XCTAssertEqual(Units.stepPixels(0.1, design("in", dpi: 300)), 30, accuracy: 1e-9)
+        XCTAssertEqual(Units.stepPixels(10, design("px", dpi: 300)), 10)
+        XCTAssertEqual(Units.stepPixels(0.1, design("mm", dpi: 300)), 300 / 254, accuracy: 1e-9, "0.1 mm, not rounded to a pixel")
+    }
+
+    // MARK: typed lengths
+
+    /// Android's typedLength rows, verbatim: whole pixels for paper, as
+    /// typed for pixels.
+    func testATypedPositionIsReadInTheDesignsUnitAsWholePixelsForPaper() {
+        // (typed, unit, pixels or nil)
+        let rows: [(String, String, Double?)] = [
+            ("12.5", "mm", 148),
+            (" 12,5 mm ", "mm", 148),
+            ("-3", "mm", -35),
+            ("8.5in", "in", 2550),
+            ("2.1", "cm", 248),
+            ("120 px", "px", 120),
+            ("120.5", "px", 120.5),
+            // Only the design's own unit may follow the number.
+            ("120 px", "mm", nil),
+            ("mm", "mm", nil),
+            ("abc", "px", nil),
+            ("", "px", nil),
+        ]
+        for (typed, unit, px) in rows {
+            XCTAssertEqual(Units.typedLength(typed, design(unit, dpi: 300)), px, "\(typed) in \(unit)")
+        }
+        // A half below nought goes up too, as Android's floor(x + 0.5).
+        XCTAssertEqual(Units.typedLength("-0.5", design("in", dpi: 3)), -1)
     }
 
     func testArrowKeysTakeTheSmallestStepOrTheMiddleWithShift() {
@@ -73,7 +125,7 @@ final class UnitsInPositionTests: XCTestCase {
         let a4 = design("mm", dpi: 300)
         XCTAssertEqual(Units.arrowStep(a4, shift: false), 300 / 254, accuracy: 1e-9)
         XCTAssertEqual(Units.arrowStep(a4, shift: true), 3000 / 254, accuracy: 1e-9)
-        XCTAssertEqual(Units.readout(Units.arrowStep(a4, shift: false), a4), "0.1 mm")
+        XCTAssertEqual(Units.readout(Units.arrowStep(a4, shift: false), a4) + Units.suffix(a4), "0.1 mm")
     }
 
     // MARK: readouts
@@ -89,11 +141,13 @@ final class UnitsInPositionTests: XCTestCase {
     // MARK: guides
 
     func testAGuidesPlaceIsTypedInTheDesignsUnit() {
-        XCTAssertEqual(Guides.typedPosition("12.5", limit: 2480, unit: "mm", dpi: 300) ?? 0, 147.6378, accuracy: 1e-3)
-        XCTAssertEqual(Guides.typedPosition("12,5 mm", limit: 2480, unit: "mm", dpi: 300) ?? 0, 147.6378, accuracy: 1e-3)
+        // Whole pixels, as Android's Units.typedLength makes them.
+        XCTAssertEqual(Guides.typedPosition("12.5", limit: 2480, unit: "mm", dpi: 300), 148)
+        XCTAssertEqual(Guides.typedPosition("12,5 mm", limit: 2480, unit: "mm", dpi: 300), 148)
         XCTAssertEqual(Guides.typedPosition("1 in", limit: 2480, unit: "in", dpi: 300), 300)
         XCTAssertEqual(Guides.typedPosition("500", limit: 2480, unit: "mm", dpi: 300), 2480, "kept on the page")
         XCTAssertEqual(Guides.typedPosition("120 px", limit: 400), 120, "pixels as before")
+        XCTAssertEqual(Guides.typedPosition("120.5", limit: 400), 120.5, "pixels as typed")
         XCTAssertNil(Guides.typedPosition("left", limit: 400, unit: "mm", dpi: 300))
     }
 }
