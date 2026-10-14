@@ -71,12 +71,12 @@ enum ExportJobs {
         }
     }
 
-    static func pdf(_ snapshot: ExportSnapshot, flatten: Bool) -> Work {
+    static func pdf(_ snapshot: ExportSnapshot, flatten: Bool, notes: Bool = false, compress: Bool = false) -> Work {
         { report in
             let url = DesignExporter.fileURL(for: snapshot.design, ext: "pdf")
             try await DesignExporter.exportPDF(design: snapshot.design, range: snapshot.range,
-                                               current: snapshot.current, flatten: flatten, to: url,
-                                               progress: report)
+                                               current: snapshot.current, flatten: flatten, notes: notes,
+                                               compress: compress, to: url, progress: report)
             return ExportQueue.Result(urls: [url])
         }
     }

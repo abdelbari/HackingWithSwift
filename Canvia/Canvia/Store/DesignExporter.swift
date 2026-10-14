@@ -222,7 +222,12 @@ enum DesignExporter {
 
     static func estimatedJPEGBytes(size pageSize: CGSize, requested: Double, quality: Double) -> Int {
         let size = outputSize(size: pageSize, requested: requested)
-        let pixels = Double(size.width) * Double(size.height)
+        return jpegBytes(pixels: Double(size.width) * Double(size.height), quality: quality)
+    }
+
+    /// Rough bytes of a JPEG of `pixels` pixels at `quality`, by the
+    /// calibration above.
+    static func jpegBytes(pixels: Double, quality: Double) -> Int {
         let bitsPerPixel = 0.15 + 2.6 * pow(max(0, min(1, quality)), 2)
         return max(2_048, Int(pixels * bitsPerPixel / 8))
     }
@@ -420,11 +425,20 @@ enum DesignExporter {
     /// Flattened, each page is one picture at 300 dpi instead — no text to
     /// reflow in another font, no links — which is what some print shops
     /// ask for.
+    ///
+    /// With `notes`, a page with notes is followed by a notes page of its
+    /// size (drawNotesPage); with `compress`, every photo is drawn from a
+    /// copy at 150 dpi of the size it prints at, as JPEG at 0.75
+    /// (compressedForPDF), and nothing else changes.
     @MainActor
-    static func exportPDF(design: Design, range: PageRange = .all, current: Int = 0, flatten: Bool = false,
+    static func exportPDF(design source: Design, range: PageRange = .all, current: Int = 0, flatten: Bool = false,
+                          notes: Bool = false, compress: Bool = false,
                           to url: URL, progress: ((Double) -> Void)? = nil) async throws {
-        let indices = range.indices(in: design, current: current)
+        let indices = range.indices(in: source, current: current)
         guard !indices.isEmpty else { throw ExportError.renderFailed }
+        let design = compress ? compressedForPDF(source, indices: indices) : source
+        defer { if compress { CompressedPhotos.clear() } }
+        let sheets = ExportChoices.pdfSheets(design: design, indices: indices, notes: notes)
         // Page units are pixels at the design's dpi; PDF works in points
         // at 72 — so a page comes out at its true size.
         let pxToPt = PrintLayout.pxToPt(design)
@@ -435,21 +449,28 @@ enum DesignExporter {
         let writer = try PDFWriter(url: url, bounds: bounds(design.pages[indices[0]]))
         var pacer = Pacer()
         do {
-            for (n, index) in indices.enumerated() {
+            for (n, sheet) in sheets.enumerated() {
                 try await pacer.breathe()
                 // Each page at its own size: a deck can mix a slide and a
-                // handout.
-                let page = design.pages[index]
-                let box = bounds(page)
-                writer.page(box) { cg in
-                    if flatten {
-                        drawFlattened(design: design, page: page, fitting: box)
-                    } else {
-                        draw(design: design, page: page, into: cg, fitting: box)
-                        linkAreas(of: page, in: design, onto: cg, pageHeight: box.height)
+                // handout. A notes page is the size of its page.
+                switch sheet {
+                case .page(let index):
+                    let page = design.pages[index]
+                    let box = bounds(page)
+                    writer.page(box) { cg in
+                        if flatten {
+                            drawFlattened(design: design, page: page, fitting: box)
+                        } else {
+                            draw(design: design, page: page, into: cg, fitting: box)
+                            linkAreas(of: page, in: design, onto: cg, pageHeight: box.height)
+                        }
                     }
+                case .notes(let index):
+                    let page = design.pages[index]
+                    let box = bounds(page)
+                    writer.page(box) { cg in drawNotesPage(design: design, page: page, box: box, flatten: flatten, into: cg) }
                 }
-                progress?(Double(n + 1) / Double(indices.count))
+                progress?(Double(n + 1) / Double(sheets.count))
             }
             try await pacer.finish()
             writer.close()
@@ -458,6 +479,122 @@ enum DesignExporter {
             try? FileManager.default.removeItem(at: url)
             throw error
         }
+    }
+
+    // MARK: notes pages
+
+    /// A notes page of `box` (points): white, the page's picture fitted in
+    /// its top third, and the notes below in the body font at 14 pt,
+    /// wrapped — cut off at the page's foot should they run past it.
+    /// Flattened, the whole notes page is one picture at 300 dpi, as every
+    /// flattened page is.
+    @MainActor
+    private static func drawNotesPage(design: Design, page: Page, box: CGRect, flatten: Bool, into cg: CGContext) {
+        guard flatten else {
+            drawNotesContent(design: design, page: page, box: box, into: cg)
+            return
+        }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = flattenDPI / 72
+        format.opaque = true
+        let picture = UIGraphicsImageRenderer(size: box.size, format: format).image { context in
+            drawNotesContent(design: design, page: page, box: CGRect(origin: .zero, size: box.size),
+                             into: context.cgContext)
+        }
+        picture.draw(in: box)
+    }
+
+    /// What a notes page shows, drawn into `cg`, the current UIKit context,
+    /// y running down.
+    @MainActor
+    private static func drawNotesContent(design: Design, page: Page, box: CGRect, into cg: CGContext) {
+        cg.setFillColor(UIColor.white.cgColor)
+        cg.fill(box)
+        let margin = Double(min(box.width, box.height)) * ExportChoices.notesMarginShare
+        let top = CGRect(x: Double(box.minX) + margin, y: Double(box.minY) + margin,
+                         width: Double(box.width) - 2 * margin, height: Double(box.height) / 3 - margin)
+        let pageSize = design.size(for: page)
+        let fitted = PrintLayout.fitRect(page: pageSize, in: top)
+        draw(design: design, page: page, into: cg, fitting: fitted)
+        cg.setStrokeColor(UIColor(white: 0.8, alpha: 1).cgColor)
+        cg.setLineWidth(0.5)
+        cg.stroke(fitted)
+        let body = CGRect(x: Double(box.minX) + margin, y: Double(top.maxY) + margin,
+                          width: Double(box.width) - 2 * margin,
+                          height: max(0, Double(box.maxY) - Double(top.maxY) - 2 * margin))
+        let style = NSMutableParagraphStyle()
+        style.lineBreakMode = .byWordWrapping
+        let font = FontLibrary.uiFont(family: ExportChoices.notesFamily, size: ExportChoices.notesPointSize,
+                                      weight: 400, italic: false)
+        let words = NSAttributedString(string: page.notes ?? "", attributes: [
+            .font: font, .foregroundColor: UIColor(white: 0.12, alpha: 1), .paragraphStyle: style,
+        ])
+        cg.saveGState()
+        cg.clip(to: body)
+        words.draw(with: body, options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil)
+        cg.restoreGState()
+    }
+
+    // MARK: compressed photos
+
+    /// `design` with every photo on the pages of `indices` (and the master
+    /// behind them) drawn from a copy re-encoded at ExportChoices'
+    /// compressDPI of the size it prints at, as JPEG at its compressQuality
+    /// — a picture with see-through parts kept as it is, smaller, since
+    /// JPEG has no transparency — never larger than it was. The copies are
+    /// kept by stand-in sources (CompressedPhotos) until cleared.
+    @MainActor
+    static func compressedForPDF(_ design: Design, indices: [Int]) -> Design {
+        var out = design
+        var staged: Set<String> = []
+        let pointsPerPixel = design.pointsPerPixel
+        func standIn(for src: String, box: CGSize, cropScale: Double) -> String? {
+            guard ExportChoices.isPhoto(src), let image = PhotoLibrary.resolve(src) else { return nil }
+            let natural = CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
+            let kept = ExportChoices.compressedPixels(natural: natural, box: box, cropScale: cropScale,
+                                                      pointsPerPixel: pointsPerPixel)
+            // Named by its size too, so the same name is always the same
+            // picture, whatever a filter's cache kept of an earlier export.
+            let name = CompressedPhotos.prefix + "\(Int(kept.width))x\(Int(kept.height)):" + src
+            if staged.contains(name) { return name }
+            guard let copy = reencoded(image, to: kept) else { return nil }
+            CompressedPhotos.staged[name] = copy
+            staged.insert(name)
+            return name
+        }
+        var pages = Set(indices)
+        if let master = design.masterPageId, let at = design.pages.firstIndex(where: { $0.id == master }) {
+            pages.insert(at)
+        }
+        for index in pages.sorted() where out.pages.indices.contains(index) {
+            if case .image(let src) = out.pages[index].background,
+               let replaced = standIn(for: src, box: design.size(for: out.pages[index]), cropScale: 1) {
+                out.pages[index].background = .image(replaced)
+            }
+            for i in out.pages[index].elements.indices {
+                let el = out.pages[index].elements[i]
+                guard el.type == .image, let src = el.src,
+                      let replaced = standIn(for: src, box: CGSize(width: el.w, height: el.h),
+                                             cropScale: el.cropScale ?? 1)
+                else { continue }
+                out.pages[index].elements[i].src = replaced
+            }
+        }
+        return out
+    }
+
+    /// `image` at `size` pixels: a JPEG at the compress quality when it is
+    /// opaque, else the smaller bitmap as it is.
+    private static func reencoded(_ image: UIImage, to size: CGSize) -> UIImage? {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let opaque = image.cgImage.map { !ImageDownsampler.hasTransparentPixels($0) } ?? true
+        format.opaque = opaque
+        let smaller = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
+        guard opaque else { return smaller }
+        return smaller.jpegData(compressionQuality: ExportChoices.compressQuality).flatMap(UIImage.init(data:))
     }
 
     /// A linked element clickable over its area, as in Canva's PDFs and the

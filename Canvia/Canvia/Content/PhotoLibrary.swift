@@ -60,6 +60,7 @@ enum PhotoLibrary {
     /// resolved somewhere else entirely.
     static func resolve(_ src: String?) -> UIImage? {
         guard let src else { return nil }
+        if src.hasPrefix(CompressedPhotos.prefix) { return CompressedPhotos.staged[src] }
         if src.hasPrefix("asset:") { return image(id: String(src.dropFirst(6))) }
         if src.hasPrefix("media:") { return MediaStore.load(String(src.dropFirst(6))) }
         if VideoStore.isVideo(src) { return VideoStore.resolve(src) }
@@ -359,6 +360,21 @@ enum PhotoLibrary {
                 y += 45
             }
         }
+    }
+}
+
+// MARK: photos staged for a compressed PDF
+
+/// The smaller copies a compressed PDF draws its photos from, by the stand-in
+/// source each page carries while it is written: "pdfc:<w>x<h>:<source>"
+/// (DesignExporter.compressedForPDF). Never saved in a design; the export
+/// that staged them clears them when it is done.
+enum CompressedPhotos {
+    static let prefix = "pdfc:"
+    static var staged: [String: UIImage] = [:]
+
+    static func clear() {
+        staged.removeAll()
     }
 }
 
