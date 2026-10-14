@@ -281,6 +281,80 @@ final class LineRoutesTests: XCTestCase {
         XCTAssertEqual(store.element("l"), flat)
     }
 
+    /// Shared rows with the Android twin's LineRoutesTest: an elbowed or
+    /// curved line is touched along its route — a curve where it bows, out
+    /// of its box; an elbow not across its box — and outlined and caught
+    /// round where it is drawn.
+    func testAnElbowOrACurveIsTouchedAlongItsRouteAndOutlinedRoundIt() {
+        let curve = LineRoutes.withEnds(LineRoutes.withType(flat, .curve), CGPoint(x: 0, y: 0), CGPoint(x: 400, y: 0))
+        XCTAssertTrue(LineRoutes.near(curve, CGPoint(x: 200, y: 100), reach: 0))
+        XCTAssertTrue(LineRoutes.near(curve, CGPoint(x: 200, y: 110), reach: 12))
+        XCTAssertFalse(LineRoutes.near(curve, CGPoint(x: 200, y: 0), reach: 12))
+        XCTAssertTrue(Geometry.hits(curve, point: CGPoint(x: 200, y: 100)))
+        XCTAssertFalse(Geometry.hits(curve, point: CGPoint(x: 200, y: 0)))
+        let outline = LineRoutes.outlineOf(curve)
+        XCTAssertEqual(outline.x, -4, accuracy: 1e-6)
+        XCTAssertEqual(outline.w, 408, accuracy: 1e-6)
+        XCTAssertEqual(outline.y, -4, accuracy: 1e-6)
+        XCTAssertEqual(outline.h, 106, accuracy: 1e-6)
+        XCTAssertEqual(Geometry.intersecting([curve], CGRect(x: 190, y: 95, width: 20, height: 10)).count, 1)
+        XCTAssertEqual(LineRoutes.outlineOf(flat), flat)
+
+        let elbow = LineRoutes.withEnds(LineRoutes.withType(flat, .elbow), CGPoint(x: 0, y: 0), CGPoint(x: 200, y: 200))
+        XCTAssertFalse(LineRoutes.near(elbow, CGPoint(x: 50, y: 150), reach: 12))
+        XCTAssertFalse(Geometry.hits(elbow, point: CGPoint(x: 50, y: 150)))
+        XCTAssertTrue(LineRoutes.near(elbow, CGPoint(x: 105, y: 120), reach: 12))
+        XCTAssertTrue(LineRoutes.near(elbow, CGPoint(x: 150, y: 200), reach: 0))
+        XCTAssertEqual(LineRoutes.outlineOf(elbow), elbow)
+    }
+
+    /// Shared rows with the Android twin's LineRoutesTest: a line tied by
+    /// one end, flipped on its own or with its element, keeps its length
+    /// and its free end, and stays tied.
+    func testALineTiedByOneEndFlippedAloneOrWithItsElementKeepsItsLength() throws {
+        let a = box("a", x: 0, y: 0)
+        var free = LineRoutes.withEnds(flat, CGPoint(x: 100, y: 50), CGPoint(x: 300, y: 50))
+        free.endCap = "arrow"
+        let line = LineRoutes.tied(free, atStart: true, to: "a")
+        func store() -> DesignStore {
+            var design = Design(title: "Lines", width: 1000, height: 1000)
+            design.pages[0].elements = [a, line]
+            return DesignStore(design: design)
+        }
+
+        // Across, alone: the tie goes to the end now on the element.
+        let across = store()
+        across.select("l")
+        across.flipSelected(horizontal: true)
+        let flipped = try XCTUnwrap(across.element("l"))
+        near(CGPoint(x: 300, y: 50), LineRoutes.ends(of: flipped).start)
+        near(CGPoint(x: 100, y: 50), LineRoutes.ends(of: flipped).end)
+        XCTAssertNil(flipped.connectFrom)
+        XCTAssertEqual(flipped.connectTo, "a")
+
+        // Up and down, alone: a level line's ends stay, and so does the tie.
+        let down = store()
+        down.select("l")
+        down.flipSelected(horizontal: false)
+        let level = try XCTUnwrap(down.element("l"))
+        near(CGPoint(x: 100, y: 50), LineRoutes.ends(of: level).start)
+        near(CGPoint(x: 300, y: 50), LineRoutes.ends(of: level).end)
+        XCTAssertEqual(level.connectFrom, "a")
+
+        // Across, with its element: mirrored, its tie and caps swapped.
+        let both = store()
+        both.select("a")
+        both.select("l", additive: true)
+        both.flipSelected(horizontal: true)
+        let mirrored = try XCTUnwrap(both.element("l"))
+        near(CGPoint(x: 0, y: 50), LineRoutes.ends(of: mirrored).start)
+        near(CGPoint(x: 200, y: 50), LineRoutes.ends(of: mirrored).end)
+        XCTAssertNil(mirrored.connectFrom)
+        XCTAssertEqual(mirrored.connectTo, "a")
+        XCTAssertEqual(mirrored.startCap, "arrow")
+        XCTAssertEqual(mirrored.endCap, "none")
+    }
+
     func testFlippingAnElbowOrACurveMirrorsItsRouteInItsBox() throws {
         let curve = LineRoutes.withEnds(LineRoutes.withType(flat, .curve), CGPoint(x: 0, y: 0), CGPoint(x: 100, y: 40))
         let flipped = try XCTUnwrap(Geometry.flipAll([curve], box: curve.frame, horizontal: true).first)

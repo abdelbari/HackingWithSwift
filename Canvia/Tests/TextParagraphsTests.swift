@@ -110,6 +110,48 @@ final class TextParagraphsTests: XCTestCase {
         XCTAssertEqual(TextLists.paragraphsOf(read), [none, bullet(4)])
     }
 
+    /// Shared rows: a style copied from a box with its own lines carries its
+    /// first listed line as the whole box's list and indent; pasted, it
+    /// sets every line, the box's own lines gone.
+    func testAStyleCopiedAndPastedCarriesAListForTheWholeBox() {
+        let headed = box("Plan\nShop\nCook", [none, bullet(1), bullet(1)])
+        let bullets = box("A\nB", [bullet(), bullet()])
+        var onBullets = bullets
+        DesignStore.apply(DesignStore.style(of: headed), to: &onBullets)
+        XCTAssertEqual(TextLists.lines(onBullets), [bullet(1), bullet(1)])
+        var onHeaded = headed
+        DesignStore.apply(DesignStore.style(of: bullets), to: &onHeaded)
+        XCTAssertNil(TextLists.paragraphsOf(onHeaded))
+        XCTAssertEqual(TextLists.lines(onHeaded), [bullet(), bullet(), bullet()])
+        var plain = headed
+        DesignStore.apply(DesignStore.style(of: Element.text("Hi")), to: &plain)
+        XCTAssertEqual(TextLists.lines(plain), [none, none, none])
+    }
+
+    /// Shared rows: a linked text style updated from a heading-and-bullets
+    /// box leaves every follower's own lines as they are, and gives a
+    /// follower with no list none.
+    func testUpdatingALinkedStyleKeepsEachFollowersLines() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("styles-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        var source = box("Plan\nShop\nCook", [none, bullet(), bullet()])
+        let style = TextStyles.add(named: "Notes", from: source, url: url)
+        source.textStyleId = style.id
+        var follower = box("Plan\nShop\nCook", [none, bullet(), bullet()])
+        TextStyles.apply(style, to: &follower)
+        var plain = Element.text("Hi")
+        TextStyles.apply(style, to: &plain)
+        source.color = "#ff0000"
+        TextStyles.update(style.id, from: source, url: url)
+        let newer = try XCTUnwrap(TextStyles.load(from: url).first { $0.id == style.id })
+        TextStyles.apply(newer, to: &follower)
+        TextStyles.apply(newer, to: &plain)
+        XCTAssertEqual(follower.color, "#ff0000")
+        XCTAssertEqual(TextLists.lines(follower), [none, bullet(), bullet()])
+        XCTAssertEqual(TextLists.lines(plain), [none])
+        XCTAssertEqual(plain.color, "#ff0000")
+    }
+
     func testLinesAllAlikeAreTheBoxWideKeysWhenTheyReadTheSame() {
         let bullets = box("A\nB", [bullet(), bullet()])
         XCTAssertEqual(bullets.listStyle, "bullet")
@@ -229,5 +271,21 @@ final class TextParagraphsTests: XCTestCase {
         XCTAssertEqual(try style(at: "Cook").firstLineHeadIndent, 2 * 20 * FontLibrary.indentEm, accuracy: 0.001)
         XCTAssertEqual(try style(at: "Cook").headIndent, 20 * (2 * FontLibrary.indentEm + FontLibrary.markerEm),
                        accuracy: 0.001)
+    }
+
+    /// A larger word in a listed line keeps the room it was given: the
+    /// line's own indents go over that style, not over the box's.
+    func testALargerWordInAListedLineKeepsItsRoom() throws {
+        var el = box("Plan\nShop", [none, bullet()])
+        el.fontSize = 20
+        el.lineHeight = 1.25
+        el.setSpans([TextSpan(start: 5, end: 9, scale: 2)])
+        let drawn = FontLibrary.attributedString(for: el)
+        let at = (drawn.string as NSString).range(of: "Shop").location
+        let style = try XCTUnwrap(drawn.attribute(.paragraphStyle, at: at, effectiveRange: nil) as? NSParagraphStyle)
+        XCTAssertEqual(style.maximumLineHeight, 20 * 1.25 * 2, accuracy: 0.001)
+        XCTAssertEqual(style.headIndent, 20 * FontLibrary.markerEm, accuracy: 0.001)
+        let plan = try XCTUnwrap(drawn.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle)
+        XCTAssertEqual(plan.maximumLineHeight, 20 * 1.25, accuracy: 0.001)
     }
 }

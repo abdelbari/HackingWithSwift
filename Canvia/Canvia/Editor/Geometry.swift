@@ -45,7 +45,9 @@ enum Touch {
     static func handleSet(for el: Element) -> [Handle] {
         let corners: [Handle] = [.nw, .ne, .se, .sw]
         switch el.type {
-        case .line: return LineRoutes.hasEndHandles(el) ? [] : [.e, .w]
+        // A line with ends to drag has those; an elbowed or curved one is
+        // laid from its ends: neither stretches (Android Resize.offeredHandles).
+        case .line: return LineRoutes.hasEndHandles(el) || LineRoutes.keepsLevel(el) ? [] : [.e, .w]
         case .text: return (el.fitText == true || el.vAlign != nil) ? Handle.allCases : [.nw, .ne, .se, .sw, .e, .w]
         case .sticker: return corners
         case .image:
@@ -269,9 +271,12 @@ enum Geometry {
         return result
     }
 
-    /// Hit test respecting rotation. A hidden element is never hit.
+    /// Hit test respecting rotation: an elbowed or curved line on its
+    /// route (LineRoutes.near), anything else in its turned frame. A hidden
+    /// element is never hit.
     static func hits(_ el: Element, point: CGPoint) -> Bool {
         guard !el.isHidden else { return false }
+        if LineRoutes.keepsLevel(el) { return LineRoutes.near(el, point, reach: 4) }
         let p = el.rotation == 0 ? point : rotate(point, around: el.center, degrees: -el.rotation)
         return el.frame.insetBy(dx: -4, dy: -4).contains(p)
     }
@@ -595,7 +600,7 @@ enum Geometry {
     /// larger than the screen at the current zoom.
     static func intersecting(_ elements: [Element], _ rect: CGRect) -> [Element] {
         guard rect.width > 0 || rect.height > 0 else { return [] }
-        return elements.filter { !$0.locked && !$0.isHidden && aabb($0).intersects(rect) }
+        return elements.filter { !$0.locked && !$0.isHidden && aabb(LineRoutes.outlineOf($0)).intersects(rect) }
     }
 
     /// Scale a set of elements together so that the box `from` (their
@@ -649,9 +654,10 @@ enum Geometry {
     /// it the exact mirror image; text, a table's cells and a chart's parts
     /// are not flipped, so the words stay readable, as in Canva. A line is
     /// not flipped either: the mirrored turn runs it end to end on a
-    /// horizontal flip, so its start and end caps swap; a vertical one keeps
-    /// its direction. A connector keeps its caps — it is laid again between
-    /// the things it joins. The Android twin's Geometry.flipAll.
+    /// horizontal flip, so its start and end caps swap, and a tie at one end
+    /// with them; a vertical one keeps its direction. A connector tied at
+    /// both ends keeps its caps — it is laid again between the things it
+    /// joins. The Android twin's Geometry.flipAll.
     static func flipAll(_ elements: [Element], box: CGRect, horizontal: Bool) -> [Element] {
         elements.map { el in
             guard !el.holdsPlace else { return el }
@@ -669,10 +675,13 @@ enum Geometry {
                 // instead.
                 return LineRoutes.mirrored(e, horizontal: horizontal)
             } else if el.type == .line {
-                let joined = el.connectFrom != nil || el.connectTo != nil
-                if horizontal && !joined {
+                // Run end to end: its caps swap, and a tie at one end goes
+                // with that end, so it stays on its element's mirrored edge.
+                if horizontal && LineRoutes.hasEndHandles(el) {
                     e.startCap = el.endCap
                     e.endCap = el.startCap
+                    e.connectFrom = el.connectTo
+                    e.connectTo = el.connectFrom
                 }
             } else if !readable {
                 if horizontal { e.flipH.toggle() } else { e.flipV.toggle() }

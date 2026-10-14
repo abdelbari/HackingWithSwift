@@ -377,6 +377,98 @@ enum LineRoutes {
         }
     }
 
+    // MARK: touches
+
+    /// How many straight pieces a curve is taken as, touched or bounded.
+    static let curveSteps = 16
+
+    /// A point on the page in `el`'s own box (origin its top left): toPage
+    /// undone.
+    static func toLocal(_ el: Element, _ point: CGPoint) -> CGPoint {
+        let c = el.center
+        let a = -el.rotation * .pi / 180
+        let px = Double(point.x - c.x), py = Double(point.y - c.y)
+        var dx = px * cos(a) - py * sin(a)
+        var dy = px * sin(a) + py * cos(a)
+        if el.flipH { dx = -dx }
+        if el.flipV { dy = -dy }
+        return CGPoint(x: dx + el.w / 2, y: dy + el.h / 2)
+    }
+
+    /// `el`'s route as straight pieces in its own box: a straight line's or
+    /// an elbow's points, a curve sampled in curveSteps pieces.
+    static func polyline(_ el: Element) -> [CGPoint] {
+        let r = route(el)
+        guard r.curved, r.points.count == 3 else { return r.points }
+        let a = r.points[0], c = r.points[1], b = r.points[2]
+        return (0...curveSteps).map { i -> CGPoint in
+            let t = CGFloat(i) / CGFloat(curveSteps)
+            let u: CGFloat = 1 - t
+            let w0: CGFloat = u * u, w1: CGFloat = 2 * u * t, w2: CGFloat = t * t
+            return CGPoint(x: w0 * a.x + w1 * c.x + w2 * b.x, y: w0 * a.y + w1 * c.y + w2 * b.y)
+        }
+    }
+
+    /// Whether `point` on the page is on `el`'s route: within `reach` of
+    /// it, or of half its weight when that is more — so a curve is touched
+    /// where it bows, and an elbow only along its turns, not across its box.
+    static func near(_ el: Element, _ point: CGPoint, reach: Double) -> Bool {
+        let p = toLocal(el, point)
+        let within = max(reach, (el.thickness ?? 4) / 2)
+        let points = polyline(el)
+        return zip(points, points.dropFirst()).contains { pair in distance(p, pair.0, pair.1) <= within }
+    }
+
+    private static func distance(_ p: CGPoint, _ a: CGPoint, _ b: CGPoint) -> Double {
+        let dx = Double(b.x - a.x), dy = Double(b.y - a.y)
+        let ax = Double(p.x - a.x), ay = Double(p.y - a.y)
+        let length2 = dx * dx + dy * dy
+        let t = length2 == 0 ? 0 : min(max((ax * dx + ay * dy) / length2, 0), 1)
+        return hypot(ax - t * dx, ay - t * dy)
+    }
+
+    /// `el` with its box grown round all of its drawn route — a curve bowing
+    /// out of its box, half its weight round that; any other element itself.
+    /// What its selection outline and a marquee see.
+    static func outlineOf(_ el: Element) -> Element {
+        guard routeType(of: el) == .curve, el.rotation.truncatingRemainder(dividingBy: 360) == 0 else { return el }
+        let half = (el.thickness ?? 4) / 2
+        let points = polyline(el).map { toPage(el, $0) }
+        let xs = points.map { Double($0.x) }, ys = points.map { Double($0.y) }
+        let minX = min(el.x, (xs.min() ?? el.x) - half)
+        let minY = min(el.y, (ys.min() ?? el.y) - half)
+        let maxX = max(el.x + el.w, (xs.max() ?? el.x) + half)
+        let maxY = max(el.y + el.h, (ys.max() ?? el.y) + half)
+        var out = el
+        out.x = minX
+        out.y = minY
+        out.w = maxX - minX
+        out.h = maxY - minY
+        return out
+    }
+
+    /// `el` flipped on its own, across (`horizontal`) or up and down: its
+    /// own flip turned. A line tied by one end only keeps that end on its
+    /// element: the tie moves to whichever end is now nearer where the tied
+    /// one was (kept where it is on a draw), so laying it again
+    /// (Connectors.laidFrom) does not pull the line onto itself. The
+    /// Android twin's flippedAlone.
+    static func flippedAlone(_ el: Element, horizontal: Bool) -> Element {
+        var turned = el
+        if horizontal { turned.flipH.toggle() } else { turned.flipV.toggle() }
+        guard el.type == .line, (el.connectFrom == nil) != (el.connectTo == nil) else { return turned }
+        let before = ends(of: el)
+        let was = el.connectFrom != nil ? before.start : before.end
+        let now = ends(of: turned)
+        let toStart = Double(hypot(now.start.x - was.x, now.start.y - was.y))
+        let toEnd = Double(hypot(now.end.x - was.x, now.end.y - was.y))
+        let atStart = abs(toStart - toEnd) < 1e-6 ? el.connectFrom != nil : toStart < toEnd
+        let target = el.connectFrom ?? el.connectTo
+        turned.connectFrom = atStart ? target : nil
+        turned.connectTo = atStart ? nil : target
+        return turned
+    }
+
     /// `line` with its start (`connectFrom`) or end (`connectTo`) tied to
     /// the element `target`, or let go of with nil.
     static func tied(_ line: Element, atStart: Bool, to target: String?) -> Element {

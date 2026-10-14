@@ -1854,28 +1854,43 @@ final class DesignStore {
     private(set) var copiedStyle: Style?
     var hasCopiedStyle: Bool { copiedStyle != nil }
 
-    static func style(of el: Element) -> Style {
-        Style(fill: el.fill, stroke: el.stroke, strokeWidth: el.strokeWidth, radius: el.radius,
-              corners: el.corners, dropCap: el.dropCap,
-              color: el.color, fontFamily: el.fontFamily, fontSize: el.fontSize,
-              fontWeight: el.fontWeight, italic: el.italic, underline: el.underline,
-              uppercase: el.uppercase, align: el.align,
-              lineHeight: el.lineHeight, letterSpacing: el.letterSpacing,
-              listStyle: el.listStyle, indent: el.indent, textFill: el.textFill,
-              vAlign: el.vAlign, paragraphSpacing: el.paragraphSpacing,
-              effect: el.effect, curve: el.curve, filter: el.filter,
-              adjustments: el.adjustments, maskShapeId: el.maskShapeId, duotone: el.duotone,
-              filterStrength: el.filterStrength, opacity: el.opacity, shadow: el.shadow, blendMode: el.blendMode,
-              thickness: el.thickness, dash: el.dash,
-              startCap: el.startCap, endCap: el.endCap)
+    /// The look of `el`. Copied for pasting (`wholeBoxList`), a box with its
+    /// own lines gives its list as one for the whole box; a saved text
+    /// style keeps only the box-wide keys, as they are.
+    static func style(of el: Element, wholeBoxList: Bool = true) -> Style {
+        var style = Style(fill: el.fill, stroke: el.stroke, strokeWidth: el.strokeWidth, radius: el.radius,
+                          corners: el.corners, dropCap: el.dropCap,
+                          color: el.color, fontFamily: el.fontFamily, fontSize: el.fontSize,
+                          fontWeight: el.fontWeight, italic: el.italic, underline: el.underline,
+                          uppercase: el.uppercase, align: el.align,
+                          lineHeight: el.lineHeight, letterSpacing: el.letterSpacing,
+                          listStyle: el.listStyle, indent: el.indent, textFill: el.textFill,
+                          vAlign: el.vAlign, paragraphSpacing: el.paragraphSpacing,
+                          effect: el.effect, curve: el.curve, filter: el.filter,
+                          adjustments: el.adjustments, maskShapeId: el.maskShapeId, duotone: el.duotone,
+                          filterStrength: el.filterStrength, opacity: el.opacity, shadow: el.shadow, blendMode: el.blendMode,
+                          thickness: el.thickness, dash: el.dash,
+                          startCap: el.startCap, endCap: el.endCap)
+        // A box with its own paragraphs gives its style the list and indent
+        // of its first listed line (its first, with none listed) as the
+        // box-wide keys, so a heading-and-bullets look pastes as bullets.
+        if wholeBoxList, let lines = TextLists.paragraphsOf(el),
+           let line = lines.first(where: { $0.isListed }) ?? lines.first {
+            style.listStyle = line.isListed ? line.list : nil
+            style.indent = line.level > 0 ? line.level : nil
+        }
+        return style
     }
 
     /// Apply a style, keeping everything that makes the element itself.
     ///
     /// Fields that belong to another kind of element are left alone rather
     /// than copied across: pasting a text style onto a rectangle should change
-    /// nothing about the rectangle, not give it a font.
-    static func apply(_ style: Style, to el: inout Element) {
+    /// nothing about the rectangle, not give it a font. A pasted style's
+    /// list is the whole box's, so a text box's own lines go; a linked text
+    /// style (`keepingLines`) leaves them, so updating it keeps each
+    /// follower's lines.
+    static func apply(_ style: Style, to el: inout Element, keepingLines: Bool = false) {
         el.opacity = style.opacity
         el.shadow = style.shadow
         el.blendMode = style.blendMode
@@ -1900,6 +1915,9 @@ final class DesignStore {
             el.align = style.align
             el.lineHeight = style.lineHeight
             el.letterSpacing = style.letterSpacing
+            // A pasted style's list and indent are the whole box's: its
+            // own paragraphs, which would set every line over them, go.
+            if !keepingLines { el.dropParagraphs() }
             el.listStyle = style.listStyle
             el.indent = style.indent
             el.textFill = style.textFill
@@ -2073,9 +2091,7 @@ final class DesignStore {
         buzz(.tick)
         let members = selectedElements.filter { !$0.holdsPlace }
         guard selectedElements.count > 1, !members.isEmpty else {
-            updateSelected { el in
-                if horizontal { el.flipH.toggle() } else { el.flipV.toggle() }
-            }
+            updateSelected { el in el = LineRoutes.flippedAlone(el, horizontal: horizontal) }
             return
         }
         let box = Geometry.union(members.map(Geometry.aabb))
