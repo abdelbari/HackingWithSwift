@@ -1442,8 +1442,11 @@ struct CanvasView: View {
             // Each said after, where it is and how big, as its value is.
             Button("Make larger") { if store.resizeForScreenReader(el.id, larger: true) { sayPlacement(el.id) } }
             Button("Make smaller") { if store.resizeForScreenReader(el.id, larger: false) { sayPlacement(el.id) } }
-            Button("Turn clockwise") { if store.turnForScreenReader(el.id, clockwise: true) { sayPlacement(el.id) } }
-            Button("Turn anticlockwise") { if store.turnForScreenReader(el.id, clockwise: false) { sayPlacement(el.id) } }
+            // An elbowed or curved line stays level.
+            if !LineRoutes.keepsLevel(el) {
+                Button("Turn clockwise") { if store.turnForScreenReader(el.id, clockwise: true) { sayPlacement(el.id) } }
+                Button("Turn anticlockwise") { if store.turnForScreenReader(el.id, clockwise: false) { sayPlacement(el.id) } }
+            }
         }
         if !el.locked {
             Button("Duplicate") { store.select(el.id); store.duplicateSelected() }

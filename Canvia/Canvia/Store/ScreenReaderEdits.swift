@@ -26,10 +26,12 @@ extension DesignStore {
     }
 
     /// `id` turned 15 degrees clockwise (or anticlockwise), onto a multiple
-    /// of 15 (CanvasAccessibility.turned). True when it changed.
+    /// of 15 (CanvasAccessibility.turned); never an elbowed or curved
+    /// line, which stays level (LineRoutes.keepsLevel). True when it
+    /// changed.
     @discardableResult
     func turnForScreenReader(_ id: String, clockwise: Bool) -> Bool {
-        guard let el = element(id), !el.holdsPlace else { return false }
+        guard let el = element(id), !el.holdsPlace, !LineRoutes.keepsLevel(el) else { return false }
         select(id)
         let angle = CanvasAccessibility.turned(el.rotation, clockwise: clockwise)
         applyToPage { page in

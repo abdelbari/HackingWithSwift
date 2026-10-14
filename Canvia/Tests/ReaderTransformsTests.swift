@@ -32,6 +32,11 @@ final class ReaderTransformsTests: XCTestCase {
         XCTAssertEqual(CanvasAccessibility.turned(0, clockwise: false), 345, accuracy: 1e-9)
         XCTAssertEqual(CanvasAccessibility.turned(7, clockwise: false), 0, accuracy: 1e-9)
         XCTAssertEqual(CanvasAccessibility.turned(15, clockwise: false), 0, accuracy: 1e-9)
+        // A hundred-thousandth short of a multiple is not on it; a hair is.
+        XCTAssertEqual(CanvasAccessibility.turned(29.99999, clockwise: true), 30, accuracy: 1e-9)
+        XCTAssertEqual(CanvasAccessibility.turned(29.99999, clockwise: false), 15, accuracy: 1e-9)
+        XCTAssertEqual(CanvasAccessibility.turned(30.0000000001, clockwise: true), 45, accuracy: 1e-9)
+        XCTAssertEqual(CanvasAccessibility.turned(30.0000000001, clockwise: false), 15, accuracy: 1e-9)
         XCTAssertEqual(CanvasAccessibility.turnStep, 15)
     }
 
@@ -72,6 +77,37 @@ final class ReaderTransformsTests: XCTestCase {
         XCTAssertNil(CanvasAccessibility.scaled(least, larger: false))
     }
 
+    func testSmallerStopsWhereASideOrTheTypeWouldGoUnderItsLeastKeepingProportions() throws {
+        // A thin divider is at its least across already: nothing changes,
+        // rather than it getting shorter and no thinner.
+        XCTAssertNil(CanvasAccessibility.scaled(box("d", 0, 0, 300, 8), larger: false))
+        XCTAssertNil(CanvasAccessibility.scaled(box("s", 0, 0, 8, 8), larger: false))
+        // Under its least already, smaller leaves it as it is.
+        XCTAssertNil(CanvasAccessibility.scaled(box("u", 0, 0, 5, 5), larger: false))
+        // Small type, still above its least, takes the whole tenth.
+        var small = Element.text("Hi", fontSize: 6.5, w: 13)
+        small.id = "a"
+        small.h = 10
+        let smaller = try XCTUnwrap(CanvasAccessibility.scaled(small, larger: false))
+        XCTAssertEqual(try XCTUnwrap(smaller.fontSize), 5.85, accuracy: 1e-9)
+        XCTAssertEqual(smaller.w, 11.7, accuracy: 1e-9)
+        XCTAssertEqual(smaller.h, 9, accuracy: 1e-9)
+        // Type a little over its least stops on it, the box with it.
+        var least = Element.text("Hi", fontSize: 4.2, w: 100)
+        least.id = "b"
+        least.h = 20
+        let floored = try XCTUnwrap(CanvasAccessibility.scaled(least, larger: false))
+        XCTAssertEqual(try XCTUnwrap(floored.fontSize), 4, accuracy: 1e-9)
+        XCTAssertEqual(floored.w, 100 * 4 / 4.2, accuracy: 1e-9)
+        // A line shortens to the least and keeps its thickness.
+        var line = Element.line(w: 8.5)
+        line.id = "l"
+        line.h = 4
+        let shorter = try XCTUnwrap(CanvasAccessibility.scaled(line, larger: false))
+        XCTAssertEqual(shorter.w, 8, accuracy: 1e-9)
+        XCTAssertEqual(shorter.h, 4, accuracy: 1e-9)
+    }
+
     func testEachIsOneStepSelectsFirstAndLeavesWhatIsLockedInPlace() {
         var d = Design(title: "reader", width: 1000, height: 1000)
         var pinned = box("pinned", 500, 500, 100, 100)
@@ -90,5 +126,16 @@ final class ReaderTransformsTests: XCTestCase {
         XCTAssertFalse(s.turnForScreenReader("pinned", clockwise: true))
         XCTAssertEqual(s.element("pinned")?.w, 100)
         XCTAssertTrue(CanvasAccessibility.value(for: s.element("a")!, design: s.design).contains("11% wide"))
+    }
+
+    func testAnElbowedLineIsNotTurned() {
+        var d = Design(title: "reader", width: 1000, height: 1000)
+        var elbow = Element.line(w: 200)
+        elbow.id = "e"
+        elbow.lineType = "elbow"
+        d.pages = [Page(id: "p1", elements: [elbow])]
+        let s = DesignStore(design: d)
+        XCTAssertFalse(s.turnForScreenReader("e", clockwise: true))
+        XCTAssertEqual(s.element("e")?.rotation, 0)
     }
 }
