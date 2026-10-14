@@ -316,7 +316,9 @@ enum FontLibrary {
     // Guarded by a lock rather than isolated to the main actor: document
     // decoding measures text off the main thread.
 
-    private struct TypographyKey: Hashable {
+    /// What a text's type is set by — TextOutliner keeps its outlines by it
+    /// too.
+    struct TypographyKey: Hashable {
         let family: String?
         let size: Double
         let weight: Int
@@ -373,7 +375,8 @@ enum FontLibrary {
     private static var heightCache: [MeasureKey: Double] = [:]
 
     /// Scrubbing a size slider would otherwise grow these without bound.
-    private static let cacheLimit = 256
+    /// TextOutliner keeps as many outlines.
+    static let cacheLimit = 256
 
     private static func memoized<K: Hashable, V>(_ key: K,
                                                  _ cache: inout [K: V],
@@ -404,6 +407,7 @@ enum FontLibrary {
         attrCache.removeAll()
         heightCache.removeAll()
         lock.unlock()
+        TextOutliner.fontsChanged()
     }
 
     /// A font of your own when the box is set in one and this phone has it;

@@ -164,7 +164,11 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   there, a drag from it moves it. Let go over another page, a dragged
   selection moves to it, under the finger as it was held and kept inside a
   page of another size, one Undo. Zoomed in, each header keeps to the part
-  of its page on screen. Pages far from the view show a thumbnail; crop,
+  of its page on screen. Pages far from the view show a thumbnail, and so
+  do pages near it that are small on screen (under 0.35 of its width) or
+  among more than six in view — a picture at 256, 512 or 1024 pixels
+  wide, by its size on screen — so a long design zoomed out pans
+  smoothly; the page worked is always live. Crop,
   typing, the pen, the eraser and a preview keep the view on their page
 - Undo/redo with gesture coalescing (a whole drag is one step), autosave,
   lock, opacity, duplicate, align / distribute / flip / exact-position
@@ -677,7 +681,11 @@ characters upright down a column at the line height, columns running from
 the right, a new column at every newline or when the box runs out —
 Japanese and Chinese set the way a poster sets them, and Latin stacked
 the way a shop sign is. Drawn as outlines like curved text, so the SVG
-and PDF carry it exactly.
+and PDF carry it exactly. Curved, path and vertical outlines, and the
+effects drawn on them, are made once per box and kept (up to 256, as the
+fonts are), so moving, turning or fading a box, panning or zooming draws
+the outlines already made; a font of your own arriving or going makes
+them again.
 
 **Object eraser** — Erase on a picture's toolbar turns the page into a
 brush: paint over what should go, in strokes of a chosen width, then Erase
@@ -726,8 +734,14 @@ the canvas preview, the MP4, the GIF — the element shows the frame at
 that moment, looping over the clip's length. A page with a clip renders
 frame by frame like an animated page, and so does one whose master page
 carries a clip. Played live — Present, and Play in the editor — a clip
-never holds up the screen: it shows the latest frame decoded while the
-next is decoded off the main thread; the exports wait for every frame.
+plays smoothly in a muted player of its own (AVPlayer), its frames taken
+as the screen shows them, and never holds up the screen; the exports wait
+for every frame, read in order by a reader of its own per clip
+(AVAssetReader) rather than sought one by one, each moment showing the
+frame nearest it, the earlier on a tie, as on the Android twin — so a
+video exports close to real time, and both phones export the same frames. Seeking frame by frame is left to posters, thumbnails, the
+trimmer and a trim handle dragged. At most four clips are open at once;
+another page, or the phone short of memory, lets them go.
 The clip's own sound is not carried; a soundtrack is.
 
 **Animated GIFs and WebPs** — a GIF or WebP that moves, picked or dropped

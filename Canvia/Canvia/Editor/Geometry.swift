@@ -1146,8 +1146,8 @@ enum PageColumn {
     }
 
     /// The pages drawn as themselves: those within one viewport height of
-    /// `visible` (in column units), above or below it. The rest are drawn
-    /// from a thumbnail.
+    /// `visible` (in column units), above or below it — unless `drawMode`
+    /// makes one a picture. The rest are drawn from a thumbnail.
     static func livePages(_ slots: [Slot], visible: CGRect) -> [Int] {
         pages(slots, within: 1, of: visible)
     }
@@ -1157,6 +1157,44 @@ enum PageColumn {
     /// long deck makes none of theirs.
     static func thumbnailPages(_ slots: [Slot], visible: CGRect) -> [Int] {
         pages(slots, within: 2, of: visible)
+    }
+
+    /// How a page of the column near the view is drawn: as itself, every
+    /// element live, or as a picture of it from the thumbnail cache.
+    enum DrawMode: Equatable {
+        case live, picture
+    }
+
+    /// A page narrower on screen than this share of the view's width is
+    /// drawn as a picture.
+    static let pictureShare = 0.35
+    /// More pages than this in view, and all but the one worked are drawn
+    /// as pictures.
+    static let liveInView = 6
+    /// The widths, in pixels, a page's picture is made at.
+    static let pictureWidths = [256, 512, 1024]
+
+    /// How page `pageIndex` is drawn, `pageScreenWidth` wide on screen in a
+    /// view `viewportWidth` wide (in any one unit), with `inViewCount`
+    /// pages in view: the page worked (`workedIndex`) always live; another
+    /// a picture when it is narrower than `pictureShare` of the view —
+    /// exactly that share is live — or when more than `liveInView` pages
+    /// are in view; else live. So a long design zoomed out pans over
+    /// pictures rather than drawing every element of thirty pages on every
+    /// frame. The Android twin's Viewport.drawMode, the same rule.
+    static func drawMode(pageIndex: Int, workedIndex: Int, pageScreenWidth: Double,
+                         viewportWidth: Double, inViewCount: Int) -> DrawMode {
+        if pageIndex == workedIndex { return .live }
+        if pageScreenWidth < pictureShare * viewportWidth || inViewCount > liveInView { return .picture }
+        return .live
+    }
+
+    /// The width a page's picture is made at, from its width on screen in
+    /// pixels: the first of `pictureWidths` at least that wide, the widest
+    /// for any wider — so a pinch makes a page's picture again only when
+    /// it crosses into another.
+    static func pictureWidth(screenPixels: Double) -> Int {
+        pictureWidths.first { Double($0) >= screenPixels } ?? pictureWidths[pictureWidths.count - 1]
     }
 
     /// The pages within `heights` viewport heights of `visible`, above or

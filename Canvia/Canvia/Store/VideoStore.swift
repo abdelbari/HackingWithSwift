@@ -8,10 +8,14 @@
 // trimmed to start later shows the frame at its start at rest too.
 //
 // A frame takes tens of milliseconds to decode. The video export waits for
-// each (`resolve`), so no frame of a movie is ever a stale one; what plays
+// each (`read`), so no frame of a movie is ever a stale one; what plays
 // live — Present, and Play in the editor — never waits (`peek`): it shows
-// the clip's latest frame while the next is decoded off the main thread,
-// and draws again when it lands, as the Android twin's presenter does.
+// the clip's latest frame while the next is decoded, and draws again when
+// it lands, as the Android twin's presenter does. A clip played through is
+// read in order rather than sought frame by frame (ClipReader): the export
+// reads on from each clip's last frame, and live a clip plays in a player
+// of its own; `frame`, which seeks, is left to posters, stills and a trim
+// handle dragged.
 
 import AVFoundation
 import Foundation
@@ -274,6 +278,29 @@ enum VideoStore {
         return frame(parts.id, at: stampedTime(time, duration: duration(of: parts.id) ?? 0))
     }
 
+    /// Resolves a "video:" source in a video export, which asks for each
+    /// clip's frames in order: as `resolve`, decoded there and then, but by
+    /// the clip's own reader, which reads on from its last frame rather
+    /// than seeking (ClipReader.readsOn) — by `frame` when the reader
+    /// cannot read the clip.
+    static func read(_ src: String) -> UIImage? {
+        guard let parts = split(src), let time = parts.time else { return resolve(src) }
+        let at = stampedTime(time, duration: duration(of: parts.id) ?? 0)
+        let key = frameKey(parts.id, at)
+        if let hit = frames.object(forKey: key) { return hit }
+        guard let cg = ClipReaders.frame(parts.id, at: at) else { return frame(parts.id, at: at) }
+        let image = UIImage(cgImage: cg)
+        frames.setObject(image, forKey: key, cost: cg.bytesPerRow * cg.height)
+        return image
+    }
+
+    /// Every clip's reader and player let go: another page has come up, or
+    /// the phone is short of memory. On the main thread.
+    static func closeClips() {
+        ClipReaders.closeAll()
+        ClipPlayers.shared.closeAll()
+    }
+
     // MARK: playing live
 
     /// Moves on each time a frame asked for by `peek` is ready, so the views
@@ -321,7 +348,13 @@ enum VideoStore {
     /// The key names the picture actually returned — the source that
     /// resolves to that same frame — for caches downstream: keyed by the
     /// moment asked for, a filtered copy would keep a stale frame for good.
-    static func peek(_ source: String) -> (image: UIImage, key: String)? {
+    ///
+    /// A clip `playing` — the page's clock running, as `clip` plays it —
+    /// plays in a player of its own for `element` (ClipPlayers), whose
+    /// frames come at the screen's pace; until the player has one, and for
+    /// a trim handle dragged, the frame asked for is decoded on the worker
+    /// as above.
+    static func peek(_ source: String, playing clip: ClipPlayback? = nil, for element: String = "") -> (image: UIImage, key: String)? {
         guard let parts = split(source) else { return nil }
         let id = parts.id
         let rest = VideoStore.src(id, at: nil)
@@ -338,6 +371,9 @@ enum VideoStore {
         // the answer.
         if let length {
             let at = stampedTime(time, duration: length)
+            if let clip, Thread.isMainThread, let shown = ClipPlayers.shared.frame(id, for: element, at: at, clip: clip) {
+                return (shown.image, VideoStore.src(id, at: shown.time))
+            }
             if let hit = frames.object(forKey: frameKey(id, at)) {
                 liveLock.lock()
                 latest[id] = at
@@ -405,5 +441,11 @@ enum VideoStore {
         liveLock.unlock()
         if more { worker.async { VideoStore.decodeNext(id) } }
         if landed { DispatchQueue.main.async { VideoStore.live.version &+= 1 } }
+    }
+
+    /// A frame out of a clip's player has landed: the views playing clips
+    /// draw again. On the main thread.
+    static func liveFrameLanded() {
+        live.version &+= 1
     }
 }

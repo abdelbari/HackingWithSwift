@@ -122,6 +122,7 @@ struct PresentationView: View {
             settleTask?.cancel()
             exitTask?.cancel()
             sound.stop(fade: true)
+            VideoStore.closeClips()
             UIApplication.shared.isIdleTimerDisabled = false
             if ExternalDisplay.shared.session === session { ExternalDisplay.shared.session = nil }
         }

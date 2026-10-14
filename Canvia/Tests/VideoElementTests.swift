@@ -116,6 +116,7 @@ final class VideoElementTests: XCTestCase {
         store.playPreview()
         try await Task.sleep(for: .milliseconds(50))
         XCTAssertNotNil(store.previewTime, "the preview is playing")
+        XCTAssertTrue(store.previewRuns, "the page's clock runs, so its clips play on")
         // A pass that runs long: the main thread busy for 0.4 s.
         let busy = Date()
         while Date().timeIntervalSince(busy) < 0.4 {}
@@ -126,6 +127,7 @@ final class VideoElementTests: XCTestCase {
         store.setPage(1)
         try await Task.sleep(for: .milliseconds(300))
         XCTAssertNil(store.previewTime, "another page picked, the preview played on at the old page's clock")
+        XCTAssertFalse(store.previewRuns)
 
         store.playPreview()
         try await Task.sleep(for: .milliseconds(50))

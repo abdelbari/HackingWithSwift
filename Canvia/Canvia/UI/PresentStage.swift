@@ -12,8 +12,11 @@ import SwiftUI
 @Observable
 final class PresentSession {
     let design: Design
-    /// The page up, by index.
-    var index = 0
+    /// The page up, by index. Another page up lets the last one's clips go
+    /// (ClipReader).
+    var index = 0 {
+        didSet { if index != oldValue { VideoStore.closeClips() } }
+    }
     /// How the page now showing came in, and how the one before it left.
     var moving: AnyTransition = .opacity
     /// When the page now showing came up: its entrances play from here.
@@ -137,6 +140,7 @@ struct PresentStage: View {
                 // on the next: this redraws every display frame, and a
                 // decode on the main thread each time made it stutter.
                 .environment(\.liveVideo, true)
+                .environment(\.clipsPlay, true)
                 .environment(\.onScreen, true)
         }
         .overlay(alignment: .topLeading) { PointerDot(point: session.pointer, page: pageSize) }
