@@ -20,6 +20,11 @@ enum AddSheetNames {
         "Uploaded picture \(index + 1) of \(count)"
     }
 
+    /// An SVG kept among the uploads, placed again as a graphic.
+    static func uploadedGraphic(_ index: Int, of count: Int) -> String {
+        "Uploaded SVG graphic \(index + 1) of \(count)"
+    }
+
     static func uploadedVideo(_ index: Int, of count: Int) -> String {
         "Uploaded video \(index + 1) of \(count)"
     }

@@ -775,7 +775,8 @@ struct CanvasView: View {
     }
 
     /// The stroke under the finger, as the finished one will be drawn: a
-    /// highlighter see-through and multiplying, a glow with its halo — or,
+    /// highlighter see-through and multiplying, a glow with its halo, at
+    /// the pen's transparency — or,
     /// for the eraser, a soft grey trail as wide as it reaches.
     @ViewBuilder
     private func livePen(_ tool: Freehand.Tool) -> some View {
@@ -795,6 +796,7 @@ struct CanvasView: View {
                         style: StrokeStyle(lineWidth: Freehand.drawnWidth(tool), lineCap: .round, lineJoin: .round))
                 .blendMode(tool.pen == .highlighter ? .multiply : .normal)
                 .shadow(color: halo, radius: spread)
+                .opacity(Freehand.opacity(transparency: tool.transparency))
         }
     }
 

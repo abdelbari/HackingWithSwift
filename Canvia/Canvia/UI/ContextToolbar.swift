@@ -862,8 +862,11 @@ struct ContextToolbar: View {
                           onEditing: { holdReach("Width", widthReach, $0) }) { v in
                 store.updateSelectedTransient { $0.strokeWidth = v }
             }
+            // An outline's line dashed or dotted too; a drawing's is not.
+            if !Freehand.isStroke(el) { borderStylePicker(el) }
         } else if !Freehand.isStroke(el) {
             borderSlider(el)
+            borderStylePicker(el)
         }
         if Freehand.isStroke(el) {
             toolButton("text.viewfinder", "To text") { store.strokesToText() }
@@ -928,7 +931,7 @@ struct ContextToolbar: View {
     private func setBorder(_ v: Double, on el: Element) {
         let before = borderBefore ?? BorderBefore(stroke: el.stroke, width: el.strokeWidth)
         store.updateSelectedTransient { e in
-            guard e.type == .shape, !Freehand.isStroke(e) else { return }
+            guard Self.takesBorderStyle(e) else { return }
             if v < 0.5 {
                 // None: a border that was there goes to 0; one that was not
                 // stays as it was, colour and all.
@@ -939,6 +942,41 @@ struct ContextToolbar: View {
                 if e.stroke == nil { e.stroke = "#0d1216" }
             }
         }
+    }
+
+    /// Solid, Dashed or Dotted, beside the Border slider (see BorderDash),
+    /// as one step. A shape or photo with no border yet is given one at 4,
+    /// in the Border chip's ink, so the choice shows.
+    private func borderStylePicker(_ el: Element) -> some View {
+        let current = BorderDash.kept(el.dash) ?? "solid"
+        return Picker("Border style", selection: Binding(get: { current }, set: { setBorderStyle($0) })) {
+            ForEach(BorderDash.styles, id: \.name) { style in
+                Text(style.name).tag(style.key ?? "solid")
+            }
+        }
+        .pickerStyle(.segmented)
+        .frame(width: 210)
+        .accessibilityLabel("Border style")
+    }
+
+    private func setBorderStyle(_ key: String) {
+        let dash = BorderDash.kept(key)
+        let targets = store.selectedElements.filter { !$0.locked && Self.takesBorderStyle($0) }
+        guard targets.contains(where: { BorderDash.kept($0.dash) != dash }) else { return }
+        store.updateSelected { e in
+            guard Self.takesBorderStyle(e) else { return }
+            e.dash = dash
+            if dash != nil && (e.strokeWidth ?? 0) < 0.5 {
+                e.strokeWidth = 4
+                if e.stroke == nil { e.stroke = "#0d1216" }
+            }
+        }
+        store.buzz(.tick)
+    }
+
+    /// What has a border to set: a shape that is not a drawing, or a photo.
+    static func takesBorderStyle(_ el: Element) -> Bool {
+        (el.type == .shape && !Freehand.isStroke(el)) || el.type == .image
     }
 
     /// Which corners the rounding applies to. The slider sets how much;
@@ -1059,6 +1097,13 @@ struct ContextToolbar: View {
                     store.useAsBackground(el.id)
                 }
             }
+        }
+        // A border round the photo, following its frame: its ink, its
+        // width and whether it is dashed or dotted, as a shape's.
+        Group {
+            colorChip(el.stroke ?? "#0d1216", "Border") { activeSheet = .colorStroke }
+            borderSlider(el)
+            borderStylePicker(el)
         }
         // Hidden behind a frame: a corner radius on a star means nothing, and
         // a slider whose range is derived from the box looks broken when the

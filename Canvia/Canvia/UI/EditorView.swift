@@ -83,6 +83,8 @@ struct EditorView: View {
     /// The crop slider's end while it is being dragged, held still.
     @State private var cropCeiling = Crop.maxZoom
     @State private var cropSliding = false
+    /// The pen's own colour, from the colour sheet, being chosen.
+    @State private var choosingInk = false
     /// Undo's rewind while it is held, whether one happened in this press,
     /// and how often it has run out of steps (for the thud).
     @State private var rewindTask: Task<Void, Never>?
@@ -850,9 +852,53 @@ struct EditorView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
                 .background(.regularMaterial, in: Capsule())
+            penSliders(tool)
             drawingControls(tool)
         }
         .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    /// The pen's size, from 1 to 60 and settling on the old six widths,
+    /// and how see-through it draws; the eraser's size, and whether it
+    /// takes the part of a stroke it passes over or the whole stroke.
+    private func penSliders(_ tool: Freehand.Tool) -> some View {
+        HStack(spacing: 14) {
+            penSlider("Size", value: tool.width, in: Freehand.widthRange, readout: "\(Int(tool.width))") { v in
+                let width = Freehand.snappedWidth(v)
+                if store.drawing?.width != width { store.drawing?.width = width }
+            }
+            if tool.pen.hasInk {
+                penSlider("Transparency", value: tool.transparency, in: 0...Freehand.maxTransparency,
+                          readout: "\(Int(tool.transparency))%") { v in
+                    store.drawing?.transparency = Freehand.keptTransparency(v)
+                }
+            } else {
+                Picker("Eraser", selection: Binding(get: { tool.eraseWhole }, set: { store.drawing?.eraseWhole = $0 })) {
+                    Text("Part").tag(false)
+                    Text("Whole stroke").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 170)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
+        .background(.regularMaterial, in: Capsule())
+    }
+
+    /// A slider of the pen's, its name and value under it.
+    private func penSlider(_ label: String, value: Double, in range: ClosedRange<Double>, readout: String,
+                           set: @escaping (Double) -> Void) -> some View {
+        VStack(spacing: 0) {
+            Slider(value: Binding(get: { value }, set: set), in: range)
+                .frame(width: 110)
+                .accessibilityLabel(label)
+                .accessibilityValue(readout)
+            Text("\(label) \(readout)")
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+        }
     }
 
     private func drawingControls(_ tool: Freehand.Tool) -> some View {
@@ -884,6 +930,7 @@ struct EditorView: View {
                         ForEach(Freehand.colors, id: \.self) { hex in
                             swatch(hex, selected: tool.color == hex)
                         }
+                        inkOfYourOwn(tool)
                     }
                     // Room for the selected swatch's ring, which the scroll
                     // view would otherwise clip.
@@ -891,19 +938,6 @@ struct EditorView: View {
                 }
                 .frame(maxWidth: Self.swatchRowWidth)
             }
-            Menu {
-                ForEach(Freehand.widths, id: \.self) { w in
-                    Button {
-                        store.drawing?.width = w
-                    } label: {
-                        Label("\(Int(w)) px", systemImage: tool.width == w ? "checkmark" : "minus")
-                    }
-                }
-            } label: {
-                Image(systemName: "lineweight")
-                    .frame(width: 30, height: 30)
-            }
-            .accessibilityLabel("Pen width, \(Int(tool.width)) pixels")
             Button { store.undo() } label: { Image(systemName: "arrow.uturn.backward").frame(width: 30, height: 30) }
                 .disabled(!store.canUndo)
                 .accessibilityLabel("Undo stroke")
@@ -921,9 +955,39 @@ struct EditorView: View {
     /// Every pen colour side by side, with room for the ring round the one
     /// chosen: as wide as the colours' scroll view ever needs to be.
     private static let swatchRowWidth: CGFloat = {
-        let count = CGFloat(Freehand.colors.count)
+        // The eight inks and the one of your own.
+        let count = CGFloat(Freehand.colors.count + 1)
         return count * 22 + max(count - 1, 0) * 10 + 8
     }()
+
+    /// After the eight inks, any colour at all — the document's, the brand
+    /// kit's, one typed or picked from the page — through the colour sheet.
+    /// It shows the pen's ink when that is none of the eight.
+    private func inkOfYourOwn(_ tool: Freehand.Tool) -> some View {
+        let own = !Freehand.colors.contains(tool.color)
+        return Button {
+            choosingInk = true
+        } label: {
+            Circle()
+                .fill(own ? AnyShapeStyle(Color(hex: tool.color))
+                      : AnyShapeStyle(AngularGradient(colors: [.red, .yellow, .green, .blue, .purple, .red],
+                                                      center: .center)))
+                .frame(width: 22, height: 22)
+                .overlay(Circle().stroke(Theme.hairline))
+                .overlay {
+                    Image(systemName: "plus")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(own && UIColor(hex: tool.color).isLight ? Color.black : Color.white)
+                }
+                .overlay { if own { Circle().stroke(Theme.accent, lineWidth: 2).padding(-3) } }
+        }
+        .accessibilityLabel(own ? "\(ElementNames.spokenColour(tool.color)) ink, choose another colour" : "More ink colours")
+        .accessibilityAddTraits(own ? .isSelected : [])
+        .sheet(isPresented: $choosingInk) {
+            ColorPickerSheet(store: store, title: "Ink colour", current: store.drawing?.color,
+                             onPick: { hex in store.drawing?.color = hex })
+        }
+    }
 
     private func swatch(_ hex: String, selected: Bool) -> some View {
         Button {
@@ -1069,7 +1133,8 @@ struct EditorView: View {
                              currentPaint: store.singleSelection?.fill,
                              onPick: { c in store.updateSelected { $0.fill = .solid(c) } },
                              onPickGradient: { p in store.updateSelected { $0.fill = p } },
-                             onPickTransient: { c in store.updateSelectedTransient { $0.fill = .solid(c) } })
+                             onPickTransient: { c in store.updateSelectedTransient { $0.fill = .solid(c) } },
+                             swapsColours: true)
         case .colorText:
             // A gradient on text is a fill, not a colour, so it lives in its
             // own field; picking a plain colour clears it.
@@ -1123,7 +1188,8 @@ struct EditorView: View {
                              allowPatterns: FillChoices.offersPatterns(for: store.selectedElements),
                              onPick: { c in store.recolourSelection(c) },
                              onPickGradient: { p in store.recolourSelection(gradient: p) },
-                             onPickTransient: { c in store.recolourSelectionTransient(c) })
+                             onPickTransient: { c in store.recolourSelectionTransient(c) },
+                             swapsColours: true)
         case .background:
             BackgroundSheet(store: store)
         case .fonts:

@@ -486,7 +486,11 @@ enum PptxExporter {
         }
         var border = ""
         if let stroke = el.stroke, let width = el.strokeWidth, width > 0 {
-            border = "<a:ln w=\"\(emu(width * frame.unit))\"><a:solidFill>\(color(stroke, opacity: el.opacity))</a:solidFill></a:ln>"
+            let paint = "<a:solidFill>\(color(stroke, opacity: el.opacity))</a:solidFill>"
+            // Dots with round ends, as the canvas draws them and the line
+            // rule writes them, on both phones.
+            let cap = BorderDash.kept(el.dash) == "dotted" ? " cap=\"rnd\"" : ""
+            border = "<a:ln w=\"\(emu(width * frame.unit))\"\(cap)>\(paint)\(dashXML(el.dash))</a:ln>"
         }
         let properties = "<p:nvSpPr>\(cNvPr(el, id: id, link: link))<p:cNvSpPr/><p:nvPr/></p:nvSpPr>"
         let look = [elementBox(el, frame: frame), outline, fillXML(el.fill, opacity: el.opacity), border].joined()
@@ -499,18 +503,23 @@ enum PptxExporter {
         let thickness = max(el.thickness ?? 4, 0.5)
         var ends = [el.startCap, el.endCap]
         if el.flipH { ends.reverse() }
-        var dash = ""
-        switch el.dash {
-        case "dashed": dash = "<a:prstDash val=\"dash\"/>"
-        case "dotted": dash = "<a:prstDash val=\"sysDot\"/>"
-        default: dash = ""
-        }
+        let dash = dashXML(el.dash)
         let paint = "<a:solidFill>\(color(el.color ?? "#1f2430", opacity: el.opacity))</a:solidFill>"
         let capped = "\(lineEnd("headEnd", ends[0]))\(lineEnd("tailEnd", ends[1]))"
         let stroke = "<a:ln w=\"\(emu(thickness * frame.unit))\" cap=\"rnd\">\(paint)\(dash)\(capped)</a:ln>"
         let box = xfrm(x: el.x, y: el.y + el.h / 2, w: el.w, h: 0, rotation: el.rotation, frame: frame)
         let properties = "<p:nvSpPr>\(cNvPr(el, id: id, link: link))<p:cNvSpPr/><p:nvPr/></p:nvSpPr>"
         return "<p:sp>\(properties)<p:spPr>\(box)\(geometry("line"))\(stroke)</p:spPr></p:sp>"
+    }
+
+    /// A line's or a border's dash as PowerPoint's preset: dashed is
+    /// "dash", dotted "sysDot", and solid nothing.
+    static func dashXML(_ dash: String?) -> String {
+        switch dash {
+        case "dashed": return "<a:prstDash val=\"dash\"/>"
+        case "dotted": return "<a:prstDash val=\"sysDot\"/>"
+        default: return ""
+        }
     }
 
     private static func lineEnd(_ tag: String, _ cap: String?) -> String {

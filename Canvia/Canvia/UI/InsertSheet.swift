@@ -145,6 +145,32 @@ struct InsertSheet: View {
         }
     }
 
+    /// What the camera took, kept among your uploads and placed as a
+    /// picked photo or clip is: into the frame being replaced, else into
+    /// the selection's first empty frame, else onto the page.
+    private func bringInCaptured(_ outcome: CameraCapture.Outcome) {
+        let target = store.replaceTargetId
+        let store = self.store
+        if case .cancelled = outcome {
+            store.announce(CameraCapture.cancelledNote, undoable: false)
+            return
+        }
+        Task {
+            guard let stored = await CameraCapture.store(outcome) else {
+                store.buzz(.reject)
+                store.announce(CameraCapture.failedNote, undoable: false)
+                return
+            }
+            if let target {
+                insertImage(stored.src, natural: stored.natural, replacing: target)
+            } else {
+                place(stored.src, natural: stored.natural)
+                store.buzz(.confirm)
+            }
+            dismiss()
+        }
+    }
+
     /// One picked item stored: a clip whole, shown by its poster frame, an
     /// animated GIF or WebP whole, shown by its first frame, or a picture
     /// decoded, scaled and re-encoded — all off the main actor, where a
@@ -592,7 +618,9 @@ struct InsertSheet: View {
     private var uploadsSection: some View {
         let kind = isReplacing ? Uploads.Kind.image : uploadKind
         let entries = Uploads.all()
+        // A graphic cannot fill a photo's frame, so a replace leaves them out.
         let shown = favoritesFirst(entries.filter { $0.kind == kind }.map(\.id), kind: "upload", id: { $0 })
+            .filter { !isReplacing || !MediaStore.isGraphic($0) }
         let offered = isReplacing ? !shown.isEmpty : !entries.isEmpty
         if offered {
             sectionHeader("Your uploads")
@@ -612,6 +640,8 @@ struct InsertSheet: View {
                     ForEach(Array(shown.enumerated()), id: \.element) { index, id in
                         if kind == .video {
                             videoTile(id, index: index, count: shown.count)
+                        } else if MediaStore.isGraphic(id) {
+                            graphicTile(id, index: index, count: shown.count)
                         } else {
                             uploadTile(id, index: index, count: shown.count)
                         }
@@ -661,6 +691,32 @@ struct InsertSheet: View {
         }
         .accessibilityLabel(AddSheetNames.picture(AddSheetNames.upload(index, of: count),
                                               starred: starred, inFrame: inFrame))
+        .contextMenu {
+            favoriteButton("upload", id)
+            deleteUploadButton(id, kind: .image)
+        }
+    }
+
+    /// An SVG brought in as a graphic, kept to place again: a tap puts the
+    /// whole graphic on the page once more.
+    private func graphicTile(_ id: String, index: Int, count: Int) -> some View {
+        let starred = Favorites.isFavorite("upload", id)
+        return Button {
+            placeGraphic(id)
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: "square.on.circle").font(.title2)
+                Text("SVG").font(.caption.weight(.semibold))
+            }
+            .foregroundStyle(.secondary)
+            .frame(height: 72)
+            .frame(maxWidth: .infinity)
+            .background(Color(.systemGray6))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(alignment: .topTrailing) { if starred { starBadge } }
+        }
+        .accessibilityLabel(AddSheetNames.picture(AddSheetNames.uploadedGraphic(index, of: count),
+                                                  starred: starred, inFrame: false))
         .contextMenu {
             favoriteButton("upload", id)
             deleteUploadButton(id, kind: .image)
@@ -823,35 +879,120 @@ struct InsertSheet: View {
     // MARK: svg
 
     @State private var importingSVG = false
+    /// Whether the file picked comes in whole, as a graphic, or as its
+    /// first path, as a custom shape.
+    @State private var svgWhole = true
 
+    /// A whole SVG as a recolourable graphic, and its first path alone as
+    /// a custom shape. One file importer serves both.
     private var svgImportRow: some View {
+        VStack(spacing: 8) {
+            svgButton("Graphic from an SVG file", symbol: "square.on.circle", whole: true)
+            svgButton("Custom shape from an SVG file", symbol: "scribble.variable", whole: false)
+        }
+        .fileImporter(isPresented: $importingSVG, allowedContentTypes: [.svg]) { result in
+            guard case .success(let url) = result else { return }
+            if svgWhole {
+                importGraphic(from: url)
+            } else {
+                let scoped = url.startAccessingSecurityScopedResource()
+                defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+                importFirstPath(from: url)
+            }
+        }
+    }
+
+    private func svgButton(_ title: String, symbol: String, whole: Bool) -> some View {
         Button {
+            svgWhole = whole
             importingSVG = true
         } label: {
-            Label("Custom shape from an SVG file", systemImage: "scribble.variable")
+            Label(title, systemImage: symbol)
                 .frame(maxWidth: .infinity)
                 .padding(10)
                 .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
         }
-        .fileImporter(isPresented: $importingSVG, allowedContentTypes: [.svg]) { result in
-            guard case .success(let url) = result else { return }
-            let scoped = url.startAccessingSecurityScopedResource()
-            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            guard let d = SVGPath.importFirstPath(fromFileAt: url) else {
-                // Said, and out of the way, as the Android twin refuses it.
-                store.buzz(.reject)
-                store.announce("No shape to take from that file", undoable: false)
-                dismiss()
-                return
-            }
-            let size = min(store.pageWidth, store.pageHeight) * 0.4
-            var el = Element.shape("rect", w: size.rounded(), h: size.rounded())
-            el.pathData = d
-            el.radius = 0
-            store.add(el)
-            store.buzz(.confirm)
-            dismiss()
+    }
+
+    private func importFirstPath(from url: URL) {
+        guard let d = SVGPath.importFirstPath(fromFileAt: url) else {
+            // Said, and out of the way, as the Android twin refuses it.
+            refuseSVG()
+            return
         }
+        let size = min(store.pageWidth, store.pageHeight) * 0.4
+        var el = Element.shape("rect", w: size.rounded(), h: size.rounded())
+        el.pathData = d
+        el.radius = 0
+        store.add(el)
+        store.buzz(.confirm)
+        dismiss()
+    }
+
+    /// The whole file as a graphic, and the file kept among your uploads to
+    /// place again. Read, parsed and kept off the main thread, so a large
+    /// illustration does not hold the editor up.
+    private func importGraphic(from url: URL) {
+        let width = store.pageWidth, height = store.pageHeight
+        Task {
+            let read = await Task.detached(priority: .userInitiated) { () -> GraphicRead in
+                // The picker's permission held while the file is read.
+                let scoped = url.startAccessingSecurityScopedResource()
+                defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+                return GraphicRead.of(url, keep: true, pageWidth: width, pageHeight: height)
+            }.value
+            finishGraphic(read)
+        }
+    }
+
+    /// An SVG from your uploads placed again.
+    private func placeGraphic(_ id: String) {
+        let width = store.pageWidth, height = store.pageHeight
+        let url = MediaStore.graphicURL(id)
+        Task {
+            let read = await Task.detached(priority: .userInitiated) {
+                GraphicRead.of(url, keep: false, pageWidth: width, pageHeight: height)
+            }.value
+            finishGraphic(read)
+        }
+    }
+
+    /// What reading an SVG came to: the graphic, or what to say instead.
+    private enum GraphicRead {
+        case graphic(SvgImport.Graphic)
+        case refused(String)
+
+        /// An SVG file read and made a graphic, and kept among the uploads
+        /// when `keep` — or refused in the Android twin's words: one past
+        /// 2 MB, one that cannot be read, and one with nothing to draw.
+        static func of(_ url: URL, keep: Bool, pageWidth: Double, pageHeight: Double) -> GraphicRead {
+            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+            guard size <= SvgImport.maxBytes else { return .refused("That SVG is larger than 2 MB") }
+            guard let data = try? Data(contentsOf: url) else { return .refused("Couldn't open that") }
+            guard data.count <= SvgImport.maxBytes else { return .refused("That SVG is larger than 2 MB") }
+            guard let text = String(data: data, encoding: .utf8),
+                  let graphic = SvgImport.graphic(text, pageWidth: pageWidth, pageHeight: pageHeight) else {
+                return .refused("No shape to take from that file")
+            }
+            if keep, let id = MediaStore.storeGraphic(data) { Uploads.record(id, kind: .image) }
+            return .graphic(graphic)
+        }
+    }
+
+    private func finishGraphic(_ read: GraphicRead) {
+        switch read {
+        case .graphic(let graphic):
+            store.addGraphic(graphic)
+            dismiss()
+        case .refused(let note):
+            refuseSVG(note)
+        }
+    }
+
+    private func refuseSVG(_ note: String = "No shape to take from that file") {
+        store.buzz(.reject)
+        store.announce(note, undoable: false)
+        dismiss()
     }
 
     // MARK: layouts
@@ -1049,6 +1190,9 @@ struct InsertSheet: View {
             // One when replacing — a replace has one slot to fill — and a
             // clip may fill it, so a frame or a grid's cell can hold one.
             Group {
+                // The camera first: a photo or a video straight in, or into
+                // the frame being replaced.
+                CameraTiles { outcome in bringInCaptured(outcome) }
                 PhotosPicker(selection: $pickedItems,
                              maxSelectionCount: store.replaceTargetId == nil ? 10 : 1,
                              matching: .any(of: [.images, .videos])) {

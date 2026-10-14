@@ -708,6 +708,21 @@ final class DesignStore {
         selection = [el.id]
     }
 
+    /// A graphic brought in from an SVG file (see SvgImport): every part on
+    /// the page as one step, the whole graphic selected, and a word when
+    /// some of the file could not come with it.
+    func addGraphic(_ graphic: SvgImport.Graphic) {
+        guard !graphic.elements.isEmpty else { return }
+        applyToPage { $0.elements += graphic.elements }
+        selection = Set(graphic.elements.map(\.id))
+        if graphic.skipped {
+            buzz(.reject)
+            announce(SvgImport.partialNote, undoable: false)
+        } else {
+            buzz(.confirm)
+        }
+    }
+
     /// Delete asked for with something locked in position selected: the
     /// editor asks first, and its Delete is deleteSelected(confirmed: true)
     /// — the Android twin's confirmingDelete.
@@ -808,6 +823,54 @@ final class DesignStore {
         let targets = selectedElements.filter { !$0.locked }
         guard targets.contains(where: { Self.withGradient($0, paint) != $0 }) else { return }
         updateSelected { $0 = Self.withGradient($0, paint) }
+    }
+
+    /// One colour of the selection painted `to`, wherever the selection
+    /// uses it (see ColourSwap), as one step.
+    func swapSelectionColour(from: String, to: String) {
+        swapSelectionColourTransient(from: from, to: to)
+        commit()
+    }
+
+    /// The same, live, for the colour wheel: each tick swaps from the
+    /// selection as it was when the step opened, so a drag that passes
+    /// through another of its colours never takes that one along. The sheet
+    /// commits when the target changes or it closes.
+    func swapSelectionColourTransient(from: String, to: String) {
+        beginGesture()
+        guard let snapshot = pending?.design, snapshot.pages.indices.contains(pageIndex) else { return }
+        let before = snapshot.pages[pageIndex]
+        for i in design.pages[pageIndex].elements.indices {
+            let el = design.pages[pageIndex].elements[i]
+            guard selection.contains(el.id), ColourSwap.takesSwap(el),
+                  let was = before.elements.first(where: { $0.id == el.id }) else { continue }
+            design.pages[pageIndex].elements[i] = ColourSwap.swapped([was], from: from, to: to)[0]
+        }
+    }
+
+    /// Change all: `from` painted `to` on every element of every page that
+    /// uses it and is not locked, as one step with an Undo. Returns how many
+    /// elements changed.
+    @discardableResult
+    func swapColourEverywhere(from: String, to: String) -> Int {
+        commit()
+        let total = ColourSwap.count(design, from: from)
+        guard total > 0 else { return 0 }
+        apply { design in
+            for p in design.pages.indices {
+                for i in design.pages[p].elements.indices where ColourSwap.takesChangeAll(design.pages[p].elements[i]) {
+                    design.pages[p].elements[i] = ColourSwap.swapped([design.pages[p].elements[i]], from: from, to: to)[0]
+                }
+            }
+        }
+        buzz(.confirm)
+        announce(Self.changedAllNote(total))
+        return total
+    }
+
+    /// What Change all says it did.
+    static func changedAllNote(_ count: Int) -> String {
+        count == 1 ? "Changed the colour of 1 element" : "Changed the colour of \(count) elements"
     }
 
     /// `el` in colour `hex`, by what it is; unchanged when it already is —
@@ -1293,10 +1356,22 @@ final class DesignStore {
     var spacingSnapped = false
     /// The pen, while drawing mode is on: strokes become shape elements.
     var drawing: Freehand.Tool? {
-        didSet { if let drawing { lastPen = drawing } }
+        didSet {
+            if let drawing { lastPen = drawing }
+            // Put down — Done, the pencil, another tool taken up — the
+            // session's strokes become one drawing.
+            if oldValue != nil && drawing == nil { groupDrawnStrokes() }
+            if oldValue == nil && drawing != nil { sessionStrokes = [] }
+        }
     }
     /// The last pen used, so the next drawing session picks it up again.
     @ObservationIgnored private var lastPen = Freehand.Tool()
+    /// The strokes drawn since the pen was taken up, and the pieces left of
+    /// them by the eraser: what is grouped when it is put down.
+    @ObservationIgnored private var sessionStrokes: [String] = []
+    /// The history version just after the session's last stroke or erase:
+    /// while it is still the newest step, the grouping is folded into it.
+    @ObservationIgnored private var sessionStepAt = -1
     /// The photo in crop mode, and the size of its picture — see
     /// CropMode.swift. Crop mode is one open step: everything done in it is
     /// live, Done keeps it as a single Undo, and Cancel throws it away.
@@ -1419,11 +1494,17 @@ final class DesignStore {
     /// nothing is selected, so the next stroke starts clean.
     func finishStroke(_ points: [CGPoint]) {
         if let tool = drawing, tool.pen == .eraser {
-            eraseStrokes(points, radius: Freehand.eraserRadius(tool))
+            if tool.eraseWhole {
+                eraseStrokes(points, radius: Freehand.eraserRadius(tool))
+            } else {
+                eraseStrokesPartially(points, radius: Freehand.eraserRadius(tool))
+            }
             return
         }
         guard let tool = drawing, let el = Freehand.element(points: points, tool: tool) else { return }
         add(el, centered: false)
+        sessionStrokes.append(el.id)
+        sessionStepAt = historyVersion
         selection.removeAll()
         if tipEvent == nil { tipEvent = .drewStroke }
         buzz(.stroke)
@@ -1434,9 +1515,55 @@ final class DesignStore {
         let gone = Freehand.erased(page.elements, path: points, radius: radius)
         guard !gone.isEmpty else { return }
         applyToPage { $0.elements.removeAll { gone.contains($0.id) } }
+        sessionStepAt = historyVersion
         selection.removeAll()
         buzz(.stroke)
         announce(gone.count == 1 ? "Erased a stroke" : "Erased \(gone.count) strokes")
+    }
+
+    /// The part of each stroke an eraser swept over goes, what is left of
+    /// it staying where it was in the stack: one undo step per drag.
+    func eraseStrokesPartially(_ points: [CGPoint], radius: Double) {
+        let cuts = Freehand.erasedPartially(page.elements, path: points, radius: radius)
+        guard !cuts.isEmpty else { return }
+        var piecesOf: [String: [Element]] = [:]
+        for cut in cuts { piecesOf[cut.id] = cut.pieces }
+        applyToPage { page in
+            page.elements = page.elements.flatMap { el -> [Element] in piecesOf[el.id] ?? [el] }
+        }
+        // What is left of this session's strokes is still this session's.
+        sessionStrokes = sessionStrokes.flatMap { id -> [String] in piecesOf[id].map { $0.map(\.id) } ?? [id] }
+        sessionStepAt = historyVersion
+        selection.removeAll()
+        buzz(.stroke)
+        // Said, as the Android twin says it, for anyone not watching the page.
+        announce(cuts.count == 1 ? "Erased part of a stroke" : "Erased part of \(cuts.count) strokes")
+    }
+
+    /// The strokes drawn since the pen was taken up, when two or more are
+    /// still on the page, as one drawing: one group, named Drawing. Part of
+    /// the last stroke's step while that is still the newest step, so one
+    /// Undo still takes back only that stroke; after an Undo, or anything
+    /// else since, a step of its own, so the grouping is never lost to a
+    /// Redo — as the Android twin keeps a session together.
+    private func groupDrawnStrokes() {
+        let ids = Set(sessionStrokes)
+        sessionStrokes = []
+        guard design.pages.indices.contains(pageIndex),
+              design.pages[pageIndex].elements.filter({ ids.contains($0.id) }).count >= 2 else { return }
+        let group = UID.make("grp")
+        func grouped(_ page: inout Page) {
+            for i in page.elements.indices where ids.contains(page.elements[i].id) {
+                page.elements[i].group = group
+                page.elements[i].layerName = Freehand.drawingName
+            }
+        }
+        if historyVersion == sessionStepAt && pending == nil {
+            grouped(&design.pages[pageIndex])
+            onCommit?()
+        } else {
+            applyToPage(grouped)
+        }
     }
 
     func announce(_ text: String, undoable: Bool = true) {
@@ -1690,6 +1817,8 @@ final class DesignStore {
             el.strokeWidth = style.strokeWidth
             el.radius = style.radius
             el.corners = style.corners
+            // A border's dash goes with it; a line's "solid" is no key.
+            el.dash = BorderDash.kept(style.dash)
         case .text:
             el.dropCap = style.dropCap
             el.color = style.color
@@ -1719,6 +1848,7 @@ final class DesignStore {
             el.radius = style.radius
             el.stroke = style.stroke
             el.strokeWidth = style.strokeWidth
+            el.dash = BorderDash.kept(style.dash)
         case .line:
             el.color = style.color
             el.thickness = style.thickness

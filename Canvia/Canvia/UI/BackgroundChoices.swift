@@ -127,6 +127,8 @@ struct BackgroundYourPhotos: View {
                     .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
             }
             .disabled(loading)
+            // A photo taken now, behind the page; a background is no clip.
+            CameraTiles(video: false) { outcome in takePhoto(outcome) }
             if !uploads.isEmpty {
                 LazyVGrid(columns: columns, spacing: 10) {
                     ForEach(Array(uploads.enumerated()), id: \.element) { index, id in
@@ -179,6 +181,28 @@ struct BackgroundYourPhotos: View {
                 return
             }
             store.setBackground(.image(src))
+            store.buzz(.confirm)
+        }
+    }
+
+    /// A photo from the camera, kept among your uploads as one picked is,
+    /// and made the background.
+    private func takePhoto(_ outcome: CameraCapture.Outcome) {
+        let store = self.store
+        if case .cancelled = outcome {
+            store.announce(CameraCapture.cancelledNote, undoable: false)
+            return
+        }
+        loading = true
+        Task {
+            let saved = await CameraCapture.store(outcome)
+            loading = false
+            guard let saved, !saved.isVideo else {
+                store.buzz(.reject)
+                store.announce(CameraCapture.failedNote, undoable: false)
+                return
+            }
+            store.setBackground(.image(saved.src))
             store.buzz(.confirm)
         }
     }
