@@ -6,25 +6,32 @@
 // Drawn: <path>, <rect> (with rx/ry), <circle>, <ellipse>, <line>,
 // <polyline> and <polygon>, inside any depth of <g> (and <a>, <switch>, a
 // nested <svg>) with their transforms — matrix, translate, scale, rotate,
-// skewX and skewY. The root's viewBox frames the graphic; with
-// preserveAspectRatio="none" and a width and height it is stretched to them
-// first. Fill, stroke, stroke-width, opacity, fill-opacity, stroke-opacity
-// and fill-rule are read from attributes, then from simple <style> rules
-// (".class" or "#id", several selectors to a rule allowed), then from the
-// inline style, each overriding the one before, and the inheritable ones
-// passed down. A linearGradient or radialGradient fill becomes a gradient
-// Paint with the same stops: a linear one's angle is its direction, its
-// ends are not kept. <text>, <image>, <use>, masks, filters and clipPaths
-// are left out — what they would have drawn is not drawn — and the graphic
-// says so (`skipped`).
+// skewX and skewY; the root's own transform aside. Fill, stroke,
+// stroke-width, opacity, fill-opacity, stroke-opacity and fill-rule are read
+// from attributes, then from simple <style> rules (".class" rules, then
+// "#id" rules, each in the sheet's order), then from the inline style, each
+// overriding the one before, and the inheritable ones passed down. A
+// linearGradient or radialGradient fill becomes a gradient Paint with the
+// same stops (see `angle`). Anything else — <defs>, <symbol>, an unused
+// <clipPath> — is not entered.
 //
-// Each part is a shape whose path is normalised into its own 0…100 box by
-// the same writer as every path (TextOutliner.svgPathData), placed on the
-// page with the whole graphic fitted to 0.4 of the page's shorter side and
-// centred. Every part shares one `group` and takes its SVG id, when it has
-// one, as its `layerName`; an even-odd one writes `fillRule`. The Android
-// twin reads the same files to the same elements; SvgImportTests holds the
-// shared files.
+// What is fitted to the page: the root's viewBox (stretched to its width
+// and height first only for preserveAspectRatio="none"), else its width and
+// height, else the box round what it draws — its longer side at 0.4 of the
+// page's shorter side, centred. Each part is then a shape in its own tight
+// box on the page (a flat one widened to its stroke, or to one unit), its
+// path stretched into 0…100 across that box by the same writer as every
+// path (TextOutliner.svgPathData); x, y, w, h, border width, opacity and
+// gradient offsets to the hundredth. Two or more parts share one `group`;
+// each takes its SVG id, when it has one, as its `layerName`; an even-odd
+// one writes `fillRule`.
+//
+// Said to be left out (`skipped`): a <text>, <image>, <use> or
+// <foreignObject> that would show, a mask, filter or clip path named by
+// something drawn (drawn without it), a fill or stroke naming no gradient
+// and giving no fallback colour, and parts past the limit. The Android twin
+// (SvgGraphic) reads the same files to the same elements by these rules;
+// SvgImportTests and its SvgImportTest share the files and the numbers.
 
 import CoreGraphics
 import Foundation
@@ -42,8 +49,9 @@ enum SvgImport {
 
     struct Graphic {
         var elements: [Element]
-        /// Something was left out: words, a picture, a mask, a filter, a
-        /// clip, a reuse or parts past the limit.
+        /// Something was left out: words, a picture, a reuse, a mask, a
+        /// filter or a clip, a paint that is not there, or parts past the
+        /// limit.
         var skipped: Bool
     }
 
@@ -64,7 +72,7 @@ enum SvgImport {
         let viewBox = numbers(root.attributes["viewBox"] ?? "")
         if viewBox.count == 4, viewBox[2] > 0, viewBox[3] > 0 {
             box = CGRect(x: viewBox[0], y: viewBox[1], width: viewBox[2], height: viewBox[3])
-            if root.attributes["preserveAspectRatio"]?.trimmingCharacters(in: .whitespaces) == "none",
+            if root.attributes["preserveAspectRatio"]?.trimmingCharacters(in: .whitespacesAndNewlines) == "none",
                let w = size.0, let h = size.1, w > 0, h > 0 {
                 frame = CGAffineTransform(translationX: -box.minX, y: -box.minY)
                     .concatenating(CGAffineTransform(scaleX: w / box.width, y: h / box.height))
@@ -84,13 +92,15 @@ enum SvgImport {
         let fit = CGAffineTransform(a: scale, b: 0, c: 0, d: scale,
                                     tx: (pageWidth - box.width * scale) / 2 - box.minX * scale,
                                     ty: (pageHeight - box.height * scale) / 2 - box.minY * scale)
-        let group = UID.make("grp")
-        let elements = reader.parts.compactMap { part -> Element? in
-            var el = element(part, placing: part.transform.concatenating(frame).concatenating(fit))
-            el?.group = group
-            return el
+        var elements = reader.parts.compactMap { part in
+            element(part, placing: part.transform.concatenating(frame).concatenating(fit))
         }
         guard !elements.isEmpty else { return nil }
+        // One part is not a group.
+        if elements.count >= 2 {
+            let group = UID.make("grp")
+            for i in elements.indices { elements[i].group = group }
+        }
         return Graphic(elements: elements, skipped: reader.skipped)
     }
 
@@ -111,12 +121,14 @@ enum SvgImport {
 
     /// A part as a shape on the page: placed by `placing`, its box the
     /// outline's bounds (a flat one widened to its stroke, or to one unit),
-    /// its path normalised into that box.
+    /// its path stretched into that box. A part that is only a point is
+    /// none.
     static func element(_ part: Drawable, placing: CGAffineTransform) -> Element? {
         var t = placing
         guard let placed = part.path.copy(using: &t) else { return nil }
         var box = placed.boundingBoxOfPath
         guard !box.isNull, box.width.isFinite, box.height.isFinite else { return nil }
+        guard box.width >= 0.01 || box.height >= 0.01 else { return nil }
         let widthScale = abs(Double(placing.a * placing.d - placing.b * placing.c)).squareRoot()
         let strokeWidth = part.strokeWidth * widthScale
         let flat = max(strokeWidth, 1)
@@ -160,32 +172,36 @@ enum SvgImport {
         let root: Node
         var parts: [Drawable] = []
         var skipped = false
-        let classRules: [String: [String: String]]
-        let idRules: [String: [String: String]]
+        /// The style sheets' plain ".class" and "#id" rules, in their order.
+        let classRules: [(name: String, declarations: [String: String])]
+        let idRules: [(name: String, declarations: [String: String])]
         let gradients: [String: Node]
 
         init(root: Node) {
             self.root = root
-            var classes: [String: [String: String]] = [:]
-            var ids: [String: [String: String]] = [:]
+            var css: [String] = []
             var gradients: [String: Node] = [:]
             var stack = [root]
             while let node = stack.popLast() {
-                if node.name == "style" {
-                    for rule in SvgImport.styleRules(node.text) {
-                        for selector in rule.selectors {
-                            if selector.hasPrefix(".") {
-                                classes[String(selector.dropFirst()), default: [:]].merge(rule.declarations) { $1 }
-                            } else if selector.hasPrefix("#") {
-                                ids[String(selector.dropFirst()), default: [:]].merge(rule.declarations) { $1 }
-                            }
-                        }
-                    }
-                }
-                if node.name == "linearGradient" || node.name == "radialGradient", let id = node.attributes["id"] {
+                if node.name == "style" { css.append(node.text) }
+                // The first of an id is the one used.
+                if node.name == "linearGradient" || node.name == "radialGradient", let id = node.attributes["id"],
+                   gradients[id] == nil {
                     gradients[id] = node
                 }
                 stack.append(contentsOf: node.children.reversed())
+            }
+            var classes: [(name: String, declarations: [String: String])] = []
+            var ids: [(name: String, declarations: [String: String])] = []
+            for rule in SvgImport.styleRules(css.joined(separator: "\n")) {
+                for selector in rule.selectors {
+                    guard let name = SvgImport.plainName(selector) else { continue }
+                    if selector.hasPrefix(".") {
+                        classes.append((name, rule.declarations))
+                    } else {
+                        ids.append((name, rule.declarations))
+                    }
+                }
             }
             classRules = classes
             idRules = ids
@@ -193,25 +209,37 @@ enum SvgImport {
         }
 
         /// What a node says of a property: its attribute, then its classes'
-        /// rules, its id's rule, then its inline style.
+        /// rules, its id's rules, then its inline style.
         func properties(of node: Node) -> [String: String] {
             var out: [String: String] = [:]
             for key in SvgImport.styledKeys {
                 if let value = node.attributes[key] { out[key] = value }
             }
-            for name in (node.attributes["class"] ?? "").split(separator: " ") {
-                if let rule = classRules[String(name)] { out.merge(rule) { $1 } }
+            let classes = (node.attributes["class"] ?? "").split(whereSeparator: { $0.isWhitespace }).map(String.init)
+            for rule in classRules where classes.contains(rule.name) {
+                out.merge(rule.declarations) { $1 }
             }
-            if let id = node.attributes["id"], let rule = idRules[id] { out.merge(rule) { $1 } }
+            if let id = node.attributes["id"] {
+                for rule in idRules where rule.name == id {
+                    out.merge(rule.declarations) { $1 }
+                }
+            }
             out.merge(SvgImport.declarations(node.attributes["style"] ?? "")) { $1 }
-            return out.mapValues { $0.replacingOccurrences(of: "!important", with: "").trimmingCharacters(in: .whitespaces) }
+            return out.mapValues {
+                $0.replacingOccurrences(of: "!important", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+            }
         }
 
         mutating func walk(_ node: Node, inherited: Inherited, transform: CGAffineTransform, isRoot: Bool = false) {
-            if SvgImport.skippedNames.contains(node.name) { skipped = true; return }
-            guard isRoot || SvgImport.containers.contains(node.name) || SvgImport.shapes.contains(node.name) else { return }
+            let name = node.name
+            guard isRoot || SvgImport.containers.contains(name) || SvgImport.shapes.contains(name)
+                || SvgImport.skippedNames.contains(name) else { return }
             let props = properties(of: node)
             if props["display"] == "none" { return }
+            if SvgImport.skippedNames.contains(name) {
+                skipped = true
+                return
+            }
             var style = inherited
             func take(_ key: String, _ path: WritableKeyPath<Inherited, String>) {
                 if let value = props[key], value != "inherit" { style[keyPath: path] = value }
@@ -223,7 +251,7 @@ enum SvgImport {
             take("stroke-opacity", \.strokeOpacity)
             take("fill-rule", \.fillRule)
             take("color", \.color)
-            if let visibility = props["visibility"] { style.visible = visibility == "visible" }
+            if let visibility = props["visibility"], visibility != "inherit" { style.visible = visibility == "visible" }
             if let opacity = props["opacity"].flatMap(SvgImport.fraction) { style.opacity *= opacity }
             if node.attributes["mask"] != nil || node.attributes["filter"] != nil || node.attributes["clip-path"] != nil
                 || props["mask"] != nil || props["filter"] != nil || props["clip-path"] != nil {
@@ -233,7 +261,7 @@ enum SvgImport {
             // A nested svg is a group; the root's own place is the frame's.
             let own = isRoot ? CGAffineTransform.identity : SvgImport.transform(node.attributes["transform"] ?? "")
             let here = own.concatenating(transform)
-            if SvgImport.shapes.contains(node.name) {
+            if SvgImport.shapes.contains(name) {
                 addShape(node, style: style, transform: here)
                 return
             }
@@ -248,11 +276,12 @@ enum SvgImport {
             let fillOpacity = SvgImport.fraction(style.fillOpacity) ?? 1
             let strokeOpacity = SvgImport.fraction(style.strokeOpacity) ?? 1
             // A line has no inside to fill.
-            let fill = node.name == "line" ? Paint.clear : paint(style.fill, opacity: fillOpacity, color: style.color)
+            let fill = node.name == "line" ? Paint.clear
+                : paint(style.fill, opacity: fillOpacity, color: style.color, transform: transform)
             var stroke: String?
             switch SvgImport.Ink.read(style.stroke, color: style.color, gradients: gradients) {
             case .solid(let hex)?:
-                stroke = SvgImport.hex(hex, alpha: strokeOpacity)
+                stroke = SvgImport.visibleColour(SvgImport.hex(hex, alpha: strokeOpacity))
             case .gradient(let gradient)?:
                 // A gradient border is drawn in its first colour.
                 stroke = SvgImport.stops(gradient, gradients: gradients, opacity: strokeOpacity).first?.color
@@ -268,19 +297,23 @@ enum SvgImport {
                               name: node.attributes["id"]))
         }
 
-        /// A fill as a Paint: none, a colour with its opacity as alpha, or a
-        /// gradient's stops.
-        mutating func paint(_ raw: String, opacity: Double, color: String) -> Paint {
+        /// A fill as a Paint: none (a colour wholly see-through among
+        /// them), a colour with its opacity as alpha, or a gradient's stops;
+        /// `transform` is the shape's, which turns a gradient in user space.
+        mutating func paint(_ raw: String, opacity: Double, color: String, transform: CGAffineTransform) -> Paint {
             switch SvgImport.Ink.read(raw, color: color, gradients: gradients) {
             case .solid(let hex)?:
-                return .solid(SvgImport.hex(hex, alpha: opacity))
+                return SvgImport.visibleColour(SvgImport.hex(hex, alpha: opacity)).map { Paint.solid($0) } ?? Paint.clear
             case .gradient(let node)?:
                 let stops = SvgImport.stops(node, gradients: gradients, opacity: opacity)
-                if stops.count == 1 { return .solid(stops[0].color) }
+                if stops.count == 1 {
+                    return SvgImport.visibleColour(stops[0].color).map { Paint.solid($0) } ?? Paint.clear
+                }
                 guard stops.count >= 2 else { return Paint.clear }
+                // A radial one has no angle.
                 let radial = node.name == "radialGradient"
                 return Paint(kind: "gradient", color: nil,
-                             angle: radial ? nil : SvgImport.angle(node, gradients: gradients),
+                             angle: radial ? nil : SvgImport.angle(node, gradients: gradients, transform: transform),
                              stops: stops, gradientKind: radial ? "radial" : nil)
             case .missing?:
                 skipped = true
@@ -316,8 +349,12 @@ enum SvgImport {
             let name = elementName.split(separator: ":").last.map(String.init) ?? elementName
             var attributes: [String: String] = [:]
             for (key, value) in attributeDict {
-                // xlink:href and href alike.
-                attributes[key.hasSuffix(":href") ? "href" : key] = value
+                // xlink:href and href alike, href itself first.
+                if key.hasSuffix(":href") {
+                    if attributeDict["href"] == nil { attributes["href"] = value }
+                } else {
+                    attributes[key] = value
+                }
             }
             let node = Node(name: name, attributes: attributes)
             if let parent = stack.last {
@@ -350,11 +387,11 @@ enum SvgImport {
         return builder.root
     }
 
-    /// What is drawn; what holds what is drawn; what is left out and said
-    /// to be.
+    /// What is drawn; what holds what is drawn; what is left out, and said
+    /// to be, when it would show.
     static let shapes: Set<String> = ["path", "rect", "circle", "ellipse", "line", "polyline", "polygon"]
     static let containers: Set<String> = ["svg", "g", "a", "switch"]
-    static let skippedNames: Set<String> = ["text", "image", "mask", "filter", "clipPath", "use", "foreignObject"]
+    static let skippedNames: Set<String> = ["text", "image", "use", "foreignObject"]
     /// The presentation attributes read.
     static let styledKeys = ["fill", "stroke", "stroke-width", "fill-opacity", "stroke-opacity", "fill-rule",
                              "color", "opacity", "display", "visibility"]
@@ -366,26 +403,25 @@ enum SvgImport {
         switch node.name {
         case "path":
             guard let d = a["d"], !d.isEmpty else { return nil }
-            return SVGPath.path(d)
+            let path = SVGPath.path(d)
+            // One that only moves draws nothing.
+            return drawsSegment(path) ? path : nil
         case "rect":
-            let rect = CGRect(x: value("x"), y: value("y"), width: value("width"), height: value("height"))
-            guard rect.width > 0, rect.height > 0 else { return nil }
+            let w = value("width"), h = value("height")
+            guard w > 0, h > 0 else { return nil }
             var rx = length(a["rx"]), ry = length(a["ry"])
             if rx == nil { rx = ry }
             if ry == nil { ry = rx }
-            let cornerX = min(max(rx ?? 0, 0), rect.width / 2), cornerY = min(max(ry ?? 0, 0), rect.height / 2)
-            guard cornerX > 0, cornerY > 0 else { return CGPath(rect: rect, transform: nil) }
-            return CGPath(roundedRect: rect, cornerWidth: cornerX, cornerHeight: cornerY, transform: nil)
+            let cornerX = min(max(rx ?? 0, 0), w / 2), cornerY = min(max(ry ?? 0, 0), h / 2)
+            return rectPath(x: value("x"), y: value("y"), width: w, height: h, rx: cornerX, ry: cornerY)
         case "circle":
             let r = value("r")
             guard r > 0 else { return nil }
-            return CGPath(ellipseIn: CGRect(x: value("cx") - r, y: value("cy") - r, width: 2 * r, height: 2 * r),
-                          transform: nil)
+            return ellipsePath(cx: value("cx"), cy: value("cy"), rx: r, ry: r)
         case "ellipse":
             let rx = value("rx"), ry = value("ry")
             guard rx > 0, ry > 0 else { return nil }
-            return CGPath(ellipseIn: CGRect(x: value("cx") - rx, y: value("cy") - ry, width: 2 * rx, height: 2 * ry),
-                          transform: nil)
+            return ellipsePath(cx: value("cx"), cy: value("cy"), rx: rx, ry: ry)
         case "line":
             let path = CGMutablePath()
             path.move(to: CGPoint(x: value("x1"), y: value("y1")))
@@ -408,7 +444,74 @@ enum SvgImport {
         }
     }
 
+    /// Whether a path draws anything past its moves.
+    static func drawsSegment(_ path: CGPath) -> Bool {
+        var found = false
+        path.applyWithBlock { element in
+            if element.pointee.type != .moveToPoint { found = true }
+        }
+        return found
+    }
+
+    /// The share of a radius a quarter circle's control points sit at.
+    static let kappa = 0.5522847498307936
+
+    /// An ellipse as four curves from its right end, clockwise on the page,
+    /// built point for point as the Android twin builds it.
+    static func ellipsePath(cx: Double, cy: Double, rx: Double, ry: Double) -> CGPath {
+        let kx = rx * kappa, ky = ry * kappa
+        func p(_ x: Double, _ y: Double) -> CGPoint { CGPoint(x: x, y: y) }
+        let path = CGMutablePath()
+        path.move(to: p(cx + rx, cy))
+        path.addCurve(to: p(cx, cy + ry), control1: p(cx + rx, cy + ky), control2: p(cx + kx, cy + ry))
+        path.addCurve(to: p(cx - rx, cy), control1: p(cx - kx, cy + ry), control2: p(cx - rx, cy + ky))
+        path.addCurve(to: p(cx, cy - ry), control1: p(cx - rx, cy - ky), control2: p(cx - kx, cy - ry))
+        path.addCurve(to: p(cx + rx, cy), control1: p(cx + kx, cy - ry), control2: p(cx + rx, cy - ky))
+        path.closeSubpath()
+        return path
+    }
+
+    /// A rectangle from its top left corner, clockwise on the page, its
+    /// corners rounded by `rx` and `ry` unless either is 0, built as the
+    /// Android twin builds it.
+    static func rectPath(x: Double, y: Double, width w: Double, height h: Double, rx: Double, ry: Double) -> CGPath {
+        func p(_ px: Double, _ py: Double) -> CGPoint { CGPoint(x: px, y: py) }
+        let path = CGMutablePath()
+        guard rx > 0, ry > 0 else {
+            path.move(to: p(x, y))
+            path.addLine(to: p(x + w, y))
+            path.addLine(to: p(x + w, y + h))
+            path.addLine(to: p(x, y + h))
+            path.closeSubpath()
+            return path
+        }
+        let kx = rx * kappa, ky = ry * kappa
+        path.move(to: p(x + rx, y))
+        path.addLine(to: p(x + w - rx, y))
+        path.addCurve(to: p(x + w, y + ry), control1: p(x + w - rx + kx, y), control2: p(x + w, y + ry - ky))
+        path.addLine(to: p(x + w, y + h - ry))
+        path.addCurve(to: p(x + w - rx, y + h), control1: p(x + w, y + h - ry + ky), control2: p(x + w - rx + kx, y + h))
+        path.addLine(to: p(x + rx, y + h))
+        path.addCurve(to: p(x, y + h - ry), control1: p(x + rx - kx, y + h), control2: p(x, y + h - ry + ky))
+        path.addLine(to: p(x, y + ry))
+        path.addCurve(to: p(x + rx, y), control1: p(x, y + ry - ky), control2: p(x + rx - kx, y))
+        path.closeSubpath()
+        return path
+    }
+
     // MARK: styles
+
+    /// The name in a plain ".class" or "#id" selector, or nil for anything
+    /// more — a tag, a combinator, a pseudo-class.
+    static func plainName(_ selector: String) -> String? {
+        guard selector.hasPrefix(".") || selector.hasPrefix("#") else { return nil }
+        let name = selector.dropFirst()
+        func plain(_ c: Character) -> Bool { c.isASCII && (c.isLetter || c.isNumber || c == "-" || c == "_") }
+        guard let first = name.first, first.isASCII, first.isLetter || first == "_", name.allSatisfy(plain) else {
+            return nil
+        }
+        return String(name)
+    }
 
     /// The rules of a <style>: each with its selectors and declarations.
     static func styleRules(_ css: String) -> [(selectors: [String], declarations: [String: String])] {
@@ -446,13 +549,13 @@ enum SvgImport {
         case missing
 
         static func read(_ raw: String, color: String, gradients: [String: Node]) -> Ink? {
-            let value = raw.trimmingCharacters(in: .whitespaces)
+            let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
             if value.hasPrefix("url(") {
                 let inside = value.dropFirst(4).prefix(while: { $0 != ")" })
                 let id = inside.trimmingCharacters(in: CharacterSet(charactersIn: "#'\" "))
                 if let node = gradients[id] { return .gradient(node) }
                 // A fallback after the reference is drawn instead.
-                let rest = value.drop(while: { $0 != ")" }).dropFirst().trimmingCharacters(in: .whitespaces)
+                let rest = value.drop(while: { $0 != ")" }).dropFirst().trimmingCharacters(in: .whitespacesAndNewlines)
                 if let fallback = SvgImport.colour(rest, current: color) { return .solid(fallback) }
                 return .missing
             }
@@ -486,10 +589,12 @@ enum SvgImport {
     }
 
     /// A linear gradient's direction as a CSS angle — 0 up, 90 to the
-    /// right — through its gradientTransform, from x1, y1 to x2, y2 (by
-    /// default left to right), read from it or the gradient it takes them
-    /// from.
-    static func angle(_ node: Node, gradients: [String: Node]) -> Double {
+    /// right — to the hundredth: from x1, y1 to x2, y2 (by default left to
+    /// right; a percentage as its share), through its gradientTransform,
+    /// and, when its gradientUnits are userSpaceOnUse, through the shape's
+    /// own transforms (`shape`) too. Each of those is read from it or the
+    /// first gradient in its href chain to give it. No direction is 90.
+    static func angle(_ node: Node, gradients: [String: Node], transform shape: CGAffineTransform) -> Double {
         func attribute(_ key: String) -> String? {
             var source: Node? = node
             var hops = 0
@@ -500,20 +605,21 @@ enum SvgImport {
             }
             return nil
         }
-        // A share of the box or a user-space length: only the direction
-        // between the two ends is kept, so either reads the same way.
         func coordinate(_ key: String, _ fallback: Double) -> Double {
             guard let raw = attribute(key), let n = numbers(raw).first else { return fallback }
-            return raw.trimmingCharacters(in: .whitespaces).hasSuffix("%") ? n / 100 : n
+            return raw.trimmingCharacters(in: .whitespacesAndNewlines).hasSuffix("%") ? n / 100 : n
         }
         var dx = coordinate("x2", 1) - coordinate("x1", 0)
         var dy = coordinate("y2", 0) - coordinate("y1", 0)
-        let t = transform(attribute("gradientTransform") ?? "")
+        let own = transform(attribute("gradientTransform") ?? "")
+        let inUserSpace = attribute("gradientUnits")?.trimmingCharacters(in: .whitespacesAndNewlines) == "userSpaceOnUse"
+        let t = inUserSpace ? own.concatenating(shape) : own
         (dx, dy) = (Double(t.a) * dx + Double(t.c) * dy, Double(t.b) * dx + Double(t.d) * dy)
         guard dx != 0 || dy != 0 else { return 90 }
         var degrees = atan2(dx, -dy) * 180 / .pi
         if degrees < 0 { degrees += 360 }
-        return rounded(degrees)
+        let hundredths = rounded(degrees)
+        return hundredths >= 360 ? hundredths - 360 : hundredths
     }
 
     // MARK: values
@@ -569,7 +675,7 @@ enum SvgImport {
     /// A length in user units: a number, in px or nothing; pt, pc, mm, cm
     /// and in converted at 96 to the inch. A percentage is no length here.
     static func length(_ text: String?) -> Double? {
-        guard let text = text?.trimmingCharacters(in: .whitespaces), !text.hasSuffix("%"),
+        guard let text = text?.trimmingCharacters(in: .whitespacesAndNewlines), !text.hasSuffix("%"),
               let value = numbers(text).first else { return nil }
         let units: [(String, Double)] = [("pt", 96.0 / 72), ("pc", 16), ("mm", 96 / 25.4), ("cm", 96 / 2.54), ("in", 96)]
         for (unit, factor) in units where text.hasSuffix(unit) { return value * factor }
@@ -579,7 +685,7 @@ enum SvgImport {
     /// An opacity or an offset: a number, or a percentage of one, kept
     /// within 0…1.
     static func fraction(_ text: String) -> Double? {
-        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let value = numbers(trimmed).first else { return nil }
         return min(max(trimmed.hasSuffix("%") ? value / 100 : value, 0), 1)
     }
@@ -588,7 +694,7 @@ enum SvgImport {
     /// has one: "#rgb", "#rgba", "#rrggbb", "#rrggbbaa", rgb() and rgba(),
     /// a name, or currentColor (`current`); nil for none or transparent.
     static func colour(_ text: String, current: String) -> String? {
-        let value = text.trimmingCharacters(in: .whitespaces).lowercased()
+        let value = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if value.isEmpty || value == "none" || value == "transparent" { return nil }
         if value == "currentcolor" { return current == text ? nil : colour(current, current: "#000000") }
         if value.hasPrefix("#") {
@@ -632,10 +738,16 @@ enum SvgImport {
         return byte >= 255 ? rgb : rgb + String(format: "%02x", byte)
     }
 
+    /// A solid colour as drawn: nil when it is wholly see-through.
+    static func visibleColour(_ hex: String) -> String? {
+        hex.count == 9 && hex.hasSuffix("00") ? nil : hex
+    }
+
     /// Two places, as every number a part is written with.
     static func rounded(_ v: Double) -> Double { (v * 100).rounded() / 100 }
 
-    /// The colour names SVG files use most.
+    /// The colour names SVG files use most, as CSS defines them; the
+    /// Android twin knows the same ones.
     static let namedColours: [String: String] = [
         "black": "#000000", "white": "#ffffff", "red": "#ff0000", "green": "#008000", "blue": "#0000ff",
         "yellow": "#ffff00", "cyan": "#00ffff", "aqua": "#00ffff", "magenta": "#ff00ff", "fuchsia": "#ff00ff",
@@ -648,5 +760,6 @@ enum SvgImport {
         "darkgreen": "#006400", "darkred": "#8b0000", "beige": "#f5f5dc", "ivory": "#fffff0",
         "khaki": "#f0e68c", "lavender": "#e6e6fa", "turquoise": "#40e0d0", "tan": "#d2b48c",
         "chocolate": "#d2691e", "orchid": "#da70d6", "plum": "#dda0dd", "slategray": "#708090",
+        "orangered": "#ff4500", "hotpink": "#ff69b4",
     ]
 }
