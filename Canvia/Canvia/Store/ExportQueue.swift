@@ -39,6 +39,14 @@ final class ExportQueue {
         var musicLost = false
         /// A PDF to hand to the printer.
         var print: PrintRequest?
+        /// Why it could not finish, said in its turn as any other result
+        /// is — as the Android twin's ExportHandoff.Say — so a second
+        /// failure does not replace the first.
+        var failed: String?
+
+        /// Nothing to share, open or print — a failure, or only what
+        /// Photos took — so only said.
+        var isOnlySaid: Bool { urls.isEmpty && print == nil }
     }
 
     /// The printer's part of "Send to a printer".
@@ -114,8 +122,6 @@ final class ExportQueue {
     /// The exports done, oldest first, each until it is taken: one done
     /// while another waits to be delivered — the app away — is kept too.
     var finished: [Finished] = []
-    /// Why the last export failed, until it is said.
-    var failure: String?
     /// Something to say once the sheet has gone: a save to Photos, a video
     /// without its music, a failure.
     var note: String?
@@ -123,7 +129,7 @@ final class ExportQueue {
     /// between two pages or frames until the app is back.
     private(set) var paused = false
     /// A notification's Share or Open, waiting for the app to come back,
-    /// and the export whose notification it was.
+    /// and the export whose notification it was (tapped).
     var requested: Request?
     var requestedJob: UUID?
     /// Whether a delivered export's share sheet, preview or print dialog is
@@ -151,7 +157,6 @@ final class ExportQueue {
     /// Runs the job now, or after those ahead of it.
     func enqueue(_ job: Job) {
         waiting.append(job)
-        failure = nil
         guard runner == nil else { return }
         runner = Task { await drain() }
     }
@@ -188,6 +193,24 @@ final class ExportQueue {
     func takeFinished() -> Finished? {
         guard !finished.isEmpty else { return nil }
         return take(at: 0)
+    }
+
+    /// A notification tapped for export [job]: its Share or Open hands that
+    /// export on first, as asked; a tap on the notification itself
+    /// (request nil) leaves every export to be handed on in turn, oldest
+    /// first — as the Android twin's Exports.acted.
+    func tapped(_ request: Request?, job: UUID?) {
+        guard let request else { return }
+        requestedJob = job
+        requested = request
+    }
+
+    /// Whether the next takeRequested would hand on is only said: it waits
+    /// until the pill is free, so each is said in turn.
+    var nextIsOnlySaid: Bool {
+        let target = requestedJob.flatMap { id in finished.first { $0.id == id } }
+        guard let next = target ?? finished.first else { return false }
+        return next.result.isOnlySaid
     }
 
     /// The next finished export to deliver, and how a notification asked
@@ -238,7 +261,8 @@ final class ExportQueue {
             } catch is CancellationError {
                 // Asked for; nothing to say.
             } catch {
-                failure = ExportChoices.failedText(error.localizedDescription)
+                let failed = Result(failed: ExportChoices.failedText(error.localizedDescription))
+                finished.append(Finished(id: job.id, label: job.label, designId: job.designId, result: failed))
                 if host.isAway() { host.notify(job.id, ExportChoices.failedTitle, error.localizedDescription, false) }
             }
             running = nil
@@ -364,20 +388,28 @@ final class ExportNotifications: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [identifier(job: job)])
     }
 
-    /// Share, Open, or the notification itself — which shares, as the sheet
-    /// would have — for the export it was posted for.
+    /// Share or Open, for the export it was posted for; the notification
+    /// itself opens the app, which hands every export on in turn
+    /// (ExportQueue.tapped).
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
-        let open = response.actionIdentifier == Self.openAction
+        let request = Self.request(for: response.actionIdentifier)
         let identifier = response.notification.request.identifier
         let job = identifier.hasPrefix(Self.identifierPrefix)
             ? UUID(uuidString: String(identifier.dropFirst(Self.identifierPrefix.count))) : nil
         Task { @MainActor in
-            let queue = ExportQueue.shared
-            queue.requestedJob = job
-            queue.requested = open ? .open : .share
+            ExportQueue.shared.tapped(request, job: job)
         }
         completionHandler()
+    }
+
+    /// The Share or Open button tapped; nil for the notification itself.
+    static func request(for action: String) -> ExportQueue.Request? {
+        switch action {
+        case openAction: return .open
+        case shareAction: return .share
+        default: return nil
+        }
     }
 
     /// In the app, the pill already says it.
@@ -467,6 +499,10 @@ enum ExportPresenter {
     /// when Open asked — and what there is to say put in the pill.
     static func deliver(_ finished: ExportQueue.Finished, request: ExportQueue.Request?, queue: ExportQueue) {
         let result = finished.result
+        if let failed = result.failed {
+            queue.note = failed
+            return
+        }
         if let print = result.print {
             self.print(print)
         } else if request == .open, let first = result.urls.first {

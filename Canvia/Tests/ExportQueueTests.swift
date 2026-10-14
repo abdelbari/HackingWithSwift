@@ -4,6 +4,7 @@
 
 import XCTest
 import CoreGraphics
+import UserNotifications
 @testable import Canvia
 
 @MainActor
@@ -104,6 +105,32 @@ final class ExportQueueTests: XCTestCase {
         XCTAssertNil(queue.requested, "a tap with nothing waiting is used up")
     }
 
+    /// The row the Android twin's ExportsReadyTest checks: a tap on b's
+    /// notification itself, with a waiting, leaves them in turn — a first;
+    /// its Share or Open takes b first, as asked.
+    func testATapOnTheNotificationItselfLeavesThemInTurn() async {
+        let queue = ExportQueue(host: .none)
+        let recorder = Recorder()
+        let jobs = ["a", "b", "c"].map { job($0, recorder) }
+        for j in jobs { queue.enqueue(j) }
+        await queue.waitUntilIdle()
+
+        XCTAssertNil(ExportNotifications.request(for: UNNotificationDefaultActionIdentifier))
+        XCTAssertEqual(ExportNotifications.request(for: ExportNotifications.shareAction), .share)
+        XCTAssertEqual(ExportNotifications.request(for: ExportNotifications.openAction), .open)
+
+        queue.tapped(nil, job: jobs[1].id)
+        XCTAssertNil(queue.requested)
+        XCTAssertNil(queue.requestedJob)
+        XCTAssertEqual(queue.takeRequested()?.finished.label, "a")
+
+        queue.tapped(.open, job: jobs[2].id)
+        let opened = queue.takeRequested()
+        XCTAssertEqual(opened?.finished.label, "c")
+        XCTAssertEqual(opened?.request, .open)
+        XCTAssertEqual(queue.takeRequested()?.finished.label, "b")
+    }
+
     /// One asked for while another runs waits its turn; taken out of the
     /// line, it never runs; the one running, stopped, finishes nothing.
     func testAWaitingExportCanBeTakenOutAndTheRunningOneStopped() async throws {
@@ -125,7 +152,7 @@ final class ExportQueueTests: XCTestCase {
         await queue.waitUntilIdle()
         XCTAssertEqual(recorder.events, ["start first", "start third", "end third"])
         XCTAssertEqual(queue.finished.map(\.label), ["third"])
-        XCTAssertNil(queue.failure)
+        XCTAssertNil(queue.finished.first?.result.failed)
     }
 
     /// Stop stops them all: the one running, and none waiting starts after.
@@ -149,8 +176,27 @@ final class ExportQueueTests: XCTestCase {
         let queue = ExportQueue(host: .none)
         queue.enqueue(ExportQueue.Job(label: "Making the PDF", designId: "d") { _ in throw Broken() })
         await queue.waitUntilIdle()
-        XCTAssertEqual(queue.failure, "Export failed: the disk is full")
-        XCTAssertTrue(queue.finished.isEmpty)
+        XCTAssertEqual(queue.finished.map(\.result.failed), ["Export failed: the disk is full"])
+        XCTAssertTrue(queue.finished.first?.result.isOnlySaid ?? false)
+    }
+
+    /// The row the Android twin's ExportsReadyTest checks: two failing
+    /// jobs leave two messages, oldest first — the second does not replace
+    /// the first.
+    func testTwoFailuresLeaveTwoMessagesOldestFirst() async {
+        struct Broken: LocalizedError {
+            let why: String
+            var errorDescription: String? { why }
+        }
+        let queue = ExportQueue(host: .none)
+        queue.enqueue(ExportQueue.Job(label: "Making the PDF", designId: "d") { _ in throw Broken(why: "the disk is full") })
+        queue.enqueue(ExportQueue.Job(label: "Rendering the video", designId: "d") { _ in throw Broken(why: "no room") })
+        await queue.waitUntilIdle()
+        XCTAssertTrue(queue.nextIsOnlySaid)
+        XCTAssertEqual(queue.takeRequested()?.finished.result.failed, "Export failed: the disk is full")
+        XCTAssertEqual(queue.takeRequested()?.finished.result.failed, "Export failed: no room")
+        XCTAssertNil(queue.takeRequested())
+        XCTAssertFalse(queue.nextIsOnlySaid)
     }
 
     /// Reported progress lands on the job running, from any thread.
