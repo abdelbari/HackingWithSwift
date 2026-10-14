@@ -376,7 +376,7 @@ struct ContextToolbar: View {
             let base = dictationBase
             let target = el.id
             store.dictationTarget = target
-            Dictation.shared.start { spoken, isFinal in
+            Dictation.shared.start(language: store.design.language) { spoken, isFinal in
                 Task { @MainActor in
                     guard store.dictationTarget == target else { return }
                     store.dictate(Dictation.merge(base, spoken))

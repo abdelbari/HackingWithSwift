@@ -635,7 +635,8 @@ struct EditorView: View {
                     if ReadAloud.shared.isSpeaking {
                         ReadAloud.shared.stop()
                     } else {
-                        ReadAloud.shared.speak(ReadAloud.script(for: store.page, in: store.design))
+                        ReadAloud.shared.speak(ReadAloud.script(for: store.page, in: store.design),
+                                               language: store.design.language)
                     }
                 } label: {
                     Label(ReadAloud.shared.isSpeaking ? "Stop reading" : "Read page aloud",

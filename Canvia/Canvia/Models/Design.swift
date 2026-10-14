@@ -413,6 +413,14 @@ struct Design: Codable, Equatable, Identifiable {
     /// Starred on Home: true, or nil and not written — so a file from
     /// before stars, or from a build that has none, reads as it did.
     var starred: Bool?
+    /// The words the spelling check's Ignore has passed over in this
+    /// design, lower-cased and sorted; nil, and not written, when there
+    /// are none (see Proofreader.ignoring).
+    var spellIgnore: [String]?
+    /// The design's language, BCP-47 ("en-GB"), which the spelling check,
+    /// Read aloud and dictation follow; nil, and not written, is the
+    /// phone's own.
+    var language: String?
 
     /// Whether the design is starred; unstarring takes the key away.
     var isStarred: Bool {
@@ -475,6 +483,11 @@ struct Design: Codable, Equatable, Identifiable {
         dpi = (try? c.decode(Double.self, forKey: .dpi)).flatMap { $0 > 0 && $0.isFinite ? $0 : nil }
         bleed = (try? c.decode(Double.self, forKey: .bleed)).flatMap { $0 > 0 && $0.isFinite ? $0 : nil }
         starred = (try? c.decode(Bool.self, forKey: .starred)) == true ? true : nil
+        // Each word on its own: one that is not a string is passed over.
+        let words = (try? c.decode([Proofreader.LenientWord].self, forKey: .spellIgnore))?.compactMap(\.word) ?? []
+        let ignored = Proofreader.tidied(words)
+        spellIgnore = ignored.isEmpty ? nil : ignored
+        language = Proofreader.languageTag(try? c.decode(String.self, forKey: .language))
         let tracks = (try? c.decode([AudioTrack.IfReadable].self, forKey: .audio))?.compactMap(\.track) ?? []
         audio = tracks.isEmpty ? nil : tracks
         // The old soundtrack, read forever: the one track of a file with no
@@ -502,7 +515,7 @@ struct Design: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides, folder
-        case titleAuto, fonts, unit, dpi, bleed, audio, starred
+        case titleAuto, fonts, unit, dpi, bleed, audio, starred, spellIgnore, language
     }
 
     /// The master page, if one is set and still exists.
