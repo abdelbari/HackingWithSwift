@@ -1138,6 +1138,9 @@ final class DesignStore {
     /// The strokes drawn since the pen was taken up, and the pieces left of
     /// them by the eraser: what is grouped when it is put down.
     @ObservationIgnored private var sessionStrokes: [String] = []
+    /// The history version just after the session's last stroke or erase:
+    /// while it is still the newest step, the grouping is folded into it.
+    @ObservationIgnored private var sessionStepAt = -1
     /// The photo in crop mode, and the size of its picture — see
     /// CropMode.swift. Crop mode is one open step: everything done in it is
     /// live, Done keeps it as a single Undo, and Cancel throws it away.
@@ -1270,6 +1273,7 @@ final class DesignStore {
         guard let tool = drawing, let el = Freehand.element(points: points, tool: tool) else { return }
         add(el, centered: false)
         sessionStrokes.append(el.id)
+        sessionStepAt = historyVersion
         selection.removeAll()
         if tipEvent == nil { tipEvent = .drewStroke }
         buzz(.stroke)
@@ -1280,6 +1284,7 @@ final class DesignStore {
         let gone = Freehand.erased(page.elements, path: points, radius: radius)
         guard !gone.isEmpty else { return }
         applyToPage { $0.elements.removeAll { gone.contains($0.id) } }
+        sessionStepAt = historyVersion
         selection.removeAll()
         buzz(.stroke)
         announce(gone.count == 1 ? "Erased a stroke" : "Erased \(gone.count) strokes")
@@ -1297,25 +1302,37 @@ final class DesignStore {
         }
         // What is left of this session's strokes is still this session's.
         sessionStrokes = sessionStrokes.flatMap { id -> [String] in piecesOf[id].map { $0.map(\.id) } ?? [id] }
+        sessionStepAt = historyVersion
         selection.removeAll()
         buzz(.stroke)
+        // Said, as the Android twin says it, for anyone not watching the page.
+        announce(cuts.count == 1 ? "Erased part of a stroke" : "Erased part of \(cuts.count) strokes")
     }
 
     /// The strokes drawn since the pen was taken up, when two or more are
     /// still on the page, as one drawing: one group, named Drawing. Part of
-    /// the last stroke's step rather than a step of its own, so one Undo
-    /// still takes back only that stroke.
+    /// the last stroke's step while that is still the newest step, so one
+    /// Undo still takes back only that stroke; after an Undo, or anything
+    /// else since, a step of its own, so the grouping is never lost to a
+    /// Redo — as the Android twin keeps a session together.
     private func groupDrawnStrokes() {
         let ids = Set(sessionStrokes)
         sessionStrokes = []
         guard design.pages.indices.contains(pageIndex),
               design.pages[pageIndex].elements.filter({ ids.contains($0.id) }).count >= 2 else { return }
         let group = UID.make("grp")
-        for i in design.pages[pageIndex].elements.indices where ids.contains(design.pages[pageIndex].elements[i].id) {
-            design.pages[pageIndex].elements[i].group = group
-            design.pages[pageIndex].elements[i].layerName = Freehand.drawingName
+        func grouped(_ page: inout Page) {
+            for i in page.elements.indices where ids.contains(page.elements[i].id) {
+                page.elements[i].group = group
+                page.elements[i].layerName = Freehand.drawingName
+            }
         }
-        onCommit?()
+        if historyVersion == sessionStepAt && pending == nil {
+            grouped(&design.pages[pageIndex])
+            onCommit?()
+        } else {
+            applyToPage(grouped)
+        }
     }
 
     func announce(_ text: String, undoable: Bool = true) {

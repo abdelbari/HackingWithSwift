@@ -57,6 +57,28 @@ final class DrawPensTests: XCTestCase {
     }
 
     @MainActor
+    func testAfterAnUndoTheDrawingIsGroupedAsAStepOfItsOwn() {
+        let store = DesignStore(design: Design(title: "d", width: 400, height: 300))
+        store.toggleDrawing()
+        store.finishStroke([CGPoint(x: 10, y: 10), CGPoint(x: 50, y: 40)])
+        store.finishStroke([CGPoint(x: 10, y: 100), CGPoint(x: 60, y: 120)])
+        store.finishStroke([CGPoint(x: 100, y: 100), CGPoint(x: 160, y: 120)])
+        store.undo()
+        store.drawing = nil
+        let kept = store.page.elements
+        XCTAssertEqual(kept.count, 2)
+        XCTAssertNotNil(kept[0].group)
+        XCTAssertEqual(kept[0].group, kept[1].group)
+        // Its own step: Undo takes back the grouping, Redo brings it again.
+        store.undo()
+        XCTAssertEqual(store.page.elements.count, 2)
+        XCTAssertTrue(store.page.elements.allSatisfy { $0.group == nil })
+        store.redo()
+        XCTAssertNotNil(store.page.elements[0].group)
+        XCTAssertEqual(store.page.elements[0].group, store.page.elements[1].group)
+    }
+
+    @MainActor
     func testOneStrokeIsNoGroupAndANewSessionStartsAfresh() {
         let store = DesignStore(design: Design(title: "d", width: 400, height: 300))
         store.toggleDrawing()
@@ -150,6 +172,7 @@ final class DrawPensTests: XCTestCase {
         XCTAssertEqual(ids.first, below.id)
         XCTAssertEqual(ids.last, above.id)
         XCTAssertFalse(ids.contains(stroke.id))
+        XCTAssertEqual(store.announcement, "Erased part of a stroke")
         store.undo()
         XCTAssertEqual(store.page.elements.map(\.id), [below.id, stroke.id, above.id])
     }
