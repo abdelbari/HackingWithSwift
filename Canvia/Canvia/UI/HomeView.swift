@@ -47,6 +47,14 @@ struct HomeView: View {
     @State private var pendingOpen: Design?
     /// Asked for from the help sheet: the tour, once that sheet has gone.
     @State private var replayTour = false
+    /// Open a PowerPoint… was tapped in the New design sheet: the file
+    /// picker, once that sheet has gone.
+    @State private var pickDeckAfterSheet = false
+    /// The PowerPoint file picker, up.
+    @State private var pickingDeck = false
+    /// A PowerPoint picked, with Open a PowerPoint… or "Open a Canvia design
+    /// file", to be read in as a new design.
+    @State private var deckURL: URL?
     /// Your own templates, first under the templates.
     @State private var userTemplates: [UserTemplate] = []
     /// The brand kit in use, whose templates lead the rest.
@@ -189,6 +197,10 @@ struct HomeView: View {
         .sheet(item: $homeSheet, onDismiss: afterSheet) { shown in
             sheetView(shown)
         }
+        // A deck as a new design, then the sheet that says what came in.
+        .background { deckPicker }
+        .powerPointImport($deckURL, onOpen: onOpen)
+        .onReceive(NotificationCenter.default.publisher(for: PowerPoints.didImport)) { _ in reload() }
         .alert("New folder", isPresented: Binding(
             get: { !filingInto.isEmpty },
             set: { if !$0 { filingInto = [] } })) {
@@ -227,10 +239,10 @@ struct HomeView: View {
         switch shown {
         case .start(let presetId):
             StartSheet(initialPresetId: presetId, onCreate: createFromSheet,
-                       onCustomSize: { homeSheet = .customSize })
+                       onCustomSize: { homeSheet = .customSize }, onPowerPoint: pickDeck)
         case .pickSize:
             StartSheet(initialPresetId: nil, onCreate: createFromSheet,
-                       onCustomSize: { homeSheet = .customSize })
+                       onCustomSize: { homeSheet = .customSize }, onPowerPoint: pickDeck)
         case .customSize:
             CustomSizeSheet(onCreate: createFromSheet)
         case .help:
@@ -263,7 +275,25 @@ struct HomeView: View {
         homeSheet = nil
     }
 
+    /// The PowerPoint file picker, on a view of its own so it does not
+    /// share one with the design file's.
+    private var deckPicker: some View {
+        Color.clear.fileImporter(isPresented: $pickingDeck, allowedContentTypes: [PowerPoints.contentType]) { result in
+            if case .success(let url) = result { deckURL = url }
+        }
+    }
+
+    /// Open a PowerPoint…: the sheet goes, then the file picker comes up.
+    private func pickDeck() {
+        pickDeckAfterSheet = true
+        homeSheet = nil
+    }
+
     private func afterSheet() {
+        if pickDeckAfterSheet {
+            pickDeckAfterSheet = false
+            pickingDeck = true
+        }
         if replayTour {
             replayTour = false
             Onboarding.reset(.standard)
@@ -331,6 +361,12 @@ struct HomeView: View {
         // what is inside decides.
         .fileImporter(isPresented: $importing, allowedContentTypes: [.json, .data]) { result in
             guard case .success(let url) = result else { return }
+            // A PowerPoint is a ZIP, which a design file never is: it comes
+            // in as a deck.
+            if PowerPoints.isDeck(url) {
+                deckURL = url
+                return
+            }
             // Read, and its photos and clips written out, away from the
             // main thread: a clip-heavy file runs to a hundred megabytes and
             // more, and Home froze with no sign of why while it went in.

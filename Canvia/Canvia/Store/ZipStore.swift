@@ -4,8 +4,11 @@
 // entries, so either phone reads the other's. Names are UTF-8 (flag bit
 // 11); no ZIP64, so an archive stays under 4 GB and 65,535 files — the
 // Android twin's writer turns an entry away by the same rule (tooBig), as
-// this reader reads no ZIP64.
+// this reader reads no ZIP64. Asked to, the reader also takes deflated
+// entries — a PowerPoint deck is a ZIP of them (PptxReader) — inflated by
+// the system's Compression when one is read; a backup never asks.
 
+import Compression
 import Foundation
 
 enum ZipStore {
@@ -195,12 +198,17 @@ enum ZipStore {
         let data: Data
         /// Each file's bytes, as a range of `data`.
         let entries: [String: Range<Int>]
+        /// The deflated files' sizes once inflated, by name; none unless
+        /// the archive was read `inflating`.
+        let inflated: [String: Int]
 
-        init(url: URL) throws {
-            try self.init(data: Data(contentsOf: url, options: .mappedIfSafe))
+        /// `inflating` takes deflated entries too, rather than turning the
+        /// archive away: a deck's, never a backup's.
+        init(url: URL, inflating: Bool = false) throws {
+            try self.init(data: Data(contentsOf: url, options: .mappedIfSafe), inflating: inflating)
         }
 
-        init(data: Data) throws {
+        init(data: Data, inflating: Bool = false) throws {
             self.data = data
             let n = data.count
             guard n >= 22 else { throw ZipError.notAZip }
@@ -215,6 +223,7 @@ enum ZipStore {
             let total = data.u16(end + 10)
             var at = Int(data.u32(end + 16))
             var found: [String: Range<Int>] = [:]
+            var deflated: [String: Int] = [:]
             for _ in 0..<total {
                 guard at + 46 <= n, data.u32(at) == 0x0201_4b50 else { throw ZipError.notAZip }
                 let method = data.u16(at + 10)
@@ -230,25 +239,57 @@ enum ZipStore {
                 at += 46 + nameLength + extraLength + commentLength
                 // A folder's own entry holds nothing.
                 if name.hasSuffix("/") { continue }
-                guard method == 0, compressed == size else { throw ZipError.compressed(name) }
+                let stored = method == 0 && compressed == size
+                guard stored || (inflating && method == 8) else { throw ZipError.compressed(name) }
                 guard local + 30 <= n, data.u32(local) == 0x0403_4b50 else { throw ZipError.notAZip }
                 let start = local + 30 + data.u16(local + 26) + data.u16(local + 28)
-                guard start + size <= n else { throw ZipError.notAZip }
-                found[name] = start..<(start + size)
+                guard start + compressed <= n else { throw ZipError.notAZip }
+                found[name] = start..<(start + compressed)
+                if !stored { deflated[name] = size }
             }
             entries = found
+            inflated = deflated
         }
 
-        /// A file's bytes, or nil when the archive has none of that name.
+        /// A file's bytes, or nil when the archive has none of that name —
+        /// or, deflated, when it does not inflate to the size the directory
+        /// gives it.
         func file(_ name: String) -> Data? {
             guard let range = entries[name] else { return nil }
-            return data.subdata(in: (data.startIndex + range.lowerBound)..<(data.startIndex + range.upperBound))
+            let raw = data.subdata(in: (data.startIndex + range.lowerBound)..<(data.startIndex + range.upperBound))
+            guard let size = inflated[name] else { return raw }
+            return ZipStore.inflate(raw, size: size)
+        }
+
+        /// A file's size as it reads, inflated; nil for none of that name.
+        func size(of name: String) -> Int? {
+            guard let range = entries[name] else { return nil }
+            return inflated[name] ?? range.count
         }
 
         /// The names under a folder ("designs/"), sorted.
         func names(in folder: String) -> [String] {
             entries.keys.filter { $0.hasPrefix(folder) && $0.count > folder.count }.sorted()
         }
+    }
+}
+
+extension ZipStore {
+    /// Raw DEFLATE (a ZIP entry's method 8) inflated into exactly `size`
+    /// bytes — never more, so an entry that claims little and inflates to
+    /// a great deal stops there; nil when it gives fewer or none.
+    static func inflate(_ raw: Data, size: Int) -> Data? {
+        guard size > 0 else { return Data() }
+        guard !raw.isEmpty else { return nil }
+        var out = Data(count: size)
+        let written = out.withUnsafeMutableBytes { (dst: UnsafeMutableRawBufferPointer) -> Int in
+            raw.withUnsafeBytes { (src: UnsafeRawBufferPointer) -> Int in
+                guard let to = dst.bindMemory(to: UInt8.self).baseAddress,
+                      let from = src.bindMemory(to: UInt8.self).baseAddress else { return 0 }
+                return compression_decode_buffer(to, size, from, raw.count, nil, COMPRESSION_ZLIB)
+            }
+        }
+        return written == size ? out : nil
     }
 }
 

@@ -14,14 +14,18 @@ struct StartSheet: View {
     let initialPresetId: String?
     var onCreate: (Design) -> Void
     var onCustomSize: () -> Void
+    /// Open a PowerPoint…, above the sizes; nil offers none.
+    var onPowerPoint: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
     @State private var presetId: String?
     @State private var category: String?
 
-    init(initialPresetId: String?, onCreate: @escaping (Design) -> Void, onCustomSize: @escaping () -> Void) {
+    init(initialPresetId: String?, onCreate: @escaping (Design) -> Void, onCustomSize: @escaping () -> Void,
+         onPowerPoint: (() -> Void)? = nil) {
         self.initialPresetId = initialPresetId
         self.onCreate = onCreate
         self.onCustomSize = onCustomSize
+        self.onPowerPoint = onPowerPoint
         _presetId = State(initialValue: initialPresetId)
     }
 
@@ -82,15 +86,32 @@ struct StartSheet: View {
         .accessibilityAddTraits(.isHeader)
     }
 
+    /// Open a PowerPoint…, first, then the sizes, Custom size last.
     private var sizePicker: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: 12)], alignment: .leading, spacing: 16) {
-            ForEach(SizePreset.hero) { preset in
-                SizeTile(preset: preset) { presetId = preset.id }
+        VStack(alignment: .leading, spacing: 16) {
+            if let onPowerPoint { powerPointButton(onPowerPoint) }
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: 12)], alignment: .leading, spacing: 16) {
+                ForEach(SizePreset.hero) { preset in
+                    SizeTile(preset: preset) { presetId = preset.id }
+                }
+                CustomSizeTile(action: onCustomSize)
             }
-            CustomSizeTile(action: onCustomSize)
         }
         .padding(20)
     }
+
+    /// A deck as a design at its own size.
+    private func powerPointButton(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(Self.openPowerPoint, systemImage: "rectangle.on.rectangle")
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, minHeight: 44)
+        }
+        .buttonStyle(.bordered)
+    }
+
+    /// Home ▸ New design's way to bring in a deck.
+    static let openPowerPoint = "Open a PowerPoint…"
 }
 
 /// A size, drawn at the shape it makes with a real design at that size

@@ -13,6 +13,10 @@
 	takes them from the share sheet; a Share Extension, its own target,
 	would do that here.
 
+	A PowerPoint deck (.pptx) opens in Canvia too, and becomes a new design
+	(PptxReader). Its type is the system's; it is imported here as well, so
+	the picker and "Open in" know it whatever the system declares.
+
 	The scene manifest is kept here, not generated, so that it can name a
 	configuration for a screen attached by HDMI, USB-C or AirPlay: Present
 	shows the slides there, and the presenter's console on the phone.
@@ -47,6 +51,43 @@
 				<string>public.movie</string>
 				<string>com.adobe.pdf</string>
 			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>PowerPoint presentation</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>org.openxmlformats.presentationml.presentation</string>
+			</array>
+		</dict>
+	</array>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>org.openxmlformats.presentationml.presentation</string>
+			<key>UTTypeDescription</key>
+			<string>PowerPoint presentation</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.presentation</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>pptx</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/vnd.openxmlformats-officedocument.presentationml.presentation</string>
+				</array>
+			</dict>
 		</dict>
 	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
