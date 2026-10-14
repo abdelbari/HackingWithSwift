@@ -27,6 +27,8 @@
 // on as it is let go, and a tap on another page is the canvas's, to make
 // that page the one worked. One finger dragged from something on another
 // page is the canvas's too: it makes that page the one worked and moves it.
+// So is a hold on the empty part of another page: that page becomes the one
+// worked, a drag then draws the band there, a still release is the menu.
 //
 // The scroll view's own pan is raised to two fingers so it never competes with
 // dragging an element, and a separate one-finger recogniser handles panning
@@ -80,7 +82,8 @@ struct CanvasColumn: Equatable {
 }
 
 /// Where a one-finger drag from something on another page of the column
-/// is (ZoomableCanvas.onOtherPageDrag).
+/// is (ZoomableCanvas.onOtherPageDrag), or a hold on the empty part of one
+/// (ZoomableCanvas.onOtherPageHold).
 enum CanvasDrag {
     case began, moved, ended
 }
@@ -163,12 +166,14 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     /// their typing — so the canvas does not zoom.
     var onOtherPageDoubleTap: (CGPoint) -> Bool = { _ in false }
     /// Whether a hold at this point of the content is on the empty part of
-    /// a page other than the one worked, where it brings up the menu at
-    /// the finger as it does on the page worked.
+    /// a page other than the one worked, where it draws the band or brings
+    /// up the menu at the finger as it does on the page worked.
     var holdsOtherPage: (CGPoint) -> Bool = { _ in false }
-    /// That hold, at this point of the content: taken as it is felt, and
-    /// let go still (true) or after the finger wandered (false).
-    var onOtherPageHold: (CGPoint, Bool?) -> Void = { _, _ in }
+    /// That hold, from where it landed to where the finger is, in the
+    /// content's units: taken as it is felt, dragged on and let go. The
+    /// finger is nil when it ends taken away — a second finger, the system
+    /// — rather than let go.
+    var onOtherPageHold: (CanvasDrag, CGPoint, CGPoint?) -> Void = { _, _, _ in }
     /// Told the part of the page on screen, in page units, and the zoom that
     /// fits the page, whenever either changes.
     var onViewport: (CGRect, Double) -> Void = { _, _ in }
@@ -236,7 +241,9 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         backgroundTap.require(toFail: doubleTap)
 
         // Held still on the empty part of another page of the column: the
-        // menu at the finger, as on the page worked (CanvasGestures).
+        // band as it drags on, or the menu at the finger let go still, as on
+        // the page worked (CanvasGestures). The scroll view's own pan and
+        // pinch go on beside it, so a second finger still moves the view.
         let otherPageHold = UILongPressGestureRecognizer(
             target: context.coordinator, action: #selector(Coordinator.handleOtherPageHold(_:)))
         otherPageHold.minimumPressDuration = CanvasGestures.holdSeconds
@@ -315,10 +322,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         weak var doubleTap: UITapGestureRecognizer?
         weak var backgroundPan: UIPanGestureRecognizer?
         weak var otherPageHold: UILongPressGestureRecognizer?
-        /// Where the hold on another page landed, in the window, to tell a
-        /// still one from one that wandered before it was let go.
-        private var holdStart: CGPoint = .zero
-        /// And where, in the content.
+        /// Where the hold on another page landed, in the content.
         private var holdAt: CGPoint = .zero
         /// When the touch the one-finger pan is following landed, and
         /// whether on the page, for telling a drag from a hold and a drag.
@@ -726,23 +730,51 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         }
 
         /// The hold on another page's empty part: that page is made the one
-        /// worked as it is felt, and let go still, the menu comes up where
-        /// it landed.
+        /// worked as it is felt, a drag from there draws the band on it, and
+        /// let go without one, the menu comes up where it landed. A second
+        /// finger means the view, as on the Android twin: the hold is let
+        /// go of there, with no menu.
         @objc func handleOtherPageHold(_ hold: UILongPressGestureRecognizer) {
+            let now = hold.location(in: host.view)
             switch hold.state {
             case .began:
-                holdStart = hold.location(in: nil)
-                holdAt = hold.location(in: host.view)
-                parent.onOtherPageHold(holdAt, nil)
+                holdAt = now
+                parent.onOtherPageHold(.began, holdAt, now)
+            case .changed:
+                guard hold.numberOfTouches == 1 else {
+                    // Turned off and on again, the hold is cancelled; told
+                    // first, as whether the cancel is reported is UIKit's.
+                    parent.onOtherPageHold(.ended, holdAt, nil)
+                    hold.isEnabled = false
+                    hold.isEnabled = true
+                    return
+                }
+                parent.onOtherPageHold(.moved, holdAt, now)
             case .ended:
-                let now = hold.location(in: nil)
-                let wandered = hypot(Double(now.x - holdStart.x), Double(now.y - holdStart.y))
-                parent.onOtherPageHold(holdAt, wandered < Touch.dragSlop)
+                parent.onOtherPageHold(.ended, holdAt, now)
             case .cancelled, .failed:
-                parent.onOtherPageHold(holdAt, false)
+                parent.onOtherPageHold(.ended, holdAt, nil)
             default:
                 break
             }
+        }
+
+        /// The hold on another page fails what else is under way on its
+        /// finger as it takes — the one-finger pan and the tap, so the band
+        /// does not scroll the view and letting go does not put the menu
+        /// away — but not the scroll view's two-finger pan and pinch.
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+            guard let scroll = scrollView, let hold = otherPageHold else { return false }
+            let pair: UIGestureRecognizer
+            if gestureRecognizer === hold {
+                pair = other
+            } else if other === hold {
+                pair = gestureRecognizer
+            } else {
+                return false
+            }
+            return pair === scroll.panGestureRecognizer || pair === scroll.pinchGestureRecognizer
         }
 
         @objc func handleDoubleTap(_ tap: UITapGestureRecognizer) {

@@ -230,7 +230,7 @@ struct CanvasView: View {
             onOtherPageDrag: { phase, start, now in otherPageDrag(phase, from: start, to: now) },
             onOtherPageDoubleTap: { point in otherPageDoubleTap(at: point) },
             holdsOtherPage: { point in otherPageEmpty(at: point) },
-            onOtherPageHold: { point, still in otherPageHold(at: point, still: still) },
+            onOtherPageHold: { phase, start, now in otherPageHold(phase, from: start, to: now) },
             onViewport: { visible, fit in viewportChanged(visible, fit: fit) },
             onMotion: { moving in motionChanged(moving) },
             edgeScroller: edges,
@@ -2059,28 +2059,47 @@ struct CanvasView: View {
     }
 
     /// A hold on the empty part of another page (ZoomableCanvas's
-    /// onOtherPageHold), `point` in column units: as it is felt, that page
-    /// becomes the one worked, with the hold's tick, as the Android twin's
-    /// page under the finger is; let go still (`still` true), the menu at
-    /// the finger comes up there, as a hold on the page worked brings it
-    /// (CanvasGestures: a hold on the empty page is the menu).
-    private func otherPageHold(at point: CGPoint, still: Bool?) {
-        let slots = columnSlots
-        guard let index = PageColumn.pageAt(point, in: slots) else { return }
-        guard let still else {
-            guard !pagePinned, index != store.pageIndex else { return }
-            commitTextEditIfAny()
-            dismissHoldMenu()
-            pageFromColumn = index
-            store.setPage(index)
-            store.buzz(.tick)
-            return
+    /// onOtherPageHold), `start` and `now` in column units: as it is felt,
+    /// that page becomes the one worked, with the hold's tick, as the
+    /// Android twin's page under the finger is; dragged on, it draws the
+    /// band there, and let go without one, the menu at the finger comes up,
+    /// as a hold on the page worked does (marqueeGesture). `now` is nil when
+    /// the hold was taken away — a second finger — which opens no menu.
+    private func otherPageHold(_ phase: CanvasDrag, from start: CGPoint, to now: CGPoint?) {
+        switch phase {
+        case .began:
+            otherPageHoldBegan(at: start)
+        case .moved:
+            guard gesture.banding, let slot = columnSlot, let now else { return }
+            let from = slot.toPage(start)
+            drawBand(from: from, to: slot.toPage(now))
+            edgeTrack(slot.toPage(now)) { drawBand(from: from, to: $0) }
+        case .ended:
+            guard gesture.banding else { return }
+            edges.stop()
+            let drawn = gesture.marquee.map { max($0.width, $0.height) * store.zoom } ?? 0
+            gesture.marquee = nil
+            gesture.banding = false
+            store.canvasTouchActive = false
+            guard now != nil, drawn < Touch.dragSlop, let slot = columnSlot else { return }
+            let at = slot.toPage(start)
+            guard !holdsWorkedPage(at: at), CanvasGestures.action(.hold, on: .emptyPage) == .menu else { return }
+            store.holdMenuAt = at
         }
-        // Only the page it made the one worked, and only let go still.
-        guard still, index == store.pageIndex else { return }
-        let at = slots[index].toPage(point)
-        guard !holdsWorkedPage(at: at), CanvasGestures.action(.hold, on: .emptyPage) == .menu else { return }
-        store.holdMenuAt = at
+    }
+
+    /// The hold on another page taking, `point` in column units: that page
+    /// is made the one worked and the band is held out from there.
+    private func otherPageHoldBegan(at point: CGPoint) {
+        let slots = columnSlots
+        guard !pagePinned, let index = PageColumn.pageAt(point, in: slots), index != store.pageIndex else { return }
+        commitTextEditIfAny()
+        dismissHoldMenu()
+        pageFromColumn = index
+        store.setPage(index)
+        gesture.banding = true
+        store.canvasTouchActive = true
+        store.buzz(.tick)
     }
 
     /// One finger dragged from something on another page (ZoomableCanvas's
