@@ -65539,6 +65539,112 @@
         }
       }
     },
+    "Hold on the empty page and drag to draw a band: everything it touches is selected, except what is locked. A band can also start on the grey area round the page, or on a locked or full-page background, so a page covered by a photo can still be selected. Hold on an element to add it to the selection or take it out. Group, in More, keeps them together." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اضغط مطولًا على الصفحة الفارغة واسحب لرسم نطاق: يُحدَّد كل ما يلمسه، باستثناء المقفل. ويمكن أن يبدأ النطاق أيضًا من المساحة الرمادية حول الصفحة، أو من خلفية مقفلة أو تغطي الصفحة كلها، فتبقى الصفحة المغطاة بصورة قابلة للتحديد. اضغط مطولًا على عنصر لإضافته إلى التحديد أو إخراجه منه. و«تجميع»، ضمن «المزيد»، يُبقيها معًا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Halte auf der leeren Seite gedrückt und ziehe einen Auswahlrahmen: Alles, was er berührt, wird ausgewählt, außer Gesperrtem. Ein Rahmen kann auch auf der grauen Fläche um die Seite beginnen oder auf einem gesperrten oder seitenfüllenden Hintergrund, sodass sich auch eine von einem Foto bedeckte Seite auswählen lässt. Halte ein Element gedrückt, um es zur Auswahl hinzuzufügen oder daraus zu entfernen. „Gruppieren“ unter „Mehr“ hält sie zusammen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold on the empty page and drag to draw a band: everything it touches is selected, except what is locked. A band can also start on the grey area round the page, or on a locked or full-page background, so a page covered by a photo can still be selected. Hold on an element to add it to the selection or take it out. Group, in More, keeps them together."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén pulsada la página vacía y arrastra para dibujar un área: se selecciona todo lo que toque, salvo lo bloqueado. Un área también puede empezar en la zona gris alrededor de la página o sobre un fondo bloqueado o que ocupa toda la página, así que una página cubierta por una foto se puede seleccionar igualmente. Mantén pulsado un elemento para añadirlo a la selección o quitarlo. Agrupar, en Más, los mantiene juntos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintenez le doigt sur la page vide et faites glisser pour tracer une zone : tout ce qu’elle touche est sélectionné, sauf ce qui est verrouillé. Une zone peut aussi partir de l’espace gris autour de la page, ou d’un fond verrouillé ou pleine page, si bien qu’une page couverte par une photo reste sélectionnable. Maintenez un élément pour l’ajouter à la sélection ou l’en retirer. Grouper, dans Plus, les garde ensemble."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tieni premuto sulla pagina vuota e trascina per disegnare un riquadro: tutto ciò che tocca viene selezionato, tranne ciò che è bloccato. Un riquadro può anche partire dall’area grigia intorno alla pagina, o da uno sfondo bloccato o a pagina intera, così anche una pagina coperta da una foto si può selezionare. Tieni premuto su un elemento per aggiungerlo alla selezione o toglierlo. Raggruppa, in Altro, li tiene insieme."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページの空いている所を長押ししてドラッグすると範囲を描けます。触れたものはロックされたものを除いてすべて選択されます。範囲はページのまわりのグレーの部分や、ロックされた背景・ページ全体を覆う背景からも始められるので、写真で覆われたページでも選択できます。素材を長押しすると、選択に追加したり選択から外したりできます。「その他」の「グループ化」でまとめられます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toque e segure na página vazia e arraste para desenhar uma área: tudo o que ela tocar é selecionado, exceto o que estiver bloqueado. A área também pode começar na parte cinza em volta da página, ou num fundo bloqueado ou que ocupa a página inteira, então uma página coberta por uma foto ainda pode ser selecionada. Toque e segure um elemento para adicioná-lo à seleção ou removê-lo dela. Agrupar, em Mais, mantém os itens juntos."
+          }
+        }
+      }
+    },
+    "Hold on the empty page and drag to draw a band: everything it touches is selected, except what is locked. A band can also start on the grey area round the page, or on a locked or full-page background, so a page covered by a photo can still be selected. Hold on an element to add it to the selection or take it out. Select multiple, in the toolbar or the menu, makes each tap add or remove an element until Done. A multi-selection moves, resizes and rotates as one." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اضغط مطولًا على الصفحة الفارغة واسحب لرسم نطاق: يُحدَّد كل ما يلمسه، باستثناء المقفل. ويمكن أن يبدأ النطاق أيضًا من المساحة الرمادية حول الصفحة، أو من خلفية مقفلة أو تغطي الصفحة كلها، فتبقى الصفحة المغطاة بصورة قابلة للتحديد. اضغط مطولًا على عنصر لإضافته إلى التحديد أو إخراجه منه. ويجعل «تحديد متعدد»، في شريط الأدوات أو القائمة، كل نقرة تضيف عنصرًا أو تزيله حتى «تم». ويتحرك التحديد المتعدد ويتغيّر حجمه ويدور ككتلة واحدة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Halte auf der leeren Seite gedrückt und ziehe einen Auswahlrahmen: Alles, was er berührt, wird ausgewählt, außer Gesperrtem. Ein Rahmen kann auch auf der grauen Fläche um die Seite beginnen oder auf einem gesperrten oder seitenfüllenden Hintergrund, sodass sich auch eine von einem Foto bedeckte Seite auswählen lässt. Halte ein Element gedrückt, um es zur Auswahl hinzuzufügen oder daraus zu entfernen. Mit „Mehrere auswählen“ in der Symbolleiste oder im Menü fügt jedes Tippen ein Element hinzu oder entfernt es, bis du auf „Fertig“ tippst. Eine Mehrfachauswahl wird gemeinsam verschoben, skaliert und gedreht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold on the empty page and drag to draw a band: everything it touches is selected, except what is locked. A band can also start on the grey area round the page, or on a locked or full-page background, so a page covered by a photo can still be selected. Hold on an element to add it to the selection or take it out. Select multiple, in the toolbar or the menu, makes each tap add or remove an element until Done. A multi-selection moves, resizes and rotates as one."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén pulsada la página vacía y arrastra para dibujar un área: se selecciona todo lo que toque, salvo lo bloqueado. Un área también puede empezar en la zona gris alrededor de la página o sobre un fondo bloqueado o que ocupa toda la página, así que una página cubierta por una foto se puede seleccionar igualmente. Mantén pulsado un elemento para añadirlo a la selección o quitarlo. Seleccionar varios, en la barra de herramientas o en el menú, hace que cada toque añada o quite un elemento hasta tocar Listo. Una selección múltiple se mueve, cambia de tamaño y gira como una sola."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintenez le doigt sur la page vide et faites glisser pour tracer une zone : tout ce qu’elle touche est sélectionné, sauf ce qui est verrouillé. Une zone peut aussi partir de l’espace gris autour de la page, ou d’un fond verrouillé ou pleine page, si bien qu’une page couverte par une photo reste sélectionnable. Maintenez un élément pour l’ajouter à la sélection ou l’en retirer. Sélection multiple, dans la barre d’outils ou le menu, fait que chaque toucher ajoute ou retire un élément jusqu’à OK. Une sélection multiple se déplace, se redimensionne et pivote d’un bloc."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tieni premuto sulla pagina vuota e trascina per disegnare un riquadro: tutto ciò che tocca viene selezionato, tranne ciò che è bloccato. Un riquadro può anche partire dall’area grigia intorno alla pagina, o da uno sfondo bloccato o a pagina intera, così anche una pagina coperta da una foto si può selezionare. Tieni premuto su un elemento per aggiungerlo alla selezione o toglierlo. Selezione multipla, nella barra degli strumenti o nel menu, fa sì che ogni tocco aggiunga o rimuova un elemento fino a Fine. Una selezione multipla si sposta, si ridimensiona e ruota come un tutt’uno."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページの空いている所を長押ししてドラッグすると範囲を描けます。触れたものはロックされたものを除いてすべて選択されます。範囲はページのまわりのグレーの部分や、ロックされた背景・ページ全体を覆う背景からも始められるので、写真で覆われたページでも選択できます。素材を長押しすると、選択に追加したり選択から外したりできます。ツールバーやメニューの「複数選択」を使うと、「完了」までタップするたびに素材を追加・削除できます。複数選択したものは 1 つとして移動、サイズ変更、回転します。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toque e segure na página vazia e arraste para desenhar uma área: tudo o que ela tocar é selecionado, exceto o que estiver bloqueado. A área também pode começar na parte cinza em volta da página, ou num fundo bloqueado ou que ocupa a página inteira, então uma página coberta por uma foto ainda pode ser selecionada. Toque e segure um elemento para adicioná-lo à seleção ou removê-lo dela. Selecionar vários, na barra de ferramentas ou no menu, faz cada toque adicionar ou remover um elemento até Concluído. Uma seleção múltipla se move, redimensiona e gira como um só item."
+          }
+        }
+      }
+    },
     "Hold on the empty page and drag to draw a band: everything it touches is selected. Hold on an element to add it to the selection or take it out. Group, in More, keeps them together." : {
       "extractionState" : "manual",
       "localizations" : {

@@ -28,7 +28,9 @@
 // that page the one worked. One finger dragged from something on another
 // page is the canvas's too: it makes that page the one worked and moves it.
 // So is a hold on the empty part of another page: that page becomes the one
-// worked, a drag then draws the band there, a still release is the menu.
+// worked, a drag then draws the band there, a still release is the menu —
+// and a hold on the workspace, on a page alone too, whose band is held to
+// the page nearest (CanvasGestures.clampedBand).
 //
 // The scroll view's own pan is raised to two fingers so it never competes with
 // dragging an element, and a separate one-finger recogniser handles panning
@@ -174,6 +176,11 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     /// finger is nil when it ends taken away — a second finger, the system
     /// — rather than let go.
     var onOtherPageHold: (CanvasDrag, CGPoint, CGPoint?) -> Void = { _, _, _ in }
+    /// Whether a hold at this point of the content, off every page, is on
+    /// the workspace a band may be drawn from (CanvasGestures.workspace):
+    /// the same hold, told through onOtherPageHold, draws it on the page
+    /// nearest.
+    var holdsWorkspace: (CGPoint) -> Bool = { _ in false }
     /// Told the part of the page on screen, in page units, and the zoom that
     /// fits the page, whenever either changes.
     var onViewport: (CGRect, Double) -> Void = { _, _ in }
@@ -820,7 +827,8 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             // keeps its own touches there, as it does on the page.
             let held = parent.column != nil && !onPage && parent.holdsPage(point)
             if gestureRecognizer === otherPageHold {
-                return parent.column != nil && !onPage && !held && parent.holdsOtherPage(content)
+                guard !onPage && !held else { return false }
+                return (parent.column != nil && parent.holdsOtherPage(content)) || parent.holdsWorkspace(content)
             }
             if gestureRecognizer === doubleTap {
                 return !((onPage || held) && parent.claimsDoubleTap(point))

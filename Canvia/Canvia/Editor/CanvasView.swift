@@ -155,6 +155,14 @@ struct CanvasView: View {
         /// Whether a hold on a locked page has been refused, for the rest
         /// of its drag.
         var lockedHold = false
+        /// The backdrop a hold has taken (CanvasGestures.isBackdrop): a drag
+        /// from it draws the band rather than moving it.
+        var backdropHold: String?
+        /// Where a band held out from another page or the workspace began,
+        /// in the page's units, and whether it is held to the page — one
+        /// from the workspace (CanvasGestures.clampedBand).
+        var bandStart: CGPoint?
+        var bandClamped = false
         /// What a finger in crop mode is working, from when it lands.
         var crop: CropTouch?
         /// A crop-mode pinch's magnification when last applied.
@@ -249,6 +257,7 @@ struct CanvasView: View {
             onOtherPageDoubleTap: { point in otherPageDoubleTap(at: point) },
             holdsOtherPage: { point in otherPageEmpty(at: point) },
             onOtherPageHold: { phase, start, now in otherPageHold(phase, from: start, to: now) },
+            holdsWorkspace: { point in onWorkspace(point) },
             onViewport: { visible, fit in viewportChanged(visible, fit: fit) },
             onMotion: { moving in motionChanged(moving) },
             edgeScroller: edges,
@@ -887,8 +896,8 @@ struct CanvasView: View {
                 }
                 guard let drag else { return }
                 let start = drag.startLocation
-                drawBand(from: start, to: drag.location)
-                edgeTrack(drag.location) { drawBand(from: start, to: $0) }
+                drawBand(from: start, to: drag.location, startedOn: nil)
+                edgeTrack(drag.location) { drawBand(from: start, to: $0, startedOn: nil) }
             }
             .onEnded { _ in
                 edges.stop()
@@ -912,11 +921,44 @@ struct CanvasView: View {
     /// selection follows the band as it grows, so you see what you are
     /// about to get before you let go. A band smaller than a drag on screen
     /// leaves the selection be — it may yet be a still hold.
-    private func drawBand(from start: CGPoint, to location: CGPoint) {
-        let band = CGRect(x: min(start.x, location.x), y: min(start.y, location.y),
-                          width: abs(location.x - start.x), height: abs(location.y - start.y))
+    /// One drawn from a backdrop leaves it out unless it catches nothing
+    /// else (`startedOn`); one from the workspace is held to the page
+    /// (`clamped`).
+    private func drawBand(from start: CGPoint, to location: CGPoint, startedOn: String?, clamped: Bool = false) {
+        let band = clamped ? CanvasGestures.clampedBand(from: start, to: location, page: store.pageSize)
+            : CGRect(x: min(start.x, location.x), y: min(start.y, location.y),
+                     width: abs(location.x - start.x), height: abs(location.y - start.y))
         gesture.marquee = band
-        if max(band.width, band.height) * store.zoom >= Touch.dragSlop { store.select(within: band) }
+        if max(band.width, band.height) * store.zoom >= Touch.dragSlop { store.select(within: band, startedOn: startedOn) }
+    }
+
+    /// A drag from the backdrop `id` a hold has taken: the band, from
+    /// where the finger landed (CanvasGestures: a backdrop).
+    private func backdropBand(_ id: String, from start: CGPoint, to location: CGPoint) {
+        if !gesture.banding {
+            gesture.banding = true
+            dismissHoldMenu()
+            store.canvasTouchActive = true
+        }
+        drawBand(from: start, to: location, startedOn: id)
+        edgeTrack(location) { drawBand(from: start, to: $0, startedOn: id) }
+    }
+
+    /// The band from a backdrop let go.
+    private func backdropBandEnded() {
+        edges.stop()
+        gesture.marquee = nil
+        gesture.banding = false
+        gesture.backdropHold = nil
+        store.canvasTouchActive = false
+    }
+
+    /// Whether a hold at `point` in the content, off every page, may draw
+    /// a band from the workspace: while nothing holds the view to its page.
+    private func onWorkspace(_ point: CGPoint) -> Bool {
+        guard !pagePinned else { return false }
+        let slots = columnSlots
+        return slots.isEmpty || PageColumn.pageAt(point, in: slots) == nil
     }
 
     /// While a finger drags something at `location` on the page, the view
@@ -1248,6 +1290,17 @@ struct CanvasView: View {
 
     private func elementHold(_ el: Element) {
         dismissHoldMenu()
+        // A backdrop — locked, or covering the page — held is the empty
+        // page's: the menu at the finger, and a drag on from there draws the
+        // band (CanvasGestures). A locked page says so instead.
+        if CanvasGestures.isBackdrop(el, page: store.pageSize, selection: store.selection) {
+            guard !store.refusesLockedPage() else { return }
+            commitTextEditIfAny()
+            gesture.backdropHold = el.id
+            store.buzz(.tick)
+            if let at = pagePress, CanvasGestures.action(.hold, on: .backdrop) == .menu { store.holdMenuAt = at }
+            return
+        }
         store.select(el.id, additive: true)
         store.buzz(.tick)
     }
@@ -1299,6 +1352,7 @@ struct CanvasView: View {
         if pressing {
             press.began = Date()
             press.held = nil
+            if gesture.backdropHold != nil { gesture.backdropHold = nil }
         } else {
             press.held = press.began.map { Date().timeIntervalSince($0) }
         }
@@ -1368,11 +1422,20 @@ struct CanvasView: View {
                     coordinateSpace: .named("page"))
             .onChanged { value in
                 let start = value.startLocation
+                // Held first on a backdrop, the drag draws the band.
+                if gesture.backdropHold == el.id {
+                    backdropBand(el.id, from: start, to: value.location)
+                    return
+                }
                 moveChanged(el, from: start, to: value.location)
                 edgeTrack(value.location) { moveChanged(el, from: start, to: $0) }
             }
             .onEnded { value in
                 edges.stop()
+                if gesture.backdropHold == el.id {
+                    backdropBandEnded()
+                    return
+                }
                 moveEnded(from: value.startLocation, to: value.location)
             }
     }
@@ -2268,40 +2331,79 @@ struct CanvasView: View {
     /// Android twin's page under the finger is; dragged on, it draws the
     /// band there, and let go without one, the menu at the finger comes up,
     /// as a hold on the page worked does (marqueeGesture). `now` is nil when
-    /// the hold was taken away — a second finger — which opens no menu.
+    /// the hold was taken away — a second finger — which opens no menu. A
+    /// hold on the workspace comes here too, on a page alone as in the
+    /// column: its band is held to the page nearest (workspaceHoldBegan).
     private func otherPageHold(_ phase: CanvasDrag, from start: CGPoint, to now: CGPoint?) {
         switch phase {
         case .began:
             otherPageHoldBegan(at: start)
         case .moved:
-            guard gesture.banding, let slot = columnSlot, let now else { return }
-            let from = slot.toPage(start)
-            drawBand(from: from, to: slot.toPage(now))
-            edgeTrack(slot.toPage(now)) { drawBand(from: from, to: $0) }
+            guard gesture.banding, let from = gesture.bandStart, let now else { return }
+            let clamped = gesture.bandClamped
+            let to = columnSlot?.toPage(now) ?? now
+            drawBand(from: from, to: to, startedOn: nil, clamped: clamped)
+            edgeTrack(to) { drawBand(from: from, to: $0, startedOn: nil, clamped: clamped) }
         case .ended:
-            guard gesture.banding else { return }
+            guard gesture.banding, let at = gesture.bandStart else { return }
             edges.stop()
             var drawn = 0.0
             if let band = gesture.marquee { drawn = Double(max(band.width, band.height)) * store.zoom }
+            let target: CanvasGestures.Target = gesture.bandClamped ? .workspace : .emptyPage
             gesture.marquee = nil
             gesture.banding = false
+            gesture.bandStart = nil
+            gesture.bandClamped = false
             store.canvasTouchActive = false
-            guard now != nil, drawn < Touch.dragSlop, let slot = columnSlot else { return }
-            let at = slot.toPage(start)
-            guard !holdsWorkedPage(at: at), CanvasGestures.action(.hold, on: .emptyPage) == .menu else { return }
+            guard now != nil, drawn < Touch.dragSlop else { return }
+            guard !holdsWorkedPage(at: at), CanvasGestures.action(.hold, on: target) == .menu else { return }
             store.holdMenuAt = at
         }
     }
 
     /// The hold on another page taking, `point` in column units: that page
-    /// is made the one worked and the band is held out from there.
+    /// is made the one worked and the band is held out from there. Off
+    /// every page, it is the workspace's.
     private func otherPageHoldBegan(at point: CGPoint) {
         let slots = columnSlots
-        guard !pagePinned, let index = PageColumn.pageAt(point, in: slots), index != store.pageIndex else { return }
+        guard !pagePinned, let index = PageColumn.pageAt(point, in: slots), index != store.pageIndex else {
+            workspaceHoldBegan(at: point)
+            return
+        }
         commitTextEditIfAny()
         dismissHoldMenu()
         pageFromColumn = index
         store.setPage(index)
+        holdBand(from: columnSlot?.toPage(point) ?? point, clamped: false)
+    }
+
+    /// A hold on the workspace taking, `point` in the content's units: the
+    /// band is drawn on the page it is over — in the column, the page under
+    /// where it began, else the nearest (PageColumn.currentPage), made the
+    /// one worked — held to that page, from the point on it nearest the
+    /// finger (CanvasGestures.clampedBand). A locked page says so instead.
+    private func workspaceHoldBegan(at point: CGPoint) {
+        guard onWorkspace(point) else { return }
+        let slots = columnSlots
+        if !slots.isEmpty {
+            let index = PageColumn.pageAt(point, in: slots) ?? PageColumn.currentPage(CGRect(origin: point, size: .zero), in: slots)
+            if index != store.pageIndex {
+                pageFromColumn = index
+                store.setPage(index)
+            }
+        }
+        commitTextEditIfAny()
+        dismissHoldMenu()
+        guard !store.refusesLockedPage() else { return }
+        let onPage = CanvasGestures.onPage(columnSlot?.toPage(point) ?? point, page: store.pageSize)
+        holdBand(from: onPage, clamped: true)
+    }
+
+    /// The band held out from `start` on the page worked, as a hold there
+    /// is felt.
+    private func holdBand(from start: CGPoint, clamped: Bool) {
+        gesture.bandStart = start
+        gesture.bandClamped = clamped
         gesture.banding = true
         store.canvasTouchActive = true
         store.buzz(.tick)

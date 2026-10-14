@@ -57,6 +57,18 @@ final class CanvasGesturesAndMoveTests: XCTestCase {
             (.holdThenDrag, .selectedBody, .move),
             (.hold, .selectedBody, .toggleInSelection),
             (.twoFingers, .selectedBody, .panAndZoom),
+            // Round 29: a backdrop and the workspace start a band too; a
+            // plain drag and a tap there do what they did.
+            (.drag, .backdrop, .move),
+            (.holdThenDrag, .backdrop, .band),
+            (.hold, .backdrop, .menu),
+            (.tap, .backdrop, .select),
+            (.twoFingers, .backdrop, .panAndZoom),
+            (.drag, .workspace, .pan),
+            (.holdThenDrag, .workspace, .band),
+            (.hold, .workspace, .menu),
+            (.tap, .workspace, .select),
+            (.twoFingers, .workspace, .panAndZoom),
         ]
         for (input, target, action) in rows {
             XCTAssertEqual(CanvasGestures.action(input, on: target), action, "\(input) on \(target)")

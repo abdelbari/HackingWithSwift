@@ -1114,17 +1114,19 @@ final class DesignStore {
         selection = Set(page.elements.filter { !$0.locked && !$0.isHidden }.map(\.id))
     }
 
-    /// Rubber-band selection: everything the rectangle touches, with sticky
-    /// groups expanded so a band across one member takes the whole group.
+    /// Rubber-band selection: everything the rectangle touches but what is
+    /// locked, with sticky groups expanded so a band across one member takes
+    /// the whole group.
     func select(within rect: CGRect) {
+        select(within: rect, startedOn: nil)
+    }
+
+    /// The same for a band drawn from the backdrop `startedOn`, which it
+    /// leaves out unless nothing else is caught (CanvasGestures.bandCaught).
+    func select(within rect: CGRect, startedOn: String?) {
         endTextEdit()
         guard !isPageLocked else { return }
-        var ids = Set(Geometry.intersecting(page.elements, rect).map(\.id))
-        let groups = Set(page.elements.filter { ids.contains($0.id) }.compactMap(\.group))
-        for el in page.elements where el.group.map(groups.contains) == true {
-            ids.insert(el.id)
-        }
-        selection = ids
+        selection = CanvasGestures.bandCaught(page.elements, rect: rect, startedOn: startedOn)
     }
 
     /// Write back a set of elements mid-gesture, matched by id. Used by the
