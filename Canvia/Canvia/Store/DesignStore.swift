@@ -380,7 +380,7 @@ final class DesignStore {
         let ordered = page.elements.filter { selection.contains($0.id) }
         guard ordered.count == 2 else {
             buzz(.reject)
-            announce("Select two things to connect", undoable: false)
+            announce(tr("Select two things to connect"), undoable: false)
             return
         }
         var line = Element.line(w: 100)
@@ -391,7 +391,7 @@ final class DesignStore {
         line.x = g.x; line.y = g.y; line.w = g.w; line.h = g.h; line.rotation = g.rotation
         applyToPage { $0.elements.append(line) }
         selection = [line.id]
-        announce("Connected — the arrow follows both ends")
+        announce(tr("Connected — the arrow follows both ends"))
     }
 
     /// Steps to take back — or words being typed, which are one once they
@@ -797,7 +797,7 @@ final class DesignStore {
         }
         selection.subtract(ids)   // anything locked stays selected, visibly
         // The Android twin's words, so both phones say the same.
-        announce(ids.count == 1 ? "Deleted" : "Deleted \(ids.count) things")
+        announce(ids.count == 1 ? tr("Deleted") : trn("Deleted %d thing|Deleted %d things", ids.count))
     }
 
     func duplicateSelected() {
@@ -931,7 +931,7 @@ final class DesignStore {
 
     /// What Change all says it did.
     static func changedAllNote(_ count: Int) -> String {
-        count == 1 ? "Changed the colour of 1 element" : "Changed the colour of \(count) elements"
+        trn("Changed the colour of %d element|Changed the colour of %d elements", count)
     }
 
     /// `el` in colour `hex`, by what it is; unchanged when it already is —
@@ -982,7 +982,7 @@ final class DesignStore {
         pasteCount = 0
         ElementClipboard.write(selected, sourcePage: page.id, fonts: clipboardFonts)
         buzz(.tick)
-        announce(selected.count == 1 ? "Copied" : "Copied \(selected.count) things", undoable: false)
+        announce(selected.count == 1 ? tr("Copied") : trn("Copied %d thing|Copied %d things", selected.count), undoable: false)
     }
 
     func cutSelected() {
@@ -1006,7 +1006,7 @@ final class DesignStore {
             page.elements.removeAll { ids.contains($0.id) }
         }
         selection.subtract(ids)
-        announce(ids.count == 1 ? "Cut" : "Cut \(ids.count) things")
+        announce(ids.count == 1 ? tr("Cut") : trn("Cut %d thing|Cut %d things", ids.count))
     }
 
     /// Paste; with `point`, on the page in page units — the menu a hold on
@@ -1039,7 +1039,7 @@ final class DesignStore {
             // Said, as the Android twin says it: from the keyboard there is
             // no greyed-out menu item to tell you.
             buzz(.reject)
-            announce(UIPasteboard.general.hasImages ? "Couldn't paste that picture" : "Nothing to paste",
+            announce(UIPasteboard.general.hasImages ? tr("Couldn't paste that picture") : tr("Nothing to paste"),
                      undoable: false)
             return
         }
@@ -1458,7 +1458,7 @@ final class DesignStore {
     func beginErasing(_ id: String) {
         if element(id)?.locked == true {
             buzz(.reject)
-            announce("This photo is locked. Tap Unlock to edit it.", undoable: false)
+            announce(tr("This photo is locked. Tap Unlock to edit it."), undoable: false)
             return
         }
         drawing = nil
@@ -1480,7 +1480,7 @@ final class DesignStore {
             await MainActor.run {
                 guard let self else { return }
                 let text = lines.map(\.text).joined(separator: "\n")
-                guard !text.isEmpty else { self.announce("No words were recognised in the strokes", undoable: false); return }
+                guard !text.isEmpty else { self.announce(tr("No words were recognised in the strokes"), undoable: false); return }
                 let frame = rendered.frame
                 let size = max(12, (frame.height / Double(max(lines.count, 1)) * 0.6).rounded())
                 var el = Element.text(text, fontSize: size, w: max(60, frame.width.rounded()))
@@ -1492,7 +1492,7 @@ final class DesignStore {
                     d.pages[index].elements.append(el)
                 }
                 self.selection = [el.id]
-                self.announce("Handwriting became text — Undo keeps the strokes")
+                self.announce(tr("Handwriting became text — Undo keeps the strokes"))
             }
         }
     }
@@ -1527,7 +1527,7 @@ final class DesignStore {
                 defer { self.cancelErasing() }
                 guard let now = self.element(id) else {
                     self.buzz(.reject)
-                    self.announce("The photo is no longer on this page", undoable: false)
+                    self.announce(tr("The photo is no longer on this page"), undoable: false)
                     return
                 }
                 // Locked meanwhile: kept as it is, and nothing said to have
@@ -1535,13 +1535,13 @@ final class DesignStore {
                 guard !now.locked else { return }
                 guard let src else {
                     self.buzz(.reject)
-                    self.announce("Nothing to erase there", undoable: false)
+                    self.announce(tr("Nothing to erase there"), undoable: false)
                     return
                 }
                 self.selection = [id]
                 self.updateSelected { $0.src = src }
                 self.buzz(.confirm)
-                self.announce("Erased — Undo brings it back")
+                self.announce(tr("Erased — Undo brings it back"))
             }
         }
     }
@@ -1594,7 +1594,7 @@ final class DesignStore {
         sessionStepAt = historyVersion
         selection.removeAll()
         buzz(.stroke)
-        announce(gone.count == 1 ? "Erased a stroke" : "Erased \(gone.count) strokes")
+        announce(gone.count == 1 ? tr("Erased a stroke") : trn("Erased %d stroke|Erased %d strokes", gone.count))
     }
 
     /// The part of each stroke an eraser swept over goes, what is left of
@@ -1613,7 +1613,8 @@ final class DesignStore {
         selection.removeAll()
         buzz(.stroke)
         // Said, as the Android twin says it, for anyone not watching the page.
-        announce(cuts.count == 1 ? "Erased part of a stroke" : "Erased part of \(cuts.count) strokes")
+        announce(cuts.count == 1 ? tr("Erased part of a stroke")
+                 : trn("Erased part of %d stroke|Erased part of %d strokes", cuts.count))
     }
 
     /// The strokes drawn since the pen was taken up, when two or more are
@@ -1659,7 +1660,7 @@ final class DesignStore {
         apply { $0 = restored }
         pageIndex = min(pageIndex, max(design.pages.count - 1, 0))
         selection.removeAll()
-        announce("Restored an earlier version")
+        announce(tr("Restored an earlier version"))
     }
 
     // MARK: find and replace
@@ -1746,7 +1747,7 @@ final class DesignStore {
             }
         }
         findHighlight = nil
-        announce(total == 1 ? "Replaced 1 occurrence" : "Replaced \(total) occurrences")
+        announce(trn("Replaced %d occurrence|Replaced %d occurrences", total))
         return total
     }
 
@@ -2138,7 +2139,7 @@ final class DesignStore {
         apply { $0 = Self.appliedTemplate($0, pages: [page], at: at) }
         selection.removeAll()
         buzz(.confirm)
-        announce("Started over from \u{201C}\(name)\u{201D}")
+        announce(tr("Started over from \u{201C}%@\u{201D}", name))
     }
 
     /// The design with `pages` applied at page `index`: the first in its
@@ -2168,7 +2169,7 @@ final class DesignStore {
         pageIndex = applied.first
         selection.removeAll()
         buzz(.confirm)
-        announce("Applied all \(pages.count) pages of \u{201C}\(name)\u{201D}")
+        announce(trn("Applied all %d page of \u{201C}%@\u{201D}|Applied all %d pages of \u{201C}%@\u{201D}", pages.count, name))
     }
 
     /// The design with a template set's `pages` applied from page `index`,
@@ -2215,7 +2216,7 @@ final class DesignStore {
         apply { $0.pages.remove(at: pageIndex) }
         pageIndex = min(pageIndex, design.pages.count - 1)
         selection.removeAll()
-        announce("Deleted page \(number)")
+        announce(tr("Deleted page %d", number))
     }
 
     func movePage(by delta: Int) {
@@ -2406,7 +2407,8 @@ final class DesignStore {
         let next = Self.themed(design, palette: palette, pairing: pairing, brandFonts: brandFonts)
         guard next != design else { return }
         apply { $0 = next }
-        announce("Applied theme to \(design.pages.count == 1 ? "the page" : "all \(design.pages.count) pages")")
+        announce(design.pages.count == 1 ? tr("Applied theme to the page")
+                 : trn("Applied theme to all %d page|Applied theme to all %d pages", design.pages.count))
     }
 
     // MARK: components
@@ -2417,7 +2419,7 @@ final class DesignStore {
         let saved = Components.add(named: name, from: selectedElements)
         if let saved {
             buzz(.confirm)
-            announce("Saved \u{201C}\(saved.name)\u{201D} to Components", undoable: false)
+            announce(tr("Saved \u{201C}%@\u{201D} to Components", saved.name), undoable: false)
         }
         return saved
     }
@@ -2766,7 +2768,7 @@ final class DesignStore {
     func copyPage() {
         PageClipboard.copy(page, width: pageWidth, height: pageHeight,
                            fonts: CustomFonts.carried(page.elements, from: design))
-        announce("Page copied", undoable: false)
+        announce(tr("Page copied"), undoable: false)
         buzz(.confirm)
     }
 
@@ -2896,7 +2898,7 @@ final class DesignStore {
             next.dpi = units.dpi
         }
         apply { $0 = next }
-        announce("Reflowed to \(Int(width)) × \(Int(height))")
+        announce(tr("Reflowed to %@", "\(Int(width)) × \(Int(height))"))
         buzz(.confirm)
     }
 
@@ -2947,7 +2949,7 @@ final class DesignStore {
         }
         // Said with its Undo, as Reflow and a one-page resize are: every
         // page of the design just changed at once.
-        announce("Resized to \(Int(width)) × \(Int(height))")
+        announce(tr("Resized to %@", "\(Int(width)) × \(Int(height))"))
         buzz(.confirm)
     }
 
@@ -2967,7 +2969,7 @@ final class DesignStore {
             pg.height = isDocument ? nil : height
             d.pages[index] = pg
         }
-        announce("This page is now \(Int(width)) × \(Int(height))")
+        announce(tr("This page is now %@", "\(Int(width)) × \(Int(height))"))
         buzz(.confirm)
     }
 }

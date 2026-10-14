@@ -66,8 +66,8 @@ enum Backup {
         case newer
         var errorDescription: String? {
             switch self {
-            case .notABackup: return "This file is not a Canvia backup."
-            case .newer: return "This backup was made by a newer Canvia. Update Canvia to restore it."
+            case .notABackup: return tr("This file is not a Canvia backup.")
+            case .newer: return tr("This backup was made by a newer Canvia. Update Canvia to restore it.")
             }
         }
     }
@@ -149,22 +149,22 @@ enum Backup {
     /// kept." — or "Nothing new to restore." Counts of none are left out.
     static func summary(_ report: Report) -> String {
         var parts: [String] = []
-        func add(_ n: Int, _ one: String, _ many: String) {
-            if n > 0 { parts.append("\(n) \(n == 1 ? one : many)") }
+        func add(_ n: Int, _ said: String) {
+            if n > 0 { parts.append(said) }
         }
-        add(report.designs, "design", "designs")
-        add(report.trash, "deleted design", "deleted designs")
-        add(report.templates, "template", "templates")
-        add(report.uploads, "upload", "uploads")
-        add(report.fonts, "font", "fonts")
-        add(report.brandKits, "brand kit", "brand kits")
-        var text = "Nothing new to restore."
+        add(report.designs, trn("%d design|%d designs", report.designs))
+        add(report.trash, trn("%d deleted design|%d deleted designs", report.trash))
+        add(report.templates, trn("%d template|%d templates", report.templates))
+        add(report.uploads, trn("%d upload|%d uploads", report.uploads))
+        add(report.fonts, trn("%d font|%d fonts", report.fonts))
+        add(report.brandKits, trn("%d brand kit|%d brand kits", report.brandKits))
+        var text = tr("Nothing new to restore.")
         if let last = parts.last {
-            let list = parts.count == 1 ? last : "\(parts.dropLast().joined(separator: ", ")) and \(last)"
-            text = "Restored \(list)."
+            let list = parts.count == 1 ? last : tr("%@ and %@", parts.dropLast().joined(separator: ", "), last)
+            text = tr("Restored %@.", list)
         }
         if report.kept > 0 {
-            text += report.kept == 1 ? " 1 already here was kept." : " \(report.kept) already here were kept."
+            text += " " + trn("%d already here was kept.|%d already here were kept.", report.kept)
         }
         return text
     }
@@ -173,7 +173,7 @@ enum Backup {
     /// there is too much for one file, when that is why; otherwise only that
     /// it failed.
     static func backupFailure(_ error: Error) -> String {
-        let failed = "Couldn't back up."
+        let failed = tr("Couldn't back up.")
         guard let zip = error as? ZipStore.ZipError, case .tooBig = zip else { return failed }
         return "\(failed) \(zip.localizedDescription)"
     }
@@ -183,7 +183,7 @@ enum Backup {
     /// it failed.
     static func restoreFailure(_ error: Error) -> String {
         if error is BackupError || error is ZipStore.ZipError { return error.localizedDescription }
-        return "Couldn't restore that backup."
+        return tr("Couldn't restore that backup.")
     }
 
     /// "Canvia backup 2026-10-13.canviabackup".

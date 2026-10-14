@@ -27,11 +27,11 @@ enum PhotoSaver {
         var errorDescription: String? {
             switch self {
             case .denied:
-                return "Canvia isn't allowed to add to your photo library. You can change that in Settings."
+                return tr("Canvia isn't allowed to add to your photo library. You can change that in Settings.")
             case .unsupported:
-                return "Only PNG, JPEG, GIF and MP4 can be saved to Photos."
+                return tr("Only PNG, JPEG, GIF and MP4 can be saved to Photos.")
             case .failed(let why):
-                return "Photos couldn't save it (\(why))."
+                return tr("Photos couldn't save it (%@).", why)
             }
         }
     }
@@ -60,10 +60,10 @@ enum PhotoSaver {
         /// of several, all of several — or nothing, when none went in. Nil
         /// after a Cancel that saved nothing, which needs no words.
         var message: String? {
-            if saved == 0 { return cancelled ? nil : "Couldn't save to your photos" }
-            if total == 1 { return "Saved to your photos" }
-            if saved < total { return "Saved \(saved) of \(total) photos" }
-            return "Saved \(total) photos"
+            if saved == 0 { return cancelled ? nil : tr("Couldn't save to your photos") }
+            if total == 1 { return tr("Saved to your photos") }
+            if saved < total { return tr("Saved %d of %d photos", saved, total) }
+            return trn("Saved %d photo|Saved %d photos", total)
         }
 
         /// True when at least one file went in.

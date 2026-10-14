@@ -107,9 +107,9 @@ enum Soundtrack {
         case noAudio, noVideo, exportFailed(String)
         var errorDescription: String? {
             switch self {
-            case .noAudio: return "none of the sound could be read"
-            case .noVideo: return "the video has no picture track"
-            case .exportFailed(let why): return "the soundtrack could not be added (\(why))"
+            case .noAudio: return tr("none of the sound could be read")
+            case .noVideo: return tr("the video has no picture track")
+            case .exportFailed(let why): return tr("the soundtrack could not be added (%@)", why)
             }
         }
     }

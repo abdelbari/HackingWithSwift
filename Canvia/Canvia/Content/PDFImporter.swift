@@ -69,8 +69,8 @@ enum PDFImporter {
     /// has — cut at the limit, or pages that would not draw — the first
     /// how many of how many, as the Android twin says it.
     static func summary(brought: Int, total: Int) -> String? {
-        if total > brought { return "Brought in the first \(brought) of \(total) pages" }
-        if brought > 1 { return "Brought in \(brought) pages" }
+        if total > brought { return tr("Brought in the first %d of %d pages", brought, total) }
+        if brought > 1 { return trn("Brought in %d page|Brought in %d pages", brought) }
         return nil
     }
 

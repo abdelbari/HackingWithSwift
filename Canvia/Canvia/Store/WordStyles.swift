@@ -18,11 +18,11 @@ extension DesignStore {
 
     /// What the colour well says on letters filled with a gradient, which
     /// colours on words would not show through.
-    static let gradientWordsNote = "Gradient letters colour every word. Choose a colour for the text to colour words on their own."
+    static let gradientWordsNote = tr("Gradient letters colour every word. Choose a colour for the text to colour words on their own.")
 
     /// What the colour sheet says over its colours when it is open for the
     /// words chosen, in the words the Android twin's colour panel uses.
-    static let wordColourNote = "Colouring the selected words. The box's own colour gives them back to it."
+    static let wordColourNote = tr("Colouring the selected words. The box's own colour gives them back to it.")
 
     /// The colour well: the typing so far kept as its own step, and the
     /// colour sheet asked for the words chosen — or, on gradient letters,
@@ -111,7 +111,7 @@ extension DesignStore {
 
     /// What the font sheet says over its fonts when it is open for the words
     /// chosen, in the words the Android twin's font sheet uses.
-    static let wordFontNote = "For the selected words"
+    static let wordFontNote = tr("For the selected words")
 
     /// Aa on the typing bar: the typing so far kept as its own step, and the
     /// font sheet asked for the words chosen.

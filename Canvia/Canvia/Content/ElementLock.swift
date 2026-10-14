@@ -60,9 +60,9 @@ enum ElementLock {
     /// The Lock menu's words for a mode, as both phones show them.
     static func name(_ mode: Mode) -> String {
         switch mode {
-        case .unlocked: return "Unlock"
-        case .position: return "Lock position"
-        case .full: return "Lock"
+        case .unlocked: return tr("Unlock")
+        case .position: return tr("Lock position")
+        case .full: return tr("Lock")
         }
     }
 

@@ -46,12 +46,12 @@ final class Dictation {
         SFSpeechRecognizer.requestAuthorization { [weak self] status in
             guard let self else { return }
             guard status == .authorized else {
-                DispatchQueue.main.async { self.error = "Speech recognition is not allowed. You can turn it on in Settings." }
+                DispatchQueue.main.async { self.error = tr("Speech recognition is not allowed. You can turn it on in Settings.") }
                 return
             }
             AVAudioApplication.requestRecordPermission { granted in
                 DispatchQueue.main.async {
-                    guard granted else { self.error = "The microphone is not allowed. You can turn it on in Settings."; return }
+                    guard granted else { self.error = tr("The microphone is not allowed. You can turn it on in Settings."); return }
                     self.begin(language: language, onText: onText)
                 }
             }
@@ -61,7 +61,7 @@ final class Dictation {
     private func begin(language: String?, onText: @escaping (String, Bool) -> Void) {
         let own = language.flatMap { SFSpeechRecognizer(locale: Locale(identifier: $0)) }
         guard let recognizer = own ?? self.recognizer, recognizer.isAvailable else {
-            error = "Speech recognition is not available right now."
+            error = tr("Speech recognition is not available right now.")
             return
         }
         let session = AVAudioSession.sharedInstance()
@@ -69,7 +69,7 @@ final class Dictation {
             try session.setCategory(.record, mode: .measurement, options: .duckOthers)
             try session.setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
-            self.error = "The microphone could not be started."
+            self.error = tr("The microphone could not be started.")
             return
         }
         let request = SFSpeechAudioBufferRecognitionRequest()
@@ -83,7 +83,7 @@ final class Dictation {
             request.append(buffer)
         }
         engine.prepare()
-        do { try engine.start() } catch { self.error = "The microphone could not be started."; return }
+        do { try engine.start() } catch { self.error = tr("The microphone could not be started."); return }
         isListening = true
         active = recognizer
         task = recognizer.recognitionTask(with: request) { [weak self] result, err in

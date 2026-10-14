@@ -236,7 +236,7 @@ enum Uploads {
     /// designs. It stays in them.", or "Used in 1 design. It stays in it." for
     /// one, as on Android.
     static func usedInNote(_ designs: Int) -> String {
-        designs == 1 ? "Used in 1 design. It stays in it." : "Used in \(designs) designs. It stays in them."
+        trn("Used in %d design. It stays in it.|Used in %d designs. It stays in them.", designs)
     }
 
     // MARK: the file

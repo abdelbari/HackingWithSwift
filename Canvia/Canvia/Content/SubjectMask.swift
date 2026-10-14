@@ -24,9 +24,9 @@ enum SubjectMask {
         var errorDescription: String? {
             switch self {
             case .noSubject:
-                return "Couldn't find a subject in this picture. It works best on a photo with a clear foreground."
+                return tr("Couldn't find a subject in this picture. It works best on a photo with a clear foreground.")
             case .failed:
-                return "Couldn't separate the background from this picture."
+                return tr("Couldn't separate the background from this picture.")
             }
         }
     }

@@ -67,7 +67,7 @@ extension DesignStore {
         }
         let locked = pageIndex + 1
         setPage(to)
-        announce("Page \(locked) is locked, so this went on page \(to + 1)", undoable: false)
+        announce(tr("Page %d is locked, so this went on page %d", locked, to + 1), undoable: false)
         return true
     }
 }

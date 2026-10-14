@@ -157,23 +157,25 @@ enum DataGraphics {
     }
 
     /// The hint under the chart's text, for a kind with rows to read.
-    static let seriesHint = "A first line of names, as in \"Quarter, North, South\", makes a series of each column after the first."
+    static let seriesHint = tr("A first line of names, as in \"Quarter, North, South\", makes a series of each column after the first.")
 
     /// The hint under a scatter's data.
-    static let scatterHint = "Each row is \"Label, x, y\"; a first line of names, as in \"City, Size, Price\", names x and y."
+    static let scatterHint = tr("Each row is \"Label, x, y\"; a first line of names, as in \"City, Size, Price\", names x and y.")
 
     /// What the chart typed so far comes to, under the box it is typed in,
     /// in the Android twin's words: "4 values", "3 rows × 2 series", or for a
     /// progress kind the percentage it will show.
     static func chartSummary(_ data: ChartData, kind: ChartKind) -> String {
         let n = data.rows.count
-        guard let first = data.rows.first?.values.first else { return "No numbers found yet." }
-        if kind.isProgress { return "The first value, as a percentage: \(Int(min(100, max(0, first)).rounded()))%." }
-        let tail = ", coloured from this page."
-        if data.names.count > 1 {
-            return (n == 1 ? "1 row" : "\(n) rows") + " × \(data.names.count) series" + tail
+        guard let first = data.rows.first?.values.first else { return tr("No numbers found yet.") }
+        if kind.isProgress {
+            return tr("The first value, as a percentage: %@.", "\(Int(min(100, max(0, first)).rounded()))%")
         }
-        return (n == 1 ? "1 value" : "\(n) values") + tail
+        if data.names.count > 1 {
+            return tr("%@ × %@, coloured from this page.", trn("%d row|%d rows", n),
+                      trn("%d series|%d series", data.names.count))
+        }
+        return tr("%@, coloured from this page.", trn("%d value|%d values", n))
     }
 
     /// Raw values are the `kind` written in a chart's JSON.
@@ -182,17 +184,17 @@ enum DataGraphics {
         var id: String { rawValue }
         var name: String {
             switch self {
-            case .column: return "Column"
-            case .bar: return "Bar"
-            case .line: return "Line"
-            case .pie: return "Pie"
-            case .donut: return "Donut"
-            case .stackedColumn: return "Stacked column"
-            case .stackedBar: return "Stacked bar"
-            case .area: return "Area"
-            case .progressRing: return "Progress ring"
-            case .progressBar: return "Progress bar"
-            case .scatter: return "Scatter"
+            case .column: return tr("Column")
+            case .bar: return tr("Bar")
+            case .line: return tr("Line")
+            case .pie: return tr("Pie")
+            case .donut: return tr("Donut")
+            case .stackedColumn: return tr("Stacked column")
+            case .stackedBar: return tr("Stacked bar")
+            case .area: return tr("Area")
+            case .progressRing: return tr("Progress ring")
+            case .progressBar: return tr("Progress bar")
+            case .scatter: return tr("Scatter")
             }
         }
 
@@ -947,11 +949,10 @@ enum DataGraphics {
     /// counting — with "row" and "column" singular when there is one, as
     /// the Android twin says it.
     static func tableSummary(_ rows: [[String]]) -> String {
-        guard !rows.isEmpty else { return "Nothing to tabulate yet." }
+        guard !rows.isEmpty else { return tr("Nothing to tabulate yet.") }
         let columns = rows.map(\.count).max() ?? 0
-        let r = rows.count == 1 ? "1 row" : "\(rows.count) rows"
-        let c = columns == 1 ? "1 column" : "\(columns) columns"
-        return "\(r) × \(c); the first row is the header."
+        return tr("%@ × %@; the first row is the header.", trn("%d row|%d rows", rows.count),
+                  trn("%d column|%d columns", columns))
     }
 
     static func parseTable(_ text: String) -> [[String]] {

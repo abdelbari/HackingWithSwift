@@ -241,19 +241,19 @@ enum Proofreader {
     /// The languages the spelling sheet offers, by tag and name, in the
     /// order both phones list them; the phone's own comes first, as nil.
     static let languages: [(tag: String, name: String)] = [
-        ("en-GB", "English (UK)"),
-        ("en-US", "English (US)"),
-        ("en-AU", "English (Australia)"),
-        ("fr-FR", "French"),
-        ("de-DE", "German"),
-        ("es-ES", "Spanish"),
-        ("it-IT", "Italian"),
-        ("pt-BR", "Portuguese (Brazil)"),
-        ("nl-NL", "Dutch"),
+        ("en-GB", tr("English (UK)")),
+        ("en-US", tr("English (US)")),
+        ("en-AU", tr("English (Australia)")),
+        ("fr-FR", tr("French")),
+        ("de-DE", tr("German")),
+        ("es-ES", tr("Spanish")),
+        ("it-IT", tr("Italian")),
+        ("pt-BR", tr("Portuguese (Brazil)")),
+        ("nl-NL", tr("Dutch")),
     ]
 
     /// What the picker calls the phone's own language.
-    static let phoneLanguage = "This phone's language"
+    static let phoneLanguage = tr("This phone's language")
 
     /// The name the picker gives `language`: its own from `languages`, the
     /// tag itself for one it does not list, or the phone's own for nil.

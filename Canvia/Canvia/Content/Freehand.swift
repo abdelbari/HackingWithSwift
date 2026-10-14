@@ -23,16 +23,16 @@ enum Freehand {
         var id: String { rawValue }
         var label: String {
             switch self {
-            case .pen: return "Pen"
-            case .highlighter: return "Highlighter"
-            case .glow: return "Glow"
-            case .eraser: return "Eraser"
+            case .pen: return tr("Pen")
+            case .highlighter: return tr("Highlighter")
+            case .glow: return tr("Glow")
+            case .eraser: return tr("Eraser")
             }
         }
         /// How the pen is used, in a line over the drawing bar — the
         /// Android twin's words.
         var hint: String {
-            self == .eraser ? "Drag over strokes to take them away" : "One finger draws, two move the page"
+            self == .eraser ? tr("Drag over strokes to take them away") : tr("One finger draws, two move the page")
         }
         /// Whether it lays down ink, and so has an ink to choose.
         var hasInk: Bool { self != .eraser }
@@ -110,7 +110,7 @@ enum Freehand {
 
     /// The name strokes drawn in one go are grouped under when the pen is
     /// put down.
-    static let drawingName = "Drawing"
+    static let drawingName = tr("Drawing")
     static let colors: [String] = ["#1f2430", "#ffffff", "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899"]
 
     /// Drops points closer than `minDistance` to the last one kept: a finger

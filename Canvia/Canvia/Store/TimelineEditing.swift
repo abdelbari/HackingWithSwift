@@ -143,7 +143,7 @@ extension DesignStore {
         selection.removeAll()
         playheadPage = parts.second.id
         playhead = 0
-        announce("Split page \(index + 1)")
+        announce(tr("Split page %d", index + 1))
     }
 
     /// "Show from playhead": the selection shown from the playhead on, as

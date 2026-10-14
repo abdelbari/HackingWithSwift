@@ -13,7 +13,8 @@ enum EditorCaption {
 
     /// The same in the design's unit: "210 × 297 mm · Page 1 of 2".
     static func text(width: Double, height: Double, unit: String?, dpi: Double?, page: Int, of pages: Int) -> String {
-        "\(Units.dimensions(width: width, height: height, unit: unit, dpi: dpi)) · Page \(page + 1) of \(max(pages, 1))"
+        tr("%@ · Page %d of %d", Units.dimensions(width: width, height: height, unit: unit, dpi: dpi),
+           page + 1, max(pages, 1))
     }
 
     /// The name a rename leaves, trimmed; nil when there is nothing to

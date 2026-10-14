@@ -52,10 +52,10 @@ enum FillChoices {
     /// of the design's own it is — "Fill with photo" for every one left no
     /// way to choose.
     static func photoFillLabel(_ src: String, sources: [String]) -> String {
-        if let photo = builtInPhoto(src) { return "Fill with \(photo.name)" }
+        if let photo = builtInPhoto(src) { return tr("Fill with %@", photo.name) }
         let own = sources.filter { builtInPhoto($0) == nil }
-        guard let n = own.firstIndex(of: src) else { return "Fill with photo" }
-        return "Fill with photo \(n + 1) of \(own.count) from this design"
+        guard let n = own.firstIndex(of: src) else { return tr("Fill with photo") }
+        return tr("Fill with photo %d of %d from this design", n + 1, own.count)
     }
 
     private static func builtInPhoto(_ src: String) -> PhotoDef? {
@@ -71,10 +71,10 @@ enum FillChoices {
     /// nil when it is, and the colour's name says it. As the Android twin.
     static func spokenFill(_ fill: Paint?) -> String? {
         switch fill?.kind {
-        case "gradient": return "gradient from \(ElementNames.colourName(fill?.primaryColor))"
-        case "image": return "photo"
-        case "pattern": return "\(ElementNames.colourName(fill?.color)) pattern"
-        case "none": return "no fill"
+        case "gradient": return tr("gradient from %@", ElementNames.colourName(fill?.primaryColor))
+        case "image": return tr("photo")
+        case "pattern": return tr("%@ pattern", ElementNames.colourName(fill?.color))
+        case "none": return tr("no fill")
         default: return nil
         }
     }

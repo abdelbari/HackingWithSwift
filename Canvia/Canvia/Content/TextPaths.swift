@@ -18,12 +18,12 @@ enum TextPaths {
     }
 
     static let presets: [Preset] = [
-        Preset(id: "wave", name: "Wave", data: "M0 60Q25 10 50 60T100 60"),
-        Preset(id: "arch", name: "Arch", data: "M0 95Q50 -20 100 95"),
-        Preset(id: "valley", name: "Valley", data: "M0 5Q50 120 100 5"),
-        Preset(id: "rise", name: "Rising diagonal", data: "M0 95L100 25"),
-        Preset(id: "swoosh", name: "Swoosh", data: "M0 85C30 -10 70 110 100 25"),
-        Preset(id: "circle", name: "Circle", data: "M50 5C74.9 5 95 25.1 95 50C95 74.9 74.9 95 50 95C25.1 95 5 74.9 5 50C5 25.1 25.1 5 50 5"),
+        Preset(id: "wave", name: tr("Wave"), data: "M0 60Q25 10 50 60T100 60"),
+        Preset(id: "arch", name: tr("Arch"), data: "M0 95Q50 -20 100 95"),
+        Preset(id: "valley", name: tr("Valley"), data: "M0 5Q50 120 100 5"),
+        Preset(id: "rise", name: tr("Rising diagonal"), data: "M0 95L100 25"),
+        Preset(id: "swoosh", name: tr("Swoosh"), data: "M0 85C30 -10 70 110 100 25"),
+        Preset(id: "circle", name: tr("Circle"), data: "M50 5C74.9 5 95 25.1 95 50C95 74.9 74.9 95 50 95C25.1 95 5 74.9 5 50C5 25.1 25.1 5 50 5"),
     ]
 
     static func preset(_ id: String?) -> Preset? {

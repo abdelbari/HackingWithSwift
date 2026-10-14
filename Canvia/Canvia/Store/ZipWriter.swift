@@ -21,8 +21,8 @@ final class ZipWriter {
 
         var errorDescription: String? {
             switch self {
-            case .tooLarge: return "the file is too large"
-            case .finished: return "the file was already finished"
+            case .tooLarge: return tr("the file is too large")
+            case .finished: return tr("the file was already finished")
             }
         }
     }

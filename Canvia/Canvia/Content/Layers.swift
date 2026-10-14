@@ -75,7 +75,7 @@ enum LayerRows {
     }
 
     /// "Group (3)".
-    static func groupName(_ count: Int) -> String { "Group (\(count))" }
+    static func groupName(_ count: Int) -> String { tr("Group (%d)", count) }
 
     /// The rows for `elements` (as the page holds them, back to front),
     /// top-most first. Elements sharing a group make one group row where the

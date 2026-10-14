@@ -15,24 +15,24 @@ enum RelativeTime {
         let then = Date(timeIntervalSince1970: ms / 1000)
         let delta = now.timeIntervalSince(then)
         // A clock put back, or a design from a phone whose clock runs ahead.
-        if delta < 0 { return "Just now" }
+        if delta < 0 { return tr("Just now") }
 
         let minutes = Int(delta / 60)
-        if minutes < 1 { return "Just now" }
-        if minutes < 60 { return minutes == 1 ? "1 minute ago" : "\(minutes) minutes ago" }
+        if minutes < 1 { return tr("Just now") }
+        if minutes < 60 { return trn("%d minute ago|%d minutes ago", minutes) }
 
         if calendar.isDate(then, inSameDayAs: now) {
             let hours = minutes / 60
-            return hours == 1 ? "1 hour ago" : "\(hours) hours ago"
+            return trn("%d hour ago|%d hours ago", hours)
         }
         if let yesterday = calendar.date(byAdding: .day, value: -1, to: now),
            calendar.isDate(then, inSameDayAs: yesterday) {
-            return "Yesterday"
+            return tr("Yesterday")
         }
         // Whole days, and never "1 days ago": past yesterday is two
         // calendar days back even when it is under 48 hours.
         let days = max(2, Int(delta / 86_400))
-        if days < 7 { return "\(days) days ago" }
+        if days < 7 { return trn("%d days ago|%d days ago", days) }
 
         let formatter = DateFormatter()
         formatter.locale = locale
@@ -49,7 +49,7 @@ enum RelativeTime {
 
     /// "1 page" / "4 pages".
     static func pages(_ count: Int) -> String {
-        count == 1 ? "1 page" : "\(count) pages"
+        trn("%d page|%d pages", count)
     }
 
     /// The same, mid-sentence: "Deleted yesterday", "Deleted 5 minutes ago".

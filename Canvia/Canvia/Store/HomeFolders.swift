@@ -171,7 +171,7 @@ extension DesignLibrary {
     }
 
     /// What the Starred chip says with nothing starred.
-    static let starredEmpty = "Star a design from its ⋯ menu to find it here."
+    static let starredEmpty = tr("Star a design from its ⋯ menu to find it here.")
 
     // MARK: select
 

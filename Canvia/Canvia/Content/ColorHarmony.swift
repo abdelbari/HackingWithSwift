@@ -18,12 +18,12 @@ enum ColorHarmony: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .complementary: return "Complementary"
-        case .analogous: return "Analogous"
-        case .triadic: return "Triadic"
-        case .splitComplementary: return "Split"
-        case .tetradic: return "Tetradic"
-        case .monochrome: return "Monochrome"
+        case .complementary: return tr("Complementary")
+        case .analogous: return tr("Analogous")
+        case .triadic: return tr("Triadic")
+        case .splitComplementary: return tr("Split")
+        case .tetradic: return tr("Tetradic")
+        case .monochrome: return tr("Monochrome")
         }
     }
 

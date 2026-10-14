@@ -34,7 +34,9 @@ enum PageTransitions {
     static let secondsRange = 0.2...2.0
 
     /// The lengths the page sheet offers: nil is today's timings.
-    static let lengths: [(name: String, seconds: Double?)] = [("Quick", 0.3), ("Normal", nil), ("Slow", 1.0)]
+    static let lengths: [(name: String, seconds: Double?)] = [
+        (tr("Quick"), 0.3), (tr("Normal"), nil), (tr("Slow"), 1.0),
+    ]
 
     /// How `page` gives way to the next: its own transition when this build
     /// knows it, else the design's — a fade, or a cut when its motion turns
@@ -101,8 +103,8 @@ enum PageTransitions {
     /// Which of `lengths` a page's own length reads as: the nearest, or
     /// Normal when it has none.
     static func lengthName(_ own: Double?) -> String {
-        guard let own else { return "Normal" }
+        guard let own else { return tr("Normal") }
         let timed = lengths.compactMap { choice in choice.seconds.map { (choice.name, $0) } }
-        return timed.min { abs($0.1 - own) < abs($1.1 - own) }?.0 ?? "Normal"
+        return timed.min { abs($0.1 - own) < abs($1.1 - own) }?.0 ?? tr("Normal")
     }
 }

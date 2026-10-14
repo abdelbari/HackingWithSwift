@@ -370,7 +370,9 @@ extension DataGraphics {
     /// and the width each sets every cell rectangle's stroke at, as the
     /// Android twin offers them. A table's border is no key of its own: it
     /// is the `stroke` and `strokeWidth` its rectangles already have.
-    static let tableBorderWeights: [(name: String, width: Double)] = [("None", 0), ("Thin", 1), ("Medium", 2), ("Thick", 4)]
+    static let tableBorderWeights: [(name: String, width: Double)] = [
+        (tr("None"), 0), (tr("Thin"), 1), (tr("Medium"), 2), (tr("Thick"), 4),
+    ]
     /// The heaviest border a table takes; the Border width slider runs from
     /// none to it.
     static let tableBorderMax = 12.0

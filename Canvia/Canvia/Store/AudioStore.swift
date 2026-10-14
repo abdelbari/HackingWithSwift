@@ -87,6 +87,6 @@ enum AudioStore {
             let name = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
             if !name.isEmpty { return name }
         }
-        return "Audio (\(URL(fileURLWithPath: id).pathExtension.uppercased()))"
+        return tr("Audio (%@)", URL(fileURLWithPath: id).pathExtension.uppercased())
     }
 }

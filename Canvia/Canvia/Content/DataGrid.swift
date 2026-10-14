@@ -147,12 +147,13 @@ enum DataGrid {
         /// "Imported 12 of 20 columns", or both — "Imported 50 of 212 rows
         /// and 12 of 20 columns" — in the Android twin's words.
         var note: String? {
-            let r = rows > DataGrid.csvRows ? "\(DataGrid.csvRows) of \(rows) rows" : nil
-            let c = columns > DataGrid.csvColumns ? "\(DataGrid.csvColumns) of \(columns) columns" : nil
+            let r = rows > DataGrid.csvRows, c = columns > DataGrid.csvColumns
             switch (r, c) {
-            case let (r?, c?): return "Imported \(r) and \(c)"
-            case let (r?, nil): return "Imported \(r)"
-            case let (nil, c?): return "Imported \(c)"
+            case (true, true):
+                return tr("Imported %d of %d rows and %d of %d columns",
+                          DataGrid.csvRows, rows, DataGrid.csvColumns, columns)
+            case (true, false): return tr("Imported %d of %d rows", DataGrid.csvRows, rows)
+            case (false, true): return tr("Imported %d of %d columns", DataGrid.csvColumns, columns)
             default: return nil
             }
         }
@@ -232,10 +233,10 @@ enum DataGrid {
     /// will not do: none read, more than csvBytes, or no rows with words.
     /// Read as UTF-8, anything that is not standing in for a character.
     static func read(csv data: Data?) -> CsvRead {
-        guard let data else { return .refused("That file could not be read") }
-        guard data.count <= csvBytes else { return .refused("That file is over 1 MB") }
+        guard let data else { return .refused(tr("That file could not be read")) }
+        guard data.count <= csvBytes else { return .refused(tr("That file is over 1 MB")) }
         let read = fromCsv(String(decoding: data, as: UTF8.self))
-        return read.cells.isEmpty ? .refused("No rows to import in that file") : .rows(read)
+        return read.cells.isEmpty ? .refused(tr("No rows to import in that file")) : .rows(read)
     }
 
     /// The file at `url` — one the file picker handed over — read for the

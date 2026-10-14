@@ -185,7 +185,7 @@ struct CanvasView: View {
     var body: some View {
         columnAware
         .ignoresSafeArea(.keyboard)
-        .confirmationDialog(guideMenu.map { guideTitle($0) } ?? "Guide",
+        .confirmationDialog(guideMenu.map { guideTitle($0) } ?? tr("Guide"),
                             isPresented: Binding(get: { guideMenu != nil }, set: { if !$0 { guideMenu = nil } }),
                             titleVisibility: .visible, presenting: guideMenu) { guide in
             Button("Position…") { askPosition(guide) }
@@ -193,13 +193,13 @@ struct CanvasView: View {
             Button("Cancel", role: .cancel) {}
         }
         // Worded as Android's Position… dialog words it.
-        .alert(positioningGuide?.vertical == false ? "Horizontal guide" : "Vertical guide",
+        .alert(positioningGuide?.vertical == false ? tr("Horizontal guide") : tr("Vertical guide"),
                isPresented: Binding(get: { positioningGuide != nil },
                                     set: { if !$0 { positioningGuide = nil } }),
                presenting: positioningGuide) { guide in
             // In the design's unit, as Position's numbers are.
             let unit = store.design.physicalUnit ?? "px"
-            TextField(guide.vertical ? "From the left (\(unit))" : "From the top (\(unit))", text: $guidePositionText)
+            TextField(guide.vertical ? tr("From the left (%@)", unit) : tr("From the top (%@)", unit), text: $guidePositionText)
                 .keyboardType(.decimalPad)
             Button("Move") {
                 let limit = guide.vertical ? store.pageWidth : store.pageHeight
@@ -210,8 +210,8 @@ struct CanvasView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: { guide in
-            Text("From 0 to " + Units.readout(guide.vertical ? store.pageWidth : store.pageHeight, store.design)
-                 + (store.design.physicalUnit == nil ? " px" : Units.suffix(store.design)))
+            Text(tr("From 0 to %@", Units.readout(guide.vertical ? store.pageWidth : store.pageHeight, store.design)
+                    + (store.design.physicalUnit == nil ? " px" : Units.suffix(store.design))))
         }
         // Typing in place stays above the keyboard: when it starts, when the
         // keyboard arrives or changes, and as the box grows line by line.
@@ -1082,8 +1082,8 @@ struct CanvasView: View {
     @ViewBuilder
     private func guideActions(_ guide: Guide) -> some View {
         let step = CanvasAccessibility.nudge(for: store.design)
-        Button(guide.vertical ? "Move left" : "Move up") { nudgeGuide(guide, by: -step) }
-        Button(guide.vertical ? "Move right" : "Move down") { nudgeGuide(guide, by: step) }
+        Button(guide.vertical ? tr("Move left") : tr("Move up")) { nudgeGuide(guide, by: -step) }
+        Button(guide.vertical ? tr("Move right") : tr("Move down")) { nudgeGuide(guide, by: step) }
         Button("Position…") { askPosition(guide) }
         Button("Remove guide") { store.removeGuide(guide.id) }
     }
@@ -1092,7 +1092,7 @@ struct CanvasView: View {
     private func guideTitle(_ guide: Guide) -> String {
         let at = Guides.halfPixel(guide.position)
         let number = at == at.rounded() ? String(Int(at)) : String(at)
-        return guide.vertical ? "Vertical guide at \(number)" : "Horizontal guide at \(number)"
+        return guide.vertical ? tr("Vertical guide at %@", number) : tr("Horizontal guide at %@", number)
     }
 
     /// Position…: the guide's place typed in, starting from where it is.
@@ -1183,8 +1183,9 @@ struct CanvasView: View {
             .accessibilityLabel(CanvasAccessibility.label(for: el))
             .accessibilityValue(CanvasAccessibility.value(for: el, design: store.design))
             .accessibilityAddTraits(store.selection.contains(el.id) ? [.isButton, .isSelected] : .isButton)
-            .accessibilityHint(el.type == .text ? "Double tap to select; double tap and hold to edit"
-                               : el.type == .image ? "Double tap to select; Crop is in the actions" : "Double tap to select")
+            .accessibilityHint(el.type == .text ? tr("Double tap to select; double tap and hold to edit")
+                               : el.type == .image ? tr("Double tap to select; Crop is in the actions")
+                               : tr("Double tap to select"))
             .accessibilityActions { accessibilityActions(for: el) }
     }
 
@@ -1316,7 +1317,7 @@ struct CanvasView: View {
         let step = CanvasAccessibility.nudge(for: store.design)
         // The long press's own job: a selection built one element at a time,
         // to group, align or tidy. Offered on locked things too.
-        Button(store.selection.contains(el.id) ? "Remove from selection" : "Add to selection") {
+        Button(store.selection.contains(el.id) ? tr("Remove from selection") : tr("Add to selection")) {
             store.select(el.id, additive: true)
         }
         // A position lock keeps it where it is, as a whole lock does, but

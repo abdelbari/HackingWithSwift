@@ -37,7 +37,7 @@ enum CustomFonts {
     static let maxBytes = 10 * 1024 * 1024
 
     /// What the font picker's row for adding one says.
-    static let addTitle = "Add a font…"
+    static let addTitle = tr("Add a font…")
 
     /// A font a design uses, as it records it.
     struct Record: Codable, Equatable, Hashable, Sendable {
@@ -111,7 +111,7 @@ enum CustomFonts {
     }
 
     /// What the text controls say for a font that is not on this phone.
-    static func missing(_ name: String) -> String { "Font missing: \(name)" }
+    static func missing(_ name: String) -> String { tr("Font missing: %@", name) }
 
     // MARK: the design's record
 
@@ -274,8 +274,8 @@ enum CustomFonts {
         case collection = "That is a font collection. Choose a single .ttf or .otf font."
         case notAFont = "That file is not a font Canvia can use."
 
-        var message: String { rawValue }
-        var errorDescription: String? { rawValue }
+        var message: String { tr(rawValue) }
+        var errorDescription: String? { tr(rawValue) }
     }
 
     /// The bytes as a font to add, or what is wrong with them: a collection
@@ -459,7 +459,7 @@ enum CustomFonts {
 
     /// "3 weights", "1 weight": what a family's row says beside its name.
     static func weightCount(_ count: Int) -> String {
-        count == 1 ? "1 weight" : "\(count) weights"
+        trn("%d weight|%d weights", count)
     }
 
     /// The key of the Regular face of the family a design records the font

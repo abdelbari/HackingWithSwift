@@ -27,11 +27,11 @@ enum PrintLayout {
     static let papers: [Paper] = [
         Paper(id: "a4", name: "A4", size: CGSize(width: 595, height: 842)),
         Paper(id: "a3", name: "A3", size: CGSize(width: 842, height: 1191)),
-        Paper(id: "letter", name: "US Letter", size: CGSize(width: 612, height: 792)),
-        Paper(id: "tabloid", name: "Tabloid", size: CGSize(width: 792, height: 1224)),
+        Paper(id: "letter", name: tr("US Letter"), size: CGSize(width: 612, height: 792)),
+        Paper(id: "tabloid", name: tr("Tabloid"), size: CGSize(width: 792, height: 1224)),
         Paper(id: "a5", name: "A5", size: CGSize(width: 420, height: 595)),
-        Paper(id: "legal", name: "Legal", size: CGSize(width: 612, height: 1008)),
-        Paper(id: "photo-4x6", name: "Photo 4×6", size: CGSize(width: 288, height: 432)),
+        Paper(id: "legal", name: tr("Legal"), size: CGSize(width: 612, height: 1008)),
+        Paper(id: "photo-4x6", name: tr("Photo 4×6"), size: CGSize(width: 288, height: 432)),
         Paper(id: "photo-5x7", name: "5×7", size: CGSize(width: 360, height: 504)),
     ]
 
@@ -41,10 +41,10 @@ enum PrintLayout {
         var id: String { rawValue }
         var name: String {
             switch self {
-            case .fit: return "Fit to paper"
-            case .actual: return "Actual size"
-            case .tile: return "Tile a poster"
-            case .several: return "Several to a sheet"
+            case .fit: return tr("Fit to paper")
+            case .actual: return tr("Actual size")
+            case .tile: return tr("Tile a poster")
+            case .several: return tr("Several to a sheet")
             }
         }
     }
@@ -56,7 +56,7 @@ enum PrintLayout {
         /// The chosen pages in order, one each, as many sheets as it takes.
         case oneOfEach
         var id: String { rawValue }
-        var name: String { self == .repeatPage ? "Repeat this page" : "One of each" }
+        var name: String { self == .repeatPage ? tr("Repeat this page") : tr("One of each") }
     }
 
     struct Options: Equatable {
@@ -308,12 +308,12 @@ enum PrintLayout {
 
     /// "10 per sheet, 2 sheets".
     static func severalNote(perSheet: Int, sheets: Int) -> String {
-        "\(perSheet) per sheet, \(sheets) \(sheets == 1 ? "sheet" : "sheets")"
+        tr("%d per sheet, %@", perSheet, trn("%d sheet|%d sheets", sheets))
     }
 
     /// Said under the Bleed stepper when the design has no bleed of its own,
     /// so the page is enlarged to make one.
-    static let enlargedNote = "Bleed made by enlarging slightly"
+    static let enlargedNote = tr("Bleed made by enlarging slightly")
 
     /// Crop marks: short lines outside each corner of `rect`, `gap` away.
     static func cropMarkSegments(around rect: CGRect, length: Double = 14, gap: Double = 4) -> [(CGPoint, CGPoint)] {

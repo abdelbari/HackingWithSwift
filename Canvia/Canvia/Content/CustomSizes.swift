@@ -80,8 +80,8 @@ enum CustomSizes {
     /// both sides are in range, the range to type — as the Android twin's
     /// Resize button reads.
     static func resizeTitle(width: String, height: String, unit: String = "px") -> String {
-        guard let size = size(width: width, height: height, unit: unit) else { return "Enter a size from \(rangeText)" }
-        return "Resize to \(title(width: size.width, height: size.height, unit: unit))"
+        guard let size = size(width: width, height: height, unit: unit) else { return tr("Enter a size from %@", rangeText) }
+        return tr("Resize to %@", title(width: size.width, height: size.height, unit: unit))
     }
 
     /// The height a ratio gives the width in the field — 1080 when the

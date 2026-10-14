@@ -17,22 +17,22 @@ enum BlendModes {
     }
 
     static let all: [Mode] = [
-        Mode(id: "normal", name: "Normal", swiftUI: .normal),
-        Mode(id: "multiply", name: "Multiply", swiftUI: .multiply),
-        Mode(id: "screen", name: "Screen", swiftUI: .screen),
-        Mode(id: "overlay", name: "Overlay", swiftUI: .overlay),
-        Mode(id: "darken", name: "Darken", swiftUI: .darken),
-        Mode(id: "lighten", name: "Lighten", swiftUI: .lighten),
-        Mode(id: "color-dodge", name: "Color dodge", swiftUI: .colorDodge),
-        Mode(id: "color-burn", name: "Color burn", swiftUI: .colorBurn),
-        Mode(id: "soft-light", name: "Soft light", swiftUI: .softLight),
-        Mode(id: "hard-light", name: "Hard light", swiftUI: .hardLight),
-        Mode(id: "difference", name: "Difference", swiftUI: .difference),
-        Mode(id: "exclusion", name: "Exclusion", swiftUI: .exclusion),
-        Mode(id: "hue", name: "Hue", swiftUI: .hue),
-        Mode(id: "saturation", name: "Saturation", swiftUI: .saturation),
-        Mode(id: "color", name: "Color", swiftUI: .color),
-        Mode(id: "luminosity", name: "Luminosity", swiftUI: .luminosity),
+        Mode(id: "normal", name: tr("Normal"), swiftUI: .normal),
+        Mode(id: "multiply", name: tr("Multiply"), swiftUI: .multiply),
+        Mode(id: "screen", name: tr("Screen"), swiftUI: .screen),
+        Mode(id: "overlay", name: tr("Overlay"), swiftUI: .overlay),
+        Mode(id: "darken", name: tr("Darken"), swiftUI: .darken),
+        Mode(id: "lighten", name: tr("Lighten"), swiftUI: .lighten),
+        Mode(id: "color-dodge", name: tr("Color dodge"), swiftUI: .colorDodge),
+        Mode(id: "color-burn", name: tr("Color burn"), swiftUI: .colorBurn),
+        Mode(id: "soft-light", name: tr("Soft light"), swiftUI: .softLight),
+        Mode(id: "hard-light", name: tr("Hard light"), swiftUI: .hardLight),
+        Mode(id: "difference", name: tr("Difference"), swiftUI: .difference),
+        Mode(id: "exclusion", name: tr("Exclusion"), swiftUI: .exclusion),
+        Mode(id: "hue", name: tr("Hue"), swiftUI: .hue),
+        Mode(id: "saturation", name: tr("Saturation"), swiftUI: .saturation),
+        Mode(id: "color", name: tr("Color"), swiftUI: .color),
+        Mode(id: "luminosity", name: tr("Luminosity"), swiftUI: .luminosity),
     ]
 
     static func mode(_ id: String?) -> Mode {

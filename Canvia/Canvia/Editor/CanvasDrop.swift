@@ -181,7 +181,7 @@ enum CanvasDrop {
             self.expected = nil
             if landedCount == 0 {
                 store.buzz(.reject)
-                store.announce("Nothing there this page can take", undoable: false)
+                store.announce(tr("Nothing there this page can take"), undoable: false)
             } else {
                 store.buzz(.confirm)
             }

@@ -39,7 +39,7 @@ enum Readouts {
 
     /// Type being scaled from a corner reads as its size, not its box.
     static func typeSize(_ size: Double) -> String {
-        "Size \(tenths(size))"
+        tr("Size %@", tenths(size))
     }
 
     /// To one decimal, with no ".0": 42, 42.5.

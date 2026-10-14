@@ -22,30 +22,35 @@ enum ElementNames {
         case .text:
             let words = RichText.strip(el.text ?? "").replacingOccurrences(of: "\n", with: " ")
                 .trimmingCharacters(in: .whitespaces)
-            let kind = (el.fontSize ?? 42) >= 64 ? "Heading" : "Text"
-            return words.isEmpty ? kind : "\(kind): \(words.prefix(snippet))"
+            let heading = (el.fontSize ?? 42) >= 64
+            guard !words.isEmpty else { return heading ? tr("Heading") : tr("Text") }
+            let quoted = String(words.prefix(snippet))
+            return heading ? tr("Heading: %@", quoted) : tr("Text: %@", quoted)
         case .shape:
             // Coloured, because "Oval" and "Oval" are the two circles behind
             // the heading, and "Red oval" and "Teal oval" are not.
             let colour = colours(of: el).first { !isFaint($0) }
             // Named for what it shows, as the icons tab names it.
-            if let icon = IconLibrary.icon(of: el) { return "\(icon.name) icon" }
-            if Freehand.isStroke(el) { return withColour(el.stroke, "drawing") }
+            if let icon = IconLibrary.icon(of: el) { return tr("%@ icon", icon.name) }
+            if Freehand.isStroke(el) { return withColour(el.stroke, tr("drawing"), tr("%@ drawing", colourName(el.stroke))) }
             if el.pathData != nil {
-                if isFaint(el.fill?.color) && el.stroke != nil { return withColour(el.stroke, "line") }
-                return withWords(el, "custom shape") ?? withColour(colour, "custom shape")
+                if isFaint(el.fill?.color) && el.stroke != nil {
+                    return withColour(el.stroke, tr("line"), tr("%@ line", colourName(el.stroke)))
+                }
+                return withWords(el, tr("custom shape"))
+                    ?? withColour(colour, tr("custom shape"), tr("%@ custom shape", colourName(colour)))
             }
             let noun = ContentLibrary.shape(el.shapeId).name.lowercased()
-            return withWords(el, noun) ?? withColour(colour, noun)
+            return withWords(el, noun) ?? withColour(colour, noun, tr("%@ %@", colourName(colour), noun))
         case .image:
             let frame = el.maskShapeId.map { ContentLibrary.shape($0).name.lowercased() }
-            if let src = el.src, CodeGenerator.payload(from: src) != nil { return "QR code" }
-            if el.src == nil { return frame.map { "Empty \($0) frame" } ?? "Empty photo frame" }
-            return frame.map { "Photo in a \($0) frame" } ?? "Photo"
+            if let src = el.src, CodeGenerator.payload(from: src) != nil { return tr("QR code") }
+            if el.src == nil { return frame.map { tr("Empty %@ frame", $0) } ?? tr("Empty photo frame") }
+            return frame.map { tr("Photo in a %@ frame", $0) } ?? tr("Photo")
         case .sticker:
-            return "Sticker \(el.glyph ?? "")".trimmingCharacters(in: .whitespaces)
+            return tr("Sticker %@", el.glyph ?? "").trimmingCharacters(in: .whitespaces)
         case .line:
-            return withColour(el.color, "line")
+            return withColour(el.color, tr("line"), tr("%@ line", colourName(el.color)))
         }
     }
 
@@ -60,22 +65,22 @@ enum ElementNames {
     /// vertical line, one that places things across.
     static func guideLabel(_ source: Geometry.SnapSource, vertical: Bool, elements: [Element]) -> String {
         switch source {
-        case .pageCentre: return vertical ? "Centre of the page" : "Middle of the page"
-        case .pageEdge: return "Edge of the page"
-        case .bleedEdge: return "Edge of the bleed"
-        case .guide: return "Your guide"
-        case .grid: return "Grid"
-        case .margin: return "Page margin"
+        case .pageCentre: return vertical ? tr("Centre of the page") : tr("Middle of the page")
+        case .pageEdge: return tr("Edge of the page")
+        case .bleedEdge: return tr("Edge of the bleed")
+        case .guide: return tr("Your guide")
+        case .grid: return tr("Grid")
+        case .margin: return tr("Page margin")
         case .element(let id):
-            guard let other = elements.first(where: { $0.id == id }) else { return "Lined up" }
+            guard let other = elements.first(where: { $0.id == id }) else { return tr("Lined up") }
             // The first word of a made name is always one chosen here —
             // Heading, Text, Photo, a shape's colour — never one of the
             // user's own, so it can go into the sentence in lower case. A
             // name the user gave it is theirs, and kept as typed.
             let name = shortName(of: other)
-            if LayerNames.custom(of: other) != nil { return "Lined up with \(name)" }
+            if LayerNames.custom(of: other) != nil { return tr("Lined up with %@", name) }
             let lowered = name.prefix(1).lowercased() + String(name.dropFirst())
-            return "Lined up with \(lowered)"
+            return tr("Lined up with %@", lowered)
         }
     }
 
@@ -83,8 +88,13 @@ enum ElementNames {
 
     /// What a person would call a colour — "red", "dark blue", "light grey"
     /// — by hue, saturation and lightness bands, as the Android twin names
-    /// it; "colour" when it is not one.
+    /// it; "colour" when it is not one. In the app's language.
     static func colourName(_ hex: String?) -> String {
+        tr(englishColourName(hex))
+    }
+
+    /// colourName's English, the catalogue's key for it.
+    private static func englishColourName(_ hex: String?) -> String {
         guard let rgb = rgb(hex) else { return "colour" }
         let r = rgb.r, g = rgb.g, b = rgb.b
         let high = max(r, g, b), low = min(r, g, b)
@@ -136,11 +146,13 @@ enum ElementNames {
         guard let text = ShapeText.words(of: el) else { return nil }
         let words = RichText.strip(text).replacingOccurrences(of: "\n", with: " ")
             .trimmingCharacters(in: .whitespaces)
-        return noun.prefix(1).uppercased() + String(noun.dropFirst()) + ": \(words.prefix(snippet))"
+        return tr("%@: %@", noun.prefix(1).uppercased() + String(noun.dropFirst()), String(words.prefix(snippet)))
     }
 
-    private static func withColour(_ hex: String?, _ noun: String) -> String {
-        let phrase = rgb(hex) == nil ? noun : "\(colourName(hex)) \(noun)"
+    /// `noun` alone when `hex` is no colour, else `coloured`, the noun
+    /// with colourName's words: "red line".
+    private static func withColour(_ hex: String?, _ noun: String, _ coloured: String) -> String {
+        let phrase = rgb(hex) == nil ? noun : coloured
         return phrase.prefix(1).uppercased() + String(phrase.dropFirst())
     }
 

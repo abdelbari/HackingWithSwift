@@ -21,17 +21,17 @@ struct AnimatedSticker: Identifiable, Equatable {
     /// and its move.
     var name: String {
         let word = Stickers.words(for: glyph).first.map { $0.prefix(1).uppercased() + $0.dropFirst() } ?? glyph
-        return "\(word), \(Self.loopWord(loop))"
+        return Self.moving(String(word), loop)
     }
 
-    /// A loop as it is said: "wiggling".
-    private static func loopWord(_ loop: String) -> String {
+    /// A sticker's word with its loop as it is said: "Party, wiggling".
+    private static func moving(_ word: String, _ loop: String) -> String {
         switch loop {
-        case "pulse": return "pulsing"
-        case "wiggle": return "wiggling"
-        case "bounce": return "bouncing"
-        case "spin": return "spinning"
-        default: return loop
+        case "pulse": return tr("%@, pulsing", word)
+        case "wiggle": return tr("%@, wiggling", word)
+        case "bounce": return tr("%@, bouncing", word)
+        case "spin": return tr("%@, spinning", word)
+        default: return "\(word), \(loop)"
         }
     }
 

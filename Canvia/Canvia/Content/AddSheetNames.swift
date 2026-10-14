@@ -11,51 +11,52 @@ import Foundation
 enum AddSheetNames {
     static func picture(_ name: String, starred: Bool, inFrame: Bool) -> String {
         var label = name
-        if starred { label += ", favourite" }
-        if inFrame { label += ", the one in this frame now" }
+        if starred { label = tr("%@, favourite", label) }
+        if inFrame { label = tr("%@, the one in this frame now", label) }
         return label
     }
 
     static func upload(_ index: Int, of count: Int) -> String {
-        "Uploaded picture \(index + 1) of \(count)"
+        tr("Uploaded picture %d of %d", index + 1, count)
     }
 
     /// An SVG kept among the uploads, placed again as a graphic.
     static func uploadedGraphic(_ index: Int, of count: Int) -> String {
-        "Uploaded SVG graphic \(index + 1) of \(count)"
+        tr("Uploaded SVG graphic %d of %d", index + 1, count)
     }
 
     static func uploadedVideo(_ index: Int, of count: Int) -> String {
-        "Uploaded video \(index + 1) of \(count)"
+        tr("Uploaded video %d of %d", index + 1, count)
     }
 
     /// A song by its own name and its place, then whether it is starred and
     /// whether the design plays it on a track already.
     static func music(_ name: String, _ index: Int, of count: Int, starred: Bool, playing: Bool) -> String {
-        var label = "\(name), music \(index + 1) of \(count)"
-        if starred { label += ", favourite" }
-        if playing { label += ", in this design" }
+        var label = tr("%@, music %d of %d", name, index + 1, count)
+        if starred { label = tr("%@, favourite", label) }
+        if playing { label = tr("%@, in this design", label) }
         return label
     }
 
     static func logo(_ index: Int, of count: Int) -> String {
-        "Brand logo \(index + 1) of \(count)"
+        tr("Brand logo %d of %d", index + 1, count)
     }
 
     static func brandPhoto(_ index: Int, of count: Int) -> String {
-        "Brand photo \(index + 1) of \(count)"
+        tr("Brand photo %d of %d", index + 1, count)
     }
 
     static func brandGraphic(_ index: Int, of count: Int) -> String {
-        "Brand graphic \(index + 1) of \(count)"
+        tr("Brand graphic %d of %d", index + 1, count)
     }
 
     /// A brand colour by its name, and what a tap paints with it.
     static func brandColour(_ hex: String, selection: Bool) -> String {
-        "\(ElementNames.spokenColour(hex)), brand colour, " + (selection ? "for what is selected" : "for the page background")
+        selection ? tr("%@, brand colour, for what is selected", ElementNames.spokenColour(hex))
+            : tr("%@, brand colour, for the page background", ElementNames.spokenColour(hex))
     }
 
     static func artwork(_ photo: PhotoDef, _ index: Int, of count: Int) -> String {
-        "\(photo.name), \(photo.category.lowercased()), artwork \(index + 1) of \(count)"
+        tr("%@, %@, artwork %d of %d", photo.name, photo.category.lowercased(), index + 1, count)
     }
 }

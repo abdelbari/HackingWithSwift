@@ -11,7 +11,7 @@ enum PageLocks {
 
     /// Said, with Unlock beside it, wherever something is refused on a
     /// locked page.
-    static let lockedNote = "This page is locked"
+    static let lockedNote = tr("This page is locked")
 
     static func isLocked(_ page: Page) -> Bool { page.locked == true }
 
@@ -38,20 +38,19 @@ enum PageLocks {
     /// left where they are: "Deleted 2 pages, skipped 1 locked page";
     /// "Skipped 2 locked pages" when nothing went.
     static func deletedNote(deleted: Int, skipped: Int) -> String {
-        let gone = deleted == 1 ? "Deleted 1 page" : "Deleted \(deleted) pages"
-        let kept = skipped == 1 ? "1 locked page" : "\(skipped) locked pages"
+        let gone = trn("Deleted %d page|Deleted %d pages", deleted)
         if skipped == 0 { return gone }
-        if deleted == 0 { return "Skipped " + kept }
-        return gone + ", skipped " + kept
+        if deleted == 0 { return trn("Skipped %d locked page|Skipped %d locked pages", skipped) }
+        return tr("%@, skipped %@", gone, trn("%d locked page|%d locked pages", skipped))
     }
 
     /// What asking before a page is deleted says of it: how much is on it,
     /// and that it is locked when it is — a locked page always asks.
     static func deleteMessage(elements: Int, locked: Bool) -> String {
-        let count = elements == 1 ? "1 element" : "\(elements) elements"
-        return locked ? "It is locked, with \(count) on it." : "It has \(count) on it."
+        locked ? trn("It is locked, with %d element on it.|It is locked, with %d elements on it.", elements)
+            : trn("It has %d element on it.|It has %d elements on it.", elements)
     }
 
     /// What VoiceOver adds for a locked page, after "hidden".
-    static let spoken = "locked"
+    static let spoken = tr("locked")
 }

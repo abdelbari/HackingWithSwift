@@ -12,12 +12,12 @@ enum CornerPatterns {
     }
 
     static let choices: [Pattern] = [
-        Pattern(name: "All corners", rounds: [true, true, true, true]),
-        Pattern(name: "Top only", rounds: [true, true, false, false]),
-        Pattern(name: "Bottom only", rounds: [false, false, true, true]),
-        Pattern(name: "Left only", rounds: [true, false, false, true]),
-        Pattern(name: "Right only", rounds: [false, true, true, false]),
-        Pattern(name: "Opposite corners", rounds: [true, false, true, false]),
+        Pattern(name: tr("All corners"), rounds: [true, true, true, true]),
+        Pattern(name: tr("Top only"), rounds: [true, true, false, false]),
+        Pattern(name: tr("Bottom only"), rounds: [false, false, true, true]),
+        Pattern(name: tr("Left only"), rounds: [true, false, false, true]),
+        Pattern(name: tr("Right only"), rounds: [false, true, true, false]),
+        Pattern(name: tr("Opposite corners"), rounds: [true, false, true, false]),
     ]
 
     /// The pattern an element's corners make: All corners for a plain

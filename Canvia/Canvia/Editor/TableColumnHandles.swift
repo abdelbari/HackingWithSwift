@@ -109,6 +109,6 @@ struct TableColumnHandles: View {
         let widths = store.tableColumnWidths
         guard edge + 1 < widths.count else { return "" }
         let design = store.design
-        return Self.length(widths[edge], design) + " and " + Self.length(widths[edge + 1], design) + " wide"
+        return tr("%@ and %@ wide", Self.length(widths[edge], design), Self.length(widths[edge + 1], design))
     }
 }

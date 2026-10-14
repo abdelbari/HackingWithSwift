@@ -19,9 +19,9 @@ enum ZipStore {
         case tooBig
         var errorDescription: String? {
             switch self {
-            case .notAZip: return "This file is not a Canvia backup."
-            case .compressed: return "This backup was packed in a way Canvia cannot read."
-            case .tooBig: return "There is too much to fit in one backup."
+            case .notAZip: return tr("This file is not a Canvia backup.")
+            case .compressed: return tr("This backup was packed in a way Canvia cannot read.")
+            case .tooBig: return tr("There is too much to fit in one backup.")
             }
         }
     }

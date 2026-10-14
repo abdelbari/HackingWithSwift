@@ -12,7 +12,7 @@ enum AudioTracks {
     static func name(of track: AudioTrack) -> String {
         let own = track.name.trimmingCharacters(in: .whitespacesAndNewlines)
         if !own.isEmpty { return own }
-        guard let id = track.audioId, AudioStore.url(for: id) != nil else { return "Music from another phone" }
+        guard let id = track.audioId, AudioStore.url(for: id) != nil else { return tr("Music from another phone") }
         return AudioStore.label(for: id)
     }
 
@@ -29,10 +29,10 @@ enum AudioTracks {
     /// 0:12.5 long" — "loops" when it does, and that its music is `missing`
     /// from this phone, chosen on another. As the Android twin's.
     static func summary(of track: AudioTrack, duration: Double?, missing: Bool = false) -> String {
-        var line = "Starts at \(VideoStore.timeLabel(track.start))"
-        if let duration { line += " · \(VideoStore.timeLabel(length(of: track, duration: duration))) long" }
-        if track.loop { line += " · loops" }
-        if missing { line += " · not on this phone" }
+        var line = tr("Starts at %@", VideoStore.timeLabel(track.start))
+        if let duration { line += " · " + tr("%@ long", VideoStore.timeLabel(length(of: track, duration: duration))) }
+        if track.loop { line += " · " + tr("loops") }
+        if missing { line += " · " + tr("not on this phone") }
         return line
     }
 
@@ -42,7 +42,7 @@ enum AudioTracks {
     }
 
     /// What a new voice-over is called first.
-    static let firstVoiceOver = "Voice-over"
+    static let firstVoiceOver = tr("Voice-over")
 
     /// The name a new voice-over takes, as the Android twin names it:
     /// "Voice-over", then "Voice-over 2" and on — the first that none of
@@ -61,9 +61,9 @@ enum AudioTracks {
     /// this one. Each sentence starts with a space. As the Android twin's.
     static func musicNote(tracks: Int, away: Int) -> String {
         if tracks <= 0 { return "" }
-        if away <= 0 { return " The video has music under it." }
-        if away >= tracks { return " The music was chosen on another phone and isn't on this one." }
-        return " Some of the music was chosen on another phone and isn't on this one."
+        if away <= 0 { return " " + tr("The video has music under it.") }
+        if away >= tracks { return " " + tr("The music was chosen on another phone and isn't on this one.") }
+        return " " + tr("Some of the music was chosen on another phone and isn't on this one.")
     }
 
     /// A time as a fade shows it: "0.0s" to "5.0s".

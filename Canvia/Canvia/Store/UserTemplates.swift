@@ -28,7 +28,7 @@ struct UserTemplate: Codable, Equatable, Identifiable, Sendable {
     /// "Poster · 1080 × 1920 · 3 pages".
     var caption: String {
         let size = "\(Int(width)) × \(Int(height))"
-        return pageCount == 1 ? "\(category) · \(size)" : "\(category) · \(size) · \(pageCount) pages"
+        return pageCount == 1 ? "\(category) · \(size)" : "\(category) · \(size) · " + trn("%d page|%d pages", pageCount)
     }
 }
 
@@ -38,7 +38,7 @@ extension UserTemplate {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(String.self, forKey: .id)
-        name = (try? c.decode(String.self, forKey: .name)) ?? "Template"
+        name = (try? c.decode(String.self, forKey: .name)) ?? tr("Template")
         category = (try? c.decode(String.self, forKey: .category)) ?? UserTemplates.defaultCategory
         width = (try? c.decode(Double.self, forKey: .width)) ?? 1080
         height = (try? c.decode(Double.self, forKey: .height)) ?? 1080
@@ -53,9 +53,9 @@ enum UserTemplates {
     static let indexName = "usertemplates.json"
     /// Where a template goes when no category is typed, as on the Android
     /// twin.
-    static let defaultCategory = "Personal"
+    static let defaultCategory = tr("Personal")
     /// What Home's chip and section, and the Templates panel, call them.
-    static let sectionTitle = "Your templates"
+    static let sectionTitle = tr("Your templates")
 
     static var directory: URL {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]

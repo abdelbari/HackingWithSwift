@@ -37,10 +37,10 @@ enum LaunchRequest {
         switch dict["kind"] as? String {
         case "new":
             guard let w = dict["width"] as? Double, let h = dict["height"] as? Double, w > 0, h > 0 else { return nil }
-            return .newDesign(width: w, height: h, title: dict["title"] as? String ?? "Untitled design")
+            return .newDesign(width: w, height: h, title: dict["title"] as? String ?? tr("Untitled design"))
         case "type":
             guard let id = dict["id"] as? String, !id.isEmpty else { return nil }
-            return .newType(id: id, title: dict["title"] as? String ?? "Untitled design")
+            return .newType(id: id, title: dict["title"] as? String ?? tr("Untitled design"))
         case "open":
             guard let id = dict["id"] as? String, !id.isEmpty else { return nil }
             return .open(id: id)

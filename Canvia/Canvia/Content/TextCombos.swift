@@ -151,7 +151,7 @@ enum TextCombos {
 
     /// What the Text tab says when a search finds none.
     static func noneFound(_ query: String) -> String {
-        "No font combinations match \u{201C}\(query.trimmingCharacters(in: .whitespacesAndNewlines))\u{201D}."
+        tr("No font combinations match \u{201C}%@\u{201D}.", query.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     /// `combo`'s elements `scale` times their size in its box: everything

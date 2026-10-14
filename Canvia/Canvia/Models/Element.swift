@@ -129,12 +129,12 @@ struct Shadow: Codable, Equatable, Hashable {
     var offsetY: Double = 6
 
     static let presets: [(name: String, shadow: Shadow)] = [
-        ("Soft", Shadow(color: "#000000", opacity: 0.30, blur: 14, offsetX: 0, offsetY: 6)),
-        ("Lift", Shadow(color: "#000000", opacity: 0.22, blur: 28, offsetX: 0, offsetY: 14)),
-        ("Hard", Shadow(color: "#000000", opacity: 0.55, blur: 0, offsetX: 6, offsetY: 6)),
-        ("Long", Shadow(color: "#000000", opacity: 0.25, blur: 4, offsetX: 14, offsetY: 14)),
-        ("Glow", Shadow(color: "#ffffff", opacity: 0.9, blur: 20, offsetX: 0, offsetY: 0)),
-        ("Neon", Shadow(color: "#5a31f4", opacity: 0.9, blur: 24, offsetX: 0, offsetY: 0)),
+        (tr("Soft"), Shadow(color: "#000000", opacity: 0.30, blur: 14, offsetX: 0, offsetY: 6)),
+        (tr("Lift"), Shadow(color: "#000000", opacity: 0.22, blur: 28, offsetX: 0, offsetY: 14)),
+        (tr("Hard"), Shadow(color: "#000000", opacity: 0.55, blur: 0, offsetX: 6, offsetY: 6)),
+        (tr("Long"), Shadow(color: "#000000", opacity: 0.25, blur: 4, offsetX: 14, offsetY: 14)),
+        (tr("Glow"), Shadow(color: "#ffffff", opacity: 0.9, blur: 20, offsetX: 0, offsetY: 0)),
+        (tr("Neon"), Shadow(color: "#5a31f4", opacity: 0.9, blur: 24, offsetX: 0, offsetY: 0)),
     ]
 
     private enum CodingKeys: String, CodingKey { case color, opacity, blur, offsetX, offsetY }

@@ -200,6 +200,6 @@ enum FindReplace {
     /// twelve; empty with none.
     static func position(_ current: Int, of count: Int) -> String {
         guard count > 0 else { return "" }
-        return "\(min(max(current, 0), count - 1) + 1) of \(count)"
+        return tr("%d of %d", min(max(current, 0), count - 1) + 1, count)
     }
 }

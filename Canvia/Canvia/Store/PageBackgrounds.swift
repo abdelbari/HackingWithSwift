@@ -61,7 +61,7 @@ extension DesignStore {
         }
         guard let image = Self.bakedImage(photo) else {
             buzz(.reject)
-            announce("Couldn't make that photo the background", undoable: false)
+            announce(tr("Couldn't make that photo the background"), undoable: false)
             return nil
         }
         return Task { @MainActor in
@@ -70,7 +70,7 @@ extension DesignStore {
             // this photo, on this page, that becomes the background.
             guard let picture = stored, let now = self.element(id), DesignStore.canBecomeBackground(now) else {
                 self.buzz(.reject)
-                self.announce("Couldn't make that photo the background", undoable: false)
+                self.announce(tr("Couldn't make that photo the background"), undoable: false)
                 return
             }
             self.takeAsBackground(id, picture: picture)

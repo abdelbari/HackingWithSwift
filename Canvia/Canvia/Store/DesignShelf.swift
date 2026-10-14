@@ -21,7 +21,7 @@ extension DesignLibrary {
     static let shelfFileName = "shelf.json"
 
     /// What a design file that no longer reads as one is called on its card.
-    static let damagedTitle = "Damaged design"
+    static let damagedTitle = tr("Damaged design")
 
     /// One design's summary, as shelf.json keeps it.
     struct ShelfEntry: Codable, Equatable {

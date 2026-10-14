@@ -16,7 +16,7 @@ extension DesignStore {
         guard let photo = element(id), photo.type == .image else { return false }
         guard !photo.locked else {
             buzz(.reject)
-            announce("This photo is locked. Tap Unlock to replace it.", undoable: false)
+            announce(tr("This photo is locked. Tap Unlock to replace it."), undoable: false)
             return false
         }
         applyToPage { page in

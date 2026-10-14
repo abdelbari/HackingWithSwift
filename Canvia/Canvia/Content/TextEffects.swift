@@ -18,16 +18,16 @@ enum TextEffect: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .none: return "None"
-        case .shadow: return "Shadow"
-        case .lift: return "Lift"
-        case .outline: return "Hollow"
-        case .outlined: return "Outline"
-        case .splice: return "Splice"
-        case .echo: return "Echo"
-        case .glitch: return "Glitch"
-        case .neon: return "Neon"
-        case .highlight: return "Highlight"
+        case .none: return tr("None")
+        case .shadow: return tr("Shadow")
+        case .lift: return tr("Lift")
+        case .outline: return tr("Hollow")
+        case .outlined: return tr("Outline")
+        case .splice: return tr("Splice")
+        case .echo: return tr("Echo")
+        case .glitch: return tr("Glitch")
+        case .neon: return tr("Neon")
+        case .highlight: return tr("Highlight")
         }
     }
 
@@ -180,14 +180,14 @@ enum TextEffectParam: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .offset: return "Offset"
-        case .direction: return "Direction"
-        case .blur: return "Blur"
-        case .transparency: return "Transparency"
-        case .intensity: return "Intensity"
-        case .thickness: return "Thickness"
-        case .roundness: return "Roundness"
-        case .spread: return "Spread"
+        case .offset: return tr("Offset")
+        case .direction: return tr("Direction")
+        case .blur: return tr("Blur")
+        case .transparency: return tr("Transparency")
+        case .intensity: return tr("Intensity")
+        case .thickness: return tr("Thickness")
+        case .roundness: return tr("Roundness")
+        case .spread: return tr("Spread")
         }
     }
 

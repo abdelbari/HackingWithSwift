@@ -21,14 +21,14 @@ enum Guides {
     /// Columns alone, then a three-by-three grid, none with a gutter or a
     /// margin; Custom sets those.
     static let presets: [PresetLayout] = [
-        PresetLayout(label: "2 columns", columns: 2, rows: 0),
-        PresetLayout(label: "3 columns", columns: 3, rows: 0),
-        PresetLayout(label: "4 columns", columns: 4, rows: 0),
-        PresetLayout(label: "6 columns", columns: 6, rows: 0),
-        PresetLayout(label: "12 columns", columns: 12, rows: 0),
-        PresetLayout(label: "3 × 3 grid", columns: 3, rows: 3),
+        PresetLayout(label: trn("%d column|%d columns", 2), columns: 2, rows: 0),
+        PresetLayout(label: trn("%d column|%d columns", 3), columns: 3, rows: 0),
+        PresetLayout(label: trn("%d column|%d columns", 4), columns: 4, rows: 0),
+        PresetLayout(label: trn("%d column|%d columns", 6), columns: 6, rows: 0),
+        PresetLayout(label: trn("%d column|%d columns", 12), columns: 12, rows: 0),
+        PresetLayout(label: tr("%d × %d grid", 3, 3), columns: 3, rows: 3),
     ]
-    static let customLabel = "Custom…"
+    static let customLabel = tr("Custom…")
 
     /// What Custom takes, in whole pixels for the gutter and margin.
     static let columnRange = 1...24

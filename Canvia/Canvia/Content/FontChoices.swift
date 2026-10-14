@@ -14,11 +14,11 @@ import Foundation
 
 enum FontChoices {
 
-    static let brandTitle = "Brand fonts"
-    static let recentTitle = "Recently used"
-    static let inDesignTitle = "In this design"
-    static let yoursTitle = "Your fonts"
-    static let allTitle = "All fonts"
+    static let brandTitle = tr("Brand fonts")
+    static let recentTitle = tr("Recently used")
+    static let inDesignTitle = tr("In this design")
+    static let yoursTitle = tr("Your fonts")
+    static let allTitle = tr("All fonts")
 
     /// One run of fonts under a heading, by key.
     struct Section: Equatable, Identifiable {
@@ -70,7 +70,7 @@ enum FontChoices {
 
     /// What the picker says when nothing is found.
     static func noneFound(_ query: String) -> String {
-        "No fonts match \u{201C}\(query.trimmingCharacters(in: .whitespacesAndNewlines))\u{201D}."
+        tr("No fonts match \u{201C}%@\u{201D}.", query.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 }
 

@@ -10,7 +10,7 @@ import Foundation
 enum PageVisibility {
 
     /// Said where Present, or an export of every page, has nothing to show.
-    static let everyPageHidden = "Every page is hidden"
+    static let everyPageHidden = tr("Every page is hidden")
 
     /// The first shown page after page `index`, among `visible` (the
     /// design's visiblePageIndices); nil when there is none.
@@ -35,6 +35,7 @@ enum PageVisibility {
     /// "All 5 pages, 2 hidden left out" when some are hidden. `total` counts
     /// every page, hidden or not.
     static func allPages(total: Int, hidden: Int) -> String {
-        hidden > 0 ? "All \(total) pages, \(hidden) hidden left out" : "All \(total) pages"
+        hidden > 0 ? trn("All %d page, %d hidden left out|All %d pages, %d hidden left out", total, hidden)
+            : trn("All %d page|All %d pages", total)
     }
 }

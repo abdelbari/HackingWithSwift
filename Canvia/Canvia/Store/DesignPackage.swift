@@ -473,8 +473,8 @@ enum DesignPackage {
         case tooBig
         var errorDescription: String? {
             switch self {
-            case .notAPackage: return "This file is not a Canvia design."
-            case .tooBig: return "That design file is too big to open."
+            case .notAPackage: return tr("This file is not a Canvia design.")
+            case .tooBig: return tr("That design file is too big to open.")
             }
         }
     }

@@ -30,15 +30,15 @@ struct TableSelection: Equatable {
     var canDeleteColumn: Bool { columns.count == 1 && columnCount > 1 }
 
     /// Why a turned table, or one with a locked cell, is left as it is.
-    static let turnedNote = "Turn the table back to level to change its rows and columns."
-    static let lockedNote = "A cell of this table is locked. Unlock it to change the table."
+    static let turnedNote = tr("Turn the table back to level to change its rows and columns.")
+    static let lockedNote = tr("A cell of this table is locked. Unlock it to change the table.")
 
     /// Why Delete row or Delete column waits, when either does.
     var deleteNote: String? {
         guard !canDeleteRow || !canDeleteColumn else { return nil }
-        if rowCount <= 1 && columnCount <= 1 { return "A table keeps at least one row and one column." }
-        if rows.count > 1 || columns.count > 1 { return "Select one cell to delete its row or column." }
-        return rowCount <= 1 ? "A table keeps at least one row." : "A table keeps at least one column."
+        if rowCount <= 1 && columnCount <= 1 { return tr("A table keeps at least one row and one column.") }
+        if rows.count > 1 || columns.count > 1 { return tr("Select one cell to delete its row or column.") }
+        return rowCount <= 1 ? tr("A table keeps at least one row.") : tr("A table keeps at least one column.")
     }
 }
 

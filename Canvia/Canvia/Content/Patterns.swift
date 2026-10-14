@@ -14,12 +14,12 @@ enum Patterns {
 
     static func displayName(_ id: String) -> String {
         switch id {
-        case "stripes": return "Stripes"
-        case "dots": return "Dots"
-        case "checks": return "Checks"
-        case "grid": return "Grid"
-        case "zigzag": return "Zigzag"
-        case "crosshatch": return "Crosshatch"
+        case "stripes": return tr("Stripes")
+        case "dots": return tr("Dots")
+        case "checks": return tr("Checks")
+        case "grid": return tr("Grid")
+        case "zigzag": return tr("Zigzag")
+        case "crosshatch": return tr("Crosshatch")
         default: return id.capitalized
         }
     }
