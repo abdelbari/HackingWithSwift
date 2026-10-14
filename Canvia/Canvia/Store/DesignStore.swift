@@ -2411,6 +2411,22 @@ final class DesignStore {
                  : trn("Applied theme to all %d page|Applied theme to all %d pages", design.pages.count))
     }
 
+    /// The design in the brand kit's look, as Document theme gives it: the
+    /// kit's first palette of two colours or more mapped on by lightness,
+    /// its text roles given by size rank. Unchanged by a kit with neither.
+    static func branded(_ design: Design, kit: BrandKit) -> Design {
+        themed(design, palette: kit.themePalettes.first?.colors, pairing: nil, brandFonts: kit.fonts)
+    }
+
+    /// "Start with my brand": the kit's look as one step, which Undo takes
+    /// back, and said.
+    func applyBrandKit(_ kit: BrandKit) {
+        let next = Self.branded(design, kit: kit)
+        guard next != design else { return }
+        apply { $0 = next }
+        announce(tr("Brand kit applied"))
+    }
+
     // MARK: components
 
     /// Save the selection as a component, keeping nothing locked in it.

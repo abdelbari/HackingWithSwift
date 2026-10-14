@@ -117,6 +117,8 @@ struct SettingsSheet: View {
     @State private var backup: BackupDocument?
     @State private var restoring = false
     @State private var outcome: String?
+    /// The brand kit sheet, over Settings.
+    @State private var showingBrandKit = false
 
     var body: some View {
         withDialogs(form)
@@ -131,6 +133,7 @@ struct SettingsSheet: View {
             Form {
                 appearanceSection
                 languageSection
+                brandSection
                 editingSection
                 exportSection
                 helpSection
@@ -145,6 +148,10 @@ struct SettingsSheet: View {
             }
         }
         .presentationDetents([.large])
+        // The design open, from the editor; none from Home.
+        .sheet(isPresented: $showingBrandKit) {
+            if let store { BrandKitSheet(store: store) } else { StandaloneBrandKitSheet() }
+        }
     }
 
     // MARK: sections
@@ -174,6 +181,17 @@ struct SettingsSheet: View {
             .foregroundStyle(.primary)
         } footer: {
             Text("Canvia uses your phone's language. To choose another for Canvia alone, open its page in the Settings app.")
+        }
+    }
+
+    /// The brand kits, whether or not a design is open.
+    private var brandSection: some View {
+        Section {
+            Button {
+                showingBrandKit = true
+            } label: {
+                Label("Brand kit", systemImage: "paintpalette")
+            }
         }
     }
 
