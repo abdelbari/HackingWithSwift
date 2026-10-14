@@ -1,0 +1,13 @@
+{
+ "template": "quarterly-review-title",
+ "expect": [
+  "deck-quarterly-business-review",
+  "deck-indigo-agenda",
+  "deck-indigo-key-points",
+  "deck-indigo-comparison",
+  "deck-indigo-pull-quote",
+  "deck-indigo-team",
+  "deck-indigo-closing",
+  "deck-seed-round-pitch"
+ ]
+}

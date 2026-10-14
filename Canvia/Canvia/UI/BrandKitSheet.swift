@@ -1,6 +1,8 @@
 // Edit the brand kits: which one is in use, its named palettes, a face for
 // each text role, its logos, photos and graphics, and its templates. A kit
-// can be shared as a file and one brought in from another phone.
+// can be shared as a file and one brought in from another phone. Opened
+// from Home or Settings it has no design attached: what would take from a
+// design is not offered, and a logo comes from the photo library instead.
 
 import PhotosUI
 import SwiftUI
@@ -8,6 +10,9 @@ import UniformTypeIdentifiers
 
 struct BrandKitSheet: View {
     @Bindable var store: DesignStore
+    /// Whether `store` is a design being edited, which colours, pictures
+    /// and logos can be taken from; false from Home and Settings.
+    var withDesign = true
     @Environment(\.dismiss) private var dismiss
     @State private var kits = BrandKits.load()
     @State private var newColor = Color.blue
@@ -29,6 +34,8 @@ struct BrandKitSheet: View {
     /// Photos picked for the kit's photos, and for its graphics.
     @State private var pickedPhotos: [PhotosPickerItem] = []
     @State private var pickedGraphics: [PhotosPickerItem] = []
+    /// Photos picked as logos, with no design to take one from.
+    @State private var pickedLogos: [PhotosPickerItem] = []
     /// Your own templates, read as the sheet opens.
     @State private var ownTemplates: [UserTemplate] = []
 
@@ -81,6 +88,11 @@ struct BrandKitSheet: View {
             .onChange(of: kits.activeId) { openedWithLogos = kits.active.logos }
             .onChange(of: pickedPhotos) { _, items in bringIn(items, to: .photos) }
             .onChange(of: pickedGraphics) { _, items in bringIn(items, to: .graphics) }
+            .onChange(of: pickedLogos) { _, items in
+                guard !items.isEmpty else { return }
+                pickedLogos = []
+                keep(items, in: \.logos)
+            }
             .onAppear { ownTemplates = UserTemplates.all() }
     }
 
@@ -192,7 +204,7 @@ struct BrandKitSheet: View {
             }
             ColorPicker("Add a colour", selection: $newColor, supportsOpacity: false)
             Button("Add") { editKit { $0.addColor(UIColor(newColor).hexString, palette: index ?? 0) } }
-            if !ColorTools.documentColors(store.design).isEmpty {
+            if withDesign && !ColorTools.documentColors(store.design).isEmpty {
                 Button("Add this design's colours") {
                     editKit { kit in
                         for hex in ColorTools.documentColors(store.design, limit: 6).reversed() {
@@ -314,7 +326,11 @@ struct BrandKitSheet: View {
         Section {
             let candidates = BrandKit.logoCandidates(openedWith: openedWithLogos, current: kit.logos,
                                                      design: store.design)
-            if candidates.isEmpty {
+            if !withDesign {
+                PhotosPicker(selection: $pickedLogos, maxSelectionCount: 10, matching: .images) {
+                    Text("Add logo from photos…")
+                }
+            } else if candidates.isEmpty {
                 Text("Add a picture to the design, then mark it here as a logo.")
                     .foregroundStyle(.secondary)
             }
@@ -370,10 +386,12 @@ struct BrandKitSheet: View {
                     }
                 }
             }
-            Button("Add from this design") {
-                if let selected { editKit { $0.add(selected, to: list.keyPath) } }
+            if withDesign {
+                Button("Add from this design") {
+                    if let selected { editKit { $0.add(selected, to: list.keyPath) } }
+                }
+                .disabled(selected == nil)
             }
-            .disabled(selected == nil)
             PhotosPicker(selection: list == .photos ? $pickedPhotos : $pickedGraphics,
                          maxSelectionCount: 10, matching: .images) {
                 Text("Add from photos")
@@ -432,6 +450,12 @@ struct BrandKitSheet: View {
     private func bringIn(_ items: [PhotosPickerItem], to list: AssetList) {
         guard !items.isEmpty else { return }
         if list == .photos { pickedPhotos = [] } else { pickedGraphics = [] }
+        keep(items, in: list.keyPath)
+    }
+
+    /// The photos picked, stored as above, added to one of the kit's
+    /// lists — its photos, graphics or logos.
+    private func keep(_ items: [PhotosPickerItem], in keyPath: WritableKeyPath<BrandKit, [String]>) {
         Task { @MainActor in
             var added: [String] = []
             for item in items {
@@ -446,7 +470,7 @@ struct BrandKitSheet: View {
             }
             if added.count < items.count { problem = tr("Couldn't add every photo picked.") }
             editKit { kit in
-                for src in added { kit.add(src, to: list.keyPath) }
+                for src in added { kit.add(src, to: keyPath) }
             }
         }
     }
@@ -571,5 +595,15 @@ struct BrandKitSheet: View {
         case .palette: return tr("Rename palette")
         case nil: return ""
         }
+    }
+}
+
+/// The kit sheet with no design attached, as Home and Settings open it.
+struct StandaloneBrandKitSheet: View {
+    /// A blank page, for the font picker to measure against.
+    @State private var blank = DesignStore(design: Design(title: "", width: 1080, height: 1080))
+
+    var body: some View {
+        BrandKitSheet(store: blank, withDesign: false)
     }
 }

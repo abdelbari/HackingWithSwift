@@ -290,6 +290,9 @@ struct EditorView: View {
         }
         .onAppear {
             store.onCommit = { scheduleSave() }
+            // Made with "Start with my brand": the kit's look is its first
+            // step.
+            if BrandStart.take(store.design.id) { store.applyBrandKit(BrandKit.load()) }
         }
         // Into the background, the design is saved as it stands — notes or
         // words still being typed included, whose steps are not closed yet

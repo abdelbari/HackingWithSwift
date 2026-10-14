@@ -294,6 +294,10 @@ struct BrandKit: Codable, Equatable, Identifiable {
         }
     }
 
+    /// Whether "Start with my brand" has a look to give: a palette of two
+    /// colours or more, or a face for a text role.
+    var canStartWith: Bool { !themePalettes.isEmpty || !fonts.rankedRoles.isEmpty }
+
     /// A palette as the colour pickers head it: "My brand · Colours".
     func title(of palette: BrandPalette) -> String { "\(name) · \(palette.name)" }
 
@@ -676,5 +680,19 @@ enum BrandKitFile {
         kits.kits.append(kit)
         kits.activeId = kit.id
         return kit
+    }
+}
+
+/// "Start with my brand", asked in the Start sheet: the design made there,
+/// by id, which the editor gives the kit's look as it opens — its first
+/// step, which Undo takes back (DesignStore.applyBrandKit).
+enum BrandStart {
+    static var designId: String?
+
+    /// Whether `id` is the design asked for; asked once.
+    static func take(_ id: String) -> Bool {
+        guard designId == id else { return false }
+        designId = nil
+        return true
     }
 }

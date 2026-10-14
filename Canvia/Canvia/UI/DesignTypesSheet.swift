@@ -71,10 +71,11 @@ struct DesignTypesSheet: View {
     }
 
     private func row(_ preset: SizePreset) -> some View {
-        let count = ContentLibrary.templateCounts[preset.id] ?? 0
-        let ready = trn("%d ready-made|%d ready-made", count)
+        // "4 ready-made", or with templates of other sizes it borrows,
+        // "0 + 12 adapted".
+        let ready = Templates.countText(for: preset)
         let size = preset.dimensions.replacingOccurrences(of: " × ", with: " " + tr("by") + " ")
-        let spoken = tr("%@, %@", tr("%@, %@", preset.name, size), trn("%d ready-made designs|%d ready-made designs", count))
+        let spoken = tr("%@, %@", tr("%@, %@", preset.name, size), Templates.spokenCount(for: preset))
         return Button {
             onPick(preset)
         } label: {

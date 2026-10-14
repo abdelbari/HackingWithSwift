@@ -39,6 +39,9 @@ final class ExportQueue {
         var musicLost = false
         /// A PDF to hand to the printer.
         var print: PrintRequest?
+        /// Said beside the share: the designs of several that could not be
+        /// exported ("Couldn't export 1 of 5").
+        var skipped: String?
         /// Why it could not finish, said in its turn as any other result
         /// is — as the Android twin's ExportHandoff.Say — so a second
         /// failure does not replace the first.
@@ -67,7 +70,26 @@ final class ExportQueue {
         let label: String
         /// The design it is of, for the pill on Home to open.
         let designId: String
+        /// Its place among several designs exported at once, whose files
+        /// are handed over together once the last is done; nil for one.
+        var batch: Batch? = nil
         let work: Work
+    }
+
+    /// One of several designs exported at once — Home's Select ▸ Share: a
+    /// job each, in turn, sharing an id.
+    struct Batch {
+        let id: UUID
+        /// Zero-based.
+        let index: Int
+        let total: Int
+    }
+
+    /// What the parts of a batch have come to so far, until its last.
+    private struct BatchMade {
+        var urls: [URL] = []
+        var failed = 0
+        var left: Int
     }
 
     /// An export done, until it is shared, printed or said.
@@ -139,6 +161,7 @@ final class ExportQueue {
     /// itself.
     var sheetOpen = false
 
+    @ObservationIgnored private var batches: [UUID: BatchMade] = [:]
     @ObservationIgnored private var runner: Task<Void, Never>?
     @ObservationIgnored private var running: Task<Result, Error>?
     @ObservationIgnored private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
@@ -166,7 +189,9 @@ final class ExportQueue {
         if current?.id == id {
             running?.cancel()
         } else {
+            let gone = waiting.filter { $0.id == id }
             waiting.removeAll { $0.id == id }
+            for job in gone { collect(job, urls: [], failed: 0) }
         }
     }
 
@@ -179,7 +204,9 @@ final class ExportQueue {
     /// Stop of "Keep exporting in the background?", as the Android twin's
     /// Exports.cancelAll.
     func cancelAll() {
+        let gone = waiting
         waiting.removeAll()
+        for job in gone { collect(job, urls: [], failed: 0) }
         cancelCurrent()
     }
 
@@ -256,20 +283,57 @@ final class ExportQueue {
             running = task
             do {
                 let result = try await task.value
-                finished.append(Finished(id: job.id, label: job.label, designId: job.designId, result: result))
-                if host.isAway() { host.notify(job.id, ExportChoices.readyTitle, Self.readyBody(result), !result.urls.isEmpty) }
+                if job.batch != nil {
+                    collect(job, urls: result.urls, failed: result.failed == nil ? 0 : 1)
+                } else {
+                    finish(job.id, label: job.label, designId: job.designId, result: result)
+                }
             } catch is CancellationError {
-                // Asked for; nothing to say.
+                // Asked for; nothing to say. One of a batch is left out.
+                collect(job, urls: [], failed: 0)
             } catch {
-                let failed = Result(failed: ExportChoices.failedText(error.localizedDescription))
-                finished.append(Finished(id: job.id, label: job.label, designId: job.designId, result: failed))
-                if host.isAway() { host.notify(job.id, ExportChoices.failedTitle, error.localizedDescription, false) }
+                if job.batch != nil {
+                    collect(job, urls: [], failed: 1)
+                } else {
+                    let failed = Result(failed: ExportChoices.failedText(error.localizedDescription))
+                    finished.append(Finished(id: job.id, label: job.label, designId: job.designId, result: failed))
+                    if host.isAway() { host.notify(job.id, ExportChoices.failedTitle, error.localizedDescription, false) }
+                }
             }
             running = nil
             current = nil
             endBackground()
         }
         runner = nil
+    }
+
+    private func finish(_ id: UUID, label: String, designId: String, result: Result) {
+        finished.append(Finished(id: id, label: label, designId: designId, result: result))
+        if host.isAway() { host.notify(id, ExportChoices.readyTitle, Self.readyBody(result), !result.urls.isEmpty) }
+    }
+
+    /// One part of a batch done, failed, stopped or taken out of the line:
+    /// its files kept with the others'. After the last, every file is
+    /// handed over at once, what could not be exported said beside them —
+    /// or, with none made, said alone. Nothing for a job of one design.
+    private func collect(_ job: Job, urls: [URL], failed: Int) {
+        guard let batch = job.batch else { return }
+        var made = batches[batch.id] ?? BatchMade(left: batch.total)
+        made.urls += urls
+        made.failed += failed
+        made.left -= 1
+        guard made.left <= 0 else {
+            batches[batch.id] = made
+            return
+        }
+        batches[batch.id] = nil
+        let note = HomeExports.failureText(failed: made.failed, total: batch.total)
+        if !made.urls.isEmpty {
+            finish(batch.id, label: job.label, designId: job.designId, result: Result(urls: made.urls, skipped: note))
+        } else if let note {
+            finished.append(Finished(id: batch.id, label: job.label, designId: job.designId, result: Result(failed: note)))
+            if host.isAway() { host.notify(batch.id, ExportChoices.failedTitle, note, false) }
+        }
     }
 
     /// The notification's line: the file, or what was saved.
@@ -514,6 +578,8 @@ enum ExportPresenter {
             queue.note = note
         } else if result.musicLost {
             queue.note = ExportChoices.musicLost
+        } else if let skipped = result.skipped {
+            queue.note = skipped
         }
     }
 

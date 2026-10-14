@@ -13,6 +13,8 @@ enum HomeSheet: Identifiable, Equatable {
     /// Every design type, searchable and by category.
     case designTypes
     case settings
+    /// The brand kits, with no design attached.
+    case brandKit
 
     var id: String {
         switch self {
@@ -22,12 +24,16 @@ enum HomeSheet: Identifiable, Equatable {
         case .help: return "help"
         case .designTypes: return "design-types"
         case .settings: return "settings"
+        case .brandKit: return "brand-kit"
         }
     }
 }
 
 struct HomeView: View {
     var onOpen: (Design) -> Void
+    /// Photos, clips or a PDF picked under Import, landed in the inbox, for
+    /// the app's "New design from shared" sheet.
+    var onImport: (SharedInbox.Box) -> Void = { _ in }
 
     @State private var recents: [RecentDesign] = []
     /// Design files that no longer read, each shown as a card of its own.
@@ -47,14 +53,17 @@ struct HomeView: View {
     @State private var pendingOpen: Design?
     /// Asked for from the help sheet: the tour, once that sheet has gone.
     @State private var replayTour = false
-    /// Open a PowerPoint… was tapped in the New design sheet: the file
-    /// picker, once that sheet has gone.
-    @State private var pickDeckAfterSheet = false
+    /// An Import row tapped in the New design sheet: its picker, once that
+    /// sheet has gone.
+    @State private var importAfterSheet: ImportChoice?
     /// The PowerPoint file picker, up.
     @State private var pickingDeck = false
-    /// A PowerPoint picked, with Open a PowerPoint… or "Open a Canvia design
-    /// file", to be read in as a new design. A list the host empties as
-    /// it takes each one, so every deck is read once.
+    /// Import's photo and clip picker, and its PDF picker, up.
+    @State private var pickingMedia = false
+    @State private var pickingPDF = false
+    /// A PowerPoint picked, with PowerPoint… or "Canvia design file…", to
+    /// be read in as a new design. A list the host empties as it takes
+    /// each one, so every deck is read once.
     @State private var deckURLs: [URL] = []
     /// Your own templates, first under the templates.
     @State private var userTemplates: [UserTemplate] = []
@@ -83,8 +92,8 @@ struct HomeView: View {
     /// is up.
     @State private var openingFile = false
     @State private var templateCategory: String?
-    /// A built-in template of several pages, while its pages are shown.
-    @State private var templateSet: Template?
+    /// A built-in template, while its preview is up.
+    @State private var previewing: Template?
     /// One of your own of several pages, while its strip asks which.
     @State private var ownSet: TemplateChoice?
     @State private var folder: String?
@@ -116,11 +125,53 @@ struct HomeView: View {
     @State private var madeCopies: [Design] = []
     /// Cards drawn ringed: the copies just made.
     @State private var highlighted: Set<String> = []
+    /// The design whose Share… is open over Home, as saved.
+    @State private var exporting: Design?
+    /// The design presented from its card.
+    @State private var presenting: Design?
+    /// Share… or Present on a design whose file does not read, said.
+    @State private var unopened = false
+    /// Select's Share, asking what as.
+    @State private var sharingPicked = false
+    /// The last export's settings, which sharing from Home uses.
+    @AppStorage(ExportLast.key) private var exportLast = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openWindow) private var openWindow
     @Environment(\.supportsMultipleWindows) private var supportsMultipleWindows
 
     var body: some View {
+        shelf
+            .onAppear {
+                reload()
+                if Onboarding.needsTour { touring = true }
+                // Copies the editor made and was asked to show.
+                let asked = HomeHighlight.take()
+                if !asked.isEmpty { highlighted = Set(asked) }
+            }
+            .sheet(item: $copyResizing) { source in
+                CopyResizeSheet(source: source) { made in showCopies(made) }
+            }
+            .sheet(isPresented: $touring, onDismiss: { Onboarding.markSeen() }) {
+                WelcomeTour { touring = false }
+            }
+            .sheet(item: $homeSheet, onDismiss: afterSheet) { shown in
+                sheetView(shown)
+            }
+            // A deck as a new design, then the sheet that says what came in.
+            .background { deckPicker }
+            .background { designFilePicker }
+            .modifier(HomeSharing(exporting: $exporting, presenting: $presenting, unopened: $unopened))
+            .importPickers(media: $pickingMedia, pdf: $pickingPDF, onLanded: onImport) { importError = $0 }
+            .powerPointImport($deckURLs, onOpen: onOpen)
+            .onReceive(NotificationCenter.default.publisher(for: PowerPoints.didImport)) { _ in reload() }
+            .modifier(HomeDialogs(filingInto: $filingInto, newFolderName: $newFolderName, renaming: $renaming,
+                                  renameText: $renameText, move: move) { reload() })
+    }
+
+    /// The shelf, the templates and what floats over them — apart from the
+    /// sheets and dialogs `body` hangs on it, so each chain type-checks in
+    /// good time.
+    private var shelf: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 hero
@@ -130,7 +181,7 @@ struct HomeView: View {
                 if loaded && recents.isEmpty && damaged.isEmpty && trashed.isEmpty {
                     firstRunCard
                 }
-                importRow
+                if showsPhotoStart { photoStartCard }
                 if !recents.isEmpty || !damaged.isEmpty {
                     HStack {
                         Text("Recent designs")
@@ -172,7 +223,8 @@ struct HomeView: View {
         }
         .overlay(alignment: .bottom) { trashedToast }
         .overlay(alignment: .bottom) { copiesToast }
-        // An export still running from the editor; a tap opens its design.
+        // An export still running — from the editor, or asked for here; a
+        // tap opens its design.
         .overlay(alignment: .bottom) {
             ExportPill {
                 if let id = ExportQueue.shared.current?.designId, let design = DesignLibrary.load(id: id) {
@@ -182,57 +234,6 @@ struct HomeView: View {
             .padding(.bottom, 12)
         }
         .overlay { if openingFile { OpeningDesignCard() } }
-        .onAppear {
-            reload()
-            if Onboarding.needsTour { touring = true }
-            // Copies the editor made and was asked to show.
-            let asked = HomeHighlight.take()
-            if !asked.isEmpty { highlighted = Set(asked) }
-        }
-        .sheet(item: $copyResizing) { source in
-            CopyResizeSheet(source: source) { made in showCopies(made) }
-        }
-        .sheet(isPresented: $touring, onDismiss: { Onboarding.markSeen() }) {
-            WelcomeTour { touring = false }
-        }
-        .sheet(item: $homeSheet, onDismiss: afterSheet) { shown in
-            sheetView(shown)
-        }
-        // A deck as a new design, then the sheet that says what came in.
-        .background { deckPicker }
-        .powerPointImport($deckURLs, onOpen: onOpen)
-        .onReceive(NotificationCenter.default.publisher(for: PowerPoints.didImport)) { _ in reload() }
-        .alert("New folder", isPresented: Binding(
-            get: { !filingInto.isEmpty },
-            set: { if !$0 { filingInto = [] } })) {
-            TextField("Folder name", text: $newFolderName)
-            Button("Move") {
-                move(filingInto, to: newFolderName)
-                filingInto = []
-            }
-            .disabled((DesignLibrary.folderName(newFolderName)?.utf16.count ?? 0) > DesignLibrary.folderNameLimit)
-            Button("Cancel", role: .cancel) { filingInto = [] }
-        }
-        .alert("Rename design", isPresented: Binding(
-            get: { renaming != nil },
-            set: { if !$0 { renaming = nil } })) {
-            TextField("Name", text: $renameText)
-            Button("Save") {
-                // A name emptied out keeps the old one, as on the Android
-                // twin: a card with no title, and exports named "design",
-                // are not what clearing the field meant.
-                let name = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !name.isEmpty, let target = renaming, var design = DesignLibrary.load(id: target.id) {
-                    design.title = name
-                    design.titleAuto = false
-                    design.updatedAt = Date().timeIntervalSince1970 * 1000
-                    DesignLibrary.save(design)
-                    reload()
-                }
-                renaming = nil
-            }
-            Button("Cancel", role: .cancel) { renaming = nil }
-        }
     }
 
     @ViewBuilder
@@ -240,10 +241,10 @@ struct HomeView: View {
         switch shown {
         case .start(let presetId):
             StartSheet(initialPresetId: presetId, onCreate: createFromSheet,
-                       onCustomSize: { homeSheet = .customSize }, onPowerPoint: pickDeck)
+                       onCustomSize: { homeSheet = .customSize }, onImport: importFromSheet)
         case .pickSize:
             StartSheet(initialPresetId: nil, onCreate: createFromSheet,
-                       onCustomSize: { homeSheet = .customSize }, onPowerPoint: pickDeck)
+                       onCustomSize: { homeSheet = .customSize }, onImport: importFromSheet)
         case .customSize:
             CustomSizeSheet(onCreate: createFromSheet)
         case .help:
@@ -260,6 +261,10 @@ struct HomeView: View {
             })
             // A restore, or Recently deleted emptied, shows on the shelf.
             .onDisappear { reload() }
+        case .brandKit:
+            StandaloneBrandKitSheet()
+                // Its templates lead Home's.
+                .onDisappear { reload() }
         }
     }
 
@@ -284,16 +289,27 @@ struct HomeView: View {
         }
     }
 
-    /// Open a PowerPoint…: the sheet goes, then the file picker comes up.
-    private func pickDeck() {
-        pickDeckAfterSheet = true
+    /// An Import row in the New design sheet: the sheet goes, then its
+    /// picker comes up.
+    private func importFromSheet(_ choice: ImportChoice) {
+        importAfterSheet = choice
         homeSheet = nil
     }
 
+    /// Import's row: its picker.
+    private func startImport(_ choice: ImportChoice) {
+        switch choice {
+        case .media: pickingMedia = true
+        case .pdf: pickingPDF = true
+        case .powerPoint: pickingDeck = true
+        case .designFile: importing = true
+        }
+    }
+
     private func afterSheet() {
-        if pickDeckAfterSheet {
-            pickDeckAfterSheet = false
-            pickingDeck = true
+        if let choice = importAfterSheet {
+            importAfterSheet = nil
+            startImport(choice)
         }
         if replayTour {
             replayTour = false
@@ -345,22 +361,12 @@ struct HomeView: View {
     }
 
     /// A design file made by Export on another device (or this one, as a
-    /// backup) comes back in through here.
-    private var importRow: some View {
-        HStack {
-            Button {
-                importing = true
-            } label: {
-                Label("Open a Canvia design file", systemImage: "square.and.arrow.down")
-                    .font(.subheadline)
-            }
-            Spacer()
-        }
-        .padding(.horizontal)
+    /// backup) comes back in through here: Import's "Canvia design file…".
+    private var designFilePicker: some View {
         // Any file, not only JSON: a design sent from Android can arrive as
         // plain text or bare bytes, depending on the app it came through, so
         // what is inside decides.
-        .fileImporter(isPresented: $importing, allowedContentTypes: [.json, .data]) { result in
+        Color.clear.fileImporter(isPresented: $importing, allowedContentTypes: [.json, .data]) { result in
             guard case .success(let url) = result else { return }
             // A PowerPoint is a ZIP, which a design file never is: it comes
             // in as a deck.
@@ -402,6 +408,42 @@ struct HomeView: View {
     }
 
     private var folders: [String] { DesignLibrary.folders(in: recents) }
+
+    /// Whatever is on the shelf is one of the samples seeded at the first
+    /// launch, or nothing is: a way to start from a photo instead.
+    private var showsPhotoStart: Bool {
+        loaded && damaged.isEmpty && DesignLibrary.onlySamples(recents)
+    }
+
+    /// "Start from a photo": Import's photo and clip picker.
+    private var photoStartCard: some View {
+        Button { pickingMedia = true } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "photo.on.rectangle.angled")
+                    .font(.title)
+                    .foregroundStyle(Theme.accent)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Start from a photo")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.ink)
+                    Text("Pick photos or videos, and each becomes a page of a new design.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.forward")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal)
+    }
 
     private var shownTemplates: [Template] {
         let matching = ContentLibrary.filteredTemplates(in: templateCategory, matching: query)
@@ -953,7 +995,9 @@ struct HomeView: View {
                     }
                 }
                 heroButton(tr("New design"), systemImage: "plus") { homeSheet = .pickSize }
-                heroButton(tr("How Canvia works"), systemImage: "questionmark") { homeSheet = .help }
+                overflowMenu
+                // The brand kit, set up without opening a design.
+                heroButton(tr("Brand kit"), systemImage: "paintpalette") { homeSheet = .brandKit }
                 heroButton(tr("Settings"), systemImage: "gearshape") { homeSheet = .settings }
             }
 
@@ -967,15 +1011,14 @@ struct HomeView: View {
                     // made at that size, rather than straight into an empty
                     // page with no idea there was a head start on offer.
                     ForEach(SizePreset.hero) { preset in
-                        let count = ContentLibrary.templateCounts[preset.id] ?? 0
                         Button {
                             homeSheet = .start(presetId: preset.id)
                         } label: {
                             heroTile(systemImage: preset.icon, title: preset.name,
-                                     lines: [preset.dimensions, trn("%d ready-made|%d ready-made", count)])
+                                     lines: [preset.dimensions, Templates.countText(for: preset)])
                         }
                         .accessibilityLabel("\(preset.name), \(Self.spokenSize(preset.dimensions)), "
-                                            + trn("%d ready-made designs|%d ready-made designs", count))
+                                            + Templates.spokenCount(for: preset))
                     }
                     // Every other design type, searchable, by category.
                     Button {
@@ -999,6 +1042,21 @@ struct HomeView: View {
         .frame(maxWidth: .infinity)
         .background(Theme.heroGradient)
         .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 26, bottomTrailingRadius: 26))
+    }
+
+    /// Home's ⋯: Import, then how Canvia works.
+    private var overflowMenu: some View {
+        Menu {
+            Section(ImportChoice.groupTitle) {
+                ForEach(ImportChoice.allCases) { choice in
+                    Button { startImport(choice) } label: { Label(choice.title, systemImage: choice.systemImage) }
+                }
+            }
+            Button { homeSheet = .help } label: { Label("How Canvia works", systemImage: "questionmark.circle") }
+        } label: {
+            heroCircle("ellipsis")
+        }
+        .accessibilityLabel("More")
     }
 
     private func heroTile(systemImage: String, title: String, lines: [String]) -> some View {
@@ -1133,6 +1191,7 @@ struct HomeView: View {
                 Button {
                     copyResizing = DesignLibrary.load(id: recent.id)
                 } label: { Label("Copy & resize", systemImage: "rectangle.on.rectangle.angled") }
+                Section { shareItems(recent) }
                 Menu {
                     moveItems([recent])
                 } label: { Label("Move to folder", systemImage: "folder") }
@@ -1145,6 +1204,39 @@ struct HomeView: View {
                     trash([recent])
                 } label: { Label("Delete", systemImage: "trash") }
             }
+        }
+    }
+
+    /// Share…, Send a copy, Present and Print…, on the design as saved,
+    /// without opening the editor.
+    @ViewBuilder
+    private func shareItems(_ recent: RecentDesign) -> some View {
+        Button {
+            withDesign(recent.id) { exporting = $0 }
+        } label: { Label("Share…", systemImage: "square.and.arrow.up") }
+        Button {
+            HomeExports.sendCopy(recent.id, queue: ExportQueue.shared)
+        } label: { Label("Send a copy", systemImage: "paperplane") }
+        Button {
+            withDesign(recent.id) { presenting = $0 }
+        } label: { Label("Present", systemImage: "play.rectangle") }
+        if UIPrintInteractionController.isPrintingAvailable {
+            Button {
+                HomeExports.printDesign(recent.id, queue: ExportQueue.shared)
+            } label: { Label("Print…", systemImage: "printer") }
+        }
+    }
+
+    /// Design `id` read from its file off the main thread, then `use`d;
+    /// "That design can't be opened" when it does not read, as the Android
+    /// twin's withDesign says.
+    private func withDesign(_ id: String, _ use: @escaping (Design) -> Void) {
+        Task { @MainActor in
+            guard let design = try? await HomeExports.load(id) else {
+                unopened = true
+                return
+            }
+            use(design)
         }
     }
 
@@ -1290,6 +1382,11 @@ struct HomeView: View {
             .disabled(!chosen.contains { !$0.damaged })
             .accessibilityLabel("Duplicate")
             starBarButton(chosen)
+            Button { sharingPicked = true } label: {
+                barLabel(tr("Share"), systemImage: "square.and.arrow.up")
+            }
+            .disabled(chosen.isEmpty)
+            .accessibilityLabel("Share")
             Button(role: .destructive) {
                 let gone = chosen
                 stopSelecting()
@@ -1305,6 +1402,22 @@ struct HomeView: View {
         .background(.bar)
         .accessibilityElement(children: .contain)
         .transition(.move(edge: .bottom).combined(with: .opacity))
+        .confirmationDialog(trn("Share %d design|Share %d designs", chosen.count), isPresented: $sharingPicked,
+                            titleVisibility: .visible) {
+            Button { share(chosen, as: .png) } label: { Text(verbatim: "PNG") }
+            Button { share(chosen, as: .pdf) } label: { Text(verbatim: "PDF") }
+            Button("Design files") { share(chosen, as: .designFiles) }
+        }
+    }
+
+    /// The designs picked, damaged ones too — each said if it cannot be
+    /// exported — one after another on the export queue; their files come
+    /// to one share sheet.
+    private func share(_ designs: [RecentDesign], as format: HomeExports.Format) {
+        let ids = designs.map(\.id)
+        guard !ids.isEmpty else { return }
+        HomeExports.enqueue(ids, as: format, settings: HomeExports.settings(exportLast), queue: ExportQueue.shared)
+        stopSelecting()
     }
 
     /// Add to starred, or Remove from starred once every design picked is.
@@ -1449,11 +1562,12 @@ struct HomeView: View {
         }
         .modifier(UserTemplateDialogs(renaming: $renamingTemplate, renameText: $templateRenameText,
                                       deleting: $deletingTemplate) { reload() })
-        // A new design is empty, so "Apply all" makes it of every page.
-        .sheet(item: $templateSet) { template in
-            TemplateSetSheet(template: template, note: TemplateSetSheet.startNote,
-                             applyAll: { create(template.instantiate()) },
-                             usePage: { create(template.instantiate(onlyPage: $0)) })
+        // A template's own page first; a new design is empty, so every
+        // page of a set makes it of them all.
+        .sheet(item: $previewing, onDismiss: { favoritesVersion += 1 }) { template in
+            TemplatePreviewSheet(template: template, note: TemplateSetSheet.startNote) { chosen, page in
+                create(page.map { chosen.instantiate(onlyPage: $0) } ?? chosen.instantiate())
+            }
         }
     }
 
@@ -1537,8 +1651,7 @@ struct HomeView: View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
             ForEach(shownTemplates) { template in
                 Button {
-                    // A set of several pages shows them first.
-                    if template.pageCount > 1 { templateSet = template } else { create(template.instantiate()) }
+                    previewing = template
                 } label: {
                     VStack(alignment: .leading, spacing: 0) {
                         TemplateThumb(template: template)
@@ -1582,5 +1695,50 @@ struct HomeView: View {
         }
         .padding(.horizontal)
         .id(favoritesVersion)
+    }
+}
+
+/// Home's new-folder and rename alerts, apart from its body.
+private struct HomeDialogs: ViewModifier {
+    @Binding var filingInto: [String]
+    @Binding var newFolderName: String
+    @Binding var renaming: RecentDesign?
+    @Binding var renameText: String
+    var move: ([String], String?) -> Void
+    var reload: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .alert("New folder", isPresented: Binding(
+                get: { !filingInto.isEmpty },
+                set: { if !$0 { filingInto = [] } })) {
+                TextField("Folder name", text: $newFolderName)
+                Button("Move") {
+                    move(filingInto, newFolderName)
+                    filingInto = []
+                }
+                .disabled((DesignLibrary.folderName(newFolderName)?.utf16.count ?? 0) > DesignLibrary.folderNameLimit)
+                Button("Cancel", role: .cancel) { filingInto = [] }
+            }
+            .alert("Rename design", isPresented: Binding(
+                get: { renaming != nil },
+                set: { if !$0 { renaming = nil } })) {
+                TextField("Name", text: $renameText)
+                Button("Save") {
+                    // A name emptied out keeps the old one, as on the Android
+                    // twin: a card with no title, and exports named "design",
+                    // are not what clearing the field meant.
+                    let name = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !name.isEmpty, let target = renaming, var design = DesignLibrary.load(id: target.id) {
+                        design.title = name
+                        design.titleAuto = false
+                        design.updatedAt = Date().timeIntervalSince1970 * 1000
+                        DesignLibrary.save(design)
+                        reload()
+                    }
+                    renaming = nil
+                }
+                Button("Cancel", role: .cancel) { renaming = nil }
+            }
     }
 }

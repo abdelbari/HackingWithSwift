@@ -4,8 +4,11 @@
 // Instagram post and every template made at exactly that size, never the
 // whole library. The blank start is the first cell and never scrolls away;
 // topic is a chip row inside the size, and only when the size has enough to
-// need one. Two depths — pick a size, then pick a start — swapped in place,
-// so there is never a sheet over a sheet. The Android twin's StartSheet.
+// need one; after them, templates of other sizes near its shape, "Adapted
+// from other sizes" (Templates.nearby). Two depths — pick a size, then pick
+// a start — swapped in place. Import leads the sizes, and "Start with my
+// brand" gives what is made the brand kit's look as its first step. The
+// Android twin's StartSheet.
 
 import SwiftUI
 
@@ -14,18 +17,22 @@ struct StartSheet: View {
     let initialPresetId: String?
     var onCreate: (Design) -> Void
     var onCustomSize: () -> Void
-    /// Open a PowerPoint…, above the sizes; nil offers none.
-    var onPowerPoint: (() -> Void)?
+    /// Import's rows, above the sizes; nil offers none.
+    var onImport: ((ImportChoice) -> Void)?
     @Environment(\.dismiss) private var dismiss
     @State private var presetId: String?
     @State private var category: String?
+    /// "Start with my brand", for what is made here.
+    @State private var withBrand = false
+    /// The kit in use, read as the sheet opens.
+    @State private var kit = BrandKit.load()
 
     init(initialPresetId: String?, onCreate: @escaping (Design) -> Void, onCustomSize: @escaping () -> Void,
-         onPowerPoint: (() -> Void)? = nil) {
+         onImport: ((ImportChoice) -> Void)? = nil) {
         self.initialPresetId = initialPresetId
         self.onCreate = onCreate
         self.onCustomSize = onCustomSize
-        self.onPowerPoint = onPowerPoint
+        self.onImport = onImport
         _presetId = State(initialValue: initialPresetId)
     }
 
@@ -38,7 +45,8 @@ struct StartSheet: View {
         NavigationStack {
             ScrollView {
                 if let preset {
-                    StartGrid(preset: preset, category: $category, onCreate: onCreate)
+                    StartGrid(preset: preset, category: $category, withBrand: $withBrand,
+                              brandOffered: kit.canStartWith, onCreate: create)
                 } else {
                     sizePicker
                 }
@@ -86,10 +94,17 @@ struct StartSheet: View {
         .accessibilityAddTraits(.isHeader)
     }
 
-    /// Open a PowerPoint…, first, then the sizes, Custom size last.
+    /// What is made here, with the brand kit asked for: the editor gives
+    /// it the kit's look as it opens (BrandStart).
+    private func create(_ design: Design) {
+        BrandStart.designId = withBrand && kit.canStartWith ? design.id : nil
+        onCreate(design)
+    }
+
+    /// Import first, then the sizes, Custom size last.
     private var sizePicker: some View {
         VStack(alignment: .leading, spacing: 16) {
-            if let onPowerPoint { powerPointButton(onPowerPoint) }
+            if let onImport { importGroup(onImport) }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: 12)], alignment: .leading, spacing: 16) {
                 ForEach(SizePreset.hero) { preset in
                     SizeTile(preset: preset) { presetId = preset.id }
@@ -100,18 +115,26 @@ struct StartSheet: View {
         .padding(20)
     }
 
-    /// A deck as a design at its own size.
-    private func powerPointButton(_ action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(Self.openPowerPoint, systemImage: "rectangle.on.rectangle")
-                .font(.subheadline.weight(.semibold))
-                .frame(maxWidth: .infinity, minHeight: 44)
+    /// A photo or clip, a PDF, a deck or a design file, each a design.
+    private func importGroup(_ action: @escaping (ImportChoice) -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(ImportChoice.groupTitle)
+                .font(.headline)
+                .accessibilityAddTraits(.isHeader)
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+                ForEach(ImportChoice.allCases) { choice in
+                    Button { action(choice) } label: {
+                        Label(choice.title, systemImage: choice.systemImage)
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
         }
-        .buttonStyle(.bordered)
     }
-
-    /// Home ▸ New design's way to bring in a deck.
-    static var openPowerPoint: String { tr("Open a PowerPoint…") }
 }
 
 /// A size, drawn at the shape it makes with a real design at that size
@@ -121,7 +144,6 @@ struct SizeTile: View {
     var action: () -> Void
 
     var body: some View {
-        let count = ContentLibrary.templateCounts[preset.id] ?? 0
         // The output's own shape, 104 tall, within reason either way.
         let ratio = min(max(preset.w / preset.h, 64.0 / 104), 184.0 / 104)
         Button(action: action) {
@@ -142,14 +164,14 @@ struct SizeTile: View {
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
                     .padding(.top, 4)
-                Text(trn("%d ready-made|%d ready-made", count))
+                Text(Templates.countText(for: preset))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(tr("%@, %@", preset.name, trn("%d ready-made designs|%d ready-made designs", count)))
+        .accessibilityLabel(tr("%@, %@", preset.name, Templates.spokenCount(for: preset)))
     }
 }
 
@@ -185,12 +207,18 @@ struct CustomSizeTile: View {
 private struct StartGrid: View {
     let preset: SizePreset
     @Binding var category: String?
+    @Binding var withBrand: Bool
+    /// Whether the kit in use has a look to give: a palette of two colours
+    /// or more, or a face for a text role.
+    let brandOffered: Bool
     var onCreate: (Design) -> Void
     @State private var mine: [UserTemplate] = []
-    /// A template of several pages, while its strip asks which.
-    @State private var templateSet: Template?
+    /// A template, while its preview is up.
+    @State private var previewing: Template?
     /// One of your own of several pages, while its strip asks which.
     @State private var ownSet: TemplateChoice?
+    /// Templates of other sizes near this one's shape, made at it.
+    @State private var adapted: [Templates.Adapted] = []
 
     private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
@@ -198,6 +226,11 @@ private struct StartGrid: View {
         let bucket = ContentLibrary.sizedTemplates(for: preset)
         let shown = category.map { c in bucket.filter { $0.category == c } } ?? bucket
         VStack(alignment: .leading, spacing: 16) {
+            if brandOffered {
+                Toggle("Start with my brand", isOn: $withBrand)
+                    .font(.subheadline.weight(.semibold))
+                    .tint(Theme.accent)
+            }
             // A chip row only earns its space when the size has enough that
             // narrowing it helps.
             if ContentLibrary.showsTopics(bucket) {
@@ -215,7 +248,7 @@ private struct StartGrid: View {
                     }
                 }
                 ForEach(shown) { template in
-                    StartTemplateCard(template: template) { start(from: template) }
+                    StartTemplateCard(template: template) { previewing = template }
                 }
             }
             .sheet(item: $ownSet) { own in
@@ -223,27 +256,36 @@ private struct StartGrid: View {
                                  applyAll: { onCreate(sized(UserTemplates.newDesign(from: own.design))) },
                                  usePage: { onCreate(sized(UserTemplates.newDesign(from: own.design, onlyPage: $0))) })
             }
+            if category == nil && !adapted.isEmpty { adaptedPart }
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
         .padding(.bottom, 24)
         .onAppear { mine = UserTemplates.sized(UserTemplates.all(), width: preset.w, height: preset.h) }
-        .sheet(item: $templateSet) { template in
-            TemplateSetSheet(template: template, note: TemplateSetSheet.startNote,
-                             applyAll: { onCreate(template.instantiate(for: preset)) },
-                             usePage: { onCreate(template.instantiate(for: preset, onlyPage: $0)) })
+        .task(id: preset.id) { adapted = Templates.nearby(preset) }
+        // A template's own page first; Customize makes the design — every
+        // page, or the one shown — at this size.
+        .sheet(item: $previewing) { template in
+            TemplatePreviewSheet(template: template, note: TemplateSetSheet.startNote) { chosen, page in
+                onCreate(page.map { chosen.instantiate(for: preset, onlyPage: $0) } ?? chosen.instantiate(for: preset))
+            }
         }
     }
 
-    /// A new design from a template: a template of several pages shows its
-    /// strip first — all of them, or the page picked alone — as the Android
-    /// twin's Start sheet asks.
-    private func start(from template: Template) {
-        if template.pageCount > 1 {
-            templateSet = template
-        } else {
-            onCreate(template.instantiate(for: preset))
+    /// "Adapted from other sizes": each made at this size already, so its
+    /// card is what a tap starts — a fresh copy of it.
+    private var adaptedPart: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Adapted from other sizes")
+                .font(.headline)
+                .accessibilityAddTraits(.isHeader)
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
+                ForEach(adapted) { item in
+                    AdaptedCard(item: item) { onCreate(CopyResize.freshCopy(of: item.design)) }
+                }
+            }
         }
+        .padding(.top, 8)
     }
 
     /// A new design from a fresh copy of the template, in the size's unit:
@@ -337,6 +379,31 @@ private struct StartTemplateCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(template.name), \(UserTemplates.shownCategory(template.category)) template")
+    }
+}
+
+/// A template of another size, drawn as it is made at this one.
+private struct AdaptedCard: View {
+    let item: Templates.Adapted
+    var action: () -> Void
+
+    var body: some View {
+        let ratio = min(max(item.design.width / max(item.design.height, 1), 0.45), 2.2)
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 6) {
+                PageThumbnail(design: item.design, page: item.design.pages[0], pixelWidth: 320)
+                    .aspectRatio(ratio, contentMode: .fit)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.hairline))
+                    .overlay(alignment: .bottomTrailing) { PageCountBadge(count: item.design.pages.count) }
+                Text(item.template.name)
+                    .font(.subheadline)
+                    .lineLimit(1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(tr("%@, %@", item.template.name, tr("Adapted from other sizes")))
     }
 }
 

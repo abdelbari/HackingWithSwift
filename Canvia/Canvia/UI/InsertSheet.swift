@@ -30,6 +30,8 @@ struct InsertSheet: View {
     @State private var everySizeTemplates = false
     /// A built-in template of several pages, while its pages are shown.
     @State private var templateSet: Template?
+    /// A template, while its preview is up.
+    @State private var previewing: Template?
     /// The component whose deletion is being asked about.
     @State private var removingComponent: Component?
     /// The words typed for a code are more than a code holds.
@@ -328,12 +330,25 @@ struct InsertSheet: View {
                              applyAll: { applyAll(template) }, usePage: { startOver(from: template, page: $0) },
                              addPage: { addAsPage(template, page: $0) })
         }
+        // A template's own page first, as on Home: Customize starts this
+        // page over from it — or, for every page of a set, applies them all.
+        .sheet(item: $previewing, onDismiss: { favoritesVersion += 1 }) { template in
+            TemplatePreviewSheet(template: template,
+                                 note: TemplateSetSheet.editorNote(empty: DesignStore.isEmptyForTemplates(store.design))) {
+                chosen, page in
+                // One page: onto this page, or as a new page when this one has
+                // something on it, as a tap did before the preview.
+                if page == nil && chosen.pageCount > 1 { applyAll(chosen) } else { usePage(chosen, page ?? 0) }
+            }
+        }
     }
 
     private func templateTile(_ template: Template) -> some View {
         let starred = Favorites.isFavorite("template", template.id)
         return Button {
-            useTemplate(template)
+            // A tap looks at it first; a hold offers Use on this page and
+            // Add as new page.
+            previewing = template
         } label: {
             VStack(alignment: .leading, spacing: 6) {
                 TemplateThumb(template: template)
@@ -356,15 +371,11 @@ struct InsertSheet: View {
         }
     }
 
-    /// A tap on a template: one of several shows its pages first; one page
-    /// goes on a new page after this one when this page has something on it
-    /// or is locked, else in place of this page (DesignStore.templateAddsPage).
-    private func useTemplate(_ template: Template) {
-        guard template.pageCount == 1 else {
-            templateSet = template
-            return
-        }
-        if store.templateAddsPage { addAsPage(template, page: 0) } else { startOver(from: template, page: 0) }
+    /// Page `index` of a template, chosen in its preview: on a new page
+    /// after this one when this page has something on it or is locked, else
+    /// in place of this page (DesignStore.templateAddsPage).
+    private func usePage(_ template: Template, _ index: Int) {
+        if store.templateAddsPage { addAsPage(template, page: index) } else { startOver(from: template, page: index) }
     }
 
     /// "Add as new page": page `index` of the template, fitted to this

@@ -10,6 +10,9 @@ import UIKit
 
 struct ExportSheet: View {
     @Bindable var store: DesignStore
+    /// Opened from Home, on the design as saved: nothing here changes it,
+    /// so its motion settings and music are shown but not offered.
+    var readOnly = false
     @Environment(\.dismiss) private var dismiss
     @State private var scale = 2.0
     @State private var longEdgeText = ""
@@ -210,6 +213,10 @@ struct ExportSheet: View {
         if result.musicLost {
             musicNote = Self.musicLostNote
             announce(Self.musicLostNote)
+        }
+        if let skipped = result.skipped {
+            errorMessage = skipped
+            announce(skipped)
         }
     }
 
@@ -780,7 +787,7 @@ struct ExportSheet: View {
                 ForEach(MovieExporter.resolutions(for: store.design)) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
-            DisclosureGroup("Motion settings") { motionSettings }
+            if !readOnly { DisclosureGroup("Motion settings") { motionSettings } }
         } header: {
             Text("Motion")
         } footer: {
