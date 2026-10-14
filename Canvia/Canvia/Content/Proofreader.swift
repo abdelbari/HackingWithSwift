@@ -16,6 +16,9 @@ enum Proofreader {
         var range: NSRange
         var word: String
         var suggestions: [String]
+        /// Where the word is in the words as they read, for marking it when
+        /// shown (DesignStore.TextMatch.plain).
+        var plain = NSRange(location: 0, length: 0)
     }
 
     /// Every word the checker does not know, in reading order: page by page,
@@ -46,7 +49,8 @@ enum Proofreader {
                     if isWorthFlagging(word), let stored = storedRange(range, plain: plain, rawAt: rawAt, in: text) {
                         let guesses = checker.guesses(forWordRange: range, in: plain, language: lang) ?? []
                         found.append(Misspelling(pageIndex: p, elementId: el.id, range: stored,
-                                                 word: word, suggestions: Array(guesses.prefix(maxSuggestions))))
+                                                 word: word, suggestions: Array(guesses.prefix(maxSuggestions)),
+                                                 plain: range))
                     }
                     location = range.location + range.length
                 }

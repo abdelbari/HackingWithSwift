@@ -663,9 +663,11 @@ console.log(`      ${inherited} clash(es) with inherited names`);
 // property, in declaration order, and arguments out of that order are a
 // hard error ("argument 'b' must precede argument 'a'"). Labels that are
 // not stored properties are left alone: some other initialiser may be
-// meant.
+// meant. A call that gives only stored-property labels must also give
+// every one without a default ("missing argument for parameter").
 console.log('[11/11] memberwise argument order');
 const structs = new Map();   // name -> stored property names, or null if ambiguous
+const required = new Map();  // name -> stored properties the memberwise init needs
 for (const f of FILES) {
   const tree = parse(fs.readFileSync(f, 'utf8'));
   each(tree.rootNode, n => {
@@ -676,7 +678,7 @@ for (const f of FILES) {
     if (!id || !body) return;
     if (structs.has(id.text)) { structs.set(id.text, null); return; }
     if (body.namedChildren.some(c => c.type === 'init_declaration')) { structs.set(id.text, null); return; }
-    const stored = [];
+    const stored = [], needs = [];
     for (const m of body.namedChildren) {
       if (m.type !== 'property_declaration') continue;
       const mods = m.namedChildren.find(c => c.type === 'modifiers');
@@ -686,9 +688,17 @@ for (const f of FILES) {
       if (binding && binding.text === 'let' && m.childForFieldName('value')) continue;
       const pattern = m.namedChildren.find(c => c.type === 'pattern');
       const pid = pattern && pattern.namedChildren.find(c => c.type === 'simple_identifier');
-      if (pid) stored.push(pid.text);
+      if (!pid) continue;
+      stored.push(pid.text);
+      // Needed unless it has a value, is optional (nil by default), or is
+      // wrapped (a property wrapper may well supply its own default).
+      const ann = m.namedChildren.find(c => c.type === 'type_annotation');
+      const optional = ann && /[?!]\s*$/.test(ann.text);
+      const wrapped = mods && /@/.test(mods.text);
+      if (!m.childForFieldName('value') && !optional && !wrapped) needs.push(pid.text);
     }
     structs.set(id.text, stored);
+    required.set(id.text, needs);
   });
 }
 let orderCalls = 0;
@@ -697,17 +707,35 @@ for (const f of FILES) {
   each(tree.rootNode, n => {
     if (n.type !== 'call_expression') return;
     const callee = n.namedChild(0), suffix = n.namedChildren.find(c => c.type === 'call_suffix');
-    if (!callee || !suffix || callee.type !== 'simple_identifier') return;
-    const stored = structs.get(callee.text);
+    if (!callee || !suffix) return;
+    // `Name(...)` or `Outer.Name(...)`, both naming the struct.
+    let name = null;
+    if (callee.type === 'simple_identifier') name = callee.text;
+    else if (callee.type === 'navigation_expression') {
+      const ns = callee.namedChildren.find(c => c.type === 'navigation_suffix');
+      const nid = ns && ns.namedChildren.find(c => c.type === 'simple_identifier');
+      if (nid && /^[A-Z]/.test(nid.text)) name = nid.text;
+    }
+    const stored = name && structs.get(name);
     if (!stored) return;
+    const callee_ = { text: name };
     const given = argLabels(suffix).filter(l => l !== '_TRAILING_' && l !== '_');
     const at = given.map(l => stored.indexOf(l));
     if (at.some(i => i < 0)) return;
     orderCalls++;
+    if (!argLabels(suffix).includes('_') && !argLabels(suffix).includes('_TRAILING_')) {
+      const missing = (required.get(callee_.text) || []).filter(p => !given.includes(p));
+      if (missing.length) {
+        FAILURES++;
+        console.log(`  FAIL ${rel(f)}:${n.startPosition.row + 1}  ${callee_.text}(...): missing `
+          + `argument for parameter '${missing[0]}'`);
+        return;
+      }
+    }
     for (let i = 1; i < at.length; i++) {
       if (at[i] > at[i - 1]) continue;
       FAILURES++;
-      console.log(`  FAIL ${rel(f)}:${n.startPosition.row + 1}  ${callee.text}(...): argument `
+      console.log(`  FAIL ${rel(f)}:${n.startPosition.row + 1}  ${callee_.text}(...): argument `
         + `'${given[i]}' must precede argument '${given[i - 1]}'`);
       break;
     }
