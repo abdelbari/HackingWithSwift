@@ -681,7 +681,11 @@ characters upright down a column at the line height, columns running from
 the right, a new column at every newline or when the box runs out —
 Japanese and Chinese set the way a poster sets them, and Latin stacked
 the way a shop sign is. Drawn as outlines like curved text, so the SVG
-and PDF carry it exactly.
+and PDF carry it exactly. Curved, path and vertical outlines, and the
+effects drawn on them, are made once per box and kept (up to 256, as the
+fonts are), so moving, turning or fading a box, panning or zooming draws
+the outlines already made; a font of your own arriving or going makes
+them again.
 
 **Object eraser** — Erase on a picture's toolbar turns the page into a
 brush: paint over what should go, in strokes of a chosen width, then Erase

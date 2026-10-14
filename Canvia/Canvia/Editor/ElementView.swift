@@ -153,7 +153,9 @@ struct ElementView: View {
                     ImageElementView(element: Self.playing(el, at: context.date))
                 }
             } else {
-                ImageElementView(element: el)
+                // Whether the page's clock runs, read here once so a photo
+                // is not drawn again on every tick of it.
+                ImageElementView(element: el, clipPlays: animationTime != nil)
             }
         case .sticker: StickerElementView(element: el)
         case .line: LineElementView(element: el)
@@ -637,9 +639,11 @@ struct TextElementView: View {
 
 struct ImageElementView: View {
     let element: Element
+    /// Whether the page's clock runs, so a clip played live plays on in a
+    /// player of its own (ClipPlayers).
+    var clipPlays = false
     @Environment(\.liveVideo) private var liveVideo
     @Environment(\.onScreen) private var onScreen
-    @Environment(\.animationTime) private var animationTime
     @Environment(\.clipsInOrder) private var clipsInOrder
 
     var body: some View {
@@ -761,7 +765,7 @@ struct ImageElementView: View {
             // brings the next one in when it is ready. While the page's
             // clock runs, its player plays it on at its speed.
             _ = VideoStore.live.version
-            let playing: ClipPlayback? = animationTime == nil ? nil : (element.clip ?? ClipPlayback())
+            let playing: ClipPlayback? = clipPlays ? (element.clip ?? ClipPlayback()) : nil
             guard let shown = VideoStore.peek(src, playing: playing) else { return nil }
             base = shown.image
             // Keyed by the frame shown, not the moment asked for, so a
