@@ -1585,6 +1585,9 @@ struct EditorView: View {
     // MARK: actions
 
     private func shuffleColors() {
+        // A locked page says so, with Unlock, before a palette is used up —
+        // as on the Android twin; nothing is announced over it.
+        guard !store.refusesLockedPage() else { return }
         let palettes = ContentLibrary.palettes
         guard !palettes.isEmpty else { return }
         let palette = palettes[paletteIndex % palettes.count]

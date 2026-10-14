@@ -25,13 +25,13 @@ enum PageLocks {
     }
 
     /// Where something added while page `index` is on screen goes: that
-    /// page when it is unlocked; else the first unlocked page after it,
-    /// else the nearest one before it — as Present starts from a hidden
-    /// page (PageVisibility.start). Nil when every page is locked, when the
-    /// editor asks to unlock instead.
+    /// page when it is unlocked, else the first unlocked page after it —
+    /// never one before, so a deck fills forwards. Nil when every page from
+    /// `index` to the end is locked, when the editor asks to unlock instead.
+    /// The Android twin's PageLocks.pageForAdding, row for row.
     static func landing(from index: Int, in pages: [Page]) -> Int? {
-        let open = pages.indices.filter { !isLocked(pages[$0]) }
-        return PageVisibility.start(at: index, in: open)
+        guard index < pages.count else { return nil }
+        return (max(index, 0)..<pages.count).first { !isLocked(pages[$0]) }
     }
 
     /// What deleting several pages from the organiser says, locked ones

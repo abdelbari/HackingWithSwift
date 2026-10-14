@@ -56,17 +56,18 @@ extension DesignStore {
     }
 
     /// Something about to be added: true when the page on screen takes it,
-    /// that page brought up instead when it is locked and another is not
-    /// (PageLocks.landing), and said; false — and asked to unlock — when
-    /// every page is locked.
+    /// or — when it is locked — the next unlocked page after it, brought up
+    /// and said (PageLocks.landing); false — and asked to unlock — when every
+    /// page from here on is locked. Android's words.
     func landsOnUnlockedPage() -> Bool {
         guard isPageLocked else { return true }
         guard let to = PageLocks.landing(from: pageIndex, in: design.pages) else {
             refusesLockedPage()
             return false
         }
+        let locked = pageIndex + 1
         setPage(to)
-        announce("Added to page \(to + 1)", undoable: false)
+        announce("Page \(locked) is locked, so this went on page \(to + 1)", undoable: false)
         return true
     }
 }

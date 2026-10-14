@@ -73,14 +73,23 @@ final class PageLocksTests: XCTestCase {
         XCTAssertTrue(PageLocks.allows(open, becoming: changed))
     }
 
-    /// The next unlocked page after it, else the nearest before, else none.
-    func testAddLandsOnTheNextUnlockedPageElseTheOneBefore() {
+    /// The page asked on, else the next unlocked page after it, else none:
+    /// never back to one before it. The Android twin's PageLocksTest rows.
+    func testAddLandsOnTheNextUnlockedPageElseNone() {
+        // (which pages are locked, the page Add was asked on, where it goes)
+        let rows: [([Bool], Int, Int?)] = [
+            ([false, false, false], 1, 1),
+            ([false, true, false], 1, 2),
+            ([false, true, true, false], 1, 3),
+            // Never back to an unlocked page before it: none, and the app asks.
+            ([false, true, true], 1, nil),
+            ([true], 0, nil),
+        ]
+        for (locked, asked, lands) in rows {
+            XCTAssertEqual(PageLocks.landing(from: asked, in: design(locked: locked).pages), lands, "\(locked) from \(asked)")
+        }
         let pages = design(locked: [false, true, true, false, true]).pages
-        XCTAssertEqual(PageLocks.landing(from: 0, in: pages), 0, "an unlocked page takes it")
-        XCTAssertEqual(PageLocks.landing(from: 1, in: pages), 3)
-        XCTAssertEqual(PageLocks.landing(from: 2, in: pages), 3)
-        XCTAssertEqual(PageLocks.landing(from: 4, in: pages), 3, "none after it: the nearest before")
-        XCTAssertNil(PageLocks.landing(from: 0, in: design(locked: [true, true]).pages))
+        XCTAssertNil(PageLocks.landing(from: 4, in: pages), "none after it: asks, never the one before")
     }
 
     @MainActor
