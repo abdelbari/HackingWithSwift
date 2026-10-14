@@ -290,6 +290,9 @@ struct EditorView: View {
             store.stopPreview()
             store.finishDictation()
             store.endTextEdit()
+            // A drawing under way is put down first, so its strokes are
+            // saved as one drawing, as the Android twin's editor does.
+            store.drawing = nil
             closeRename()
             saveNow()
         }
@@ -422,6 +425,8 @@ struct EditorView: View {
             store.announce(PageVisibility.everyPageHidden, undoable: false)
             return
         }
+        // The pen is put down, as the menu's Present puts it down.
+        store.drawing = nil
         presenting = true
     }
 
@@ -502,6 +507,9 @@ struct EditorView: View {
             Button {
                 closeRename()
                 store.endSelectingMultiple()
+                // The pen is put down first: the session's strokes go home
+                // as one drawing.
+                store.drawing = nil
                 saveNow()
                 onHome()
             } label: {
@@ -622,6 +630,7 @@ struct EditorView: View {
                     // first, as on the Android twin.
                     store.finishCrop()
                     store.endTextEdit()
+                    store.drawing = nil
                     presenting = true
                 } label: {
                     Label("Present", systemImage: "play.rectangle")
