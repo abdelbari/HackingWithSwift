@@ -159,14 +159,14 @@ enum ElementSearch {
                              category: "Stickers"))
         }
         for frame in DecorativeFrames.presets {
-            out.append(Entry(hit: Hit(kind: .photoFrame, id: frame.id, name: frame.name), words: ["photo frame"],
+            out.append(Entry(hit: Hit(kind: .photoFrame, id: frame.id, name: tr(frame.name)), words: ["photo frame"],
                              category: "Frames"))
         }
         for layout in PhotoGrids.layouts {
             let n = layout.cells.count
             var photos = ["\(n) photos"]
             if n >= 1 && n <= counted.count { photos.append("\(counted[n - 1]) photos") }
-            out.append(Entry(hit: Hit(kind: .grid, id: layout.id, name: layout.name),
+            out.append(Entry(hit: Hit(kind: .grid, id: layout.id, name: tr(layout.name)),
                              words: photos + ["collage", "photo grid"], category: "Grids"))
         }
         for line in linePresets {

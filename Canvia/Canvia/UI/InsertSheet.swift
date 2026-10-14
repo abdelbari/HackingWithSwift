@@ -1085,12 +1085,12 @@ struct InsertSheet: View {
                         } label: {
                             VStack(spacing: 4) {
                                 Self.layoutThumb(layout)
-                                Text(layout.name).font(.caption2)
+                                Text(tr(layout.name)).font(.caption2)
                             }
                             .frame(width: 72)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("\(layout.name) photo grid")
+                        .accessibilityLabel("\(tr(layout.name)) photo grid")
                     }
                 }
             }
@@ -1142,12 +1142,12 @@ struct InsertSheet: View {
                         } label: {
                             VStack(spacing: 4) {
                                 Self.decorativeFrameThumb(preset)
-                                Text(preset.name).font(.caption2).lineLimit(1)
+                                Text(tr(preset.name)).font(.caption2).lineLimit(1)
                             }
                             .frame(width: 72)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("\(preset.name) photo frame")
+                        .accessibilityLabel("\(tr(preset.name)) photo frame")
                     }
                 }
             }
@@ -1698,7 +1698,7 @@ struct InsertSheet: View {
             animatedStickersRow
             ForEach(filteredStickerGroups) { group in
                 if !group.emoji.isEmpty {
-                    sectionHeader(group.name)
+                    sectionHeader(tr(group.name))
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 52), spacing: 8)], spacing: 8) {
                         ForEach(group.emoji, id: \.self) { glyph in stickerTile(glyph) }
                     }
@@ -1758,7 +1758,7 @@ struct InsertSheet: View {
     /// their own words (Stickers.search); a group with none drops out.
     private var filteredStickerGroups: [StickerGroup] {
         let starred = Favorites.ids(of: "sticker")
-        let favourites = starred.isEmpty ? [] : [StickerGroup(name: tr("Favourites"), emoji: starred)]
+        let favourites = starred.isEmpty ? [] : [StickerGroup(name: "Favourites", emoji: starred)]
         guard !search.isEmpty else { return favourites + ContentLibrary.stickerGroups }
         return Stickers.search(search, in: ContentLibrary.stickerGroups)
     }

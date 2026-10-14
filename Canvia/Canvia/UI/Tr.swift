@@ -14,6 +14,11 @@
 // %d for whole numbers, in the English order; here a %d is read as %lld,
 // the key SwiftUI makes for an interpolated Int, so a literal view and tr
 // find the same entry. Missing, the English shows.
+//
+// A word that means different things in different places — "Cut" the
+// clipboard's and a page transition's — is looked up in its context:
+// tr("Cut", context: "transition"). Where the catalogue has no entry for
+// the word in that context, its plain one is read.
 
 import Foundation
 
@@ -24,6 +29,12 @@ func tr(_ text: String, _ args: CVarArg...) -> String {
     Tr.text(text, args, bundle: .main, locale: Tr.language(of: .main))
 }
 
+/// `text` in `context`, where the word means something else — "Cut", a
+/// page transition — in the app's language.
+func tr(_ text: String, context: String) -> String {
+    Tr.text(Tr.inContext(text, context), [], bundle: .main, locale: Tr.language(of: .main))
+}
+
 /// The form of a plural entry, "%d page|%d pages", for `count` by the
 /// language's plural rules. The count fills the first placeholder, which
 /// is its %d; `args` fill the ones after it, in order.
@@ -32,9 +43,28 @@ func trn(_ oneOther: String, _ count: Int, _ args: CVarArg...) -> String {
 }
 
 enum Tr {
+    /// Between a word and its context in a catalogue key, as in gettext:
+    /// "Cut\u{4}transition".
+    static let contextMark: Character = "\u{4}"
+
+    /// The catalogue key of `text` in `context`.
+    static func inContext(_ text: String, _ context: String) -> String {
+        text + String(contextMark) + context
+    }
+
+    /// A catalogue key's English: the word, without its context.
+    static func english(_ text: String) -> String {
+        guard let mark = text.firstIndex(of: contextMark) else { return text }
+        return String(text[..<mark])
+    }
+
     /// The key a catalogue entry has here: each %d read as %lld, a %%
-    /// left alone.
+    /// left alone; a word in context "Cut [transition]" (generate.py
+    /// writes it so).
     static func key(_ text: String) -> String {
+        if let mark = text.firstIndex(of: contextMark) {
+            return key(String(text[..<mark])) + " [" + String(text[text.index(after: mark)...]) + "]"
+        }
         guard text.contains("%d") else { return text }
         return text.components(separatedBy: "%%")
             .map { $0.replacingOccurrences(of: "%d", with: "%lld") }
@@ -57,6 +87,10 @@ enum Tr {
     static func text(_ text: String, _ args: [CVarArg], bundle: Bundle, locale: Locale?) -> String {
         let wanted = key(text)
         let found = bundle.localizedString(forKey: wanted, value: wanted, table: nil)
+        // No entry for the word in its context: its plain one.
+        if found == wanted && text.contains(contextMark) {
+            return Self.text(english(text), args, bundle: bundle, locale: locale)
+        }
         guard !args.isEmpty else { return found == wanted ? text : found }
         return String(format: found, locale: locale, arguments: args)
     }

@@ -738,7 +738,7 @@ struct FiltersSheet: View {
                 .disabled(store.singleSelection?.adjustments?.isNeutral ?? true)
             }
             // The dials in Canva's three groups, each in its order.
-            dialGroup(tr("Light")) {
+            dialGroup(tr("Light", context: "photo adjustments")) {
                 dial(tr("Brightness"), \.brightness, in: -1...1)
                 dial(tr("Contrast"), \.contrast, in: -1...1)
                 dial(tr("Highlights"), \.highlights, in: -1...1)
@@ -1110,10 +1110,11 @@ struct CropSheet: View {
                         Text("\(String(format: "%.1f", el.straighten ?? 0))° — the picture turns inside its frame and grows to keep covering it.")
                     }
                     Section("Frame") {
-                        Picker("Fill", selection: Binding(
+                        // Fill as a verb, the frame filled, not a colour's fill.
+                        Picker(tr("Fill", context: "crop"), selection: Binding(
                             get: { el.cropFit == true ? 1 : 0 },
                             set: { choice in store.updateSelected { $0.cropFit = choice == 1 ? true : nil } })) {
-                            Text("Fill").tag(0)
+                            Text(tr("Fill", context: "crop")).tag(0)
                             Text("Fit").tag(1)
                         }
                         .pickerStyle(.segmented)

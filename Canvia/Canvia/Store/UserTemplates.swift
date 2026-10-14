@@ -28,7 +28,8 @@ struct UserTemplate: Codable, Equatable, Identifiable, Sendable {
     /// "Poster · 1080 × 1920 · 3 pages".
     var caption: String {
         let size = "\(Int(width)) × \(Int(height))"
-        return pageCount == 1 ? "\(category) · \(size)" : "\(category) · \(size) · " + trn("%d page|%d pages", pageCount)
+        let shown = UserTemplates.shownCategory(category)
+        return pageCount == 1 ? "\(shown) · \(size)" : "\(shown) · \(size) · " + trn("%d page|%d pages", pageCount)
     }
 }
 
@@ -52,8 +53,14 @@ enum UserTemplates {
     static let folderName = "templates_user"
     static let indexName = "usertemplates.json"
     /// Where a template goes when no category is typed, as on the Android
-    /// twin.
-    static let defaultCategory = tr("Personal")
+    /// twin: kept in English, whatever the language; shownCategory says it.
+    static let defaultCategory = "Personal"
+
+    /// `category` as it is shown: defaultCategory in the app's language,
+    /// any other — a library category, or one typed — as it is.
+    static func shownCategory(_ category: String) -> String {
+        category == defaultCategory ? tr(category) : category
+    }
     /// What Home's chip and section, and the Templates panel, call them.
     static let sectionTitle = tr("Your templates")
 

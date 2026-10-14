@@ -18,6 +18,16 @@ order. Here a %d is written %lld, the key SwiftUI makes for an
 interpolated Int, so Text("\\(n) pages") and tr("%d pages", n) find the
 same entry.
 
+A word that means different things in different places has an entry for
+each place where it is said differently, keyed "<English>\\u0004<context>"
+as gettext's msgctxt is: "Cut\\u0004transition". Here its key is the
+word with its context after it in brackets, and its English the word:
+
+  "Cut\\u0004transition"  ->  "Cut [transition]"
+
+which is the key tr("Cut", context: "transition") looks up (Tr.key); a
+place with no entry of its own reads the word's plain one.
+
 A plural entry is keyed "<one>|<other>", "%d page|%d pages", and each
 translation is an object of the CLDR forms its language needs. Here its
 key is the English other form, %d written %lld:
@@ -56,6 +66,8 @@ FORMS = {
     "ja": ["other"],
 }
 DEFAULT_FORMS = ["one", "other"]
+# What sets a word's context apart from it in a key ("Cut\u0004transition").
+CONTEXT = "\u0004"
 
 
 def forms_of(lang):
@@ -70,6 +82,13 @@ def placeholders(text):
 def ios(text):
     """`text` as the iOS catalogue has it: each %d read as %lld."""
     return "%%".join(part.replace("%d", "%lld") for part in text.split("%%"))
+
+
+def ios_key(key):
+    """A plain entry's key here: as `ios` has it, and a word in context
+    "<word> [<context>]", as Tr.key makes it."""
+    word, mark, context = key.partition(CONTEXT)
+    return f"{ios(word)} [{context}]" if mark else ios(key)
 
 
 def count_first(key):
@@ -90,6 +109,10 @@ def problems(catalogue):
         plural = "|" in key
         if not key.strip():
             out.append("an empty key")
+            continue
+        word, mark, context = key.partition(CONTEXT)
+        if mark and (not word.strip() or not context.strip() or CONTEXT in context or plural or "%" in context):
+            out.append(f"{key!r}: a word in context is \"<English>\\u0004<context>\", and not a plural")
             continue
         if plural:
             english = english_forms(key)
@@ -142,7 +165,7 @@ def localizations(key, entry):
         plural.update({lang: entry[lang] for lang in LANGUAGES})
         return {lang: {"variations": {"plural": {form: unit(text) for form, text in forms.items()}}}
                 for lang, forms in plural.items()}
-    out = {"en": unit(key)}
+    out = {"en": unit(key.partition(CONTEXT)[0])}
     out.update({lang: unit(entry[lang]) for lang in LANGUAGES})
     return out
 
@@ -203,7 +226,7 @@ def main():
     for key in sorted(catalogue):
         if key in plist_english or ("|" in key and not count_first(key)):
             continue
-        name = ios(english_forms(key)["other"]) if "|" in key else ios(key)
+        name = ios(english_forms(key)["other"]) if "|" in key else ios_key(key)
         if name in strings:
             sys.exit(f"{key!r} has the key {name!r} here, which another entry has")
         strings[name] = {"extractionState": "manual", "localizations": localizations(key, catalogue[key])}

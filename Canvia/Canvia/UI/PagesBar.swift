@@ -338,7 +338,8 @@ struct PageNotesSheet: View {
                         // In Android's order, the shared list's.
                         Text("Document setting").tag("default")
                         Text("Fade").tag("fade")
-                        Text("Cut").tag("cut")
+                        // The film editor's cut, not the clipboard's.
+                        Text(tr("Cut", context: "transition")).tag("cut")
                         Text("Slide").tag("slide")
                         Text("Push").tag("push")
                         Text("Wipe").tag("wipe")

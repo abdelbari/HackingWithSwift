@@ -336,7 +336,7 @@ private struct StartTemplateCard: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(template.name), \(template.category) template")
+        .accessibilityLabel("\(template.name), \(UserTemplates.shownCategory(template.category)) template")
     }
 }
 

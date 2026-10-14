@@ -240,7 +240,7 @@ private struct SaveTemplateAlert: ViewModifier {
         content
             .alert("Save as template", isPresented: $isPresented) {
                 TextField("Name", text: $typedName)
-                TextField("Category (\(UserTemplates.defaultCategory))", text: $typedCategory)
+                TextField("Category (\(UserTemplates.shownCategory(UserTemplates.defaultCategory)))", text: $typedCategory)
                 Button("Save") { save() }
                 Button("Cancel", role: .cancel) {}
             } message: {

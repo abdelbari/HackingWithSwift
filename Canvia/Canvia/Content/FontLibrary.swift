@@ -77,15 +77,16 @@ enum FontLibrary {
     /// How many fonts Recently used keeps, newest first.
     static let recentLimit = 8
 
-    /// What the Weight row calls each weight it offers, Light to Black.
+    /// What the Weight row calls each weight it offers, Light to Black: a
+    /// weight's "Light" and "Black", not the theme's or the colour's.
     static let weightNames: [Int: String] = [
-        300: tr("Light"),
+        300: tr("Light", context: "font weight"),
         400: tr("Regular"),
         500: tr("Medium"),
         600: tr("Semibold"),
         700: tr("Bold"),
         800: tr("Extra bold"),
-        900: tr("Black"),
+        900: tr("Black", context: "font weight"),
     ]
 
     /// `weight`'s name, as the Weight row and VoiceOver say it; a weight the

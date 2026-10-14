@@ -37,7 +37,7 @@ struct ComboChoices: View {
             HStack(spacing: 8) {
                 chip(tr("All"), selected: category == nil) { category = nil }
                 ForEach(TextCombos.categories, id: \.self) { name in
-                    chip(name, selected: category == name) {
+                    chip(tr(name), selected: category == name) {
                         category = category == name ? nil : name
                     }
                 }
@@ -48,7 +48,7 @@ struct ComboChoices: View {
     @ViewBuilder
     private func grid(_ combos: [TextCombos.Combo]) -> some View {
         if combos.isEmpty {
-            noneFound(tr("No %@ combinations match \u{201C}%@\u{201D}.", category ?? "",
+            noneFound(tr("No %@ combinations match \u{201C}%@\u{201D}.", category.map { tr($0) } ?? "",
                          search.trimmingCharacters(in: .whitespacesAndNewlines)))
         } else {
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {

@@ -10,6 +10,11 @@ struct ShapeDef: Codable, Identifiable {
     var category: String
     var path: String
     var rectLike: Bool?
+    /// Its name in English, as the catalogue keys it, for a library shape;
+    /// `name` is what the app calls it.
+    var englishName: String? = nil
+
+    private enum CodingKeys: String, CodingKey { case id, name, category, path, rectLike }
 }
 
 /// One page of a template that has several: what is on it, and the title
@@ -286,7 +291,10 @@ enum ContentLibrary {
         }
         // A shape's name is the app's words, as the Android twin's
         // ShapeLibrary has them; its id is what a design keeps.
-        for i in decoded.shapes.indices { decoded.shapes[i].name = tr(decoded.shapes[i].name) }
+        for i in decoded.shapes.indices {
+            decoded.shapes[i].englishName = decoded.shapes[i].name
+            decoded.shapes[i].name = tr(decoded.shapes[i].name)
+        }
         return decoded
     }()
 
@@ -321,7 +329,7 @@ enum ContentLibrary {
     /// A plain square, used whenever a shape id cannot be resolved.
     static let fallbackShape = ShapeDef(id: "rect", name: tr("Square"),
                                         category: "Basic", path: "M0,0H100V100H0Z",
-                                        rectLike: true)
+                                        rectLike: true, englishName: "Square")
 
     // `uniqueKeysWithValues:` traps on a duplicate id, and the trap would
     // happen at launch, on first access. A duplicate in the content library

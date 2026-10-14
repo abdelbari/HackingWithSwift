@@ -3,7 +3,8 @@
 // keeping the English placeholders in order, a plural entry with the CLDR
 // forms each language needs, and no key empty; the built app holding every
 // entry in every language; plural forms picked as each language counts;
-// the English shown when an entry is missing; and a design drawn left to
+// the English shown when an entry is missing; a word read in its context;
+// numbers written as the language writes them; and a design drawn left to
 // right under a right-to-left language, with Present's arrows going the
 // way the language reads.
 //
@@ -163,6 +164,36 @@ final class LocalisationTests: XCTestCase {
         XCTAssertEqual(Tr.key("%%d stays"), "%%d stays")
         XCTAssertEqual(Tr.pluralKey("%d page|%d pages"), "%lld pages")
         XCTAssertEqual(Tr.forms("%d page|%d pages").one, "%d page")
+        XCTAssertEqual(Tr.key(Tr.inContext("Cut", "transition")), "Cut [transition]")
+        XCTAssertEqual(Tr.english(Tr.inContext("Cut", "transition")), "Cut")
+        XCTAssertEqual(Tr.english("Cut"), "Cut")
+    }
+
+    /// A word that means something else where it is shown has its own
+    /// entry there; a place without one reads the word's plain entry, and
+    /// English reads the word.
+    func testAWordInContextIsSaidAsItIsThere() throws {
+        let german = try bundle("de")
+        let de = Locale(identifier: "de")
+        XCTAssertEqual(Tr.text(Tr.inContext("Cut", "transition"), [], bundle: german, locale: de), "Schnitt")
+        XCTAssertEqual(Tr.text("Cut", [], bundle: german, locale: de), "Ausschneiden")
+        XCTAssertEqual(Tr.text(Tr.inContext("Light", "font weight"), [], bundle: german, locale: de), "Leicht")
+        XCTAssertEqual(Tr.text(Tr.inContext("Light", "photo adjustments"), [], bundle: german, locale: de), "Licht")
+        XCTAssertEqual(Tr.text(Tr.inContext("Fade", "transition"), [], bundle: german, locale: de),
+                       Tr.text("Fade", [], bundle: german, locale: de))
+        XCTAssertEqual(Tr.text(Tr.inContext("Nothing here", "zebra"), [], bundle: .main, locale: nil), "Nothing here")
+    }
+
+    /// Numbers in the app's words are written as the language writes them,
+    /// as the Android twin's Copy.localNumber rows have it: grouped, in the
+    /// language's digits; in English plain.
+    func testNumbersAreWrittenAsTheLanguageWritesThem() {
+        XCTAssertEqual(Tr.text("Nothing here is %d of %d", [3, 10], bundle: .main, locale: Locale(identifier: "ar")),
+                       "Nothing here is \u{663} of \u{661}\u{660}")
+        XCTAssertEqual(Tr.text("Nothing here is %d wide", [1080], bundle: .main, locale: Locale(identifier: "de")),
+                       "Nothing here is 1.080 wide")
+        XCTAssertEqual(Tr.text("Nothing here is %d wide", [1080], bundle: .main, locale: nil),
+                       "Nothing here is 1080 wide")
     }
 
     /// Missing from the catalogue, the English shows, filled in; and in

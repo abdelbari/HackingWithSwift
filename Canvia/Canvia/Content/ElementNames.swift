@@ -40,10 +40,11 @@ enum ElementNames {
                 return withWords(el, tr("custom shape"))
                     ?? withColour(colour, tr("custom shape"), tr("%@ custom shape", colourName(colour)))
             }
-            let noun = ContentLibrary.shape(el.shapeId).name.lowercased()
-            return withWords(el, noun) ?? withColour(colour, noun, tr("%@ %@", colourName(colour), noun))
+            let english = englishNoun(ContentLibrary.shape(el.shapeId))
+            let noun = tr(english)
+            return withWords(el, noun) ?? withColour(colour, noun, tr("%@ " + english, colourName(colour)))
         case .image:
-            let frame = el.maskShapeId.map { ContentLibrary.shape($0).name.lowercased() }
+            let frame = el.maskShapeId.map { tr(englishNoun(ContentLibrary.shape($0))) }
             if let src = el.src, CodeGenerator.payload(from: src) != nil { return tr("QR code") }
             if el.src == nil { return frame.map { tr("Empty %@ frame", $0) } ?? tr("Empty photo frame") }
             return frame.map { tr("Photo in a %@ frame", $0) } ?? tr("Photo")
@@ -138,6 +139,14 @@ enum ElementNames {
     static func spokenColour(_ hex: String?) -> String {
         let name = colourName(hex)
         return name.prefix(1).uppercased() + String(name.dropFirst())
+    }
+
+    /// A library shape's name inside a sentence, "speech bubble": lower
+    /// case in English only. The catalogue has each name as each language
+    /// writes it there ("Sprechblase"), and "%@ speech bubble" for it with
+    /// a colour, each language putting the colour where it goes.
+    private static func englishNoun(_ shape: ShapeDef) -> String {
+        (shape.englishName ?? shape.name).lowercased()
     }
 
     /// A shape with words named by them, as a text box is, after its kind

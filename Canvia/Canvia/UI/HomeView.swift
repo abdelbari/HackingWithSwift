@@ -1529,7 +1529,7 @@ struct HomeView: View {
 
     /// "Business · 1920 × 1080 · 10 pages".
     private func templateCaption(_ template: Template) -> String {
-        let line = "\(template.category) · \(Int(template.width)) × \(Int(template.height))"
+        let line = "\(UserTemplates.shownCategory(template.category)) · \(Int(template.width)) × \(Int(template.height))"
         return template.pageCount > 1 ? line + " · " + trn("%d page|%d pages", template.pageCount) : line
     }
 
