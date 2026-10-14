@@ -34,10 +34,24 @@ final class PresentSession {
     /// Where the presenter points, in the page's own units: a red dot over
     /// the page while a finger is held down; nil otherwise.
     var pointer: CGPoint?
+    /// At the end of the last page shown, go round to the first: the
+    /// design's own setting, which the Loop button changes.
+    var loop: Bool
+    /// The presenter's effects showing over the page (Presenter.effects),
+    /// on the phone and on the screen alike.
+    var effects: [Presenter.Shown] = []
+    /// Where the page up lies among the pages turning: one higher for each
+    /// turn forward — Loop's round to the first page too — and one lower
+    /// for each turn back.
+    var layer: Double = 0
 
     init(design: Design) {
         self.design = design
+        loop = design.presentLoops
     }
+
+    /// Whether the page is blurred by the presenter.
+    var blurred: Bool { effects.contains { $0.id == "blur" } }
 
     var page: Page { design.pages[min(index, design.pages.count - 1)] }
 
@@ -78,13 +92,19 @@ struct PresentStage: View {
 
     var body: some View {
         ZStack {
-            pageView
-                .id(session.page.id)
-                .transition(session.moving)
-                // A later page always lies over an earlier one: a slide
-                // forward comes in on top, a slide back goes in under the
-                // page leaving.
-                .zIndex(Double(session.index))
+            ZStack {
+                pageView
+                    .id(session.page.id)
+                    .transition(session.moving)
+                    // A page turned to forward always lies over the one it
+                    // leaves: a slide forward comes in on top — round from
+                    // the last page to the first too — and a slide back goes
+                    // in under the page leaving.
+                    .zIndex(session.layer)
+            }
+            // Blur is the page's own; the other effects lie over it.
+            .blur(radius: session.blurred ? min(size.width, size.height) * 0.03 : 0)
+            PresentEffectsLayer(session: session, size: size)
         }
     }
 

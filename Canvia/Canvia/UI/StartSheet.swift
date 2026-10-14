@@ -108,7 +108,7 @@ struct SizeTile: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 8).fill(Theme.card)
                     if let preview = ContentLibrary.sizedTemplates(for: preset).first {
-                        TemplateThumb(template: preview).opacity(0.4)
+                        TemplateThumb(template: preview, badge: false).opacity(0.4)
                     }
                 }
                 .aspectRatio(ratio, contentMode: .fit)
@@ -166,6 +166,8 @@ private struct StartGrid: View {
     @Binding var category: String?
     var onCreate: (Design) -> Void
     @State private var mine: [UserTemplate] = []
+    /// A template of several pages, while its strip asks which.
+    @State private var templateSet: Template?
 
     private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
@@ -190,7 +192,7 @@ private struct StartGrid: View {
                     }
                 }
                 ForEach(shown) { template in
-                    StartTemplateCard(template: template) { onCreate(template.instantiate(for: preset)) }
+                    StartTemplateCard(template: template) { start(from: template) }
                 }
             }
         }
@@ -198,6 +200,22 @@ private struct StartGrid: View {
         .padding(.top, 8)
         .padding(.bottom, 24)
         .onAppear { mine = UserTemplates.sized(UserTemplates.all(), width: preset.w, height: preset.h) }
+        .sheet(item: $templateSet) { template in
+            TemplateSetSheet(template: template, note: TemplateSetSheet.startNote,
+                             applyAll: { onCreate(template.instantiate(for: preset)) },
+                             usePage: { onCreate(template.instantiate(for: preset, onlyPage: $0)) })
+        }
+    }
+
+    /// A new design from a template: a template of several pages shows its
+    /// strip first — all of them, or the page picked alone — as the Android
+    /// twin's Start sheet asks.
+    private func start(from template: Template) {
+        if template.pageCount > 1 {
+            templateSet = template
+        } else {
+            onCreate(template.instantiate(for: preset))
+        }
     }
 
     /// A new design from a fresh copy of the template, every page, in the

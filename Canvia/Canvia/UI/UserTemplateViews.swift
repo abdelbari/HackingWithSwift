@@ -1,6 +1,6 @@
-// Your own templates where they are used: their pictures, the editor's
-// Templates panel (first, under "Your templates"), and what applying one of
-// several pages asks — all of them, or one picked from a grid.
+// Your own templates where they are used: their pictures, and the editor's
+// Templates panel (first, under "Your templates"), where one of several
+// pages opens the same strip a built-in set does (TemplateSetSheet).
 
 import SwiftUI
 
@@ -22,18 +22,7 @@ struct UserTemplateThumb: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(alignment: .bottomTrailing) {
-            if entry.pageCount > 1 {
-                Text("\(entry.pageCount)")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.black.opacity(0.55)))
-                    .padding(5)
-                    .accessibilityHidden(true)
-            }
-        }
+        .overlay(alignment: .bottomTrailing) { PageCountBadge(count: entry.pageCount) }
         .task(id: "\(entry.id)-\(entry.updatedAt)") {
             let id = entry.id
             image = await Task.detached(priority: .userInitiated) { UserTemplates.thumbnail(for: id) }.value
@@ -41,111 +30,18 @@ struct UserTemplateThumb: View {
     }
 }
 
-/// A template with several pages, while what to do with it is asked: its
-/// name and its design at its own size, every page.
+/// A template of your own with several pages, while its strip asks what to
+/// do with it: its name and its design at its own size, every page.
 struct TemplateChoice: Identifiable {
     var id: String
     var name: String
     var design: Design
 }
 
-extension View {
-    /// Asks what to do with a template of several pages put in `choice`:
-    /// "Apply all N pages", or "Choose a page…" from a grid of them.
-    func templatePageChoice(_ choice: Binding<TemplateChoice?>, store: DesignStore,
-                            onDone: @escaping () -> Void) -> some View {
-        modifier(TemplatePageChoice(choice: choice, store: store, onDone: onDone))
-    }
-}
-
-private struct TemplatePageChoice: ViewModifier {
-    @Binding var choice: TemplateChoice?
-    let store: DesignStore
-    var onDone: () -> Void
-    @State private var picking: TemplateChoice?
-
-    private var title: String {
-        guard let choice else { return "" }
-        return "\u{201C}\(choice.name)\u{201D} has \(choice.design.pages.count) pages"
-    }
-
-    func body(content: Content) -> some View {
-        content
-            .confirmationDialog(title, isPresented: Binding(
-                get: { choice != nil }, set: { if !$0 { choice = nil } }),
-                                titleVisibility: .visible, presenting: choice) { shown in
-                Button("Apply all \(shown.design.pages.count) pages") { apply(shown, page: nil) }
-                Button("Choose a page…") { picking = shown }
-                Button("Cancel", role: .cancel) {}
-            } message: { _ in
-                Text("All of them replace this page and follow it, as one step Undo takes back. Or choose one to replace this page.")
-            }
-            .sheet(item: $picking) { shown in
-                TemplatePagePicker(design: shown.design) { index in apply(shown, page: index) }
-            }
-    }
-
-    /// Every page, or the one at `page`, fitted to the page on screen.
-    private func apply(_ shown: TemplateChoice, page: Int?) {
-        let pages = UserTemplates.pages(of: shown.design, width: store.pageWidth, height: store.pageHeight)
-        if let page, pages.indices.contains(page) {
-            store.applyTemplatePages([pages[page]], name: shown.name)
-        } else {
-            store.applyTemplatePages(pages, name: shown.name)
-        }
-        onDone()
-    }
-}
-
-/// A template's pages in a grid, to take one.
-struct TemplatePagePicker: View {
-    let design: Design
-    var onPick: (Int) -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    private let columns = [GridItem(.adaptive(minimum: 96), spacing: 12)]
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                LazyVGrid(columns: columns, spacing: 14) {
-                    ForEach(Array(design.pages.enumerated()), id: \.element.id) { index, page in
-                        Button {
-                            dismiss()
-                            onPick(index)
-                        } label: {
-                            VStack(spacing: 6) {
-                                let size = design.size(for: page)
-                                PageThumbnail(design: design, page: page)
-                                    .aspectRatio(size.width / max(size.height, 1), contentMode: .fit)
-                                    .frame(maxWidth: .infinity, maxHeight: 120)
-                                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.hairline))
-                                Text("\(index + 1)")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(Theme.ink)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Page \(index + 1)")
-                    }
-                }
-                .padding(16)
-            }
-            .background(Theme.workspace)
-            .navigationTitle("Choose a page")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-            }
-        }
-        .presentationDetents([.medium, .large])
-    }
-}
-
 /// The editor's Templates panel's first run: your own, found by name or
 /// category, every size fitted to this page. A tap applies one — a
-/// template of several pages asks how — and a long press offers Rename,
-/// Update from this design and Delete.
+/// template of several pages shows its strip, as a built-in set does — and
+/// a long press offers Rename, Update from this design and Delete.
 struct EditorYourTemplates: View {
     @Bindable var store: DesignStore
     var search: String
@@ -169,7 +65,11 @@ struct EditorYourTemplates: View {
             }
         }
         .onAppear { entries = UserTemplates.all() }
-        .templatePageChoice($choice, store: store, onDone: onApplied)
+        .sheet(item: $choice) { shown in
+            TemplateSetSheet(name: shown.name, design: shown.design,
+                             note: TemplateSetSheet.editorNote(empty: DesignStore.isEmptyForTemplates(store.design)),
+                             applyAll: { applyAll(shown) }, usePage: { usePage($0, of: shown) })
+        }
         .modifier(UserTemplateDialogs(renaming: $renaming, renameText: $renameText, deleting: $deleting) {
             entries = UserTemplates.all()
         })
@@ -197,7 +97,7 @@ struct EditorYourTemplates: View {
     }
 
     /// One page replaces this page, as a built-in template does; several
-    /// ask first.
+    /// show their strip first.
     private func use(_ entry: UserTemplate) {
         guard let design = UserTemplates.load(id: entry.id) else {
             store.announce("Couldn't open that template", undoable: false)
@@ -206,10 +106,27 @@ struct EditorYourTemplates: View {
         if design.pages.count > 1 {
             choice = TemplateChoice(id: entry.id, name: entry.name, design: design)
         } else {
-            store.applyTemplatePages(UserTemplates.pages(of: design, width: store.pageWidth, height: store.pageHeight),
-                                     name: entry.name)
-            onApplied()
+            usePage(0, of: TemplateChoice(id: entry.id, name: entry.name, design: design))
         }
+    }
+
+    /// "Apply all N pages": every page fitted to this one, by the rule a
+    /// built-in set keeps (DesignStore.appliedTemplateSet) — in place of a
+    /// design with nothing on it, else after this page — showing the first
+    /// of them, as one Undo.
+    private func applyAll(_ shown: TemplateChoice) {
+        store.applyTemplateSet(UserTemplates.pages(of: shown.design, width: store.pageWidth, height: store.pageHeight),
+                               name: shown.name)
+        onApplied()
+    }
+
+    /// "Use this page": page `index` alone, fitted to this page, in its
+    /// place.
+    private func usePage(_ index: Int, of shown: TemplateChoice) {
+        let pages = UserTemplates.pages(of: shown.design, width: store.pageWidth, height: store.pageHeight)
+        guard pages.indices.contains(index) else { return }
+        store.applyTemplatePage(pages[index], name: shown.name)
+        onApplied()
     }
 
     /// The template made again from the design open, every page.

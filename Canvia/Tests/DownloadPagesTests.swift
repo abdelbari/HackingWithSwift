@@ -229,7 +229,8 @@ final class DownloadPagesTests: XCTestCase {
         let last = ExportLast(format: "png", scale: 2, longEdge: nil, jpegQuality: 0.85,
                               transparent: false, pages: "all")
         let object = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(last.json.utf8)) as? [String: Any])
-        XCTAssertEqual(Set(object.keys), ["format", "scale", "longEdge", "jpegQuality", "transparent", "pages"])
+        XCTAssertEqual(Set(object.keys), ["format", "scale", "longEdge", "jpegQuality", "transparent", "pages",
+                                          "pdfNotes", "pdfCompress"])
         XCTAssertTrue(object["longEdge"] is NSNull)
         XCTAssertEqual(object["format"] as? String, "png")
         XCTAssertEqual(object["scale"] as? Double, 2)

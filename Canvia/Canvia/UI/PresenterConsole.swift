@@ -23,7 +23,8 @@ struct PresenterConsole<Controls: View>: View {
     let next: () -> Void
     let end: () -> Void
     let showPages: () -> Void
-    /// The sound and autoplay buttons, as the phone's own bar has them.
+    /// The sound, autoplay, loop and effects buttons, as the phone's own
+    /// bar has them.
     @ViewBuilder let controls: Controls
     @State private var notesSize = Presenter.defaultNotesSize
 
@@ -101,15 +102,15 @@ struct PresenterConsole<Controls: View>: View {
     /// The page coming, drawn still, or where the talk ends.
     @ViewBuilder
     private var upNext: some View {
-        if let index = Presenter.next(after: session.index, in: visible) {
+        if let index = Presenter.next(after: session.index, in: visible, loop: session.loop) {
             let page = session.design.pages[index]
             let size = session.design.size(for: page)
             PageThumbnail(design: session.design, page: page)
                 .aspectRatio(size.width / max(size.height, 1), contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .accessibilityLabel("Next, " + PageTitles.counter(place.number + 1, of: place.count,
-                                                                  title: page.title))
+                .accessibilityLabel("Next, " + PageTitles.counter(index < session.index ? 1 : place.number + 1,
+                                                                  of: place.count, title: page.title))
         } else {
             Text(Presenter.endOfPresentation)
                 .font(.subheadline)
@@ -181,7 +182,7 @@ struct PresenterConsole<Controls: View>: View {
             }
             .accessibilityLabel("Pages")
             stepButton("Next", symbol: "chevron.right", action: next)
-                .disabled(Presenter.next(after: session.index, in: visible) == nil)
+                .disabled(Presenter.next(after: session.index, in: visible, loop: session.loop) == nil)
         }
     }
 

@@ -26,8 +26,8 @@ struct InsertSheet: View {
     /// Every template, fitted to this page, rather than only those made for
     /// its size.
     @State private var everySizeTemplates = false
-    /// A template of several pages, while what to do with it is asked.
-    @State private var templateChoice: TemplateChoice?
+    /// A built-in template of several pages, while its pages are shown.
+    @State private var templateSet: Template?
     /// The component whose deletion is being asked about.
     @State private var removingComponent: Component?
     /// The words typed for a code are more than a code holds.
@@ -307,7 +307,10 @@ struct InsertSheet: View {
             }
         }
         .padding()
-        .templatePageChoice($templateChoice, store: store) { dismiss() }
+        .sheet(item: $templateSet) { template in
+            TemplateSetSheet(template: template, note: TemplateSetSheet.editorNote(empty: DesignStore.isEmptyForTemplates(store.design)),
+                             applyAll: { applyAll(template) }, usePage: { startOver(from: template, page: $0) })
+        }
     }
 
     private func templateTile(_ template: Template) -> some View {
@@ -322,22 +325,39 @@ struct InsertSheet: View {
                     .foregroundStyle(.primary)
             }
         }
-        .accessibilityLabel(starred ? "\(template.name), favourite" : template.name)
+        .accessibilityLabel(templateLabel(template, starred: starred))
         .contextMenu { favoriteButton("template", template.id) }
     }
 
-    /// The page's background and every element give way to the template's,
-    /// fitted to this page's own size — which in a design of mixed sizes
-    /// need not be the document's — as one step the toast can take back.
-    private func startOver(from template: Template) {
+    /// "Northwind Pitch Deck, 10 pages, favourite".
+    private func templateLabel(_ template: Template, starred: Bool) -> String {
+        var label = template.name
+        if template.pageCount > 1 { label += ", \(template.pageCount) pages" }
+        return starred ? label + ", favourite" : label
+    }
+
+    /// Every page of a set, fitted to this page: an empty design becomes
+    /// them, any other gets them after this page — one Undo.
+    private func applyAll(_ template: Template) {
+        // A locked page takes nothing, after it or in its place.
+        guard !store.refusesLockedPage() else { return }
+        store.applyTemplateSet(template.makePages(width: store.pageWidth, height: store.pageHeight),
+                               name: template.name)
+        dismiss()
+    }
+
+    /// The page's background and every element give way to the template's
+    /// (page `index` of it), fitted to this page's own size — which in a
+    /// design of mixed sizes need not be the document's — as one step the
+    /// toast can take back. A set of several pages shows them first.
+    private func startOver(from template: Template, page index: Int? = nil) {
         // A locked page keeps what is on it.
         guard !store.refusesLockedPage() else { return }
-        // One of several pages asks first: all of them, or one.
-        guard template.pageCount == 1 else {
-            templateChoice = TemplateChoice(id: template.id, name: template.name, design: template.instantiate())
+        guard template.pageCount == 1 || index != nil else {
+            templateSet = template
             return
         }
-        let page = template.makePage(width: store.pageWidth, height: store.pageHeight)
+        let page = template.makePage(at: index ?? 0, width: store.pageWidth, height: store.pageHeight)
         store.applyToPage { current in
             current.background = page.background
             current.elements = page.elements
@@ -1629,9 +1649,11 @@ private struct AnimatedStickerFace: View {
     }
 }
 
-/// Small template preview rendered with the real page renderer.
+/// Small template preview rendered with the real page renderer, with its
+/// page count when it has several pages (unless `badge` is off).
 struct TemplateThumb: View {
     let template: Template
+    var badge = true
     @State private var image: UIImage?
 
     var body: some View {
@@ -1647,6 +1669,7 @@ struct TemplateThumb: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(alignment: .bottomTrailing) { PageCountBadge(count: badge ? template.pageCount : 1) }
         .task {
             if image == nil {
                 image = TemplateThumbCache.thumbnail(for: template)

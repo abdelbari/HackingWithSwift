@@ -2091,21 +2091,21 @@ final class DesignStore {
         tipEvent = .pageAdded
     }
 
-    /// A template's pages, fitted to this page, applied as one undo step:
-    /// the first takes this page's place — its background and everything on
-    /// it — and the rest are added after it, in order, each at this page's
-    /// size.
-    func applyTemplatePages(_ pages: [Page], name: String) {
-        guard !pages.isEmpty, !refusesLockedPage() else { return }
+    /// One page of a template of your own, fitted to this page, in its
+    /// place — its background and everything on it — as one undo step:
+    /// "Use this page", or a template of one page. Every page of one is
+    /// applyTemplateSet's, as a built-in set's are.
+    func applyTemplatePage(_ page: Page, name: String) {
+        guard !refusesLockedPage() else { return }
         let at = pageIndex
-        apply { $0 = Self.appliedTemplate($0, pages: pages, at: at) }
+        apply { $0 = Self.appliedTemplate($0, pages: [page], at: at) }
         selection.removeAll()
         buzz(.confirm)
-        announce(pages.count == 1 ? "Started over from \u{201C}\(name)\u{201D}"
-                 : "Applied all \(pages.count) pages of \u{201C}\(name)\u{201D}")
+        announce("Started over from \u{201C}\(name)\u{201D}")
     }
 
-    /// The design with `pages` applied at page `index`, as above. Pure.
+    /// The design with `pages` applied at page `index`: the first in its
+    /// place, any more after it at its size. Pure.
     static func appliedTemplate(_ design: Design, pages: [Page], at index: Int) -> Design {
         guard let first = pages.first, design.pages.indices.contains(index) else { return design }
         var out = design
@@ -2119,6 +2119,50 @@ final class DesignStore {
         }
         out.pages.insert(contentsOf: rest, at: index + 1)
         return out
+    }
+
+    /// "Apply all N pages" of a template set — built in or your own —
+    /// fitted to this page, as one undo step (appliedTemplateSet), on the
+    /// first of them.
+    func applyTemplateSet(_ pages: [Page], name: String) {
+        guard !pages.isEmpty, !refusesLockedPage() else { return }
+        let applied = Self.appliedTemplateSet(design, pages: pages, at: pageIndex)
+        apply { $0 = applied.design }
+        pageIndex = applied.first
+        selection.removeAll()
+        buzz(.confirm)
+        announce("Applied all \(pages.count) pages of \u{201C}\(name)\u{201D}")
+    }
+
+    /// The design with a template set's `pages` applied from page `index`,
+    /// and where the first of them landed. A design with nothing on it —
+    /// no element on any page; a background alone is not something — is
+    /// replaced by them, every page; any other gets them after page
+    /// `index`, in order, keeping all it had. Each takes page `index`'s size.
+    /// The simplest rule, kept on both phones. Pure.
+    static func appliedTemplateSet(_ design: Design, pages: [Page], at index: Int) -> (design: Design, first: Int) {
+        guard !pages.isEmpty, design.pages.indices.contains(index) else { return (design, index) }
+        let sized = pages.map { page -> Page in
+            var out = page
+            out.width = design.pages[index].width
+            out.height = design.pages[index].height
+            return out
+        }
+        var out = design
+        if isEmptyForTemplates(design) {
+            out.pages = sized
+            // A master page that went with the old pages goes too.
+            out.masterPageId = nil
+            return (out, 0)
+        }
+        out.pages.insert(contentsOf: sized, at: index + 1)
+        return (out, index + 1)
+    }
+
+    /// Whether a design has nothing on it for a template set to keep: no
+    /// element on any page.
+    static func isEmptyForTemplates(_ design: Design) -> Bool {
+        design.pages.allSatisfy { $0.elements.isEmpty }
     }
 
     func duplicatePage() {

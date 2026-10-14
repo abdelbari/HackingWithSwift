@@ -60,6 +60,7 @@ enum PhotoLibrary {
     /// resolved somewhere else entirely.
     static func resolve(_ src: String?) -> UIImage? {
         guard let src else { return nil }
+        if src.hasPrefix(CompressedPhotos.prefix) { return CompressedPhotos.staged[src] }
         if src.hasPrefix("asset:") { return image(id: String(src.dropFirst(6))) }
         if src.hasPrefix("media:") { return MediaStore.load(String(src.dropFirst(6))) }
         if VideoStore.isVideo(src) { return VideoStore.resolve(src) }
@@ -362,6 +363,21 @@ enum PhotoLibrary {
     }
 }
 
+// MARK: photos staged for a compressed PDF
+
+/// The smaller copies a compressed PDF draws its photos from, by the stand-in
+/// source each page carries while it is written: "pdfc:<w>x<h>:<source>"
+/// (DesignExporter.compressedForPDF). Never saved in a design; the export
+/// that staged them clears them when it is done.
+enum CompressedPhotos {
+    static let prefix = "pdfc:"
+    static var staged: [String: UIImage] = [:]
+
+    static func clear() {
+        staged.removeAll()
+    }
+}
+
 // MARK: user media store
 
 enum MediaStore {
@@ -495,6 +511,22 @@ enum MediaStore {
                   let img = UIImage(data: data) else { continue }
             remember(img, id)
             return img
+        }
+        return nil
+    }
+
+    /// A stored picture's pixels, as load() would show them, read from its
+    /// file's header alone — no decode, and nothing main-actor bound, so it
+    /// can be asked off the main thread (the PDF's size estimate).
+    static func pixelSize(_ id: String) -> CGSize? {
+        if let cached = memory.object(forKey: id as NSString) {
+            return CGSize(width: cached.size.width * cached.scale, height: cached.size.height * cached.scale)
+        }
+        for ext in pictureExtensions {
+            let url = directory.appendingPathComponent("\(id).\(ext)")
+            guard let data = try? Data(contentsOf: url, options: .mappedIfSafe),
+                  let size = ImageDownsampler.pixelSize(data) else { continue }
+            return size
         }
         return nil
     }

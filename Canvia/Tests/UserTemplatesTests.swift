@@ -244,16 +244,33 @@ final class UserTemplatesTests: XCTestCase {
         XCTAssertEqual(DesignStore.appliedTemplate(d, pages: incoming, at: 9), d)
     }
 
+    /// Your own template of several pages applies all of them by a
+    /// built-in set's rule, as on the Android twin: after this page when
+    /// the design has something on it, showing the first, as one step.
     func testApplyingIsOneUndoStep() {
         var d = Design(title: "Mine", width: 1080, height: 1080)
         d.pages = [Page(elements: [Element.text("Keep me")])]
         let store = DesignStore(design: d)
         let pages = UserTemplates.pages(of: deck(), width: 1080, height: 1080)
-        store.applyTemplatePages(pages, name: "Pitch")
-        XCTAssertEqual(store.design.pages.count, 3)
+        store.applyTemplateSet(pages, name: "Pitch")
+        XCTAssertEqual(store.design.pages.count, 1 + pages.count)
+        XCTAssertEqual(store.design.pages[0].elements.first?.text, "Keep me")
+        XCTAssertEqual(store.pageIndex, 1, "the template's first page")
         store.undo()
         XCTAssertEqual(store.design.pages.count, 1)
         XCTAssertEqual(store.design.pages[0].elements.first?.text, "Keep me")
+    }
+
+    /// "Use this page", or a template of one page: that page in this
+    /// page's place, nothing added.
+    func testUsingOnePageReplacesThisPage() {
+        var d = Design(title: "Mine", width: 1080, height: 1080)
+        d.pages = [Page(elements: [Element.text("Old")]), Page()]
+        let store = DesignStore(design: d)
+        let pages = UserTemplates.pages(of: deck(), width: 1080, height: 1080)
+        store.applyTemplatePage(pages[1], name: "Pitch")
+        XCTAssertEqual(store.design.pages.count, 2)
+        XCTAssertEqual(store.design.pages[0].elements.map(\.text), pages[1].elements.map(\.text))
     }
 
     // MARK: built-in templates of several pages

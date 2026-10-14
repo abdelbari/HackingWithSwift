@@ -31,6 +31,9 @@ struct ExportSheet: View {
     @State private var resolution = MovieExporter.Resolution.standard
     /// PDFs drawn as one 300-dpi picture a page.
     @State private var flatten = false
+    /// The PDF's notes pages, and its photos at 150 dpi.
+    @State private var pdfNotes = false
+    @State private var pdfCompress = false
     /// "Remember these settings": the last export, as JSON; empty is off.
     @AppStorage(ExportLast.key) private var exportLast = ""
     /// Settings' default export format, listed first.
@@ -45,6 +48,9 @@ struct ExportSheet: View {
     /// Each track's music's length in seconds, by AudioStore id, read as
     /// Motion's track rows show.
     @State private var trackLengths: [String: Double] = [:]
+    /// Each photo the PDF holds, its pixels by source, read from the file
+    /// headers off the main thread for the PDF's size note.
+    @State private var pdfPixelSizes: [String: CGSize] = [:]
     /// Close asked with an export running: keep it going, or stop it.
     @State private var askingKeep = false
 
@@ -413,6 +419,7 @@ struct ExportSheet: View {
         Section {
             ForEach(AppDefaults.formatOrder(defaultFormat), id: \.self) { formatRow($0) }
             Toggle("Flatten PDF", isOn: $flatten)
+            pdfOptions
             exportButton("PowerPoint", subtitle: pptxSubtitle, icon: "rectangle.stack",
                          working: "Making the PowerPoint", unavailable: leftOut(pdfIndices), format: "pptx") {
                 ExportJobs.powerPoint(designSnapshot)
@@ -444,7 +451,7 @@ struct ExportSheet: View {
         case "pdf":
             exportButton("PDF", subtitle: pdfSubtitle, icon: "doc.richtext", working: "Making the PDF",
                          unavailable: leftOut(pdfIndices), format: "pdf") {
-                ExportJobs.pdf(designSnapshot, flatten: flatten)
+                ExportJobs.pdf(designSnapshot, flatten: flatten, notes: pdfNotes, compress: pdfCompress)
             }
         default:
             exportButton("SVG", subtitle: count > 1 ? "\(pagesWord(count)), one SVG each" : "\(onePageText), editable vectors",
@@ -452,6 +459,44 @@ struct ExportSheet: View {
                 ExportJobs.svg(exportedSnapshot)
             }
         }
+    }
+
+    /// The PDF's two switches, under its row, and the size it will come to.
+    @ViewBuilder
+    private var pdfOptions: some View {
+        Toggle("Include notes", isOn: $pdfNotes)
+        Toggle("Compress", isOn: $pdfCompress)
+        Text(pdfSizeNote)
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .task(id: pdfPhotoSources) { await readPDFPixelSizes() }
+    }
+
+    /// "About 3.2 MB": the PDF's photos as they will be kept, and 30 KB a
+    /// sheet (ExportChoices.estimatedPDFBytes), from the pixel sizes read
+    /// so far.
+    private var pdfSizeNote: String {
+        let bytes = ExportChoices.estimatedPDFBytes(design: store.design, indices: pdfIndices, notes: pdfNotes,
+                                                    compress: pdfCompress) { pdfPixelSizes[$0] }
+        return ExportChoices.sizeText(bytes)
+    }
+
+    /// Every photo source the PDF holds, the master's and backgrounds too.
+    private var pdfPhotoSources: [String] {
+        ExportChoices.pdfPhotos(design: store.design, indices: pdfIndices).map { $0.src }
+    }
+
+    /// The pixels of each photo not yet read, from its header, off the main
+    /// thread, as the Android twin's sheet reads them on its IO dispatcher.
+    private func readPDFPixelSizes() async {
+        let wanted = pdfPhotoSources.filter { pdfPixelSizes[$0] == nil }
+        guard !wanted.isEmpty else { return }
+        let read = await Task.detached(priority: .utility) { () -> [String: CGSize] in
+            var sizes: [String: CGSize] = [:]
+            for src in wanted { sizes[src] = ExportChoices.photoPixelSize(src) }
+            return sizes
+        }.value
+        pdfPixelSizes.merge(read) { _, new in new }
     }
 
     /// What the PDF holds, from the page choice.
@@ -502,7 +547,7 @@ struct ExportSheet: View {
                     }
                 }
         } footer: {
-            Text("The format, size, quality, background and page choice of your last export, ready next time. The pages ticked in Choose… stay with this design until the app closes.")
+            Text("The format, size, quality, background, page choice and PDF options of your last export, ready next time. The pages ticked in Choose… stay with this design until the app closes.")
         }
     }
 
@@ -511,7 +556,7 @@ struct ExportSheet: View {
         guard remember else { return }
         exportLast = ExportLast(format: format, scale: scale, longEdge: typedLongEdge.map { Int($0) },
                                 jpegQuality: jpegQuality, transparent: transparent,
-                                pages: pageRange.rawValue).json
+                                pages: pageRange.rawValue, pdfNotes: pdfNotes, pdfCompress: pdfCompress).json
     }
 
     /// The pages ticked this session, the design's bleed, and the
@@ -527,6 +572,8 @@ struct ExportSheet: View {
         scale = [1.0, 2.0, 3.0].contains(last.scale) ? last.scale : 2
         jpegQuality = last.jpegQuality
         transparent = last.transparent
+        pdfNotes = last.pdfNotes
+        pdfCompress = last.pdfCompress
         pageRange = RangeChoice(rawValue: last.pages) ?? .all
         if last.format == "jpg" { photosFormat = .jpeg } else if last.format == "png" { photosFormat = .png }
         // After the scale's own change has cleared the field, which it does
@@ -633,6 +680,12 @@ struct ExportSheet: View {
                          working: "Making the print PDF", unavailable: leftOut(exportedIndices), format: "print") {
                 ExportJobs.printPDF(exportedSnapshot, options: paper, flatten: flatten, printing: false)
             }
+            // Compress is the plain PDF's; a print shop gets every pixel.
+            Toggle("Compress", isOn: .constant(false))
+                .disabled(true)
+            Text(ExportChoices.printKeepsQuality)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
             DisclosureGroup("Paper layout") { paperSettings }
         } header: {
             Text("Print")
@@ -655,6 +708,10 @@ struct ExportSheet: View {
         case .tile:
             let n = PrintLayout.tiles(page: pts, printable: paper.printable.size, overlap: paper.overlap).count
             return "\(n) sheets of \(paper.paper.name), overlapping by \(Int(paper.overlap)) pt to trim and join."
+        case .several:
+            // "10 per sheet, 2 sheets", as the Android twin says it.
+            let plan = DesignExporter.severalPlan(design: exportedDesign, indices: exportedIndices, options: paper)
+            return PrintLayout.severalNote(perSheet: plan.perSheet, sheets: plan.sheets.count)
         }
     }
 
@@ -667,6 +724,7 @@ struct ExportSheet: View {
             Picker("Placement", selection: $paper.fit) {
                 ForEach(PrintLayout.Fit.allCases) { Text($0.name).tag($0) }
             }
+            if paper.fit == .several { severalSettings }
             Stepper(value: $paper.bleed, in: 0...36, step: 3) { Text("Bleed \(String(format: "%.0f", paper.bleed / 2.835)) mm") }
             // A design with no bleed of its own has one made for it.
             if paper.bleed > 0 && !Bleed.shown(exportedDesign) {
@@ -676,6 +734,24 @@ struct ExportSheet: View {
             }
             Toggle("Crop marks", isOn: $paper.cropMarks)
         }
+    }
+
+    /// Several to a sheet: one page over and over, or one of each; and, for
+    /// a design of two pages with both printed, its back printed on the
+    /// other side — the switch there, and said, otherwise, as the Android
+    /// twin's is.
+    @ViewBuilder
+    private var severalSettings: some View {
+        Picker("Fill the sheet with", selection: $paper.several) {
+            ForEach(PrintLayout.Several.allCases) { Text($0.name).tag($0) }
+        }
+        let twoSided = exportedDesign.pages.count == 2 && exportedIndices.count == 2
+        Toggle("Double-sided", isOn: Binding(get: { paper.duplex && twoSided }, set: { paper.duplex = $0 }))
+            .disabled(!twoSided)
+        Text(twoSided ? "Page 1 on the front, page 2 on the back. Print on both sides, flipping on the long edge."
+                      : "Double-sided takes a design of two pages, both printed: a front and a back.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
     }
 
     private var motionSection: some View {

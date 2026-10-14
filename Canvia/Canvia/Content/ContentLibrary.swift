@@ -12,10 +12,13 @@ struct ShapeDef: Codable, Identifiable {
     var rectLike: Bool?
 }
 
-/// One page of a template that has several.
+/// One page of a template that has several: what is on it, and the title
+/// and presenter notes the page it makes is given, when it has them.
 struct TemplatePage: Codable {
     var background: Background
     var elements: [Element]
+    var title: String? = nil
+    var notes: String? = nil
 }
 
 struct Template: Codable, Identifiable {
@@ -27,9 +30,14 @@ struct Template: Codable, Identifiable {
     var background: Background
     var elements: [Element]
     /// Every page, for a template that has several, as the Android twin
-    /// reads them: {"background", "elements"} each. Nil or empty is the
-    /// one page `background` and `elements` describe.
+    /// reads them: {"background", "elements", "title"?, "notes"?} each.
+    /// Nil or empty is the one page `background` and `elements` describe;
+    /// when there are pages, `background` and `elements` are the first's.
     var pages: [TemplatePage]? = nil
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, category, width, height, background, elements, pages
+    }
 
     /// The template's pages, in order: one for a single-page template.
     var pageSpecs: [TemplatePage] {
@@ -50,6 +58,27 @@ struct Template: Codable, Identifiable {
             design.dpi = type.dpi
         }
         return design
+    }
+
+    /// A fresh Design of page `index` alone — "Use this page" on Home.
+    func instantiate(onlyPage index: Int) -> Design {
+        var design = instantiate()
+        if design.pages.indices.contains(index) { design.pages = [design.pages[index]] }
+        return design
+    }
+
+    /// A fresh Design of page `index` alone at a design type's size —
+    /// "Use this page" in the Start sheet.
+    func instantiate(for preset: SizePreset, onlyPage index: Int) -> Design {
+        var design = instantiate(for: preset)
+        if design.pages.indices.contains(index) { design.pages = [design.pages[index]] }
+        return design
+    }
+
+    /// Every page fitted to a page of this size, in order: what "Apply all
+    /// N pages" puts in the editor.
+    func makePages(width pageWidth: Double, height pageHeight: Double) -> [Page] {
+        pageSpecs.indices.map { makePage(at: $0, width: pageWidth, height: pageHeight) }
     }
 
     /// A fresh Design at a design type's size and in its unit: the
@@ -96,7 +125,8 @@ struct Template: Codable, Identifiable {
     }
 
     private func makePage(_ spec: TemplatePage, scale: Double, dx: Double, dy: Double) -> Page {
-        var page = Page(background: spec.background)
+        var page = Page(background: spec.background, notes: spec.notes?.isEmpty == false ? spec.notes : nil)
+        page.title = spec.title.flatMap(PageTitles.kept)
         page.elements = spec.elements.map { item in
             var el = Self.fitted(item, scale: scale, dx: dx, dy: dy)
             el.id = UID.make()
@@ -127,6 +157,30 @@ struct Template: Codable, Identifiable {
         if let t = el.thickness { el.thickness = max(1, t * scale) }
         if let r = el.radius { el.radius = r * scale }
         return el
+    }
+}
+
+extension Template {
+    /// Lenient about the page it describes: a template with "pages" may
+    /// leave the top-level background and elements out, and when it has
+    /// pages they are the first page's whatever the top level says. One of
+    /// a single page reads as it always did.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        category = try c.decode(String.self, forKey: .category)
+        width = try c.decode(Double.self, forKey: .width)
+        height = try c.decode(Double.self, forKey: .height)
+        let listed = try c.decodeIfPresent([TemplatePage].self, forKey: .pages) ?? []
+        pages = listed.isEmpty ? nil : listed
+        if let first = listed.first {
+            background = first.background
+            elements = first.elements
+        } else {
+            background = try c.decode(Background.self, forKey: .background)
+            elements = try c.decode([Element].self, forKey: .elements)
+        }
     }
 }
 

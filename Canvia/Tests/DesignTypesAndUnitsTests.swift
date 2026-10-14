@@ -61,6 +61,11 @@ final class DesignTypesAndUnitsTests: XCTestCase {
             "linkedin-post", "linkedin-banner", "x-post", "x-header", "pinterest-pin", "phone-wallpaper",
             "desktop-wallpaper", "presentation-4x3", "invitation", "postcard", "menu", "flyer-letter", "a3-poster",
             "resume-a4", "resume-letter", "certificate", "infographic", "email-header", "brochure", "display-ad",
+            "card", "calendar-a4", "calendar-letter", "planner", "worksheet-a4", "worksheet-letter", "book-cover",
+            "album-cover", "label", "sticker", "bookmark", "ticket", "gift-certificate", "letterhead-a4",
+            "letterhead-letter", "newsletter", "magazine", "banner", "facebook-event-cover", "instagram-ad",
+            "twitch-banner", "etsy-banner", "mobile-video", "logo-animated", "gmail-header", "snapchat-geofilter",
+            "podcast-cover", "zoom-background", "etsy-shop-icon",
         ])
         XCTAssertEqual(try designType("us-letter").name, "US Letter Document")
         XCTAssertEqual(try designType("resume-letter").name, "Resume (US Letter)")
@@ -134,7 +139,9 @@ final class DesignTypesAndUnitsTests: XCTestCase {
         let resumes = SizePreset.search("Résumé").map(\.id)
         XCTAssertEqual(Array(resumes.prefix(2)), ["resume-a4", "resume-letter"])
         XCTAssertTrue(SizePreset.search("cv").map(\.id).contains("resume-a4"), "by a keyword")
-        XCTAssertEqual(SizePreset.search("letter").first?.id, "us-letter")
+        // The letterheads' names start with the word; US Letter has it as a word.
+        XCTAssertEqual(Array(SizePreset.search("letter").map(\.id).prefix(3)),
+                       ["letterhead-a4", "letterhead-letter", "us-letter"])
         let tall = SizePreset.search("1080x1920").map(\.id)
         XCTAssertTrue(tall.contains("tiktok-video"))
         XCTAssertTrue(tall.contains("insta-story"))
@@ -152,7 +159,7 @@ final class DesignTypesAndUnitsTests: XCTestCase {
             ("tiktok", ["tiktok-video"]),
             ("TikTok", ["tiktok-video"]),
             ("resume", ["resume-a4", "resume-letter"]),
-            ("letter", ["us-letter"]),
+            ("letter", ["letterhead-a4", "letterhead-letter", "us-letter"]),
             ("cv", ["resume-a4", "resume-letter"]),
             ("insta", ["insta-post", "insta-story", "insta-reel", "insta-portrait"]),
             ("reel", ["insta-reel"]),
@@ -171,11 +178,12 @@ final class DesignTypesAndUnitsTests: XCTestCase {
     }
 
     func testSearchingASizeFindsTheTypesOfThatSize() {
-        let tall = ["insta-story", "tiktok-video", "insta-reel", "facebook-story", "phone-wallpaper"]
+        let tall = ["insta-story", "tiktok-video", "insta-reel", "facebook-story", "phone-wallpaper", "mobile-video"]
         XCTAssertEqual(SizePreset.search("1080x1920").map(\.id), tall)
         XCTAssertEqual(SizePreset.search("1080 × 1920").map(\.id), tall)
         XCTAssertEqual(SizePreset.search("1080 X 1920").map(\.id), tall)
-        XCTAssertEqual(SizePreset.search("2480x3508").map(\.id), ["a4", "resume-a4"])
+        XCTAssertEqual(SizePreset.search("2480x3508").map(\.id),
+                       ["a4", "resume-a4", "calendar-a4", "worksheet-a4", "letterhead-a4", "magazine"])
         XCTAssertTrue(SizePreset.search("1x1").isEmpty)
     }
 

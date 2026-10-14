@@ -254,6 +254,25 @@ struct MotionSettings: Codable, Equatable {
     static let pageHoldRange = 0.5...60.0
 }
 
+/// How Present plays the design, kept with it so a kiosk keeps it: written
+/// as {"loop": true} only while looping is on, and left out otherwise, so
+/// every other design reads and writes as before on both phones.
+struct PresentSettings: Codable, Equatable {
+    /// At the end of the last page shown, go round to the first.
+    var loop = false
+
+    init(loop: Bool = false) {
+        self.loop = loop
+    }
+
+    private enum CodingKeys: String, CodingKey { case loop }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        loop = (try? c.decode(Bool.self, forKey: .loop)) ?? false
+    }
+}
+
 /// One sound under the design's film — a song, a voice-over — as the Audio
 /// sheet sets it. `src` names its file, "audio:<AudioStore id>"; `start` is
 /// where it comes in, in seconds into the film; `trimStart` and `trimEnd`
@@ -431,6 +450,16 @@ struct Design: Codable, Equatable, Identifiable {
     /// phone's own.
     var language: String?
 
+    /// How Present plays it; nil, and not written, is as it always played.
+    var present: PresentSettings?
+
+    /// Whether Present goes round from the last page shown to the first;
+    /// turning it off takes the key away.
+    var presentLoops: Bool {
+        get { present?.loop == true }
+        set { present = newValue ? PresentSettings(loop: true) : nil }
+    }
+
     /// Whether the design is starred; unstarring takes the key away.
     var isStarred: Bool {
         get { starred == true }
@@ -497,6 +526,7 @@ struct Design: Codable, Equatable, Identifiable {
         let ignored = Proofreader.tidied(words)
         spellIgnore = ignored.isEmpty ? nil : ignored
         language = Proofreader.languageTag(try? c.decode(String.self, forKey: .language))
+        present = (try? c.decode(PresentSettings.self, forKey: .present)).flatMap { $0.loop ? $0 : nil }
         let tracks = (try? c.decode([AudioTrack.IfReadable].self, forKey: .audio))?.compactMap(\.track) ?? []
         audio = tracks.isEmpty ? nil : tracks
         // The old soundtrack, read forever: the one track of a file with no
@@ -524,7 +554,7 @@ struct Design: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides, folder
-        case titleAuto, fonts, unit, dpi, bleed, audio, starred, spellIgnore, language
+        case titleAuto, fonts, unit, dpi, bleed, audio, starred, spellIgnore, language, present
     }
 
     /// The master page, if one is set and still exists.
