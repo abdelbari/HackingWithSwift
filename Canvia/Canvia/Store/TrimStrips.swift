@@ -143,7 +143,8 @@ enum Filmstrip {
 
 /// What a trimmer plays when a handle is let go: a stretch of a clip's or a
 /// track's file, once, then nothing — one at a time, a new one in place of
-/// any still playing.
+/// any still playing — at the volume and speed it plays at, its pitch kept,
+/// as the Android twin's audition. Nothing at no volume.
 @MainActor
 final class Audition {
     static let shared = Audition()
@@ -151,16 +152,21 @@ final class Audition {
     private let player = AVPlayer()
     private var stopper: Task<Void, Never>?
 
-    /// `range` seconds of the file at `url`, from its start to its end.
-    func play(_ url: URL, _ range: ClosedRange<Double>) {
+    /// `range` seconds of the file at `url`, from its start to its end, at
+    /// `volume` (0…1) and `speed`.
+    func play(_ url: URL, _ range: ClosedRange<Double>, volume: Double = 1, speed: Double = 1) {
         stop()
-        guard range.upperBound - range.lowerBound > 0.01 else { return }
+        let level = Float(min(max(volume, 0), 1))
+        let rate = min(max(speed, ClipPlayback.speedRange.lowerBound), ClipPlayback.speedRange.upperBound)
+        guard level > 0, range.upperBound - range.lowerBound > 0.01 else { return }
         let item = AVPlayerItem(url: url)
+        item.audioTimePitchAlgorithm = .spectral
         item.forwardPlaybackEndTime = PageSound.time(range.upperBound)
         player.replaceCurrentItem(with: item)
+        player.volume = level
         player.seek(to: PageSound.time(range.lowerBound), toleranceBefore: .zero, toleranceAfter: .zero)
-        player.play()
-        let seconds = range.upperBound - range.lowerBound
+        player.playImmediately(atRate: Float(rate))
+        let seconds = (range.upperBound - range.lowerBound) / rate
         stopper = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(seconds + 0.25))
             guard !Task.isCancelled else { return }

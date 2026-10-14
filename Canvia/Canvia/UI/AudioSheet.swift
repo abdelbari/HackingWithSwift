@@ -296,10 +296,10 @@ struct AudioTrackView: View {
         }
     }
 
-    /// `range` seconds of the track's music, heard once.
+    /// `range` seconds of the track's music, heard once at its volume.
     private func audition(_ range: ClosedRange<Double>) {
-        guard let url = AudioStore.url(for: track?.audioId) else { return }
-        Audition.shared.play(url, range)
+        guard let track, let url = AudioStore.url(for: track.audioId) else { return }
+        Audition.shared.play(url, range, volume: track.volume)
     }
 
     private func levelSection(_ track: AudioTrack) -> some View {

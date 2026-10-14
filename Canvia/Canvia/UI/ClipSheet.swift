@@ -186,8 +186,12 @@ struct ClipSheet: View {
             next.start = s
             next.end = e >= length - 0.05 ? nil : e
         }
-        if let id = clipId, let url = VideoStore.url(for: id) {
-            Audition.shared.play(url, Trimming.auditioned(start: s, end: min(e, length)))
+        // Heard as it plays: not at all when it is silent, else at its
+        // volume and speed.
+        let playback = element?.clip ?? ClipPlayback()
+        if playback.sounds, let id = clipId, let url = VideoStore.url(for: id) {
+            Audition.shared.play(url, Trimming.auditioned(start: s, end: min(e, length)),
+                                 volume: playback.volume, speed: playback.playbackSpeed)
         }
     }
 

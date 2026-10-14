@@ -307,6 +307,23 @@ final class ClipSoundTests: XCTestCase {
         XCTAssertNil(present.fadeOut)
     }
 
+    /// Present gives a page's clips its hold under autoplay, so a looping
+    /// clip fades out over the page's last moments; none when the page
+    /// waits to be turned.
+    @MainActor
+    func testPresentFadesALoopingClipOutByAnAutoplayedPagesTurn() throws {
+        XCTAssertEqual(PresentationView.clipPageLength(autoplay: true, hold: 6), 6)
+        XCTAssertNil(PresentationView.clipPageLength(autoplay: false, hold: 6))
+        let looping = ClipPlayback(fadeOut: 2)
+        let page = PresentationView.clipPageLength(autoplay: true, hold: 6)
+        let heard = try XCTUnwrap(AudioMix.clipHeard(looping, window: 4, timing: nil, page: page))
+        XCTAssertEqual(heard, 0...6)
+        XCTAssertEqual(AudioMix.clipFades(looping, heard: heard).fadeOut, 4...6)
+        let held = try XCTUnwrap(AudioMix.clipHeard(looping, window: 4, timing: nil,
+                                                    page: PresentationView.clipPageLength(autoplay: false, hold: 6)))
+        XCTAssertNil(AudioMix.clipFades(looping, heard: held).fadeOut)
+    }
+
     /// A clip's fade rises and falls on its gain.
     func testAClipsFadeRisesAndFallsOnItsGain() throws {
         let plan = AudioMix.plan(timeline: pages(10), fps: 30, clipsByPage: [[clip("a", ClipPlayback(volume: 0.8,

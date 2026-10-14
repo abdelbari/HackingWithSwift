@@ -1,7 +1,8 @@
 // The twelve later filters (PhotoLook.recipe), the photo fx — glitch,
 // slice, halftone and grain, in the `fx` key and a pixel at a time
 // (PhotoLook.fx) — and Hold to compare. The tables are the Android twin's
-// PhotoLookTest and PixelLookTest rows, value for value.
+// PhotoLookTest and PhotoFxTest rows, value for value: change a row here
+// and there together.
 
 import UIKit
 import XCTest
@@ -146,6 +147,17 @@ final class PhotoLooksTests: XCTestCase {
         var whole = SeededRandom(seed: 7)
         XCTAssertEqual([10, 10, 10, 6, 2].map { whole.below($0) }, [2, 9, 6, 5, 0])
         XCTAssertEqual(whole.below(0), 0)
+        // Seed -> its first three draws.
+        let rows: [(Double, [Double])] = [
+            (0, [0.23606797284446657, 0.278566908556968, 0.8195337599609047]),
+            (1, [0.23645552527159452, 0.3692706737201661, 0.5042420323006809]),
+            (42, [0.2523451747838408, 0.08812504541128874, 0.5772811982315034]),
+            (-1, [0.2356804204173386, 0.18786314339376986, 0.13482548762112856]),
+        ]
+        for (seed, draws) in rows {
+            var seeded = SeededRandom(seed: seed)
+            for (i, want) in draws.enumerated() { XCTAssertEqual(seeded.next(), want, accuracy: 1e-15, "seed \(seed) draw \(i)") }
+        }
     }
 
     // MARK: fx, a pixel at a time
@@ -230,11 +242,17 @@ final class PhotoLooksTests: XCTestCase {
 
     func testGrainLiftsAndLowersEachPixelFromItsSeed() {
         let bytes: [UInt8] = [100, 100, 100, 255, 0, 0, 0, 255, 250, 250, 250, 255,
-                              50, 50, 50, 128, 0, 0, 0, 0, 200, 10, 90, 255]
+                              50, 50, 50, 255, 0, 0, 0, 0, 200, 10, 90, 255]
         XCTAssertEqual(drawn(bytes, 3, 2, PhotoFx(kind: "grain", amount: 1, seed: 9)),
-                       [0x4b4b4bff, 0x000000ff, 0xffffffff, 0x1a1a1a80, 0x00000000, 0xba004cff])
+                       [0x4b4b4bff, 0x000000ff, 0xffffffff, 0x020202ff, 0x00000000, 0xba004cff])
         XCTAssertEqual(drawn(bytes, 3, 2, PhotoFx(kind: "grain", amount: 0.5, seed: 9)),
-                       [0x575757ff, 0x000000ff, 0xffffffff, 0x26262680, 0x00000000, 0xc10353ff])
+                       [0x575757ff, 0x000000ff, 0xffffffff, 0x1a1a1aff, 0x00000000, 0xc10353ff])
+        // Premultiplied here: a half-clear pixel moves by its alpha's share,
+        // the Android twin's colour moving the whole reach.
+        var half = bytes
+        half[15] = 128
+        XCTAssertEqual(drawn(half, 3, 2, PhotoFx(kind: "grain", amount: 1, seed: 9))[3], 0x1a1a1a80)
+        XCTAssertEqual(drawn(half, 3, 2, PhotoFx(kind: "grain", amount: 0.5, seed: 9))[3], 0x26262680)
     }
 
     func testAnFxOfNothingChangesNothing() {

@@ -9,16 +9,24 @@ final class TrimmingTests: XCTestCase {
 
     // MARK: peaks
 
-    /// The Android twin's PeaksTest has these rows, in this order.
+    /// The Android twin's TrimmerTest has these rows, in this order, value
+    /// for value: change a row here and there together.
     func testPeaksAreTheRootMeanSquareOfEachBucket() {
         let rows: [(name: String, samples: [Float], n: Int, peaks: [Float])] = [
             ("alternating full scale", [1, -1, 1, -1], 2, [1, 1]),
             ("silence then a rise", [0, 0, 3, 4], 2, [0, 3.5355339]),
+            ("silence then full", [0, 0, 1, 1], 2, [0, 1]),
+            ("a half then silence", [0.5, -0.5, 0.5, -0.5, 0, 0], 3, [0.5, 0.5, 0]),
+            // More buckets than samples: ⌊i × 3 / 4⌋ leaves the first empty.
+            ("more buckets than samples", [0.6, 0.8, 0], 4, [0, 0.6, 0.8, 0]),
             ("fewer samples than buckets", [0.5], 2, [0, 0.5]),
-            ("nothing", [], 3, [0, 0, 0]),
+            ("one bucket", [0.3, 0.4], 1, [0.3535534]),
+            // Five into two: two, then three.
+            ("five into two", [0, 1, 1, 1, 1], 2, [0.7071068, 1]),
             ("uneven buckets", [1, 2, 3, 4, 5, 6, 7], 3, [1.5811388, 3.5355339, 6.0553007]),
-            ("no buckets", [2, 2], 0, []),
             ("a quiet hum", [0.1, -0.1, 0.1, -0.1, 0.1, -0.1], 3, [0.1, 0.1, 0.1]),
+            ("nothing", [], 3, [0, 0, 0]),
+            ("no buckets", [2, 2], 0, []),
         ]
         for row in rows {
             let got = Peaks.buckets(row.samples, row.n)
@@ -78,6 +86,8 @@ final class TrimmingTests: XCTestCase {
     }
 
     func testTheBarReadsOutTheTrimAndItsLength() {
+        // The Android twin's TrimmerTest reads these the same.
+        XCTAssertEqual(Trimming.readout(start: 1, end: 4.5), "0:01.0 – 0:04.5 · 0:03.5")
         XCTAssertEqual(Trimming.readout(start: 2, end: 6), "0:02.0 – 0:06.0 · 0:04.0")
         XCTAssertEqual(Trimming.readout(start: 0, end: 75.25), "0:00.0 – 1:15.3 · 1:15.3")
         XCTAssertEqual(Trimming.barHeight, 56)

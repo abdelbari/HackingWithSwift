@@ -805,10 +805,12 @@ enum PhotoLook {
 // MARK: - fx
 
 /// A photo's fx (PhotoFx) a pixel at a time: glitch, slice, halftone and
-/// grain, step for step the Android twin's PixelLook, with one test table
-/// (PhotoLooksTests). Each works on `bytes` — RGBA, premultiplied, `width` ×
-/// `height`, top row first — and draws from its seed with the shared
-/// SeededRandom, in the order written here.
+/// grain, step for step the Android twin's PhotoFx, with one test table
+/// (PhotoLooksTests, the Android twin's PhotoFxTest). Each works on `bytes`
+/// — RGBA, premultiplied, `width` × `height`, top row first — and draws from
+/// its seed with the shared SeededRandom, in the order written here. They
+/// come after the filter, the dials and the effects and before the vignette
+/// and the duotone.
 extension PhotoLook {
 
     /// `fraction` of `side` pixels, rounded half up.
@@ -1024,9 +1026,9 @@ enum ImageFilterEngine {
     }
 
     /// The look on `image`, in the Android twin's order: the filter at its
-    /// strength, the dials, clarity and sharpness, focus, pixelate, the
-    /// vignette, the duotone. A focus that keeps its subject sharp finds the
-    /// subject first; unless the call `waits`, that is done off the main
+    /// strength, the dials, clarity and sharpness, focus, pixelate, the fx,
+    /// the vignette, the duotone. A focus that keeps its subject sharp finds
+    /// the subject first; unless the call `waits`, that is done off the main
     /// thread, the circle drawn meanwhile and not kept, and `subjectsFound`
     /// moves on when it is ready, so the photo is drawn again with it.
     /// `crisp` leaves out the filter's soft focus, for a code.
@@ -1114,19 +1116,20 @@ enum ImageFilterEngine {
                 PhotoEffects.pixelate(&bytes, width: width, height: height, block: effects.block)
             }
         }
-        // The vignette over the blur and the blocks, a smooth fade as the
-        // Android twin lays it over the drawn picture — the filter's own
-        // added to the dial's, at the filter's strength.
-        let filterVignette = (PhotoLook.recipe(preset)?.vignette ?? 0) * share
-        output = vignetted(output, adjustments, extra: filterVignette, extent: extent)
         // Glitch, slice, halftone or grain on the drawn pixels, after the
-        // filter and before the duotone, as the Android twin's PixelLook
-        // bakes them (PhotoLook.fx).
+        // filter and before the vignette and the duotone, as the Android
+        // twin's PixelLook bakes them (PhotoLook.fx) and lays its vignette
+        // over the bake: a halftone's paper darkens into the corners.
         if let fx = effects.fx {
             output = throughPixels(output, extent: extent) { bytes, width, height in
                 PhotoLook.fx(&bytes, width: width, height: height, fx: fx)
             }
         }
+        // The vignette over the blur, the blocks and the fx, a smooth fade as
+        // the Android twin lays it over the drawn picture — the filter's own
+        // added to the dial's, at the filter's strength.
+        let filterVignette = (PhotoLook.recipe(preset)?.vignette ?? 0) * share
+        output = vignetted(output, adjustments, extra: filterVignette, extent: extent)
         // Duotone last, because it replaces colour outright — running it
         // before a saturation dial would leave that dial with nothing to do.
         if let duotone { output = mapped(output, to: duotone) }
@@ -1480,8 +1483,9 @@ enum ImageFilterEngine {
         return image
     }
 
-    /// The vignette dial, after the effects (see `apply`) and before the
-    /// duotone, so a duotoned photo's corners fall into its dark colour.
+    /// The vignette dial, after the effects and the fx (see `apply`) and
+    /// before the duotone, so a duotoned photo's corners fall into its dark
+    /// colour.
     private static func vignetted(_ input: CIImage, _ a: Adjustments, extra: Double = 0, extent: CGRect) -> CIImage {
         let amount = min(1, max(0, a.vignette) + max(0, extra))
         guard amount > 0 else { return input }
