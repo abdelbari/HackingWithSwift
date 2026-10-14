@@ -32,7 +32,7 @@ struct DesignTypesSheet: View {
                         Text("No design type matches “\(query)”.")
                             .foregroundStyle(.secondary)
                     } else {
-                        Section("\(found.count) found") {
+                        Section(trn("%d found|%d found", found.count)) {
                             ForEach(found) { row($0) }
                         }
                     }
@@ -59,7 +59,7 @@ struct DesignTypesSheet: View {
     private var categoryChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                chip("All", selected: category == nil) { category = nil }
+                chip(tr("All"), selected: category == nil) { category = nil }
                 ForEach(SizePreset.categories, id: \.self) { name in
                     chip(name, selected: category == name) {
                         category = category == name ? nil : name
@@ -72,6 +72,9 @@ struct DesignTypesSheet: View {
 
     private func row(_ preset: SizePreset) -> some View {
         let count = ContentLibrary.templateCounts[preset.id] ?? 0
+        let ready = trn("%d ready-made|%d ready-made", count)
+        let size = preset.dimensions.replacingOccurrences(of: " × ", with: " " + tr("by") + " ")
+        let spoken = tr("%@, %@", tr("%@, %@", preset.name, size), trn("%d ready-made designs|%d ready-made designs", count))
         return Button {
             onPick(preset)
         } label: {
@@ -82,7 +85,7 @@ struct DesignTypesSheet: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(preset.name)
                         .font(.body.weight(.medium))
-                    Text("\(preset.dimensions) · \(count) ready-made")
+                    Text(preset.dimensions + " · " + ready)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -93,7 +96,7 @@ struct DesignTypesSheet: View {
             }
         }
         .foregroundStyle(.primary)
-        .accessibilityLabel("\(preset.name), \(preset.dimensions.replacingOccurrences(of: " × ", with: " by ")), \(count) ready-made designs")
+        .accessibilityLabel(spoken)
     }
 
     private func chip(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {

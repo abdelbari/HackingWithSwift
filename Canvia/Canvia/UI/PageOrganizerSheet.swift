@@ -29,10 +29,10 @@ struct PageOrganizerSheet: View {
     var body: some View {
         NavigationStack {
             content
-                .navigationTitle(store.design.pages.count == 1 ? "1 page" : "\(store.design.pages.count) pages")
+                .navigationTitle(trn("%d page|%d pages", store.design.pages.count))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { toolbarItems }
-                .confirmationDialog(selected.count == 1 ? "Delete this page?" : "Delete \(selected.count) pages?",
+                .confirmationDialog(selected.count == 1 ? tr("Delete this page?") : trn("Delete %d page?|Delete %d pages?", selected.count),
                                     isPresented: $confirmingDelete, titleVisibility: .visible) {
                     Button("Delete", role: .destructive) {
                         store.deletePages(selected)
@@ -119,7 +119,7 @@ struct PageOrganizerSheet: View {
         return cell
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(label)
-            .accessibilityValue(on ? "ticked" : "not ticked")
+            .accessibilityValue(on ? tr("ticked") : tr("not ticked"))
             .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
             .accessibilityAction { toggle(page.id) }
             .pageMoveActions(store, index: index, id: page.id)
@@ -166,7 +166,8 @@ struct PageOrganizerSheet: View {
     /// last — a blank page there, with the background of the page to its
     /// left (DesignStore.insertPage). Said as Android's gutters say it.
     private func addButton(at gap: Int, leading: Bool) -> some View {
-        let label = gap >= store.design.pages.count ? "Add a page at the end" : "Add a page before page \(gap + 1)"
+        let label = gap >= store.design.pages.count ? tr("Add a page at the end")
+            : tr("Add a page before page %d", gap + 1)
         return Button { store.insertPage(at: gap) } label: {
             Image(systemName: "plus.circle.fill")
                 .font(.system(size: 20))
@@ -266,7 +267,7 @@ struct PageOrganizerSheet: View {
                 store.setPagesHidden(selected, hidden: !selectionHidden)
                 selected = []
             } label: {
-                Label(selectionHidden ? "Show" : "Hide", systemImage: selectionHidden ? "eye" : "eye.slash")
+                Label(selectionHidden ? tr("Show") : tr("Hide"), systemImage: selectionHidden ? "eye" : "eye.slash")
             }
                 .disabled(selected.isEmpty)
             Spacer()
@@ -287,7 +288,7 @@ struct PageOrganizerSheet: View {
             store.setPagesLocked(selected, locked: !selectionLocked)
             selected = []
         } label: {
-            Label(selectionLocked ? "Unlock" : "Lock", systemImage: selectionLocked ? "lock.open" : "lock")
+            Label(selectionLocked ? tr("Unlock") : tr("Lock"), systemImage: selectionLocked ? "lock.open" : "lock")
         }
         .disabled(selected.isEmpty)
     }
@@ -312,12 +313,12 @@ struct PageOrganizerSheet: View {
     /// What VoiceOver says for a page's cell, as the Android twin's reads.
     static func spokenRow(number: Int, title: String?, current: Bool, hidden: Bool = false,
                           locked: Bool = false, elements: Int, notes: String?) -> String {
-        var label = "Page \(number)"
+        var label = tr("Page %d", number)
         if let title = title.flatMap(PageTitles.kept) { label += ", " + title }
-        if current { label += ", current" }
-        if hidden { label += ", hidden" }
+        if current { label += ", " + tr("current") }
+        if hidden { label += ", " + tr("hidden") }
         if locked { label += ", " + PageLocks.spoken }
-        label += elements == 1 ? ", 1 element" : ", \(elements) elements"
+        label += ", " + trn("%d element|%d elements", elements)
         if let notes, !notes.isEmpty { label += ", " + notes }
         return label
     }

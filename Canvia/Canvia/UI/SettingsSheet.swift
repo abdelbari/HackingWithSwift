@@ -20,9 +20,9 @@ enum Appearance: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .system: return "System"
-        case .light: return "Light"
-        case .dark: return "Dark"
+        case .system: return tr("System")
+        case .light: return tr("Light")
+        case .dark: return tr("Dark")
         }
     }
 
@@ -112,7 +112,7 @@ struct SettingsSheet: View {
     @State private var tipsReset = false
     /// Fraction done while a backup or restore runs; nil when idle.
     @State private var progress: Double?
-    @State private var workingLabel = "Backing up"
+    @State private var workingLabel = tr("Backing up")
     @State private var task: Task<Void, Never>?
     @State private var backup: BackupDocument?
     @State private var restoring = false
@@ -209,7 +209,7 @@ struct SettingsSheet: View {
 
     private var helpSection: some View {
         Section("Help") {
-            Button(tipsReset ? "Tips will show again" : "Show tips again") {
+            Button(tipsReset ? tr("Tips will show again") : tr("Show tips again")) {
                 TipEngine.shared.reset()
                 tipsReset = true
             }
@@ -227,14 +227,14 @@ struct SettingsSheet: View {
 
     private var storageSection: some View {
         Section {
-            storageRow("Designs", storage?.designs)
-            storageRow("Photos & clips", storage?.photosAndClips)
-            storageRow("Your uploads", storage?.uploads)
-            storageRow("Fonts", storage?.fonts)
-            storageRow("Templates", storage?.templates)
-            storageRow("Versions", storage?.versions)
-            storageRow("Recently deleted", storage?.recentlyDeleted)
-            storageRow("Caches", storage?.caches)
+            storageRow(tr("Designs"), storage?.designs)
+            storageRow(tr("Photos & clips"), storage?.photosAndClips)
+            storageRow(tr("Your uploads"), storage?.uploads)
+            storageRow(tr("Fonts"), storage?.fonts)
+            storageRow(tr("Templates"), storage?.templates)
+            storageRow(tr("Versions"), storage?.versions)
+            storageRow(tr("Recently deleted"), storage?.recentlyDeleted)
+            storageRow(tr("Caches"), storage?.caches)
             // Neither while a backup or restore runs: a backup is written
             // among the caches, and a restore fills Recently deleted.
             Button("Clear caches") { clearingCaches = true }
@@ -289,7 +289,7 @@ struct SettingsSheet: View {
 
     private func startBackup() {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(Backup.fileName(Date()))
-        workingLabel = "Backing up"
+        workingLabel = tr("Backing up")
         progress = 0
         task = Task { @MainActor in
             defer { progress = nil }
@@ -306,7 +306,7 @@ struct SettingsSheet: View {
 
     private func startRestore(_ result: Result<URL, Error>) {
         guard case .success(let url) = result else { return }
-        workingLabel = "Restoring"
+        workingLabel = tr("Restoring")
         progress = 0
         task = Task { @MainActor in
             defer { progress = nil }
@@ -415,7 +415,7 @@ private struct LicencesView: View {
     var body: some View {
         List {
             Section {
-                Text("The \(FontLibrary.all.filter { $0.licence != nil }.count) bundled font families are under the SIL Open Font License 1.1. Material Icons are under the Apache License 2.0.")
+                Text(licencesNote)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -435,5 +435,11 @@ private struct LicencesView: View {
         }
         .navigationTitle("Licences")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var licencesNote: String {
+        trn("The %d bundled font family is under the SIL Open Font License 1.1. Material Icons are under the Apache License 2.0."
+            + "|The %d bundled font families are under the SIL Open Font License 1.1. Material Icons are under the Apache License 2.0.",
+            FontLibrary.all.filter { $0.licence != nil }.count)
     }
 }

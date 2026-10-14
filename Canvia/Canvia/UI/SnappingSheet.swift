@@ -79,8 +79,8 @@ struct SnappingSheet: View {
             Text("Guides")
         } footer: {
             Text(store.design.guides.isEmpty
-                 ? "No guides on this design."
-                 : (store.design.guides.count == 1 ? "1 guide." : "\(store.design.guides.count) guides."))
+                 ? tr("No guides on this design.")
+                 : trn("%d guide.|%d guides.", store.design.guides.count))
         }
     }
 
@@ -187,18 +187,18 @@ struct AddGuidesView: View {
             Toggle("Replace existing guides", isOn: $replace)
         } footer: {
             Text(store.design.guides.isEmpty
-                 ? "No guides on this design yet."
-                 : (store.design.guides.count == 1 ? "1 guide on this design." : "\(store.design.guides.count) guides on this design."))
+                 ? tr("No guides on this design yet.")
+                 : trn("%d guide on this design.|%d guides on this design.", store.design.guides.count))
         }
     }
 
     private var customForm: some View {
         Form {
             Section {
-                field("Columns", value: $columns, in: Guides.columnRange, unit: nil)
-                field("Rows", value: $rows, in: Guides.rowRange, unit: nil)
-                field("Gutter", value: $gutter, in: Guides.gutterRange, unit: "px")
-                field("Margin", value: $margin, in: Guides.marginRange, unit: "px")
+                field(tr("Columns"), value: $columns, in: Guides.columnRange, unit: nil)
+                field(tr("Rows"), value: $rows, in: Guides.rowRange, unit: nil)
+                field(tr("Gutter"), value: $gutter, in: Guides.gutterRange, unit: "px")
+                field(tr("Margin"), value: $margin, in: Guides.marginRange, unit: "px")
             } footer: {
                 Text("Columns share the page inside the margin, with the gutter between them. No rows adds columns only.")
             }
@@ -258,9 +258,9 @@ struct AddGuidesView: View {
         let before = store.design.guides
         let added = store.addGuideLayout(columns: columns, rows: rows, gutter: gutter, margin: margin, replace: replace)
         if store.design.guides == before {
-            store.announce("Those guides are already there", undoable: false)
+            store.announce(tr("Those guides are already there"), undoable: false)
         } else {
-            store.announce(added == 1 ? "Added 1 guide" : "Added \(added) guides")
+            store.announce(trn("Added %d guide|Added %d guides", added))
         }
         dismiss()
     }

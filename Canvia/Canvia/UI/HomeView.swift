@@ -168,7 +168,7 @@ struct HomeView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) { if selecting { selectBar } }
         // The bar's count, heard as each pick changes it.
         .onChange(of: picked) {
-            if selecting { AccessibilityNotification.Announcement("\(pickedDesigns.count) selected").post() }
+            if selecting { AccessibilityNotification.Announcement(trn("%d selected|%d selected", pickedDesigns.count)).post() }
         }
         .overlay(alignment: .bottom) { trashedToast }
         .overlay(alignment: .bottom) { copiesToast }
@@ -454,7 +454,7 @@ struct HomeView: View {
     private var templateCategoryChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                chip("All", selected: templateCategory == nil && !yoursOnly) {
+                chip(tr("All"), selected: templateCategory == nil && !yoursOnly) {
                     templateCategory = nil
                     yoursOnly = false
                 }
@@ -478,11 +478,11 @@ struct HomeView: View {
     private var folderChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                chip("All", selected: folder == nil && !starredOnly) {
+                chip(tr("All"), selected: folder == nil && !starredOnly) {
                     folder = nil
                     starredOnly = false
                 }
-                chip("Starred", selected: starredOnly, systemImage: "star") {
+                chip(tr("Starred"), selected: starredOnly, systemImage: "star") {
                     starredOnly.toggle()
                     folder = nil
                 }
@@ -491,7 +491,7 @@ struct HomeView: View {
                         folder = folder == name ? nil : name
                         starredOnly = false
                     }
-                    .accessibilityLabel(starredFolders.contains(name) ? "\(name), starred" : name)
+                    .accessibilityLabel(starredFolders.contains(name) ? tr("%@, starred", name) : name)
                     .contextMenu {
                         starFolderButton(name)
                         Button {
@@ -581,7 +581,7 @@ struct HomeView: View {
             DesignLibrary.setFolderStarred(name, !on)
             starredFolders = DesignLibrary.starredFolders()
         } label: {
-            Label(on ? "Remove from starred" : "Add to starred", systemImage: on ? "star.slash" : "star")
+            Label(on ? tr("Remove from starred") : tr("Add to starred"), systemImage: on ? "star.slash" : "star")
         }
     }
 
@@ -608,7 +608,7 @@ struct HomeView: View {
     /// designs it holds; a tap shows them.
     private func folderCard(_ name: String) -> some View {
         let count = recents.filter { $0.folder == name }.count
-        let said = count == 1 ? "1 design" : "\(count) designs"
+        let said = trn("%d design|%d designs", count)
         return Button {
             starredOnly = false
             folder = name
@@ -766,7 +766,7 @@ struct HomeView: View {
             }
             .padding(.top, 8)
         } label: {
-            Text(trashed.count == 1 ? "Recently deleted (1)" : "Recently deleted (\(trashed.count))")
+            Text("Recently deleted (\(trashed.count))")
                 .font(.title3.weight(.bold))
         }
         .padding(.horizontal)
@@ -809,7 +809,7 @@ struct HomeView: View {
     /// What deleting one design for good asks first.
     private var deleteForeverQuestion: String {
         guard let entry = deletingForever else { return "" }
-        return "Delete “\(entry.title)” forever?"
+        return tr("Delete “%@” forever?", entry.title)
     }
 
     // MARK: undo a delete
@@ -917,8 +917,8 @@ struct HomeView: View {
 
     /// What the toast says: the design by name, or how many went at once.
     private static func trashedText(_ designs: [RecentDesign]) -> String {
-        if designs.count == 1, let gone = designs.first { return "Moved “\(gone.title)” to Recently deleted" }
-        return "Moved \(designs.count) designs to Recently deleted"
+        if designs.count == 1, let gone = designs.first { return tr("Moved “%@” to Recently deleted", gone.title) }
+        return trn("Moved %d design to Recently deleted|Moved %d designs to Recently deleted", designs.count)
     }
 
     /// To the trash, not gone: thirty days to change your mind, in the
@@ -952,9 +952,9 @@ struct HomeView: View {
                             .background(.white.opacity(0.18), in: Capsule())
                     }
                 }
-                heroButton("New design", systemImage: "plus") { homeSheet = .pickSize }
-                heroButton("How Canvia works", systemImage: "questionmark") { homeSheet = .help }
-                heroButton("Settings", systemImage: "gearshape") { homeSheet = .settings }
+                heroButton(tr("New design"), systemImage: "plus") { homeSheet = .pickSize }
+                heroButton(tr("How Canvia works"), systemImage: "questionmark") { homeSheet = .help }
+                heroButton(tr("Settings"), systemImage: "gearshape") { homeSheet = .settings }
             }
 
             Text("What will you design today?")
@@ -972,22 +972,23 @@ struct HomeView: View {
                             homeSheet = .start(presetId: preset.id)
                         } label: {
                             heroTile(systemImage: preset.icon, title: preset.name,
-                                     lines: [preset.dimensions, "\(count) ready-made"])
+                                     lines: [preset.dimensions, trn("%d ready-made|%d ready-made", count)])
                         }
-                        .accessibilityLabel("\(preset.name), \(preset.dimensions.replacingOccurrences(of: " × ", with: " by ")), \(count) ready-made designs")
+                        .accessibilityLabel("\(preset.name), \(Self.spokenSize(preset.dimensions)), "
+                                            + trn("%d ready-made designs|%d ready-made designs", count))
                     }
                     // Every other design type, searchable, by category.
                     Button {
                         homeSheet = .designTypes
                     } label: {
-                        heroTile(systemImage: "square.grid.2x2", title: "More sizes",
-                                 lines: ["\(SizePreset.all.count) design types"])
+                        heroTile(systemImage: "square.grid.2x2", title: tr("More sizes"),
+                                 lines: [trn("%d design type|%d design types", SizePreset.all.count)])
                     }
-                    .accessibilityLabel("More sizes, \(SizePreset.all.count) design types")
+                    .accessibilityLabel(tr("More sizes") + ", " + trn("%d design type|%d design types", SizePreset.all.count))
                     Button {
                         homeSheet = .customSize
                     } label: {
-                        heroTile(systemImage: "slider.horizontal.3", title: "Custom size", lines: ["Any dimensions"])
+                        heroTile(systemImage: "slider.horizontal.3", title: tr("Custom size"), lines: [tr("Any dimensions")])
                     }
                     .accessibilityLabel("Custom size")
                 }
@@ -1111,7 +1112,7 @@ struct HomeView: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(recent.starred ? "\(recent.title), \(caption(for: recent).spoken), starred"
+        .accessibilityLabel(recent.starred ? tr("%@, %@, starred", recent.title, caption(for: recent).spoken)
                                            : "\(recent.title), \(caption(for: recent).spoken)")
         .accessibilityValue(pickedValue(recent))
         .contextMenu {
@@ -1126,7 +1127,7 @@ struct HomeView: View {
                 Button {
                     star([recent], !recent.starred)
                 } label: {
-                    Label(recent.starred ? "Remove from starred" : "Add to starred",
+                    Label(recent.starred ? tr("Remove from starred") : tr("Add to starred"),
                           systemImage: recent.starred ? "star.slash" : "star")
                 }
                 Button {
@@ -1182,7 +1183,7 @@ struct HomeView: View {
             guard var design = DesignLibrary.load(id: recent.id) else { continue }
             let sourceId = design.id
             design.id = UID.make("doc")
-            design.title += " (copy)"
+            design.title = tr("%@ (copy)", design.title)
             // A copy is not starred.
             design.isStarred = false
             design.updatedAt = Date().timeIntervalSince1970 * 1000
@@ -1220,7 +1221,7 @@ struct HomeView: View {
     /// Heard on each card in Select; nothing outside it.
     private func pickedValue(_ recent: RecentDesign) -> String {
         guard selecting else { return "" }
-        return picked.contains(recent.id) ? "selected" : "not selected"
+        return picked.contains(recent.id) ? tr("selected") : tr("not selected")
     }
 
     /// A damaged card in Select, picked by a tap anywhere on it, as a
@@ -1253,7 +1254,7 @@ struct HomeView: View {
     private var selectTopBar: some View {
         let all = DesignLibrary.allPicked(picked, among: shownRecents)
         return HStack {
-            Button(all ? "Deselect all" : "Select all") {
+            Button(all ? tr("Deselect all") : tr("Select all")) {
                 picked = DesignLibrary.togglingAll(picked, among: shownRecents)
             }
             .disabled(shownRecents.isEmpty)
@@ -1271,7 +1272,7 @@ struct HomeView: View {
     /// be done with them all at once.
     private var selectBar: some View {
         let chosen = pickedDesigns
-        let said = "\(chosen.count) selected"
+        let said = trn("%d selected|%d selected", chosen.count)
         return HStack(spacing: 18) {
             Text(said)
                 .font(.subheadline.weight(.semibold))
@@ -1279,12 +1280,12 @@ struct HomeView: View {
             Menu {
                 moveItems(chosen)
             } label: {
-                barLabel("Move to folder…", systemImage: "folder")
+                barLabel(tr("Move to folder…"), systemImage: "folder")
             }
             .disabled(chosen.isEmpty)
             .accessibilityLabel("Move to folder…")
             Button { duplicate(chosen) } label: {
-                barLabel("Duplicate", systemImage: "plus.square.on.square")
+                barLabel(tr("Duplicate"), systemImage: "plus.square.on.square")
             }
             .disabled(!chosen.contains { !$0.damaged })
             .accessibilityLabel("Duplicate")
@@ -1294,7 +1295,7 @@ struct HomeView: View {
                 stopSelecting()
                 trash(gone)
             } label: {
-                barLabel("Delete", systemImage: "trash")
+                barLabel(tr("Delete"), systemImage: "trash")
             }
             .disabled(chosen.isEmpty)
             .accessibilityLabel("Delete")
@@ -1310,7 +1311,7 @@ struct HomeView: View {
     private func starBarButton(_ chosen: [RecentDesign]) -> some View {
         let designs = chosen.filter { !$0.damaged }
         let allStarred = !designs.isEmpty && designs.allSatisfy(\.starred)
-        let title = allStarred ? "Remove from starred" : "Add to starred"
+        let title = allStarred ? tr("Remove from starred") : tr("Add to starred")
         return Button { star(designs, !allStarred) } label: {
             barLabel(title, systemImage: allStarred ? "star.slash" : "star")
         }
@@ -1373,7 +1374,7 @@ struct HomeView: View {
             return
         }
         DesignLibrary.writeThumbnail(for: design)
-        let said: String = "Restored “\(design.title)”"
+        let said: String = tr("Restored “%@”", design.title)
         AccessibilityNotification.Announcement(said).post()
         reload()
     }
@@ -1387,12 +1388,17 @@ struct HomeView: View {
         let when = RelativeTime.text(ms: recent.updatedAt)
         let pages = RelativeTime.pages(recent.pages)
         var shown = "\(size) · \(when) · \(pages)"
-        var spoken = "\(size.replacingOccurrences(of: " × ", with: " by ")), \(when), \(pages)"
+        var spoken = "\(Self.spokenSize(size)), \(when), \(pages)"
         if folder == nil, let name = recent.folder {
             shown += " · \(name)"
-            spoken += ", in \(name)"
+            spoken += ", " + tr("in %@", name)
         }
         return (shown, spoken)
+    }
+
+    /// "1080 × 1920" as it is said: "1080 by 1920".
+    private static func spokenSize(_ size: String) -> String {
+        size.replacingOccurrences(of: " × ", with: " " + tr("by") + " ")
     }
 
     // MARK: templates
@@ -1524,7 +1530,7 @@ struct HomeView: View {
     /// "Business · 1920 × 1080 · 10 pages".
     private func templateCaption(_ template: Template) -> String {
         let line = "\(template.category) · \(Int(template.width)) × \(Int(template.height))"
-        return template.pageCount > 1 ? line + " · \(template.pageCount) pages" : line
+        return template.pageCount > 1 ? line + " · " + trn("%d page|%d pages", template.pageCount) : line
     }
 
     private var templatesGrid: some View {
@@ -1569,7 +1575,7 @@ struct HomeView: View {
                         Favorites.toggle("template", template.id)
                         favoritesVersion += 1
                     } label: {
-                        Label(on ? "Remove from favourites" : "Add to favourites", systemImage: on ? "star.slash" : "star")
+                        Label(on ? tr("Remove from favourites") : tr("Add to favourites"), systemImage: on ? "star.slash" : "star")
                     }
                 }
             }

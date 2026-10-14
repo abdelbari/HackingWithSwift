@@ -57,7 +57,7 @@ struct BackgroundGradients: View {
                     .stroke(chosen ? Theme.accent : Color.black.opacity(0.12), lineWidth: chosen ? 3 : 1))
                 .frame(height: 40)
         }
-        .accessibilityLabel("\(preset.name), \(kind) gradient")
+        .accessibilityLabel(tr("%@, %@ gradient", preset.name, ColorPickerSheet.gradientKindWord(kind)))
         .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 }
@@ -213,10 +213,10 @@ struct EffectsSheet: View {
                 dial(param, of: effect)
             }
             if effect.takesColor {
-                colorRow("Colour", of: effect, second: false)
+                colorRow(tr("Colour"), of: effect, second: false)
             }
             if effect.defaultColor2 != nil {
-                colorRow("Second colour", of: effect, second: true)
+                colorRow(tr("Second colour"), of: effect, second: true)
             }
         }
     }
@@ -318,12 +318,15 @@ struct SpacingSheet: View {
         case letter = "Letter spacing"
         case paragraph = "Paragraph spacing"
 
+        /// The alert's title, in the app's words.
+        var title: String { tr(rawValue) }
+
         /// What the alert asks for, in the readout's own terms.
         var message: String {
             switch self {
-            case .line: return "A multiple of the type size, 0.5 to 2.5."
-            case .letter: return "A share of the type size in percent, -20 to 80."
-            case .paragraph: return "Ems after each line break, 0 to 2."
+            case .line: return tr("A multiple of the type size, 0.5 to 2.5.")
+            case .letter: return tr("A share of the type size in percent, -20 to 80.")
+            case .paragraph: return tr("Ems after each line break, 0 to 2.")
             }
         }
     }
@@ -358,9 +361,9 @@ struct SpacingSheet: View {
     /// rest).
     private func typedEntry<Content: View>(_ content: Content) -> some View {
         content
-            .alert(typing?.rawValue ?? "", isPresented: Binding(get: { typing != nil },
+            .alert(typing?.title ?? "", isPresented: Binding(get: { typing != nil },
                                                                 set: { if !$0 { typing = nil } })) {
-                TextField(typing?.rawValue ?? "", text: $typedDraft)
+                TextField(typing?.title ?? "", text: $typedDraft)
                     .keyboardType(typing == .letter ? .numbersAndPunctuation : .decimalPad)
                 Button("Set") { setTyped() }
                 Button("Cancel", role: .cancel) {}
@@ -425,12 +428,12 @@ struct SpacingSheet: View {
         let lineHeight = el.lineHeight ?? 1.25
         let paragraph = min(el.paragraphSpacing ?? 0, TypeReadouts.paragraphSpacingRange.upperBound)
         Section("Line height") {
-            valueSlider("Line height", value: lineHeight, in: TypeReadouts.lineHeightRange,
+            valueSlider(tr("Line height"), value: lineHeight, in: TypeReadouts.lineHeightRange,
                         readout: TypeReadouts.lineHeight(lineHeight),
                         onReadout: { startTyping(.line, el) }) { v, e in e.lineHeight = v }
         }
         Section("Letter spacing") {
-            valueSlider("Letter spacing", value: tracking,
+            valueSlider(tr("Letter spacing"), value: tracking,
                         in: min(range.lowerBound, tracking)...max(range.upperBound, tracking),
                         readout: TypeReadouts.letterSpacing(tracking, size: size),
                         sliding: $letterSliding,
@@ -442,7 +445,7 @@ struct SpacingSheet: View {
             letterRange = fresh
         }
         Section {
-            valueSlider("Paragraph spacing", value: paragraph, in: TypeReadouts.paragraphSpacingRange,
+            valueSlider(tr("Paragraph spacing"), value: paragraph, in: TypeReadouts.paragraphSpacingRange,
                         readout: TypeReadouts.paragraphSpacing(paragraph),
                         onReadout: { startTyping(.paragraph, el) }) { v, e in
                 e.paragraphSpacing = v < 0.01 ? nil : v
@@ -500,8 +503,8 @@ struct SpacingSheet: View {
             Text("Text box")
         } footer: {
             Text(bent
-                 ? "Fitting and alignment wait while the words follow a curve, a path or stand in columns."
-                 : "With auto-fit on, drag the box and the type resizes to fill it; the alignment places shorter text within a taller box.")
+                 ? tr("Fitting and alignment wait while the words follow a curve, a path or stand in columns.")
+                 : tr("With auto-fit on, drag the box and the type resizes to fill it; the alignment places shorter text within a taller box."))
         }
     }
 
@@ -590,7 +593,7 @@ struct FiltersSheet: View {
     /// (PhotoEdits.original) — nothing written — and VoiceOver says so.
     private var compareButton: some View {
         let held = store.comparing
-        return Label(held ? PhotoEdits.comparingNote : "Hold to compare", systemImage: "eye")
+        return Label(held ? PhotoEdits.comparingNote : tr("Hold to compare"), systemImage: "eye")
             .font(.callout.weight(.semibold))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
@@ -643,7 +646,7 @@ struct FiltersSheet: View {
         let preset = ImageFilterPreset.from(store.singleSelection?.filter)
         if preset != .none {
             let value = PhotoLook.strength(store.singleSelection?.filterStrength)
-            effectSlider("\(preset.displayName) strength", value: value, in: 0...1,
+            effectSlider(tr("%@ strength", preset.displayName), value: value, in: 0...1,
                          readout: "\(Int((value * 100).rounded()))%") { v, el in
                 let strength = (v * 100).rounded() / 100
                 el.filterStrength = strength >= 1 ? nil : strength
@@ -677,9 +680,9 @@ struct FiltersSheet: View {
             Text("Duotone").font(.headline)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    duotoneTile(nil, name: "None", active: current == nil)
+                    duotoneTile(nil, name: tr("None"), active: current == nil)
                     if let fromDocument {
-                        duotoneTile(fromDocument, name: "Document", active: current == fromDocument)
+                        duotoneTile(fromDocument, name: tr("Document"), active: current == fromDocument)
                     }
                     ForEach(Duotone.presets, id: \.name) { preset in
                         duotoneTile(preset.tone, name: preset.name, active: current == preset.tone)
@@ -710,7 +713,7 @@ struct FiltersSheet: View {
                 .stroke(active ? Theme.accent : .clear, lineWidth: 2))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(tone == nil ? "No duotone" : "\(name) duotone")
+        .accessibilityLabel(tone == nil ? tr("No duotone") : tr("%@ duotone", name))
         .accessibilityAddTraits(active ? .isSelected : [])
     }
 
@@ -735,25 +738,25 @@ struct FiltersSheet: View {
                 .disabled(store.singleSelection?.adjustments?.isNeutral ?? true)
             }
             // The dials in Canva's three groups, each in its order.
-            dialGroup("Light") {
-                dial("Brightness", \.brightness, in: -1...1)
-                dial("Contrast", \.contrast, in: -1...1)
-                dial("Highlights", \.highlights, in: -1...1)
-                dial("Shadows", \.shadows, in: -1...1)
-                dial("Whites", \.whites, in: -1...1)
-                dial("Blacks", \.blacks, in: -1...1)
+            dialGroup(tr("Light")) {
+                dial(tr("Brightness"), \.brightness, in: -1...1)
+                dial(tr("Contrast"), \.contrast, in: -1...1)
+                dial(tr("Highlights"), \.highlights, in: -1...1)
+                dial(tr("Shadows"), \.shadows, in: -1...1)
+                dial(tr("Whites"), \.whites, in: -1...1)
+                dial(tr("Blacks"), \.blacks, in: -1...1)
             }
-            dialGroup("Colour") {
-                dial("Saturation", \.saturation, in: -1...1)
-                dial("Vibrance", \.vibrance, in: -1...1)
-                dial("Warmth", \.warmth, in: -1...1)
-                dial("Tint", \.tint, in: -1...1)
+            dialGroup(tr("Colour")) {
+                dial(tr("Saturation"), \.saturation, in: -1...1)
+                dial(tr("Vibrance"), \.vibrance, in: -1...1)
+                dial(tr("Warmth"), \.warmth, in: -1...1)
+                dial(tr("Tint"), \.tint, in: -1...1)
             }
-            dialGroup("Texture") {
-                dial("Clarity", \.clarity, in: -1...1)
-                dial("Sharpness", \.sharpness, in: -1...1)
-                dial("Vignette", \.vignette, in: 0...1)
-                dial("Fade", \.fade, in: 0...1)
+            dialGroup(tr("Texture")) {
+                dial(tr("Clarity"), \.clarity, in: -1...1)
+                dial(tr("Sharpness"), \.sharpness, in: -1...1)
+                dial(tr("Vignette"), \.vignette, in: 0...1)
+                dial(tr("Fade"), \.fade, in: 0...1)
             }
             curveRow
         }
@@ -801,29 +804,29 @@ struct FiltersSheet: View {
             Text("Effects").font(.headline)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    effectChip("Blur", on: blurred) { el in
+                    effectChip(tr("Blur"), on: blurred) { el in
                         el.setAdjustment(\.sharpness, to: blurred ? 0 : -PhotoEffects.defaultBlur)
                     }
-                    effectChip("Pixelate", on: photo?.pixelate != nil) { el in
+                    effectChip(tr("Pixelate"), on: photo?.pixelate != nil) { el in
                         el.pixelate = el.pixelate == nil ? PhotoEffects.defaultPixelate : nil
                     }
-                    effectChip("Focus", on: focus != nil) { el in
+                    effectChip(tr("Focus"), on: focus != nil) { el in
                         el.focusBlur = el.focusBlur == nil ? FocusBlur() : nil
                     }
-                    edgeChip("outline", "Outline", current: edge)
-                    edgeChip("glow", "Glow", current: edge)
+                    edgeChip("outline", tr("Outline"), current: edge)
+                    edgeChip("glow", tr("Glow"), current: edge)
                     ForEach(PhotoFx.kinds, id: \.self) { kind in fxChip(kind, current: photo?.fx) }
                 }
                 .padding(.vertical, 2)
             }
             if blurred {
-                effectSlider("Blur", value: -sharpness, in: 0.01...1,
+                effectSlider(tr("Blur"), value: -sharpness, in: 0.01...1,
                              readout: "\(Int((-sharpness * 100).rounded()))") { v, el in
                     el.setAdjustment(\.sharpness, to: -max(1, (v * 100).rounded()) / 100)
                 }
             }
             if let pixelate = photo?.pixelate {
-                effectSlider("Pixel size", value: pixelate, in: 0.01...1,
+                effectSlider(tr("Pixel size"), value: pixelate, in: 0.01...1,
                              readout: "\(Int((pixelate * 100).rounded()))") { v, el in
                     el.pixelate = max(1, (v * 100).rounded()) / 100
                 }
@@ -854,7 +857,7 @@ struct FiltersSheet: View {
     @ViewBuilder
     private func fxControls(_ fx: PhotoFx) -> some View {
         let name = PhotoFx.name(fx.kind)
-        effectSlider("\(name) amount", value: fx.share, in: 0.01...1,
+        effectSlider(tr("%@ amount", name), value: fx.share, in: 0.01...1,
                      readout: "\(Int((fx.share * 100).rounded()))") { v, el in
             el.fx?.amount = max(1, (v * 100).rounded()) / 100
         }
@@ -909,17 +912,17 @@ struct FiltersSheet: View {
 
     @ViewBuilder
     private func focusControls(_ focus: FocusBlur) -> some View {
-        effectSlider("Focus size", value: focus.radius, in: 0...1, readout: Self.percent(focus.radius)) { v, el in
+        effectSlider(tr("Focus size"), value: focus.radius, in: 0...1, readout: Self.percent(focus.radius)) { v, el in
             el.focusBlur?.radius = Self.hundredths(v)
         }
-        effectSlider("Background blur", value: focus.amount, in: 0.01...1,
+        effectSlider(tr("Background blur"), value: focus.amount, in: 0.01...1,
                      readout: "\(Int((focus.amount * 100).rounded()))") { v, el in
             el.focusBlur?.amount = max(0.01, Self.hundredths(v))
         }
-        effectSlider("Focus across", value: focus.x, in: 0...1, readout: Self.percent(focus.x)) { v, el in
+        effectSlider(tr("Focus across"), value: focus.x, in: 0...1, readout: Self.percent(focus.x)) { v, el in
             el.focusBlur?.x = Self.hundredths(v)
         }
-        effectSlider("Focus down", value: focus.y, in: 0...1, readout: Self.percent(focus.y)) { v, el in
+        effectSlider(tr("Focus down"), value: focus.y, in: 0...1, readout: Self.percent(focus.y)) { v, el in
             el.focusBlur?.y = Self.hundredths(v)
         }
         Toggle("Keep the subject sharp", isOn: Binding(
@@ -930,13 +933,14 @@ struct FiltersSheet: View {
 
     @ViewBuilder
     private func edgeControls(_ edge: PhotoEdge) -> some View {
-        let name = PhotoEffects.isGlow(edge) ? "Glow" : "Outline"
-        effectSlider("\(name) size", value: edge.width, in: 1...100,
+        let glow = PhotoEffects.isGlow(edge)
+        let colour = glow ? tr("Glow colour") : tr("Outline colour")
+        effectSlider(glow ? tr("Glow size") : tr("Outline size"), value: edge.width, in: 1...100,
                      readout: "\(Int(edge.width.rounded()))") { v, el in
             el.edge?.width = v.rounded()
         }
         HStack {
-            Text("\(name) colour").font(.subheadline)
+            Text(colour).font(.subheadline)
             Spacer()
             ColorPicker("", selection: Binding(
                 get: { Color(hex: edge.color) },
@@ -945,7 +949,7 @@ struct FiltersSheet: View {
                     store.updateSelectedTransient { $0.edge?.color = hex }
                 }), supportsOpacity: false)
                 .labelsHidden()
-                .accessibilityLabel("\(name) colour")
+                .accessibilityLabel(colour)
         }
     }
 
@@ -1243,25 +1247,25 @@ struct PositionSheet: View {
             Form {
                 Section("Layer order") {
                     HStack {
-                        orderButton("To front", "square.3.layers.3d.top.filled") { store.reorderSelected(.front) }
-                        orderButton("Forward", "square.2.layers.3d.top.filled") { store.reorderSelected(.forward) }
-                        orderButton("Backward", "square.2.layers.3d.bottom.filled") { store.reorderSelected(.backward) }
-                        orderButton("To back", "square.3.layers.3d.bottom.filled") { store.reorderSelected(.back) }
+                        orderButton(tr("To front"), "square.3.layers.3d.top.filled") { store.reorderSelected(.front) }
+                        orderButton(tr("Forward"), "square.2.layers.3d.top.filled") { store.reorderSelected(.forward) }
+                        orderButton(tr("Backward"), "square.2.layers.3d.bottom.filled") { store.reorderSelected(.backward) }
+                        orderButton(tr("To back"), "square.3.layers.3d.bottom.filled") { store.reorderSelected(.back) }
                     }
                 }
                 // One thing, or one group as a single box, lines up with the
                 // page; several with each other — and the heading says which,
                 // in the Android twin's words.
-                Section(store.alignsToPage ? "Line up with the page" : "Line up with each other") {
+                Section(store.alignsToPage ? tr("Line up with the page") : tr("Line up with each other")) {
                     HStack {
-                        orderButton("Left", "align.horizontal.left") { store.alignSelected(.left) }
-                        orderButton("Center", "align.horizontal.center") { store.alignSelected(.centerX) }
-                        orderButton("Right", "align.horizontal.right") { store.alignSelected(.right) }
+                        orderButton(tr("Left"), "align.horizontal.left") { store.alignSelected(.left) }
+                        orderButton(tr("Center"), "align.horizontal.center") { store.alignSelected(.centerX) }
+                        orderButton(tr("Right"), "align.horizontal.right") { store.alignSelected(.right) }
                     }
                     HStack {
-                        orderButton("Top", "align.vertical.top") { store.alignSelected(.top) }
-                        orderButton("Middle", "align.vertical.center") { store.alignSelected(.centerY) }
-                        orderButton("Bottom", "align.vertical.bottom") { store.alignSelected(.bottom) }
+                        orderButton(tr("Top"), "align.vertical.top") { store.alignSelected(.top) }
+                        orderButton(tr("Middle"), "align.vertical.center") { store.alignSelected(.centerY) }
+                        orderButton(tr("Bottom"), "align.vertical.bottom") { store.alignSelected(.bottom) }
                     }
                     // Several things centred as one box, keeping their places
                     // relative to each other.
@@ -1276,10 +1280,10 @@ struct PositionSheet: View {
                 if store.selection.count >= 3 {
                     Section("Distribute evenly") {
                         HStack {
-                            orderButton("Horizontally", "arrow.left.and.right") {
+                            orderButton(tr("Horizontally"), "arrow.left.and.right") {
                                 store.distributeSelected(.horizontal)
                             }
-                            orderButton("Vertically", "arrow.up.and.down") {
+                            orderButton(tr("Vertically"), "arrow.up.and.down") {
                                 store.distributeSelected(.vertical)
                             }
                         }
@@ -1292,9 +1296,9 @@ struct PositionSheet: View {
                 if store.selection.count >= 2 {
                     Section("Tidy up") {
                         HStack {
-                            orderButton("Row", "rectangle.split.3x1") { store.tidySelected(.row) }
-                            orderButton("Column", "rectangle.split.1x2") { store.tidySelected(.column) }
-                            orderButton("Grid", "rectangle.split.3x3") { store.tidySelected(.grid) }
+                            orderButton(tr("Row"), "rectangle.split.3x1") { store.tidySelected(.row) }
+                            orderButton(tr("Column"), "rectangle.split.1x2") { store.tidySelected(.column) }
+                            orderButton(tr("Grid"), "rectangle.split.3x3") { store.tidySelected(.grid) }
                         }
                         .disabled(store.movableSelectionCount < 2)
                     }
@@ -1302,10 +1306,10 @@ struct PositionSheet: View {
                 nudgeSection
                 Section("Flip") {
                     HStack {
-                        orderButton("Horizontal", "arrow.left.and.right.righttriangle.left.righttriangle.right") {
+                        orderButton(tr("Horizontal"), "arrow.left.and.right.righttriangle.left.righttriangle.right") {
                             store.flipSelected(horizontal: true)
                         }
-                        orderButton("Vertical", "arrow.up.and.down.righttriangle.up.righttriangle.down") {
+                        orderButton(tr("Vertical"), "arrow.up.and.down.righttriangle.up.righttriangle.down") {
                             store.flipSelected(horizontal: false)
                         }
                     }
@@ -1316,13 +1320,13 @@ struct PositionSheet: View {
                     Section("Exact") {
                         lengthRow("X", px: el.x) { v in store.updateSelectedPlacement { $0.x = v } }
                         lengthRow("Y", px: el.y) { v in store.updateSelectedPlacement { $0.y = v } }
-                        lengthRow("Width", px: el.w) { v in setWidth(v, of: el) }
+                        lengthRow(tr("Width"), px: el.w) { v in setWidth(v, of: el) }
                         // Text has no height to type: it follows its words.
                         if el.type != .text {
                             proportionsToggle
-                            lengthRow("Height", px: el.h) { v in setHeight(v, of: el) }
+                            lengthRow(tr("Height"), px: el.h) { v in setHeight(v, of: el) }
                         }
-                        numberRow("Rotation", value: el.rotation) { v in store.updateSelectedPlacement { $0.rotation = v } }
+                        numberRow(tr("Rotation"), value: el.rotation) { v in store.updateSelectedPlacement { $0.rotation = v } }
                     }
                     .disabled(el.holdsPlace)
                 } else if let box = store.selectionBox {
@@ -1337,15 +1341,15 @@ struct PositionSheet: View {
                         }
                         // Always scaled evenly, as on the Android twin: a
                         // box of several things has no chain to switch off.
-                        lengthRow("Width", px: box.width) { v in
+                        lengthRow(tr("Width"), px: box.width) { v in
                             let w = max(RatioLock.minSide, v)
                             store.setSelectionBox(CGRect(x: box.minX, y: box.minY, width: w, height: box.height * w / max(box.width, 1)))
                         }
-                        lengthRow("Height", px: box.height) { v in
+                        lengthRow(tr("Height"), px: box.height) { v in
                             let h = max(RatioLock.minSide, v)
                             store.setSelectionBox(CGRect(x: box.minX, y: box.minY, width: box.width * h / max(box.height, 1), height: h))
                         }
-                        numberRow("Rotate by", value: 0) { v in store.rotateSelection(by: v) }
+                        numberRow(tr("Rotate by"), value: 0) { v in store.rotateSelection(by: v) }
                     }
                     .disabled(store.movableSelectionCount == 0)
                 }
@@ -1503,8 +1507,18 @@ struct PositionSheet: View {
             )
             .accessibilityElement(children: .ignore)
             .accessibilityAddTraits(.isButton)
-            .accessibilityLabel("Nudge \(direction) \(nudgeStepName)")
+            .accessibilityLabel(Self.nudgeLabel(direction, nudgeStepName))
             .accessibilityAction { nudgeOnce(dx: dx, dy: dy) }
+    }
+
+    /// What VoiceOver calls an arrow: "Nudge left 10".
+    private static func nudgeLabel(_ direction: String, _ step: String) -> String {
+        switch direction {
+        case "left": return tr("Nudge left %@", step)
+        case "right": return tr("Nudge right %@", step)
+        case "up": return tr("Nudge up %@", step)
+        default: return tr("Nudge down %@", step)
+        }
     }
 
     /// A single step, as its own Undo.
@@ -1648,13 +1662,13 @@ struct LayersSheet: View {
             } message: { _ in
                 Text("Up to \(LayerNames.maxLength) characters. Leave it empty for the name Canvia gives it.")
             }
-            .alert((askingDelete?.count ?? 0) > 1 ? "Delete these?" : "Delete this?",
+            .alert((askingDelete?.count ?? 0) > 1 ? tr("Delete these?") : tr("Delete this?"),
                    isPresented: Binding(get: { askingDelete != nil }, set: { if !$0 { askingDelete = nil } }),
                    presenting: askingDelete) { ids in
                 Button("Delete", role: .destructive) { remove(Set(ids)) }
                 Button("Cancel", role: .cancel) {}
             } message: { ids in
-                Text(ids.count > 1 ? "Some of them have their position locked." : "Its position is locked.")
+                Text(ids.count > 1 ? tr("Some of them have their position locked.") : tr("Its position is locked."))
             }
         }
         .presentationDetents(sheetDetents)
@@ -1664,7 +1678,7 @@ struct LayersSheet: View {
     private var filterPicker: some View {
         Picker("Show", selection: $filter) {
             ForEach(LayerRows.Filter.allCases) { choice in
-                Text(choice.rawValue).tag(choice)
+                Text(tr(choice.rawValue)).tag(choice)
             }
         }
         .pickerStyle(.segmented)
@@ -1759,7 +1773,7 @@ struct LayersSheet: View {
             .opacity(el.isHidden ? 0.45 : 1)
             .padding(.leading, member ? 24 : 0)
             .accessibilityElement(children: .combine)
-            .accessibilityValue([el.isHidden ? "Hidden" : nil, lockValue(ElementLock.mode(of: el))]
+            .accessibilityValue([el.isHidden ? tr("Hidden") : nil, lockValue(ElementLock.mode(of: el))]
                 .compactMap { $0 }.joined(separator: ", "))
             .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
             .accessibilityAction { pick(el, alone: alone) }
@@ -1795,7 +1809,7 @@ struct LayersSheet: View {
                     .frame(width: 20, height: 28)
             }
             .buttonStyle(.borderless)
-            .accessibilityLabel(open ? "Close \(name)" : "Open \(name)")
+            .accessibilityLabel(open ? tr("Close %@", name) : tr("Open %@", name))
             HStack(spacing: 12) {
                 Image(systemName: "square.on.square")
                     .frame(width: 28, height: 28)
@@ -1840,7 +1854,7 @@ struct LayersSheet: View {
         }
         .buttonStyle(.borderless)
         .foregroundStyle(hidden ? Theme.accent : Color.secondary)
-        .accessibilityLabel(hidden ? "Show \(name)" : "Hide \(name)")
+        .accessibilityLabel(hidden ? tr("Show %@", name) : tr("Hide %@", name))
     }
 
     /// The padlock: the toolbar's Lock menu — Lock, Lock position, Unlock —
@@ -1860,15 +1874,15 @@ struct LayersSheet: View {
         .buttonStyle(.borderless)
         .foregroundStyle(mode == .unlocked ? Color.secondary : Theme.accent)
         .accessibilityLabel("Lock \(name)")
-        .accessibilityValue(lockValue(mode) ?? "Unlocked")
+        .accessibilityValue(lockValue(mode) ?? tr("Unlocked"))
     }
 
     /// How a row's lock is read out: nil unlocked.
     private func lockValue(_ mode: ElementLock.Mode) -> String? {
         switch mode {
         case .unlocked: return nil
-        case .position: return "Position locked"
-        case .full: return "Locked"
+        case .position: return tr("Position locked")
+        case .full: return tr("Locked")
         }
     }
 
@@ -1976,7 +1990,7 @@ private struct ResizeCustomSection: View {
         } header: {
             Text("Custom")
         } footer: {
-            Text(typedWrong ? CustomSizes.outOfRangeText : "Each side \(CustomSizes.rangeText).")
+            Text(typedWrong ? CustomSizes.outOfRangeText : tr("Each side %@.", CustomSizes.rangeText))
                 .foregroundStyle(typedWrong ? Color(.systemRed) : Color.secondary)
         }
         // Digits only, five at most, however they arrive; one decimal point
@@ -2051,8 +2065,8 @@ struct ResizeSheet: View {
                     .pickerStyle(.segmented)
                 } footer: {
                     Text(copying
-                         ? "A new design for each size ticked, reflowed to fit, in the same folder. This design stays as it is."
-                         : "Changes this design. Undo brings it back.")
+                         ? tr("A new design for each size ticked, reflowed to fit, in the same folder. This design stays as it is.")
+                         : tr("Changes this design. Undo brings it back."))
                 }
                 if copying {
                     CopyResizeRows(ticked: $ticked)
@@ -2065,7 +2079,7 @@ struct ResizeSheet: View {
                     CopyResizeButton(count: ticked.count, progress: progress, failed: failed) { makeCopies() }
                 }
             }
-            .navigationTitle(copying ? "Copy & resize" : "Resize design")
+            .navigationTitle(copying ? tr("Copy & resize") : tr("Resize design"))
             .navigationBarTitleDisplayMode(.inline)
         }
         .presentationDetents(sheetDetents)
@@ -2084,8 +2098,8 @@ struct ResizeSheet: View {
             .pickerStyle(.segmented)
         } footer: {
             Text(reflow
-                 ? "Reflow keeps each element's place on the new page — a footer stays at the foot, a corner logo in its corner — and sizes follow the smaller ratio."
-                 : "Scale shrinks or grows everything uniformly to fit, centred, leaving margins when the shape changes.")
+                 ? tr("Reflow keeps each element's place on the new page — a footer stays at the foot, a corner logo in its corner — and sizes follow the smaller ratio.")
+                 : tr("Scale shrinks or grows everything uniformly to fit, centred, leaving margins when the shape changes."))
         }
         if store.design.pages.count > 1 {
             Section {
@@ -2096,8 +2110,8 @@ struct ResizeSheet: View {
                 .pickerStyle(.segmented)
             } footer: {
                 Text(pageOnly
-                     ? "Pages can have sizes of their own — a story after a square post. Exports, the video and the PDF keep each page's shape."
-                     : "Every page takes the new size; pages that had their own size join it.")
+                     ? tr("Pages can have sizes of their own — a story after a square post. Exports, the video and the PDF keep each page's shape.")
+                     : tr("Every page takes the new size; pages that had their own size join it."))
             }
         }
         Section("Presets") {

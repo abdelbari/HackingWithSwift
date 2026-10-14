@@ -23,10 +23,10 @@ struct ComboChoices: View {
             if combos.isEmpty && category == nil {
                 noneFound(TextCombos.noneFound(search))
             } else {
-                header("Font combinations")
+                header(tr("Font combinations"))
                 categoryChips
-                if !recent.isEmpty { comboRow("Recently used", recent) }
-                if !branded.isEmpty { comboRow("From your brand", branded) }
+                if !recent.isEmpty { comboRow(tr("Recently used"), recent) }
+                if !branded.isEmpty { comboRow(tr("From your brand"), branded) }
                 grid(combos)
             }
         }
@@ -35,7 +35,7 @@ struct ComboChoices: View {
     private var categoryChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                chip("All", selected: category == nil) { category = nil }
+                chip(tr("All"), selected: category == nil) { category = nil }
                 ForEach(TextCombos.categories, id: \.self) { name in
                     chip(name, selected: category == name) {
                         category = category == name ? nil : name
@@ -48,7 +48,8 @@ struct ComboChoices: View {
     @ViewBuilder
     private func grid(_ combos: [TextCombos.Combo]) -> some View {
         if combos.isEmpty {
-            noneFound("No \(category ?? "") combinations match \u{201C}\(search.trimmingCharacters(in: .whitespacesAndNewlines))\u{201D}.")
+            noneFound(tr("No %@ combinations match \u{201C}%@\u{201D}.", category ?? "",
+                         search.trimmingCharacters(in: .whitespacesAndNewlines)))
         } else {
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                 ForEach(combos) { combo in tile(combo) }

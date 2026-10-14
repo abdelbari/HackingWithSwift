@@ -87,7 +87,7 @@ struct InsertSheet: View {
             }
             .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always),
                         prompt: searchPrompt)
-            .navigationTitle(isReplacing ? "Replace image" : "Add to design")
+            .navigationTitle(isReplacing ? tr("Replace image") : tr("Add to design"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
@@ -132,7 +132,7 @@ struct InsertSheet: View {
         let emptyFrames = target == nil ? store.framesToFill : []
         let store = self.store
         if items.contains(where: { item in item.supportedContentTypes.contains { $0.conforms(to: .movie) } }) {
-            store.announce("Bringing them in…", undoable: false)
+            store.announce(tr("Bringing them in…"), undoable: false)
         }
         Task {
             // Those the frames do not take land as a cascade, each a step
@@ -155,12 +155,13 @@ struct InsertSheet: View {
             let missed = items.count - placed
             if placed == 0 {
                 store.buzz(.reject)
-                store.announce(target != nil ? "Couldn't open that photo"
-                               : items.count == 1 ? "Couldn't open that" : "Couldn't open those",
+                store.announce(target != nil ? tr("Couldn't open that photo")
+                               : items.count == 1 ? tr("Couldn't open that") : tr("Couldn't open those"),
                                undoable: false)
             } else if missed > 0 {
                 store.buzz(.reject)
-                store.announce(missed == 1 ? "One couldn't be opened" : "\(missed) couldn't be opened",
+                store.announce(missed == 1 ? tr("One couldn't be opened")
+                               : trn("%d couldn't be opened|%d couldn't be opened", missed),
                                undoable: false)
             } else if target == nil {
                 store.buzz(.confirm)
@@ -310,7 +311,7 @@ struct InsertSheet: View {
                     .font(.subheadline)
             }
             Text(filteredTemplates.isEmpty
-                 ? "No template is called that, or is of that kind."
+                 ? tr("No template is called that, or is of that kind.")
                  : ContentLibrary.editorTemplatesNote(exactCount: exactTemplates.count))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -347,8 +348,8 @@ struct InsertSheet: View {
     /// "Northwind Pitch Deck, 10 pages, favourite".
     private func templateLabel(_ template: Template, starred: Bool) -> String {
         var label = template.name
-        if template.pageCount > 1 { label += ", \(template.pageCount) pages" }
-        return starred ? label + ", favourite" : label
+        if template.pageCount > 1 { label += ", " + trn("%d page|%d pages", template.pageCount) }
+        return starred ? tr("%@, favourite", label) : label
     }
 
     /// Every page of a set, fitted to this page: an empty design becomes
@@ -379,7 +380,7 @@ struct InsertSheet: View {
         }
         store.selection.removeAll()
         store.buzz(.confirm)
-        store.announce("Started over from \u{201C}\(template.name)\u{201D}")
+        store.announce(tr("Started over from \u{201C}%@\u{201D}", template.name))
         dismiss()
     }
 
@@ -399,12 +400,12 @@ struct InsertSheet: View {
         VStack(alignment: .leading, spacing: 8) {
             // What was put on a page lately, of every kind, first.
             if !recent.isEmpty {
-                sectionHeader("Recently used")
+                sectionHeader(tr("Recently used"))
                 HitRow(hits: recent) { insertHit($0) }
             }
-            sectionHeader("QR code")
+            sectionHeader(tr("QR code"))
             qrRow
-            sectionHeader("Lines")
+            sectionHeader(tr("Lines"))
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 10)], spacing: 10) {
                 ForEach(ElementSearch.linePresets, id: \.name) { preset in lineTile(preset) }
             }
@@ -417,7 +418,7 @@ struct InsertSheet: View {
                     $0.category == category && ContentLibrary.shape($0, matches: search)
                 }
                 if !shapes.isEmpty {
-                    sectionHeader(category == "Favourites" ? category : ContentLibrary.shapeGroupName(category))
+                    sectionHeader(category == "Favourites" ? tr("Favourites") : ContentLibrary.shapeGroupName(category))
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 10)], spacing: 10) {
                         ForEach(shapes) { shape in shapeTile(shape) }
                     }
@@ -440,7 +441,7 @@ struct InsertSheet: View {
                 .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
                 .overlay(alignment: .topTrailing) { if starred { starBadge } }
         }
-        .accessibilityLabel(starred ? "\(shape.name), favourite" : shape.name)
+        .accessibilityLabel(starred ? tr("%@, favourite", shape.name) : shape.name)
         .contextMenu { favoriteButton("shape", shape.id) }
     }
 
@@ -484,7 +485,7 @@ struct InsertSheet: View {
         }
     }
 
-    static let qrTooLongMessage = "That is too long for a QR code."
+    static var qrTooLongMessage: String { tr("That is too long for a QR code.") }
 
     private var trimmedQRPayload: String {
         qrPayload.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -516,7 +517,9 @@ struct InsertSheet: View {
     /// A line with its ends, named under the tile as the Android twin's
     /// line presets are, so it can be told apart by eye and by VoiceOver.
     private func lineTile(_ preset: ElementSearch.LinePreset) -> some View {
-        let name = preset.name
+        // Its name is also what Recently used keeps; shown in the app's
+        // language.
+        let name = tr(preset.name)
         return Button {
             addLinePreset(preset)
         } label: {
@@ -566,11 +569,11 @@ struct InsertSheet: View {
     /// starred icons lead in a row of their own.
     private var iconGroups: [IconGroup] {
         var groups = IconLibrary.grouped(search).map {
-            IconGroup(category: "Icons \u{00B7} \($0.category)", icons: $0.icons)
+            IconGroup(category: tr("Icons \u{00B7} %@", $0.category), icons: $0.icons)
         }
         let starred = Favorites.ids(of: "icon").compactMap { IconLibrary.icon($0) }
         if search.trimmingCharacters(in: .whitespaces).isEmpty && !starred.isEmpty {
-            groups.insert(IconGroup(category: "Favourite icons", icons: starred), at: 0)
+            groups.insert(IconGroup(category: tr("Favourite icons"), icons: starred), at: 0)
         }
         return groups
     }
@@ -589,7 +592,7 @@ struct InsertSheet: View {
                 .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
                 .overlay(alignment: .topTrailing) { if starred { starBadge } }
         }
-        .accessibilityLabel(starred ? "\(icon.name), favourite" : icon.name)
+        .accessibilityLabel(starred ? tr("%@, favourite", icon.name) : icon.name)
         .contextMenu { favoriteButton("icon", icon.id) }
     }
 
@@ -695,7 +698,7 @@ struct InsertSheet: View {
             .filter { !isReplacing || !MediaStore.isGraphic($0) }
         let offered = isReplacing ? !shown.isEmpty : !entries.isEmpty
         if offered {
-            sectionHeader("Your uploads")
+            sectionHeader(tr("Your uploads"))
             if !isReplacing { uploadKindPicker }
             if shown.isEmpty {
                 Text(Self.noUploadsNote(kind))
@@ -734,9 +737,9 @@ struct InsertSheet: View {
 
     private static func noUploadsNote(_ kind: Uploads.Kind) -> String {
         switch kind {
-        case .image: return "Photos you add show here."
-        case .video: return "Videos you add show here."
-        case .audio: return "Music and voice-overs you add show here."
+        case .image: return tr("Photos you add show here.")
+        case .video: return tr("Videos you add show here.")
+        case .audio: return tr("Music and voice-overs you add show here.")
         }
     }
 
@@ -830,7 +833,7 @@ struct InsertSheet: View {
             let natural = await Task.detached(priority: .userInitiated) { VideoStore.poster(id)?.size }.value
             guard let natural else {
                 store.buzz(.reject)
-                store.announce("Couldn't open that", undoable: false)
+                store.announce(tr("Couldn't open that"), undoable: false)
                 return
             }
             insertImage(VideoStore.src(id, at: nil), natural: natural)
@@ -880,7 +883,7 @@ struct InsertSheet: View {
     private func addTrack(_ id: String) {
         store.addAudioTrack(id)
         store.buzz(.confirm)
-        store.announce("Added \(AudioStore.label(for: id))")
+        store.announce(tr("Added %@", AudioStore.label(for: id)))
         dismiss()
     }
 
@@ -959,8 +962,8 @@ struct InsertSheet: View {
     /// a custom shape. One file importer serves both.
     private var svgImportRow: some View {
         VStack(spacing: 8) {
-            svgButton("Graphic from an SVG file", symbol: "square.on.circle", whole: true)
-            svgButton("Custom shape from an SVG file", symbol: "scribble.variable", whole: false)
+            svgButton(tr("Graphic from an SVG file"), symbol: "square.on.circle", whole: true)
+            svgButton(tr("Custom shape from an SVG file"), symbol: "scribble.variable", whole: false)
         }
         .fileImporter(isPresented: $importingSVG, allowedContentTypes: [.svg]) { result in
             guard case .success(let url) = result else { return }
@@ -1039,12 +1042,12 @@ struct InsertSheet: View {
         /// 2 MB, one that cannot be read, and one with nothing to draw.
         static func of(_ url: URL, keep: Bool, pageWidth: Double, pageHeight: Double) -> GraphicRead {
             let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
-            guard size <= SvgImport.maxBytes else { return .refused("That SVG is larger than 2 MB") }
-            guard let data = try? Data(contentsOf: url) else { return .refused("Couldn't open that") }
-            guard data.count <= SvgImport.maxBytes else { return .refused("That SVG is larger than 2 MB") }
+            guard size <= SvgImport.maxBytes else { return .refused(tr("That SVG is larger than 2 MB")) }
+            guard let data = try? Data(contentsOf: url) else { return .refused(tr("Couldn't open that")) }
+            guard data.count <= SvgImport.maxBytes else { return .refused(tr("That SVG is larger than 2 MB")) }
             guard let text = String(data: data, encoding: .utf8),
                   let graphic = SvgImport.graphic(text, pageWidth: pageWidth, pageHeight: pageHeight) else {
-                return .refused("No shape to take from that file")
+                return .refused(tr("No shape to take from that file"))
             }
             if keep, let id = MediaStore.storeGraphic(data) { Uploads.record(id, kind: .image) }
             return .graphic(graphic)
@@ -1061,7 +1064,7 @@ struct InsertSheet: View {
         }
     }
 
-    private func refuseSVG(_ note: String = "No shape to take from that file") {
+    private func refuseSVG(_ note: String = tr("No shape to take from that file")) {
         store.buzz(.reject)
         store.announce(note, undoable: false)
         dismiss()
@@ -1073,7 +1076,7 @@ struct InsertSheet: View {
     /// them, picked while the grid is selected, or with Replace.
     private var layoutsRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            sectionHeader("Photo grids")
+            sectionHeader(tr("Photo grids"))
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(PhotoGrids.layouts) { layout in
@@ -1130,7 +1133,7 @@ struct InsertSheet: View {
     /// of it selected, so photos picked next go straight into its window.
     private var decorativeFramesRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            sectionHeader("Photo frames")
+            sectionHeader(tr("Photo frames"))
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(DecorativeFrames.presets) { preset in
@@ -1192,10 +1195,10 @@ struct InsertSheet: View {
         dismiss()
         guard let data else {
             store.buzz(.reject)
-            store.announce("Couldn't open that PDF", undoable: false)
+            store.announce(tr("Couldn't open that PDF"), undoable: false)
             return
         }
-        store.announce("Opening the PDF…", undoable: false)
+        store.announce(tr("Opening the PDF…"), undoable: false)
         // A replace has one slot, so one page is all that is drawn.
         let limit = target == nil ? PDFImporter.maxPages : 1
         Task {
@@ -1210,14 +1213,14 @@ struct InsertSheet: View {
             switch outcome {
             case .locked:
                 store.buzz(.reject)
-                store.announce("That PDF is locked with a password", undoable: false)
+                store.announce(tr("That PDF is locked with a password"), undoable: false)
             case .unreadable:
                 store.buzz(.reject)
-                store.announce("Couldn't open that PDF", undoable: false)
+                store.announce(tr("Couldn't open that PDF"), undoable: false)
             case .pages(_, let total):
                 guard !stored.isEmpty else {
                     store.buzz(.reject)
-                    store.announce("Couldn't open that PDF", undoable: false)
+                    store.announce(tr("Couldn't open that PDF"), undoable: false)
                     return
                 }
                 insertPictures(stored, replacing: target)
@@ -1279,7 +1282,7 @@ struct InsertSheet: View {
                 PhotosPicker(selection: $pickedItems,
                              maxSelectionCount: store.replaceTargetId == nil ? 10 : 1,
                              matching: .any(of: [.images, .videos])) {
-                    Label(store.replaceTargetId == nil ? "Add photos or video" : "Choose a replacement",
+                    Label(store.replaceTargetId == nil ? tr("Add photos or video") : tr("Choose a replacement"),
                           systemImage: "photo.badge.plus")
                         .frame(maxWidth: .infinity)
                         .padding(10)
@@ -1305,7 +1308,7 @@ struct InsertSheet: View {
             }
             let logos = BrandKit.load().logos
             if !logos.isEmpty {
-                sectionHeader("Brand logos")
+                sectionHeader(tr("Brand logos"))
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
                     ForEach(Array(logos.enumerated()), id: \.element) { index, src in
                         logoTile(src, label: AddSheetNames.logo(index, of: logos.count))
@@ -1320,7 +1323,7 @@ struct InsertSheet: View {
             Button {
                 importingPDF = true
             } label: {
-                Label(isReplacing ? "Replace with a PDF page" : "Import a PDF (each page becomes a page)",
+                Label(isReplacing ? tr("Replace with a PDF page") : tr("Import a PDF (each page becomes a page)"),
                       systemImage: "doc.richtext")
                     .frame(maxWidth: .infinity)
                     .padding(10)
@@ -1412,7 +1415,7 @@ struct InsertSheet: View {
             .padding(.top, 4)
         } else {
             Picker("Section", selection: $tab) {
-                ForEach(tabs, id: \.self) { Text($0) }
+                ForEach(tabs, id: \.self) { Text(tr($0)) }
             }
             .pickerStyle(.segmented)
             .padding(.horizontal)
@@ -1423,7 +1426,7 @@ struct InsertSheet: View {
     private func tabChip(_ name: String) -> some View {
         let selected = tab == name
         return Button { tab = name } label: {
-            Text(name)
+            Text(tr(name))
                 .font(.subheadline.weight(.medium))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 7)
@@ -1441,17 +1444,17 @@ struct InsertSheet: View {
         let kit = brandKit
         let roles = BrandFonts.Role.allCases.filter { kit.fonts[$0] != nil }
         return VStack(alignment: .leading, spacing: 10) {
-            brandPictures("Logos", kit.logos) { AddSheetNames.logo($0, of: $1) }
-            brandPictures("Photos", kit.photos) { AddSheetNames.brandPhoto($0, of: $1) }
-            brandPictures("Graphics", kit.graphics) { AddSheetNames.brandGraphic($0, of: $1) }
+            brandPictures(tr("Logos"), kit.logos) { AddSheetNames.logo($0, of: $1) }
+            brandPictures(tr("Photos"), kit.photos) { AddSheetNames.brandPhoto($0, of: $1) }
+            brandPictures(tr("Graphics"), kit.graphics) { AddSheetNames.brandGraphic($0, of: $1) }
             if !kit.colors.isEmpty {
-                sectionHeader("Colours")
+                sectionHeader(tr("Colours"))
                 ForEach(Array(kit.palettes.filter { !$0.colors.isEmpty }.enumerated()), id: \.offset) { _, palette in
                     brandPalette(palette)
                 }
             }
             if !roles.isEmpty {
-                sectionHeader("Text")
+                sectionHeader(tr("Text"))
                 ForEach(roles) { role in
                     roleInsert(role, face: kit.fonts[role])
                 }
@@ -1543,7 +1546,7 @@ struct InsertSheet: View {
             Favorites.toggle(kind, id)
             favoritesVersion += 1
         } label: {
-            Label(on ? "Remove from favourites" : "Add to favourites", systemImage: on ? "star.slash" : "star")
+            Label(on ? tr("Remove from favourites") : tr("Add to favourites"), systemImage: on ? "star.slash" : "star")
         }
     }
 
@@ -1574,7 +1577,7 @@ struct InsertSheet: View {
     @ViewBuilder
     private var componentsSection: some View {
         let components = Components.load()
-        sectionHeader("Components")
+        sectionHeader(tr("Components"))
         if components.isEmpty {
             Text("Select what you build again and again — a footer, a price tag — and choose More ▸ Save selection as component.")
                 .font(.footnote)
@@ -1584,7 +1587,7 @@ struct InsertSheet: View {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
                 ForEach(components) { component in componentTile(component) }
             }
-            .confirmationDialog(removingComponent.map { "Delete \u{201C}\($0.name)\u{201D}?" } ?? "",
+            .confirmationDialog(removingComponent.map { tr("Delete \u{201C}%@\u{201D}?", $0.name) } ?? "",
                                 isPresented: Binding(get: { removingComponent != nil },
                                                      set: { if !$0 { removingComponent = nil } }),
                                 titleVisibility: .visible,
@@ -1603,7 +1606,7 @@ struct InsertSheet: View {
 
     private func componentTile(_ component: Component) -> some View {
         let count = component.elements.count
-        let pieces = count == 1 ? "1 piece" : "\(count) pieces"
+        let pieces = trn("%d piece|%d pieces", count)
         return Button {
             store.insertComponent(component)
             dismiss()
@@ -1716,7 +1719,7 @@ struct InsertSheet: View {
                 .frame(width: 52, height: 52)
                 .overlay(alignment: .topTrailing) { if starred { starBadge.scaleEffect(0.8) } }
         }
-        .accessibilityValue(starred ? "Favourite" : "")
+        .accessibilityValue(starred ? tr("Favourite") : "")
         .contextMenu { favoriteButton("sticker", glyph) }
     }
 
@@ -1733,7 +1736,7 @@ struct InsertSheet: View {
     private var animatedStickersRow: some View {
         let moving = Stickers.searchAnimated(search)
         if !moving.isEmpty {
-            sectionHeader("Animated")
+            sectionHeader(tr("Animated"))
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(moving) { sticker in
@@ -1755,7 +1758,7 @@ struct InsertSheet: View {
     /// their own words (Stickers.search); a group with none drops out.
     private var filteredStickerGroups: [StickerGroup] {
         let starred = Favorites.ids(of: "sticker")
-        let favourites = starred.isEmpty ? [] : [StickerGroup(name: "Favourites", emoji: starred)]
+        let favourites = starred.isEmpty ? [] : [StickerGroup(name: tr("Favourites"), emoji: starred)]
         guard !search.isEmpty else { return favourites + ContentLibrary.stickerGroups }
         return Stickers.search(search, in: ContentLibrary.stickerGroups)
     }

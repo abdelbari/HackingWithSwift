@@ -68,9 +68,9 @@ struct ExportSheet: View {
 
     private func label(_ choice: RangeChoice) -> String {
         switch choice {
-        case .all: return "All pages (\(store.design.pages.count))"
-        case .current: return "Current page"
-        case .chosen: return "Choose…"
+        case .all: return tr("All pages (%d)", store.design.pages.count)
+        case .current: return tr("Current page")
+        case .chosen: return tr("Choose…")
         }
     }
 
@@ -350,7 +350,7 @@ struct ExportSheet: View {
         let shown = shownIndex
         let edge = DesignExporter.longEdge(size: design.size(at: shown), requested: pageScale(shown, in: design))
         if edge < DesignExporter.softBelowLongEdge {
-            return "Only \(Int(edge)) px on the long side — will look soft on most screens."
+            return tr("Only %d px on the long side — will look soft on most screens.", Int(edge))
         }
         // Every page that goes out, each at the scale it will render at —
         // not only the first page, which may not even be among them.
@@ -366,8 +366,9 @@ struct ExportSheet: View {
         }
         guard blurry > 0 else { return nil }
         return blurry == 1
-            ? "One photo has fewer pixels than this size needs and will look blurry."
-            : "\(blurry) photos have fewer pixels than this size needs and will look blurry."
+            ? tr("One photo has fewer pixels than this size needs and will look blurry.")
+            : trn("%d photo has fewer pixels than this size needs and will look blurry."
+                  + "|%d photos have fewer pixels than this size needs and will look blurry.", blurry)
     }
 
     private var jpegSection: some View {
@@ -377,18 +378,20 @@ struct ExportSheet: View {
         } header: {
             Text("JPEG quality")
         } footer: {
-            let each = exportedIndices.count > 1 ? " a page" : ""
-            Text("\(percent)% — about \(estimatedSize)\(each). PNG and PDF are lossless and ignore this.")
+            let size = estimatedSize
+            Text(exportedIndices.count > 1
+                 ? tr("%d%% — about %@ a page. PNG and PDF are lossless and ignore this.", percent, size)
+                 : tr("%d%% — about %@. PNG and PDF are lossless and ignore this.", percent, size))
         }
     }
 
     private var pagesSection: some View {
-        var note = "Page \(store.pageIndex + 1) only."
+        var note = tr("Page %d only.", store.pageIndex + 1)
         if pageRange == .all {
-            note = "One file per page, numbered — so each can be posted on its own."
+            note = tr("One file per page, numbered — so each can be posted on its own.")
             if hiddenPages > 0 { note = allPagesText + ". " + note }
         } else if pageRange == .chosen {
-            note = "\(chosenText). Pictures and SVGs are a file a page; the PDF, video and GIF play them in order."
+            note = tr("%@. Pictures and SVGs are a file a page; the PDF, video and GIF play them in order.", chosenText)
         }
         return Section {
             Picker("Pages", selection: rangeBinding) {
@@ -409,8 +412,8 @@ struct ExportSheet: View {
         Section {
             Toggle("Transparent background", isOn: $transparent)
         } footer: {
-            Text("PNG only. Drops the page's own background rather than "
-                 + "flattening it, so the export really has nothing behind it.")
+            Text(tr("PNG only. Drops the page's own background rather than "
+                    + "flattening it, so the export really has nothing behind it."))
         }
     }
 
@@ -421,7 +424,7 @@ struct ExportSheet: View {
             Toggle("Flatten PDF", isOn: $flatten)
             pdfOptions
             exportButton("PowerPoint", subtitle: pptxSubtitle, icon: "rectangle.stack",
-                         working: "Making the PowerPoint", unavailable: leftOut(pdfIndices), format: "pptx") {
+                         working: tr("Making the PowerPoint"), unavailable: leftOut(pdfIndices), format: "pptx") {
                 ExportJobs.powerPoint(designSnapshot)
             }
         } header: {
@@ -436,25 +439,25 @@ struct ExportSheet: View {
     @ViewBuilder
     private func formatRow(_ format: String) -> some View {
         let count = exportedIndices.count
-        let what = count > 1 ? "\(pagesWord(count)), one file each" : onePageText
+        let what = count > 1 ? tr("%@, one file each", pagesWord(count)) : onePageText
         switch format {
         case "png":
-            exportButton("PNG", subtitle: "\(what), best for sharing", icon: "photo",
+            exportButton("PNG", subtitle: tr("%@, best for sharing", what), icon: "photo",
                          unavailable: leftOut(exportedIndices), format: "png") {
                 picturesWork(.png)
             }
         case "jpg":
-            exportButton("JPEG", subtitle: "\(what), about \(estimatedSize)\(count > 1 ? " a page" : "")",
+            exportButton("JPEG", subtitle: Self.about(what, estimatedSize, eachPage: count > 1),
                          icon: "photo.fill", unavailable: leftOut(exportedIndices), format: "jpg") {
                 picturesWork(.jpeg)
             }
         case "pdf":
-            exportButton("PDF", subtitle: pdfSubtitle, icon: "doc.richtext", working: "Making the PDF",
+            exportButton("PDF", subtitle: pdfSubtitle, icon: "doc.richtext", working: tr("Making the PDF"),
                          unavailable: leftOut(pdfIndices), format: "pdf") {
                 ExportJobs.pdf(designSnapshot, flatten: flatten, notes: pdfNotes, compress: pdfCompress)
             }
         default:
-            exportButton("SVG", subtitle: count > 1 ? "\(pagesWord(count)), one SVG each" : "\(onePageText), editable vectors",
+            exportButton("SVG", subtitle: count > 1 ? tr("%@, one SVG each", pagesWord(count)) : tr("%@, editable vectors", onePageText),
                          icon: "scribble.variable", unavailable: leftOut(exportedIndices), format: "svg") {
                 ExportJobs.svg(exportedSnapshot)
             }
@@ -501,11 +504,11 @@ struct ExportSheet: View {
 
     /// What the PDF holds, from the page choice.
     private var pdfSubtitle: String {
-        let kind = flatten ? "flattened at 300 dpi" : "vector"
-        guard store.design.pages.count > 1 else { return "Print-ready document, \(kind)" }
+        let kind = flatten ? tr("flattened at 300 dpi") : tr("vector")
+        guard store.design.pages.count > 1 else { return tr("Print-ready document, %@", kind) }
         switch pageRange {
         case .all: return "\(allPagesText), \(kind)"
-        case .current: return "Page \(store.pageIndex + 1) only, \(kind)"
+        case .current: return tr("Page %d only, %@", store.pageIndex + 1, kind)
         case .chosen: return "\(chosenText), \(kind)"
         }
     }
@@ -513,11 +516,11 @@ struct ExportSheet: View {
     /// Said from the page choice above, which the PowerPoint follows as the
     /// PDF does: a slide a page, hidden pages left out of All pages.
     private var pptxSubtitle: String {
-        let kind = "editable slides"
-        guard store.design.pages.count > 1 else { return "One slide, editable text and shapes" }
+        let kind = tr("editable slides")
+        guard store.design.pages.count > 1 else { return tr("One slide, editable text and shapes") }
         switch pageRange {
         case .all: return "\(allPagesText), \(kind)"
-        case .current: return "Page \(store.pageIndex + 1) only, \(kind)"
+        case .current: return tr("Page %d only, %@", store.pageIndex + 1, kind)
         case .chosen: return "\(chosenText), \(kind)"
         }
     }
@@ -526,7 +529,7 @@ struct ExportSheet: View {
     private func pagesWord(_ count: Int) -> String {
         pageRange == .chosen && !selectionOnly
             ? ExportChoices.countText(count, of: store.design.pages.count)
-            : "\(count) pages"
+            : trn("%d page|%d pages", count)
     }
 
     /// "3 of 8 pages": what Choose… has ticked.
@@ -584,6 +587,7 @@ struct ExportSheet: View {
 
     private var photosSection: some View {
         let kind = photosFormat == .png ? "PNG" : "JPEG"
+        let title = tr("%@ to Photos", kind)
         return Section {
             // The same two picture formats the share rows make: a JPEG for
             // a photo-heavy post, a PNG for flat colour or a clear
@@ -593,16 +597,16 @@ struct ExportSheet: View {
                 Text("JPEG").tag(DesignExporter.RasterFormat.jpeg)
             }
             .pickerStyle(.segmented)
-            exportButton("\(kind) to Photos", subtitle: photosSubtitle, icon: "photo.badge.plus",
-                         working: "Saving to your photos", unavailable: leftOut(exportedIndices),
+            exportButton(title, subtitle: photosSubtitle, icon: "photo.badge.plus",
+                         working: tr("Saving to your photos"), unavailable: leftOut(exportedIndices),
                          format: photosFormat == .png ? "png" : "jpg") {
                 photosNote = nil
                 return ExportJobs.picturesToPhotos(exportedSnapshot, format: photosFormat, scale: scale,
                                                    longEdge: typedLongEdge ?? 0, quality: jpegQuality,
                                                    transparent: transparent)
             }
-            exportButton("Video to Photos", subtitle: movieSubtitle, icon: "film.stack",
-                         working: "Rendering the video", unavailable: leftOut(moviePages), format: "mp4") {
+            exportButton(tr("Video to Photos"), subtitle: movieSubtitle, icon: "film.stack",
+                         working: tr("Rendering the video"), unavailable: leftOut(moviePages), format: "mp4") {
                 photosNote = nil
                 return ExportJobs.movieToPhotos(designSnapshot, settings: movieSettings)
             }
@@ -618,8 +622,13 @@ struct ExportSheet: View {
 
     private var photosSubtitle: String {
         let count = exportedIndices.count
-        let each = count > 1 ? "\(pagesWord(count)), one photo each" : "\(onePageText), straight into your library"
-        return photosFormat == .jpeg ? "\(each), about \(estimatedSize)\(count > 1 ? " a page" : "")" : each
+        let each = count > 1 ? tr("%@, one photo each", pagesWord(count)) : tr("%@, straight into your library", onePageText)
+        return photosFormat == .jpeg ? Self.about(each, estimatedSize, eachPage: count > 1) : each
+    }
+
+    /// "…, about 1.2 MB", and "a page" after it when there are several.
+    private static func about(_ what: String, _ size: String, eachPage: Bool) -> String {
+        eachPage ? tr("%@, about %@ a page", what, size) : tr("%@, about %@", what, size)
     }
 
     /// Said when a video's music could not be mixed in, as the Android twin
@@ -634,8 +643,8 @@ struct ExportSheet: View {
 
     private var clipboardSection: some View {
         Section {
-            exportButton("Canvia design file", subtitle: "The design and its photos, to send or back up",
-                         icon: "shippingbox", working: "Packing the design file") {
+            exportButton(tr("Canvia design file"), subtitle: tr("The design and its photos, to send or back up"),
+                         icon: "shippingbox", working: tr("Packing the design file")) {
                 ExportJobs.designFile(store.design)
             }
             // At once, not queued: a picture of one page on the clipboard.
@@ -643,8 +652,8 @@ struct ExportSheet: View {
                 errorMessage = nil
                 do { try copyToClipboard() } catch { errorMessage = ExportChoices.failedText(error.localizedDescription) }
             } label: {
-                rowLabel(copied ? "Copied" : "Copy as image",
-                         subtitle: "PNG on the clipboard, for Messages, Mail or Notes",
+                rowLabel(copied ? tr("Copied") : tr("Copy as image"),
+                         subtitle: tr("PNG on the clipboard, for Messages, Mail or Notes"),
                          icon: copied ? "checkmark.circle" : "doc.on.clipboard")
             }
             .foregroundStyle(.primary)
@@ -670,14 +679,14 @@ struct ExportSheet: View {
 
     private var printSection: some View {
         Section {
-            exportButton("Send to a printer", subtitle: "AirPrint, on the paper layout below", icon: "printer",
-                         working: "Preparing to print", unavailable: leftOut(exportedIndices), format: "print") {
+            exportButton(tr("Send to a printer"), subtitle: tr("AirPrint, on the paper layout below"), icon: "printer",
+                         working: tr("Preparing to print"), unavailable: leftOut(exportedIndices), format: "print") {
                 ExportJobs.printPDF(exportedSnapshot, options: paper, flatten: flatten, printing: true)
             }
             // The design the other formats render, so "Selection only"
             // prints the selection rather than page 1 of the whole thing.
-            exportButton("Print-ready PDF", subtitle: "Paper, bleed and crop marks as set", icon: "doc.badge.gearshape",
-                         working: "Making the print PDF", unavailable: leftOut(exportedIndices), format: "print") {
+            exportButton(tr("Print-ready PDF"), subtitle: tr("Paper, bleed and crop marks as set"), icon: "doc.badge.gearshape",
+                         working: tr("Making the print PDF"), unavailable: leftOut(exportedIndices), format: "print") {
                 ExportJobs.printPDF(exportedSnapshot, options: paper, flatten: flatten, printing: false)
             }
             // Compress is the plain PDF's; a print shop gets every pixel.
@@ -697,17 +706,20 @@ struct ExportSheet: View {
     private var paperNote: String {
         let pts = PrintLayout.pagePoints(design: exportedDesign, bleed: paper.bleed)
         switch paper.fit {
-        case .fit: return "Fitted to \(paper.paper.name)\(paper.landscape ? " landscape" : "")."
+        case .fit:
+            return paper.landscape ? tr("Fitted to %@ landscape.", paper.paper.name) : tr("Fitted to %@.", paper.paper.name)
         case .actual:
             let fits = pts.width <= paper.printable.width && pts.height <= paper.printable.height
             // Whole millimetres, whatever the design is measured in, as
             // Android's PrintLayout.note says it: the size it truly is now
             // that a page prints at its dpi.
-            return fits ? "Prints at actual size, \(String(format: "%.0f × %.0f mm", pts.width / 2.835, pts.height / 2.835))."
-                        : "Larger than the sheet at actual size — it will be clipped. Tile it instead."
+            let millimetres = String(format: "%.0f × %.0f mm", pts.width / 2.835, pts.height / 2.835)
+            return fits ? tr("Prints at actual size, %@.", millimetres)
+                        : tr("Larger than the sheet at actual size — it will be clipped. Tile it instead.")
         case .tile:
             let n = PrintLayout.tiles(page: pts, printable: paper.printable.size, overlap: paper.overlap).count
-            return "\(n) sheets of \(paper.paper.name), overlapping by \(Int(paper.overlap)) pt to trim and join."
+            return trn("%d sheets of %@, overlapping by %d pt to trim and join."
+                       + "|%d sheets of %@, overlapping by %d pt to trim and join.", n, paper.paper.name, Int(paper.overlap))
         case .several:
             // "10 per sheet, 2 sheets", as the Android twin says it.
             let plan = DesignExporter.severalPlan(design: exportedDesign, indices: exportedIndices, options: paper)
@@ -725,7 +737,7 @@ struct ExportSheet: View {
                 ForEach(PrintLayout.Fit.allCases) { Text($0.name).tag($0) }
             }
             if paper.fit == .several { severalSettings }
-            Stepper(value: $paper.bleed, in: 0...36, step: 3) { Text("Bleed \(String(format: "%.0f", paper.bleed / 2.835)) mm") }
+            Stepper(value: $paper.bleed, in: 0...36, step: 3) { Text("Bleed \(Int((paper.bleed / 2.835).rounded())) mm") }
             // A design with no bleed of its own has one made for it.
             if paper.bleed > 0 && !Bleed.shown(exportedDesign) {
                 Text(PrintLayout.enlargedNote)
@@ -748,20 +760,20 @@ struct ExportSheet: View {
         let twoSided = exportedDesign.pages.count == 2 && exportedIndices.count == 2
         Toggle("Double-sided", isOn: Binding(get: { paper.duplex && twoSided }, set: { paper.duplex = $0 }))
             .disabled(!twoSided)
-        Text(twoSided ? "Page 1 on the front, page 2 on the back. Print on both sides, flipping on the long edge."
-                      : "Double-sided takes a design of two pages, both printed: a front and a back.")
+        Text(twoSided ? tr("Page 1 on the front, page 2 on the back. Print on both sides, flipping on the long edge.")
+                      : tr("Double-sided takes a design of two pages, both printed: a front and a back."))
             .font(.footnote)
             .foregroundStyle(.secondary)
     }
 
     private var motionSection: some View {
         Section {
-            exportButton("MP4 video", subtitle: movieSubtitle, icon: "film", working: "Rendering the video",
+            exportButton(tr("MP4 video"), subtitle: movieSubtitle, icon: "film", working: tr("Rendering the video"),
                          unavailable: leftOut(moviePages), format: "mp4") {
                 ExportJobs.movie(designSnapshot, settings: movieSettings)
             }
-            exportButton("Animated GIF", subtitle: movieSubtitle, icon: "square.stack.3d.down.right",
-                         working: "Rendering the GIF", unavailable: leftOut(moviePages), format: "gif") {
+            exportButton(tr("Animated GIF"), subtitle: movieSubtitle, icon: "square.stack.3d.down.right",
+                         working: tr("Rendering the GIF"), unavailable: leftOut(moviePages), format: "gif") {
                 ExportJobs.gif(designSnapshot, settings: movieSettings)
             }
             Picker("Video size", selection: $resolution) {
@@ -788,9 +800,17 @@ struct ExportSheet: View {
     private var motionNote: String {
         let m = store.design.motion ?? MotionSettings()
         let settings = MovieExporter.Settings(store.design.motion)
-        var note = "Each page holds \(String(format: "%.1f", settings.secondsPerPage))s unless it has its own time"
-        if m.movement { note += ", with a slow push in" }
-        note += m.crossfade ? ", and fades into the next." : ", and cuts to the next."
+        let hold = String(format: "%.1f", settings.secondsPerPage)
+        let note: String
+        if m.movement {
+            note = m.crossfade
+                ? tr("Each page holds %@s unless it has its own time, with a slow push in, and fades into the next.", hold)
+                : tr("Each page holds %@s unless it has its own time, with a slow push in, and cuts to the next.", hold)
+        } else {
+            note = m.crossfade
+                ? tr("Each page holds %@s unless it has its own time, and fades into the next.", hold)
+                : tr("Each page holds %@s unless it has its own time, and cuts to the next.", hold)
+        }
         return note + Self.musicSentence(store.design.audioTracks)
     }
 
@@ -899,7 +919,7 @@ struct ExportSheet: View {
     /// after any export already running. `unavailable`, when set, is why it
     /// cannot now — every page it would make is hidden — said in place of
     /// its subtitle, with the row disabled.
-    private func exportButton(_ title: String, subtitle: String, icon: String, working: String = "Rendering",
+    private func exportButton(_ title: String, subtitle: String, icon: String, working: String = tr("Rendering"),
                               unavailable: String? = nil, format: String? = nil,
                               job: @escaping @MainActor () -> ExportQueue.Work) -> some View {
         Button {
@@ -955,8 +975,8 @@ struct ExportSheet: View {
     /// What a one-page export is of: the page on screen — or, when the rest
     /// of "All pages" is hidden, the one page left.
     private var onePageText: String {
-        if let only = exportedIndices.first, only != exportedPageIndex { return "Page \(only + 1)" }
-        return "Current page"
+        if let only = exportedIndices.first, only != exportedPageIndex { return tr("Page %d", only + 1) }
+        return tr("Current page")
     }
 
     /// The pages the PDF row writes, which follow the page choice alone.
@@ -981,7 +1001,7 @@ struct ExportSheet: View {
     /// ticked in Choose…, or every page hidden.
     private func leftOut(_ indices: [Int]) -> String? {
         guard indices.isEmpty else { return nil }
-        return pageRange == .chosen && !selectionOnly ? "No pages chosen" : PageVisibility.everyPageHidden
+        return pageRange == .chosen && !selectionOnly ? tr("No pages chosen") : PageVisibility.everyPageHidden
     }
 
     /// The pixel size of the page shown — each page is sized on its own, so
@@ -993,10 +1013,10 @@ struct ExportSheet: View {
         let size = DesignExporter.outputSize(size: pageSize, requested: requested)
         var note = "\(Int(size.width)) × \(Int(size.height)) px"
         if DesignExporter.isClamped(size: pageSize, requested: requested) {
-            note += " — reduced from \(String(format: "%.1f", requested))× so the render fits in memory"
+            note = tr("%@ — reduced from %@× so the render fits in memory", note, String(format: "%.1f", requested))
         }
         if exportedIndices.count > 1 && design.hasMixedPageSizes {
-            note += " for this page; each page at its own size"
+            note = tr("%@ for this page; each page at its own size", note)
         }
         return note + "."
     }
@@ -1018,11 +1038,11 @@ struct ExportSheet: View {
         let length = String(format: "%.0f", max(1, seconds))
         let size = MovieExporter.videoSize(for: store.design, maxEdge: resolution.maxEdge)
         let pixels = "\(Int(size.width)) × \(Int(size.height))"
-        guard pages > 1 else { return "One page, \(length)s, \(pixels)" }
+        guard pages > 1 else { return tr("One page, %@s, %@", length, pixels) }
         switch pageRange {
-        case .all: return "\(allPagesText), \(length)s, \(pixels)"
-        case .current: return "Current page, \(length)s, \(pixels)"
-        case .chosen: return "\(chosenText), \(length)s, \(pixels)"
+        case .all: return tr("%@, %@s, %@", allPagesText, length, pixels)
+        case .current: return tr("Current page, %@s, %@", length, pixels)
+        case .chosen: return tr("%@, %@s, %@", chosenText, length, pixels)
         }
     }
 }

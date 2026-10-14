@@ -63,9 +63,10 @@ struct AudioSheet: View {
     }
 
     /// Said when the microphone is not allowed.
-    static let micRefusedTitle = "Microphone access is off"
-    static let micRefusedMessage = "Canvia records a voice-over with the microphone. "
-        + "You can allow it in Settings, under Canvia."
+    static var micRefusedTitle: String { tr("Microphone access is off") }
+    static var micRefusedMessage: String {
+        tr("Canvia records a voice-over with the microphone. You can allow it in Settings, under Canvia.")
+    }
 
     @ViewBuilder
     private var content: some View {
@@ -99,7 +100,7 @@ struct AudioSheet: View {
     }
 
     /// What the list says before there is anything in it.
-    static let emptyNote = "No audio yet. Add music or record a voice-over to hear it under the video."
+    static var emptyNote: String { tr("No audio yet. Add music or record a voice-over to hear it under the video.") }
 
     /// A track by its name, with where it starts and how long it plays.
     private func trackRow(_ track: AudioTrack) -> some View {
@@ -138,7 +139,7 @@ struct AudioSheet: View {
     private var playButton: some View {
         let playing = store.previewTime != nil
         return Button { if playing { store.stopPreview() } else { store.playPreview() } } label: {
-            Label(playing ? "Stop" : "Play this page", systemImage: playing ? "stop.circle" : "play.circle")
+            Label(playing ? tr("Stop") : tr("Play this page"), systemImage: playing ? "stop.circle" : "play.circle")
         }
     }
 
@@ -161,7 +162,7 @@ struct AudioSheet: View {
     private func add(_ id: String) {
         store.addAudioTrack(id)
         store.buzz(.confirm)
-        store.announce("Added \(AudioStore.label(for: id))")
+        store.announce(tr("Added %@", AudioStore.label(for: id)))
     }
 
     /// A file picked in Files: kept among your uploads and added as a track
@@ -240,7 +241,7 @@ struct AudioTrackView: View {
                 }
             }
         }
-        .navigationTitle(track.map(AudioTracks.name(of:)) ?? "Track")
+        .navigationTitle(track.map(AudioTracks.name(of:)) ?? tr("Track"))
         .navigationBarTitleDisplayMode(.inline)
         .task(id: track?.audioId) {
             peaks = []
@@ -257,7 +258,7 @@ struct AudioTrackView: View {
         let film = AudioMix.filmLength(design: store.design)
         let here = AudioStore.url(for: track.audioId) != nil
         return Section {
-            slider("Starts at", stored: max(track.start, 0), in: 0...max(film, track.start, 0.1), step: 0.5,
+            slider(tr("Starts at"), stored: max(track.start, 0), in: 0...max(film, track.start, 0.1), step: 0.5,
                    draft: $draftStart, readout: VideoStore.timeLabel) { v in
                 write { $0.start = AudioTracks.tenths(v) }
             }
@@ -304,15 +305,15 @@ struct AudioTrackView: View {
 
     private func levelSection(_ track: AudioTrack) -> some View {
         Section {
-            slider("Volume", stored: min(max(track.volume, 0), 1), in: 0...1, step: 0.1,
+            slider(tr("Volume"), stored: min(max(track.volume, 0), 1), in: 0...1, step: 0.1,
                    draft: $draftVolume, readout: ClipSheet.percentLabel) { v in
                 write { $0.volume = (min(max(v, 0), 1) * 100).rounded() / 100 }
             }
-            slider("Fade in", stored: fade(track.fadeIn), in: AudioTrack.fadeRange, step: 0.5,
+            slider(tr("Fade in"), stored: fade(track.fadeIn), in: AudioTrack.fadeRange, step: 0.5,
                    draft: $draftFadeIn, readout: AudioTracks.secondsLabel) { v in
                 write { $0.fadeIn = AudioTracks.tenths(v) }
             }
-            slider("Fade out", stored: fade(track.fadeOut), in: AudioTrack.fadeRange, step: 0.5,
+            slider(tr("Fade out"), stored: fade(track.fadeOut), in: AudioTrack.fadeRange, step: 0.5,
                    draft: $draftFadeOut, readout: AudioTracks.secondsLabel) { v in
                 write { $0.fadeOut = AudioTracks.tenths(v) }
             }
@@ -352,7 +353,7 @@ struct AudioTrackView: View {
     private func delete() {
         store.removeAudioTrack(trackId)
         store.buzz(.confirm)
-        store.announce("Deleted the track")
+        store.announce(tr("Deleted the track"))
         dismiss()
     }
 }
@@ -507,7 +508,7 @@ struct VoiceOverPanel: View {
         let taken = recorder.stop()
         store.stopPreview()
         guard let file = taken else {
-            store.announce("Nothing was recorded", undoable: false)
+            store.announce(tr("Nothing was recorded"), undoable: false)
             onDone()
             return
         }
@@ -515,14 +516,14 @@ struct VoiceOverPanel: View {
         let name = AudioTracks.voiceOverName(after: store.design.audioTracks)
         guard let id = AudioStore.store(file, name: name) else {
             store.buzz(.reject)
-            store.announce("Couldn't keep that recording", undoable: false)
+            store.announce(tr("Couldn't keep that recording"), undoable: false)
             onDone()
             return
         }
         Uploads.record(id, kind: .audio)
         store.addAudioTrack(id, start: startsAt, name: name)
         store.buzz(.confirm)
-        store.announce("Added \(name)")
+        store.announce(tr("Added %@", name))
         onDone()
     }
 }

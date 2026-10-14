@@ -24,8 +24,8 @@ struct ProofreadSheet: View {
     }
 
     private var title: String {
-        if shown.isEmpty { return "Spelling" }
-        return shown.count == 1 ? "1 possible mistake" : "\(shown.count) possible mistakes"
+        if shown.isEmpty { return tr("Spelling") }
+        return trn("%d possible mistake|%d possible mistakes", shown.count)
     }
 
     var body: some View {

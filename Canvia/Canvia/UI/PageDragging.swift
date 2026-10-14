@@ -139,7 +139,7 @@ extension View {
         accessibilityActions {
             ForEach(PageOrder.Step.allCases, id: \.self) { step in
                 if let gap = PageOrder.gap(step, from: index, count: store.design.pages.count) {
-                    Button(step.rawValue) { store.movePages([id], to: gap) }
+                    Button(tr(step.rawValue)) { store.movePages([id], to: gap) }
                 }
             }
         }

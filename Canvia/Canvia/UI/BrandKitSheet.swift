@@ -44,12 +44,12 @@ struct BrandKitSheet: View {
             self == .photos ? \BrandKit.photos : \BrandKit.graphics
         }
 
-        var title: String { self == .photos ? "Photos" : "Graphics" }
+        var title: String { self == .photos ? tr("Photos") : tr("Graphics") }
 
         /// What VoiceOver calls one: "Brand photo 2 of 5".
         func label(_ index: Int, of count: Int) -> String {
-            let kind = self == .photos ? "Brand photo" : "Brand graphic"
-            return "\(kind) \(index + 1) of \(count)"
+            self == .photos ? tr("Brand photo %d of %d", index + 1, count)
+                : tr("Brand graphic %d of %d", index + 1, count)
         }
     }
 
@@ -154,7 +154,7 @@ struct BrandKitSheet: View {
             try BrandKitFile.export(kit).write(to: url, options: .atomic)
             sharedURL = url
         } catch {
-            problem = "Couldn't make the brand kit file."
+            problem = tr("Couldn't make the brand kit file.")
         }
     }
 
@@ -277,7 +277,7 @@ struct BrandKitSheet: View {
     /// phone says so.
     private func roleRow(_ role: BrandFonts.Role) -> some View {
         let face = kit.fonts[role]
-        let name = face.map { FontStore.displayName($0.family, in: store.design) } ?? "None"
+        let name = face.map { FontStore.displayName($0.family, in: store.design) } ?? tr("None")
         let missing = face.flatMap { FontStore.missingNote($0.family, in: store.design) }
         return Button { choosingRole = role } label: {
             HStack {
@@ -444,7 +444,7 @@ struct BrandKitSheet: View {
                 }.value
                 if let src { added.append(src) }
             }
-            if added.count < items.count { problem = "Couldn't add every photo picked." }
+            if added.count < items.count { problem = tr("Couldn't add every photo picked.") }
             editKit { kit in
                 for src in added { kit.add(src, to: list.keyPath) }
             }
@@ -467,7 +467,7 @@ struct BrandKitSheet: View {
                 return id
             }.value
             guard let id else {
-                problem = "No shape to take from that file"
+                problem = tr("No shape to take from that file")
                 return
             }
             editKit { $0.add(BrandKit.svgSource(id), to: \.graphics) }
@@ -495,8 +495,8 @@ struct BrandKitSheet: View {
             Text("Templates")
         } footer: {
             Text(ownTemplates.isEmpty
-                 ? "Save a design as a template from More, then add it here."
-                 : "They come first, under the kit's name, on Home and in Templates.")
+                 ? tr("Save a design as a template from More, then add it here.")
+                 : tr("They come first, under the kit's name, on Home and in Templates."))
         }
     }
 
@@ -526,7 +526,7 @@ struct BrandKitSheet: View {
             // a text — as the Android twin chooses a brand face.
             .sheet(item: $choosingRole) { role in
                 FontSheet(store: store, choice: FontSheet.Choice(
-                    title: "\(role.label) font",
+                    title: tr("%@ font", role.label),
                     current: kit.fonts[role]?.family,
                     onPick: { key in pick(key, for: role) }))
             }
@@ -566,9 +566,9 @@ struct BrandKitSheet: View {
 
     private var namingTitle: String {
         switch naming {
-        case .kit: return "Rename brand kit"
-        case .newPalette: return "New palette"
-        case .palette: return "Rename palette"
+        case .kit: return tr("Rename brand kit")
+        case .newPalette: return tr("New palette")
+        case .palette: return tr("Rename palette")
         case nil: return ""
         }
     }

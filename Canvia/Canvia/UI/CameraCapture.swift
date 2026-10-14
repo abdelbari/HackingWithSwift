@@ -35,8 +35,8 @@ struct CameraCapture: UIViewControllerRepresentable {
 
     /// What is said when the camera closes with nothing taken, and when
     /// what was taken could not be kept.
-    static let cancelledNote = "Nothing was taken"
-    static let failedNote = "Couldn't keep that. Your phone may be out of space."
+    static var cancelledNote: String { tr("Nothing was taken") }
+    static var failedNote: String { tr("Couldn't keep that. Your phone may be out of space.") }
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
@@ -123,9 +123,9 @@ struct CameraTiles: View {
     var body: some View {
         if CameraCapture.takesPhotos {
             HStack(spacing: 10) {
-                tile("Take photo", symbol: "camera", mode: .photo)
+                tile(tr("Take photo"), symbol: "camera", mode: .photo)
                 if video && CameraCapture.recordsVideo {
-                    tile("Record video", symbol: "video", mode: .video)
+                    tile(tr("Record video"), symbol: "video", mode: .video)
                 }
             }
             .fullScreenCover(isPresented: Binding(get: { capturing != nil }, set: { if !$0 { capturing = nil } })) {

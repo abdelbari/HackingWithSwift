@@ -35,7 +35,7 @@ struct CanvasChips: View {
     private var answers: some View {
         ZStack(alignment: .top) {
             if let box = offscreenSelection {
-                chip("Bring it back") { store.requestCanvas(.reveal(box)) }
+                chip(tr("Bring it back")) { store.requestCanvas(.reveal(box)) }
                     .accessibilityLabel("The selected thing is off screen")
                     .accessibilityHint("Brings it back into view")
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -102,12 +102,13 @@ struct CanvasChips: View {
 
     private var percent: Int { Int((store.zoom * 100).rounded()) }
 
-    private var zoomLabel: String { atFit ? "Fit" : "\(percent)%" }
+    private var zoomLabel: String { atFit ? tr("Fit") : "\(percent)%" }
 
     private var zoomDescription: String {
-        guard atFit else { return "Zoomed to \(percent) percent. Tap to fit the whole page." }
+        guard atFit else { return tr("Zoomed to %d percent. Tap to fit the whole page.", percent) }
         let second = Int((secondZoom * 100).rounded())
-        return second == 100 ? "Whole page. Tap for actual size." : "Whole page. Tap to zoom to \(second) percent."
+        return second == 100 ? tr("Whole page. Tap for actual size.")
+            : tr("Whole page. Tap to zoom to %d percent.", second)
     }
 
     // MARK: selection

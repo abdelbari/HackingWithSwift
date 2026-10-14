@@ -35,7 +35,7 @@ struct ShadowSheet: View {
 
     private var presets: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 84), spacing: 12)], spacing: 12) {
-            tile(nil, name: "None")
+            tile(nil, name: tr("None"))
             ForEach(Shadow.presets, id: \.name) { preset in
                 tile(preset.shadow, name: preset.name)
             }
@@ -64,17 +64,17 @@ struct ShadowSheet: View {
                 .stroke(active ? Theme.accent : .clear, lineWidth: 2))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(shadow == nil ? "No shadow" : "\(name) shadow")
+        .accessibilityLabel(shadow == nil ? tr("No shadow") : tr("%@ shadow", name))
         .accessibilityAddTraits(active ? .isSelected : [])
     }
 
     private var dials: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Adjust").font(.headline)
-            dial("Opacity", \.opacity, in: 0...1, format: { "\(Int(($0 * 100).rounded()))%" })
-            dial("Blur", \.blur, in: 0...60, format: { "\(Int($0.rounded()))" })
-            dial("Across", \.offsetX, in: -60...60, format: { String(format: "%+.0f", $0) })
-            dial("Down", \.offsetY, in: -60...60, format: { String(format: "%+.0f", $0) })
+            dial(tr("Opacity"), spoken: tr("Shadow opacity"), \.opacity, in: 0...1, format: { "\(Int(($0 * 100).rounded()))%" })
+            dial(tr("Blur"), spoken: tr("Shadow blur"), \.blur, in: 0...60, format: { "\(Int($0.rounded()))" })
+            dial(tr("Across"), spoken: tr("Shadow across"), \.offsetX, in: -60...60, format: { String(format: "%+.0f", $0) })
+            dial(tr("Down"), spoken: tr("Shadow down"), \.offsetY, in: -60...60, format: { String(format: "%+.0f", $0) })
             HStack {
                 Text("Colour").font(.subheadline)
                 Spacer()
@@ -90,7 +90,7 @@ struct ShadowSheet: View {
         }
     }
 
-    private func dial(_ label: String, _ key: WritableKeyPath<Shadow, Double>,
+    private func dial(_ label: String, spoken: String, _ key: WritableKeyPath<Shadow, Double>,
                       in range: ClosedRange<Double>, format: @escaping (Double) -> String) -> some View {
         let value = current?[keyPath: key] ?? range.lowerBound
         return VStack(alignment: .leading, spacing: 2) {
@@ -107,7 +107,7 @@ struct ShadowSheet: View {
             ), in: range, onEditingChanged: { editing in
                 if !editing { store.commit() }
             })
-            .accessibilityLabel("Shadow \(label.lowercased())")
+            .accessibilityLabel(spoken)
             .accessibilityValue(format(value))
         }
     }

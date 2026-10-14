@@ -102,7 +102,7 @@ struct TrimmerBar<Strip: View>: View {
             .offset(x: x)
             .gesture(drag(which, width: width))
             .accessibilityElement()
-            .modifier(HandleAccessibility(name: which == .start ? "Trim start" : "Trim end",
+            .modifier(HandleAccessibility(name: which == .start ? tr("Trim start") : tr("Trim end"),
                                           time: which == .start ? start : end) { by in
                 let t = (which == .start ? start : end) + by
                 let moved = Trimming.moved(which, to: t, start: start, end: end, length: length, minLength: minLength)

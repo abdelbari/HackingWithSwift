@@ -46,7 +46,7 @@ struct ShapeTextSheet: View {
                                 store.startTyping(id)
                             }
                         } label: {
-                            Label(worded ? "Edit words" : "Add words",
+                            Label(worded ? tr("Edit words") : tr("Add words"),
                                   systemImage: "character.cursor.ibeam")
                         }
                     } footer: {
@@ -94,12 +94,12 @@ struct ShapeTextSheet: View {
                         }
                         Section("Style") {
                             HStack(spacing: 12) {
-                                styleToggle(.bold, "Bold", glyph: Image(systemName: "bold"), words: words)
-                                styleToggle(.italic, "Italic", glyph: Image(systemName: "italic"), words: words)
-                                styleToggle(.underline, "Underline", glyph: Image(systemName: "underline"), words: words)
-                                styleToggle(.strike, "Strikethrough", glyph: Image(systemName: "strikethrough"), words: words)
+                                styleToggle(.bold, tr("Bold"), glyph: Image(systemName: "bold"), words: words)
+                                styleToggle(.italic, tr("Italic"), glyph: Image(systemName: "italic"), words: words)
+                                styleToggle(.underline, tr("Underline"), glyph: Image(systemName: "underline"), words: words)
+                                styleToggle(.strike, tr("Strikethrough"), glyph: Image(systemName: "strikethrough"), words: words)
                                 // Capitals have no symbol; "aA" says what they do.
-                                styleToggle(.uppercase, "Uppercase", glyph: Text(verbatim: "aA"), words: words)
+                                styleToggle(.uppercase, tr("Uppercase"), glyph: Text(verbatim: "aA"), words: words)
                             }
                             Picker("Align", selection: Binding(get: { words.align ?? "center" },
                                                                set: { align in write { $0.align = align } })) {
@@ -122,7 +122,7 @@ struct ShapeTextSheet: View {
             }
             .sheet(isPresented: $choosingFont) { FontSheet(store: store) }
             .sheet(isPresented: $choosingColour) {
-                ColorPickerSheet(store: store, title: "Colour",
+                ColorPickerSheet(store: store, title: tr("Colour"),
                                  current: shape.map { ShapeText.textElement(for: $0).color ?? ShapeText.darkInk },
                                  onPick: { c in write { $0.color = c } },
                                  onPickTransient: { c in

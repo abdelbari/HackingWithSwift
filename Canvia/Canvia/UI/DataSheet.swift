@@ -168,14 +168,14 @@ struct DataSheet: View {
                     if mode == 0 { chartSections } else { tableSection }
                 }
             }
-            .navigationTitle(editing != nil ? "Edit chart" : (mode == 0 ? "Chart" : "Table"))
+            .navigationTitle(editing != nil ? tr("Edit chart") : (mode == 0 ? tr("Chart") : tr("Table")))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     // Kept open with a word when there turns out to be
                     // nothing to draw — a pie of zeros — as on the Android twin.
-                    Button(editing != nil || editingTable ? "Update" : "Add") {
+                    Button(editing != nil || editingTable ? tr("Update") : tr("Add")) {
                         if add() { dismiss() } else { refusal = whyNot() }
                     }
                     .disabled(locked || nothingToAdd)
@@ -296,8 +296,8 @@ struct DataSheet: View {
             }
             importRow
         } header: {
-            Text(asText ? "One row per line, cells separated by commas or tabs"
-                        : "A row of cells per row, or paste rows from a spreadsheet")
+            Text(asText ? tr("One row per line, cells separated by commas or tabs")
+                        : tr("A row of cells per row, or paste rows from a spreadsheet"))
         } footer: {
             if let refusal {
                 Text(refusal).foregroundStyle(Color(.systemRed))
@@ -316,7 +316,7 @@ struct DataSheet: View {
     private var chartLook: some View {
         Section("Text") {
             Button { choosingFont = true } label: {
-                LabeledContent("Font", value: font.map { FontStore.displayName($0, in: store.design) } ?? "Default")
+                LabeledContent("Font", value: font.map { FontStore.displayName($0, in: store.design) } ?? tr("Default"))
             }
             .foregroundStyle(.primary)
             Button { choosingInk = true } label: {
@@ -339,8 +339,8 @@ struct DataSheet: View {
                 Toggle("Smooth line", isOn: $smooth)
                     .disabled(kind != .line && kind != .area)
                 HStack(spacing: 12) {
-                    axisField("Min", text: $axisMin)
-                    axisField("Max", text: $axisMax)
+                    axisField(tr("Min"), spoken: tr("Axis min"), text: $axisMin)
+                    axisField(tr("Max"), spoken: tr("Axis max"), text: $axisMax)
                 }
             } header: {
                 Text("Axis range")
@@ -370,14 +370,14 @@ struct DataSheet: View {
     }
 
     /// One end of the axis: a number, or blank for the data's own.
-    private func axisField(_ title: String, text: Binding<String>) -> some View {
+    private func axisField(_ title: String, spoken: String, text: Binding<String>) -> some View {
         let wrong = !text.wrappedValue.trimmingCharacters(in: .whitespaces).isEmpty && Self.axisNumber(text.wrappedValue) == nil
         return VStack(alignment: .leading, spacing: 2) {
             Text(title).font(.caption).foregroundStyle(wrong ? Color(.systemRed) : .secondary)
             TextField("Auto", text: text)
                 .keyboardType(.numbersAndPunctuation)
                 .textFieldStyle(.roundedBorder)
-                .accessibilityLabel("Axis \(title.lowercased())")
+                .accessibilityLabel(spoken)
         }
     }
 
@@ -430,11 +430,11 @@ struct DataSheet: View {
     private func whyNot() -> String? {
         if mode == 0 {
             store.buzz(.reject)
-            return "Nothing to draw: type some values, or values above zero."
+            return tr("Nothing to draw: type some values, or values above zero.")
         }
         if !editingTable || tableRows.isEmpty {
             store.buzz(.reject)
-            return "Nothing to set: type some rows."
+            return tr("Nothing to set: type some rows.")
         }
         guard let table = store.tableSelection else { return nil }
         if table.turned { return TableSelection.turnedNote }
@@ -505,10 +505,10 @@ private struct DataSheetPickers: ViewModifier {
             // None is the chart's default face.
             .sheet(isPresented: $choosingFont) {
                 FontSheet(store: store, choice: FontSheet.Choice(
-                    title: "Chart font", current: font, onPick: { key in font = key }))
+                    title: tr("Chart font"), current: font, onPick: { key in font = key }))
             }
             .sheet(isPresented: $choosingInk) {
-                ColorPickerSheet(store: store, title: "Text colour", current: inkShown,
+                ColorPickerSheet(store: store, title: tr("Text colour"), current: inkShown,
                                  onPick: { hex in ink = hex.lowercased() })
             }
             .fileImporter(isPresented: $importingCsv,

@@ -78,21 +78,21 @@ struct SharedDesignSheet: View {
     /// "3 items", or what the one item is.
     private var itemsText: String {
         let items = box.manifest.items
-        guard items.count == 1, let only = items.first else { return "\(items.count) items" }
+        guard items.count == 1, let only = items.first else { return trn("%d item|%d items", items.count) }
         switch only.kind {
-        case .image, .anim: return "1 photo"
-        case .video: return "1 video"
-        case .pdf: return "1 PDF"
-        case .svg: return "1 SVG"
+        case .image, .anim: return tr("1 photo")
+        case .video: return tr("1 video")
+        case .pdf: return tr("1 PDF")
+        case .svg: return tr("1 SVG")
         }
     }
 
     private var fitRow: some View {
         let size = SharedInbox.fitSize(firstSize ?? CGSize(width: 1, height: 1))
         return Button {
-            make(Design(title: newTitle("Untitled design"), width: size.width, height: size.height))
+            make(Design(title: newTitle(tr("Untitled design")), width: size.width, height: size.height))
         } label: {
-            row("Fit to the photo", detail: measured ? "\(Int(size.width)) × \(Int(size.height))" : "…",
+            row(tr("Fit to the photo"), detail: measured ? "\(Int(size.width)) × \(Int(size.height))" : "…",
                 systemImage: "photo")
         }
         .disabled(!measured)
@@ -260,7 +260,7 @@ private struct SharedDesignHost: ViewModifier {
         case .added(let note):
             if let note, let store = editing { say(note, on: store) }
         case .nothing(let note):
-            failure = note ?? "Couldn't open that file"
+            failure = note ?? tr("Couldn't open that file")
         }
     }
 

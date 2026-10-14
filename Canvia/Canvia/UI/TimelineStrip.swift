@@ -77,7 +77,7 @@ struct TimelineStrip: View {
                 Image(systemName: open ? "chevron.down" : "chevron.up")
                     .frame(width: 32, height: 32)
             }
-            .accessibilityLabel(open ? "Fold the timeline" : "Unfold the timeline")
+            .accessibilityLabel(open ? tr("Fold the timeline") : tr("Unfold the timeline"))
             Text("Timeline")
                 .font(.subheadline.weight(.semibold))
             Text(clockLabel)
@@ -96,7 +96,7 @@ struct TimelineStrip: View {
     /// "0:03.5 / 0:12.0": the playhead in the film, m:ss.s, and the film's
     /// length; on a hidden page, which has no playhead, that it is hidden.
     private var clockLabel: String {
-        guard let at = shownPlayhead else { return "This page is hidden" }
+        guard let at = shownPlayhead else { return tr("This page is hidden") }
         let total = store.timelinePages.reduce(0.0) { $0 + $1.hold }
         return VideoStore.timeLabel(at) + " / " + VideoStore.timeLabel(total)
     }
@@ -156,7 +156,7 @@ struct TimelineStrip: View {
         .gesture(scrubGesture(scale: scale))
         .accessibilityElement()
         .accessibilityLabel("Playhead")
-        .accessibilityValue(String(format: "%.1f seconds", store.filmPlayhead ?? 0))
+        .accessibilityValue(tr("%@ seconds", String(format: "%.1f", store.filmPlayhead ?? 0)))
         .accessibilityAdjustableAction { direction in
             let step = direction == .increment ? 0.5 : -0.5
             store.scrub(to: (store.filmPlayhead ?? 0) + step)
@@ -271,7 +271,8 @@ struct TimelineStrip: View {
     /// What VoiceOver says for a block: which page, how long it holds, and
     /// whether it is the one on screen.
     static func spokenBlock(number: Int, hold: Double, current: Bool) -> String {
-        "Page \(number), " + String(format: "%.1f seconds", hold) + (current ? ", current" : "")
+        tr("Page %d", number) + ", " + tr("%@ seconds", String(format: "%.1f", hold))
+            + (current ? ", " + tr("current") : "")
     }
 
     // MARK: bars

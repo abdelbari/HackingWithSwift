@@ -243,19 +243,19 @@ struct PresentationView: View {
 
     /// The page as VoiceOver says it: "Page 2 of 5", and its title.
     private var spokenPlace: String {
-        var label = "Page \(place.number) of \(place.count)"
+        var label = tr("Page %d of %d", place.number, place.count)
         if let title = page.title.flatMap(PageTitles.kept) { label += ", " + title }
         return label
     }
 
     /// The Notes button, as VoiceOver says it.
     static func notesLabel(hasNotes: Bool) -> String {
-        hasNotes ? "Notes" : "Notes, none for this page"
+        hasNotes ? tr("Notes") : tr("Notes, none for this page")
     }
 
     /// "No app here opens example.com/menu" — the link as the page shows it.
     static func refusedText(_ url: String) -> String {
-        "No app here opens \(Links.shown(url))"
+        tr("No app here opens %@", Links.shown(url))
     }
 
     private func refusedNote(_ text: String) -> some View {
@@ -471,7 +471,7 @@ struct PresentationView: View {
             Spacer()
             if showingNotes {
                 ScrollView {
-                    Text(page.notes?.isEmpty == false ? page.notes! : "No notes for this page.")
+                    Text(page.notes?.isEmpty == false ? page.notes! : tr("No notes for this page."))
                         .font(.body)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -500,7 +500,7 @@ struct PresentationView: View {
             } label: {
                 Image(systemName: soundOn ? "speaker.wave.2.fill" : "speaker.slash.fill").padding(10)
             }
-            .accessibilityLabel(soundOn ? "Sound on" : "Sound off")
+            .accessibilityLabel(soundOn ? tr("Sound on") : tr("Sound off"))
         }
     }
 
@@ -514,7 +514,7 @@ struct PresentationView: View {
                 autoplayStopped()
             }
         } label: { Image(systemName: autoplay ? "pause.fill" : "play.fill").padding(10) }
-            .accessibilityLabel(autoplay ? "Pause autoplay" : "Autoplay")
+            .accessibilityLabel(autoplay ? tr("Pause autoplay") : tr("Autoplay"))
     }
 
     /// Loop, beside Autoplay: lit while on. The design keeps it.
@@ -529,7 +529,7 @@ struct PresentationView: View {
                 .opacity(session.loop ? 1 : 0.6)
         }
         .accessibilityLabel("Loop")
-        .accessibilityValue(session.loop ? "On" : "Off")
+        .accessibilityValue(session.loop ? tr("On") : tr("Off"))
     }
 
     /// The effects' grid, for a phone with no keyboard to give them.
@@ -559,19 +559,19 @@ struct PresentationView: View {
         Group {
             Group {
                 arrowKey(.right)
-                key(.downArrow, "Next page") { go(1) }
-                key(.pageDown, "Next page") { go(1) }
-                key(.space, "Next page") { go(1) }
-                key(.return, "Next page") { go(1) }
+                key(.downArrow, tr("Next page")) { go(1) }
+                key(.pageDown, tr("Next page")) { go(1) }
+                key(.space, tr("Next page")) { go(1) }
+                key(.return, tr("Next page")) { go(1) }
             }
             Group {
                 arrowKey(.left)
-                key(.upArrow, "Previous page") { go(-1) }
-                key(.pageUp, "Previous page") { go(-1) }
-                key(.home, "First page") { turn(to: design.visiblePageIndices.first) }
-                key(.end, "Last page") { turn(to: design.visiblePageIndices.last) }
+                key(.upArrow, tr("Previous page")) { go(-1) }
+                key(.pageUp, tr("Previous page")) { go(-1) }
+                key(.home, tr("First page")) { turn(to: design.visiblePageIndices.first) }
+                key(.end, tr("Last page")) { turn(to: design.visiblePageIndices.last) }
             }
-            key(.escape, "End presentation") { dismiss() }
+            key(.escape, tr("End presentation")) { dismiss() }
             // The effects' keys: 1 to 9, B, C, O, Q, U and X.
             ForEach(Presenter.effects) { effect in
                 effectKeys(effect)
@@ -594,7 +594,7 @@ struct PresentationView: View {
     /// The left or right arrow, a page on or back as the language reads.
     private func arrowKey(_ arrow: ReadingDirection.Arrow) -> some View {
         let step = ReadingDirection.presentStep(arrow, reading: reading)
-        return key(arrow == .left ? .leftArrow : .rightArrow, step > 0 ? "Next page" : "Previous page") {
+        return key(arrow == .left ? .leftArrow : .rightArrow, step > 0 ? tr("Next page") : tr("Previous page")) {
             go(step)
         }
     }

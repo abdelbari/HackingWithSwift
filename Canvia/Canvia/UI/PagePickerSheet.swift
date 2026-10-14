@@ -71,8 +71,8 @@ struct PagePickerSheet: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(hidden ? "Page \(index + 1), hidden" : "Page \(index + 1)")
-        .accessibilityValue(on ? "chosen" : "not chosen")
+        .accessibilityLabel(hidden ? tr("Page %d, hidden", index + 1) : tr("Page %d", index + 1))
+        .accessibilityValue(on ? tr("chosen") : tr("not chosen"))
         .accessibilityAddTraits(.isButton)
     }
 }

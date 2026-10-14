@@ -141,11 +141,11 @@ struct ClipSheet: View {
         func kept(_ v: Double) -> Double { min(max(v, range.lowerBound), range.upperBound) }
         let label: (Double) -> String = { AudioTracks.secondsLabel(Self.halves($0)) }
         return Section {
-            StepSlider(label: "Fade in", stored: kept(clip.fadeIn), range: range, step: 0.5,
+            StepSlider(label: tr("Fade in"), stored: kept(clip.fadeIn), range: range, step: 0.5,
                        draft: $draftFadeIn, readout: label) { v in
                 write { $0.fadeIn = Self.halves(v) }
             }
-            StepSlider(label: "Fade out", stored: kept(clip.fadeOut), range: range, step: 0.5,
+            StepSlider(label: tr("Fade out"), stored: kept(clip.fadeOut), range: range, step: 0.5,
                        draft: $draftFadeOut, readout: label) { v in
                 write { $0.fadeOut = Self.halves(v) }
             }

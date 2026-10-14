@@ -53,7 +53,7 @@ struct TipsAgainButton: View {
     @State private var reset = false
 
     var body: some View {
-        Button(reset ? "Tips will show again in the editor" : "Show the editor's tips again") {
+        Button(reset ? tr("Tips will show again in the editor") : tr("Show the editor's tips again")) {
             TipEngine.shared.reset()
             reset = true
         }
@@ -70,9 +70,9 @@ struct HowCanviaWorksSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     static let steps: [String] = [
-        "Pick what you are making — a post, a poster, a card. Most sizes come with ready-made designs.",
-        "Change the words and the colours. Tap anything on the page to select it; drag it to move it. Double-tap text to type in it where it sits, and a photo to crop it.",
-        "Share it. Export the page as an image, the whole thing as a PDF, or the design itself to open on another phone — Android or iPhone.",
+        tr("Pick what you are making — a post, a poster, a card. Most sizes come with ready-made designs."),
+        tr("Change the words and the colours. Tap anything on the page to select it; drag it to move it. Double-tap text to type in it where it sits, and a photo to crop it."),
+        tr("Share it. Export the page as an image, the whole thing as a PDF, or the design itself to open on another phone — Android or iPhone."),
     ]
 
     var body: some View {

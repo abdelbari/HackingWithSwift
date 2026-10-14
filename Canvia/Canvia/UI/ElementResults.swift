@@ -113,10 +113,10 @@ struct HitTile: View {
     /// would not say.
     private var spoken: String {
         switch hit.kind {
-        case .sticker: return "\(hit.name) sticker"
-        case .photoFrame: return "\(hit.name) photo frame"
-        case .grid: return "\(hit.name) photo grid"
-        case .icon: return "\(hit.name) icon"
+        case .sticker: return tr("%@ sticker", hit.name)
+        case .photoFrame: return tr("%@ photo frame", hit.name)
+        case .grid: return tr("%@ photo grid", hit.name)
+        case .icon: return tr("%@ icon", hit.name)
         default: return hit.name
         }
     }

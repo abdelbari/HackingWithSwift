@@ -22,7 +22,7 @@ struct LinkAlert: ViewModifier {
     var onSave: (String?) -> Void
 
     func body(content: Content) -> some View {
-        content.alert(linked ? "Edit link" : "Link", isPresented: $isPresented) {
+        content.alert(linked ? tr("Edit link") : tr("Link"), isPresented: $isPresented) {
             TextField("canvia.app", text: $draft)
                 .keyboardType(.URL)
                 .textInputAutocapitalization(.never)
@@ -39,8 +39,8 @@ struct LinkAlert: ViewModifier {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text(Self.unreadable(draft)
-                 ? "That doesn't read as a link. Try a web address like canvia.app, an email address or a phone number."
-                 : "A web address, email or phone number. Clickable in a PDF, and opened by a tap in Present.")
+                 ? tr("That doesn't read as a link. Try a web address like canvia.app, an email address or a phone number.")
+                 : tr("A web address, email or phone number. Clickable in a PDF, and opened by a tap in Present."))
         }
     }
 

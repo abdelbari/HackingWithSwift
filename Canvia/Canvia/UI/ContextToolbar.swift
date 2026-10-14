@@ -553,12 +553,12 @@ struct ContextToolbar: View {
             await MainActor.run {
                 guard let traced else {
                     store.buzz(.reject)
-                    store.announce("Nothing in the picture to trace", undoable: false)
+                    store.announce(tr("Nothing in the picture to trace"), undoable: false)
                     return
                 }
                 store.add(Tracer.shape(traced, over: el, imageSize: size), centered: false)
                 store.buzz(.confirm)
-                store.announce("Traced — a shape in the picture's colour")
+                store.announce(tr("Traced — a shape in the picture's colour"))
             }
         }
     }
@@ -573,14 +573,14 @@ struct ContextToolbar: View {
             await MainActor.run {
                 guard let payload else {
                     store.buzz(.reject)
-                    store.announce("No code found in this picture", undoable: false)
+                    store.announce(tr("No code found in this picture"), undoable: false)
                     return
                 }
                 // A code read from a print can hold more than a code drawn
                 // here can: refused, rather than a blank code on the page.
                 guard fits else {
                     store.buzz(.reject)
-                    store.announce("That code holds more than a QR code can", undoable: false)
+                    store.announce(tr("That code holds more than a QR code can"), undoable: false)
                     return
                 }
                 let side = min(frame.width, frame.height) * 0.6
@@ -588,7 +588,7 @@ struct ContextToolbar: View {
                 code.x = (frame.midX - side / 2).rounded(); code.y = (frame.midY - side / 2).rounded()
                 store.add(code, centered: false)
                 store.buzz(.confirm)
-                store.announce("Read the code — here it is, clean")
+                store.announce(tr("Read the code — here it is, clean"))
             }
         }
     }
@@ -608,7 +608,7 @@ struct ContextToolbar: View {
             toolLabel("character.textbox", "Styles", active: followed != nil)
         }
         .buttonStyle(ToolButtonStyle())
-        .accessibilityValue(followed?.name ?? "None")
+        .accessibilityValue(followed?.name ?? tr("None"))
         .id(styleVersion)
         .popover(isPresented: $showingStyles) {
             stylesList(el, styles: styles, followed: followed)
@@ -935,8 +935,8 @@ struct ContextToolbar: View {
                    })
             .frame(width: 110)
             .accessibilityLabel("Border")
-            .accessibilityValue(width < 0.5 ? "None" : "\(Int(width.rounded()))")
-            Text(width < 0.5 ? "Border None" : "Border \(Int(width.rounded()))")
+            .accessibilityValue(width < 0.5 ? tr("None") : "\(Int(width.rounded()))")
+            Text(width < 0.5 ? tr("Border None") : tr("Border %d", Int(width.rounded())))
                 .font(Theme.controlLabel)
                 .monospacedDigit()
                 .contentTransition(.numericText())
@@ -1018,7 +1018,7 @@ struct ContextToolbar: View {
             toolLabel("rectangle.tophalf.inset.filled", "Corners", active: el.corners != nil)
         }
         .accessibilityLabel("Corners")
-        .accessibilityValue(current?.name ?? "Square")
+        .accessibilityValue(current?.name ?? tr("Square"))
     }
 
     private var lockedPhotoNote: some View {
@@ -1210,9 +1210,9 @@ struct ContextToolbar: View {
                     store.buzz(.tick)
                 } label: {
                     if dash == current {
-                        Label(dash.capitalized, systemImage: "checkmark")
+                        Label(Self.dashName(dash), systemImage: "checkmark")
                     } else {
-                        Text(dash.capitalized)
+                        Text(Self.dashName(dash))
                     }
                 }
             }
@@ -1220,10 +1220,19 @@ struct ContextToolbar: View {
             toolLabel("line.3.horizontal.decrease", "Dash", active: current != "solid")
         }
         .accessibilityLabel("Dash")
-        .accessibilityValue(current.capitalized)
+        .accessibilityValue(Self.dashName(current))
     }
 
     static let dashStyles = ["solid", "dashed", "dotted"]
+
+    /// What one of those is called: Solid, Dashed or Dotted.
+    static func dashName(_ dash: String) -> String {
+        switch dash {
+        case "dashed": return tr("Dashed")
+        case "dotted": return tr("Dotted")
+        default: return tr("Solid")
+        }
+    }
 
     /// A line's dash as one of those; none, or anything else, is solid.
     static func dashStyle(_ dash: String?) -> String {
@@ -1244,7 +1253,7 @@ struct ContextToolbar: View {
     }
 
     /// The ends a line can have, as both phones write them.
-    static let lineEnds: [(key: String, name: String)] = [("none", "None"), ("arrow", "Arrow"), ("dot", "Dot")]
+    static let lineEnds: [(key: String, name: String)] = [("none", tr("None")), ("arrow", tr("Arrow")), ("dot", tr("Dot"))]
 
     /// A line's end as one of those keys; anything else reads as none.
     static func lineEnd(_ cap: String?) -> String {
@@ -1336,8 +1345,8 @@ struct ContextToolbar: View {
         }
         .buttonStyle(ToolButtonStyle())
         .accessibilityAddTraits(store.stylePainting ? .isSelected : [])
-        .accessibilityHint(store.stylePainting ? "Paint mode is on. Tap again to stop"
-                           : "Then tap something to paste the style onto it")
+        .accessibilityHint(store.stylePainting ? tr("Paint mode is on. Tap again to stop")
+                           : tr("Then tap something to paste the style onto it"))
     }
 
     /// A grid's Spacing, in page units, and Corners, in percent of each
@@ -1370,7 +1379,7 @@ struct ContextToolbar: View {
             toolLabel(current == .full || current == .position ? ElementLock.symbol(current ?? .full) : "lock.open",
                       "Lock", active: current == .full || current == .position)
         }
-        .accessibilityValue(current == .full ? "Locked" : current == .position ? "Position locked" : "")
+        .accessibilityValue(current == .full ? tr("Locked") : current == .position ? tr("Position locked") : "")
     }
 
     /// A colour chip with no one colour in it, since the selection has many.
@@ -1387,7 +1396,7 @@ struct ContextToolbar: View {
                     .fill(AngularGradient(colors: [.red, .yellow, .green, .blue, .purple, .red], center: .center))
                     .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.black.opacity(0.15)))
                     .frame(width: 26, height: 26)
-                Text(label).font(Theme.controlLabel)
+                Text(tr(label)).font(Theme.controlLabel)
             }
         }
         .buttonStyle(ToolButtonStyle())
@@ -1448,7 +1457,7 @@ struct ContextToolbar: View {
         guard !cuttingOut else { return }
         guard !el.locked else {
             store.buzz(.reject)
-            store.announce("This photo is locked. Tap Unlock to edit it.", undoable: false)
+            store.announce(tr("This photo is locked. Tap Unlock to edit it."), undoable: false)
             return
         }
         cuttingOut = true
@@ -1475,7 +1484,7 @@ struct ContextToolbar: View {
                 // Locked while the cutout ran: kept as it is.
                 if store.element(id)?.locked == true {
                     store.buzz(.reject)
-                    store.announce("This photo is locked. Tap Unlock to edit it.", undoable: false)
+                    store.announce(tr("This photo is locked. Tap Unlock to edit it."), undoable: false)
                     return
                 }
                 // Committed through the page so it lands in undo as one step,
@@ -1495,11 +1504,13 @@ struct ContextToolbar: View {
         store.endDictation()
     }
 
+    /// `label`, here and in the helpers below, is the catalogue's English,
+    /// shown in the app's language.
     private func toolButton(_ system: String, _ label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 3) {
                 Image(systemName: system).font(Theme.controlGlyph)
-                Text(label).font(Theme.controlLabel)
+                Text(tr(label)).font(Theme.controlLabel)
             }
         }
         .buttonStyle(ToolButtonStyle())
@@ -1509,7 +1520,7 @@ struct ContextToolbar: View {
     private func toolLabel(_ system: String, _ label: String, active: Bool = false) -> some View {
         VStack(spacing: 3) {
             Image(systemName: system).font(Theme.controlGlyph)
-            Text(label).font(Theme.controlLabel)
+            Text(tr(label)).font(Theme.controlLabel)
         }
         .foregroundStyle(active ? Theme.accent : Color.primary)
     }
@@ -1547,7 +1558,7 @@ struct ContextToolbar: View {
         .buttonStyle(ToolButtonStyle())
         // The only icon-only control in the bar; the rest carry a visible
         // text label that VoiceOver can already read.
-        .accessibilityLabel(name)
+        .accessibilityLabel(tr(name))
         .accessibilityValue(mixed ? TypeReadouts.mixed : "")
         .accessibilityAddTraits(active ? [.isSelected] : [])
     }
@@ -1560,7 +1571,7 @@ struct ContextToolbar: View {
                     .fill(Color(hex: hex))
                     .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.black.opacity(0.15)))
                     .frame(width: 26, height: 26)
-                Text(label).font(Theme.controlLabel)
+                Text(tr(label)).font(Theme.controlLabel)
             }
         }
         .buttonStyle(ToolButtonStyle())
@@ -1606,7 +1617,7 @@ struct ContextToolbar: View {
             .frame(width: 110)
             // Named, with the number shown beside it, so VoiceOver says
             // "Round, 24" rather than an unnamed percentage.
-            .accessibilityLabel(label)
+            .accessibilityLabel(tr(label))
             .accessibilityValue(Self.readoutValue(label, value))
             Text(readout(label, value))
                 .font(Theme.controlLabel)
@@ -1618,7 +1629,7 @@ struct ContextToolbar: View {
 
     /// "Round" tells you nothing; "Round 24" is a control.
     private func readout(_ label: String, _ value: Double) -> String {
-        "\(label) \(Self.readoutValue(label, value))"
+        "\(tr(label)) \(Self.readoutValue(label, value))"
     }
 
     /// The number a slider shows: a percentage for opacity and a grid's

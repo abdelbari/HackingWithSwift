@@ -56,13 +56,13 @@ struct TemplateSetSheet: View {
     }
 
     /// On Home and in the Start sheet: a new design.
-    static let startNote = "Start a design with all of them, or with the page picked alone."
+    static let startNote = tr("Start a design with all of them, or with the page picked alone.")
 
     /// In the editor: all of them in place of a design with nothing on it,
     /// else after this page; or the page picked on this page.
     static func editorNote(empty: Bool) -> String {
-        empty ? "Apply all of them in place of this empty design, or use the page picked on this page."
-              : "Apply all of them after this page, or use the page picked on this page."
+        empty ? tr("Apply all of them in place of this empty design, or use the page picked on this page.")
+              : tr("Apply all of them after this page, or use the page picked on this page.")
     }
 
     var body: some View {
@@ -138,7 +138,7 @@ struct TemplateSetSheet: View {
                 dismiss()
                 applyAll()
             } label: {
-                Text("Apply all \(design.pages.count) pages").frame(maxWidth: .infinity)
+                Text(trn("Apply all %d page|Apply all %d pages", design.pages.count)).frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .tint(Theme.accent)

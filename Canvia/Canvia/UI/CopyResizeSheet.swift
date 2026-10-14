@@ -24,7 +24,7 @@ struct CopyResizeRows: View {
             Section("Recently used") {
                 ForEach(recent, id: \.self) { size in
                     let target = ResizeTarget.custom(width: Double(size.width), height: Double(size.height), unit: "px")
-                    checkRow(target, title: target.label, detail: "Custom", icon: "clock")
+                    checkRow(target, title: target.label, detail: tr("Custom"), icon: "clock")
                 }
             }
         }
@@ -56,19 +56,19 @@ struct CopyResizeRows: View {
                 customW = ""
                 customH = ""
             } label: {
-                Label(size.map { "Add \(CustomSizes.title(width: $0.width, height: $0.height, unit: unit))" }
-                      ?? "Enter a size from \(CustomSizes.rangeText)", systemImage: "plus.circle")
+                Label(size.map { tr("Add %@", CustomSizes.title(width: $0.width, height: $0.height, unit: unit)) }
+                      ?? tr("Enter a size from %@", CustomSizes.rangeText), systemImage: "plus.circle")
             }
             .disabled(size == nil)
             ForEach(typed) { target in
-                checkRow(target, title: target.label, detail: "Custom", icon: "slider.horizontal.3")
+                checkRow(target, title: target.label, detail: tr("Custom"), icon: "slider.horizontal.3")
             }
         } header: {
             Text("Custom")
         } footer: {
             let wrong = !customW.isEmpty && CustomSizes.side(customW, unit: unit) == nil
                 || !customH.isEmpty && CustomSizes.side(customH, unit: unit) == nil
-            Text(wrong ? CustomSizes.outOfRangeText : "Each side \(CustomSizes.rangeText).")
+            Text(wrong ? CustomSizes.outOfRangeText : tr("Each side %@.", CustomSizes.rangeText))
                 .foregroundStyle(wrong ? Color(.systemRed) : Color.secondary)
         }
         .onChange(of: customW) { _, typed in
@@ -83,6 +83,7 @@ struct CopyResizeRows: View {
 
     private func checkRow(_ target: ResizeTarget, title: String, detail: String, icon: String) -> some View {
         let on = ticked.contains(target)
+        let spoken = detail.replacingOccurrences(of: " × ", with: " " + tr("by") + " ")
         return Button {
             if on { ticked.removeAll { $0 == target } } else { ticked.append(target) }
         } label: {
@@ -98,7 +99,7 @@ struct CopyResizeRows: View {
             }
         }
         .foregroundStyle(.primary)
-        .accessibilityLabel("\(title), \(detail.replacingOccurrences(of: " × ", with: " by "))")
+        .accessibilityLabel("\(title), \(spoken)")
         .accessibilityAddTraits(on ? .isSelected : [])
     }
 }
