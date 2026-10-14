@@ -59,6 +59,32 @@ final class TypingBurstsTests: XCTestCase {
         XCTAssertFalse(coalescer.open)
     }
 
+    /// The shared row: Bold armed after "Hello " and "world" typed is one
+    /// burst. What each key typed is read as the words read, so the
+    /// markers the field wraps the letters in end nothing.
+    func testLettersWrappedInAnArmedStyleAreOneBurst() {
+        var coalescer = TypingCoalescer()
+        var words = "Hello "
+        var caret = 6
+        var pending: RichText.Pending? = RichText.Pending(style: RichText.Style(bold: true), from: 6)
+        var count = 0
+        for (i, key) in "world".enumerated() {
+            let typed = RichText.typing(String(key), over: NSRange(location: caret, length: 0), in: words,
+                                        pending: pending)
+            let opens = !coalescer.open
+            let verdict = coalescer.change(from: words, to: typed.text, at: 0.1 * Double(i + 1))
+            if opens || verdict.closeFirst { count += 1 }
+            XCTAssertFalse(verdict.closeAfter, "after \(typed.text)")
+            words = typed.text
+            caret = typed.caret
+            pending = typed.pending
+        }
+        XCTAssertEqual(words, "Hello **world**")
+        XCTAssertEqual(count, 1)
+        // The first letter after a space a bold word carried: no burst ends.
+        XCTAssertFalse(coalescer.change(from: "**Big** ", to: "**Big s**", at: 0.6).closeAfter)
+    }
+
     func testACaretMovedElsewhereEndsTheBurst() {
         var coalescer = TypingCoalescer()
         _ = coalescer.change(from: "", to: "ab", at: 0)
@@ -121,6 +147,17 @@ final class TypingBurstsTests: XCTestCase {
         s.undo()
         XCTAssertNil(s.editingTextId)
         XCTAssertNil(s.element(text.id), "the text added is taken back")
+    }
+
+    /// Typing opened and nothing typed yet is nothing to take back: Undo
+    /// stays off until a key changes the words.
+    func testUndoIsOffUntilTypingChangesSomething() {
+        let text = Element.text("Hi", fontSize: 24, w: 400)
+        let s = store([text])
+        s.startTyping(text.id)
+        XCTAssertFalse(s.canUndo)
+        s.typeWords("Hi there", into: text.id)
+        XCTAssertTrue(s.canUndo)
     }
 
     func testAShapesFirstWordsLookIsInTheFirstBurst() {

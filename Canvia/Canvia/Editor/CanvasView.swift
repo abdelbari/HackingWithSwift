@@ -62,12 +62,6 @@ struct CanvasView: View {
     /// Only `across` is watched: the header rows, cut to it, redraw on their
     /// own as the view pans across (ColumnRow).
     @Observable
-    final class PressClock {
-        var began: Date?
-        /// Seconds from landing to lifting, once lifted.
-        var held: Double?
-    }
-
     final class ColumnSeen {
         @ObservationIgnored var visible: CGRect = .zero
         @ObservationIgnored var fit = 0.0
@@ -75,6 +69,15 @@ struct CanvasView: View {
         /// The column's left and right edges on screen, in column units;
         /// nil until the canvas has said.
         var across: ClosedRange<Double>?
+    }
+
+    /// When the finger last landed on an element, and how long it stayed
+    /// down once lifted: written and read by the gestures alone, so nothing
+    /// is watched and nothing redraws as it changes.
+    final class PressClock {
+        var began: Date?
+        /// Seconds from landing to lifting, once lifted.
+        var held: Double?
     }
 
     /// Inverse zoom: ornaments are drawn in page units but should

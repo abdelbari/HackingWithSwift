@@ -356,6 +356,20 @@ final class FindReplaceTests: XCTestCase {
         XCTAssertTrue(DesignStore.matches(in: design, for: "bi", caseSensitive: false, wholeWord: true).isEmpty)
     }
 
+    /// The rule a match is placed by, the Android twin's rows too: from just
+    /// after the character before it to just before the character after,
+    /// the markers between taken in whichever style they open or close.
+    func testAMatchRunsFromTheCharacterBeforeToTheCharacterAfter() {
+        func found(_ text: String, _ needle: String) -> [[Int]] {
+            var design = Design(title: "styled", width: 800, height: 600)
+            design.pages[0].elements = [Element.text(text, fontSize: 24, w: 400)]
+            return DesignStore.matches(in: design, for: needle, caseSensitive: false, wholeWord: false)
+                .map { [$0.range.location, NSMaxRange($0.range)] }
+        }
+        XCTAssertEqual(found("**Big**", "ig"), [[3, 7]])
+        XCTAssertEqual(found("**Big sale** today", "sale"), [[6, 12]])
+    }
+
     /// Replacing keeps the styling round the words: the new ones in the
     /// style of the first they replace, markers outside them where they were.
     func testReplacingKeepsTheStylingRoundTheWords() {

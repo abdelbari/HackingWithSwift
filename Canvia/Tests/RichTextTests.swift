@@ -171,6 +171,27 @@ final class RichTextTests: XCTestCase {
         XCTAssertEqual(word.text, "**Big s**")
         XCTAssertEqual(word.caret, 7)
         XCTAssertNil(word.pending)
+        // A second space waits on from the first; plain words carry nothing.
+        let again = RichText.typing(" ", over: NSRange(location: 8, length: 0), in: "**Big** ", pending: space.pending)
+        XCTAssertEqual(again.pending, RichText.Pending(style: RichText.Style(bold: true), from: 3))
+        XCTAssertNil(RichText.typing(" ", over: NSRange(location: 3, length: 0), in: "Big", pending: nil).pending)
+    }
+
+    /// Bold armed on an empty box stays on across the spaces typed — the
+    /// Android twin's row.
+    func testBoldArmedOnAnEmptyBoxStaysOnAcrossSpaces() {
+        var words = ""
+        var caret = 0
+        var pending: RichText.Pending? = RichText.Pending(style: RichText.Style(bold: true), from: 0)
+        for key in "Big sale" {
+            let typed = RichText.typing(String(key), over: NSRange(location: caret, length: 0), in: words,
+                                        pending: pending)
+            words = typed.text
+            caret = typed.caret
+            pending = typed.pending
+        }
+        XCTAssertEqual(words, "**Big sale**")
+        XCTAssertEqual(caret, 10)
     }
 
     /// Bold pressed with nothing chosen wraps what is typed next.

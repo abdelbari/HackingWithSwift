@@ -376,8 +376,12 @@ final class DesignStore {
         announce("Connected — the arrow follows both ends")
     }
 
-    /// Steps to take back — or words being typed, which are one.
-    var canUndo: Bool { !past.isEmpty || (editingTextId != nil && pending != nil) }
+    /// Steps to take back — or words being typed, which are one once they
+    /// change anything: typing opens a step before a key is pressed, and an
+    /// Undo then would only end the typing, as on the Android twin.
+    var canUndo: Bool {
+        !past.isEmpty || (editingTextId != nil && pending.map { $0.design != design } == true)
+    }
 
     /// Moves with every step recorded, undone, redone or thrown away. An
     /// Undo offered in a toast is only honest while this is what it was

@@ -8,7 +8,9 @@
 // typed in it ("Hello " is one), on a pause of `pause` seconds or more
 // before the next change, and on a caret moved elsewhere before it. A style
 // from the typing bar is a step of its own already (close). Backspaces and
-// corrections join the step they fall in.
+// corrections join the step they fall in. What a change typed is read in
+// the words as they read, as the Android twin's field reports it: the style
+// markers a key's letters are wrapped in are none of it.
 
 import Foundation
 
@@ -33,14 +35,15 @@ struct TypingCoalescer {
     /// When the last change came, in seconds.
     private var last = 0.0
 
-    /// The words changed from `old` to `new` at `time` seconds, the caret
-    /// `jumped` elsewhere since the change before.
+    /// The words changed from `old` to `new` — as stored, markers and all —
+    /// at `time` seconds, the caret `jumped` elsewhere since the change
+    /// before.
     mutating func change(from old: String, to new: String, at time: Double, jumped: Bool = false) -> Verdict {
         let closeFirst = open && (jumped || time - last >= Self.pause)
         if closeFirst { letters = false }
         open = true
         last = time
-        let typed = Self.typed(from: old, to: new)
+        let typed = Self.typed(from: RichText.strip(old), to: RichText.strip(new))
         if typed.contains(where: { $0.isLetter || $0.isNumber }) { letters = true }
         let ends = typed.last.map { $0.isWhitespace || $0.isPunctuation } ?? false
         let closeAfter = letters && ends
