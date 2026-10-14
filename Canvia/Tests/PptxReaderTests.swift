@@ -210,6 +210,33 @@ final class PptxReaderTests: XCTestCase {
         XCTAssertEqual(RichText.strip(t.text ?? ""), "2*3 is 6*")
     }
 
+    /// Shared: a marker character RichText would read as one is written as
+    /// its look-alike, every one of its kind in the box, one for one.
+    func testADecksOwnStarsLinesAndTildesStayAsTheyRead() {
+        let rows: [(String, String)] = [
+            ("Press *Enter* to continue", "Press \u{2217}Enter\u{2217} to continue"),
+            ("call __init__ first", "call \u{FF3F}\u{FF3F}init\u{FF3F}\u{FF3F} first"),
+            ("~~old~~ price, 2*3 and *new*",
+             "\u{223C}\u{223C}old\u{223C}\u{223C} price, 2\u{2217}3 and \u{2217}new\u{2217}"),
+            ("2*3 is 6* and snake_case", "2*3 is 6* and snake_case"),
+            ("a_b *c_ d*", "a_b \u{2217}c_ d\u{2217}"),
+            ("", ""),
+        ]
+        for (plain, kept) in rows {
+            XCTAssertEqual(PptxReader.literal(plain), kept, plain)
+            XCTAssertEqual(RichText.strip(kept), kept, plain)
+        }
+    }
+
+    /// Shared: a box with a deck's own stars keeps its runs' spans.
+    func testABoxWithItsOwnStarsKeepsItsSpansAndStyles() throws {
+        let body = "<a:p><a:r><a:rPr/><a:t>Press *Enter* </a:t></a:r><a:r><a:rPr b=\"1\"><a:solidFill>"
+            + "<a:srgbClr val=\"FF0000\"/></a:solidFill></a:rPr><a:t>now</a:t></a:r></a:p>"
+        let t = try only(deck([textBox(box, body)]))
+        XCTAssertEqual(t.text, "Press \u{2217}Enter\u{2217} **now**")
+        XCTAssertEqual(t.spans, [TextSpan(start: 14, end: 17, color: "#ff0000")])
+    }
+
     func testTheBoxSitsInsideItsInsetsAndHoldsItsWordsWhereItIsAnchored() throws {
         let t = try only(deck(["<p:sp><p:nvSpPr><p:cNvPr id=\"2\" name=\"t\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>\(box)</p:spPr>"
             + "<p:txBody><a:bodyPr anchor=\"ctr\"/><a:p><a:r><a:t>Hi</a:t></a:r></a:p></p:txBody></p:sp>"]))
@@ -470,6 +497,20 @@ final class PptxReaderTests: XCTestCase {
         XCTAssertEqual(els[0].shapeId, "rect")
     }
 
+    /// Shared: a cell's picture fill is not brought in — no file is kept for
+    /// it — and is a picture left out, the cell white.
+    func testATableCellsPictureIsLeftOutAndKeepsNoFile() throws {
+        let tbl = "<a:tbl><a:tblGrid><a:gridCol w=\"952500\"/></a:tblGrid><a:tr h=\"476250\"><a:tc><a:txBody><a:bodyPr/>"
+            + "<a:p><a:r><a:t>A</a:t></a:r></a:p></a:txBody>"
+            + "<a:tcPr><a:blipFill><a:blip r:embed=\"rId1\"/></a:blipFill></a:tcPr></a:tc></a:tr></a:tbl>"
+        let imported = try read(deck([frame("http://schemas.openxmlformats.org/drawingml/2006/table", tbl)],
+                                     slideRels: [0: rels([("image", "../media/cell.png")])],
+                                     media: [("ppt/media/cell.png", png)]))
+        XCTAssertEqual(imported.design.pages[0].elements.first?.fill, .solid("#ffffff"))
+        XCTAssertTrue(imported.media.isEmpty)
+        XCTAssertEqual(imported.skipped, [PptxReader.picture: 1])
+    }
+
     // MARK: notes, titles and order
 
     func testSlidesComeInTheListsOrderWithTheirNotesAndTitles() throws {
@@ -510,6 +551,19 @@ final class PptxReaderTests: XCTestCase {
         for (words, title) in rows {
             XCTAssertEqual(try read(deck([titled(words)])).design.pages[0].title, title, words)
         }
+    }
+
+    /// Shared: groups within groups are read 64 deep; a deck one deeper is
+    /// none, as on the Android twin.
+    func testGroupsPastTheDeepestReadAreNotADeck() throws {
+        func nested(_ depth: Int) throws -> Data {
+            let inner = textBox(box, "<a:p><a:r><a:t>Deep</a:t></a:r></a:p>")
+            return try deck([String(repeating: "<p:grpSp><p:grpSpPr/>", count: depth) + inner
+                + String(repeating: "</p:grpSp>", count: depth)])
+        }
+        XCTAssertEqual(PptxReader.maxDepth, 64)
+        XCTAssertEqual(try only(nested(PptxReader.maxDepth)).text, "Deep")
+        XCTAssertNil(PptxReader.read(try nested(PptxReader.maxDepth + 1), title: "x", now: 0, ids: counter()))
     }
 
     func testAFileThatIsNotADeckOrHasNoSlidesIsNone() throws {
@@ -668,7 +722,7 @@ final class PptxReaderTests: XCTestCase {
         let found = differences(actual, expected)
         XCTAssertTrue(found.isEmpty, found.joined(separator: "\n"))
         XCTAssertEqual(imported.summary,
-                       "Imported 3 slides. 8 items couldn't be brought in (1 chart, 1 SmartArt, 1 video, 1 picture, 1 shape, 3 fonts).")
+                       "Imported 4 slides. 8 items couldn't be brought in (1 chart, 1 SmartArt, 1 video, 1 picture, 1 shape, 3 fonts).")
         XCTAssertEqual(imported.media, ["image1.png": "ppt/media/image1.png", "image2.png": "ppt/media/image2.png"])
     }
 }
