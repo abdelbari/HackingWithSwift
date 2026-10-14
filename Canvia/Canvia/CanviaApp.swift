@@ -23,9 +23,11 @@ struct CanviaApp: App {
     /// gathered for a moment, then landed as one share.
     @State private var arriving: [URL] = []
     @State private var arrivingTask: Task<Void, Never>?
-    /// A PowerPoint opened in Canvia, to be read in as a new design
-    /// (PowerPoints).
-    @State private var deckURL: URL?
+    /// PowerPoints opened in Canvia, to be read in as new designs
+    /// (PowerPoints). A list, not one slot: decks opened together arrive
+    /// one after another before the view updates, and each must be kept.
+    /// The host empties it as it takes them, so each is read once.
+    @State private var deckURLs: [URL] = []
     @Environment(\.scenePhase) private var scenePhase
     /// Settings' Appearance: System, Light or Dark.
     @AppStorage(Appearance.key) private var appearance = Appearance.system.rawValue
@@ -221,12 +223,12 @@ struct CanviaApp: App {
                 if SharedInbox.kind(of: url) != nil {
                     receiveShared(url)
                 } else if PowerPoints.isDeck(url) {
-                    deckURL = url
+                    deckURLs.append(url)
                 } else {
                     openDesignFile(url)
                 }
             }
-            .powerPointImport($deckURL) { design in
+            .powerPointImport($deckURLs) { design in
                 withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
             }
             .sharedDesignSheet($sharedBox, editing: $editingStore, failure: $openError)

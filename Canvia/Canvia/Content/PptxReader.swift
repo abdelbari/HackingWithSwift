@@ -21,15 +21,22 @@
 //     as a text box over it, inset by its bodyPr insets
 //   • a shape with no a:xfrm of its own that is a placeholder takes its
 //     place from its layout's placeholder with the same idx (else type),
-//     else from its master's of the same type
+//     else from its master's of the same type (Walk.inherited)
 //   • words (words(of:)): a paragraph a line, runs as they are; a run's
-//     look is its own a:rPr, else the master's text style for its kind of
-//     box (title, body or other) at level 1, else 18 pt black in the
-//     theme's body font; the box takes the first run's size, colour and
-//     font that has words other than spaces, and is bold, italic or
-//     underlined when every one is — a run that is when the box is not is
-//     written in RichText's markers, and a run's own colour, size or font
-//     is a span (Spans)
+//     look is its own a:rPr, else its box's a:lstStyle at level 1, else —
+//     for a placeholder — its layout's placeholder's, else its master's,
+//     else the master's text style for its kind of box (title for a title;
+//     other for a date, footer, slide number or a shape that is no
+//     placeholder; else body) at level 1, else 18 pt black in the theme's
+//     body font; a placeholder's anchor and insets are its own bodyPr's,
+//     else its layout's placeholder's, else its master's; the box takes
+//     the first run's size, colour and font that has words other than
+//     spaces, and is bold, italic or underlined when every one is — a run
+//     that is when the box is not is written in RichText's markers, and a
+//     run's own colour, size or font is a span (Spans)
+//   • a *, _ or ~ in the words that RichText would read as a marker is
+//     written as its look-alike, every one of that kind in the box
+//     (literal(_:))
 //   • a typeface is a bundled family when its name or id matches, capitals,
 //     accents, spaces and dashes aside (family(of:)); any other — the
 //     theme's fonts among them — is Modern Sans, and said as a font left
@@ -39,8 +46,11 @@
 //     left out
 //   • a p:graphicFrame table is a table (table(_:)): a rectangle and a text
 //     per cell, as Tables keeps them, gridSpan and rowSpan its merges; a
-//     chart, SmartArt or anything else in one is left out
+//     cell's picture fill is a picture left out, the cell white; a chart,
+//     SmartArt or anything else in one is left out
 //   • mc:AlternateContent is read as its mc:Fallback
+//   • groups (and fallbacks) within one another past maxDepth are not a
+//     deck the phone opens: the read is nil
 //   • the notes slide's body placeholder is the page's notes, a paragraph a
 //     line; the slide's title placeholder's words, on one line with single
 //     spaces between them, its title
@@ -77,6 +87,10 @@ enum PptxReader {
 
     /// A run's type with no size of its own anywhere: 18 pt.
     static let defaultType = 1800.0
+
+    /// The most groups within groups (and fallbacks) read; one deeper and
+    /// the deck is not read.
+    static let maxDepth = 64
 
     /// A table's border, as a new table's hairline.
     static let tableBorder = "#00000022"
@@ -442,6 +456,22 @@ enum PptxReader {
         }
     }
 
+    /// The shapes a placeholder follows on its layout and its master.
+    fileprivate struct Inherited {
+        var layout: SvgImport.Node?
+        var master: SvgImport.Node?
+
+        /// Their level-1 list styles, the layout's first.
+        var levels: [SvgImport.Node] {
+            [layout?.at("txBody", "lstStyle", "lvl1pPr"), master?.at("txBody", "lstStyle", "lvl1pPr")].compactMap { $0 }
+        }
+
+        /// Their bodyPrs, the layout's first.
+        var bodies: [SvgImport.Node] {
+            [layout?.at("txBody", "bodyPr"), master?.at("txBody", "bodyPr")].compactMap { $0 }
+        }
+    }
+
     fileprivate struct Border {
         var colour: String
         var width: Double
@@ -468,6 +498,32 @@ enum PptxReader {
                    w: max(0, number(ext, "cx") ?? 0), h: max(0, number(ext, "cy") ?? 0),
                    rotation: (number(xfrm, "rot") ?? 0) / 60000,
                    flipH: flag(xfrm, "flipH") == true, flipV: flag(xfrm, "flipV") == true)
+    }
+
+    /// Each character RichText reads as a marker, and the look-alike a
+    /// deck's own is written as: ∗ (U+2217), ＿ (U+FF3F) and ∼ (U+223C).
+    private static let literals: [(marker: UInt16, lookalike: UInt16)] = [
+        (0x2A, 0x2217), (0x5F, 0xFF3F), (0x7E, 0x223C),
+    ]
+
+    /// A deck's `plain` words as a text box keeps them: each kind of marker
+    /// character (literals, in its order) that RichText would take as a
+    /// marker there — fewer of it read than written — written as its
+    /// look-alike throughout, until the words read as themselves. One
+    /// UTF-16 unit for one, so offsets into the words hold. An invisible
+    /// joiner would not do: RichText's markers look only at spaces and
+    /// letters beside them.
+    static func literal(_ plain: String) -> String {
+        var units = Array(plain.utf16)
+        while true {
+            let text = String(decoding: units, as: UTF16.self)
+            let read = Array(RichText.strip(text).utf16)
+            let found = literals.first { pair in
+                units.filter { $0 == pair.marker }.count > read.filter { $0 == pair.marker }.count
+            }
+            guard let swap = found else { return text }
+            units = units.map { $0 == swap.marker ? swap.lookalike : $0 }
+        }
     }
 
     /// The box's words with each run's bold, italic and underline that the
@@ -537,8 +593,8 @@ enum PptxReader {
         var currentMaster: Part?
         /// The master's level-1 look for words in a kind of box, by master.
         var masterLooks: [String: Look?] = [:]
-        /// Groups nested past reason end the read, as the Android twin's
-        /// does when its stack runs out.
+        /// Groups nested past maxDepth end the read, as on the Android
+        /// twin.
         var tooDeep = false
 
         init(parts: Parts, ids: @escaping (String) -> String) {
@@ -704,9 +760,11 @@ enum PptxReader {
             }
         }
 
+        /// The master's text style a box's words follow: a date, footer or
+        /// slide number the other style, as a shape that is no placeholder.
         func kind(of type: String?) -> TextKind {
             switch type {
-            case nil: return .other
+            case nil, "dt", "ftr", "sldNum": return .other
             case "title", "ctrTitle": return .title
             default: return .body
             }
@@ -721,22 +779,32 @@ enum PptxReader {
             var look: Look?
             if let styles = master.root.child("txStyles"),
                let level = styles.child("\(kind.rawValue)Style")?.child("lvl1pPr") {
-                look = self.look(level.child("defRPr"))
-                look?.align = align(level.attributes["algn"])
+                look = levelLook(level)
             }
             masterLooks[key] = .some(look)
             return look
         }
 
+        /// A list style's level: its defRPr and its alignment.
+        func levelLook(_ level: SvgImport.Node) -> Look {
+            var found = look(level.child("defRPr"))
+            found.align = align(level.attributes["algn"])
+            return found
+        }
+
         /// The paragraphs of `body` as one box's words: a paragraph a line,
         /// a line break a line, a field's words as they were last shown;
-        /// each run's look its own, else the master's for a `kind` of box,
-        /// else 18 pt black in the theme's body font. Nil when there is no
-        /// run and not `empty`.
-        func words(of body: SvgImport.Node, kind: TextKind, empty: Bool = false) -> Words? {
+        /// each run's look its own, else its a:lstStyle's level 1, else
+        /// each of `levels` (its placeholder's layout's and master's) in
+        /// turn, else the master's for a `kind` of box, else 18 pt black in
+        /// the theme's body font. Nil when there is no run and not `empty`.
+        func words(of body: SvgImport.Node, kind: TextKind, empty: Bool = false,
+                   levels: [SvgImport.Node] = []) -> Words? {
             let base = Look(size: PptxReader.defaultType, bold: false, italic: false, underline: false,
                             colour: "#000000", typeface: theme.minor)
-            let defaults = (masterLook(kind, currentMaster) ?? Look()).over(base)
+            var defaults = (masterLook(kind, currentMaster) ?? Look()).over(base)
+            let own = body.at("lstStyle", "lvl1pPr").map { [$0] } ?? []
+            for level in (own + levels).reversed() { defaults = levelLook(level).over(defaults) }
             var plain = ""
             var length = 0
             var runs: [Run] = []
@@ -951,11 +1019,8 @@ enum PptxReader {
             self.master = master
         }
 
-        /// The most groups within groups read.
-        static let maxDepth = 64
-
         mutating func tree(_ node: SvgImport.Node, place: Place, group: String?, depth: Int) {
-            guard depth <= Self.maxDepth else {
+            guard depth <= PptxReader.maxDepth else {
                 reader.tooDeep = true
                 return
             }
@@ -994,10 +1059,14 @@ enum PptxReader {
             }
         }
 
-        /// Where a shape is: its own xfrm, else a placeholder's.
-        func placed(_ node: SvgImport.Node, _ props: SvgImport.Node?, _ place: Place) -> Box? {
-            if let own = PptxReader.box(of: props?.child("xfrm")) { return place.box(own) }
-            guard let ph = node.child(node.name == "pic" ? "nvPicPr" : "nvSpPr")?.at("nvPr", "ph") else { return nil }
+        /// The shapes a placeholder `node` follows: its layout's placeholder
+        /// with the same idx (else type), and its master's of the same
+        /// master type (masterType); none for a shape that is not a
+        /// placeholder.
+        func inherited(_ node: SvgImport.Node) -> Inherited {
+            guard let ph = node.child(node.name == "pic" ? "nvPicPr" : "nvSpPr")?.at("nvPr", "ph") else {
+                return Inherited(layout: nil, master: nil)
+            }
             let idx = ph.attributes["idx"]
             let type = ph.attributes["type"] ?? "obj"
             let fromLayout = reader.shapes(layout?.root.at("cSld", "spTree")).first { other in
@@ -1005,22 +1074,30 @@ enum PptxReader {
                 if let idx { return theirs.attributes["idx"] == idx }
                 return (theirs.attributes["type"] ?? "obj") == type
             }
-            if let box = PptxReader.box(of: fromLayout?.at("spPr", "xfrm")) { return place.box(box) }
             let kind = reader.masterType(type)
             let fromMaster = reader.shapes(master?.root.at("cSld", "spTree")).first { other in
                 guard let theirs = other.at("nvSpPr", "nvPr", "ph") else { return false }
                 return reader.masterType(theirs.attributes["type"] ?? "obj") == kind
             }
-            return PptxReader.box(of: fromMaster?.at("spPr", "xfrm")).map(place.box)
+            return Inherited(layout: fromLayout, master: fromMaster)
+        }
+
+        /// Where a shape is: its own xfrm, else a placeholder's — its
+        /// layout's, else its master's (`from`).
+        func placed(_ props: SvgImport.Node?, _ place: Place, from: Inherited) -> Box? {
+            if let own = PptxReader.box(of: props?.child("xfrm")) { return place.box(own) }
+            if let box = PptxReader.box(of: from.layout?.at("spPr", "xfrm")) { return place.box(box) }
+            return PptxReader.box(of: from.master?.at("spPr", "xfrm")).map(place.box)
         }
 
         mutating func shape(_ node: SvgImport.Node, place: Place, group: String?) {
             let nv = node.child("nvSpPr") ?? node.child("nvCxnSpPr")
             if PptxReader.flag(nv?.child("cNvPr"), "hidden") == true { return }
             let props = node.child("spPr")
+            let from = inherited(node)
             // A placeholder with nowhere to be is only missed when it has
             // words to show.
-            guard let box = placed(node, props, place) else {
+            guard let box = placed(props, place, from: from) else {
                 if let body = node.child("txBody"), let words = reader.words(of: body, kind: .other),
                    !PptxReader.isBlank(words.plain) {
                     reader.skip(PptxReader.other)
@@ -1048,8 +1125,10 @@ enum PptxReader {
                 }
             }
             let type = reader.placeholderType(node)
-            guard let body = node.child("txBody"), let words = reader.words(of: body, kind: reader.kind(of: type)) else { return }
-            if let made = text(words, bodyPr: body.child("bodyPr"), box: box, place: place, group: group) {
+            guard let body = node.child("txBody"),
+                  let words = reader.words(of: body, kind: reader.kind(of: type), levels: from.levels) else { return }
+            let bodies = (body.child("bodyPr").map { [$0] } ?? []) + from.bodies
+            if let made = text(words, bodies: bodies, box: box, place: place, group: group) {
                 out.append(made)
             }
             if title == nil && (type == "title" || type == "ctrTitle") {
@@ -1069,7 +1148,7 @@ enum PptxReader {
             if nvPr?.child("audioFile") != nil || nvPr?.child("wavAudioFile") != nil || nvPr?.child("audioCd") != nil {
                 return reader.skip(PptxReader.sound)
             }
-            guard let box = placed(node, node.child("spPr"), place) else { return reader.skip(PptxReader.other) }
+            guard let box = placed(node.child("spPr"), place, from: inherited(node)) else { return reader.skip(PptxReader.other) }
             guard let src = reader.picture(node.child("blipFill"), slide) else { return reader.skip(PptxReader.picture) }
             var el = Element.image(src, w: PptxReader.px(box.w), h: PptxReader.px(box.h))
             el.filter = nil
@@ -1126,7 +1205,15 @@ enum PptxReader {
                     let w = widths[c..<(c + colSpan)].reduce(0, +)
                     let h = heights[r..<(r + rowSpan)].reduce(0, +)
                     let props = cell.child("tcPr")
-                    let paint = reader.fill(props, slide, style: nil).flatMap { $0.kind == "solid" ? $0 : nil }
+                    // A picture fill is not read — no file is kept for a
+                    // fill the cell does not show — and is said.
+                    let own = props?.children.first { PptxReader.fillNames.contains($0.name) }
+                    var paint: Paint?
+                    if own?.name == "blipFill" {
+                        reader.skip(PptxReader.picture)
+                    } else {
+                        paint = reader.fill(props, slide, style: nil).flatMap { $0.kind == "solid" ? $0 : nil }
+                    }
                     let at = TableCell(id: id, row: r, col: c, rowSpan: rowSpan, colSpan: colSpan)
                     var rect = Element.shape("rect", w: PptxReader.px(w), h: PptxReader.px(h))
                     rect.id = reader.ids("el")
@@ -1199,23 +1286,28 @@ enum PptxReader {
             return el
         }
 
-        /// The words of a shape's body at `box`, inset by its bodyPr.
-        func text(_ words: Words, bodyPr: SvgImport.Node?, box: Box, place: Place, group: String?) -> Element? {
-            let inset = Insets(left: PptxReader.number(bodyPr, "lIns") ?? 91440,
-                               top: PptxReader.number(bodyPr, "tIns") ?? 45720,
-                               right: PptxReader.number(bodyPr, "rIns") ?? 91440,
-                               bottom: PptxReader.number(bodyPr, "bIns") ?? 45720)
-            return textBox(words, anchor: bodyPr?.attributes["anchor"], inset: inset, box: box, place: place,
-                           group: group, empty: false)
+        /// The words of a shape at `box`, inset and anchored by the first of
+        /// `bodies` — its own bodyPr, then its placeholder's layout's and
+        /// master's — that says.
+        func text(_ words: Words, bodies: [SvgImport.Node], box: Box, place: Place, group: String?) -> Element? {
+            func said(_ key: String, _ otherwise: Double) -> Double {
+                bodies.lazy.compactMap { PptxReader.number($0, key) }.first ?? otherwise
+            }
+            let inset = Insets(left: said("lIns", 91440), top: said("tIns", 45720),
+                               right: said("rIns", 91440), bottom: said("bIns", 45720))
+            let anchor = bodies.lazy.compactMap { $0.attributes["anchor"] }.first
+            return textBox(words, anchor: anchor, inset: inset, box: box, place: place, group: group, empty: false)
         }
 
         /// A text box of `words` inside `box` less `inset` (scaled as its
         /// group is by `place`), the box's look its first run's with words
         /// and the rest as markers and spans; nil for no words, unless
         /// `empty` — a table's cell, which always has its text.
-        func textBox(_ words: Words, anchor: String?, inset: Insets, box: Box, place: Place, group: String?,
+        func textBox(_ given: Words, anchor: String?, inset: Insets, box: Box, place: Place, group: String?,
                      empty: Bool) -> Element? {
-            if !empty && PptxReader.isBlank(words.plain) { return nil }
+            if !empty && PptxReader.isBlank(given.plain) { return nil }
+            // One for one, so the runs' offsets hold.
+            let words = Words(plain: PptxReader.literal(given.plain), runs: given.runs, align: given.align)
             let units = Array(words.plain.utf16)
             let shown = words.runs.filter { r in
                 !units[max(0, r.start)..<min(r.end, units.count)].allSatisfy(PptxReader.isSpace)

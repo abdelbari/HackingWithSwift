@@ -81,10 +81,13 @@ enum PowerPoints {
     @MainActor
     static func importFile(at url: URL, taken: [String]) async throws -> Opened {
         var imported = try await Task.detached(priority: .userInitiated) {
-            try PowerPoints.read(at: url)
+            var read = try PowerPoints.read(at: url)
+            // Every box of every slide measured off the main actor: a long
+            // deck's would hold up the "Opening the PowerPoint…" card.
+            read.design.normalizeTextHeights()
+            return read
         }.value
         imported.design.title = Titles.unique(imported.design.title, taken: taken)
-        imported.design.normalizeTextHeights()
         guard DesignLibrary.save(imported.design) else { throw DeckError.notSaved }
         DesignLibrary.writeThumbnail(for: imported.design)
         NotificationCenter.default.post(name: didImport, object: nil)
