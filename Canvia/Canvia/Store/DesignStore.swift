@@ -1847,19 +1847,27 @@ final class DesignStore {
     var hasCopiedStyle: Bool { copiedStyle != nil }
 
     static func style(of el: Element) -> Style {
-        Style(fill: el.fill, stroke: el.stroke, strokeWidth: el.strokeWidth, radius: el.radius,
-              corners: el.corners, dropCap: el.dropCap,
-              color: el.color, fontFamily: el.fontFamily, fontSize: el.fontSize,
-              fontWeight: el.fontWeight, italic: el.italic, underline: el.underline,
-              uppercase: el.uppercase, align: el.align,
-              lineHeight: el.lineHeight, letterSpacing: el.letterSpacing,
-              listStyle: el.listStyle, indent: el.indent, textFill: el.textFill,
-              vAlign: el.vAlign, paragraphSpacing: el.paragraphSpacing,
-              effect: el.effect, curve: el.curve, filter: el.filter,
-              adjustments: el.adjustments, maskShapeId: el.maskShapeId, duotone: el.duotone,
-              filterStrength: el.filterStrength, opacity: el.opacity, shadow: el.shadow, blendMode: el.blendMode,
-              thickness: el.thickness, dash: el.dash,
-              startCap: el.startCap, endCap: el.endCap)
+        var style = Style(fill: el.fill, stroke: el.stroke, strokeWidth: el.strokeWidth, radius: el.radius,
+                          corners: el.corners, dropCap: el.dropCap,
+                          color: el.color, fontFamily: el.fontFamily, fontSize: el.fontSize,
+                          fontWeight: el.fontWeight, italic: el.italic, underline: el.underline,
+                          uppercase: el.uppercase, align: el.align,
+                          lineHeight: el.lineHeight, letterSpacing: el.letterSpacing,
+                          listStyle: el.listStyle, indent: el.indent, textFill: el.textFill,
+                          vAlign: el.vAlign, paragraphSpacing: el.paragraphSpacing,
+                          effect: el.effect, curve: el.curve, filter: el.filter,
+                          adjustments: el.adjustments, maskShapeId: el.maskShapeId, duotone: el.duotone,
+                          filterStrength: el.filterStrength, opacity: el.opacity, shadow: el.shadow, blendMode: el.blendMode,
+                          thickness: el.thickness, dash: el.dash,
+                          startCap: el.startCap, endCap: el.endCap)
+        // A box with its own paragraphs gives its style the list and indent
+        // of its first listed line (its first, with none listed) as the
+        // box-wide keys, so a heading-and-bullets look pastes as bullets.
+        if let lines = TextLists.paragraphsOf(el), let line = lines.first(where: { $0.isListed }) ?? lines.first {
+            style.listStyle = line.isListed ? line.list : nil
+            style.indent = line.level > 0 ? line.level : nil
+        }
+        return style
     }
 
     /// Apply a style, keeping everything that makes the element itself.
@@ -1892,6 +1900,9 @@ final class DesignStore {
             el.align = style.align
             el.lineHeight = style.lineHeight
             el.letterSpacing = style.letterSpacing
+            // The style's list and indent are the whole box's: its own
+            // paragraphs, which would set every line over them, go.
+            el.dropParagraphs()
             el.listStyle = style.listStyle
             el.indent = style.indent
             el.textFill = style.textFill

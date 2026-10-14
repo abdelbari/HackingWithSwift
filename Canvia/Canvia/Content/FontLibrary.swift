@@ -577,7 +577,8 @@ enum FontLibrary {
     /// Each line of `text` — the words of `el`, markers in or out, a line
     /// for each of its own — pushed in by its own level, a list item's
     /// marker hanging so wrapped lines start where the words after it do,
-    /// over the box's paragraph style: the Android twin's LeadingMarginSpan
+    /// over the paragraph style each run already has (the box's, or one
+    /// made roomier for a larger word): the Android twin's LeadingMarginSpan
     /// per paragraph. A box with no paragraphs of its own keeps the one
     /// style it has (attributes(for:)), indented as a whole.
     static func setParagraphStyles(_ text: NSMutableAttributedString, for el: Element) {
@@ -592,11 +593,18 @@ enum FontLibrary {
             // The line and the break after it, which carries its style.
             let end = lineEnd == NSNotFound ? ns.length : lineEnd + 1
             if end > start {
-                let paragraph = (base.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
                 let indent = Double(line.level) * size * indentEm
-                paragraph.firstLineHeadIndent = indent
-                paragraph.headIndent = indent + (line.isListed ? size * markerEm : 0)
-                text.addAttribute(.paragraphStyle, value: paragraph.copy(), range: NSRange(location: start, length: end - start))
+                let hang = indent + (line.isListed ? size * markerEm : 0)
+                // Each run keeps the style it has — the room a larger word
+                // was given (RichText.makeRoom) — and takes only the indents.
+                let range = NSRange(location: start, length: end - start)
+                text.enumerateAttribute(.paragraphStyle, in: range) { value, part, _ in
+                    let had = (value as? NSParagraphStyle) ?? base
+                    let paragraph = (had.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
+                    paragraph.firstLineHeadIndent = indent
+                    paragraph.headIndent = hang
+                    text.addAttribute(.paragraphStyle, value: paragraph.copy(), range: part)
+                }
             }
             start = end
             if lineEnd == NSNotFound { break }
