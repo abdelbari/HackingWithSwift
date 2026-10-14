@@ -1,14 +1,13 @@
 {
-  "template": "portrait-brunch-special",
-  "limit": 8,
-  "expect": [
-    "food-story-todays-special",
-    "documents-supper-club-menu",
-    "logo-northbound-roasters",
-    "logo-honey-rye-bakehouse",
-    "food-recipe-lemon-orzo",
-    "food-menu-colour-blocks",
-    "food-card-coffee-loyalty",
-    "deck-cooking-class"
-  ]
+ "template": "quarterly-review-title",
+ "expect": [
+  "deck-quarterly-business-review",
+  "deck-indigo-agenda",
+  "deck-indigo-key-points",
+  "deck-indigo-comparison",
+  "deck-indigo-pull-quote",
+  "deck-indigo-team",
+  "deck-indigo-closing",
+  "deck-seed-round-pitch"
+ ]
 }

@@ -55,7 +55,7 @@ struct TemplatePreviewSheet: View {
         }
         .presentationDetents([.large])
         .confirmationDialog(template.name, isPresented: $choosing, titleVisibility: .visible) {
-            Button(trn("Apply all %d page|Apply all %d pages", design.pages.count)) { use(nil) }
+            Button(trn("Use all %d page|Use all %d pages", design.pages.count)) { use(nil) }
             Button("Use this page") { use(shown) }
         } message: {
             Text(note)

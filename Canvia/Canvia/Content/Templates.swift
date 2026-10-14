@@ -59,10 +59,12 @@ enum Templates {
     }
 
     /// The category family a template belongs to — Social, Video, Print,
-    /// Documents, Presentations or Marketing — as the first design type of
-    /// exactly its size has it; nil when no type is its size.
+    /// Documents, Presentations or Marketing — as the first design type
+    /// made at its size has it: its own size, or the one its templates had
+    /// before (SizePreset.formerPixels, the A5 flyer's). Nil when no type is
+    /// its size.
     static func family(of template: Template, in presets: [SizePreset] = SizePreset.all) -> String? {
-        presets.first { $0.w == template.width && $0.h == template.height }?.category
+        presets.first { isOwn(template, of: $0) }?.category
     }
 
     /// Whether a template is one of the type's own: made at its size, or at
@@ -142,11 +144,15 @@ enum Templates {
         spokenCount(own: ContentLibrary.templateCounts[preset.id] ?? 0, adapted: nearbyCounts[preset.id] ?? 0)
     }
 
-    /// The line under a template's name, and its preview's header:
-    /// "Business · 1920 × 1080 · 10 pages".
+    /// The preview's header, and what VoiceOver says of a "More like this"
+    /// card: "Business · 1920 × 1080 · 10 pages". A template drawn on paper
+    /// is measured in the unit it opens in (instantiate), "210 × 297 mm";
+    /// the pages are left off for one.
     static func caption(_ template: Template) -> String {
-        let size = "\(Int(template.width)) × \(Int(template.height))"
-        return "\(UserTemplates.shownCategory(template.category)) · \(size) · "
-            + trn("%d page|%d pages", template.pageCount)
+        let paper = SizePreset.all.first { $0.unit != nil && $0.w == template.width && $0.h == template.height }
+        var parts = [UserTemplates.shownCategory(template.category),
+                     Units.dimensions(width: template.width, height: template.height, unit: paper?.unit, dpi: paper?.dpi)]
+        if template.pageCount > 1 { parts.append(trn("%d page|%d pages", template.pageCount)) }
+        return parts.joined(separator: " · ")
     }
 }

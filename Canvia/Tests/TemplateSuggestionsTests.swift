@@ -68,7 +68,7 @@ final class TemplateSuggestionsTests: XCTestCase {
     func testSimilarMatchesTheSharedFixture() throws {
         let json = try fixture("similar")
         let id = try XCTUnwrap(json["template"] as? String)
-        let limit = try XCTUnwrap(json["limit"] as? Int)
+        let limit = json["limit"] as? Int ?? Templates.similarCount
         let expect = try XCTUnwrap(json["expect"] as? [String])
         let source = try XCTUnwrap(ContentLibrary.templates.first { $0.id == id }, id)
         XCTAssertEqual(Templates.similar(source, limit: limit).map(\.id), expect)
@@ -144,8 +144,20 @@ final class TemplateSuggestionsTests: XCTestCase {
         XCTAssertEqual(Templates.spokenCount(own: 1, adapted: 0), "1 ready-made designs")
     }
 
-    func testThePreviewHeaderNamesCategorySizeAndPages() {
-        XCTAssertEqual(Templates.caption(template("a", "A", "Business", 1920, 1080)), "Business · 1920 × 1080 · 1 page")
+    /// Category, size and, for several, pages — on paper in the unit the
+    /// template opens in.
+    func testThePreviewHeaderNamesCategorySizeAndPages() throws {
+        XCTAssertEqual(Templates.caption(template("a", "A", "Business", 1920, 1080)), "Business · 1920 × 1080")
+        let set = try XCTUnwrap(ContentLibrary.templates.first { $0.pageCount > 1 })
+        XCTAssertTrue(Templates.caption(set).hasSuffix(" · \(set.pageCount) pages"))
+        XCTAssertTrue(Templates.caption(template("p", "P", "Business", 2480, 3508)).hasSuffix("210 × 297 mm"))
+    }
+
+    /// A template at the A5 flyer's former pixels is of its family.
+    func testAFormerSizeGivesTheFamily() throws {
+        let flyer = try preset("flyer")
+        XCTAssertEqual(Templates.family(of: template("f", "F", "Marketing", 1240, 1748)), flyer.category)
+        XCTAssertNil(Templates.family(of: template("o", "O", "Social", 1234, 567)))
     }
 
     // MARK: the types that had none
