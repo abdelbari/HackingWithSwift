@@ -1538,6 +1538,8 @@ final class DesignStore {
             el.strokeWidth = style.strokeWidth
             el.radius = style.radius
             el.corners = style.corners
+            // A border's dash goes with it; a line's "solid" is no key.
+            el.dash = BorderDash.kept(style.dash)
         case .text:
             el.dropCap = style.dropCap
             el.color = style.color
@@ -1567,6 +1569,7 @@ final class DesignStore {
             el.radius = style.radius
             el.stroke = style.stroke
             el.strokeWidth = style.strokeWidth
+            el.dash = BorderDash.kept(style.dash)
         case .line:
             el.color = style.color
             el.thickness = style.thickness

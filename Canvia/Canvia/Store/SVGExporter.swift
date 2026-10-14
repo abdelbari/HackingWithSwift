@@ -191,11 +191,20 @@ enum SVGExporter {
         var stroke = ""
         if let color = el.stroke, let width = el.strokeWidth, width > 0 {
             stroke = " stroke=\"\(escape(color))\" stroke-width=\"\(num(width))\"" +
-                     " stroke-linejoin=\"round\" stroke-linecap=\"round\""
+                     " stroke-linejoin=\"round\"" + borderDash(el.dash, width: width)
         }
 
         return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" +
                "<path d=\"\(d)\" fill=\"\(paint)\"\(stroke)/></g>"
+    }
+
+    /// A border's ends and, when it is dashed or dotted, its pattern and
+    /// where the pattern starts, as BorderDash measures them.
+    static func borderDash(_ dash: String?, width: Double) -> String {
+        let cap = " stroke-linecap=\"\(BorderDash.roundCaps(dash) ? "round" : "butt")\""
+        guard let intervals = BorderDash.intervals(dash, width: width) else { return cap }
+        let array = intervals.map(num).joined(separator: " ")
+        return cap + " stroke-dasharray=\"\(array)\" stroke-dashoffset=\"\(num(BorderDash.phase(dash, width: width)))\""
     }
 
     /// A `width` x `height` rectangle with round corners of `radius`.

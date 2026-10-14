@@ -223,7 +223,7 @@ struct ShapeElementView: View {
                 shape.fill(Color(hex: fill.color ?? "#8b5cf6"))
             }
             if let stroke = element.stroke, let sw = element.strokeWidth, sw > 0 {
-                shape.stroke(Color(hex: stroke), style: StrokeStyle(lineWidth: sw, lineCap: .round, lineJoin: .round))
+                shape.stroke(Color(hex: stroke), style: .border(element.dash, width: sw))
             }
             // Its words, over the fill and the border, set in its text-safe
             // box as a text box sets them. Turned back where the shape is
@@ -235,6 +235,16 @@ struct ShapeElementView: View {
                     .position(x: box.midX, y: box.midY)
             }
         }
+    }
+}
+
+extension StrokeStyle {
+    /// A shape's or a photo's border `width` wide: solid, dashed or dotted
+    /// as BorderDash measures it, its joins round.
+    static func border(_ dash: String?, width: Double) -> StrokeStyle {
+        StrokeStyle(lineWidth: width, lineCap: BorderDash.roundCaps(dash) ? .round : .butt, lineJoin: .round,
+                    dash: (BorderDash.intervals(dash, width: width) ?? []).map { CGFloat($0) },
+                    dashPhase: BorderDash.phase(dash, width: width))
     }
 }
 
@@ -680,7 +690,10 @@ struct ImageElementView: View {
                 // The same shape as the clip. A rounded rectangle here would
                 // draw a rectangular border floating around a star-framed
                 // photo.
-                frame.stroke(Color(hex: stroke), lineWidth: sw)
+                // Solid as it always was, square-cornered; dashed or dotted
+                // as a shape's border is.
+                frame.stroke(Color(hex: stroke), style: BorderDash.kept(element.dash) == nil
+                             ? StrokeStyle(lineWidth: sw) : .border(element.dash, width: sw))
             }
         }
         // An outline or glow round what the photo shows, behind it and past
