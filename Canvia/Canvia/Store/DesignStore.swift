@@ -2142,13 +2142,14 @@ final class DesignStore {
 
     /// A blank page put in at `index` — the organiser's + between two
     /// thumbnails — with the background of the page to its left
-    /// (PageOrder.blank), as one undo step. The current page stays current.
+    /// (PageOrder.blank), as one undo step, and shown: like Add page, and
+    /// like Android's insertBlankPage.
     func insertPage(at index: Int) {
         let at = min(max(index, 0), design.pages.count)
         let blank = PageOrder.blank(at: at, in: design.pages)
-        let currentId = page.id
         apply { $0.pages.insert(blank, at: at) }
-        if let i = design.pages.firstIndex(where: { $0.id == currentId }) { pageIndex = i }
+        pageIndex = at
+        selection.removeAll()
         buzz(.pageAdded)
     }
 

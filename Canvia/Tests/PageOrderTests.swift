@@ -131,7 +131,9 @@ final class PageOrderTests: XCTestCase {
         store.insertPage(at: 2)
         XCTAssertEqual(store.design.pages.count, 4)
         XCTAssertEqual(store.design.pages[2].background, .color("#ff0000"))
-        XCTAssertEqual(store.page.id, "c")
+        XCTAssertEqual(store.pageIndex, 2, "the new page is shown, as Add page does")
+        XCTAssertEqual(store.page.id, store.design.pages[2].id)
+        XCTAssertFalse(["a", "b", "c"].contains(store.page.id))
         store.undo()
         XCTAssertEqual(order(store.design.pages), "abc")
     }

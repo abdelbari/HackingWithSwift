@@ -69,12 +69,19 @@ struct PageOrganizerSheet: View {
         return LazyVGrid(columns: items, spacing: 16) {
             ForEach(Array(store.design.pages.enumerated()), id: \.element.id) { index, page in
                 cell(index: index, page: page)
+                    .overlay(alignment: .leading) {
+                        if !lift.isActive && index == 0 { addButton(at: 0, leading: true) }
+                    }
                     .overlay(alignment: .trailing) {
-                        if !lift.isActive { addButton(after: index) }
+                        if !lift.isActive { addButton(at: index + 1, leading: false) }
                     }
             }
         }
-        .padding(16)
+        // A gap's width at the leading edge, so the + before page 1 sits
+        // in it as the others sit between pages.
+        .padding(.vertical, 16)
+        .padding(.trailing, 16)
+        .padding(.leading, CGFloat(Self.spacing))
         // A tap ticks the page under it; a press and hold lifts it.
         .contentShape(Rectangle())
         .onTapGesture(coordinateSpace: .named(Self.space)) { point in
@@ -155,18 +162,20 @@ struct PageOrganizerSheet: View {
         }
     }
 
-    /// + in the gap after page `index`: a blank page there, with that
-    /// page's background (DesignStore.insertPage).
-    private func addButton(after index: Int) -> some View {
-        Button { store.insertPage(at: index + 1) } label: {
+    /// + in the gap `gap` — before page 1, between two pages, or after the
+    /// last — a blank page there, with the background of the page to its
+    /// left (DesignStore.insertPage). Said as Android's gutters say it.
+    private func addButton(at gap: Int, leading: Bool) -> some View {
+        let label = gap >= store.design.pages.count ? "Add a page at the end" : "Add a page before page \(gap + 1)"
+        return Button { store.insertPage(at: gap) } label: {
             Image(systemName: "plus.circle.fill")
                 .font(.system(size: 20))
                 .symbolRenderingMode(.palette)
                 .foregroundStyle(Color.white, Theme.accent)
         }
         .buttonStyle(.plain)
-        .offset(x: CGFloat(Self.spacing / 2 + 10))
-        .accessibilityLabel("Add a page after page \(index + 1)")
+        .offset(x: CGFloat(Self.spacing / 2 + 10) * (leading ? -1 : 1))
+        .accessibilityLabel(label)
     }
 
     private func toggle(_ id: String) {
