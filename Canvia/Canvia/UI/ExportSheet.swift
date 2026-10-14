@@ -682,6 +682,10 @@ struct ExportSheet: View {
         case .tile:
             let n = PrintLayout.tiles(page: pts, printable: paper.printable.size, overlap: paper.overlap).count
             return "\(n) sheets of \(paper.paper.name), overlapping by \(Int(paper.overlap)) pt to trim and join."
+        case .several:
+            // "10 per sheet, 2 sheets", as the Android twin says it.
+            let plan = DesignExporter.severalPlan(design: exportedDesign, indices: exportedIndices, options: paper)
+            return PrintLayout.severalNote(perSheet: plan.perSheet, sheets: plan.sheets.count)
         }
     }
 
@@ -694,6 +698,7 @@ struct ExportSheet: View {
             Picker("Placement", selection: $paper.fit) {
                 ForEach(PrintLayout.Fit.allCases) { Text($0.name).tag($0) }
             }
+            if paper.fit == .several { severalSettings }
             Stepper(value: $paper.bleed, in: 0...36, step: 3) { Text("Bleed \(String(format: "%.0f", paper.bleed / 2.835)) mm") }
             // A design with no bleed of its own has one made for it.
             if paper.bleed > 0 && !Bleed.shown(exportedDesign) {
@@ -702,6 +707,18 @@ struct ExportSheet: View {
                     .foregroundStyle(.secondary)
             }
             Toggle("Crop marks", isOn: $paper.cropMarks)
+        }
+    }
+
+    /// Several to a sheet: one page over and over, or one of each; and, for
+    /// a design of two pages, its back printed on the other side.
+    @ViewBuilder
+    private var severalSettings: some View {
+        Picker("Fill the sheet with", selection: $paper.several) {
+            ForEach(PrintLayout.Several.allCases) { Text($0.name).tag($0) }
+        }
+        if store.design.pages.count == 2 {
+            Toggle("Double-sided", isOn: $paper.duplex)
         }
     }
 

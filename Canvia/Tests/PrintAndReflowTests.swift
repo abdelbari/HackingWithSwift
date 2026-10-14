@@ -141,6 +141,145 @@ final class PrintAndReflowTests: XCTestCase {
         try? FileManager.default.removeItem(at: url)
     }
 
+    // MARK: Several to a sheet
+
+    /// A 3.5 × 2 in business card at 300 dpi.
+    private func card(pages: Int = 1) -> Design {
+        var d = Design(title: "card", width: 1050, height: 600)
+        d.unit = "in"
+        d.dpi = 300
+        d.pages = (0..<pages).map { _ in Page(elements: [.shape("rect", w: 300, h: 200)]) }
+        return d
+    }
+
+    private func letter() throws -> PrintLayout.Paper {
+        try XCTUnwrap(PrintLayout.papers.first { $0.id == "letter" })
+    }
+
+    func testTheNewPapers() {
+        let sizes = Dictionary(uniqueKeysWithValues: PrintLayout.papers.map { ($0.name, $0.size) })
+        XCTAssertEqual(sizes["A5"], CGSize(width: 420, height: 595))
+        XCTAssertEqual(sizes["Legal"], CGSize(width: 612, height: 1008))
+        XCTAssertEqual(sizes["Photo 4×6"], CGSize(width: 288, height: 432))
+        XCTAssertEqual(sizes["5×7"], CGSize(width: 360, height: 504))
+        XCTAssertEqual(PrintLayout.Fit.allCases.map(\.rawValue), ["fit", "actual", "tile", "several"])
+        XCTAssertEqual(PrintLayout.Fit.several.name, "Several to a sheet")
+    }
+
+    /// floor((576 + 0) / (252 + 0)) = 2 across and floor(756 / 144) = 5
+    /// down: ten cards, the grid centred.
+    func testABusinessCardOnLetterGivesTenPlacements() throws {
+        var o = PrintLayout.Options()
+        o.paper = try letter()
+        o.fit = .several
+        let d = card(pages: 2)
+        let pts = PrintLayout.pagePoints(design: d, bleed: 0)
+        XCTAssertEqual(pts, CGSize(width: 252, height: 144))
+        let grid = PrintLayout.grid(page: pts, printable: o.printable, gap: o.gapPoints)
+        XCTAssertEqual(grid.cols, 2)
+        XCTAssertEqual(grid.rows, 5)
+        XCTAssertEqual(DesignExporter.placements(pagePoints: pts, options: o).count, 10)
+        XCTAssertEqual(grid.cells[0].minX, 306 - 252, accuracy: 0.001, "centred across")
+        XCTAssertEqual(grid.cells[0].minY, 396 - 360, accuracy: 0.001, "centred down")
+        let plan = DesignExporter.severalPlan(design: d, indices: [0, 1], options: o)
+        XCTAssertEqual(plan.perSheet, 10)
+        XCTAssertEqual(plan.sheets.count, 2, "repeat this page: a sheet a page")
+        XCTAssertEqual(PrintLayout.severalNote(perSheet: plan.perSheet, sheets: plan.sheets.count), "10 per sheet, 2 sheets")
+        XCTAssertEqual(PrintLayout.severalNote(perSheet: 4, sheets: 1), "4 per sheet, 1 sheet")
+        XCTAssertEqual(DesignExporter.sheetCount(design: d, indices: [0, 1], options: o), 2)
+    }
+
+    /// No gap without bleed, twice the bleed with it, or as set; the gap
+    /// counts in the grid's sum.
+    func testTheGap() {
+        var o = PrintLayout.Options()
+        XCTAssertEqual(o.gapPoints, 0)
+        o.bleed = 9
+        XCTAssertEqual(o.gapPoints, 18)
+        o.gap = 4
+        XCTAssertEqual(o.gapPoints, 4)
+        let printable = CGRect(x: 0, y: 0, width: 100, height: 100)
+        XCTAssertEqual(PrintLayout.grid(page: CGSize(width: 30, height: 30), printable: printable, gap: 5).cols, 3)
+        XCTAssertEqual(PrintLayout.grid(page: CGSize(width: 30, height: 30), printable: printable, gap: 6).cols, 2)
+        XCTAssertEqual(PrintLayout.grid(page: CGSize(width: 300, height: 30), printable: printable, gap: 0).cols, 1,
+                       "too wide still prints one")
+    }
+
+    func testRepeatOrOneOfEach() {
+        XCTAssertEqual(PrintLayout.severalSheets(indices: [0, 1, 2], perSheet: 2, mode: .oneOfEach, duplex: false),
+                       [[0, 1], [2]])
+        XCTAssertEqual(PrintLayout.severalSheets(indices: [3], perSheet: 3, mode: .repeatPage, duplex: false), [[3, 3, 3]])
+        XCTAssertEqual(PrintLayout.severalSheets(indices: [0, 1], perSheet: 2, mode: .oneOfEach, duplex: true),
+                       [[0, 0], [1, 1]], "double-sided: the front, then the back")
+        XCTAssertEqual(PrintLayout.severalSheets(indices: [], perSheet: 2, mode: .repeatPage, duplex: false), [])
+    }
+
+    /// The back's columns mirrored for long-edge flip: column 0 lands on
+    /// column cols − 1, so fronts and backs line up.
+    func testDuplexMirroringMapsColumnZeroToTheLast() {
+        XCTAssertEqual(PrintLayout.duplexColumn(0, cols: 2), 1)
+        XCTAssertEqual(PrintLayout.duplexColumn(0, cols: 3), 2)
+        XCTAssertEqual(PrintLayout.duplexColumn(1, cols: 3), 1)
+        XCTAssertEqual(PrintLayout.duplexColumn(2, cols: 3), 0)
+        XCTAssertEqual(PrintLayout.cellIndex(0, cols: 2, mirrored: true), 1)
+        XCTAssertEqual(PrintLayout.cellIndex(3, cols: 2, mirrored: true), 2)
+        XCTAssertEqual(PrintLayout.cellIndex(3, cols: 2, mirrored: false), 3)
+        var o = PrintLayout.Options()
+        o.fit = .several
+        o.duplex = true
+        let plan = DesignExporter.severalPlan(design: card(pages: 2), indices: [0, 1], options: o)
+        XCTAssertTrue(plan.duplex)
+        XCTAssertFalse(DesignExporter.severalPlan(design: card(pages: 3), indices: [0, 1], options: o).duplex,
+                       "only a design of two pages")
+    }
+
+    /// Marks at every trim line, shared, and never inside a page placed —
+    /// with no bleed, and with one.
+    func testCropMarksNeverFallInsideAPlacedTrim() throws {
+        for bleed in [0.0, 9] {
+            var o = PrintLayout.Options()
+            o.paper = try letter()
+            o.bleed = bleed
+            let pts = PrintLayout.pagePoints(design: card(), bleed: bleed)
+            let cells = PrintLayout.grid(page: pts, printable: o.printable, gap: o.gapPoints).cells
+            let trims = cells.map { $0.insetBy(dx: bleed, dy: bleed) }
+            let marks = PrintLayout.gridMarks(trims: trims, placed: cells, gap: bleed + 4)
+            XCTAssertFalse(marks.isEmpty)
+            for (a, b) in marks {
+                for trim in trims {
+                    let mid = CGPoint(x: (a.x + b.x) / 2, y: (a.y + b.y) / 2)
+                    for point in [a, b, mid] {
+                        XCTAssertFalse(point.x > trim.minX && point.x < trim.maxX && point.y > trim.minY && point.y < trim.maxY,
+                                       "a mark inside a trim, bleed \(bleed)")
+                    }
+                }
+            }
+            // Every trim line has its marks: each column edge upright, each
+            // row edge level.
+            let uprights = Set(marks.filter { $0.0.x == $0.1.x }.map { Double($0.0.x) })
+            let levels = Set(marks.filter { $0.0.y == $0.1.y }.map { Double($0.0.y) })
+            for trim in trims {
+                XCTAssertTrue(uprights.contains(Double(trim.minX)) && uprights.contains(Double(trim.maxX)))
+                XCTAssertTrue(levels.contains(Double(trim.minY)) && levels.contains(Double(trim.maxY)))
+            }
+        }
+    }
+
+    @MainActor
+    func testADoubleSidedSheetOfCardsIsTwoPages() async throws {
+        var o = PrintLayout.Options()
+        o.paper = try letter()
+        o.fit = .several
+        o.duplex = true
+        o.cropMarks = true
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("several-\(UUID()).pdf")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try await DesignExporter.exportPrintPDF(design: card(pages: 2), options: o, to: url)
+        let pdf = try XCTUnwrap(CGPDFDocument(url as CFURL))
+        XCTAssertEqual(pdf.numberOfPages, 2)
+        XCTAssertEqual(try XCTUnwrap(pdf.page(at: 1)).getBoxRect(.mediaBox).size, CGSize(width: 612, height: 792))
+    }
+
     // MARK: Magic resize
 
     func testReflowKeepsEdgesAnchoredAndShapesUnstretched() {

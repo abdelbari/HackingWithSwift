@@ -619,7 +619,8 @@ enum DesignExporter {
     }
 
     /// Where each piece of a page goes on the paper: one sheet for fitted
-    /// or actual size, several for tiles.
+    /// or actual size, several for tiles; for several to a sheet, every
+    /// cell of the sheet it fills when repeated.
     static func placements(pagePoints pagePts: CGSize,
                            options: PrintLayout.Options) -> [(sheetRect: CGRect, source: CGRect)] {
         switch options.fit {
@@ -636,12 +637,32 @@ enum DesignExporter {
                                      overlap: options.overlap).map { tile in
                 (CGRect(origin: options.printable.origin, size: tile.size), tile)
             }
+        case .several:
+            return PrintLayout.grid(page: pagePts, printable: options.printable, gap: options.gapPoints).cells.map { cell in
+                (cell, CGRect(origin: .zero, size: pagePts))
+            }
         }
+    }
+
+    /// Several to a sheet: the pages on each sheet, cell by cell, how many
+    /// cells a sheet has and how many across. The grid is cut for the first
+    /// page's size. Double-sided only for a design of exactly two pages,
+    /// both printed.
+    static func severalPlan(design: Design, indices: [Int],
+                            options: PrintLayout.Options) -> (sheets: [[Int]], perSheet: Int, cols: Int, duplex: Bool) {
+        guard let first = indices.first else { return ([], 0, 1, false) }
+        let pagePts = PrintLayout.pagePoints(size: design.size(at: first), dpi: design.effectiveDPI, bleed: options.bleed)
+        let grid = PrintLayout.grid(page: pagePts, printable: options.printable, gap: options.gapPoints)
+        let duplex = options.duplex && design.pages.count == 2 && indices.count == 2
+        let sheets = PrintLayout.severalSheets(indices: indices, perSheet: grid.cells.count, mode: options.several,
+                                               duplex: duplex)
+        return (sheets, grid.cells.count, grid.cols, duplex)
     }
 
     /// How many sheets of paper the pages will take.
     static func sheetCount(design: Design, indices: [Int], options: PrintLayout.Options) -> Int {
-        indices.reduce(0) { total, index in
+        if options.fit == .several { return severalPlan(design: design, indices: indices, options: options).sheets.count }
+        return indices.reduce(0) { total, index in
             let pagePts = PrintLayout.pagePoints(size: design.size(at: index), dpi: design.effectiveDPI, bleed: options.bleed)
             return total + placements(pagePoints: pagePts, options: options).count
         }
@@ -667,7 +688,22 @@ enum DesignExporter {
         var pacer = Pacer()
         var done = 0
         do {
-            for page in indices.map({ design.pages[$0] }) {
+            if options.fit == .several {
+                // Several to a sheet: a sheet at a time, the back of a
+                // double-sided pair mirrored.
+                let plan = severalPlan(design: design, indices: indices, options: options)
+                for (n, pages) in plan.sheets.enumerated() {
+                    try await pacer.breathe()
+                    let mirrored = plan.duplex && n % 2 == 1
+                    writer.page(sheet) { cg in
+                        drawSeveral(design: design, pages: pages, cols: plan.cols, mirrored: mirrored,
+                                    options: options, flatten: flatten, into: cg)
+                    }
+                    done += 1
+                    progress?(Double(done) / Double(total))
+                }
+            }
+            for page in indices.map({ design.pages[$0] }) where options.fit != .several {
                 let pagePts = PrintLayout.pagePoints(size: design.size(for: page), dpi: design.effectiveDPI, bleed: options.bleed)
                 for placement in placements(pagePoints: pagePts, options: options) {
                     try await pacer.breathe()
@@ -695,6 +731,38 @@ enum DesignExporter {
             try? FileManager.default.removeItem(at: url)
             throw error
         }
+    }
+
+    /// One sheet of several pages: each in its cell at actual size — the
+    /// columns mirrored on the back of a double-sided pair — then the crop
+    /// marks they share, clear of every page and its bleed.
+    @MainActor
+    private static func drawSeveral(design: Design, pages: [Int], cols: Int, mirrored: Bool,
+                                    options: PrintLayout.Options, flatten: Bool, into cg: CGContext) {
+        guard let first = pages.first else { return }
+        let firstPts = PrintLayout.pagePoints(size: design.size(at: first), dpi: design.effectiveDPI, bleed: options.bleed)
+        let cells = PrintLayout.grid(page: firstPts, printable: options.printable, gap: options.gapPoints).cells
+        var unmarked = options
+        unmarked.cropMarks = false
+        var placed: [CGRect] = []
+        for (slot, index) in pages.enumerated() {
+            let at = PrintLayout.cellIndex(slot, cols: cols, mirrored: mirrored)
+            guard cells.indices.contains(at), design.pages.indices.contains(index) else { continue }
+            let pagePts = PrintLayout.pagePoints(size: design.size(at: index), dpi: design.effectiveDPI, bleed: options.bleed)
+            drawSheet(design: design, page: design.pages[index], pagePoints: pagePts,
+                      placement: (cells[at], CGRect(origin: .zero, size: pagePts)),
+                      options: unmarked, flatten: flatten, into: cg)
+            placed.append(cells[at])
+        }
+        guard options.cropMarks else { return }
+        let trims = placed.map { $0.insetBy(dx: options.bleed, dy: options.bleed) }
+        cg.setStrokeColor(gray: 0, alpha: 1)
+        cg.setLineWidth(0.5)
+        for (a, b) in PrintLayout.gridMarks(trims: trims, placed: placed, gap: options.bleed + 4) {
+            cg.move(to: a)
+            cg.addLine(to: b)
+        }
+        cg.strokePath()
     }
 
     /// One sheet of a print PDF: its piece of the page, and the crop marks.
