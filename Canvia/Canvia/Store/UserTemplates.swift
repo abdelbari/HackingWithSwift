@@ -288,6 +288,17 @@ enum UserTemplates {
         return design
     }
 
+    /// The same of page `index` alone — "Use this page" on Home and in the
+    /// Start sheet — the first page when there is no such page, as the
+    /// Android twin's Templates.onlyPage keeps it.
+    static func newDesign(from template: Design, onlyPage index: Int, now: Date = Date()) -> Design {
+        var design = newDesign(from: template, now: now)
+        if let first = design.pages.first {
+            design.pages = [design.pages.indices.contains(index) ? design.pages[index] : first]
+        }
+        return design
+    }
+
     /// The template's pages as they land on a page `width` × `height` in
     /// the editor: fresh ids, each scaled to fit and centred by the rules a
     /// built-in template is fitted by (Template.fitted) — strokes keep

@@ -69,6 +69,21 @@ final class UserTemplatesTests: XCTestCase {
         XCTAssertEqual(made.masterPageId, made.pages[1].id)
     }
 
+    /// "Use this page" on one of your own, on Home and in the Start sheet:
+    /// a fresh copy of that page alone, the first past the end — the
+    /// Android twin's "Use this page of your own" row.
+    func testUseThisPageOfYourOwnIsThatPageAlone() {
+        let t = UserTemplates.templateDesign(deck(), id: "tpl_1", name: "Pitch deck",
+                                             now: Date(timeIntervalSince1970: 1_727_000_000))
+        let made = UserTemplates.newDesign(from: t, onlyPage: 1)
+        XCTAssertEqual(made.pages.count, 1)
+        XCTAssertEqual(made.pages[0].background, .color("#ffeedd"))
+        XCTAssertNotEqual(made.pages[0].id, t.pages[1].id)
+        let past = UserTemplates.newDesign(from: t, onlyPage: 7)
+        XCTAssertEqual(past.pages.count, 1)
+        XCTAssertEqual(past.pages[0].elements.map(\.text), t.pages[0].elements.map(\.text))
+    }
+
     func testTheNameAndCategoryTypedFallBack() {
         let d = deck()
         XCTAssertEqual(UserTemplates.name("  ", design: d), "Pitch")

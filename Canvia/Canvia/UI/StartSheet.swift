@@ -168,6 +168,8 @@ private struct StartGrid: View {
     @State private var mine: [UserTemplate] = []
     /// A template of several pages, while its strip asks which.
     @State private var templateSet: Template?
+    /// One of your own of several pages, while its strip asks which.
+    @State private var ownSet: TemplateChoice?
 
     private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
@@ -195,6 +197,11 @@ private struct StartGrid: View {
                     StartTemplateCard(template: template) { start(from: template) }
                 }
             }
+            .sheet(item: $ownSet) { own in
+                TemplateSetSheet(name: own.name, design: own.design, note: TemplateSetSheet.startNote,
+                                 applyAll: { onCreate(sized(UserTemplates.newDesign(from: own.design))) },
+                                 usePage: { onCreate(sized(UserTemplates.newDesign(from: own.design, onlyPage: $0))) })
+            }
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
@@ -218,14 +225,24 @@ private struct StartGrid: View {
         }
     }
 
-    /// A new design from a fresh copy of the template, every page, in the
-    /// size's unit.
+    /// A new design from a fresh copy of the template, in the size's unit:
+    /// one of several pages shows its strip first — all of them, or the
+    /// page picked alone — as the Android twin's Start sheet asks.
     private func use(_ entry: UserTemplate) {
         guard let template = UserTemplates.load(id: entry.id) else { return }
-        var design = UserTemplates.newDesign(from: template)
+        if template.pages.count > 1 {
+            ownSet = TemplateChoice(id: entry.id, name: entry.name, design: template)
+        } else {
+            onCreate(sized(UserTemplates.newDesign(from: template)))
+        }
+    }
+
+    /// `design` in the size's unit.
+    private func sized(_ design: Design) -> Design {
+        var design = design
         design.unit = preset.unit
         design.dpi = preset.dpi
-        onCreate(design)
+        return design
     }
 
     private func topicChips(_ bucket: [Template]) -> some View {
