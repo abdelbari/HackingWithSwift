@@ -2078,7 +2078,8 @@ struct CanvasView: View {
         case .ended:
             guard gesture.banding else { return }
             edges.stop()
-            let drawn = gesture.marquee.map { max($0.width, $0.height) * store.zoom } ?? 0
+            var drawn = 0.0
+            if let band = gesture.marquee { drawn = Double(max(band.width, band.height)) * store.zoom }
             gesture.marquee = nil
             gesture.banding = false
             store.canvasTouchActive = false
