@@ -262,6 +262,49 @@ final class BrushesTests: XCTestCase {
         XCTAssertNil(read.retouch)
     }
 
+    /// The shared leniency rows, the Android twin's (MaskRasterTest), text
+    /// for text: a mask stroke with no mode erases, a retouch one lays the
+    /// effect on; any other mode, no width that is a number, or no point
+    /// that reads, and the stroke is left out; a width is held to
+    /// 0.005…0.2, a softness to 0…1 (0 when not a number), an amount to
+    /// 0…1; a short or non-numeric pair is left out.
+    func testSharedRowsBothPhonesReadTheSameStrokesFromTheSameText() throws {
+        let mask = #"""
+            {"strokes": [{"w": 0.1, "pts": [[0.1, 0.1]]},
+             {"mode": "smudge", "w": 0.1, "soft": 0, "pts": [[0.2, 0.2]]},
+             {"mode": "restore", "soft": 0, "pts": [[0.3, 0.3]]},
+             {"mode": "restore", "w": "x", "pts": [[0.4, 0.4]]},
+             {"mode": 3, "w": 0.1, "pts": [[0.45, 0.45]]},
+             {"mode": "restore", "w": 9, "soft": 4, "pts": [[0.5, "a"], [0.5], [0.5, 0.5], [0.6, 0.6, 9]]},
+             {"mode": "erase", "w": 0.001, "soft": "x", "pts": [[0.7, 0.7]]},
+             {"mode": "erase", "w": 0.1, "pts": []}]}
+            """#
+        let retouch = #"""
+            [{"kind": "blur", "amount": 2, "strokes": [{"w": 0.1, "pts": [[0.1, 0.1]]},
+             {"mode": "erase", "w": 0.1, "soft": 0.5, "pts": [[0.2, 0.2]]},
+             {"mode": "smudge", "w": 0.1, "pts": [[0.3, 0.3]]},
+             {"pts": [[0.4, 0.4]]}]}]
+            """#
+        let json = #"{"id":"e","type":"image","mask":\#(mask),"retouch":\#(retouch)}"#
+        let el = try JSONDecoder().decode(Element.self, from: Data(json.utf8))
+        XCTAssertEqual(el.mask?.strokes, [stroke("erase", 0.1, 0, [(0.1, 0.1)]),
+                                          stroke("restore", 0.2, 1, [(0.5, 0.5), (0.6, 0.6)]),
+                                          stroke("erase", 0.005, 0, [(0.7, 0.7)])])
+        let layer = try XCTUnwrap(el.retouch?.first)
+        XCTAssertEqual(el.retouch?.count, 1)
+        XCTAssertEqual(layer.amount, 1)
+        XCTAssertEqual(layer.strokes, [RetouchStroke(w: 0.1, points: [CGPoint(x: 0.1, y: 0.1)]),
+                                       RetouchStroke(w: 0.1, points: [CGPoint(x: 0.2, y: 0.2)], erases: true)])
+        // Written back as each phone writes them: every mask stroke with its
+        // mode and softness, a retouch stroke with no softness.
+        let written = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(el)) as? [String: Any])
+        let first = try XCTUnwrap(((written["mask"] as? [String: Any])?["strokes"] as? [[String: Any]])?.first)
+        XCTAssertEqual(Set(first.keys), ["mode", "w", "soft", "pts"])
+        XCTAssertEqual(first["soft"] as? Double, 0)
+        let painted = try XCTUnwrap(((written["retouch"] as? [[String: Any]])?.first?["strokes"] as? [[String: Any]]))
+        XCTAssertEqual(Set(painted[1].keys), ["mode", "w", "pts"])
+    }
+
     // MARK: the session
 
     private var libraryPhoto: Element {

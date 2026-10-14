@@ -29611,7 +29611,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Weichzeichner-Pinsel"
+            "value" : "Weichzeichnerpinsel"
           }
         },
         "en" : {
@@ -50360,7 +50360,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Arraste sobre a foto para pintar e toque em OK"
+            "value" : "Arraste sobre a foto para pintar e toque em Concluído"
           }
         }
       }
@@ -54776,7 +54776,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aus Effekt radieren"
+            "value" : "Effekt wegradieren"
           }
         },
         "en" : {
@@ -54794,7 +54794,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Effacer de l’effet"
+            "value" : "Effacer l’effet"
           }
         },
         "it" : {
@@ -54806,7 +54806,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "効果から消去"
+            "value" : "効果を消す"
           }
         },
         "pt-BR" : {
@@ -74552,6 +74552,59 @@
         }
       }
     },
+    "Make parts of the photo clear, and paint them back." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اجعل أجزاء من الصورة شفافة، وأعد رسمها."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teile des Fotos durchsichtig machen und wieder einmalen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make parts of the photo clear, and paint them back."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haz transparentes partes de la foto y vuelve a pintarlas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rendez des parties de la photo transparentes, puis repeignez-les."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rendi trasparenti parti della foto e ridipingile."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真の一部を透明にし、また塗り戻せます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deixe partes da foto transparentes e pinte-as de volta."
+          }
+        }
+      }
+    },
     "Makes a new design for each size ticked, reflowed to fit, in the same folder. “%@” stays as it is." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -75308,7 +75361,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "قلم تحديد"
+            "value" : "قلم عريض"
           }
         },
         "de" : {
@@ -75326,7 +75379,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Marcador"
+            "value" : "Rotulador"
           }
         },
         "fr" : {
@@ -95425,7 +95478,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verpixeln-Pinsel"
+            "value" : "Verpixelungspinsel"
           }
         },
         "en" : {
@@ -103248,7 +103301,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lass den Finger am Ende eines Strichs ruhen, um eine saubere Form daraus zu machen"
+            "value" : "Den Finger am Ende eines Strichs ruhen lassen, um daraus eine saubere Form zu machen"
           }
         },
         "en" : {
@@ -113132,7 +113185,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "إظهار الأصل"
+            "value" : "عرض الأصل"
           }
         },
         "de" : {
@@ -132727,7 +132780,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hebe zuerst die Verbindung auf, um diese Spalte zu verschieben"
+            "value" : "Zuerst die Verbindung aufheben, um diese Spalte zu verschieben"
           }
         },
         "en" : {
@@ -132751,13 +132804,13 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Separa prima le celle per spostare questa colonna"
+            "value" : "Dividi prima le celle per spostare questa colonna"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "この列を移動するには、まず結合を解除してください"
+            "value" : "この列を移動するには、先に結合を解除してください"
           }
         },
         "pt-BR" : {
@@ -132780,7 +132833,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hebe zuerst die Verbindung auf, um diese Zeile zu verschieben"
+            "value" : "Zuerst die Verbindung aufheben, um diese Zeile zu verschieben"
           }
         },
         "en" : {
@@ -132804,13 +132857,13 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Separa prima le celle per spostare questa riga"
+            "value" : "Dividi prima le celle per spostare questa riga"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "この行を移動するには、まず結合を解除してください"
+            "value" : "この行を移動するには、先に結合を解除してください"
           }
         },
         "pt-BR" : {

@@ -5386,7 +5386,7 @@
   },
   "Blur brush": {
     "ar": "فرشاة التمويه",
-    "de": "Weichzeichner-Pinsel",
+    "de": "Weichzeichnerpinsel",
     "es": "Pincel de desenfoque",
     "fr": "Pinceau de flou",
     "it": "Pennello sfocatura",
@@ -9000,7 +9000,7 @@
     "fr": "Faites glisser sur la photo pour peindre, puis touchez OK",
     "it": "Trascina sulla foto per dipingere, poi tocca Fine",
     "ja": "写真の上をドラッグして塗り、「完了」をタップします",
-    "pt-BR": "Arraste sobre a foto para pintar e toque em OK"
+    "pt-BR": "Arraste sobre a foto para pintar e toque em Concluído"
   },
   "Drag over what should go, then tap Erase": {
     "ar": "اسحب فوق ما يجب إزالته، ثم انقر على «مسح»",
@@ -9751,11 +9751,11 @@
   },
   "Erase from effect": {
     "ar": "مسح من التأثير",
-    "de": "Aus Effekt radieren",
+    "de": "Effekt wegradieren",
     "es": "Borrar del efecto",
-    "fr": "Effacer de l’effet",
+    "fr": "Effacer l’effet",
     "it": "Cancella dall’effetto",
-    "ja": "効果から消去",
+    "ja": "効果を消す",
     "pt-BR": "Apagar do efeito"
   },
   "Erase part": {
@@ -13151,6 +13151,15 @@
     "ja": "12 にする",
     "pt-BR": "Mudar para 12"
   },
+  "Make parts of the photo clear, and paint them back.": {
+    "ar": "اجعل أجزاء من الصورة شفافة، وأعد رسمها.",
+    "de": "Teile des Fotos durchsichtig machen und wieder einmalen.",
+    "es": "Haz transparentes partes de la foto y vuelve a pintarlas.",
+    "fr": "Rendez des parties de la photo transparentes, puis repeignez-les.",
+    "it": "Rendi trasparenti parti della foto e ridipingile.",
+    "ja": "写真の一部を透明にし、また塗り戻せます。",
+    "pt-BR": "Deixe partes da foto transparentes e pinte-as de volta."
+  },
   "Makes a new design for each size ticked, reflowed to fit, in the same folder. “%@” stays as it is.": {
     "ar": "ينشئ تصميمًا جديدًا لكل حجم محدد، مُعاد ترتيبه ليناسب، في المجلد نفسه. يبقى «%@» كما هو.",
     "de": "Erstellt ein neues Design für jede ausgewählte Größe, passend neu angeordnet, im selben Ordner. „%@“ bleibt unverändert.",
@@ -13284,9 +13293,9 @@
     "pt-BR": "Marcar como decorativo"
   },
   "Marker": {
-    "ar": "قلم تحديد",
+    "ar": "قلم عريض",
     "de": "Marker",
-    "es": "Marcador",
+    "es": "Rotulador",
     "fr": "Marqueur",
     "it": "Pennarello",
     "ja": "マーカー",
@@ -16714,7 +16723,7 @@
   },
   "Pixelate brush": {
     "ar": "فرشاة البكسلة",
-    "de": "Verpixeln-Pinsel",
+    "de": "Verpixelungspinsel",
     "es": "Pincel de pixelado",
     "fr": "Pinceau de pixellisation",
     "it": "Pennello pixel",
@@ -18061,7 +18070,7 @@
   },
   "Rest your finger at the end of a stroke to make it a clean shape": {
     "ar": "أبقِ إصبعك ثابتًا في نهاية الخط لتحويله إلى شكل نظيف",
-    "de": "Lass den Finger am Ende eines Strichs ruhen, um eine saubere Form daraus zu machen",
+    "de": "Den Finger am Ende eines Strichs ruhen lassen, um daraus eine saubere Form zu machen",
     "es": "Deja el dedo quieto al final de un trazo para convertirlo en una forma limpia",
     "fr": "Laissez le doigt immobile à la fin d’un trait pour en faire une forme nette",
     "it": "Tieni fermo il dito alla fine di un tratto per trasformarlo in una forma pulita",
@@ -19758,7 +19767,7 @@
     "pt-BR": "Mostrar anotações"
   },
   "Show original": {
-    "ar": "إظهار الأصل",
+    "ar": "عرض الأصل",
     "de": "Original zeigen",
     "es": "Mostrar original",
     "fr": "Afficher l’original",
@@ -23104,20 +23113,20 @@
   },
   "Unmerge first to move this column": {
     "ar": "ألغِ الدمج أولًا لنقل هذا العمود",
-    "de": "Hebe zuerst die Verbindung auf, um diese Spalte zu verschieben",
+    "de": "Zuerst die Verbindung aufheben, um diese Spalte zu verschieben",
     "es": "Separa las celdas primero para mover esta columna",
     "fr": "Annulez d’abord la fusion pour déplacer cette colonne",
-    "it": "Separa prima le celle per spostare questa colonna",
-    "ja": "この列を移動するには、まず結合を解除してください",
+    "it": "Dividi prima le celle per spostare questa colonna",
+    "ja": "この列を移動するには、先に結合を解除してください",
     "pt-BR": "Desfaça a mesclagem primeiro para mover esta coluna"
   },
   "Unmerge first to move this row": {
     "ar": "ألغِ الدمج أولًا لنقل هذا الصف",
-    "de": "Hebe zuerst die Verbindung auf, um diese Zeile zu verschieben",
+    "de": "Zuerst die Verbindung aufheben, um diese Zeile zu verschieben",
     "es": "Separa las celdas primero para mover esta fila",
     "fr": "Annulez d’abord la fusion pour déplacer cette ligne",
-    "it": "Separa prima le celle per spostare questa riga",
-    "ja": "この行を移動するには、まず結合を解除してください",
+    "it": "Dividi prima le celle per spostare questa riga",
+    "ja": "この行を移動するには、先に結合を解除してください",
     "pt-BR": "Desfaça a mesclagem primeiro para mover esta linha"
   },
   "Unpin": {

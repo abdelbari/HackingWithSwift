@@ -21,8 +21,14 @@ import Foundation
 /// brings it back. `w` is the brush's width as a share of the picture's
 /// shorter side (read within 0.005…0.2), `soft` the share of its half-width
 /// its edge fades over (0…1), and `pts` its points as shares of the picture
-/// across and down. Every field is written; a stroke of another mode, or
-/// with no point that reads, is left out when read.
+/// across and down. Every field is written, `soft` too when it is 0.
+///
+/// Read leniently, by the rule both phones share (the shared rows in
+/// BrushesTests and the Android twin's MaskRasterTest): no `mode` erases;
+/// a mode that is neither "erase" nor "restore", no `w` that is a number,
+/// or no point that reads, and the stroke is left out; `w` is held to
+/// widthRange and `soft` to 0…1, 0 when it is not a number; a pair that
+/// is short or not numbers is left out, a third number dropped.
 struct MaskStroke: Codable, Equatable, Hashable {
     var mode: String = MaskStroke.erase
     var w: Double = 0.05
@@ -52,13 +58,15 @@ struct MaskStroke: Codable, Equatable, Hashable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        let mode = (try? c.decode(String.self, forKey: .mode)) ?? Self.erase
-        guard mode == Self.erase || mode == Self.restore else {
+        // No mode is Erase; one that is there but not text is no mode.
+        let named: String? = c.contains(.mode) ? (try? c.decode(String.self, forKey: .mode)) : Self.erase
+        guard let mode = named, mode == Self.erase || mode == Self.restore else {
             throw DecodingError.dataCorruptedError(forKey: .mode, in: c, debugDescription: "Not a mask stroke")
         }
         self.mode = mode
-        w = (try? c.decode(Double.self, forKey: .w)).flatMap { $0.isFinite ? $0 : nil } ?? 0.05
-        soft = (try? c.decode(Double.self, forKey: .soft)).flatMap { $0.isFinite ? $0 : nil } ?? 0
+        w = try MaskStroke.width(c, .w)
+        let soft = (try? c.decode(Double.self, forKey: .soft)).flatMap { $0.isFinite ? $0 : nil } ?? 0
+        self.soft = min(max(soft, 0), 1)
         pts = MaskStroke.read(c, .pts)
         guard !pts.isEmpty else {
             throw DecodingError.dataCorruptedError(forKey: .pts, in: c, debugDescription: "No points")
@@ -73,12 +81,23 @@ struct MaskStroke: Codable, Equatable, Hashable {
         try c.encode(pts, forKey: .pts)
     }
 
+    /// The width at `key`, held to widthRange; a stroke with none that is
+    /// a number is not read.
+    static func width<Key: CodingKey>(_ c: KeyedDecodingContainer<Key>, _ key: Key) throws -> Double {
+        guard let w = try? c.decode(Double.self, forKey: key), w.isFinite else {
+            throw DecodingError.dataCorruptedError(forKey: key, in: c, debugDescription: "No width")
+        }
+        return min(max(w, widthRange.lowerBound), widthRange.upperBound)
+    }
+
     /// The pairs of numbers at `key`, [[x, y], …], each a point; a pair that
-    /// is short or not numbers is left out, and a third number dropped.
+    /// is short or not numbers is left out, and a third number dropped —
+    /// each pair on its own, so one that does not read leaves the rest.
     static func read<Key: CodingKey>(_ c: KeyedDecodingContainer<Key>, _ key: Key) -> [[Double]] {
-        guard let pairs = try? c.decode([[Double?]].self, forKey: key) else { return [] }
-        return pairs.compactMap { pair in
-            guard pair.count >= 2, let x = pair[0], let y = pair[1], x.isFinite, y.isFinite else { return nil }
+        guard let pairs = try? c.decode([Lossy<[Lossy<Double>]>].self, forKey: key) else { return [] }
+        return pairs.compactMap { item in
+            guard let pair = item.value, pair.count >= 2,
+                  let x = pair[0].value, let y = pair[1].value, x.isFinite, y.isFinite else { return nil }
             return [x, y]
         }
     }
@@ -138,9 +157,12 @@ struct ImageMask: Codable, Equatable, Hashable {
     }
 }
 
-/// One stroke of a retouch layer: `w` and `pts` as a mask stroke's. A stroke
-/// of Erase from effect takes the effect back off where it goes, and is
-/// written with "mode": "erase"; a painting stroke has no mode.
+/// One stroke of a retouch layer: `w` and `pts` as a mask stroke's, read
+/// by the same rule. A stroke of Erase from effect takes the effect back
+/// off where it goes, and is written with "mode": "erase"; a painting
+/// stroke has no mode, and one of any other mode is left out when read. It
+/// has no softness, read or written (its edge is retouchFeather of its
+/// width).
 struct RetouchStroke: Codable, Equatable, Hashable {
     var w: Double = 0.05
     /// [x, y] each, as written.
@@ -157,9 +179,14 @@ struct RetouchStroke: Codable, Equatable, Hashable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        w = (try? c.decode(Double.self, forKey: .w)).flatMap { $0.isFinite ? $0 : nil } ?? 0.05
+        if c.contains(.mode) {
+            guard (try? c.decode(String.self, forKey: .mode)) == MaskStroke.erase else {
+                throw DecodingError.dataCorruptedError(forKey: .mode, in: c, debugDescription: "Not a retouch stroke")
+            }
+            erases = true
+        }
+        w = try MaskStroke.width(c, .w)
         pts = MaskStroke.read(c, .pts)
-        erases = (try? c.decode(String.self, forKey: .mode)) == MaskStroke.erase
         guard !pts.isEmpty else {
             throw DecodingError.dataCorruptedError(forKey: .pts, in: c, debugDescription: "No points")
         }
@@ -213,7 +240,8 @@ struct RetouchLayer: Codable, Equatable, Hashable {
             throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "Not a retouch")
         }
         self.kind = kind
-        amount = (try? c.decode(Double.self, forKey: .amount)).flatMap { $0.isFinite ? $0 : nil } ?? 0.5
+        let amount = (try? c.decode(Double.self, forKey: .amount)).flatMap { $0.isFinite ? $0 : nil } ?? 0.5
+        self.amount = min(max(amount, 0), 1)
         strokes = (try? c.decode([Lossy<RetouchStroke>].self, forKey: .strokes))?.compactMap(\.value) ?? []
         guard !strokes.isEmpty else {
             throw DecodingError.dataCorruptedError(forKey: .strokes, in: c, debugDescription: "No strokes")

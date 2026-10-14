@@ -439,9 +439,10 @@ extension DesignStore {
             design.pages[pageIndex].elements, id: table.id, padding: padding, heightFor: measure)
     }
 
-    /// The selected table's alternating rows' colour, while it keeps them.
+    /// The selected table's alternating rows' colour, while it keeps them
+    /// or is striped as a table is made (DataGraphics.tableBandsShown).
     var tableBands: String? {
-        tableSelection.flatMap { DataGraphics.tableBands(page.elements, id: $0.id) }
+        tableSelection.flatMap { DataGraphics.tableBandsShown(page.elements, id: $0.id) }
     }
 
     /// The selected table's alternating rows on, in `colour` — the colour
@@ -473,18 +474,26 @@ extension DesignStore {
     /// Tab while typing in a cell — or the typing bar's arrow: the words
     /// kept as their own step, and typing goes on in the next cell, or with
     /// `back` (Shift-Tab) the one before. Tab in the last cell adds a row
-    /// below, as a step of its own, and goes on in its first cell; Shift-Tab
-    /// in the first cell stays. Whether typing moved.
+    /// below, as a step of its own, and goes on in its first cell. With no
+    /// cell to go to — Shift-Tab in the first, or a next one locked — it
+    /// buzzes and typing stays where it is, as on Android. Whether typing
+    /// moved.
     @discardableResult
     func typeInNextCell(back: Bool) -> Bool {
         guard let id = editingTextId, let cell = element(id)?.table else { return false }
         if let next = neighbourCell(of: id, back: back) {
-            if next.locked { return false }
+            if next.locked {
+                buzz(.reject)
+                return false
+            }
             endTextEdit()
             startTyping(next.id)
             return true
         }
-        guard !back else { return false }
+        guard !back else {
+            buzz(.reject)
+            return false
+        }
         endTextEdit()
         selection = [id]
         let lastRow = DataGraphics.tableRows(page.elements, id: cell.id).last ?? cell.row

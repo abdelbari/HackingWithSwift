@@ -128,6 +128,26 @@ final class TableEditingTests: XCTestCase {
 
     // MARK: alternating rows
 
+    /// The rule both phones share (the Android twin's TablesTest): with no
+    /// `bands` kept, a body striped as a table is made reads On, in the
+    /// default band; Off takes the stripes away; a body coloured its own
+    /// way reads Off.
+    func testANewTableReadsAlternatingRowsOnAndOffTakesTheStripesAway() throws {
+        let table = made()
+        let id = tableId(table)
+        XCTAssertNil(DataGraphics.tableBands(table, id: id), "nothing kept")
+        XCTAssertEqual(fills(table, column: 0), ["#1f2430", "#ffffff", "#f3f4f6"])
+        XCTAssertEqual(DataGraphics.tableBandsShown(table, id: id), DataGraphics.tableBand)
+        let off = DataGraphics.withTableBands(table, id: id, on: false, colour: DataGraphics.tableBand)
+        XCTAssertNil(DataGraphics.tableBandsShown(off, id: id))
+        XCTAssertEqual(fills(off, column: 0), ["#1f2430", "#ffffff", "#ffffff"])
+        let own = try XCTUnwrap(rect(table, 2, 1).table)
+        let coloured = DataGraphics.colouringTableCells(table, id: id, cells: [own], color: "#ef4444")
+        XCTAssertNil(DataGraphics.tableBandsShown(coloured, id: id))
+        let kept = DataGraphics.withTableBands(coloured, id: id, on: true, colour: "#dbeafe")
+        XCTAssertEqual(DataGraphics.tableBandsShown(kept, id: id), "#dbeafe")
+    }
+
     func testAlternatingRowsStripeTheBodyAndFollowARowMoved() throws {
         var table = made()
         let id = tableId(table)
@@ -238,7 +258,7 @@ final class TableEditingTests: XCTestCase {
         s.setTablePaddingTransient(24)
         s.commit()
         XCTAssertEqual(s.tablePadding, 24)
-        XCTAssertNil(s.tableBands)
+        XCTAssertEqual(s.tableBands, DataGraphics.tableBand, "a new table is striped, so the switch reads On")
         s.setTableBands(true, colour: nil)
         XCTAssertEqual(s.tableBands, DataGraphics.tableBand)
         s.setTableBands(true, colour: "#fde68a")
@@ -262,6 +282,7 @@ final class TableEditingTests: XCTestCase {
         s.startTyping(text(table, 0, 0).id)
         XCTAssertFalse(s.typeInNextCell(back: true), "Shift-Tab in the first cell stays")
         XCTAssertEqual(s.editingTextId, text(table, 0, 0).id)
+        XCTAssertEqual(s.haptic.kind, .reject, "and buzzes, as on Android")
 
         s.startTyping(text(table, 2, 1).id)
         XCTAssertTrue(s.typeInNextCell(back: false))

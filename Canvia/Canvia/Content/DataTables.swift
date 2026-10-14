@@ -580,6 +580,26 @@ extension DataGraphics {
         tableMembers(elements, id: id).lazy.compactMap { $0.table?.bands }.first
     }
 
+    /// Table `id`'s alternating rows as the Table sheet shows them: the
+    /// colour kept (tableBands), or — with none kept — the default band
+    /// while the body is striped as a table is made (every body rectangle
+    /// in tableBodyFill of its row, and at least one row in the band), so
+    /// a table just made, or made before `bands` was kept, reads On; nil
+    /// otherwise. The Android twin's Tables.bandsShown, rule for rule.
+    static func tableBandsShown(_ elements: [Element], id: String) -> String? {
+        if let kept = tableBands(elements, id: id) { return kept }
+        let header = tableHasHeader(elements, id: id)
+        let body = tableMembers(elements, id: id).filter { el in
+            guard el.type == .shape, let cell = el.table else { return false }
+            return !(header && cell.row == 0)
+        }
+        guard body.contains(where: { ($0.table?.row ?? 1) % 2 == 0 }) else { return nil }
+        let striped = body.allSatisfy { el in
+            el.fill?.kind == "solid" && el.fill?.color?.lowercased() == tableBodyFill(el.table?.row ?? 0)
+        }
+        return striped ? tableBand : nil
+    }
+
     /// Table `id` with alternating rows in `colour` (`on`), kept as `bands`
     /// on every cell and striped again whenever a row is added, deleted or
     /// moved — or with none, every body row plain white (striped).
