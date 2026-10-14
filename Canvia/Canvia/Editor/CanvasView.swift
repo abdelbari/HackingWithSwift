@@ -1862,24 +1862,32 @@ struct CanvasView: View {
         guard original.type == .image, !handle.isCorner, original.cropFit != true,
               (original.straighten ?? 0) == 0, let image = gesture.resizeImage,
               image.width > 0, image.height > 0 else { return false }
-        var trimmed = Crop.trimmed(original, image: image, handle: handle, to: location, minSize: 8)
+        var at = location
+        var trimmed = Crop.trimmed(original, image: image, handle: handle, to: at, minSize: 8)
         // The side snaps as any side does: the finger is taken on by the
         // snap's correction and the frame trimmed again, so the picture still
         // stays put. Held short of the line by the picture's own edge, it is
         // not on the line, and no guide says it is.
         let target = snapped(trimmed.frame, original: original, handle: handle, proportional: false, minSize: 8)
         if target != trimmed.frame {
-            // How far the snap moves the handle, on the page, so a photo
-            // turned a quarter is taken on along the way it now faces.
-            var aimed = trimmed
-            aimed.x = target.minX
-            aimed.y = target.minY
-            aimed.w = target.width
-            aimed.h = target.height
-            let to = Geometry.handlePoint(aimed, handle), from = Geometry.handlePoint(trimmed, handle)
-            trimmed = Crop.trimmed(original, image: image, handle: handle,
-                                   to: CGPoint(x: location.x + to.x - from.x, y: location.y + to.y - from.y), minSize: 8)
+            at = aimed(at, from: trimmed, to: target, handle: handle)
+            trimmed = Crop.trimmed(original, image: image, handle: handle, to: at, minSize: 8)
             if !Self.same(trimmed.frame, target) { showGuides(Geometry.ResizeSnap(box: target)) }
+        }
+        // Then a side no line holds matched to another element's size, as
+        // any side is (matchedSize), and trimmed to it the same way. Held
+        // short of it by the picture's own edge, it is not matched, and no
+        // "=" says it is.
+        let sized = matchedSize(trimmed.frame, original: original, handle: handle, proportional: false, minSize: 8)
+        if sized != trimmed.frame {
+            let retrimmed = Crop.trimmed(original, image: image, handle: handle,
+                                         to: aimed(at, from: trimmed, to: sized, handle: handle), minSize: 8)
+            if Self.same(retrimmed.frame, sized) {
+                trimmed = retrimmed
+            } else {
+                if !store.sizeMarks.isEmpty { store.sizeMarks = [] }
+                if store.spacingSnapped { store.spacingSnapped = false }
+            }
         }
         store.updateSelectedTransient { el in
             if el.id == trimmed.id { el = trimmed }
@@ -1940,6 +1948,19 @@ struct CanvasView: View {
         marks += m.widthOf.compactMap { boxes[$0].map { Geometry.SizeMark(box: $0, width: true) } }
         marks += m.heightOf.compactMap { boxes[$0].map { Geometry.SizeMark(box: $0, width: false) } }
         return out
+    }
+
+    /// The finger's point `location` taken on as far as `el`'s `handle` must
+    /// move for its box to be `target`, on the page, so a photo turned a
+    /// quarter is taken on along the way it now faces.
+    private func aimed(_ location: CGPoint, from el: Element, to target: CGRect, handle: Handle) -> CGPoint {
+        var moved = el
+        moved.x = target.minX
+        moved.y = target.minY
+        moved.w = target.width
+        moved.h = target.height
+        let to = Geometry.handlePoint(moved, handle), from = Geometry.handlePoint(el, handle)
+        return CGPoint(x: location.x + to.x - from.x, y: location.y + to.y - from.y)
     }
 
     /// The snap guides a resize is holding, each named for what it lines up
