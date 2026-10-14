@@ -81,7 +81,7 @@ struct TableColumnHandles: View {
                 guard let dragged else { return }
                 let widths = DataGraphics.draggedColumns(dragged.widths, edge: edge, by: value.translation.width) ?? dragged.widths
                 store.setTableColumnWidthsTransient(widths)
-                store.badge = Self.readout(widths, edge: edge)
+                store.badge = Self.readout(widths, edge: edge, in: store.design)
             }
             .onEnded { _ in
                 guard dragged != nil else { return }
@@ -92,15 +92,23 @@ struct TableColumnHandles: View {
     }
 
     /// The two columns either side of the edge, as the drag reads them
-    /// out: "287 | 113", as on the Android twin.
-    static func readout(_ widths: [Double], edge: Int) -> String {
-        widths.dropFirst(edge).prefix(2).map { String(Int($0.rounded())) }.joined(separator: " | ")
+    /// out, in the design's unit: "287 | 113", or "35.2 mm | 40 mm" — as on
+    /// the Android twin.
+    static func readout(_ widths: [Double], edge: Int, in design: Design) -> String {
+        widths.dropFirst(edge).prefix(2).map { Self.length($0, design) }.joined(separator: " | ")
     }
 
-    /// The two columns either side of the edge, as VoiceOver reads them.
+    /// One width so: "287", or "35.2 mm" (Units.readout).
+    private static func length(_ px: Double, _ design: Design) -> String {
+        Units.readout(px, design) + Units.suffix(design)
+    }
+
+    /// The two columns either side of the edge, as VoiceOver reads them:
+    /// "287 and 113 wide", or "35.2 mm and 40 mm wide".
     private func widthsReadout(_ edge: Int) -> String {
         let widths = store.tableColumnWidths
         guard edge + 1 < widths.count else { return "" }
-        return "\(Int(widths[edge].rounded())) and \(Int(widths[edge + 1].rounded())) wide"
+        let design = store.design
+        return Self.length(widths[edge], design) + " and " + Self.length(widths[edge + 1], design) + " wide"
     }
 }

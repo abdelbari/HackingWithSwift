@@ -166,6 +166,13 @@ struct Page: Codable, Equatable, Identifiable {
     /// never in an export. Kept trimmed and at most PageTitles.maxLength
     /// characters by the sheet that edits it.
     var title: String?
+    /// Locked whole: nothing on it, its background included, can be
+    /// selected, moved, added to or deleted until it is unlocked — a
+    /// finished page in a long deck kept as it is (see PageLocks). Still
+    /// shown, exported, copied and duplicated like any other page, a copy
+    /// locked too. Never false: unlocked is nil, so the key is written only
+    /// when true, as `hidden` is.
+    var locked: Bool?
 
     init(id: String = UID.make("page"), background: Background = .color("#ffffff"),
          elements: [Element] = [], notes: String? = nil) {
@@ -189,12 +196,13 @@ struct Page: Codable, Equatable, Identifiable {
         height = try? c.decode(Double.self, forKey: .height)
         hidden = (try? c.decode(Bool.self, forKey: .hidden)) == true ? true : nil
         title = (try? c.decode(String.self, forKey: .title)).flatMap(PageTitles.kept)
+        locked = (try? c.decode(Bool.self, forKey: .locked)) == true ? true : nil
     }
 
-    /// As the synthesised encoder wrote it, except that `hidden` is written
-    /// only when true and `title` only when there is one — a page shown and
-    /// untitled reads exactly as it did before either existed, on this phone
-    /// and the Android twin alike.
+    /// As the synthesised encoder wrote it, except that `hidden` and
+    /// `locked` are written only when true and `title` only when there is
+    /// one — a page shown, unlocked and untitled reads exactly as it did
+    /// before any of them existed, on this phone and the Android twin alike.
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)
@@ -209,11 +217,12 @@ struct Page: Codable, Equatable, Identifiable {
         try c.encodeIfPresent(height, forKey: .height)
         if hidden == true { try c.encode(true, forKey: .hidden) }
         if let title = title.flatMap(PageTitles.kept) { try c.encode(title, forKey: .title) }
+        if locked == true { try c.encode(true, forKey: .locked) }
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, background, elements, notes, holdSeconds, transition, usesMaster, width, height
-        case hidden, title, transitionSeconds
+        case hidden, title, transitionSeconds, locked
     }
 }
 

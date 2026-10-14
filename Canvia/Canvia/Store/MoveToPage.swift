@@ -29,6 +29,8 @@ extension DesignStore {
     @discardableResult
     func moveSelectedToPage(_ index: Int, at drop: CGPoint?) -> Bool {
         guard design.pages.indices.contains(index), index != pageIndex, !selection.isEmpty else { return false }
+        // Nothing goes onto a locked page.
+        guard !refusesLockedPage(at: index) else { return false }
         endTextEdit()
         finishCrop()
         let ids = PageMove.moving(page.elements, selection: selection)

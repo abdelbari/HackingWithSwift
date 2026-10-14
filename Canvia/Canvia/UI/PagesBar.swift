@@ -1,4 +1,6 @@
-// Bottom pages bar: thumbnails, add/duplicate/move/delete.
+// Bottom pages bar: thumbnails, add/duplicate/move/delete. Press and hold
+// a thumbnail to drag the page to another place in the strip, which scrolls
+// on at its ends (PageDragging).
 
 import SwiftUI
 import UIKit
@@ -8,26 +10,21 @@ struct PagesBar: View {
     @State private var confirmingDelete = false
     @State private var editingNotes = false
     @State private var organizing = false
+    /// A page lifted to be dragged along the strip (PageDragging).
+    @State private var lift = PageLift()
+    @State private var frames = PageFrames()
+    @State private var edges = PageEdgeScroll()
+    /// True while a lift's press is held, so one the scroll view takes over
+    /// is put back.
+    @GestureState private var holding = false
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiate
+
+    private static let space = "pagesBar"
+    private static let spacing = 8.0
 
     var body: some View {
         HStack(spacing: 10) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(Array(store.design.pages.enumerated()), id: \.element.id) { index, page in
-                        pageThumb(index: index, page: page)
-                    }
-                    Button { store.addPage() } label: {
-                        Image(systemName: "plus")
-                            .frame(width: 40, height: 56)
-                            .background(RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [5]))
-                                .foregroundStyle(.secondary))
-                    }
-                    .accessibilityLabel("Add page")
-                }
-                .padding(.horizontal, 12)
-            }
+            strip
 
             HStack(spacing: 2) {
                 Button { organizing = true } label: { Image(systemName: "square.grid.2x2") }
@@ -57,6 +54,10 @@ struct PagesBar: View {
                                   systemImage: store.page.hidden == true ? "eye" : "eye.slash")
                         }
                     }
+                    Button { store.setPageLocked(!store.isPageLocked) } label: {
+                        Label(store.isPageLocked ? "Unlock page" : "Lock page",
+                              systemImage: store.isPageLocked ? "lock.open" : "lock")
+                    }
                 } label: { Image(systemName: "plus.square.on.square") }
                     .accessibilityLabel(pageMenuLabel)
                 // Said as what they do to the page: the symbols alone read
@@ -76,7 +77,8 @@ struct PagesBar: View {
                     // A page can hold an hour's work and the bin is next to
                     // the arrows. Undo covers it, but only if you notice
                     // before the next edit pushes it down the stack.
-                    if store.page.elements.isEmpty {
+                    // A locked page always asks.
+                    if store.page.elements.isEmpty && !store.isPageLocked {
                         store.deletePage()
                     } else {
                         confirmingDelete = true
@@ -102,81 +104,174 @@ struct PagesBar: View {
 
     /// The page menu as VoiceOver says it: what is in it.
     private var pageMenuLabel: String {
-        if store.page.hidden == true { return "Duplicate, copy, paste or show page" }
-        return store.design.pages.count > 1 ? "Duplicate, copy, paste or hide page" : "Duplicate, copy or paste page"
+        let lock = store.isPageLocked ? "unlock" : "lock"
+        if store.page.hidden == true { return "Duplicate, copy, paste, show or \(lock) page" }
+        return store.design.pages.count > 1 ? "Duplicate, copy, paste, hide or \(lock) page"
+            : "Duplicate, copy, paste or \(lock) page"
+    }
+
+    /// The thumbnails, made as they scroll into view, then +.
+    private var strip: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: CGFloat(Self.spacing)) {
+                    ForEach(Array(store.design.pages.enumerated()), id: \.element.id) { index, page in
+                        pageThumb(index: index, page: page)
+                    }
+                    Button { store.addPage() } label: {
+                        Image(systemName: "plus")
+                            .frame(width: 40, height: 56)
+                            .background(RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [5]))
+                                .foregroundStyle(.secondary))
+                    }
+                    .accessibilityLabel("Add page")
+                }
+                .padding(.horizontal, 12)
+                // A tap goes to the page under it; a press and hold lifts it.
+                .contentShape(Rectangle())
+                .onTapGesture(coordinateSpace: .named(Self.space)) { point in
+                    if let i = frames.page(at: point, in: store.design.pages) { store.setPage(i) }
+                }
+                .gesture(liftGesture(proxy: proxy))
+            }
+            .coordinateSpace(name: Self.space)
+            .reportsViewport(to: frames)
+            .overlay {
+                PageGapMarker(lift: lift, pages: store.design.pages, frames: frames, spacing: Self.spacing)
+            }
+        }
+        .onChange(of: holding) { _, held in if !held { putDown(moving: false) } }
+        .onDisappear { edges.stop() }
+    }
+
+    /// Press and hold, then drag: the page lifted and carried along the
+    /// strip, the gap it would go into marked, the strip scrolled on at its
+    /// ends.
+    private func liftGesture(proxy: ScrollViewProxy) -> some Gesture {
+        LongPressGesture(minimumDuration: 0.35)
+            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.space)))
+            .updating($holding) { value, held, _ in
+                if case .second(true, _) = value { held = true }
+            }
+            .onChanged { value in
+                guard case .second(true, let drag) = value, let drag else { return }
+                if !lift.isActive {
+                    let pages = store.design.pages
+                    guard let i = frames.page(at: drag.startLocation, in: pages) else { return }
+                    lift = PageLift(ids: [pages[i].id])
+                    store.buzz(.tick)
+                }
+                lift.finger = drag.location
+                lift.gap = PageOrder.gap(at: drag.location, frames: frames.indexed(store.design.pages))
+                let edge = PageOrder.edgeScroll(Double(drag.location.x), length: Double(frames.viewport.width), margin: 44)
+                edges.hold(edge) { direction in scrollOn(direction, proxy: proxy) }
+            }
+            .onEnded { _ in putDown(moving: true) }
+    }
+
+    /// One thumbnail further along, the gap found again under the finger;
+    /// false at either end.
+    private func scrollOn(_ direction: Int, proxy: ScrollViewProxy) -> Bool {
+        let pages = store.design.pages
+        let shown = frames.shown(pages, vertical: false)
+        guard lift.isActive, let edge = direction > 0 ? shown.last : shown.first else { return false }
+        let target = min(max(edge + direction, 0), pages.count - 1)
+        guard target != edge else { return false }
+        withAnimation(.easeOut(duration: 0.2)) {
+            proxy.scrollTo(pages[target].id, anchor: direction > 0 ? .trailing : .leading)
+        }
+        if let finger = lift.finger { lift.gap = PageOrder.gap(at: finger, frames: frames.indexed(pages)) }
+        return true
+    }
+
+    /// Let go: the page moved to the gap as one undo step when `moving`,
+    /// else — the press taken over — put back.
+    private func putDown(moving: Bool) {
+        edges.stop()
+        guard lift.isActive else { return }
+        if moving, let gap = lift.gap { store.movePages(lift.ids, to: gap) }
+        lift = PageLift()
     }
 
     private func pageThumb(index: Int, page: Page) -> some View {
         let pageSize = store.design.size(for: page)
         let aspect = pageSize.width / max(pageSize.height, 1)
-        return Button {
-            store.setPage(index)
-        } label: {
-            PageThumbnail(design: store.design, page: page)
-                .frame(width: 56 * aspect, height: 56)
-                .clipped()
-                // A hidden page is faded, and its number carries the eye
-                // struck through, as on the Android twin — beside the number
-                // rather than in a corner of its own, which a story-shaped
-                // thumbnail has no room for.
-                .opacity(page.hidden == true ? 0.4 : 1)
-                .overlay(alignment: .topLeading) {
-                    HStack(spacing: 2) {
-                        Text("\(index + 1)")
-                        if page.hidden == true { Image(systemName: "eye.slash") }
-                    }
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 1)
-                    .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))
-                    .padding(2)
+        let spoken = Self.spokenThumb(number: index + 1, title: page.title, current: index == store.pageIndex,
+                                      hidden: page.hidden == true, locked: PageLocks.isLocked(page))
+        return thumbFace(index: index, page: page, aspect: aspect)
+            .opacity(lift.ids.contains(page.id) ? 0.35 : 1)
+            .reportsPageFrame(page.id, in: Self.space, to: frames)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(spoken)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { store.setPage(index) }
+            .pageMoveActions(store, index: index, id: page.id)
+    }
+
+    private func thumbFace(index: Int, page: Page, aspect: CGFloat) -> some View {
+        PageThumbnail(design: store.design, page: page)
+            .frame(width: 56 * aspect, height: 56)
+            .clipped()
+            // A hidden page is faded, and its number carries the eye
+            // struck through, as on the Android twin — beside the number
+            // rather than in a corner of its own, which a story-shaped
+            // thumbnail has no room for.
+            .opacity(page.hidden == true ? 0.4 : 1)
+            .overlay(alignment: .topLeading) {
+                HStack(spacing: 2) {
+                    Text("\(index + 1)")
+                    if page.hidden == true { Image(systemName: "eye.slash") }
+                    if PageLocks.isLocked(page) { Image(systemName: "lock.fill") }
                 }
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(RoundedRectangle(cornerRadius: 8)
-                    .stroke(index == store.pageIndex ? Theme.accent : Color(.systemGray4),
-                            lineWidth: index == store.pageIndex ? 2 : 1))
-                // Differentiate Without Colour: the current page is also the
-                // one with the check, not only the one with the purple edge.
-                .overlay(alignment: .bottomTrailing) {
-                    if differentiate && index == store.pageIndex {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.white, Theme.accent)
-                            .padding(2)
-                    }
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 1)
+                .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))
+                .padding(2)
+            }
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8)
+                .stroke(index == store.pageIndex ? Theme.accent : Color(.systemGray4),
+                        lineWidth: index == store.pageIndex ? 2 : 1))
+            // Differentiate Without Colour: the current page is also the
+            // one with the check, not only the one with the purple edge.
+            .overlay(alignment: .bottomTrailing) {
+                if differentiate && index == store.pageIndex {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white, Theme.accent)
+                        .padding(2)
                 }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Self.spokenThumb(number: index + 1, title: page.title,
-                                             current: index == store.pageIndex, hidden: page.hidden == true))
+            }
     }
 
     /// What VoiceOver says for a page's thumbnail: which page and its title,
-    /// whether it is the one on screen, and whether it is hidden.
-    static func spokenThumb(number: Int, title: String?, current: Bool, hidden: Bool) -> String {
+    /// whether it is the one on screen, and whether it is hidden or locked.
+    static func spokenThumb(number: Int, title: String?, current: Bool, hidden: Bool,
+                            locked: Bool = false) -> String {
         var label = "Page \(number)"
         if let title = title.flatMap(PageTitles.kept) { label += ", " + title }
         if current { label += ", current" }
         if hidden { label += ", hidden" }
+        if locked { label += ", " + PageLocks.spoken }
         return label
     }
 }
 
 extension View {
-    /// Deleting a page with something on it asks first — from the pages
-    /// bar, or a page's header while scrolling through pages. The page on
-    /// screen is the one asked about.
+    /// Deleting a page with something on it, or a locked one, asks first —
+    /// from the pages bar, or a page's header while scrolling through
+    /// pages. The page on screen is the one asked about.
     func asksBeforeDeletingPage(_ isPresented: Binding<Bool>, store: DesignStore) -> some View {
         confirmationDialog("Delete page \(store.pageIndex + 1)?",
                            isPresented: isPresented, titleVisibility: .visible) {
             Button("Delete page", role: .destructive) { store.deletePage() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text(store.page.elements.count == 1
-                 ? "It has 1 element on it."
-                 : "It has \(store.page.elements.count) elements on it.")
+            Text(PageLocks.deleteMessage(elements: store.page.elements.count, locked: store.isPageLocked))
         }
     }
 }
@@ -363,13 +458,20 @@ struct PageNotesSheet: View {
 /// in the hierarchy — each text element re-running CoreText layout — just to
 /// fill a row of 56pt thumbnails.
 ///
-/// `task(id: page)` re-renders exactly when the page's contents change,
-/// because Page is Equatable, so the cache can never go stale — but "when
-/// the contents change" includes every frame of a drag, so the render is
-/// debounced below.
+/// The bitmap comes from ThumbnailCache: kept for the page as it stands, or
+/// made in its turn, those on screen first (`priority` 0). `task(id: page)`
+/// asks again exactly when the page's contents change, because Page is
+/// Equatable — but "when the contents change" includes every frame of a
+/// drag, so a thumbnail already drawn asks again only once the page stops
+/// changing (below).
 struct PageThumbnail: View {
     let design: Design
     let page: Page
+    /// How many pixels wide it is drawn.
+    var pixelWidth = 140
+    /// Its place in line when several wait to be drawn: 0 on screen, more
+    /// further off.
+    var priority = 0
     @State private var image: UIImage?
 
     var body: some View {
@@ -380,9 +482,9 @@ struct PageThumbnail: View {
                 Color.white
             }
         }
-        .task(id: ThumbKey(page: page, baked: bakedVersion)) {
-            // Debounced, because a drag rewrites the page on every frame.
-            // Without the wait, each of those frames started a full
+        .task(id: ThumbKey(page: page, baked: bakedVersion, subjects: subjectsVersion, width: pixelWidth)) {
+            // Debounced once drawn, because a drag rewrites the page on every
+            // frame. Without the wait, each of those frames started a full
             // ImageRenderer pass over the whole page — rasterising every
             // element, re-running CoreText for every text run — to refresh a
             // 56pt thumbnail nobody is looking at mid-gesture.
@@ -394,21 +496,31 @@ struct PageThumbnail: View {
             // are never re-rendered at all. A look made off the main thread
             // goes through the same wait: a dial dragged, or a clip playing,
             // finishes a run of them, which end in one render of each page
-            // with such a photo, and none of any other page.
-            try? await Task.sleep(for: .milliseconds(180))
-            guard !Task.isCancelled else { return }
-            render()
+            // with such a photo, and none of any other page. A thumbnail not
+            // yet drawn — scrolled into view — asks at once, and one kept
+            // shows straight away.
+            if image != nil {
+                try? await Task.sleep(for: .milliseconds(180))
+                guard !Task.isCancelled else { return }
+            }
+            let key = ThumbnailCache.key(page: page, design: design, baked: bakedVersion,
+                                         subjects: subjectsVersion, pixelWidth: pixelWidth)
+            if let made = await ThumbnailCache.shared.image(key, priority: priority, make: render) {
+                image = made
+            }
         }
-        // A photo's focus subject, found off the main thread meanwhile.
-        .onChange(of: ImageFilterEngine.subjectsFound.version) { render() }
     }
 
-    /// The thumbnail's task id: the page, and for a page with a photo whose
-    /// clarity or pixelate is made off the main thread, how many such looks
-    /// are made, so a new one draws it again.
+    /// The thumbnail's task id: the page, for a page with a photo whose
+    /// clarity or pixelate is made off the main thread how many such looks
+    /// are made, for one with a photo whose focus keeps its subject sharp
+    /// how many subjects are found — so a new one draws it again — and its
+    /// width.
     private struct ThumbKey: Equatable {
         let page: Page
         let baked: Int
+        let subjects: Int
+        let width: Int
     }
 
     /// The count of looks made off the main thread, read only by a page
@@ -419,13 +531,21 @@ struct PageThumbnail: View {
         return ImageFilterEngine.looksBaked.version
     }
 
+    /// The count of focus subjects found off the main thread, read only by
+    /// a page with a photo whose focus waits for its subject; 0 for any
+    /// other, which a subject found elsewhere never draws again.
+    private var subjectsVersion: Int {
+        guard design.drawnElements(on: page).contains(where: { $0.focusBlur?.subject == true }) else { return 0 }
+        return ImageFilterEngine.subjectsFound.version
+    }
+
     @MainActor
-    private func render() {
+    private func render() -> UIImage? {
         // On screen, so a focus subject is found off the main thread rather
         // than holding up the strip; the thumbnail is drawn again when it is.
         let renderer = ImageRenderer(content: PageRenderView(design: design, page: page).environment(\.onScreen, true))
-        renderer.scale = max(0.02, 140 / max(design.size(for: page).width, 1))
+        renderer.scale = max(0.02, CGFloat(pixelWidth) / max(design.size(for: page).width, 1))
         renderer.isOpaque = true
-        if let ui = renderer.uiImage { image = ui }
+        return renderer.uiImage
     }
 }

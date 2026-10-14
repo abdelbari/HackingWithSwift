@@ -29,7 +29,8 @@ struct PageHeaderRow: View {
         .frame(height: PageColumn.header)
     }
 
-    /// "Page 2 · Intro", and the eye struck through on a hidden page.
+    /// "Page 2 · Intro", the eye struck through on a hidden page and the
+    /// padlock on a locked one.
     private var title: some View {
         HStack(spacing: 4) {
             Text(PageTitles.named(index + 1, title: page.title))
@@ -41,10 +42,15 @@ struct PageHeaderRow: View {
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
+            if PageLocks.isLocked(page) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(PagesBar.spokenThumb(number: index + 1, title: page.title,
-                                                 current: current, hidden: page.hidden == true))
+        .accessibilityLabel(PagesBar.spokenThumb(number: index + 1, title: page.title, current: current,
+                                                 hidden: page.hidden == true, locked: PageLocks.isLocked(page)))
         .accessibilityAddTraits(.isHeader)
     }
 
@@ -60,8 +66,8 @@ struct PageHeaderRow: View {
         moreMenu
     }
 
-    /// Hide or show, Copy page, and the page's title and notes. Hiding the
-    /// only page is not offered, as in the pages bar.
+    /// Hide or show, Lock or unlock, Copy page, and the page's title and
+    /// notes. Hiding the only page is not offered, as in the pages bar.
     private var moreMenu: some View {
         Menu {
             if store.design.pages.count > 1 || page.hidden == true {
@@ -69,6 +75,10 @@ struct PageHeaderRow: View {
                     Label(page.hidden == true ? "Show page" : "Hide page",
                           systemImage: page.hidden == true ? "eye" : "eye.slash")
                 }
+            }
+            Button { onPage { store.setPageLocked(!store.isPageLocked) } } label: {
+                Label(PageLocks.isLocked(page) ? "Unlock page" : "Lock page",
+                      systemImage: PageLocks.isLocked(page) ? "lock.open" : "lock")
             }
             Button { onPage { store.copyPage() } } label: {
                 Label("Copy page", systemImage: "doc.on.doc")

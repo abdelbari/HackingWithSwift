@@ -52,6 +52,10 @@ struct CanvasView: View {
     /// The pages near enough to the part of the column on screen to draw
     /// live (PageColumn.livePages); the others show a thumbnail.
     @State private var livePages: Set<Int> = []
+    /// The pages near enough for a thumbnail (PageColumn.thumbnailPages),
+    /// and those of them in view, whose thumbnails are made first.
+    @State private var thumbPages: Set<Int> = []
+    @State private var pagesInView: Set<Int> = []
     /// The part of the column on screen, kept without redrawing the canvas
     /// on every frame of a scroll.
     @State private var seen = ColumnSeen()
@@ -141,6 +145,9 @@ struct CanvasView: View {
         /// Whether a hold on the empty page has taken, so a band is being
         /// held out.
         var banding = false
+        /// Whether a hold on a locked page has been refused, for the rest
+        /// of its drag.
+        var lockedHold = false
         /// What a finger in crop mode is working, from when it lands.
         var crop: CropTouch?
         /// A crop-mode pinch's magnification when last applied.
@@ -187,17 +194,21 @@ struct CanvasView: View {
                isPresented: Binding(get: { positioningGuide != nil },
                                     set: { if !$0 { positioningGuide = nil } }),
                presenting: positioningGuide) { guide in
-            TextField(guide.vertical ? "From the left (px)" : "From the top (px)", text: $guidePositionText)
+            // In the design's unit, as Position's numbers are.
+            let unit = store.design.physicalUnit ?? "px"
+            TextField(guide.vertical ? "From the left (\(unit))" : "From the top (\(unit))", text: $guidePositionText)
                 .keyboardType(.decimalPad)
             Button("Move") {
                 let limit = guide.vertical ? store.pageWidth : store.pageHeight
-                if let position = Guides.typedPosition(guidePositionText, limit: limit) {
+                if let position = Guides.typedPosition(guidePositionText, limit: limit,
+                                                       unit: store.design.physicalUnit, dpi: store.design.effectiveDPI) {
                     store.setGuidePosition(guide.id, to: position)
                 }
             }
             Button("Cancel", role: .cancel) {}
         } message: { guide in
-            Text("From 0 to \(Int((guide.vertical ? store.pageWidth : store.pageHeight).rounded())) px")
+            Text("From 0 to " + Units.readout(guide.vertical ? store.pageWidth : store.pageHeight, store.design)
+                 + (store.design.physicalUnit == nil ? " px" : Units.suffix(store.design)))
         }
         // Typing in place stays above the keyboard: when it starts, when the
         // keyboard arrives or changes, and as the box grows line by line.
@@ -833,6 +844,15 @@ struct CanvasView: View {
             .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("page")))
             .onChanged { value in
                 guard case .second(true, let drag) = value else { return }
+                // No band, and no menu, on a locked page: the hold is said
+                // once, with Unlock, as a tap there is.
+                if gesture.lockedHold { return }
+                if !gesture.banding && store.isPageLocked {
+                    gesture.lockedHold = true
+                    dismissHoldMenu()
+                    store.refusesLockedPage()
+                    return
+                }
                 if !gesture.banding {
                     gesture.banding = true
                     commitTextEditIfAny()
@@ -847,6 +867,7 @@ struct CanvasView: View {
             }
             .onEnded { _ in
                 edges.stop()
+                gesture.lockedHold = false
                 // Let go without having drawn a band, the hold was a still
                 // one: the menu at the finger (CanvasGestures).
                 var drawn = 0.0
@@ -1046,7 +1067,9 @@ struct CanvasView: View {
     /// Position…: the guide's place typed in, starting from where it is.
     private func askPosition(_ guide: Guide) {
         let at = guide.position
-        guidePositionText = at == at.rounded() ? String(Int(at)) : String(at)
+        // In the design's unit when it has a physical one.
+        guidePositionText = store.design.physicalUnit != nil ? Units.readout(at, store.design)
+            : at == at.rounded() ? String(Int(at)) : String(at)
         positioningGuide = guide
     }
 
@@ -1199,6 +1222,8 @@ struct CanvasView: View {
         commitTextEditIfAny()
         dismissHoldMenu()
         if store.stylePainting { store.stylePainting = false }
+        // A locked page's own tap says so, with Unlock.
+        if store.refusesLockedPage() { return }
         if !store.selectingMultiple { store.select(nil) }
     }
 
@@ -1437,7 +1462,7 @@ struct CanvasView: View {
         if let moved = gesture.movedBox {
             store.setBadge(Readouts.move(x: moved.minX, y: moved.minY,
                                          heldX: store.guideX != nil, heldY: store.guideY != nil,
-                                         gapX: gapX, gapY: gapY))
+                                         gapX: gapX, gapY: gapY, in: store.design))
         }
     }
 
@@ -1490,11 +1515,13 @@ struct CanvasView: View {
     }
 
     /// The page in the column under `point` on the page being worked, when
-    /// it is another one.
+    /// it is another one — and not locked, which nothing goes onto.
     private func dropPage(at point: CGPoint) -> Int? {
-        guard let slot = columnSlot else { return nil }
-        let index = PageColumn.pageAt(slot.toColumn(point), in: columnSlots)
-        return index == store.pageIndex ? nil : index
+        guard let slot = columnSlot,
+              let index = PageColumn.pageAt(slot.toColumn(point), in: columnSlots),
+              index != store.pageIndex, store.design.pages.indices.contains(index),
+              !PageLocks.isLocked(store.design.pages[index]) else { return nil }
+        return index
     }
 
     // MARK: resize / rotate (called from the overlay)
@@ -1560,7 +1587,7 @@ struct CanvasView: View {
             // reading; everything else is the box.
             store.badge = el.type == .text && handle.isCorner
                 ? Readouts.typeSize(FontLibrary.effectiveFontSize(for: el))
-                : "\(Int(el.w)) × \(Int(el.h))"
+                : Units.readout(width: el.w, height: el.h, store.design)
         }
     }
 
@@ -1595,7 +1622,7 @@ struct CanvasView: View {
         store.updateSelectedTransient { el in
             if el.id == trimmed.id { el = trimmed }
         }
-        store.badge = "\(Int(trimmed.w)) × \(Int(trimmed.h))"
+        store.badge = Units.readout(width: trimmed.w, height: trimmed.h, store.design)
         return true
     }
 
@@ -1655,7 +1682,7 @@ struct CanvasView: View {
         let box = Geometry.resize(Geometry.boxElement(gesture.groupBox), handle: handle,
                                   to: location, proportional: true, minSize: floor)
         store.replaceTransient(Geometry.scale(gesture.groupOriginals, from: gesture.groupBox, to: box))
-        store.badge = "\(Int(box.width)) × \(Int(box.height))"
+        store.badge = Units.readout(width: box.width, height: box.height, store.design)
     }
 
     private func groupRotateDrag(_ location: CGPoint) {
@@ -1888,8 +1915,13 @@ struct CanvasView: View {
             if seen.across != across { seen.across = across }
             shown = slot.pageBox(visible)
             fitting = fit * slot.scale
-            let live = Set(PageColumn.livePages(columnSlots, visible: visible))
+            let slots = columnSlots
+            let live = Set(PageColumn.livePages(slots, visible: visible))
             if livePages != live { livePages = live }
+            let thumbs = Set(PageColumn.thumbnailPages(slots, visible: visible))
+            if thumbPages != thumbs { thumbPages = thumbs }
+            let inView = Set(PageColumn.pages(slots, within: 0, of: visible))
+            if pagesInView != inView { pagesInView = inView }
         }
         // Only real changes: every write redraws whatever reads it.
         if store.viewport != shown { store.viewport = shown }
@@ -2142,7 +2174,7 @@ struct CanvasView: View {
     /// Delete from a header: asked first when the page has something on it,
     /// as in the pages bar.
     private func askDeletePage() {
-        if store.page.elements.isEmpty {
+        if store.page.elements.isEmpty && !store.isPageLocked {
             store.deletePage()
         } else {
             confirmingPageDelete = true
@@ -2193,8 +2225,8 @@ struct CanvasView: View {
             .offset(x: slot.origin.x, y: slot.origin.y)
     }
 
-    /// Another page: live near the view, a thumbnail further off, with
-    /// nothing on it to touch — a tap there is the canvas's (backgroundTap).
+    /// Another page: live near the view, a thumbnail further off, a white
+    /// page further still, with nothing on it to touch — a tap there is the canvas's (backgroundTap).
     private func otherPage(_ index: Int, slot: PageColumn.Slot) -> some View {
         let page = store.design.pages[index]
         let r = slot.rect
@@ -2213,8 +2245,12 @@ struct CanvasView: View {
                     .environment(\.onScreen, true)
                     .scaleEffect(slot.scale, anchor: .topLeading)
                     .frame(width: r.width, height: r.height, alignment: .topLeading)
+            } else if thumbPages.contains(index) {
+                // Those in view are drawn first (ThumbnailCache).
+                PageThumbnail(design: store.design, page: page, priority: pagesInView.contains(index) ? 0 : 1)
+                    .frame(width: r.width, height: r.height)
             } else {
-                PageThumbnail(design: store.design, page: page)
+                Color.white
                     .frame(width: r.width, height: r.height)
             }
         }

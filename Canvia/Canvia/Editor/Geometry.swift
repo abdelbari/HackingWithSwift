@@ -947,8 +947,21 @@ enum PageColumn {
     /// `visible` (in column units), above or below it. The rest are drawn
     /// from a thumbnail.
     static func livePages(_ slots: [Slot], visible: CGRect) -> [Int] {
-        let top = Double(visible.minY - visible.height)
-        let bottom = Double(visible.maxY + visible.height)
+        pages(slots, within: 1, of: visible)
+    }
+
+    /// The pages given a thumbnail: those within two viewport heights of
+    /// `visible`. The rest are a white page until they come nearer, so a
+    /// long deck makes none of theirs.
+    static func thumbnailPages(_ slots: [Slot], visible: CGRect) -> [Int] {
+        pages(slots, within: 2, of: visible)
+    }
+
+    /// The pages within `heights` viewport heights of `visible`, above or
+    /// below it — 0, those in view.
+    static func pages(_ slots: [Slot], within heights: Double, of visible: CGRect) -> [Int] {
+        let top = Double(visible.minY) - Double(visible.height) * heights
+        let bottom = Double(visible.maxY) + Double(visible.height) * heights
         return slots.indices.filter { i in
             let r = slots[i].rect
             return Double(r.maxY) >= top && Double(r.minY) <= bottom
