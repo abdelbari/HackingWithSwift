@@ -657,6 +657,13 @@ struct Element: Codable, Equatable, Identifiable {
     /// Glitch, slice, halftone or grain on the photo's pixels (PhotoFx); nil
     /// is none, and no key in the file.
     var fx: PhotoFx?
+    /// Parts of the picture made clear, or brought back, with the Erase and
+    /// Restore brushes, and the picture before a Cut out (see MaskRaster);
+    /// nil is none, and no key in the file.
+    var mask: ImageMask?
+    /// Blur and pixelate brushed onto parts of the picture, in order (see
+    /// MaskRaster); nil is none, and no key in the file.
+    var retouch: [RetouchLayer]?
     /// For a clip ("video:" source): its trim, speed, loop and sound. Never a
     /// clip at all its defaults — that is nil, and no key in the file.
     var clip: ClipPlayback?
@@ -791,6 +798,8 @@ struct Element: Codable, Equatable, Identifiable {
         focusBlur = try? c.decode(FocusBlur.self, forKey: .focusBlur)
         edge = try? c.decode(PhotoEdge.self, forKey: .edge)
         fx = try? c.decode(PhotoFx.self, forKey: .fx)
+        mask = ImageMask.kept(try? c.decode(ImageMask.self, forKey: .mask))
+        retouch = RetouchLayer.kept((try? c.decode([Lossy<RetouchLayer>].self, forKey: .retouch))?.compactMap(\.value))
         clip = (try? c.decode(ClipPlayback.self, forKey: .clip)).flatMap { $0.isDefault ? nil : $0 }
         // Read tolerantly, as the Android twin reads them: a colour that is
         // none, or a margin out of 0…4, is the default — and a default is no
@@ -835,7 +844,7 @@ struct Element: Codable, Equatable, Identifiable {
         case spans, spansText, paragraphs, paragraphsText
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns, timing
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit, clip
-        case filterStrength, pixelate, focusBlur, edge, fx
+        case filterStrength, pixelate, focusBlur, edge, fx, mask, retouch
         case qrColor, qrBackground, qrMargin
         case glyph
         case thickness, dash, startCap, endCap

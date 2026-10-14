@@ -403,6 +403,7 @@ struct CanvasView: View {
             Group {
                 if let tool = store.drawing { drawingLayer(tool) }
                 if store.erasing != nil { eraserLayer }
+                if let brush = store.brushing, let photo = store.brushElement { brushLayer(brush, photo) }
                 if let crop = store.cropping, let photo = store.cropElement { cropLayer(photo, crop) }
             }
         }
@@ -514,6 +515,11 @@ struct CanvasView: View {
         // written.
         var page = Trimming.scrubbed(store.page, store.clipScrub)
         if store.comparing, let id = store.singleSelection?.id { page = PhotoEdits.comparing(page, id) }
+        // Show original, held in a brush: the photo as it was before it.
+        if let brush = store.brushing, brush.comparing,
+           let i = page.elements.firstIndex(where: { $0.id == brush.id }) {
+            page.elements[i] = ImageMasking.original(page.elements[i], retouching: brush.retouching)
+        }
         let hidden = [store.cropping?.id, store.editingTextId].compactMap { $0 }
         guard !hidden.isEmpty else { return page }
         if let id = store.editingTextId, let i = page.elements.firstIndex(where: { $0.id == id && $0.type == .shape }) {
@@ -773,6 +779,54 @@ struct CanvasView: View {
         .onDisappear { strokePoints = []; strokeStart = nil }
     }
 
+    // MARK: brushes
+
+    /// Painting a photo with a brush: the stroke under the finger, as wide
+    /// as it paints, in red to erase, green to restore, and blue for a blur
+    /// or pixelate (grey to take it off); each stroke lands on the photo as
+    /// the finger lifts. Over the whole page, so a stroke never selects or
+    /// moves what it crosses.
+    private func brushLayer(_ brush: BrushSession, _ photo: Element) -> some View {
+        let width = ObjectEraser.pageWidth(share: brush.size, element: photo, imageSize: brush.imageSize)
+        return ZStack {
+            Color.clear.contentShape(Rectangle())
+            if !strokePoints.isEmpty {
+                Path(Freehand.cgPath(strokePoints))
+                    .stroke(Self.brushInk(brush).opacity(0.45),
+                            style: StrokeStyle(lineWidth: width, lineCap: .round, lineJoin: .round))
+            }
+        }
+        .frame(width: store.pageWidth, height: store.pageHeight)
+        .gesture(
+            DragGesture(minimumDistance: 0, coordinateSpace: .named("page"))
+                .onChanged { value in
+                    if strokePoints.isEmpty || strokeStart != value.startLocation {
+                        strokeStart = value.startLocation
+                        strokePoints = [value.startLocation]
+                    }
+                    strokePoints.append(value.location)
+                }
+                .onEnded { _ in
+                    store.brushStroke(Freehand.thinned(strokePoints))
+                    strokePoints = []
+                    strokeStart = nil
+                }
+        )
+        .accessibilityLabel("Brush")
+        .accessibilityHint("Drag over the photo to paint, then tap Done")
+        .onDisappear { strokePoints = []; strokeStart = nil }
+    }
+
+    /// The colour a brush's stroke shows in under the finger.
+    private static func brushInk(_ brush: BrushSession) -> Color {
+        switch (brush.retouching, brush.reverse) {
+        case (false, false): return .red
+        case (false, true): return .green
+        case (true, false): return .blue
+        case (true, true): return .gray
+        }
+    }
+
     // MARK: drawing
 
     /// Above everything while the pen is on, so a stroke never selects or
@@ -931,7 +985,7 @@ struct CanvasView: View {
     /// target's size), no handle of the selection, no guide — and never
     /// while the pen, the eraser or crop mode has the page's touches.
     private func pansFromPage(at point: CGPoint) -> Bool {
-        guard store.drawing == nil, store.erasing == nil, store.cropping == nil else { return false }
+        guard store.drawing == nil, store.erasing == nil, store.cropping == nil, store.brushing == nil else { return false }
         let guideReach = Touch.pageUnits(12, zoom: store.zoom)
         let onGuide = store.design.guides.contains { guide in
             abs(Double(guide.vertical ? point.x : point.y) - guide.position) <= guideReach
@@ -1954,7 +2008,7 @@ struct CanvasView: View {
     /// headers only say which page is which.
     private var pagePinned: Bool {
         store.cropping != nil || store.editingTextId != nil || store.drawing != nil
-            || store.erasing != nil || store.previewTime != nil
+            || store.erasing != nil || store.brushing != nil || store.previewTime != nil
     }
 
     // MARK: the view

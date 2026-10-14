@@ -5366,6 +5366,15 @@
     "ja": "ぼかし",
     "pt-BR": "Desfoque"
   },
+  "Blur brush": {
+    "ar": "فرشاة التمويه",
+    "de": "Weichzeichner-Pinsel",
+    "es": "Pincel de desenfoque",
+    "fr": "Pinceau de flou",
+    "it": "Pennello sfocatura",
+    "ja": "ぼかしブラシ",
+    "pt-BR": "Pincel de desfoque"
+  },
   "Body": {
     "ar": "النص الأساسي",
     "de": "Fließtext",
@@ -8840,6 +8849,15 @@
     "ja": "テキスト素材をダブルタップすると、その場で編集できます。ツールバーには、フォント、サイズ、色、太字、斜体、下線、大文字（aA）、リスト、インデント、配置、エフェクト、間隔、カーブスライダーがあります。サイズをタップすると正確な値を入力するか、リストから選べます。複数のテキストを選択すると、フォント、サイズ、スタイル、配置、色をまとめて設定できます。",
     "pt-BR": "Toque duas vezes em um elemento de texto para editá-lo no lugar. A barra de ferramentas tem fonte, tamanho, cor, negrito, itálico, sublinhado, maiúsculas (aA), listas, recuos, alinhamento, efeitos, espaçamento e um controle de curva. Toque no tamanho para digitar um valor exato ou escolher de uma lista. Selecione vários textos para definir fonte, tamanho, estilo, alinhamento e cor de uma só vez."
   },
+  "Double-tap and hold to see the photo as it was": {
+    "ar": "انقر نقرًا مزدوجًا مع الاستمرار لرؤية الصورة كما كانت",
+    "de": "Doppeltippen und halten, um das Foto wie vorher zu sehen",
+    "es": "Toca dos veces y mantén pulsado para ver la foto como era",
+    "fr": "Touchez deux fois et maintenez pour voir la photo telle qu’elle était",
+    "it": "Tocca due volte e tieni premuto per vedere la foto com’era",
+    "ja": "ダブルタップして押したままにすると、元の写真が表示されます",
+    "pt-BR": "Toque duas vezes e segure para ver a foto como era"
+  },
   "Double-tap and hold to see the photo without its edits": {
     "ar": "انقر مرتين مع الاستمرار لرؤية الصورة دون تعديلاتها",
     "de": "Doppeltippen und halten, um das Foto ohne Bearbeitungen zu sehen",
@@ -8947,6 +8965,15 @@
     "it": "Trascina sui tratti per rimuoverli",
     "ja": "ストロークの上をドラッグすると消せます",
     "pt-BR": "Arraste sobre os traços para removê-los"
+  },
+  "Drag over the photo to paint, then tap Done": {
+    "ar": "اسحب فوق الصورة للطلاء، ثم انقر على تم",
+    "de": "Zum Malen über das Foto ziehen, dann auf Fertig tippen",
+    "es": "Arrastra sobre la foto para pintar y luego toca Listo",
+    "fr": "Faites glisser sur la photo pour peindre, puis touchez OK",
+    "it": "Trascina sulla foto per dipingere, poi tocca Fine",
+    "ja": "写真の上をドラッグして塗り、「完了」をタップします",
+    "pt-BR": "Arraste sobre a foto para pintar e toque em OK"
   },
   "Drag over what should go, then tap Erase": {
     "ar": "اسحب فوق ما يجب إزالته، ثم انقر على «مسح»",
@@ -9685,6 +9712,24 @@
     "it": "Cancella",
     "ja": "消去",
     "pt-BR": "Apagar"
+  },
+  "Erase and restore": {
+    "ar": "مسح واستعادة",
+    "de": "Radieren und wiederherstellen",
+    "es": "Borrar y restaurar",
+    "fr": "Effacer et restaurer",
+    "it": "Cancella e ripristina",
+    "ja": "消去と復元",
+    "pt-BR": "Apagar e restaurar"
+  },
+  "Erase from effect": {
+    "ar": "مسح من التأثير",
+    "de": "Aus Effekt radieren",
+    "es": "Borrar del efecto",
+    "fr": "Effacer de l’effet",
+    "it": "Cancella dall’effetto",
+    "ja": "効果から消去",
+    "pt-BR": "Apagar do efeito"
   },
   "Erase part": {
     "ar": "مسح جزء",
@@ -16586,6 +16631,15 @@
     "ja": "ピクセル化",
     "pt-BR": "Pixelizar"
   },
+  "Pixelate brush": {
+    "ar": "فرشاة البكسلة",
+    "de": "Verpixeln-Pinsel",
+    "es": "Pincel de pixelado",
+    "fr": "Pinceau de pixellisation",
+    "it": "Pennello pixel",
+    "ja": "モザイクブラシ",
+    "pt-BR": "Pincel de pixelização"
+  },
   "Pixels": {
     "ar": "بكسلات",
     "de": "Pixel",
@@ -17419,6 +17473,15 @@
     "it": "Rimuovi tutte le guide",
     "ja": "すべてのガイドを削除",
     "pt-BR": "Remover todas as guias"
+  },
+  "Remove an object": {
+    "ar": "إزالة عنصر",
+    "de": "Objekt entfernen",
+    "es": "Quitar un objeto",
+    "fr": "Supprimer un objet",
+    "it": "Rimuovi un oggetto",
+    "ja": "オブジェクトを消す",
+    "pt-BR": "Remover um objeto"
   },
   "Remove background": {
     "ar": "إزالة الخلفية",
@@ -19595,6 +19658,15 @@
     "ja": "ノートを表示",
     "pt-BR": "Mostrar anotações"
   },
+  "Show original": {
+    "ar": "إظهار الأصل",
+    "de": "Original zeigen",
+    "es": "Mostrar original",
+    "fr": "Afficher l’original",
+    "it": "Mostra originale",
+    "ja": "元の画像を表示",
+    "pt-BR": "Mostrar original"
+  },
   "Show page": {
     "ar": "إظهار الصفحة",
     "de": "Seite einblenden",
@@ -20050,6 +20122,15 @@
     "it": "Luce soffusa",
     "ja": "ソフトライト",
     "pt-BR": "Luz suave"
+  },
+  "Softness": {
+    "ar": "النعومة",
+    "de": "Weichheit",
+    "es": "Suavidad",
+    "fr": "Douceur",
+    "it": "Morbidezza",
+    "ja": "ぼかし幅",
+    "pt-BR": "Suavidade"
   },
   "Solar": {
     "ar": "شمسي",
@@ -20686,6 +20767,15 @@
     "it": "Strada",
     "ja": "ストリート",
     "pt-BR": "Rua"
+  },
+  "Strength": {
+    "ar": "القوة",
+    "de": "Stärke",
+    "es": "Intensidad",
+    "fr": "Intensité",
+    "it": "Intensità",
+    "ja": "強さ",
+    "pt-BR": "Intensidade"
   },
   "Strikethrough": {
     "ar": "يتوسطه خط",
@@ -22138,6 +22228,15 @@
     "it": "Questa foto è bloccata. Sbloccala da Altro per sostituirla.",
     "ja": "この写真はロックされています。置き換えるには「その他」からロックを解除してください。",
     "pt-BR": "Esta foto está bloqueada. Desbloqueie-a em Mais para substituí-la."
+  },
+  "This picture can't be brushed.": {
+    "ar": "لا يمكن استخدام الفرشاة على هذه الصورة.",
+    "de": "Dieses Bild kann nicht mit dem Pinsel bearbeitet werden.",
+    "es": "Esta imagen no se puede pintar con pincel.",
+    "fr": "Cette image ne peut pas être retouchée au pinceau.",
+    "it": "Questa immagine non si può ritoccare col pennello.",
+    "ja": "この画像にはブラシを使えません。",
+    "pt-BR": "Esta imagem não pode ser pintada com pincel."
   },
   "This song isn't on this phone: it was chosen on another one. It plays there.": {
     "ar": "هذه الأغنية ليست على هذا الهاتف: اختيرت على هاتف آخر. وتُشغَّل هناك.",

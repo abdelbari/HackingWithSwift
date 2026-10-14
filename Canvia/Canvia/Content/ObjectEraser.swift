@@ -51,10 +51,32 @@ enum ObjectEraser {
     /// A brush `width` in page units as picture pixels: through the scale
     /// the picture is shown at, fitted or filling, zoom and all.
     static func brushPixels(_ width: Double, element el: Element, imageSize: CGSize) -> Double {
+        max(4, width / max(shownScale(element: el, imageSize: imageSize), 0.0001))
+    }
+
+    /// The page units one of the picture's pixels is shown across: fitted or
+    /// filling, zoom and all.
+    static func shownScale(element el: Element, imageSize: CGSize) -> Double {
         let sx = el.w / max(imageSize.width, 1), sy = el.h / max(imageSize.height, 1)
         let base = el.cropFit == true ? min(sx, sy) : max(sx, sy)
-        let shown = base * max(el.cropScale ?? 1, 0.01)
-        return max(4, width / max(shown, 0.0001))
+        return base * max(el.cropScale ?? 1, 0.01)
+    }
+
+    /// A brush `share` of the picture's shorter side wide (a mask or
+    /// retouch stroke's `w`), in page units as the picture is shown.
+    static func pageWidth(share: Double, element el: Element, imageSize: CGSize) -> Double {
+        share * Double(min(imageSize.width, imageSize.height)) * shownScale(element: el, imageSize: imageSize)
+    }
+
+    /// A finger stroke over an image element as a mask or retouch stroke's
+    /// points: each in the picture's pixels (imagePoint), as shares of the
+    /// picture across and down.
+    static func picturePoints(_ stroke: [CGPoint], element el: Element, imageSize: CGSize) -> [CGPoint] {
+        guard imageSize.width > 0, imageSize.height > 0 else { return [] }
+        return stroke.map { page in
+            let p = imagePoint(page, element: el, imageSize: imageSize)
+            return CGPoint(x: p.x / imageSize.width, y: p.y / imageSize.height)
+        }
     }
 
     /// Strokes in image pixels, each `width` pixels wide, painted into a

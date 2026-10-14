@@ -78,7 +78,7 @@ struct CanvasChips: View {
     /// other than the canvas, nor with the pen or the eraser out.
     private var showsZoom: Bool {
         store.viewport.width > 0 && store.badge == nil && store.cropping == nil
-            && store.drawing == nil && store.erasing == nil
+            && store.drawing == nil && store.erasing == nil && store.brushing == nil
     }
 
     /// At the fitting zoom, within 2%, with the whole page in sight: pan a

@@ -243,6 +243,8 @@ enum DesignPackage {
             for el in page.elements {
                 if let src = el.src, src.hasPrefix("media:") { ids.insert(String(src.dropFirst(6))) }
                 if let src = el.fill?.src, src.hasPrefix("media:") { ids.insert(String(src.dropFirst(6))) }
+                // The picture before a Cut out, which Restore paints back.
+                if let src = el.mask?.base, src.hasPrefix("media:") { ids.insert(String(src.dropFirst(6))) }
             }
         }
         return ids
@@ -463,6 +465,10 @@ enum DesignPackage {
                     fill.src = moved(fill.src)
                     out.pages[p].elements[i].fill = fill
                 }
+                if var mask = out.pages[p].elements[i].mask, mask.base != nil {
+                    mask.base = moved(mask.base)
+                    out.pages[p].elements[i].mask = mask
+                }
             }
         }
         return out
@@ -635,6 +641,10 @@ enum DesignPackage {
                 if var fill = design.pages[p].elements[i].fill, fill.kind == "image" {
                     fill.src = rewrite(fill.src)
                     design.pages[p].elements[i].fill = fill
+                }
+                if var mask = design.pages[p].elements[i].mask, mask.base != nil {
+                    mask.base = rewrite(mask.base)
+                    design.pages[p].elements[i].mask = mask
                 }
             }
         }

@@ -140,6 +140,11 @@ struct EditorView: View {
                     eraserBar
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.bottom, 14)
+                } else if let brush = store.brushing {
+                    BrushBar(store: store, session: brush)
+                        .padding(.horizontal, 10)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.bottom, 14)
                 } else if store.cropping != nil {
                     cropBar
                         .padding(.horizontal, 10)
@@ -155,7 +160,7 @@ struct EditorView: View {
             // the eraser's and the crop's bars: a tap opens the sheet on its
             // progress.
             .overlay(alignment: .bottomLeading) {
-                if store.drawing == nil && store.erasing == nil && store.cropping == nil {
+                if store.drawing == nil && store.erasing == nil && store.cropping == nil && store.brushing == nil {
                     ExportPill { activeSheet = .export }
                         .padding(.trailing, 72)
                         .padding(.bottom, 26)
@@ -215,9 +220,10 @@ struct EditorView: View {
         .background(Theme.workspace)
     }
 
-    /// Crop, typing, the pen or the eraser has the page.
+    /// Crop, typing, the pen, the eraser or a brush has the page.
     private var pageTaken: Bool {
         store.cropping != nil || store.editingTextId != nil || store.drawing != nil || store.erasing != nil
+            || store.brushing != nil
     }
 
     var body: some View {
@@ -344,6 +350,12 @@ struct EditorView: View {
                 // photo is the only thing being worked.
                 shortcut(.return, [], tr("Done cropping")) { store.finishCrop() }
                 shortcut(.escape, [], tr("Cancel crop")) { store.cancelCrop() }
+            } else if store.brushing != nil {
+                // So has a brush, and ⌘Z takes back the last stroke, as the
+                // bar's Undo stroke does.
+                shortcut(.return, [], tr("Done")) { store.finishBrush() }
+                shortcut(.escape, [], tr("Cancel")) { store.cancelBrush() }
+                shortcut("z", [.command], tr("Undo stroke")) { store.undoBrushStroke() }
             } else if store.editingTextId != nil {
                 // While words are typed in place, the ⌘ keys are the text's —
                 // ⌘A selects its words, ⌘V pastes text, ⌘Z takes back typing —
@@ -457,7 +469,7 @@ struct EditorView: View {
     private var deleteKeysLive: Bool {
         !store.selection.isEmpty && store.editingTextId == nil && !titleFocused && activeSheet == nil
             && !namingComponent && !savingTemplate && !namingVersion && !store.textFieldOpen && store.drawing == nil
-            && store.erasing == nil
+            && store.erasing == nil && store.brushing == nil
     }
 
     /// Undo, and — held — a rewind: after a moment it takes back a step

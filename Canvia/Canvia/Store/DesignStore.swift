@@ -25,6 +25,8 @@ final class DesignStore {
         // so far is kept, never dropped.
         didSet {
             if let crop = cropping, selection != [crop.id] { finishCrop() }
+            // So does a brush's, kept as its one step.
+            if let brush = brushing, selection != [brush.id] { finishBrush() }
             // Typing in place ends however the box stops being the one thing
             // selected — a Layers row, a page change, a lock, its group taken
             // whole — as its own step, and an emptied box goes with it. The
@@ -1454,6 +1456,9 @@ final class DesignStore {
     var eraserStrokes: [[CGPoint]] = []
     var eraserWidth: Double = 40
     var eraserBusy = false
+    /// The photo being brushed — erased and restored, or blurred or
+    /// pixelated in part — and how (see BrushMode.swift).
+    var brushing: BrushSession?
 
     func beginErasing(_ id: String) {
         if element(id)?.locked == true {
@@ -1461,6 +1466,7 @@ final class DesignStore {
             announce(tr("This photo is locked. Tap Unlock to edit it."), undoable: false)
             return
         }
+        finishBrush()
         drawing = nil
         endTextEdit()
         selection = [id]
@@ -1554,6 +1560,7 @@ final class DesignStore {
         if drawing == nil {
             // Nothing is drawn onto a locked page.
             guard !refusesLockedPage() else { return }
+            finishBrush()
             endTextEdit()
             selection.removeAll()
             // The pen as it was last put away — ink, width and kind — for
