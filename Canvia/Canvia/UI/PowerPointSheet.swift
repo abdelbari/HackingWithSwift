@@ -58,6 +58,10 @@ private struct PowerPointHost: ViewModifier {
     /// Open design was tapped: opened once the sheet has gone.
     @State private var opening: Design?
     @State private var failure: String?
+    /// Decks that came in while another was being read or said, read in
+    /// turn — two opened together from Files are two designs, as on the
+    /// Android twin.
+    @State private var waiting: [URL] = []
 
     func body(content: Content) -> some View {
         content
@@ -72,8 +76,8 @@ private struct PowerPointHost: ViewModifier {
                 }
             }
             .alert("Couldn't open that file", isPresented: Binding(
-                get: { failure != nil }, set: { if !$0 { failure = nil } })) {
-                Button("OK") { failure = nil }
+                get: { failure != nil }, set: { if !$0 { afterFailure() } })) {
+                Button("OK") { afterFailure() }
             } message: {
                 Text(failure ?? "")
             }
@@ -81,7 +85,10 @@ private struct PowerPointHost: ViewModifier {
 
     private func start(_ url: URL) {
         if deck != nil { deck = nil }
-        guard !working else { return }
+        guard !working, opened == nil, opening == nil, failure == nil else {
+            waiting.append(url)
+            return
+        }
         working = true
         let taken = DesignLibrary.recents().map(\.title)
         Task { @MainActor in
@@ -98,8 +105,22 @@ private struct PowerPointHost: ViewModifier {
     }
 
     private func afterSheet() {
-        guard let design = opening else { return }
-        opening = nil
-        onOpen(design)
+        if let design = opening {
+            opening = nil
+            onOpen(design)
+        }
+        next()
+    }
+
+    private func afterFailure() {
+        guard failure != nil else { return }
+        failure = nil
+        next()
+    }
+
+    /// The next deck waiting, once nothing is being read or said.
+    private func next() {
+        guard !waiting.isEmpty else { return }
+        start(waiting.removeFirst())
     }
 }
