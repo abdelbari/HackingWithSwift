@@ -295,6 +295,17 @@ enum PptxReader {
         text.utf16.allSatisfy(isSpace)
     }
 
+    /// Whether a UTF-16 unit is what a page title is split on and joined
+    /// with one space: ASCII white space only, " \t\n\u{0B}\u{0C}\r", as the
+    /// Android twin's Regex("\\s+") has it — a no-break space stays in its
+    /// word.
+    fileprivate static func isTitleSpace(_ unit: UInt16) -> Bool {
+        unit == 0x20 || (0x09...0x0D).contains(unit)
+    }
+
+    /// The fills DeckReader.fill reads, the first of them a shape's own.
+    fileprivate static let fillNames: Set<String> = ["noFill", "solidFill", "gradFill", "pattFill", "blipFill"]
+
     // MARK: parts and relationships
 
     /// A relationship's type, by its last word, and where it points.
@@ -872,6 +883,15 @@ enum PptxReader {
             return colour(in: ref).map { .solid($0) }
         }
 
+        /// Whether `props` (else `style`) give a fill that shows, as fill
+        /// reads it, without bringing a picture in: a picture fill shows
+        /// whether or not its picture can be read.
+        func fills(_ props: SvgImport.Node?, _ part: Part, style: SvgImport.Node?) -> Bool {
+            let own = props?.children.first { PptxReader.fillNames.contains($0.name) }
+            if own?.name == "blipFill" { return true }
+            return fill(props, part, style: style).map { $0.kind != "none" } ?? false
+        }
+
         /// A picture's "media:<key>" — its file's name in the deck — when its
         /// bytes are there and of a kind brought in (pictureTypes).
         func picture(_ blipFill: SvgImport.Node?, _ part: Part) -> String? {
@@ -1013,13 +1033,17 @@ enum PptxReader {
                 out.append(line(box, reader.border(props, style: style), group: group))
                 return
             }
-            let paint = reader.fill(props, slide, style: style).flatMap { $0.kind == "none" ? nil : $0 }
-            let edge = reader.border(props, style: style)
-            if paint != nil || edge != nil {
-                switch geometry {
-                case nil, "rect", "roundRect", "ellipse", "triangle":
+            // The fill is read — its picture brought in — only for an
+            // outline that is kept; any other that would show is counted.
+            switch geometry {
+            case nil, "rect", "roundRect", "ellipse", "triangle":
+                let paint = reader.fill(props, slide, style: style).flatMap { $0.kind == "none" ? nil : $0 }
+                let edge = reader.border(props, style: style)
+                if paint != nil || edge != nil {
                     out.append(shapeElement(box, geometry: geometry, props: props, fill: paint, border: edge, group: group))
-                default:
+                }
+            default:
+                if reader.fills(props, slide, style: style) || reader.border(props, style: style) != nil {
                     reader.skip(PptxReader.shape)
                 }
             }
@@ -1029,8 +1053,8 @@ enum PptxReader {
                 out.append(made)
             }
             if title == nil && (type == "title" || type == "ctrTitle") {
-                let joined = words.plain.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
-                    .joined(separator: " ")
+                let joined = Array(words.plain.utf16).split(whereSeparator: PptxReader.isTitleSpace)
+                    .map { String(decoding: $0, as: UTF16.self) }.joined(separator: " ")
                 title = joined.isEmpty ? nil : joined
             }
         }
@@ -1215,9 +1239,9 @@ enum PptxReader {
             el.x = PptxReader.px(box.x + left)
             el.y = PptxReader.px(box.y + top)
             el.h = PptxReader.px(h)
-            el.rotation = PptxReader.turned(box.rotation)
-            el.flipH = box.flipH
-            el.flipV = box.flipV
+            // Words are never mirrored: PowerPoint keeps a flipped box's
+            // words as they read, and turns them over for flipV.
+            el.rotation = PptxReader.turned(box.flipV ? box.rotation + 180 : box.rotation)
             el.fontFamily = face
             el.fontWeight = bold ? 700 : 400
             el.italic = italic ? true : nil

@@ -1,9 +1,10 @@
 // The PowerPoint reader. The fixture test and the rows marked shared hold
 // the same file and the same expected design as the Android twin's
 // PptxReaderTest: the same deck is the same design on either phone.
-// Fixtures/deck.pptx is the twin's tools/generate_pptx_fixture.py's deck,
-// and Fixtures/deck.json the twin's fixtures/deck.json in the JSON the two
-// apps exchange (this phone's).
+// Fixtures/deck.pptx and Fixtures/deck.json are the twin's
+// tools/generate_pptx_fixture.py's copies of its fixtures, byte for byte:
+// the expected design is one file, in the JSON the two apps exchange (this
+// phone's), which the twin's test reaches through its Interchange.toIos.
 
 import XCTest
 @testable import Canvia
@@ -275,6 +276,39 @@ final class PptxReaderTests: XCTestCase {
         XCTAssertEqual(imported.skipped, [PptxReader.shape: 1])
     }
 
+    /// Shared: a picture fill of an outline left out is not brought in — no
+    /// file is kept for it — and the outline is counted once.
+    func testAnOutlineLeftOutKeepsNoneOfItsPicture() throws {
+        let tree = [
+            shape("<a:prstGeom prst=\"star5\"/>", "<a:blipFill><a:blip r:embed=\"rId1\"/></a:blipFill>"),
+            shape("<a:custGeom/>", "<a:blipFill><a:blip r:embed=\"rId9\"/></a:blipFill>"),
+            shape("<a:prstGeom prst=\"rect\"/>", "<a:blipFill><a:blip r:embed=\"rId2\"/></a:blipFill>"),
+        ].joined()
+        let imported = try read(deck([tree],
+                                     slideRels: [0: rels([("image", "../media/star.png"), ("image", "../media/kept.png")])],
+                                     media: [("ppt/media/star.png", png), ("ppt/media/kept.png", png)]))
+        XCTAssertEqual(imported.design.pages[0].elements.map(\.fill), [.image("media:kept.png")])
+        XCTAssertEqual(imported.media, ["kept.png": "ppt/media/kept.png"])
+        XCTAssertEqual(imported.skipped, [PptxReader.shape: 2])
+    }
+
+    /// Shared: words are never mirrored — a flipped box's words read as they
+    /// are, turned over by flipV.
+    func testFlippedWordsReadAsTheyAreTurnedOverWhenFlippedTopToBottom() throws {
+        func arrow(_ flips: String, rot: String = "") -> String {
+            "<p:sp><p:nvSpPr><p:cNvPr id=\"3\" name=\"s\"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>"
+                + "<a:xfrm\(rot)\(flips)><a:off x=\"952500\" y=\"952500\"/><a:ext cx=\"3810000\" cy=\"952500\"/></a:xfrm>"
+                + "<a:prstGeom prst=\"rightArrow\"/>\(solid("4472C4"))</p:spPr>"
+                + "<p:txBody><a:bodyPr/><a:p><a:r><a:t>Back</a:t></a:r></a:p></p:txBody></p:sp>"
+        }
+        let tree = [arrow(" flipH=\"1\""), arrow(" flipV=\"1\""), arrow(" flipH=\"1\" flipV=\"1\"", rot: " rot=\"5400000\""), arrow("")]
+        let els = try read(deck([tree.joined()])).design.pages[0].elements
+        XCTAssertEqual(els.map(\.text), ["Back", "Back", "Back", "Back"])
+        XCTAssertEqual(els.map(\.flipH), [false, false, false, false])
+        XCTAssertEqual(els.map(\.flipV), [false, false, false, false])
+        XCTAssertEqual(els.map(\.rotation), [0, 180, 270, 0])
+    }
+
     func testALineRunsCornerToCornerOfItsBoxFlippedAsTheBoxIs() throws {
         let line = try only(deck(["<p:cxnSp><p:nvCxnSpPr><p:cNvPr id=\"4\" name=\"l\"/><p:cNvCxnSpPr/><p:nvPr/></p:nvCxnSpPr><p:spPr>"
             + "<a:xfrm flipV=\"1\"><a:off x=\"0\" y=\"0\"/><a:ext cx=\"2857500\" cy=\"3810000\"/></a:xfrm>"
@@ -460,6 +494,22 @@ final class PptxReaderTests: XCTestCase {
         XCTAssertEqual(design.pages[0].notes, "Line one\n\nLine three")
         XCTAssertNil(design.pages[1].title)
         XCTAssertNil(design.pages[1].notes)
+    }
+
+    /// Shared: a title is split on ASCII white space only and joined with
+    /// one space; a no-break space, as French puts before "!", stays.
+    func testATitleKeepsItsNoBreakSpaces() throws {
+        func titled(_ words: String) -> String {
+            "<p:sp><p:nvSpPr><p:cNvPr id=\"2\" name=\"t\"/><p:cNvSpPr/><p:nvPr><p:ph type=\"title\"/></p:nvPr></p:nvSpPr>"
+                + "<p:spPr>\(box)</p:spPr><p:txBody><a:bodyPr/><a:p><a:r><a:t>\(words)</a:t></a:r></a:p></p:txBody></p:sp>"
+        }
+        let rows: [(String, String)] = [
+            ("Merci\u{00A0}!", "Merci\u{00A0}!"),
+            (" Merci \t\u{00A0}! \u{2028} encore ", "Merci \u{00A0}! \u{2028} encore"),
+        ]
+        for (words, title) in rows {
+            XCTAssertEqual(try read(deck([titled(words)])).design.pages[0].title, title, words)
+        }
     }
 
     func testAFileThatIsNotADeckOrHasNoSlidesIsNone() throws {
