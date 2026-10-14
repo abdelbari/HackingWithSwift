@@ -421,9 +421,14 @@ struct HomeView: View {
                     .font(.title)
                     .foregroundStyle(Theme.accent)
                     .accessibilityHidden(true)
-                Text("Start from a photo")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.ink)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Start from a photo")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.ink)
+                    Text("Pick photos or videos, and each becomes a page of a new design.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
                 Image(systemName: "chevron.forward")
                     .font(.caption.weight(.semibold))
@@ -989,6 +994,8 @@ struct HomeView: View {
                 }
                 heroButton(tr("New design"), systemImage: "plus") { homeSheet = .pickSize }
                 overflowMenu
+                // The brand kit, set up without opening a design.
+                heroButton(tr("Brand kit"), systemImage: "paintpalette") { homeSheet = .brandKit }
                 heroButton(tr("Settings"), systemImage: "gearshape") { homeSheet = .settings }
             }
 
@@ -1035,8 +1042,7 @@ struct HomeView: View {
         .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 26, bottomTrailingRadius: 26))
     }
 
-    /// Home's ⋯: Import, then the brand kits — beside Settings — and how
-    /// Canvia works.
+    /// Home's ⋯: Import, then how Canvia works.
     private var overflowMenu: some View {
         Menu {
             Section(ImportChoice.groupTitle) {
@@ -1044,7 +1050,6 @@ struct HomeView: View {
                     Button { startImport(choice) } label: { Label(choice.title, systemImage: choice.systemImage) }
                 }
             }
-            Button { homeSheet = .brandKit } label: { Label("Brand kit", systemImage: "paintpalette") }
             Button { homeSheet = .help } label: { Label("How Canvia works", systemImage: "questionmark.circle") }
         } label: {
             heroCircle("ellipsis")
@@ -1382,7 +1387,8 @@ struct HomeView: View {
         .background(.bar)
         .accessibilityElement(children: .contain)
         .transition(.move(edge: .bottom).combined(with: .opacity))
-        .confirmationDialog(tr("Share"), isPresented: $sharingPicked, titleVisibility: .visible) {
+        .confirmationDialog(trn("Share %d design|Share %d designs", chosen.count), isPresented: $sharingPicked,
+                            titleVisibility: .visible) {
             Button { share(chosen, as: .png) } label: { Text(verbatim: "PNG") }
             Button { share(chosen, as: .pdf) } label: { Text(verbatim: "PDF") }
             Button("Design files") { share(chosen, as: .designFiles) }

@@ -1584,12 +1584,12 @@
     "pt-BR": "%@… %d%%"
   },
   "%d + %d adapted": {
-    "ar": "%d + %d مُكيّفة",
+    "ar": "%d + %d مُكيَّفة",
     "de": "%d + %d angepasst",
     "es": "%d + %d adaptadas",
     "fr": "%d + %d adaptés",
     "it": "%d + %d adattati",
-    "ja": "%d + 調整 %d 件",
+    "ja": "%d + 調整済み %d",
     "pt-BR": "%d + %d adaptados"
   },
   "%d SmartArt|%d SmartArt": {
@@ -1623,6 +1623,39 @@
     "pt-BR": {
       "one": "%d SmartArt",
       "other": "%d SmartArt"
+    }
+  },
+  "%d adapted from other sizes|%d adapted from other sizes": {
+    "ar": {
+      "few": "%d مُكيَّفة من مقاسات أخرى",
+      "many": "%d مُكيَّفًا من مقاسات أخرى",
+      "one": "%d مُكيَّف من مقاس آخر",
+      "other": "%d مُكيَّف من مقاسات أخرى",
+      "two": "%d مُكيَّفان من مقاسات أخرى",
+      "zero": "%d مُكيَّف من مقاسات أخرى"
+    },
+    "de": {
+      "one": "%d aus anderen Formaten angepasst",
+      "other": "%d aus anderen Formaten angepasst"
+    },
+    "es": {
+      "one": "%d adaptada de otros tamaños",
+      "other": "%d adaptadas de otros tamaños"
+    },
+    "fr": {
+      "one": "%d adapté d’autres formats",
+      "other": "%d adaptés d’autres formats"
+    },
+    "it": {
+      "one": "%d adattato da altri formati",
+      "other": "%d adattati da altri formati"
+    },
+    "ja": {
+      "other": "ほかのサイズから調整 %d 件"
+    },
+    "pt-BR": {
+      "one": "%d adaptado de outros tamanhos",
+      "other": "%d adaptados de outros tamanhos"
     }
   },
   "%d already here was kept.|%d already here were kept.": {
@@ -3686,6 +3719,15 @@
     "ja": "新しいパレット",
     "pt-BR": "Uma nova paleta"
   },
+  "A picture of each page": {
+    "ar": "صورة لكل صفحة",
+    "de": "Ein Bild pro Seite",
+    "es": "Una imagen de cada página",
+    "fr": "Une image par page",
+    "it": "Un’immagine per pagina",
+    "ja": "ページごとに 1 枚の画像",
+    "pt-BR": "Uma imagem de cada página"
+  },
   "A row of cells per row, or paste rows from a spreadsheet": {
     "ar": "صف خلايا لكل صف، أو الصق صفوفًا من جدول بيانات",
     "de": "Eine Zellenreihe pro Zeile, oder Zeilen aus einer Tabellenkalkulation einfügen",
@@ -3840,12 +3882,12 @@
     "pt-BR": "Tamanho real"
   },
   "Adapted from other sizes": {
-    "ar": "مُكيّفة من مقاسات أخرى",
-    "de": "Aus anderen Größen angepasst",
+    "ar": "مُكيَّفة من مقاسات أخرى",
+    "de": "Aus anderen Formaten angepasst",
     "es": "Adaptadas de otros tamaños",
     "fr": "Adaptés d’autres formats",
     "it": "Adattati da altri formati",
-    "ja": "他のサイズから調整",
+    "ja": "ほかのサイズから調整",
     "pt-BR": "Adaptados de outros tamanhos"
   },
   "Add": {
@@ -4129,12 +4171,12 @@
   },
   "Add logo from photos…": {
     "ar": "إضافة شعار من الصور…",
-    "de": "Logo aus Fotos hinzufügen…",
+    "de": "Logo aus Fotos hinzufügen …",
     "es": "Añadir logotipo desde fotos…",
     "fr": "Ajouter un logo depuis les photos…",
     "it": "Aggiungi logo dalle foto…",
     "ja": "写真からロゴを追加…",
-    "pt-BR": "Adicionar logotipo das fotos…"
+    "pt-BR": "Adicionar logo das fotos…"
   },
   "Add music": {
     "ar": "إضافة موسيقى",
@@ -5959,7 +6001,7 @@
   },
   "Canvia design file…": {
     "ar": "ملف تصميم Canvia…",
-    "de": "Canvia-Designdatei…",
+    "de": "Canvia-Designdatei …",
     "es": "Archivo de diseño de Canvia…",
     "fr": "Fichier de design Canvia…",
     "it": "File di design Canvia…",
@@ -6463,6 +6505,15 @@
     "it": "Scegli pagine… (%@)",
     "ja": "ページを選択…（%@）",
     "pt-BR": "Escolher páginas… (%@)"
+  },
+  "Choose photos": {
+    "ar": "اختيار صور",
+    "de": "Fotos auswählen",
+    "es": "Elegir fotos",
+    "fr": "Choisir des photos",
+    "it": "Scegli foto",
+    "ja": "写真を選択",
+    "pt-BR": "Escolher fotos"
   },
   "Choose photos or videos": {
     "ar": "اختيار صور أو مقاطع فيديو",
@@ -7207,8 +7258,8 @@
     "de": "%d von %d konnten nicht exportiert werden",
     "es": "No se pudieron exportar %d de %d",
     "fr": "Impossible d’exporter %d sur %d",
-    "it": "Impossibile esportare %d di %d",
-    "ja": "%d 件を書き出せませんでした（%d 件中）",
+    "it": "Impossibile esportare %d su %d",
+    "ja": "%d / %d 件を書き出せませんでした",
     "pt-BR": "Não foi possível exportar %d de %d"
   },
   "Couldn't find a subject in this picture. It works best on a photo with a clear foreground.": {
@@ -10161,8 +10212,8 @@
     "ar": "جارٍ تصدير التصميم %d من %d",
     "de": "Design %d von %d wird exportiert",
     "es": "Exportando %d de %d diseños",
-    "fr": "Export du design %d sur %d",
-    "it": "Esportazione del design %d di %d",
+    "fr": "Exportation de %d design sur %d",
+    "it": "Esportazione di %d design su %d",
     "ja": "%d / %d 件のデザインを書き出し中",
     "pt-BR": "Exportando %d de %d designs"
   },
@@ -14771,6 +14822,15 @@
     "ja": "「%@」に一致するあなたのテンプレートはありません。",
     "pt-BR": "Nenhum dos seus modelos corresponde a “%@”."
   },
+  "None yet. Choose some from your photos.": {
+    "ar": "لا شيء بعد. اختر بعضها من صورك.",
+    "de": "Noch keine. Wähle welche aus deinen Fotos.",
+    "es": "Aún no hay ninguna. Elige algunas de tus fotos.",
+    "fr": "Aucune pour l’instant. Choisissez-en parmi vos photos.",
+    "it": "Ancora nessuna. Scegline alcune dalle tue foto.",
+    "ja": "まだありません。写真から選んでください。",
+    "pt-BR": "Nenhuma ainda. Escolha algumas das suas fotos."
+  },
   "None yet. Select a picture in the design, or choose one from your photos.": {
     "ar": "لا شيء بعد. حدّد صورة في التصميم، أو اختر واحدة من صورك.",
     "de": "Noch keine. Wähle ein Bild im Design aus oder wähle eines aus deinen Fotos.",
@@ -15365,6 +15425,15 @@
     "ja": "1 件を開けませんでした",
     "pt-BR": "Um não pôde ser aberto"
   },
+  "One document per design": {
+    "ar": "مستند واحد لكل تصميم",
+    "de": "Ein Dokument pro Design",
+    "es": "Un documento por diseño",
+    "fr": "Un document par design",
+    "it": "Un documento per design",
+    "ja": "デザインごとに 1 つの書類",
+    "pt-BR": "Um documento por design"
+  },
   "One file per page, numbered — so each can be posted on its own.": {
     "ar": "ملف لكل صفحة، مرقّم — ليمكن نشر كل منها على حدة.",
     "de": "Eine Datei pro Seite, nummeriert – so kann jede einzeln gepostet werden.",
@@ -15771,8 +15840,8 @@
     "pt-BR": "Sobrepor"
   },
   "PDF…": {
-    "ar": "PDF…",
-    "de": "PDF…",
+    "ar": "ملف PDF…",
+    "de": "PDF …",
     "es": "PDF…",
     "fr": "PDF…",
     "it": "PDF…",
@@ -16462,11 +16531,11 @@
   },
   "Photo or video…": {
     "ar": "صورة أو فيديو…",
-    "de": "Foto oder Video…",
+    "de": "Foto oder Video …",
     "es": "Foto o vídeo…",
     "fr": "Photo ou vidéo…",
     "it": "Foto o video…",
-    "ja": "写真またはビデオ…",
+    "ja": "写真または動画…",
     "pt-BR": "Foto ou vídeo…"
   },
   "Photos": {
@@ -16585,6 +16654,15 @@
     "it": "Scegli dalla pagina",
     "ja": "ページから選択",
     "pt-BR": "Escolher na página"
+  },
+  "Pick photos or videos, and each becomes a page of a new design.": {
+    "ar": "اختر صورًا أو مقاطع فيديو، وتصبح كل واحدة صفحة في تصميم جديد.",
+    "de": "Wähle Fotos oder Videos aus – jedes wird eine Seite eines neuen Designs.",
+    "es": "Elige fotos o vídeos y cada uno se convierte en una página de un diseño nuevo.",
+    "fr": "Choisissez des photos ou des vidéos : chacune devient une page d’un nouveau design.",
+    "it": "Scegli foto o video: ognuno diventa una pagina di un nuovo design.",
+    "ja": "写真や動画を選ぶと、それぞれが新しいデザインの 1 ページになります。",
+    "pt-BR": "Escolha fotos ou vídeos, e cada um vira uma página de um novo design."
   },
   "Pick something above and you'll have a design in about a minute.": {
     "ar": "اختر شيئًا أعلاه وسيكون لديك تصميم في دقيقة تقريبًا.",
@@ -16902,8 +16980,8 @@
     "pt-BR": "Pôster"
   },
   "PowerPoint…": {
-    "ar": "PowerPoint…",
-    "de": "PowerPoint…",
+    "ar": "ملف PowerPoint…",
+    "de": "PowerPoint …",
     "es": "PowerPoint…",
     "fr": "PowerPoint…",
     "it": "PowerPoint…",
@@ -17116,11 +17194,11 @@
   },
   "Print…": {
     "ar": "طباعة…",
-    "de": "Drucken…",
+    "de": "Drucken …",
     "es": "Imprimir…",
     "fr": "Imprimer…",
     "it": "Stampa…",
-    "ja": "印刷…",
+    "ja": "プリント…",
     "pt-BR": "Imprimir…"
   },
   "Progress bar": {
@@ -19523,6 +19601,39 @@
       "other": "Compartilhar %d SVGs"
     }
   },
+  "Share %d design|Share %d designs": {
+    "ar": {
+      "few": "مشاركة %d تصاميم",
+      "many": "مشاركة %d تصميمًا",
+      "one": "مشاركة %d تصميم",
+      "other": "مشاركة %d تصميم",
+      "two": "مشاركة %d تصميمَين",
+      "zero": "مشاركة %d تصميم"
+    },
+    "de": {
+      "one": "%d Design teilen",
+      "other": "%d Designs teilen"
+    },
+    "es": {
+      "one": "Compartir %d diseño",
+      "other": "Compartir %d diseños"
+    },
+    "fr": {
+      "one": "Partager %d design",
+      "other": "Partager %d designs"
+    },
+    "it": {
+      "one": "Condividi %d design",
+      "other": "Condividi %d design"
+    },
+    "ja": {
+      "other": "%d 件のデザインを共有"
+    },
+    "pt-BR": {
+      "one": "Compartilhar %d design",
+      "other": "Compartilhar %d designs"
+    }
+  },
   "Share GIF": {
     "ar": "مشاركة GIF",
     "de": "GIF teilen",
@@ -19615,7 +19726,7 @@
   },
   "Share…": {
     "ar": "مشاركة…",
-    "de": "Teilen…",
+    "de": "Teilen …",
     "es": "Compartir…",
     "fr": "Partager…",
     "it": "Condividi…",
@@ -20576,11 +20687,11 @@
   "Start from a photo": {
     "ar": "ابدأ من صورة",
     "de": "Mit einem Foto beginnen",
-    "es": "Empezar con una foto",
+    "es": "Empieza con una foto",
     "fr": "Partir d’une photo",
     "it": "Inizia da una foto",
     "ja": "写真から始める",
-    "pt-BR": "Começar com uma foto"
+    "pt-BR": "Comece com uma foto"
   },
   "Start from a template": {
     "ar": "البدء من قالب",
@@ -20606,7 +20717,7 @@
     "es": "Empezar con mi marca",
     "fr": "Commencer avec ma marque",
     "it": "Inizia con il mio brand",
-    "ja": "マイブランドで始める",
+    "ja": "ブランドで始める",
     "pt-BR": "Começar com minha marca"
   },
   "Started over from “%@”": {
@@ -22463,6 +22574,15 @@
     "ja": "最前面へ",
     "pt-BR": "Para a frente"
   },
+  "To open in Canvia on another phone": {
+    "ar": "لفتحها في Canvia على هاتف آخر",
+    "de": "Zum Öffnen in Canvia auf einem anderen Telefon",
+    "es": "Para abrir en Canvia en otro teléfono",
+    "fr": "À ouvrir dans Canvia sur un autre téléphone",
+    "it": "Da aprire in Canvia su un altro telefono",
+    "ja": "別の電話の Canvia で開くため",
+    "pt-BR": "Para abrir no Canvia em outro celular"
+  },
   "To text": {
     "ar": "إلى نص",
     "de": "In Text",
@@ -23227,6 +23347,39 @@
     "it": "Usa",
     "ja": "使用",
     "pt-BR": "Usar"
+  },
+  "Use all %d page|Use all %d pages": {
+    "ar": {
+      "few": "استخدام الصفحات الـ %d كلها",
+      "many": "استخدام الصفحات الـ %d كلها",
+      "one": "استخدام الصفحة %d",
+      "other": "استخدام الصفحات الـ %d كلها",
+      "two": "استخدام الصفحتين الـ %d",
+      "zero": "استخدام الصفحات الـ %d كلها"
+    },
+    "de": {
+      "one": "%d Seite verwenden",
+      "other": "Alle %d Seiten verwenden"
+    },
+    "es": {
+      "one": "Usar %d página",
+      "other": "Usar las %d páginas"
+    },
+    "fr": {
+      "one": "Utiliser %d page",
+      "other": "Utiliser les %d pages"
+    },
+    "it": {
+      "one": "Usa %d pagina",
+      "other": "Usa tutte le %d pagine"
+    },
+    "ja": {
+      "other": "%d ページすべてを使う"
+    },
+    "pt-BR": {
+      "one": "Usar %d página",
+      "other": "Usar todas as %d páginas"
+    }
   },
   "Use as background": {
     "ar": "استخدام كخلفية",

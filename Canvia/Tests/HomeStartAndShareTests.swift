@@ -125,6 +125,22 @@ final class HomeStartAndShareTests: XCTestCase {
         XCTAssertNil(queue.takeFinished())
     }
 
+    /// Two designs of one title keep a file each: every part's files go
+    /// in a folder of its own, under their own names.
+    func testTwoDesignsOfOneNameKeepAFileEach() throws {
+        let batch = UUID()
+        var made: [URL] = []
+        for (index, text) in ["first", "second"].enumerated() {
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("Poster.pdf")
+            try Data(text.utf8).write(to: url)
+            made += HomeExports.setApart([url], batch: batch, index: index)
+        }
+        XCTAssertEqual(made.map(\.lastPathComponent), ["Poster.pdf", "Poster.pdf"])
+        XCTAssertNotEqual(made[0], made[1])
+        XCTAssertEqual(try String(contentsOf: made[0], encoding: .utf8), "first")
+        XCTAssertEqual(try String(contentsOf: made[1], encoding: .utf8), "second")
+    }
+
     /// A design that no longer reads is passed over and said.
     func testADesignThatDoesNotReadIsSkipped() async {
         let queue = ExportQueue(host: .none)

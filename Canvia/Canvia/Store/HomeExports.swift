@@ -58,10 +58,27 @@ enum HomeExports {
         ExportSnapshot(design, range: .all, current: 0)
     }
 
+    /// A part's files moved into a folder of their own, numbered by its
+    /// place in the batch, under their own names: two designs of one title
+    /// would otherwise write the same file, the second over the first. One
+    /// that will not move is handed over where it is.
+    static func setApart(_ urls: [URL], batch: UUID, index: Int) -> [URL] {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("batch-\(batch.uuidString)", isDirectory: true)
+            .appendingPathComponent("\(index + 1)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        return urls.map { url in
+            let target = folder.appendingPathComponent(url.lastPathComponent)
+            try? FileManager.default.removeItem(at: target)
+            return (try? FileManager.default.moveItem(at: url, to: target)) != nil ? target : url
+        }
+    }
+
     /// Part `index` of `total`: the design read when its turn comes, then
     /// made as `format`, reporting the whole batch's progress.
     @MainActor
-    static func designWork(id: String, format: Format, settings: ExportLast, index: Int, total: Int) -> ExportQueue.Work {
+    static func designWork(id: String, format: Format, settings: ExportLast, batch: UUID,
+                           index: Int, total: Int) -> ExportQueue.Work {
         { report in
             let part: @Sendable (Double) -> Void = { fraction in
                 report(overall(fraction, index: index, total: total))
@@ -79,7 +96,9 @@ enum HomeExports {
             case .designFiles:
                 render = ExportJobs.designFile(made.design)
             }
-            return try await render(part)
+            var result = try await render(part)
+            result.urls = setApart(result.urls, batch: batch, index: index)
+            return result
         }
     }
 
@@ -91,7 +110,8 @@ enum HomeExports {
             queue.enqueue(ExportQueue.Job(
                 label: label(index: index, total: ids.count), designId: id,
                 batch: ExportQueue.Batch(id: batch, index: index, total: ids.count),
-                work: designWork(id: id, format: format, settings: settings, index: index, total: ids.count)))
+                work: designWork(id: id, format: format, settings: settings, batch: batch,
+                                 index: index, total: ids.count)))
         }
     }
 

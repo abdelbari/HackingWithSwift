@@ -8752,7 +8752,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld + %lld مُكيّفة"
+            "value" : "%lld + %lld مُكيَّفة"
           }
         },
         "de" : {
@@ -8788,7 +8788,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld + 調整 %lld 件"
+            "value" : "%lld + 調整済み %lld"
           }
         },
         "pt-BR" : {
@@ -8959,6 +8959,173 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld SmartArt"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld adapted from other sizes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld مُكيَّفة من مقاسات أخرى"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld مُكيَّفًا من مقاسات أخرى"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld مُكيَّف من مقاس آخر"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld مُكيَّف من مقاسات أخرى"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld مُكيَّفان من مقاسات أخرى"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld مُكيَّف من مقاسات أخرى"
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld aus anderen Formaten angepasst"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld aus anderen Formaten angepasst"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld adapted from other sizes"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld adapted from other sizes"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld adaptada de otros tamaños"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld adaptadas de otros tamaños"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld adapté d’autres formats"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld adaptés d’autres formats"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld adattato da altri formati"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld adattati da altri formati"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "ほかのサイズから調整 %lld 件"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld adaptado de outros tamanhos"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld adaptados de outros tamanhos"
                 }
               }
             }
@@ -19791,6 +19958,59 @@
         }
       }
     },
+    "A picture of each page" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "صورة لكل صفحة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Bild pro Seite"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A picture of each page"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una imagen de cada página"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une image par page"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un’immagine per pagina"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページごとに 1 枚の画像"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma imagem de cada página"
+          }
+        }
+      }
+    },
     "A row of cells per row, or paste rows from a spreadsheet" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20698,13 +20918,13 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "مُكيّفة من مقاسات أخرى"
+            "value" : "مُكيَّفة من مقاسات أخرى"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aus anderen Größen angepasst"
+            "value" : "Aus anderen Formaten angepasst"
           }
         },
         "en" : {
@@ -20734,7 +20954,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "他のサイズから調整"
+            "value" : "ほかのサイズから調整"
           }
         },
         "pt-BR" : {
@@ -22400,7 +22620,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Logo aus Fotos hinzufügen…"
+            "value" : "Logo aus Fotos hinzufügen …"
           }
         },
         "en" : {
@@ -22436,7 +22656,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Adicionar logotipo das fotos…"
+            "value" : "Adicionar logo das fotos…"
           }
         }
       }
@@ -32958,7 +33178,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Canvia-Designdatei…"
+            "value" : "Canvia-Designdatei …"
           }
         },
         "en" : {
@@ -35661,6 +35881,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escolher páginas… (%@)"
+          }
+        }
+      }
+    },
+    "Choose photos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اختيار صور"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos auswählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose photos"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elegir fotos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir des photos"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli foto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真を選択"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolher fotos"
           }
         }
       }
@@ -39965,13 +40238,13 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Impossibile esportare %lld di %lld"
+            "value" : "Impossibile esportare %lld su %lld"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld 件を書き出せませんでした（%lld 件中）"
+            "value" : "%lld / %lld 件を書き出せませんでした"
           }
         },
         "pt-BR" : {
@@ -57142,13 +57415,13 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Export du design %lld sur %lld"
+            "value" : "Exportation de %lld design sur %lld"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Esportazione del design %lld di %lld"
+            "value" : "Esportazione di %lld design su %lld"
           }
         },
         "ja" : {
@@ -84010,6 +84283,59 @@
         }
       }
     },
+    "None yet. Choose some from your photos." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا شيء بعد. اختر بعضها من صورك."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine. Wähle welche aus deinen Fotos."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None yet. Choose some from your photos."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no hay ninguna. Elige algunas de tus fotos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune pour l’instant. Choisissez-en parmi vos photos."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancora nessuna. Scegline alcune dalle tue foto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだありません。写真から選んでください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhuma ainda. Escolha algumas das suas fotos."
+          }
+        }
+      }
+    },
     "None yet. Select a picture in the design, or choose one from your photos." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -87508,6 +87834,59 @@
         }
       }
     },
+    "One document per design" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مستند واحد لكل تصميم"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Dokument pro Design"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One document per design"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un documento por diseño"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un document par design"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un documento per design"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デザインごとに 1 つの書類"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um documento por design"
+          }
+        }
+      }
+    },
     "One file per page, numbered — so each can be posted on its own." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -89899,13 +90278,13 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PDF…"
+            "value" : "ملف PDF…"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PDF…"
+            "value" : "PDF …"
           }
         },
         "en" : {
@@ -93941,7 +94320,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Foto oder Video…"
+            "value" : "Foto oder Video …"
           }
         },
         "en" : {
@@ -93971,7 +94350,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "写真またはビデオ…"
+            "value" : "写真または動画…"
           }
         },
         "pt-BR" : {
@@ -94667,6 +95046,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escolher na página"
+          }
+        }
+      }
+    },
+    "Pick photos or videos, and each becomes a page of a new design." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اختر صورًا أو مقاطع فيديو، وتصبح كل واحدة صفحة في تصميم جديد."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle Fotos oder Videos aus – jedes wird eine Seite eines neuen Designs."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick photos or videos, and each becomes a page of a new design."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige fotos o vídeos y cada uno se convierte en una página de un diseño nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez des photos ou des vidéos : chacune devient une page d’un nouveau design."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli foto o video: ognuno diventa una pagina di un nuovo design."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真や動画を選ぶと、それぞれが新しいデザインの 1 ページになります。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha fotos ou vídeos, e cada um vira uma página de um novo design."
           }
         }
       }
@@ -96532,13 +96964,13 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PowerPoint…"
+            "value" : "ملف PowerPoint…"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PowerPoint…"
+            "value" : "PowerPoint …"
           }
         },
         "en" : {
@@ -97765,7 +98197,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Drucken…"
+            "value" : "Drucken …"
           }
         },
         "en" : {
@@ -97795,7 +98227,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "印刷…"
+            "value" : "プリント…"
           }
         },
         "pt-BR" : {
@@ -111748,6 +112180,173 @@
         }
       }
     },
+    "Share %lld designs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "مشاركة %lld تصاميم"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "مشاركة %lld تصميمًا"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "مشاركة %lld تصميم"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "مشاركة %lld تصميم"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "مشاركة %lld تصميمَين"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "مشاركة %lld تصميم"
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Design teilen"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Designs teilen"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Share %lld design"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Share %lld designs"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Compartir %lld diseño"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Compartir %lld diseños"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Partager %lld design"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Partager %lld designs"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Condividi %lld design"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Condividi %lld design"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld 件のデザインを共有"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Compartilhar %lld design"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Compartilhar %lld designs"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Share GIF" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -112290,7 +112889,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Teilen…"
+            "value" : "Teilen …"
           }
         },
         "en" : {
@@ -117928,7 +118527,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Empezar con una foto"
+            "value" : "Empieza con una foto"
           }
         },
         "fr" : {
@@ -117952,7 +118551,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Começar com uma foto"
+            "value" : "Comece com uma foto"
           }
         }
       }
@@ -118105,7 +118704,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "マイブランドで始める"
+            "value" : "ブランドで始める"
           }
         },
         "pt-BR" : {
@@ -128952,6 +129551,59 @@
         }
       }
     },
+    "To open in Canvia on another phone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لفتحها في Canvia على هاتف آخر"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Öffnen in Canvia auf einem anderen Telefon"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To open in Canvia on another phone"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para abrir en Canvia en otro teléfono"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À ouvrir dans Canvia sur un autre téléphone"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da aprire in Canvia su un altro telefono"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別の電話の Canvia で開くため"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para abrir no Canvia em outro celular"
+          }
+        }
+      }
+    },
     "To text" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -133453,6 +134105,173 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usar"
+          }
+        }
+      }
+    },
+    "Use all %lld pages" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "استخدام الصفحات الـ %lld كلها"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "استخدام الصفحات الـ %lld كلها"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "استخدام الصفحة %lld"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "استخدام الصفحات الـ %lld كلها"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "استخدام الصفحتين الـ %lld"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "استخدام الصفحات الـ %lld كلها"
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Seite verwenden"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Alle %lld Seiten verwenden"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Use all %lld page"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Use all %lld pages"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usar %lld página"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usar las %lld páginas"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Utiliser %lld page"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Utiliser les %lld pages"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usa %lld pagina"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usa tutte le %lld pagine"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld ページすべてを使う"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usar %lld página"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Usar todas as %lld páginas"
+                }
+              }
+            }
           }
         }
       }
