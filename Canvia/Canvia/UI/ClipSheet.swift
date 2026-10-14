@@ -1,10 +1,13 @@
 // A clip's trim, speed, loop and sound.
 //
-// The part of the file a clip plays, how fast, whether it goes round again
-// and how loud — kept on the element, the file left as it is, so a trim can
-// always be taken back out. Each change is one undo step: a slider's when it
-// is let go, not one for every frame of the drag. The Android twin's
-// PhotoPanel Clip section sets the same `clip` object.
+// The part of the file a clip plays, how fast, whether it goes round again,
+// how loud and how its sound fades in and out — kept on the element, the
+// file left as it is, so a trim can always be taken back out. The trim is a
+// trimmer bar over the clip's frames (TrimmerBar): dragging a handle shows
+// the frame there on the canvas, and letting go plays the first second and
+// a half of the new trim. Each change is one undo step: a slider's or a
+// handle's when it is let go, not one for every frame of the drag. The
+// Android twin's PhotoPanel Clip section sets the same `clip` object.
 
 import SwiftUI
 
@@ -14,11 +17,13 @@ struct ClipSheet: View {
     /// The clip's length, read off the main thread when the sheet opens;
     /// nil until it is, 0 for one that cannot be read.
     @State private var length: Double?
-    /// Where a trim slider is while it is dragged; written when let go.
-    @State private var draftStart: Double?
-    @State private var draftEnd: Double?
-    /// Where the Volume slider is while it is dragged; written when let go.
+    /// The clip's frames for the trimmer bar, once read.
+    @State private var frames: [UIImage] = []
+    /// Where the Volume and fade sliders are while dragged; written when let
+    /// go.
     @State private var draftVolume: Double?
+    @State private var draftFadeIn: Double?
+    @State private var draftFadeOut: Double?
 
     private var element: Element? {
         guard let el = store.singleSelection, VideoStore.isVideo(el.src) else { return nil }
@@ -32,31 +37,11 @@ struct ClipSheet: View {
             Form {
                 if let el = element {
                     let clip = el.clip ?? ClipPlayback()
-                    trimSection(clip)
-                    Section("Speed") {
-                        Picker("Speed", selection: Binding(
-                            get: { clip.speed },
-                            set: { v in write { $0.speed = v } })) {
-                            ForEach(ClipPlayback.speeds, id: \.self) { speed in
-                                Text(Self.speedLabel(speed)).tag(speed)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                    }
-                    Section {
-                        Toggle("Loop", isOn: Binding(
-                            get: { clip.loop },
-                            set: { on in write { $0.loop = on } }))
-                    }
+                    trimSection(el, clip)
+                    playSection(clip)
                     soundSection(clip)
-                    Section {
-                        Button("Fit page to clip") { store.fitPageToClip() }
-                            .disabled((length ?? 0) <= ClipPlayback.minLength)
-                        Button { store.playPreview() } label: {
-                            Label("Play", systemImage: "play.circle")
-                        }
-                    }
+                    fadeSection(clip)
+                    actionSection
                 }
             }
             .navigationTitle("Clip")
@@ -67,47 +52,63 @@ struct ClipSheet: View {
         }
         .presentationDetents(sheetDetents)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-        .task(id: clipId) {
-            guard let id = clipId else { return }
-            length = await Task.detached(priority: .userInitiated) { VideoStore.duration(of: id) ?? 0 }.value
+        .task(id: clipId) { await readClip() }
+        .onDisappear {
+            store.clipScrub = nil
+            Audition.shared.stop()
         }
     }
 
-    /// Start and End, each its own slider over the whole file, kept
-    /// `ClipPlayback.minLength` apart, with the trim read out above them.
-    /// A clip whose length cannot be read, or is no longer than that, has
-    /// none, as on the Android twin.
+    /// The clip's length, off the main thread, then its frames.
+    private func readClip() async {
+        frames = []
+        guard let id = clipId else { return }
+        let read = await Task.detached(priority: .userInitiated) { VideoStore.duration(of: id) ?? 0 }.value
+        length = read
+        guard read > 0 else { return }
+        frames = await Filmstrip.frames(of: id, length: read)
+    }
+
+    /// The trimmer bar over the clip's frames, the trim kept
+    /// `ClipPlayback.minLength` long at least. A clip whose length cannot be
+    /// read, or is no longer than that, has none, as on the Android twin.
     @ViewBuilder
-    private func trimSection(_ clip: ClipPlayback) -> some View {
+    private func trimSection(_ el: Element, _ clip: ClipPlayback) -> some View {
         if let length, length > ClipPlayback.minLength {
             Section {
-                let start = draftStart ?? min(max(0, clip.start), length)
-                let end = draftEnd ?? min(clip.end ?? length, length)
-                HStack {
-                    Text("Trim")
-                    Spacer()
-                    Text(VideoStore.rangeLabel(start, end))
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
+                TrimmerBar(length: length, start: min(max(0, clip.start), length),
+                           end: min(clip.end ?? length, length), minLength: ClipPlayback.minLength,
+                           scrub: { t in store.clipScrub = t.map { Trimming.Scrub(elementId: el.id, time: $0) } },
+                           commit: { start, end in commitTrim(start, end, length: length) }) {
+                    FilmstripView(frames: frames)
                 }
-                .accessibilityElement(children: .combine)
-                trimSlider("Start", value: start, length: length,
-                           set: { draftStart = max(0, min($0, end - ClipPlayback.minLength)) },
-                           done: { commitTrim(clip, length: length) })
-                trimSlider("End", value: end, length: length,
-                           set: { draftEnd = min(length, max($0, start + ClipPlayback.minLength)) },
-                           done: { commitTrim(clip, length: length) })
+                .padding(.vertical, 4)
             }
         } else if length == nil {
             Section { ProgressView() }
         }
     }
 
-    /// The clip's own sound as its page plays: Volume, held here while
-    /// dragged and written once on release — VoiceOver's swipes a tenth at a
-    /// time — and Mute, after Loop with no heading of their own. A clip at
-    /// another speed is heard at no speed for now, and says so, as on the
-    /// Android twin.
+    /// Speed, from a quarter to twice as fast, and Loop.
+    private func playSection(_ clip: ClipPlayback) -> some View {
+        Section {
+            Picker("Speed", selection: Binding(
+                get: { clip.speed },
+                set: { v in write { $0.speed = v } })) {
+                ForEach(ClipPlayback.speeds, id: \.self) { speed in
+                    Text(Self.speedLabel(speed)).tag(speed)
+                }
+            }
+            .pickerStyle(.menu)
+            Toggle("Loop", isOn: Binding(
+                get: { clip.loop },
+                set: { on in write { $0.loop = on } }))
+        }
+    }
+
+    /// The clip's own sound as its page plays, at any speed: Volume, held
+    /// here while dragged and written once on release — VoiceOver's swipes a
+    /// tenth at a time — and Mute.
     private func soundSection(_ clip: ClipPlayback) -> some View {
         let stored = min(max(clip.volume, 0), 1)
         let percent = Self.percentLabel(draftVolume ?? stored)
@@ -130,13 +131,36 @@ struct ClipSheet: View {
             Toggle("Mute", isOn: Binding(
                 get: { clip.muted },
                 set: { on in write { $0.muted = on } }))
-        } footer: {
-            if clip.speed != 1 { Text(Self.speedSoundNote) }
         }
     }
 
-    /// Said under Volume and Mute while the clip plays at another speed.
-    static let speedSoundNote = "Sound plays at 1× only"
+    /// Fade in and Fade out on the clip's own sound, 0 to 5 seconds in
+    /// half seconds, as a track's fades are heard (AudioMix.clipFades).
+    private func fadeSection(_ clip: ClipPlayback) -> some View {
+        let range = ClipPlayback.fadeRange
+        func kept(_ v: Double) -> Double { min(max(v, range.lowerBound), range.upperBound) }
+        let label: (Double) -> String = { AudioTracks.secondsLabel(Self.halves($0)) }
+        return Section {
+            StepSlider(label: "Fade in", stored: kept(clip.fadeIn), range: range, step: 0.5,
+                       draft: $draftFadeIn, readout: label) { v in
+                write { $0.fadeIn = Self.halves(v) }
+            }
+            StepSlider(label: "Fade out", stored: kept(clip.fadeOut), range: range, step: 0.5,
+                       draft: $draftFadeOut, readout: label) { v in
+                write { $0.fadeOut = Self.halves(v) }
+            }
+        }
+    }
+
+    private var actionSection: some View {
+        Section {
+            Button("Fit page to clip") { store.fitPageToClip() }
+                .disabled((length ?? 0) <= ClipPlayback.minLength)
+            Button { store.playPreview() } label: {
+                Label("Play", systemImage: "play.circle")
+            }
+        }
+    }
 
     /// A volume as the Clip sheet shows it: "0%" to "100%".
     static func percentLabel(_ volume: Double) -> String {
@@ -152,31 +176,22 @@ struct ClipSheet: View {
         if kept != stored { write { $0.volume = kept } }
     }
 
-    private func trimSlider(_ label: String, value: Double, length: Double,
-                            set: @escaping (Double) -> Void, done: @escaping () -> Void) -> some View {
-        HStack {
-            Text(label)
-            Slider(value: Binding(get: { value }, set: set), in: 0...length,
-                   onEditingChanged: { editing in if !editing { done() } })
-            .accessibilityLabel(label)
-            .accessibilityValue(VideoStore.timeLabel(value))
-        }
-    }
-
-    /// The trim dragged to, written as one step: to a tenth of a second,
-    /// and an end at the file's own end kept as none.
-    private func commitTrim(_ clip: ClipPlayback, length: Double) {
-        let start = draftStart
-        let end = draftEnd
-        draftStart = nil
-        draftEnd = nil
-        guard start != nil || end != nil else { return }
+    /// The trim let go at, written as one step — to a tenth of a second,
+    /// an end at the file's own end kept as none — and the first second and
+    /// a half of it played.
+    private func commitTrim(_ start: Double, _ end: Double, length: Double) {
+        let s = Self.tenths(start)
+        let e = Self.tenths(end)
         write { next in
-            if let start { next.start = Self.tenths(start) }
-            if let end {
-                let e = Self.tenths(end)
-                next.end = e >= length - 0.05 ? nil : e
-            }
+            next.start = s
+            next.end = e >= length - 0.05 ? nil : e
+        }
+        // Heard as it plays: not at all when it is silent, else at its
+        // volume and speed.
+        let playback = element?.clip ?? ClipPlayback()
+        if playback.sounds, let id = clipId, let url = VideoStore.url(for: id) {
+            Audition.shared.play(url, Trimming.auditioned(start: s, end: min(e, length)),
+                                 volume: playback.volume, speed: playback.playbackSpeed)
         }
     }
 
@@ -190,8 +205,15 @@ struct ClipSheet: View {
 
     private static func tenths(_ seconds: Double) -> Double { (seconds * 10).rounded() / 10 }
 
-    /// "0.5×", "1×", "1.5×", "2×".
+    /// Seconds to the half second a fade steps by.
+    static func halves(_ seconds: Double) -> Double { (seconds * 2).rounded() / 2 }
+
+    /// "0.25×", "0.5×", "1×", "1.25×", "2×": the speed with no trailing
+    /// zeros.
     static func speedLabel(_ speed: Double) -> String {
-        speed == speed.rounded() ? "\(Int(speed))×" : String(format: "%.1f×", speed)
+        var text = String(format: "%.2f", speed)
+        while text.hasSuffix("0") { text.removeLast() }
+        if text.hasSuffix(".") { text.removeLast() }
+        return text + "×"
     }
 }

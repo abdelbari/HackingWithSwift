@@ -27,9 +27,10 @@ final class ClipSoundTests: XCTestCase {
     }
 
     private func segment(_ source: String, _ sourceStart: Double, _ at: Double, _ duration: Double, _ gain: Double,
-                         _ fadeOut: ClosedRange<Double>? = nil, fadeIn: ClosedRange<Double>? = nil) -> AudioMix.Segment {
+                         _ fadeOut: ClosedRange<Double>? = nil, fadeIn: ClosedRange<Double>? = nil,
+                         speed: Double = 1) -> AudioMix.Segment {
         AudioMix.Segment(source: source, sourceStart: sourceStart, at: at, duration: duration, gain: gain,
-                         fadeOut: fadeOut, fadeIn: fadeIn)
+                         fadeOut: fadeOut, fadeIn: fadeIn, speed: speed)
     }
 
     /// The old soundtrack `source`, `volume` loud, as the track it is read
@@ -49,6 +50,7 @@ final class ClipSoundTests: XCTestCase {
             XCTAssertEqual(got.gain, want.gain, accuracy: 1e-9, name, file: file, line: line)
             XCTAssertEqual(got.fadeOut, want.fadeOut, name, file: file, line: line)
             XCTAssertEqual(got.fadeIn, want.fadeIn, name, file: file, line: line)
+            XCTAssertEqual(got.speed, want.speed, accuracy: 1e-9, name, file: file, line: line)
         }
     }
 
@@ -74,10 +76,19 @@ final class ClipSoundTests: XCTestCase {
              pages(10), [[clip("a", ClipPlayback(loop: false, volume: 0.8))]], ["a": 4, "m": 6],
              soundtrack("m", volume: 0.5),
              [segment("a", 0, 0, 4, 0.8), segment("m", 0, 0, 6, 0.5, 9...10), segment("m", 0, 6, 4, 0.5, 9...10)]),
-            ("a clip at another speed, a silent one, and one of no known length",
+            ("a clip at double speed, a silent one, and one of no known length",
              pages(5), [[clip("a", ClipPlayback(speed: 2)), clip("b", ClipPlayback(volume: 0)), clip("c")]],
              ["a": 10, "b": 10], [],
-             []),
+             [segment("a", 0, 0, 5, 1, speed: 2)]),
+            ("a looping clip at double speed goes round twice as often",
+             pages(5), [[clip("a", ClipPlayback(speed: 2))]], ["a": 4], [],
+             [segment("a", 0, 0, 2, 1, speed: 2), segment("a", 0, 2, 2, 1, speed: 2), segment("a", 0, 4, 1, 1, speed: 2)]),
+            ("a trimmed clip at a quarter speed",
+             pages(4), [[clip("a", ClipPlayback(start: 2, speed: 0.25))]], ["a": 10], [],
+             [segment("a", 2, 0, 4, 1, speed: 0.25)]),
+            ("a timed clip at double speed, cut where its window has got to",
+             pages(4), [[clip("a", ClipPlayback(speed: 2), timing: ElementTiming(start: 1))]], ["a": 10], [],
+             [segment("a", 2, 1, 3, 1, speed: 2)]),
             ("a timed clip, heard only while it shows",
              pages(6), [[clip("a", timing: ElementTiming(start: 3, end: 5))]], ["a": 10], [],
              [segment("a", 3, 3, 2, 1)]),
@@ -200,12 +211,14 @@ final class ClipSoundTests: XCTestCase {
         XCTAssertNil(try clipElement("{\"volume\": \"loud\"}").clip, "an odd volume reads as full")
     }
 
-    func testOnlyAClipAtItsOwnSpeedUnmutedAndAudibleSounds() {
+    func testAnUnmutedAudibleClipSoundsAtAnySpeed() {
         XCTAssertTrue(ClipPlayback().sounds)
         XCTAssertTrue(ClipPlayback(start: 2, end: 4, loop: false, volume: 0.1).sounds)
         XCTAssertFalse(ClipPlayback(muted: true).sounds)
         XCTAssertFalse(ClipPlayback(volume: 0).sounds)
-        XCTAssertFalse(ClipPlayback(speed: 1.5).sounds)
+        XCTAssertTrue(ClipPlayback(speed: 1.5).sounds)
+        XCTAssertTrue(ClipPlayback(speed: 0.25).sounds)
+        XCTAssertFalse(ClipPlayback(speed: 2, muted: true).sounds)
     }
 
     @MainActor
@@ -213,7 +226,164 @@ final class ClipSoundTests: XCTestCase {
         XCTAssertEqual(ClipSheet.percentLabel(0), "0%")
         XCTAssertEqual(ClipSheet.percentLabel(0.355), "36%")
         XCTAssertEqual(ClipSheet.percentLabel(1), "100%")
-        XCTAssertEqual(ClipSheet.speedSoundNote, "Sound plays at 1× only")
+    }
+
+    /// Seven speeds, a quarter to twice, as the Android twin's panel offers
+    /// them; a file's speed is still read from a quarter to four times.
+    @MainActor
+    func testTheClipSheetOffersSevenSpeeds() {
+        XCTAssertEqual(ClipPlayback.speeds, [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2])
+        XCTAssertEqual(ClipPlayback.speeds.map(ClipSheet.speedLabel), ["0.25×", "0.5×", "0.75×", "1×", "1.25×", "1.5×", "2×"])
+        XCTAssertEqual(ClipPlayback.speedRange, 0.25...4.0)
+        XCTAssertEqual(ClipPlayback(speed: 10).playbackSpeed, 4)
+        XCTAssertEqual(ClipPlayback(speed: 0.1).playbackSpeed, 0.25)
+    }
+
+    // MARK: fades
+
+    /// The clips' fades, in the plan as the Android twin lays them: once a
+    /// page, rising from where the clip is first heard on it and falling to
+    /// where it is last heard, each only when the clip sounds there for more
+    /// than twice its length — the rule a track's fades follow.
+    func testAClipsFadesAreLaidOverWhereItIsHeardOnItsPage() {
+        let rows: [(name: String, timeline: [MovieExporter.Timing], clipsByPage: [[AudioMix.Clip]],
+                    durations: [String: Double], segments: [AudioMix.Segment])] = [
+            ("a looping clip fading in 1 s and out 2 s over its page",
+             pages(10), [[clip("a", ClipPlayback(fadeIn: 1, fadeOut: 2))]], ["a": 4],
+             [segment("a", 0, 0, 4, 1, 8...10, fadeIn: 0...1), segment("a", 0, 4, 4, 1, 8...10, fadeIn: 0...1),
+              segment("a", 0, 8, 2, 1, 8...10, fadeIn: 0...1)]),
+            ("a fade in too long for a short page is not heard; the fade out is",
+             pages(3), [[clip("a", ClipPlayback(fadeIn: 2, fadeOut: 1))]], ["a": 10],
+             [segment("a", 0, 0, 3, 1, 2...3)]),
+            ("a clip at half speed played once fades out at its own end",
+             pages(10), [[clip("a", ClipPlayback(start: 1, end: 3, speed: 0.5, loop: false, fadeOut: 1))]], ["a": 10],
+             [segment("a", 1, 0, 4, 1, 3...4, speed: 0.5)]),
+            ("a timed clip on the second page fades in from where it shows",
+             pages(3, 4), [[], [clip("b", ClipPlayback(fadeIn: 0.5), timing: ElementTiming(start: 0.5, end: 2))]],
+             ["b": 10],
+             [segment("b", 0.5, 3.5, 1.5, 1, fadeIn: 3.5...4)]),
+            ("a fade past five seconds is heard as five",
+             pages(20), [[clip("a", ClipPlayback(volume: 0.5, fadeOut: 9))]], ["a": 30],
+             [segment("a", 0, 0, 20, 0.5, 15...20)]),
+        ]
+        for row in rows {
+            let plan = AudioMix.plan(timeline: row.timeline, fps: 30, clipsByPage: row.clipsByPage,
+                                     clipDurations: row.durations)
+            assertPlan(plan, row.segments, row.name)
+        }
+    }
+
+    /// The fade rule a track's and a clip's share, row for row with the
+    /// Android twin's.
+    func testTheFadeRuleIsATracksAndAClipsAlike() {
+        let rows: [(fadeIn: Double, fadeOut: Double, heard: Double, until: Double,
+                    want: (ClosedRange<Double>?, ClosedRange<Double>?))] = [
+            (1, 1, 0, 10, (0...1, 9...10)),
+            (3, 0, 0, 5, (nil, nil)),
+            (7, 7, 0, 20, (0...5, 15...20)),
+            (1, 1, 2, .infinity, (2...3, nil)),
+            (-1, 0.5, 4, 6, (nil, 5.5...6)),
+        ]
+        for row in rows {
+            let got = AudioMix.fades(fadeIn: row.fadeIn, fadeOut: row.fadeOut, heard: row.heard, until: row.until)
+            XCTAssertEqual(got.fadeIn, row.want.0, "\(row)")
+            XCTAssertEqual(got.fadeOut, row.want.1, "\(row)")
+        }
+    }
+
+    /// Where a clip is heard on its page: its timing, the page, and — played
+    /// once — its window at its speed.
+    func testWhereAClipIsHeardOnItsPage() {
+        XCTAssertEqual(AudioMix.clipHeard(ClipPlayback(), window: 4, timing: nil, page: 10), 0...10)
+        XCTAssertEqual(AudioMix.clipHeard(ClipPlayback(speed: 2, loop: false), window: 4, timing: nil, page: 10), 0...2)
+        XCTAssertEqual(AudioMix.clipHeard(ClipPlayback(), window: 4, timing: ElementTiming(start: 3, end: 5), page: nil),
+                       3...5)
+        XCTAssertNil(AudioMix.clipHeard(ClipPlayback(loop: false), window: 1, timing: ElementTiming(start: 3), page: 10))
+        XCTAssertEqual(AudioMix.clipHeard(ClipPlayback(), window: 4, timing: nil, page: nil)?.upperBound, .infinity)
+        // A page with no end — a talk in Present — fades a looping clip in,
+        // never out.
+        let present = AudioMix.clipFades(ClipPlayback(fadeIn: 1, fadeOut: 1), heard: 0...Double.infinity)
+        XCTAssertEqual(present.fadeIn, 0...1)
+        XCTAssertNil(present.fadeOut)
+    }
+
+    /// Present gives a page's clips its hold under autoplay, so a looping
+    /// clip fades out over the page's last moments; none when the page
+    /// waits to be turned.
+    @MainActor
+    func testPresentFadesALoopingClipOutByAnAutoplayedPagesTurn() throws {
+        XCTAssertEqual(PresentationView.clipPageLength(autoplay: true, hold: 6), 6)
+        XCTAssertNil(PresentationView.clipPageLength(autoplay: false, hold: 6))
+        let looping = ClipPlayback(fadeOut: 2)
+        let page = PresentationView.clipPageLength(autoplay: true, hold: 6)
+        let heard = try XCTUnwrap(AudioMix.clipHeard(looping, window: 4, timing: nil, page: page))
+        XCTAssertEqual(heard, 0...6)
+        XCTAssertEqual(AudioMix.clipFades(looping, heard: heard).fadeOut, 4...6)
+        let held = try XCTUnwrap(AudioMix.clipHeard(looping, window: 4, timing: nil,
+                                                    page: PresentationView.clipPageLength(autoplay: false, hold: 6)))
+        XCTAssertNil(AudioMix.clipFades(looping, heard: held).fadeOut)
+    }
+
+    /// A clip's fade rises and falls on its gain.
+    func testAClipsFadeRisesAndFallsOnItsGain() throws {
+        let plan = AudioMix.plan(timeline: pages(10), fps: 30, clipsByPage: [[clip("a", ClipPlayback(volume: 0.8,
+                                 fadeIn: 2, fadeOut: 2))]], clipDurations: ["a": 20])
+        let sound = try XCTUnwrap(plan.first)
+        XCTAssertEqual(sound.gainAt(0), 0, accuracy: 1e-9)
+        XCTAssertEqual(sound.gainAt(1), 0.4, accuracy: 1e-9)
+        XCTAssertEqual(sound.gainAt(5), 0.8, accuracy: 1e-9)
+        XCTAssertEqual(sound.gainAt(9.5), 0.2, accuracy: 1e-9)
+        XCTAssertEqual(sound.gainAt(10), 0, accuracy: 1e-9)
+    }
+
+    /// A sped-up stretch takes its length times its speed of the file, and
+    /// lasts its length over its speed in the composition.
+    func testASpedUpStretchIsScaledInTheComposition() {
+        XCTAssertEqual(segment("a", 0, 0, 3, 1, speed: 2).sourceDuration, 6, accuracy: 1e-9)
+        XCTAssertEqual(segment("a", 0, 0, 3, 1, speed: 0.5).sourceDuration, 1.5, accuracy: 1e-9)
+        let two = CMTime(seconds: 2, preferredTimescale: 600)
+        XCTAssertEqual(PageSound.scaled(two, speed: 1), two)
+        XCTAssertEqual(PageSound.scaled(two, speed: 2).seconds, 1, accuracy: 1e-6)
+        XCTAssertEqual(PageSound.scaled(two, speed: 0.25).seconds, 8, accuracy: 1e-6)
+    }
+
+    func testFadesAreWrittenOnlyAboveZeroAndReadForgivingly() throws {
+        let el = try clipElement("{\"fadeIn\": 1.5, \"fadeOut\": 0}")
+        XCTAssertEqual(el.clip, ClipPlayback(fadeIn: 1.5))
+        let written = try XCTUnwrap(try clipObject(el))
+        XCTAssertEqual(Set(written.keys), ["fadeIn"])
+        XCTAssertEqual(written["fadeIn"] as? Double, 1.5)
+        let both = try XCTUnwrap(try clipObject(try clipElement("{\"fadeIn\": 2, \"fadeOut\": 5, \"speed\": 0.25}")))
+        XCTAssertEqual(both["fadeOut"] as? Double, 5)
+        XCTAssertEqual(both["speed"] as? Double, 0.25)
+        XCTAssertNil(try clipElement("{\"fadeIn\": \"slow\"}").clip, "an odd fade reads as none")
+        XCTAssertNil(try clipElement("{\"fadeIn\": 0, \"fadeOut\": 0}").clip, "no fades is no clip")
+        let back = try JSONDecoder().decode(Element.self, from: JSONEncoder().encode(el))
+        XCTAssertEqual(back.clip, el.clip)
+    }
+
+    @MainActor
+    func testTheClipSheetStepsAFadeByHalfSeconds() {
+        XCTAssertEqual(ClipSheet.halves(1.2), 1)
+        XCTAssertEqual(ClipSheet.halves(1.3), 1.5)
+        XCTAssertEqual(ClipSheet.halves(4.9), 5)
+        XCTAssertEqual(ClipPlayback.fadeRange, 0...5)
+    }
+
+    @MainActor
+    func testAFadeIsOneStep() {
+        var design = Design(title: "fades", width: 1000, height: 1000)
+        let clip = Element.image(VideoStore.src("vid_1", at: nil), w: 320, h: 180)
+        design.pages[0].elements = [clip]
+        let s = DesignStore(design: design)
+        s.select(clip.id)
+        s.setClip(ClipPlayback(fadeIn: 1.5))
+        XCTAssertEqual(s.element(clip.id)?.clip?.fadeIn, 1.5)
+        s.setClip(ClipPlayback(fadeIn: 1.5, fadeOut: 2))
+        s.undo()
+        XCTAssertEqual(s.element(clip.id)?.clip, ClipPlayback(fadeIn: 1.5))
+        s.undo()
+        XCTAssertNil(s.element(clip.id)?.clip)
     }
 
     @MainActor
@@ -391,5 +561,13 @@ final class ClipSoundTests: XCTestCase {
         XCTAssertEqual(silentTracks, 0)
         let quiet = await PageSound.heard(in: film)
         XCTAssertFalse(quiet, "nothing to hear, no speaker button")
+
+        // At double speed its sound is in the video, scaled, as it plays.
+        film.pages[0].elements[0].clip = ClipPlayback(speed: 2)
+        let fast = dir.appendingPathComponent("fast.mp4")
+        let sped = try await MovieExporter.exportMP4(design: film, settings: MovieExporter.Settings(film.motion), to: fast)
+        XCTAssertFalse(sped.musicLost)
+        let fastTracks = try await audioTracks(fast)
+        XCTAssertEqual(fastTracks, 1)
     }
 }

@@ -2470,6 +2470,14 @@ final class DesignStore {
 
     /// Seconds into the current page while a preview plays; nil at rest.
     var previewTime: Double?
+    /// A clip's trim handle being dragged in the Clip sheet: the canvas
+    /// shows that element at the handle's moment. View state only, never
+    /// saved.
+    var clipScrub: Trimming.Scrub?
+    /// Whether Hold to compare is held: the canvas draws the selected photo
+    /// as it was before its looks (PhotoEdits.original). View state only,
+    /// nothing written.
+    var comparing = false
     /// Where the timeline's playhead stands, in seconds into the page
     /// `playheadPage` — so a page before it held longer or shorter leaves
     /// it where it is (see TimelineEditing). View state only, never saved.
@@ -2521,7 +2529,7 @@ final class DesignStore {
         // picture is.
         let since = Date().addingTimeInterval(-offset)
         previewSound.stop()
-        previewSound.page(AudioMix.clips(design: design, page: page), since: since)
+        previewSound.page(AudioMix.clips(design: design, page: page), since: since, length: hold)
         previewSound.tracks(design: design, offset: AudioMix.pageStart(design: design, index: pageIndex), since: since,
                             film: AudioMix.filmLength(design: design))
         previewTask = Task { @MainActor in
@@ -2545,8 +2553,8 @@ final class DesignStore {
         }
     }
 
-    /// The selected clip's trim, speed, loop, volume and mute, as one undo
-    /// step. A clip at all the defaults keeps none, so its file has no
+    /// The selected clip's trim, speed, loop, volume, mute and fades, as
+    /// one undo step. A clip at all the defaults keeps none, so its file has no
     /// `clip` key.
     func setClip(_ clip: ClipPlayback) {
         updateSelected { el in

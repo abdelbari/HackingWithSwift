@@ -421,7 +421,16 @@ struct PresentationView: View {
             return
         }
         sound.tracks(design: design, offset: musicFrom, since: started, film: .infinity)
-        sound.page(AudioMix.clips(design: design, page: page), since: session.shownAt)
+        let length = Self.clipPageLength(autoplay: autoplay, hold: session.holdSeconds(page))
+        sound.page(AudioMix.clips(design: design, page: page), since: session.shownAt, length: length)
+    }
+
+    /// How long a page's clips are heard for, for their fades: its hold
+    /// when autoplay turns it on its own timing, so a looping clip fades out
+    /// by the turn; none when it waits to be turned, and a looping clip
+    /// plays on. As the Android twin's Present.
+    static func clipPageLength(autoplay: Bool, hold: Double) -> Double? {
+        autoplay ? hold : nil
     }
 
     /// How `page` gives way to the next: its own transition, else the

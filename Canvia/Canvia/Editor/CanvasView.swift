@@ -332,9 +332,10 @@ struct CanvasView: View {
             // the opaque page sits above it in the ZStack.
             PageRenderView(design: store.design, page: shownPage)
                 .environment(\.animationTime, store.previewTime.map { ($0, store.pageHold) })
-                // While Play runs, a clip shows the frames decoded so far
-                // rather than holding up the canvas for each one.
-                .environment(\.liveVideo, store.previewTime != nil)
+                // While Play runs, or a trim handle is dragged, a clip shows
+                // the frames decoded so far rather than holding up the
+                // canvas for each one.
+                .environment(\.liveVideo, store.previewTime != nil || store.clipScrub != nil)
                 // A photo's subject is found for focus off the main thread.
                 .environment(\.onScreen, true)
                 .environment(\.playsPictures, playAnimated)
@@ -503,9 +504,13 @@ struct CanvasView: View {
     /// is a text box being typed in, so its words show once, in the field —
     /// and a shape being typed in is drawn without its words.
     private var shownPage: Page {
+        // A clip's trim handle dragged shows its frame there; Hold to
+        // compare shows the selected photo without its looks. Neither is
+        // written.
+        var page = Trimming.scrubbed(store.page, store.clipScrub)
+        if store.comparing, let id = store.singleSelection?.id { page = PhotoEdits.comparing(page, id) }
         let hidden = [store.cropping?.id, store.editingTextId].compactMap { $0 }
-        guard !hidden.isEmpty else { return store.page }
-        var page = store.page
+        guard !hidden.isEmpty else { return page }
         if let id = store.editingTextId, let i = page.elements.firstIndex(where: { $0.id == id && $0.type == .shape }) {
             page.elements[i].text = nil
         }

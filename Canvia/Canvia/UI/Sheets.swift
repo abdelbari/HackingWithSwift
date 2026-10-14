@@ -559,6 +559,7 @@ struct FiltersSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    compareButton
                     presetGrid
                     strengthSlider
                     duotoneRow
@@ -576,8 +577,34 @@ struct FiltersSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-        // A colour well's last change, which has no release to end its step.
-        .onDisappear { if store.hasPendingChanges { store.commit() } }
+        // A colour well's last change, which has no release to end its step;
+        // and Hold to compare let go, should the sheet close under the finger.
+        .onDisappear {
+            if store.hasPendingChanges { store.commit() }
+            store.comparing = false
+        }
+    }
+
+    /// Hold to compare: while it is held the canvas shows the photo as it
+    /// was before its filter, dials, duotone and effects
+    /// (PhotoEdits.original) — nothing written — and VoiceOver says so.
+    private var compareButton: some View {
+        let held = store.comparing
+        return Label(held ? PhotoEdits.comparingNote : "Hold to compare", systemImage: "eye")
+            .font(.callout.weight(.semibold))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(Capsule().fill(held ? Theme.accent.opacity(0.18) : Color(.systemGray6)))
+            .contentShape(Capsule())
+            .onLongPressGesture(minimumDuration: .infinity, maximumDistance: 60, perform: {},
+                                onPressingChanged: compare)
+            .modifier(CompareAccessibility())
+    }
+
+    private func compare(_ pressing: Bool) {
+        guard store.comparing != pressing else { return }
+        store.comparing = pressing
+        if pressing { AccessibilityNotification.Announcement(PhotoEdits.comparingNote).post() }
     }
 
     private var presetGrid: some View {
@@ -785,6 +812,7 @@ struct FiltersSheet: View {
                     }
                     edgeChip("outline", "Outline", current: edge)
                     edgeChip("glow", "Glow", current: edge)
+                    ForEach(PhotoFx.kinds, id: \.self) { kind in fxChip(kind, current: photo?.fx) }
                 }
                 .padding(.vertical, 2)
             }
@@ -802,6 +830,41 @@ struct FiltersSheet: View {
             }
             if let focus { focusControls(focus) }
             if let edge { edgeControls(edge) }
+            if let fx = photo?.fx { fxControls(fx) }
+        }
+    }
+
+    /// Glitch, slice, halftone or grain: one at a time, from one to another
+    /// keeping the amount and the seed; a new one at half, from a seed of
+    /// its own.
+    private func fxChip(_ kind: String, current fx: PhotoFx?) -> some View {
+        let on = fx?.kind == kind
+        return effectChip(PhotoFx.name(kind), on: on) { el in
+            if on {
+                el.fx = nil
+            } else {
+                el.fx = PhotoFx(kind: kind, amount: el.fx?.amount ?? PhotoEffects.defaultFx,
+                                seed: el.fx?.seed ?? PhotoEffects.newSeed())
+            }
+        }
+    }
+
+    /// How much of the fx, and Shuffle for another seed — other bands,
+    /// strips or grain — where the seed draws any.
+    @ViewBuilder
+    private func fxControls(_ fx: PhotoFx) -> some View {
+        let name = PhotoFx.name(fx.kind)
+        effectSlider("\(name) amount", value: fx.share, in: 0.01...1,
+                     readout: "\(Int((fx.share * 100).rounded()))") { v, el in
+            el.fx?.amount = max(1, (v * 100).rounded()) / 100
+        }
+        if fx.kind != "halftone" {
+            Button {
+                store.updateSelected { $0.fx?.seed = PhotoEffects.newSeed() }
+            } label: {
+                Label("Shuffle", systemImage: "shuffle")
+            }
+            .font(.callout)
         }
     }
 
@@ -990,6 +1053,16 @@ struct FiltersSheet: View {
         }
         .frame(width: 76, height: 56)
         .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+/// Hold to compare as VoiceOver has it: a button to double-tap and hold.
+private struct CompareAccessibility: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint("Double-tap and hold to see the photo without its edits")
     }
 }
 
