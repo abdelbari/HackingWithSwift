@@ -19,10 +19,10 @@ import Foundation
 
 /// One stroke of a photo's mask: Erase makes what it covers clear, Restore
 /// brings it back. `w` is the brush's width as a share of the picture's
-/// shorter side (read within 0.005…0.2), `soft` how much of its width is
-/// feathered (0…1), and `pts` its points as shares of the picture across and
-/// down. Every field is written; a stroke of another mode, or with no point
-/// that reads, is left out when read.
+/// shorter side (read within 0.005…0.2), `soft` the share of its half-width
+/// its edge fades over (0…1), and `pts` its points as shares of the picture
+/// across and down. Every field is written; a stroke of another mode, or
+/// with no point that reads, is left out when read.
 struct MaskStroke: Codable, Equatable, Hashable {
     var mode: String = MaskStroke.erase
     var w: Double = 0.05
@@ -81,6 +81,14 @@ struct MaskStroke: Codable, Equatable, Hashable {
             guard pair.count >= 2, let x = pair[0], let y = pair[1], x.isFinite, y.isFinite else { return nil }
             return [x, y]
         }
+    }
+
+    /// Points as a stroke writes them, as the Android twin does: each held
+    /// to the picture, 0…1, and to the ten-thousandth, so a design does not
+    /// carry a finger's every digit.
+    static func written(_ points: [CGPoint]) -> [CGPoint] {
+        func fourth(_ v: CGFloat) -> Double { (min(max(Double(v), 0), 1) * 10_000).rounded() / 10_000 }
+        return points.map { CGPoint(x: fourth($0.x), y: fourth($0.y)) }
     }
 
     /// Points as pairs, [x, y] each.
@@ -166,9 +174,11 @@ struct RetouchStroke: Codable, Equatable, Hashable {
 
     /// The stroke as MaskRaster paints it into a layer's coverage, which
     /// starts at none: painting raises it (a mask's Restore), Erase from
-    /// effect lowers it, feathered by a quarter of the width.
+    /// effect lowers it, feathered by a quarter of the width — half of its
+    /// half-width.
     var asMaskStroke: MaskStroke {
-        var stroke = MaskStroke(mode: erases ? MaskStroke.erase : MaskStroke.restore, w: w, soft: MaskRaster.retouchSoftness)
+        let soft = 2 * MaskRaster.retouchFeather
+        var stroke = MaskStroke(mode: erases ? MaskStroke.erase : MaskStroke.restore, w: w, soft: soft)
         stroke.pts = pts
         return stroke
     }
@@ -235,7 +245,7 @@ enum MaskRaster {
     /// The longest side of the grid strokes are painted into.
     static let maxSide = 1024
     /// A retouch stroke's feather: a quarter of its width.
-    static let retouchSoftness = 0.25
+    static let retouchFeather = 0.25
 
     /// The grid for a picture `width` × `height` (any unit): the picture
     /// itself up to `maxSide` on its longer side, scaled down to it beyond,
@@ -246,33 +256,90 @@ enum MaskRaster {
         return (max(1, Int((width * scale).rounded())), max(1, Int((height * scale).rounded())))
     }
 
-    /// How much of a pixel `distance` from a stroke's line it covers, 0…1:
-    /// all of it within the brush's `radius` less the feather, none beyond
-    /// the radius, and a straight ramp between. The feather is `soft` times
-    /// the brush's width (twice the radius), up to the radius itself; with
-    /// none the edge is hard, a pixel exactly on it covered.
-    static func coverage(distance: Double, radius: Double, soft: Double) -> Double {
-        let feather = min(max(soft, 0), 1) * 2 * radius
-        guard feather > 0 else { return distance <= radius ? 1 : 0 }
-        return min(max((radius - distance) / min(feather, radius), 0), 1)
+    /// How much of a point `distance` from a stroke's line it covers, 0…1,
+    /// for a brush of `radius` whose edge fades over `feather` (held within
+    /// the radius): none at the radius or beyond, all within radius less
+    /// the feather, and a straight ramp between; with no feather, all of
+    /// what lies inside the radius. The Android twin's rule, number for
+    /// number.
+    static func coverage(distance: Double, radius: Double, feather: Double) -> Double {
+        guard distance < radius else { return 0 }
+        let f = min(max(feather, 0), radius)
+        guard f > 0, distance > radius - f else { return 1 }
+        return (radius - distance) / f
+    }
+
+    /// A stroke's half-width and feather, as shares of the picture's
+    /// shorter side: its `w` held within MaskStroke.widthRange, halved, and
+    /// its `soft` (held to 0…1) of that half-width.
+    static func reach(_ stroke: MaskStroke) -> (radius: Double, feather: Double) {
+        let w = min(max(stroke.w, MaskStroke.widthRange.lowerBound), MaskStroke.widthRange.upperBound)
+        return (w / 2, min(max(stroke.soft, 0), 1) * w / 2)
+    }
+
+    /// How a share across and down a picture of shape `aspect` (width over
+    /// height) becomes a share of its shorter side, each way.
+    static func scales(aspect: Double) -> (x: Double, y: Double) {
+        let a = aspect.isFinite && aspect > 0 ? aspect : 1
+        return a >= 1 ? (a, 1) : (1, 1 / a)
+    }
+
+    /// How much of the point (`x`, `y`) — shares of a picture of shape
+    /// `aspect` across and down — `stroke` covers: measured in shares of
+    /// the picture's shorter side, so only its shape matters, never its
+    /// size; a stroke of one point is a dot.
+    static func coverage(_ stroke: MaskStroke, aspect: Double, x: Double, y: Double) -> Double {
+        let k = scales(aspect: aspect)
+        let line = stroke.points.map { CGPoint(x: Double($0.x) * k.x, y: Double($0.y) * k.y) }
+        guard let first = line.first else { return 0 }
+        let p = CGPoint(x: x * k.x, y: y * k.y)
+        var d = distance(p, first, first)
+        for (a, b) in zip(line, line.dropFirst()) { d = min(d, distance(p, a, b)) }
+        let (radius, feather) = reach(stroke)
+        return coverage(distance: d, radius: radius, feather: feather)
+    }
+
+    /// The mask `strokes` make at a point (see coverage): it starts at 1,
+    /// the whole picture, and the strokes are laid down in order — an Erase
+    /// takes the cover away (a × (1 − c)), a Restore puts it back
+    /// (a + (1 − a) × c) — so a hard Erase sets 0 and a hard Restore 1.
+    static func alpha(_ strokes: [MaskStroke], aspect: Double, x: Double, y: Double) -> Double {
+        var a = 1.0
+        for stroke in strokes {
+            let c = coverage(stroke, aspect: aspect, x: x, y: y)
+            a = stroke.restores ? a + (1 - a) * c : a * (1 - c)
+        }
+        return a
+    }
+
+    /// How much of a retouch layer of `strokes` shows at a point: none to
+    /// start with, each painting stroke laying it on (m + (1 − m) × c) and
+    /// each Erase from effect taking it off (m × (1 − c)), feathered by a
+    /// quarter of their width.
+    static func effect(_ strokes: [RetouchStroke], aspect: Double, x: Double, y: Double) -> Double {
+        var m = 0.0
+        for stroke in strokes.map(\.asMaskStroke) {
+            let c = coverage(stroke, aspect: aspect, x: x, y: y)
+            m = stroke.restores ? m + (1 - m) * c : m * (1 - c)
+        }
+        return m
     }
 
     /// `strokes` painted in order into a grid `width` × `height`, row by row
     /// from the top, each cell starting at `start` (or `initial` when
-    /// given, one value a cell): an Erase stroke takes each cell down by
-    /// what it covers of it (a × (1 − c)), a Restore stroke brings it up as
-    /// far (a + (1 − a) × c). A cell is measured from its centre, (x + 0.5,
-    /// y + 0.5); a stroke's points are at x × width, y × height, its radius
-    /// half its `w` — held within MaskStroke.widthRange — times the grid's
-    /// shorter side; a stroke of one point is a dot.
+    /// given, one value a cell) and taking the value at its centre, (x +
+    /// 0.5, y + 0.5): as alpha lays them, an Erase stroke taking each cell
+    /// down by what it covers of it, a Restore bringing it up as far. A
+    /// stroke's points are at x × width, y × height and its reach (reach)
+    /// in shares of the grid's shorter side.
     static func raster(_ strokes: [MaskStroke], width: Int, height: Int, start: Float = 1,
                        initial: [Float]? = nil) -> [Float] {
         let w = max(1, width), h = max(1, height)
         var grid = initial.flatMap { $0.count == w * h ? $0 : nil } ?? [Float](repeating: start, count: w * h)
         let short = Double(min(w, h))
         for stroke in strokes {
-            let share = min(max(stroke.w, MaskStroke.widthRange.lowerBound), MaskStroke.widthRange.upperBound)
-            let radius = share * short / 2
+            let (share, fade) = reach(stroke)
+            let radius = share * short, feather = fade * short
             let points = stroke.points.map { CGPoint(x: Double($0.x) * Double(w), y: Double($0.y) * Double(h)) }
             guard let first = points.first, radius > 0 else { continue }
             let line = points.count == 1 ? [first, first] : points
@@ -295,7 +362,7 @@ enum MaskRaster {
                 for y in y0...y1 {
                     for x in x0...x1 {
                         let centre = CGPoint(x: Double(x) + 0.5, y: Double(y) + 0.5)
-                        let c = Float(coverage(distance: distance(centre, a, b), radius: radius, soft: stroke.soft))
+                        let c = Float(coverage(distance: distance(centre, a, b), radius: radius, feather: feather))
                         let k = (y - minY) * across + (x - minX)
                         if c > covered[k] { covered[k] = c }
                     }

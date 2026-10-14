@@ -28,7 +28,8 @@ struct BrushSession: Equatable {
     var reverse = false
     /// The brush's width, as a share of the picture's shorter side.
     var size = BrushSession.defaultSize
-    /// How much of the brush's width is feathered, for the mask.
+    /// The share of the brush's half-width its edge fades over, for the
+    /// mask.
     var softness = BrushSession.defaultSoftness
     /// The blur's or the blocks' strength, 0…1.
     var strength = BrushSession.defaultStrength
@@ -104,12 +105,13 @@ extension DesignStore {
     }
 
     /// A finger stroke, in page units, painted with the brush: mapped into
-    /// the picture (ObjectEraser.picturePoints) and added to the mask, or
+    /// the picture (ObjectEraser.picturePoints), held to it and rounded as
+    /// strokes are written (MaskStroke.written), and added to the mask, or
     /// to the retouch layer — made at the end of the list, at the brush's
     /// strength, by the first stroke when the photo has none of its kind.
     func brushStroke(_ stroke: [CGPoint]) {
         guard var session = brushing, let photo = brushElement, !stroke.isEmpty else { return }
-        let points = ObjectEraser.picturePoints(stroke, element: photo, imageSize: session.imageSize)
+        let points = MaskStroke.written(ObjectEraser.picturePoints(stroke, element: photo, imageSize: session.imageSize))
         guard !points.isEmpty else { return }
         let width = min(max(session.size, BrushSession.sizeRange.lowerBound), BrushSession.sizeRange.upperBound)
         if let kind = session.layerKind {

@@ -28,15 +28,80 @@ final class BrushesTests: XCTestCase {
 
     // MARK: the shared rows
 
+    /// The Android twin's rows (MaskRasterTest), number for number: a
+    /// stroke list, a picture's shape (width over height), and the mask's
+    /// alpha at points of it, shares across and down.
+    private var maskRows: [(name: String, aspect: Double, strokes: [MaskStroke], samples: [(Double, Double, Double)])] {
+        [
+            // A hard line across a 2:1 picture: 0.2 of the shorter side wide.
+            ("hard line", 2, [stroke("erase", 0.2, 0, [(0.25, 0.5), (0.75, 0.5)])],
+             [(0.5, 0.5, 0), (0.5, 0.55, 0), (0.5, 0.65, 1), (0.22, 0.5, 0), (0.1, 0.5, 1)]),
+            // Restore paints a dot of the picture back in the middle of it.
+            ("erase then restore", 2,
+             [stroke("erase", 0.2, 0, [(0.25, 0.5), (0.75, 0.5)]), stroke("restore", 0.1, 0, [(0.5, 0.5)])],
+             [(0.5, 0.5, 1), (0.52, 0.5, 1), (0.5, 0.56, 0), (0.3, 0.5, 0)]),
+            // Fully soft: the edge fades over the whole half-width.
+            ("soft dot", 2, [stroke("erase", 0.2, 1, [(0.5, 0.5)])],
+             [(0.5, 0.5, 0), (0.525, 0.5, 0.5), (0.5, 0.575, 0.75), (0.5, 0.7, 1)]),
+            // Half soft: solid to half the half-width, then fading.
+            ("half-soft dot", 1, [stroke("erase", 0.2, 0.5, [(0.5, 0.5)])],
+             [(0.54, 0.5, 0), (0.575, 0.5, 0.5), (0.5, 0.61, 1)]),
+            // Two soft strokes over each other take away a share each.
+            ("soft twice", 1, [stroke("erase", 0.2, 1, [(0.5, 0.5)]), stroke("erase", 0.2, 1, [(0.5, 0.5)])],
+             [(0.55, 0.5, 0.25), (0.5, 0.5, 0)]),
+            // A tall picture: down is the longer way.
+            ("tall picture", 0.5, [stroke("erase", 0.1, 0, [(0.5, 0.25)])],
+             [(0.5, 0.26, 0), (0.5, 0.3, 1), (0.54, 0.25, 0), (0.56, 0.25, 1)]),
+            // No strokes is the whole picture.
+            ("none", 1.5, [], [(0.5, 0.5, 1)]),
+        ]
+    }
+
+    func testSharedRowsTheMaskAtSamplePoints() {
+        for row in maskRows {
+            for (x, y, alpha) in row.samples {
+                XCTAssertEqual(MaskRaster.alpha(row.strokes, aspect: row.aspect, x: x, y: y), alpha, accuracy: 1e-9,
+                               "\(row.name) at \(x), \(y)")
+            }
+        }
+    }
+
+    func testSharedRowsARetouchLayersCoverAtSamplePoints() {
+        // Feathered by a quarter of the width: solid to 0.05, gone at 0.1.
+        let paint = RetouchStroke(w: 0.2, points: [CGPoint(x: 0.5, y: 0.5)])
+        let rows: [(String, [RetouchStroke], [(Double, Double, Double)])] = [
+            ("painted", [paint], [(0.5, 0.5, 1), (0.575, 0.5, 0.5), (0.62, 0.5, 0)]),
+            ("taken off in the middle", [paint, RetouchStroke(w: 0.1, points: [CGPoint(x: 0.5, y: 0.5)], erases: true)],
+             [(0.5, 0.5, 0), (0.575, 0.5, 0.5)]),
+            ("none", [], [(0.5, 0.5, 0)]),
+        ]
+        for (name, strokes, samples) in rows {
+            for (x, y, cover) in samples {
+                XCTAssertEqual(MaskRaster.effect(strokes, aspect: 1, x: x, y: y), cover, accuracy: 1e-9,
+                               "\(name) at \(x), \(y)")
+            }
+        }
+    }
+
     func testTheGridIsThePictureUpTo1024OnItsLongerSide() {
         let rows: [((Double, Double), (Int, Int))] = [
             ((4000, 3000), (1024, 768)), ((100, 50), (100, 50)), ((3000, 4000), (768, 1024)),
             ((2048, 1), (1024, 1)), ((1500, 1500), (1024, 1024)), ((0, 10), (1, 1)),
+            ((4000, 2000), (1024, 512)), ((300, 200), (300, 200)), ((1, 5000), (1, 1024)),
         ]
         for (picture, grid) in rows {
             let made = MaskRaster.gridSize(width: picture.0, height: picture.1)
             XCTAssertEqual(made.width, grid.0, "\(picture)")
             XCTAssertEqual(made.height, grid.1, "\(picture)")
+        }
+        // Painted into a grid, a cell is the mask at its centre.
+        let strokes = maskRows[0].strokes
+        let grid = MaskRaster.raster(strokes, width: 200, height: 100, start: 1, initial: nil)
+        for y in [10, 45, 50, 64, 70] {
+            for x in [20, 44, 100, 150] {
+                let want = MaskRaster.alpha(strokes, aspect: 2, x: (Double(x) + 0.5) / 200, y: (Double(y) + 0.5) / 100)
+                XCTAssertEqual(Double(grid[y * 200 + x]), want, accuracy: 1e-6, "\(x), \(y)")
+            }
         }
     }
 
@@ -59,16 +124,22 @@ final class BrushesTests: XCTestCase {
     }
 
     func testSoftnessFeathersTheEdgeInward() {
-        // Soft 0.5 feathers the whole radius: a straight ramp from the line.
-        let soft = stroke("erase", 0.2, 0.5, [(0.2, 0.5), (0.8, 0.5)])
+        // Soft 1 feathers the whole half-width: a straight ramp from the line.
+        let soft = stroke("erase", 0.2, 1, [(0.2, 0.5), (0.8, 0.5)])
         assertAlphas([soft], [((0.505, 0.505), 0.05), ((0.505, 0.555), 0.55), ((0.505, 0.575), 0.75),
                               ((0.505, 0.605), 1)])
-        XCTAssertEqual(MaskRaster.coverage(distance: 5, radius: 10, soft: 0), 1)
-        XCTAssertEqual(MaskRaster.coverage(distance: 10, radius: 10, soft: 0), 1, "a hard edge takes the cell on it")
-        XCTAssertEqual(MaskRaster.coverage(distance: 10.1, radius: 10, soft: 0), 0)
-        XCTAssertEqual(MaskRaster.coverage(distance: 8, radius: 10, soft: 0.1), 1)
-        XCTAssertEqual(MaskRaster.coverage(distance: 9, radius: 10, soft: 0.1), 0.5, accuracy: 1e-9)
-        XCTAssertEqual(MaskRaster.coverage(distance: 2, radius: 10, soft: 1), 0.8, accuracy: 1e-9)
+        // Soft 0.5: solid to half of it, then the ramp.
+        let half = stroke("erase", 0.2, 0.5, [(0.2, 0.5), (0.8, 0.5)])
+        assertAlphas([half], [((0.505, 0.505), 0), ((0.505, 0.555), 0.1), ((0.505, 0.575), 0.5),
+                              ((0.505, 0.605), 1)])
+        XCTAssertEqual(MaskRaster.coverage(distance: 5, radius: 10, feather: 0), 1)
+        XCTAssertEqual(MaskRaster.coverage(distance: 9.9, radius: 10, feather: 0), 1)
+        XCTAssertEqual(MaskRaster.coverage(distance: 10, radius: 10, feather: 0), 0, "the edge itself is outside")
+        XCTAssertEqual(MaskRaster.coverage(distance: 8, radius: 10, feather: 1), 1)
+        XCTAssertEqual(MaskRaster.coverage(distance: 9.5, radius: 10, feather: 1), 0.5, accuracy: 1e-9)
+        XCTAssertEqual(MaskRaster.coverage(distance: 2, radius: 10, feather: 10), 0.8, accuracy: 1e-9)
+        XCTAssertEqual(MaskRaster.coverage(distance: 2, radius: 10, feather: 40), 0.8, accuracy: 1e-9,
+                       "a feather is held within the radius")
     }
 
     func testADotAWideBrushAndAStrokeOffThePicture() {
