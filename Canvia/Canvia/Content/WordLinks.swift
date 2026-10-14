@@ -149,7 +149,7 @@ enum WordLinks {
     }
 
     /// A point on the page in the box's own space.
-    private static func inBox(_ p: CGPoint, of el: Element) -> CGPoint {
+    static func inBox(_ p: CGPoint, of el: Element) -> CGPoint {
         let upright = el.rotation == 0 ? p : Geometry.rotate(p, around: el.center, degrees: -el.rotation)
         let x = Double(upright.x) - el.x, y = Double(upright.y) - el.y
         return CGPoint(x: el.flipH ? el.w - x : x, y: el.flipV ? el.h - y : y)

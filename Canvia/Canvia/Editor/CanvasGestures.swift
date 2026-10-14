@@ -49,6 +49,19 @@ enum CanvasGestures {
         }
     }
 
+    /// How long a finger may stay down, in seconds, for a touch to be a tap
+    /// that types: past it, the touch is on its way to a hold.
+    static let tapSeconds = 0.3
+
+    /// Whether a tap on an element — one that did not drag, the move's own
+    /// slop — held down for `held` seconds starts typing in it, as a tap on
+    /// a text box already selected does in Canva: the element is the only
+    /// thing selected, its words can be typed in (unlocked), Select multiple
+    /// is off, and the tap was quick. A first tap only selects.
+    static func tapTypes(onlySelected: Bool, typable: Bool, selectingMultiple: Bool, held: Double) -> Bool {
+        onlySelected && typable && !selectingMultiple && held < tapSeconds
+    }
+
     /// Whether one finger dragging from a point on the page, after holding
     /// still for `held` seconds, moves the view: only from the empty page,
     /// and only when it did not hold first.

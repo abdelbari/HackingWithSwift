@@ -38,6 +38,18 @@ final class DesignStore {
         }
     }
     var editingTextId: String?
+    /// Where the field typed in has its caret or choice now, in its stored
+    /// words: what Undo while typing puts back with the words.
+    @ObservationIgnored var typingSelection: NSRange?
+    /// A choice the field typed in is asked to make once — where a tap put
+    /// the caret, a word double tapped, a new text's words all chosen, the
+    /// caret an Undo puts back — as a UTF-16 range of its stored words.
+    var typingSelectionAsked: AskedSelection?
+    /// Texts just added — Add text, a brand role, a font combination — and
+    /// their words then: typing opened in one whose words are unchanged
+    /// chooses them all, so the first key replaces them, as in Canva. View
+    /// state only — never saved.
+    @ObservationIgnored var freshTexts: [String: String] = [:]
     /// The words the colour sheet is open for, from the typing bar's colour
     /// well (see WordStyles).
     var wordColourTarget: WordRange?
@@ -125,6 +137,9 @@ final class DesignStore {
     private struct HistoryEntry {
         var design: Design
         var pageIndex: Int
+        /// The caret in the words being typed as the step began, while one
+        /// was: where Undo while typing puts it back.
+        var caret: NSRange?
     }
     private var past: [HistoryEntry] = []
     private var future: [HistoryEntry] = []
@@ -134,6 +149,11 @@ final class DesignStore {
     /// shape left with no words goes back to, though a style pressed while
     /// typing has closed the step it began in — as on the Android twin.
     @ObservationIgnored private var typedShapeBefore: Element?
+    /// Steps recorded since typing in place opened, which Undo takes back
+    /// one at a time without ending it, and how many of those Redo can bring
+    /// back again.
+    @ObservationIgnored private var typingSteps = 0
+    @ObservationIgnored private var typingRedos = 0
     /// How tall a text's words stand, for a table whose words changed in a
     /// step to be laid out again as part of it (DataGraphics.settlingTables),
     /// and for the Table controls. Tests measure in round numbers.
@@ -176,7 +196,8 @@ final class DesignStore {
 
     func beginGesture() {
         if pending == nil {
-            pending = HistoryEntry(design: design, pageIndex: pageIndex)
+            pending = HistoryEntry(design: design, pageIndex: pageIndex,
+                                   caret: editingTextId == nil ? nil : typingSelection)
         }
     }
 
@@ -218,6 +239,10 @@ final class DesignStore {
         if past.count > historyLimit { past.removeFirst() }
         future.removeAll()
         pending = nil
+        if editingTextId != nil {
+            typingSteps += 1
+            typingRedos = 0
+        }
         design.updatedAt = Date().timeIntervalSince1970 * 1000
         onCommit?()
     }
@@ -351,7 +376,8 @@ final class DesignStore {
         announce("Connected — the arrow follows both ends")
     }
 
-    var canUndo: Bool { !past.isEmpty }
+    /// Steps to take back — or words being typed, which are one.
+    var canUndo: Bool { !past.isEmpty || (editingTextId != nil && pending != nil) }
 
     /// Moves with every step recorded, undone, redone or thrown away. An
     /// Undo offered in a toast is only honest while this is what it was
@@ -360,6 +386,7 @@ final class DesignStore {
     var canRedo: Bool { !future.isEmpty }
 
     func undo() {
+        if undoTyping() { return }
         // Typing, dictation or a crop under way is kept as its own step
         // first, so Undo takes back that rather than whatever came before
         // it — and the words typed are never thrown away with that step.
@@ -371,6 +398,7 @@ final class DesignStore {
     }
 
     func redo() {
+        if redoTyping() { return }
         closeOpenSteps()
         guard let entry = future.popLast() else { return }
         past.append(HistoryEntry(design: design, pageIndex: pageIndex))
@@ -387,19 +415,77 @@ final class DesignStore {
         commit()
     }
 
-    private func restore(_ entry: HistoryEntry) {
+    /// Undo while typing in place: the burst typed last (TypingCoalescer),
+    /// or a style put on meanwhile, taken back with the caret where it
+    /// was, the typing still open — as in Canva, as on the Android twin.
+    /// False when nothing typed since it opened is left to take back, and
+    /// Undo ends the typing and goes on as ever.
+    private func undoTyping() -> Bool {
+        guard editingTextId != nil else { return false }
+        commit()
+        guard typingSteps > 0, let entry = past.popLast() else { return false }
+        typingSteps -= 1
+        typingRedos += 1
+        future.append(HistoryEntry(design: design, pageIndex: pageIndex, caret: typingSelection))
+        restore(entry, typing: true)
+        buzz(.undo)
+        return true
+    }
+
+    /// Redo while typing in place: a step Undo took back while typing, again.
+    private func redoTyping() -> Bool {
+        guard editingTextId != nil else { return false }
+        commit()
+        guard typingRedos > 0, let entry = future.popLast() else { return false }
+        typingRedos -= 1
+        typingSteps += 1
+        past.append(HistoryEntry(design: design, pageIndex: pageIndex, caret: typingSelection))
+        restore(entry, typing: true)
+        buzz(.redo)
+        return true
+    }
+
+    /// The step open while typing closed as a step of its own: a burst of
+    /// typing is over (TypingCoalescer).
+    func closeTypingStep() {
+        guard editingTextId != nil else { return }
+        commit()
+    }
+
+    /// The field typed in asked to choose `range` of its stored words.
+    func askTypingSelection(_ range: NSRange) {
+        typingSelectionAsked = AskedSelection(range: range, serial: (typingSelectionAsked?.serial ?? 0) + 1)
+    }
+
+    /// A choice asked of the field typed in, once: `serial` tells a new ask
+    /// from one already made.
+    struct AskedSelection: Equatable {
+        var range: NSRange
+        var serial: Int
+    }
+
+    private func restore(_ entry: HistoryEntry, typing: Bool = false) {
+        let typed = typing ? editingTextId : nil
         historyVersion += 1
         design = entry.design
         // An undone step brings words back rather than typing them: it never
         // renames the design.
         lastWords = Self.words(of: design)
         pageIndex = min(entry.pageIndex, design.pages.count - 1)
-        // Undo and Redo close any typing first; this only makes sure a box
-        // being typed into is not ended by the selection below as a step.
+        // Undo and Redo close any typing first, but while typing (`typing`)
+        // keep it open below; this only makes sure a box being typed into is
+        // not ended by the selection below as a step.
         editingTextId = nil
         pending = nil
         let ids = Set(page.elements.map(\.id))
         selection = selection.intersection(ids)
+        // Undo while typing keeps the box typed in, its caret put back.
+        if let typed, ids.contains(typed) {
+            selection = [typed]
+            editingTextId = typed
+            let length = ((element(typed)?.text ?? "") as NSString).length
+            askTypingSelection(entry.caret ?? NSRange(location: length, length: 0))
+        }
         onCommit?()
     }
 
@@ -449,6 +535,8 @@ final class DesignStore {
     func endTextEdit() {
         guard let id = editingTextId else { return }
         editingTextId = nil
+        typingSteps = 0
+        typingRedos = 0
         for p in design.pages.indices {
             guard let i = design.pages[p].elements.firstIndex(where: { $0.id == id }) else { continue }
             let words = design.pages[p].elements[i].text ?? ""
@@ -475,18 +563,55 @@ final class DesignStore {
     /// it. Only this box is selected, even inside a group, as on the Android
     /// twin: its text controls show while it is typed, and a group corner or
     /// Delete never works the whole group. A shape given its first words
-    /// takes their look in this same step (ShapeText.starting), so starting,
-    /// typing and leaving are one Undo.
-    func startTyping(_ id: String) {
+    /// takes their look in this same step (ShapeText.starting), so the
+    /// first burst typed takes it back with them.
+    ///
+    /// The field opens with the caret where `point` — a tap, on the page —
+    /// puts it (TextCaret), the word there chosen with `word`, as a double
+    /// tap chooses it; or every word of a text just added chosen while they
+    /// are as they were added (freshTexts), so the first key replaces them;
+    /// else at the end.
+    func startTyping(_ id: String, at point: CGPoint?, word: Bool = false) {
         endTextEdit()
         selection = [id]
-        beginGesture()
         editingTextId = id
+        typingSteps = 0
+        typingRedos = 0
+        let length = ((element(id)?.text ?? "") as NSString).length
+        let opening = openingSelection(id, at: point, word: word) ?? NSRange(location: length, length: 0)
+        typingSelection = opening
+        askTypingSelection(opening)
+        beginGesture()
         typedShapeBefore = design.pages[pageIndex].elements.first { $0.id == id && $0.type == .shape }
         guard let i = design.pages[pageIndex].elements.firstIndex(where: { $0.id == id }),
               ShapeText.takesText(design.pages[pageIndex].elements[i]),
               (design.pages[pageIndex].elements[i].text ?? "").isEmpty else { return }
         design.pages[pageIndex].elements[i] = ShapeText.starting(design.pages[pageIndex].elements[i])
+    }
+
+    /// Typing in place in `id`, the caret at the end, or its words all
+    /// chosen when just added.
+    func startTyping(_ id: String) {
+        startTyping(id, at: nil)
+    }
+
+    /// Where the field typed in opens its caret or choice in `id`'s stored
+    /// words; nil for the end.
+    private func openingSelection(_ id: String, at point: CGPoint?, word: Bool) -> NSRange? {
+        guard let el = element(id) else { return nil }
+        let words = el.text ?? ""
+        if let added = freshTexts.removeValue(forKey: id), added == words, !words.isEmpty {
+            return NSRange(location: 0, length: (words as NSString).length)
+        }
+        guard let point, let caret = TextCaret.caret(in: el, onPage: point) else { return nil }
+        return word ? TextCaret.word(at: caret, in: words) : NSRange(location: caret, length: 0)
+    }
+
+    /// A text added from Add text or a brand role, as `add` adds it, and
+    /// remembered as just added (freshTexts).
+    func addText(_ el: Element) {
+        add(el)
+        freshTexts[el.id] = el.text ?? ""
     }
 
     /// The words typed in place, into the open step: a text box measured
@@ -1843,6 +1968,7 @@ final class DesignStore {
         guard !made.isEmpty else { return }
         applyToPage { $0.elements.append(contentsOf: made) }
         selection = Set(made.map(\.id))
+        for el in made where el.type == .text { freshTexts[el.id] = el.text ?? "" }
         buzz(.confirm)
     }
 
