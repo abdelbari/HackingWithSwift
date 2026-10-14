@@ -1062,8 +1062,10 @@ struct PositionSheet: View {
     /// sheet opens, as on the Android twin, and never saved.
     @State private var nudgeStep = 1.0
     @State private var nudges = 0
-    /// An arrow held down: its repeats, until it lifts (NudgeRepeat).
+    /// An arrow held down: its repeats, until it lifts (NudgeRepeat), and
+    /// which way it points.
     @State private var nudgeHold: Task<Void, Never>?
+    @State private var nudgeHeld: String?
     /// Keep proportions as switched in this panel; nil until it is, when it
     /// is what the one selected element starts with (RatioLock.startsOn).
     /// Never saved.
@@ -1288,11 +1290,11 @@ struct PositionSheet: View {
             .foregroundStyle(Color.accentColor)
             .frame(maxWidth: .infinity, minHeight: 44)
             .background(RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color.accentColor.opacity(nudgeHold == nil ? 0.15 : 0.25)))
+                .fill(Color.accentColor.opacity(nudgeHeld == direction ? 0.25 : 0.15)))
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
-                    .onChanged { _ in startNudging(dx: dx, dy: dy) }
+                    .onChanged { _ in startNudging(direction, dx: dx, dy: dy) }
                     .onEnded { _ in stopNudging() }
             )
             .accessibilityElement(children: .ignore)
@@ -1317,8 +1319,9 @@ struct PositionSheet: View {
 
     /// The first step at once, then after NudgeRepeat's pause a step at its
     /// pace, quickening, with a tick felt every tenth — all in one step.
-    private func startNudging(dx: Double, dy: Double) {
+    private func startNudging(_ direction: String, dx: Double, dy: Double) {
         guard nudgeHold == nil, store.movableSelectionCount > 0 else { return }
+        nudgeHeld = direction
         let x = dx * nudgeStep, y = dy * nudgeStep
         store.nudgeSelectedTransient(dx: x, dy: y)
         nudges += 1
@@ -1338,6 +1341,7 @@ struct PositionSheet: View {
         guard let hold = nudgeHold else { return }
         hold.cancel()
         nudgeHold = nil
+        nudgeHeld = nil
         store.commit()
         announceNudge()
     }

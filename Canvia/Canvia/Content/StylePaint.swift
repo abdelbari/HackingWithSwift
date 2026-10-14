@@ -43,7 +43,7 @@ enum StylePaint {
                 out.textFill = fill
             }
         case (.line, .shape), (.image, .shape):
-            if let colour = source == .line ? style.color : style.stroke { out.stroke = colour }
+            if let colour = (source == .line ? style.color : style.stroke) { out.stroke = colour }
         case (.shape, .line):
             if let colour = style.stroke { out.color = colour }
         case (.shape, .image):
