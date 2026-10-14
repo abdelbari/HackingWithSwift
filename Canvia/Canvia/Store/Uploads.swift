@@ -18,7 +18,10 @@
 // photos, clips and music the Add sheet offers: its id is the twelve hex
 // digits of "custom:<sha12>", and it also holds the font's "name" — its
 // family's, read from the file — and its "file" in fonts/ ("<sha12>.ttf"),
-// as the Android twin writes it. See CustomFonts and FontStore.
+// as the Android twin writes it, with its face: "family", "weight",
+// "italic" and, for a variable font, "axes": {"wght": [min, max]}. An entry
+// an earlier build wrote without them is described from its file once
+// (FontStore.installed). See CustomFonts and FontStore.
 
 import Foundation
 
@@ -43,6 +46,29 @@ enum Uploads {
         /// Its file in fonts/.
         var file: String
         var added: Double
+        /// The family it is grouped in, its weight and whether it is an
+        /// italic; an entry without them is the family `name`, 400, upright.
+        var family: String
+        var weight: Int
+        var italic: Bool
+        /// A variable font's wght axis, least to greatest.
+        var wght: ClosedRange<Double>?
+        /// Whether the entry says its face: false for one an earlier build
+        /// wrote.
+        var described: Bool
+
+        init(id: String, name: String, file: String, added: Double, family: String? = nil, weight: Int = 400,
+             italic: Bool = false, wght: ClosedRange<Double>? = nil, described: Bool = true) {
+            self.id = id
+            self.name = name
+            self.file = file
+            self.added = added
+            self.family = family ?? name
+            self.weight = weight
+            self.italic = italic
+            self.wght = wght
+            self.described = described
+        }
 
         /// The key a text set in it stores.
         var key: String { CustomFonts.key(id) }
@@ -124,7 +150,8 @@ enum Uploads {
     }
 
     /// Puts a font of your own on the list — its hash, family name and file
-    /// — once, however often it is added.
+    /// — once, however often it is added. Its face goes in with
+    /// describeFont.
     static func recordFont(_ sha: String, name: String, file: String, now: Date = Date()) {
         lock.lock()
         defer { lock.unlock() }
@@ -132,6 +159,33 @@ enum Uploads {
         guard !raw.contains(where: { $0["id"] as? String == sha && $0["kind"] as? String == fontKind }) else { return }
         raw.append(["id": sha, "kind": fontKind, "added": milliseconds(now), "name": name, "file": file])
         write(raw)
+    }
+
+    /// A font's face written into its entry: as it is added, and as an
+    /// earlier build's entry is brought up to date.
+    static func describeFont(_ sha: String, _ face: CustomFonts.Face) {
+        lock.lock()
+        defer { lock.unlock() }
+        var raw = list()
+        guard let i = raw.firstIndex(where: { $0["id"] as? String == sha && $0["kind"] as? String == fontKind }) else { return }
+        describing(&raw[i], face)
+        write(raw)
+    }
+
+    /// "family", "weight", "italic" and, for a variable font, "axes":
+    /// {"wght": [min, max]}.
+    private static func describing(_ item: inout [String: Any], _ face: CustomFonts.Face) {
+        item["family"] = face.family
+        item["weight"] = face.weight
+        item["italic"] = face.italic
+        if let axis = face.wght { item["axes"] = ["wght": [axis.min, axis.max]] }
+    }
+
+    /// A variable font's wght axis as an entry keeps it, when it does.
+    private static func wghtAxis(_ item: [String: Any]) -> ClosedRange<Double>? {
+        guard let axes = item["axes"] as? [String: Any], let range = axes["wght"] as? [NSNumber],
+              range.count == 2, range[0].doubleValue <= range[1].doubleValue else { return nil }
+        return range[0].doubleValue...range[1].doubleValue
     }
 
     /// The fonts of your own listed, newest first, whether or not their
@@ -144,9 +198,16 @@ enum Uploads {
         return raw.compactMap { item -> FontEntry? in
             guard item["kind"] as? String == fontKind,
                   let id = item["id"] as? String, CustomFonts.sha(CustomFonts.key(id)) != nil else { return nil }
-            return FontEntry(id: id, name: (item["name"] as? String) ?? id,
+            let name = (item["name"] as? String) ?? id
+            let weight = (item["weight"] as? NSNumber)?.intValue
+            return FontEntry(id: id, name: name,
                              file: (item["file"] as? String) ?? "\(id).ttf",
-                             added: (item["added"] as? NSNumber)?.doubleValue ?? 0)
+                             added: (item["added"] as? NSNumber)?.doubleValue ?? 0,
+                             family: item["family"] as? String,
+                             weight: weight ?? 400,
+                             italic: (item["italic"] as? Bool) ?? false,
+                             wght: wghtAxis(item),
+                             described: weight != nil)
         }
         .enumerated()
         .sorted { $0.element.added != $1.element.added ? $0.element.added > $1.element.added : $0.offset > $1.offset }

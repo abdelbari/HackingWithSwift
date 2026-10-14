@@ -2,7 +2,9 @@
 // Documents/fonts/<sha12>.<ext> and listed in uploads.json with kind "font"
 // and the family's name. Added from the font picker, or stored as a design
 // file brings them in; registered with CoreText for this process and drawn
-// through FontLibrary. The Android twin's FontStore.
+// through FontLibrary — a text from the face of its font's family nearest
+// its weight and italic (CustomFonts.drawnFace), a variable font at the
+// weight asked. The Android twin's FontStore.
 
 import CoreText
 import Foundation
@@ -31,12 +33,23 @@ enum FontStore {
     // MARK: what is here
 
     /// The fonts of your own whose files are here, newest first. Reads the
-    /// disk, and keeps their names for record and name.
+    /// disk, and keeps their names for record and name. One an earlier
+    /// build listed without its face is described from its file, once.
     @discardableResult
     static func installed() -> [Uploads.FontEntry] {
         let folder = directory
-        let fonts = Uploads.fonts().filter {
+        var fonts = Uploads.fonts().filter {
             FileManager.default.fileExists(atPath: folder.appendingPathComponent($0.file).path)
+        }
+        for i in fonts.indices where !fonts[i].described {
+            guard let data = try? Data(contentsOf: folder.appendingPathComponent(fonts[i].file)),
+                  let face = CustomFonts.describe(data) else { continue }
+            Uploads.describeFont(fonts[i].id, face)
+            fonts[i].family = face.family
+            fonts[i].weight = face.weight
+            fonts[i].italic = face.italic
+            fonts[i].wght = face.wght.map { $0.min...$0.max }
+            fonts[i].described = true
         }
         lock.lock()
         names = Dictionary(fonts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
@@ -55,7 +68,38 @@ enum FontStore {
     /// How a design records the font `sha` when this phone has it: called
     /// by each save (CustomFonts.synced).
     static func record(_ sha: String) -> CustomFonts.Record? {
-        known()[sha].map { CustomFonts.Record(id: CustomFonts.key(sha), name: $0.name, file: $0.file) }
+        known()[sha].map {
+            CustomFonts.Record(id: CustomFonts.key(sha), name: $0.name, file: $0.file,
+                               family: $0.family, weight: $0.weight, italic: $0.italic)
+        }
+    }
+
+    /// The faces of your own on this phone, as last read: the siblings a
+    /// design's record and package take in with each face a text uses
+    /// (CustomFonts.used(in:faces:)).
+    static func faces() -> [Uploads.FontEntry] {
+        Array(known().values)
+    }
+
+    /// The weights the family of the font `key` offers here, lightest
+    /// first; nil when it is not a font of your own on this phone.
+    static func familyWeights(_ key: String?) -> [Int]? {
+        guard let sha = CustomFonts.sha(key) else { return nil }
+        let weights = CustomFonts.weights(of: sha, among: Array(known().values))
+        return weights.isEmpty ? nil : weights
+    }
+
+    /// The key of the Regular face of the family the font `key` is in, as
+    /// the picker lists it — from this phone's fonts, else from the
+    /// design's record; `key` itself for any other font.
+    static func familyKey(_ key: String, in design: Design?) -> String {
+        guard let sha = CustomFonts.sha(key) else { return key }
+        let here = known()
+        if let family = here[sha]?.family {
+            let faces = here.values.filter { $0.family == family }
+            return CustomFonts.families(Array(faces)).first?.key ?? key
+        }
+        return design.map { CustomFonts.familyKey(key, in: $0) } ?? key
     }
 
     /// The family name of the font `sha`, when this phone has it.
@@ -89,10 +133,31 @@ enum FontStore {
 
     // MARK: drawing
 
-    /// A font of your own at `size`, or nil when it is not on this phone —
-    /// the text is then drawn in Modern Sans.
-    static func uiFont(_ key: String?, size: Double) -> UIFont? {
+    /// A font of your own at `size`, `weight` and `italic`: the face of its
+    /// family on this phone nearest them (CustomFonts.drawnFace), a variable
+    /// one at the weight chosen — or nil when it is not on this phone, and
+    /// the text is drawn in Modern Sans.
+    static func uiFont(_ key: String?, size: Double, weight: Int = 400, italic: Bool = false) -> UIFont? {
         guard let sha = CustomFonts.sha(key) else { return nil }
+        // The face chosen; else — not listed, or its file gone — the text's own.
+        if let chosen = CustomFonts.drawnFace(for: sha, weight: weight, italic: italic, among: Array(known().values)),
+           let font = faceFont(chosen.face.id, size: size) {
+            return chosen.face.wght == nil ? font : varied(font, weight: chosen.weight, size: size)
+        }
+        return faceFont(sha, size: size)
+    }
+
+    /// A variable font at `weight` on its wght axis.
+    private static func varied(_ font: UIFont, weight: Int, size: Double) -> UIFont {
+        let wght = NSNumber(value: 0x7767_6874) // "wght"
+        let attributes = [kCTFontVariationAttribute as String: [wght: NSNumber(value: weight)]] as CFDictionary
+        let descriptor = CTFontDescriptorCreateWithAttributes(attributes)
+        return CTFontCreateCopyWithAttributes(font as CTFont, CGFloat(size), nil, descriptor) as UIFont
+    }
+
+    /// The face of the font `sha` itself at `size`, or nil when its file is
+    /// not here.
+    private static func faceFont(_ sha: String, size: Double) -> UIFont? {
         lock.lock()
         var found = descriptors[sha]
         lock.unlock()
@@ -149,6 +214,7 @@ enum FontStore {
             guard loads(data), (try? data.write(to: url, options: .atomic)) != nil else { return .failure(.notAFont) }
         }
         Uploads.recordFont(sha, name: checked.name, file: url.lastPathComponent, now: now)
+        if let face = CustomFonts.describe(data) { Uploads.describeFont(sha, face) }
         installed()
         register(url)
         // Texts already set in it, drawn in Modern Sans while it was

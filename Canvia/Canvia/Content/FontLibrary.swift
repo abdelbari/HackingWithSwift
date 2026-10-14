@@ -10,7 +10,8 @@
 // The twelve type personalities earlier designs stored ("didone",
 // "script"…) are aliases of the families they now draw with; "sans",
 // "serif" and "mono" are system families themselves, as they always were.
-// A font of your own is "custom:<sha1 first 12 hex>" (see CustomFonts);
+// A font of your own is "custom:<sha1 first 12 hex>" (see CustomFonts),
+// drawn from the face of its family nearest the weight and italic asked;
 // anything else — or a font of your own that is not on this phone — draws
 // as Modern Sans. The licences are bundled beside the files
 // (Fonts/licenses).
@@ -140,10 +141,18 @@ enum FontLibrary {
     }
 
     /// The weights the font `key` has, lightest first: its family's — an
-    /// alias's family's, and Modern Sans's for an unknown key or a font of
-    /// your own, which is what one draws as when it is missing.
+    /// alias's family's, a font of your own's family's on this phone
+    /// (customWeights), and Modern Sans's for an unknown key or a font of
+    /// your own that is missing, which is what one draws as.
     static func weights(_ key: String?) -> [Int] {
-        of(key).weights
+        customWeights(key) ?? of(key).weights
+    }
+
+    /// The weights the family of a font of your own offers on this phone —
+    /// each face's, a variable font's hundreds inside its axis — or nil
+    /// when `key` is not one of yours here.
+    static func customWeights(_ key: String?) -> [Int]? {
+        CustomFonts.isCustom(key) ? FontStore.familyWeights(key) : nil
     }
 
     /// The weight a text at `requested` in the font `key` is drawn and
@@ -402,16 +411,16 @@ enum FontLibrary {
     /// Modern Sans for a font of your own that is missing. A
     /// bundled face is used at its own weight — Anton has only one, and it is
     /// already black — and only italic is made on top, by slanting, where
-    /// the family has no italic of its own. A font of your own is one face,
-    /// as Anton is, and is drawn at its own weight whatever the text asks:
-    /// bold neither thickens it nor swaps it for another face of its family
-    /// registered here — another font of your own, or a bundled one — and
-    /// italic slants it unless it is an italic itself. The Android twin's
+    /// the family has no italic of its own. A font of your own is drawn
+    /// from the face of its family nearest the weight and italic asked
+    /// (CustomFonts.drawnFace) — a family of one face at that face's own
+    /// weight whatever the text asks, never thickened — and italic slants
+    /// it unless the face is an italic itself. The Android twin's
     /// FontLibrary.drawnWeight is the same rule.
     private static func buildFont(family key: String?, size: Double,
                                   weight: Int, italic: Bool) -> UIFont {
         registerBundledFonts()
-        if CustomFonts.isCustom(key), let own = FontStore.uiFont(key, size: size) {
+        if CustomFonts.isCustom(key), let own = FontStore.uiFont(key, size: size, weight: weight, italic: italic) {
             return italic && !own.fontDescriptor.symbolicTraits.contains(.traitItalic) ? slanted(own, size: size) : own
         }
         let font = of(key)

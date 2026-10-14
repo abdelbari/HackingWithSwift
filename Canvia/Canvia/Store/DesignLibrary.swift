@@ -55,7 +55,8 @@ enum DesignLibrary {
     @discardableResult
     static func save(_ design: Design) -> Bool {
         do {
-            let data = try JSONEncoder().encode(CustomFonts.synced(design, installed: FontStore.record))
+            let data = try JSONEncoder().encode(CustomFonts.synced(design, installed: FontStore.record,
+                                                                   faces: FontStore.faces()))
             try data.write(to: designsDir.appendingPathComponent("\(design.id).json"), options: .atomic)
             SpotlightIndexer.index(design)
             return true
@@ -512,15 +513,16 @@ enum DesignLibrary {
     }
 
     /// The photos kept outside the designs: what the person keeps across
-    /// them — every brand kit's logos and the components' pictures — and what was
-    /// cut or copied but not yet pasted. The pasteboard outlives a launch,
-    /// and a photo cut from a design is referenced nowhere else until it is
-    /// pasted back; the Android twin keeps these too. Read only when our own
-    /// types are there, so someone else's copied text never brings up the
-    /// paste prompt.
+    /// them — every brand kit's logos, photos and graphics, and the
+    /// components' pictures — and what was cut or copied but not yet
+    /// pasted. The pasteboard outlives a launch, and a photo cut from a
+    /// design is referenced nowhere else until it is pasted back; the
+    /// Android twin keeps these too. Read only when our own types are
+    /// there, so someone else's copied text never brings up the paste
+    /// prompt.
     static func photosKeptOutsideDesigns(pasteboard: UIPasteboard) -> Set<String> {
         var found = Set<String>()
-        for src in BrandKits.load().allLogos { if let id = photoID(src) { found.insert(id) } }
+        for src in BrandKits.load().allAssets { if let id = photoID(src) { found.insert(id) } }
         for component in Components.load() { collectPhotos(in: component.elements, into: &found) }
         if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
             collectPhotos(in: elements, into: &found)
@@ -622,7 +624,7 @@ enum DesignLibrary {
     static func clipsKeptOutsideDesigns(pasteboard: UIPasteboard) -> Set<String> {
         var found = Set<String>()
         for component in Components.load() { collectClips(in: component.elements, into: &found) }
-        for src in BrandKits.load().allLogos { if let id = clipID(src) { found.insert(id) } }
+        for src in BrandKits.load().allAssets { if let id = clipID(src) { found.insert(id) } }
         if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
             collectClips(in: elements, into: &found)
         }
@@ -672,7 +674,7 @@ enum DesignLibrary {
             }
         }
         for component in Components.load() { collect(component.elements) }
-        for src in BrandKits.load().allLogos { if let id = AnimStore.split(src)?.id { found.insert(id) } }
+        for src in BrandKits.load().allAssets { if let id = AnimStore.split(src)?.id { found.insert(id) } }
         if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
             collect(elements)
         }

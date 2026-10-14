@@ -70,7 +70,8 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   their licence ships beside them as `Content/MaterialIcons-LICENSE.txt`
 - Text: curved text on an arc from -180° to 180° (glyphs placed along one
   circle whose radius the line's own width fixes, so letters keep their
-  size rather than being squashed to fit), inline editing (double-tap) in a
+  size rather than being squashed to fit; each word's bold, italic,
+  underline, strike, colour, face and size kept on the curve), inline editing (double-tap) in a
   field set exactly as the words are drawn — fitted size, tracking, line
   pitch, underline, justification, top/middle/bottom — with the box itself
   hidden meanwhile and kept above the keyboard as it grows; however typing
@@ -82,8 +83,11 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   beside them in `Fonts/licenses`, registered with CoreText at launch, plus the system's sans, serif and mono — in a
   picker with search (case and accents aside), category chips, the brand
   kit's fonts, Recently used, In this design and every row drawn in its own
-  face; your own .ttf or .otf added with "Add a font…", drawn at its own
-  weight as Anton is (bold leaves it as it is, on both phones), carried
+  face; your own .ttf or .otf added with "Add a font…", grouped into
+  families — one row each, with its weight count — so Bold, italic and
+  the Weight row draw from the family's own Bold and Italic files (a
+  variable font at each hundred inside its wght axis; a family of one
+  face drawn at its own weight as Anton is, on both phones), carried
   inside a `.canvia.json` file and drawn in Modern Sans with "Font
   missing: <name>" on a phone without it; the twelve older personality keys still open as
   aliases; weights from Light to Black — twelve families (Roboto, Open
@@ -307,9 +311,10 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   typed as people type them ("canvia.app" becomes https) — clickable over
   the element in the PDF and SVG, and opened by a tap in Present. The
   Android twin reads and keeps links the same way (`Content/Links.swift`).
-- A brand kit — colours, a heading and body face, logos — kept across
-  designs: first in every colour picker, a pairing in the theme sheet,
-  and logos in the Photos tab. Every change is kept as it is made, so the
+- A brand kit — colours, a face per text role, logos, photos, graphics
+  and templates — kept across designs: first in every colour picker, a
+  pairing in the theme sheet, logos in the Photos tab, everything in a
+  Brand tab of Add, and its templates first on Home and in Templates. Every change is kept as it is made, so the
   sheet can be swiped away; QR codes are not offered as logos.
 - Tidy up: a messy selection into a row, a column or a grid with equal
   gaps, one undo step. Arrow keys nudge the selection a unit (ten with

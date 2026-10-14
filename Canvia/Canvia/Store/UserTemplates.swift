@@ -227,12 +227,15 @@ enum UserTemplates {
         return (out, listed?.category ?? defaultCategory)
     }
 
-    /// A template gone for good, its file, picture and entry. What it
-    /// showed is swept at the next launch when nothing else uses it.
+    /// A template gone for good, its file, picture and entry, and its id
+    /// out of every brand kit. What it showed is swept at the next launch
+    /// when nothing else uses it.
     static func delete(_ id: String) {
         write(index().filter { $0.id != id })
         try? FileManager.default.removeItem(at: fileURL(for: id))
         try? FileManager.default.removeItem(at: thumbnailURL(for: id))
+        var kits = BrandKits.load()
+        if kits.removeTemplate(id) { kits.save() }
     }
 
     /// A template stored as it is, keeping its id and dates — as a backup
@@ -254,7 +257,8 @@ enum UserTemplates {
     @discardableResult
     private static func write(design: Design) -> Bool {
         do {
-            let data = try JSONEncoder().encode(CustomFonts.synced(design, installed: FontStore.record))
+            let data = try JSONEncoder().encode(CustomFonts.synced(design, installed: FontStore.record,
+                                                                   faces: FontStore.faces()))
             try data.write(to: fileURL(for: design.id), options: .atomic)
             return true
         } catch {

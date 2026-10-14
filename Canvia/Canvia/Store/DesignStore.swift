@@ -860,6 +860,19 @@ final class DesignStore {
         updateSelected { $0 = Self.recoloured($0, to: hex) }
     }
 
+    /// A brand colour tapped in the Add sheet's Brand tab — the rule both
+    /// phones keep (the Android twin's DesignStore.paintBrandColour): what
+    /// is selected recoloured, as one step (recolourSelection); with
+    /// nothing selected, the page's background (setBackground, which a
+    /// locked page refuses). Nothing is recorded when nothing would change.
+    func paintBrandColour(_ hex: String) {
+        if selection.isEmpty {
+            setBackground(.color(hex))
+        } else {
+            recolourSelection(hex)
+        }
+    }
+
     /// The same, live, for the colour wheel; the sheet commits when it closes.
     func recolourSelectionTransient(_ hex: String) {
         updateSelectedTransient { $0 = Self.recoloured($0, to: hex) }

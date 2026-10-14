@@ -1,5 +1,7 @@
 // Insert sheet: templates, shapes, lines, icons, text presets & font
-// combinations, photos, stickers, and photo-library uploads.
+// combinations, photos, stickers, photo-library uploads, and — when the
+// brand kit in use has any — its logos, photos, graphics, colours and text
+// roles under Brand.
 //
 // The search above the tabs finds every kind of element at once — shapes,
 // icons, stickers, frames, grids, lines, charts and tables, artwork — in
@@ -35,23 +37,28 @@ struct InsertSheet: View {
     @FocusState private var qrFocused: Bool
     /// Recently used, read as the sheet opens.
     @State private var recent: [ElementSearch.Hit] = []
+    /// The brand kit in use, read as the sheet opens.
+    @State private var brandKit = BrandKit()
 
-    // Six at most: a segmented control gives each the same width, and a
+    // Six in a segmented control, which gives each the same width: a
     // seventh cuts the longer names short on a small phone. Icons are a
     // section of Elements for that reason.
-    private let tabs = ["Templates", "Elements", "Text", "Photos", "Stickers", "Background"]
+    private static let baseTabs = ["Templates", "Elements", "Text", "Photos", "Stickers", "Background"]
+
+    /// The tabs, and Brand last — the rule both phones keep — when the kit
+    /// in use has anything the tab lists (BrandKit.showsBrandTab); then all
+    /// seven as a row of chips that scrolls, as the font sheet's categories
+    /// are.
+    private var tabs: [String] {
+        Self.baseTabs + (brandKit.showsBrandTab ? ["Brand"] : [])
+    }
 
     private var isReplacing: Bool { store.replaceTargetId != nil }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                Picker("Section", selection: $tab) {
-                    ForEach(tabs, id: \.self) { Text($0) }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-                .padding(.top, 8)
+                tabBar
 
                 ScrollView {
                     Color.clear.frame(height: 0).id(favoritesVersion)
@@ -67,6 +74,7 @@ struct InsertSheet: View {
                         case "Text": textList
                         case "Photos": photosGrid
                         case "Stickers": stickersGrid
+                        case "Brand": brandGrid
                         default: backgroundNote
                         }
                     }
@@ -91,6 +99,7 @@ struct InsertSheet: View {
             // Replacing? Go straight to the picture sources.
             if isReplacing { tab = "Photos" }
             recent = ElementSearch.recent()
+            brandKit = BrandKit.load()
         }
         .fileImporter(isPresented: $importingPDF, allowedContentTypes: [.pdf]) { result in
             guard case .success(let url) = result else { return }
@@ -1299,7 +1308,7 @@ struct InsertSheet: View {
                 sectionHeader("Brand logos")
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
                     ForEach(Array(logos.enumerated()), id: \.element) { index, src in
-                        logoTile(src, index: index, count: logos.count)
+                        logoTile(src, label: AddSheetNames.logo(index, of: logos.count))
                     }
                 }
             }
@@ -1337,7 +1346,8 @@ struct InsertSheet: View {
         }
     }
 
-    private func logoTile(_ src: String, index: Int, count: Int) -> some View {
+    /// A brand logo, photo or picture graphic, drawn whole, named `label`.
+    private func logoTile(_ src: String, label: String) -> some View {
         let inFrame = src == replaceSource
         return Button {
             pickLibraryPicture(src, natural: PhotoLibrary.resolve(src)?.size ?? CGSize(width: 4, height: 3))
@@ -1355,7 +1365,7 @@ struct InsertSheet: View {
             .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
             .overlay { if inFrame { currentRing(cornerRadius: 10) } }
         }
-        .accessibilityLabel(AddSheetNames.picture(AddSheetNames.logo(index, of: count), starred: false, inFrame: inFrame))
+        .accessibilityLabel(AddSheetNames.picture(label, starred: false, inFrame: inFrame))
     }
 
     /// One of the built-in pictures, named with its kind and place, starred
@@ -1384,6 +1394,138 @@ struct InsertSheet: View {
             AddSheetNames.artwork(photo, index, of: count),
             starred: starred, inFrame: inFrame))
         .contextMenu { favoriteButton("photo", photo.id) }
+    }
+
+    // MARK: brand
+
+    /// The tab picker: segmented for six, chips for seven.
+    @ViewBuilder
+    private var tabBar: some View {
+        if tabs.count > Self.baseTabs.count {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(tabs, id: \.self) { name in tabChip(name) }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 4)
+            }
+            .padding(.top, 4)
+        } else {
+            Picker("Section", selection: $tab) {
+                ForEach(tabs, id: \.self) { Text($0) }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.top, 8)
+        }
+    }
+
+    private func tabChip(_ name: String) -> some View {
+        let selected = tab == name
+        return Button { tab = name } label: {
+            Text(name)
+                .font(.subheadline.weight(.medium))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(selected ? Theme.accent : Theme.card, in: Capsule())
+                .foregroundStyle(selected ? Color.white : Theme.ink)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    /// The kit in use, in the order the Android twin lists it: its logos,
+    /// photos and graphics to place, its colours to paint with, and a text
+    /// in each role it sets a face for.
+    private var brandGrid: some View {
+        let kit = brandKit
+        let roles = BrandFonts.Role.allCases.filter { kit.fonts[$0] != nil }
+        return VStack(alignment: .leading, spacing: 10) {
+            brandPictures("Logos", kit.logos) { AddSheetNames.logo($0, of: $1) }
+            brandPictures("Photos", kit.photos) { AddSheetNames.brandPhoto($0, of: $1) }
+            brandPictures("Graphics", kit.graphics) { AddSheetNames.brandGraphic($0, of: $1) }
+            if !kit.colors.isEmpty {
+                sectionHeader("Colours")
+                ForEach(Array(kit.palettes.filter { !$0.colors.isEmpty }.enumerated()), id: \.offset) { _, palette in
+                    brandPalette(palette)
+                }
+            }
+            if !roles.isEmpty {
+                sectionHeader("Text")
+                ForEach(roles) { role in
+                    roleInsert(role, face: kit.fonts[role])
+                }
+            }
+        }
+        .padding()
+    }
+
+    /// One of the kit's lists of pictures under its heading, when it has
+    /// any: a picture placed as a logo is, an SVG graphic as a graphic.
+    @ViewBuilder
+    private func brandPictures(_ title: String, _ sources: [String],
+                               label: @escaping (Int, Int) -> String) -> some View {
+        if !sources.isEmpty {
+            sectionHeader(title)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 10)], spacing: 10) {
+                ForEach(Array(sources.enumerated()), id: \.element) { index, src in
+                    if let id = BrandKit.svgID(src) {
+                        brandGraphicTile(id, label: label(index, sources.count))
+                    } else {
+                        logoTile(src, label: label(index, sources.count))
+                    }
+                }
+            }
+        }
+    }
+
+    /// An SVG graphic of the kit's: a tap places the whole graphic.
+    private func brandGraphicTile(_ id: String, label: String) -> some View {
+        Button {
+            placeGraphic(id)
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: "square.on.circle").font(.title2)
+                Text("SVG").font(.caption.weight(.semibold))
+            }
+            .foregroundStyle(.secondary)
+            .frame(height: 72)
+            .frame(maxWidth: .infinity)
+            .background(Color(.systemGray6))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .accessibilityLabel(label)
+    }
+
+    /// A palette's swatches under its name.
+    private func brandPalette(_ palette: BrandPalette) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(palette.name)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 40), spacing: 10)], spacing: 10) {
+                ForEach(palette.colors, id: \.self) { hex in
+                    brandSwatch(hex)
+                }
+            }
+        }
+    }
+
+    /// A tap paints what is selected in the colour, as a colour picker
+    /// does; with nothing selected, the page's background
+    /// (DesignStore.paintBrandColour).
+    private func brandSwatch(_ hex: String) -> some View {
+        Button {
+            store.paintBrandColour(hex)
+            dismiss()
+        } label: {
+            RoundedRectangle(cornerRadius: 9)
+                .fill(Color(hex: hex))
+                .frame(height: 40)
+                .overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.hairline))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(AddSheetNames.brandColour(hex, selection: !store.selection.isEmpty))
     }
 
     // MARK: favourites

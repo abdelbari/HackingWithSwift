@@ -1,8 +1,9 @@
 // The font picker: a search by name (case and accents aside), the category
 // chips, and each font a row drawn in its own face, the one in use ticked.
 // Browsing, the brand kit's fonts come first, then Recently used on this
-// phone (as the sheet opened), the fonts In this design, Your fonts with
-// "Add a font…", and then every font (see FontChoices). A tap sets every
+// phone (as the sheet opened), the fonts In this design, Your fonts — a
+// family a row, with how many weights it has — with "Add a font…", and
+// then every font (see FontChoices). A tap sets every
 // unlocked text selected, as one Undo, and the sheet stays up to try
 // another; for the brand kit it chooses a face, None first, and closes.
 // Opened from the typing bar's Aa it sets the words chosen instead, under a
@@ -46,9 +47,15 @@ struct FontSheet: View {
     /// counting as the family it means, and none ticked when they differ —
     /// or the face being chosen.
     private var chosen: String? {
-        if let choice { return choice.current.map { FontLibrary.resolve($0) } }
-        if words { return store.wordFont.map { FontLibrary.resolve($0) } }
-        return store.sharedText { FontLibrary.resolve($0.fontFamily) }
+        if let choice { return choice.current.map { listed($0) } }
+        if words { return store.wordFont.map { listed($0) } }
+        return store.sharedText { listed($0.fontFamily) }
+    }
+
+    /// A stored key as the picker lists it: the family it means, a font of
+    /// your own as its family's Regular face.
+    private func listed(_ key: String?) -> String {
+        FontStore.familyKey(FontLibrary.resolve(key), in: store.design)
     }
 
     var body: some View {
@@ -147,7 +154,7 @@ struct FontSheet: View {
         let texts = store.textsRead
         let weights = TypeReadouts.weights(texts)
         if !weights.isEmpty {
-            let font = texts.first { !CustomFonts.isCustom($0.fontFamily) }?.fontFamily ?? "sans"
+            let font = texts.first(where: TypeReadouts.isWeighable)?.fontFamily ?? "sans"
             let drawn = TypeReadouts.drawnWeight(texts)
             Section("Weight: \(TypeReadouts.weightReadout(texts))") {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -178,11 +185,14 @@ struct FontSheet: View {
         .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 
-    /// The fonts of your own on this phone, newest first, and the row that
-    /// adds another — with what was wrong with the last one, if anything.
+    /// The fonts of your own on this phone, a family a row with how many
+    /// weights it has, newest first, and the row that adds another — with
+    /// what was wrong with the last one, if anything.
     private var yourFonts: some View {
         Section(FontChoices.yoursTitle) {
-            ForEach(own, id: \.id) { row($0.key) }
+            ForEach(CustomFonts.families(own)) { family in
+                row(family.key, weights: family.weights.count)
+            }
             Button { addingFont = true } label: {
                 HStack {
                     Label(CustomFonts.addTitle, systemImage: "plus")
@@ -202,18 +212,26 @@ struct FontSheet: View {
     }
 
     /// One font, its name in its own face — None for nil — ticked when it is
-    /// the one in use; one of your own not on this phone says Missing.
-    private func row(_ key: String?) -> some View {
+    /// the one in use; one of your own not on this phone says Missing, and
+    /// a family of yours how many weights it has.
+    private func row(_ key: String?, weights: Int? = nil) -> some View {
         let name = key.map { FontStore.displayName($0, in: store.design) } ?? "None"
         let missing = key.flatMap { FontStore.missingNote($0, in: store.design) } != nil
         let ticked = key == chosen
-        let spoken: String = key == nil ? "No font" : missing ? "\(name) font, missing" : "\(name) font"
+        let count = weights.map(CustomFonts.weightCount)
+        let said: String = key == nil ? "No font" : missing ? "\(name) font, missing" : "\(name) font"
+        let spoken = count.map { "\(said), \($0)" } ?? said
         return Button { pick(key) } label: {
             HStack {
                 Text(name)
                     .font(key.map { FontLibrary.font(family: $0, size: 20, weight: 400, italic: false) } ?? .body)
                     .lineLimit(1)
                 Spacer()
+                if let count {
+                    Text(count)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 if missing {
                     Text("Missing")
                         .font(.caption.weight(.medium))

@@ -13,6 +13,18 @@
 // "Font missing: <name>". A .canvia.json package carries each font's bytes
 // (see DesignPackage), up to maxBytes each. The Android twin's CustomFonts,
 // rule for rule.
+//
+// Fonts of your own are grouped into families. Adding one also reads its
+// face (describe): the subfamily (name 17, else 2), the OS/2 weight class
+// and italic bit (else 400 and upright), and a variable font's wght axis.
+// uploads.json keeps them as "family", "weight", "italic" and "axes":
+// {"wght": [min, max]}, and the design's record as "family", "weight" and
+// "italic" — every face of each family a text uses — so the other phone
+// knows the grouping before it has the files. A text keeps the key of the
+// face it was set in — the family's Regular, as the picker sets it — and is
+// drawn from the face of that family nearest its weight and italic
+// (drawnFace), so fontWeight 700 draws from the Bold file. A variable font
+// offers each hundred from 100 to 900 inside its axis.
 
 import Foundation
 import CryptoKit
@@ -32,13 +44,21 @@ enum CustomFonts {
         var id: String
         var name: String
         var file: String
+        /// The face's family, weight and italic, as uploads.json keeps them;
+        /// nil in a record an earlier build wrote.
+        var family: String?
+        var weight: Int?
+        var italic: Bool?
 
         var sha: String { String(id.dropFirst(CustomFonts.prefix.count)) }
 
-        init(id: String, name: String, file: String) {
+        init(id: String, name: String, file: String, family: String? = nil, weight: Int? = nil, italic: Bool? = nil) {
             self.id = id
             self.name = name
             self.file = file
+            self.family = family
+            self.weight = weight
+            self.italic = italic
         }
 
         /// Only an entry with a key of your own and a name reads; one with
@@ -52,9 +72,12 @@ enum CustomFonts {
             self.id = id
             name = try c.decode(String.self, forKey: .name)
             file = (try? c.decode(String.self, forKey: .file)) ?? "\(sha).ttf"
+            family = try? c.decodeIfPresent(String.self, forKey: .family)
+            weight = try? c.decodeIfPresent(Int.self, forKey: .weight)
+            italic = try? c.decodeIfPresent(Bool.self, forKey: .italic)
         }
 
-        private enum CodingKeys: String, CodingKey { case id, name, file }
+        private enum CodingKeys: String, CodingKey { case id, name, file, family, weight, italic }
     }
 
     /// One entry of a design's record that may not read: those that do not
@@ -105,14 +128,22 @@ enum CustomFonts {
     }
 
     /// The hashes of the fonts of your own the design's texts are set in —
-    /// a box's words' too — each once, in page order.
-    static func used(in design: Design) -> [String] {
+    /// a box's words' too — each once, in page order, each followed by the
+    /// other faces of its family among `faces` (this phone's, FontStore.faces),
+    /// lowest hash first: a bold word draws from the Bold file, so it travels
+    /// and is recorded with the Regular a text is set in. The Android twin's
+    /// CustomFonts.used, hash for hash.
+    static func used(in design: Design, faces: [Uploads.FontEntry] = []) -> [String] {
         var seen = Set<String>()
         var out: [String] = []
         for page in design.pages {
             for el in page.elements {
                 for key in el.fontKeys {
-                    if let sha = sha(key), seen.insert(sha).inserted { out.append(sha) }
+                    guard let sha = sha(key) else { continue }
+                    let family = siblings(of: sha, among: faces).map(\.id).sorted()
+                    for one in [sha] + family {
+                        if seen.insert(one).inserted { out.append(one) }
+                    }
                 }
             }
         }
@@ -120,14 +151,16 @@ enum CustomFonts {
     }
 
     /// The design with its record of fonts brought up to date, as every save
-    /// writes it: one entry for each font of your own still used, in
-    /// used(in:)'s order, the entry it had kept as it was, and a new one made
-    /// from `installed` — this phone's font of that hash, if it has it.
-    static func synced(_ design: Design, installed: (String) -> Record?) -> Design {
+    /// writes it: one entry for each font of your own still used — with the
+    /// other faces of its family among `faces` (used(in:faces:)) — in that
+    /// order, the entry it had kept as it was, and a new one made from
+    /// `installed` — this phone's font of that hash, if it has it.
+    static func synced(_ design: Design, installed: (String) -> Record?,
+                       faces: [Uploads.FontEntry] = []) -> Design {
         let had = records(in: design)
         var byID: [String: Record] = [:]
         for record in had where byID[record.id] == nil { byID[record.id] = record }
-        let now = used(in: design).compactMap { sha in byID[key(sha)] ?? installed(sha) }
+        let now = used(in: design, faces: faces).compactMap { sha in byID[key(sha)] ?? installed(sha) }
         // Unchanged, the design is left as it was — unless it holds an empty
         // list, which is no record at all.
         if now == had && design.fonts?.isEmpty != true { return design }
@@ -214,52 +247,236 @@ enum CustomFonts {
     /// then the Mac's, then Unicode's. Nil when there is no name table that
     /// reads.
     static func familyName(_ data: Data) -> String? {
-        let b = [UInt8](data)
+        guard let names = Sfnt([UInt8](data)).names() else { return nil }
+        let family = (names[16] ?? names[1])?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let family, !family.isEmpty else { return nil }
+        return family
+    }
+
+    // MARK: faces and families
+
+    /// A variable font's wght axis: its least, greatest and default weight.
+    struct Axis: Equatable, Sendable {
+        var min: Double
+        var max: Double
+        var defaultValue: Double
+    }
+
+    /// What a font file says of its face.
+    struct Face: Equatable, Sendable {
+        var family: String
+        /// "Bold Italic": the typographic subfamily (name 17), else name 2.
+        var subfamily: String?
+        var weight: Int
+        var italic: Bool
+        var wght: Axis?
+    }
+
+    /// The face a font file is, by the rule both phones keep (the Android
+    /// twin's CustomFonts.style): its family as familyName reads it, its
+    /// subfamily (name 17, else 2) as it is written; its weight the OS/2
+    /// weight class, else 400 — a variable font's too, whatever its axis's
+    /// default — and italic the OS/2 italic bit (fsSelection bit 0), else
+    /// upright. The subfamily's words decide neither. Nil when it names no
+    /// family.
+    static func describe(_ data: Data) -> Face? {
+        let sfnt = Sfnt([UInt8](data))
+        guard let names = sfnt.names() else { return nil }
+        let family = (names[16] ?? names[1])?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let family, !family.isEmpty else { return nil }
+        let subfamily = (names[17] ?? names[2])?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let os2 = sfnt.table(0x4F53_2F32) // "OS/2"
+        let weightClass = os2.flatMap { sfnt.u16($0 + 4) }.flatMap { (1...1000).contains($0) ? $0 : nil }
+        let selection = os2.flatMap { sfnt.u16($0 + 62) }
+        let italic = selection.map { $0 & 1 == 1 } ?? false
+        return Face(family: family, subfamily: subfamily, weight: weightClass ?? 400, italic: italic,
+                    wght: sfnt.wghtAxis())
+    }
+
+    /// The weights a variable font offers: each hundred from 100 to 900
+    /// inside its axis.
+    static func variableWeights(_ axis: ClosedRange<Double>) -> [Int] {
+        stride(from: 100, through: 900, by: 100).filter { axis.contains(Double($0)) }
+    }
+
+    /// The weights one face offers: a variable font's hundreds, or — a
+    /// static face, or an axis narrower than any hundred — its own.
+    static func offered(_ face: Uploads.FontEntry) -> [Int] {
+        let variable = face.wght.map(variableWeights) ?? []
+        return variable.isEmpty ? [face.weight] : variable
+    }
+
+    /// The faces of the family the font `sha` is in, itself among them;
+    /// none when it is not among `faces`.
+    static func siblings(of sha: String, among faces: [Uploads.FontEntry]) -> [Uploads.FontEntry] {
+        guard let own = faces.first(where: { $0.id == sha }) else { return [] }
+        return faces.filter { $0.family == own.family }
+    }
+
+    /// The weights the family of the font `sha` offers, lightest first: its
+    /// upright faces', or every face's when it has no upright one. None
+    /// when the font is not among `faces`.
+    static func weights(of sha: String, among faces: [Uploads.FontEntry]) -> [Int] {
+        let family = siblings(of: sha, among: faces)
+        let upright = family.filter { !$0.italic }
+        return Array(Set((upright.isEmpty ? family : upright).flatMap(offered))).sorted()
+    }
+
+    /// The face a text set in the font `sha` at `weight` and `italic` is
+    /// drawn from, and the weight it draws at: among the family's faces of
+    /// that slant (all of them when it has none), the weight nearest the
+    /// one asked, ties to the heavier — FontLibrary's rule — then the
+    /// text's own face, then the lowest hash. Nil when the font is not
+    /// among `faces`. A variable face draws at the weight chosen; a static
+    /// one at its own.
+    static func drawnFace(for sha: String, weight: Int, italic: Bool,
+                          among faces: [Uploads.FontEntry]) -> (face: Uploads.FontEntry, weight: Int)? {
+        let family = siblings(of: sha, among: faces)
+        let slanted = family.filter { $0.italic == italic }
+        let pool = slanted.isEmpty ? family : slanted
+        let choices = pool.flatMap { face in offered(face).map { (face: face, weight: $0) } }
+        return choices.min { a, b in
+            let da = abs(a.weight - weight), db = abs(b.weight - weight)
+            if da != db { return da < db }
+            if a.weight != b.weight { return a.weight > b.weight }
+            if (a.face.id == sha) != (b.face.id == sha) { return a.face.id == sha }
+            return a.face.id < b.face.id
+        }
+    }
+
+    /// Your fonts as the picker lists them: one family a row, named by it
+    /// and keyed by its Regular face — the upright face nearest 400, ties
+    /// to the heavier, then the lowest hash — with the weights it offers.
+    /// In the order `faces` lists them, by each family's first face.
+    struct Family: Equatable, Identifiable {
+        var name: String
+        var key: String
+        var weights: [Int]
+
+        var id: String { key }
+    }
+
+    static func families(_ faces: [Uploads.FontEntry]) -> [Family] {
+        var seen = Set<String>()
+        return faces.compactMap { face -> Family? in
+            guard seen.insert(face.family).inserted else { return nil }
+            let family = faces.filter { $0.family == face.family }
+            let upright = family.filter { !$0.italic }
+            let lead = (upright.isEmpty ? family : upright).min { a, b in
+                let da = abs(a.weight - 400), db = abs(b.weight - 400)
+                if da != db { return da < db }
+                if a.weight != b.weight { return a.weight > b.weight }
+                return a.id < b.id
+            } ?? face
+            return Family(name: face.family, key: lead.key, weights: weights(of: lead.id, among: faces))
+        }
+    }
+
+    /// "3 weights", "1 weight": what a family's row says beside its name.
+    static func weightCount(_ count: Int) -> String {
+        count == 1 ? "1 weight" : "\(count) weights"
+    }
+
+    /// The key of the Regular face of the family a design records the font
+    /// `key` in — the record of that family nearest 400 upright, as
+    /// families(_:) chooses — so a phone without the files still groups
+    /// them; `key` itself when the design records no family for it.
+    static func familyKey(_ key: String, in design: Design) -> String {
+        let had = records(in: design)
+        guard let name = had.first(where: { $0.id == key })?.family else { return key }
+        let family = had.filter { $0.family == name }
+        let upright = family.filter { $0.italic != true }
+        return (upright.isEmpty ? family : upright).min { a, b in
+            let da = abs((a.weight ?? 400) - 400), db = abs((b.weight ?? 400) - 400)
+            if da != db { return da < db }
+            if (a.weight ?? 400) != (b.weight ?? 400) { return (a.weight ?? 400) > (b.weight ?? 400) }
+            return a.id < b.id
+        }?.id ?? key
+    }
+
+    // MARK: reading a font file
+
+    /// A font file's bytes, read big-endian as sfnt is.
+    private struct Sfnt {
+        let b: [UInt8]
+
+        init(_ bytes: [UInt8]) { b = bytes }
+
         func u16(_ at: Int) -> Int? {
             guard at >= 0, at + 2 <= b.count else { return nil }
             return Int(b[at]) << 8 | Int(b[at + 1])
         }
+
         func u32(_ at: Int) -> Int? {
             guard let high = u16(at), let low = u16(at + 2) else { return nil }
             return high << 16 | low
         }
-        guard let tables = u16(4) else { return nil }
-        var table: Int?
-        for i in 0..<tables {
-            let at = 12 + 16 * i
-            if u32(at) == 0x6E61_6D65 { table = u32(at + 8) } // "name"
+
+        /// A 16.16 fixed-point number.
+        func fixed(_ at: Int) -> Double? {
+            u32(at).map { Double(Int32(bitPattern: UInt32($0))) / 65536 }
         }
-        guard let table, let count = u16(table + 2), let base = u16(table + 4) else { return nil }
-        let strings = table + base
-        // Best rank by name id: 0 Windows English, 1 Mac Roman, 2 Unicode.
-        var found: [Int: (rank: Int, text: String)] = [:]
-        for i in 0..<count {
-            let at = table + 6 + 12 * i
-            guard let platform = u16(at), let encoding = u16(at + 2), let language = u16(at + 4),
-                  let id = u16(at + 6), let length = u16(at + 8), let offset = u16(at + 10) else { return nil }
-            guard id == 1 || id == 16 else { continue }
-            let start = strings + offset
-            guard start + length <= b.count else { return nil }
-            let raw = Data(b[start..<(start + length)])
-            let rank: Int
-            let text: String?
-            if platform == 3 && language == 0x409 {
-                rank = 0
-                text = String(data: raw, encoding: .utf16BigEndian)
-            } else if platform == 1 && encoding == 0 {
-                rank = 1
-                text = String(data: raw, encoding: .isoLatin1)
-            } else if platform == 0 {
-                rank = 2
-                text = String(data: raw, encoding: .utf16BigEndian)
-            } else {
-                continue
+
+        /// Where the table `tag` starts; nil when the file has none.
+        func table(_ tag: Int) -> Int? {
+            guard let tables = u16(4) else { return nil }
+            var found: Int?
+            for i in 0..<tables {
+                let at = 12 + 16 * i
+                if u32(at) == tag { found = u32(at + 8) }
             }
-            guard let text else { continue }
-            if (found[id]?.rank ?? Int.max) > rank { found[id] = (rank: rank, text: text) }
+            return found
         }
-        let family = (found[16] ?? found[1])?.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let family, !family.isEmpty else { return nil }
-        return family
+
+        /// The family and subfamily names (ids 1, 2, 16 and 17), each the
+        /// best it has — Windows English, then the Mac's, then Unicode's.
+        /// Nil when there is no name table that reads.
+        func names() -> [Int: String]? {
+            guard let table = table(0x6E61_6D65), // "name"
+                  let count = u16(table + 2), let base = u16(table + 4) else { return nil }
+            let strings = table + base
+            // Best rank by name id: 0 Windows English, 1 Mac Roman, 2 Unicode.
+            var found: [Int: (rank: Int, text: String)] = [:]
+            for i in 0..<count {
+                let at = table + 6 + 12 * i
+                guard let platform = u16(at), let encoding = u16(at + 2), let language = u16(at + 4),
+                      let id = u16(at + 6), let length = u16(at + 8), let offset = u16(at + 10) else { return nil }
+                guard [1, 2, 16, 17].contains(id) else { continue }
+                let start = strings + offset
+                guard start + length <= b.count else { return nil }
+                let raw = Data(b[start..<(start + length)])
+                let rank: Int
+                let text: String?
+                if platform == 3 && language == 0x409 {
+                    rank = 0
+                    text = String(data: raw, encoding: .utf16BigEndian)
+                } else if platform == 1 && encoding == 0 {
+                    rank = 1
+                    text = String(data: raw, encoding: .isoLatin1)
+                } else if platform == 0 {
+                    rank = 2
+                    text = String(data: raw, encoding: .utf16BigEndian)
+                } else {
+                    continue
+                }
+                guard let text else { continue }
+                if (found[id]?.rank ?? Int.max) > rank { found[id] = (rank: rank, text: text) }
+            }
+            return found.mapValues { $0.text }
+        }
+
+        /// The fvar table's wght axis, when the font is variable in weight.
+        func wghtAxis() -> Axis? {
+            guard let fvar = table(0x6676_6172), // "fvar"
+                  let axes = u16(fvar + 4), let count = u16(fvar + 8), let size = u16(fvar + 10) else { return nil }
+            for i in 0..<count {
+                let at = fvar + axes + i * size
+                guard u32(at) == 0x7767_6874, // "wght"
+                      let low = fixed(at + 4), let value = fixed(at + 8), let high = fixed(at + 12),
+                      low <= high else { continue }
+                return Axis(min: low, max: high, defaultValue: value)
+            }
+            return nil
+        }
     }
 }

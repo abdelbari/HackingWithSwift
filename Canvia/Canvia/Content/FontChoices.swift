@@ -7,7 +7,8 @@
 // the fonts In this design, Your fonts with "Add a font…", and then every
 // font. A search or a category lists only the fonts it finds: the library's
 // in catalogue order, then — under "All" only — fonts of your own whose
-// names match.
+// names match. Fonts of your own are listed a family a row, by the key of
+// its Regular face (CustomFonts.families).
 
 import Foundation
 
@@ -43,8 +44,15 @@ enum FontChoices {
     static func browsing(kit: BrandKit, recent: [String], design: Design) -> [Section] {
         [Section(title: brandTitle, keys: brandFonts(kit)),
          Section(title: recentTitle, keys: recent),
-         Section(title: inDesignTitle, keys: FontLibrary.usedIn(design))]
+         Section(title: inDesignTitle, keys: families(FontLibrary.usedIn(design), design: design))]
             .filter { !$0.keys.isEmpty }
+    }
+
+    /// Keys with each font of your own as its family's Regular face, once
+    /// (FontStore.familyKey).
+    static func families(_ keys: [String], design: Design) -> [String] {
+        var seen = Set<String>()
+        return keys.map { FontStore.familyKey($0, in: design) }.filter { seen.insert($0).inserted }
     }
 
     /// Whether the picker is browsing rather than finding.
@@ -57,7 +65,7 @@ enum FontChoices {
     static func found(query: String, category: String, own: [Uploads.FontEntry]) -> [String] {
         let library = FontLibrary.search(query, category: category).map(\.id)
         guard category == FontLibrary.allCategories else { return library }
-        return library + own.filter { FontLibrary.matches($0.name, query) }.map(\.key)
+        return library + CustomFonts.families(own).filter { FontLibrary.matches($0.name, query) }.map(\.key)
     }
 
     /// What the picker says when nothing is found.
