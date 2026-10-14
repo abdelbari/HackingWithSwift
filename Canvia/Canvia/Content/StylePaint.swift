@@ -3,8 +3,8 @@
 // across (DesignStore.apply). Between kinds only what both have: opacity,
 // shadow and blend, and the colour carried to where the other kind keeps
 // it — a text's colour becomes a shape's fill and the reverse, a line's
-// colour a shape's outline or a text's colour, a photo's border colour a
-// shape's outline colour (each keeps its own width). The Android twin's
+// colour a shape's outline or a text's colour, a photo's border colour and
+// dashes a shape's outline colour and dashes (each keeps its own width). The Android twin's
 // ElementStyle, with the same test rows.
 
 import Foundation
@@ -44,12 +44,15 @@ enum StylePaint {
             } else if fill.kind == "gradient" {
                 out.textFill = fill
             }
-        case (.line, .shape), (.image, .shape):
-            if let colour = (source == .line ? style.color : style.stroke) { out.stroke = colour }
+        case (.line, .shape):
+            if let colour = style.color { out.stroke = colour }
+        case (.image, .shape), (.shape, .image):
+            // A border's look goes with it: its colour and its dashes (each
+            // keeps its own width).
+            if let colour = style.stroke { out.stroke = colour }
+            out.dash = BorderDash.kept(style.dash)
         case (.shape, .line):
             if let colour = style.stroke { out.color = colour }
-        case (.shape, .image):
-            if let colour = style.stroke { out.stroke = colour }
         case (.line, .text):
             if let colour = style.color {
                 out.color = colour

@@ -79,5 +79,13 @@ final class BorderStyleTests: XCTestCase {
         var shape = Element.shape("circle")
         DesignStore.apply(DesignStore.style(of: Element.line()), to: &shape)
         XCTAssertNil(shape.dash, "a line's solid is no key on a shape")
+        // Painted across kinds, a border keeps its dashes, as on Android.
+        let painted = StylePaint.pasted(DesignStore.style(of: source), from: .shape, onto: Element.image("media:y"))
+        XCTAssertEqual(painted.dash, "dashed")
+        XCTAssertEqual(painted.stroke, "#000000")
+        var dotted = Element.shape("circle")
+        dotted.dash = "dotted"
+        let solid = StylePaint.pasted(DesignStore.style(of: Element.image("media:z")), from: .image, onto: dotted)
+        XCTAssertNil(solid.dash, "a photo with a solid border takes the dots away")
     }
 }
