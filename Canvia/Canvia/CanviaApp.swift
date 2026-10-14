@@ -179,14 +179,17 @@ struct CanviaApp: App {
                     // animated, so opening and closing a design just snapped.
                     .transition(.move(edge: .trailing))
                 } else {
-                    HomeView { design in
+                    HomeView(onOpen: { design in
                         var opened = design
                         opened.updatedAt = Date().timeIntervalSince1970 * 1000
                         DesignLibrary.save(opened)
                         withAnimation(.snappy(duration: 0.28)) {
                             editingStore = DesignStore(design: opened)
                         }
-                    }
+                    }, onImport: { box in
+                        // Import's photos, clips or PDF, as a share is.
+                        sharedBox = box
+                    })
                     .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 }
             }

@@ -1583,6 +1583,15 @@
     "ja": "%@… %d%%",
     "pt-BR": "%@… %d%%"
   },
+  "%d + %d adapted": {
+    "ar": "%d + %d مُكيّفة",
+    "de": "%d + %d angepasst",
+    "es": "%d + %d adaptadas",
+    "fr": "%d + %d adaptés",
+    "it": "%d + %d adattati",
+    "ja": "%d + 調整 %d 件",
+    "pt-BR": "%d + %d adaptados"
+  },
   "%d SmartArt|%d SmartArt": {
     "ar": {
       "few": "%d SmartArt",
@@ -3830,6 +3839,15 @@
     "ja": "実際のサイズ",
     "pt-BR": "Tamanho real"
   },
+  "Adapted from other sizes": {
+    "ar": "مُكيّفة من مقاسات أخرى",
+    "de": "Aus anderen Größen angepasst",
+    "es": "Adaptadas de otros tamaños",
+    "fr": "Adaptés d’autres formats",
+    "it": "Adattati da altri formati",
+    "ja": "他のサイズから調整",
+    "pt-BR": "Adaptados de outros tamanhos"
+  },
   "Add": {
     "ar": "إضافة",
     "de": "Hinzufügen",
@@ -4108,6 +4126,15 @@
     "it": "Aggiungi guida orizzontale",
     "ja": "水平ガイドを追加",
     "pt-BR": "Adicionar guia horizontal"
+  },
+  "Add logo from photos…": {
+    "ar": "إضافة شعار من الصور…",
+    "de": "Logo aus Fotos hinzufügen…",
+    "es": "Añadir logotipo desde fotos…",
+    "fr": "Ajouter un logo depuis les photos…",
+    "it": "Aggiungi logo dalle foto…",
+    "ja": "写真からロゴを追加…",
+    "pt-BR": "Adicionar logotipo das fotos…"
   },
   "Add music": {
     "ar": "إضافة موسيقى",
@@ -5600,6 +5627,15 @@
     "ja": "ブランドキット",
     "pt-BR": "Kit de marca"
   },
+  "Brand kit applied": {
+    "ar": "تم تطبيق مجموعة العلامة التجارية",
+    "de": "Brand Kit angewendet",
+    "es": "Kit de marca aplicado",
+    "fr": "Kit de marque appliqué",
+    "it": "Brand Kit applicato",
+    "ja": "ブランドキットを適用しました",
+    "pt-BR": "Kit de marca aplicado"
+  },
   "Brand kit…": {
     "ar": "مجموعة العلامة التجارية…",
     "de": "Brand Kit …",
@@ -5920,6 +5956,15 @@
     "it": "File di design Canvia",
     "ja": "Canvia デザインファイル",
     "pt-BR": "Arquivo de design do Canvia"
+  },
+  "Canvia design file…": {
+    "ar": "ملف تصميم Canvia…",
+    "de": "Canvia-Designdatei…",
+    "es": "Archivo de diseño de Canvia…",
+    "fr": "Fichier de design Canvia…",
+    "it": "File di design Canvia…",
+    "ja": "Canvia デザインファイル…",
+    "pt-BR": "Arquivo de design do Canvia…"
   },
   "Canvia editor": {
     "ar": "محرر Canvia",
@@ -7157,6 +7202,15 @@
     "ja": "その操作はできませんでした",
     "pt-BR": "Não foi possível fazer isso"
   },
+  "Couldn't export %d of %d": {
+    "ar": "تعذّر تصدير %d من %d",
+    "de": "%d von %d konnten nicht exportiert werden",
+    "es": "No se pudieron exportar %d de %d",
+    "fr": "Impossible d’exporter %d sur %d",
+    "it": "Impossibile esportare %d di %d",
+    "ja": "%d 件を書き出せませんでした（%d 件中）",
+    "pt-BR": "Não foi possível exportar %d de %d"
+  },
   "Couldn't find a subject in this picture. It works best on a photo with a clear foreground.": {
     "ar": "تعذّر العثور على عنصر رئيسي في هذه الصورة. تعمل الميزة بأفضل شكل على صورة ذات مقدمة واضحة.",
     "de": "In diesem Bild wurde kein Motiv gefunden. Am besten klappt es bei einem Foto mit klarem Vordergrund.",
@@ -7759,6 +7813,15 @@
     "it": "Personalizzato: ogni %@ px",
     "ja": "カスタム：%@ px ごと",
     "pt-BR": "Personalizado: a cada %@ px"
+  },
+  "Customize this template": {
+    "ar": "تخصيص هذا القالب",
+    "de": "Diese Vorlage anpassen",
+    "es": "Personalizar esta plantilla",
+    "fr": "Personnaliser ce modèle",
+    "it": "Personalizza questo modello",
+    "ja": "このテンプレートをカスタマイズ",
+    "pt-BR": "Personalizar este modelo"
   },
   "Custom…": {
     "ar": "مخصّص…",
@@ -8419,6 +8482,15 @@
     "it": "Dimensioni design",
     "ja": "デザインのサイズ",
     "pt-BR": "Tamanho do design"
+  },
+  "Design files": {
+    "ar": "ملفات التصميم",
+    "de": "Designdateien",
+    "es": "Archivos de diseño",
+    "fr": "Fichiers de design",
+    "it": "File di design",
+    "ja": "デザインファイル",
+    "pt-BR": "Arquivos de design"
   },
   "Design type: %@, %@": {
     "ar": "نوع التصميم: %@، %@",
@@ -10084,6 +10156,15 @@
     "it": "Esportazione",
     "ja": "書き出し中",
     "pt-BR": "Exportando"
+  },
+  "Exporting %d of %d designs": {
+    "ar": "جارٍ تصدير التصميم %d من %d",
+    "de": "Design %d von %d wird exportiert",
+    "es": "Exportando %d de %d diseños",
+    "fr": "Export du design %d sur %d",
+    "it": "Esportazione del design %d di %d",
+    "ja": "%d / %d 件のデザインを書き出し中",
+    "pt-BR": "Exportando %d de %d designs"
   },
   "Exporting and sharing": {
     "ar": "التصدير والمشاركة",
@@ -11758,6 +11839,15 @@
     "it": "Immagine",
     "ja": "画像",
     "pt-BR": "Imagem"
+  },
+  "Import": {
+    "ar": "استيراد",
+    "de": "Importieren",
+    "es": "Importar",
+    "fr": "Importer",
+    "it": "Importa",
+    "ja": "読み込む",
+    "pt-BR": "Importar"
   },
   "Import CSV": {
     "ar": "استيراد CSV",
@@ -13507,6 +13597,15 @@
     "it": "Altri colori inchiostro",
     "ja": "その他のインクの色",
     "pt-BR": "Mais cores de tinta"
+  },
+  "More like this": {
+    "ar": "المزيد من هذا النوع",
+    "de": "Ähnliche Vorlagen",
+    "es": "Más como esta",
+    "fr": "Dans le même style",
+    "it": "Altri simili",
+    "ja": "似たテンプレート",
+    "pt-BR": "Mais como este"
   },
   "More margin": {
     "ar": "هامش أكبر",
@@ -15671,6 +15770,15 @@
     "ja": "オーバーレイ",
     "pt-BR": "Sobrepor"
   },
+  "PDF…": {
+    "ar": "PDF…",
+    "de": "PDF…",
+    "es": "PDF…",
+    "fr": "PDF…",
+    "it": "PDF…",
+    "ja": "PDF…",
+    "pt-BR": "PDF…"
+  },
   "PNG on the clipboard, for Messages, Mail or Notes": {
     "ar": "PNG في الحافظة، للرسائل أو البريد أو الملاحظات",
     "de": "PNG in der Zwischenablage, für Nachrichten, Mail oder Notizen",
@@ -16352,6 +16460,15 @@
     "ja": "%@ フレーム内の写真",
     "pt-BR": "Foto em uma moldura %@"
   },
+  "Photo or video…": {
+    "ar": "صورة أو فيديو…",
+    "de": "Foto oder Video…",
+    "es": "Foto o vídeo…",
+    "fr": "Photo ou vidéo…",
+    "it": "Foto o video…",
+    "ja": "写真またはビデオ…",
+    "pt-BR": "Foto ou vídeo…"
+  },
   "Photos": {
     "ar": "الصور",
     "de": "Fotos",
@@ -16784,6 +16901,15 @@
     "ja": "ポスター",
     "pt-BR": "Pôster"
   },
+  "PowerPoint…": {
+    "ar": "PowerPoint…",
+    "de": "PowerPoint…",
+    "es": "PowerPoint…",
+    "fr": "PowerPoint…",
+    "it": "PowerPoint…",
+    "ja": "PowerPoint…",
+    "pt-BR": "PowerPoint…"
+  },
   "Preparing to print": {
     "ar": "جارٍ التحضير للطباعة",
     "de": "Drucken wird vorbereitet",
@@ -16987,6 +17113,15 @@
     "it": "Stampa a dimensioni reali, %@.",
     "ja": "実際のサイズで印刷、%@。",
     "pt-BR": "Imprime em tamanho real, %@."
+  },
+  "Print…": {
+    "ar": "طباعة…",
+    "de": "Drucken…",
+    "es": "Imprimir…",
+    "fr": "Imprimer…",
+    "it": "Stampa…",
+    "ja": "印刷…",
+    "pt-BR": "Imprimir…"
   },
   "Progress bar": {
     "ar": "شريط التقدم",
@@ -19070,6 +19205,15 @@
     "ja": "半円",
     "pt-BR": "Semicírculo"
   },
+  "Send a copy": {
+    "ar": "إرسال نسخة",
+    "de": "Kopie senden",
+    "es": "Enviar una copia",
+    "fr": "Envoyer une copie",
+    "it": "Invia una copia",
+    "ja": "コピーを送信",
+    "pt-BR": "Enviar uma cópia"
+  },
   "Send as a Canvia design file": {
     "ar": "إرسال كملف تصميم Canvia",
     "de": "Als Canvia-Designdatei senden",
@@ -19468,6 +19612,15 @@
     "it": "Condividi, in alto, crea un PNG o JPG di una pagina, di tutte le pagine o della selezione, un PDF da condividere o stampare con abbondanza e segni di taglio, un video o una GIF, o un file di design che entrambi i telefoni possono aprire.",
     "ja": "上部の「共有」では、ページ・全ページ・選択範囲の PNG または JPG、共有や塗り足しとトンボ付きの印刷用の PDF、動画や GIF、どちらのスマートフォンでも開けるデザインファイルを作成します。",
     "pt-BR": "Compartilhar, no topo, cria um PNG ou JPG de uma página, de todas as páginas ou da seleção, um PDF para compartilhar ou imprimir com sangria e marcas de corte, um vídeo ou GIF, ou um arquivo de design que os dois celulares abrem."
+  },
+  "Share…": {
+    "ar": "مشاركة…",
+    "de": "Teilen…",
+    "es": "Compartir…",
+    "fr": "Partager…",
+    "it": "Condividi…",
+    "ja": "共有…",
+    "pt-BR": "Compartilhar…"
   },
   "Sharp edges, and can be clear": {
     "ar": "حواف حادة، ويمكن أن يكون شفافًا",
@@ -20420,6 +20573,15 @@
     "ja": "どこからでも始められます",
     "pt-BR": "Comece em qualquer lugar"
   },
+  "Start from a photo": {
+    "ar": "ابدأ من صورة",
+    "de": "Mit einem Foto beginnen",
+    "es": "Empezar con una foto",
+    "fr": "Partir d’une photo",
+    "it": "Inizia da una foto",
+    "ja": "写真から始める",
+    "pt-BR": "Começar com uma foto"
+  },
   "Start from a template": {
     "ar": "البدء من قالب",
     "de": "Mit einer Vorlage beginnen",
@@ -20437,6 +20599,15 @@
     "it": "Ricomincia da un modello",
     "ja": "テンプレートからやり直す",
     "pt-BR": "Recomeçar com um modelo"
+  },
+  "Start with my brand": {
+    "ar": "ابدأ بعلامتي التجارية",
+    "de": "Mit meiner Marke beginnen",
+    "es": "Empezar con mi marca",
+    "fr": "Commencer avec ma marque",
+    "it": "Inizia con il mio brand",
+    "ja": "マイブランドで始める",
+    "pt-BR": "Começar com minha marca"
   },
   "Started over from “%@”": {
     "ar": "تم البدء من جديد من «%@»",

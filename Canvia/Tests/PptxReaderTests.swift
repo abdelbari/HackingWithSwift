@@ -576,7 +576,7 @@ final class PptxReaderTests: XCTestCase {
 
     /// Shared: what Home and the import say, as on the Android twin.
     func testTheWordsAreTheAndroidTwins() {
-        XCTAssertEqual(StartSheet.openPowerPoint, "Open a PowerPoint…")
+        XCTAssertEqual(ImportChoice.powerPoint.title, "PowerPoint…")
         XCTAssertEqual(PptxReader.notADeck, "That file isn't a PowerPoint presentation.")
         XCTAssertEqual(PptxReader.tooBig, "That PowerPoint is too big to open.")
         XCTAssertEqual(PptxReader.mimeType, "application/vnd.openxmlformats-officedocument.presentationml.presentation")
