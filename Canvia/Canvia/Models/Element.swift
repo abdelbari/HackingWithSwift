@@ -159,11 +159,11 @@ struct Shadow: Codable, Equatable, Hashable {
 }
 
 /// How a video clip plays: the part of the file it shows, how fast,
-/// whether it goes round again and how loud — trimmed and timed without
-/// touching the file. Written as the element's `clip` object, each field
-/// only when it is not its default, and the object only when one is not; a
-/// partial or odd object still reads, every field it lacks or cannot give at
-/// its default.
+/// whether it goes round again, how loud and how its sound fades in and
+/// out — trimmed and timed without touching the file. Written as the
+/// element's `clip` object, each field only when it is not its default, and
+/// the object only when one is not; a partial or odd object still reads,
+/// every field it lacks or cannot give at its default.
 struct ClipPlayback: Codable, Equatable, Hashable {
     /// Seconds into the file where the clip starts.
     var start: Double = 0
@@ -177,9 +177,17 @@ struct ClipPlayback: Codable, Equatable, Hashable {
     var volume: Double = 1
     /// Silent wherever it plays, the video included.
     var muted: Bool = false
+    /// Seconds its sound rises from nothing as it starts to be heard on its
+    /// page, and falls to nothing as it stops, as written; heard within
+    /// `fadeRange` (AudioMix.clipFades).
+    var fadeIn: Double = 0
+    var fadeOut: Double = 0
 
-    /// What the Clip sheet offers.
-    static let speeds: [Double] = [0.5, 1, 1.5, 2]
+    /// What the Clip sheet offers, as the Android twin's panel does.
+    static let speeds: [Double] = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2]
+    /// What the Clip sheet offers a fade, and what the mix plays one within:
+    /// a track's.
+    static let fadeRange = AudioTrack.fadeRange
     /// The shortest a trim leaves a clip, in seconds; a clip no longer than
     /// this cannot be trimmed.
     static let minLength = 0.1
@@ -191,21 +199,22 @@ struct ClipPlayback: Codable, Equatable, Hashable {
     /// The rate the clip plays at: `speed` kept within `speedRange`.
     var playbackSpeed: Double { min(max(speed, Self.speedRange.lowerBound), Self.speedRange.upperBound) }
 
-    /// Whether the clip is heard as it plays: not muted, not silent, and at
-    /// its own speed — a sped-up clip's sound is left out for now, as on
-    /// the Android twin.
-    var sounds: Bool { !muted && volume > 0 && speed == 1 }
+    /// Whether the clip is heard as it plays: not muted and not silent, at
+    /// any speed — its sound kept at its pitch as it is sped up or slowed.
+    var sounds: Bool { !muted && volume > 0 }
 
-    private enum CodingKeys: String, CodingKey { case start, end, speed, loop, volume, muted }
+    private enum CodingKeys: String, CodingKey { case start, end, speed, loop, volume, muted, fadeIn, fadeOut }
 
     init(start: Double = 0, end: Double? = nil, speed: Double = 1, loop: Bool = true,
-         volume: Double = 1, muted: Bool = false) {
+         volume: Double = 1, muted: Bool = false, fadeIn: Double = 0, fadeOut: Double = 0) {
         self.start = start
         self.end = end
         self.speed = speed
         self.loop = loop
         self.volume = volume
         self.muted = muted
+        self.fadeIn = fadeIn
+        self.fadeOut = fadeOut
     }
 
     init(from decoder: Decoder) throws {
@@ -216,6 +225,8 @@ struct ClipPlayback: Codable, Equatable, Hashable {
         loop = (try? c.decodeIfPresent(Bool.self, forKey: .loop)) ?? true
         volume = (try? c.decodeIfPresent(Double.self, forKey: .volume)) ?? 1
         muted = (try? c.decodeIfPresent(Bool.self, forKey: .muted)) ?? false
+        fadeIn = (try? c.decodeIfPresent(Double.self, forKey: .fadeIn)) ?? 0
+        fadeOut = (try? c.decodeIfPresent(Double.self, forKey: .fadeOut)) ?? 0
     }
 
     func encode(to encoder: Encoder) throws {
@@ -226,6 +237,8 @@ struct ClipPlayback: Codable, Equatable, Hashable {
         if !loop { try c.encode(false, forKey: .loop) }
         if volume != 1 { try c.encode(volume, forKey: .volume) }
         if muted { try c.encode(true, forKey: .muted) }
+        if fadeIn > 0 { try c.encode(fadeIn, forKey: .fadeIn) }
+        if fadeOut > 0 { try c.encode(fadeOut, forKey: .fadeOut) }
     }
 }
 

@@ -202,6 +202,7 @@ final class ElementEqualityTests: XCTestCase {
             ("focusBlur", { $0.focusBlur = FocusBlur() }),
             ("edge", { $0.edge = PhotoEdge() }),
             ("clip", { $0.clip = ClipPlayback(start: 2) }),
+            ("clip fades", { $0.clip = ClipPlayback(fadeIn: 1) }),
             ("qrColor", { $0.qrColor = "#1a237e" }),
             ("qrBackground", { $0.qrBackground = "none" }),
             ("qrMargin", { $0.qrMargin = 2 }),

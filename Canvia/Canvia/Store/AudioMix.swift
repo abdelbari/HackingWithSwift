@@ -6,12 +6,15 @@
 //
 // A clip sounds while its page plays: its trimmed window laid from the
 // page's start, again and again when it loops, never past the page's last
-// frame. A muted or silent clip, or one playing at another speed, is not in
-// the mix; nor is a clip behind a page or filling a shape, or a GIF, which
-// is a photo. A clip with its own timing (ElementTiming) is heard only
-// while it shows: what it would play then, from the page's start, cut to
-// its window, as its picture is. Hidden pages are not in the film, so their
-// clips are not either.
+// frame. A clip at another speed is heard at that speed, its pitch kept: its
+// window takes its length over the speed on the page's clock. Its own fades
+// (`clipFades`) rise from where it is first heard on its page and fall to
+// where it is last heard there, by the same rule as a track's. A muted or
+// silent clip is not in the mix; nor is a clip behind a page or filling a
+// shape, or a GIF, which is a photo. A clip with its own timing
+// (ElementTiming) is heard only while it shows: what it would play then,
+// from the page's start, cut to its window, as its picture is. Hidden pages
+// are not in the film, so their clips are not either.
 //
 // A track sounds from its `start` in the film: its trimmed window once, or
 // round and round to the film's end when it loops, never past that end — so
@@ -37,14 +40,18 @@ enum AudioMix {
     /// One stretch of one source's sound: from `sourceStart` seconds into
     /// the file, laid at `at` seconds into the video for `duration` seconds,
     /// at `gain` — rising from nothing across `fadeIn` and falling to
-    /// nothing across `fadeOut`, when it has them.
+    /// nothing across `fadeOut`, when it has them — played at `speed`, so
+    /// it takes `duration` × `speed` seconds of the file.
     struct Segment: Equatable {
         var source: String, sourceStart: Double, at: Double, duration: Double
         var gain: Double
         var fadeOut: ClosedRange<Double>? = nil
         var fadeIn: ClosedRange<Double>? = nil
+        var speed: Double = 1
 
         var end: Double { at + duration }
+        /// How much of the file it plays, in seconds.
+        var sourceDuration: Double { duration * speed }
 
         /// How loud it is `t` seconds into the video.
         func gainAt(_ t: Double) -> Double {
@@ -120,15 +127,47 @@ enum AudioMix {
         let at = max(track.start, 0)
         guard gain > 0, to - from > 0.01, at < film - 0.001 else { return nil }
         let until = track.loop ? film : min(at + (to - from), film)
-        let sounds = until - at
+        let fades = self.fades(fadeIn: track.fadeIn, fadeOut: track.fadeOut, heard: at, until: until)
+        return Span(source: source, from: from, to: to, at: at, until: until, loop: track.loop,
+                    gain: gain, fadeIn: fades.fadeIn, fadeOut: fades.fadeOut)
+    }
+
+    /// Fades of `fadeIn` and `fadeOut` seconds over sound heard from `heard`
+    /// until `until`: each kept to AudioTrack.fadeRange, and heard only when
+    /// the sound lasts more than twice its length — a track's rule and a
+    /// clip's alike. Sound with no end has no fade out.
+    static func fades(fadeIn: Double, fadeOut: Double, heard: Double,
+                      until: Double) -> (fadeIn: ClosedRange<Double>?, fadeOut: ClosedRange<Double>?) {
+        let sounds = until - heard
         func fade(_ seconds: Double) -> Double? {
             let f = min(max(seconds, AudioTrack.fadeRange.lowerBound), AudioTrack.fadeRange.upperBound)
             return f > 0 && sounds > f * 2 ? f : nil
         }
-        let fadeIn = fade(track.fadeIn).map { at...(at + $0) }
-        let fadeOut = until.isFinite ? fade(track.fadeOut).map { (until - $0)...until } : nil
-        return Span(source: source, from: from, to: to, at: at, until: until, loop: track.loop,
-                    gain: gain, fadeIn: fadeIn, fadeOut: fadeOut)
+        let fadeIn = fade(fadeIn).map { heard...(heard + $0) }
+        let fadeOut = until.isFinite ? fade(fadeOut).map { (until - $0)...until } : nil
+        return (fadeIn, fadeOut)
+    }
+
+    /// Where a clip playing `playback` is heard on its page, in seconds on
+    /// the page's clock, its window being `window` seconds of its file: from
+    /// its timing's start until the first of its timing's end, the page's
+    /// end (`page`, none for a page with no end) and — played once — the end
+    /// of its window at its speed. Nil when that is nothing.
+    static func clipHeard(_ playback: ClipPlayback, window: Double, timing: ElementTiming?,
+                          page: Double?) -> ClosedRange<Double>? {
+        let from = max(timing?.start ?? 0, 0)
+        var until = min(timing?.end ?? .infinity, page ?? .infinity)
+        if !playback.loop { until = min(until, window / playback.playbackSpeed) }
+        return until - from > 0.001 ? from...until : nil
+    }
+
+    /// A clip's fades on its page, on the page's clock: rising from where it
+    /// is first heard and falling to where it is last heard (`clipHeard`),
+    /// once a page however often it goes round — by the rule a track's are
+    /// (`fades`), as the Android twin lays them.
+    static func clipFades(_ playback: ClipPlayback,
+                          heard: ClosedRange<Double>) -> (fadeIn: ClosedRange<Double>?, fadeOut: ClosedRange<Double>?) {
+        fades(fadeIn: playback.fadeIn, fadeOut: playback.fadeOut, heard: heard.lowerBound, until: heard.upperBound)
     }
 
     /// The film's length in seconds: the shown pages, as the video plays
@@ -187,29 +226,41 @@ enum AudioMix {
             for clip in clips {
                 let playback = clip.playback
                 guard playback.sounds, let duration = clipDurations[clip.source] else { continue }
-                // The window clipTime plays: the trim, within the file.
+                // The window clipTime plays: the trim, within the file,
+                // taking its length over its speed on the page.
                 let start = max(0, playback.start)
                 let end = min(playback.end ?? duration, duration)
-                let length = end - start
-                guard length > 0.01 else { continue }
+                let pace = playback.playbackSpeed
+                let length = (end - start) / pace
+                guard end - start > 0.01 else { continue }
                 let gain = min(max(playback.volume, 0), 1)
                 // Where its timing lets it be heard: from its start until its
                 // end, on the page's clock.
                 let heardFrom = pageStart + (clip.timing?.start ?? 0)
                 let heardUntil = clip.timing?.end.map { min(pageEnd, pageStart + $0) } ?? pageEnd
+                var laid: [Segment] = []
                 var at = pageStart
                 while at < pageEnd - 0.001 {
                     let stretch = min(length, pageEnd - at)
                     let from = max(at, heardFrom)
                     let to = min(at + stretch, heardUntil)
                     if to - from > 0.001 {
-                        out.append(Segment(source: clip.source, sourceStart: start + (from - at), at: from,
-                                           duration: to - from, gain: gain))
+                        laid.append(Segment(source: clip.source, sourceStart: start + (from - at) * pace, at: from,
+                                            duration: to - from, gain: gain, speed: pace))
                     }
                     at += stretch
                     // Played once, it is silent while its last frame holds.
                     if !playback.loop { break }
                 }
+                // Its fades over all it lays on the page, once.
+                if let first = laid.first, let last = laid.last {
+                    let fades = clipFades(playback, heard: first.at...last.end)
+                    for i in laid.indices {
+                        laid[i].fadeIn = fades.fadeIn
+                        laid[i].fadeOut = fades.fadeOut
+                    }
+                }
+                out += laid
             }
         }
         let film = Double(timeline.last?.end ?? 0) / rate

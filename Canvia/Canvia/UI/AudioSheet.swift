@@ -2,8 +2,11 @@
 // starts and how long it plays, and more added — music from Files or from
 // your uploads, or a voice-over recorded over the design as it plays. A
 // track opens to its start, trim, volume, fades, loop and Delete, each
-// change one undo step, a slider's when it is let go. The Android twin's
-// Audio panel sets the same `audio` array.
+// change one undo step, a slider's or a trim handle's when it is let go. Its
+// trim is a trimmer bar over its waveform (TrimmerBar): letting a handle go
+// plays the first second and a half of the new trim, and Play trimmed part
+// plays all of it. The Android twin's Audio panel sets the same `audio`
+// array.
 
 import SwiftUI
 import UIKit
@@ -214,10 +217,10 @@ struct AudioTrackView: View {
     /// The music's length, read as the view opens; nil until it is, 0 for
     /// music that cannot be read.
     @State private var length: Double?
+    /// The music's waveform for the trimmer bar, once read.
+    @State private var peaks: [Float] = []
     /// Where each slider is while it is dragged; written when let go.
     @State private var draftStart: Double?
-    @State private var draftTrimStart: Double?
-    @State private var draftTrimEnd: Double?
     @State private var draftVolume: Double?
     @State private var draftFadeIn: Double?
     @State private var draftFadeOut: Double?
@@ -240,9 +243,12 @@ struct AudioTrackView: View {
         .navigationTitle(track.map(AudioTracks.name(of:)) ?? "Track")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: track?.audioId) {
+            peaks = []
             guard let id = track?.audioId else { return }
             length = await AudioStore.duration(of: id) ?? 0
+            peaks = await Peaks.of(id) ?? []
         }
+        .onDisappear { Audition.shared.stop() }
     }
 
     /// Where it starts, over the film's length, and whether it goes round
@@ -267,33 +273,33 @@ struct AudioTrackView: View {
         }
     }
 
-    /// Start and End, each its own slider over the whole file, kept
-    /// AudioTrack.minLength apart, with the trim read out above them, as a
-    /// clip's are.
+    /// The trimmer bar over the music's waveform, the trim kept
+    /// AudioTrack.minLength long at least, as a clip's is; and the trimmed
+    /// part played.
     @ViewBuilder
     private func trimSection(_ track: AudioTrack) -> some View {
         if let length, length > AudioTrack.minLength {
+            let start = min(max(0, track.trimStart), length)
+            let end = min(track.trimEnd ?? length, length)
             Section {
-                let start = draftTrimStart ?? min(max(0, track.trimStart), length)
-                let end = draftTrimEnd ?? min(track.trimEnd ?? length, length)
-                HStack {
-                    Text("Trim")
-                    Spacer()
-                    Text(VideoStore.rangeLabel(start, end))
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
+                TrimmerBar(length: length, start: start, end: end, minLength: AudioTrack.minLength,
+                           commit: { s, e in commitTrim(s, e, length: length) }) {
+                    WaveformView(peaks: peaks)
                 }
-                .accessibilityElement(children: .combine)
-                trimSlider("Start", value: start, length: length,
-                           set: { draftTrimStart = max(0, min($0, end - AudioTrack.minLength)) },
-                           done: { commitTrim(length: length) })
-                trimSlider("End", value: end, length: length,
-                           set: { draftTrimEnd = min(length, max($0, start + AudioTrack.minLength)) },
-                           done: { commitTrim(length: length) })
+                .padding(.vertical, 4)
+                Button { audition(start...max(start, end)) } label: {
+                    Label("Play trimmed part", systemImage: "play.circle")
+                }
             }
         } else if length == nil {
             Section { ProgressView() }
         }
+    }
+
+    /// `range` seconds of the track's music, heard once.
+    private func audition(_ range: ClosedRange<Double>) {
+        guard let url = AudioStore.url(for: track?.audioId) else { return }
+        Audition.shared.play(url, range)
     }
 
     private func levelSection(_ track: AudioTrack) -> some View {
@@ -317,61 +323,25 @@ struct AudioTrackView: View {
         min(max(seconds, AudioTrack.fadeRange.lowerBound), AudioTrack.fadeRange.upperBound)
     }
 
-    /// A slider over `range` showing `stored`, held in `draft` while it is
-    /// dragged and handed to `write` once when let go — one undo step — and
-    /// a `step` at a time by VoiceOver's swipes.
+    /// A slider over `range` (see StepSlider).
     private func slider(_ label: String, stored: Double, in range: ClosedRange<Double>, step: Double,
-                        draft: Binding<Double?>, readout: (Double) -> String,
+                        draft: Binding<Double?>, readout: @escaping (Double) -> String,
                         write: @escaping (Double) -> Void) -> some View {
-        let shown = readout(draft.wrappedValue ?? stored)
-        return HStack {
-            Text(label)
-                .accessibilityHidden(true)
-            Slider(value: Binding(get: { draft.wrappedValue ?? stored }, set: { draft.wrappedValue = $0 }),
-                   in: range,
-                   onEditingChanged: { editing in
-                       guard !editing, let v = draft.wrappedValue else { return }
-                       draft.wrappedValue = nil
-                       if v != stored { write(v) }
-                   })
-            .accessibilityLabel(label)
-            .accessibilityValue(shown)
-            .accessibilityAdjustableAction { direction in
-                let next = stored + (direction == .increment ? step : -step)
-                write(min(range.upperBound, max(range.lowerBound, next)))
-            }
-            Text(shown)
-                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-        }
+        StepSlider(label: label, stored: stored, range: range, step: step, draft: draft, readout: readout,
+                   write: write)
     }
 
-    private func trimSlider(_ label: String, value: Double, length: Double,
-                            set: @escaping (Double) -> Void, done: @escaping () -> Void) -> some View {
-        HStack {
-            Text(label)
-            Slider(value: Binding(get: { value }, set: set), in: 0...length,
-                   onEditingChanged: { editing in if !editing { done() } })
-            .accessibilityLabel("Trim \(label.lowercased())")
-            .accessibilityValue(VideoStore.timeLabel(value))
-        }
-    }
-
-    /// The trim dragged to, written as one step: to a tenth of a second,
-    /// and an end at the file's own end kept as none.
-    private func commitTrim(length: Double) {
-        let start = draftTrimStart
-        let end = draftTrimEnd
-        draftTrimStart = nil
-        draftTrimEnd = nil
-        guard start != nil || end != nil else { return }
+    /// The trim let go at, written as one step — to a tenth of a second, an
+    /// end at the file's own end kept as none — and the first second and a
+    /// half of it played.
+    private func commitTrim(_ start: Double, _ end: Double, length: Double) {
+        let s = AudioTracks.tenths(start)
+        let e = AudioTracks.tenths(end)
         write { next in
-            if let start { next.trimStart = AudioTracks.tenths(start) }
-            if let end {
-                let e = AudioTracks.tenths(end)
-                next.trimEnd = e >= length - 0.05 ? nil : e
-            }
+            next.trimStart = s
+            next.trimEnd = e >= length - 0.05 ? nil : e
         }
+        audition(Trimming.auditioned(start: s, end: min(e, length)))
     }
 
     /// The track changed by `change`, as one undo step.
@@ -384,6 +354,45 @@ struct AudioTrackView: View {
         store.buzz(.confirm)
         store.announce("Deleted the track")
         dismiss()
+    }
+}
+
+// MARK: - a slider
+
+/// A slider over `range` showing `stored`, held in `draft` while it is
+/// dragged and handed to `write` once when let go — one undo step — and a
+/// `step` at a time by VoiceOver's swipes; its name before it and `readout`
+/// after. A track's sliders and a clip's fades.
+struct StepSlider: View {
+    let label: String
+    let stored: Double
+    let range: ClosedRange<Double>
+    let step: Double
+    @Binding var draft: Double?
+    let readout: (Double) -> String
+    let write: (Double) -> Void
+
+    var body: some View {
+        let shown = readout(draft ?? stored)
+        HStack {
+            Text(label)
+                .accessibilityHidden(true)
+            Slider(value: Binding(get: { draft ?? stored }, set: { draft = $0 }), in: range,
+                   onEditingChanged: { editing in
+                       guard !editing, let v = draft else { return }
+                       draft = nil
+                       if v != stored { write(v) }
+                   })
+            .accessibilityLabel(label)
+            .accessibilityValue(shown)
+            .accessibilityAdjustableAction { direction in
+                let next = stored + (direction == .increment ? step : -step)
+                write(min(range.upperBound, max(range.lowerBound, next)))
+            }
+            Text(shown)
+                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+        }
     }
 }
 

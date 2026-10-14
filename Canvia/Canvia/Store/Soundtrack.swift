@@ -3,7 +3,9 @@
 // second so the file does not end mid-note — kept as what that soundtrack's
 // track (AudioTrack.migrated) is measured against. The design's tracks and
 // each clip's own sound are laid by AudioMix.plan, and `mux` runs that
-// through AVFoundation on the finished MP4, summing every track.
+// through AVFoundation on the finished MP4, summing every track — a clip at
+// another speed scaled in the composition, its pitch kept (.spectral), as
+// PageSound plays it.
 
 import AVFoundation
 import Foundation
@@ -162,7 +164,7 @@ enum Soundtrack {
                 for s in segments where s.source == source {
                     let start = time(s.sourceStart)
                     // Never past the end of the file's own sound.
-                    let duration = CMTimeMinimum(time(s.duration), CMTimeSubtract(range.end, start))
+                    let duration = CMTimeMinimum(time(s.sourceDuration), CMTimeSubtract(range.end, start))
                     guard CMTimeCompare(duration, .zero) > 0 else { continue }
                     var at = time(s.at)
                     let lane: Int
@@ -173,7 +175,9 @@ enum Soundtrack {
                                                                       preferredTrackID: kCMPersistentTrackID_Invalid) else {
                             throw SoundtrackError.exportFailed("no composition tracks")
                         }
-                        lanes.append((track: track, end: CMTime.zero, levels: AVMutableAudioMixInputParameters(track: track)))
+                        let levels = AVMutableAudioMixInputParameters(track: track)
+                        levels.audioTimePitchAlgorithm = .spectral
+                        lanes.append((track: track, end: CMTime.zero, levels: levels))
                         lane = lanes.count - 1
                     }
                     let track = lanes[lane].track
@@ -184,7 +188,12 @@ enum Soundtrack {
                         at = lanes[lane].end
                     }
                     try track.insertTimeRange(CMTimeRange(start: start, duration: duration), of: audio, at: at)
-                    lanes[lane].end = CMTimeAdd(at, duration)
+                    // At another speed, stretched or squeezed where it lies.
+                    let laid = PageSound.scaled(duration, speed: s.speed)
+                    if CMTimeCompare(laid, duration) != 0 {
+                        track.scaleTimeRange(CMTimeRange(start: at, duration: duration), toDuration: laid)
+                    }
+                    lanes[lane].end = CMTimeAdd(at, laid)
                     level(s, from: at, to: lanes[lane].end, in: lanes[lane].levels)
                 }
             } catch {
@@ -208,6 +217,7 @@ enum Soundtrack {
         session.outputURL = output
         session.outputFileType = .mp4
         session.audioMix = mix
+        session.audioTimePitchAlgorithm = .spectral
         session.shouldOptimizeForNetworkUse = true
         await session.export()
         withExtendedLifetime(assets) {}

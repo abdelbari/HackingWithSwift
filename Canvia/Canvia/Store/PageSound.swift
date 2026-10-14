@@ -2,7 +2,9 @@
 // and its element shows (AudioMix.clips), and the design's audio tracks,
 // in Play in the editor and in Present. One player a clip and one a track,
 // each kept to its clock: a looping clip goes round its trimmed window
-// (AVPlayerLooper), one that does not falls silent at its end; a track
+// (AVPlayerLooper), one that does not falls silent at its end, and one at
+// another speed plays its window stretched or squeezed in a composition,
+// its pitch kept (.spectral), rising and falling over its fades; a track
 // waits for its place in the film (AudioMix.span), plays its window once
 // or round and round, and its level follows its fades every tenth of a
 // second. Once a second a player more than 150 ms off the clock is put
@@ -49,7 +51,7 @@ final class PageSound {
         /// looked at every tick, not once a second, so it starts on time.
         private(set) var begun = false
 
-        init(url: URL, start: Double, end: Double, loop: Bool, level: Float, since: Date,
+        init(item: AVPlayerItem, start: Double, end: Double, loop: Bool, level: Float, since: Date,
              lasts: Double? = nil, fadeIn: ClosedRange<Double>? = nil, fadeOut: ClosedRange<Double>? = nil,
              timing: ElementTiming? = nil) {
             self.start = start
@@ -61,7 +63,6 @@ final class PageSound {
             self.fadeIn = fadeIn
             self.fadeOut = fadeOut
             self.timing = timing
-            let item = AVPlayerItem(url: url)
             if loop {
                 looper = AVPlayerLooper(player: player, templateItem: item,
                                         timeRange: CMTimeRange(start: PageSound.time(start), end: PageSound.time(end)))
@@ -151,11 +152,42 @@ final class PageSound {
 
     static func time(_ seconds: Double) -> CMTime { CMTime(seconds: seconds, preferredTimescale: 600) }
 
+    /// How long `duration` of sound lasts played at `speed`: itself at 1×.
+    static func scaled(_ duration: CMTime, speed: Double) -> CMTime {
+        guard speed > 0, speed != 1 else { return duration }
+        return time(duration.seconds / speed)
+    }
+
+    /// The sound of the file at `url` from `start` to `end` seconds, played
+    /// at `speed` with its pitch kept: a composition of that window alone,
+    /// stretched or squeezed to last its length over the speed, as the
+    /// video's mix lays it (Soundtrack.mux). Nil when its sound cannot be
+    /// read.
+    @MainActor
+    static func stretched(_ url: URL, start: Double, end: Double, speed: Double) async -> AVPlayerItem? {
+        let asset = AVURLAsset(url: url)
+        guard let audio = try? await asset.loadTracks(withMediaType: .audio).first,
+              let range = try? await audio.load(.timeRange) else { return nil }
+        let window = CMTimeRange(start: time(start), end: CMTimeMinimum(time(end), range.end))
+        let composition = AVMutableComposition()
+        guard CMTimeCompare(window.duration, .zero) > 0,
+              let track = composition.addMutableTrack(withMediaType: .audio,
+                                                      preferredTrackID: kCMPersistentTrackID_Invalid),
+              (try? track.insertTimeRange(window, of: audio, at: .zero)) != nil else { return nil }
+        track.scaleTimeRange(CMTimeRange(start: .zero, duration: window.duration),
+                             toDuration: scaled(window.duration, speed: speed))
+        let item = AVPlayerItem(asset: composition)
+        item.audioTimePitchAlgorithm = .spectral
+        return item
+    }
+
     /// The clips of a page that came up at `since`, in place of any page's
     /// before: each clip this phone has with sound in it, in its window, at
-    /// its volume, while its element shows — as AudioMix lays it in the
-    /// video.
-    func page(_ sounding: [AudioMix.Clip], since: Date) {
+    /// its speed and volume, with its fades, while its element shows — as
+    /// AudioMix lays it in the video. A page `length` seconds long fades a
+    /// looping clip out at its end; one with no end known — a talk in
+    /// Present — does not.
+    func page(_ sounding: [AudioMix.Clip], since: Date, length pageLength: Double? = nil) {
         clips.forEach { $0.stop() }
         clips = []
         clipTurn += 1
@@ -172,9 +204,26 @@ final class PageSound {
                 let p = clip.playback
                 let start = max(0, p.start)
                 let end = min(p.end ?? length, length)
-                guard end - start > 0.01 else { continue }
-                let voice = Voice(url: url, start: start, end: end, loop: p.loop,
-                                  level: Float(min(max(p.volume, 0), 1)), since: since, timing: clip.timing)
+                guard end - start > 0.01,
+                      let heard = AudioMix.clipHeard(p, window: end - start, timing: clip.timing, page: pageLength)
+                else { continue }
+                let fades = AudioMix.clipFades(p, heard: heard)
+                let rate = p.playbackSpeed
+                let voice: Voice
+                if rate == 1 {
+                    voice = Voice(item: AVPlayerItem(url: url), start: start, end: end, loop: p.loop,
+                                  level: Float(min(max(p.volume, 0), 1)), since: since,
+                                  fadeIn: fades.fadeIn, fadeOut: fades.fadeOut, timing: clip.timing)
+                } else {
+                    // The window alone, at its speed: played from its own
+                    // start, over its length at that speed.
+                    let item = await PageSound.stretched(url, start: start, end: end, speed: rate)
+                    guard turn == self.clipTurn else { return }
+                    guard let item else { continue }
+                    voice = Voice(item: item, start: 0, end: (end - start) / rate, loop: p.loop,
+                                  level: Float(min(max(p.volume, 0), 1)), since: since,
+                                  fadeIn: fades.fadeIn, fadeOut: fades.fadeOut, timing: clip.timing)
+                }
                 self.clips.append(voice)
                 self.play(voice)
             }
@@ -213,7 +262,8 @@ final class PageSound {
                 func local(_ fade: ClosedRange<Double>?) -> ClosedRange<Double>? {
                     fade.map { ($0.lowerBound - span.at)...($0.upperBound - span.at) }
                 }
-                let voice = Voice(url: url, start: span.from, end: span.to, loop: span.loop, level: Float(span.gain),
+                let voice = Voice(item: AVPlayerItem(url: url), start: span.from, end: span.to, loop: span.loop,
+                                  level: Float(span.gain),
                                   since: begins, lasts: lasts, fadeIn: local(span.fadeIn), fadeOut: local(span.fadeOut))
                 self.tracks.append(voice)
                 self.play(voice)
