@@ -12,6 +12,8 @@
 //   templates/<id>.canvia.json  Recently deleted, and your templates, the same
 //   usertemplates.json       your templates' list
 //   brandkits.json           the brand kits
+//   dictionary.json          this phone's own dictionary, Add to
+//                            dictionary's words, when it has any
 //   uploads.json             your uploads' list, as kept in Documents
 //   media/<id>.<ext>         the photos your uploads and logos are,
 //   videos/<id>.<ext>        their clips,
@@ -255,6 +257,9 @@ enum Backup {
 
         try writer.add(BrandKits.fileName, json(kits))
         manifest.counts.brandKits = kits.kits.count
+        // This phone's own dictionary, when Add to dictionary has added any.
+        let dictionary = SpellingDictionary.load()
+        if !dictionary.isEmpty { try writer.add(Proofreader.dictionaryFile, Proofreader.encodeDictionary(dictionary)) }
         for src in kits.allLogos {
             try await addSource(src, into: writer, written: &written)
         }
@@ -446,6 +451,9 @@ enum Backup {
             report.brandKits = mergeKits(incoming, into: &kits)
             if report.brandKits > 0 { kits.save() }
         }
+        // The dictionary's words added to this phone's; none taken away.
+        let words = Proofreader.decodeDictionary(reader.file(Proofreader.dictionaryFile))
+        if !words.isEmpty { SpellingDictionary.add(words) }
         FontStore.installed()
         progress(1)
         return report

@@ -111,7 +111,7 @@ final class TypingBarTests: XCTestCase {
         XCTAssertEqual(TextToggle(.bold), .bold)
         XCTAssertEqual(TextToggle(.italic), .italic)
         XCTAssertEqual(TextToggle(.underline), .underline)
-        XCTAssertNil(TextToggle(.strike), "no box is struck through as a whole")
+        XCTAssertEqual(TextToggle(.strike), .strike, "the box is struck when all its words are")
     }
 
     /// What the buttons on a field's bar are called.

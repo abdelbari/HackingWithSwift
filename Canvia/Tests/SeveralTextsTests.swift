@@ -1,7 +1,7 @@
 // Styling several text boxes at once, and a type size typed exactly: every
 // selected, unlocked text changes in one step and is measured again, the
 // controls read "Mixed" where the texts differ, and a typed size is whole
-// points from 6 to 500 — as on the Android twin.
+// points from 1 to 800 — as on the Android twin.
 
 import XCTest
 @testable import Canvia
@@ -53,6 +53,40 @@ final class SeveralTextsTests: XCTestCase {
         XCTAssertEqual(s.element(a.id)?.italic, true)
         XCTAssertNil(s.element(b.id)?.italic)
         XCTAssertFalse(s.canUndo)
+    }
+
+    /// Strikethrough strikes every word of each box, or none, by the
+    /// typing bar's markers — no key of its own — and reads Mixed while
+    /// some boxes are struck and some not. The Android twin's
+    /// TextSelectionTest, case for case.
+    func testStrikethroughStrikesEveryWordOfEachBoxOrNone() {
+        let words = "Big **sale**\ntoday"
+        let el = Element.text(words)
+        XCTAssertFalse(TextToggle.isStruck(el))
+        var struck = Element.text(words)
+        TextToggle.strike.apply(true, to: &struck)
+        XCTAssertTrue(TextToggle.isStruck(struck))
+        XCTAssertEqual(RichText.strip(struck.text ?? ""), "Big sale\ntoday")
+        XCTAssertTrue(RichText.parse(struck.text ?? "").runs.allSatisfy { $0.style.strike })
+        var back = struck
+        TextToggle.strike.apply(false, to: &back)
+        XCTAssertFalse(TextToggle.isStruck(back))
+        XCTAssertEqual(RichText.strip(back.text ?? ""), "Big sale\ntoday")
+        var again = struck
+        TextToggle.strike.apply(true, to: &again)
+        XCTAssertEqual(again, struck, "already as asked: the same box")
+
+        let s = store([el, struck])
+        s.selection = [el.id, struck.id]
+        XCTAssertNil(s.sharedText { TextToggle.strike.isOn($0) }, "mixed")
+        s.toggleText(.strike)
+        XCTAssertEqual(s.sharedText { TextToggle.strike.isOn($0) }, true)
+        XCTAssertEqual(s.element(struck.id)?.text, struck.text, "the struck box is left as it was")
+        s.toggleText(.strike)
+        XCTAssertEqual(s.sharedText { TextToggle.strike.isOn($0) }, false)
+        s.undo()
+        s.undo()
+        XCTAssertEqual(s.element(el.id)?.text, words, "each press is one step")
     }
 
     func testBoldKeepsAHeavierWeightAndLockedTextIsLeftAlone() {
@@ -149,8 +183,11 @@ final class SeveralTextsTests: XCTestCase {
         XCTAssertEqual(TypeReadouts.typedSize(" 36 "), 36)
         XCTAssertEqual(TypeReadouts.typedSize("12.5"), 13)
         XCTAssertEqual(TypeReadouts.typedSize("12,4"), 12)
-        XCTAssertEqual(TypeReadouts.typedSize("3"), 6)
-        XCTAssertEqual(TypeReadouts.typedSize("9000"), 500)
+        XCTAssertEqual(TypeReadouts.typedSize("3"), 3)
+        XCTAssertEqual(TypeReadouts.typedSize("0"), 1)
+        XCTAssertEqual(TypeReadouts.typedSize("640"), 640)
+        XCTAssertEqual(TypeReadouts.typedSize("900"), 800)
+        XCTAssertEqual(TypeReadouts.typedSize("9000"), 800)
         XCTAssertNil(TypeReadouts.typedSize(""))
         XCTAssertNil(TypeReadouts.typedSize("big"))
         XCTAssertNil(TypeReadouts.typedSize("inf"))
@@ -179,9 +216,9 @@ final class SeveralTextsTests: XCTestCase {
         XCTAssertFalse(s.canUndo)
 
         s.selection = [b.id]
-        s.setFontSize(2)
-        XCTAssertEqual(s.element(b.id)?.fontSize, 6)
+        s.setFontSize(0.4)
+        XCTAssertEqual(s.element(b.id)?.fontSize, 1)
         s.setFontSize(900)
-        XCTAssertEqual(s.element(b.id)?.fontSize, 500)
+        XCTAssertEqual(s.element(b.id)?.fontSize, 800)
     }
 }

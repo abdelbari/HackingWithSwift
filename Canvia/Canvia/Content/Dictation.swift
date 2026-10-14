@@ -20,6 +20,10 @@ final class Dictation {
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
     private let recognizer = SFSpeechRecognizer()
+    /// The recogniser the task runs on — the design's language's own, made
+    /// for it, or the phone's — kept while it listens, as a task stops
+    /// with its recogniser.
+    private var active: SFSpeechRecognizer?
 
     /// Whether this device and locale can recognise speech at all.
     static var isAvailable: Bool { SFSpeechRecognizer()?.isAvailable ?? false }
@@ -32,9 +36,11 @@ final class Dictation {
         return base.isEmpty ? words : base + " " + words
     }
 
-    /// Starts listening; `onText` gets the transcript so far and whether it
-    /// is final. Asks for the speech and microphone permissions first.
-    func start(onText: @escaping (String, Bool) -> Void) {
+    /// Starts listening, in `language` — the design's, BCP-47 — when the
+    /// phone recognises it, else its own; `onText` gets the transcript so
+    /// far and whether it is final. Asks for the speech and microphone
+    /// permissions first.
+    func start(language: String? = nil, onText: @escaping (String, Bool) -> Void) {
         guard !isListening else { return }
         error = nil
         SFSpeechRecognizer.requestAuthorization { [weak self] status in
@@ -46,14 +52,18 @@ final class Dictation {
             AVAudioApplication.requestRecordPermission { granted in
                 DispatchQueue.main.async {
                     guard granted else { self.error = "The microphone is not allowed. You can turn it on in Settings."; return }
-                    self.begin(onText: onText)
+                    self.begin(language: language, onText: onText)
                 }
             }
         }
     }
 
-    private func begin(onText: @escaping (String, Bool) -> Void) {
-        guard let recognizer, recognizer.isAvailable else { error = "Speech recognition is not available right now."; return }
+    private func begin(language: String?, onText: @escaping (String, Bool) -> Void) {
+        let own = language.flatMap { SFSpeechRecognizer(locale: Locale(identifier: $0)) }
+        guard let recognizer = own ?? self.recognizer, recognizer.isAvailable else {
+            error = "Speech recognition is not available right now."
+            return
+        }
         let session = AVAudioSession.sharedInstance()
         do {
             try session.setCategory(.record, mode: .measurement, options: .duckOthers)
@@ -75,6 +85,7 @@ final class Dictation {
         engine.prepare()
         do { try engine.start() } catch { self.error = "The microphone could not be started."; return }
         isListening = true
+        active = recognizer
         task = recognizer.recognitionTask(with: request) { [weak self] result, err in
             if let result {
                 onText(result.bestTranscription.formattedString, result.isFinal)
@@ -92,6 +103,7 @@ final class Dictation {
         task?.cancel()
         task = nil
         request = nil
+        active = nil
         isListening = false
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }

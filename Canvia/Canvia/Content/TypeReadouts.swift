@@ -6,16 +6,63 @@ import Foundation
 enum TypeReadouts {
 
     /// Line spacing, as a multiple of the type size.
-    static let lineHeightRange: ClosedRange<Double> = 0.7...2.5
+    static let lineHeightRange: ClosedRange<Double> = 0.5...2.5
     /// Paragraph spacing, in ems after each line break.
     static let paragraphSpacingRange: ClosedRange<Double> = 0...2
+    /// Letter spacing's reach, as a share of the type size: Canva's −200 to
+    /// 800 thousandths of an em.
+    static let letterSpacingShare: ClosedRange<Double> = -0.2...0.8
 
-    /// Letter spacing from a tenth of the type size tighter to half of it
-    /// looser — never narrower than -2…20, which the iPhone always allowed,
-    /// and always wide enough for what the box already has. Worked out once
-    /// per box and size, so it never moves under a drag.
+    /// Letter spacing from a fifth of the type size tighter to four fifths
+    /// of it looser — never narrower than -2…20, which the iPhone always
+    /// allowed, and always wide enough for what the box already has. Worked
+    /// out once per box and size, so it never moves under a drag. The
+    /// Android twin's TextBoxes.letterSpacingRange.
     static func letterSpacingRange(size: Double, current: Double) -> ClosedRange<Double> {
-        min(-0.1 * size, -2, current)...max(0.5 * size, 20, current)
+        min(letterSpacingShare.lowerBound * size, -2, current)...max(letterSpacingShare.upperBound * size, 20, current)
+    }
+
+    // MARK: spacing typed
+
+    /// Letter spacing typed as a share of type `size` in whole percent
+    /// ("12", "-5%") — as its readout shows it — as the spacing it sets,
+    /// within letterSpacingShare of the size; nil for anything that is not
+    /// a number, which changes nothing.
+    static func typedLetterSpacing(_ typed: String, size: Double) -> Double? {
+        guard let percent = number(typed) else { return nil }
+        let whole = min(letterSpacingShare.upperBound * 100, max(letterSpacingShare.lowerBound * 100, halfUp(percent)))
+        return whole / 100 * size
+    }
+
+    /// Line spacing typed ("1.4"), to two places — as its readout shows it
+    /// — within lineHeightRange; nil for anything that is not a number.
+    static func typedLineHeight(_ typed: String) -> Double? {
+        guard let value = number(typed) else { return nil }
+        return min(lineHeightRange.upperBound, max(lineHeightRange.lowerBound, halfUp(value * 100) / 100))
+    }
+
+    /// Paragraph spacing typed in ems ("0.5"), to one place — as its
+    /// readout shows it — within paragraphSpacingRange; nil for anything
+    /// that is not a number.
+    static func typedParagraphSpacing(_ typed: String) -> Double? {
+        guard let value = number(typed) else { return nil }
+        return min(paragraphSpacingRange.upperBound, max(paragraphSpacingRange.lowerBound, halfUp(value * 10) / 10))
+    }
+
+    /// `value` to the nearest whole, a half up — never to the even one, so
+    /// 1.25 ems typed reads 1.3 on both phones.
+    private static func halfUp(_ value: Double) -> Double {
+        (value + 0.5).rounded(.down)
+    }
+
+    /// A number as typed, spaces and one "%" at its end aside and a decimal
+    /// comma read as a point; nil for anything that is not a finite one.
+    private static func number(_ typed: String) -> Double? {
+        var trimmed = typed.trimmingCharacters(in: .whitespaces)
+        if trimmed.hasSuffix("%") { trimmed.removeLast() }
+        let cleaned = trimmed.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+        guard let value = Double(cleaned), value.isFinite else { return nil }
+        return value
     }
 
     /// Letter spacing as a share of the size the type is drawn at: "12%".
@@ -55,8 +102,9 @@ enum TypeReadouts {
 
     // MARK: type size
 
-    /// How small and how large type is set.
-    static let sizeRange: ClosedRange<Double> = 6...500
+    /// How small and how large type is set: 1 to 800, Canva's reach, as the
+    /// Android twin's TextBoxes.MIN_TYPE and MAX_TYPE.
+    static let sizeRange: ClosedRange<Double> = 1...800
 
     /// The sizes listed under the typed one, as the Android twin lists them.
     static let presetSizes: [Double] = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56,

@@ -1,7 +1,8 @@
 // The font combinations in Add ▸ Text, as the Android twin's TextCombosTest
 // has them: textcombos.json the same bytes on both phones, every combination
-// decoded with every element it lists, the six pairings first, a search over
-// names and tags, and the same numbers as one goes on a page — 72% of its
+// decoded with every element it lists in a category the chips list, the six
+// pairings first, a search over names, tags and categories, Recently used,
+// From your brand, and the same numbers as one goes on a page — 72% of its
 // width, centred, a fresh group — then measured and selected in one step.
 
 import XCTest
@@ -15,19 +16,35 @@ final class TextCombosTests: XCTestCase {
         // The Android twin's TextCombosTest checks the same digest of its copy.
         let url = try XCTUnwrap(Bundle.main.url(forResource: "textcombos", withExtension: "json"))
         let digest = SHA256.hash(data: try Data(contentsOf: url)).map { String(format: "%02x", $0) }.joined()
-        XCTAssertEqual(digest, "2878070657aebdbd0043053030361c18749783d3b2b805497d9ab8f0dd7e3d1b")
+        XCTAssertEqual(digest, "f940ced36d4307d0205c5cf3ab7f9beddc0cb099ce1a4bfa37ec9374b5281f54")
     }
 
     /// The rows of the Android twin's TextCombosTest: every combination, and
     /// how many elements it draws.
     func testEveryCombinationDecodesAndDrawsEveryElementItLists() {
         let expected: [(String, Int)] = [
-            ("editorial", 2), ("poster", 2), ("technical", 2), ("playful", 2), ("luxury", 2), ("minimal", 2),
-            ("mega-sale", 4), ("wedding-invitation", 5), ("quote", 4), ("grand-opening", 4), ("happy-birthday", 3),
-            ("webinar", 4), ("summer-vibes", 4), ("breaking-news", 5), ("coffee-house", 4), ("thank-you", 3),
-            ("neon-night", 3), ("creative-workshop", 3), ("new-collection", 3), ("podcast-episode", 4), ("open-house", 4),
-            ("train-harder", 3), ("black-friday", 4), ("recipe-card", 3), ("merry-christmas", 5), ("explore-iceland", 3),
-            ("baby-shower", 6), ("dont-stop", 3), ("product-launch", 4), ("halloween-party", 3),
+            ("editorial", 2), ("poster", 2), ("technical", 2), ("playful", 2), ("luxury", 2), ("minimal", 2), ("mega-sale", 4),
+            ("wedding-invitation", 5), ("quote", 4), ("grand-opening", 4), ("happy-birthday", 3), ("webinar", 4),
+            ("summer-vibes", 4), ("breaking-news", 5), ("coffee-house", 4), ("thank-you", 3), ("neon-night", 3),
+            ("creative-workshop", 3), ("new-collection", 3), ("podcast-episode", 4), ("open-house", 4), ("train-harder", 3),
+            ("black-friday", 4), ("recipe-card", 3), ("merry-christmas", 5), ("explore-iceland", 3), ("baby-shower", 6),
+            ("dont-stop", 3), ("product-launch", 4), ("halloween-party", 3), ("big-announcement", 3), ("magazine-cover", 4),
+            ("chapter-one", 4), ("tech-keynote", 3), ("photo-essay", 2), ("city-guide", 3), ("flash-sale", 3), ("half-price", 4),
+            ("clearance", 4), ("buy-one-get-one", 3), ("cyber-monday", 4), ("summer-sale", 3), ("new-arrivals", 3),
+            ("free-shipping", 3), ("limited-offer", 4), ("price-drop", 2), ("wise-words", 3), ("bold-quote", 3),
+            ("testimonial", 3), ("handwritten-note", 2), ("book-quote", 3), ("daily-mantra", 2), ("fun-fact", 2),
+            ("tweet-quote", 3), ("poem-line", 3), ("team-motto", 2), ("live-music", 3), ("save-our-seat", 4),
+            ("farmers-market", 3), ("charity-run", 4), ("movie-night", 4), ("new-year-party", 3), ("we-said-yes", 3),
+            ("wedding-menu", 3), ("reception", 3), ("mr-and-mrs", 2), ("bridal-shower", 3), ("anniversary", 3), ("rsvp-card", 3),
+            ("save-the-date-script", 3), ("love-story", 2), ("ceremony-order", 3), ("new-post", 3), ("giveaway", 4),
+            ("swipe-up", 3), ("good-morning", 3), ("milestone", 2), ("weekend-plans", 3), ("behind-the-scenes", 3),
+            ("retro-diner", 3), ("arcade", 4), ("groovy", 2), ("vintage-label", 4), ("synthwave", 2), ("typewriter", 2),
+            ("roller-disco", 3), ("old-cinema", 3), ("retro-surf", 3), ("pop-art", 2), ("record-store", 3), ("just-words", 2),
+            ("thin-caps", 3), ("mono-label", 2), ("serif-whisper", 2), ("numbered", 3), ("left-aligned", 3), ("lowercase", 2),
+            ("big-number", 2), ("one-line", 3), ("contact-card", 3), ("best-seller", 5), ("new-badge", 4), ("handmade", 5),
+            ("organic", 4), ("percent-off", 4), ("award-winner", 5), ("vegan", 4), ("limited-edition", 5), ("free-gift", 4),
+            ("local", 5), ("guarantee", 5), ("first-birthday", 3), ("back-to-school", 3), ("story-time", 3), ("its-a-boy", 3),
+            ("its-a-girl", 3), ("play-date", 3), ("dino-party", 3), ("star-pupil", 3), ("summer-camp", 3),
         ]
         XCTAssertEqual(TextCombos.all.map(\.id), expected.map(\.0))
         XCTAssertEqual(TextCombos.all.map(\.elements.count), expected.map(\.1))
@@ -48,6 +65,13 @@ final class TextCombosTests: XCTestCase {
             }, combo.id)
             XCTAssertFalse(combo.name.isEmpty, combo.id)
             XCTAssertFalse(combo.tags.isEmpty, combo.id)
+            // In a category the chips list.
+            XCTAssertTrue(TextCombos.categories.contains(combo.category ?? ""), combo.id)
+        }
+        // About a hundred and twenty, twelve in each category.
+        XCTAssertEqual(TextCombos.all.count, 120)
+        for category in TextCombos.categories {
+            XCTAssertEqual(TextCombos.search("", in: category).count, 12, category)
         }
         XCTAssertEqual(Set(TextCombos.all.map(\.id)).count, TextCombos.all.count)
     }
@@ -96,17 +120,75 @@ final class TextCombosTests: XCTestCase {
     }
 
     /// The rows of the Android twin's TextCombosTest.
-    func testASearchFindsNamesAndTagsCaseAndAccentsAside() {
-        XCTAssertEqual(TextCombos.search("SALE").map(\.id), ["mega-sale", "black-friday"])
-        XCTAssertEqual(TextCombos.search("wedding").map(\.id), ["wedding-invitation"])
-        XCTAssertEqual(TextCombos.search("quote").map(\.id), ["quote", "dont-stop"])
+    func testASearchFindsNamesTagsAndCategoriesCaseAndAccentsAside() {
         XCTAssertEqual(TextCombos.search("Café").map(\.id), ["coffee-house"])
-        XCTAssertEqual(TextCombos.search(" celebration ").map(\.id), ["happy-birthday", "baby-shower"])
-        XCTAssertEqual(TextCombos.search("eleg").map(\.id), ["luxury", "wedding-invitation"])
+        XCTAssertEqual(TextCombos.search(" celebration ").map(\.id),
+                       ["happy-birthday", "baby-shower", "new-year-party", "anniversary"])
+        XCTAssertEqual(TextCombos.search("eleg").map(\.id),
+                       ["luxury", "wedding-invitation", "save-the-date-script", "serif-whisper"])
         XCTAssertEqual(TextCombos.search("real estate").map(\.id), ["open-house"])
+        // A category's name finds all of it, and a tag outside it too.
+        XCTAssertEqual(TextCombos.search("SALE").map(\.id), [
+            "mega-sale", "black-friday", "flash-sale", "half-price", "clearance", "buy-one-get-one", "cyber-monday",
+            "summer-sale", "new-arrivals", "free-shipping", "limited-offer", "price-drop", "percent-off",
+        ])
+        XCTAssertEqual(TextCombos.search("sale", in: "Badge").map(\.id), ["percent-off"])
+        XCTAssertEqual(TextCombos.search("love", in: "Wedding").map(\.id),
+                       ["wedding-invitation", "we-said-yes", "mr-and-mrs", "anniversary", "save-the-date-script", "love-story"])
         XCTAssertEqual(TextCombos.search("").map(\.id), TextCombos.all.map(\.id))
         XCTAssertEqual(TextCombos.search("zzz").map(\.id), [])
         XCTAssertEqual(TextCombos.noneFound(" zzz "), "No font combinations match \u{201C}zzz\u{201D}.")
+    }
+
+    func testRecentlyUsedKeepsTheLastEightNewestFirstEachOnce() {
+        var recent: [String] = []
+        let eight = TextCombos.all.dropFirst(10).prefix(8).map(\.id)
+        for id in ["quote", "poster", "quote"] + eight { recent = TextCombos.recent(recent, adding: id) }
+        XCTAssertEqual(recent, Array(eight.reversed()))
+        XCTAssertEqual(TextCombos.recent(["quote", "poster"], adding: "poster"), ["poster", "quote"])
+        // Ids no longer in the file are passed over.
+        XCTAssertEqual(TextCombos.named(["gone", "quote"]).map(\.id), ["quote"])
+        // Kept per phone, one in the brand's faces by its own id.
+        if let defaults = UserDefaults(suiteName: "combos-\(UUID().uuidString)") {
+            RecentCombos.record("brand:quote", defaults: defaults)
+            RecentCombos.record("poster", defaults: defaults)
+            XCTAssertEqual(RecentCombos.all(defaults), ["poster", "quote"])
+        }
+    }
+
+    /// Shared rows: a combination in the brand's faces by size rank.
+    func testFromYourBrandSetsEachTextInTheKitsFaceForItsSize() throws {
+        let sale = try XCTUnwrap(TextCombos.combo("mega-sale"))
+        // Sizes 150, 44 and 26: title (else heading), subheading, body.
+        var kit = BrandFonts()
+        kit.title = BrandFont(family: "anton", weight: 400)
+        kit.subheading = BrandFont(family: "lora", weight: 600)
+        kit.body = BrandFont(family: "roboto", weight: 300)
+        let branded = try XCTUnwrap(TextCombos.branded(sale, fonts: kit))
+        XCTAssertEqual(branded.id, "brand:mega-sale")
+        let texts = TextCombos.elements(branded, scale: 1).filter { $0.type == .text }
+        XCTAssertEqual(texts.map(\.fontFamily), ["anton", "lora", "roboto"])
+        XCTAssertEqual(texts.map(\.fontWeight), [400, 600, 300])
+        XCTAssertEqual(texts.map(\.fontSize), [150, 44, 26])
+        // The shapes as they were.
+        XCTAssertEqual(branded.elements[1], sale.elements[1])
+        // A heading alone sets the biggest and the next; the body falls back
+        // on it.
+        var heading = BrandFonts()
+        heading.heading = BrandFont(family: "bebas-neue", weight: 400)
+        let headed = try XCTUnwrap(TextCombos.branded(sale, fonts: heading))
+        XCTAssertEqual(TextCombos.elements(headed, scale: 1).filter { $0.type == .text }.map(\.fontFamily),
+                       ["bebas-neue", "bebas-neue", "bebas-neue"])
+        // Only a body: the biggest falls back on it too.
+        var body = BrandFonts()
+        body.body = BrandFont(family: "karla", weight: 500)
+        let bodied = try XCTUnwrap(TextCombos.branded(try XCTUnwrap(TextCombos.combo("editorial")), fonts: body))
+        XCTAssertEqual(TextCombos.elements(bodied, scale: 1).map(\.fontFamily), ["karla", "karla"])
+        // No title, heading or body face: no row.
+        var quote = BrandFonts()
+        quote.quote = BrandFont(family: "lora")
+        XCTAssertNil(TextCombos.branded(sale, fonts: quote))
+        XCTAssertNil(TextCombos.branded(sale, fonts: BrandFonts()))
     }
 
     private func assertRect(_ el: Element, _ x: Double, _ y: Double, _ w: Double, _ h: Double,

@@ -187,12 +187,7 @@ struct ContextToolbar: View {
             }
             alignButton
             listMenu(el)
-            toolButton("decrease.indent", "Outdent") { indent(el, by: -1) }
-                .disabled(FontLibrary.indentLevel(of: el) == 0)
-                .accessibilityValue("Level \(FontLibrary.indentLevel(of: el))")
-            toolButton("increase.indent", "Indent") { indent(el, by: 1) }
-                .disabled(FontLibrary.indentLevel(of: el) >= FontLibrary.maxIndent)
-                .accessibilityValue("Level \(FontLibrary.indentLevel(of: el))")
+            indentButtons(el)
         }
         HStack(spacing: 14) {
             stylesMenu(el)
@@ -329,14 +324,17 @@ struct ContextToolbar: View {
         }
     }
 
-    /// Bold, italic, underline and capitals, for every text selected: on for
-    /// all of them, or off for all when every one has it already. Capitals
-    /// have no symbol; "aA" says what they do.
+    /// Bold, italic, underline, strikethrough and capitals, for every text
+    /// selected: on for all of them, or off for all when every one has it
+    /// already — Mixed while some are and some are not. Strikethrough strikes
+    /// every word of each box (TextToggle.strike). Capitals have no symbol;
+    /// "aA" says what they do.
     @ViewBuilder
     private var styleToggles: some View {
         styleToggle(.bold, "Bold", glyph: Image(systemName: "bold"))
         styleToggle(.italic, "Italic", glyph: Image(systemName: "italic"))
         styleToggle(.underline, "Underline", glyph: Image(systemName: "underline"))
+        styleToggle(.strike, "Strikethrough", glyph: Image(systemName: "strikethrough"))
         styleToggle(.uppercase, "Uppercase", glyph: Text(verbatim: "aA"))
     }
 
@@ -378,7 +376,7 @@ struct ContextToolbar: View {
             let base = dictationBase
             let target = el.id
             store.dictationTarget = target
-            Dictation.shared.start { spoken, isFinal in
+            Dictation.shared.start(language: store.design.language) { spoken, isFinal in
                 Task { @MainActor in
                     guard store.dictationTarget == target else { return }
                     store.dictate(Dictation.merge(base, spoken))
@@ -736,16 +734,18 @@ struct ContextToolbar: View {
         }
     }
 
-    /// Bullets, numbers or letters. A menu rather than a toggle because
-    /// three list kinds through one button would cycle, and nobody counts
-    /// taps to reach "letters".
+    /// Bullets, numbers or letters on every line of the box — the typing
+    /// bar sets the lines chosen — none ticked while the lines differ. A
+    /// menu rather than a toggle because three list kinds through one
+    /// button would cycle, and nobody counts taps to reach "letters".
     private func listMenu(_ el: Element) -> some View {
-        Menu {
+        let shared = TypeReadouts.shared(TextLists.lines(el).map(\.list))
+        return Menu {
             Picker("List", selection: Binding(
-                get: { el.listStyle ?? "none" },
+                get: { shared ?? TypeReadouts.mixed },
                 set: { style in
                     store.updateSelected {
-                        $0.listStyle = style == "none" ? nil : style
+                        $0.setListStyle(style)
                         $0.h = FontLibrary.layoutHeight(for: $0)
                     }
                 })) {
@@ -755,18 +755,31 @@ struct ContextToolbar: View {
                 Label("Letters", systemImage: "character").tag("letter")
             }
         } label: {
-            let icon = el.listStyle == "number" ? "list.number"
-                : el.listStyle == "letter" ? "character" : "list.bullet"
+            let icon = shared == "number" ? "list.number"
+                : shared == "letter" ? "character" : "list.bullet"
             toolLabel(icon, "List", active: FontLibrary.isList(el))
         }
         .accessibilityLabel("List")
-        .accessibilityValue(TypeReadouts.listStyle(el.listStyle))
+        .accessibilityValue(shared.map { TypeReadouts.listStyle($0) } ?? TypeReadouts.mixed)
     }
 
-    private func indent(_ el: Element, by delta: Int) {
+    /// Outdent and Indent for every line of the box, each held within the
+    /// levels: Outdent while any line is in, Indent while any can go deeper.
+    @ViewBuilder
+    private func indentButtons(_ el: Element) -> some View {
+        let levels = TextLists.lines(el).map(\.level)
+        let deepest = levels.max() ?? 0
+        toolButton("decrease.indent", "Outdent") { indent(by: -1) }
+            .disabled(deepest == 0)
+            .accessibilityValue("Level \(deepest)")
+        toolButton("increase.indent", "Indent") { indent(by: 1) }
+            .disabled((levels.min() ?? 0) >= FontLibrary.maxIndent)
+            .accessibilityValue("Level \(deepest)")
+    }
+
+    private func indent(by delta: Int) {
         store.updateSelected {
-            $0.indent = min(FontLibrary.maxIndent, max(0, FontLibrary.indentLevel(of: $0) + delta))
-            if $0.indent == 0 { $0.indent = nil }
+            $0.stepIndent(by: delta)
             $0.h = FontLibrary.layoutHeight(for: $0)
         }
     }
@@ -1604,7 +1617,7 @@ struct ContextToolbar: View {
 }
 
 /// A type size typed on the number pad, or one of the usual ones picked: in
-/// whole points from 6 to 500, for every text selected, each box fitted to
+/// whole points from 1 to 800, for every text selected, each box fitted to
 /// it again — as the Android twin's size readout opens.
 private struct TypeSizeEntry: View {
     /// The size now; nil when the texts selected differ.

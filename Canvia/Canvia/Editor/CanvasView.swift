@@ -1773,6 +1773,7 @@ struct CanvasView: View {
                                onWordScale: { store.scaleWords(id, range: $0, by: $1) },
                                onWordFont: { store.chooseWordFont(id, range: $0) },
                                onWordLink: { store.chooseWordLink(id, range: $0) },
+                               onLines: { store.changeLines(id, covering: $0, $1) },
                                typing: typingHooks)
             .frame(width: el.w)
             .frame(width: el.w, height: el.h, alignment: sits)

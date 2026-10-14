@@ -4,6 +4,12 @@
 // a misspelt headline is the mistake none of them forgive. UITextChecker is
 // the system's own dictionary — offline, in the user's languages — and it
 // gives suggestions, so the fix is a tap rather than a retype.
+//
+// It checks in the design's `language` when it has one, and passes over the
+// words Ignore has kept in the design (`spellIgnore`) and the words Add to
+// dictionary has kept on this phone (dictionary.json, see
+// SpellingDictionary). The Android twin's Proofing keeps the same keys and
+// file, by the same rules.
 
 import UIKit
 
@@ -27,11 +33,15 @@ enum Proofreader {
     /// SHOUTED acronyms — are left alone. Each box is read as it reads,
     /// style marks left out, so "he**llo**" is one word, and each word found
     /// is placed back where it is stored.
-    static func misspellings(in design: Design, language: String = Locale.current.identifier,
+    /// In `language` — BCP-47 ("en-GB") or a UITextChecker language
+    /// ("en_US") — when one is given, else the design's own, as the checker
+    /// has it (checkerLanguage). A word in `skip`
+    /// (lower-cased) is passed over: the design's Ignore list and this
+    /// phone's dictionary (skipped).
+    static func misspellings(in design: Design, language: String? = nil, skip: Set<String> = [],
                              maxSuggestions: Int = 4) -> [Misspelling] {
         let checker = UITextChecker()
-        let lang = UITextChecker.availableLanguages.contains(language) ? language
-            : (UITextChecker.availableLanguages.first ?? "en_US")
+        let lang = checkerLanguage(language ?? design.language)
         var found: [Misspelling] = []
         for (p, page) in design.pages.enumerated() {
             // A hidden element is not read: nobody sees its words.
@@ -46,7 +56,7 @@ enum Proofreader {
                         startingAt: location, wrap: false, language: lang)
                     guard range.location != NSNotFound, range.length > 0 else { break }
                     let word = ns.substring(with: range)
-                    if isWorthFlagging(word), let stored = storedRange(range, plain: plain, rawAt: rawAt, in: text) {
+                    if isWorthFlagging(word, skip: skip), let stored = storedRange(range, plain: plain, rawAt: rawAt, in: text) {
                         let guesses = checker.guesses(forWordRange: range, in: plain, language: lang) ?? []
                         found.append(Misspelling(pageIndex: p, elementId: el.id, range: stored,
                                                  word: word, suggestions: Array(guesses.prefix(maxSuggestions)),
@@ -74,8 +84,12 @@ enum Proofreader {
     }
 
     /// Whether a word the dictionary rejects is one a person would call a
-    /// misspelling.
-    static func isWorthFlagging(_ word: String) -> Bool {
+    /// misspelling: not a single letter, a number, a hashtag, a handle, an
+    /// address, or an acronym or brand set in capitals — nor a word in
+    /// `skip`, lower-cased: the design's Ignore list and this phone's own
+    /// dictionary together (skipped).
+    static func isWorthFlagging(_ word: String, skip: Set<String> = []) -> Bool {
+        if skip.contains(word.lowercased()) { return false }
         guard word.count > 1 else { return false }
         if word.contains(where: \.isNumber) { return false }
         if word.hasPrefix("#") || word.hasPrefix("@") || word.contains("/") || word.contains(".") { return false }
@@ -178,5 +192,118 @@ enum Proofreader {
         out.pages[m.pageIndex].elements[i].setText(replacing(m, in: text, with: replacement))
         out.pages[m.pageIndex].elements[i].h = ShapeText.heightForWords(out.pages[m.pageIndex].elements[i])
         return out
+    }
+
+    // MARK: ignored words, the dictionary and the language
+
+    /// The file this phone's own dictionary — Add to dictionary's words — is
+    /// kept in, in Documents and in a backup, on both phones.
+    static let dictionaryFile = "dictionary.json"
+
+    /// `words` as both lists keep them: lower-cased, trimmed, each once,
+    /// sorted, none blank.
+    static func tidied<Words: Sequence>(_ words: Words) -> [String] where Words.Element == String {
+        let kept = words.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }.filter { !$0.isEmpty }
+        return Array(Set(kept)).sorted()
+    }
+
+    /// The words Ignore has passed over in `design`, lower-cased and sorted.
+    static func ignored(in design: Design) -> [String] {
+        tidied(design.spellIgnore ?? [])
+    }
+
+    /// `design` with `word` added to its Ignore list — kept sorted and
+    /// lower-cased, and no key at all while it has no words. The same design
+    /// when the word is there already.
+    static func ignoring(_ design: Design, _ word: String) -> Design {
+        let now = tidied(ignored(in: design) + [word])
+        var out = design
+        out.spellIgnore = now.isEmpty ? nil : now
+        return out
+    }
+
+    /// A language as the design keeps it: trimmed, nil for none.
+    static func languageTag(_ language: String?) -> String? {
+        let tag = language?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return tag.isEmpty ? nil : tag
+    }
+
+    /// `design` in `language` (BCP-47), or the phone's own for nil — the
+    /// key gone.
+    static func withLanguage(_ design: Design, _ language: String?) -> Design {
+        var out = design
+        out.language = languageTag(language)
+        return out
+    }
+
+    /// The languages the spelling sheet offers, by tag and name, in the
+    /// order both phones list them; the phone's own comes first, as nil.
+    static let languages: [(tag: String, name: String)] = [
+        ("en-GB", "English (UK)"),
+        ("en-US", "English (US)"),
+        ("en-AU", "English (Australia)"),
+        ("fr-FR", "French"),
+        ("de-DE", "German"),
+        ("es-ES", "Spanish"),
+        ("it-IT", "Italian"),
+        ("pt-BR", "Portuguese (Brazil)"),
+        ("nl-NL", "Dutch"),
+    ]
+
+    /// What the picker calls the phone's own language.
+    static let phoneLanguage = "This phone's language"
+
+    /// The name the picker gives `language`: its own from `languages`, the
+    /// tag itself for one it does not list, or the phone's own for nil.
+    static func languageName(_ language: String?) -> String {
+        guard let language else { return phoneLanguage }
+        return languages.first { $0.tag == language }?.name ?? language
+    }
+
+    /// The UITextChecker language a check runs in for `language`, BCP-47
+    /// ("en-GB") or the checker's own ("en_GB"): the checker's for it when
+    /// it has one, else its first of the same language ("en" for "en-NZ"),
+    /// else the phone's own, else the first it has — as the Android twin
+    /// falls back to the phone's own when there is no checker for it.
+    static func checkerLanguage(_ language: String?) -> String {
+        let available = UITextChecker.availableLanguages
+        func found(_ tag: String) -> String? {
+            let wanted = tag.replacingOccurrences(of: "-", with: "_")
+            if available.contains(wanted) { return wanted }
+            let base = String(wanted.prefix { $0 != "_" })
+            return available.first { $0 == base || $0.hasPrefix(base + "_") }
+        }
+        if let language = languageTag(language), let own = found(language) { return own }
+        return found(Locale.current.identifier) ?? available.first ?? "en_US"
+    }
+
+    /// The words a check skips: the design's Ignore list and this phone's
+    /// `dictionary`, lower-cased.
+    static func skipped(_ design: Design, dictionary: [String]) -> Set<String> {
+        Set(ignored(in: design) + tidied(dictionary))
+    }
+
+    /// One entry of a word list, read leniently: nil for one that is not a
+    /// string.
+    struct LenientWord: Decodable {
+        var word: String?
+
+        init(from decoder: Decoder) throws {
+            word = try? decoder.singleValueContainer().decode(String.self)
+        }
+    }
+
+    /// The dictionary file's words: a JSON array of strings, any other entry
+    /// passed over; none for anything else.
+    static func decodeDictionary(_ data: Data?) -> [String] {
+        guard let data, let words = try? JSONDecoder().decode([LenientWord].self, from: data) else { return [] }
+        return tidied(words.compactMap(\.word))
+    }
+
+    /// The dictionary file for `words`, tidied: ["canvia","zorb"].
+    static func encodeDictionary(_ words: [String]) -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .withoutEscapingSlashes
+        return (try? encoder.encode(tidied(words))) ?? Data("[]".utf8)
     }
 }

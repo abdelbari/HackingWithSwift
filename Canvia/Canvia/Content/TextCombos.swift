@@ -6,10 +6,14 @@
 //
 // They are textcombos.json, which the Android twin's
 // tools/generate_textcombos.py writes — the very file Android ships, byte
-// for byte. Each is an id, a name, the tags a search finds it by, and its
-// elements in this phone's JSON, as a design file has them, in a box `w`
-// wide from 0, 0 in a 1080-wide page's units; so both phones put the same
-// elements down.
+// for byte. Each is an id, a name, the tags a search finds it by, its
+// category (categories), and its elements in this phone's JSON, as a design
+// file has them, in a box `w` wide from 0, 0 in a 1080-wide page's units; so
+// both phones put the same elements down.
+//
+// Add ▸ Text browses them by category, with this phone's Recently used
+// (RecentCombos) and, when the brand kit sets a title, heading or body face,
+// each one set in the kit's faces (branded).
 
 import Foundation
 
@@ -17,6 +21,12 @@ enum TextCombos {
 
     /// The share of the page's width a combination takes as it goes on.
     static let pageShare = 0.72
+
+    /// The categories the chips browse by, in their order.
+    static let categories = ["Headline", "Sale", "Quote", "Event", "Wedding", "Social", "Retro", "Minimal", "Badge", "Kids"]
+
+    /// How many combinations Recently used keeps.
+    static let recentLimit = 8
 
     /// One combination as the file has it: its elements, bottom to top, in a
     /// box `w` wide and `h` tall — down to its lowest element's bottom.
@@ -27,6 +37,8 @@ enum TextCombos {
         var w: Double
         var h: Double
         var elements: [Element]
+        /// One of `categories`; nil for an entry with none.
+        var category: String?
     }
 
     /// One entry as it reads, whatever is missing from it: a number is read
@@ -38,8 +50,9 @@ enum TextCombos {
         var tags: [String] = []
         var w: Double?
         var elements: [Element] = []
+        var category: String?
 
-        private enum CodingKeys: String, CodingKey { case id, name, tags, w, elements }
+        private enum CodingKeys: String, CodingKey { case id, name, tags, w, elements, category }
 
         init(from decoder: Decoder) throws {
             guard let c = try? decoder.container(keyedBy: CodingKeys.self) else { return }
@@ -48,6 +61,7 @@ enum TextCombos {
             tags = (try? c.decode([String].self, forKey: .tags)) ?? []
             w = try? c.decode(Double.self, forKey: .w)
             elements = (try? c.decode([Element].self, forKey: .elements)) ?? []
+            category = try? c.decode(String.self, forKey: .category)
         }
     }
 
@@ -69,7 +83,8 @@ enum TextCombos {
             guard let id = entry.id, !id.isEmpty, let name = entry.name, !name.isEmpty,
                   let w = entry.w, w > 0, !entry.elements.isEmpty else { return nil }
             let h = entry.elements.map { $0.y + $0.h }.max() ?? 0
-            return Combo(id: id, name: name, tags: entry.tags, w: w, h: h, elements: entry.elements)
+            return Combo(id: id, name: name, tags: entry.tags, w: w, h: h, elements: entry.elements,
+                         category: entry.category)
         }
     }
 
@@ -78,12 +93,60 @@ enum TextCombos {
     }
 
     /// The combinations a search for `query` finds, in the file's order:
-    /// those whose name or one of whose tags has it, case and accents aside,
-    /// as the font picker searches. A blank query finds them all.
-    static func search(_ query: String) -> [Combo] {
+    /// those whose name, one of whose tags or whose category has it, case
+    /// and accents aside, as the font picker searches — in `category` alone
+    /// when one is chosen. A blank query finds them all.
+    static func search(_ query: String, in category: String? = nil) -> [Combo] {
         all.filter { combo in
-            FontLibrary.matches(combo.name, query) || combo.tags.contains { FontLibrary.matches($0, query) }
+            guard category == nil || combo.category == category else { return false }
+            return FontLibrary.matches(combo.name, query) || combo.tags.contains { FontLibrary.matches($0, query) }
+                || combo.category.map { FontLibrary.matches($0, query) } == true
         }
+    }
+
+    /// Recently used after `id` is put on a page: it first, once, then the
+    /// rest as they were, recentLimit in all — this phone's own.
+    static func recent(_ list: [String], adding id: String) -> [String] {
+        Array(([id] + list.filter { $0 != id }).prefix(recentLimit))
+    }
+
+    /// The combinations `ids` name, in their order, those no longer in the
+    /// file left out.
+    static func named(_ ids: [String]) -> [Combo] {
+        ids.compactMap { combo($0) }
+    }
+
+    /// The prefix a combination in the brand's faces has before its id.
+    static let brandPrefix = "brand:"
+
+    /// `combo` in the brand's faces, the From your brand row's: its texts
+    /// ranked by type size, biggest first and one size one rank — the
+    /// biggest in the title's face, or the heading's when the kit sets no
+    /// title; the next in the subheading's; the rest in the body's, each as
+    /// BrandFonts.fontFor finds it — family and weight, sizes and
+    /// everything else kept. Nil when the kit sets no title, heading or body
+    /// face. Its id is the combination's after "brand:". The Android twin's
+    /// TextCombos.branded, rank for rank.
+    static func branded(_ combo: Combo, fonts: BrandFonts) -> Combo? {
+        guard fonts.title != nil || fonts.heading != nil || fonts.body != nil else { return nil }
+        let sizes = Array(Set(combo.elements.filter { $0.type == .text }.compactMap(\.fontSize))).sorted(by: >)
+        func ranked(_ size: Double) -> BrandFont? {
+            switch sizes.firstIndex(of: size) {
+            case 0: return fonts.title ?? fonts.fontFor(.heading)
+            case 1: return fonts.fontFor(.subheading)
+            default: return fonts.fontFor(.body)
+            }
+        }
+        var out = combo
+        out.id = brandPrefix + combo.id
+        out.elements = combo.elements.map { el in
+            guard el.type == .text, let size = el.fontSize, let face = ranked(size) else { return el }
+            var e = el
+            e.fontFamily = face.family
+            e.fontWeight = face.weight
+            return e
+        }
+        return out
     }
 
     /// What the Text tab says when a search finds none.
@@ -139,5 +202,23 @@ enum TextCombos {
             e.h = FontLibrary.layoutHeight(for: el)
             return e
         }
+    }
+}
+
+/// The font combinations last put on a page on this phone, newest first,
+/// eight of them (TextCombos.recent): Add ▸ Text's Recently used. Per
+/// phone, as the Android twin keeps its own.
+enum RecentCombos {
+    private static let key = "canvia.recentCombos"
+
+    static func all(_ defaults: UserDefaults = .standard) -> [String] {
+        defaults.stringArray(forKey: key) ?? []
+    }
+
+    /// `id` put on a page — one in the brand's faces by the combination's
+    /// own id.
+    static func record(_ id: String, defaults: UserDefaults = .standard) {
+        let own = id.hasPrefix(TextCombos.brandPrefix) ? String(id.dropFirst(TextCombos.brandPrefix.count)) : id
+        defaults.set(TextCombos.recent(all(defaults), adding: own), forKey: key)
     }
 }

@@ -346,6 +346,8 @@ enum FontLibrary {
         let width: Double
         let spans: [TextSpan]?
         let spansText: String?
+        let paragraphs: [TextParagraph]?
+        let paragraphsText: String?
     }
 
     private struct FontKey: Hashable {
@@ -505,10 +507,13 @@ enum FontLibrary {
         paragraph.baseWritingDirection = isRightToLeft(el.text ?? "") ? .rightToLeft : .natural
         // Indent levels push the whole paragraph in; a list marker then
         // hangs: the first line starts at the marker, wrapped lines start
-        // where the text after the marker does.
+        // where the text after the marker does. The box-wide keys only —
+        // what the cache is keyed by; a box's own paragraphs are set over
+        // this a line at a time (setParagraphStyles).
         let indent = Double(indentLevel(of: el)) * size * indentEm
+        let boxList = el.listStyle.map { $0 != "none" } ?? false
         paragraph.firstLineHeadIndent = indent
-        paragraph.headIndent = indent + (isList(el) ? size * markerEm : 0)
+        paragraph.headIndent = indent + (boxList ? size * markerEm : 0)
         var attrs: [NSAttributedString.Key: Any] = [
             .font: font,
             .paragraphStyle: paragraph.copy(),
@@ -569,13 +574,44 @@ enum FontLibrary {
         return styledWords(el.text ?? "", of: el, capitals: false, spans: spans)
     }
 
+    /// Each line of `text` — the words of `el`, markers in or out, a line
+    /// for each of its own — pushed in by its own level, a list item's
+    /// marker hanging so wrapped lines start where the words after it do,
+    /// over the box's paragraph style: the Android twin's LeadingMarginSpan
+    /// per paragraph. A box with no paragraphs of its own keeps the one
+    /// style it has (attributes(for:)), indented as a whole.
+    static func setParagraphStyles(_ text: NSMutableAttributedString, for el: Element) {
+        guard let lines = TextLists.paragraphsOf(el),
+              let base = attributes(for: el)[.paragraphStyle] as? NSParagraphStyle else { return }
+        let ns = text.string as NSString
+        let size = el.fontSize ?? 42
+        var start = 0
+        for line in lines {
+            guard start <= ns.length else { break }
+            let lineEnd = ns.range(of: "\n", range: NSRange(location: start, length: ns.length - start)).location
+            // The line and the break after it, which carries its style.
+            let end = lineEnd == NSNotFound ? ns.length : lineEnd + 1
+            if end > start {
+                let paragraph = (base.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
+                let indent = Double(line.level) * size * indentEm
+                paragraph.firstLineHeadIndent = indent
+                paragraph.headIndent = indent + (line.isListed ? size * markerEm : 0)
+                text.addAttribute(.paragraphStyle, value: paragraph.copy(), range: NSRange(location: start, length: end - start))
+            }
+            start = end
+            if lineEnd == NSNotFound { break }
+        }
+    }
+
     /// `marked` — words with their style markers — in `el`'s type, the runs
     /// and `spans` on them, in capitals when `capitals`.
     private static func styledWords(_ marked: String, of el: Element, capitals: Bool,
                                     spans: [TextSpan]) -> NSAttributedString {
         let base = attributes(for: el)
         guard RichText.hasMarkup(marked) || !spans.isEmpty else {
-            return NSAttributedString(string: capitals ? marked.uppercased() : marked, attributes: base)
+            let plain = NSMutableAttributedString(string: capitals ? marked.uppercased() : marked, attributes: base)
+            setParagraphStyles(plain, for: el)
+            return plain
         }
         let size = el.fontSize ?? 42
         let weight = el.fontWeight ?? 400
@@ -589,10 +625,14 @@ enum FontLibrary {
         // Under gradient letters a link takes no colour, as words' colours
         // do not (displaySpans), on both phones.
         let linkColour = el.textFill?.kind != "gradient"
-        return RichText.attributed(marked, base: base, uppercase: capitals, spans: spans,
-                                   linkColour: linkColour, face: face) { bold, slanted in
+        let styled = RichText.attributed(marked, base: base, uppercase: capitals, spans: spans,
+                                         linkColour: linkColour, face: face) { bold, slanted in
             uiFont(family: el.fontFamily, size: size, weight: resolveWeight(weight, bold: bold), italic: slanted || italic)
         }
+        guard TextLists.paragraphsOf(el) != nil else { return styled }
+        let lined = NSMutableAttributedString(attributedString: styled)
+        setParagraphStyles(lined, for: el)
+        return lined
     }
 
     /// The weight a box's words at `weight` are drawn at, **bold** ones
@@ -609,18 +649,14 @@ enum FontLibrary {
         if let pageCount { raw = raw.replacingOccurrences(of: "{pages}", with: String(pageCount)) }
         guard isList(el) else { return raw }
         let lines = raw.components(separatedBy: "\n")
-        return zip(listPrefixes(for: el, lines: lines), lines).map { $0 + $1 }.joined(separator: "\n")
+        return zip(listPrefixes(for: el), lines).map { $0 + $1 }.joined(separator: "\n")
     }
 
     /// The marker each line of a list starts with, by line: none for a
-    /// blank one, which is not counted.
-    private static func listPrefixes(for el: Element, lines: [String]) -> [String] {
-        var n = 0
-        return lines.map { line in
-            guard !line.trimmingCharacters(in: .whitespaces).isEmpty else { return "" }
-            n += 1
-            return listMarker(style: el.listStyle, index: n) ?? ""
-        }
+    /// blank one, which is not counted, and each line's own by its level
+    /// when the box sets its lines one by one (TextLists.items).
+    private static func listPrefixes(for el: Element) -> [String] {
+        TextLists.markers(el).map { $0 ?? "" }
     }
 
     // MARK: colours, sizes, fonts and links on words
@@ -642,7 +678,7 @@ enum FontLibrary {
         let typed = RichText.strip(el.text ?? "").components(separatedBy: "\n")
         let raw = (el.text ?? "").components(separatedBy: "\n")
         guard typed.count == raw.count else { return [] }
-        let prefixes = listPrefixes(for: el, lines: raw)
+        let prefixes = listPrefixes(for: el)
         guard zip(prefixes, typed).map({ $0 + $1 }).joined(separator: "\n") == RichText.strip(marked) else { return [] }
         var pieces: [TextSpan] = []
         var lineStart = 0, shift = 0
@@ -704,31 +740,22 @@ enum FontLibrary {
     static let listStyles = ["none", "bullet", "number", "letter"]
     static let maxIndent = 4
 
+    /// Whether any line is a list item: the box-wide style, or any of its
+    /// own paragraphs' (TextLists).
     static func isList(_ el: Element) -> Bool {
-        el.listStyle.map { $0 != "none" } ?? false
+        TextLists.isList(el)
     }
 
     static func indentLevel(of el: Element) -> Int {
         min(maxIndent, max(0, el.indent ?? 0))
     }
 
-    /// The prefix a line gets, by style and one-based position among the
-    /// non-blank lines. Letters run a…z then aa, ab… so the 27th item is
+    /// The prefix a line of a box-wide list gets, by style and one-based
+    /// position among the non-blank lines: the first level's marker
+    /// (TextLists.marker). Letters run a…z then aa, ab… so the 27th item is
     /// not a crash and not "{".
     static func listMarker(style: String?, index: Int) -> String? {
-        switch style {
-        case "bullet": return "•  "
-        case "number": return "\(index).  "
-        case "letter":
-            var n = index, s = ""
-            while n > 0 {
-                n -= 1
-                s = String(UnicodeScalar(UInt8(97 + n % 26))) + s
-                n /= 26
-            }
-            return s + ".  "
-        default: return nil
-        }
+        TextLists.marker(style, level: 0, index: index)
     }
 
     /// The height a text element's box needs — the one everything outside this
@@ -882,7 +909,8 @@ enum FontLibrary {
     static func measuredHeight(for el: Element) -> Double {
         let key = MeasureKey(typography: TypographyKey(el), text: el.text,
                              listStyle: el.listStyle, uppercase: el.uppercase == true, width: el.w,
-                             spans: el.spans, spansText: el.spansText)
+                             spans: el.spans, spansText: el.spansText,
+                             paragraphs: el.paragraphs, paragraphsText: el.paragraphsText)
         return memoized(key, &heightCache) { measure(el) }
     }
 
@@ -902,9 +930,16 @@ enum FontLibrary {
             let below = ceil(overflowLines * narrow / el.w) * line
             return ceil(layout.capRect.height + below)
         }
-        // Words set larger or smaller are measured as they are drawn.
-        let str = hasSizedWords(el) ? attributedString(for: el)
-            : NSAttributedString(string: displayText(for: el), attributes: attributes(for: el))
+        // Words set larger or smaller are measured as they are drawn, and
+        // each line at its own indent.
+        let str: NSAttributedString
+        if hasSizedWords(el) {
+            str = attributedString(for: el)
+        } else {
+            let plain = NSMutableAttributedString(string: displayText(for: el), attributes: attributes(for: el))
+            setParagraphStyles(plain, for: el)
+            str = plain
+        }
         let bounds = str.boundingRect(
             with: CGSize(width: el.w, height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading],

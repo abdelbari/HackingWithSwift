@@ -91,4 +91,83 @@ final class ProofreaderTests: XCTestCase {
         XCTAssertEqual(fix("_Photo_**grahpy studio**", 0, 11, "Photography"), "_**Photography_ studio**")
         XCTAssertEqual(fix("**Photo***grahpy studio*", 0, 11, "Photography"), "***Photography** studio*")
     }
+
+    // MARK: ignored words, the dictionary and the language
+
+    /// Shared rows: the design's Ignore list and the phone's dictionary are
+    /// passed over, whatever the case — the Android twin's ProofingTest.
+    func testWordsIgnoredInTheDesignOrInTheDictionaryAreNotFlagged() throws {
+        let ignored = Proofreader.ignoring(Proofreader.ignoring(Design(), "Canvia"), "  qwerty ")
+        XCTAssertEqual(Proofreader.ignored(in: ignored), ["canvia", "qwerty"])
+        let skip = Proofreader.skipped(ignored, dictionary: ["Zorb"])
+        XCTAssertEqual(skip, ["canvia", "qwerty", "zorb"])
+        // word, flagged
+        let rows: [(String, Bool)] = [("Canvia", false), ("CANVIA", false), ("canvia", false), ("Qwerty", false),
+                                      ("zorb", false), ("recieve", true)]
+        for (word, flagged) in rows {
+            XCTAssertEqual(Proofreader.isWorthFlagging(word, skip: skip), flagged, word)
+        }
+        try XCTSkipUnless(english, "no English dictionary in this environment")
+        var d = design([["Canvia recieve"]])
+        d.spellIgnore = ignored.spellIgnore
+        let found = Proofreader.misspellings(in: d, language: "en_US", skip: skip).map(\.word)
+        XCTAssertFalse(found.contains("Canvia"))
+        XCTAssertTrue(found.contains("recieve"), "\(found)")
+    }
+
+    func testTheIgnoreListAndTheLanguageAreWrittenOnlyWhenSet() throws {
+        let plain = Design()
+        func json(_ d: Design) throws -> [String: Any] {
+            try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(d)) as? [String: Any])
+        }
+        XCTAssertNil(try json(plain)["spellIgnore"])
+        XCTAssertNil(try json(plain)["language"])
+        let ignored = Proofreader.ignoring(Proofreader.ignoring(plain, "zeta"), "Alpha")
+        XCTAssertEqual(try json(ignored)["spellIgnore"] as? [String], ["alpha", "zeta"])
+        XCTAssertEqual(Proofreader.ignoring(ignored, "ALPHA"), ignored, "already there: the same design")
+        let british = Proofreader.withLanguage(plain, "en-GB")
+        XCTAssertEqual(british.language, "en-GB")
+        XCTAssertEqual(try json(british)["language"] as? String, "en-GB")
+        XCTAssertNil(Proofreader.withLanguage(british, nil).language)
+        XCTAssertNil(Proofreader.withLanguage(british, "  ").language)
+        // Read back as the Android twin writes them, a stray entry passed over.
+        let android = #"{"title":"x","spellIgnore":["Zeta","alpha",3],"language":"fr-FR"}"#
+        let read = try JSONDecoder().decode(Design.self, from: Data(android.utf8))
+        XCTAssertEqual(read.spellIgnore, ["alpha", "zeta"])
+        XCTAssertEqual(read.language, "fr-FR")
+        XCTAssertEqual(Proofreader.languageName("fr-FR"), "French")
+        XCTAssertEqual(Proofreader.languageName(nil), "This phone's language")
+    }
+
+    func testTheDictionaryFileIsASortedArrayOfLowerCasedWords() throws {
+        let written = String(data: Proofreader.encodeDictionary(["Zorb", "canvia", "CANVIA", " "]), encoding: .utf8)
+        XCTAssertEqual(written, #"["canvia","zorb"]"#)
+        XCTAssertEqual(Proofreader.decodeDictionary(Data(#"["zorb", "Canvia", 3]"#.utf8)), ["canvia", "zorb"])
+        XCTAssertEqual(Proofreader.decodeDictionary(Data(#"{"words": []}"#.utf8)), [])
+        XCTAssertEqual(Proofreader.decodeDictionary(nil), [])
+        XCTAssertEqual(Proofreader.decodeDictionary(Data("not json".utf8)), [])
+        // Kept on the phone: words added once, never taken away.
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("dictionary-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        XCTAssertEqual(SpellingDictionary.load(from: url), [])
+        XCTAssertEqual(SpellingDictionary.add(["Zorb", "canvia"], to: url, learn: false), 2)
+        XCTAssertEqual(SpellingDictionary.add(["ZORB"], to: url, learn: false), 0)
+        XCTAssertEqual(SpellingDictionary.load(from: url), ["canvia", "zorb"])
+    }
+
+    /// Ignore is one step in the design, and a language is too.
+    @MainActor
+    func testIgnoreAndTheLanguageAreStepsOfTheirOwn() {
+        let s = DesignStore(design: design([["Canvia"]]))
+        s.ignoreSpelling("Canvia")
+        XCTAssertEqual(s.design.spellIgnore, ["canvia"])
+        s.ignoreSpelling("canvia")
+        s.setLanguage("de-DE")
+        XCTAssertEqual(s.design.language, "de-DE")
+        s.undo()
+        XCTAssertNil(s.design.language)
+        s.undo()
+        XCTAssertNil(s.design.spellIgnore)
+        XCTAssertFalse(s.canUndo, "ignoring a word already ignored is no step")
+    }
 }

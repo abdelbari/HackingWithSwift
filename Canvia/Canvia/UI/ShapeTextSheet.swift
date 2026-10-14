@@ -97,6 +97,7 @@ struct ShapeTextSheet: View {
                                 styleToggle(.bold, "Bold", glyph: Image(systemName: "bold"), words: words)
                                 styleToggle(.italic, "Italic", glyph: Image(systemName: "italic"), words: words)
                                 styleToggle(.underline, "Underline", glyph: Image(systemName: "underline"), words: words)
+                                styleToggle(.strike, "Strikethrough", glyph: Image(systemName: "strikethrough"), words: words)
                                 // Capitals have no symbol; "aA" says what they do.
                                 styleToggle(.uppercase, "Uppercase", glyph: Text(verbatim: "aA"), words: words)
                             }
@@ -137,8 +138,8 @@ struct ShapeTextSheet: View {
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
     }
 
-    /// Bold, italic, underline or capitals for the shape's words, on or
-    /// off, lit when they have it.
+    /// Bold, italic, underline, strikethrough or capitals for the shape's
+    /// words, on or off, lit when they have it.
     private func styleToggle<Glyph: View>(_ style: TextToggle, _ name: String, glyph: Glyph, words: Element) -> some View {
         let on = style.isOn(words)
         let turnOn = !on

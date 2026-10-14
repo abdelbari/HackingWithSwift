@@ -448,8 +448,9 @@ final class PptxExporterTests: XCTestCase {
         XCTAssertFalse(xml.contains("Autofit"))
     }
 
-    /// "{page}" is the page's number, a list's markers are words.
-    func testPageNumbersAndListMarkersAreWords() {
+    /// "{page}" is the page's number; a list's markers are PowerPoint's
+    /// own bullets, not words.
+    func testPageNumbersAreWordsAndListMarkersBullets() {
         let el = Element.text("Page {page} of {pages}")
         var list = Element.text("Milk\nEggs")
         list.listStyle = "bullet"
@@ -457,8 +458,37 @@ final class PptxExporterTests: XCTestCase {
         d.pages = [Page(), Page(elements: [el, list])]
         let xml = PptxExporter.slide(design: d, page: d.pages[1], number: 1, previous: nil, firstImage: 1).xml
         XCTAssertTrue(xml.contains("<a:t>Page 2 of 2</a:t>"), xml)
-        XCTAssertTrue(xml.contains("<a:t>•  Milk</a:t>"))
-        XCTAssertTrue(xml.contains("<a:t>•  Eggs</a:t>"))
+        XCTAssertTrue(xml.contains("<a:t>Milk</a:t>"))
+        XCTAssertTrue(xml.contains("<a:t>Eggs</a:t>"))
+        XCTAssertTrue(xml.contains("<a:buChar char=\"•\"/>"))
+        XCTAssertFalse(xml.contains("•  "))
+    }
+
+    /// Shared: each paragraph's level and bullet or number as PowerPoint's
+    /// own, the words without the canvas's markers — the Android twin's
+    /// PptxWriterTest, attribute for attribute.
+    func testListItemsGoOutAtTheirLevelWithPowerPointsBulletsAndNumbers() {
+        var el = Element.text("Plan\nShop\nCook", fontSize: 40)
+        el.align = "left"
+        el.setLines([TextParagraph(), TextParagraph(list: "bullet"), TextParagraph(list: "number", level: 1)])
+        let xml = slideXML([el])
+        XCTAssertTrue(xml.contains("<a:p><a:r>"), xml)
+        XCTAssertTrue(xml.contains("<a:p><a:pPr marL=\"533400\" indent=\"-533400\"><a:buFont typeface=\"Arial\"/><a:buChar char=\"•\"/></a:pPr><a:r>"), xml)
+        XCTAssertTrue(xml.contains("<a:p><a:pPr lvl=\"1\" marL=\"1104900\" indent=\"-533400\"><a:buAutoNum type=\"alphaLcPeriod\" startAt=\"1\"/></a:pPr><a:r>"), xml)
+        XCTAssertTrue(xml.contains("<a:t>Shop</a:t>"))
+        XCTAssertFalse(xml.contains("•  "))
+        // A box-wide numbered list counts on past a blank line; an indent
+        // alone pushes the words in with no bullet.
+        var numbered = Element.text("A\n\nB", fontSize: 40)
+        numbered.setListStyle("number")
+        let counted = slideXML([numbered])
+        XCTAssertTrue(counted.contains("<a:buAutoNum type=\"arabicPeriod\" startAt=\"2\"/></a:pPr><a:r>"), counted)
+        XCTAssertTrue(counted.contains("<a:p><a:pPr algn=\"ctr\" marL=\"533400\" indent=\"-533400\"/><a:endParaRPr"), counted)
+        var pushed = Element.text("A", fontSize: 40)
+        pushed.align = "left"
+        pushed.indent = 2
+        let indented = slideXML([pushed])
+        XCTAssertTrue(indented.contains("<a:p><a:pPr lvl=\"2\" marL=\"1143000\"/><a:r>"), indented)
     }
 
     /// Shared: a word's font is its run's face, and a word's link a click

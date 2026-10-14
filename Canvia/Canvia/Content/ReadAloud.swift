@@ -58,11 +58,14 @@ final class ReadAloud: NSObject, AVSpeechSynthesizerDelegate {
         }.joined(separator: " ")
     }
 
-    func speak(_ text: String) {
+    /// `text` spoken in `language` — the design's, BCP-47 — by a voice for
+    /// it when the phone has one, else the phone's own.
+    func speak(_ text: String, language: String? = nil) {
         stop()
         guard !text.isEmpty else { return }
         let utterance = AVSpeechUtterance(string: text)
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+        if let language, let voice = AVSpeechSynthesisVoice(language: language) { utterance.voice = voice }
         isSpeaking = true
         synthesizer.speak(utterance)
     }
