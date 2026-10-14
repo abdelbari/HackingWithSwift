@@ -5,6 +5,7 @@
 // core FindReplace.kt holds the same rules over the same test rows.
 
 import Foundation
+import UIKit
 
 enum FindReplace {
 
@@ -90,6 +91,94 @@ enum FindReplace {
     static func searches(_ el: Element) -> Bool {
         ShapeText.carriesWords(el) && !el.isHidden
             && ElementLock.allows(ElementLock.mode(of: el), ElementLock.Action.editText)
+    }
+
+    // MARK: the words as they read
+
+    /// Where `needle` is in `text` as it reads — its style markers left out,
+    /// as the spelling check reads it, so "Big sale" is found in
+    /// "**Big** sale" — each match as a range of the words as they read and
+    /// as the stored range it is placed at (RichText.storedRange: the markers
+    /// between it and the words beside it taken in, 0..12 there). Match case
+    /// and Whole words as `ranges` has them, on the words as they read.
+    static func matches(of needle: String, in text: String, caseSensitive: Bool,
+                        wholeWord: Bool) -> [(plain: NSRange, stored: NSRange)] {
+        let plain = RichText.strip(text)
+        return ranges(of: needle, in: plain, caseSensitive: caseSensitive, wholeWord: wholeWord).map { hit in
+            (plain: hit, stored: RichText.storedRange(of: hit, in: text))
+        }
+    }
+
+    /// `text` with the words in `range` — of the words as they read —
+    /// replaced, as a spelling fix keeps the styling round a word: the new
+    /// words in the style of the first one they replace, every marker wholly
+    /// outside them left as it was, and those among them taken out and
+    /// written again round the new words (RichText.replacing). "**Big**
+    /// sale" with "Big sale" replaced by "huge deal" is "**huge deal**".
+    /// Where the markers cannot say it, the stored characters are replaced
+    /// as they are.
+    static func replacing(_ range: NSRange, in text: String, with replacement: String) -> String {
+        let style = RichText.styleAt(range.location, in: text)
+        if let out = RichText.replacing(range, in: text, with: replacement, style: style) { return out }
+        let stored = RichText.storedRange(of: range, in: text)
+        return (text as NSString).replacingCharacters(in: stored, with: replacement)
+    }
+
+    // MARK: the match showing
+
+    /// What the match's letters are marked by while they are laid out.
+    private static let matchKey = "find-match"
+
+    /// The letters of words `range` — of the words as they read — in `el`,
+    /// as the canvas draws them: a rectangle for each word of them on each
+    /// line, as WordLinks finds a link's, in the element's own space on the
+    /// page's side of its flip (its top-left the origin, y down, before its
+    /// turn) — a shape's words in the box they sit in — for Find to mark
+    /// the match it is showing. None for words round a curve, along a path,
+    /// down a column or beside a drop cap, which are drawn another way; the
+    /// canvas marks the whole box there.
+    static func letterRects(of range: NSRange, in el: Element) -> [CGRect] {
+        if el.type == .shape {
+            guard ShapeText.takesText(el) else { return [] }
+            let box = ShapeText.shownBox(for: el)
+            return letterRects(of: range, inWords: ShapeText.textElement(for: el)).map {
+                $0.offsetBy(dx: box.minX, dy: box.minY)
+            }
+        }
+        let w = CGFloat(el.w), h = CGFloat(el.h)
+        return letterRects(of: range, inWords: el).map { rect in
+            CGRect(x: el.flipH ? w - rect.maxX : rect.minX, y: el.flipV ? h - rect.maxY : rect.minY,
+                   width: rect.width, height: rect.height)
+        }
+    }
+
+    /// The same in a text box's own space, before any flip.
+    private static func letterRects(of range: NSRange, inWords el: Element) -> [CGRect] {
+        guard el.w > 0, range.length > 0, !TextOutliner.followsAPath(el) else { return [] }
+        var drawn = el
+        if el.fitText == true { drawn.fontSize = FontLibrary.fittingFontSize(for: el) }
+        if TextEffect.from(el.effect) == .none, FontLibrary.dropCapLayout(for: drawn) != nil { return [] }
+        // The words as drawn — past a list's markers, in capitals — found
+        // as a span on them is (FontLibrary.displaySpans).
+        var probe = drawn
+        probe.setSpans([TextSpan(start: range.location, end: NSMaxRange(range), scale: 2)])
+        let marked = FontLibrary.markedDisplayText(for: probe, pageNumber: nil, pageCount: nil)
+        var shown = FontLibrary.displaySpans(for: probe, marked: marked)
+        if el.uppercase == true {
+            let words = RichText.Parsed(plain: RichText.strip(marked), runs: [])
+            shown = RichText.inCapitals(words, spans: shown).spans
+        }
+        let text = NSMutableAttributedString(attributedString: FontLibrary.attributedString(for: drawn))
+        text.removeAttribute(Spans.linkKey, range: NSRange(location: 0, length: text.length))
+        for span in shown {
+            let lo = min(max(span.start, 0), text.length), hi = min(span.end, text.length)
+            guard hi > lo else { continue }
+            text.addAttribute(Spans.linkKey, value: matchKey, range: NSRange(location: lo, length: hi - lo))
+        }
+        let top = CGFloat(SVGExporter.textTop(el))
+        return WordLinks.wordRects(text, width: el.w)
+            .filter { $0.url == matchKey }
+            .map { $0.rect.offsetBy(dx: 0, dy: top) }
     }
 
     // MARK: stepping through the matches

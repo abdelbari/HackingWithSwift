@@ -336,7 +336,15 @@ struct CanvasView: View {
                                  onRotateEnd: { store.commit(); clearTransient(); store.tipEvent = .rotated })
             }
 
-            if let band = gesture.marquee { marqueeView(band) }
+            // The band being drawn, and the letters of the match Find and
+            // replace is showing.
+            Group {
+                if let band = gesture.marquee { marqueeView(band) }
+                if let match = store.findHighlight, match.pageIndex == store.pageIndex,
+                   let el = store.element(match.elementId), store.editingTextId != el.id {
+                    findMark(el, match)
+                }
+            }
 
             if let id = store.editingTextId, let el = store.element(id) {
                 if el.type == .shape { shapeTextEditor(el) } else { inlineTextEditor(el) }
@@ -954,6 +962,27 @@ struct CanvasView: View {
             }
         }
         .frame(width: store.pageWidth, height: store.pageHeight)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    /// The letters of the match Find and replace is showing, marked over
+    /// its box and turning with it — or the whole box, where its words are
+    /// drawn round a curve, along a path or the like.
+    private func findMark(_ el: Element, _ match: DesignStore.TextMatch) -> some View {
+        let rects = FindReplace.letterRects(of: match.plain, in: el)
+        let marks = rects.isEmpty ? [CGRect(x: 0, y: 0, width: el.w, height: el.h)] : rects
+        return ZStack(alignment: .topLeading) {
+            ForEach(marks.indices, id: \.self) { i in
+                Rectangle()
+                    .fill(Theme.accent.opacity(0.3))
+                    .frame(width: marks[i].width, height: marks[i].height)
+                    .offset(x: marks[i].minX, y: marks[i].minY)
+            }
+        }
+        .frame(width: el.w, height: el.h, alignment: .topLeading)
+        .rotationEffect(.degrees(el.rotation))
+        .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }

@@ -541,7 +541,11 @@ enum RichText {
     /// the words as they read, onto the words as typed, markers and all —
     /// and a choice made among the typed words back again.
     static func typedUnits(_ text: String) -> [Int] {
-        let scan = parseMapped(text)
+        units(of: parseMapped(text), in: text)
+    }
+
+    /// typedUnits from a parse of `text` already made.
+    private static func units(of scan: Scan, in text: String) -> [Int] {
         let chars = Array(text)
         var startOf: [Int] = []
         var offset = 0
@@ -551,8 +555,8 @@ enum RichText {
         }
         var out: [Int] = []
         for at in scan.rawAt {
-            let units = String(chars[at]).utf16.count
-            for k in 0..<units { out.append(startOf[at] + k) }
+            let width = String(chars[at]).utf16.count
+            for k in 0..<width { out.append(startOf[at] + k) }
         }
         return out
     }
@@ -583,5 +587,279 @@ enum RichText {
             out.append(NSRange(location: from, length: to - from))
         }
         return out
+    }
+
+    // MARK: typing the words as they read
+
+    // The field typed in on the canvas shows the words as they read, the
+    // markers kept in what is stored but drawn as nothing (InlineTextField).
+    // A caret or a choice among the words as they read is placed among the
+    // stored characters by these rules, and what is typed is put in by them,
+    // so the styles carry on as Canva's do. The Android twin's inline field
+    // maps its offsets by the same rules over the same test rows.
+
+    /// Where a caret `offset` UTF-16 units into the words as they read
+    /// stands in `text`, as a UTF-16 offset: just after the character before
+    /// it — inside any style that character is in, so what is typed there
+    /// takes that style — or, at the very start, just before the first
+    /// character, inside its style. "**Sale** today": 0 is 2, 4 is 6 (inside
+    /// the bold) and 5 is 9.
+    static func rawCaret(_ offset: Int, in text: String) -> Int {
+        rawCaret(offset, units: typedUnits(text), length: (text as NSString).length)
+    }
+
+    private static func rawCaret(_ offset: Int, units: [Int], length: Int) -> Int {
+        guard let first = units.first else { return length }
+        guard offset > 0 else { return first }
+        return units[min(offset, units.count) - 1] + 1
+    }
+
+    /// How many UTF-16 units of the words as they read are stored before
+    /// UTF-16 offset `offset` of `text`: where a caret there stands among
+    /// the words, whichever side of a marker it is.
+    static func plainCaret(_ offset: Int, in text: String) -> Int {
+        plainCaret(offset, units: typedUnits(text))
+    }
+
+    private static func plainCaret(_ offset: Int, units: [Int]) -> Int {
+        units.firstIndex { $0 >= offset } ?? units.count
+    }
+
+    /// The style of the character `offset` UTF-16 units into the words as
+    /// they read; plain past the end.
+    static func styleAt(_ offset: Int, in text: String) -> Style {
+        style(of: parse(text).runs, at: offset)
+    }
+
+    /// Where words `range` — UTF-16, of the words as they read — are stored
+    /// in `text`: from just after the character before them, or the start,
+    /// to just before the character after them, or the end, so the markers
+    /// between them and the words beside them are taken in: "Big sale" in
+    /// "**Big** sale" is 0..12. Find's matches are placed by this rule.
+    static func storedRange(of range: NSRange, in text: String) -> NSRange {
+        let units = typedUnits(text)
+        let length = (text as NSString).length
+        let lo = min(max(range.location, 0), units.count)
+        let hi = min(max(NSMaxRange(range), lo), units.count)
+        let start = lo == 0 ? 0 : units[lo - 1] + 1
+        let end = hi == units.count ? length : units[hi]
+        return NSRange(location: start, length: max(0, end - start))
+    }
+
+    /// A choice in `text` kept off the markers, which are drawn as nothing:
+    /// a caret where rawCaret puts it, and a choice of words from just
+    /// before the first of them to just after the last — a caret when it
+    /// takes in only markers. A caret moved one unit on from `was` and still
+    /// among the same markers goes on past the next character, so the arrow
+    /// keys step over them rather than stopping on them.
+    static func snapped(_ selection: NSRange, in text: String, was: NSRange?) -> NSRange {
+        let scan = parseMapped(text)
+        let units = Self.units(of: scan, in: text)
+        let length = (text as NSString).length
+        let lo = plainCaret(selection.location, units: units)
+        let hi = plainCaret(NSMaxRange(selection), units: units)
+        guard hi > lo else {
+            var at = lo
+            if let was, was.length == 0, selection.length == 0, selection.location == was.location + 1,
+               plainCaret(was.location, units: units) == lo, lo < units.count {
+                at = NSMaxRange((scan.parsed.plain as NSString).rangeOfComposedCharacterSequence(at: lo))
+            }
+            return NSRange(location: rawCaret(at, units: units, length: length), length: 0)
+        }
+        let start = units[lo], end = units[hi - 1] + 1
+        return NSRange(location: start, length: end - start)
+    }
+
+    /// A style waiting for what is typed next: armed by Bold, Italic,
+    /// Underline or Strikethrough on the typing bar with no words chosen, or
+    /// carried by spaces typed at the end of styled words, which no marker
+    /// can hold — "**Big **" does not read — so the next word takes the
+    /// style, and the spaces with it: "**Big sale**". `from` is where the
+    /// waiting began, in UTF-16 units of the words as they read.
+    struct Pending: Equatable {
+        var style: Style
+        var from: Int
+    }
+
+    /// What typing makes: the words as stored, the caret in them, and any
+    /// style still waiting.
+    struct Typed: Equatable {
+        var text: String
+        var caret: Int
+        var pending: Pending?
+    }
+
+    /// `typed` put over UTF-16 range `range` of `text` — a key, a paste, a
+    /// correction or a backspace — as the words read, never into a marker:
+    ///
+    /// - what is typed takes the style of the character before it, so
+    ///   characters typed at the end of a styled word go inside its closing
+    ///   marker and the style carries on; at the very start, the style of
+    ///   the first character; over chosen words, the style of the first;
+    ///   and `pending`, while one waits, before all of these;
+    /// - a backspace just after markers, which are drawn as nothing, takes
+    ///   the character before them, never a marker;
+    /// - the markers round the words typed are written again (replacing),
+    ///   every other one left where it was.
+    ///
+    /// Where the markers cannot say it, the stored characters are changed
+    /// as they are, as a plain text field would.
+    static func typing(_ typed: String, over range: NSRange, in text: String, pending: Pending?) -> Typed {
+        let scan = parseMapped(text)
+        let units = Self.units(of: scan, in: text)
+        let shown = scan.parsed.plain as NSString
+        let runs = scan.parsed.runs
+        var lo = plainCaret(range.location, units: units)
+        let hi: Int
+        if typed.isEmpty, range.length > 0, plainCaret(NSMaxRange(range), units: units) == lo {
+            // Only markers in the way: the character before them goes.
+            guard lo > 0 else {
+                return Typed(text: text, caret: rawCaret(0, units: units, length: (text as NSString).length))
+            }
+            let before = shown.rangeOfComposedCharacterSequence(at: lo - 1)
+            lo = before.location
+            hi = NSMaxRange(before)
+        } else {
+            hi = plainCaret(NSMaxRange(range), units: units)
+        }
+        var start = lo
+        var words = typed
+        let style: Style
+        if hi > lo {
+            style = Self.style(of: runs, at: lo)
+        } else if let pending, pending.from <= lo {
+            style = pending.style
+            words = shown.substring(with: NSRange(location: pending.from, length: lo - pending.from)) + typed
+            start = pending.from
+        } else {
+            style = Self.style(of: runs, at: max(lo - 1, 0))
+        }
+        guard let out = replacing(NSRange(location: start, length: hi - start), in: text,
+                                  with: words, style: style) else {
+            let plainly = (text as NSString).replacingCharacters(in: range, with: typed)
+            return Typed(text: plainly, caret: range.location + (typed as NSString).length)
+        }
+        let after = parseMapped(out)
+        let caretAt = start + (words as NSString).length
+        let caret = rawCaret(caretAt, units: Self.units(of: after, in: out), length: (out as NSString).length)
+        // Spaces typed after styled words that could not take the style:
+        // the style waits for the next word, the spaces with it.
+        var carried: Pending?
+        if !style.isPlain, typed.last?.isWhitespace == true, caretAt > 0,
+           Self.style(of: after.parsed.runs, at: caretAt - 1) != style {
+            let now = after.parsed.plain as NSString
+            var from = caretAt
+            while from > start, isSpace(now.character(at: from - 1)) { from -= 1 }
+            carried = Pending(style: style, from: from)
+        }
+        return Typed(text: out, caret: caret, pending: carried)
+    }
+
+    /// Whether UTF-16 unit `unit` is a space or a line break.
+    private static func isSpace(_ unit: unichar) -> Bool {
+        Unicode.Scalar(unit).map { CharacterSet.whitespacesAndNewlines.contains($0) } ?? false
+    }
+
+    /// `text` with the words in `range` — UTF-16, of the words as they read
+    /// — replaced by `replacement` in `style`. Every marker wholly outside
+    /// them stays where it was; those among them are taken out and the new
+    /// words wrapped in markers again: closing the styles of the words
+    /// before that the new ones do not have, opening theirs, and the same
+    /// again into the words after. The markers go hard against letters —
+    /// spaces beside the words replaced are written again with them, and
+    /// the markers round them — as a marker beside a space is not read as
+    /// one. nil when the result would not read as the same words with the
+    /// new ones in `style`, letters outside them in their own.
+    static func replacing(_ range: NSRange, in text: String, with replacement: String, style: Style) -> String? {
+        let scan = parseMapped(text)
+        let chars = Array(text)
+        let plain = Array(scan.parsed.plain)
+        var a = characterIndex(range.location, in: plain, up: false)
+        var b = max(a, characterIndex(NSMaxRange(range), in: plain, up: true))
+        var lead = "", trail = ""
+        while a > 0, plain[a - 1].isWhitespace {
+            a -= 1
+            lead = String(plain[a]) + lead
+        }
+        while b < plain.count, plain[b].isWhitespace {
+            trail.append(plain[b])
+            b += 1
+        }
+        let start = a == 0 ? 0 : scan.rawAt[a - 1] + 1
+        let end = b == plain.count ? chars.count : scan.rawAt[b]
+        let open = a == 0 ? Style() : scan.styles[a - 1]
+        let close = b == plain.count ? Style() : scan.styles[b]
+        let words = lead + replacement + trail
+        let head = String(chars[..<start]), tail = String(chars[end...])
+        // What it must read as: the letters before and after in their own
+        // styles, the new ones in `style`; spaces in whatever they can be.
+        let meant = String(plain[..<a]) + words + String(plain[b...])
+        var styles: [Style?] = plain[..<a].indices.map { Optional(scan.styles[$0]) }
+        styles += words.map { $0.isWhitespace ? nil : style }
+        styles += plain[b...].indices.map { Optional(scan.styles[$0]) }
+        for italic in ["*", "_"] {
+            let middle = wrapped(words, from: open, as: style, to: close, italic: italic)
+            let candidate = head + middle + tail
+            let back = parseMapped(candidate)
+            guard String(back.parsed.plain) == meant, back.styles.count == styles.count else { continue }
+            let kept = zip(back.styles, zip(styles, Array(meant))).allSatisfy { got, want in
+                want.1.isWhitespace || want.0 == nil || want.0 == got
+            }
+            if kept { return candidate }
+        }
+        return nil
+    }
+
+    /// `words` with the markers that take the words before — in `open` —
+    /// into `style`, and `style` into the words after, in `close`: closing
+    /// markers just after the last letter they close, opening ones just
+    /// before the first letter they open, spaces outside them.
+    private static func wrapped(_ words: String, from open: Style, as style: Style, to close: Style,
+                                italic: String) -> String {
+        let chars = Array(words)
+        var lo = 0, hi = chars.count
+        while lo < hi, chars[lo].isWhitespace { lo += 1 }
+        while hi > lo, chars[hi - 1].isWhitespace { hi -= 1 }
+        guard hi > lo else {
+            return closers(open, leaving: close, italic) + words + openers(close, after: open, italic)
+        }
+        let into = closers(open, leaving: style, italic) + String(chars[..<lo]) + openers(style, after: open, italic)
+        let outOf = closers(style, leaving: close, italic) + String(chars[hi...]) + openers(close, after: style, italic)
+        return into + String(chars[lo..<hi]) + outOf
+    }
+
+    /// The markers that end each style `from` has and `to` has not, the
+    /// single italic one first.
+    private static func closers(_ from: Style, leaving to: Style, _ italic: String) -> String {
+        var out = ""
+        if from.italic && !to.italic { out += italic }
+        if from.bold && !to.bold { out += "**" }
+        if from.underline && !to.underline { out += "__" }
+        if from.strike && !to.strike { out += "~~" }
+        return out
+    }
+
+    /// The markers that begin each style `to` has and `from` has not, the
+    /// single italic one last.
+    private static func openers(_ to: Style, after from: Style, _ italic: String) -> String {
+        var out = ""
+        if to.strike && !from.strike { out += "~~" }
+        if to.underline && !from.underline { out += "__" }
+        if to.bold && !from.bold { out += "**" }
+        if to.italic && !from.italic { out += italic }
+        return out
+    }
+
+    /// The character of `chars` that UTF-16 offset `offset` falls at: the
+    /// one starting there, or — inside one — that one, or the next with
+    /// `up`.
+    private static func characterIndex(_ offset: Int, in chars: [Character], up: Bool) -> Int {
+        var units = 0
+        for (i, c) in chars.enumerated() {
+            if units >= offset { return i }
+            units += String(c).utf16.count
+            if units > offset { return up ? i + 1 : i }
+        }
+        return chars.count
     }
 }

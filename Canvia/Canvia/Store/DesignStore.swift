@@ -1232,14 +1232,23 @@ final class DesignStore {
         var id: String { "\(pageIndex)|\(elementId)|\(range.location)" }
         var pageIndex: Int
         var elementId: String
+        /// Where it is stored, its style markers taken in
+        /// (RichText.storedRange).
         var range: NSRange
-        /// The line the match sits on, for showing it in a list.
+        /// Where it is in the words as they read.
+        var plain: NSRange
+        /// The line the match sits on, as it reads, for showing it in a list.
         var preview: String
     }
 
+    /// The match Find and replace is showing, its letters marked on the
+    /// canvas while it is. View state only — never saved.
+    var findHighlight: TextMatch?
+
     /// Every occurrence of `needle` across every page, in reading order:
     /// in text boxes, and in the words shapes carry — not in a hidden or
-    /// locked one (FindReplace.searches). With `wholeWord`, only where no
+    /// locked one (FindReplace.searches) — as the words read, style markers
+    /// left out (FindReplace.matches). With `wholeWord`, only where no
     /// letter or digit touches it (FindReplace.ranges).
     ///
     /// Pure and non-mutating, so the sheet can show a live count while typing
@@ -1255,9 +1264,10 @@ final class DesignStore {
         for (index, page) in design.pages.enumerated() {
             for element in page.elements where FindReplace.searches(element) {
                 let body = element.text ?? ""
-                for hit in FindReplace.ranges(of: needle, in: body, caseSensitive: caseSensitive, wholeWord: wholeWord) {
-                    found.append(TextMatch(pageIndex: index, elementId: element.id,
-                                           range: hit, preview: line(of: body, containing: hit)))
+                let plain = RichText.strip(body)
+                for hit in FindReplace.matches(of: needle, in: body, caseSensitive: caseSensitive, wholeWord: wholeWord) {
+                    found.append(TextMatch(pageIndex: index, elementId: element.id, range: hit.stored,
+                                           plain: hit.plain, preview: line(of: plain, containing: hit.plain)))
                 }
             }
         }
@@ -1284,34 +1294,38 @@ final class DesignStore {
                 for i in design.pages[p].elements.indices
                 where FindReplace.searches(design.pages[p].elements[i]) {
                     guard let body = design.pages[p].elements[i].text, !body.isEmpty else { continue }
-                    let found = FindReplace.ranges(of: needle, in: body, caseSensitive: caseSensitive,
-                                                   wholeWord: wholeWord)
+                    let found = FindReplace.ranges(of: needle, in: RichText.strip(body),
+                                                   caseSensitive: caseSensitive, wholeWord: wholeWord)
                     guard !found.isEmpty else { continue }
                     // One occurrence at a time, the last first, so the
                     // colours, sizes, fonts and links on the words between
-                    // them stay on those words.
+                    // them stay on those words, and the words as they read
+                    // before each are still where they were found.
                     for hit in found.reversed() {
                         Self.replaceWords(hit, with: replacement, in: &design.pages[p].elements[i])
                     }
                 }
             }
         }
+        findHighlight = nil
         announce(total == 1 ? "Replaced 1 occurrence" : "Replaced \(total) occurrences")
         return total
     }
 
     /// The design with only `match` replaced — the words around it, their
     /// markers and the colours, sizes, fonts and links on them as they were
-    /// (Element.setText moves them along) — or nil when the match is no
-    /// longer in the design to replace.
+    /// (FindReplace.replacing; Element.setText moves them along) — or nil
+    /// when the match is no longer in the design to replace.
     static func replacingOne(_ design: Design, _ match: TextMatch, with replacement: String) -> Design? {
         guard design.pages.indices.contains(match.pageIndex),
               let i = design.pages[match.pageIndex].elements.firstIndex(where: { $0.id == match.elementId }),
               FindReplace.searches(design.pages[match.pageIndex].elements[i]) else { return nil }
-        let length = ((design.pages[match.pageIndex].elements[i].text ?? "") as NSString).length
-        guard match.range.length > 0, NSMaxRange(match.range) <= length else { return nil }
+        let body = design.pages[match.pageIndex].elements[i].text ?? ""
+        let length = (RichText.strip(body) as NSString).length
+        guard match.plain.length > 0, NSMaxRange(match.plain) <= length,
+              RichText.storedRange(of: match.plain, in: body) == match.range else { return nil }
         var out = design
-        replaceWords(match.range, with: replacement, in: &out.pages[match.pageIndex].elements[i])
+        replaceWords(match.plain, with: replacement, in: &out.pages[match.pageIndex].elements[i])
         return out
     }
 
@@ -1324,11 +1338,11 @@ final class DesignStore {
         return true
     }
 
-    /// The words in `range` of `el` replaced, everything on the words moved
-    /// along, and the box grown or shrunk to its words.
+    /// The words in `range` of `el` — of the words as they read — replaced
+    /// (FindReplace.replacing), everything on the words moved along, and
+    /// the box grown or shrunk to its words.
     private static func replaceWords(_ range: NSRange, with replacement: String, in el: inout Element) {
-        let now = (el.text ?? "") as NSString
-        el.setText(now.replacingCharacters(in: range, with: replacement))
+        el.setText(FindReplace.replacing(range, in: el.text ?? "", with: replacement))
         el.h = ShapeText.heightForWords(el)
     }
 
@@ -1339,18 +1353,20 @@ final class DesignStore {
     static func matchAfter(replacing replaced: TextMatch, at current: Int, length: Int,
                            in matches: [TextMatch]) -> Int {
         guard !matches.isEmpty else { return 0 }
-        let end = replaced.range.location + length
+        let end = replaced.plain.location + length
         var i = min(max(current, 0), matches.count)
         while i < matches.count, matches[i].pageIndex == replaced.pageIndex,
-              matches[i].elementId == replaced.elementId, matches[i].range.location < end {
+              matches[i].elementId == replaced.elementId, matches[i].plain.location < end {
             i += 1
         }
         return i < matches.count ? i : 0
     }
 
-    /// Show a match: switch to its page and select its element.
+    /// Show a match: switch to its page, select its element and mark its
+    /// letters there (findHighlight); the editor keeps it in sight.
     func reveal(_ match: TextMatch) {
         reveal(elementId: match.elementId, onPage: match.pageIndex)
+        findHighlight = match
     }
 
     /// Switch to page `index` and select `elementId` there — or only the
