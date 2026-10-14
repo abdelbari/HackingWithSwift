@@ -1,7 +1,8 @@
 // A template of several pages — a deck, a card's front and back, a resume's
 // two pages, or one of your own — as the Templates panel, Home and the Start
 // sheet open it: a strip of its pages, the one picked shown larger, with
-// "Apply all N pages" and "Use this page". The page count rides on the template's picture everywhere it
+// "Apply all N pages" and "Use this page" — and, in the editor, "Add as
+// new page". The page count rides on the template's picture everywhere it
 // is shown (PageCountBadge), as on your own templates'.
 
 import SwiftUI
@@ -35,23 +36,30 @@ struct TemplateSetSheet: View {
     var applyAll: () -> Void
     /// The page picked, by index, on its own.
     var usePage: (Int) -> Void
+    /// In the editor, the page picked, by index, on a new page after this
+    /// one; none elsewhere.
+    var addPage: ((Int) -> Void)?
     @Environment(\.dismiss) private var dismiss
     /// The template made once, at its own size, for the pictures.
     @State private var design: Design
     @State private var picked = 0
 
     /// A built-in template of several pages.
-    init(template: Template, note: String, applyAll: @escaping () -> Void, usePage: @escaping (Int) -> Void) {
-        self.init(name: template.name, design: template.instantiate(), note: note, applyAll: applyAll, usePage: usePage)
+    init(template: Template, note: String, applyAll: @escaping () -> Void, usePage: @escaping (Int) -> Void,
+         addPage: ((Int) -> Void)? = nil) {
+        self.init(name: template.name, design: template.instantiate(), note: note, applyAll: applyAll,
+                  usePage: usePage, addPage: addPage)
     }
 
     /// Any template of several pages — one of your own too — as `design`,
     /// at its own size.
-    init(name: String, design: Design, note: String, applyAll: @escaping () -> Void, usePage: @escaping (Int) -> Void) {
+    init(name: String, design: Design, note: String, applyAll: @escaping () -> Void, usePage: @escaping (Int) -> Void,
+         addPage: ((Int) -> Void)? = nil) {
         self.name = name
         self.note = note
         self.applyAll = applyAll
         self.usePage = usePage
+        self.addPage = addPage
         _design = State(initialValue: design)
     }
 
@@ -149,6 +157,15 @@ struct TemplateSetSheet: View {
                 Text("Use this page").frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
+            if let addPage {
+                Button {
+                    dismiss()
+                    addPage(picked)
+                } label: {
+                    Text("Add as new page").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
         }
         .controlSize(.large)
         .padding(.horizontal, 16)

@@ -312,7 +312,7 @@ struct InsertSheet: View {
             }
             Text(filteredTemplates.isEmpty
                  ? tr("No template is called that, or is of that kind.")
-                 : ContentLibrary.editorTemplatesNote(exactCount: exactTemplates.count))
+                 : ContentLibrary.editorTemplatesNote(exactCount: exactTemplates.count, addsPage: store.templateAddsPage))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -325,14 +325,15 @@ struct InsertSheet: View {
         .padding()
         .sheet(item: $templateSet) { template in
             TemplateSetSheet(template: template, note: TemplateSetSheet.editorNote(empty: DesignStore.isEmptyForTemplates(store.design)),
-                             applyAll: { applyAll(template) }, usePage: { startOver(from: template, page: $0) })
+                             applyAll: { applyAll(template) }, usePage: { startOver(from: template, page: $0) },
+                             addPage: { addAsPage(template, page: $0) })
         }
     }
 
     private func templateTile(_ template: Template) -> some View {
         let starred = Favorites.isFavorite("template", template.id)
         return Button {
-            startOver(from: template)
+            useTemplate(template)
         } label: {
             VStack(alignment: .leading, spacing: 6) {
                 TemplateThumb(template: template)
@@ -342,7 +343,37 @@ struct InsertSheet: View {
             }
         }
         .accessibilityLabel(templateLabel(template, starred: starred))
-        .contextMenu { favoriteButton("template", template.id) }
+        .contextMenu {
+            // Both, whatever a tap would do; a template of several gives
+            // its first page, as on the Android twin.
+            Button { startOver(from: template, page: 0) } label: {
+                Label("Use on this page", systemImage: "arrow.triangle.2.circlepath")
+            }
+            Button { addAsPage(template, page: 0) } label: {
+                Label("Add as new page", systemImage: "plus.rectangle.on.rectangle")
+            }
+            favoriteButton("template", template.id)
+        }
+    }
+
+    /// A tap on a template: one of several shows its pages first; one page
+    /// goes on a new page after this one when this page has something on it
+    /// or is locked, else in place of this page (DesignStore.templateAddsPage).
+    private func useTemplate(_ template: Template) {
+        guard template.pageCount == 1 else {
+            templateSet = template
+            return
+        }
+        if store.templateAddsPage { addAsPage(template, page: 0) } else { startOver(from: template, page: 0) }
+    }
+
+    /// "Add as new page": page `index` of the template, fitted to this
+    /// page's size, on a new page after it — one Undo. A locked page does
+    /// not stop it: nothing is overwritten.
+    private func addAsPage(_ template: Template, page index: Int) {
+        let page = template.makePage(at: index, width: store.pageWidth, height: store.pageHeight)
+        store.addTemplatePage(page, name: template.name)
+        dismiss()
     }
 
     /// "Northwind Pitch Deck, 10 pages, favourite".

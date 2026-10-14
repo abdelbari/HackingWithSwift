@@ -29,7 +29,7 @@ enum HelpTopics {
                   body: tr("Pinch anywhere to zoom, even over elements. Pan with two fingers, or one finger on the empty page or the grey workspace. Double-tap the workspace to zoom in on a spot, and again to fit the page. The pill at the top right says how far in you are; tap it to go between the whole page and actual size. If what you have selected scrolls out of sight, Bring it back finds it."),
                   keywords: ["pinch", "pan", "fit", "double tap", "actual size", "percent", "bring it back"], opens: nil),
         HelpTopic(id: "select", title: tr("Selecting several elements"),
-                  body: tr("Hold on the empty page and drag to draw a band: everything it touches is selected. Hold on an element to add it to the selection or take it out. Select multiple, in the toolbar or the menu, makes each tap add or remove an element until Done. A multi-selection moves, resizes and rotates as one."),
+                  body: tr("Hold on the empty page and drag to draw a band: everything it touches is selected, except what is locked. A band can also start on the grey area round the page, or on a locked or full-page background, so a page covered by a photo can still be selected. Hold on an element to add it to the selection or take it out. Select multiple, in the toolbar or the menu, makes each tap add or remove an element until Done. A multi-selection moves, resizes and rotates as one."),
                   keywords: ["marquee", "band", "multi", "group", "hold", "several", "select multiple"], opens: nil),
         HelpTopic(id: "text", title: tr("Editing text"),
                   body: tr("Double-tap a text element to edit it in place. The toolbar has font, size, colour, bold, italic, underline, capitals (aA), lists, indents, alignment, effects, spacing and a curve slider. Tap the size to type one exactly or pick from a list. Select several texts to set their font, size, style, alignment and colour together."),
@@ -71,7 +71,7 @@ enum HelpTopics {
                   body: tr("With a hardware keyboard: ⌘Z undo, ⇧⌘Z or ⌘Y redo, ⌘C/⌘X/⌘V copy, cut, paste, ⌘D duplicate, ⌘A select all, ⌘G group, ⌘F find, ⌘E export."),
                   keywords: ["shortcut", "ipad", "command"], opens: nil),
         HelpTopic(id: "voiceover", title: tr("VoiceOver and accessibility"),
-                  body: tr("Every element on the canvas is named and can be moved, duplicated, deleted or reordered from the VoiceOver actions rotor. Reduce Motion, Increase Contrast and Differentiate Without Colour are honoured. More ▸ Check accessibility finds hard-to-read text, pictures with no alt text, text under 12 px and flashing, each with a way to fix it."),
+                  body: tr("Every element on the canvas is named and can be moved, made larger or smaller, turned, duplicated, deleted or reordered from the VoiceOver actions rotor; a photo can be cropped and words edited there too. Reduce Motion, Increase Contrast and Differentiate Without Colour are honoured. More ▸ Check accessibility finds hard-to-read text, pictures with no alt text, text under 12 px and flashing, each with a way to fix it."),
                   keywords: ["accessibility", "voice", "motion", "contrast"], opens: nil),
     ]
 

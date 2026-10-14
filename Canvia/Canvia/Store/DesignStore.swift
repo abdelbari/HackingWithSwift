@@ -50,6 +50,10 @@ final class DesignStore {
     /// chooses them all, so the first key replaces them, as in Canva. View
     /// state only — never saved.
     @ObservationIgnored var freshTexts: [String: String] = [:]
+    /// Where on the page the tap that opened the typing under way landed,
+    /// for the line the view zooms in on (Viewport.typingZoom); nil when it
+    /// opened without one. View state only — never saved.
+    @ObservationIgnored var typingPoint: CGPoint?
     /// The words the colour sheet is open for, from the typing bar's colour
     /// well (see WordStyles).
     var wordColourTarget: WordRange?
@@ -645,6 +649,7 @@ final class DesignStore {
         typingSteps = 0
         typingRedos = 0
         let length = ((element(id)?.text ?? "") as NSString).length
+        typingPoint = point
         let opening = openingSelection(id, at: point, word: word) ?? NSRange(location: length, length: 0)
         typingSelection = opening
         askTypingSelection(opening)
@@ -1114,17 +1119,19 @@ final class DesignStore {
         selection = Set(page.elements.filter { !$0.locked && !$0.isHidden }.map(\.id))
     }
 
-    /// Rubber-band selection: everything the rectangle touches, with sticky
-    /// groups expanded so a band across one member takes the whole group.
+    /// Rubber-band selection: everything the rectangle touches but what is
+    /// locked, with sticky groups expanded so a band across one member takes
+    /// the whole group.
     func select(within rect: CGRect) {
+        select(within: rect, startedOn: nil)
+    }
+
+    /// The same for a band drawn from the backdrop `startedOn`, which it
+    /// leaves out unless nothing else is caught (CanvasGestures.bandCaught).
+    func select(within rect: CGRect, startedOn: String?) {
         endTextEdit()
         guard !isPageLocked else { return }
-        var ids = Set(Geometry.intersecting(page.elements, rect).map(\.id))
-        let groups = Set(page.elements.filter { ids.contains($0.id) }.compactMap(\.group))
-        for el in page.elements where el.group.map(groups.contains) == true {
-            ids.insert(el.id)
-        }
-        selection = ids
+        selection = CanvasGestures.bandCaught(page.elements, rect: rect, startedOn: startedOn)
     }
 
     /// Write back a set of elements mid-gesture, matched by id. Used by the
@@ -1176,35 +1183,26 @@ final class DesignStore {
 
     enum ZMove { case front, forward, backward, back }
 
+    /// Forward and Backward step past the next thing the selection
+    /// overlaps, a group one layer (Layers.stepped); To front and To back
+    /// keep a group's run whole too. One step — or, already at the front or
+    /// the back, nothing, felt and said.
     func reorderSelected(_ move: ZMove) {
         let ids = selection
         guard !ids.isEmpty else { return }
-        applyToPage { page in
-            switch move {
-            case .front:
-                let moved = page.elements.filter { ids.contains($0.id) }
-                page.elements.removeAll { ids.contains($0.id) }
-                page.elements.append(contentsOf: moved)
-            case .back:
-                let moved = page.elements.filter { ids.contains($0.id) }
-                page.elements.removeAll { ids.contains($0.id) }
-                page.elements.insert(contentsOf: moved, at: 0)
-            case .forward:
-                var i = page.elements.count - 2
-                while i >= 0 {
-                    if ids.contains(page.elements[i].id) && !ids.contains(page.elements[i + 1].id) {
-                        page.elements.swapAt(i, i + 1)
-                    }
-                    i -= 1
-                }
-            case .backward:
-                for i in 1..<max(1, page.elements.count) {
-                    if ids.contains(page.elements[i].id) && !ids.contains(page.elements[i - 1].id) {
-                        page.elements.swapAt(i, i - 1)
-                    }
-                }
-            }
+        let forward = move == .front || move == .forward
+        let before = page.elements
+        let after: [Element]
+        switch move {
+        case .front, .back: after = Layers.sentToEnd(before, ids: ids, front: forward)
+        case .forward, .backward: after = Layers.stepped(before, ids: ids, forward: forward)
         }
+        guard after.map(\.id) != before.map(\.id) else {
+            buzz(.reject)
+            announce(forward ? tr("Already at the front") : tr("Already at the back"), undoable: false)
+            return
+        }
+        applyToPage { $0.elements = after }
     }
 
     enum AlignMode { case left, centerX, right, top, centerY, bottom }
@@ -1424,8 +1422,15 @@ final class DesignStore {
     var haptic = HapticEvent(kind: .undo, serial: 0)
     /// True while a rotation drag sits on a 45° snap.
     var rotationSnapped = false
-    /// True while a move sits at an equal gap between two neighbours.
+    /// True while a move sits at an equal gap — between two neighbours, or
+    /// matching a gap already there — or a resize at another's size: what
+    /// the snap haptic is felt for.
     var spacingSnapped = false
+    /// The equal gaps a move has landed on, bracketed with their widths
+    /// (Geometry.equalGapPairs), and the boxes a resize has matched the size
+    /// of, marked "=" (Geometry.matchingSize). Nothing of the design.
+    var gapMarks: [Geometry.GapPair] = []
+    var sizeMarks: [Geometry.SizeMark] = []
     /// The pen, while drawing mode is on: strokes become shape elements.
     var drawing: Freehand.Tool? {
         didSet {
@@ -2140,6 +2145,47 @@ final class DesignStore {
         selection.removeAll()
         buzz(.confirm)
         announce(tr("Started over from \u{201C}%@\u{201D}", name))
+    }
+
+    /// "Add as new page": one page of a template, fitted to this page,
+    /// put in after it and shown, as one undo step — its background and
+    /// everything on it, overwriting nothing, so a locked page does not stop
+    /// it (insertedTemplatePage). As the Android twin's addTemplatePage.
+    func addTemplatePage(_ page: Page, name: String) {
+        let at = pageIndex + 1
+        apply { $0 = Self.insertedTemplatePage($0, page: page, at: at) }
+        pageIndex = at
+        selection.removeAll()
+        buzz(.confirm)
+        announce(tr("Added a page from \u{201C}%@\u{201D}", name))
+    }
+
+    /// What a tap on a template does in the editor: on a page with nothing
+    /// on it, it replaces the page, as ever; on one with something on it —
+    /// or a locked one, which nothing may replace — it goes on a new page
+    /// after it, so a filled page is never overwritten by mistake. A hold
+    /// offers both. As the Android twin's templateAddsPage.
+    var templateAddsPage: Bool { isPageLocked || !page.elements.isEmpty }
+
+    /// One page of a template, the way templateAddsPage says.
+    func useTemplatePage(_ page: Page, name: String) {
+        if templateAddsPage { addTemplatePage(page, name: name) } else { applyTemplatePage(page, name: name) }
+    }
+
+    /// The design with a template's `page` put in at `index`, kept to the
+    /// design's ends. It takes the size of the page it follows (the first
+    /// page's, at 0) — its width and height kept, its own or none — as
+    /// Apply all fits each page. Nothing else changes. The Android twin's
+    /// Templates.insertedTemplatePage. Pure.
+    static func insertedTemplatePage(_ design: Design, page: Page, at index: Int) -> Design {
+        let at = min(max(index, 0), design.pages.count)
+        let beside = design.pages.indices.contains(at - 1) ? design.pages[at - 1] : design.pages.first
+        var sized = page
+        sized.width = beside?.width
+        sized.height = beside?.height
+        var out = design
+        out.pages.insert(sized, at: at)
+        return out
     }
 
     /// The design with `pages` applied at page `index`: the first in its

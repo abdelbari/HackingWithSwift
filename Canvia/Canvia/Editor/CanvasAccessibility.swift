@@ -70,3 +70,54 @@ extension CanvasAccessibility {
         return rows.flatMap { row in row.sorted { a, b in a.x != b.x ? a.x < b.x : a.y < b.y } }.map(\.id)
     }
 }
+
+extension CanvasAccessibility {
+    /// How much Make larger and Make smaller change an element: a tenth.
+    static let sizeStep = 0.1
+    /// How far Turn clockwise and Turn anticlockwise turn it, in degrees.
+    static let turnStep = 15.0
+
+    /// `el` made larger (or smaller) by `sizeStep` about its centre, by one
+    /// factor for every side, as the Android twin's
+    /// Resize.scaledAboutCentre: a text's type scales with its box, and its
+    /// tracking with it; a photo, a shape, anything else keeps its
+    /// proportions, and a photo its crop; a line grows along its length and
+    /// keeps its thickness. The factor stops where a side would go under 8
+    /// (a line's length only) or the type under 4, so nothing is squashed
+    /// out of shape, and smaller never makes something larger; nil when it
+    /// is there already.
+    static func scaled(_ el: Element, larger: Bool) -> Element? {
+        guard el.w > 0, el.h > 0 else { return nil }
+        var least = 8 / el.w
+        if el.type != .line { least = max(least, 8 / el.h) }
+        if el.type == .text { least = max(least, 4 / (el.fontSize ?? 42)) }
+        var factor = max(larger ? 1 + sizeStep : 1 - sizeStep, least)
+        if !larger { factor = min(factor, 1) }
+        guard factor != 1 else { return nil }
+        let w = el.w * factor
+        let h = el.type == .line ? el.h : el.h * factor
+        let c = el.center
+        var out = el
+        out.w = w
+        out.h = h
+        out.x = c.x - w / 2
+        out.y = c.y - h / 2
+        if el.type == .text {
+            out.fontSize = (el.fontSize ?? 42) * factor
+            out.letterSpacing = el.letterSpacing.map { $0 * factor }
+        }
+        return out
+    }
+
+    /// A turn of `turnStep` clockwise (or anticlockwise) from `rotation`,
+    /// landing on a multiple of it: 7° goes to 15° clockwise and to 0°
+    /// anticlockwise. In 0..<360.
+    static func turned(_ rotation: Double, clockwise: Bool) -> Double {
+        let steps = rotation / turnStep
+        // Within a billionth of a step of a multiple, it is on it, as on the
+        // Android twin (Geometry.turnStep).
+        let next = clockwise ? (steps + 1e-9).rounded(.down) + 1 : (steps - 1e-9).rounded(.up) - 1
+        let degrees = next * turnStep
+        return (degrees.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
+    }
+}

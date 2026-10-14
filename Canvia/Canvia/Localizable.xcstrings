@@ -21805,6 +21805,59 @@
         }
       }
     },
+    "Add as new page" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إضافة كصفحة جديدة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Als neue Seite hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add as new page"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir como página nueva"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter comme nouvelle page"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi come nuova pagina"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいページとして追加"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicionar como nova página"
+          }
+        }
+      }
+    },
     "Add body text" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -23774,6 +23827,59 @@
         }
       }
     },
+    "Added a page from “%@”" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تمت إضافة صفحة من «%@»"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seite aus „%@“ hinzugefügt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added a page from “%@”"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se añadió una página de “%@”"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page ajoutée à partir de « %@ »"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiunta una pagina da “%@”"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」からページを追加しました"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Página adicionada a partir de “%@”"
+          }
+        }
+      }
+    },
     "Added to the audio." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24793,6 +24899,112 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Todas as faixas"
+          }
+        }
+      }
+    },
+    "Already at the back" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "في الخلف بالفعل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schon ganz hinten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already at the back"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya está al fondo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déjà à l’arrière-plan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Già in fondo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すでに最背面です"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Já está atrás de tudo"
+          }
+        }
+      }
+    },
+    "Already at the front" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "في المقدمة بالفعل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schon ganz vorn"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Already at the front"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya está al frente"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déjà au premier plan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Già in primo piano"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すでに最前面です"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Já está na frente"
           }
         }
       }
@@ -51425,6 +51637,59 @@
         }
       }
     },
+    "Each one goes on a new page after this one. Hold one to use it on this page instead." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يُضاف كل قالب في صفحة جديدة بعد هذه الصفحة. اضغط مطولًا على أحدها لاستخدامه في هذه الصفحة بدلًا من ذلك."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jede kommt auf eine neue Seite nach dieser. Halte eine gedrückt, um sie stattdessen auf dieser Seite zu verwenden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each one goes on a new page after this one. Hold one to use it on this page instead."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada una va en una página nueva después de esta. Mantén pulsada una para usarla en esta página."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chacun s’ajoute sur une nouvelle page après celle-ci. Maintenez-en un pour l’utiliser plutôt sur cette page."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ognuno va su una nuova pagina dopo questa. Tieni premuto su uno per usarlo invece in questa pagina."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "それぞれこのページの後の新しいページに追加されます。このページで使うには長押ししてください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada um vai para uma nova página depois desta. Toque e segure um para usá-lo nesta página."
+          }
+        }
+      }
+    },
     "Each page holds %@s unless it has its own time, and cuts to the next." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -55412,6 +55677,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cada elemento na tela de design tem nome e pode ser movido, duplicado, excluído ou reordenado pelo rotor de ações do VoiceOver. Reduzir Movimento, Aumentar Contraste e Diferenciar Sem Cor são respeitados. Mais ▸ Verificar acessibilidade encontra texto difícil de ler, imagens sem texto alternativo, texto com menos de 12 px e piscadas, cada um com uma forma de corrigir."
+          }
+        }
+      }
+    },
+    "Every element on the canvas is named and can be moved, made larger or smaller, turned, duplicated, deleted or reordered from the VoiceOver actions rotor; a photo can be cropped and words edited there too. Reduce Motion, Increase Contrast and Differentiate Without Colour are honoured. More ▸ Check accessibility finds hard-to-read text, pictures with no alt text, text under 12 px and flashing, each with a way to fix it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "كل عنصر في اللوحة مسمّى ويمكن تحريكه أو تكبيره أو تصغيره أو تدويره أو تكراره أو حذفه أو إعادة ترتيبه من دوّار إجراءات VoiceOver، ويمكن هناك أيضًا قص الصورة وتحرير النص. تُراعى إعدادات تقليل الحركة وزيادة التباين والتمييز دون لون. ويعثر «المزيد ▸ التحقق من إمكانية الوصول» على النصوص صعبة القراءة والصور بلا نص بديل والنصوص الأصغر من 12 بكسل والوميض، مع طريقة لإصلاح كل منها."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jedes Element auf der Arbeitsfläche hat einen Namen und kann über den VoiceOver-Aktionsrotor verschoben, vergrößert oder verkleinert, gedreht, dupliziert, gelöscht oder neu angeordnet werden; dort lassen sich auch Fotos zuschneiden und Texte bearbeiten. „Bewegung reduzieren“, „Kontrast erhöhen“ und „Ohne Farbe unterscheiden“ werden berücksichtigt. Mehr ▸ Barrierefreiheit prüfen findet schwer lesbaren Text, Bilder ohne Alternativtext, Text unter 12 px und Blinken, jeweils mit einer Lösung."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every element on the canvas is named and can be moved, made larger or smaller, turned, duplicated, deleted or reordered from the VoiceOver actions rotor; a photo can be cropped and words edited there too. Reduce Motion, Increase Contrast and Differentiate Without Colour are honoured. More ▸ Check accessibility finds hard-to-read text, pictures with no alt text, text under 12 px and flashing, each with a way to fix it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada elemento del lienzo tiene nombre y se puede mover, agrandar o reducir, girar, duplicar, eliminar o reordenar desde el rotor de acciones de VoiceOver; ahí también se puede recortar una foto y editar el texto. Se respetan Reducir movimiento, Aumentar contraste y Diferenciar sin color. Más ▸ Comprobar accesibilidad encuentra texto difícil de leer, imágenes sin texto alternativo, texto de menos de 12 px y destellos, cada uno con una forma de corregirlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque élément du canevas est nommé et peut être déplacé, agrandi ou réduit, pivoté, dupliqué, supprimé ou réordonné depuis le rotor d’actions de VoiceOver ; on peut aussi y recadrer une photo et modifier du texte. Réduire les animations, Augmenter le contraste et Différencier sans couleur sont respectés. Plus ▸ Vérifier l’accessibilité repère les textes peu lisibles, les images sans texte alternatif, les textes de moins de 12 px et les clignotements, chacun avec un moyen de le corriger."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ogni elemento della tela ha un nome e può essere spostato, ingrandito o rimpicciolito, ruotato, duplicato, eliminato o riordinato dal rotore azioni di VoiceOver; da lì si può anche ritagliare una foto e modificare il testo. Riduci movimento, Aumenta contrasto e Differenzia senza colori sono rispettati. Altro ▸ Verifica accessibilità trova testo difficile da leggere, immagini senza testo alternativo, testo sotto i 12 px e lampeggiamenti, ognuno con un modo per correggerlo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンバス上のすべての素材には名前があり、VoiceOver のアクションローターから移動、拡大・縮小、回転、複製、削除、順序変更ができます。写真の切り抜きやテキストの編集もそこからできます。「視差効果を減らす」「コントラストを上げる」「カラー以外で区別」に対応しています。「その他 ▸ アクセシビリティをチェック」で、読みにくいテキスト、代替テキストのない画像、12 px 未満のテキスト、点滅を見つけ、それぞれ修正方法を示します。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada elemento na tela de design tem nome e pode ser movido, aumentado ou diminuído, girado, duplicado, excluído ou reordenado pelo rotor de ações do VoiceOver; ali também dá para recortar uma foto e editar o texto. Reduzir Movimento, Aumentar Contraste e Diferenciar Sem Cor são respeitados. Mais ▸ Verificar acessibilidade encontra texto difícil de ler, imagens sem texto alternativo, texto com menos de 12 px e piscadas, cada um com uma forma de corrigir."
           }
         }
       }
@@ -65274,6 +65592,112 @@
         }
       }
     },
+    "Hold on the empty page and drag to draw a band: everything it touches is selected, except what is locked. A band can also start on the grey area round the page, or on a locked or full-page background, so a page covered by a photo can still be selected. Hold on an element to add it to the selection or take it out. Group, in More, keeps them together." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اضغط مطولًا على الصفحة الفارغة واسحب لرسم نطاق: يُحدَّد كل ما يلمسه، باستثناء المقفل. ويمكن أن يبدأ النطاق أيضًا من المساحة الرمادية حول الصفحة، أو من خلفية مقفلة أو تغطي الصفحة كلها، فتبقى الصفحة المغطاة بصورة قابلة للتحديد. اضغط مطولًا على عنصر لإضافته إلى التحديد أو إخراجه منه. و«تجميع»، ضمن «المزيد»، يُبقيها معًا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Halte auf der leeren Seite gedrückt und ziehe einen Auswahlrahmen: Alles, was er berührt, wird ausgewählt, außer Gesperrtem. Ein Rahmen kann auch auf der grauen Fläche um die Seite beginnen oder auf einem gesperrten oder seitenfüllenden Hintergrund, sodass sich auch eine von einem Foto bedeckte Seite auswählen lässt. Halte ein Element gedrückt, um es zur Auswahl hinzuzufügen oder daraus zu entfernen. „Gruppieren“ unter „Mehr“ hält sie zusammen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold on the empty page and drag to draw a band: everything it touches is selected, except what is locked. A band can also start on the grey area round the page, or on a locked or full-page background, so a page covered by a photo can still be selected. Hold on an element to add it to the selection or take it out. Group, in More, keeps them together."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén pulsada la página vacía y arrastra para dibujar un área: se selecciona todo lo que toque, salvo lo bloqueado. Un área también puede empezar en la zona gris alrededor de la página o sobre un fondo bloqueado o que ocupa toda la página, así que una página cubierta por una foto se puede seleccionar igualmente. Mantén pulsado un elemento para añadirlo a la selección o quitarlo. Agrupar, en Más, los mantiene juntos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintenez le doigt sur la page vide et faites glisser pour tracer une zone : tout ce qu’elle touche est sélectionné, sauf ce qui est verrouillé. Une zone peut aussi partir de l’espace gris autour de la page, ou d’un fond verrouillé ou pleine page, si bien qu’une page couverte par une photo reste sélectionnable. Maintenez un élément pour l’ajouter à la sélection ou l’en retirer. Grouper, dans Plus, les garde ensemble."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tieni premuto sulla pagina vuota e trascina per disegnare un riquadro: tutto ciò che tocca viene selezionato, tranne ciò che è bloccato. Un riquadro può anche partire dall’area grigia intorno alla pagina, o da uno sfondo bloccato o a pagina intera, così anche una pagina coperta da una foto si può selezionare. Tieni premuto su un elemento per aggiungerlo alla selezione o toglierlo. Raggruppa, in Altro, li tiene insieme."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページの空いている所を長押ししてドラッグすると範囲を描けます。触れたものはロックされたものを除いてすべて選択されます。範囲はページのまわりのグレーの部分や、ロックされた背景・ページ全体を覆う背景からも始められるので、写真で覆われたページでも選択できます。素材を長押しすると、選択に追加したり選択から外したりできます。「その他」の「グループ化」でまとめられます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toque e segure na página vazia e arraste para desenhar uma área: tudo o que ela tocar é selecionado, exceto o que estiver bloqueado. A área também pode começar na parte cinza em volta da página, ou num fundo bloqueado ou que ocupa a página inteira, então uma página coberta por uma foto ainda pode ser selecionada. Toque e segure um elemento para adicioná-lo à seleção ou removê-lo dela. Agrupar, em Mais, mantém os itens juntos."
+          }
+        }
+      }
+    },
+    "Hold on the empty page and drag to draw a band: everything it touches is selected, except what is locked. A band can also start on the grey area round the page, or on a locked or full-page background, so a page covered by a photo can still be selected. Hold on an element to add it to the selection or take it out. Select multiple, in the toolbar or the menu, makes each tap add or remove an element until Done. A multi-selection moves, resizes and rotates as one." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اضغط مطولًا على الصفحة الفارغة واسحب لرسم نطاق: يُحدَّد كل ما يلمسه، باستثناء المقفل. ويمكن أن يبدأ النطاق أيضًا من المساحة الرمادية حول الصفحة، أو من خلفية مقفلة أو تغطي الصفحة كلها، فتبقى الصفحة المغطاة بصورة قابلة للتحديد. اضغط مطولًا على عنصر لإضافته إلى التحديد أو إخراجه منه. ويجعل «تحديد متعدد»، في شريط الأدوات أو القائمة، كل نقرة تضيف عنصرًا أو تزيله حتى «تم». ويتحرك التحديد المتعدد ويتغيّر حجمه ويدور ككتلة واحدة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Halte auf der leeren Seite gedrückt und ziehe einen Auswahlrahmen: Alles, was er berührt, wird ausgewählt, außer Gesperrtem. Ein Rahmen kann auch auf der grauen Fläche um die Seite beginnen oder auf einem gesperrten oder seitenfüllenden Hintergrund, sodass sich auch eine von einem Foto bedeckte Seite auswählen lässt. Halte ein Element gedrückt, um es zur Auswahl hinzuzufügen oder daraus zu entfernen. Mit „Mehrere auswählen“ in der Symbolleiste oder im Menü fügt jedes Tippen ein Element hinzu oder entfernt es, bis du auf „Fertig“ tippst. Eine Mehrfachauswahl wird gemeinsam verschoben, skaliert und gedreht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hold on the empty page and drag to draw a band: everything it touches is selected, except what is locked. A band can also start on the grey area round the page, or on a locked or full-page background, so a page covered by a photo can still be selected. Hold on an element to add it to the selection or take it out. Select multiple, in the toolbar or the menu, makes each tap add or remove an element until Done. A multi-selection moves, resizes and rotates as one."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén pulsada la página vacía y arrastra para dibujar un área: se selecciona todo lo que toque, salvo lo bloqueado. Un área también puede empezar en la zona gris alrededor de la página o sobre un fondo bloqueado o que ocupa toda la página, así que una página cubierta por una foto se puede seleccionar igualmente. Mantén pulsado un elemento para añadirlo a la selección o quitarlo. Seleccionar varios, en la barra de herramientas o en el menú, hace que cada toque añada o quite un elemento hasta tocar Listo. Una selección múltiple se mueve, cambia de tamaño y gira como una sola."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintenez le doigt sur la page vide et faites glisser pour tracer une zone : tout ce qu’elle touche est sélectionné, sauf ce qui est verrouillé. Une zone peut aussi partir de l’espace gris autour de la page, ou d’un fond verrouillé ou pleine page, si bien qu’une page couverte par une photo reste sélectionnable. Maintenez un élément pour l’ajouter à la sélection ou l’en retirer. Sélection multiple, dans la barre d’outils ou le menu, fait que chaque toucher ajoute ou retire un élément jusqu’à OK. Une sélection multiple se déplace, se redimensionne et pivote d’un bloc."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tieni premuto sulla pagina vuota e trascina per disegnare un riquadro: tutto ciò che tocca viene selezionato, tranne ciò che è bloccato. Un riquadro può anche partire dall’area grigia intorno alla pagina, o da uno sfondo bloccato o a pagina intera, così anche una pagina coperta da una foto si può selezionare. Tieni premuto su un elemento per aggiungerlo alla selezione o toglierlo. Selezione multipla, nella barra degli strumenti o nel menu, fa sì che ogni tocco aggiunga o rimuova un elemento fino a Fine. Una selezione multipla si sposta, si ridimensiona e ruota come un tutt’uno."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページの空いている所を長押ししてドラッグすると範囲を描けます。触れたものはロックされたものを除いてすべて選択されます。範囲はページのまわりのグレーの部分や、ロックされた背景・ページ全体を覆う背景からも始められるので、写真で覆われたページでも選択できます。素材を長押しすると、選択に追加したり選択から外したりできます。ツールバーやメニューの「複数選択」を使うと、「完了」までタップするたびに素材を追加・削除できます。複数選択したものは 1 つとして移動、サイズ変更、回転します。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toque e segure na página vazia e arraste para desenhar uma área: tudo o que ela tocar é selecionado, exceto o que estiver bloqueado. A área também pode começar na parte cinza em volta da página, ou num fundo bloqueado ou que ocupa a página inteira, então uma página coberta por uma foto ainda pode ser selecionada. Toque e segure um elemento para adicioná-lo à seleção ou removê-lo dela. Selecionar vários, na barra de ferramentas ou no menu, faz cada toque adicionar ou remover um elemento até Concluído. Uma seleção múltipla se move, redimensiona e gira como um só item."
+          }
+        }
+      }
+    },
     "Hold on the empty page and drag to draw a band: everything it touches is selected. Hold on an element to add it to the selection or take it out. Group, in More, keeps them together." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -74124,6 +74548,112 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mudar para 12"
+          }
+        }
+      }
+    },
+    "Make larger" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تكبير"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergrößern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make larger"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrandar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrandir"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingrandisci"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大きくする"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aumentar"
+          }
+        }
+      }
+    },
+    "Make smaller" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تصغير"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verkleinern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make smaller"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reducir"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réduire"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimpicciolisci"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小さくする"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diminuir"
           }
         }
       }
@@ -129535,6 +130065,59 @@
         }
       }
     },
+    "Turn anticlockwise" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تدوير عكس اتجاه عقارب الساعة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gegen den Uhrzeigersinn drehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn anticlockwise"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Girar en sentido contrario a las agujas del reloj"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faire pivoter dans le sens antihoraire"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ruota in senso antiorario"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "反時計回りに回転"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Girar no sentido anti-horário"
+          }
+        }
+      }
+    },
     "Turn by" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -129584,6 +130167,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Girar em"
+          }
+        }
+      }
+    },
+    "Turn clockwise" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تدوير باتجاه عقارب الساعة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Uhrzeigersinn drehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn clockwise"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Girar en el sentido de las agujas del reloj"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faire pivoter dans le sens horaire"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ruota in senso orario"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時計回りに回転"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Girar no sentido horário"
           }
         }
       }
@@ -132499,6 +133135,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Usar como fundo"
+          }
+        }
+      }
+    },
+    "Use on this page" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استخدام في هذه الصفحة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf dieser Seite verwenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use on this page"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar en esta página"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser sur cette page"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa in questa pagina"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このページで使用"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar nesta página"
           }
         }
       }
@@ -135903,6 +136592,59 @@
         }
       }
     },
+    "With TalkBack every element is read in reading order, with where it sits and its size, and has actions to select, move, make larger or smaller, turn, crop, duplicate, delete, reorder and edit. Selection outlines grow heavier when the phone asks for more contrast, and animations follow its setting." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مع TalkBack يُقرأ كل عنصر بترتيب القراءة، مع موضعه وحجمه، ولديه إجراءات للتحديد والتحريك والتكبير أو التصغير والتدوير والاقتصاص والتكرار والحذف وإعادة الترتيب والتعديل. تزداد حدود التحديد سُمكًا عندما يطلب الهاتف تباينًا أكبر، وتتبع الحركات إعداده."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit TalkBack wird jedes Element in Lesereihenfolge vorgelesen, mit Position und Größe, und hat Aktionen zum Auswählen, Verschieben, Vergrößern oder Verkleinern, Drehen, Zuschneiden, Duplizieren, Löschen, Neuanordnen und Bearbeiten. Auswahlrahmen werden kräftiger, wenn das Telefon mehr Kontrast verlangt, und Animationen folgen seiner Einstellung."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With TalkBack every element is read in reading order, with where it sits and its size, and has actions to select, move, make larger or smaller, turn, crop, duplicate, delete, reorder and edit. Selection outlines grow heavier when the phone asks for more contrast, and animations follow its setting."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con TalkBack, cada elemento se lee en orden de lectura, con su ubicación y su tamaño, y tiene acciones para seleccionar, mover, agrandar o reducir, girar, recortar, duplicar, eliminar, reordenar y editar. Los contornos de selección se vuelven más gruesos cuando el teléfono pide más contraste, y las animaciones siguen su ajuste."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec TalkBack, chaque élément est lu dans l’ordre de lecture, avec sa position et sa taille, et propose des actions pour sélectionner, déplacer, agrandir ou réduire, faire pivoter, recadrer, dupliquer, supprimer, réordonner et modifier. Les contours de sélection s’épaississent quand le téléphone demande plus de contraste, et les animations suivent son réglage."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con TalkBack ogni elemento viene letto in ordine di lettura, con posizione e dimensioni, e ha azioni per selezionare, spostare, ingrandire o rimpicciolire, ruotare, ritagliare, duplicare, eliminare, riordinare e modificare. I contorni della selezione diventano più marcati quando il telefono richiede più contrasto, e le animazioni seguono la sua impostazione."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TalkBack では、すべての素材が読み順に、位置とサイズとともに読み上げられ、選択、移動、拡大・縮小、回転、切り抜き、複製、削除、並べ替え、編集のアクションがあります。スマートフォンでコントラストを上げる設定にすると選択枠が太くなり、アニメーションも端末の設定に従います。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Com o TalkBack, cada elemento é lido na ordem de leitura, com a posição e o tamanho, e tem ações para selecionar, mover, aumentar ou diminuir, girar, recortar, duplicar, excluir, reordenar e editar. Os contornos de seleção ficam mais grossos quando o celular pede mais contraste, e as animações seguem a configuração dele."
+          }
+        }
+      }
+    },
     "With a hardware keyboard: ⌘Z undo, ⇧⌘Z or ⌘Y redo, ⌘C/⌘X/⌘V copy, cut, paste, ⌘D duplicate, ⌘A select all, ⌘G group, ⌘F find, ⌘E export." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -137330,6 +138072,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zoom %@"
+          }
+        }
+      }
+    },
+    "Zoom in to type small text" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "التكبير لكتابة النص الصغير"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Tippen kleiner Texte heranzoomen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom in to type small text"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ampliar para escribir texto pequeño"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoomer pour écrire un petit texte"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingrandisci per scrivere testo piccolo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小さな文字の入力時に拡大"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ampliar para digitar texto pequeno"
           }
         }
       }

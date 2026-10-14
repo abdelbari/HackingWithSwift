@@ -69,6 +69,13 @@ struct CanvasView: View {
     @State private var bleedLabel = false
     /// Rulers, from the More menu: off unless turned on (RulersView).
     @AppStorage(Guides.rulersKey) private var rulers = false
+    /// Settings ▸ Editing's "Zoom in to type small text": on unless turned
+    /// off (Viewport.typingZoom).
+    @AppStorage(Viewport.typingZoomKey) private var typingZoomOn = true
+    /// The view zoomed in on the words being typed, in page units, while it
+    /// is; and the box last weighed for it, so it is weighed once a box.
+    @State private var typingFocus: TypingFocus?
+    @State private var typingWeighed: String?
 
     /// Where the view is in the column, written as it scrolls, the zoom
     /// that fits it, and whether a finger set it moving; read when it comes
@@ -125,6 +132,10 @@ struct CanvasView: View {
         var dragUnion: CGRect = .zero
         /// Sibling boxes at grab time, for equal-spacing hints.
         var siblingBoxes: [CGRect] = []
+        /// What a resize may match the size of, taken as the handle is
+        /// grabbed: the other shown elements, while snapping to elements is
+        /// on (Geometry.matchingSize).
+        var sizeSiblings: [Element] = []
         /// The photo being moved, when it is one photo or clip that can go
         /// into a frame (PhotoFrames.canDrop).
         var framePhoto: String?
@@ -151,6 +162,14 @@ struct CanvasView: View {
         /// Whether a hold on a locked page has been refused, for the rest
         /// of its drag.
         var lockedHold = false
+        /// The backdrop a hold has taken (CanvasGestures.isBackdrop): a drag
+        /// from it draws the band rather than moving it.
+        var backdropHold: String?
+        /// Where a band held out from another page or the workspace began,
+        /// in the page's units, and whether it is held to the page — one
+        /// from the workspace (CanvasGestures.clampedBand).
+        var bandStart: CGPoint?
+        var bandClamped = false
         /// What a finger in crop mode is working, from when it lands.
         var crop: CropTouch?
         /// A crop-mode pinch's magnification when last applied.
@@ -216,6 +235,7 @@ struct CanvasView: View {
         // Typing in place stays above the keyboard: when it starts, when the
         // keyboard arrives or changes, and as the box grows line by line.
         .onChange(of: typingBox) { _, _ in revealTyping() }
+        .onChange(of: store.editingTextId) { _, id in typingChanged(id) }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { _ in
             revealTyping()
         }
@@ -245,6 +265,8 @@ struct CanvasView: View {
             onOtherPageDoubleTap: { point in otherPageDoubleTap(at: point) },
             holdsOtherPage: { point in otherPageEmpty(at: point) },
             onOtherPageHold: { phase, start, now in otherPageHold(phase, from: start, to: now) },
+            holdsWorkspace: { point in onWorkspace(point) },
+            typingFocus: typingFocus.map { canvasTypingFocus($0, in: slot) },
             onViewport: { visible, fit in viewportChanged(visible, fit: fit) },
             onMotion: { moving in motionChanged(moving) },
             edgeScroller: edges,
@@ -304,7 +326,51 @@ struct CanvasView: View {
 
     private func revealTyping() {
         guard let box = typingBox else { return }
+        // Small words zoom up to be read as typing opens in them; the
+        // keyboard's reveal keeps them above it once it comes.
+        if let focus = typingZoom(box) {
+            typingFocus = focus
+            return
+        }
         store.requestCanvas(.reveal(box, typing: true))
+    }
+
+    /// The zoom typing in the box `box` asks for, weighed once as typing
+    /// opens in it (Viewport.typingZoom): its words brought up to a size
+    /// that reads, centred on the line the typing opened on — or none, when
+    /// they read as they are, the setting is off, or crop, the pen or a
+    /// preview has the page; typing never zooms out.
+    private func typingZoom(_ box: CGRect) -> TypingFocus? {
+        guard let id = store.editingTextId, typingWeighed != id else { return nil }
+        typingWeighed = id
+        guard typingZoomOn, store.cropping == nil, store.drawing == nil, store.erasing == nil,
+              store.previewTime == nil, let el = store.element(id) else { return nil }
+        let words = el.type == .shape ? ShapeText.textElement(for: el) : el
+        let size = FontLibrary.effectiveFontSize(for: words)
+        let screen = CGRect(x: 0, y: 0, width: store.viewport.width * store.zoom, height: store.viewport.height * store.zoom)
+        let most = Geometry.zoomRange(fit: store.fitZoom).upperBound
+        guard let zoom = Viewport.typingZoom(fontSize: size, box: box, viewport: screen, zoom: store.zoom,
+                                             maxZoom: most) else { return nil }
+        // The line the tap landed on, else the last line, where the caret
+        // opens.
+        let lineY = store.typingPoint.map { Double($0.y) } ?? Double(box.maxY) - size
+        let y = min(max(lineY, Double(box.minY)), Double(box.maxY))
+        return TypingFocus(id: id, zoom: zoom, around: CGPoint(x: box.midX, y: y))
+    }
+
+    /// Typing opened in another box, or ended: ended, the view goes back
+    /// to where it was before it zoomed in (ZoomableCanvas.returnFromTyping).
+    private func typingChanged(_ id: String?) {
+        guard id == nil else { return }
+        typingWeighed = nil
+        if typingFocus != nil { typingFocus = nil }
+    }
+
+    /// The typing zoom asked of the page, asked of the column: the column's
+    /// zoom at the page's scale, its point where it lies in the column.
+    private func canvasTypingFocus(_ focus: TypingFocus, in slot: PageColumn.Slot?) -> TypingFocus {
+        guard let slot else { return focus }
+        return TypingFocus(id: focus.id, zoom: focus.zoom / slot.scale, around: slot.toColumn(focus.around))
     }
 
     // MARK: page + overlay
@@ -883,8 +949,8 @@ struct CanvasView: View {
                 }
                 guard let drag else { return }
                 let start = drag.startLocation
-                drawBand(from: start, to: drag.location)
-                edgeTrack(drag.location) { drawBand(from: start, to: $0) }
+                drawBand(from: start, to: drag.location, startedOn: nil)
+                edgeTrack(drag.location) { drawBand(from: start, to: $0, startedOn: nil) }
             }
             .onEnded { _ in
                 edges.stop()
@@ -908,11 +974,44 @@ struct CanvasView: View {
     /// selection follows the band as it grows, so you see what you are
     /// about to get before you let go. A band smaller than a drag on screen
     /// leaves the selection be — it may yet be a still hold.
-    private func drawBand(from start: CGPoint, to location: CGPoint) {
-        let band = CGRect(x: min(start.x, location.x), y: min(start.y, location.y),
-                          width: abs(location.x - start.x), height: abs(location.y - start.y))
+    /// One drawn from a backdrop leaves it out unless it catches nothing
+    /// else (`startedOn`); one from the workspace is held to the page
+    /// (`clamped`).
+    private func drawBand(from start: CGPoint, to location: CGPoint, startedOn: String?, clamped: Bool = false) {
+        let band = clamped ? CanvasGestures.clampedBand(from: start, to: location, page: store.pageSize)
+            : CGRect(x: min(start.x, location.x), y: min(start.y, location.y),
+                     width: abs(location.x - start.x), height: abs(location.y - start.y))
         gesture.marquee = band
-        if max(band.width, band.height) * store.zoom >= Touch.dragSlop { store.select(within: band) }
+        if max(band.width, band.height) * store.zoom >= Touch.dragSlop { store.select(within: band, startedOn: startedOn) }
+    }
+
+    /// A drag from the backdrop `id` a hold has taken: the band, from
+    /// where the finger landed (CanvasGestures: a backdrop).
+    private func backdropBand(_ id: String, from start: CGPoint, to location: CGPoint) {
+        if !gesture.banding {
+            gesture.banding = true
+            dismissHoldMenu()
+            store.canvasTouchActive = true
+        }
+        drawBand(from: start, to: location, startedOn: id)
+        edgeTrack(location) { drawBand(from: start, to: $0, startedOn: id) }
+    }
+
+    /// The band from a backdrop let go.
+    private func backdropBandEnded() {
+        edges.stop()
+        gesture.marquee = nil
+        gesture.banding = false
+        gesture.backdropHold = nil
+        store.canvasTouchActive = false
+    }
+
+    /// Whether a hold at `point` in the content, off every page, may draw
+    /// a band from the workspace: while nothing holds the view to its page.
+    private func onWorkspace(_ point: CGPoint) -> Bool {
+        guard !pagePinned else { return false }
+        let slots = columnSlots
+        return slots.isEmpty || PageColumn.pageAt(point, in: slots) == nil
     }
 
     /// While a finger drags something at `location` on the page, the view
@@ -1244,6 +1343,17 @@ struct CanvasView: View {
 
     private func elementHold(_ el: Element) {
         dismissHoldMenu()
+        // A backdrop — locked, or covering the page — held is the empty
+        // page's: the menu at the finger, and a drag on from there draws the
+        // band (CanvasGestures). A locked page says so instead.
+        if CanvasGestures.isBackdrop(el, page: store.pageSize, selection: store.selection) {
+            guard !store.refusesLockedPage() else { return }
+            commitTextEditIfAny()
+            gesture.backdropHold = el.id
+            store.buzz(.tick)
+            if let at = pagePress, CanvasGestures.action(.hold, on: .backdrop) == .menu { store.holdMenuAt = at }
+            return
+        }
         store.select(el.id, additive: true)
         store.buzz(.tick)
     }
@@ -1295,6 +1405,7 @@ struct CanvasView: View {
         if pressing {
             press.began = Date()
             press.held = nil
+            if gesture.backdropHold != nil { gesture.backdropHold = nil }
         } else {
             press.held = press.began.map { Date().timeIntervalSince($0) }
         }
@@ -1310,8 +1421,9 @@ struct CanvasView: View {
                                        selectingMultiple: store.selectingMultiple, held: held)
     }
 
-    /// The edits that otherwise need a drag, as VoiceOver actions. Each acts
-    /// on this element alone, selecting it first, and is one undo step.
+    /// The edits that otherwise need a drag, as VoiceOver actions — moving,
+    /// resizing and turning among them. Each acts on this element alone,
+    /// selecting it first, and is one undo step.
     @ViewBuilder
     private func accessibilityActions(for el: Element) -> some View {
         let step = CanvasAccessibility.nudge(for: store.design)
@@ -1327,6 +1439,14 @@ struct CanvasView: View {
             Button("Move right") { nudge(el, dx: step, dy: 0) }
             Button("Move up") { nudge(el, dx: 0, dy: -step) }
             Button("Move down") { nudge(el, dx: 0, dy: step) }
+            // Each said after, where it is and how big, as its value is.
+            Button("Make larger") { if store.resizeForScreenReader(el.id, larger: true) { sayPlacement(el.id) } }
+            Button("Make smaller") { if store.resizeForScreenReader(el.id, larger: false) { sayPlacement(el.id) } }
+            // An elbowed or curved line stays level.
+            if !LineRoutes.keepsLevel(el) {
+                Button("Turn clockwise") { if store.turnForScreenReader(el.id, clockwise: true) { sayPlacement(el.id) } }
+                Button("Turn anticlockwise") { if store.turnForScreenReader(el.id, clockwise: false) { sayPlacement(el.id) } }
+            }
         }
         if !el.locked {
             Button("Duplicate") { store.select(el.id); store.duplicateSelected() }
@@ -1343,6 +1463,13 @@ struct CanvasView: View {
         if el.type == .image && !el.locked {
             Button("Crop") { store.startCrop(el.id) }
         }
+    }
+
+    /// Where `id` is and how big, said: its VoiceOver value, as a resize or
+    /// a turn from the actions leaves it.
+    private func sayPlacement(_ id: String) {
+        guard let now = store.element(id) else { return }
+        AccessibilityNotification.Announcement(CanvasAccessibility.value(for: now, design: store.design)).post()
     }
 
     private func nudge(_ el: Element, dx: Double, dy: Double) {
@@ -1364,11 +1491,20 @@ struct CanvasView: View {
                     coordinateSpace: .named("page"))
             .onChanged { value in
                 let start = value.startLocation
+                // Held first on a backdrop, the drag draws the band.
+                if gesture.backdropHold == el.id {
+                    backdropBand(el.id, from: start, to: value.location)
+                    return
+                }
                 moveChanged(el, from: start, to: value.location)
                 edgeTrack(value.location) { moveChanged(el, from: start, to: $0) }
             }
             .onEnded { value in
                 edges.stop()
+                if gesture.backdropHold == el.id {
+                    backdropBandEnded()
+                    return
+                }
                 moveEnded(from: value.startLocation, to: value.location)
             }
     }
@@ -1452,15 +1588,24 @@ struct CanvasView: View {
             // on an axis no line is holding (a grid line gives way),
             // so the two never pull the box between them.
             if store.snapping.toElements {
-                let even = Geometry.equalGap(moving: gesture.dragUnion.offsetBy(dx: dx, dy: dy),
-                                             siblings: gesture.siblingBoxes, threshold: 6 / store.zoom)
-                gapX = (snap.guideX == nil || sourceX == .grid) ? even.gapX : nil
-                gapY = (snap.guideY == nil || sourceY == .grid) ? even.gapY : nil
-                if gapX != nil { dx += even.dx }
-                if gapY != nil { dy += even.dy }
+                let spacing = evenSpacing(gesture.dragUnion.offsetBy(dx: dx, dy: dy),
+                                          freeX: snap.guideX == nil || sourceX == .grid,
+                                          freeY: snap.guideY == nil || sourceY == .grid)
+                gapX = spacing.gapX
+                gapY = spacing.gapY
+                dx += spacing.dx
+                dy += spacing.dy
             }
             let spaced = gapX != nil || gapY != nil
             if store.spacingSnapped != spaced { store.spacingSnapped = spaced }
+            // Every gap now equal, bracketed with its width.
+            var marks: [Geometry.GapPair] = []
+            if gapX != nil || gapY != nil {
+                let landed = gesture.dragUnion.offsetBy(dx: dx, dy: dy)
+                if gapX != nil { marks += Geometry.equalGapPairs(landed, siblings: gesture.siblingBoxes, alongX: true) }
+                if gapY != nil { marks += Geometry.equalGapPairs(landed, siblings: gesture.siblingBoxes, alongX: false) }
+            }
+            if store.gapMarks != marks { store.gapMarks = marks }
         }
 
         // Where it is going, for the page edges it crosses, and — once
@@ -1496,6 +1641,34 @@ struct CanvasView: View {
                                          heldX: store.guideX != nil, heldY: store.guideY != nil,
                                          gapX: gapX, gapY: gapY, in: store.design))
         }
+    }
+
+    /// Equal spacing for the moving box `moved`, on an axis no line is
+    /// holding (`freeX`, `freeY`; a grid line gives way): between two
+    /// neighbours, the same distance from each (Geometry.equalGap) — else a
+    /// gap to a neighbour matching one already there, a third card added to
+    /// a row at the gap the first two have (Geometry.matchingGap). The shift
+    /// and the gap made equal on each axis.
+    private func evenSpacing(_ moved: CGRect, freeX: Bool, freeY: Bool) -> Geometry.EqualGap {
+        let reach = 6 / store.zoom
+        let even = Geometry.equalGap(moving: moved, siblings: gesture.siblingBoxes, threshold: reach)
+        let match = Geometry.matchingGap(moving: moved, siblings: gesture.siblingBoxes, threshold: reach)
+        var out = Geometry.EqualGap()
+        if freeX, let gap = even.gapX {
+            out.gapX = gap
+            out.dx = even.dx
+        } else if freeX, let gap = match.gapX {
+            out.gapX = gap
+            out.dx = match.dx
+        }
+        if freeY, let gap = even.gapY {
+            out.gapY = gap
+            out.dy = even.dy
+        } else if freeY, let gap = match.gapY {
+            out.gapY = gap
+            out.dy = match.dy
+        }
+        return out
     }
 
     /// The move let go with the finger at `location`, having started at
@@ -1633,14 +1806,17 @@ struct CanvasView: View {
             gesture.snapTagsY = lines.y
             gesture.snapX = lines.x.map(\.position)
             gesture.snapY = lines.y.map(\.position)
+            gesture.sizeSiblings = store.snapping.toElements
+                ? store.page.elements.filter { $0.id != selected.id && !$0.isHidden } : []
         }
         guard let original = gesture.resizeOriginal else { return }
         if trimPhoto(original, handle: handle, to: location) { return }
         let proportional = original.type != .line && handle.isCorner
         let minSize = original.type == .text ? 12.0 : 8.0
-        let next = snapped(Geometry.resize(original, handle: handle, to: location,
-                                           proportional: proportional, minSize: minSize),
-                           original: original, handle: handle, proportional: proportional, minSize: minSize)
+        let lined = snapped(Geometry.resize(original, handle: handle, to: location,
+                                            proportional: proportional, minSize: minSize),
+                            original: original, handle: handle, proportional: proportional, minSize: minSize)
+        let next = matchedSize(lined, original: original, handle: handle, proportional: proportional, minSize: minSize)
         store.updateSelectedTransient { el in
             el.x = next.minX
             el.w = next.width
@@ -1686,24 +1862,32 @@ struct CanvasView: View {
         guard original.type == .image, !handle.isCorner, original.cropFit != true,
               (original.straighten ?? 0) == 0, let image = gesture.resizeImage,
               image.width > 0, image.height > 0 else { return false }
-        var trimmed = Crop.trimmed(original, image: image, handle: handle, to: location, minSize: 8)
+        var at = location
+        var trimmed = Crop.trimmed(original, image: image, handle: handle, to: at, minSize: 8)
         // The side snaps as any side does: the finger is taken on by the
         // snap's correction and the frame trimmed again, so the picture still
         // stays put. Held short of the line by the picture's own edge, it is
         // not on the line, and no guide says it is.
         let target = snapped(trimmed.frame, original: original, handle: handle, proportional: false, minSize: 8)
         if target != trimmed.frame {
-            // How far the snap moves the handle, on the page, so a photo
-            // turned a quarter is taken on along the way it now faces.
-            var aimed = trimmed
-            aimed.x = target.minX
-            aimed.y = target.minY
-            aimed.w = target.width
-            aimed.h = target.height
-            let to = Geometry.handlePoint(aimed, handle), from = Geometry.handlePoint(trimmed, handle)
-            trimmed = Crop.trimmed(original, image: image, handle: handle,
-                                   to: CGPoint(x: location.x + to.x - from.x, y: location.y + to.y - from.y), minSize: 8)
+            at = aimed(at, from: trimmed, to: target, handle: handle)
+            trimmed = Crop.trimmed(original, image: image, handle: handle, to: at, minSize: 8)
             if !Self.same(trimmed.frame, target) { showGuides(Geometry.ResizeSnap(box: target)) }
+        }
+        // Then a side no line holds matched to another element's size, as
+        // any side is (matchedSize), and trimmed to it the same way. Held
+        // short of it by the picture's own edge, it is not matched, and no
+        // "=" says it is.
+        let sized = matchedSize(trimmed.frame, original: original, handle: handle, proportional: false, minSize: 8)
+        if sized != trimmed.frame {
+            let retrimmed = Crop.trimmed(original, image: image, handle: handle,
+                                         to: aimed(at, from: trimmed, to: sized, handle: handle), minSize: 8)
+            if Self.same(retrimmed.frame, sized) {
+                trimmed = retrimmed
+            } else {
+                if !store.sizeMarks.isEmpty { store.sizeMarks = [] }
+                if store.spacingSnapped { store.spacingSnapped = false }
+            }
         }
         store.updateSelectedTransient { el in
             if el.id == trimmed.id { el = trimmed }
@@ -1726,6 +1910,57 @@ struct CanvasView: View {
                                              minSize: minSize) ?? Geometry.ResizeSnap(box: box)
         showGuides(snap)
         return snap.box
+    }
+
+    /// A resized box `box` with the sides `handle` moves that no snap line
+    /// holds matched to another element's width or height within a move's
+    /// reach (Geometry.matchingSize) — the edges across from them staying
+    /// put, a corner keeping its proportions matching one side — and every
+    /// box of that size marked "=" (store.sizeMarks), felt as a snap is.
+    /// Only on an element square to the page, as the snap lines are, and
+    /// not a line; the box as it was when nothing came within reach.
+    private func matchedSize(_ box: CGRect, original: Element, handle: Handle,
+                             proportional: Bool, minSize: Double) -> CGRect {
+        var marks: [Geometry.SizeMark] = []
+        defer {
+            if store.sizeMarks != marks { store.sizeMarks = marks }
+            let spaced = !marks.isEmpty
+            if store.spacingSnapped != spaced { store.spacingSnapped = spaced }
+        }
+        let turn = (original.rotation.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
+        guard !gesture.sizeSiblings.isEmpty, original.type != .line, turn == 0,
+              !(proportional && (store.guideX != nil || store.guideY != nil)) else { return box }
+        // A side a line holds stays on it.
+        let sideX = store.guideX == nil ? handle.unit.x : 0.5
+        let sideY = store.guideY == nil ? handle.unit.y : 0.5
+        guard let side = Handle.allCases.first(where: { $0.unit == CGPoint(x: sideX, y: sideY) }) else { return box }
+        let m = Geometry.matchingSize(box, handle: side, siblings: gesture.sizeSiblings,
+                                      threshold: 6 / store.zoom, proportional: proportional)
+        guard !m.widthOf.isEmpty || !m.heightOf.isEmpty, m.w >= minSize, m.h >= minSize else { return box }
+        // The edges across from the handle stay put.
+        let u = handle.unit, w = CGFloat(m.w), h = CGFloat(m.h)
+        let x: CGFloat = u.x == 0 ? box.maxX - w : (u.x == 1 ? box.minX : box.midX - w / 2)
+        let y: CGFloat = u.y == 0 ? box.maxY - h : (u.y == 1 ? box.minY : box.midY - h / 2)
+        let out = CGRect(x: x, y: y, width: w, height: h)
+        let boxes = Dictionary(gesture.sizeSiblings.map { ($0.id, Geometry.aabb($0)) }, uniquingKeysWith: { first, _ in first })
+        if !m.widthOf.isEmpty { marks.append(Geometry.SizeMark(box: out, width: true)) }
+        if !m.heightOf.isEmpty { marks.append(Geometry.SizeMark(box: out, width: false)) }
+        marks += m.widthOf.compactMap { boxes[$0].map { Geometry.SizeMark(box: $0, width: true) } }
+        marks += m.heightOf.compactMap { boxes[$0].map { Geometry.SizeMark(box: $0, width: false) } }
+        return out
+    }
+
+    /// The finger's point `location` taken on as far as `el`'s `handle` must
+    /// move for its box to be `target`, on the page, so a photo turned a
+    /// quarter is taken on along the way it now faces.
+    private func aimed(_ location: CGPoint, from el: Element, to target: CGRect, handle: Handle) -> CGPoint {
+        var moved = el
+        moved.x = target.minX
+        moved.y = target.minY
+        moved.w = target.width
+        moved.h = target.height
+        let to = Geometry.handlePoint(moved, handle), from = Geometry.handlePoint(el, handle)
+        return CGPoint(x: location.x + to.x - from.x, y: location.y + to.y - from.y)
     }
 
     /// The snap guides a resize is holding, each named for what it lines up
@@ -1829,6 +2064,8 @@ struct CanvasView: View {
         store.badgeRuns = nil
         store.rotationSnapped = false
         store.spacingSnapped = false
+        if !store.gapMarks.isEmpty { store.gapMarks = [] }
+        if !store.sizeMarks.isEmpty { store.sizeMarks = [] }
         store.canvasTouchActive = false
     }
 
@@ -2184,40 +2421,79 @@ struct CanvasView: View {
     /// Android twin's page under the finger is; dragged on, it draws the
     /// band there, and let go without one, the menu at the finger comes up,
     /// as a hold on the page worked does (marqueeGesture). `now` is nil when
-    /// the hold was taken away — a second finger — which opens no menu.
+    /// the hold was taken away — a second finger — which opens no menu. A
+    /// hold on the workspace comes here too, on a page alone as in the
+    /// column: its band is held to the page nearest (workspaceHoldBegan).
     private func otherPageHold(_ phase: CanvasDrag, from start: CGPoint, to now: CGPoint?) {
         switch phase {
         case .began:
             otherPageHoldBegan(at: start)
         case .moved:
-            guard gesture.banding, let slot = columnSlot, let now else { return }
-            let from = slot.toPage(start)
-            drawBand(from: from, to: slot.toPage(now))
-            edgeTrack(slot.toPage(now)) { drawBand(from: from, to: $0) }
+            guard gesture.banding, let from = gesture.bandStart, let now else { return }
+            let clamped = gesture.bandClamped
+            let to = columnSlot?.toPage(now) ?? now
+            drawBand(from: from, to: to, startedOn: nil, clamped: clamped)
+            edgeTrack(to) { drawBand(from: from, to: $0, startedOn: nil, clamped: clamped) }
         case .ended:
-            guard gesture.banding else { return }
+            guard gesture.banding, let at = gesture.bandStart else { return }
             edges.stop()
             var drawn = 0.0
             if let band = gesture.marquee { drawn = Double(max(band.width, band.height)) * store.zoom }
+            let target: CanvasGestures.Target = gesture.bandClamped ? .workspace : .emptyPage
             gesture.marquee = nil
             gesture.banding = false
+            gesture.bandStart = nil
+            gesture.bandClamped = false
             store.canvasTouchActive = false
-            guard now != nil, drawn < Touch.dragSlop, let slot = columnSlot else { return }
-            let at = slot.toPage(start)
-            guard !holdsWorkedPage(at: at), CanvasGestures.action(.hold, on: .emptyPage) == .menu else { return }
+            guard now != nil, drawn < Touch.dragSlop else { return }
+            guard !holdsWorkedPage(at: at), CanvasGestures.action(.hold, on: target) == .menu else { return }
             store.holdMenuAt = at
         }
     }
 
     /// The hold on another page taking, `point` in column units: that page
-    /// is made the one worked and the band is held out from there.
+    /// is made the one worked and the band is held out from there. Off
+    /// every page, it is the workspace's.
     private func otherPageHoldBegan(at point: CGPoint) {
         let slots = columnSlots
-        guard !pagePinned, let index = PageColumn.pageAt(point, in: slots), index != store.pageIndex else { return }
+        guard !pagePinned, let index = PageColumn.pageAt(point, in: slots), index != store.pageIndex else {
+            workspaceHoldBegan(at: point)
+            return
+        }
         commitTextEditIfAny()
         dismissHoldMenu()
         pageFromColumn = index
         store.setPage(index)
+        holdBand(from: columnSlot?.toPage(point) ?? point, clamped: false)
+    }
+
+    /// A hold on the workspace taking, `point` in the content's units: the
+    /// band is drawn on the page it is over — in the column, the page under
+    /// where it began, else the nearest (PageColumn.currentPage), made the
+    /// one worked — held to that page, from the point on it nearest the
+    /// finger (CanvasGestures.clampedBand). A locked page says so instead.
+    private func workspaceHoldBegan(at point: CGPoint) {
+        guard onWorkspace(point) else { return }
+        let slots = columnSlots
+        if !slots.isEmpty {
+            let index = PageColumn.pageAt(point, in: slots) ?? PageColumn.currentPage(CGRect(origin: point, size: .zero), in: slots)
+            if index != store.pageIndex {
+                pageFromColumn = index
+                store.setPage(index)
+            }
+        }
+        commitTextEditIfAny()
+        dismissHoldMenu()
+        guard !store.refusesLockedPage() else { return }
+        let onPage = CanvasGestures.onPage(columnSlot?.toPage(point) ?? point, page: store.pageSize)
+        holdBand(from: onPage, clamped: true)
+    }
+
+    /// The band held out from `start` on the page worked, as a hold there
+    /// is felt.
+    private func holdBand(from start: CGPoint, clamped: Bool) {
+        gesture.bandStart = start
+        gesture.bandClamped = clamped
         gesture.banding = true
         store.canvasTouchActive = true
         store.buzz(.tick)

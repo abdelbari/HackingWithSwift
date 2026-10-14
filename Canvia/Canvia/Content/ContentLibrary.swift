@@ -394,10 +394,13 @@ enum ContentLibrary {
         }
     }
 
-    /// The line over the editor's templates: what a tap will do, and why
-    /// every size is there when none is made for this one.
-    static func editorTemplatesNote(exactCount: Int) -> String {
-        exactCount == 0
+    /// The line over the editor's templates: what a tap will do — on a page
+    /// with something on it (`addsPage`, DesignStore.templateAddsPage), go on
+    /// a new page after it — and why every size is there when none is made
+    /// for this one.
+    static func editorTemplatesNote(exactCount: Int, addsPage: Bool = false) -> String {
+        if addsPage { return tr("Each one goes on a new page after this one. Hold one to use it on this page instead.") }
+        return exactCount == 0
             ? tr("Nothing is made for this exact size, so every template is fitted to it. It replaces this page; Undo brings it back.")
             : tr("Replaces what is on this page. Undo brings it back.")
     }
