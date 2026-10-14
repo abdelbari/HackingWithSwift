@@ -1197,6 +1197,7 @@ struct ContextToolbar: View {
             }
             toolButton("square.3.layers.3d", "Position") { activeSheet = .position }
             toolButton("shadow", "Shadow") { activeSheet = .shadow }
+            if store.singleSelection != nil { copyStyleButton }
         }
         if let el = store.selectedElements.first { blendMenu(el); animateMenu(el) }
 
@@ -1229,6 +1230,19 @@ struct ContextToolbar: View {
             toolButton("square.2.layers.3d.top.filled", "Forward") { store.reorderSelected(.forward) }
             toolButton("square.2.layers.3d.bottom.filled", "Backward") { store.reorderSelected(.backward) }
         }
+    }
+
+    /// The paint roller: copies this one's style and arms paint mode, in
+    /// which the next taps paste it (StylePaint); lit while it is armed, and
+    /// pressed again it is put away.
+    private var copyStyleButton: some View {
+        Button { store.toggleStylePainting() } label: {
+            toolLabel("paintbrush.pointed", "Copy style", active: store.stylePainting)
+        }
+        .buttonStyle(ToolButtonStyle())
+        .accessibilityAddTraits(store.stylePainting ? .isSelected : [])
+        .accessibilityHint(store.stylePainting ? "Paint mode is on. Tap again to stop"
+                           : "Then tap something to paste the style onto it")
     }
 
     /// A grid's Spacing, in page units, and Corners, in percent of each

@@ -1,7 +1,8 @@
-// Selection overlay: outlines, resize handles, rotate handle, a table's
-// column edges, snap guides and the size/angle badge. Rendered in page
-// coordinates; visual sizes are divided by zoom so they stay constant on
-// screen.
+// Selection overlay: outlines, resize handles, rotate handle, the move
+// handle, a table's column edges, snap guides and the size/angle badge, and
+// the selection's body, which a drag moves even where something lies on top
+// of it. Rendered in page coordinates; visual sizes are divided by zoom so
+// they stay constant on screen.
 
 import SwiftUI
 
@@ -11,6 +12,17 @@ struct SelectionOverlay: View {
     var onHandleEnd: () -> Void
     var onRotateDrag: (CGPoint) -> Void
     var onRotateEnd: () -> Void
+    /// A drag on the selection's body or its move handle, from where it
+    /// began to where the finger is, in page units: the selection moves as
+    /// a drag on an element moves it. Let go, it ends there.
+    var onMoveDrag: (CGPoint, CGPoint) -> Void = { _, _ in }
+    var onMoveEnd: (CGPoint, CGPoint) -> Void = { _, _ in }
+    /// A tap — `count` of them — on the selection's body, at this point,
+    /// or a hold there: passed on to whatever is topmost where the finger
+    /// is, as if it had landed on that thing itself (CanvasGestures: a tap
+    /// inside the selection still picks the topmost thing).
+    var onBodyTap: (CGPoint, Int) -> Void = { _, _ in }
+    var onBodyHold: () -> Void = {}
 
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -37,6 +49,9 @@ struct SelectionOverlay: View {
         ZStack {
             let selected = store.selectedElements
 
+            // Beneath the handles, over every element's own hit area.
+            if let zone = Self.bodyZone(store) { bodyArea(zone) }
+
             ForEach(selected) { el in
                 if el.isHidden {
                     dashedOutline(el, badge: "eye.slash.fill")
@@ -56,6 +71,10 @@ struct SelectionOverlay: View {
 
             if let el = store.singleSelection, !el.holdsPlace, !el.isHidden, store.editingTextId != el.id {
                 handleRing(for: el, handles: Touch.handleSet(for: el))
+            }
+            if let el = store.singleSelection,
+               Touch.showsMoveHandle(el, zoom: store.zoom, typing: store.editingTextId == el.id) {
+                moveHandle(el)
             }
 
             if selected.count > 1 {
@@ -207,12 +226,16 @@ struct SelectionOverlay: View {
     }
 
     private static func rotatePoint(_ el: Element, outsetY: Double, iz: Double, page: CGRect) -> CGPoint {
-        let below = Geometry.rotate(CGPoint(x: el.x + el.w / 2, y: el.y + el.h + outsetY + 28 * iz),
-                                    around: el.center, degrees: el.rotation)
-        guard !page.contains(below) else { return below }
-        let above = Geometry.rotate(CGPoint(x: el.x + el.w / 2, y: el.y - outsetY - 28 * iz),
-                                    around: el.center, degrees: el.rotation)
-        return page.contains(above) ? above : below
+        Geometry.rotateHandlePosition(el, offset: outsetY + 28 * iz,
+                                      above: rotatesAbove(el, outsetY: outsetY, iz: iz, page: page))
+    }
+
+    /// Whether the rotate handle sits above the element: only when below is
+    /// off the page and above is on it.
+    private static func rotatesAbove(_ el: Element, outsetY: Double, iz: Double, page: CGRect) -> Bool {
+        let offset = outsetY + 28 * iz
+        guard !page.contains(Geometry.rotateHandlePosition(el, offset: offset)) else { return false }
+        return page.contains(Geometry.rotateHandlePosition(el, offset: offset, above: true))
     }
 
     /// What the handle ring is drawn round, and the handles it offers, as
@@ -244,6 +267,46 @@ struct SelectionOverlay: View {
                           outsetX: out.x, outsetY: out.y, rotateAt: rotateAt,
                           reach: Touch.pageUnits(Touch.handleReach, zoom: store.zoom),
                           inside: Touch.pageUnits(Touch.handleReachInside, zoom: store.zoom)) != nil
+    }
+
+    /// Whether a touch at `point`, in page units, is within reach of the
+    /// move handle, when the selection has one (Touch.showsMoveHandle) — so
+    /// the view's own pan leaves it to the handle, as handlesTake leaves the
+    /// rotate handle.
+    static func moveHandleTakes(_ point: CGPoint, store: DesignStore) -> Bool {
+        guard let el = store.singleSelection,
+              Touch.showsMoveHandle(el, zoom: store.zoom, typing: store.editingTextId == el.id) else { return false }
+        let page = reachablePage(store)
+        let iz = 1 / max(store.zoom, 0.01)
+        let outsetY = outsets(for: el, zoom: store.zoom, page: page).y
+        let above = rotatesAbove(el, outsetY: outsetY, iz: iz, page: page)
+        let at = Geometry.moveHandlePosition(el, offset: outsetY + 28 * iz, above: above)
+        let reach = Touch.pageUnits(Touch.handleReach, zoom: store.zoom)
+        return hypot(Double(point.x - at.x), Double(point.y - at.y)) <= reach
+    }
+
+    /// The selection's body, in page units, where a drag moves the
+    /// selection whatever lies on top (CanvasGestures.onSelectedBody): one
+    /// element free to move, shown and not being typed in, as its turned
+    /// frame; several, any of them free, as the box round those free to move
+    /// (CanvasGestures.bodyBox). Nil when there is none.
+    static func bodyZone(_ store: DesignStore) -> CGPath? {
+        if let el = store.singleSelection {
+            guard !el.holdsPlace, !el.isHidden, store.editingTextId != el.id else { return nil }
+            let c = el.center
+            var turn = CGAffineTransform(translationX: c.x, y: c.y)
+                .rotated(by: CGFloat(el.rotation * .pi / 180))
+                .translatedBy(x: -c.x, y: -c.y)
+            return CGPath(rect: el.frame, transform: &turn)
+        }
+        guard let box = CanvasGestures.bodyBox(store.selectedElements) else { return nil }
+        return CGPath(rect: box, transform: nil)
+    }
+
+    /// Whether a touch at `point`, in page units, is the selection's body's.
+    static func bodyTakes(_ point: CGPoint, store: DesignStore) -> Bool {
+        guard bodyZone(store) != nil else { return false }
+        return CanvasGestures.onSelectedBody(point, selected: store.selectedElements)
     }
 
     /// Whether `point` is on a column edge's handle (TableColumnHandles):
@@ -374,6 +437,55 @@ struct SelectionOverlay: View {
                         if let grab { end(grab) }
                     }
             )
+    }
+
+    // MARK: body and move handle
+
+    /// The selection's body, over the elements' own hit areas: a drag there
+    /// moves the selection, even where an overlay or a clear text box lies
+    /// on top of it — a photo under a tint, say. Taps and holds are passed
+    /// on to the topmost thing there, so the thing on top is still tapped
+    /// as before. Not for VoiceOver, whose actions move the selection.
+    private func bodyArea(_ zone: CGPath) -> some View {
+        Color.clear
+            .frame(width: store.pageWidth, height: store.pageHeight)
+            .contentShape(Path(zone))
+            .onTapGesture(count: 2, coordinateSpace: .named("page")) { onBodyTap($0, 2) }
+            .onTapGesture(count: 1, coordinateSpace: .named("page")) { onBodyTap($0, 1) }
+            .onLongPressGesture(minimumDuration: CanvasGestures.holdSeconds) { onBodyHold() }
+            // As far on the glass as an element's own drag waits, so a tap
+            // that wanders a little is still a tap.
+            .gesture(moveDrag(after: Touch.dragSlop))
+            .accessibilityHidden(true)
+    }
+
+    /// The selection moved by a drag on its body or its move handle, once
+    /// the finger has gone `slop` points on the glass.
+    private func moveDrag(after slop: Double) -> some Gesture {
+        DragGesture(minimumDistance: Touch.pageUnits(slop, zoom: store.zoom), coordinateSpace: .named("page"))
+            .onChanged { value in onMoveDrag(value.startLocation, value.location) }
+            .onEnded { value in onMoveEnd(value.startLocation, value.location) }
+    }
+
+    /// Four-way arrows beside the rotate handle, on its side, for a small
+    /// element or one being typed into: dragged, the selection moves without
+    /// a finger over it, the finger kept where it took the handle.
+    private func moveHandle(_ el: Element) -> some View {
+        let page = Self.reachablePage(store)
+        let outsetY = outsets(for: el).y
+        let offset = outsetY + 28 * iz
+        let above = Self.rotatesAbove(el, outsetY: outsetY, iz: iz, page: page)
+        let size = Touch.moveHandleSize * iz
+        return Image(systemName: "arrow.up.and.down.and.arrow.left.and.right")
+            .font(.system(size: 12 * iz, weight: .semibold))
+            .foregroundStyle(Theme.accent)
+            .frame(width: size, height: size)
+            .background(Circle().fill(Color.white)
+                .overlay(Circle().stroke(Theme.accent.opacity(0.9), lineWidth: 1 * iz)))
+            .contentShape(Circle())
+            .gesture(moveDrag(after: 1))
+            .position(Geometry.moveHandlePosition(el, offset: offset, above: above))
+            .accessibilityHidden(true)
     }
 
     private func end(_ grab: HandleGrab) {

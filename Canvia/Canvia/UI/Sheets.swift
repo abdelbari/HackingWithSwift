@@ -1062,6 +1062,16 @@ struct PositionSheet: View {
     /// sheet opens, as on the Android twin, and never saved.
     @State private var nudgeStep = 1.0
     @State private var nudges = 0
+    /// An arrow held down: its repeats, until it lifts (NudgeRepeat), and
+    /// which way it points.
+    @State private var nudgeHold: Task<Void, Never>?
+    @State private var nudgeHeld: String?
+    /// The arrow a finger is on, as its press gesture keeps it: back to nil
+    /// the moment the press ends or is cancelled — the Form's scroll or the
+    /// sheet's drag taking the touch, a system gesture — so a hold never
+    /// runs on with no finger on it.
+    @GestureState private var nudgePress: NudgePress? = nil
+    @Environment(\.scenePhase) private var scenePhase
     /// Keep proportions as switched in this panel; nil until it is, when it
     /// is what the one selected element starts with (RatioLock.startsOn).
     /// Never saved.
@@ -1236,8 +1246,9 @@ struct PositionSheet: View {
 
     /// Arrows that move the selection 1, 10 or 100 page units a tap, with
     /// where it is and how big read out live: the precise move a finger
-    /// cannot make, and the only one for someone without a keyboard. Each
-    /// tap is its own Undo; locked elements stay put.
+    /// cannot make, and the only one for someone without a keyboard. Held,
+    /// an arrow repeats (NudgeRepeat), and the whole hold is one Undo, as
+    /// each tap is; locked elements stay put.
     private var nudgeSection: some View {
         Section {
             Picker("Step", selection: $nudgeStep) {
@@ -1254,7 +1265,10 @@ struct PositionSheet: View {
                 nudgeButton("arrow.down", "down", dx: 0, dy: 1)
             }
             .disabled(store.movableSelectionCount == 0)
+            .opacity(store.movableSelectionCount == 0 ? 0.4 : 1)
             .feel(.impact(weight: .light), trigger: nudges)
+            // An arrow held as the sheet goes is let go with it.
+            .onDisappear { stopNudging() }
         } header: {
             HStack {
                 Text("Nudge")
@@ -1264,6 +1278,27 @@ struct PositionSheet: View {
                 }
             }
         }
+        .onChange(of: nudgePress) { _, press in pressChanged(to: press) }
+        // Or as the app leaves the screen.
+        .onChange(of: scenePhase) { _, phase in if phase != .active { stopNudging() } }
+    }
+
+    /// An arrow under a finger: which way it points, and its step.
+    private struct NudgePress: Equatable {
+        let direction: String
+        let dx: Double
+        let dy: Double
+    }
+
+    /// The hold starts as a finger lands on an arrow and stops, as one
+    /// step, as the press ends — however it ends.
+    private func pressChanged(to press: NudgePress?) {
+        guard let press else {
+            stopNudging()
+            return
+        }
+        if nudgeHeld != press.direction { stopNudging() }
+        startNudging(press.direction, dx: press.dx, dy: press.dy)
     }
 
     /// "x, y  ·  w × h" of the selection's box, whole units, as the Android
@@ -1273,21 +1308,70 @@ struct PositionSheet: View {
         return "\(Int(box.minX)), \(Int(box.minY))  ·  \(Int(box.width)) × \(Int(box.height))"
     }
 
+    /// One arrow: a step as the finger lands, then, held, the repeats; let
+    /// go, the hold is closed as one step. VoiceOver's activation is still
+    /// one step at a time.
     private func nudgeButton(_ system: String, _ direction: String, dx: Double, dy: Double) -> some View {
-        Button {
-            store.nudgeSelected(dx: dx * nudgeStep, dy: dy * nudgeStep)
-            nudges += 1
-            // Where it went, said once, rather than every button renamed.
-            if let readout = nudgeReadout {
-                AccessibilityNotification.Announcement(readout).post()
-            }
-        } label: {
-            Image(systemName: system)
-                .font(.title3.weight(.semibold))
-                .frame(maxWidth: .infinity, minHeight: 44)
+        Image(systemName: system)
+            .font(.title3.weight(.semibold))
+            .foregroundStyle(Color.accentColor)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.accentColor.opacity(nudgeHeld == direction ? 0.25 : 0.15)))
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .updating($nudgePress) { _, press, _ in
+                        press = NudgePress(direction: direction, dx: dx, dy: dy)
+                    }
+            )
+            .accessibilityElement(children: .ignore)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel("Nudge \(direction) \(Int(nudgeStep))")
+            .accessibilityAction { nudgeOnce(dx: dx, dy: dy) }
+    }
+
+    /// A single step, as its own Undo.
+    private func nudgeOnce(dx: Double, dy: Double) {
+        store.nudgeSelected(dx: dx * nudgeStep, dy: dy * nudgeStep)
+        nudges += 1
+        announceNudge()
+    }
+
+    /// Where it went, said once, rather than every button renamed.
+    private func announceNudge() {
+        if let readout = nudgeReadout {
+            AccessibilityNotification.Announcement(readout).post()
         }
-        .buttonStyle(.bordered)
-        .accessibilityLabel("Nudge \(direction) \(Int(nudgeStep))")
+    }
+
+    /// The first step at once, then after NudgeRepeat's pause a step at its
+    /// pace, quickening, with a tick felt every tenth — all in one step.
+    private func startNudging(_ direction: String, dx: Double, dy: Double) {
+        guard nudgeHold == nil, store.movableSelectionCount > 0 else { return }
+        nudgeHeld = direction
+        let x = dx * nudgeStep, y = dy * nudgeStep
+        store.nudgeSelectedTransient(dx: x, dy: y)
+        nudges += 1
+        nudgeHold = Task { @MainActor in
+            var steps = 1
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(NudgeRepeat.delay(afterSteps: steps)))
+                guard !Task.isCancelled else { return }
+                steps += 1
+                store.nudgeSelectedTransient(dx: x, dy: y)
+                if NudgeRepeat.ticks(at: steps) { store.buzz(.tick) }
+            }
+        }
+    }
+
+    private func stopNudging() {
+        guard let hold = nudgeHold else { return }
+        hold.cancel()
+        nudgeHold = nil
+        nudgeHeld = nil
+        store.commit()
+        announceNudge()
     }
 
     private func orderButton(_ label: String, _ system: String, action: @escaping () -> Void) -> some View {

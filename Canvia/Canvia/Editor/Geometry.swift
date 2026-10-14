@@ -88,6 +88,21 @@ enum Touch {
         }
         return found
     }
+
+    /// The move handle's size on screen — the four-way arrows beside the
+    /// rotate handle — and the on-screen short side under which an element
+    /// gets one, both in points (dp on the Android twin).
+    static let moveHandleSize = 28.0
+    static let moveHandleBelow = 56.0
+
+    /// Whether a single selection `el` gets the move handle, at `zoom`: free
+    /// to move and shown, and either being typed into or with its shorter
+    /// side under moveHandleBelow on screen — too small, or too busy, to
+    /// drag by its body without covering it.
+    static func showsMoveHandle(_ el: Element, zoom: Double, typing: Bool) -> Bool {
+        guard !el.holdsPlace, !el.isHidden else { return false }
+        return typing || min(el.w, el.h) * max(zoom, 0.05) < moveHandleBelow
+    }
 }
 
 /// What a finger on the selection's handles is working.
@@ -157,6 +172,27 @@ enum Geometry {
         let local = CGPoint(x: c.x + sx * (el.w / 2 + outsetX), y: c.y + sy * (el.h / 2 + outsetY))
         guard el.rotation != 0 else { return local }
         return rotate(local, around: c, degrees: el.rotation)
+    }
+
+    /// The rotate handle: `offset` page units beyond the element's foot
+    /// along its own "down" — or beyond its head when `above` — turned with
+    /// it.
+    static func rotateHandlePosition(_ el: Element, offset: Double, above: Bool = false) -> CGPoint {
+        let c = el.center
+        let reach = el.h / 2 + offset
+        return rotate(CGPoint(x: c.x, y: c.y + (above ? -reach : reach)), around: c, degrees: el.rotation)
+    }
+
+    /// The move handle, beside the rotate handle: as far beyond the same
+    /// edge, and that same `offset` along the element's own "left" of it —
+    /// so the two never sit on each other, and the move handle stays on the
+    /// rotate handle's side, away from the quick actions. The Android twin's
+    /// Geometry.moveHandlePosition, row for row; its turn handle sits above,
+    /// so it passes `above`.
+    static func moveHandlePosition(_ el: Element, offset: Double, above: Bool = false) -> CGPoint {
+        let c = el.center
+        let reach = el.h / 2 + offset
+        return rotate(CGPoint(x: c.x - offset, y: c.y + (above ? -reach : reach)), around: c, degrees: el.rotation)
     }
 
     /// Resize keeping the opposite anchor fixed in canvas space.
@@ -596,6 +632,44 @@ enum Geometry {
             e.y = c.y - el.h / 2
             e.rotation = ((el.rotation + degrees).truncatingRemainder(dividingBy: 360) + 360)
                 .truncatingRemainder(dividingBy: 360)
+            return e
+        }
+    }
+
+    /// A group or a multi-selection flipped as one unit about `box`, the
+    /// selection's box: each member's frame (x, y, w, h, before its turn)
+    /// mirrored across the box — horizontally x' = box.minX + box.maxX −
+    /// (x + w), vertically y' = box.minY + box.maxY − (y + h) — and its turn
+    /// mirrored, rotation' = (360 − rotation) mod 360, so the arrangement
+    /// reads as a mirror image. Members that keep their place stay as they
+    /// are. A shape or photo has its flipH or flipV toggled too, which makes
+    /// it the exact mirror image; text, a table's cells and a chart's parts
+    /// are not flipped, so the words stay readable, as in Canva. A line is
+    /// not flipped either: the mirrored turn runs it end to end on a
+    /// horizontal flip, so its start and end caps swap; a vertical one keeps
+    /// its direction. A connector keeps its caps — it is laid again between
+    /// the things it joins. The Android twin's Geometry.flipAll.
+    static func flipAll(_ elements: [Element], box: CGRect, horizontal: Bool) -> [Element] {
+        elements.map { el in
+            guard !el.holdsPlace else { return el }
+            var e = el
+            if horizontal {
+                e.x = Double(box.minX + box.maxX) - (el.x + el.w)
+            } else {
+                e.y = Double(box.minY + box.maxY) - (el.y + el.h)
+            }
+            let turned = (360 - el.rotation).truncatingRemainder(dividingBy: 360)
+            e.rotation = turned < 0 ? turned + 360 : turned
+            let readable = el.type == .text || el.table != nil || el.chart != nil
+            if el.type == .line {
+                let joined = el.connectFrom != nil || el.connectTo != nil
+                if horizontal && !joined {
+                    e.startCap = el.endCap
+                    e.endCap = el.startCap
+                }
+            } else if !readable {
+                if horizontal { e.flipH.toggle() } else { e.flipV.toggle() }
+            }
             return e
         }
     }

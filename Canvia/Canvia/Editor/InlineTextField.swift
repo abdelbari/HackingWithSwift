@@ -47,6 +47,10 @@ struct InlineTextField: UIViewRepresentable {
     /// Whether the bar has the colour well, A- and A+, Aa and Link: not for
     /// a shape's words, which take no colours, sizes, fonts or links.
     var wordStyles = true
+    /// Whether it opens with all its words chosen, so the first key replaces
+    /// them (DesignStore.typingSelectsWords); otherwise the caret is at the
+    /// end.
+    var selectsWords = false
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -63,9 +67,10 @@ struct InlineTextField: UIViewRepresentable {
         view.inputAccessoryView = context.coordinator.typingBar()
         context.coordinator.view = view
         context.coordinator.apply(element, to: view)
-        // The caret at the end of the words, as it opens on the Android twin.
+        // The caret at the end of the words, as it opens on the Android twin
+        // — or all of them chosen, for Add text here's box.
         let end = view.endOfDocument
-        view.selectedTextRange = view.textRange(from: end, to: end)
+        view.selectedTextRange = view.textRange(from: selectsWords ? view.beginningOfDocument : end, to: end)
         DispatchQueue.main.async { _ = view.becomeFirstResponder() }
         return view
     }
