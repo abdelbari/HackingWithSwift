@@ -2446,6 +2446,10 @@ final class DesignStore {
     /// shows that element at the handle's moment. View state only, never
     /// saved.
     var clipScrub: Trimming.Scrub?
+    /// Whether Hold to compare is held: the canvas draws the selected photo
+    /// as it was before its looks (PhotoEdits.original). View state only,
+    /// nothing written.
+    var comparing = false
     /// Where the timeline's playhead stands, in seconds into the page
     /// `playheadPage` — so a page before it held longer or shorter leaves
     /// it where it is (see TimelineEditing). View state only, never saved.

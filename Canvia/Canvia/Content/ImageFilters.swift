@@ -1,5 +1,8 @@
 // Image filter presets applied with Core Image, mirroring the web preset
-// names. Filtered images are cached per (source, preset).
+// names. Filtered images are cached per (source, preset). The first nine
+// are their own Core Image chains; the twelve after them are made only of
+// shared parts (PhotoLook.recipe) — a colour matrix, a tone curve preset and
+// a vignette — so they draw as the Android twin's ColorMatrix draws them.
 
 import UIKit
 import CoreImage
@@ -8,6 +11,7 @@ import Observation
 
 enum ImageFilterPreset: String, CaseIterable, Identifiable {
     case none, vivid, warm, cool, mono, noir, fade, retro, dramatic, dreamy
+    case summer, street, nordic, bliss, whimsical, selfie, festive, coastal, drama, edge, solar, classic
 
     var id: String { rawValue }
     var displayName: String { rawValue == "none" ? "None" : rawValue.capitalized }
@@ -19,9 +23,10 @@ enum ImageFilterPreset: String, CaseIterable, Identifiable {
 
 /// Every edit made to how a photo looks — filter and its strength, dials
 /// and curve, duotone, straighten, show-whole and the effects (pixelate,
-/// focus, outline or glow) — as one thing to see or take off, as the
-/// Android twin's "Reset photo edits". The crop, frame, corners and Ken
-/// Burns drift are where the photo sits, not how it looks, and stay.
+/// focus, outline or glow, and glitch, slice, halftone or grain) — as one
+/// thing to see or take off, as the Android twin's "Reset photo edits". The
+/// crop, frame, corners and Ken Burns drift are where the photo sits, not
+/// how it looks, and stay.
 enum PhotoEdits {
     static func any(_ el: Element) -> Bool {
         ImageFilterPreset.from(el.filter) != .none
@@ -33,6 +38,7 @@ enum PhotoEdits {
             || el.pixelate != nil
             || el.focusBlur != nil
             || el.edge != nil
+            || el.fx != nil
     }
 
     static func reset(_ el: inout Element) {
@@ -45,7 +51,36 @@ enum PhotoEdits {
         el.pixelate = nil
         el.focusBlur = nil
         el.edge = nil
+        el.fx = nil
     }
+
+    /// The photo as Hold to compare shows it: its filter, dials, duotone
+    /// and effects off — what it looked like before them — where it sits,
+    /// straightened and shown whole or not, kept. As the Android twin's.
+    static func original(_ el: Element) -> Element {
+        var out = el
+        out.filter = nil
+        out.filterStrength = nil
+        out.adjustments = nil
+        out.duotone = nil
+        out.pixelate = nil
+        out.focusBlur = nil
+        out.edge = nil
+        out.fx = nil
+        return out
+    }
+
+    /// `page` with photo `id` shown as it was (`original`) while Hold to
+    /// compare is held; drawn only, never written.
+    static func comparing(_ page: Page, _ id: String) -> Page {
+        guard let i = page.elements.firstIndex(where: { $0.id == id && $0.type == .image }) else { return page }
+        var out = page
+        out.elements[i] = original(page.elements[i])
+        return out
+    }
+
+    /// What VoiceOver says as Hold to compare is pressed.
+    static let comparingNote = "Showing original"
 }
 
 /// Free-hand adjustments on top of a preset.
@@ -338,6 +373,64 @@ enum PhotoLook {
         case .retro: return ColourMatrix.controls(saturation: 1.15, contrast: 0.95).after(.sepia(0.5))
         case .dramatic: return .controls(saturation: 1.1, brightness: -0.03, contrast: 1.35)
         case .dreamy: return .controls(saturation: 1.15, brightness: 0.04)
+        case .summer, .street, .nordic, .bliss, .whimsical, .selfie, .festive, .coastal, .drama, .edge, .solar,
+             .classic:
+            return recipe(preset)?.matrix ?? .identity
+        }
+    }
+
+    /// A later filter's parts: its colour `matrix` (any fade already in
+    /// it), the ToneCurve preset drawn after the matrix, and the vignette it
+    /// adds to the dial's.
+    struct Recipe {
+        var matrix: ColourMatrix
+        var curve: String? = nil
+        var vignette: Double = 0
+    }
+
+    /// The twelve filters after the first nine, made only of the shared
+    /// parts — colour controls, gains, hue, sepia, fade, a tone curve preset
+    /// and a vignette — number for number with the Android twin's; nil for
+    /// the first nine, which have their own Core Image chains.
+    static func recipe(_ preset: ImageFilterPreset) -> Recipe? {
+        switch preset {
+        case .summer:
+            return Recipe(matrix: ColourMatrix.controls(saturation: 1.3, brightness: 0.03, contrast: 1.05)
+                .after(.gains(1.08, 1.02, 0.92)))
+        case .street:
+            return Recipe(matrix: .controls(saturation: 0.7, brightness: -0.02, contrast: 1.25), curve: "crush",
+                          vignette: 0.3)
+        case .nordic:
+            let base = ColourMatrix.controls(saturation: 0.75, brightness: 0.04, contrast: 0.95)
+            return Recipe(matrix: fade(0.3).after(base.after(.gains(0.94, 1, 1.08))))
+        case .bliss:
+            return Recipe(matrix: ColourMatrix.controls(saturation: 1.15, brightness: 0.06, contrast: 0.95)
+                .after(.gains(1.06, 1, 1.04)), curve: "bright")
+        case .whimsical:
+            return Recipe(matrix: fade(0.25).after(ColourMatrix.controls(saturation: 1.2, brightness: 0.04)
+                .after(.hue(12))))
+        case .selfie:
+            return Recipe(matrix: ColourMatrix.controls(saturation: 1.05, brightness: 0.05, contrast: 0.95)
+                .after(.gains(1.05, 1, 0.98)), curve: "lift")
+        case .festive:
+            return Recipe(matrix: ColourMatrix.controls(saturation: 1.45, contrast: 1.15)
+                .after(.gains(1.08, 0.98, 0.98)), vignette: 0.25)
+        case .coastal:
+            return Recipe(matrix: fade(0.15).after(ColourMatrix.controls(saturation: 1.1, brightness: 0.03)
+                .after(.gains(0.95, 1.02, 1.1))))
+        case .drama:
+            return Recipe(matrix: .controls(saturation: 0.85, brightness: -0.04, contrast: 1.3), curve: "scurve",
+                          vignette: 0.45)
+        case .edge:
+            return Recipe(matrix: .controls(saturation: 1.25, contrast: 1.4), curve: "crush", vignette: 0.2)
+        case .solar:
+            return Recipe(matrix: ColourMatrix.controls(saturation: 1.2, brightness: 0.02, contrast: 1.1)
+                .after(.sepia(0.25)), vignette: 0.2)
+        case .classic:
+            return Recipe(matrix: fade(0.1).after(ColourMatrix.sepia(0.15)
+                .after(.controls(saturation: 0, contrast: 1.15))))
+        default:
+            return nil
         }
     }
 
@@ -397,15 +490,23 @@ enum PhotoLook {
     /// preset curve, the light curve. What a pixel's neighbours decide
     /// (clarity, sharpness, blurs, pixelate) and the duotone are not in it.
     /// The shared test table both phones check their maths against.
+    ///
+    /// A filter with a tone curve (see `recipe`) is drawn whole first — its
+    /// matrix, then its curve — and mixed with the colour by its strength,
+    /// each channel rounded half up; the dials' matrix comes after it.
     static func pixel(_ rgb: Int, filter: String?, adjustments: Adjustments?, strength: Double? = nil) -> Int {
         var r = (rgb >> 16) & 0xff, g = (rgb >> 8) & 0xff, b = rgb & 0xff
         let a = adjustments ?? .neutral
-        if let m = preMatrix(filter, a, strength: strength)?.bytes {
-            let fr = Float(r), fg = Float(g), fb = Float(b), fa = Float(255)
-            let nr: Float = m[0] * fr + m[1] * fg + m[2] * fb + m[3] * fa + m[4]
-            let ng: Float = m[5] * fr + m[6] * fg + m[7] * fb + m[8] * fa + m[9]
-            let nb: Float = m[10] * fr + m[11] * fg + m[12] * fb + m[13] * fa + m[14]
-            r = byte(Double(nr)); g = byte(Double(ng)); b = byte(Double(nb))
+        let curved = recipe(ImageFilterPreset.from(filter))?.curve.flatMap { ToneCurve.table(preset: $0) }
+        if let curved {
+            let share = self.strength(strength)
+            let f = matrixed(preset(ImageFilterPreset.from(filter)).bytes, r, g, b)
+            func mixed(_ from: Int, _ to: Int) -> Int { byte(Double(from) + share * Double(curved[to] - from)) }
+            r = mixed(r, f.r); g = mixed(g, f.g); b = mixed(b, f.b)
+        }
+        if let m = preMatrix(curved == nil ? filter : nil, a, strength: strength)?.bytes {
+            let t = matrixed(m, r, g, b)
+            r = t.r; g = t.g; b = t.b
         }
         let vibrance = min(max(a.vibrance, -1), 1)
         if vibrance != 0 {
@@ -419,6 +520,16 @@ enum PhotoLook {
             r = table[r]; g = table[g]; b = table[b]
         }
         return (r << 16) | (g << 8) | b
+    }
+
+    /// One colour through a matrix's `bytes`, in single precision as the
+    /// Android twin's paint holds it, each channel rounded half up.
+    static func matrixed(_ m: [Float], _ r: Int, _ g: Int, _ b: Int) -> (r: Int, g: Int, b: Int) {
+        let fr = Float(r), fg = Float(g), fb = Float(b), fa = Float(255)
+        let nr: Float = m[0] * fr + m[1] * fg + m[2] * fb + m[3] * fa + m[4]
+        let ng: Float = m[5] * fr + m[6] * fg + m[7] * fb + m[8] * fa + m[9]
+        let nb: Float = m[10] * fr + m[11] * fg + m[12] * fb + m[13] * fa + m[14]
+        return (byte(Double(nr)), byte(Double(ng)), byte(Double(nb)))
     }
 
     /// Rounded half up and held to a byte, as the Android twin rounds.
@@ -691,6 +802,170 @@ enum PhotoLook {
     }
 }
 
+// MARK: - fx
+
+/// A photo's fx (PhotoFx) a pixel at a time: glitch, slice, halftone and
+/// grain, step for step the Android twin's PixelLook, with one test table
+/// (PhotoLooksTests). Each works on `bytes` — RGBA, premultiplied, `width` ×
+/// `height`, top row first — and draws from its seed with the shared
+/// SeededRandom, in the order written here.
+extension PhotoLook {
+
+    /// `fraction` of `side` pixels, rounded half up.
+    static func pixels(_ fraction: Double, of side: Int) -> Int {
+        Int((fraction * Double(side) + 0.5).rounded(.down))
+    }
+
+    /// `fx` on `bytes`; nothing for an fx that draws nothing.
+    static func fx(_ bytes: inout [UInt8], width: Int, height: Int, fx: PhotoFx) {
+        guard fx.draws, width > 0, height > 0, bytes.count >= width * height * 4 else { return }
+        switch fx.kind {
+        case "glitch": glitch(&bytes, width: width, height: height, amount: fx.share, seed: fx.seed)
+        case "slice": slice(&bytes, width: width, height: height, amount: fx.share, seed: fx.seed)
+        case "halftone": halftone(&bytes, width: width, height: height, amount: fx.share)
+        case "grain": grain(&bytes, width: width, height: height, amount: fx.share, seed: fx.seed)
+        default: break
+        }
+    }
+
+    /// Glitch: each pixel's red taken from 3% × amount of the width to its
+    /// right and its blue from as far to its left — held at the edges, kept
+    /// within its own alpha — then 3 to 8 bands of rows each slid sideways,
+    /// round the edge. From the seed: the band count (3 + below 6), then
+    /// for each band its top row (below the height), its rows (1 + below a
+    /// twelfth of the height, at least 1) and its slide (below 2 × reach + 1,
+    /// less reach; reach is 10% × amount of the width, at least 1).
+    static func glitch(_ bytes: inout [UInt8], width w: Int, height h: Int, amount: Double, seed: Int) {
+        var random = SeededRandom(seed: Double(seed))
+        let split = pixels(0.03 * amount, of: w)
+        if split > 0 {
+            let source = bytes
+            for y in 0..<h {
+                for x in 0..<w {
+                    let i = (y * w + x) * 4
+                    let alpha = source[i + 3]
+                    bytes[i] = min(source[(y * w + min(w - 1, x + split)) * 4], alpha)
+                    bytes[i + 2] = min(source[(y * w + max(0, x - split)) * 4 + 2], alpha)
+                }
+            }
+        }
+        let bands = 3 + random.below(6)
+        let reach = max(1, pixels(0.1 * amount, of: w))
+        let tallest = max(1, h / 12)
+        for _ in 0..<bands {
+            let top = random.below(h)
+            let rows = 1 + random.below(tallest)
+            let slide = random.below(2 * reach + 1) - reach
+            for y in top..<min(h, top + rows) { slideRow(&bytes, row: y, width: w, by: slide) }
+        }
+    }
+
+    /// Slice: 6 to 12 strips (6 + below 7 from the seed), standing
+    /// (columns, slid up or down) when the seed's next draw below 2 is 0 and
+    /// lying (rows, slid left or right) when it is 1 — the even strips back
+    /// and the odd ones on by 8% × amount of the side they slide along,
+    /// round the edge. Strip i covers i × side / count up to (i + 1) × side
+    /// / count, in whole pixels.
+    static func slice(_ bytes: inout [UInt8], width w: Int, height h: Int, amount: Double, seed: Int) {
+        var random = SeededRandom(seed: Double(seed))
+        let count = 6 + random.below(7)
+        let standing = random.below(2) == 0
+        let reach = pixels(0.08 * amount, of: standing ? h : w)
+        guard reach > 0 else { return }
+        guard standing else {
+            for i in 0..<count {
+                for y in (i * h / count)..<((i + 1) * h / count) {
+                    slideRow(&bytes, row: y, width: w, by: i % 2 == 0 ? -reach : reach)
+                }
+            }
+            return
+        }
+        let source = bytes
+        for i in 0..<count {
+            let by = i % 2 == 0 ? -reach : reach
+            for x in (i * w / count)..<((i + 1) * w / count) {
+                for y in 0..<h {
+                    let from = (((y - by) % h) + h) % h
+                    for c in 0..<4 { bytes[(y * w + x) * 4 + c] = source[(from * w + x) * 4 + c] }
+                }
+            }
+        }
+    }
+
+    /// Halftone: a screen of dots at 45°, its cells (1% + 4% × amount) of
+    /// the shorter side across, at least 2 pixels. A pixel's centre is
+    /// turned into the screen — u = (x + y) / √2, v = (x − y) / √2 — and it
+    /// is in its cell's dot when it lies within cell × √(1 − lightness) / √2
+    /// of the cell's centre, its lightness 0.299 red + 0.587 green + 0.114
+    /// blue of its own colour, over 255: a black pixel's dot fills its cell,
+    /// a white one's is nothing. In a dot it keeps its colour; outside, it is
+    /// the white paper.
+    static func halftone(_ bytes: inout [UInt8], width w: Int, height h: Int, amount: Double) {
+        let cell = Double(max(2, pixels(0.01 + 0.04 * amount, of: min(w, h))))
+        let root = 0.7071067811865476
+        for y in 0..<h {
+            for x in 0..<w {
+                let i = (y * w + x) * 4
+                let alpha = Int(bytes[i + 3])
+                guard alpha > 0 else { continue }
+                let cx = Double(x) + 0.5, cy = Double(y) + 0.5
+                let u = (cx + cy) * root, v = (cx - cy) * root
+                let du = u - ((u / cell).rounded(.down) + 0.5) * cell
+                let dv = v - ((v / cell).rounded(.down) + 0.5) * cell
+                let red = unpremultiplied(bytes[i], alpha: alpha)
+                let green = unpremultiplied(bytes[i + 1], alpha: alpha)
+                let blue = unpremultiplied(bytes[i + 2], alpha: alpha)
+                let light = (0.299 * red + 0.587 * green + 0.114 * blue) / 255
+                let radius = cell * root * max(0, 1 - light).squareRoot()
+                if du * du + dv * dv > radius * radius {
+                    let paper = UInt8(alpha)
+                    bytes[i] = paper
+                    bytes[i + 1] = paper
+                    bytes[i + 2] = paper
+                }
+            }
+        }
+    }
+
+    /// Grain: every pixel in turn, top row first, lifted or lowered by the
+    /// same on each channel — the seed's next draw times 2, less 1, times
+    /// 48 × amount levels, times its alpha over 255 as it is premultiplied —
+    /// rounded half up and kept within 0 and its alpha. A clear pixel takes
+    /// its draw too, so the grain lies the same whatever is clear, and
+    /// changes nothing.
+    static func grain(_ bytes: inout [UInt8], width w: Int, height h: Int, amount: Double, seed: Int) {
+        var random = SeededRandom(seed: Double(seed))
+        let reach = 48 * amount
+        for p in 0..<(w * h) {
+            let n = random.next() * 2 - 1
+            let i = p * 4
+            let alpha = Int(bytes[i + 3])
+            guard alpha > 0 else { continue }
+            let d = n * reach * Double(alpha) / 255
+            for c in 0..<3 { bytes[i + c] = UInt8(min(byte(Double(bytes[i + c]) + d), alpha)) }
+        }
+    }
+
+    /// A premultiplied channel at the colour it is, rounded, as
+    /// `unpremultiplied(_:at:)` reads a pixel.
+    private static func unpremultiplied(_ v: UInt8, alpha: Int) -> Double {
+        Double(min(255, (Int(v) * 255 + alpha / 2) / alpha))
+    }
+
+    /// Row `row` slid `by` pixels to the right, what passes the edge coming
+    /// round from the other side.
+    private static func slideRow(_ bytes: inout [UInt8], row: Int, width w: Int, by: Int) {
+        let shift = ((by % w) + w) % w
+        guard shift != 0 else { return }
+        let start = row * w * 4
+        let old = Array(bytes[start..<(start + w * 4)])
+        for x in 0..<w {
+            let from = (((x - shift) % w) + w) % w
+            for c in 0..<4 { bytes[start + x * 4 + c] = old[from * 4 + c] }
+        }
+    }
+}
+
 enum ImageFilterEngine {
     private static let context = CIContext()
     private static let cache: NSCache<NSString, UIImage> = {
@@ -745,7 +1020,7 @@ enum ImageFilterEngine {
     /// drawn again when `looksBaked` moves on.
     static func makesLater(_ el: Element) -> Bool {
         guard !isCode(el) else { return false }
-        return (el.adjustments?.clarity ?? 0) != 0 || (el.pixelate ?? 0) > 0
+        return (el.adjustments?.clarity ?? 0) != 0 || (el.pixelate ?? 0) > 0 || el.fx?.draws == true
     }
 
     /// The look on `image`, in the Android twin's order: the filter at its
@@ -775,7 +1050,7 @@ enum ImageFilterEngine {
         let mix = partly ? "@\(Int((share * 100).rounded()))" : ""
         let soft = crisp && preset == .dreamy ? "|crisp" : ""
         let key = "\(cacheKey)|\(preset.rawValue)\(mix)\(adjustments.signature)\(tone)\(effects.signature)\(soft)"
-        let madeLater = later && (adjustments.clarity != 0 || effects.block > 1)
+        let madeLater = later && (adjustments.clarity != 0 || effects.block > 1 || effects.fx != nil)
         let slot = madeLater ? bakeSlot(picture: cacheKey, owner: owner) : ""
         if let cached = cache.object(forKey: key as NSString) {
             if madeLater { lastBaked.setObject(cached, forKey: slot as NSString) }
@@ -792,6 +1067,7 @@ enum ImageFilterEngine {
             quick.clarity = 0
             var plain = effects
             plain.block = 0
+            plain.fx = nil
             return rendered(preset, adjustments: quick, duotone: duotone, share: share, partly: partly,
                             effects: plain, crisp: crisp, waits: waits, image: image, cacheKey: cacheKey).image
         }
@@ -839,8 +1115,18 @@ enum ImageFilterEngine {
             }
         }
         // The vignette over the blur and the blocks, a smooth fade as the
-        // Android twin lays it over the drawn picture.
-        output = vignetted(output, adjustments, extent: extent)
+        // Android twin lays it over the drawn picture — the filter's own
+        // added to the dial's, at the filter's strength.
+        let filterVignette = (PhotoLook.recipe(preset)?.vignette ?? 0) * share
+        output = vignetted(output, adjustments, extra: filterVignette, extent: extent)
+        // Glitch, slice, halftone or grain on the drawn pixels, after the
+        // filter and before the duotone, as the Android twin's PixelLook
+        // bakes them (PhotoLook.fx).
+        if let fx = effects.fx {
+            output = throughPixels(output, extent: extent) { bytes, width, height in
+                PhotoLook.fx(&bytes, width: width, height: height, fx: fx)
+            }
+        }
         // Duotone last, because it replaces colour outright — running it
         // before a saturation dial would leave that dial with nothing to do.
         if let duotone { output = mapped(output, to: duotone) }
@@ -1196,11 +1482,12 @@ enum ImageFilterEngine {
 
     /// The vignette dial, after the effects (see `apply`) and before the
     /// duotone, so a duotoned photo's corners fall into its dark colour.
-    private static func vignetted(_ input: CIImage, _ a: Adjustments, extent: CGRect) -> CIImage {
-        guard a.vignette > 0 else { return input }
+    private static func vignetted(_ input: CIImage, _ a: Adjustments, extra: Double = 0, extent: CGRect) -> CIImage {
+        let amount = min(1, max(0, a.vignette) + max(0, extra))
+        guard amount > 0 else { return input }
         let f = CIFilter.vignette()
         f.inputImage = input
-        f.intensity = Float(a.vignette * 2)
+        f.intensity = Float(amount * 2)
         f.radius = Float(1.4)
         return (f.outputImage ?? input).cropped(to: extent)
     }
@@ -1244,6 +1531,19 @@ enum ImageFilterEngine {
         case .retro: return controls(sepia(input, 0.5), saturation: 1.15, contrast: 0.95)
         case .dramatic: return controls(input, saturation: 1.1, brightness: -0.03, contrast: 1.35)
         case .dreamy: return controls(crisp ? input : blur(input, 1.6), saturation: 1.15, brightness: 0.04)
+        case .summer, .street, .nordic, .bliss, .whimsical, .selfie, .festive, .coastal, .drama, .edge, .solar,
+             .classic:
+            return recipeDrawn(input, preset)
         }
+    }
+
+    /// A later filter drawn from its shared parts (PhotoLook.recipe): its
+    /// matrix, then its curve, on the encoded values, as the shared maths
+    /// works. Its vignette waits for the effects (`vignetted`).
+    private static func recipeDrawn(_ input: CIImage, _ preset: ImageFilterPreset) -> CIImage {
+        guard let recipe = PhotoLook.recipe(preset) else { return input }
+        let coloured = matrixed(input, recipe.matrix)
+        guard let curve = recipe.curve else { return coloured }
+        return decoded(ToneCurve.apply(curve, to: encoded(coloured)))
     }
 }

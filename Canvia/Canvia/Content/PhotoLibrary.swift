@@ -12,13 +12,22 @@ struct PhotoDef: Identifiable {
     var category: String
 }
 
-// Deterministic PRNG matching the web generator (LCG).
-private struct SeededRandom {
+// Deterministic PRNG matching the web generator (LCG) — and the Android
+// twin's, so a photo's fx (PhotoLook.fx) draws the same bands, strips and
+// grain from the same seed on either phone.
+struct SeededRandom {
     private var state: UInt32
     init(seed: Double) { state = UInt32(truncatingIfNeeded: Int(seed)) }
     mutating func next() -> Double {
         state = state &* 1664525 &+ 1013904223
         return Double(state) / 4294967296
+    }
+
+    /// A whole number from 0 up to, not including, `n`: the next draw times
+    /// `n`, rounded down. 0 for an `n` of none.
+    mutating func below(_ n: Int) -> Int {
+        guard n > 0 else { return 0 }
+        return min(n - 1, Int(next() * Double(n)))
     }
 }
 

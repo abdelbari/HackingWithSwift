@@ -654,6 +654,9 @@ struct Element: Codable, Equatable, Identifiable {
     var focusBlur: FocusBlur?
     /// An outline or a glow round what the photo shows; nil is none.
     var edge: PhotoEdge?
+    /// Glitch, slice, halftone or grain on the photo's pixels (PhotoFx); nil
+    /// is none, and no key in the file.
+    var fx: PhotoFx?
     /// For a clip ("video:" source): its trim, speed, loop and sound. Never a
     /// clip at all its defaults — that is nil, and no key in the file.
     var clip: ClipPlayback?
@@ -787,6 +790,7 @@ struct Element: Codable, Equatable, Identifiable {
             .flatMap { $0.isFinite && $0 > 0 ? min(1, $0) : nil }
         focusBlur = try? c.decode(FocusBlur.self, forKey: .focusBlur)
         edge = try? c.decode(PhotoEdge.self, forKey: .edge)
+        fx = try? c.decode(PhotoFx.self, forKey: .fx)
         clip = (try? c.decode(ClipPlayback.self, forKey: .clip)).flatMap { $0.isDefault ? nil : $0 }
         // Read tolerantly, as the Android twin reads them: a colour that is
         // none, or a margin out of 0…4, is the default — and a default is no
@@ -831,7 +835,7 @@ struct Element: Codable, Equatable, Identifiable {
         case spans, spansText, paragraphs, paragraphsText
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns, timing
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit, clip
-        case filterStrength, pixelate, focusBlur, edge
+        case filterStrength, pixelate, focusBlur, edge, fx
         case qrColor, qrBackground, qrMargin
         case glyph
         case thickness, dash, startCap, endCap

@@ -1,10 +1,11 @@
-// A photo's effects — pixelate, focus, and an outline or glow round what it
-// shows — with the rules both phones draw them by. Blur is not here: it is
-// the sharpness dial below zero. The numbers are pure and tested
-// (PhotoEffectsTests, the Android twin's PhotoEffectsTest); the drawing is
-// Core Image's in the filter engine's pass (pixelate on the picture's own
-// pixels, before the vignette and the duotone) and, for the edge, behind
-// the photo's frame.
+// A photo's effects — pixelate, focus, an outline or glow round what it
+// shows, and one of glitch, slice, halftone or grain (`fx`) — with the rules
+// both phones draw them by. Blur is not here: it is the sharpness dial below
+// zero. The numbers are pure and tested (PhotoEffectsTests, the Android
+// twin's PhotoEffectsTest); the drawing is Core Image's in the filter
+// engine's pass (pixelate on the picture's own pixels, before the vignette
+// and the duotone; the fx after the vignette, before the duotone) and, for
+// the edge, behind the photo's frame.
 
 import CoreImage
 import CoreImage.CIFilterBuiltins
@@ -67,6 +68,49 @@ struct PhotoEdge: Codable, Equatable, Hashable {
     }
 }
 
+/// Glitch, slice, halftone or grain on a photo's pixels: the element's `fx`
+/// key, {kind, amount 0…1, seed}, as the Android twin writes it. The seed
+/// keeps the same bands, strips and noise on either phone (SeededRandom);
+/// the maths is PhotoLook.fx. An unknown kind is no fx; a missing amount is
+/// half and a missing seed 0, and an amount out of 0…1 is drawn within it.
+struct PhotoFx: Codable, Equatable, Hashable {
+    var kind: String
+    var amount: Double = 0.5
+    var seed: Int = 0
+
+    /// The four kinds, in the order the Filters sheet offers them.
+    static let kinds = ["glitch", "slice", "halftone", "grain"]
+
+    private enum CodingKeys: String, CodingKey { case kind, amount, seed }
+
+    init(kind: String, amount: Double = 0.5, seed: Int = 0) {
+        self.kind = kind
+        self.amount = amount
+        self.seed = seed
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let kind = try c.decode(String.self, forKey: .kind)
+        guard Self.kinds.contains(kind) else {
+            throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "Not an fx")
+        }
+        self.kind = kind
+        amount = (try? c.decode(Double.self, forKey: .amount)).flatMap { $0.isFinite ? $0 : nil } ?? 0.5
+        seed = (try? c.decode(Int.self, forKey: .seed)) ?? 0
+    }
+
+    /// Its amount within 0…1.
+    var share: Double { min(max(amount, 0), 1) }
+
+    /// Whether it changes anything: a known kind, more than none of it.
+    var draws: Bool { Self.kinds.contains(kind) && share > 0 }
+
+    /// What the Filters sheet calls it: "Glitch", "Slice", "Halftone",
+    /// "Grain".
+    static func name(_ kind: String) -> String { kind.capitalized }
+}
+
 enum PhotoEffects {
 
     // MARK: what a tap turns on
@@ -76,6 +120,11 @@ enum PhotoEffects {
     static let defaultBlur = 0.5
     static let defaultPixelate = 0.2
     static let glowColour = "#ffe066"
+    /// An fx comes in at half, from a seed of its own.
+    static let defaultFx = 0.5
+
+    /// A new fx's seed, or Shuffle's: any from 1 to 99 999.
+    static func newSeed() -> Int { Int.random(in: 1...99_999) }
 
     // MARK: pixelate
 
@@ -136,10 +185,11 @@ enum PhotoEffects {
     // MARK: drawing, in the filter engine's pass
 
     /// The effects the filter engine draws into the picture itself: pixelate
-    /// (its block in the picture's pixels) and focus.
+    /// (its block in the picture's pixels), focus, and the fx.
     struct Plan: Hashable {
         var block = 0
         var focus: FocusBlur?
+        var fx: PhotoFx?
 
         static let none = Plan()
         var isNone: Bool { self == Plan() }
@@ -151,6 +201,7 @@ enum PhotoEffects {
             if let f = focus {
                 out += "|fo\(f.x),\(f.y),\(f.radius),\(f.amount)\(f.subject ? "s" : "")"
             }
+            if let fx { out += "|fx\(fx.kind)\(fx.share),\(fx.seed)" }
             return out
         }
     }
@@ -158,7 +209,8 @@ enum PhotoEffects {
     /// `el`'s plan for a picture `picture` pixels in size.
     static func plan(_ el: Element, picture: CGSize) -> Plan {
         let block = blockPixels(el, picture: picture)
-        return Plan(block: block > 1 ? block : 0, focus: el.focusBlur.flatMap { $0.amount > 0 ? $0 : nil })
+        return Plan(block: block > 1 ? block : 0, focus: el.focusBlur.flatMap { $0.amount > 0 ? $0 : nil },
+                    fx: el.fx.flatMap { $0.draws ? $0 : nil })
     }
 
     /// `bytes` — RGBA, premultiplied, `width` × `height` — in square blocks

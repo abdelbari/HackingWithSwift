@@ -504,9 +504,11 @@ struct CanvasView: View {
     /// is a text box being typed in, so its words show once, in the field —
     /// and a shape being typed in is drawn without its words.
     private var shownPage: Page {
-        // A clip's trim handle dragged shows its frame there, never
+        // A clip's trim handle dragged shows its frame there; Hold to
+        // compare shows the selected photo without its looks. Neither is
         // written.
         var page = Trimming.scrubbed(store.page, store.clipScrub)
+        if store.comparing, let id = store.singleSelection?.id { page = PhotoEdits.comparing(page, id) }
         let hidden = [store.cropping?.id, store.editingTextId].compactMap { $0 }
         guard !hidden.isEmpty else { return page }
         if let id = store.editingTextId, let i = page.elements.firstIndex(where: { $0.id == id && $0.type == .shape }) {
