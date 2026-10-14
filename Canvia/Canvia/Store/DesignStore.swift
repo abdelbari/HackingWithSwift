@@ -359,14 +359,16 @@ final class DesignStore {
     private(set) var historyVersion = 0
     var canRedo: Bool { !future.isEmpty }
 
-    func undo() {
+    /// Undo; `reveal` false while Undo is held to rewind, which brings what
+    /// it changed into view once, as the finger lifts (revealSelection).
+    func undo(reveal: Bool = true) {
         // Typing, dictation or a crop under way is kept as its own step
         // first, so Undo takes back that rather than whatever came before
         // it — and the words typed are never thrown away with that step.
         closeOpenSteps()
         guard let entry = past.popLast() else { return }
         future.append(HistoryEntry(design: design, pageIndex: pageIndex))
-        restore(entry)
+        restore(entry, reveal: reveal)
         buzz(.undo)
     }
 
@@ -374,7 +376,7 @@ final class DesignStore {
         closeOpenSteps()
         guard let entry = future.popLast() else { return }
         past.append(HistoryEntry(design: design, pageIndex: pageIndex))
-        restore(entry)
+        restore(entry, reveal: true)
         buzz(.redo)
     }
 
@@ -387,8 +389,9 @@ final class DesignStore {
         commit()
     }
 
-    private func restore(_ entry: HistoryEntry) {
+    private func restore(_ entry: HistoryEntry, reveal: Bool) {
         historyVersion += 1
+        let before = design
         design = entry.design
         // An undone step brings words back rather than typing them: it never
         // renames the design.
@@ -398,9 +401,28 @@ final class DesignStore {
         // being typed into is not ended by the selection below as a step.
         editingTextId = nil
         pending = nil
-        let ids = Set(page.elements.map(\.id))
-        selection = selection.intersection(ids)
+        // What the step changed on the page now shown is selected, whole
+        // sticky groups and all, so you can see what came back and go on
+        // working on it, as in Canva; a step that only took things away
+        // leaves nothing selected. The selection is never a step itself.
+        let shown = page
+        let was = before.pages.first { $0.id == shown.id } ?? Page(id: shown.id, elements: [])
+        let ids = Set(shown.elements.map(\.id))
+        let changed = History.changedIds(before: was, after: shown).intersection(ids)
+        let groups = Set(shown.elements.filter { changed.contains($0.id) }.compactMap(\.group))
+        selection = changed.union(shown.elements.filter { $0.group.map(groups.contains) == true }.map(\.id))
+        if reveal { revealSelection() }
         onCommit?()
+    }
+
+    /// The selection brought into view when any of it is off screen, by
+    /// the least scroll (CanvasRequest.reveal) — after an Undo or a Redo,
+    /// and as a held Undo's rewind lets go.
+    func revealSelection() {
+        guard let box = selectionBox else { return }
+        let seen = viewport
+        guard seen.width <= 0 || !seen.contains(box) else { return }
+        requestCanvas(.reveal(box))
     }
 
     // MARK: selection
@@ -590,6 +612,14 @@ final class DesignStore {
 
     var hasClipboard: Bool { !clipboard.isEmpty || ElementClipboard.hasContent() }
 
+    /// Whether the hold menu offers Paste: elements copied here or in
+    /// another design, or a picture another app left — as on the Android
+    /// twin, words from another app are not offered there.
+    var canPasteAtFinger: Bool {
+        !clipboard.isEmpty || UIPasteboard.general.contains(pasteboardTypes: [ElementClipboard.type])
+            || UIPasteboard.general.hasImages
+    }
+
     /// Commands that move elements ignore locked ones, so the UI must gate on
     /// the unlocked subset or it offers controls that quietly do nothing.
     var unlockedSelectionCount: Int { selectedElements.filter { !$0.locked }.count }
@@ -717,7 +747,10 @@ final class DesignStore {
         announce(ids.count == 1 ? "Cut" : "Cut \(ids.count) things")
     }
 
-    func paste() {
+    /// Paste; with `point`, on the page in page units — the menu a hold on
+    /// the empty page brings up — what was copied is put down centred there
+    /// and kept on the page (HoldMenu.placed), in the paste's one step.
+    func paste(at point: CGPoint? = nil) {
         // Our own copy first; otherwise whatever another app left: a
         // picture, or some text.
         if clipboard.isEmpty {
@@ -727,7 +760,13 @@ final class DesignStore {
                 clipboardFonts = ElementClipboard.fonts()
                 pastedOnto = nil
                 pasteCount = 0
-            } else if let stranger = ElementClipboard.foreign(designWidth: pageWidth) {
+            } else if var stranger = ElementClipboard.foreign(designWidth: pageWidth) {
+                if let point {
+                    let at = HoldMenu.placed(Geometry.aabb(stranger).size, at: point, page: pageSize)
+                    let box = Geometry.aabb(stranger)
+                    stranger.x += Double(at.x - box.minX)
+                    stranger.y += Double(at.y - box.minY)
+                }
                 add(stranger)
                 return
             }
@@ -751,7 +790,18 @@ final class DesignStore {
         // pasted element the user cannot move, edit or delete is a dead end.
         let offset = Copies.pasteOffset(nth: pasteCount, sourcePage: clipboardPage, onto: page,
                                         copied: clipboard.map(\.id))
-        let copies = Copies.of(clipboard, offset: offset)
+        var copies = Copies.of(clipboard, offset: offset)
+        if let point, !copies.isEmpty {
+            let box = Geometry.union(copies.map(Geometry.aabb))
+            let at = HoldMenu.placed(box.size, at: point, page: pageSize)
+            let dx = Double(at.x - box.minX), dy = Double(at.y - box.minY)
+            copies = copies.map { el in
+                var moved = el
+                moved.x += dx
+                moved.y += dy
+                return moved
+            }
+        }
         let fonts = clipboardFonts
         // The fonts of your own they brought recorded with them, one step.
         apply { design in
@@ -759,6 +809,27 @@ final class DesignStore {
             design = CustomFonts.adopting(fonts, into: design)
         }
         selection = Set(copies.map(\.id))
+    }
+
+    /// Where a still hold on the empty page brought up its menu, in page
+    /// units on the page being worked; nil when the menu is not up. View
+    /// state only.
+    var holdMenuAt: CGPoint?
+
+    /// The hold menu's Add text here: a text box as the Add panel makes one
+    /// — 6% of the page's width in type, 72% of it wide — but with no words
+    /// yet, centred on `point` and kept on the page, typed into at once.
+    /// Putting it there and the words typed are one Undo; left without
+    /// words, it goes, and leaves no step.
+    func addText(at point: CGPoint) {
+        endTextEdit()
+        var el = Element.text("", fontSize: (pageWidth * 0.06).rounded(), w: (pageWidth * 0.72).rounded())
+        let at = HoldMenu.placed(CGSize(width: el.w, height: el.h), at: point, page: pageSize)
+        el.x = Double(at.x)
+        el.y = Double(at.y)
+        beginGesture()
+        design.pages[pageIndex].elements.append(el)
+        startTyping(el.id)
     }
 
     func selectAll() {
@@ -944,6 +1015,20 @@ final class DesignStore {
     func nudgeSelected(dx: Double, dy: Double) {
         guard dx != 0 || dy != 0, movableSelectionCount > 0 else { return }
         updateSelectedPlacement { $0.x += dx; $0.y += dy }
+    }
+
+    /// A step of a held nudge arrow, into the step the hold opened: the
+    /// arrow's whole hold is one undo step, closed by commit() as it lifts.
+    func nudgeSelectedTransient(dx: Double, dy: Double) {
+        guard dx != 0 || dy != 0, movableSelectionCount > 0 else { return }
+        beginGesture()
+        for i in design.pages[pageIndex].elements.indices
+        where selection.contains(design.pages[pageIndex].elements[i].id)
+            && !design.pages[pageIndex].elements[i].holdsPlace {
+            design.pages[pageIndex].elements[i].x += dx
+            design.pages[pageIndex].elements[i].y += dy
+        }
+        Connectors.resolve(&design.pages[pageIndex])
     }
 
     /// Mutate where every selected element free to move sits, its size or
@@ -1484,15 +1569,54 @@ final class DesignStore {
         }
     }
 
+    /// The kind of element the copied style came from, which says what of
+    /// it another kind takes (StylePaint).
+    private(set) var copiedStyleKind: ElementType?
+
+    /// Paint mode: Copy style is armed, and a tap on any unlocked element
+    /// pastes the style onto it (paintStyle) — on until Done, Escape, the
+    /// button again, or a tap on the empty page. View state only.
+    var stylePainting = false
+
     func copyStyle() {
         guard let el = singleSelection else { return }
         copiedStyle = Self.style(of: el)
+        copiedStyleKind = el.type
         buzz(.tick)
     }
 
+    /// The toolbar's Copy style: copies the selection's style and arms paint
+    /// mode — or, while it is armed, puts it away.
+    func toggleStylePainting() {
+        if stylePainting {
+            stylePainting = false
+            return
+        }
+        guard singleSelection != nil else { return }
+        copyStyle()
+        stylePainting = true
+    }
+
+    /// Paste the copied style onto everything selected, locked things left
+    /// as they are: one undo step.
     func pasteStyle() {
         guard let style = copiedStyle else { return }
-        updateSelected { Self.apply(style, to: &$0) }
+        let kind = copiedStyleKind
+        updateSelected { $0 = StylePaint.pasted(style, from: kind ?? $0.type, onto: $0) }
+    }
+
+    /// Paint mode's tap on element `id`: it — or its whole sticky group —
+    /// is selected and takes the copied style, as one undo step, felt as it
+    /// lands. A locked one is left as it is.
+    func paintStyle(onto id: String) {
+        guard copiedStyle != nil, let el = element(id) else { return }
+        guard !el.locked else {
+            buzz(.reject)
+            return
+        }
+        select(id)
+        pasteStyle()
+        buzz(.confirm)
     }
 
     /// ⇧⌘L: everything selected locked whole while anything of it is not,
@@ -1577,11 +1701,23 @@ final class DesignStore {
         selection = [id]
     }
 
+    /// Flip what is selected: one thing in place, a group or several as one
+    /// unit, mirrored about their box (Geometry.flipAll). One undo step.
     func flipSelected(horizontal: Bool) {
         guard unlockedSelectionCount > 0 else { return }
         buzz(.tick)
-        updateSelected { el in
-            if horizontal { el.flipH.toggle() } else { el.flipV.toggle() }
+        guard selection.count > 1, let box = selectionBox else {
+            updateSelected { el in
+                if horizontal { el.flipH.toggle() } else { el.flipV.toggle() }
+            }
+            return
+        }
+        let flipped = Geometry.flipAll(selectedElements, box: box, horizontal: horizontal)
+        applyToPage { page in
+            let byId = Dictionary(uniqueKeysWithValues: flipped.map { ($0.id, $0) })
+            for i in page.elements.indices {
+                if let e = byId[page.elements[i].id] { page.elements[i] = e }
+            }
         }
     }
 

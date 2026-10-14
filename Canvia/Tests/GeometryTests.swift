@@ -678,3 +678,81 @@ final class DesignStoreTests: XCTestCase {
         XCTAssertEqual(xs, [100, 124, 148])
     }
 }
+
+/// Flipping a group or a multi-selection mirrors it as one unit
+/// (Geometry.flipAll), with the rows the Android twin's GeometryTest holds.
+@MainActor
+final class GroupFlipTests: XCTestCase {
+
+    private func box(_ id: String, x: Double, y: Double, rotation: Double = 0) -> Element {
+        var el = Element.shape("rect", w: 100, h: 100)
+        el.id = id
+        el.x = x; el.y = y; el.rotation = rotation
+        return el
+    }
+
+    func testAHorizontalFlipMirrorsTheArrangement() {
+        var heading = Element.text("Sale", w: 100)
+        heading.id = "t"
+        heading.x = 150; heading.y = 200; heading.rotation = 10
+        let frame = CGRect(x: 0, y: 0, width: 400, height: 300)
+        let out = Geometry.flipAll([box("a", x: 0, y: 0), box("b", x: 300, y: 0, rotation: 30), heading],
+                                   box: frame, horizontal: true)
+        XCTAssertEqual(out.map(\.x), [300, 0, 150], "the two boxes swap sides")
+        XCTAssertEqual(out.map(\.y), [0, 0, 200])
+        XCTAssertEqual(out[1].rotation, 330, accuracy: 0.0001, "a 30-degree member becomes 330")
+        XCTAssertEqual(out[0].rotation, 0)
+        XCTAssertEqual(out.map(\.flipH), [true, true, false], "text keeps flipH false")
+        XCTAssertEqual(out[2].rotation, 350, accuracy: 0.0001, "its turn mirrored")
+    }
+
+    func testAVerticalFlipMirrorsDownTheBox() {
+        let frame = CGRect(x: 0, y: 0, width: 400, height: 300)
+        let out = Geometry.flipAll([box("a", x: 0, y: 0), box("b", x: 300, y: 200, rotation: 30)],
+                                   box: frame, horizontal: false)
+        XCTAssertEqual(out.map(\.y), [200, 0])
+        XCTAssertEqual(out.map(\.x), [0, 300])
+        XCTAssertEqual(out.map(\.flipV), [true, true])
+        XCTAssertEqual(out.map(\.flipH), [false, false])
+        XCTAssertEqual(out[1].rotation, 330, accuracy: 0.0001)
+    }
+
+    func testLinesSwapCapsOnlyWhenTurnedEndToEndAndLockedThingsStay() {
+        var arrow = Element.line(w: 100)
+        arrow.id = "line"
+        arrow.endCap = "arrow"
+        var joined = arrow
+        joined.id = "joined"
+        joined.connectFrom = "a"
+        var locked = box("l", x: 0, y: 200)
+        locked.locked = true
+        let frame = CGRect(x: 0, y: 0, width: 400, height: 300)
+        let across = Geometry.flipAll([arrow, joined, locked], box: frame, horizontal: true)
+        XCTAssertEqual(across[0].startCap, "arrow")
+        XCTAssertEqual(across[0].endCap, "none")
+        XCTAssertFalse(across[0].flipH, "a line is not flipped; its caps swap")
+        XCTAssertEqual(across[1].endCap, "arrow", "a connector keeps its caps")
+        XCTAssertEqual(across[2], locked, "a locked thing stays as it is")
+        let down = Geometry.flipAll([arrow], box: frame, horizontal: false)
+        XCTAssertEqual(down[0].endCap, "arrow", "a vertical flip keeps a line's direction")
+        XCTAssertFalse(down[0].flipV)
+    }
+
+    func testTheStoreFlipsASingleThingInPlaceAndSeveralAsOneStep() {
+        var d = Design(title: "flip", width: 1080, height: 1080)
+        d.pages = [Page(id: "p1", elements: [box("a", x: 0, y: 0), box("b", x: 300, y: 0)])]
+        let s = DesignStore(design: d)
+        s.selection = ["a"]
+        s.flipSelected(horizontal: true)
+        XCTAssertEqual(s.element("a")?.x, 0, "one thing flips in place")
+        XCTAssertEqual(s.element("a")?.flipH, true)
+        s.undo()
+        s.selection = ["a", "b"]
+        s.flipSelected(horizontal: true)
+        XCTAssertEqual(s.element("a")?.x, 300)
+        XCTAssertEqual(s.element("b")?.x, 0)
+        s.undo()
+        XCTAssertEqual(s.element("a")?.x, 0, "one step")
+        XCTAssertEqual(s.element("b")?.x, 300)
+    }
+}

@@ -45,7 +45,17 @@ final class CanvasGesturesAndMoveTests: XCTestCase {
             (.twoFingers, .element, .panAndZoom),
             (.twoFingers, .emptyPage, .panAndZoom),
             (.holdThenDrag, .element, .move),
-            (.hold, .emptyPage, .nothing),
+            // Round 25: a still hold on the empty page brings up the menu.
+            (.hold, .emptyPage, .menu),
+            (.tap, .element, .select),
+            (.tap, .emptyPage, .deselect),
+            // Round 25: inside the selection a drag moves it, whatever lies
+            // on top, while a tap still picks the topmost thing.
+            (.drag, .selectedBody, .move),
+            (.tap, .selectedBody, .select),
+            (.holdThenDrag, .selectedBody, .move),
+            (.hold, .selectedBody, .toggleInSelection),
+            (.twoFingers, .selectedBody, .panAndZoom),
         ]
         for (input, target, action) in rows {
             XCTAssertEqual(CanvasGestures.action(input, on: target), action, "\(input) on \(target)")
