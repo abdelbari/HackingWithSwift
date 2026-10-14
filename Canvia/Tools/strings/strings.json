@@ -1,0 +1,56 @@
+{
+  "Canvia listens while you dictate into a text element, and records the voice-overs you make for a video.": {
+    "ar": "يستمع Canvia أثناء إملائك في عنصر نصي، ويسجّل التعليقات الصوتية التي تصنعها لمقطع فيديو.",
+    "de": "Canvia hört zu, während du in ein Textelement diktierst, und nimmt die Sprachaufnahmen auf, die du für ein Video machst.",
+    "es": "Canvia escucha mientras dictas en un elemento de texto y graba las locuciones que haces para un video.",
+    "fr": "Canvia écoute pendant que vous dictez dans un élément de texte et enregistre les voix off que vous créez pour une vidéo.",
+    "it": "Canvia ascolta mentre detti in un elemento di testo e registra le voci fuori campo che crei per un video.",
+    "ja": "Canviaは、テキスト要素への音声入力中に音声を聞き取り、動画用のナレーションを録音します。",
+    "pt-BR": "O Canvia ouve enquanto você dita em um elemento de texto e grava as narrações que você faz para um vídeo."
+  },
+  "Canvia saves your exported designs to your photo library when you choose Save Image.": {
+    "ar": "يحفظ Canvia تصاميمك المُصدَّرة في مكتبة الصور عندما تختار حفظ الصورة.",
+    "de": "Canvia sichert deine exportierten Designs in deiner Fotomediathek, wenn du „Bild sichern“ wählst.",
+    "es": "Canvia guarda tus diseños exportados en tu fototeca cuando eliges Guardar imagen.",
+    "fr": "Canvia enregistre vos designs exportés dans votre photothèque lorsque vous choisissez Enregistrer l'image.",
+    "it": "Canvia salva i design esportati nella tua libreria foto quando scegli Salva immagine.",
+    "ja": "「画像を保存」を選ぶと、Canviaは書き出したデザインを写真ライブラリに保存します。",
+    "pt-BR": "O Canvia salva seus designs exportados na sua fototeca quando você escolhe Salvar imagem."
+  },
+  "Canvia turns what you say into the words of a text element.": {
+    "ar": "يحوّل Canvia ما تقوله إلى كلمات عنصر نصي.",
+    "de": "Canvia macht aus dem, was du sagst, die Wörter eines Textelements.",
+    "es": "Canvia convierte lo que dices en las palabras de un elemento de texto.",
+    "fr": "Canvia transforme ce que vous dites en mots dans un élément de texte.",
+    "it": "Canvia trasforma ciò che dici nelle parole di un elemento di testo.",
+    "ja": "Canviaは、話した内容をテキスト要素の文字に変換します。",
+    "pt-BR": "O Canvia transforma o que você diz nas palavras de um elemento de texto."
+  },
+  "Canvia uses the camera to take photos and videos for your designs and to scan documents.": {
+    "ar": "يستخدم Canvia الكاميرا لالتقاط الصور ومقاطع الفيديو لتصاميمك ولمسح المستندات ضوئيًا.",
+    "de": "Canvia verwendet die Kamera, um Fotos und Videos für deine Designs aufzunehmen und Dokumente zu scannen.",
+    "es": "Canvia usa la cámara para tomar fotos y videos para tus diseños y para escanear documentos.",
+    "fr": "Canvia utilise l'appareil photo pour prendre des photos et des vidéos pour vos designs et pour numériser des documents.",
+    "it": "Canvia usa la fotocamera per scattare foto e girare video per i tuoi design e per scansionare documenti.",
+    "ja": "Canviaは、デザイン用の写真やビデオの撮影と、書類のスキャンにカメラを使用します。",
+    "pt-BR": "O Canvia usa a câmera para tirar fotos e gravar vídeos para seus designs e para digitalizar documentos."
+  },
+  "Canvia uses your phone's language. To choose another for Canvia alone, open its page in the Settings app.": {
+    "ar": "يستخدم Canvia لغة هاتفك. لاختيار لغة أخرى لـ Canvia وحده، افتح صفحته في تطبيق الإعدادات.",
+    "de": "Canvia verwendet die Sprache deines Telefons. Um nur für Canvia eine andere zu wählen, öffne die Seite der App in den Einstellungen.",
+    "es": "Canvia usa el idioma de tu teléfono. Para elegir otro solo para Canvia, abre su página en la app Ajustes.",
+    "fr": "Canvia utilise la langue de votre téléphone. Pour en choisir une autre pour Canvia seulement, ouvrez sa page dans l'app Réglages.",
+    "it": "Canvia usa la lingua del telefono. Per sceglierne un'altra solo per Canvia, apri la sua pagina nell'app Impostazioni.",
+    "ja": "Canviaはスマートフォンの言語を使用します。Canviaだけ別の言語にするには、設定アプリでCanviaのページを開いてください。",
+    "pt-BR": "O Canvia usa o idioma do seu telefone. Para escolher outro só para o Canvia, abra a página dele no app Ajustes."
+  },
+  "Language": {
+    "ar": "اللغة",
+    "de": "Sprache",
+    "es": "Idioma",
+    "fr": "Langue",
+    "it": "Lingua",
+    "ja": "言語",
+    "pt-BR": "Idioma"
+  }
+}
