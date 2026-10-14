@@ -487,7 +487,10 @@ enum PptxExporter {
         var border = ""
         if let stroke = el.stroke, let width = el.strokeWidth, width > 0 {
             let paint = "<a:solidFill>\(color(stroke, opacity: el.opacity))</a:solidFill>"
-            border = "<a:ln w=\"\(emu(width * frame.unit))\">\(paint)\(dashXML(el.dash))</a:ln>"
+            // Dots with round ends, as the canvas draws them and the line
+            // rule writes them, on both phones.
+            let cap = BorderDash.kept(el.dash) == "dotted" ? " cap=\"rnd\"" : ""
+            border = "<a:ln w=\"\(emu(width * frame.unit))\"\(cap)>\(paint)\(dashXML(el.dash))</a:ln>"
         }
         let properties = "<p:nvSpPr>\(cNvPr(el, id: id, link: link))<p:cNvSpPr/><p:nvPr/></p:nvSpPr>"
         let look = [elementBox(el, frame: frame), outline, fillXML(el.fill, opacity: el.opacity), border].joined()

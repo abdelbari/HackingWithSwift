@@ -56,7 +56,14 @@ final class BorderStyleTests: XCTestCase {
         var d = Design(title: "Deck", width: 800, height: 600)
         d.pages = [Page(elements: [rect])]
         let xml = PptxExporter.slide(design: d, page: d.pages[0], number: 1, previous: nil, firstImage: 1).xml
-        XCTAssertTrue(xml.contains("<a:srgbClr val=\"000000\"/></a:solidFill><a:prstDash val=\"sysDot\"/></a:ln>"), xml)
+        // The Android twin's PptxWriterTest holds the same string.
+        let dotted = "<a:ln w=\"19050\" cap=\"rnd\"><a:solidFill><a:srgbClr val=\"000000\"/></a:solidFill>"
+            + "<a:prstDash val=\"sysDot\"/></a:ln>"
+        XCTAssertTrue(xml.contains(dotted), xml)
+        rect.dash = "dashed"
+        d.pages = [Page(elements: [rect])]
+        let dashed = PptxExporter.slide(design: d, page: d.pages[0], number: 1, previous: nil, firstImage: 1).xml
+        XCTAssertTrue(dashed.contains("<a:ln w=\"19050\"><a:solidFill>"), dashed)
         XCTAssertEqual(PptxExporter.dashXML("dashed"), "<a:prstDash val=\"dash\"/>")
         XCTAssertEqual(PptxExporter.dashXML(nil), "")
     }
