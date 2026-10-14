@@ -275,13 +275,15 @@ enum MovieExporter {
     }
 
     /// A page at a moment, for animated pages: the same render as the page
-    /// bitmap, with the clock set.
+    /// bitmap, with the clock set. Its clips are asked for frame after
+    /// frame, and read in order (ClipReader).
     @MainActor
     static func animatedFrame(design: Design, page: Int, time: Double, hold: Double, size: CGSize) -> CGImage? {
         guard design.pages.indices.contains(page), isAnimated(design.pages[page], in: design) else { return nil }
         return autoreleasepool { () -> CGImage? in
             let renderer = ImageRenderer(content: PageRenderView(design: design, page: design.pages[page])
-                .environment(\.animationTime, (time, hold)))
+                .environment(\.animationTime, (time, hold))
+                .environment(\.clipsInOrder, true))
             renderer.scale = renderScale(for: design.size(for: design.pages[page]), in: size)
             renderer.isOpaque = true
             return renderer.cgImage
@@ -466,6 +468,8 @@ enum MovieExporter {
     static func exportMP4(design: Design, settings: Settings = Settings(),
                           range: DesignExporter.PageRange = .all, current: Int = 0, to url: URL,
                           progress: (@Sendable (Double) -> Void)? = nil) async throws -> Outcome {
+        // The clips' readers let go once the frames are written, or not.
+        defer { ClipReaders.closeAll() }
         try? FileManager.default.removeItem(at: url)
         var size = videoSize(for: design, maxEdge: settings.maxEdge)
         var pacer = DesignExporter.Pacer()
@@ -747,6 +751,8 @@ enum MovieExporter {
     static func exportGIF(design: Design, settings: Settings = Settings(),
                           range: DesignExporter.PageRange = .all, current: Int = 0, to url: URL,
                           progress: ((Double) -> Void)? = nil) async throws {
+        // The clips' readers let go once the frames are drawn, or not.
+        defer { ClipReaders.closeAll() }
         // Sized to a budget and paced at a rate the format can state
         // exactly; see gifPlan.
         let plan = gifPlan(design: design, settings: settings, range: range, current: current)

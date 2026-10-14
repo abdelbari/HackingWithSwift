@@ -639,6 +639,8 @@ struct ImageElementView: View {
     let element: Element
     @Environment(\.liveVideo) private var liveVideo
     @Environment(\.onScreen) private var onScreen
+    @Environment(\.animationTime) private var animationTime
+    @Environment(\.clipsInOrder) private var clipsInOrder
 
     var body: some View {
         // Resolved here, not inside the GeometryReader, so that a clip played
@@ -756,13 +758,21 @@ struct ImageElementView: View {
         if liveVideo, let src = element.src, VideoStore.isVideo(src) {
             // Played live, a clip never makes the screen wait for a frame to
             // decode: it shows the latest it has, and the version read here
-            // brings the next one in when it is ready.
+            // brings the next one in when it is ready. While the page's
+            // clock runs, its player plays it on at its speed.
             _ = VideoStore.live.version
-            guard let shown = VideoStore.peek(src) else { return nil }
+            let playing: ClipPlayback? = animationTime == nil ? nil : (element.clip ?? ClipPlayback())
+            guard let shown = VideoStore.peek(src, playing: playing) else { return nil }
             base = shown.image
             // Keyed by the frame shown, not the moment asked for, so a
             // filtered copy is never kept of a stand-in frame.
             key = shown.key
+        } else if clipsInOrder, let src = element.src, VideoStore.isVideo(src) {
+            // A video export asks for each clip's frames in order, and its
+            // reader reads on from the last rather than seeking for each.
+            guard let image = VideoStore.read(src) else { return nil }
+            base = image
+            key = src
         } else if onScreen, let src = element.src, AnimStore.split(src)?.time != nil {
             // An animated picture playing on screen — Play in the editor,
             // Present — never waits for a frame either: small frames are

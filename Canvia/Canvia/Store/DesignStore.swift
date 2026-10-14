@@ -11,9 +11,11 @@ final class DesignStore {
     var design: Design
     var pageIndex: Int = 0 {
         // Another page brought up puts the timeline's playhead at its start
-        // (TimelineEditing), as the Android twin's playhead follows the page.
+        // (TimelineEditing), as the Android twin's playhead follows the page,
+        // and lets the last page's clips go (ClipReader).
         didSet {
             if pageIndex != oldValue {
+                VideoStore.closeClips()
                 playhead = 0
                 playheadPage = design.pages.indices.contains(pageIndex) ? design.pages[pageIndex].id : nil
             }

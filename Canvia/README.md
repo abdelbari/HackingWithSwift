@@ -730,8 +730,13 @@ the canvas preview, the MP4, the GIF — the element shows the frame at
 that moment, looping over the clip's length. A page with a clip renders
 frame by frame like an animated page, and so does one whose master page
 carries a clip. Played live — Present, and Play in the editor — a clip
-never holds up the screen: it shows the latest frame decoded while the
-next is decoded off the main thread; the exports wait for every frame.
+plays smoothly in a muted player of its own (AVPlayer), its frames taken
+as the screen shows them, and never holds up the screen; the exports wait
+for every frame, read in order by a reader of its own per clip
+(AVAssetReader) rather than sought one by one, so a video exports close
+to real time. Seeking frame by frame is left to posters, thumbnails, the
+trimmer and a trim handle dragged. At most four clips are open at once;
+another page, or the phone short of memory, lets them go.
 The clip's own sound is not carried; a soundtrack is.
 
 **Animated GIFs and WebPs** — a GIF or WebP that moves, picked or dropped
