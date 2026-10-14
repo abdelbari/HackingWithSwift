@@ -175,9 +175,17 @@ final class PhotoLooksTests: XCTestCase {
     }
 
     private func words(_ bytes: [UInt8]) -> [UInt32] {
-        stride(from: 0, to: bytes.count, by: 4).map { i in
-            (UInt32(bytes[i]) << 24) | (UInt32(bytes[i + 1]) << 16) | (UInt32(bytes[i + 2]) << 8) | UInt32(bytes[i + 3])
+        var out: [UInt32] = []
+        for i in stride(from: 0, to: bytes.count, by: 4) {
+            // A step at a time: one long shift-and-or chain is more than
+            // the type checker will take.
+            let r: UInt32 = UInt32(bytes[i]) << 24
+            let g: UInt32 = UInt32(bytes[i + 1]) << 16
+            let b: UInt32 = UInt32(bytes[i + 2]) << 8
+            let a: UInt32 = UInt32(bytes[i + 3])
+            out.append(r | g | b | a)
         }
+        return out
     }
 
     private func drawn(_ bytes: [UInt8], _ w: Int, _ h: Int, _ fx: PhotoFx) -> [UInt32] {

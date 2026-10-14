@@ -454,7 +454,7 @@ final class CustomFontsTests: XCTestCase {
         XCTAssertEqual(CustomFonts.describe(classed)?.italic, false)
 
         let variable = sfnt([(0x4F53_2F32, os2(weight: 400, selection: 0x40)),
-                             (0x6661_7672, fvar(min: 250, value: 450, max: 820)),
+                             (0x6676_6172, fvar(min: 250, value: 450, max: 820)),
                              (0x6E61_6D65, nameTable([(1, "Acme Flex")]))])
         let flex = try XCTUnwrap(CustomFonts.describe(variable))
         XCTAssertEqual(flex.weight, 400, "the weight class, not the axis's default")
