@@ -29,9 +29,20 @@ struct TableSelection: Equatable {
     var canDeleteRow: Bool { rows.count == 1 && rowCount > 1 }
     var canDeleteColumn: Bool { columns.count == 1 && columnCount > 1 }
 
+    /// Move row up and down, and Move column left and right, move the one
+    /// row, or column, the selected cells are in, while there is one that
+    /// way to change places with.
+    var canMoveRowUp: Bool { rows.count == 1 && (rows.first ?? 0) > 0 }
+    var canMoveRowDown: Bool { rows.count == 1 && (rows.first ?? 0) < rowCount - 1 }
+    var canMoveColumnLeft: Bool { columns.count == 1 && (columns.first ?? 0) > 0 }
+    var canMoveColumnRight: Bool { columns.count == 1 && (columns.first ?? 0) < columnCount - 1 }
+
     /// Why a turned table, or one with a locked cell, is left as it is.
     static let turnedNote = tr("Turn the table back to level to change its rows and columns.")
     static let lockedNote = tr("A cell of this table is locked. Unlock it to change the table.")
+    /// Why a row, or a column, a merged cell runs through stays where it is.
+    static let unmergeRowNote = tr("Unmerge first to move this row")
+    static let unmergeColumnNote = tr("Unmerge first to move this column")
 
     /// Why Delete row or Delete column waits, when either does.
     var deleteNote: String? {
@@ -367,5 +378,126 @@ extension DesignStore {
             guard let header, header != DataGraphics.tableHasHeader(rebuilt, id: t.id) else { return rebuilt }
             return DataGraphics.withTableHeader(rebuilt, id: t.id, on: header, accent: accent, heightFor: measure)
         }
+    }
+
+    // MARK: moving rows and columns, spacing and alternating rows
+
+    /// The selected cell's row moved up (`step` -1) or down (1), as one
+    /// step; refused, and said, when a merged cell runs through either row.
+    func moveTableRow(by step: Int) {
+        let measure = self.measure
+        var merged = false
+        editTable { els, t in
+            guard t.rows.count == 1, let row = t.rows.first else { return nil }
+            if DataGraphics.rowMoveSplitsMerge(els, id: t.id, row: row, by: step) {
+                merged = true
+                return nil
+            }
+            return DataGraphics.movedTableRow(els, id: t.id, row: row, by: step, heightFor: measure)
+        }
+        if merged { announce(TableSelection.unmergeRowNote, undoable: false) }
+    }
+
+    /// The selected cell's column moved left (`step` -1) or right (1), as
+    /// one step; refused, and said, when a merged cell runs across either.
+    func moveTableColumn(by step: Int) {
+        let measure = self.measure
+        var merged = false
+        editTable { els, t in
+            guard t.columns.count == 1, let col = t.columns.first else { return nil }
+            if DataGraphics.columnMoveSplitsMerge(els, id: t.id, col: col, by: step) {
+                merged = true
+                return nil
+            }
+            return DataGraphics.movedTableColumn(els, id: t.id, col: col, by: step, heightFor: measure)
+        }
+        if merged { announce(TableSelection.unmergeColumnNote, undoable: false) }
+    }
+
+    /// The selected table's cell spacing, as the slider shows it.
+    var tablePadding: Double? {
+        tableSelection.map { DataGraphics.tablePadding(page.elements, id: $0.id) }
+    }
+
+    /// The selected table's cell spacing set, as one step. Whether it changed.
+    @discardableResult
+    func setTablePadding(_ padding: Double) -> Bool {
+        let measure = self.measure
+        return editTable { els, t in
+            let set = DataGraphics.withTablePadding(els, id: t.id, padding: padding, heightFor: measure)
+            return set == els ? nil : set
+        }
+    }
+
+    /// The same while the Cell spacing slider moves; letting go closes the
+    /// step (commit).
+    func setTablePaddingTransient(_ padding: Double) {
+        guard let table = tableSelection, !table.turned,
+              !DataGraphics.tableMembers(page.elements, id: table.id).contains(where: \.locked) else { return }
+        beginGesture()
+        design.pages[pageIndex].elements = DataGraphics.withTablePadding(
+            design.pages[pageIndex].elements, id: table.id, padding: padding, heightFor: measure)
+    }
+
+    /// The selected table's alternating rows' colour, while it keeps them.
+    var tableBands: String? {
+        tableSelection.flatMap { DataGraphics.tableBands(page.elements, id: $0.id) }
+    }
+
+    /// The selected table's alternating rows on, in `colour` — the colour
+    /// they were, else the default band, when none is given — or off, as
+    /// one step. Whether anything changed.
+    @discardableResult
+    func setTableBands(_ on: Bool, colour: String? = nil) -> Bool {
+        let chosen = colour ?? tableBands ?? DataGraphics.tableBand
+        return editTable { els, t in
+            let set = DataGraphics.withTableBands(els, id: t.id, on: on, colour: chosen)
+            return set == els ? nil : set
+        }
+    }
+
+    // MARK: Tab between cells
+
+    /// The cell typed in, in reading order: the text of the next cell —
+    /// the one after it, or with `back` the one before it — in rows from
+    /// the top, left to right; nil past either end.
+    func neighbourCell(of id: String, back: Bool) -> Element? {
+        guard let cell = element(id)?.table else { return nil }
+        let texts = DataGraphics.tableMembers(page.elements, id: cell.id).filter { $0.type == .text }
+            .sorted { a, b in (a.table?.row ?? 0, a.table?.col ?? 0) < (b.table?.row ?? 0, b.table?.col ?? 0) }
+        guard let at = texts.firstIndex(where: { $0.id == id }) else { return nil }
+        let next = back ? at - 1 : at + 1
+        return texts.indices.contains(next) ? texts[next] : nil
+    }
+
+    /// Tab while typing in a cell — or the typing bar's arrow: the words
+    /// kept as their own step, and typing goes on in the next cell, or with
+    /// `back` (Shift-Tab) the one before. Tab in the last cell adds a row
+    /// below, as a step of its own, and goes on in its first cell; Shift-Tab
+    /// in the first cell stays. Whether typing moved.
+    @discardableResult
+    func typeInNextCell(back: Bool) -> Bool {
+        guard let id = editingTextId, let cell = element(id)?.table else { return false }
+        if let next = neighbourCell(of: id, back: back) {
+            if next.locked { return false }
+            endTextEdit()
+            startTyping(next.id)
+            return true
+        }
+        guard !back else { return false }
+        endTextEdit()
+        selection = [id]
+        let lastRow = DataGraphics.tableRows(page.elements, id: cell.id).last ?? cell.row
+        let before = Set(page.elements.map(\.id))
+        let measure = self.measure
+        let added = editTable { els, t in
+            DataGraphics.addingTableRow(els, id: t.id, row: lastRow, below: true, heightFor: measure)
+        }
+        guard added else { return false }
+        let fresh = page.elements.filter { !before.contains($0.id) && $0.type == .text && $0.table?.id == cell.id }
+            .min { ($0.table?.col ?? 0) < ($1.table?.col ?? 0) }
+        guard let fresh else { return false }
+        startTyping(fresh.id)
+        return true
     }
 }

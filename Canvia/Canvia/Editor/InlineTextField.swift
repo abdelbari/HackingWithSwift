@@ -66,6 +66,9 @@ struct InlineTextField: UIViewRepresentable {
     /// a range of the stored words covers changed, as a step of its own;
     /// whether anything changed.
     var onLines: (NSRange, (inout TextParagraph) -> Void) -> Bool = { _, _ in false }
+    /// For a table's cell: Tab, or the bar's arrow, goes on to the next
+    /// cell, and Shift-Tab (true) back to the one before; nil anywhere else.
+    var onNextCell: ((Bool) -> Void)?
     /// Whether the bar has the colour well, A- and A+, Aa, Link, List,
     /// Indent and Outdent: not for a shape's words, which take no colours,
     /// sizes, fonts, links or lists.
@@ -408,6 +411,11 @@ struct InlineTextField: UIViewRepresentable {
         /// and Outdent, as Canva nests its items. False for a shape's words,
         /// which have no lists, and the key is typed as ever.
         func tab(outdent: Bool) -> Bool {
+            // In a table's cell, Tab goes on to the next cell instead.
+            if let next = parent.onNextCell {
+                next(outdent)
+                return true
+            }
             guard let view, parent.wordStyles else { return false }
             indent(view, by: outdent ? -1 : 1)
             return true
@@ -527,13 +535,25 @@ struct InlineTextField: UIViewRepresentable {
             indent.tag = 1
             indent.accessibilityLabel = tr("Indent")
             lineItems = parent.wordStyles ? [list, outdent, indent] : []
-            bar.items = styleItems + wordItems + lineItems
+            // A table's cell: first, the arrow to the next cell.
+            var cellItems: [UIBarButtonItem] = []
+            if parent.onNextCell != nil {
+                let next = UIBarButtonItem(image: UIImage(systemName: "arrow.right"), style: .plain,
+                                           target: self, action: #selector(nextCell))
+                next.accessibilityLabel = tr("Next cell")
+                cellItems = [next]
+            }
+            bar.items = cellItems + styleItems + wordItems + lineItems
             bar.sizeToFit()
             return bar
         }
 
         @objc private func finish() {
             parent.onDone()
+        }
+
+        @objc private func nextCell() {
+            parent.onNextCell?(false)
         }
 
         /// The words chosen, as a range of the words as they read; nil with

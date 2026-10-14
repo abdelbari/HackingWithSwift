@@ -75,7 +75,8 @@ extension DataGraphics {
         }
         let first = texts.min { a, b in (a.cell.row, a.cell.col) < (b.cell.row, b.cell.col) }
         let size = first?.el.fontSize ?? 10
-        let pad = size * tablePad
+        // The table's own cell spacing, or the inset it was made with.
+        let pad = first?.cell.pad ?? size * tablePad
         var fitted: [String: Element] = [:]
         for (t, cell) in texts {
             guard let span = across(cell) else { continue }
@@ -166,8 +167,8 @@ extension DataGraphics {
     static func addingTableRow(_ elements: [Element], id: String, row: Int, below: Bool,
                                heightFor: (Element) -> Double) -> [Element] {
         guard tableRows(elements, id: id).contains(row) else { return elements }
-        return relaidTable(insertingRow(elements, id: id, source: row, at: below ? row + 1 : row),
-                           id: id, heightFor: heightFor)
+        let added = insertingRow(elements, id: id, source: row, at: below ? row + 1 : row)
+        return relaidTable(restriped(added, id: id), id: id, heightFor: heightFor)
     }
 
     /// A column added left or right of `col` (right with `right`), copying
@@ -188,7 +189,7 @@ extension DataGraphics {
                                  heightFor: (Element) -> Double) -> [Element]? {
         let rows = tableRows(elements, id: id)
         guard rows.contains(row), rows.count > 1 else { return nil }
-        return relaidTable(removingRow(elements, id: id, row: row), id: id, heightFor: heightFor)
+        return relaidTable(restriped(removingRow(elements, id: id, row: row), id: id), id: id, heightFor: heightFor)
     }
 
     /// Column `col` taken out and the columns left widened in proportion,
@@ -302,8 +303,9 @@ extension DataGraphics {
         let joined = texts.map(words).filter { !$0.isEmpty }.joined(separator: "\n")
         let box = Geometry.union(tableMembers(elements, id: id)
             .filter { $0.type == .shape && $0.table.map(inBlock) == true }.map(\.frame))
+        let look = tableMembers(elements, id: id).lazy.compactMap(\.table).first
         let merged = TableCell(id: id, row: block.rows.lowerBound, col: block.cols.lowerBound,
-                               rowSpan: block.rows.count, colSpan: block.cols.count)
+                               rowSpan: block.rows.count, colSpan: block.cols.count, pad: look?.pad, bands: look?.bands)
         let out = elements.compactMap { el -> Element? in
             guard let cell = el.table, inBlock(cell) else { return el }
             guard cell.row == merged.row && cell.col == merged.col else { return nil }
@@ -358,7 +360,7 @@ extension DataGraphics {
         let parted = elements.map { el -> Element in
             guard let cell = el.table, cell.id == id, parting(cell) else { return el }
             var out = placed(el, cell, row: cell.row, col: cell.col)
-            out.table = TableCell(id: id, row: cell.row, col: cell.col)
+            out.table = TableCell(id: id, row: cell.row, col: cell.col, pad: cell.pad, bands: cell.bands)
             return out
         }
         return relaidTable(inserting(fresh, into: parted, id: id), id: id, heightFor: heightFor)
@@ -466,6 +468,160 @@ extension DataGraphics {
         return relaidTable(placingColumns(elements, id: id, left: left, widths: byColumn), id: id, heightFor: heightFor)
     }
 
+    // MARK: moving rows and columns
+
+    /// Whether moving row `row` of table `id` by `step` would part a merged
+    /// cell: one running down through either of the two rows that change
+    /// places. Moving it is refused then (Unmerge first).
+    static func rowMoveSplitsMerge(_ elements: [Element], id: String, row: Int, by step: Int) -> Bool {
+        tableMembers(elements, id: id).compactMap(\.table).contains { cell in
+            cell.rowSpan > 1 && (cell.spannedRows.contains(row) || cell.spannedRows.contains(row + step))
+        }
+    }
+
+    /// Whether moving column `col` by `step` would part a merged cell: one
+    /// running across either of the two columns that change places.
+    static func columnMoveSplitsMerge(_ elements: [Element], id: String, col: Int, by step: Int) -> Bool {
+        tableMembers(elements, id: id).compactMap(\.table).contains { cell in
+            cell.colSpan > 1 && (cell.spannedCols.contains(col) || cell.spannedCols.contains(col + step))
+        }
+    }
+
+    /// Row `row` of table `id` and the row `step` (±1) from it changed
+    /// places — their cells, words and colours with them — the alternating
+    /// rows striped again (restriped) and the table laid out again. Nil when
+    /// there is no row there, or when a merged cell would be parted
+    /// (rowMoveSplitsMerge).
+    static func movedTableRow(_ elements: [Element], id: String, row: Int, by step: Int,
+                              heightFor: (Element) -> Double) -> [Element]? {
+        let rows = tableRows(elements, id: id)
+        let other = row + step
+        guard step != 0, rows.contains(row), rows.contains(other),
+              !rowMoveSplitsMerge(elements, id: id, row: row, by: step) else { return nil }
+        let swapped = elements.map { el -> Element in
+            guard var cell = el.table, cell.id == id, cell.row == row || cell.row == other else { return el }
+            cell.row = cell.row == row ? other : row
+            var out = el
+            out.table = cell
+            return out
+        }
+        return relaidTable(restriped(swapped, id: id), id: id, heightFor: heightFor)
+    }
+
+    /// Column `col` of table `id` and the column `step` (±1) from it changed
+    /// places — each keeping its width — and the table laid out again. Nil
+    /// when there is no column there, or when a merged cell would be parted
+    /// (columnMoveSplitsMerge).
+    static func movedTableColumn(_ elements: [Element], id: String, col: Int, by step: Int,
+                                 heightFor: (Element) -> Double) -> [Element]? {
+        let boxes = columnBoxes(elements, id: id)
+        let other = col + step
+        guard step != 0, let mine = boxes[col], let theirs = boxes[other],
+              let left = boxes.values.map({ $0.x }).min(),
+              !columnMoveSplitsMerge(elements, id: id, col: col, by: step) else { return nil }
+        var widths = boxes.mapValues { $0.w }
+        widths[col] = theirs.w
+        widths[other] = mine.w
+        let swapped = elements.map { el -> Element in
+            guard var cell = el.table, cell.id == id, cell.col == col || cell.col == other else { return el }
+            cell.col = cell.col == col ? other : col
+            var out = el
+            out.table = cell
+            return out
+        }
+        return relaidTable(placingColumns(swapped, id: id, left: left, widths: widths), id: id, heightFor: heightFor)
+    }
+
+    // MARK: cell spacing
+
+    /// The most the Cell spacing slider sets, in page units.
+    static let tablePadMax = 40.0
+
+    /// The inset table `id` was made with: tablePad times the type of its
+    /// first cell's words.
+    static func defaultTablePadding(_ elements: [Element], id: String) -> Double {
+        let texts = tableMembers(elements, id: id).filter { $0.type == .text }
+        let first = texts.min { a, b in
+            (a.table?.row ?? 0, a.table?.col ?? 0) < (b.table?.row ?? 0, b.table?.col ?? 0)
+        }
+        return (first?.fontSize ?? 10) * tablePad
+    }
+
+    /// Table `id`'s cell spacing: its own, or the inset it was made with.
+    static func tablePadding(_ elements: [Element], id: String) -> Double {
+        tableMembers(elements, id: id).lazy.compactMap { $0.table?.pad }.first
+            ?? defaultTablePadding(elements, id: id)
+    }
+
+    /// Table `id` with its words inset `padding` (held to 0…tablePadMax)
+    /// from its cells' edges: kept as `pad` on every cell, and none when it
+    /// is the inset the table was made with, then the table laid out again,
+    /// its rows as tall as their words and the new spacing need.
+    static func withTablePadding(_ elements: [Element], id: String, padding: Double,
+                                 heightFor: (Element) -> Double) -> [Element] {
+        let held = min(max(padding, 0), tablePadMax)
+        let pad: Double? = held == defaultTablePadding(elements, id: id) ? nil : held
+        let set = elements.map { el -> Element in
+            guard var cell = el.table, cell.id == id else { return el }
+            cell.pad = pad
+            var out = el
+            out.table = cell
+            return out
+        }
+        return relaidTable(set, id: id, heightFor: heightFor)
+    }
+
+    // MARK: alternating rows
+
+    /// Table `id`'s alternating rows' colour, while they are kept; nil when
+    /// they are not.
+    static func tableBands(_ elements: [Element], id: String) -> String? {
+        tableMembers(elements, id: id).lazy.compactMap { $0.table?.bands }.first
+    }
+
+    /// Table `id` with alternating rows in `colour` (`on`), kept as `bands`
+    /// on every cell and striped again whenever a row is added, deleted or
+    /// moved — or with none, every body row plain white. Striping, as a
+    /// table is made: below a header, each row of an even number takes the
+    /// colour and each odd one white, a merged cell by its top row. A cell
+    /// given a colour of its own — anything but white, the default band,
+    /// the colour the rows were and the colour they become — keeps it, and
+    /// the header row keeps its own.
+    static func withTableBands(_ elements: [Element], id: String, on: Bool, colour: String) -> [Element] {
+        let was = tableBands(elements, id: id)
+        let bands: String? = on ? colour.lowercased() : nil
+        let set = elements.map { el -> Element in
+            guard var cell = el.table, cell.id == id else { return el }
+            cell.bands = bands
+            var out = el
+            out.table = cell
+            return out
+        }
+        return striped(set, id: id, band: bands, also: [was, colour.lowercased()].compactMap { $0 })
+    }
+
+    /// Table `id` striped again in its kept alternating rows' colour, if it
+    /// keeps one (withTableBands); as it is otherwise.
+    static func restriped(_ elements: [Element], id: String) -> [Element] {
+        guard let band = tableBands(elements, id: id) else { return elements }
+        return striped(elements, id: id, band: band, also: [])
+    }
+
+    /// Table `id`'s body rows striped in `band` (nil: all white), each cell
+    /// whose fill is white, the default band, `band` or one of `also`.
+    private static func striped(_ elements: [Element], id: String, band: String?, also: [String]) -> [Element] {
+        let header = tableHasHeader(elements, id: id)
+        let plain = Set(([tableBody, tableBand] + also + [band].compactMap { $0 }).map { $0.lowercased() })
+        return elements.map { el -> Element in
+            guard el.type == .shape, let cell = el.table, cell.id == id, !(header && cell.row == 0),
+                  let fill = el.fill, fill.kind == "solid",
+                  let colour = fill.color?.lowercased(), plain.contains(colour) else { return el }
+            var out = el
+            out.fill = .solid(band.map { tableBodyFill(cell.row, band: $0) } ?? tableBody)
+            return out
+        }
+    }
+
     // MARK: as text
 
     /// Table `id`'s words as rows of cells, for the editor tables are typed
@@ -570,7 +726,7 @@ extension DataGraphics {
             set.setText(words)
             return set
         }
-        return relaidTable(out, id: id, heightFor: heightFor)
+        return relaidTable(restriped(out, id: id), id: id, heightFor: heightFor)
     }
 
     /// The words `rows` give `cell`: its own place's, and — a merged
@@ -829,7 +985,7 @@ extension DataGraphics {
         copy.id = UID.make()
         copy.layerName = nil
         if el.type == .text { copy.setText("") }
-        if let cell = el.table { copy.table = TableCell(id: cell.id, row: row, col: col) }
+        if let cell = el.table { copy.table = TableCell(id: cell.id, row: row, col: col, pad: cell.pad, bands: cell.bands) }
         return copy
     }
 

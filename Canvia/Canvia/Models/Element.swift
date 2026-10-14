@@ -259,15 +259,24 @@ struct TableCell: Codable, Equatable, Hashable {
     var col: Int
     var rowSpan = 1
     var colSpan = 1
+    /// The table's cell spacing — each cell's words inset this far, in page
+    /// units — on every cell of it alike; nil is the inset a table is made
+    /// with (DataGraphics.tablePad times its type), and is not written.
+    var pad: Double?
+    /// The table's alternating rows' colour, "#rrggbb", on every cell of it
+    /// alike; nil is no alternating rows kept (DataGraphics.withTableBands).
+    var bands: String?
 
-    private enum CodingKeys: String, CodingKey { case id, row, col, rowSpan, colSpan }
+    private enum CodingKeys: String, CodingKey { case id, row, col, rowSpan, colSpan, pad, bands }
 
-    init(id: String, row: Int, col: Int, rowSpan: Int = 1, colSpan: Int = 1) {
+    init(id: String, row: Int, col: Int, rowSpan: Int = 1, colSpan: Int = 1, pad: Double? = nil, bands: String? = nil) {
         self.id = id
         self.row = row
         self.col = col
         self.rowSpan = max(1, rowSpan)
         self.colSpan = max(1, colSpan)
+        self.pad = pad
+        self.bands = bands
     }
 
     init(from decoder: Decoder) throws {
@@ -281,6 +290,10 @@ struct TableCell: Codable, Equatable, Hashable {
         self.col = col
         rowSpan = Self.span(c, .rowSpan)
         colSpan = Self.span(c, .colSpan)
+        // Read tolerantly: a spacing that is no number or below none, or a
+        // colour that is none, is no key.
+        pad = (try? c.decode(Double.self, forKey: .pad)).flatMap { $0.isFinite && $0 >= 0 ? $0 : nil }
+        bands = (try? c.decode(String.self, forKey: .bands)).flatMap { ColorTools.rgb255($0) != nil ? $0 : nil }
     }
 
     func encode(to encoder: Encoder) throws {
@@ -290,6 +303,8 @@ struct TableCell: Codable, Equatable, Hashable {
         try c.encode(col, forKey: .col)
         if rowSpan > 1 { try c.encode(rowSpan, forKey: .rowSpan) }
         if colSpan > 1 { try c.encode(colSpan, forKey: .colSpan) }
+        try c.encodeIfPresent(pad, forKey: .pad)
+        try c.encodeIfPresent(bands, forKey: .bands)
     }
 
     /// The rows the cell covers: its own, and those merged into it below.

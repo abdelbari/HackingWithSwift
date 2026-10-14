@@ -1450,6 +1450,21 @@ struct CanvasView: View {
         if el.type == .image && !el.locked {
             Button("Crop") { store.startCrop(el.id) }
         }
+        // A table's cell moves its row or column, as the Table panel's
+        // arrows do — the cell alone selected first, not its whole table.
+        if el.table != nil && !el.locked {
+            Button("Move row up") { inCell(el) { store.moveTableRow(by: -1) } }
+            Button("Move row down") { inCell(el) { store.moveTableRow(by: 1) } }
+            Button("Move column left") { inCell(el) { store.moveTableColumn(by: -1) } }
+            Button("Move column right") { inCell(el) { store.moveTableColumn(by: 1) } }
+        }
+    }
+
+    /// `action` done with table cell `el` alone selected.
+    private func inCell(_ el: Element, _ action: () -> Void) {
+        store.endTextEdit()
+        store.selection = [el.id]
+        action()
     }
 
     private func nudge(_ el: Element, dx: Double, dy: Double) {
@@ -1967,6 +1982,7 @@ struct CanvasView: View {
                                onWordFont: { store.chooseWordFont(id, range: $0) },
                                onWordLink: { store.chooseWordLink(id, range: $0) },
                                onLines: { store.changeLines(id, covering: $0, $1) },
+                               onNextCell: nextCell(el),
                                typing: typingHooks)
             .frame(width: el.w)
             .frame(width: el.w, height: el.h, alignment: sits)
@@ -2005,6 +2021,17 @@ struct CanvasView: View {
             .background(Color.clear.contentShape(Rectangle()).onTapGesture {})
             .rotationEffect(.degrees(el.rotation))
             .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
+    }
+
+    /// Tab, and the typing bar's arrow, in a table's cell: typing goes on in
+    /// the next cell (DesignStore.typeInNextCell) — once the key or the tap
+    /// is done with, as this field goes and the next cell's opens. Nil for
+    /// words that are no cell's.
+    private func nextCell(_ el: Element) -> ((Bool) -> Void)? {
+        guard el.table != nil else { return nil }
+        return { back in
+            DispatchQueue.main.async { _ = store.typeInNextCell(back: back) }
+        }
     }
 
     private func typeInline(_ id: String, _ words: String) {

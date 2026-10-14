@@ -2,9 +2,11 @@
 //
 // Shown for any selected cell of a table made here: a row added above or
 // below the selected cells, a column left or right, the selected cell's row
-// or column deleted (never the last), the selected cells merged or parted,
-// their colour, the header row off and on, the table's borders, its
-// columns made even, and the whole table in the data grid it is typed in.
+// moved up or down and its column left or right, its row or column deleted
+// (never the last), the selected cells merged or parted, their colour, the
+// header row off and on, alternating rows in a colour, the cell spacing,
+// the table's borders, its columns made even, and the whole table in the
+// data grid it is typed in.
 // Each change is one undo step, and the rows then stand as tall as their
 // words. The Android twin's TablePanel offers the same, in the same words.
 
@@ -15,16 +17,18 @@ struct TableSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var choosingColour = false
     @State private var choosingBorderColour = false
+    @State private var choosingBands = false
     @State private var editingText = false
 
     var body: some View {
         NavigationStack {
             Form {
                 if let table = store.tableSelection {
-                    rowsAndColumns
+                    rowsAndColumns(table)
                     deleting(table)
                     merging(table)
                     look(table)
+                    spacing
                     columns(table)
                     borders
                 } else {
@@ -49,6 +53,11 @@ struct TableSheet: View {
                                  onPick: { c in store.setTableBorderColour(c) },
                                  onPickTransient: { c in store.setTableBorderTransient(width: nil, color: c) })
             }
+            .sheet(isPresented: $choosingBands) {
+                ColorPickerSheet(store: store, title: tr("Alternating row colour"),
+                                 current: store.tableBands,
+                                 onPick: { c in store.setTableBands(true, colour: c) })
+            }
             .sheet(isPresented: $editingText) {
                 DataSheet(store: store, editingTable: true)
             }
@@ -57,7 +66,7 @@ struct TableSheet: View {
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
     }
 
-    private var rowsAndColumns: some View {
+    private func rowsAndColumns(_ table: TableSelection) -> some View {
         Section {
             Button { store.addTableRow(below: false) } label: {
                 Label("Add row above", systemImage: "arrow.up.to.line")
@@ -71,7 +80,35 @@ struct TableSheet: View {
             Button { store.addTableColumn(right: true) } label: {
                 Label("Add column right", systemImage: "arrow.right.to.line")
             }
+            moving(table)
         }
+    }
+
+    /// Move row up and down, and Move column left and right: the one row,
+    /// or column, the selected cells are in, each a step.
+    private func moving(_ table: TableSelection) -> some View {
+        HStack(spacing: 18) {
+            Text("Move")
+            Spacer(minLength: 0)
+            moveButton("arrow.up", tr("Move row up"), enabled: table.canMoveRowUp) { store.moveTableRow(by: -1) }
+            moveButton("arrow.down", tr("Move row down"), enabled: table.canMoveRowDown) { store.moveTableRow(by: 1) }
+            moveButton("arrow.left", tr("Move column left"), enabled: table.canMoveColumnLeft) {
+                store.moveTableColumn(by: -1)
+            }
+            moveButton("arrow.right", tr("Move column right"), enabled: table.canMoveColumnRight) {
+                store.moveTableColumn(by: 1)
+            }
+        }
+    }
+
+    private func moveButton(_ symbol: String, _ name: String, enabled: Bool,
+                            action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol).frame(width: 30, height: 30)
+        }
+        .buttonStyle(.borderless)
+        .disabled(!enabled)
+        .accessibilityLabel(name)
     }
 
     private func deleting(_ table: TableSelection) -> some View {
@@ -110,6 +147,15 @@ struct TableSheet: View {
         Section {
             Toggle("Header row", isOn: Binding(get: { table.header },
                                                set: { on in store.setTableHeader(on) }))
+            Toggle("Alternating rows", isOn: Binding(get: { store.tableBands != nil },
+                                                     set: { on in store.setTableBands(on, colour: nil) }))
+            if let bands = store.tableBands {
+                Button { choosingBands = true } label: {
+                    swatchRow(tr("Alternating row colour"), colour: bands)
+                }
+                .accessibilityLabel("Alternating row colour")
+                .accessibilityValue(ElementNames.spokenColour(bands))
+            }
             Button { choosingColour = true } label: {
                 swatchRow(tr("Cell colour"), colour: store.tableCellColour ?? DataGraphics.tableBody)
             }
@@ -117,6 +163,31 @@ struct TableSheet: View {
             .accessibilityValue(ElementNames.spokenColour(store.tableCellColour))
             Button { editingText = true } label: {
                 Label("Edit as text", systemImage: "tablecells")
+            }
+        }
+    }
+
+    /// Cell spacing: how far every cell's words sit from its edges, 0 to 40
+    /// px in whole px, one step for each drag; the rows grow or shrink to it.
+    private var spacing: some View {
+        let pad = store.tablePadding ?? 0
+        let readout = "\(Int(pad.rounded())) px"
+        return Section {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Text("Cell spacing").font(.subheadline)
+                    Spacer()
+                    Text(readout).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                }
+                .accessibilityHidden(true)
+                Slider(value: Binding(
+                    get: { pad },
+                    set: { v in store.setTablePaddingTransient(v.rounded()) }
+                ), in: 0...DataGraphics.tablePadMax, onEditingChanged: { editing in
+                    if !editing { store.commit() }
+                })
+                .accessibilityLabel("Cell spacing")
+                .accessibilityValue(readout)
             }
         }
     }

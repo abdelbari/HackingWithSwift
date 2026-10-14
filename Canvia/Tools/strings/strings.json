@@ -4559,6 +4559,24 @@
     "ja": "代替テキスト",
     "pt-BR": "Texto alternativo"
   },
+  "Alternating row colour": {
+    "ar": "لون الصفوف المتناوبة",
+    "de": "Farbe der abwechselnden Zeilen",
+    "es": "Color de filas alternas",
+    "fr": "Couleur des lignes alternées",
+    "it": "Colore delle righe alternate",
+    "ja": "交互の行の色",
+    "pt-BR": "Cor das linhas alternadas"
+  },
+  "Alternating rows": {
+    "ar": "صفوف متناوبة",
+    "de": "Abwechselnde Zeilen",
+    "es": "Filas alternas",
+    "fr": "Lignes alternées",
+    "it": "Righe alternate",
+    "ja": "行の交互色",
+    "pt-BR": "Linhas alternadas"
+  },
   "Analogous": {
     "ar": "متجاورة",
     "de": "Analog",
@@ -6073,6 +6091,15 @@
     "it": "Colore cella",
     "ja": "セルの色",
     "pt-BR": "Cor da célula"
+  },
+  "Cell spacing": {
+    "ar": "تباعد الخلايا",
+    "de": "Zellenabstand",
+    "es": "Espaciado de celdas",
+    "fr": "Espacement des cellules",
+    "it": "Spaziatura celle",
+    "ja": "セルの余白",
+    "pt-BR": "Espaçamento das células"
   },
   "Center": {
     "ar": "توسيط",
@@ -13694,6 +13721,24 @@
     "ja": "%@ ずつ移動",
     "pt-BR": "Mover %@ por vez"
   },
+  "Move column left": {
+    "ar": "نقل العمود لليسار",
+    "de": "Spalte nach links",
+    "es": "Mover columna a la izquierda",
+    "fr": "Déplacer la colonne à gauche",
+    "it": "Sposta colonna a sinistra",
+    "ja": "列を左へ移動",
+    "pt-BR": "Mover coluna para a esquerda"
+  },
+  "Move column right": {
+    "ar": "نقل العمود لليمين",
+    "de": "Spalte nach rechts",
+    "es": "Mover columna a la derecha",
+    "fr": "Déplacer la colonne à droite",
+    "it": "Sposta colonna a destra",
+    "ja": "列を右へ移動",
+    "pt-BR": "Mover coluna para a direita"
+  },
   "Move down": {
     "ar": "تحريك لأسفل",
     "de": "Nach unten verschieben",
@@ -13774,6 +13819,24 @@
     "it": "Sposta a destra",
     "ja": "右へ移動",
     "pt-BR": "Mover para a direita"
+  },
+  "Move row down": {
+    "ar": "نقل الصف لأسفل",
+    "de": "Zeile nach unten",
+    "es": "Bajar fila",
+    "fr": "Descendre la ligne",
+    "it": "Sposta riga giù",
+    "ja": "行を下へ移動",
+    "pt-BR": "Mover linha para baixo"
+  },
+  "Move row up": {
+    "ar": "نقل الصف لأعلى",
+    "de": "Zeile nach oben",
+    "es": "Subir fila",
+    "fr": "Monter la ligne",
+    "it": "Sposta riga su",
+    "ja": "行を上へ移動",
+    "pt-BR": "Mover linha para cima"
   },
   "Move the picture down": {
     "ar": "تحريك الصورة لأسفل",
@@ -14257,6 +14320,15 @@
     "it": "Avanti",
     "ja": "次へ",
     "pt-BR": "Avançar"
+  },
+  "Next cell": {
+    "ar": "الخلية التالية",
+    "de": "Nächste Zelle",
+    "es": "Celda siguiente",
+    "fr": "Cellule suivante",
+    "it": "Cella successiva",
+    "ja": "次のセル",
+    "pt-BR": "Próxima célula"
   },
   "Next page": {
     "ar": "الصفحة التالية",
@@ -23029,6 +23101,24 @@
     "it": "Dividi celle",
     "ja": "結合を解除",
     "pt-BR": "Separar células"
+  },
+  "Unmerge first to move this column": {
+    "ar": "ألغِ الدمج أولًا لنقل هذا العمود",
+    "de": "Hebe zuerst die Verbindung auf, um diese Spalte zu verschieben",
+    "es": "Separa las celdas primero para mover esta columna",
+    "fr": "Annulez d’abord la fusion pour déplacer cette colonne",
+    "it": "Separa prima le celle per spostare questa colonna",
+    "ja": "この列を移動するには、まず結合を解除してください",
+    "pt-BR": "Desfaça a mesclagem primeiro para mover esta coluna"
+  },
+  "Unmerge first to move this row": {
+    "ar": "ألغِ الدمج أولًا لنقل هذا الصف",
+    "de": "Hebe zuerst die Verbindung auf, um diese Zeile zu verschieben",
+    "es": "Separa las celdas primero para mover esta fila",
+    "fr": "Annulez d’abord la fusion pour déplacer cette ligne",
+    "it": "Separa prima le celle per spostare questa riga",
+    "ja": "この行を移動するには、まず結合を解除してください",
+    "pt-BR": "Desfaça a mesclagem primeiro para mover esta linha"
   },
   "Unpin": {
     "ar": "إلغاء التثبيت",
