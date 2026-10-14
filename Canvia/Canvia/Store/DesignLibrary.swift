@@ -55,7 +55,8 @@ enum DesignLibrary {
     @discardableResult
     static func save(_ design: Design) -> Bool {
         do {
-            let data = try JSONEncoder().encode(CustomFonts.synced(design, installed: FontStore.record))
+            let data = try JSONEncoder().encode(CustomFonts.synced(design, installed: FontStore.record,
+                                                                   faces: FontStore.faces()))
             try data.write(to: designsDir.appendingPathComponent("\(design.id).json"), options: .atomic)
             SpotlightIndexer.index(design)
             return true

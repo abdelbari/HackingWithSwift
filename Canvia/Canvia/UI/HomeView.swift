@@ -1371,7 +1371,7 @@ struct HomeView: View {
                 BrandTemplatesRow(kit: brandKit, entries: shownUserTemplates, tileWidth: 160,
                                   titleFont: .headline, inset: 16) { userTemplateCard($0) }
             }
-            if templateCategory == nil && !shownUserTemplates.isEmpty {
+            if templateCategory == nil && !otherUserTemplates.isEmpty {
                 Text(UserTemplates.sectionTitle)
                     .font(.headline)
                     .padding(.horizontal)
@@ -1405,10 +1405,15 @@ struct HomeView: View {
         UserTemplates.matching(userTemplates, query: query)
     }
 
+    /// Your own that are not the brand kit's: those lead in its row.
+    private var otherUserTemplates: [UserTemplate] {
+        brandKit.otherEntries(shownUserTemplates)
+    }
+
     /// Your own: a tap makes a new design from a fresh copy, every page.
     private var userTemplatesGrid: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
-            ForEach(shownUserTemplates) { entry in
+            ForEach(otherUserTemplates) { entry in
                 userTemplateCard(entry)
             }
         }

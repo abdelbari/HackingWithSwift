@@ -57,14 +57,17 @@ struct EditorYourTemplates: View {
 
     private var shown: [UserTemplate] { UserTemplates.matching(entries, query: search) }
 
+    /// Those shown that are not the brand kit's: those lead in its row.
+    private var others: [UserTemplate] { kit.otherEntries(shown) }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             BrandTemplatesRow(kit: kit, entries: shown, tileWidth: 120) { tile($0) }
-            if !shown.isEmpty {
+            if !others.isEmpty {
                 Text(UserTemplates.sectionTitle)
                     .font(.subheadline.weight(.semibold))
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 12)], spacing: 12) {
-                    ForEach(shown) { entry in tile(entry) }
+                    ForEach(others) { entry in tile(entry) }
                 }
             }
         }

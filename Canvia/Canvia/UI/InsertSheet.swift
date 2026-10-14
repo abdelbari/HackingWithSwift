@@ -45,9 +45,10 @@ struct InsertSheet: View {
     // section of Elements for that reason.
     private static let baseTabs = ["Templates", "Elements", "Text", "Photos", "Stickers", "Background"]
 
-    /// The tabs, and Brand last when the kit in use has anything the tab
-    /// lists (BrandKit.showsBrandTab) — then all seven as a row of chips
-    /// that scrolls, as the font sheet's categories are.
+    /// The tabs, and Brand last — the rule both phones keep — when the kit
+    /// in use has anything the tab lists (BrandKit.showsBrandTab); then all
+    /// seven as a row of chips that scrolls, as the font sheet's categories
+    /// are.
     private var tabs: [String] {
         Self.baseTabs + (brandKit.showsBrandTab ? ["Brand"] : [])
     }
@@ -1498,14 +1499,11 @@ struct InsertSheet: View {
     }
 
     /// A tap paints what is selected in the colour, as a colour picker
-    /// does; with nothing selected, the page's background.
+    /// does; with nothing selected, the page's background
+    /// (DesignStore.paintBrandColour).
     private func brandSwatch(_ hex: String) -> some View {
         Button {
-            if store.selection.isEmpty {
-                store.setBackground(.color(hex))
-            } else {
-                store.recolourSelection(hex)
-            }
+            store.paintBrandColour(hex)
             dismiss()
         } label: {
             RoundedRectangle(cornerRadius: 9)

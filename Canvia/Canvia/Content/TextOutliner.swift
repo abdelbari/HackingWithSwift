@@ -216,9 +216,10 @@ enum TextOutliner {
     /// A run's underline and strike under or through one glyph `advance`
     /// wide, in the glyph's own space — y up from its baseline, before it is
     /// placed on the line — so each follows the curve or path with its
-    /// letter: `size`/18 thick, the underline at the face's underline
-    /// position, the strike halfway up its lower-case letters. The rule
-    /// both phones keep.
+    /// letter: `size`/18 thick, the underline centred half the face's
+    /// descent below the baseline, the strike a third of its ascent above
+    /// it. The rule both phones keep (the Android twin's TextOutlines, which
+    /// reads no underline position on its older phones).
     private static func rules(_ attributes: [String: Any]?, font: CTFont, advance: CGFloat) -> [CGRect] {
         let underlined = (attributes?[NSAttributedString.Key.underlineStyle.rawValue] as? Int ?? 0) != 0
         let struck = (attributes?[NSAttributedString.Key.strikethroughStyle.rawValue] as? Int ?? 0) != 0
@@ -226,11 +227,11 @@ enum TextOutliner {
         let thickness = CTFontGetSize(font) / 18
         var out: [CGRect] = []
         if underlined {
-            let centre = CTFontGetUnderlinePosition(font)
+            let centre = -CTFontGetDescent(font) / 2
             out.append(CGRect(x: 0, y: centre - thickness / 2, width: advance, height: thickness))
         }
         if struck {
-            let centre = CTFontGetXHeight(font) / 2
+            let centre = CTFontGetAscent(font) / 3
             out.append(CGRect(x: 0, y: centre - thickness / 2, width: advance, height: thickness))
         }
         return out

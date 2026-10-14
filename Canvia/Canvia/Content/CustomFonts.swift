@@ -16,9 +16,10 @@
 //
 // Fonts of your own are grouped into families. Adding one also reads its
 // face (describe): the subfamily (name 17, else 2), the OS/2 weight class
-// and italic bit, and a variable font's wght axis. uploads.json keeps them
-// as "family", "weight", "italic" and "axes": {"wght": [min, max]}, and the
-// design's record as "family", "weight" and "italic", so the other phone
+// and italic bit (else 400 and upright), and a variable font's wght axis.
+// uploads.json keeps them as "family", "weight", "italic" and "axes":
+// {"wght": [min, max]}, and the design's record as "family", "weight" and
+// "italic" — every face of each family a text uses — so the other phone
 // knows the grouping before it has the files. A text keeps the key of the
 // face it was set in — the family's Regular, as the picker sets it — and is
 // drawn from the face of that family nearest its weight and italic
@@ -127,14 +128,22 @@ enum CustomFonts {
     }
 
     /// The hashes of the fonts of your own the design's texts are set in —
-    /// a box's words' too — each once, in page order.
-    static func used(in design: Design) -> [String] {
+    /// a box's words' too — each once, in page order, each followed by the
+    /// other faces of its family among `faces` (this phone's, FontStore.faces),
+    /// lowest hash first: a bold word draws from the Bold file, so it travels
+    /// and is recorded with the Regular a text is set in. The Android twin's
+    /// CustomFonts.used, hash for hash.
+    static func used(in design: Design, faces: [Uploads.FontEntry] = []) -> [String] {
         var seen = Set<String>()
         var out: [String] = []
         for page in design.pages {
             for el in page.elements {
                 for key in el.fontKeys {
-                    if let sha = sha(key), seen.insert(sha).inserted { out.append(sha) }
+                    guard let sha = sha(key) else { continue }
+                    let family = siblings(of: sha, among: faces).map(\.id).sorted()
+                    for one in [sha] + family {
+                        if seen.insert(one).inserted { out.append(one) }
+                    }
                 }
             }
         }
@@ -142,14 +151,16 @@ enum CustomFonts {
     }
 
     /// The design with its record of fonts brought up to date, as every save
-    /// writes it: one entry for each font of your own still used, in
-    /// used(in:)'s order, the entry it had kept as it was, and a new one made
-    /// from `installed` — this phone's font of that hash, if it has it.
-    static func synced(_ design: Design, installed: (String) -> Record?) -> Design {
+    /// writes it: one entry for each font of your own still used — with the
+    /// other faces of its family among `faces` (used(in:faces:)) — in that
+    /// order, the entry it had kept as it was, and a new one made from
+    /// `installed` — this phone's font of that hash, if it has it.
+    static func synced(_ design: Design, installed: (String) -> Record?,
+                       faces: [Uploads.FontEntry] = []) -> Design {
         let had = records(in: design)
         var byID: [String: Record] = [:]
         for record in had where byID[record.id] == nil { byID[record.id] = record }
-        let now = used(in: design).compactMap { sha in byID[key(sha)] ?? installed(sha) }
+        let now = used(in: design, faces: faces).compactMap { sha in byID[key(sha)] ?? installed(sha) }
         // Unchanged, the design is left as it was — unless it holds an empty
         // list, which is no record at all.
         if now == had && design.fonts?.isEmpty != true { return design }
@@ -261,12 +272,13 @@ enum CustomFonts {
         var wght: Axis?
     }
 
-    /// The face a font file is, by the rule both phones keep: its family as
-    /// familyName reads it; its weight the wght axis's default when it is a
-    /// variable font, else the OS/2 weight class, else the weight its
-    /// subfamily names ("Bold" 700), else 400; italic the OS/2 italic bit
-    /// (fsSelection bit 0), else whether the subfamily says Italic or
-    /// Oblique. Nil when it names no family.
+    /// The face a font file is, by the rule both phones keep (the Android
+    /// twin's CustomFonts.style): its family as familyName reads it, its
+    /// subfamily (name 17, else 2) as it is written; its weight the OS/2
+    /// weight class, else 400 — a variable font's too, whatever its axis's
+    /// default — and italic the OS/2 italic bit (fsSelection bit 0), else
+    /// upright. The subfamily's words decide neither. Nil when it names no
+    /// family.
     static func describe(_ data: Data) -> Face? {
         let sfnt = Sfnt([UInt8](data))
         guard let names = sfnt.names() else { return nil }
@@ -276,24 +288,9 @@ enum CustomFonts {
         let os2 = sfnt.table(0x4F53_2F32) // "OS/2"
         let weightClass = os2.flatMap { sfnt.u16($0 + 4) }.flatMap { (1...1000).contains($0) ? $0 : nil }
         let selection = os2.flatMap { sfnt.u16($0 + 62) }
-        let axis = sfnt.wghtAxis()
-        let named = subfamily.flatMap { Self.weight(named: $0) }
-        let drawn = axis.map { Int($0.defaultValue.rounded()) } ?? weightClass ?? named ?? 400
-        let lowered = subfamily?.lowercased() ?? ""
-        let italic = selection.map { $0 & 1 == 1 } ?? (lowered.contains("italic") || lowered.contains("oblique"))
-        return Face(family: family, subfamily: subfamily, weight: drawn, italic: italic, wght: axis)
-    }
-
-    /// The weight a subfamily's name says — "SemiBold Italic" 600 — or nil
-    /// when it names none.
-    static func weight(named subfamily: String) -> Int? {
-        let word = subfamily.lowercased().replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "-", with: "")
-        let names: [(String, Int)] = [
-            ("extralight", 200), ("ultralight", 200), ("semibold", 600), ("demibold", 600),
-            ("extrabold", 800), ("ultrabold", 800), ("thin", 100), ("light", 300), ("medium", 500),
-            ("bold", 700), ("black", 900), ("heavy", 900), ("regular", 400), ("normal", 400), ("book", 400),
-        ]
-        return names.first { word.contains($0.0) }?.1
+        let italic = selection.map { $0 & 1 == 1 } ?? false
+        return Face(family: family, subfamily: subfamily, weight: weightClass ?? 400, italic: italic,
+                    wght: sfnt.wghtAxis())
     }
 
     /// The weights a variable font offers: each hundred from 100 to 900

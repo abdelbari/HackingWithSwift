@@ -257,7 +257,8 @@ enum UserTemplates {
     @discardableResult
     private static func write(design: Design) -> Bool {
         do {
-            let data = try JSONEncoder().encode(CustomFonts.synced(design, installed: FontStore.record))
+            let data = try JSONEncoder().encode(CustomFonts.synced(design, installed: FontStore.record,
+                                                                   faces: FontStore.faces()))
             try data.write(to: fileURL(for: design.id), options: .atomic)
             return true
         } catch {

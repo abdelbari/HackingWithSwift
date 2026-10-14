@@ -74,6 +74,13 @@ enum FontStore {
         }
     }
 
+    /// The faces of your own on this phone, as last read: the siblings a
+    /// design's record and package take in with each face a text uses
+    /// (CustomFonts.used(in:faces:)).
+    static func faces() -> [Uploads.FontEntry] {
+        Array(known().values)
+    }
+
     /// The weights the family of the font `key` offers here, lightest
     /// first; nil when it is not a font of your own on this phone.
     static func familyWeights(_ key: String?) -> [Int]? {

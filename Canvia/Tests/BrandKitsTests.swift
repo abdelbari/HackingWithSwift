@@ -364,6 +364,44 @@ final class BrandKitsTests: XCTestCase {
         }
         XCTAssertEqual(kit.templateEntries(entries).map(\.id), ["tpl-2", "tpl-1"],
                        "in the kit's order; an id with no template here passed over")
+        XCTAssertEqual(kit.otherEntries(entries).map(\.id), ["tpl-3"], "Your templates: the rest, once each")
+    }
+
+    /// A brand colour tapped in the Brand tab: the rows of the Android
+    /// twin's BrandColourTest. Nothing selected, it is the page's
+    /// background; selected, what is unlocked takes it, the background left;
+    /// the same again is no step; a locked page keeps its background.
+    @MainActor
+    func testABrandColourPaintsTheSelectionElseTheBackground() {
+        var text = Element.text("Sale")
+        text.color = "#000000"
+        var locked = Element.shape("rect")
+        locked.locked = true
+        let shape = Element.shape("rect")
+        var design = Design(title: "Brand", width: 1000, height: 1000)
+        design.pages[0].elements = [text, shape, locked]
+        let store = DesignStore(design: design)
+        store.paintBrandColour("#e94560")
+        XCTAssertEqual(store.page.background, .color("#e94560"))
+        store.paintBrandColour("#e94560")
+        store.undo()
+        XCTAssertEqual(store.page.background, design.pages[0].background, "the same colour again was no step")
+
+        store.select(text.id)
+        store.select(shape.id, additive: true)
+        store.select(locked.id, additive: true)
+        store.paintBrandColour("#112233")
+        XCTAssertEqual(store.page.elements[0].color, "#112233")
+        XCTAssertNil(store.page.elements[0].textFill)
+        XCTAssertEqual(store.page.elements[1].fill, .solid("#112233"))
+        XCTAssertEqual(store.page.elements[2].fill, locked.fill)
+        XCTAssertEqual(store.page.background, design.pages[0].background, "the background left as it was")
+
+        design.pages[0].locked = true
+        let shut = DesignStore(design: design)
+        shut.paintBrandColour("#e94560")
+        XCTAssertEqual(shut.page.background, design.pages[0].background)
+        XCTAssertFalse(shut.canUndo)
     }
 
     func testDeletingATemplateTakesItOutOfEveryKit() {

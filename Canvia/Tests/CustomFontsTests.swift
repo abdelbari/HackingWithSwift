@@ -336,6 +336,9 @@ final class CustomFontsTests: XCTestCase {
         let families = CustomFonts.families(FontStore.installed()).filter { $0.name == "Lora" }
         XCTAssertEqual(families, [CustomFonts.Family(name: "Lora", key: key, weights: [400, 700])],
                        "one row, keyed by the Regular")
+        let packed = try XCTUnwrap(DesignPackage.packedFonts(of: design(key)))
+        XCTAssertEqual(Set(packed.keys), [sha, CustomFonts.sha12(heavy), CustomFonts.sha12(slanted)],
+                       "the family's Bold and Italic travel with the Regular")
         XCTAssertEqual(FontStore.familyKey(heavyKey, in: nil), key)
 
         let missing = font("custom:0123456789ab", 700)
@@ -416,9 +419,12 @@ final class CustomFontsTests: XCTestCase {
     }
 
     /// The rows both phones check: Lora's Regular, Bold and Italic — the
-    /// bundled files — say their family, weight and italic; a file with no
-    /// OS/2 table takes them from its subfamily; a variable font's weight
-    /// is its axis's default, and it offers each hundred inside the axis.
+    /// bundled files — say their family, weight and italic. The weight is
+    /// the OS/2 weight class, else 400, and the italic its fsSelection bit,
+    /// else upright — a file with no OS/2 table is 400 and upright whatever
+    /// its subfamily says, and a variable font's weight is its weight class,
+    /// not its axis's default — as the Android twin's CustomFonts.style
+    /// reads them. A variable font offers each hundred inside its axis.
     func testAFontFileSaysItsFamilyWeightAndItalic() throws {
         let rows: [(file: String, subfamily: String, weight: Int, italic: Bool)] = [
             ("lora-400.ttf", "Regular", 400, false),
@@ -435,11 +441,10 @@ final class CustomFontsTests: XCTestCase {
         let named = sfnt([(0x6E61_6D65, nameTable([(1, "Acme Sans SemiBold"), (2, "Italic"),
                                                      (16, "Acme Sans"), (17, "SemiBold Italic")]))])
         XCTAssertEqual(CustomFonts.describe(named),
-                       CustomFonts.Face(family: "Acme Sans", subfamily: "SemiBold Italic", weight: 600, italic: true, wght: nil))
-        let rowsOfNames: [(String, Int?)] = [("Thin", 100), ("ExtraLight", 200), ("Light", 300), ("Regular", 400),
-                                             ("Medium", 500), ("Semi Bold", 600), ("Bold", 700), ("Extra-Bold", 800),
-                                             ("Black", 900), ("Italic", nil)]
-        for (name, weight) in rowsOfNames { XCTAssertEqual(CustomFonts.weight(named: name), weight, name) }
+                       CustomFonts.Face(family: "Acme Sans", subfamily: "SemiBold Italic", weight: 400, italic: false, wght: nil))
+        let unclassed = sfnt([(0x6E61_6D65, nameTable([(1, "Acme Sans"), (2, "Bold Italic")]))])
+        XCTAssertEqual(CustomFonts.describe(unclassed),
+                       CustomFonts.Face(family: "Acme Sans", subfamily: "Bold Italic", weight: 400, italic: false, wght: nil))
 
         // OS/2 wins over the names: a weight class of 300 and the italic bit
         // clear, whatever the subfamily says.
@@ -452,7 +457,7 @@ final class CustomFontsTests: XCTestCase {
                              (0x6661_7672, fvar(min: 250, value: 450, max: 820)),
                              (0x6E61_6D65, nameTable([(1, "Acme Flex")]))])
         let flex = try XCTUnwrap(CustomFonts.describe(variable))
-        XCTAssertEqual(flex.weight, 450, "the axis's default")
+        XCTAssertEqual(flex.weight, 400, "the weight class, not the axis's default")
         XCTAssertEqual(flex.wght, CustomFonts.Axis(min: 250, max: 820, defaultValue: 450))
         XCTAssertEqual(CustomFonts.variableWeights(250...820), [300, 400, 500, 600, 700, 800])
         XCTAssertEqual(CustomFonts.variableWeights(100...900), [100, 200, 300, 400, 500, 600, 700, 800, 900])
@@ -503,6 +508,47 @@ final class CustomFontsTests: XCTestCase {
         XCTAssertEqual(CustomFonts.drawnFace(for: "dddddddddd00", weight: 650, italic: false, among: flex)?.weight, 700)
         XCTAssertEqual(CustomFonts.drawnFace(for: "dddddddddd00", weight: 900, italic: false, among: flex)?.weight, 800)
         XCTAssertEqual(CustomFonts.families(flex).first?.weights, [300, 400, 500, 600, 700, 800])
+    }
+
+    /// The rows of the Android twin's "a family's weights are its upright
+    /// faces'": Acme Regular and Acme Light Italic offer the Regular's
+    /// weight alone — an upright text at 300 would draw the Regular anyway,
+    /// as the slant is taken first — and a design carries the family's
+    /// other faces, lowest hash first.
+    func testAFamilysWeightsAreItsUprightFacesOrEveryFacesWhenItHasNone() {
+        let regular = face("eeeeeeeeee00", "Acme", 400)
+        let lightItalic = face("eeeeeeeeee01", "Acme", 300, italic: true)
+        let acme = [regular, lightItalic]
+        XCTAssertEqual(CustomFonts.weights(of: "eeeeeeeeee00", among: acme), [400])
+        XCTAssertEqual(CustomFonts.weights(of: "eeeeeeeeee01", among: acme), [400])
+        XCTAssertEqual(CustomFonts.families(acme),
+                       [CustomFonts.Family(name: "Acme", key: "custom:eeeeeeeeee00", weights: [400])])
+        XCTAssertEqual(CustomFonts.drawnFace(for: "eeeeeeeeee00", weight: 300, italic: false, among: acme)?.face.id,
+                       "eeeeeeeeee00")
+        let italics = [lightItalic, face("eeeeeeeeee02", "Acme", 700, italic: true)]
+        XCTAssertEqual(CustomFonts.weights(of: "eeeeeeeeee01", among: italics), [300, 700], "italics alone: theirs")
+        XCTAssertEqual(CustomFonts.used(in: design("custom:eeeeeeeeee01"), faces: acme), ["eeeeeeeeee01", "eeeeeeeeee00"])
+    }
+
+    /// A text set in a family's Regular, with a bold word drawn from its
+    /// Bold, records and carries both faces: a save keeps the Bold's record,
+    /// and one the other phone wrote for it stays while this phone has the
+    /// family.
+    func testASaveRecordsEveryFaceOfAFamilyInUse() throws {
+        let faces = [face("aaaaaaaaaa01", "Acme Sans", 700), face("aaaaaaaaaa00", "Acme Sans", 400),
+                     face("bbbbbbbbbb00", "Other", 400)]
+        var records: [String: CustomFonts.Record] = [:]
+        for f in faces {
+            records[f.id] = CustomFonts.Record(id: f.key, name: f.name, file: f.file, family: f.family,
+                                               weight: f.weight, italic: f.italic)
+        }
+        let d = design("custom:aaaaaaaaaa00")
+        XCTAssertEqual(CustomFonts.used(in: d, faces: faces), ["aaaaaaaaaa00", "aaaaaaaaaa01"])
+        XCTAssertEqual(CustomFonts.used(in: d), ["aaaaaaaaaa00"], "a family not known here: the face alone")
+        let saved = CustomFonts.synced(d, installed: { records[$0] }, faces: faces)
+        XCTAssertEqual(CustomFonts.records(in: saved).map(\.id), ["custom:aaaaaaaaaa00", "custom:aaaaaaaaaa01"])
+        let other = CustomFonts.with(d, [try XCTUnwrap(records["aaaaaaaaaa00"]), try XCTUnwrap(records["aaaaaaaaaa01"])])
+        XCTAssertEqual(CustomFonts.synced(other, installed: { _ in nil }, faces: faces), other)
     }
 
     /// The design's record carries the face, so a phone without the files

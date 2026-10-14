@@ -269,7 +269,7 @@ enum DesignPackage {
     /// under a fresh id, and only the exported copy is re-pointed.
     static func withLibraryPhotos(_ design: Design) -> (design: Design, media: [String: Media]) {
         var media: [String: Media] = [:]
-        let synced = CustomFonts.synced(design, installed: FontStore.record)
+        let synced = CustomFonts.synced(design, installed: FontStore.record, faces: FontStore.faces())
         let drawn = packingLibraryPhotos(synced, into: &media)
         return (drawn, media)
     }
@@ -326,11 +326,12 @@ enum DesignPackage {
         (1...CustomFonts.maxBytes).contains(bytes)
     }
 
-    /// The fonts of your own the design's texts are set in, packed, those on
-    /// this phone that travel; none when there are none.
+    /// The fonts of your own the design's texts are set in, and the other
+    /// faces of their families here (a bold word draws from the Bold file),
+    /// packed, those on this phone that travel; none when there are none.
     static func packedFonts(of design: Design) -> [String: Media]? {
         var fonts: [String: Media] = [:]
-        for sha in CustomFonts.used(in: design) {
+        for sha in CustomFonts.used(in: design, faces: FontStore.faces()) {
             guard let url = FontStore.url(for: sha) else { continue }
             let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
             guard packsFont(bytes: size), let data = try? Data(contentsOf: url) else { continue }

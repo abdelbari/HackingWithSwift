@@ -244,6 +244,13 @@ struct BrandKit: Codable, Equatable, Identifiable {
         templates.compactMap { id in entries.first { $0.id == id } }
     }
 
+    /// The rest of `entries`, as they were: what "Your templates" lists
+    /// under the kit's row, so none is shown twice — the Android twin's
+    /// BrandKit.leading.
+    func otherEntries(_ entries: [UserTemplate]) -> [UserTemplate] {
+        entries.filter { !templates.contains($0.id) }
+    }
+
     /// The source of an SVG graphic kept as media/<id>.svg.
     static func svgSource(_ id: String) -> String { "svg:\(id)" }
 
