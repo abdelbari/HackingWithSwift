@@ -29,8 +29,9 @@ struct TrimmerBar<Strip: View>: View {
 
     /// How wide a handle is drawn, and how far past it a finger still takes
     /// it.
-    private static let gripWidth = 14.0
-    private static let reach = 12.0
+    /// (Computed: a generic type cannot hold stored statics.)
+    private static var gripWidth: Double { 14 }
+    private static var reach: Double { 12 }
 
     init(length: Double, start: Double, end: Double, minLength: Double,
          scrub: @escaping (Double?) -> Void = { _ in }, commit: @escaping (Double, Double) -> Void,
