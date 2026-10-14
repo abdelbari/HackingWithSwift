@@ -53,3 +53,85 @@ enum PageMove {
         return 0
     }
 }
+
+// Pages put in a new order — dragged in the organiser's grid or along the
+// pages bar, several ticked pages at once, or moved by VoiceOver's actions —
+// as the Android twin orders them (its core PageMoves).
+enum PageOrder {
+
+    /// `pages` with the pages `ids` lifted out, in the order they stood, and
+    /// put down together in the gap `toIndex`: a gap counted in the pages as
+    /// they were before the move, 0 before the first and `pages.count` after
+    /// the last — as List's move(fromOffsets:toOffset:) counts it — and kept
+    /// to that range. Ids of no page are passed over; with none, the pages
+    /// are as they were.
+    static func moved(_ pages: [Page], ids: Set<String>, toIndex: Int) -> [Page] {
+        let lifted = pages.filter { ids.contains($0.id) }
+        guard !lifted.isEmpty else { return pages }
+        let gap = min(max(toIndex, 0), pages.count)
+        let before = pages[..<gap].filter { !ids.contains($0.id) }
+        let after = pages[gap...].filter { !ids.contains($0.id) }
+        return before + lifted + after
+    }
+
+    /// The gap a finger at `point` is over, among thumbnails at `frames` by
+    /// index: beside the nearest thumbnail — before it in its left half,
+    /// after it in its right — the lower index on a tie. Nil with none.
+    static func gap(at point: CGPoint, frames: [Int: CGRect]) -> Int? {
+        let nearest = frames.min { a, b in
+            let da = distance(point, a.value), db = distance(point, b.value)
+            return da == db ? a.key < b.key : da < db
+        }
+        guard let nearest else { return nil }
+        return point.x < nearest.value.midX ? nearest.key : nearest.key + 1
+    }
+
+    /// How far `point` is from `rect`: 0 inside it.
+    private static func distance(_ point: CGPoint, _ rect: CGRect) -> Double {
+        let dx = max(rect.minX - point.x, 0, point.x - rect.maxX)
+        let dy = max(rect.minY - point.y, 0, point.y - rect.maxY)
+        return Double(hypot(dx, dy))
+    }
+
+    /// The organiser's columns at a width in points: 2 under 400, 3 under
+    /// 700, else 4.
+    static func columns(forWidth width: Double) -> Int {
+        width < 400 ? 2 : width < 700 ? 3 : 4
+    }
+
+    /// Which way a drag scrolls at the ends of a strip or a grid `length`
+    /// long, the finger at `position` along it: -1 within `margin` of the
+    /// start, 1 within it of the end, else 0.
+    static func edgeScroll(_ position: Double, length: Double, margin: Double) -> Int {
+        guard length > margin * 2 else { return 0 }
+        if position < margin { return -1 }
+        if position > length - margin { return 1 }
+        return 0
+    }
+
+    /// A blank page to put in at `index`: the background of the page to its
+    /// left — of the first page, when it goes in first — and nothing else of
+    /// it.
+    static func blank(at index: Int, in pages: [Page]) -> Page {
+        let left = min(max(index - 1, 0), pages.count - 1)
+        return pages.indices.contains(left) ? Page(background: pages[left].background) : Page()
+    }
+
+    /// VoiceOver's moves for a page, by name, as the Android twin names them.
+    enum Step: String, CaseIterable {
+        case earlier = "Move page earlier"
+        case later = "Move page later"
+        case start = "Move to start"
+        case end = "Move to end"
+    }
+
+    /// The gap `step` moves page `index` of `count` to; nil when it is
+    /// already there — the first page is moved no earlier, the last no
+    /// later.
+    static func gap(_ step: Step, from index: Int, count: Int) -> Int? {
+        switch step {
+        case .earlier, .start: return index > 0 ? (step == .start ? 0 : index - 1) : nil
+        case .later, .end: return index < count - 1 ? (step == .end ? count : index + 2) : nil
+        }
+    }
+}

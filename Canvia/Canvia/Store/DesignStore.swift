@@ -2127,6 +2127,31 @@ final class DesignStore {
         if let i = design.pages.firstIndex(where: { $0.id == currentId }) { pageIndex = i }
     }
 
+    /// The pages `ids` put down together in the gap `gap` (PageOrder.moved)
+    /// — dragged in the organiser's grid or along the pages bar, or moved
+    /// by VoiceOver — as one undo step; none when the order is as it was.
+    /// The current page stays current wherever it ends up.
+    func movePages(_ ids: Set<String>, to gap: Int) {
+        let reordered = PageOrder.moved(design.pages, ids: ids, toIndex: gap)
+        guard reordered.map(\.id) != design.pages.map(\.id) else { return }
+        let currentId = page.id
+        apply { $0.pages = reordered }
+        if let i = design.pages.firstIndex(where: { $0.id == currentId }) { pageIndex = i }
+        buzz(.tick)
+    }
+
+    /// A blank page put in at `index` — the organiser's + between two
+    /// thumbnails — with the background of the page to its left
+    /// (PageOrder.blank), as one undo step. The current page stays current.
+    func insertPage(at index: Int) {
+        let at = min(max(index, 0), design.pages.count)
+        let blank = PageOrder.blank(at: at, in: design.pages)
+        let currentId = page.id
+        apply { $0.pages.insert(blank, at: at) }
+        if let i = design.pages.firstIndex(where: { $0.id == currentId }) { pageIndex = i }
+        buzz(.pageAdded)
+    }
+
     /// Delete several pages in one undo step, never the last one. A locked
     /// page among them stays, and the note says how many did
     /// (PageLocks.deletedNote).

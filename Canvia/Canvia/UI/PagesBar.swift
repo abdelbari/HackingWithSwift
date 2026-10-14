@@ -1,4 +1,6 @@
-// Bottom pages bar: thumbnails, add/duplicate/move/delete.
+// Bottom pages bar: thumbnails, add/duplicate/move/delete. Press and hold
+// a thumbnail to drag the page to another place in the strip, which scrolls
+// on at its ends (PageDragging).
 
 import SwiftUI
 import UIKit
@@ -8,26 +10,21 @@ struct PagesBar: View {
     @State private var confirmingDelete = false
     @State private var editingNotes = false
     @State private var organizing = false
+    /// A page lifted to be dragged along the strip (PageDragging).
+    @State private var lift = PageLift()
+    @State private var frames = PageFrames()
+    @State private var edges = PageEdgeScroll()
+    /// True while a lift's press is held, so one the scroll view takes over
+    /// is put back.
+    @GestureState private var holding = false
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiate
+
+    private static let space = "pagesBar"
+    private static let spacing = 8.0
 
     var body: some View {
         HStack(spacing: 10) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(Array(store.design.pages.enumerated()), id: \.element.id) { index, page in
-                        pageThumb(index: index, page: page)
-                    }
-                    Button { store.addPage() } label: {
-                        Image(systemName: "plus")
-                            .frame(width: 40, height: 56)
-                            .background(RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [5]))
-                                .foregroundStyle(.secondary))
-                    }
-                    .accessibilityLabel("Add page")
-                }
-                .padding(.horizontal, 12)
-            }
+            strip
 
             HStack(spacing: 2) {
                 Button { organizing = true } label: { Image(systemName: "square.grid.2x2") }
@@ -113,52 +110,142 @@ struct PagesBar: View {
             : "Duplicate, copy, paste or \(lock) page"
     }
 
+    /// The thumbnails, made as they scroll into view, then +.
+    private var strip: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: CGFloat(Self.spacing)) {
+                    ForEach(Array(store.design.pages.enumerated()), id: \.element.id) { index, page in
+                        pageThumb(index: index, page: page)
+                    }
+                    Button { store.addPage() } label: {
+                        Image(systemName: "plus")
+                            .frame(width: 40, height: 56)
+                            .background(RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [5]))
+                                .foregroundStyle(.secondary))
+                    }
+                    .accessibilityLabel("Add page")
+                }
+                .padding(.horizontal, 12)
+                // A tap goes to the page under it; a press and hold lifts it.
+                .contentShape(Rectangle())
+                .onTapGesture(coordinateSpace: .named(Self.space)) { point in
+                    if let i = frames.page(at: point, in: store.design.pages) { store.setPage(i) }
+                }
+                .gesture(liftGesture(proxy: proxy))
+            }
+            .coordinateSpace(name: Self.space)
+            .reportsViewport(to: frames)
+            .overlay {
+                PageGapMarker(lift: lift, pages: store.design.pages, frames: frames, spacing: Self.spacing)
+            }
+        }
+        .onChange(of: holding) { _, held in if !held { putDown(moving: false) } }
+        .onDisappear { edges.stop() }
+    }
+
+    /// Press and hold, then drag: the page lifted and carried along the
+    /// strip, the gap it would go into marked, the strip scrolled on at its
+    /// ends.
+    private func liftGesture(proxy: ScrollViewProxy) -> some Gesture {
+        LongPressGesture(minimumDuration: 0.35)
+            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named(Self.space)))
+            .updating($holding) { value, held, _ in
+                if case .second(true, _) = value { held = true }
+            }
+            .onChanged { value in
+                guard case .second(true, let drag) = value, let drag else { return }
+                if !lift.isActive {
+                    let pages = store.design.pages
+                    guard let i = frames.page(at: drag.startLocation, in: pages) else { return }
+                    lift = PageLift(ids: [pages[i].id])
+                    store.buzz(.tick)
+                }
+                lift.finger = drag.location
+                lift.gap = PageOrder.gap(at: drag.location, frames: frames.indexed(store.design.pages))
+                let edge = PageOrder.edgeScroll(Double(drag.location.x), length: Double(frames.viewport.width), margin: 44)
+                edges.hold(edge) { direction in scrollOn(direction, proxy: proxy) }
+            }
+            .onEnded { _ in putDown(moving: true) }
+    }
+
+    /// One thumbnail further along, the gap found again under the finger;
+    /// false at either end.
+    private func scrollOn(_ direction: Int, proxy: ScrollViewProxy) -> Bool {
+        let pages = store.design.pages
+        let shown = frames.shown(pages, vertical: false)
+        guard lift.isActive, let edge = direction > 0 ? shown.last : shown.first else { return false }
+        let target = min(max(edge + direction, 0), pages.count - 1)
+        guard target != edge else { return false }
+        withAnimation(.easeOut(duration: 0.2)) {
+            proxy.scrollTo(pages[target].id, anchor: direction > 0 ? .trailing : .leading)
+        }
+        if let finger = lift.finger { lift.gap = PageOrder.gap(at: finger, frames: frames.indexed(pages)) }
+        return true
+    }
+
+    /// Let go: the page moved to the gap as one undo step when `moving`,
+    /// else — the press taken over — put back.
+    private func putDown(moving: Bool) {
+        edges.stop()
+        guard lift.isActive else { return }
+        if moving, let gap = lift.gap { store.movePages(lift.ids, to: gap) }
+        lift = PageLift()
+    }
+
     private func pageThumb(index: Int, page: Page) -> some View {
         let pageSize = store.design.size(for: page)
         let aspect = pageSize.width / max(pageSize.height, 1)
-        return Button {
-            store.setPage(index)
-        } label: {
-            PageThumbnail(design: store.design, page: page)
-                .frame(width: 56 * aspect, height: 56)
-                .clipped()
-                // A hidden page is faded, and its number carries the eye
-                // struck through, as on the Android twin — beside the number
-                // rather than in a corner of its own, which a story-shaped
-                // thumbnail has no room for.
-                .opacity(page.hidden == true ? 0.4 : 1)
-                .overlay(alignment: .topLeading) {
-                    HStack(spacing: 2) {
-                        Text("\(index + 1)")
-                        if page.hidden == true { Image(systemName: "eye.slash") }
-                        if PageLocks.isLocked(page) { Image(systemName: "lock.fill") }
-                    }
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 1)
-                    .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))
-                    .padding(2)
+        let spoken = Self.spokenThumb(number: index + 1, title: page.title, current: index == store.pageIndex,
+                                      hidden: page.hidden == true, locked: PageLocks.isLocked(page))
+        return thumbFace(index: index, page: page, aspect: aspect)
+            .opacity(lift.ids.contains(page.id) ? 0.35 : 1)
+            .reportsPageFrame(page.id, in: Self.space, to: frames)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(spoken)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { store.setPage(index) }
+            .pageMoveActions(store, index: index, id: page.id)
+    }
+
+    private func thumbFace(index: Int, page: Page, aspect: CGFloat) -> some View {
+        PageThumbnail(design: store.design, page: page)
+            .frame(width: 56 * aspect, height: 56)
+            .clipped()
+            // A hidden page is faded, and its number carries the eye
+            // struck through, as on the Android twin — beside the number
+            // rather than in a corner of its own, which a story-shaped
+            // thumbnail has no room for.
+            .opacity(page.hidden == true ? 0.4 : 1)
+            .overlay(alignment: .topLeading) {
+                HStack(spacing: 2) {
+                    Text("\(index + 1)")
+                    if page.hidden == true { Image(systemName: "eye.slash") }
+                    if PageLocks.isLocked(page) { Image(systemName: "lock.fill") }
                 }
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(RoundedRectangle(cornerRadius: 8)
-                    .stroke(index == store.pageIndex ? Theme.accent : Color(.systemGray4),
-                            lineWidth: index == store.pageIndex ? 2 : 1))
-                // Differentiate Without Colour: the current page is also the
-                // one with the check, not only the one with the purple edge.
-                .overlay(alignment: .bottomTrailing) {
-                    if differentiate && index == store.pageIndex {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.white, Theme.accent)
-                            .padding(2)
-                    }
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 1)
+                .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))
+                .padding(2)
+            }
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8)
+                .stroke(index == store.pageIndex ? Theme.accent : Color(.systemGray4),
+                        lineWidth: index == store.pageIndex ? 2 : 1))
+            // Differentiate Without Colour: the current page is also the
+            // one with the check, not only the one with the purple edge.
+            .overlay(alignment: .bottomTrailing) {
+                if differentiate && index == store.pageIndex {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white, Theme.accent)
+                        .padding(2)
                 }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Self.spokenThumb(number: index + 1, title: page.title, current: index == store.pageIndex,
-                                             hidden: page.hidden == true, locked: PageLocks.isLocked(page)))
+            }
     }
 
     /// What VoiceOver says for a page's thumbnail: which page and its title,
