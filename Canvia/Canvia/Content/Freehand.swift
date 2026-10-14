@@ -14,7 +14,7 @@ import UIKit
 enum Freehand {
 
     /// What the pen lays down: ink; a marker — the ink opaque, 1.6 times
-    /// as wide, round at its ends and a little uneven at its edges; a
+    /// as wide, round at its ends and a little uneven along it; a
     /// highlighter — the ink see-through, three times as wide, multiplying
     /// with what is under it as a real one does; a glow — the ink with a
     /// halo of itself; and an eraser, which lays nothing down and takes away
@@ -81,51 +81,60 @@ enum Freehand {
 
     /// How much wider a marker draws than the pen's size.
     static let markerWidth = 1.6
-    /// The marker's opaque middle, as a share of its width; the rest, either
-    /// side, is its uneven edge.
-    static let markerCore = 0.75
-    /// How solid each piece of a marker's edge is: from this up by
-    /// markerJitter, drawn in turn from the stroke's own seed.
-    static let markerEdge = 0.55
-    static let markerJitter = 0.3
+    /// The most a marker's ink thins at a piece of its line.
+    static let markerJitter = 0.15
 
     /// Whether `el` is a stroke laid down by the marker.
     static func isMarker(_ el: Element) -> Bool { isStroke(el) && el.pen == Pen.marker.rawValue }
 
-    /// The seed a marker stroke's edge is drawn from: its path data's bytes
-    /// hashed (FNV-1a, 32 bits), so the same stroke has the same edge every
-    /// time it is drawn, on either phone.
+    /// The seed a marker stroke's texture is drawn from: the sum of its
+    /// path data's UTF-16 code units, as the Android twin seeds it, so the
+    /// same stroke has the same edge every time it is drawn, on either
+    /// phone.
     static func markerSeed(_ pathData: String) -> Int {
-        var hash: UInt32 = 2_166_136_261
-        for byte in pathData.utf8 {
-            hash ^= UInt32(byte)
-            hash = hash &* 16_777_619
-        }
-        return Int(hash & 0x7fff_ffff)
+        pathData.utf16.reduce(0) { $0 + Int($1) }
     }
 
-    /// How solid each of `count` pieces of a marker's edge is, in order:
-    /// markerEdge plus markerJitter times each draw from `seed`.
+    /// How solid each of `count` pieces of a marker's line is, in order: 1
+    /// less markerJitter times each draw from `seed` (SeededRandom, the
+    /// Android twin's generator).
     static func markerAlphas(count: Int, seed: Int) -> [Double] {
         var random = SeededRandom(seed: Double(seed))
-        return (0..<max(count, 0)).map { _ in markerEdge + markerJitter * random.next() }
+        return (0..<max(count, 0)).map { _ in 1 - markerJitter * random.next() }
     }
 
-    /// A marker stroke's pieces in its own box, `size` across: each pair of
-    /// neighbouring points of its path, and how solid that piece of its
-    /// edge is.
-    static func markerPieces(_ el: Element, size: CGSize) -> [(from: CGPoint, to: CGPoint, alpha: Double)] {
-        guard let data = el.pathData else { return [] }
-        let numbers = pathNumbers(data)
-        var points: [CGPoint] = []
-        var i = 0
-        while i + 1 < numbers.count {
-            points.append(CGPoint(x: numbers[i] / 100 * Double(size.width), y: numbers[i + 1] / 100 * Double(size.height)))
-            i += 2
+    /// How many pieces a marker's line `length` long and `width` wide is
+    /// drawn in: one for each twice its width along it, 1 to 4000.
+    static func markerPieceCount(length: Double, width: Double) -> Int {
+        guard length > 0, length.isFinite else { return 1 }
+        return min(max(Int((length / (max(width, 1) * 2)).rounded(.up)), 1), 4000)
+    }
+
+    /// The length of a stroke's curve drawn in a box `size` across: its
+    /// path data (a start, then a control and an end for each piece) in the
+    /// box's 0…100, each piece followed in 16 straight steps.
+    static func markerLength(_ el: Element, size: CGSize) -> Double {
+        let n = pathNumbers(el.pathData ?? "")
+        guard n.count >= 2 else { return 0 }
+        let sx = Double(size.width) / 100, sy = Double(size.height) / 100
+        var x = n[0] * sx, y = n[1] * sy, total = 0.0
+        var i = 2
+        while i + 3 < n.count {
+            let cx = n[i] * sx, cy = n[i + 1] * sy, ex = n[i + 2] * sx, ey = n[i + 3] * sy
+            var px = x, py = y
+            for step in 1...16 {
+                let t = Double(step) / 16, u = 1 - t
+                let qx = u * u * x + 2 * u * t * cx + t * t * ex
+                let qy = u * u * y + 2 * u * t * cy + t * t * ey
+                total += hypot(qx - px, qy - py)
+                px = qx
+                py = qy
+            }
+            x = ex
+            y = ey
+            i += 4
         }
-        guard points.count >= 2 else { return [] }
-        let alphas = markerAlphas(count: points.count - 1, seed: markerSeed(data))
-        return (0..<(points.count - 1)).map { (from: points[$0], to: points[$0 + 1], alpha: alphas[$0]) }
+        return total
     }
 
     /// The ink a stroke is drawn in: a highlighter's made see-through.
@@ -168,6 +177,13 @@ enum Freehand {
     /// The `opacity` a stroke is written with for a transparency.
     static func opacity(transparency: Double) -> Double {
         1 - keptTransparency(transparency) / 100
+    }
+
+    /// The `opacity` `tool`'s strokes are written with: its transparency's,
+    /// and a marker's always whole — it is opaque ink, as on the Android
+    /// twin.
+    static func strokeOpacity(_ tool: Tool) -> Double {
+        tool.pen == .marker ? 1 : opacity(transparency: tool.transparency)
     }
 
     /// The name strokes drawn in one go are grouped under when the pen is
@@ -250,7 +266,7 @@ enum Freehand {
         e.stroke = drawnColor(tool)
         e.strokeWidth = drawnWidth(tool)
         e.radius = nil
-        let shown = opacity(transparency: tool.transparency)
+        let shown = strokeOpacity(tool)
         if shown < 1 { e.opacity = shown }
         if tool.pen == .highlighter { e.blendMode = "multiply" }
         if tool.pen == .glow { e.shadow = glow(of: tool) }

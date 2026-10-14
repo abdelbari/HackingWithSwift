@@ -34,25 +34,33 @@ enum ShapeAssist {
     /// The setting's key: Shape assist on (the default) or off.
     static let key = "drawShapeAssist"
 
+    /// A stroke shorter than this along its path, in page units, is too
+    /// short to read.
+    static let shortest = 12.0
     /// A line strays from the straight between its ends by less than this
-    /// share of its length.
+    /// share of the distance between them.
     static let lineDeviation = 0.04
     /// A closed stroke's ends are nearer together than this share of its
-    /// length.
+    /// path's length.
     static let closedGap = 0.15
     /// An ellipse's points are, on average, within this share of the
-    /// ellipse filling the stroke's bounds.
+    /// ellipse filling the stroke's bounds (its radial residual).
     static let ellipseResidual = 0.12
-    /// A rectangle's corners are each within this many degrees of square.
-    static let cornerTolerance = 20.0
-    /// A triangle's corners are each at least this many degrees.
-    static let thinnestCorner = 20.0
-    /// The simplification's tolerance, as a share of the stroke's larger
-    /// side, and how little a corner may turn to stay one.
-    static let simplify = 0.05
-    static let shallowTurn = 30.0
-    /// A stroke shorter than this, in page units, is a dot: never a shape.
-    static let shortest = 8.0
+    /// A rectangle's corners are each within this many degrees of square,
+    /// and a triangle's each at least this many degrees.
+    static let angleSlack = 20.0
+    /// Ramer–Douglas–Peucker's tolerance, as a share of the larger side of
+    /// the stroke's bounds, and how little a corner may turn, in degrees,
+    /// and be a straight run.
+    static let cornerTolerance = 0.08
+    static let straightTurn = 25.0
+    /// An arrow's shaft is at least this share of its path; its head lies
+    /// within this share of the shaft's length of the tip; and each barb
+    /// is turned back towards the tail by no more than this many degrees
+    /// from the shaft.
+    static let shaftShare = 0.4
+    static let headReach = 0.5
+    static let barbAngle = 75.0
 
     /// Whether the finger, come to rest at `rest`, has moved on at `point`
     /// (page units, the canvas at `zoom`): holdSlop points on the screen
@@ -61,88 +69,100 @@ enum ShapeAssist {
         hypot(Double(point.x - rest.x), Double(point.y - rest.y)) >= holdSlop / max(zoom, 0.01)
     }
 
-    /// The shape `raw` (page units) was trying to be, or nil: tried in
-    /// turn as a line, an arrow, then — when its ends meet — a rectangle or
-    /// a triangle, then an ellipse.
+    /// The shape `raw` (page units) was drawn as, or nil when it is none of
+    /// them — the Android twin's rules, number for number: thinned as a
+    /// kept stroke is (Freehand.thinned) and too short to read under
+    /// `shortest` along its path; a line when no point strays from the
+    /// straight between its ends by lineDeviation of the distance between
+    /// them; closed when its ends are within closedGap of its path's
+    /// length, and then an ellipse, a rectangle or a triangle (closed);
+    /// open and not a line, an arrow (arrow).
     static func classify(_ raw: [CGPoint]) -> Snap? {
         let points = Freehand.thinned(raw)
-        guard points.count >= 2, length(points) >= shortest,
-              let first = points.first, let last = points.last else { return nil }
+        guard points.count >= 2, let start = points.first, let end = points.last else { return nil }
+        let total = length(points)
+        guard total >= shortest else { return nil }
+        let chord = hypot(Double(end.x - start.x), Double(end.y - start.y))
+        let far = points.map { MaskRaster.distance($0, start, end) }.max() ?? 0
+        if chord > 0 && far < lineDeviation * chord { return Snap(kind: .line, start: start, end: end) }
+        if chord < closedGap * total { return closed(points) }
+        return arrow(points, length: total)
+    }
+
+    /// A closed stroke: an ellipse — its bounds' centre and half-sides —
+    /// when its points' radial residual is under ellipseResidual; else its
+    /// corners (corners), four all within angleSlack of square a rectangle,
+    /// three each of at least angleSlack a triangle.
+    static func closed(_ points: [CGPoint]) -> Snap? {
         let bounds = boundsOf(points)
-        let side = max(Double(bounds.width), Double(bounds.height))
-        if let line = asLine(points) { return line }
-        let gap = hypot(Double(last.x - first.x), Double(last.y - first.y))
-        if gap < closedGap * length(points) {
-            var ring = points
-            if ring.count > 2, gap < side * simplify { ring.removeLast() }
-            let corners = closedCorners(ring, tolerance: side * simplify)
-            if corners.count == 4, let rect = asRectangle(corners) { return rect }
-            if corners.count == 3, isTriangle(corners) {
-                return Snap(kind: .triangle, frame: boundsOf(corners))
-            }
-            if fitsEllipse(ring, in: bounds) { return Snap(kind: .ellipse, frame: bounds) }
-            return nil
+        guard bounds.width > 0, bounds.height > 0 else { return nil }
+        if fitsEllipse(points, in: bounds) { return Snap(kind: .ellipse, frame: bounds) }
+        let found = corners(points, closed: true)
+        let angles = found.indices.map { angle(at: $0, of: found) }
+        if found.count == 4 && angles.allSatisfy({ abs($0 - 90) <= angleSlack }) { return rectangle(found) }
+        if found.count == 3 && angles.allSatisfy({ $0 >= angleSlack }) {
+            return Snap(kind: .triangle, frame: boundsOf(found))
         }
-        return asArrow(points, tolerance: side * simplify)
+        return nil
     }
 
-    /// A line: no point further from the straight between the ends than
-    /// lineDeviation of its length.
-    static func asLine(_ points: [CGPoint]) -> Snap? {
-        guard let a = points.first, let b = points.last else { return nil }
-        let chord = hypot(Double(b.x - a.x), Double(b.y - a.y))
-        guard chord >= shortest else { return nil }
-        let far = points.map { MaskRaster.distance($0, a, b) }.max() ?? 0
-        return far < lineDeviation * chord ? Snap(kind: .line, start: a, end: b) : nil
-    }
-
-    /// An arrow: a shaft and, at its far end, a head of two strokes. Read
-    /// from the simplified stroke: its first leg is the shaft, from A to the
-    /// tip B; of the corners after it, those not back at the tip (within
-    /// 15% of the shaft) must be exactly two, each within half the shaft of
-    /// the tip, both behind it, one either side of the shaft.
-    static func asArrow(_ points: [CGPoint], tolerance: Double) -> Snap? {
-        let corners = pruned(simplified(points, tolerance: tolerance), closed: false, tolerance: tolerance)
-        guard corners.count >= 4, corners.count <= 5 else { return nil }
-        let a = corners[0], b = corners[1]
-        let shaft = hypot(Double(b.x - a.x), Double(b.y - a.y))
-        guard shaft >= shortest else { return nil }
-        let head = corners.dropFirst(2).filter { hypot(Double($0.x - b.x), Double($0.y - b.y)) > 0.15 * shaft }
-        guard head.count == 2 else { return nil }
-        let dx = Double(b.x - a.x), dy = Double(b.y - a.y)
-        var sides: [Double] = []
-        for p in head {
-            let px = Double(p.x - b.x), py = Double(p.y - b.y)
-            guard hypot(px, py) <= 0.5 * shaft, px * dx + py * dy < 0 else { return nil }
-            sides.append(dx * py - dy * px)
+    /// An arrow: its corners (corners, open) start with a shaft from tail
+    /// to tip at least shaftShare of the path's `length`; the rest — the
+    /// head — all within headReach of the shaft of the tip; and of the head's
+    /// corners not at the tip (within a tenth of the shaft), each turned
+    /// back towards the tail by no more than barbAngle, with one either side
+    /// of the shaft at least.
+    static func arrow(_ points: [CGPoint], length total: Double) -> Snap? {
+        let found = corners(points, closed: false)
+        guard found.count >= 4 else { return nil }
+        let tail = found[0], tip = found[1]
+        let shaft = hypot(Double(tip.x - tail.x), Double(tip.y - tail.y))
+        guard shaft > 0, shaft >= shaftShare * total else { return nil }
+        let head = found.dropFirst(2)
+        let reach = headReach * shaft
+        guard head.allSatisfy({ hypot(Double($0.x - tip.x), Double($0.y - tip.y)) <= reach }) else { return nil }
+        let bx = Double(tail.x - tip.x) / shaft, by = Double(tail.y - tip.y) / shaft
+        var left = false, right = false
+        for h in head {
+            let d = hypot(Double(h.x - tip.x), Double(h.y - tip.y))
+            if d < 0.1 * shaft { continue }
+            let dx = Double(h.x - tip.x) / d, dy = Double(h.y - tip.y) / d
+            let back = acos(min(max(dx * bx + dy * by, -1), 1)) * 180 / .pi
+            if back > barbAngle { return nil }
+            if bx * dy - by * dx > 0 { left = true } else { right = true }
         }
-        guard sides[0] * sides[1] < 0 else { return nil }
-        return Snap(kind: .arrow, start: a, end: b)
+        return left && right ? Snap(kind: .arrow, start: tail, end: tip) : nil
     }
 
-    /// A rectangle: four corners, each within cornerTolerance of square;
-    /// turned as its first side runs, brought within ±45°, and as big as its
-    /// corners reach along its sides.
-    static func asRectangle(_ corners: [CGPoint]) -> Snap? {
-        guard corners.count == 4, corners.indices.allSatisfy({ abs(angle(at: $0, of: corners) - 90) <= cornerTolerance })
-        else { return nil }
+    /// A rectangle from its four corners in the order drawn: turned as its
+    /// first side runs, brought within ±45° (quarterTurn); centred on the
+    /// corners' mean; its sides the means of the opposite sides (sides).
+    static func rectangle(_ corners: [CGPoint]) -> Snap {
         let first = atan2(Double(corners[1].y - corners[0].y), Double(corners[1].x - corners[0].x)) * 180 / .pi
-        var turn = first.truncatingRemainder(dividingBy: 90)
-        if turn > 45 { turn -= 90 }
-        if turn <= -45 { turn += 90 }
+        let turn = quarterTurn(first)
+        let (w, h) = sides(corners, rotation: turn)
         let cx = corners.map { Double($0.x) }.reduce(0, +) / 4
         let cy = corners.map { Double($0.y) }.reduce(0, +) / 4
-        let r = turn * .pi / 180
-        let us = corners.map { Double($0.x) * cos(r) + Double($0.y) * sin(r) }
-        let vs = corners.map { -Double($0.x) * sin(r) + Double($0.y) * cos(r) }
-        let w = (us.max() ?? 0) - (us.min() ?? 0), h = (vs.max() ?? 0) - (vs.min() ?? 0)
-        let frame = CGRect(x: cx - w / 2, y: cy - h / 2, width: w, height: h)
-        return Snap(kind: .rectangle, frame: frame, rotation: (turn * 100).rounded() / 100)
+        return Snap(kind: .rectangle, frame: CGRect(x: cx - w / 2, y: cy - h / 2, width: w, height: h), rotation: turn)
     }
 
-    /// A triangle: three corners, none thinner than thinnestCorner.
-    static func isTriangle(_ corners: [CGPoint]) -> Bool {
-        corners.count == 3 && corners.indices.allSatisfy { angle(at: $0, of: corners) >= thinnestCorner }
+    /// A rectangle's width — the mean of its first and third sides, the way
+    /// it is turned — and its height, the mean of the other two; swapped
+    /// when its first side runs a quarter turn from `rotation`.
+    static func sides(_ p: [CGPoint], rotation: Double) -> (width: Double, height: Double) {
+        func dist(_ a: CGPoint, _ b: CGPoint) -> Double { hypot(Double(b.x - a.x), Double(b.y - a.y)) }
+        let a = (dist(p[0], p[1]) + dist(p[2], p[3])) / 2
+        let b = (dist(p[1], p[2]) + dist(p[3], p[0])) / 2
+        let first = atan2(Double(p[1].y - p[0].y), Double(p[1].x - p[0].x)) * 180 / .pi
+        let off = ((first - rotation).truncatingRemainder(dividingBy: 180) + 180).truncatingRemainder(dividingBy: 180)
+        return abs(off - 90) < 45 ? (b, a) : (a, b)
+    }
+
+    /// An angle in degrees less a whole number of quarter turns: from -45
+    /// up to, not including, 45.
+    static func quarterTurn(_ degrees: Double) -> Double {
+        let q = degrees - 90 * ((degrees + 45) / 90).rounded(.down)
+        return q >= 45 ? q - 90 : q
     }
 
     /// An ellipse: the points' distance from the centre of `bounds`, over
@@ -151,7 +171,7 @@ enum ShapeAssist {
     static func fitsEllipse(_ points: [CGPoint], in bounds: CGRect) -> Bool {
         let a = Double(bounds.width) / 2, b = Double(bounds.height) / 2
         guard a > 0, b > 0, !points.isEmpty else { return false }
-        let cx = Double(bounds.midX), cy = Double(bounds.midY)
+        let cx = Double(bounds.minX) + a, cy = Double(bounds.minY) + b
         let off = points.map { p -> Double in
             let u = (Double(p.x) - cx) / a, v = (Double(p.y) - cy) / b
             return abs((u * u + v * v).squareRoot() - 1)
@@ -161,18 +181,30 @@ enum ShapeAssist {
 
     // MARK: corners
 
-    /// A closed stroke's corners: simplified (Ramer–Douglas–Peucker) from
-    /// its first point to the point furthest from it and on round again,
-    /// then pruned.
-    static func closedCorners(_ ring: [CGPoint], tolerance: Double) -> [CGPoint] {
-        guard ring.count >= 3, let start = ring.first else { return ring }
-        let reach = ring.map { hypot(Double($0.x - start.x), Double($0.y - start.y)) }
-        let far = reach.indices.max { reach[$0] < reach[$1] } ?? 0
-        guard far > 0 else { return [start] }
-        let there = simplified(Array(ring[0...far]), tolerance: tolerance)
-        let back = simplified(Array(ring[far...]) + [start], tolerance: tolerance)
-        let loop = Array(there.dropLast()) + Array(back.dropLast())
-        return pruned(loop, closed: true, tolerance: tolerance)
+    /// A stroke's corners: Ramer–Douglas–Peucker (simplified) at
+    /// cornerTolerance of its bounds' larger side, then the corner turning
+    /// least taken out while it turns less than straightTurn, again until
+    /// none does — a closed stroke's end dropped, joined to its start, and
+    /// its start a corner like any other; an open one's ends always kept.
+    static func corners(_ points: [CGPoint], closed: Bool) -> [CGPoint] {
+        guard points.count >= 3 else { return points }
+        let bounds = boundsOf(points)
+        let span = max(Double(bounds.width), Double(bounds.height))
+        var out = simplified(points, tolerance: cornerTolerance * span)
+        if closed && out.count > 2 { out.removeLast() }
+        while out.count > (closed ? 3 : 2) {
+            let range = closed ? Array(out.indices) : Array(1..<(out.count - 1))
+            guard let straightest = range.min(by: { turn(at: $0, of: out) < turn(at: $1, of: out) }),
+                  turn(at: straightest, of: out) < straightTurn else { break }
+            out.remove(at: straightest)
+        }
+        return out
+    }
+
+    /// How far a path through `corners` turns at corner `i`: 0 straight on,
+    /// 180 straight back.
+    static func turn(at i: Int, of corners: [CGPoint]) -> Double {
+        180 - angle(at: i, of: corners)
     }
 
     /// Ramer–Douglas–Peucker: the ends, and every point further than
@@ -197,31 +229,6 @@ enum ShapeAssist {
             }
         }
         return points.indices.filter { keep[$0] }.map { points[$0] }
-    }
-
-    /// Corners that are not corners taken out until none is left: one
-    /// nearer than `tolerance` to the corner before it, or one where the
-    /// stroke turns less than shallowTurn. A closed stroke's corners go
-    /// round; an open one keeps its ends.
-    static func pruned(_ corners: [CGPoint], closed: Bool, tolerance: Double) -> [CGPoint] {
-        var out = corners
-        var changed = true
-        while changed && out.count > (closed ? 3 : 2) {
-            changed = false
-            for i in out.indices {
-                if !closed && (i == 0 || i == out.count - 1) { continue }
-                let prev = out[(i + out.count - 1) % out.count], next = out[(i + 1) % out.count]
-                let p = out[i]
-                let near = hypot(Double(p.x - prev.x), Double(p.y - prev.y)) < tolerance
-                let straight = 180 - angle(prev, p, next) < shallowTurn
-                if near || straight {
-                    out.remove(at: i)
-                    changed = true
-                    break
-                }
-            }
-        }
-        return out
     }
 
     /// The angle at corner `i` of a closed polygon, in degrees, 0…180.
@@ -271,8 +278,8 @@ enum ShapeAssist {
     /// The element `snap` becomes in `tool`'s ink: a line — with an arrow
     /// at its end for an arrow — as thick as the stroke would be drawn, or
     /// a shape with no fill and a border as wide; in the pen's ink,
-    /// transparency, highlighter blend or glow either way. Nil for the
-    /// eraser.
+    /// transparency (none for a marker's), highlighter blend or glow either
+    /// way. Nil for the eraser.
     static func element(_ snap: Snap, tool: Freehand.Tool) -> Element? {
         guard tool.pen != .eraser else { return nil }
         let width = Freehand.drawnWidth(tool)
@@ -281,7 +288,9 @@ enum ShapeAssist {
             e = Element.shape(id, w: max(1, Double(snap.frame.width)), h: max(1, Double(snap.frame.height)))
             e.x = Double(snap.frame.minX)
             e.y = Double(snap.frame.minY)
-            e.rotation = snap.kind == .rectangle ? snap.rotation : 0
+            // Turned as a rectangle was drawn, written from 0 up to 360 as
+            // the Android twin writes it.
+            e.rotation = snap.kind == .rectangle ? (snap.rotation + 360).truncatingRemainder(dividingBy: 360) : 0
             e.fill = Paint.clear
             e.stroke = Freehand.drawnColor(tool)
             e.strokeWidth = width
@@ -293,7 +302,7 @@ enum ShapeAssist {
             if snap.kind == .arrow { line.endCap = "arrow" }
             e = LineRoutes.withEnds(line, snap.start, snap.end)
         }
-        let shown = Freehand.opacity(transparency: tool.transparency)
+        let shown = Freehand.strokeOpacity(tool)
         if shown < 1 { e.opacity = shown }
         if tool.pen == .highlighter { e.blendMode = "multiply" }
         if tool.pen == .glow { e.shadow = Freehand.glow(of: tool) }

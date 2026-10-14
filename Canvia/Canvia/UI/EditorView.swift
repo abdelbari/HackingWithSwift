@@ -945,7 +945,10 @@ struct EditorView: View {
                 let width = Freehand.snappedWidth(v)
                 if store.drawing?.width != width { store.drawing?.width = width }
             }
-            if tool.pen.hasInk {
+            // A marker's ink is opaque, so it has no transparency to set.
+            if tool.pen == .marker {
+                EmptyView()
+            } else if tool.pen.hasInk {
                 penSlider(tr("Transparency"), value: tool.transparency, in: 0...Freehand.maxTransparency,
                           readout: "\(Int(tool.transparency))%") { v in
                     store.drawing?.transparency = Freehand.keptTransparency(v)

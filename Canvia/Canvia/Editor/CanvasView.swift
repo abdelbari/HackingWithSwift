@@ -937,7 +937,7 @@ struct CanvasView: View {
                         style: StrokeStyle(lineWidth: Freehand.drawnWidth(tool), lineCap: .round, lineJoin: .round))
                 .blendMode(tool.pen == .highlighter ? .multiply : .normal)
                 .shadow(color: halo, radius: spread)
-                .opacity(Freehand.opacity(transparency: tool.transparency))
+                .opacity(Freehand.strokeOpacity(tool))
         }
     }
 
