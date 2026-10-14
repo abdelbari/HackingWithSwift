@@ -27,12 +27,17 @@ final class SharedInboxTests: XCTestCase {
           {"kind":"video","file":"../2.mp4","mime":"video/mp4"},
           {"kind":"pdf","mime":"application/pdf"},
           {"kind":"anim","file":"3.gif","mime":"image/gif"},
-          {"kind":"svg","file":"4.svg","mime":"image/svg+xml"}
+          {"kind":"svg","file":"4.svg","mime":"image/svg+xml"},
+          {"kind":"anim","file":"5.gif"},
+          {"kind":"svg"},
+          "nonsense"
         ]}
         """#
         let manifest = try XCTUnwrap(SharedInbox.ShareManifest.read(Data(json.utf8)))
-        XCTAssertEqual(manifest.items.map(\.file), ["0.jpg", "3.gif", "4.svg"])
-        XCTAssertEqual(manifest.items.map(\.kind), [.image, .anim, .svg])
+        XCTAssertEqual(manifest.items.map(\.file), ["0.jpg", "3.gif", "4.svg", "5.gif"])
+        XCTAssertEqual(manifest.items.map(\.kind), [.image, .anim, .svg, .anim])
+        // No mime is "", as the Android twin reads it.
+        XCTAssertEqual(manifest.items.last?.mime, "")
         XCTAssertEqual(manifest.createdAt, 1_700_000_000_000)
         XCTAssertEqual(SharedInbox.ShareManifest.read(Data("{}".utf8))?.items, [])
     }
@@ -123,12 +128,16 @@ final class SharedInboxTests: XCTestCase {
         XCTAssertEqual(box.manifest.items, [SharedInbox.Item(kind: .svg, file: "0.svg", mime: "image/svg+xml"),
                                             SharedInbox.Item(kind: .image, file: "1.jpg", mime: "image/jpeg")])
         XCTAssertEqual(box.manifest.createdAt, 1_700_000_000_000)
-        XCTAssertEqual(SharedInbox.open(box.id), box)
+        XCTAssertEqual(box.asked, 3)
+        XCTAssertEqual(SharedInbox.open(box.id)?.manifest, box.manifest)
+        XCTAssertEqual(SharedInbox.open(box.id)?.asked, 2)
 
+        // The design file never landed, and the broken photo does not open:
+        // two of the three handed over, as the Android twin counts them.
         let brought = SharedInbox.bringIn(box, pageSize: CGSize(width: 1000, height: 500))
         XCTAssertEqual(brought.pages.count, 1)
-        XCTAssertEqual(brought.failed, 1)
-        XCTAssertEqual(SharedInbox.failureText(failed: brought.failed, total: brought.total), "Couldn't open 1 of 2 items")
+        XCTAssertEqual(brought.failed, 2)
+        XCTAssertEqual(SharedInbox.failureText(failed: brought.failed, total: brought.total), "Couldn't open 2 of 3 items")
         let shape = try XCTUnwrap(brought.pages.first?.elements.first)
         XCTAssertNotNil(shape.pathData)
         XCTAssertEqual(shape.w, 200)
@@ -139,5 +148,27 @@ final class SharedInboxTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: box.directory.path))
         XCTAssertNil(SharedInbox.open(box.id))
         XCTAssertNil(SharedInbox.land([design]), "nothing Canvia takes, nothing landed")
+    }
+
+    /// At launch, inbox folders more than a day old go, as on Android;
+    /// newer ones, and files beside them, stay.
+    func testTheSweepTakesFoldersADayOld() throws {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent("inbox-\(UUID().uuidString)")
+        defer { try? fm.removeItem(at: root) }
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let old = root.appendingPathComponent("old"), fresh = root.appendingPathComponent("fresh")
+        for dir in [old, fresh] { try fm.createDirectory(at: dir, withIntermediateDirectories: true) }
+        let loose = root.appendingPathComponent("note.txt")
+        try Data("x".utf8).write(to: loose)
+        try fm.setAttributes([.modificationDate: now.addingTimeInterval(-25 * 3600)], ofItemAtPath: old.path)
+        try fm.setAttributes([.modificationDate: now.addingTimeInterval(-23 * 3600)], ofItemAtPath: fresh.path)
+        try fm.setAttributes([.modificationDate: now.addingTimeInterval(-48 * 3600)], ofItemAtPath: loose.path)
+
+        SharedInbox.sweep(now: now, in: root)
+        XCTAssertFalse(fm.fileExists(atPath: old.path))
+        XCTAssertTrue(fm.fileExists(atPath: fresh.path))
+        XCTAssertTrue(fm.fileExists(atPath: loose.path))
+        SharedInbox.sweep(now: now, in: root.appendingPathComponent("missing"))
     }
 }
