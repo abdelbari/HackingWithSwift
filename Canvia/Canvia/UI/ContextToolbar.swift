@@ -1125,9 +1125,28 @@ struct ContextToolbar: View {
         let weightReach = reach("Weight", 1...60, weight)
         sliderControl("Weight", value: weight, in: weightReach,
                       onEditing: { holdReach("Weight", weightReach, $0) }) { v in
-            store.updateSelectedTransient {
-                $0.thickness = v
-                $0.h = max(8, v)
+            store.updateSelectedTransient { e in
+                guard LineRoutes.keepsLevel(e) else {
+                    e.thickness = v
+                    e.h = max(8, v)
+                    return
+                }
+                // An elbow's or a curve's box is its ends padded by its
+                // weight: laid round the same ends again.
+                let ends = LineRoutes.ends(of: e)
+                e.thickness = v
+                e = LineRoutes.withEnds(e, ends.start, ends.end)
+            }
+        }
+        lineTypePicker(el)
+        if LineRoutes.keepsLevel(el) {
+            // Where an elbow's corner sits, or how far a curve bows: live,
+            // one step a drag.
+            let label = LineRoutes.routeType(of: el) == .elbow ? "Corner" : "Bend"
+            sliderControl(label, value: (LineRoutes.bend(of: el) * 100).rounded(), in: -100...100) { v in
+                store.updateSelectedTransient { e in
+                    if LineRoutes.keepsLevel(e) { e = LineRoutes.withBend(e, v.rounded() / 100) }
+                }
             }
         }
         dashMenu(el)
@@ -1152,6 +1171,26 @@ struct ContextToolbar: View {
             toolLabel("arrow.left.and.right", "Ends")
         }
         .accessibilityLabel("Line ends")
+    }
+
+    /// Straight, Elbow or Curve (LineRoutes), the line's ends staying where
+    /// they are: one step a tap, on every unlocked line selected, and
+    /// nothing recorded when they already are.
+    private func lineTypePicker(_ el: Element) -> some View {
+        let current = LineRoutes.routeType(of: el)
+        return Picker("Line type", selection: Binding(get: { current }, set: { type in
+            let lines = store.selectedElements.filter { $0.type == .line && !$0.locked }
+            guard lines.contains(where: { LineRoutes.routeType(of: $0) != type }) else { return }
+            store.updateSelected { e in
+                if e.type == .line { e = LineRoutes.withType(e, type) }
+            }
+            store.buzz(.tick)
+        })) {
+            ForEach(LineRoutes.RouteType.allCases) { type in Text(type.label).tag(type) }
+        }
+        .pickerStyle(.segmented)
+        .frame(width: 210)
+        .accessibilityLabel("Line type")
     }
 
     /// Solid, dashed or dotted: captioned like the rest of the bar, the

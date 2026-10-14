@@ -35,7 +35,9 @@ enum Touch {
 
     /// The resize handles an element offers, whatever its size on screen —
     /// they stand off a small element rather than vanish from it (see
-    /// handleOutset). A line stretches along its length; a text box follows
+    /// handleOutset). A line's ends are discs of their own to drag
+    /// (LineRoutes.hasEndHandles), so it offers none, unless both its ends
+    /// are tied and it only stretches along its length; a text box follows
     /// its words, so its top and bottom are not the user's to drag unless the
     /// type is fitted to the box or aligned in it; a sticker and a QR code
     /// only scale, from their corners — a code's sides would cut into its
@@ -43,7 +45,7 @@ enum Touch {
     static func handleSet(for el: Element) -> [Handle] {
         let corners: [Handle] = [.nw, .ne, .se, .sw]
         switch el.type {
-        case .line: return [.e, .w]
+        case .line: return LineRoutes.hasEndHandles(el) ? [] : [.e, .w]
         case .text: return (el.fitText == true || el.vAlign != nil) ? Handle.allCases : [.nw, .ne, .se, .sw, .e, .w]
         case .sticker: return corners
         case .image:
@@ -610,8 +612,9 @@ enum Geometry {
             let cx = to.minX + (el.center.x - from.minX) * sx
             let cy = to.minY + (el.center.y - from.minY) * sy
             e.w = max(minSize, el.w * sx)
-            // A line's height is its stroke, not a dimension of its box.
-            e.h = el.type == .line ? el.h : max(minSize, el.h * sy)
+            // A straight line's height is its stroke, not a dimension of its
+            // box; an elbow's or a curve's is its route's.
+            e.h = el.type == .line && !LineRoutes.keepsLevel(el) ? el.h : max(minSize, el.h * sy)
             e.x = cx - e.w / 2
             e.y = cy - e.h / 2
             if el.type == .text {
@@ -661,7 +664,11 @@ enum Geometry {
             let turned = (360 - el.rotation).truncatingRemainder(dividingBy: 360)
             e.rotation = turned < 0 ? turned + 360 : turned
             let readable = el.type == .text || el.table != nil || el.chart != nil
-            if el.type == .line {
+            if el.type == .line && LineRoutes.keepsLevel(el) {
+                // An elbowed or curved line's route is mirrored in its box
+                // instead.
+                return LineRoutes.mirrored(e, horizontal: horizontal)
+            } else if el.type == .line {
                 let joined = el.connectFrom != nil || el.connectTo != nil
                 if horizontal && !joined {
                     e.startCap = el.endCap

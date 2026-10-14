@@ -824,6 +824,11 @@ struct LineElementView: View {
     var body: some View {
         SwiftUI.Canvas { context, size in
             let el = element
+            // An elbowed or curved line along its route.
+            if LineRoutes.keepsLevel(el) {
+                Self.drawRoute(el, in: context)
+                return
+            }
             let t = el.thickness ?? 4
             let y = size.height / 2
             let color = Color(hex: el.color ?? "#1f2430")
@@ -862,6 +867,42 @@ struct LineElementView: View {
             cap(atStart: false, kind: el.endCap)
         }
         .frame(width: element.w, height: element.h)
+    }
+
+    /// An elbowed or curved line (LineRoutes) in its own box: one stroke
+    /// along its route — its corners round, a curve a quadratic — dashed as
+    /// a straight one is, stopping short of an arrowhead whose tip is the
+    /// end, and each end's arrowhead or dot pointing along its segment.
+    static func drawRoute(_ el: Element, in context: GraphicsContext) {
+        let t = max(el.thickness ?? 4, 0.5)
+        let color = Color(hex: el.color ?? "#1f2430")
+        let route = LineRoutes.route(el)
+        let points = LineRoutes.trimmed(route, startBack: LineRoutes.strokeBack(el, cap: el.startCap),
+                                        endBack: LineRoutes.strokeBack(el, cap: el.endCap))
+        var stroke = Path()
+        stroke.move(to: points[0])
+        if route.curved && points.count == 3 {
+            stroke.addQuadCurve(to: points[2], control: points[1])
+        } else {
+            for p in points.dropFirst() { stroke.addLine(to: p) }
+        }
+        var style = StrokeStyle(lineWidth: t, lineCap: .round, lineJoin: .round)
+        if el.dash == "dashed" { style.dash = [t * 3, t * 2] }
+        if el.dash == "dotted" { style.dash = [0.01, t * 2.2] }
+        context.stroke(stroke, with: .color(color), style: style)
+        for (kind, tip, angle) in [(el.startCap, route.start, route.startAngle), (el.endCap, route.end, route.endAngle)] {
+            if kind == "arrow" {
+                let head = LineRoutes.arrowhead(tip: tip, angle: angle, size: LineRoutes.arrowSize(t))
+                var p = Path()
+                p.addLines(head)
+                p.closeSubpath()
+                context.fill(p, with: .color(color))
+            } else if kind == "dot" {
+                let c = LineRoutes.dotCentre(tip: tip, angle: angle, t: t)
+                let r = LineRoutes.dotRadius(t)
+                context.fill(Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)), with: .color(color))
+            }
+        }
     }
 }
 

@@ -653,6 +653,14 @@ struct Element: Codable, Equatable, Identifiable {
     var dash: String?
     var startCap: String?
     var endCap: String?
+    /// How a line runs between its ends (see LineRoutes): "elbow" or
+    /// "curve"; nil is straight. An elbowed or curved line keeps rotation 0
+    /// and its ends as `ends`, [x1, y1, x2, y2], fractions of its box, with
+    /// `bend`, -1…1, where its corner sits or how far it bows; nil is 0.
+    /// Each written only when set, as on the Android twin.
+    var lineType: String?
+    var ends: [Double]?
+    var bend: Double?
 
     var frame: CGRect { CGRect(x: x, y: y, width: w, height: h) }
     /// Whether the element is left off the page (see `hidden`).
@@ -766,6 +774,9 @@ struct Element: Codable, Equatable, Identifiable {
         dash = try? c.decode(String.self, forKey: .dash)
         startCap = try? c.decode(String.self, forKey: .startCap)
         endCap = try? c.decode(String.self, forKey: .endCap)
+        lineType = try? c.decode(String.self, forKey: .lineType)
+        ends = try? c.decode([Double].self, forKey: .ends)
+        bend = (try? c.decode(Double.self, forKey: .bend)).flatMap { $0.isFinite ? $0 : nil }
     }
 
     private static func defaultHeight(for type: ElementType, decoded c: KeyedDecodingContainer<CodingKeys>) -> Double {
@@ -799,6 +810,7 @@ struct Element: Codable, Equatable, Identifiable {
         case qrColor, qrBackground, qrMargin
         case glyph
         case thickness, dash, startCap, endCap
+        case lineType, ends, bend
     }
 
     // MARK: factories (defaults mirror the web factories)

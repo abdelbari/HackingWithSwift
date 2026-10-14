@@ -26,6 +26,10 @@ struct SelectionOverlay: View {
     /// A finger landing on the body or lifting from it, for how long a tap
     /// there was down (a quick one on a text selected alone types in it).
     var onBodyPressing: (Bool) -> Void = { _ in }
+    /// A line's start (true) or end (false) dragged to a point, in page
+    /// units, and let go (LineRoutes).
+    var onEndDrag: (Bool, CGPoint) -> Void = { _, _ in }
+    var onEndDragEnd: (Bool) -> Void = { _ in }
 
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -42,6 +46,15 @@ struct SelectionOverlay: View {
         var start: CGPoint
     }
     @State private var held: Held?
+
+    /// A line's end a finger is working: which, where it took it relative
+    /// to the end, and where the touch began.
+    private struct HeldEnd {
+        var atStart: Bool
+        var offset: CGPoint
+        var start: CGPoint
+    }
+    @State private var heldEnd: HeldEnd?
 
     private var iz: Double { 1 / max(store.zoom, 0.01) }
     /// Increase Contrast: heavier outlines, since a one-point accent line
@@ -73,7 +86,10 @@ struct SelectionOverlay: View {
             }
 
             if let el = store.singleSelection, !el.holdsPlace, !el.isHidden, store.editingTextId != el.id {
-                handleRing(for: el, handles: Touch.handleSet(for: el))
+                // An elbowed or curved line stays level: no turn handle.
+                if !LineRoutes.keepsLevel(el) { handleRing(for: el, handles: Touch.handleSet(for: el)) }
+                // A line's ends, discs to drag in place of its stretch handles.
+                if LineRoutes.hasEndHandles(el) { lineEnds(el) }
             }
             if let el = store.singleSelection,
                Touch.showsMoveHandle(el, zoom: store.zoom, typing: store.editingTextId == el.id) {
@@ -247,7 +263,7 @@ struct SelectionOverlay: View {
     /// their box's corners. Nil when no handle is drawn.
     private static func ring(_ store: DesignStore) -> (el: Element, handles: [Handle])? {
         if let el = store.singleSelection {
-            guard !el.holdsPlace, !el.isHidden, store.editingTextId != el.id else { return nil }
+            guard !el.holdsPlace, !el.isHidden, store.editingTextId != el.id, !LineRoutes.keepsLevel(el) else { return nil }
             return (el: el, handles: Touch.handleSet(for: el))
         }
         let selected = store.selectedElements
@@ -270,6 +286,17 @@ struct SelectionOverlay: View {
                           outsetX: out.x, outsetY: out.y, rotateAt: rotateAt,
                           reach: Touch.pageUnits(Touch.handleReach, zoom: store.zoom),
                           inside: Touch.pageUnits(Touch.handleReachInside, zoom: store.zoom)) != nil
+    }
+
+    /// Whether a touch at `point`, in page units, is within reach of a
+    /// selected line's end disc (lineEnds), so the view's own pan leaves it
+    /// to the disc.
+    static func lineEndsTake(_ point: CGPoint, store: DesignStore) -> Bool {
+        guard let el = store.singleSelection, !el.holdsPlace, !el.isHidden,
+              LineRoutes.hasEndHandles(el) else { return false }
+        let ends = LineRoutes.ends(of: el)
+        let reach = Touch.pageUnits(Touch.handleReach, zoom: store.zoom)
+        return [ends.start, ends.end].contains { Double(hypot($0.x - point.x, $0.y - point.y)) <= reach }
     }
 
     /// Whether a touch at `point`, in page units, is within reach of the
@@ -440,6 +467,70 @@ struct SelectionOverlay: View {
                         if let grab { end(grab) }
                     }
             )
+    }
+
+    // MARK: a line's ends
+
+    /// A selected line's two ends, each a disc to drag anywhere while the
+    /// other holds (LineRoutes.endDragged): a circle of reach round each
+    /// takes the touch, the nearer end when they overlap.
+    private func lineEnds(_ el: Element) -> some View {
+        let ends = LineRoutes.ends(of: el)
+        let reach = Touch.pageUnits(Touch.handleReach, zoom: store.zoom)
+        let zone = CGMutablePath()
+        for p in [ends.start, ends.end] {
+            zone.addEllipse(in: CGRect(x: p.x - reach, y: p.y - reach, width: reach * 2, height: reach * 2))
+        }
+        return ZStack {
+            endDisc(at: ends.start)
+            endDisc(at: ends.end)
+            Color.clear
+                .frame(width: store.pageWidth, height: store.pageHeight)
+                .contentShape(Path(zone))
+                .gesture(endDrag(ends))
+        }
+    }
+
+    private func endDrag(_ ends: (start: CGPoint, end: CGPoint)) -> some Gesture {
+        DragGesture(minimumDistance: 1, coordinateSpace: .named("page"))
+            .onChanged { value in
+                // A touch that starts somewhere else is a new one: the old
+                // end is let go and its step closed first.
+                if let old = heldEnd, old.start != value.startLocation {
+                    heldEnd = nil
+                    onEndDragEnd(old.atStart)
+                }
+                if heldEnd == nil {
+                    let p = value.startLocation
+                    let toStart = Double(hypot(ends.start.x - p.x, ends.start.y - p.y))
+                    let toEnd = Double(hypot(ends.end.x - p.x, ends.end.y - p.y))
+                    let atStart = toStart <= toEnd
+                    let at = atStart ? ends.start : ends.end
+                    // Held where the finger landed against the end, so the
+                    // first frame does not jump the end to the finger.
+                    heldEnd = HeldEnd(atStart: atStart, offset: CGPoint(x: at.x - p.x, y: at.y - p.y), start: p)
+                }
+                guard let heldEnd else { return }
+                onEndDrag(heldEnd.atStart, CGPoint(x: value.location.x + heldEnd.offset.x,
+                                                   y: value.location.y + heldEnd.offset.y))
+            }
+            .onEnded { _ in
+                let was = heldEnd
+                heldEnd = nil
+                if let was { onEndDragEnd(was.atStart) }
+            }
+    }
+
+    /// A line's end: a white disc ringed in the accent, larger than a
+    /// stretch handle, so it reads as the end itself.
+    private func endDisc(at point: CGPoint) -> some View {
+        let size = 14.0 * iz
+        return Circle()
+            .fill(Color.white)
+            .overlay(Circle().stroke(Theme.accent, lineWidth: 2 * iz))
+            .frame(width: size, height: size)
+            .position(point)
+            .allowsHitTesting(false)
     }
 
     // MARK: body and move handle

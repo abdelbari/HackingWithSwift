@@ -127,6 +127,9 @@ struct CanvasView: View {
         /// The frame under the finger it would go into, lit up while it is.
         var frameTarget: String?
         var resizeOriginal: Element?
+        /// The element a dragged line end has snapped to: let go there, the
+        /// line is tied to it (LineRoutes).
+        var endTarget: String?
         /// The picture's size in pixels when a photo's side is grabbed, so
         /// the side trims the frame across a picture that stays put.
         var resizeImage: CGSize?
@@ -358,7 +361,10 @@ struct CanvasView: View {
                 moveFurniture(moved)
             }
 
-            if store.cropping == nil { selectionOverlay }
+            if store.cropping == nil {
+                selectionOverlay
+                endTargetOutline
+            }
 
             // The band being drawn, and the letters of the match Find and
             // replace is showing.
@@ -422,8 +428,13 @@ struct CanvasView: View {
                              moveEnded(from: start, to: at)
                          },
                          onBodyTap: { at, count in bodyTap(at: at, count: count) },
+                         onBodyHold: { if let at = pagePress { bodyHold(at: at) } },
                          onBodyPressing: pressed,
-                         onBodyHold: { if let at = pagePress { bodyHold(at: at) } })
+                         onEndDrag: { atStart, at in
+                             endDrag(atStart, at)
+                             edgeTrack(at) { endDrag(atStart, $0) }
+                         },
+                         onEndDragEnd: { atStart in endDragEnded(atStart) })
     }
 
     // MARK: move
@@ -933,6 +944,7 @@ struct CanvasView: View {
             !el.isHidden && Geometry.hits(Self.reach(el, target), point: point)
         }
         return onElement || SelectionOverlay.handlesTake(point, store: store)
+            || SelectionOverlay.lineEndsTake(point, store: store)
             || SelectionOverlay.moveHandleTakes(point, store: store)
             || SelectionOverlay.bodyTakes(point, store: store)
     }
@@ -1492,6 +1504,60 @@ struct CanvasView: View {
         guard let slot = columnSlot else { return nil }
         let index = PageColumn.pageAt(slot.toColumn(point), in: columnSlots)
         return index == store.pageIndex ? nil : index
+    }
+
+    // MARK: a line's ends (called from the overlay)
+
+    /// A selected line's start (or, not `atStart`, its end) dragged to
+    /// `location`, the other end holding still: snapped to another
+    /// element's edge midpoints and centre, else its angle to 15 degrees
+    /// (LineRoutes.endDragged), with its length and angle read out. The
+    /// whole drag is one step.
+    private func endDrag(_ atStart: Bool, _ location: CGPoint) {
+        guard let selected = store.singleSelection, selected.type == .line, !selected.holdsPlace else { return }
+        if gesture.resizeOriginal?.id != selected.id || !gesture.dragActive {
+            store.beginGesture()
+            gesture.resizeOriginal = selected
+            gesture.dragActive = true
+            store.canvasTouchActive = true
+        }
+        guard let original = gesture.resizeOriginal else { return }
+        let others = store.page.elements.filter { !$0.isHidden }
+        let drag = LineRoutes.endDragged(original, atStart: atStart, pointer: location, others: others,
+                                         reach: Touch.pageUnits(Touch.handleReach, zoom: store.zoom))
+        if drag.target != nil && drag.target != gesture.endTarget { store.buzz(.tick) }
+        gesture.endTarget = drag.target
+        store.updateSelectedTransient { el in
+            if el.id == drag.line.id { el = drag.line }
+        }
+        store.badge = LineRoutes.readout(drag)
+    }
+
+    /// The end let go: on an element's edge or centre it is tied to that
+    /// element, in the same step as the drag; elsewhere it is free.
+    private func endDragEnded(_ atStart: Bool) {
+        if gesture.resizeOriginal != nil {
+            let target = gesture.endTarget
+            store.updateSelectedTransient { el in
+                if el.type == .line { el = LineRoutes.tied(el, atStart: atStart, to: target) }
+            }
+            if target != nil { store.buzz(.confirm) }
+        }
+        edges.stop()
+        store.commit()
+        clearTransient()
+    }
+
+    /// What a dragged line end would be tied to, let go: outlined as a
+    /// photo's frame is when a photo would go into it.
+    @ViewBuilder
+    private var endTargetOutline: some View {
+        if let id = gesture.endTarget, let target = store.element(id) {
+            Self.outline(target)
+                .stroke(Theme.accent, lineWidth: 3 * iz)
+                .frame(width: store.pageWidth, height: store.pageHeight)
+                .allowsHitTesting(false)
+        }
     }
 
     // MARK: resize / rotate (called from the overlay)

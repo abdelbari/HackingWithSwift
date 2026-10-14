@@ -1854,12 +1854,19 @@ final class DesignStore {
             el.strokeWidth = style.strokeWidth
             el.dash = BorderDash.kept(style.dash)
         case .line:
+            let ends = LineRoutes.ends(of: el)
             el.color = style.color
             el.thickness = style.thickness
             el.dash = style.dash
             el.startCap = style.startCap
             el.endCap = style.endCap
-            if let thickness = style.thickness { el.h = max(8, thickness) }
+            if LineRoutes.keepsLevel(el) {
+                // An elbow's or a curve's box is its ends padded by its
+                // weight: laid round the same ends again.
+                el = LineRoutes.withEnds(el, ends.start, ends.end)
+            } else if let thickness = style.thickness {
+                el.h = max(8, thickness)
+            }
         case .sticker:
             break
         }
