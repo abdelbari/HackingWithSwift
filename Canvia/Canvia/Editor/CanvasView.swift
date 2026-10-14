@@ -25,6 +25,7 @@ struct CanvasView: View {
     /// brings up, a hold on the selection's body (ZoomableCanvas.onPress).
     @State private var pagePress: CGPoint?
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
+    @Environment(\.displayScale) private var displayScale
     /// The stroke being drawn, in page units, while the pen is on.
     @State private var strokePoints: [CGPoint] = []
     /// Where the stroke under way began. A drag the canvas's two-finger pan
@@ -52,6 +53,9 @@ struct CanvasView: View {
     /// The pages near enough to the part of the column on screen to draw
     /// live (PageColumn.livePages); the others show a thumbnail.
     @State private var livePages: Set<Int> = []
+    /// Those of them drawn as a picture all the same: small on screen, or
+    /// among many in view (PageColumn.drawMode).
+    @State private var picturePages: Set<Int> = []
     /// The pages near enough for a thumbnail (PageColumn.thumbnailPages),
     /// and those of them in view, whose thumbnails are made first.
     @State private var thumbPages: Set<Int> = []
@@ -2009,10 +2013,24 @@ struct CanvasView: View {
             if thumbPages != thumbs { thumbPages = thumbs }
             let inView = Set(PageColumn.pages(slots, within: 0, of: visible))
             if pagesInView != inView { pagesInView = inView }
+            let pictures = picturedPages(live, slots: slots, visible: visible, inView: inView.count)
+            if picturePages != pictures { picturePages = pictures }
         }
         // Only real changes: every write redraws whatever reads it.
         if store.viewport != shown { store.viewport = shown }
         if store.fitZoom != fitting { store.fitZoom = fitting }
+    }
+
+    /// Which of the `live` pages are drawn as pictures all the same. A page
+    /// and the view are both measured in column units, whose share of each
+    /// other is the same as on screen.
+    private func picturedPages(_ live: Set<Int>, slots: [PageColumn.Slot], visible: CGRect, inView: Int) -> Set<Int> {
+        live.filter { i in
+            slots.indices.contains(i)
+                && PageColumn.drawMode(pageIndex: i, workedIndex: store.pageIndex,
+                                       pageScreenWidth: Double(slots[i].rect.width),
+                                       viewportWidth: Double(visible.width), inViewCount: inView) == .picture
+        }
     }
 
     /// The page worked changed, or moved in the column, under a view
@@ -2314,12 +2332,17 @@ struct CanvasView: View {
 
     /// Another page: live near the view, a thumbnail further off, a white
     /// page further still, with nothing on it to touch — a tap there is the canvas's (backgroundTap).
+    /// Near the view but small on screen, or among many in view, it is a
+    /// picture too (PageColumn.drawMode), until a tap makes it the page
+    /// worked.
     private func otherPage(_ index: Int, slot: PageColumn.Slot) -> some View {
         let page = store.design.pages[index]
         let r = slot.rect
         let point = columnPoint
+        // A picture as wide as its bucket of the page's width on screen.
+        let pixels = PageColumn.pictureWidth(screenPixels: Double(r.width) / point * Double(displayScale))
         return Group {
-            if livePages.contains(index) {
+            if livePages.contains(index) && !picturePages.contains(index) {
                 PageRenderView(design: store.design, page: page)
                     // Its bleed too, and its trim dashed, as round the page
                     // being worked — only that page names it.
@@ -2333,8 +2356,11 @@ struct CanvasView: View {
                     .scaleEffect(slot.scale, anchor: .topLeading)
                     .frame(width: r.width, height: r.height, alignment: .topLeading)
             } else if thumbPages.contains(index) {
-                // Those in view are drawn first (ThumbnailCache).
-                PageThumbnail(design: store.design, page: page, priority: pagesInView.contains(index) ? 0 : 1)
+                // Those in view are drawn first (ThumbnailCache), each made
+                // again in its turn there when its page changes, the last
+                // one shown meanwhile.
+                PageThumbnail(design: store.design, page: page, pixelWidth: pixels,
+                              priority: pagesInView.contains(index) ? 0 : 1)
                     .frame(width: r.width, height: r.height)
             } else {
                 Color.white

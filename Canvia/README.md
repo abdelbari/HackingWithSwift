@@ -164,7 +164,11 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   there, a drag from it moves it. Let go over another page, a dragged
   selection moves to it, under the finger as it was held and kept inside a
   page of another size, one Undo. Zoomed in, each header keeps to the part
-  of its page on screen. Pages far from the view show a thumbnail; crop,
+  of its page on screen. Pages far from the view show a thumbnail, and so
+  do pages near it that are small on screen (under 0.35 of its width) or
+  among more than six in view — a picture at 256, 512 or 1024 pixels
+  wide, by its size on screen — so a long design zoomed out pans
+  smoothly; the page worked is always live. Crop,
   typing, the pen, the eraser and a preview keep the view on their page
 - Undo/redo with gesture coalescing (a whole drag is one step), autosave,
   lock, opacity, duplicate, align / distribute / flip / exact-position
