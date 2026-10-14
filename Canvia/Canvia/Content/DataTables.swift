@@ -559,8 +559,9 @@ extension DataGraphics {
     /// its rows as tall as their words and the new spacing need.
     static func withTablePadding(_ elements: [Element], id: String, padding: Double,
                                  heightFor: (Element) -> Double) -> [Element] {
+        guard padding.isFinite else { return elements }
         let held = min(max(padding, 0), tablePadMax)
-        let pad: Double? = held == defaultTablePadding(elements, id: id) ? nil : held
+        let pad: Double? = abs(held - defaultTablePadding(elements, id: id)) < 1e-9 ? nil : held
         let set = elements.map { el -> Element in
             guard var cell = el.table, cell.id == id else { return el }
             cell.pad = pad
@@ -581,14 +582,8 @@ extension DataGraphics {
 
     /// Table `id` with alternating rows in `colour` (`on`), kept as `bands`
     /// on every cell and striped again whenever a row is added, deleted or
-    /// moved — or with none, every body row plain white. Striping, as a
-    /// table is made: below a header, each row of an even number takes the
-    /// colour and each odd one white, a merged cell by its top row. A cell
-    /// given a colour of its own — anything but white, the default band,
-    /// the colour the rows were and the colour they become — keeps it, and
-    /// the header row keeps its own.
+    /// moved — or with none, every body row plain white (striped).
     static func withTableBands(_ elements: [Element], id: String, on: Bool, colour: String) -> [Element] {
-        let was = tableBands(elements, id: id)
         let bands: String? = on ? colour.lowercased() : nil
         let set = elements.map { el -> Element in
             guard var cell = el.table, cell.id == id else { return el }
@@ -597,27 +592,29 @@ extension DataGraphics {
             out.table = cell
             return out
         }
-        return striped(set, id: id, band: bands, also: [was, colour.lowercased()].compactMap { $0 })
+        return striped(set, id: id, band: bands)
     }
 
     /// Table `id` striped again in its kept alternating rows' colour, if it
     /// keeps one (withTableBands); as it is otherwise.
     static func restriped(_ elements: [Element], id: String) -> [Element] {
         guard let band = tableBands(elements, id: id) else { return elements }
-        return striped(elements, id: id, band: band, also: [])
+        return striped(elements, id: id, band: band)
     }
 
-    /// Table `id`'s body rows striped in `band` (nil: all white), each cell
-    /// whose fill is white, the default band, `band` or one of `also`.
-    private static func striped(_ elements: [Element], id: String, band: String?, also: [String]) -> [Element] {
+    /// Table `id`'s body rows striped as a table is made, the simplest rule
+    /// and the Android twin's: below a header (every row, with none), each
+    /// rectangle of an even row filled `band` and of an odd one white — a
+    /// merged cell by its top row, and whatever colour it had — or every one
+    /// white for nil. The header keeps its own.
+    private static func striped(_ elements: [Element], id: String, band: String?) -> [Element] {
         let header = tableHasHeader(elements, id: id)
-        let plain = Set(([tableBody, tableBand] + also + [band].compactMap { $0 }).map { $0.lowercased() })
         return elements.map { el -> Element in
-            guard el.type == .shape, let cell = el.table, cell.id == id, !(header && cell.row == 0),
-                  let fill = el.fill, fill.kind == "solid",
-                  let colour = fill.color?.lowercased(), plain.contains(colour) else { return el }
+            guard el.type == .shape, let cell = el.table, cell.id == id, !(header && cell.row == 0) else { return el }
+            let fill = band.map { tableBodyFill(cell.row, band: $0) } ?? tableBody
+            if el.fill?.kind == "solid" && el.fill?.color?.lowercased() == fill { return el }
             var out = el
-            out.fill = .solid(band.map { tableBodyFill(cell.row, band: $0) } ?? tableBody)
+            out.fill = .solid(fill)
             return out
         }
     }

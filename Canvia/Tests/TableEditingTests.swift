@@ -131,19 +131,20 @@ final class TableEditingTests: XCTestCase {
     func testAlternatingRowsStripeTheBodyAndFollowARowMoved() throws {
         var table = made()
         let id = tableId(table)
-        // A cell of a colour of its own keeps it.
+        // Striped as a table is made, whatever colour a body cell had: the
+        // simplest rule, and the Android twin's.
         let own = try XCTUnwrap(rect(table, 2, 1).table)
         table = DataGraphics.colouringTableCells(table, id: id, cells: [own], color: "#ef4444")
         let banded = DataGraphics.withTableBands(table, id: id, on: true, colour: "#DBEAFE")
         XCTAssertEqual(DataGraphics.tableBands(banded, id: id), "#dbeafe")
         XCTAssertTrue(banded.allSatisfy { $0.table?.bands == "#dbeafe" })
         XCTAssertEqual(fills(banded, column: 0), ["#1f2430", "#ffffff", "#dbeafe"], "the header keeps its own")
-        XCTAssertEqual(fills(banded, column: 1), ["#1f2430", "#ffffff", "#ef4444"])
+        XCTAssertEqual(fills(banded, column: 1), ["#1f2430", "#ffffff", "#dbeafe"])
 
         let moved = try XCTUnwrap(DataGraphics.movedTableRow(banded, id: id, row: 1, by: 1, heightFor: heightFor))
         XCTAssertEqual(words(moved), ["Item", "Qty", "Bagel", "1", "Coffee", "2"])
         XCTAssertEqual(fills(moved, column: 0), ["#1f2430", "#ffffff", "#dbeafe"], "striped again")
-        XCTAssertEqual(fills(moved, column: 1), ["#1f2430", "#ef4444", "#dbeafe"])
+        XCTAssertEqual(fills(moved, column: 1), ["#1f2430", "#ffffff", "#dbeafe"])
         let added = DataGraphics.addingTableRow(moved, id: id, row: 2, below: true, heightFor: heightFor)
         XCTAssertEqual(fills(added, column: 0), ["#1f2430", "#ffffff", "#dbeafe", "#ffffff"])
         let deleted = try XCTUnwrap(DataGraphics.deletingTableRow(added, id: id, row: 1, heightFor: heightFor))
@@ -152,7 +153,13 @@ final class TableEditingTests: XCTestCase {
         let off = DataGraphics.withTableBands(banded, id: id, on: false, colour: "#dbeafe")
         XCTAssertNil(DataGraphics.tableBands(off, id: id))
         XCTAssertEqual(fills(off, column: 0), ["#1f2430", "#ffffff", "#ffffff"])
-        XCTAssertEqual(fills(off, column: 1), ["#1f2430", "#ffffff", "#ef4444"])
+        XCTAssertEqual(fills(off, column: 1), ["#1f2430", "#ffffff", "#ffffff"])
+        // With no header, every row is a body row.
+        let other = made()
+        let otherId = tableId(other)
+        let headless = DataGraphics.withTableHeader(other, id: otherId, on: false, accent: "#1f2430", heightFor: heightFor)
+        let unheaded = DataGraphics.withTableBands(headless, id: otherId, on: true, colour: "#ffeedd")
+        XCTAssertEqual(fills(unheaded, column: 0), ["#ffeedd", "#ffffff", "#ffeedd"])
         // Without kept bands, a moved row keeps the colours it had.
         let fresh = made()
         let plain = try XCTUnwrap(DataGraphics.movedTableRow(fresh, id: tableId(fresh), row: 1, by: 1, heightFor: heightFor))
