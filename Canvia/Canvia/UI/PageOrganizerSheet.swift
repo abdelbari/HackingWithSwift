@@ -257,7 +257,7 @@ struct PageOrganizerSheet: View {
                     store.setPage(i)
                     dismiss()
                 }
-            } label: { Label("Go to page", systemImage: "arrow.right.circle") }
+            } label: { Label("Go to page", systemImage: "arrow.forward.circle") }
                 .disabled(selected.count != 1)
             Spacer()
             // Show when every page picked is hidden; otherwise Hide,

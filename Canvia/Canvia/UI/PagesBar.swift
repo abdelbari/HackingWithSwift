@@ -143,6 +143,10 @@ struct PagesBar: View {
         }
         .onChange(of: holding) { _, held in if !held { putDown(moving: false) } }
         .onDisappear { edges.stop() }
+        // The pages lie left to right in any language, as the timeline's
+        // and the canvas's do, so Move page left and right are where they
+        // say; the buttons beside them read as the language does.
+        .designDirection()
     }
 
     /// Press and hold, then drag: the page lifted and carried along the

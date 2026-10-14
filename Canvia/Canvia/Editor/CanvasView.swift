@@ -250,13 +250,18 @@ struct CanvasView: View {
             edgeScroller: edges,
             onPress: { point in pagePress = point }
         ) {
-            if let slot {
-                columnContent(slot)
-            } else {
-                pageContent
-                    .coordinateSpace(name: "page")
-                    .frame(width: store.pageWidth, height: store.pageHeight)
+            // Left to right in any language (ReadingDirection): the page's
+            // coordinates, the gestures' and the handles' never mirror.
+            Group {
+                if let slot {
+                    columnContent(slot)
+                } else {
+                    pageContent
+                        .coordinateSpace(name: "page")
+                        .frame(width: store.pageWidth, height: store.pageHeight)
+                }
             }
+            .designDirection()
         }
     }
 

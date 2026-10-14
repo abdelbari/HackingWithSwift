@@ -55,6 +55,8 @@ struct RulersView: View {
             }
             .coordinateSpace(name: Self.space)
         }
+        // Along the canvas, which is left to right in any language.
+        .designDirection()
         .accessibilityHidden(true)
     }
 

@@ -127,6 +127,8 @@ struct ElementView: View {
             .opacity(element.opacity * motion.opacity)
             .blendMode(BlendModes.swiftUI(element.blendMode))
             .position(x: element.x + element.w / 2, y: element.y + element.h / 2)
+            // Left to right in any language, drawn alone for an export too.
+            .designDirection()
     }
 
     /// Clear when there is no shadow: SwiftUI's shadow modifier with a clear
@@ -938,6 +940,7 @@ struct PageRenderView: View {
         .frame(width: design.size(for: page).width, height: design.size(for: page).height)
         .clipped()
         .environment(\.pageNumber, pageNumberValue)
+        .designDirection()
     }
 
     /// The page in the middle of its bleed: the background under all of
@@ -954,6 +957,7 @@ struct PageRenderView: View {
         .frame(width: whole.width, height: whole.height)
         .clipped()
         .environment(\.pageNumber, pageNumberValue)
+        .designDirection()
     }
 
     @ViewBuilder

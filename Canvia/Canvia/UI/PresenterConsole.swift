@@ -172,7 +172,7 @@ struct PresenterConsole<Controls: View>: View {
 
     private var bottomBar: some View {
         HStack(spacing: 12) {
-            stepButton("Previous", symbol: "chevron.left", action: previous)
+            stepButton("Previous", symbol: "chevron.backward", action: previous)
                 .disabled(PageVisibility.previous(before: session.index, in: visible) == nil)
             Button(action: showPages) {
                 Image(systemName: "square.grid.2x2")
@@ -181,7 +181,7 @@ struct PresenterConsole<Controls: View>: View {
                     .background(Color.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 10))
             }
             .accessibilityLabel("Pages")
-            stepButton("Next", symbol: "chevron.right", action: next)
+            stepButton("Next", symbol: "chevron.forward", action: next)
                 .disabled(Presenter.next(after: session.index, in: visible, loop: session.loop) == nil)
         }
     }
@@ -219,6 +219,8 @@ struct PresenterPreview: View {
             .contentShape(Rectangle())
             .gesture(PresenterPointing.gesture(session: session, in: geo.size))
         }
+        // Where the finger points is where the pointer goes, in any language.
+        .designDirection()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Page up")
         .accessibilityHint("Press and hold to point at the screen")

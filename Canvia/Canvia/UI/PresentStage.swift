@@ -106,6 +106,9 @@ struct PresentStage: View {
             .blur(radius: session.blurred ? min(size.width, size.height) * 0.03 : 0)
             PresentEffectsLayer(session: session, size: size)
         }
+        // The pages turn and the pointer goes as the video draws them, left
+        // to right in any language.
+        .designDirection()
     }
 
     private var pageView: some View {

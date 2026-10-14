@@ -1790,7 +1790,7 @@ struct LayersSheet: View {
             Button {
                 if open { expanded.remove(id) } else { expanded.insert(id) }
             } label: {
-                Image(systemName: open ? "chevron.down" : "chevron.right")
+                Image(systemName: open ? "chevron.down" : "chevron.forward")
                     .font(.footnote.weight(.semibold))
                     .frame(width: 20, height: 28)
             }

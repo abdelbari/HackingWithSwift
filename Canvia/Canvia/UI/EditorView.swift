@@ -516,7 +516,9 @@ struct EditorView: View {
     private func shortcut(_ key: KeyEquivalent, _ modifiers: EventModifiers, _ title: String,
                           action: @escaping () -> Void) -> some View {
         Button(title, action: action)
-            .keyboardShortcut(key, modifiers: modifiers)
+            // Never mirrored: the arrows nudge across a design, which is
+            // left to right in any language (ReadingDirection).
+            .keyboardShortcut(key, modifiers: modifiers, localization: .withoutMirroring)
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
@@ -533,7 +535,7 @@ struct EditorView: View {
                 saveNow()
                 onHome()
             } label: {
-                Image(systemName: "chevron.left")
+                Image(systemName: "chevron.backward")
                     .fontWeight(.semibold)
             }
             .accessibilityLabel("Home")

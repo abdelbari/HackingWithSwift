@@ -104,7 +104,7 @@ struct VersionHistorySheet: View {
                         .foregroundStyle(Theme.accent)
                         .accessibilityLabel("Pinned")
                 }
-                Image(systemName: "chevron.right")
+                Image(systemName: "chevron.forward")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(.tertiary)
             }

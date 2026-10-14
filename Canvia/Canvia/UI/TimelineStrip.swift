@@ -57,6 +57,9 @@ struct TimelineStrip: View {
                     }
                 }
                 .frame(height: height)
+                // The film runs left to right in any language, as the
+                // design's pages do; the header reads as the language does.
+                .designDirection()
             }
         }
         .background(Theme.chrome)
