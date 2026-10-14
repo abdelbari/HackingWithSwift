@@ -1156,14 +1156,15 @@ struct EditorView: View {
         case .insert:
             InsertSheet(store: store)
         case .colorFill:
+            // An SVG's line or outline part takes a colour as its ink.
             ColorPickerSheet(store: store, title: "Fill colour",
-                             current: store.singleSelection?.fill?.primaryColor,
+                             current: store.singleSelection.flatMap(Freehand.fillColour),
                              allowGradients: true,
                              allowPatterns: true,
                              currentPaint: store.singleSelection?.fill,
-                             onPick: { c in store.updateSelected { $0.fill = .solid(c) } },
+                             onPick: { c in store.updateSelected { $0 = Freehand.coloured($0, c) } },
                              onPickGradient: { p in store.updateSelected { $0.fill = p } },
-                             onPickTransient: { c in store.updateSelectedTransient { $0.fill = .solid(c) } },
+                             onPickTransient: { c in store.updateSelectedTransient { $0 = Freehand.coloured($0, c) } },
                              swapsColours: true)
         case .colorText:
             // A gradient on text is a fill, not a colour, so it lives in its

@@ -883,7 +883,8 @@ final class DesignStore {
             if !(same(el.color) && el.textFill == nil) { e.color = hex; e.textFill = nil }
         case .line:
             if !same(el.color) { e.color = hex }
-        case .shape where Freehand.isStroke(el):
+        case .shape where Freehand.inksOnly(el):
+            // A drawing's ink, or an SVG's line or outline part's.
             if !same(el.stroke) { e.stroke = hex }
         case .shape:
             if !(el.fill?.kind == "solid" && same(el.fill?.color)) { e.fill = .solid(hex) }

@@ -201,4 +201,30 @@ final class DrawPensTests: XCTestCase {
         XCTAssertEqual(Freehand.erasedPartially(parts, path: sweep, radius: 1000), [])
         XCTAssertTrue(Freehand.erased(parts, path: sweep, radius: 1000).isEmpty)
     }
+
+    func testAnImportedSVGsLineAndUnfilledPartsTakeAColourAsTheirInk() throws {
+        let svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\">"
+            + "<path d=\"M5 12h14M12 5v14\" fill=\"none\" stroke=\"#000000\" stroke-width=\"2\"/>"
+            + "<line x1=\"2\" y1=\"2\" x2=\"22\" y2=\"2\" stroke=\"#ff0000\"/></svg>"
+        let parts = try XCTUnwrap(SvgImport.graphic(svg, pageWidth: 1000, pageHeight: 1000)).elements
+        XCTAssertEqual(parts.count, 2)
+        for part in parts {
+            XCTAssertTrue(Freehand.inksOnly(part))
+            let coloured = Freehand.coloured(part, "#00ff00")
+            XCTAssertEqual(coloured.stroke, "#00ff00")
+            XCTAssertEqual(coloured.fill?.kind, "none")
+            XCTAssertEqual(Freehand.fillColour(coloured), "#00ff00")
+            let recoloured = DesignStore.recoloured(part, to: "#00ff00")
+            XCTAssertEqual(recoloured.stroke, "#00ff00", "a selected graphic's line part changes its ink")
+            XCTAssertEqual(recoloured.fill?.kind, "none")
+        }
+        let box = Element.shape("rect")
+        XCTAssertFalse(Freehand.inksOnly(box))
+        XCTAssertEqual(Freehand.coloured(box, "#00ff00").fill, .solid("#00ff00"))
+        // An outline with no stroke has no ink to colour: it is filled.
+        var bare = parts[0]
+        bare.stroke = nil
+        XCTAssertFalse(Freehand.inksOnly(bare))
+        XCTAssertEqual(Freehand.coloured(bare, "#00ff00").fill, .solid("#00ff00"))
+    }
 }

@@ -847,8 +847,9 @@ struct ContextToolbar: View {
             // stopped it being a stroke — as the Android twin, one slot.
             colorChip(el.stroke ?? "#0d1216", "Colour") { activeSheet = .colorStroke }
         } else {
-            colorChip(el.fill?.primaryColor ?? "#8b5cf6", "Fill",
-                      spoken: FillChoices.spokenFill(el.fill)) { activeSheet = .colorFill }
+            // An SVG's line or outline part shows, and takes, its ink here.
+            colorChip(Freehand.fillColour(el) ?? "#8b5cf6", "Fill",
+                      spoken: Freehand.inksOnly(el) ? nil : FillChoices.spokenFill(el.fill)) { activeSheet = .colorFill }
             colorChip(el.stroke ?? "#0d1216", "Border") { activeSheet = .colorStroke }
         }
         if el.fill?.kind == "none" {

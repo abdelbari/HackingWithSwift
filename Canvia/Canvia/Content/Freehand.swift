@@ -348,6 +348,30 @@ enum Freehand {
         el.type == .shape && el.shapeId == "freehand" && el.pathData?.isEmpty == false && el.fill?.kind == "none"
     }
 
+    /// Whether a colour picked for `el` is its ink: a drawn stroke, or a
+    /// path shape with no fill and a stroke, as an imported SVG's line or
+    /// outline part is. Filled, it would turn into a blob the shape of the
+    /// line.
+    static func inksOnly(_ el: Element) -> Bool {
+        if isStroke(el) { return true }
+        guard el.type == .shape, el.stroke != nil, el.fill?.kind == "none" else { return false }
+        return el.pathData?.isEmpty == false
+    }
+
+    /// The colour Fill shows for shape `el`: its ink when it `inksOnly`,
+    /// its fill's otherwise.
+    static func fillColour(_ el: Element) -> String? {
+        inksOnly(el) ? el.stroke : el.fill?.primaryColor
+    }
+
+    /// Shape `el` in colour `hex`, picked from the swatches: its ink when it
+    /// `inksOnly`, a solid fill otherwise. The Android twin's `coloured`.
+    static func coloured(_ el: Element, _ hex: String) -> Element {
+        var e = el
+        if inksOnly(el) { e.stroke = hex } else { e.fill = .solid(hex) }
+        return e
+    }
+
     /// The strokes drawn black on white at `scale` pixels per page unit,
     /// padded, with the page rect the bitmap covers — what handwriting
     /// recognition reads.
