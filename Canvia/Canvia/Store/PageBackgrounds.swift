@@ -35,11 +35,12 @@ extension DesignStore {
 
     /// Whether a photo shows its picture other than plain: a filter,
     /// adjustments, a duotone, an effect, a crop, a frame's shape, a flip,
-    /// straightening or rounded corners. A background draws its picture plain, so a photo
-    /// like this is baked into a picture of its own first.
+    /// straightening, rounded corners or parts erased with the brush. A
+    /// background draws its picture plain, so a photo like this is baked
+    /// into a picture of its own first.
     static func hasLook(_ el: Element) -> Bool {
         PhotoEdits.any(el) || Crop.isAdjusted(el) || el.maskShapeId != nil
-            || el.flipH || el.flipV || (el.radius ?? 0) > 0
+            || el.flipH || el.flipV || (el.radius ?? 0) > 0 || el.mask?.strokes.isEmpty == false
     }
 
     /// Photo `id` becomes the page's background and leaves the page, as one

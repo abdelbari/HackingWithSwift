@@ -57,7 +57,13 @@ final class PageBackgroundTests: XCTestCase {
             ("straighten", { $0.straighten = 4 }),
             ("corners", { $0.radius = 12 }),
             ("fx", { $0.fx = PhotoFx(kind: "glitch") }),
+            ("erased", { $0.mask = ImageMask(strokes: [MaskStroke(points: [CGPoint(x: 0.5, y: 0.5)])]) }),
+            ("blur brush", { $0.retouch = [RetouchLayer(kind: "blur", strokes: [RetouchStroke(points: [CGPoint(x: 0.5, y: 0.5)])])] }),
         ]
+        // A Cut out's base alone changes nothing drawn.
+        var cut = plain
+        cut.mask = ImageMask(base: "media:before")
+        XCTAssertFalse(DesignStore.hasLook(cut))
         for (name, give) in looks {
             var el = plain
             give(&el)
