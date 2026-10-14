@@ -50,6 +50,13 @@ enum Freehand {
         var color = "#1f2430"
         var width: Double = 6
         var pen: Pen = .pen
+        /// How see-through the strokes are, 0 to 90 per cent, written as
+        /// each stroke's own `opacity`; a highlighter's ink is see-through
+        /// besides.
+        var transparency: Double = 0
+        /// The eraser takes whole strokes rather than the part it passes
+        /// over.
+        var eraseWhole = false
     }
 
     /// How see-through a highlighter's ink is, as the two hex digits added
@@ -74,7 +81,36 @@ enum Freehand {
     /// size chosen, and never less than a fingertip's worth.
     static func eraserRadius(_ tool: Tool) -> Double { max(tool.width * 2, 12) }
 
+    /// The widths the Size slider settles on, the pen's old six.
     static let widths: [Double] = [2, 4, 6, 10, 16, 24]
+    /// The Size slider's reach, in page units.
+    static let widthRange: ClosedRange<Double> = 1...60
+    /// How near a detent the slider has to come to settle on it.
+    static let detentReach = 0.75
+    /// The most see-through a stroke is drawn.
+    static let maxTransparency: Double = 90
+
+    /// A width from the Size slider: within `detentReach` of one of the old
+    /// widths it is that width, else it is whole; always within reach.
+    static func snappedWidth(_ value: Double) -> Double {
+        let kept = min(max(value, widthRange.lowerBound), widthRange.upperBound)
+        if let detent = widths.first(where: { abs($0 - kept) <= detentReach }) { return detent }
+        return kept.rounded()
+    }
+
+    /// A transparency from its slider: whole, 0 to `maxTransparency`.
+    static func keptTransparency(_ value: Double) -> Double {
+        min(max(value, 0), maxTransparency).rounded()
+    }
+
+    /// The `opacity` a stroke is written with for a transparency.
+    static func opacity(transparency: Double) -> Double {
+        1 - keptTransparency(transparency) / 100
+    }
+
+    /// The name strokes drawn in one go are grouped under when the pen is
+    /// put down.
+    static let drawingName = "Drawing"
     static let colors: [String] = ["#1f2430", "#ffffff", "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899"]
 
     /// Drops points closer than `minDistance` to the last one kept: a finger
@@ -147,23 +183,79 @@ enum Freehand {
     /// no fill.
     static func element(points raw: [CGPoint], tool: Tool) -> Element? {
         guard tool.pen != .eraser else { return nil }
-        let width = drawnWidth(tool)
+        var e = Element.shape("freehand")
+        e.fill = Paint.clear
+        e.stroke = drawnColor(tool)
+        e.strokeWidth = drawnWidth(tool)
+        e.radius = nil
+        let shown = opacity(transparency: tool.transparency)
+        if shown < 1 { e.opacity = shown }
+        if tool.pen == .highlighter { e.blendMode = "multiply" }
+        if tool.pen == .glow { e.shadow = glow(of: tool) }
+        return laid(e, along: raw)
+    }
+
+    /// `base` — its ink, width, opacity, blend, glow and group — drawn
+    /// along `raw` (page units): placed in the stroke's padded bounds,
+    /// upright and unflipped, with the curve normalised into its box.
+    static func laid(_ base: Element, along raw: [CGPoint]) -> Element? {
         let points = thinned(raw)
-        guard let box = bounds(of: points, width: width) else { return nil }
+        guard let box = bounds(of: points, width: base.strokeWidth ?? 0) else { return nil }
         let unit = points.map { p in
             CGPoint(x: (p.x - box.minX) / box.width * 100, y: (p.y - box.minY) / box.height * 100)
         }
-        var e = Element.shape("freehand", w: box.width, h: box.height)
+        var e = base
         e.x = box.minX
         e.y = box.minY
+        e.w = box.width
+        e.h = box.height
+        e.rotation = 0
+        e.flipH = false
+        e.flipV = false
         e.pathData = pathData(unit)
-        e.fill = Paint.clear
-        e.stroke = drawnColor(tool)
-        e.strokeWidth = width
-        e.radius = nil
-        if tool.pen == .highlighter { e.blendMode = "multiply" }
-        if tool.pen == .glow { e.shadow = glow(of: tool) }
         return e
+    }
+
+    /// One stroke the eraser cut: its id, and what is left of it — none
+    /// when it was rubbed out whole.
+    struct Cut: Equatable {
+        var id: String
+        var pieces: [Element]
+    }
+
+    /// What an eraser dragged along `path` (page units) leaves of the
+    /// strokes it passes over: each stroke's points (pagePoints) within
+    /// `radius` of the path are taken out, and every run of at least two
+    /// points left becomes a stroke of its own — a new id, the same ink,
+    /// width, opacity, blend, glow and group — laid along them as a stroke
+    /// is drawn. Strokes in drawing order, locked and hidden ones never;
+    /// one that loses no point is not cut.
+    static func erasedPartially(_ elements: [Element], path: [CGPoint], radius: Double) -> [Cut] {
+        guard !path.isEmpty else { return [] }
+        let sweep: [CGPoint] = path.count == 1 ? [path[0], path[0]] : path
+        var cuts: [Cut] = []
+        for el in elements where isStroke(el) && !el.locked && !el.isHidden {
+            let points = pagePoints(el)
+            let gone = points.map { p in
+                (0..<(sweep.count - 1)).contains { distance(p, sweep[$0], sweep[$0 + 1]) <= radius }
+            }
+            guard gone.contains(true) else { continue }
+            var runs: [[CGPoint]] = [[]]
+            for (p, out) in zip(points, gone) {
+                if out {
+                    if !(runs.last?.isEmpty ?? true) { runs.append([]) }
+                } else {
+                    runs[runs.count - 1].append(p)
+                }
+            }
+            let pieces: [Element] = runs.filter { $0.count >= 2 }.compactMap { run in
+                var base = el
+                base.id = UID.make()
+                return laid(base, along: run)
+            }
+            cuts.append(Cut(id: el.id, pieces: pieces))
+        }
+        return cuts
     }
 
     /// The drawn strokes an eraser dragged along `path` (page units) touches:

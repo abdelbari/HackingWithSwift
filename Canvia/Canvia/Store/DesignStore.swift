@@ -1110,10 +1110,19 @@ final class DesignStore {
     var spacingSnapped = false
     /// The pen, while drawing mode is on: strokes become shape elements.
     var drawing: Freehand.Tool? {
-        didSet { if let drawing { lastPen = drawing } }
+        didSet {
+            if let drawing { lastPen = drawing }
+            // Put down — Done, the pencil, another tool taken up — the
+            // session's strokes become one drawing.
+            if oldValue != nil && drawing == nil { groupDrawnStrokes() }
+            if oldValue == nil && drawing != nil { sessionStrokes = [] }
+        }
     }
     /// The last pen used, so the next drawing session picks it up again.
     @ObservationIgnored private var lastPen = Freehand.Tool()
+    /// The strokes drawn since the pen was taken up, and the pieces left of
+    /// them by the eraser: what is grouped when it is put down.
+    @ObservationIgnored private var sessionStrokes: [String] = []
     /// The photo in crop mode, and the size of its picture — see
     /// CropMode.swift. Crop mode is one open step: everything done in it is
     /// live, Done keeps it as a single Undo, and Cancel throws it away.
@@ -1236,11 +1245,16 @@ final class DesignStore {
     /// nothing is selected, so the next stroke starts clean.
     func finishStroke(_ points: [CGPoint]) {
         if let tool = drawing, tool.pen == .eraser {
-            eraseStrokes(points, radius: Freehand.eraserRadius(tool))
+            if tool.eraseWhole {
+                eraseStrokes(points, radius: Freehand.eraserRadius(tool))
+            } else {
+                eraseStrokesPartially(points, radius: Freehand.eraserRadius(tool))
+            }
             return
         }
         guard let tool = drawing, let el = Freehand.element(points: points, tool: tool) else { return }
         add(el, centered: false)
+        sessionStrokes.append(el.id)
         selection.removeAll()
         if tipEvent == nil { tipEvent = .drewStroke }
         buzz(.stroke)
@@ -1254,6 +1268,39 @@ final class DesignStore {
         selection.removeAll()
         buzz(.stroke)
         announce(gone.count == 1 ? "Erased a stroke" : "Erased \(gone.count) strokes")
+    }
+
+    /// The part of each stroke an eraser swept over goes, what is left of
+    /// it staying where it was in the stack: one undo step per drag.
+    func eraseStrokesPartially(_ points: [CGPoint], radius: Double) {
+        let cuts = Freehand.erasedPartially(page.elements, path: points, radius: radius)
+        guard !cuts.isEmpty else { return }
+        var piecesOf: [String: [Element]] = [:]
+        for cut in cuts { piecesOf[cut.id] = cut.pieces }
+        applyToPage { page in
+            page.elements = page.elements.flatMap { el -> [Element] in piecesOf[el.id] ?? [el] }
+        }
+        // What is left of this session's strokes is still this session's.
+        sessionStrokes = sessionStrokes.flatMap { id -> [String] in piecesOf[id].map { $0.map(\.id) } ?? [id] }
+        selection.removeAll()
+        buzz(.stroke)
+    }
+
+    /// The strokes drawn since the pen was taken up, when two or more are
+    /// still on the page, as one drawing: one group, named Drawing. Part of
+    /// the last stroke's step rather than a step of its own, so one Undo
+    /// still takes back only that stroke.
+    private func groupDrawnStrokes() {
+        let ids = Set(sessionStrokes)
+        sessionStrokes = []
+        guard design.pages.indices.contains(pageIndex),
+              design.pages[pageIndex].elements.filter({ ids.contains($0.id) }).count >= 2 else { return }
+        let group = UID.make("grp")
+        for i in design.pages[pageIndex].elements.indices where ids.contains(design.pages[pageIndex].elements[i].id) {
+            design.pages[pageIndex].elements[i].group = group
+            design.pages[pageIndex].elements[i].layerName = Freehand.drawingName
+        }
+        onCommit?()
     }
 
     func announce(_ text: String, undoable: Bool = true) {
