@@ -7,8 +7,15 @@
 // the lines it is kept in — a chart's `data` and a table's words, read and
 // written as they always were (DataGrid), so the file does not change. A
 // chart's grid left as it opened keeps its text exactly as it was typed.
+//
+// A chart's Text section sets its labels' font, colour and size, and for a
+// kind drawn against a scale Smooth line and the Axis range — all kept in
+// its spec, so Update keeps them. Import CSV reads a CSV, TSV or text file
+// of up to 1 MB into the grid to look over before Add or Update (DataGrid
+// .fromCsv), saying what it left out, as the Android twin's does.
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct DataSheet: View {
     @Bindable var store: DesignStore
@@ -45,6 +52,22 @@ struct DataSheet: View {
     @State private var asText = false
     /// Why the last Add drew nothing, until the data or the kind changes.
     @State private var refusal: String?
+    /// The chart's text look and scale (chartLook), kept for Update: the
+    /// labels' font and ink (nil for the defaults), their size as a share,
+    /// smooth lines, and the axis's ends as typed ("" for the data's own).
+    @State private var font: String?
+    @State private var ink: String?
+    @State private var textScale: Double
+    @State private var smooth: Bool
+    @State private var axisMin: String
+    @State private var axisMax: String
+    @State private var choosingFont = false
+    @State private var choosingInk = false
+    /// Import CSV's file picker, and what the last import left out — or why
+    /// it brought nothing in.
+    @State private var importingCsv = false
+    @State private var imported: String?
+    @State private var importRefused = false
 
     private static let sampleTable = "Item, Qty, Price\nCoffee, 2, 3.50\nBagel, 1, 2.25\nJuice, 3, 4.00"
 
@@ -60,6 +83,37 @@ struct DataSheet: View {
         _legend = State(initialValue: editing?.legend ?? false)
         _values = State(initialValue: editing?.values ?? false)
         _gridlines = State(initialValue: editing?.gridlines ?? false)
+        _font = State(initialValue: editing?.font)
+        _ink = State(initialValue: editing?.ink)
+        _textScale = State(initialValue: editing.map(DataGraphics.textScale(of:)) ?? 1)
+        _smooth = State(initialValue: editing?.smooth ?? false)
+        _axisMin = State(initialValue: Self.axisText(editing?.axisMin))
+        _axisMax = State(initialValue: Self.axisText(editing?.axisMax))
+    }
+
+    /// An axis end as typed: a number, a comma for its point too; nil when
+    /// blank or not a number — as the Android twin reads the field.
+    static func axisNumber(_ typed: String) -> Double? {
+        let text = typed.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+        guard let value = Double(text), value.isFinite else { return nil }
+        return value
+    }
+
+    /// An axis end as its field shows it.
+    static func axisText(_ value: Double?) -> String {
+        value.map(DataGraphics.valueText) ?? ""
+    }
+
+    /// `spec` with the look set in the Text section and the axis's ends.
+    private func look(_ spec: ChartSpec) -> ChartSpec {
+        var out = spec
+        out.font = font
+        out.ink = ink
+        out.textScale = textScale == 1 ? nil : textScale
+        out.smooth = smooth
+        out.axisMin = Self.axisNumber(axisMin)
+        out.axisMax = Self.axisNumber(axisMax)
+        return out
     }
 
     /// The chart's data as it will be kept: the text, or the grid's lines.
@@ -125,6 +179,9 @@ struct DataSheet: View {
             }
         }
         .presentationDetents([.large])
+        .modifier(DataSheetPickers(store: store, choosingFont: $choosingFont, choosingInk: $choosingInk,
+                                   importingCsv: $importingCsv, font: $font, ink: $ink,
+                                   inkShown: ink ?? DataGraphics.ink(for: store.page), onImport: importCsv))
         .onChange(of: chartText) { refusal = nil }
         .onChange(of: chartGrid) { refusal = nil }
         .onChange(of: tableText) { refusal = nil }
@@ -187,11 +244,13 @@ struct DataSheet: View {
                 Toggle("Header row", isOn: chartHeader)
                 DataGridEditor(cells: $chartGrid, header: DataGrid.chartHasHeader(chartGrid))
             }
+            importRow
         } header: {
             Text("One \"Label, value\" per line, or a header row for series")
         } footer: {
             chartFooter
         }
+        chartLook
         Section {
             // A progress kind writes its own value and has no
             // legend; only kinds with a scale have lines to
@@ -231,6 +290,7 @@ struct DataSheet: View {
                 Toggle("Header row", isOn: $tableHeader)
                 DataGridEditor(cells: $tableGrid, header: tableHeader, covered: tableCovered)
             }
+            importRow
         } header: {
             Text(asText ? "One row per line, cells separated by commas or tabs"
                         : "A row of cells per row, or paste rows from a spreadsheet")
@@ -239,6 +299,122 @@ struct DataSheet: View {
                 Text(refusal).foregroundStyle(Color(.systemRed))
             } else {
                 Text(DataGraphics.tableSummary(tableRows))
+            }
+        }
+    }
+
+    /// The chart's Text section — its labels' font, colour and size, 50 to
+    /// 200% — and, for a kind drawn against a scale, Smooth line (a line's
+    /// or an area's, the other kinds having none to smooth) and the Axis
+    /// range's two ends, either left blank for the data's own: the Android
+    /// twin's ChartLookRows.
+    @ViewBuilder
+    private var chartLook: some View {
+        Section("Text") {
+            Button { choosingFont = true } label: {
+                LabeledContent("Font", value: font.map { FontStore.displayName($0, in: store.design) } ?? "Default")
+            }
+            .foregroundStyle(.primary)
+            Button { choosingInk = true } label: {
+                HStack {
+                    Text("Colour")
+                    Spacer()
+                    Circle()
+                        .fill(Color(hex: ink ?? DataGraphics.ink(for: store.page)))
+                        .frame(width: 26, height: 26)
+                        .overlay(Circle().stroke(Theme.hairline, lineWidth: 1))
+                }
+            }
+            .foregroundStyle(.primary)
+            .accessibilityLabel("Text colour")
+            .accessibilityValue(ElementNames.spokenColour(ink ?? DataGraphics.ink(for: store.page)))
+            textSizeSlider
+        }
+        if kind.hasScale {
+            Section {
+                Toggle("Smooth line", isOn: $smooth)
+                    .disabled(kind != .line && kind != .area)
+                HStack(spacing: 12) {
+                    axisField("Min", text: $axisMin)
+                    axisField("Max", text: $axisMax)
+                }
+            } header: {
+                Text("Axis range")
+            } footer: {
+                if let low = Self.axisNumber(axisMin), let high = Self.axisNumber(axisMax), low >= high {
+                    Text("The minimum is not below the maximum, so the data's own range is used.")
+                }
+            }
+        }
+    }
+
+    /// The labels' size, 50 to 200% of their usual one, in whole percent.
+    private var textSizeSlider: some View {
+        let readout = "\(Int((textScale * 100).rounded()))%"
+        return VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text("Size")
+                Spacer()
+                Text(readout).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            }
+            .accessibilityHidden(true)
+            Slider(value: Binding(get: { textScale * 100 }, set: { textScale = ($0.rounded()) / 100 }),
+                   in: DataGraphics.textScales.lowerBound * 100...DataGraphics.textScales.upperBound * 100)
+                .accessibilityLabel("Text size")
+                .accessibilityValue(readout)
+        }
+    }
+
+    /// One end of the axis: a number, or blank for the data's own.
+    private func axisField(_ title: String, text: Binding<String>) -> some View {
+        let wrong = !text.wrappedValue.trimmingCharacters(in: .whitespaces).isEmpty && Self.axisNumber(text.wrappedValue) == nil
+        return VStack(alignment: .leading, spacing: 2) {
+            Text(title).font(.caption).foregroundStyle(wrong ? Color(.systemRed) : .secondary)
+            TextField("Auto", text: text)
+                .keyboardType(.numbersAndPunctuation)
+                .textFieldStyle(.roundedBorder)
+                .accessibilityLabel("Axis \(title.lowercased())")
+        }
+    }
+
+    /// Import CSV, and under it what the last import left out, if anything.
+    private var importRow: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Button { importingCsv = true } label: {
+                Label("Import CSV", systemImage: "square.and.arrow.down")
+            }
+            if let imported {
+                Text(imported)
+                    .font(.footnote)
+                    .foregroundStyle(importRefused ? Color(.systemRed) : .secondary)
+            }
+        }
+    }
+
+    /// A file's rows into the grid — the chart's or the table's — to look
+    /// over before Add or Update, the grid shown rather than the text; or
+    /// why not, under the button.
+    private func importCsv(_ url: URL) {
+        Task {
+            let outcome = await Task.detached(priority: .userInitiated) { DataGrid.read(csvAt: url) }.value
+            switch outcome {
+            case .rows(let read):
+                if mode == 0 {
+                    chartGrid = read.cells
+                    chartText = DataGrid.chartText(read.cells)
+                    chartGridOpened = chartGrid
+                } else {
+                    tableGrid = read.cells
+                    tableText = DataGrid.tableText(read.cells)
+                }
+                asText = false
+                imported = read.note
+                importRefused = false
+                store.buzz(.confirm)
+            case .refused(let why):
+                imported = why
+                importRefused = true
+                store.buzz(.reject)
             }
         }
     }
@@ -267,8 +443,8 @@ struct DataSheet: View {
     @discardableResult
     private func add() -> Bool {
         if editingTable { return store.rebuildTable(rows: tableRows, header: tableHeader) }
-        let spec = ChartSpec(id: editing?.id ?? UID.make("chart"), kind: kind.rawValue, data: chartData,
-                             legend: legend, values: values, gridlines: gridlines)
+        let spec = look(ChartSpec(id: editing?.id ?? UID.make("chart"), kind: kind.rawValue, data: chartData,
+                                  legend: legend, values: values, gridlines: gridlines))
         // Drawn again where it was, as one step, keeping its colours.
         if mode == 0, editing != nil { return store.updateChart(spec) }
         let w = store.pageWidth, h = store.pageHeight
@@ -291,5 +467,37 @@ struct DataSheet: View {
         let made = DataGraphics.table(tableRows, in: frame, accent: accent)
         guard !tableHeader, let id = made.lazy.compactMap({ $0.table?.id }).first else { return made }
         return DataGraphics.withTableHeader(made, id: id, on: false, accent: accent, heightFor: store.measure)
+    }
+}
+
+/// The data sheet's font and colour pickers and Import CSV's file picker,
+/// apart from its body so the type checker takes each chain in reasonable
+/// time.
+private struct DataSheetPickers: ViewModifier {
+    let store: DesignStore
+    @Binding var choosingFont: Bool
+    @Binding var choosingInk: Bool
+    @Binding var importingCsv: Bool
+    @Binding var font: String?
+    @Binding var ink: String?
+    let inkShown: String
+    let onImport: (URL) -> Void
+
+    func body(content: Content) -> some View {
+        content
+            // None is the chart's default face.
+            .sheet(isPresented: $choosingFont) {
+                FontSheet(store: store, choice: FontSheet.Choice(
+                    title: "Chart font", current: font, onPick: { key in font = key }))
+            }
+            .sheet(isPresented: $choosingInk) {
+                ColorPickerSheet(store: store, title: "Text colour", current: inkShown,
+                                 onPick: { hex in ink = hex.lowercased() })
+            }
+            .fileImporter(isPresented: $importingCsv,
+                          allowedContentTypes: [.commaSeparatedText, .tabSeparatedText, .plainText]) { result in
+                guard case .success(let url) = result else { return }
+                onImport(url)
+            }
     }
 }

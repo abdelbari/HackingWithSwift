@@ -297,8 +297,37 @@ enum DataGraphics {
         guard let kind = ChartKind(rawValue: spec.kind) else { return [] }
         return chart(kind, data: chartData(spec.data, kind: kind), in: frame, palette: palette, ink: ink,
                      legend: spec.legend, values: spec.values, gridlines: spec.gridlines,
-                     colours: colours, group: group, heightFor: heightFor)
+                     colours: colours, group: group, look: spec, heightFor: heightFor)
             .map { var e = $0; e.chart = spec; return e }
+    }
+
+    /// The share of their usual size a chart's labels are drawn at.
+    static let textScales: ClosedRange<Double> = 0.5...2
+
+    /// `spec`'s text scale, within 0.5…2; 1 when it has none.
+    static func textScale(of spec: ChartSpec) -> Double {
+        guard let scale = spec.textScale, scale.isFinite else { return 1 }
+        return min(max(scale, textScales.lowerBound), textScales.upperBound)
+    }
+
+    /// The size a chart's labels are in `frame`: 6% of its shorter side,
+    /// whole and at least 10, then times its text scale, whole again — as
+    /// the Android twin's `labelSize` (the test rows are shared).
+    static func labelSize(_ spec: ChartSpec?, in frame: CGRect) -> Double {
+        let base: Double = max(10, (min(frame.width, frame.height) * 0.06).rounded())
+        return (base * (spec.map(textScale(of:)) ?? 1)).rounded()
+    }
+
+    /// The scale a chart's values are drawn against, from `low` to `high`:
+    /// from 0 to `peak`, the largest value (or stack), unless `spec` sets an
+    /// end — its axisMin, its axisMax — and both ends as they were when the
+    /// ones set leave the low end at or above the high. Only a kind with a
+    /// scale has one to set. The Android twin's `axisRange`.
+    static func axisRange(_ spec: ChartSpec?, peak: Double) -> (low: Double, high: Double) {
+        guard let spec, ChartKind(rawValue: spec.kind)?.hasScale == true else { return (0, peak) }
+        let low = spec.axisMin.flatMap { $0.isFinite ? $0 : nil } ?? 0
+        let high = spec.axisMax.flatMap { $0.isFinite ? $0 : nil } ?? peak
+        return low >= high ? (0, peak) : (low, high)
     }
 
     /// One series, item by item, as a chart.
@@ -321,16 +350,25 @@ enum DataGraphics {
     /// the five first kinds are exactly what they always were. Progress
     /// kinds read the first value, clamped to 0...100, and write it
     /// themselves, with no legend.
+    ///
+    /// `look` is the chart's text look and scale: its labels' font, ink and
+    /// size (labelSize), smooth lines and areas (smoothLine), and the scale's
+    /// ends (axisRange), against which values beyond them are held.
     static func chart(_ kind: ChartKind, data: ChartData, in frame: CGRect, palette: [String],
-                      ink: String = "#1f2430", legend: Bool = false, values: Bool = false,
+                      ink pageInk: String = "#1f2430", legend: Bool = false, values: Bool = false,
                       gridlines: Bool = false, colours: [Int: Paint] = [:], group: String = UID.make("grp"),
+                      look: ChartSpec? = nil,
                       heightFor: @escaping (Element) -> Double = FontLibrary.layoutHeight(for:)) -> [Element] {
         let rows = data.rows
         guard !rows.isEmpty, frame.width > 0, frame.height > 0 else { return [] }
         let colors = palette.isEmpty ? ["#5a31f4"] : palette
         let count = max(1, data.names.count)
         var out: [Element] = []
-        let labelSize: Double = max(10, (min(frame.width, frame.height) * 0.06).rounded())
+        let labelSize: Double = Self.labelSize(look, in: frame)
+        // The labels' own font and ink, when the chart has them.
+        let font = look?.font ?? "sans"
+        let ink = look?.ink ?? pageInk
+        let smooth = look?.smooth ?? false
         let firsts = rows.map { $0.values.first ?? 0 }
         let total = firsts.reduce(0, +)
         let peak = rows.map { $0.values.max() ?? 0 }.max() ?? 0
@@ -354,6 +392,7 @@ enum DataGraphics {
             var t = Element.text(text, fontSize: labelSize, w: max(w, labelSize * 2))
             t.align = align
             t.color = ink
+            t.fontFamily = font
             t.x = x; t.y = y
             t.h = heightFor(t)
             return part(t, name)
@@ -411,6 +450,8 @@ enum DataGraphics {
             let pairs = 0..<count
             let xPeak = rows.map { row in pairs.map { value(row, 2 * $0) }.max() ?? 0 }.max() ?? 0
             let yPeak = rows.map { row in pairs.map { value(row, 2 * $0 + 1) }.max() ?? 0 }.max() ?? 0
+            // The axis range is the y scale's: the x scale is the foot's.
+            let range = axisRange(look, peak: yPeak)
             let dot: Double = max(2, (min(frame.width, frame.height) * 0.025).rounded())
             gridAcross(top: top, plotH: plotH)
             gridDown(left: left, plotW: width, top: top, plotH: plotH)
@@ -422,7 +463,8 @@ enum DataGraphics {
                     let x = value(row, 2 * j)
                     let y = value(row, 2 * j + 1)
                     let across: Double = xPeak > 0 ? width * x / xPeak : 0
-                    let up: Double = yPeak > 0 ? plotH * y / yPeak : 0
+                    let up: Double = range.high > range.low
+                        ? plotH * (min(max(y, range.low), range.high) - range.low) / (range.high - range.low) : 0
                     let cx: Double = left + across
                     let cy: Double = top + plotH - up
                     var mark = Element.shape("circle", w: dot, h: dot)
@@ -451,27 +493,32 @@ enum DataGraphics {
             let base: Double = top + plotH
             let slot: Double = plot.width / Double(rows.count)
             let barW: Double = slot * 0.64
-            let tallest = stacked ? (rows.map { $0.values.reduce(0, +) }.max() ?? 0) : peak
+            let range = axisRange(look, peak: stacked ? (rows.map { $0.values.reduce(0, +) }.max() ?? 0) : peak)
+            // How far up the plot `v` stands, held to the scale.
+            func up(_ v: Double) -> Double {
+                guard range.high > range.low else { return 0 }
+                return plotH * (min(max(v, range.low), range.high) - range.low) / (range.high - range.low)
+            }
             gridAcross(top: top, plotH: plotH)
             for (i, row) in rows.enumerated() {
                 let left: Double = plot.minX + slot * Double(i) + (slot - barW) / 2
                 if stacked {
                     var below = 0.0
-                    for (j, v) in row.values.enumerated() where v > 0 && tallest > 0 {
-                        let y0 = (base - plotH * (below + v) / tallest).rounded()
-                        let y1 = (base - plotH * below / tallest).rounded()
+                    for (j, v) in row.values.enumerated() where v > 0 && range.high > range.low {
+                        let y0 = (base - up(below + v)).rounded()
+                        let y1 = (base - up(below)).rounded()
                         out.append(part(bar(w: barW.rounded(), h: y1 - y0, x: left.rounded(), y: y0, fill: paint(j)), "series:\(j)"))
                         below += v
                     }
                     let sum = row.values.reduce(0, +)
                     if values {
-                        out.append(valueAbove(sum, cx: left + barW / 2, foot: base - (tallest > 0 ? plotH * sum / tallest : 0), w: barW))
+                        out.append(valueAbove(sum, cx: left + barW / 2, foot: base - up(sum), w: barW))
                     }
                 } else {
                     let w = barW / Double(count)
                     for s in 0..<count {
                         let v = value(row, s)
-                        let h = peak > 0 ? plotH * v / peak : 0
+                        let h = up(v)
                         let x = left + w * Double(s)
                         let n = byItem ? i : s
                         out.append(part(bar(w: w.rounded(), h: max(1, h.rounded()), x: x.rounded(), y: (base - h).rounded(),
@@ -489,7 +536,12 @@ enum DataGraphics {
             let left: Double = plot.minX + labelW
             let slot: Double = plot.height / Double(rows.count)
             let barH: Double = slot * 0.64
-            let longest = stacked ? (rows.map { $0.values.reduce(0, +) }.max() ?? 0) : peak
+            let range = axisRange(look, peak: stacked ? (rows.map { $0.values.reduce(0, +) }.max() ?? 0) : peak)
+            // How far along the plot `v` reaches, held to the scale.
+            func along(_ v: Double) -> Double {
+                guard range.high > range.low else { return 0 }
+                return plotW * (min(max(v, range.low), range.high) - range.low) / (range.high - range.low)
+            }
             gridDown(left: left, plotW: plotW, top: Double(plot.minY), plotH: Double(plot.height))
             func valueBeside(_ v: Double, end: Double, y: Double, h: Double) -> Element {
                 var t = label(valueText(v), x: end + labelSize * 0.3, y: 0, w: valueW - labelSize * 0.3, align: "left", part: "value")
@@ -500,21 +552,21 @@ enum DataGraphics {
                 let top: Double = (plot.minY + slot * Double(i) + (slot - barH) / 2).rounded()
                 if stacked {
                     var before = 0.0
-                    for (j, v) in row.values.enumerated() where v > 0 && longest > 0 {
-                        let x0 = (left + plotW * before / longest).rounded()
-                        let x1 = (left + plotW * (before + v) / longest).rounded()
+                    for (j, v) in row.values.enumerated() where v > 0 && range.high > range.low {
+                        let x0 = (left + along(before)).rounded()
+                        let x1 = (left + along(before + v)).rounded()
                         out.append(part(bar(w: x1 - x0, h: barH.rounded(), x: x0, y: top, fill: paint(j)), "series:\(j)"))
                         before += v
                     }
                     let sum = row.values.reduce(0, +)
                     if values {
-                        out.append(valueBeside(sum, end: left + (longest > 0 ? plotW * sum / longest : 0), y: top, h: barH.rounded()))
+                        out.append(valueBeside(sum, end: left + along(sum), y: top, h: barH.rounded()))
                     }
                 } else {
                     let h = barH / Double(count)
                     for s in 0..<count {
                         let v = value(row, s)
-                        let w = peak > 0 ? plotW * v / peak : 0
+                        let w = along(v)
                         let n = byItem ? i : s
                         let b = bar(w: max(1, w.rounded()), h: h.rounded(), x: left.rounded(),
                                     y: (plot.minY + slot * Double(i) + (slot - barH) / 2 + h * Double(s)).rounded(), fill: paint(n))
@@ -554,18 +606,26 @@ enum DataGraphics {
             let top: Double = plot.minY + valueH
             let plotH: Double = plot.height - labelH - valueH
             let n = max(rows.count - 1, 1)
+            let range = axisRange(look, peak: peak)
+            // How high `v` stands, as a share of the scale.
+            func share(_ v: Double) -> Double {
+                guard range.high > range.low else { return 0 }
+                return (min(max(v, range.low), range.high) - range.low) / (range.high - range.low)
+            }
             gridAcross(top: top, plotH: plotH)
             for s in 0..<count {
                 let points = rows.enumerated().map { i, row in
-                    CGPoint(x: Double(i) / Double(n) * 100, y: 100 - (peak > 0 ? value(row, s) / peak * 100 : 0))
+                    CGPoint(x: Double(i) / Double(n) * 100, y: 100 - share(value(row, s)) * 100)
                 }
+                // Through every point on a curve, or straight from one to the next.
+                let through = smooth ? smoothLine(points) : polyline(points)
                 var mark: Element
                 if kind == .line {
-                    mark = shape(polyline(points), x: plot.minX, y: top, w: plot.width, h: plotH, fill: .solid("#00000000"))
+                    mark = shape(through, x: plot.minX, y: top, w: plot.width, h: plotH, fill: .solid("#00000000"))
                     mark.stroke = hex(s)
                     mark.strokeWidth = max(2, (plotH * 0.02).rounded())
                 } else {
-                    mark = shape(polyline(points) + " L100 100 L0 100 Z", x: plot.minX, y: top, w: plot.width, h: plotH, fill: paint(s))
+                    mark = shape(through + " L100 100 L0 100 Z", x: plot.minX, y: top, w: plot.width, h: plotH, fill: paint(s))
                     // Several areas overlap, so each lets the others show.
                     mark.opacity = count > 1 ? 0.7 : 1
                 }
@@ -574,7 +634,7 @@ enum DataGraphics {
                     for (i, row) in rows.enumerated() {
                         let v = value(row, s)
                         out.append(valueAbove(v, cx: plot.minX + Double(i) / Double(n) * plot.width,
-                                              foot: top + plotH - (peak > 0 ? plotH * v / peak : 0), w: 0))
+                                              foot: top + plotH - plotH * share(v), w: 0))
                     }
                 }
             }
@@ -596,10 +656,12 @@ enum DataGraphics {
                 out.append(part(shape(wedge(from: -Double.pi / 2, sweep: 2 * .pi * percent / 100, inner: 0.8),
                                       x: left, y: top, w: side, h: side, fill: paint(0)), "series:0"))
             }
-            var t = Element.text("\(Int(percent.rounded()))%", fontSize: max(10, (side * 0.2).rounded()), w: side.rounded())
+            let figure: Double = (max(10, (side * 0.2).rounded()) * (look.map(textScale(of:)) ?? 1)).rounded()
+            var t = Element.text("\(Int(percent.rounded()))%", fontSize: figure, w: side.rounded())
             t.align = "center"
             t.fontWeight = 700
             t.color = ink
+            t.fontFamily = font
             t.x = left.rounded()
             t.h = heightFor(t)
             t.y = frame.midY - t.h / 2
@@ -758,6 +820,42 @@ enum DataGraphics {
         return turn != 0 ? Geometry.rotate(styled, around: pivot, by: turn) : styled
     }
 
+    /// `after` with the font and colour given by hand to a chart's words in
+    /// this step (since `before`) written into that chart's spec, on every
+    /// one of its elements, so the next Update draws all its labels so: a
+    /// new font family is its `font`, a new colour its `ink` (#rrggbb, lower
+    /// case). As the Android twin's `styleKept` keeps them; `after` itself
+    /// when no chart's words changed either.
+    static func styleKept(_ after: Design, since before: Design) -> Design {
+        var out = after
+        for p in out.pages.indices {
+            let page = out.pages[p]
+            guard page.elements.contains(where: { $0.type == .text && $0.chart != nil }),
+                  let old = before.pages.first(where: { $0.id == page.id }), old.elements != page.elements else { continue }
+            var was: [String: Element] = [:]
+            for el in old.elements where el.type == .text && el.chart != nil { was[el.id] = el }
+            var fonts: [String: String] = [:]
+            var inks: [String: String] = [:]
+            for el in page.elements where el.type == .text {
+                guard let spec = el.chart, let prior = was[el.id], prior != el else { continue }
+                if let font = el.fontFamily, font != prior.fontFamily, font != spec.font { fonts[spec.id] = font }
+                if let color = el.color, color != prior.color, rgb(color) != nil {
+                    let ink = normalised(color)
+                    if ink != spec.ink { inks[spec.id] = ink }
+                }
+            }
+            guard !fonts.isEmpty || !inks.isEmpty else { continue }
+            for i in out.pages[p].elements.indices {
+                guard var spec = out.pages[p].elements[i].chart,
+                      fonts[spec.id] != nil || inks[spec.id] != nil else { continue }
+                spec.font = fonts[spec.id] ?? spec.font
+                spec.ink = inks[spec.id] ?? spec.ink
+                out.pages[p].elements[i].chart = spec
+            }
+        }
+        return out
+    }
+
     /// A slice of a circle in a 0…100 box, from `start` radians (clockwise
     /// from 3 o'clock, y down) through `sweep`; with `inner` > 0, a ring.
     static func wedge(from start: Double, sweep: Double, inner: Double) -> String {
@@ -782,6 +880,29 @@ enum DataGraphics {
                    "L\(pt(ri, end)) A\(num(ri)) \(num(ri)) 0 \(large) 0 \(pt(ri, start)) Z"
         }
         return "M\(num(c)) \(num(c)) L\(pt(r, start)) A\(num(r)) \(num(r)) 0 \(large) 1 \(pt(r, end)) Z"
+    }
+
+    /// A line through every one of `points` on a Catmull-Rom curve: from
+    /// each point to the next a cubic whose handles are a sixth of the way
+    /// along the line from the point before to the point after — the first
+    /// and last points standing in for the ones they lack. One point is
+    /// where it starts; the numbers are as polyline writes them. The
+    /// Android twin's `smoothLine` (the test rows are shared).
+    static func smoothLine(_ points: [CGPoint]) -> String {
+        guard let first = points.first else { return "" }
+        var out = "M\(num(first.x)) \(num(first.y))"
+        for i in 0..<(points.count - 1) {
+            let p0 = points[max(i - 1, 0)]
+            let p1 = points[i]
+            let p2 = points[i + 1]
+            let p3 = points[min(i + 2, points.count - 1)]
+            let c1x: Double = p1.x + (p2.x - p0.x) / 6
+            let c1y: Double = p1.y + (p2.y - p0.y) / 6
+            let c2x: Double = p2.x - (p3.x - p1.x) / 6
+            let c2y: Double = p2.y - (p3.y - p1.y) / 6
+            out += " C\(num(c1x)) \(num(c1y)) \(num(c2x)) \(num(c2y)) \(num(p2.x)) \(num(p2.y))"
+        }
+        return out
     }
 
     static func polyline(_ points: [CGPoint]) -> String {

@@ -362,6 +362,13 @@ struct GridCell: Codable, Equatable, Hashable {
 /// own. An object without an id, a kind or data is no chart, and its
 /// elements are a plain group again; a kind this build does not know is kept
 /// as written and offers no Edit chart. The switches are written only when on.
+///
+/// Its text's look, so Update keeps it: the `font` family of every label,
+/// their `ink` (#rrggbb, the axis and legend's too) and `textScale`, 0.5 to
+/// 2 times the size a chart's labels are; and for a kind with a scale,
+/// `smooth` lines and areas and the scale's ends, `axisMin` and `axisMax`.
+/// Each is written only when set: nil, false and a scale of 1 are not — as
+/// the Android twin writes them.
 struct ChartSpec: Codable, Equatable, Hashable {
     /// "chart_<uid>", shared by every element of the chart.
     var id: String
@@ -372,17 +379,41 @@ struct ChartSpec: Codable, Equatable, Hashable {
     /// Each value written beside its column, bar, point or slice.
     var values: Bool = false
     var gridlines: Bool = false
+    /// The labels' font family; nil is the default face, "sans".
+    var font: String?
+    /// The labels', axis's and legend's colour, "#rrggbb"; nil is ink that
+    /// reads on the page.
+    var ink: String?
+    /// The labels' size as a share of their usual one, read within 0.5…2;
+    /// nil is 1.
+    var textScale: Double?
+    /// Lines and areas drawn through their points on curves.
+    var smooth: Bool = false
+    /// The scale's ends; either nil is the data's own, and both are ignored
+    /// when the low one is not below the high one.
+    var axisMin: Double?
+    var axisMax: Double?
 
-    private enum CodingKeys: String, CodingKey { case id, kind, data, legend, values, gridlines }
+    private enum CodingKeys: String, CodingKey {
+        case id, kind, data, legend, values, gridlines, font, ink, textScale, smooth, axisMin, axisMax
+    }
 
     init(id: String = UID.make("chart"), kind: String, data: String,
-         legend: Bool = false, values: Bool = false, gridlines: Bool = false) {
+         legend: Bool = false, values: Bool = false, gridlines: Bool = false,
+         font: String? = nil, ink: String? = nil, textScale: Double? = nil, smooth: Bool = false,
+         axisMin: Double? = nil, axisMax: Double? = nil) {
         self.id = id
         self.kind = kind
         self.data = data
         self.legend = legend
         self.values = values
         self.gridlines = gridlines
+        self.font = font
+        self.ink = ink
+        self.textScale = textScale
+        self.smooth = smooth
+        self.axisMin = axisMin
+        self.axisMax = axisMax
     }
 
     init(from decoder: Decoder) throws {
@@ -393,6 +424,15 @@ struct ChartSpec: Codable, Equatable, Hashable {
         legend = (try? c.decodeIfPresent(Bool.self, forKey: .legend)) ?? false
         values = (try? c.decodeIfPresent(Bool.self, forKey: .values)) ?? false
         gridlines = (try? c.decodeIfPresent(Bool.self, forKey: .gridlines)) ?? false
+        // Each read on its own, as the Android twin reads them: a font that
+        // is blank, an ink that is no colour or a number that is none is
+        // no key.
+        font = (try? c.decodeIfPresent(String.self, forKey: .font)).flatMap { $0.isEmpty ? nil : $0 }
+        ink = (try? c.decodeIfPresent(String.self, forKey: .ink)).flatMap { ColorTools.rgb255($0) != nil ? $0 : nil }
+        textScale = Self.finiteNumber(c, .textScale)
+        smooth = (try? c.decodeIfPresent(Bool.self, forKey: .smooth)) ?? false
+        axisMin = Self.finiteNumber(c, .axisMin)
+        axisMax = Self.finiteNumber(c, .axisMax)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -403,6 +443,18 @@ struct ChartSpec: Codable, Equatable, Hashable {
         if legend { try c.encode(true, forKey: .legend) }
         if values { try c.encode(true, forKey: .values) }
         if gridlines { try c.encode(true, forKey: .gridlines) }
+        try c.encodeIfPresent(font, forKey: .font)
+        try c.encodeIfPresent(ink, forKey: .ink)
+        if let textScale, textScale != 1 { try c.encode(textScale, forKey: .textScale) }
+        if smooth { try c.encode(true, forKey: .smooth) }
+        try c.encodeIfPresent(axisMin, forKey: .axisMin)
+        try c.encodeIfPresent(axisMax, forKey: .axisMax)
+    }
+
+    /// A finite number at `key`, or nil.
+    private static func finiteNumber<Key: CodingKey>(_ c: KeyedDecodingContainer<Key>, _ key: Key) -> Double? {
+        guard let value = try? c.decodeIfPresent(Double.self, forKey: key), value.isFinite else { return nil }
+        return value
     }
 }
 

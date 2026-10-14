@@ -224,6 +224,8 @@ final class DesignStore {
         // A table's rows follow its words, and connectors their ends, as
         // part of the same step.
         design = DataGraphics.settlingTables(design, since: entry.design, heightFor: measure)
+        // A font or colour given to a chart's words is kept for its Update.
+        design = DataGraphics.styleKept(design, since: entry.design)
         Connectors.resolve(in: &design)
         // A step that changed nothing — a text box opened and left as it
         // was, a crop opened and closed untouched — would be an Undo that
