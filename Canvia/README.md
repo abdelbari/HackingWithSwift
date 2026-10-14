@@ -280,6 +280,19 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   in id order, and only as MP4, M4V, MOV or 3GP; any other clip travels
   as its first frame — the same choice the Android twin makes, so the
   same design packs the same on either phone.
+- Edit in Canvia: photos (animated GIF and WebP included), videos, PDFs
+  and SVGs opened in Canvia from Photos, Files or another app ("Open
+  in") land in inbox/<uuid>/ in Application Support with the manifest.json the
+  Android twin writes, and a "New design from shared" sheet offers "Fit
+  to the photo" (its pixel size, 4000 px at most on the long edge), the
+  four design types nearest its shape, or "Add to an open design…". Each
+  photo or clip goes on a page of its own and among your uploads, a PDF
+  a page for each of its pages; what will not open is skipped and said
+  ("Couldn't open 1 of 3 items"), and the inbox folder goes once they
+  are in. One difference from the Android twin: there it is the share
+  sheet; here it is the document types the app declares, since a Share
+  Extension would be a target of its own. Files opened together are
+  gathered into one share, up to 20.
 - A contrast check across the document: every text against what is
   actually behind it (the topmost flat shape under it, or the page),
   WCAG AA thresholds by text size, and a one-tap fix to a colour that
@@ -389,9 +402,16 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   none of it ever in an export. Remembered across launches.
 - Version history: a copy of the design is kept at most every two
   minutes while editing, and whenever the editor is left, only when
-  something changed, thirty deep. Restoring one is a single undo step
-  and the current state is kept as a version first, so it is never a
-  one-way door.
+  something changed. Older history is thinned rather than lost: every
+  version from the last two hours, the newest of each hour for 48 hours
+  and of each day for 60 days, 200 unpinned at most, by the same rule as
+  the Android twin's VersionPolicy. Rows sit under Today, Yesterday, This
+  week and Earlier; "Name this version…" pins one for good (in
+  history/<id>/meta.json, which backups carry as history/<id>.meta.json), and More's "Save a named
+  version…" keeps and pins the design as it is. Versions are written as
+  <epoch ms>.json, as on Android, and the seconds older builds wrote
+  still read. Restoring one is a single undo step and the current state
+  is kept as a version first, so it is never a one-way door.
 - An undo toast after the edits people regret — delete, cut, delete page,
   replace all, restore, resize — naming what just happened with an Undo
   button and a close button on it, gone after four seconds; read out by
@@ -436,6 +456,21 @@ sheet or frame and leaves no partial file behind. Pages and frames are
 drawn on the main actor, which steps aside every thirtieth of a second
 so the bar moves and Cancel can be tapped. The PDF row says which pages
 it will hold ("All 4 pages" or "Page 2 only"), following the page choice.
+
+Exports keep going once the sheet is closed. Each row hands the app's
+ExportQueue a job made from a snapshot of the design as it was tapped —
+the design copied, its pages fixed — so editing carries on beside it; one
+export runs at a time and another waits its turn. Closing the sheet asks
+"Keep exporting in the background?" (Keep, the default, or Stop, which
+stops those waiting too), and a pill above the editor's toolbar, and on Home, says "Rendering the video
+42%": a tap opens the sheet on its progress, its X stops it. Out of the
+app, the work runs in a background task; when the system's time runs out
+it waits between two pages or frames — the video's AVAssetWriter simply
+waits for its next frame — and a notification says "Paused — return to
+Canvia to finish". Done while away, a notification with Share and Open
+says so, and the file is shared or opened as the app comes back, as the
+sheet would have. The Android twin holds the same job in a foreground
+service with the same words.
 
 **Save to Photos** — PNG or JPEG (this page or the selected range, JPEG
 at the quality set above) or the MP4 straight into the photo library
@@ -519,8 +554,15 @@ Actions and Siri's intents share one LaunchRequest hand-off, and a design
 opened over another closes the first, which saves it.
 
 **Home** — templates browse by category from a row of chips; designs can be
-filed into folders from their context menu (folder chips appear when one
-exists) and filing is not an edit, so the order stays. The first launch
+filed into folders from their context menu and filing is not an edit, so
+the order stays. Designs and folders can be starred from their menus or
+from Select; the Starred chip after All shows starred folders, then
+starred designs, both in the current sort and search (a folder sorting by
+its name, its newest edit or its pages added up). The design file carries
+"starred": true only when starred, and the shelf cache carries it too;
+starred folders live in the home-folders preference, whose bare names
+still read. A copy is never starred; a design back from Recently deleted
+still is. The first launch
 shows a four-card tour, once — `-canviaSkipTour` keeps it off the CI
 screenshot — and contextual tips fire the first time you rotate, add a
 page, draw or drop something in.

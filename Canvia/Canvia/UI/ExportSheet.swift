@@ -1,7 +1,9 @@
 // Export sheet: the chooser. PNG / JPEG at 1-3x, multi-page PDF and a
 // PowerPoint deck, all rendered from the same views the canvas uses and
 // handed to the system share sheet. The rendering and encoding themselves
-// live in DesignExporter and PptxExporter.
+// live in DesignExporter and PptxExporter; each row hands the app's
+// ExportQueue a job made from a snapshot of the design (ExportJobs), so an
+// export carries on once the sheet is closed.
 
 import SwiftUI
 import UIKit
@@ -43,8 +45,8 @@ struct ExportSheet: View {
     /// Each track's music's length in seconds, by AudioStore id, read as
     /// Motion's track rows show.
     @State private var trackLengths: [String: Double] = [:]
-    /// What the progress card says is happening.
-    @State private var workingLabel = "Rendering"
+    /// Close asked with an export running: keep it going, or stop it.
+    @State private var askingKeep = false
 
     private struct PhotosNote: Equatable {
         var text: String
@@ -86,86 +88,137 @@ struct ExportSheet: View {
             if next == .chosen { choosingPages = true }
         })
     }
-    /// Fraction done while an export runs; nil when idle. Rasters report a
-    /// page at a time, the movie a frame at a time.
-    @State private var progress: Double?
-    @State private var exportTask: Task<Void, Never>?
-    private var exporting: Bool { progress != nil }
+    /// The app's exports: the one running, those waiting, and what is done.
+    private var queue: ExportQueue { ExportQueue.shared }
     @State private var exportedURL: URL?
     @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
-            // One computed property per section. As a single expression the
-            // form was past what the type checker will resolve "in reasonable
-            // time" — every string interpolation, ternary and `if` adds a
-            // branch, and eight sections of them is too many.
-            Form {
-                qualitySection
-                jpegSection
-                if store.design.pages.count > 1 && !selectionOnly { pagesSection }
-                transparencySection
-                formatSection
-                clipboardSection
-                photosSection
-                if UIPrintInteractionController.isPrintingAvailable { printSection }
-                // Grouped, which changes nothing on screen: a ViewBuilder
-                // block takes at most ten children.
-                Group {
-                    motionSection
-                    rememberSection
+            form
+                .confirmationDialog(ExportChoices.keepQuestion, isPresented: $askingKeep, titleVisibility: .visible) {
+                    Button(ExportChoices.keep) { keepGoing() }
+                        .keyboardShortcut(.defaultAction)
+                    Button(ExportChoices.stop, role: .destructive) {
+                        queue.cancelAll()
+                        dismiss()
+                    }
                 }
-                if let errorMessage {
-                    Text(errorMessage).foregroundStyle(.red)
+                .sheet(item: Binding(
+                    get: { exportedURL.map(ShareURL.init) },
+                    set: { if $0 == nil { exportedURL = nil; sharedURLs = [] } })) { item in
+                    // Every file at once when a range produced several: handing
+                    // them over one sheet at a time would mean nine dismissals for
+                    // a nine-page deck.
+                    ShareSheet(urls: sharedURLs.isEmpty ? [item.url] : sharedURLs)
                 }
-            }
-            .navigationTitle("Export")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                // Closing stops an export under way: finished after the sheet
-                // had gone, it would pop a share sheet or the print dialog
-                // from nowhere, as on the Android twin.
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { exportTask?.cancel(); dismiss() }
+                .overlay {
+                    if let job = queue.current { progressCard(job) }
                 }
+                .sheet(isPresented: $choosingPages, onDismiss: {
+                    ExportChoices.remember(chosenIds, for: store.design)
+                }) {
+                    PagePickerSheet(design: store.design, chosen: $chosenIds)
+                }
+        }
+        .onAppear {
+            restoreSettings()
+            queue.sheetOpen = true
+            takeFinished()
+        }
+        // Gone, the queue delivers what finishes from here on.
+        .onDisappear { queue.sheetOpen = false }
+        .onChange(of: queue.finished?.id) { takeFinished() }
+        .onChange(of: queue.failure) { _, failure in
+            guard let failure else { return }
+            errorMessage = failure
+            queue.failure = nil
+        }
+        .presentationDetents([.medium])
+    }
+
+    /// The rows, their title and Close — kept apart from the sheets and
+    /// dialogs `body` hangs on them, so each chain type-checks in good time.
+    private var form: some View {
+        // One computed property per section. As a single expression the
+        // form was past what the type checker will resolve "in reasonable
+        // time" — every string interpolation, ternary and `if` adds a
+        // branch, and eight sections of them is too many.
+        Form {
+            qualitySection
+            jpegSection
+            if store.design.pages.count > 1 && !selectionOnly { pagesSection }
+            transparencySection
+            formatSection
+            clipboardSection
+            photosSection
+            if UIPrintInteractionController.isPrintingAvailable { printSection }
+            // Grouped, which changes nothing on screen: a ViewBuilder
+            // block takes at most ten children.
+            Group {
+                motionSection
+                rememberSection
             }
-            .sheet(item: Binding(
-                get: { exportedURL.map(ShareURL.init) },
-                set: { if $0 == nil { exportedURL = nil; sharedURLs = [] } })) { item in
-                // Every file at once when a range produced several: handing
-                // them over one sheet at a time would mean nine dismissals for
-                // a nine-page deck.
-                ShareSheet(urls: sharedURLs.isEmpty ? [item.url] : sharedURLs)
-            }
-            .overlay {
-                if let progress { progressCard(progress) }
-            }
-            .sheet(isPresented: $choosingPages, onDismiss: {
-                ExportChoices.remember(chosenIds, for: store.design)
-            }) {
-                PagePickerSheet(design: store.design, chosen: $chosenIds)
+            if let errorMessage {
+                Text(errorMessage).foregroundStyle(.red)
             }
         }
-        .onAppear { restoreSettings() }
-        // While the progress card is up, Cancel or Close is the way out, not
-        // a swipe; and however the sheet goes, the export goes with it.
-        .interactiveDismissDisabled(exporting)
-        .onDisappear { exportTask?.cancel() }
-        .presentationDetents([.medium])
+        .navigationTitle("Export")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // Closing with an export running asks whether to keep it
+            // going; swiping the sheet away keeps it, the default.
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Close") { if queue.isBusy { askingKeep = true } else { dismiss() } }
+            }
+        }
+    }
+
+    /// Keep: the export goes on without the sheet, and notifications are
+    /// asked for the first time one does, to say when it is done.
+    private func keepGoing() {
+        ExportNotifications.askPermission()
+        dismiss()
+    }
+
+    /// An export done while the sheet is up, delivered as it always was:
+    /// shared, printed, or what Photos took said.
+    private func takeFinished() {
+        guard let done = queue.takeFinished() else { return }
+        let result = done.result
+        if let print = result.print {
+            ExportPresenter.print(print)
+        } else if !result.urls.isEmpty {
+            sharedURLs = result.urls
+            exportedURL = result.urls.first
+        }
+        if let note = result.photosNote {
+            photosNote = PhotosNote(text: note, ok: result.photosSaved)
+            announce(note)
+        }
+        if result.musicLost {
+            musicNote = Self.musicLostNote
+            announce(Self.musicLostNote)
+        }
     }
 
     /// Determinate, with a way out. A spinner with no number is fine for a
     /// PNG; a nine-page 4K video takes long enough that not knowing whether
     /// it is a tenth done or nine tenths, and having no button to press, is
     /// the difference between waiting and force-quitting.
-    private func progressCard(_ fraction: Double) -> some View {
+    private func progressCard(_ job: ExportQueue.Job) -> some View {
         VStack(spacing: 14) {
-            ProgressView(value: fraction) {
-                Text("\(workingLabel)… \(Int((fraction * 100).rounded()))%")
+            ProgressView(value: queue.progress) {
+                Text(ExportChoices.pillText(label: job.label, fraction: queue.progress))
                     .font(.subheadline.weight(.semibold))
             }
             .progressViewStyle(.linear)
-            Button("Cancel", role: .cancel) { exportTask?.cancel() }
+            if !queue.waiting.isEmpty {
+                Text(ExportChoices.waitingText(queue.waiting.count))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            Button("Cancel", role: .cancel) { queue.cancel(job.id) }
                 .buttonStyle(.bordered)
         }
         .padding(20)
@@ -173,12 +226,6 @@ struct ExportSheet: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.15), radius: 16, y: 6)
         .accessibilityElement(children: .combine)
-    }
-
-    /// Progress from the movie writer's queue, delivered to the sheet's
-    /// state on the main actor.
-    private func report(_ fraction: Double) {
-        Task { @MainActor in progress = min(1, max(0, fraction)) }
     }
 
     // MARK: sections
@@ -363,7 +410,7 @@ struct ExportSheet: View {
             Toggle("Flatten PDF", isOn: $flatten)
             exportButton("PowerPoint", subtitle: pptxSubtitle, icon: "rectangle.stack",
                          working: "Making the PowerPoint", unavailable: leftOut(pdfIndices), format: "pptx") {
-                try await exportPowerPoint()
+                ExportJobs.powerPoint(designSnapshot)
             }
         } header: {
             Text("Format")
@@ -382,22 +429,22 @@ struct ExportSheet: View {
         case "png":
             exportButton("PNG", subtitle: "\(what), best for sharing", icon: "photo",
                          unavailable: leftOut(exportedIndices), format: "png") {
-                try await export(.png)
+                picturesWork(.png)
             }
         case "jpg":
             exportButton("JPEG", subtitle: "\(what), about \(estimatedSize)\(count > 1 ? " a page" : "")",
                          icon: "photo.fill", unavailable: leftOut(exportedIndices), format: "jpg") {
-                try await export(.jpeg)
+                picturesWork(.jpeg)
             }
         case "pdf":
             exportButton("PDF", subtitle: pdfSubtitle, icon: "doc.richtext", working: "Making the PDF",
                          unavailable: leftOut(pdfIndices), format: "pdf") {
-                try await exportPDF()
+                ExportJobs.pdf(designSnapshot, flatten: flatten)
             }
         default:
             exportButton("SVG", subtitle: count > 1 ? "\(pagesWord(count)), one SVG each" : "\(onePageText), editable vectors",
                          icon: "scribble.variable", unavailable: leftOut(exportedIndices), format: "svg") {
-                try exportSVG()
+                ExportJobs.svg(exportedSnapshot)
             }
         }
     }
@@ -497,11 +544,15 @@ struct ExportSheet: View {
             exportButton("\(kind) to Photos", subtitle: photosSubtitle, icon: "photo.badge.plus",
                          working: "Saving to your photos", unavailable: leftOut(exportedIndices),
                          format: photosFormat == .png ? "png" : "jpg") {
-                try await saveToPhotos(photosFormat)
+                photosNote = nil
+                return ExportJobs.picturesToPhotos(exportedSnapshot, format: photosFormat, scale: scale,
+                                                   longEdge: typedLongEdge ?? 0, quality: jpegQuality,
+                                                   transparent: transparent)
             }
             exportButton("Video to Photos", subtitle: movieSubtitle, icon: "film.stack",
                          working: "Rendering the video", unavailable: leftOut(moviePages), format: "mp4") {
-                try await saveToPhotos(nil)
+                photosNote = nil
+                return ExportJobs.movieToPhotos(designSnapshot, settings: movieSettings)
             }
         } header: {
             Text("Photos")
@@ -519,47 +570,9 @@ struct ExportSheet: View {
         return photosFormat == .jpeg ? "\(each), about \(estimatedSize)\(count > 1 ? " a page" : "")" : each
     }
 
-    /// Render, then hand the files to Photos rather than the share sheet.
-    /// `nil` means the movie. Each picture is counted as it goes in, and
-    /// what went in is said even after a Cancel.
-    @MainActor
-    private func saveToPhotos(_ format: DesignExporter.RasterFormat?) async throws {
-        photosNote = nil
-        guard let format else {
-            try await saveMovieToPhotos()
-            return
-        }
-        let urls = try await DesignExporter.exportPages(
-            design: exportedDesign, range: exportedRange, current: exportedPageIndex,
-            format: format, scale: scale, longEdge: typedLongEdge ?? 0, quality: jpegQuality,
-            // JPEG has no alpha channel to be transparent in.
-            transparent: transparent && format == .png,
-            progress: { progress = $0 })
-        let outcome = try await PhotoSaver.save(urls)
-        if let message = outcome.message {
-            photosNote = PhotosNote(text: message, ok: outcome.anySaved)
-            announce(message)
-        }
-    }
-
-    /// The video into Photos. Music that would not go in leaves a silent
-    /// video, and says so.
-    @MainActor
-    private func saveMovieToPhotos() async throws {
-        let url = DesignExporter.fileURL(for: store.design, ext: "mp4")
-        let movie = try await MovieExporter.exportMP4(design: store.design, settings: movieSettings,
-                                                      range: pageExportRange, current: store.pageIndex, to: url, progress: report)
-        let outcome = try await PhotoSaver.save([url])
-        if outcome.cancelled && !outcome.anySaved { return }
-        var text = outcome.anySaved ? "Saved the video to your photos." : "Couldn't save to your photos."
-        if movie.musicLost { text += " " + Self.musicLostNote }
-        photosNote = PhotosNote(text: text, ok: outcome.anySaved)
-        announce(text)
-    }
-
     /// Said when a video's music could not be mixed in, as the Android twin
     /// says it.
-    static let musicLostNote = "Couldn't add the music, so it has none."
+    static let musicLostNote = ExportChoices.musicLost
 
     /// VoiceOver hears the outcome of a save; the footer it lands in is
     /// easily missed from the button that was pressed.
@@ -570,24 +583,19 @@ struct ExportSheet: View {
     private var clipboardSection: some View {
         Section {
             exportButton("Canvia design file", subtitle: "The design and its photos, to send or back up",
-                         icon: "shippingbox") {
-                let url = DesignExporter.fileURL(for: store.design, ext: DesignPackage.ext)
-                // Gathered here, where library photos are drawn; written out
-                // away from the main actor, since turning every photo and
-                // clip into base64 takes long enough, on a design with clips,
-                // to freeze the sheet.
-                let contents = DesignPackage.contents(of: store.design)
-                try await Task.detached(priority: .userInitiated) {
-                    try DesignPackage.encode(contents).write(to: url)
-                }.value
-                sharedURLs = [url]
-                exportedURL = url
+                         icon: "shippingbox", working: "Packing the design file") {
+                ExportJobs.designFile(store.design)
             }
-            exportButton(copied ? "Copied" : "Copy as image",
+            // At once, not queued: a picture of one page on the clipboard.
+            Button {
+                errorMessage = nil
+                do { try copyToClipboard() } catch { errorMessage = ExportChoices.failedText(error.localizedDescription) }
+            } label: {
+                rowLabel(copied ? "Copied" : "Copy as image",
                          subtitle: "PNG on the clipboard, for Messages, Mail or Notes",
-                         icon: copied ? "checkmark.circle" : "doc.on.clipboard") {
-                try copyToClipboard()
+                         icon: copied ? "checkmark.circle" : "doc.on.clipboard")
             }
+            .foregroundStyle(.primary)
         }
     }
 
@@ -612,19 +620,13 @@ struct ExportSheet: View {
         Section {
             exportButton("Send to a printer", subtitle: "AirPrint, on the paper layout below", icon: "printer",
                          working: "Preparing to print", unavailable: leftOut(exportedIndices), format: "print") {
-                try await printDesign()
+                ExportJobs.printPDF(exportedSnapshot, options: paper, flatten: flatten, printing: true)
             }
+            // The design the other formats render, so "Selection only"
+            // prints the selection rather than page 1 of the whole thing.
             exportButton("Print-ready PDF", subtitle: "Paper, bleed and crop marks as set", icon: "doc.badge.gearshape",
                          working: "Making the print PDF", unavailable: leftOut(exportedIndices), format: "print") {
-                let url = DesignExporter.fileURL(for: store.design, ext: "pdf", suffix: "-print")
-                // The design the other formats render, so "Selection only"
-                // prints the selection rather than page 1 of the whole thing.
-                try await DesignExporter.exportPrintPDF(design: exportedDesign, range: exportedRange,
-                                                        current: exportedPageIndex, options: paper,
-                                                        flatten: flatten, to: url,
-                                                        progress: { progress = $0 })
-                sharedURLs = [url]
-                exportedURL = url
+                ExportJobs.printPDF(exportedSnapshot, options: paper, flatten: flatten, printing: false)
             }
             DisclosureGroup("Paper layout") { paperSettings }
         } header: {
@@ -675,11 +677,11 @@ struct ExportSheet: View {
         Section {
             exportButton("MP4 video", subtitle: movieSubtitle, icon: "film", working: "Rendering the video",
                          unavailable: leftOut(moviePages), format: "mp4") {
-                try await exportMovie()
+                ExportJobs.movie(designSnapshot, settings: movieSettings)
             }
             exportButton("Animated GIF", subtitle: movieSubtitle, icon: "square.stack.3d.down.right",
                          working: "Rendering the GIF", unavailable: leftOut(moviePages), format: "gif") {
-                try await exportGIF()
+                ExportJobs.gif(designSnapshot, settings: movieSettings)
             }
             Picker("Video size", selection: $resolution) {
                 ForEach(MovieExporter.resolutions(for: store.design)) { Text($0.rawValue).tag($0) }
@@ -779,7 +781,6 @@ struct ExportSheet: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
-            .disabled(progress != nil)
             .accessibilityLabel("Remove \(name)")
         }
     }
@@ -812,41 +813,52 @@ struct ExportSheet: View {
         }
     }
 
-    /// A row that makes something. `unavailable`, when set, is why it cannot
-    /// now — every page it would make is hidden — said in place of its
-    /// subtitle, with the row disabled.
+    /// A row that makes something: its job, made as it is tapped from the
+    /// design and the settings as they stand, goes to the app's queue —
+    /// after any export already running. `unavailable`, when set, is why it
+    /// cannot now — every page it would make is hidden — said in place of
+    /// its subtitle, with the row disabled.
     private func exportButton(_ title: String, subtitle: String, icon: String, working: String = "Rendering",
                               unavailable: String? = nil, format: String? = nil,
-                              action: @escaping @MainActor () async throws -> Void) -> some View {
+                              job: @escaping @MainActor () -> ExportQueue.Work) -> some View {
         Button {
-            progress = 0
-            workingLabel = working
             errorMessage = nil
             musicNote = nil
-            // Render on the main actor after the progress card appears. Every
-            // long path steps aside between pages or frames, so the bar moves
-            // and Cancel can be tapped while it works.
-            exportTask = Task { @MainActor in
-                defer { progress = nil; exportTask = nil }
-                do {
-                    try await action()
-                    // Kept for next time, when asked to be.
-                    if let format { rememberSettings(format) }
-                }
-                catch is CancellationError { /* asked for; nothing to report */ }
-                catch { errorMessage = "Export failed: \(error.localizedDescription)" }
-            }
+            queue.enqueue(ExportQueue.Job(label: working, designId: store.design.id, work: job()))
+            // Kept for next time, when asked to be.
+            if let format { rememberSettings(format) }
         } label: {
-            HStack {
-                Image(systemName: icon).frame(width: 30)
-                VStack(alignment: .leading) {
-                    Text(title).fontWeight(.semibold)
-                    Text(unavailable ?? subtitle).font(.footnote).foregroundStyle(.secondary)
-                }
-            }
+            rowLabel(title, subtitle: unavailable ?? subtitle, icon: icon)
         }
         .foregroundStyle(.primary)
-        .disabled(exporting || unavailable != nil)
+        .disabled(unavailable != nil)
+    }
+
+    private func rowLabel(_ title: String, subtitle: String, icon: String) -> some View {
+        HStack {
+            Image(systemName: icon).frame(width: 30)
+            VStack(alignment: .leading) {
+                Text(title).fontWeight(.semibold)
+                Text(subtitle).font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// The page choice as it stands, over the whole design: what the PDF,
+    /// PowerPoint, video and GIF write.
+    private var designSnapshot: ExportSnapshot {
+        ExportSnapshot(store.design, range: pageExportRange, current: store.pageIndex)
+    }
+
+    /// The design the pictures, SVGs and print render — the selection as a
+    /// page of its own when "Selection only" is on — with its pages.
+    private var exportedSnapshot: ExportSnapshot {
+        ExportSnapshot(exportedDesign, range: exportedRange, current: exportedPageIndex)
+    }
+
+    private func picturesWork(_ format: DesignExporter.RasterFormat) -> ExportQueue.Work {
+        ExportJobs.pictures(exportedSnapshot, format: format, scale: scale, longEdge: typedLongEdge ?? 0,
+                            quality: jpegQuality, transparent: transparent)
     }
 
     /// How many pages are hidden, and so left out of "All pages" and the
@@ -916,18 +928,6 @@ struct ExportSheet: View {
         return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
     }
 
-    @MainActor
-    private func export(_ format: DesignExporter.RasterFormat) async throws {
-        let urls = try await DesignExporter.exportPages(
-            design: exportedDesign, range: exportedRange, current: exportedPageIndex,
-            format: format, scale: scale, longEdge: typedLongEdge ?? 0, quality: jpegQuality,
-            // JPEG has no alpha channel to be transparent in.
-            transparent: transparent && format == .png,
-            progress: { progress = $0 })
-        sharedURLs = urls
-        exportedURL = urls.first
-    }
-
     /// The film's length from its timeline, so a page with a hold of its
     /// own counts at that hold, and a hidden page not at all.
     private var movieSubtitle: String {
@@ -943,104 +943,6 @@ struct ExportSheet: View {
         case .current: return "Current page, \(length)s, \(pixels)"
         case .chosen: return "\(chosenText), \(length)s, \(pixels)"
         }
-    }
-
-    /// Printing goes through the same vector PDF the export does, so what
-    /// comes out of the printer is the document rather than a picture of it —
-    /// text stays text at the printer's own resolution.
-    @MainActor
-    private func printDesign() async throws {
-        let url = DesignExporter.fileURL(for: store.design, ext: "pdf")
-        // What the other formats render: the selection as a page of its own
-        // when "Selection only" is on. The range and index are that design's
-        // — with the whole design they pointed at page 1, not the selection.
-        let design = exportedDesign
-        try await DesignExporter.exportPrintPDF(design: design, range: exportedRange, current: exportedPageIndex,
-                                                options: paper, flatten: flatten, to: url,
-                                                progress: { progress = $0 })
-
-        let info = UIPrintInfo.printInfo()
-        info.outputType = .general
-        info.jobName = store.design.title.isEmpty ? "Canvia design" : store.design.title
-        let size = design.size(at: exportedPageIndex)
-        info.orientation = size.width > size.height ? .landscape : .portrait
-        // Cancelled while the last sheet was drawn: no dialog from nowhere.
-        try Task.checkCancellation()
-
-        let controller = UIPrintInteractionController.shared
-        controller.printInfo = info
-        controller.printingItem = url
-        // iPad refuses the sheet-less presentation and raises rather than
-        // failing quietly, so it gets an anchor rect.
-        if let anchor = Self.keyWindow, UIDevice.current.userInterfaceIdiom == .pad {
-            controller.present(from: CGRect(x: anchor.bounds.midX, y: anchor.bounds.midY,
-                                            width: 1, height: 1),
-                               in: anchor, animated: true, completionHandler: nil)
-        } else {
-            controller.present(animated: true, completionHandler: nil)
-        }
-    }
-
-    private static var keyWindow: UIWindow? {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap(\.windows)
-            .first { $0.isKeyWindow }
-    }
-
-    @MainActor
-    private func exportMovie() async throws {
-        let url = DesignExporter.fileURL(for: store.design, ext: "mp4")
-        let movie = try await MovieExporter.exportMP4(design: store.design, settings: movieSettings,
-                                                      range: pageExportRange, current: store.pageIndex, to: url, progress: report)
-        // The picture is kept when the music will not go under it; the
-        // sheet says so beside the share, as the Android twin toasts it.
-        if movie.musicLost {
-            musicNote = Self.musicLostNote
-            announce(Self.musicLostNote)
-        }
-        sharedURLs = [url]
-        exportedURL = url
-    }
-
-    @MainActor
-    private func exportGIF() async throws {
-        let url = DesignExporter.fileURL(for: store.design, ext: "gif")
-        try await MovieExporter.exportGIF(design: store.design, settings: movieSettings,
-                                          range: pageExportRange, current: store.pageIndex, to: url, progress: { progress = $0 })
-        sharedURLs = [url]
-        exportedURL = url
-    }
-
-    /// One .svg per page exported, shared together.
-    @MainActor
-    private func exportSVG() throws {
-        let urls = try DesignExporter.exportSVGs(design: exportedDesign, range: exportedRange,
-                                                 current: exportedPageIndex)
-        sharedURLs = urls
-        exportedURL = urls.first
-    }
-
-    /// The deck as a .pptx named after the design, of the pages the PDF
-    /// would hold.
-    @MainActor
-    private func exportPowerPoint() async throws {
-        let url = DesignExporter.fileURL(for: store.design, ext: PptxExporter.fileExtension)
-        try await PptxExporter.export(design: store.design, range: pageExportRange,
-                                      current: store.pageIndex, to: url,
-                                      progress: { progress = $0 })
-        sharedURLs = [url]
-        exportedURL = url
-    }
-
-    @MainActor
-    private func exportPDF() async throws {
-        let url = DesignExporter.fileURL(for: store.design, ext: "pdf")
-        try await DesignExporter.exportPDF(design: store.design, range: pageExportRange,
-                                           current: store.pageIndex, flatten: flatten, to: url,
-                                           progress: { progress = $0 })
-        sharedURLs = [url]
-        exportedURL = url
     }
 }
 

@@ -102,4 +102,154 @@ final class HomeShelfTests: XCTestCase {
         XCTAssertEqual(RelativeTime.lowercasedFirst("Yesterday"), "yesterday")
         XCTAssertEqual(RelativeTime.lowercasedFirst("5 Mar"), "5 Mar")
     }
+
+    // MARK: starred
+
+    /// "starred": true only when starred; a file without the key, or with
+    /// false, reads as not starred and is written back without it.
+    func testTheStarRoundTripsAndIsLeftOutWhenOff() throws {
+        var design = Design(title: "Star", width: 100, height: 100)
+        let plain = String(decoding: try JSONEncoder().encode(design), as: UTF8.self)
+        XCTAssertFalse(plain.contains("starred"))
+        XCTAssertFalse(try JSONDecoder().decode(Design.self, from: Data(plain.utf8)).isStarred)
+
+        design.isStarred = true
+        let data = try JSONEncoder().encode(design)
+        XCTAssertTrue(String(decoding: data, as: UTF8.self).contains(#""starred":true"#))
+        var back = try JSONDecoder().decode(Design.self, from: data)
+        XCTAssertTrue(back.isStarred)
+
+        back.isStarred = false
+        XCTAssertNil(back.starred)
+        XCTAssertFalse(String(decoding: try JSONEncoder().encode(back), as: UTF8.self).contains("starred"))
+        let off = Data(#"{"id":"d1","title":"Off","starred":false}"#.utf8)
+        XCTAssertNil(try JSONDecoder().decode(Design.self, from: off).starred)
+        let odd = Data(#"{"id":"d1","title":"Odd","starred":"yes"}"#.utf8)
+        XCTAssertFalse(try JSONDecoder().decode(Design.self, from: odd).isStarred)
+    }
+
+    /// The shelf carries the star, so Home need not open the design; and
+    /// writes it only when on.
+    func testTheShelfEntryCarriesTheStar() throws {
+        var design = Design(title: "Shelf", width: 100, height: 100)
+        let plain = DesignLibrary.ShelfEntry(design, id: design.id, modified: 1)
+        XCTAssertNil(plain.starred)
+        XCTAssertFalse(String(decoding: try JSONEncoder().encode(plain), as: UTF8.self).contains("starred"))
+        design.isStarred = true
+        let entry = DesignLibrary.ShelfEntry(design, id: design.id, modified: 1)
+        let back = try JSONDecoder().decode(DesignLibrary.ShelfEntry.self, from: JSONEncoder().encode(entry))
+        XCTAssertEqual(back.starred, true)
+    }
+
+    /// Starred folders first, then the starred designs, both in the
+    /// current sort and search; a starred folder with nothing left in it is
+    /// not shown.
+    func testTheStarredFilter() {
+        var a = recent("a", "Alpha", at: 1)
+        a.starred = true
+        a.folder = "Clients"
+        var b = recent("b", "Beta", at: 5)
+        b.starred = true
+        let c = recent("c", "Gamma", at: 9)
+        var d = recent("d", "Delta", at: 3)
+        d.folder = "Archive"
+        let designs = [a, b, c, d]
+        let starred: Set<String> = ["Clients", "Archive", "Gone"]
+        let byDate = DesignLibrary.starredShelf(designs, starredFolders: starred, query: "", sort: .recent)
+        XCTAssertEqual(byDate.folders, ["Archive", "Clients"])
+        XCTAssertEqual(byDate.designs.map(\.id), ["b", "a"])
+        let byName = DesignLibrary.starredShelf(designs, starredFolders: starred, query: "", sort: .name)
+        XCTAssertEqual(byName.designs.map(\.id), ["a", "b"])
+        let searched = DesignLibrary.starredShelf(designs, starredFolders: [], query: "bet", sort: .recent)
+        XCTAssertEqual(searched.folders, [])
+        XCTAssertEqual(searched.designs.map(\.id), ["b"])
+        XCTAssertEqual(DesignLibrary.starredEmpty, "Star a design from its ⋯ menu to find it here.")
+    }
+
+    /// The Android twin's ShelfTest rows: a folder sorts as its designs
+    /// together do, and a search narrows folders by name.
+    func testStarredFoldersSortAndSearchAsOnAndroid() {
+        func item(_ id: String, _ title: String, pages: Int, at: Double, folder: String?) -> RecentDesign {
+            var made = RecentDesign(id: id, title: title, width: 1080, height: 1080, pages: pages, updatedAt: at, folder: folder)
+            made.starred = ["b", "c", "d"].contains(id)
+            return made
+        }
+        let designs = [
+            item("a", "Café menu", pages: 2, at: 30, folder: "Clients"),
+            item("b", "birthday card", pages: 1, at: 50, folder: nil),
+            item("c", "Annual report", pages: 9, at: 10, folder: "clients work"),
+            item("d", "Poster", pages: 9, at: 40, folder: "Clients"),
+            item("e", "Zine", pages: 3, at: 20, folder: "Archive"),
+        ]
+        let starred: Set<String> = ["Clients", "Archive", "Gone"]
+        // "Gone" holds nothing; "Clients" (newest 40) before "Archive" (20).
+        let recent = DesignLibrary.starredShelf(designs, starredFolders: starred, query: "", sort: .recent)
+        XCTAssertEqual(recent.folders, ["Clients", "Archive"])
+        XCTAssertEqual(recent.designs.map(\.id), ["b", "d", "c"])
+        let named = DesignLibrary.starredShelf(designs, starredFolders: starred, query: "", sort: .name)
+        XCTAssertEqual(named.folders, ["Archive", "Clients"])
+        XCTAssertEqual(named.designs.map(\.id), ["c", "b", "d"])
+        // Most pages: a folder's pages added up — Clients 11, Archive 3.
+        let largest = DesignLibrary.starredShelf(designs, starredFolders: starred, query: "", sort: .largest)
+        XCTAssertEqual(largest.folders, ["Clients", "Archive"])
+        XCTAssertEqual(largest.designs.map(\.id), ["d", "c", "b"])
+        let found = DesignLibrary.starredShelf(designs, starredFolders: starred, query: "arch", sort: .recent)
+        XCTAssertEqual(found.folders, ["Archive"])
+        XCTAssertEqual(found.designs.map(\.id), [])
+        XCTAssertEqual(DesignLibrary.starredShelf(designs, starredFolders: starred, query: "ÁRCH", sort: .recent).folders,
+                       ["Archive"])
+    }
+
+    /// The home-folders list: bare names still read, starred ones written
+    /// as objects; a star follows a rename and goes with a delete.
+    func testStarredFoldersInTheHomeFoldersList() throws {
+        let read = DesignLibrary.homeFolders(fromJSON: #"["Old", {"name":"Clients","starred":true}, 4, {"x":1}, " Old "]"#)
+        XCTAssertEqual(read, [DesignLibrary.HomeFolder(name: "Old"),
+                              DesignLibrary.HomeFolder(name: "Clients", starred: true)])
+        XCTAssertEqual(DesignLibrary.homeFoldersJSON(read), #"["Old",{"name":"Clients","starred":true}]"#)
+        XCTAssertEqual(DesignLibrary.homeFolders(fromJSON: "not json"), [])
+
+        let name = "home-folders-\(UUID())"
+        defer { UserDefaults.standard.removePersistentDomain(forName: name) }
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
+        defaults.set(#"["Old"]"#, forKey: DesignLibrary.homeFoldersKey)
+        DesignLibrary.setFolderStarred("Clients", true, defaults: defaults)
+        DesignLibrary.setFolderStarred("Old", true, defaults: defaults)
+        XCTAssertEqual(DesignLibrary.starredFolders(defaults), ["Clients", "Old"])
+        DesignLibrary.setFolderStarred("Old", false, defaults: defaults)
+        XCTAssertEqual(defaults.string(forKey: DesignLibrary.homeFoldersKey), #"["Old",{"name":"Clients","starred":true}]"#)
+        DesignLibrary.renameFolderStar("Clients", to: "Customers", defaults: defaults)
+        XCTAssertEqual(DesignLibrary.starredFolders(defaults), ["Customers"])
+        DesignLibrary.renameFolderStar("Customers", to: nil, defaults: defaults)
+        XCTAssertEqual(DesignLibrary.starredFolders(defaults), [])
+        XCTAssertEqual(DesignLibrary.renamePlan([filed("x", in: "Mine")], from: "Mine", to: "Ours")?.from, "Mine")
+    }
+
+    private func filed(_ id: String, in folder: String) -> RecentDesign {
+        var r = recent(id, id, at: 1)
+        r.folder = folder
+        return r
+    }
+
+    /// A copy — duplicated, copied and resized, or kept from a version — is
+    /// not starred; a design restored from Recently deleted still is.
+    func testCopiesAreNotStarredButARestoreKeepsTheStar() throws {
+        var design = Design(title: "Kept", width: 100, height: 100)
+        design.isStarred = true
+        XCTAssertFalse(CopyResize.freshCopy(of: design).isStarred)
+        XCTAssertFalse(CopyResize.madeCopy(of: design, taken: []).isStarred)
+
+        XCTAssertTrue(DesignLibrary.save(design))
+        defer { DesignLibrary.delete(id: design.id) }
+        let copy = try XCTUnwrap(DesignLibrary.saveCopy(of: design, savedAt: Date(), folder: nil))
+        defer { DesignLibrary.delete(id: copy.id) }
+        XCTAssertFalse(copy.isStarred)
+
+        DesignLibrary.trash(id: design.id)
+        DesignLibrary.restore(id: design.id)
+        XCTAssertEqual(DesignLibrary.load(id: design.id)?.isStarred, true)
+        XCTAssertTrue(DesignLibrary.setStarred(id: design.id, false))
+        XCTAssertEqual(DesignLibrary.load(id: design.id)?.starred, nil)
+        XCTAssertEqual(DesignLibrary.load(id: design.id)?.updatedAt, design.updatedAt, "starring is not an edit")
+    }
 }

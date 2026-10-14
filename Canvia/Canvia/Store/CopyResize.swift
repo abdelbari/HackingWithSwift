@@ -62,10 +62,12 @@ enum CopyResize {
 
     /// The design again with every id fresh: its own, each page's (the
     /// master page id following its page) and each element's, by Copies'
-    /// rules. Everything else — size, unit, folder, title — as it was.
+    /// rules. Everything else — size, unit, folder, title — as it was, but
+    /// the star: a copy is not starred.
     static func freshCopy(of design: Design) -> Design {
         var copy = design
         copy.id = UID.make("doc")
+        copy.isStarred = false
         var pageIds: [String: String] = [:]
         copy.pages = design.pages.map { page in
             let fresh = Copies.of(page)

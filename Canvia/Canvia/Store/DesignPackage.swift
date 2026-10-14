@@ -617,6 +617,9 @@ enum DesignPackage {
         }
         var design = package.design
         design.id = UID.make("doc")
+        // A new document is a copy, and a copy is not starred, as on the
+        // Android twin; a backup, which keeps ids, keeps the star.
+        design.isStarred = false
         design.updatedAt = Date().timeIntervalSince1970 * 1000
         var pageIds: [String: String] = [:]
         for p in design.pages.indices {

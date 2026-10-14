@@ -1,10 +1,12 @@
 // Earlier versions of this design.
 //
-// Undo covers the last few minutes; this covers the last few days. A version
+// Undo covers the last few minutes; this covers the last few weeks. A version
 // is written at most every two minutes while editing and whenever the editor
 // is left, and only when something actually changed — so the list is a set of
-// moments, not a keystroke log. Each row shows its version's first page, and
-// opens the version page by page, to restore or to keep as a copy.
+// moments, not a keystroke log. Older history is thinned rather than lost
+// (VersionRetention), and a version named here is kept for good. Each row
+// shows its version's first page, and opens the version page by page, to
+// restore or to keep as a copy.
 
 import SwiftUI
 import UIKit
@@ -20,6 +22,9 @@ struct VersionHistorySheet: View {
     @State private var thumbnails: [String: UIImage] = [:]
     /// A version was restored from its preview, so the sheet goes with it.
     @State private var restored = false
+    /// The version whose name is being typed, and the name.
+    @State private var naming: DesignLibrary.Version?
+    @State private var nameText = ""
 
     var body: some View {
         NavigationStack {
@@ -31,26 +36,7 @@ struct VersionHistorySheet: View {
                         description: Text("A version is kept every couple of minutes while you "
                                           + "edit, and each time you leave the editor."))
                 } else {
-                    List(versions) { version in
-                        Button {
-                            previewing = version
-                        } label: {
-                            HStack(spacing: 12) {
-                                thumbnail(version)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(version.savedAt, style: .relative) + Text(" ago")
-                                    Text(summary(version))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.footnote.weight(.semibold))
-                                    .foregroundStyle(.tertiary)
-                            }
-                        }
-                        .foregroundStyle(.primary)
-                    }
+                    versionList
                 }
             }
             .navigationTitle("Version history")
@@ -68,6 +54,92 @@ struct VersionHistorySheet: View {
         .task {
             versions = DesignLibrary.versions(for: store.design.id)
             await drawThumbnails()
+        }
+    }
+
+    /// Under Today, Yesterday, This week and Earlier; each row opens its
+    /// version, and holds Name this version… and Unpin.
+    private var versionList: some View {
+        List {
+            ForEach(DesignLibrary.versionSections(versions)) { group in
+                Section(group.section.rawValue) {
+                    ForEach(group.versions) { version in
+                        row(version)
+                    }
+                }
+            }
+        }
+        .alert("Name this version", isPresented: Binding(
+            get: { naming != nil }, set: { if !$0 { naming = nil } })) {
+            TextField("Before client feedback", text: $nameText)
+            Button("Save") {
+                if let version = naming { pin(version, name: nameText) }
+                naming = nil
+            }
+            Button("Cancel", role: .cancel) { naming = nil }
+        } message: {
+            Text("A named version is kept for good.")
+        }
+    }
+
+    private func row(_ version: DesignLibrary.Version) -> some View {
+        Button {
+            previewing = version
+        } label: {
+            HStack(spacing: 12) {
+                thumbnail(version)
+                VStack(alignment: .leading, spacing: 2) {
+                    if let name = version.pinnedName, !name.isEmpty {
+                        Text(name).fontWeight(.semibold).lineLimit(1)
+                    }
+                    Text(version.savedAt, style: .relative) + Text(" ago")
+                    Text(summary(version))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if version.isPinned {
+                    Image(systemName: "pin.fill")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.accent)
+                        .accessibilityLabel("Pinned")
+                }
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .foregroundStyle(.primary)
+        .contextMenu { rowActions(version) }
+        .swipeActions(edge: .trailing) { rowActions(version) }
+    }
+
+    @ViewBuilder
+    private func rowActions(_ version: DesignLibrary.Version) -> some View {
+        Button {
+            nameText = version.pinnedName ?? ""
+            naming = version
+        } label: { Label("Name this version…", systemImage: "pin") }
+        .tint(Theme.accent)
+        if version.isPinned {
+            Button {
+                DesignLibrary.unpinVersion(version.stem, of: store.design.id)
+                reloadVersions()
+            } label: { Label("Unpin", systemImage: "pin.slash") }
+        }
+    }
+
+    /// Pinned under the name typed, so pruning never takes it.
+    private func pin(_ version: DesignLibrary.Version, name: String) {
+        DesignLibrary.pinVersion(version.stem, of: store.design.id, name: name)
+        reloadVersions()
+    }
+
+    /// The list read again for its pins; the pictures already drawn stay.
+    private func reloadVersions() {
+        let id = store.design.id
+        Task { @MainActor in
+            versions = await Task.detached(priority: .userInitiated) { DesignLibrary.versions(for: id) }.value
         }
     }
 
@@ -256,5 +328,49 @@ struct VersionPreview: View {
             .padding(.bottom, 80)
             .allowsHitTesting(false)
             .transition(.opacity)
+    }
+}
+
+extension View {
+    /// More's "Save a named version…": a name, then the design kept as a
+    /// version now and pinned under it (DesignLibrary.saveNamedVersion).
+    /// `onSaved` is told what to say.
+    func namedVersionAlert(isPresented: Binding<Bool>, store: DesignStore,
+                           onSaved: @escaping (String) -> Void) -> some View {
+        modifier(NamedVersionAlert(isPresented: isPresented, store: store, onSaved: onSaved))
+    }
+}
+
+private struct NamedVersionAlert: ViewModifier {
+    @Binding var isPresented: Bool
+    let store: DesignStore
+    var onSaved: (String) -> Void
+    @State private var typedName = ""
+
+    func body(content: Content) -> some View {
+        content
+            .alert("Save a named version", isPresented: $isPresented) {
+                TextField("Before client feedback", text: $typedName)
+                Button("Save") { save() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("A named version is kept for good, under Version history.")
+            }
+            .onChange(of: isPresented) { _, open in
+                if open { typedName = "" }
+            }
+    }
+
+    private func save() {
+        // Typing under way is kept first, so the version has it.
+        store.finishCrop()
+        store.endTextEdit()
+        guard DesignLibrary.saveNamedVersion(store.design, name: typedName) != nil else {
+            store.buzz(.reject)
+            onSaved("Couldn't save the version")
+            return
+        }
+        store.buzz(.confirm)
+        onSaved("Version saved")
     }
 }

@@ -1573,9 +1573,11 @@ final class DesignStore {
 
     /// Replace the whole document with a saved version, as one undo step —
     /// restoring is itself an edit, and one you might want to take back.
+    /// The star belongs to the design, not the version, so it stays as it is.
     func restore(_ version: Design) {
         var restored = version
         restored.id = design.id
+        restored.starred = design.starred
         restored.updatedAt = Date().timeIntervalSince1970 * 1000
         apply { $0 = restored }
         pageIndex = min(pageIndex, max(design.pages.count - 1, 0))

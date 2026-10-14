@@ -76,6 +76,8 @@ struct EditorView: View {
     @State private var namingComponent = false
     /// More's "Save as template…" asking for a name and a category.
     @State private var savingTemplate = false
+    /// More's "Save a named version…" asking for a name.
+    @State private var namingVersion = false
     /// The Snapping menu's Grid "Custom…" asking for a spacing.
     @State private var askingCustomGrid = false
     @State private var componentName = ""
@@ -135,6 +137,17 @@ struct EditorView: View {
                 } else {
                     insertButton
                         .padding(18)
+                }
+            }
+            // An export running in the app's queue, just above the toolbar
+            // and beside the insert button — out of the way of the pen's,
+            // the eraser's and the crop's bars: a tap opens the sheet on its
+            // progress.
+            .overlay(alignment: .bottomLeading) {
+                if store.drawing == nil && store.erasing == nil && store.cropping == nil {
+                    ExportPill { activeSheet = .export }
+                        .padding(.trailing, 72)
+                        .padding(.bottom, 26)
                 }
             }
             // Always rendered, never inserted. Adding and removing this from
@@ -243,6 +256,7 @@ struct EditorView: View {
         }
         .customGridAlert(isPresented: $askingCustomGrid, store: store)
         .saveTemplateAlert(isPresented: $savingTemplate, store: store) { text in show(toast: text, undoable: false) }
+        .namedVersionAlert(isPresented: $namingVersion, store: store) { text in show(toast: text, undoable: false) }
         .asksBeforeLockedDelete(Binding(get: { store.askingDelete && activeSheet == nil },
                                         set: { store.askingDelete = $0 }),
                                 several: deletesSeveral, store: store)
@@ -415,7 +429,7 @@ struct EditorView: View {
     /// is selected, and no text field anywhere has the keyboard.
     private var deleteKeysLive: Bool {
         !store.selection.isEmpty && store.editingTextId == nil && !titleFocused && activeSheet == nil
-            && !namingComponent && !savingTemplate && !store.textFieldOpen && store.drawing == nil
+            && !namingComponent && !savingTemplate && !namingVersion && !store.textFieldOpen && store.drawing == nil
             && store.erasing == nil
     }
 
@@ -681,13 +695,20 @@ struct EditorView: View {
                     activeSheet = .help
                 } label: { Label("Help", systemImage: "questionmark.circle") }
 
-                Button {
-                    // Whatever is on screen now is the newest version, so
-                    // the list never starts with a state you cannot get back
-                    // to.
-                    DesignLibrary.snapshot(store.design)
-                    activeSheet = .history
-                } label: { Label("Version history", systemImage: "clock.arrow.circlepath") }
+                // Grouped, as a ViewBuilder block takes ten children.
+                Group {
+                    Button {
+                        // Whatever is on screen now is the newest version, so
+                        // the list never starts with a state you cannot get back
+                        // to.
+                        DesignLibrary.snapshot(store.design)
+                        activeSheet = .history
+                    } label: { Label("Version history", systemImage: "clock.arrow.circlepath") }
+
+                    Button {
+                        namingVersion = true
+                    } label: { Label("Save a named version…", systemImage: "pin") }
+                }
             }
 
             Section {

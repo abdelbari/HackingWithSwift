@@ -410,6 +410,15 @@ struct Design: Codable, Equatable, Identifiable {
     /// and not written, when there is none. A design from before tracks
     /// reads its soundtrack in as the one track (AudioTrack.migrated).
     var audio: [AudioTrack]?
+    /// Starred on Home: true, or nil and not written — so a file from
+    /// before stars, or from a build that has none, reads as it did.
+    var starred: Bool?
+
+    /// Whether the design is starred; unstarring takes the key away.
+    var isStarred: Bool {
+        get { starred == true }
+        set { starred = newValue ? true : nil }
+    }
 
     /// The tracks, none as an empty list; setting none takes the key away.
     var audioTracks: [AudioTrack] {
@@ -465,6 +474,7 @@ struct Design: Codable, Equatable, Identifiable {
         unit = (try? c.decode(String.self, forKey: .unit)).flatMap { $0 == "px" ? nil : $0 }
         dpi = (try? c.decode(Double.self, forKey: .dpi)).flatMap { $0 > 0 && $0.isFinite ? $0 : nil }
         bleed = (try? c.decode(Double.self, forKey: .bleed)).flatMap { $0 > 0 && $0.isFinite ? $0 : nil }
+        starred = (try? c.decode(Bool.self, forKey: .starred)) == true ? true : nil
         let tracks = (try? c.decode([AudioTrack.IfReadable].self, forKey: .audio))?.compactMap(\.track) ?? []
         audio = tracks.isEmpty ? nil : tracks
         // The old soundtrack, read forever: the one track of a file with no
@@ -492,7 +502,7 @@ struct Design: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides, folder
-        case titleAuto, fonts, unit, dpi, bleed, audio
+        case titleAuto, fonts, unit, dpi, bleed, audio, starred
     }
 
     /// The master page, if one is set and still exists.

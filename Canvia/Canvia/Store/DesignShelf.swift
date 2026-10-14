@@ -1,5 +1,5 @@
-// What Home shows of each design — its title, size, pages, dates and
-// folder — kept in designs/shelf.json, so Home no longer decodes every
+// What Home shows of each design — its title, size, pages, dates, folder
+// and star — kept in designs/shelf.json, so Home no longer decodes every
 // design each time it appears. An entry holds while its design file's
 // modification time is the one it was read at; any other, or none, and that
 // one design is read again. A file that has gone takes its entry with it.
@@ -39,6 +39,8 @@ extension DesignLibrary {
         /// Its unit and dpi, when it is measured in mm, cm or inches.
         var unit: String?
         var dpi: Double?
+        /// True when the design is starred; not written otherwise.
+        var starred: Bool?
 
         init(_ design: Design, id: String, modified: Double) {
             self.id = id
@@ -52,6 +54,7 @@ extension DesignLibrary {
             self.modified = modified
             unit = design.physicalUnit
             dpi = design.physicalUnit == nil ? nil : design.dpi
+            starred = design.starred
         }
     }
 
@@ -120,7 +123,8 @@ extension DesignLibrary {
         shelf.designs = entries.map { entry in
             RecentDesign(id: entry.id, title: entry.title, width: entry.width, height: entry.height,
                          pages: entry.pages, updatedAt: entry.updatedAt, folder: entry.folder,
-                         thumbnailStamp: stamps[entry.id], unit: entry.unit, dpi: entry.dpi)
+                         thumbnailStamp: stamps[entry.id], unit: entry.unit, dpi: entry.dpi,
+                         starred: entry.starred == true)
         }
         .sorted { $0.updatedAt > $1.updatedAt }
         return shelf

@@ -391,6 +391,10 @@ enum DesignExporter {
         mutating func breathe() async throws {
             try Task.checkCancellation()
             guard Pacer.isDue(since: last, now: Date(), interval: interval) else { return }
+            // Out of the app with its background time run out, an export
+            // waits here, between two pages or frames, until the app is back
+            // (ExportQueue).
+            try await ExportQueue.waitWhilePaused()
             // A sleep rather than Task.yield: a yield on the main actor can
             // be picked straight back up before the run loop draws or reads
             // a touch; a sleep lets it turn once.
