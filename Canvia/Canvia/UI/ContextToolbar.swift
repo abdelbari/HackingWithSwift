@@ -547,7 +547,8 @@ struct ContextToolbar: View {
     /// The picture's ink — its opaque part, or its dark part — becomes a
     /// path shape over the same spot, in the ink's own colour.
     private func traceImage(_ el: Element) {
-        guard let image = PhotoLibrary.resolve(el.src) else { return }
+        // A code is traced in its own colours, its background round it.
+        guard let image = CodeGenerator.picture(of: el)?.image ?? PhotoLibrary.resolve(el.src) else { return }
         let size = image.size
         Task.detached(priority: .userInitiated) {
             let traced = Tracer.trace(image)

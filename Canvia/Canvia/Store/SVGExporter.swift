@@ -139,8 +139,31 @@ enum SVGExporter {
             return shapeMarkup(bare, index: index, defs: &defs) + shapeWordsMarkup(el, index: index, defs: &defs)
         case .text: return textMarkup(el, index: index, defs: &defs)
         case .line: return lineMarkup(el)
-        case .image, .sticker: return bitmapMarkup(el)
+        case .image:
+            if let code = CodeGenerator.vector(el) { return codeMarkup(el, code) }
+            return bitmapMarkup(el)
+        case .sticker: return bitmapMarkup(el)
         }
+    }
+
+    /// A QR code as rectangles (CodeGenerator.vector): its background,
+    /// unless it has none, then one path of its dark modules in its colour,
+    /// each run along a row a rectangle, at the edges' own places so rows
+    /// meet with no seam — as the Android twin writes it.
+    static func codeMarkup(_ el: Element, _ code: CodeGenerator.Vector) -> String {
+        func rect(_ r: CGRect) -> String {
+            "M\(num(el.x + Double(r.minX))) \(num(el.y + Double(r.minY)))H\(num(el.x + Double(r.maxX)))" +
+                "V\(num(el.y + Double(r.maxY)))H\(num(el.x + Double(r.minX)))Z"
+        }
+        var out = ""
+        if let paper = code.style.background, let box = code.background {
+            out += "<path d=\"\(rect(box))\" fill=\"\(escape(paper))\"/>"
+        }
+        if !code.modules.isEmpty {
+            let d = code.modules.map(rect).joined()
+            out += "<path d=\"\(d)\" fill=\"\(escape(code.style.color))\" shape-rendering=\"crispEdges\"/>"
+        }
+        return out
     }
 
     @MainActor

@@ -637,6 +637,13 @@ struct Element: Codable, Equatable, Identifiable {
     /// For a clip ("video:" source): its trim, speed, loop and sound. Never a
     /// clip at all its defaults — that is nil, and no key in the file.
     var clip: ClipPlayback?
+    /// A QR code's look (see CodeGenerator.Look): its modules' colour
+    /// ("#rrggbb"), its background's ("#rrggbb", or "none" for clear) and
+    /// the margin round it in whole modules, 0…3. Each nil at its default —
+    /// black, white, four — so written only when not, as on the Android twin.
+    var qrColor: String?
+    var qrBackground: String?
+    var qrMargin: Int?
 
     // sticker
     var glyph: String?
@@ -748,6 +755,12 @@ struct Element: Codable, Equatable, Identifiable {
         focusBlur = try? c.decode(FocusBlur.self, forKey: .focusBlur)
         edge = try? c.decode(PhotoEdge.self, forKey: .edge)
         clip = (try? c.decode(ClipPlayback.self, forKey: .clip)).flatMap { $0.isDefault ? nil : $0 }
+        // Read tolerantly, as the Android twin reads them: a colour that is
+        // none, or a margin out of 0…4, is the default — and a default is no
+        // key at all.
+        qrColor = (try? c.decode(String.self, forKey: .qrColor)).flatMap(CodeGenerator.keptColor)
+        qrBackground = (try? c.decode(String.self, forKey: .qrBackground)).flatMap(CodeGenerator.keptBackground)
+        qrMargin = (try? c.decode(Double.self, forKey: .qrMargin)).flatMap(CodeGenerator.keptMargin)
         glyph = try? c.decode(String.self, forKey: .glyph)
         thickness = try? c.decode(Double.self, forKey: .thickness)
         dash = try? c.decode(String.self, forKey: .dash)
@@ -783,6 +796,7 @@ struct Element: Codable, Equatable, Identifiable {
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns, timing
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit, clip
         case filterStrength, pixelate, focusBlur, edge
+        case qrColor, qrBackground, qrMargin
         case glyph
         case thickness, dash, startCap, endCap
     }

@@ -315,6 +315,7 @@ final class PptxExporterTests: XCTestCase {
         case .shape: return "shape"
         case .line: return "line"
         case .picture: return "picture"
+        case .code: return "code"
         }
     }
 
@@ -361,6 +362,9 @@ final class PptxExporterTests: XCTestCase {
             (with(Element.line()) { $0.shadow = Shadow() }, "picture"),
             (Element.image("asset:x"), "picture"),
             (Element.sticker("🎉"), "picture"),
+            (Element.image(CodeGenerator.source(for: "hi")), "code"),
+            (with(Element.image(CodeGenerator.source(for: "hi"))) { $0.flipH = true }, "picture"),
+            (with(Element.image(CodeGenerator.source(for: "hi"))) { $0.filter = "noir" }, "picture"),
         ]
         for (n, row) in rows.enumerated() {
             XCTAssertEqual(word(PptxExporter.form(of: row.0)), row.1, "row \(n)")

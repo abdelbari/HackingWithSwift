@@ -171,6 +171,9 @@ enum PptxExporter {
         case shape(String)
         case line
         case picture
+        /// A QR code drawn in its colours alone (CodeGenerator.vector):
+        /// its background and its modules, free-form rectangles.
+        case code
     }
 
     /// What `el` becomes, by the rule the Android twin's kindOf follows.
@@ -205,7 +208,11 @@ enum PptxExporter {
         case .line:
             // A flip turns its ends round (lineXML).
             return .line
-        case .image, .sticker:
+        case .image:
+            // A code drawn in its colours alone, and not flipped, goes out
+            // as rectangles; any other photo as its picture.
+            return !flipped && CodeGenerator.vector(el) != nil ? .code : .picture
+        case .sticker:
             return .picture
         }
     }
@@ -405,6 +412,21 @@ enum PptxExporter {
                 shapes.append(shapeXML(el, preset: preset, id: id, link: link, frame: frame))
             case .line:
                 shapes.append(lineXML(el, id: id, link: link, frame: frame))
+            case .code:
+                guard let code = CodeGenerator.vector(el) else { continue }
+                // Its background first, a shape of its own under the
+                // modules, which carry the element's name and link.
+                var modulesId = id
+                if let paper = code.style.background, let box = code.background {
+                    let properties = "<p:cNvPr id=\"\(id)\" name=\"\(SVGExporter.escape(el.id)) background\"/>"
+                    shapes.append(rectanglesXML(el, properties: properties, rects: [box], colour: paper, frame: frame))
+                    modulesId = nextId
+                    nextId += 1
+                }
+                if !code.modules.isEmpty {
+                    shapes.append(rectanglesXML(el, properties: cNvPr(el, id: modulesId, link: link),
+                                                rects: code.modules, colour: code.style.color, frame: frame))
+                }
             case .picture:
                 let embed = rels.add("image", "../media/\(picture?.name ?? "")")
                 let pad = margin(el)
@@ -495,6 +517,32 @@ enum PptxExporter {
         let properties = "<p:nvSpPr>\(cNvPr(el, id: id, link: link))<p:cNvSpPr/><p:nvPr/></p:nvSpPr>"
         let look = [elementBox(el, frame: frame), outline, fillXML(el.fill, opacity: el.opacity), border].joined()
         return "<p:sp>\(properties)<p:spPr>\(look)</p:spPr></p:sp>"
+    }
+
+    /// `rects`, in `el`'s own space, as one free-form shape on its box,
+    /// turned with it, filled with `colour` at its opacity and unbordered:
+    /// a QR code's background, or its modules a rectangle a run — as the
+    /// Android twin writes them.
+    private static func rectanglesXML(_ el: Element, properties: String, rects: [CGRect], colour: String,
+                                      frame: Frame) -> String {
+        let w = max(1, emu(el.w * frame.unit))
+        let h = max(1, emu(el.h * frame.unit))
+        func pt(_ x: Double, _ y: Double) -> String {
+            "<a:pt x=\"\(emu(x * frame.unit))\" y=\"\(emu(y * frame.unit))\"/>"
+        }
+        var path = "<a:path w=\"\(w)\" h=\"\(h)\">"
+        for r in rects {
+            let x0 = Double(r.minX), y0 = Double(r.minY), x1 = Double(r.maxX), y1 = Double(r.maxY)
+            path += "<a:moveTo>\(pt(x0, y0))</a:moveTo>"
+            path += "<a:lnTo>\(pt(x1, y0))</a:lnTo><a:lnTo>\(pt(x1, y1))</a:lnTo><a:lnTo>\(pt(x0, y1))</a:lnTo>"
+            path += "<a:close/>"
+        }
+        path += "</a:path>"
+        let geometry = "<a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l=\"0\" t=\"0\" r=\"r\" b=\"b\"/>" +
+            "<a:pathLst>\(path)</a:pathLst></a:custGeom>"
+        let paint = "<a:solidFill>\(color(colour, opacity: el.opacity))</a:solidFill><a:ln><a:noFill/></a:ln>"
+        let shape = "<p:nvSpPr>\(properties)<p:cNvSpPr/><p:nvPr/></p:nvSpPr>"
+        return "<p:sp>\(shape)<p:spPr>\(elementBox(el, frame: frame))\(geometry)\(paint)</p:spPr></p:sp>"
     }
 
     /// A preset line across the middle of the element's box, with its
