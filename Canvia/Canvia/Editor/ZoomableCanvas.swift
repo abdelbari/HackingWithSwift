@@ -162,6 +162,13 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     /// column: true when that page took it — a photo opening crop, words
     /// their typing — so the canvas does not zoom.
     var onOtherPageDoubleTap: (CGPoint) -> Bool = { _ in false }
+    /// Whether a hold at this point of the content is on the empty part of
+    /// a page other than the one worked, where it brings up the menu at
+    /// the finger as it does on the page worked.
+    var holdsOtherPage: (CGPoint) -> Bool = { _ in false }
+    /// That hold, at this point of the content: taken as it is felt, and
+    /// let go still (true) or after the finger wandered (false).
+    var onOtherPageHold: (CGPoint, Bool?) -> Void = { _, _ in }
     /// Told the part of the page on screen, in page units, and the zoom that
     /// fits the page, whenever either changes.
     var onViewport: (CGRect, Double) -> Void = { _, _ in }
@@ -228,9 +235,19 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         // A single tap should not wait on the double tap unless one is coming.
         backgroundTap.require(toFail: doubleTap)
 
+        // Held still on the empty part of another page of the column: the
+        // menu at the finger, as on the page worked (CanvasGestures).
+        let otherPageHold = UILongPressGestureRecognizer(
+            target: context.coordinator, action: #selector(Coordinator.handleOtherPageHold(_:)))
+        otherPageHold.minimumPressDuration = CanvasGestures.holdSeconds
+        otherPageHold.allowableMovement = Touch.dragSlop
+        otherPageHold.delegate = context.coordinator
+        scroll.addGestureRecognizer(otherPageHold)
+
         context.coordinator.scrollView = scroll
         context.coordinator.doubleTap = doubleTap
         context.coordinator.backgroundPan = backgroundPan
+        context.coordinator.otherPageHold = otherPageHold
         return scroll
     }
 
@@ -297,6 +314,12 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         weak var scrollView: UIScrollView?
         weak var doubleTap: UITapGestureRecognizer?
         weak var backgroundPan: UIPanGestureRecognizer?
+        weak var otherPageHold: UILongPressGestureRecognizer?
+        /// Where the hold on another page landed, in the window, to tell a
+        /// still one from one that wandered before it was let go.
+        private var holdStart: CGPoint = .zero
+        /// And where, in the content.
+        private var holdAt: CGPoint = .zero
         /// When the touch the one-finger pan is following landed, and
         /// whether on the page, for telling a drag from a hold and a drag.
         private var panTouchStart: TimeInterval = 0
@@ -702,6 +725,26 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             parent.onBackgroundTap(tap.location(in: host.view))
         }
 
+        /// The hold on another page's empty part: that page is made the one
+        /// worked as it is felt, and let go still, the menu comes up where
+        /// it landed.
+        @objc func handleOtherPageHold(_ hold: UILongPressGestureRecognizer) {
+            switch hold.state {
+            case .began:
+                holdStart = hold.location(in: nil)
+                holdAt = hold.location(in: host.view)
+                parent.onOtherPageHold(holdAt, nil)
+            case .ended:
+                let now = hold.location(in: nil)
+                let wandered = hypot(Double(now.x - holdStart.x), Double(now.y - holdStart.y))
+                parent.onOtherPageHold(holdAt, wandered < Touch.dragSlop)
+            case .cancelled, .failed:
+                parent.onOtherPageHold(holdAt, false)
+            default:
+                break
+            }
+        }
+
         @objc func handleDoubleTap(_ tap: UITapGestureRecognizer) {
             guard let scroll = scrollView else { return }
             // On another page of the column, a photo or words are that
@@ -744,6 +787,9 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             // it — a box half over the gap or the next page, a handle —
             // keeps its own touches there, as it does on the page.
             let held = parent.column != nil && !onPage && parent.holdsPage(point)
+            if gestureRecognizer === otherPageHold {
+                return parent.column != nil && !onPage && !held && parent.holdsOtherPage(content)
+            }
             if gestureRecognizer === doubleTap {
                 return !((onPage || held) && parent.claimsDoubleTap(point))
             }
