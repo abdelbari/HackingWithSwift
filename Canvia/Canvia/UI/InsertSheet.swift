@@ -257,8 +257,8 @@ struct InsertSheet: View {
         }
         .padding()
         .sheet(item: $templateSet) { template in
-            TemplateSetSheet(template: template, applyAll: { applyAll(template) },
-                             usePage: { startOver(from: template, page: $0) })
+            TemplateSetSheet(template: template, note: TemplateSetSheet.editorNote(empty: DesignStore.isEmptyForTemplates(store.design)),
+                             applyAll: { applyAll(template) }, usePage: { startOver(from: template, page: $0) })
         }
     }
 

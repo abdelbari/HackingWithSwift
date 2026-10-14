@@ -1385,7 +1385,8 @@ struct HomeView: View {
                                       deleting: $deletingTemplate) { reload() })
         // A new design is empty, so "Apply all" makes it of every page.
         .sheet(item: $templateSet) { template in
-            TemplateSetSheet(template: template, applyAll: { create(template.instantiate()) },
+            TemplateSetSheet(template: template, note: TemplateSetSheet.startNote,
+                             applyAll: { create(template.instantiate()) },
                              usePage: { create(template.instantiate(onlyPage: $0)) })
         }
     }

@@ -63,7 +63,7 @@ final class DesignTypesAndUnitsTests: XCTestCase {
             "resume-a4", "resume-letter", "certificate", "infographic", "email-header", "brochure", "display-ad",
             "card", "calendar-a4", "calendar-letter", "planner", "worksheet-a4", "worksheet-letter", "book-cover",
             "album-cover", "label", "sticker", "bookmark", "ticket", "gift-certificate", "letterhead-a4",
-            "letterhead-letter", "newsletter", "magazine-a4", "banner", "facebook-event-cover", "insta-ad",
+            "letterhead-letter", "newsletter", "magazine", "banner", "facebook-event-cover", "instagram-ad",
             "twitch-banner", "etsy-banner", "mobile-video", "logo-animated", "gmail-header", "snapchat-geofilter",
             "podcast-cover", "zoom-background", "etsy-shop-icon",
         ])
@@ -183,7 +183,7 @@ final class DesignTypesAndUnitsTests: XCTestCase {
         XCTAssertEqual(SizePreset.search("1080 × 1920").map(\.id), tall)
         XCTAssertEqual(SizePreset.search("1080 X 1920").map(\.id), tall)
         XCTAssertEqual(SizePreset.search("2480x3508").map(\.id),
-                       ["a4", "resume-a4", "calendar-a4", "worksheet-a4", "letterhead-a4", "magazine-a4"])
+                       ["a4", "resume-a4", "calendar-a4", "worksheet-a4", "letterhead-a4", "magazine"])
         XCTAssertTrue(SizePreset.search("1x1").isEmpty)
     }
 

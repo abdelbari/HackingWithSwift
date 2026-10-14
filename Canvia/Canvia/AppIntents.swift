@@ -47,6 +47,35 @@ enum DesignSizeChoice: String, AppEnum, CaseIterable {
     case emailHeader = "email-header"
     case brochure
     case displayAd = "display-ad"
+    case card
+    case calendarA4 = "calendar-a4"
+    case calendarLetter = "calendar-letter"
+    case planner
+    case worksheetA4 = "worksheet-a4"
+    case worksheetLetter = "worksheet-letter"
+    case bookCover = "book-cover"
+    case albumCover = "album-cover"
+    case label
+    case sticker
+    case bookmark
+    case ticket
+    case giftCertificate = "gift-certificate"
+    case letterheadA4 = "letterhead-a4"
+    case letterheadLetter = "letterhead-letter"
+    case newsletter
+    case magazine
+    case banner
+    case facebookEventCover = "facebook-event-cover"
+    case instagramAd = "instagram-ad"
+    case twitchBanner = "twitch-banner"
+    case etsyBanner = "etsy-banner"
+    case mobileVideo = "mobile-video"
+    case logoAnimated = "logo-animated"
+    case gmailHeader = "gmail-header"
+    case snapchatGeofilter = "snapchat-geofilter"
+    case podcastCover = "podcast-cover"
+    case zoomBackground = "zoom-background"
+    case etsyShopIcon = "etsy-shop-icon"
 
     static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Design Size")
     static var caseDisplayRepresentations: [DesignSizeChoice: DisplayRepresentation] = [
@@ -90,6 +119,35 @@ enum DesignSizeChoice: String, AppEnum, CaseIterable {
         .emailHeader: "Email Header",
         .brochure: "Brochure",
         .displayAd: "Display Ad",
+        .card: "Card",
+        .calendarA4: "Calendar (A4)",
+        .calendarLetter: "Calendar (US Letter)",
+        .planner: "Planner",
+        .worksheetA4: "Worksheet (A4)",
+        .worksheetLetter: "Worksheet (US Letter)",
+        .bookCover: "Book Cover",
+        .albumCover: "Album Cover",
+        .label: "Label",
+        .sticker: "Sticker",
+        .bookmark: "Bookmark",
+        .ticket: "Ticket",
+        .giftCertificate: "Gift Certificate",
+        .letterheadA4: "Letterhead (A4)",
+        .letterheadLetter: "Letterhead (US Letter)",
+        .newsletter: "Newsletter",
+        .magazine: "Magazine (A4)",
+        .banner: "Banner",
+        .facebookEventCover: "Facebook Event Cover",
+        .instagramAd: "Instagram Ad",
+        .twitchBanner: "Twitch Banner",
+        .etsyBanner: "Etsy Banner",
+        .mobileVideo: "Mobile Video",
+        .logoAnimated: "Animated Logo",
+        .gmailHeader: "Gmail Header",
+        .snapchatGeofilter: "Snapchat Geofilter",
+        .podcastCover: "Podcast Cover",
+        .zoomBackground: "Zoom Background",
+        .etsyShopIcon: "Etsy Shop Icon",
     ]
 
     /// The home screen's preset this stands for.

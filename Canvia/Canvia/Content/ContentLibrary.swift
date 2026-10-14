@@ -67,6 +67,14 @@ struct Template: Codable, Identifiable {
         return design
     }
 
+    /// A fresh Design of page `index` alone at a design type's size —
+    /// "Use this page" in the Start sheet.
+    func instantiate(for preset: SizePreset, onlyPage index: Int) -> Design {
+        var design = instantiate(for: preset)
+        if design.pages.indices.contains(index) { design.pages = [design.pages[index]] }
+        return design
+    }
+
     /// Every page fitted to a page of this size, in order: what "Apply all
     /// N pages" puts in the editor.
     func makePages(width pageWidth: Double, height pageHeight: Double) -> [Page] {

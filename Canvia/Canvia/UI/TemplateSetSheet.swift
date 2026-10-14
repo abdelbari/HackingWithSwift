@@ -1,7 +1,7 @@
-// A built-in template of several pages — a deck, a card's front and back, a
-// resume's two pages — as the Templates panel and Home open it: a strip of
-// its pages, the one picked shown larger, with "Apply all N pages" and "Use
-// this page". The page count rides on the template's picture everywhere it
+// A template of several pages — a deck, a card's front and back, a resume's
+// two pages, or one of your own — as the Templates panel, Home and the Start
+// sheet open it: a strip of its pages, the one picked shown larger, with
+// "Apply all N pages" and "Use this page". The page count rides on the template's picture everywhere it
 // is shown (PageCountBadge), as on your own templates'.
 
 import SwiftUI
@@ -26,7 +26,11 @@ struct PageCountBadge: View {
 }
 
 struct TemplateSetSheet: View {
-    let template: Template
+    /// The template's name, for the title.
+    let name: String
+    /// What each button does where it is asked, as the Android twin's strip
+    /// says it: on Home a new design, in the editor this one.
+    let note: String
     /// Every page: into an empty design, or after the page open.
     var applyAll: () -> Void
     /// The page picked, by index, on its own.
@@ -36,23 +40,46 @@ struct TemplateSetSheet: View {
     @State private var design: Design
     @State private var picked = 0
 
-    init(template: Template, applyAll: @escaping () -> Void, usePage: @escaping (Int) -> Void) {
-        self.template = template
+    /// A built-in template of several pages.
+    init(template: Template, note: String, applyAll: @escaping () -> Void, usePage: @escaping (Int) -> Void) {
+        self.init(name: template.name, design: template.instantiate(), note: note, applyAll: applyAll, usePage: usePage)
+    }
+
+    /// Any template of several pages — one of your own too — as `design`,
+    /// at its own size.
+    init(name: String, design: Design, note: String, applyAll: @escaping () -> Void, usePage: @escaping (Int) -> Void) {
+        self.name = name
+        self.note = note
         self.applyAll = applyAll
         self.usePage = usePage
-        _design = State(initialValue: template.instantiate())
+        _design = State(initialValue: design)
+    }
+
+    /// On Home and in the Start sheet: a new design.
+    static let startNote = "Start a design with all of them, or with the page picked alone."
+
+    /// In the editor: all of them in place of a design with nothing on it,
+    /// else after this page; or the page picked on this page.
+    static func editorNote(empty: Bool) -> String {
+        empty ? "Apply all of them in place of this empty design, or use the page picked on this page."
+              : "Apply all of them after this page, or use the page picked on this page."
     }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 14) {
+                Text(note)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
                 preview
                 strip
                 buttons
             }
             .padding(.vertical, 12)
             .background(Theme.workspace)
-            .navigationTitle(template.name)
+            .navigationTitle(name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }

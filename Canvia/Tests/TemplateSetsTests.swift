@@ -40,25 +40,27 @@ final class TemplateSetsTests: XCTestCase {
     /// lists them: the two generated outputs agree page for page.
     func testTheSetsPageForPage() {
         let rows: [(String, Int)] = [
-            ("set-deck-northwind-pitch", 10), ("set-deck-lesson-plants", 9), ("set-deck-launch-volt", 11),
-            ("set-deck-quarterly-clear", 12), ("set-deck-travel-lisbon", 8), ("set-deck-wellness-calm", 9),
-            ("set-deck-roadmap-orbit", 10), ("set-deck-recipe-class", 11),
-            ("set-card-slate-studio", 2), ("set-card-citrus-bold", 2), ("set-card-forest-serif", 2),
-            ("set-card-mono-tech", 2), ("set-card-blush-script", 2), ("set-card-ocean-wave", 2),
-            ("set-fold-birthday-confetti", 2), ("set-fold-thank-you-sage", 2), ("set-fold-congrats-gold", 2),
-            ("set-fold-season-pine", 2),
-            ("set-resume-modern-navy", 2), ("set-resume-classic-serif", 2), ("set-resume-minimal-mono", 2),
-            ("set-resume-warm-studio", 2),
-            ("set-brochure-green-clinic", 2), ("set-brochure-city-tours", 2), ("set-brochure-art-school", 2),
+            ("deck-seed-round-pitch", 12), ("deck-quarterly-business-review", 10), ("deck-marketing-plan", 10),
+            ("deck-product-launch", 9), ("deck-science-lesson", 8), ("deck-project-kickoff", 9),
+            ("deck-travel-guide", 8), ("deck-cooking-class", 8),
+            ("card-set-harbour-architects", 2), ("card-set-fernwood-florist", 2), ("card-set-voltline-electric", 2),
+            ("card-set-pixel-and-pine", 2), ("card-set-calm-practice", 2), ("card-set-golden-crumb", 2),
+            ("folded-birthday-balloons", 2), ("folded-thank-you-botanical", 2), ("folded-congrats-confetti", 2),
+            ("folded-season-greetings", 2),
+            ("resume-two-page-slate", 2), ("resume-two-page-sage", 2), ("resume-two-page-ink", 2),
+            ("resume-two-page-coral", 2),
+            ("brochure-trifold-dental", 2), ("brochure-trifold-yoga", 2), ("brochure-trifold-museum", 2),
         ]
         for (id, count) in rows {
             let t = ContentLibrary.templates.first { $0.id == id }
             XCTAssertEqual(t?.pageCount, count, id)
         }
         XCTAssertEqual(sets.count, rows.count, "a set not in the table")
-        let deck = ContentLibrary.templates.first { $0.id == "set-deck-northwind-pitch" }
+        let deck = ContentLibrary.templates.first { $0.id == "deck-seed-round-pitch" }
         XCTAssertEqual(deck?.pageSpecs.first?.title, "Title")
-        XCTAssertEqual(deck?.pageSpecs.last?.title, "Close")
+        XCTAssertEqual(deck?.pageSpecs.last?.title, "Thank you")
+        let card = ContentLibrary.templates.first { $0.id == "card-set-harbour-architects" }
+        XCTAssertEqual(card?.pageSpecs.map(\.title), ["Front", "Back"])
     }
 
     /// Every page of every set is one a design could start from: something
@@ -187,8 +189,8 @@ final class TemplateSetsTests: XCTestCase {
     func testEveryNewTypeHasATemplate() throws {
         let added = ["card", "calendar-a4", "calendar-letter", "planner", "worksheet-a4", "worksheet-letter",
                      "book-cover", "album-cover", "label", "sticker", "bookmark", "ticket", "gift-certificate",
-                     "letterhead-a4", "letterhead-letter", "newsletter", "magazine-a4", "banner",
-                     "facebook-event-cover", "insta-ad", "twitch-banner", "etsy-banner", "mobile-video",
+                     "letterhead-a4", "letterhead-letter", "newsletter", "magazine", "banner",
+                     "facebook-event-cover", "instagram-ad", "twitch-banner", "etsy-banner", "mobile-video",
                      "logo-animated", "gmail-header", "snapchat-geofilter", "podcast-cover", "zoom-background",
                      "etsy-shop-icon"]
         XCTAssertEqual(Array(SizePreset.all.map(\.id).suffix(added.count)), added)
@@ -203,6 +205,10 @@ final class TemplateSetsTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(SizePreset.byId("facebook-event-cover")).w, 1920)
         XCTAssertEqual(try XCTUnwrap(SizePreset.byId("facebook-event-cover")).h, 1005)
         XCTAssertEqual(try XCTUnwrap(SizePreset.byId("snapchat-geofilter")).h, 2340)
+        // The shared sizes.json, as the Android twin's TemplateSetsTest has them.
+        XCTAssertEqual(try XCTUnwrap(SizePreset.byId("gift-certificate")).dimensions, "8 × 3.5 in")
+        XCTAssertEqual(try XCTUnwrap(SizePreset.byId("gmail-header")).w, 1000)
+        XCTAssertEqual(try XCTUnwrap(SizePreset.byId("gmail-header")).h, 250)
     }
 
     /// Every type's pixels give back the size it is written in, and keep its
