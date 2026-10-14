@@ -17,14 +17,23 @@ enum Readouts {
     /// both are.
     static func move(x: Double, y: Double, heldX: Bool, heldY: Bool,
                      gapX: Double?, gapY: Double?) -> [BadgeRun] {
+        move(x: x, y: y, heldX: heldX, heldY: heldY, gapX: gapX, gapY: gapY, in: nil)
+    }
+
+    /// The same in `design`'s unit when it has a physical one — "x 12.5 mm
+    /// ·  y 40 mm" (Units.readout); whole pixels without one, or with no
+    /// design.
+    static func move(x: Double, y: Double, heldX: Bool, heldY: Bool,
+                     gapX: Double?, gapY: Double?, in design: Design?) -> [BadgeRun] {
+        func length(_ px: Double) -> String { design.map { Units.readout(px, $0) } ?? String(Int(px.rounded())) }
         var runs: [BadgeRun] = []
         if heldX { runs.append(BadgeRun(text: "● ", accent: true)) }
-        runs.append(BadgeRun(text: "x \(Int(x.rounded()))"))
+        runs.append(BadgeRun(text: "x " + length(x)))
         runs.append(BadgeRun(text: "  ·  "))
         if heldY { runs.append(BadgeRun(text: "● ", accent: true)) }
-        runs.append(BadgeRun(text: "y \(Int(y.rounded()))"))
-        if let gapX { runs.append(BadgeRun(text: "  ↔ \(Int(gapX.rounded()))", accent: true)) }
-        if let gapY { runs.append(BadgeRun(text: "  ↕ \(Int(gapY.rounded()))", accent: true)) }
+        runs.append(BadgeRun(text: "y " + length(y)))
+        if let gapX { runs.append(BadgeRun(text: "  ↔ " + length(gapX), accent: true)) }
+        if let gapY { runs.append(BadgeRun(text: "  ↕ " + length(gapY), accent: true)) }
         return runs
     }
 

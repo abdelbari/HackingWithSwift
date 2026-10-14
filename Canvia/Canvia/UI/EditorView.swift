@@ -382,23 +382,27 @@ struct EditorView: View {
                     }
                 }
             }
-            // Arrow keys nudge a page unit, ten with Shift — only while no
-            // text field has the keyboard, or the arrows would never reach
-            // the caret.
+            // Arrow keys nudge by the smallest of Position's steps, the
+            // middle one with Shift — a pixel or ten, a tenth of a
+            // millimetre or one (Units.arrowStep) — only while no text field
+            // has the keyboard, or the arrows would never reach the caret.
             if deleteKeysLive {
                 shortcut(.delete, [], "Delete") { store.deleteSelected() }
                 shortcut(.deleteForward, [], "Forward delete") { store.deleteSelected() }
             }
             if store.editingTextId == nil && !titleFocused {
+                let step = Units.arrowStep(store.design, shift: false)
+                let big = Units.arrowStep(store.design, shift: true)
+                let bigName = Units.readout(big, store.design)
                 Group {
-                    shortcut(.leftArrow, [], "Nudge left") { store.nudgeSelected(dx: -1, dy: 0) }
-                    shortcut(.rightArrow, [], "Nudge right") { store.nudgeSelected(dx: 1, dy: 0) }
-                    shortcut(.upArrow, [], "Nudge up") { store.nudgeSelected(dx: 0, dy: -1) }
-                    shortcut(.downArrow, [], "Nudge down") { store.nudgeSelected(dx: 0, dy: 1) }
-                    shortcut(.leftArrow, [.shift], "Nudge left by 10") { store.nudgeSelected(dx: -10, dy: 0) }
-                    shortcut(.rightArrow, [.shift], "Nudge right by 10") { store.nudgeSelected(dx: 10, dy: 0) }
-                    shortcut(.upArrow, [.shift], "Nudge up by 10") { store.nudgeSelected(dx: 0, dy: -10) }
-                    shortcut(.downArrow, [.shift], "Nudge down by 10") { store.nudgeSelected(dx: 0, dy: 10) }
+                    shortcut(.leftArrow, [], "Nudge left") { store.nudgeSelected(dx: -step, dy: 0) }
+                    shortcut(.rightArrow, [], "Nudge right") { store.nudgeSelected(dx: step, dy: 0) }
+                    shortcut(.upArrow, [], "Nudge up") { store.nudgeSelected(dx: 0, dy: -step) }
+                    shortcut(.downArrow, [], "Nudge down") { store.nudgeSelected(dx: 0, dy: step) }
+                    shortcut(.leftArrow, [.shift], "Nudge left by \(bigName)") { store.nudgeSelected(dx: -big, dy: 0) }
+                    shortcut(.rightArrow, [.shift], "Nudge right by \(bigName)") { store.nudgeSelected(dx: big, dy: 0) }
+                    shortcut(.upArrow, [.shift], "Nudge up by \(bigName)") { store.nudgeSelected(dx: 0, dy: -big) }
+                    shortcut(.downArrow, [.shift], "Nudge down by \(bigName)") { store.nudgeSelected(dx: 0, dy: big) }
                 }
             }
             Group {

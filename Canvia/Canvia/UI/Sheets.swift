@@ -1058,9 +1058,11 @@ struct CropSheet: View {
 struct PositionSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
-    /// How far one tap of an arrow moves the selection: 1 each time the
-    /// sheet opens, as on the Android twin, and never saved.
-    @State private var nudgeStep = 1.0
+    /// How far one tap of an arrow moves the selection, as which of the
+    /// design's unit's steps (Units.nudgeSteps): the smallest — 1 px, 0.1
+    /// mm — each time the sheet opens, as on the Android twin, and never
+    /// saved.
+    @State private var nudgeChoice = 0
     @State private var nudges = 0
     /// An arrow held down: its repeats, until it lifts (NudgeRepeat), and
     /// which way it points.
@@ -1157,13 +1159,13 @@ struct PositionSheet: View {
                     // A lock, whole or of its position, keeps every number
                     // here as it is.
                     Section("Exact") {
-                        numberRow("X", value: el.x) { v in store.updateSelectedPlacement { $0.x = v } }
-                        numberRow("Y", value: el.y) { v in store.updateSelectedPlacement { $0.y = v } }
-                        numberRow("Width", value: el.w) { v in setWidth(v, of: el) }
+                        lengthRow("X", px: el.x) { v in store.updateSelectedPlacement { $0.x = v } }
+                        lengthRow("Y", px: el.y) { v in store.updateSelectedPlacement { $0.y = v } }
+                        lengthRow("Width", px: el.w) { v in setWidth(v, of: el) }
                         // Text has no height to type: it follows its words.
                         if el.type != .text {
                             proportionsToggle
-                            numberRow("Height", value: el.h) { v in setHeight(v, of: el) }
+                            lengthRow("Height", px: el.h) { v in setHeight(v, of: el) }
                         }
                         numberRow("Rotation", value: el.rotation) { v in store.updateSelectedPlacement { $0.rotation = v } }
                     }
@@ -1172,19 +1174,19 @@ struct PositionSheet: View {
                     // The selection as one thing: its box moves and scales,
                     // and a rotation turns the whole about the centre.
                     Section("Exact (selection)") {
-                        numberRow("X", value: box.minX) { v in
+                        lengthRow("X", px: box.minX) { v in
                             store.setSelectionBox(CGRect(x: v, y: box.minY, width: box.width, height: box.height))
                         }
-                        numberRow("Y", value: box.minY) { v in
+                        lengthRow("Y", px: box.minY) { v in
                             store.setSelectionBox(CGRect(x: box.minX, y: v, width: box.width, height: box.height))
                         }
                         // Always scaled evenly, as on the Android twin: a
                         // box of several things has no chain to switch off.
-                        numberRow("Width", value: box.width) { v in
+                        lengthRow("Width", px: box.width) { v in
                             let w = max(RatioLock.minSide, v)
                             store.setSelectionBox(CGRect(x: box.minX, y: box.minY, width: w, height: box.height * w / max(box.width, 1)))
                         }
-                        numberRow("Height", value: box.height) { v in
+                        lengthRow("Height", px: box.height) { v in
                             let h = max(RatioLock.minSide, v)
                             store.setSelectionBox(CGRect(x: box.minX, y: box.minY, width: box.width * h / max(box.height, 1), height: h))
                         }
@@ -1244,20 +1246,34 @@ struct PositionSheet: View {
         }
     }
 
-    /// Arrows that move the selection 1, 10 or 100 page units a tap, with
+    /// The design's steps: 1, 10 or 100 pixels, 0.1, 1 or 10 mm, 0.01, 0.1
+    /// or 1 cm or in.
+    private var nudgeSteps: [Double] { Units.nudgeSteps(store.design.physicalUnit) }
+
+    /// The step picked, in page pixels.
+    private var nudgeStep: Double {
+        let steps = nudgeSteps
+        return Units.stepPixels(steps[min(max(nudgeChoice, 0), steps.count - 1)], store.design)
+    }
+
+    /// The step picked as it reads: "10", "0.1 mm".
+    private var nudgeStepName: String { Units.readout(nudgeStep, store.design) }
+
+    /// Arrows that move the selection by one of three steps a tap — 1, 10
+    /// or 100 pixels, or the design's own unit's (Units.nudgeSteps) — with
     /// where it is and how big read out live: the precise move a finger
     /// cannot make, and the only one for someone without a keyboard. Held,
     /// an arrow repeats (NudgeRepeat), and the whole hold is one Undo, as
     /// each tap is; locked elements stay put.
     private var nudgeSection: some View {
         Section {
-            Picker("Step", selection: $nudgeStep) {
-                Text("1").tag(1.0)
-                Text("10").tag(10.0)
-                Text("100").tag(100.0)
+            Picker("Step", selection: $nudgeChoice) {
+                ForEach(nudgeSteps.indices, id: \.self) { i in
+                    Text(Units.decimal(nudgeSteps[i], unit: store.design.physicalUnit)).tag(i)
+                }
             }
             .pickerStyle(.segmented)
-            .accessibilityLabel("Move by \(Int(nudgeStep)) at a time")
+            .accessibilityLabel("Move by \(nudgeStepName) at a time")
             HStack {
                 nudgeButton("arrow.left", "left", dx: -1, dy: 0)
                 nudgeButton("arrow.right", "right", dx: 1, dy: 0)
@@ -1301,11 +1317,16 @@ struct PositionSheet: View {
         startNudging(press.direction, dx: press.dx, dy: press.dy)
     }
 
-    /// "x, y  ·  w × h" of the selection's box, whole units, as the Android
-    /// twin reads it out.
+    /// "x, y  ·  w × h" of the selection's box, as the Android twin reads
+    /// it out: whole pixels, or the design's unit — "12.5, 40  ·  210 × 99
+    /// mm".
     private var nudgeReadout: String? {
         guard let box = store.selectionBox else { return nil }
-        return "\(Int(box.minX)), \(Int(box.minY))  ·  \(Int(box.width)) × \(Int(box.height))"
+        guard store.design.physicalUnit != nil else {
+            return "\(Int(box.minX)), \(Int(box.minY))  ·  \(Int(box.width)) × \(Int(box.height))"
+        }
+        let at = Units.readoutNumber(box.minX, store.design) + ", " + Units.readoutNumber(box.minY, store.design)
+        return at + "  ·  " + Units.readout(width: box.width, height: box.height, store.design)
     }
 
     /// One arrow: a step as the finger lands, then, held, the repeats; let
@@ -1327,7 +1348,7 @@ struct PositionSheet: View {
             )
             .accessibilityElement(children: .ignore)
             .accessibilityAddTraits(.isButton)
-            .accessibilityLabel("Nudge \(direction) \(Int(nudgeStep))")
+            .accessibilityLabel("Nudge \(direction) \(nudgeStepName)")
             .accessibilityAction { nudgeOnce(dx: dx, dy: dy) }
     }
 
@@ -1385,11 +1406,26 @@ struct PositionSheet: View {
         .buttonStyle(.borderless)
     }
 
-    private func numberRow(_ label: String, value: Double, commit: @escaping (Double) -> Void) -> some View {
+    /// A length on the page: shown and typed in the design's unit when it
+    /// has a physical one — "X (mm)", to a tenth of a millimetre or a
+    /// hundredth of a centimetre or inch — and handed on in page pixels.
+    private func lengthRow(_ label: String, px: Double, commit: @escaping (Double) -> Void) -> some View {
+        let design = store.design
+        guard let unit = design.physicalUnit else { return numberRow(label, value: px, commit: commit) }
+        let dpi = design.effectiveDPI
+        return numberRow("\(label) (\(unit))", value: Units.value(ofPixels: px, unit: unit, dpi: dpi),
+                         places: Units.places(unit)) { typed in
+            commit(Units.exactPixels(typed, unit: unit, dpi: dpi))
+        }
+    }
+
+    private func numberRow(_ label: String, value: Double, places: Int = 1,
+                           commit: @escaping (Double) -> Void) -> some View {
         HStack {
             Text(label)
             Spacer()
-            TextField(label, value: Binding(get: { value }, set: { commit($0) }), format: .number.precision(.fractionLength(0...1)))
+            TextField(label, value: Binding(get: { value }, set: { commit($0) }),
+                      format: .number.precision(.fractionLength(0...places)))
                 .keyboardType(.numbersAndPunctuation)
                 .multilineTextAlignment(.trailing)
                 .frame(width: 90)

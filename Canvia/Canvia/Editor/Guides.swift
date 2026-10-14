@@ -213,9 +213,17 @@ enum Guides {
     /// A position typed for a guide — "120", "120.5", "120 px" — kept within
     /// the page's `limit`; nil when it is not a number.
     static func typedPosition(_ typed: String, limit: Double) -> Double? {
+        typedPosition(typed, limit: limit, unit: nil, dpi: Units.screenDPI)
+    }
+
+    /// The same in a design measured in `unit` (mm, cm or in) at `dpi`: typed
+    /// in that unit — "12.5", "12.5 mm" — as Position's numbers are, and
+    /// given back in page pixels. Pixels with no unit.
+    static func typedPosition(_ typed: String, limit: Double, unit: String?, dpi: Double) -> Double? {
         var text = typed.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if text.hasSuffix("px") { text = String(text.dropLast(2)).trimmingCharacters(in: .whitespaces) }
+        let suffix = unit.flatMap { Units.isPhysical($0) ? $0 : nil } ?? "px"
+        if text.hasSuffix(suffix) { text = String(text.dropLast(suffix.count)).trimmingCharacters(in: .whitespaces) }
         guard let value = Double(text.replacingOccurrences(of: ",", with: ".")), value.isFinite else { return nil }
-        return min(max(value, 0), max(limit, 0))
+        return min(max(Units.exactPixels(value, unit: unit, dpi: dpi), 0), max(limit, 0))
     }
 }

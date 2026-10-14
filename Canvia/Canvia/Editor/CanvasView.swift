@@ -190,17 +190,21 @@ struct CanvasView: View {
                isPresented: Binding(get: { positioningGuide != nil },
                                     set: { if !$0 { positioningGuide = nil } }),
                presenting: positioningGuide) { guide in
-            TextField(guide.vertical ? "From the left (px)" : "From the top (px)", text: $guidePositionText)
+            // In the design's unit, as Position's numbers are.
+            let unit = store.design.physicalUnit ?? "px"
+            TextField(guide.vertical ? "From the left (\(unit))" : "From the top (\(unit))", text: $guidePositionText)
                 .keyboardType(.decimalPad)
             Button("Move") {
                 let limit = guide.vertical ? store.pageWidth : store.pageHeight
-                if let position = Guides.typedPosition(guidePositionText, limit: limit) {
+                if let position = Guides.typedPosition(guidePositionText, limit: limit,
+                                                       unit: store.design.physicalUnit, dpi: store.design.effectiveDPI) {
                     store.setGuidePosition(guide.id, to: position)
                 }
             }
             Button("Cancel", role: .cancel) {}
         } message: { guide in
-            Text("From 0 to \(Int((guide.vertical ? store.pageWidth : store.pageHeight).rounded())) px")
+            Text("From 0 to " + Units.readout(guide.vertical ? store.pageWidth : store.pageHeight, store.design)
+                 + (store.design.physicalUnit == nil ? " px" : ""))
         }
         // Typing in place stays above the keyboard: when it starts, when the
         // keyboard arrives or changes, and as the box grows line by line.
@@ -1056,7 +1060,9 @@ struct CanvasView: View {
     /// Position…: the guide's place typed in, starting from where it is.
     private func askPosition(_ guide: Guide) {
         let at = guide.position
-        guidePositionText = at == at.rounded() ? String(Int(at)) : String(at)
+        // In the design's unit when it has a physical one.
+        guidePositionText = store.design.physicalUnit != nil ? Units.readoutNumber(at, store.design)
+            : at == at.rounded() ? String(Int(at)) : String(at)
         positioningGuide = guide
     }
 
@@ -1449,7 +1455,7 @@ struct CanvasView: View {
         if let moved = gesture.movedBox {
             store.setBadge(Readouts.move(x: moved.minX, y: moved.minY,
                                          heldX: store.guideX != nil, heldY: store.guideY != nil,
-                                         gapX: gapX, gapY: gapY))
+                                         gapX: gapX, gapY: gapY, in: store.design))
         }
     }
 
@@ -1574,7 +1580,7 @@ struct CanvasView: View {
             // reading; everything else is the box.
             store.badge = el.type == .text && handle.isCorner
                 ? Readouts.typeSize(FontLibrary.effectiveFontSize(for: el))
-                : "\(Int(el.w)) × \(Int(el.h))"
+                : Units.readout(width: el.w, height: el.h, store.design)
         }
     }
 
@@ -1609,7 +1615,7 @@ struct CanvasView: View {
         store.updateSelectedTransient { el in
             if el.id == trimmed.id { el = trimmed }
         }
-        store.badge = "\(Int(trimmed.w)) × \(Int(trimmed.h))"
+        store.badge = Units.readout(width: trimmed.w, height: trimmed.h, store.design)
         return true
     }
 
@@ -1669,7 +1675,7 @@ struct CanvasView: View {
         let box = Geometry.resize(Geometry.boxElement(gesture.groupBox), handle: handle,
                                   to: location, proportional: true, minSize: floor)
         store.replaceTransient(Geometry.scale(gesture.groupOriginals, from: gesture.groupBox, to: box))
-        store.badge = "\(Int(box.width)) × \(Int(box.height))"
+        store.badge = Units.readout(width: box.width, height: box.height, store.design)
     }
 
     private func groupRotateDrag(_ location: CGPoint) {

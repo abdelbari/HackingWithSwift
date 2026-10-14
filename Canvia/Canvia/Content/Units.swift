@@ -87,6 +87,91 @@ enum Units {
         guard let dpi, dpi > 0, dpi.isFinite else { return 72 / screenDPI }
         return 72 / dpi
     }
+
+    // MARK: lengths on the page
+
+    // Where things sit and how big they are — the Position panel's X, Y,
+    // W and H, the readouts under a drag, the nudge steps and a guide's
+    // typed place — read and typed in the design's own unit: to a tenth of
+    // a millimetre, a hundredth of a centimetre or an inch. A design in
+    // pixels reads in whole pixels, as it always did. The Android twin's
+    // Units.readout, row for row.
+
+    /// The places a length on the page is shown to in `unit`: 1 for mm, 2
+    /// for cm and in, none for pixels.
+    static func places(_ unit: String?) -> Int {
+        switch unit {
+        case "mm": return 1
+        case "cm", "in": return 2
+        default: return 0
+        }
+    }
+
+    /// `value` to `unit`'s places, with trailing zeros and a bare "."
+    /// dropped: "12.5", "40", "0.33".
+    static func decimal(_ value: Double, unit: String?) -> String {
+        guard value.isFinite, abs(value) < 1e9 else { return "0" }
+        let places = self.places(unit)
+        let scale = pow(10, Double(places))
+        let rounded = (value * scale).rounded() / scale
+        if rounded == rounded.rounded() { return String(Int(rounded)) }
+        var text = String(format: "%.\(places)f", rounded)
+        while text.hasSuffix("0") { text.removeLast() }
+        if text.hasSuffix(".") { text.removeLast() }
+        return text
+    }
+
+    /// A length typed in `unit` as pixels at `dpi`, not rounded — a
+    /// position or a nudge of 0.1 mm stays 0.1 mm, where a page's side is
+    /// made whole (`pixels`). Pixels as they are.
+    static func exactPixels(_ value: Double, unit: String?, dpi: Double) -> Double {
+        guard let unit, isPhysical(unit), dpi > 0 else { return value }
+        return value / perInch(unit) * dpi
+    }
+
+    /// A length on the page, `px` pixels, as `design` reads it: "12.5 mm",
+    /// "0.33 in"; in pixels the whole number alone, "120".
+    static func readout(_ px: Double, _ design: Design) -> String {
+        guard let unit = design.physicalUnit else { return readoutNumber(px, design) }
+        return readoutNumber(px, design) + " " + unit
+    }
+
+    /// The number alone: "12.5", or the nearest whole pixel.
+    static func readoutNumber(_ px: Double, _ design: Design) -> String {
+        guard let unit = design.physicalUnit else { return px.isFinite ? String(Int(px.rounded())) : "0" }
+        return decimal(value(ofPixels: px, unit: unit, dpi: design.effectiveDPI), unit: unit)
+    }
+
+    /// A box's size as the size badge reads it: "210 × 99 mm"; in pixels
+    /// "120 × 48", cut to whole pixels as it always was.
+    static func readout(width: Double, height: Double, _ design: Design) -> String {
+        guard let unit = design.physicalUnit else {
+            guard width.isFinite, height.isFinite else { return "0 × 0" }
+            return "\(Int(width)) × \(Int(height))"
+        }
+        return "\(readoutNumber(width, design)) × \(readoutNumber(height, design)) \(unit)"
+    }
+
+    /// The Position panel's nudge steps in `unit`, smallest first: 0.1, 1
+    /// and 10 mm; 0.01, 0.1 and 1 cm or in; 1, 10 and 100 pixels.
+    static func nudgeSteps(_ unit: String?) -> [Double] {
+        switch unit {
+        case "mm": return [0.1, 1, 10]
+        case "cm", "in": return [0.01, 0.1, 1]
+        default: return [1, 10, 100]
+        }
+    }
+
+    /// One of those steps in `design` as page pixels.
+    static func stepPixels(_ step: Double, _ design: Design) -> Double {
+        exactPixels(step, unit: design.physicalUnit, dpi: design.effectiveDPI)
+    }
+
+    /// An arrow key's step, in page pixels: the smallest nudge step, or the
+    /// middle one with Shift — 1 or 10 pixels, 0.1 or 1 mm.
+    static func arrowStep(_ design: Design, shift: Bool) -> Double {
+        stepPixels(nudgeSteps(design.physicalUnit)[shift ? 1 : 0], design)
+    }
 }
 
 /// A unit and dpi a design is resized into: nil unit is pixels, at 96.
