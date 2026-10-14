@@ -19,6 +19,8 @@
 //   7. every argument in an inout position is passed with an explicit &
 //   8. no synchronous, non-isolated function calls a @MainActor one directly
 //   9. no file-scope `private` declaration is referenced from another file
+//  10. no subclass of a system class declares a property under a name the
+//      superclass already uses for one (including Objective-C getter names)
 //
 // It does NOT type-check. A clean run means the syntax and the project's
 // internal API surface are consistent; it cannot prove the app builds.
@@ -56,7 +58,7 @@ const rel = f => path.relative(process.cwd(), f);
 let FAILURES = 0;
 
 // ---------------------------------------------------------------- 1. parse
-console.log('\n[1/9] parsing');
+console.log('\n[1/10] parsing');
 for (const f of FILES) {
   const tree = parse(fs.readFileSync(f, 'utf8'));
   const problems = [];
@@ -69,7 +71,7 @@ for (const f of FILES) {
 console.log(`      ${FILES.length} files`);
 
 // ------------------------------------------------- 2. argument labels
-console.log('[2/9] argument labels');
+console.log('[2/10] argument labels');
 const decls = new Map(), ourTypes = new Set();
 for (const f of FILES) {
   const tree = parse(fs.readFileSync(f, 'utf8'));
@@ -170,7 +172,7 @@ for (const f of FILES) {
 console.log(`      ${calls} internal calls`);
 
 // --------------------------------------- 3 & 4. enum cases + exhaustiveness
-console.log('[3/9] enum-case arguments');
+console.log('[3/10] enum-case arguments');
 const enums = new Map();
 for (const f of FILES) {
   const tree = parse(fs.readFileSync(f, 'utf8'));
@@ -232,7 +234,7 @@ for (const f of FILES) {
 }
 console.log(`      ${caseArgs} enum-case arguments`);
 
-console.log('[4/9] switch exhaustiveness');
+console.log('[4/10] switch exhaustiveness');
 let switches = 0;
 for (const f of FILES) {
   const tree = parse(fs.readFileSync(f, 'utf8'));
@@ -263,7 +265,7 @@ console.log(`      ${switches} switches over project enums`);
 // ------------------------------------------- 5. ViewBuilder child limits
 // A ViewBuilder block accepts at most ten child views; exceeding it fails
 // with an opaque type-inference error rather than a clear diagnostic.
-console.log('[5/9] ViewBuilder child counts');
+console.log('[5/10] ViewBuilder child counts');
 const CONTAINERS = new Set(['HStack','VStack','ZStack','Group','Form','List','Section','Menu',
   'ScrollView','NavigationStack','LazyVStack','LazyHStack','LazyVGrid','LazyHGrid','ToolbarItemGroup']);
 const countViews = stmts => stmts.namedChildren.filter(c =>
@@ -305,7 +307,7 @@ console.log(`      ${builders} ViewBuilder blocks`);
 // list expects 1 argument, which cannot be implicitly ignored") — and usually
 // signals a predicate that forgot to look at the element. A shorthand closure
 // passed to one of these methods must reference the arguments it is given.
-console.log('[6/9] closure arguments');
+console.log('[6/10] closure arguments');
 const HOF = new Map([
   ['filter', 1], ['map', 1], ['compactMap', 1], ['flatMap', 1], ['forEach', 1],
   ['first', 1], ['firstIndex', 1], ['last', 1], ['lastIndex', 1],
@@ -373,7 +375,7 @@ console.log(`      ${closures} shorthand closures`);
 // grammar makes it cheap to catch here: a parameter carries `inout` as a
 // modifier node, which a closure-typed parameter such as `(inout Design) ->
 // Void` does not.
-console.log('[7/9] inout arguments');
+console.log('[7/10] inout arguments');
 const requiredAmps = new Map();
 for (const [name, ds] of decls) {
   // The minimum across overloads: if any declaration of this name takes no
@@ -423,7 +425,7 @@ console.log(`      ${inoutCalls} calls to ${requiredAmps.size} inout function(s)
 // counts as main-actor only if EVERY declaration of it is, and only direct
 // calls in a function's own body are examined — a call inside a closure may
 // well be inside a `Task { @MainActor in ... }`.
-console.log('[8/9] main-actor isolation');
+console.log('[8/10] main-actor isolation');
 const MAIN_ACTOR_PROTOCOLS = new Set([
   'View', 'App', 'Scene', 'Shape', 'ViewModifier', 'ButtonStyle', 'PrimitiveButtonStyle',
   'UIViewRepresentable', 'UIViewControllerRepresentable', 'InsettableShape',
@@ -540,7 +542,7 @@ console.log(`      ${isolationChecks} non-isolated functions, ${mainActorOnly.si
 // ------------------------------------------------ 9. file-scope private use
 // `private` at file scope means this file only, which is easy to forget when
 // a file is split in two — the symbol is still right there in the editor.
-console.log('[9/9] file-scope private');
+console.log('[9/10] file-scope private');
 const privateAtFileScope = new Map();   // name -> file that declares it
 const declaredAnywhere = new Map();     // file -> Set of names it declares
 for (const f of FILES) {
@@ -603,6 +605,56 @@ for (const f of FILES) {
   });
 }
 console.log(`      ${privateAtFileScope.size} file-scope private names, ${privateRefs} escaped`);
+
+// ------------------------------------ 10. names a system superclass owns
+// A subclass property named like one the superclass already has is an
+// override, and a mismatched type is a hard error. Objective-C classes make
+// this easy to miss: UndoManager's `isUndoing` is also `undoing` to the
+// compiler, so `var undoing: () -> Void` fails to build. A short table of the
+// classes the app subclasses, with the names they reserve.
+console.log('[10/10] inherited system names');
+const RESERVED = {
+  UndoManager: ['undoing', 'redoing', 'isUndoing', 'isRedoing', 'canUndo', 'canRedo',
+    'groupingLevel', 'levelsOfUndo', 'undoActionName', 'redoActionName',
+    'undoMenuItemTitle', 'redoMenuItemTitle', 'runLoopModes', 'groupsByEvent',
+    'undoRegistrationEnabled', 'isUndoRegistrationEnabled', 'undoActionIsDiscardable',
+    'redoActionIsDiscardable'],
+  UITextView: ['text', 'font', 'editable', 'isEditable', 'selectable', 'isSelectable',
+    'delegate', 'undoManager', 'textStorage', 'layoutManager', 'selectedRange',
+    'textColor', 'textAlignment', 'attributedText', 'typingAttributes'],
+  UIView: ['frame', 'bounds', 'center', 'hidden', 'isHidden', 'alpha', 'tag', 'layer',
+    'opaque', 'isOpaque', 'window', 'superview', 'subviews', 'undoManager'],
+  UIViewController: ['view', 'title', 'editing', 'isEditing', 'undoManager',
+    'presentedViewController', 'parent', 'children'],
+  NSObject: ['description', 'hash', 'debugDescription'],
+};
+let inherited = 0;
+for (const f of FILES) {
+  const tree = parse(fs.readFileSync(f, 'utf8'));
+  each(tree.rootNode, n => {
+    if (n.type !== 'class_declaration') return;
+    const supers = n.namedChildren.filter(c => c.type === 'inheritance_specifier')
+      .map(c => c.text.trim());
+    const reserved = new Set(supers.flatMap(s => RESERVED[s] || []));
+    if (supers.some(s => RESERVED[s])) RESERVED.NSObject.forEach(x => reserved.add(x));
+    if (!reserved.size) return;
+    const body = n.namedChildren.find(c => c.type === 'class_body');
+    if (!body) return;
+    for (const m of body.namedChildren) {
+      if (m.type !== 'property_declaration') continue;
+      const mods = m.namedChildren.find(c => c.type === 'modifiers');
+      if (mods && /\boverride\b/.test(mods.text)) continue;
+      const pattern = m.namedChildren.find(c => c.type === 'pattern');
+      const id = pattern && pattern.namedChildren.find(c => c.type === 'simple_identifier');
+      if (!id || !reserved.has(id.text)) continue;
+      FAILURES++;
+      inherited++;
+      console.log(`  FAIL ${rel(f)}:${m.startPosition.row + 1}  ${id.text} is already a `
+        + `property of ${supers.join(', ')}; pick another name`);
+    }
+  });
+}
+console.log(`      ${inherited} clash(es) with inherited names`);
 
 console.log(FAILURES === 0 ? '\nOK — no static problems found\n' : `\n${FAILURES} PROBLEM(S)\n`);
 process.exit(FAILURES === 0 ? 0 : 1);

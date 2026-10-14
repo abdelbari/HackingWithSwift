@@ -90,8 +90,8 @@ struct InlineTextField: UIViewRepresentable {
         view.delegate = context.coordinator
         let coordinator = context.coordinator
         view.onEscape = { [weak coordinator] in coordinator?.parent.onDone() }
-        view.typingUndo.undoing = { [weak coordinator] in coordinator?.undo() }
-        view.typingUndo.redoing = { [weak coordinator] in coordinator?.redo() }
+        view.typingUndo.onUndo = { [weak coordinator] in coordinator?.undo() }
+        view.typingUndo.onRedo = { [weak coordinator] in coordinator?.redo() }
         view.typingUndo.canUndoing = { [weak coordinator] in coordinator?.parent.typing.canUndo() ?? false }
         view.typingUndo.canRedoing = { [weak coordinator] in coordinator?.parent.typing.canRedo() ?? false }
         view.inputAccessoryView = context.coordinator.typingBar()
@@ -700,8 +700,8 @@ final class InlineTextView: UITextView {
 /// open. What the text view records for itself here is never undone, and
 /// only the latest of it is kept.
 final class TypingUndo: UndoManager {
-    var undoing: () -> Void = {}
-    var redoing: () -> Void = {}
+    var onUndo: () -> Void = {}
+    var onRedo: () -> Void = {}
     var canUndoing: () -> Bool = { false }
     var canRedoing: () -> Bool = { false }
 
@@ -712,6 +712,6 @@ final class TypingUndo: UndoManager {
 
     override var canUndo: Bool { canUndoing() }
     override var canRedo: Bool { canRedoing() }
-    override func undo() { undoing() }
-    override func redo() { redoing() }
+    override func undo() { onUndo() }
+    override func redo() { onRedo() }
 }
