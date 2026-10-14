@@ -4550,6 +4550,24 @@
     "ja": "すべてのトラック",
     "pt-BR": "Todas as faixas"
   },
+  "Already at the back": {
+    "ar": "في الخلف بالفعل",
+    "de": "Schon ganz hinten",
+    "es": "Ya está al fondo",
+    "fr": "Déjà à l’arrière-plan",
+    "it": "Già in fondo",
+    "ja": "すでに最背面です",
+    "pt-BR": "Já está atrás de tudo"
+  },
+  "Already at the front": {
+    "ar": "في المقدمة بالفعل",
+    "de": "Schon ganz vorn",
+    "es": "Ya está al frente",
+    "fr": "Déjà au premier plan",
+    "it": "Già in primo piano",
+    "ja": "すでに最前面です",
+    "pt-BR": "Já está na frente"
+  },
   "Alt text": {
     "ar": "النص البديل",
     "de": "Alternativtext",

@@ -150,3 +150,113 @@ enum LayerRows {
         }
     }
 }
+
+/// Forward, Backward, To front and To back, as the Android twin's Layers
+/// steps them: a group is one layer, and a step moves the selection past
+/// the next thing it is seen to overlap.
+enum Layers {
+
+    /// The page's elements, back to front, as blocks: each group's members
+    /// one block, in their order, where its front-most member is (where
+    /// LayerRows lists it); each element on its own a block of one.
+    static func blocks(_ elements: [Element]) -> [[Element]] {
+        var out: [[Element]] = []
+        var groupAt: [String: Int] = [:]
+        // Front to back, so a group's block lands at its front-most member.
+        for el in elements.reversed() {
+            if let group = el.group, let at = groupAt[group] {
+                out[at].insert(el, at: 0)
+                continue
+            }
+            if let group = el.group { groupAt[group] = out.count }
+            out.append([el])
+        }
+        return out.reversed()
+    }
+
+    /// Forward (or, not `forward`, Backward) for the elements `ids`: the
+    /// blocks holding them move together, above the next block in front
+    /// that overlaps the union of their turned bounds — or, where none
+    /// does, above the very next block. Backward mirrors it. A member
+    /// selected alone inside its group steps only within its group's run.
+    /// Every group's run comes out whole: the selection is never left
+    /// between a group's members. The elements as they are when there is
+    /// nothing in front (or behind) to step past: already at the front, or
+    /// the back — as on the Android twin.
+    static func stepped(_ elements: [Element], ids: Set<String>, forward: Bool) -> [Element] {
+        rearranged(elements, ids: ids) { step($0, ids: ids, forward: forward) }
+    }
+
+    /// To front (or, not `front`, To back) for the elements `ids`: the
+    /// blocks holding them, in their order, in front of every other block —
+    /// a member selected alone, in front of the rest of its group's run.
+    static func sentToEnd(_ elements: [Element], ids: Set<String>, front: Bool) -> [Element] {
+        rearranged(elements, ids: ids) { blocks in
+            let chosen = blocks.filter { holds($0, ids) }
+            guard !chosen.isEmpty else { return nil }
+            let rest = blocks.filter { !holds($0, ids) }
+            let out = front ? rest + chosen : chosen + rest
+            return same(out, blocks) ? nil : out
+        }
+    }
+
+    /// The page's blocks put in a new order by `move` — or, when the
+    /// selection is part of one group, that group's members, each a block
+    /// of its own — and laid out as elements again.
+    private static func rearranged(_ elements: [Element], ids: Set<String>,
+                                   _ move: ([[Element]]) -> [[Element]]?) -> [Element] {
+        var blocks = Self.blocks(elements)
+        if let run = innerRun(blocks, ids) {
+            guard let moved = move(blocks[run].map { [$0] }) else { return elements }
+            blocks[run] = moved.flatMap { $0 }
+            return blocks.flatMap { $0 }
+        }
+        guard let moved = move(blocks) else { return elements }
+        return moved.flatMap { $0 }
+    }
+
+    /// The block of a group of which the selection `ids` is some members
+    /// but not all, and nothing else: the run a member selected alone
+    /// steps within.
+    private static func innerRun(_ blocks: [[Element]], _ ids: Set<String>) -> Int? {
+        let holding = blocks.indices.filter { holds(blocks[$0], ids) }
+        guard holding.count == 1, let i = holding.first, blocks[i].count > 1,
+              blocks[i].contains(where: { !ids.contains($0.id) }) else { return nil }
+        return i
+    }
+
+    private static func holds(_ block: [Element], _ ids: Set<String>) -> Bool {
+        block.contains { ids.contains($0.id) }
+    }
+
+    private static func same(_ a: [[Element]], _ b: [[Element]]) -> Bool {
+        a.flatMap { $0 }.map(\.id) == b.flatMap { $0 }.map(\.id)
+    }
+
+    /// One step of the blocks holding `ids`; nil when there is no block in
+    /// front of the front-most of them (or, Backward, behind the back-most)
+    /// to step past.
+    private static func step(_ blocks: [[Element]], ids: Set<String>, forward: Bool) -> [[Element]]? {
+        let chosen = blocks.indices.filter { holds(blocks[$0], ids) }
+        guard let first = chosen.first, let last = chosen.last else { return nil }
+        // The selection's own turned bounds, not its groups' other members.
+        let around = Geometry.union(blocks.flatMap { $0 }.filter { ids.contains($0.id) }.map(Geometry.aabb))
+        let past = forward ? Array((last + 1)..<blocks.count) : Array((0..<first).reversed())
+        guard let next = past.first else { return nil }
+        let target = past.first { overlaps(blocks[$0], around) } ?? next
+        let rest = blocks.indices.filter { !chosen.contains($0) }
+        guard let standing = rest.firstIndex(of: target) else { return nil }
+        var out = rest.map { blocks[$0] }
+        out.insert(contentsOf: chosen.map { blocks[$0] }, at: forward ? standing + 1 : standing)
+        return out
+    }
+
+    /// Whether any of `block` overlaps `box`, by turned bounds. Boxes that
+    /// only touch do not overlap, as in LayerRows.overlapping.
+    private static func overlaps(_ block: [Element], _ box: CGRect) -> Bool {
+        block.contains { el in
+            let b = Geometry.aabb(el)
+            return b.minX < box.maxX && box.minX < b.maxX && b.minY < box.maxY && box.minY < b.maxY
+        }
+    }
+}

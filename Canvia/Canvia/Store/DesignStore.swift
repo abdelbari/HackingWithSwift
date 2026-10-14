@@ -1176,35 +1176,26 @@ final class DesignStore {
 
     enum ZMove { case front, forward, backward, back }
 
+    /// Forward and Backward step past the next thing the selection
+    /// overlaps, a group one layer (Layers.stepped); To front and To back
+    /// keep a group's run whole too. One step — or, already at the front or
+    /// the back, nothing, felt and said.
     func reorderSelected(_ move: ZMove) {
         let ids = selection
         guard !ids.isEmpty else { return }
-        applyToPage { page in
-            switch move {
-            case .front:
-                let moved = page.elements.filter { ids.contains($0.id) }
-                page.elements.removeAll { ids.contains($0.id) }
-                page.elements.append(contentsOf: moved)
-            case .back:
-                let moved = page.elements.filter { ids.contains($0.id) }
-                page.elements.removeAll { ids.contains($0.id) }
-                page.elements.insert(contentsOf: moved, at: 0)
-            case .forward:
-                var i = page.elements.count - 2
-                while i >= 0 {
-                    if ids.contains(page.elements[i].id) && !ids.contains(page.elements[i + 1].id) {
-                        page.elements.swapAt(i, i + 1)
-                    }
-                    i -= 1
-                }
-            case .backward:
-                for i in 1..<max(1, page.elements.count) {
-                    if ids.contains(page.elements[i].id) && !ids.contains(page.elements[i - 1].id) {
-                        page.elements.swapAt(i, i - 1)
-                    }
-                }
-            }
+        let forward = move == .front || move == .forward
+        let before = page.elements
+        let after: [Element]
+        switch move {
+        case .front, .back: after = Layers.sentToEnd(before, ids: ids, front: forward)
+        case .forward, .backward: after = Layers.stepped(before, ids: ids, forward: forward)
         }
+        guard after.map(\.id) != before.map(\.id) else {
+            buzz(.reject)
+            announce(forward ? tr("Already at the front") : tr("Already at the back"), undoable: false)
+            return
+        }
+        applyToPage { $0.elements = after }
     }
 
     enum AlignMode { case left, centerX, right, top, centerY, bottom }
