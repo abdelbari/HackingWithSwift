@@ -56,6 +56,7 @@ final class PageBackgroundTests: XCTestCase {
             ("flip", { $0.flipH = true }),
             ("straighten", { $0.straighten = 4 }),
             ("corners", { $0.radius = 12 }),
+            ("fx", { $0.fx = PhotoFx(kind: "glitch") }),
         ]
         for (name, give) in looks {
             var el = plain
