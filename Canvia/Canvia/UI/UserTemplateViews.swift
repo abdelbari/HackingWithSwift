@@ -1,6 +1,7 @@
 // Your own templates where they are used: their pictures, and the editor's
-// Templates panel (first, under "Your templates"), where one of several
-// pages opens the same strip a built-in set does (TemplateSetSheet).
+// Templates panel (first, under "Your templates", after the brand kit's in
+// a "From <kit name>" row), where one of several pages opens the same
+// strip a built-in set does (TemplateSetSheet).
 
 import SwiftUI
 
@@ -38,8 +39,9 @@ struct TemplateChoice: Identifiable {
     var design: Design
 }
 
-/// The editor's Templates panel's first run: your own, found by name or
-/// category, every size fitted to this page. A tap applies one — a
+/// The editor's Templates panel's first run: the brand kit's templates in a
+/// row headed "From <kit name>", then your own, found by name or category,
+/// every size fitted to this page. A tap applies one — a
 /// template of several pages shows its strip, as a built-in set does — and
 /// a long press offers Rename, Update from this design and Delete.
 struct EditorYourTemplates: View {
@@ -51,11 +53,13 @@ struct EditorYourTemplates: View {
     @State private var renaming: UserTemplate?
     @State private var renameText = ""
     @State private var deleting: UserTemplate?
+    @State private var kit = BrandKit()
 
     private var shown: [UserTemplate] { UserTemplates.matching(entries, query: search) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            BrandTemplatesRow(kit: kit, entries: shown, tileWidth: 120) { tile($0) }
             if !shown.isEmpty {
                 Text(UserTemplates.sectionTitle)
                     .font(.subheadline.weight(.semibold))
@@ -64,7 +68,10 @@ struct EditorYourTemplates: View {
                 }
             }
         }
-        .onAppear { entries = UserTemplates.all() }
+        .onAppear {
+            entries = UserTemplates.all()
+            kit = BrandKit.load()
+        }
         .sheet(item: $choice) { shown in
             TemplateSetSheet(name: shown.name, design: shown.design,
                              note: TemplateSetSheet.editorNote(empty: DesignStore.isEmptyForTemplates(store.design)),
@@ -72,6 +79,7 @@ struct EditorYourTemplates: View {
         }
         .modifier(UserTemplateDialogs(renaming: $renaming, renameText: $renameText, deleting: $deleting) {
             entries = UserTemplates.all()
+            kit = BrandKit.load()
         })
     }
 
@@ -138,6 +146,40 @@ struct EditorYourTemplates: View {
         if let design = UserTemplates.load(id: updated.id) { UserTemplates.writeThumbnail(for: design) }
         entries = UserTemplates.all()
         store.announce("Updated \u{201C}\(updated.name)\u{201D}", undoable: false)
+    }
+}
+
+/// The brand kit's templates, leading Home's and the Templates panel's: a
+/// row headed "From <kit name>" that scrolls, of those of `entries` the kit
+/// lists, in its order — nothing when it lists none of them.
+struct BrandTemplatesRow<Tile: View>: View {
+    let kit: BrandKit
+    let entries: [UserTemplate]
+    var tileWidth: CGFloat
+    /// How the heading is set, as the run below it heads its own.
+    var titleFont: Font = .subheadline.weight(.semibold)
+    /// The margin the heading and the row's ends keep from the edges.
+    var inset: CGFloat = 0
+    @ViewBuilder var tile: (UserTemplate) -> Tile
+
+    var body: some View {
+        let mine = kit.templateEntries(entries)
+        if !mine.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(kit.templatesTitle)
+                    .font(titleFont)
+                    .padding(.horizontal, inset)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: 12) {
+                        ForEach(mine) { entry in
+                            tile(entry).frame(width: tileWidth)
+                        }
+                    }
+                    .padding(.horizontal, inset)
+                    .padding(.vertical, 4)
+                }
+            }
+        }
     }
 }
 

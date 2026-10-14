@@ -1,7 +1,8 @@
 // Edit the brand kits: which one is in use, its named palettes, a face for
-// each text role, and its logos. A kit can be shared as a file and one
-// brought in from another phone.
+// each text role, its logos, photos and graphics, and its templates. A kit
+// can be shared as a file and one brought in from another phone.
 
+import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -22,7 +23,35 @@ struct BrandKitSheet: View {
     /// The kit's file, while the share sheet is up.
     @State private var sharedURL: URL?
     @State private var importing = false
+    /// What the file picker is open for: a kit's file, or an SVG graphic.
+    @State private var importKind = ImportKind.kit
     @State private var problem: String?
+    /// Photos picked for the kit's photos, and for its graphics.
+    @State private var pickedPhotos: [PhotosPickerItem] = []
+    @State private var pickedGraphics: [PhotosPickerItem] = []
+    /// Your own templates, read as the sheet opens.
+    @State private var ownTemplates: [UserTemplate] = []
+
+    private enum ImportKind {
+        case kit, svg
+    }
+
+    /// The kit's lists of pictures with a section each.
+    private enum AssetList {
+        case photos, graphics
+
+        var keyPath: WritableKeyPath<BrandKit, [String]> {
+            self == .photos ? \BrandKit.photos : \BrandKit.graphics
+        }
+
+        var title: String { self == .photos ? "Photos" : "Graphics" }
+
+        /// What VoiceOver calls one: "Brand photo 2 of 5".
+        func label(_ index: Int, of count: Int) -> String {
+            let kind = self == .photos ? "Brand photo" : "Brand graphic"
+            return "\(kind) \(index + 1) of \(count)"
+        }
+    }
 
     /// What the name field names.
     private enum Naming: Equatable {
@@ -32,6 +61,7 @@ struct BrandKitSheet: View {
     }
 
     private let columns = [GridItem(.adaptive(minimum: 40), spacing: 10)]
+    private let assetColumns = [GridItem(.adaptive(minimum: 64), spacing: 10)]
 
     /// The kit in use.
     private var kit: BrandKit { kits.active }
@@ -49,6 +79,9 @@ struct BrandKitSheet: View {
             // the sheet can be swiped away as well as closed with Done.
             .onChange(of: kits) { _, changed in changed.save() }
             .onChange(of: kits.activeId) { openedWithLogos = kits.active.logos }
+            .onChange(of: pickedPhotos) { _, items in bringIn(items, to: .photos) }
+            .onChange(of: pickedGraphics) { _, items in bringIn(items, to: .graphics) }
+            .onAppear { ownTemplates = UserTemplates.all() }
     }
 
     private var form: some View {
@@ -72,6 +105,9 @@ struct BrandKitSheet: View {
                 }
                 typeSection
                 logosSection
+                assetSection(.photos)
+                assetSection(.graphics)
+                templatesSection
             }
             .navigationTitle("Brand kit")
             .navigationBarTitleDisplayMode(.inline)
@@ -98,7 +134,10 @@ struct BrandKitSheet: View {
                 naming = .kit
             }
             Button("Share this kit…") { share() }
-            Button("Import a kit…") { importing = true }
+            Button("Import a kit…") {
+                importKind = .kit
+                importing = true
+            }
             if kits.kits.count > 1 {
                 Button("Delete this kit", role: .destructive) { deletingKit = true }
             }
@@ -310,6 +349,169 @@ struct BrandKitSheet: View {
         }
     }
 
+    // MARK: photos and graphics
+
+    /// The kit's photos or graphics: a tile each, held to remove; the
+    /// picture selected added from this design; pictures from the photo
+    /// library; and, for graphics, an SVG file, placed as a recolourable
+    /// graphic. The Brand tab of Add offers them.
+    private func assetSection(_ list: AssetList) -> some View {
+        let sources = kit[keyPath: list.keyPath]
+        let selected = store.selectedElements.lazy.compactMap { BrandKit.picture(of: $0) }.first
+        return Section {
+            if !sources.isEmpty {
+                LazyVGrid(columns: assetColumns, spacing: 10) {
+                    ForEach(Array(sources.enumerated()), id: \.element) { index, src in
+                        assetTile(src, list: list, label: list.label(index, of: sources.count))
+                    }
+                }
+            }
+            Button("Add from this design") {
+                if let selected { editKit { $0.add(selected, to: list.keyPath) } }
+            }
+            .disabled(selected == nil)
+            PhotosPicker(selection: list == .photos ? $pickedPhotos : $pickedGraphics,
+                         maxSelectionCount: 10, matching: .images) {
+                Text("Add from photos")
+            }
+            if list == .graphics {
+                Button("Add an SVG file") {
+                    importKind = .svg
+                    importing = true
+                }
+            }
+        } header: {
+            Text(list.title)
+        } footer: {
+            if list == .graphics {
+                Text("Photos and graphics appear in the Brand tab of Add, in every design. Press and hold one to remove it.")
+            }
+        }
+    }
+
+    private func assetTile(_ src: String, list: AssetList, label: String) -> some View {
+        let remove = { editKit { kit in kit[keyPath: list.keyPath].removeAll { $0 == src } } }
+        return assetThumb(src)
+            .frame(height: 56)
+            .frame(maxWidth: .infinity)
+            .background(RoundedRectangle(cornerRadius: 9).fill(Color(.systemGray6)))
+            .clipShape(RoundedRectangle(cornerRadius: 9))
+            .contextMenu {
+                Button("Remove", role: .destructive) { remove() }
+            }
+            .accessibilityElement()
+            .accessibilityLabel(label)
+            .accessibilityAction(named: "Remove") { remove() }
+    }
+
+    /// A picture as itself; an SVG graphic as the uploads show one.
+    @ViewBuilder
+    private func assetThumb(_ src: String) -> some View {
+        if BrandKit.svgID(src) != nil {
+            VStack(spacing: 2) {
+                Image(systemName: "square.on.circle")
+                Text("SVG").font(.caption2.weight(.semibold))
+            }
+            .foregroundStyle(.secondary)
+        } else if let ui = PhotoLibrary.resolve(src) {
+            Image(uiImage: PhotoLibrary.preview(ui, key: src))
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+        } else {
+            Color(.systemGray5)
+        }
+    }
+
+    /// The photos picked, each stored as a photo brought in is — scaled
+    /// and kept among your uploads, off the main thread — and added to the
+    /// list in the order picked; one that does not read is said.
+    private func bringIn(_ items: [PhotosPickerItem], to list: AssetList) {
+        guard !items.isEmpty else { return }
+        if list == .photos { pickedPhotos = [] } else { pickedGraphics = [] }
+        Task { @MainActor in
+            var added: [String] = []
+            for item in items {
+                guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+                let src = await Task.detached(priority: .userInitiated) { () -> String? in
+                    guard let prepared = ImageDownsampler.prepare(data),
+                          let src = MediaStore.store(prepared) else { return nil }
+                    Uploads.record(source: src)
+                    return src
+                }.value
+                if let src { added.append(src) }
+            }
+            if added.count < items.count { problem = "Couldn't add every photo picked." }
+            editKit { kit in
+                for src in added { kit.add(src, to: list.keyPath) }
+            }
+        }
+    }
+
+    /// An SVG file kept among your uploads, as Add keeps one, and added to
+    /// the kit's graphics — refused, in Add's words, when it draws nothing.
+    private func addSVG(_ result: Result<URL, Error>) {
+        guard case .success(let url) = result else { return }
+        Task { @MainActor in
+            let id = await Task.detached(priority: .userInitiated) { () -> String? in
+                let scoped = url.startAccessingSecurityScopedResource()
+                defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+                guard let data = try? Data(contentsOf: url), data.count <= SvgImport.maxBytes,
+                      let text = String(data: data, encoding: .utf8),
+                      SvgImport.graphic(text, pageWidth: 1080, pageHeight: 1080) != nil,
+                      let id = MediaStore.storeGraphic(data) else { return nil }
+                Uploads.record(id, kind: .image)
+                return id
+            }.value
+            guard let id else {
+                problem = "No shape to take from that file"
+                return
+            }
+            editKit { $0.add(BrandKit.svgSource(id), to: \.graphics) }
+        }
+    }
+
+    // MARK: templates
+
+    /// The kit's templates, from your own, held to take out; they lead
+    /// Home's templates and the Templates panel's, in a row of their own.
+    private var templatesSection: some View {
+        let entries = kit.templateEntries(ownTemplates)
+        let addable = ownTemplates.filter { !kit.templates.contains($0.id) }
+        return Section {
+            ForEach(entries) { entry in
+                templateRow(entry)
+            }
+            Menu("Add a template of yours") {
+                ForEach(addable) { entry in
+                    Button(entry.name) { editKit { $0.add(entry.id, to: \.templates) } }
+                }
+            }
+            .disabled(addable.isEmpty)
+        } header: {
+            Text("Templates")
+        } footer: {
+            Text(ownTemplates.isEmpty
+                 ? "Save a design as a template from More, then add it here."
+                 : "They come first, under the kit's name, on Home and in Templates.")
+        }
+    }
+
+    private func templateRow(_ entry: UserTemplate) -> some View {
+        let remove = { editKit { kit in kit.templates.removeAll { $0 == entry.id } } }
+        return HStack(spacing: 12) {
+            UserTemplateThumb(entry: entry)
+                .frame(width: 44, height: 44)
+                .accessibilityHidden(true)
+            Text(entry.name)
+            Spacer()
+        }
+        .contextMenu {
+            Button("Remove", role: .destructive) { remove() }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAction(named: "Remove") { remove() }
+    }
+
     // MARK: dialogs
 
     /// The sheet's sheets and file picker, apart from its body so the type
@@ -329,8 +531,10 @@ struct BrandKitSheet: View {
                 set: { if $0 == nil { sharedURL = nil } })) { item in
                 ShareSheet(urls: [item.url])
             }
-            .fileImporter(isPresented: $importing, allowedContentTypes: [.json, .data]) { result in
-                importKit(result)
+            // One file picker for both, as two on one view do not both open.
+            .fileImporter(isPresented: $importing,
+                          allowedContentTypes: importKind == .svg ? [UTType.svg] : [UTType.json, .data]) { result in
+                if importKind == .svg { addSVG(result) } else { importKit(result) }
             }
     }
 
@@ -346,7 +550,7 @@ struct BrandKitSheet: View {
                                 titleVisibility: .visible) {
                 Button("Delete kit", role: .destructive) { kits.removeKit(kit.id) }
             } message: {
-                Text("Its colours, fonts and logo list go. Designs that use them keep them.")
+                Text("Its colours, fonts, and lists of logos, photos, graphics and templates go. Designs that use them keep them.")
             }
             .alert("Couldn't do that", isPresented: Binding(
                 get: { problem != nil }, set: { if !$0 { problem = nil } })) {

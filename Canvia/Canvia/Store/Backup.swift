@@ -15,7 +15,7 @@
 //   dictionary.json          this phone's own dictionary, Add to
 //                            dictionary's words, when it has any
 //   uploads.json             your uploads' list, as kept in Documents
-//   media/<id>.<ext>         the photos your uploads and logos are,
+//   media/<id>.<ext>         the photos your uploads and kits' assets are,
 //   videos/<id>.<ext>        their clips,
 //   audio/<id>               the music, and <id>.name beside it, its name,
 //   fonts/<sha12>.<ext>      and your fonts.
@@ -260,7 +260,7 @@ enum Backup {
         // This phone's own dictionary, when Add to dictionary has added any.
         let dictionary = SpellingDictionary.load()
         if !dictionary.isEmpty { try writer.add(Proofreader.dictionaryFile, Proofreader.encodeDictionary(dictionary)) }
-        for src in kits.allLogos {
+        for src in kits.allAssets {
             try await addSource(src, into: writer, written: &written)
         }
 

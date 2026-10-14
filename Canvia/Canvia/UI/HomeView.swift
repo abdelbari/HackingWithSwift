@@ -49,6 +49,8 @@ struct HomeView: View {
     @State private var replayTour = false
     /// Your own templates, first under the templates.
     @State private var userTemplates: [UserTemplate] = []
+    /// The brand kit in use, whose templates lead the rest.
+    @State private var brandKit = BrandKit()
     /// The "Your templates" chip: only your own templates.
     @State private var yoursOnly = false
     @State private var renamingTemplate: UserTemplate?
@@ -284,6 +286,7 @@ struct HomeView: View {
             }.value
             guard generation == reloads else { return }
             userTemplates = mine
+            brandKit = BrandKit.load()
             show(shelf, trashed: binned)
         }
     }
@@ -1355,14 +1358,19 @@ struct HomeView: View {
 
     // MARK: templates
 
-    /// The templates: your own first, under "Your templates", then the
-    /// library's — or yours alone under the Yours chip.
+    /// The templates: the brand kit's first, under "From <kit name>", then
+    /// your own, under "Your templates", then the library's — or yours alone
+    /// under the Yours chip.
     private var templatesPart: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Start from a template")
                 .font(.title3.weight(.bold))
                 .padding(.horizontal)
             templateCategoryChips
+            if templateCategory == nil {
+                BrandTemplatesRow(kit: brandKit, entries: shownUserTemplates, tileWidth: 160,
+                                  titleFont: .headline, inset: 16) { userTemplateCard($0) }
+            }
             if templateCategory == nil && !shownUserTemplates.isEmpty {
                 Text(UserTemplates.sectionTitle)
                     .font(.headline)
@@ -1401,46 +1409,52 @@ struct HomeView: View {
     private var userTemplatesGrid: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
             ForEach(shownUserTemplates) { entry in
-                Button {
-                    if let template = UserTemplates.load(id: entry.id) {
-                        create(UserTemplates.newDesign(from: template))
-                    }
-                } label: {
-                    VStack(alignment: .leading, spacing: 0) {
-                        UserTemplateThumb(entry: entry)
-                            .frame(height: 150)
-                            .frame(maxWidth: .infinity)
-                            .clipped()
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(entry.name)
-                                .font(.subheadline.weight(.semibold))
-                                .lineLimit(1)
-                            Text(entry.caption)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-                        .padding(10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .background(Theme.card)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .shadow(color: .black.opacity(0.08), radius: 5, y: 2)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(entry.name), your template, \(entry.caption)")
-                .contextMenu {
-                    Button {
-                        templateRenameText = entry.name
-                        renamingTemplate = entry
-                    } label: { Label("Rename", systemImage: "pencil") }
-                    Button(role: .destructive) { deletingTemplate = entry } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                }
+                userTemplateCard(entry)
             }
         }
         .padding(.horizontal)
+    }
+
+    /// One of your own templates as a card, under "Your templates" and in
+    /// the brand kit's row.
+    private func userTemplateCard(_ entry: UserTemplate) -> some View {
+        Button {
+            if let template = UserTemplates.load(id: entry.id) {
+                create(UserTemplates.newDesign(from: template))
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 0) {
+                UserTemplateThumb(entry: entry)
+                    .frame(height: 150)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(entry.name)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                    Text(entry.caption)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .background(Theme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .shadow(color: .black.opacity(0.08), radius: 5, y: 2)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(entry.name), your template, \(entry.caption)")
+        .contextMenu {
+            Button {
+                templateRenameText = entry.name
+                renamingTemplate = entry
+            } label: { Label("Rename", systemImage: "pencil") }
+            Button(role: .destructive) { deletingTemplate = entry } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
     }
 
     /// "Business · 1920 × 1080 · 10 pages".

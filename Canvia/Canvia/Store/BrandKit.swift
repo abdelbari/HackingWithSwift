@@ -8,11 +8,21 @@
 //              "palettes": [{"name": "Colours", "colors": ["#1f2430", …]}],
 //              "fonts": {"title": {"family", "weight", "size"?}, "heading": …,
 //                        "subheading": …, "body": …, "quote": …, "caption": …},
-//              "logos": ["media:…"]}]}
+//              "logos": ["media:…"],
+//              "photos": ["media:…"], "graphics": ["media:…" | "svg:…"],
+//              "templates": ["<userTemplateId>"]}]}
 //
-// A role left unset is not written. The active kit is offered first in
+// A role left unset is not written. Photos, graphics and templates are
+// written only when the kit has any, and a kit without them — every kit
+// of earlier builds — reads with none. A graphic is a picture, or an SVG
+// kept as it came among the uploads ("svg:<id>", the file media/<id>.svg)
+// and placed through SvgImport as a recolourable graphic; a template is
+// the id of one of your own (UserTemplates), and deleting it takes it out
+// of every kit. The active kit is offered first in
 // every colour picker (its palettes by name), in Add text and the theme
-// sheet by its text roles, and as insertable logos. Not per design: a
+// sheet by its text roles, and as insertable logos — and with its photos
+// and graphics, in the Add sheet's Brand tab, its templates leading Home's
+// and the Templates panel's in a "From <kit name>" row. Not per design: a
 // brand is the thing that is the same across designs.
 //
 // The single kit of earlier builds (brandkit.json) is read into kit 1, "My
@@ -188,6 +198,16 @@ struct BrandKit: Codable, Equatable, Identifiable {
     var fonts = BrandFonts()
     /// Media or asset sources of logos.
     var logos: [String] = []
+    /// Media or asset sources of brand photos.
+    var photos: [String] = []
+    /// Media or asset sources of brand graphics, or "svg:<id>" for an SVG.
+    var graphics: [String] = []
+    /// The ids of templates of your own.
+    var templates: [String] = []
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, palettes, fonts, logos, photos, graphics, templates
+    }
 
     /// What the first kit, and the one an earlier build's kit becomes, is
     /// called, and its id.
@@ -204,7 +224,58 @@ struct BrandKit: Codable, Equatable, Identifiable {
         return palettes.flatMap(\.colors).filter { seen.insert($0.lowercased()).inserted }
     }
 
-    var isEmpty: Bool { colors.isEmpty && fonts.isEmpty && logos.isEmpty }
+    var isEmpty: Bool {
+        colors.isEmpty && fonts.isEmpty && logos.isEmpty && photos.isEmpty && graphics.isEmpty && templates.isEmpty
+    }
+
+    /// Whether the Add sheet shows a Brand tab for this kit: it has a logo,
+    /// a photo, a graphic, a colour or a face for a text role — all the tab
+    /// lists. Templates alone lead the Templates panel instead.
+    var showsBrandTab: Bool {
+        !logos.isEmpty || !photos.isEmpty || !graphics.isEmpty || !colors.isEmpty || !fonts.isEmpty
+    }
+
+    /// What the row of the kit's templates is headed: "From My brand".
+    var templatesTitle: String { "From \(name)" }
+
+    /// The kit's templates among `entries` (your own, as listed), in the
+    /// kit's order; an id with no template here is passed over.
+    func templateEntries(_ entries: [UserTemplate]) -> [UserTemplate] {
+        templates.compactMap { id in entries.first { $0.id == id } }
+    }
+
+    /// The source of an SVG graphic kept as media/<id>.svg.
+    static func svgSource(_ id: String) -> String { "svg:\(id)" }
+
+    /// The upload an SVG graphic names, or nil when it is a picture.
+    static func svgID(_ src: String) -> String? {
+        guard src.hasPrefix("svg:") else { return nil }
+        let id = String(src.dropFirst(4))
+        return id.isEmpty ? nil : id
+    }
+
+    /// What a graphic is kept as on this phone: an SVG as the media file it
+    /// is ("media:<id>"), so the sweep, a backup and a kit file carry it as
+    /// they carry a photo; a picture as itself.
+    static func mediaSource(_ src: String) -> String {
+        svgID(src).map { "media:\($0)" } ?? src
+    }
+
+    /// The picture a photo or a graphic is added from, when "Add from this
+    /// design" is asked with `element` selected: a picture's source — not
+    /// an empty frame, a clip, an animated picture or a code.
+    static func picture(of element: Element) -> String? {
+        guard element.type == .image, let src = element.src, !src.isEmpty,
+              VideoStore.split(src) == nil, AnimStore.split(src) == nil,
+              CodeGenerator.payload(from: src) == nil else { return nil }
+        return src
+    }
+
+    /// A source added to the end of one of the kit's lists, once.
+    mutating func add(_ src: String, to list: WritableKeyPath<BrandKit, [String]>) {
+        guard !self[keyPath: list].contains(src) else { return }
+        self[keyPath: list].append(src)
+    }
 
     /// The kit's palettes as the theme sheet maps a design onto them, in
     /// kit order — first there, as on the Android twin — each once it has
@@ -288,8 +359,11 @@ struct BrandKits: Codable, Equatable {
         kits.first { $0.id == activeId } ?? kits.first ?? BrandKit(id: BrandKit.firstId)
     }
 
-    /// Every kit's logos, which the launch sweep keeps.
-    var allLogos: [String] { kits.flatMap(\.logos) }
+    /// Every kit's logos, photos and graphics, an SVG graphic as the media
+    /// file it is: what the launch sweep and a backup keep.
+    var allAssets: [String] {
+        kits.flatMap { $0.logos + $0.photos + $0.graphics.map(BrandKit.mediaSource) }
+    }
 
     /// The kits as saved; else an earlier build's single kit, migrated;
     /// else one empty kit. Never empty.
@@ -363,6 +437,18 @@ struct BrandKits: Codable, Equatable {
         return kit
     }
 
+    /// A template of your own taken out of every kit, as deleting it does.
+    /// Whether any kit had it.
+    @discardableResult
+    mutating func removeTemplate(_ id: String) -> Bool {
+        var changed = false
+        for i in kits.indices where kits[i].templates.contains(id) {
+            kits[i].templates.removeAll { $0 == id }
+            changed = true
+        }
+        return changed
+    }
+
     /// A kit taken away, never the last; the first left becomes active when
     /// it was.
     mutating func removeKit(_ id: String) {
@@ -414,6 +500,24 @@ extension BrandKit {
         palettes = (try? c.decode([BrandPalette].self, forKey: .palettes)) ?? []
         fonts = (try? c.decode(BrandFonts.self, forKey: .fonts)) ?? BrandFonts()
         logos = (try? c.decode([String].self, forKey: .logos)) ?? []
+        photos = (try? c.decode([String].self, forKey: .photos)) ?? []
+        graphics = (try? c.decode([String].self, forKey: .graphics)) ?? []
+        templates = (try? c.decode([String].self, forKey: .templates)) ?? []
+    }
+
+    /// Photos, graphics and templates only when there are some, so a kit
+    /// without them is written as earlier builds wrote it — the rule both
+    /// phones keep.
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(palettes, forKey: .palettes)
+        try c.encode(fonts, forKey: .fonts)
+        try c.encode(logos, forKey: .logos)
+        if !photos.isEmpty { try c.encode(photos, forKey: .photos) }
+        if !graphics.isEmpty { try c.encode(graphics, forKey: .graphics) }
+        if !templates.isEmpty { try c.encode(templates, forKey: .templates) }
     }
 }
 
@@ -435,12 +539,15 @@ extension BrandKits {
 
 /// A kit as one file, .canvia-brand.json, to move it between phones:
 /// {"format": "canvia-brand", "version": 1, "kit": {…}, "media": {…}}. Its
-/// photo logos travel inlined as a design package carries its photos — the
-/// same {"ext", "data"} entries, under the ids the kit's logos name — and
-/// arrive under fresh ids, in a kit of its own. A clip logo travels as its
-/// name only, and is left out where it arrives, on either phone: the
-/// Android twin's kit file carries photos alone, and a "videos" entry from
-/// an earlier build is passed over by both.
+/// photo logos, photos and graphics travel inlined as a design package
+/// carries its photos — the same {"ext", "data"} entries, under the ids the
+/// kit's lists name, an SVG graphic's with "ext" "svg" under the id after
+/// "svg:" — and arrive under fresh ids, in a kit of its own. Its templates
+/// travel as their ids, kept as they are: a template of that id arrives
+/// with a backup, and until then the kit's row passes it over. A clip logo
+/// travels as its name only, and is left out where it arrives, on either
+/// phone: the Android twin's kit file carries photos alone, and a "videos"
+/// entry from an earlier build is passed over by both.
 enum BrandKitFile {
 
     static let format = "canvia-brand"
@@ -454,24 +561,45 @@ enum BrandKitFile {
         var media: [String: DesignPackage.Media]
     }
 
-    /// The logos as a design's pictures, one each, in order, so a package's
+    /// The pictures as a design's, one each, in order, so a package's
     /// packing and reading carry them.
-    private static func carrier(_ logos: [String]) -> Design {
+    private static func carrier(_ pictures: [String]) -> Design {
         var design = Design(title: "Logos", width: 1000, height: 1000)
-        design.pages = [Page(elements: logos.map { Element.image($0) })]
+        design.pages = [Page(elements: pictures.map { Element.image($0) })]
         return design
     }
 
-    /// The kit's file: its photo logos inlined and library pictures drawn,
-    /// as a design file does. A clip or animated logo stays as it is —
-    /// neither it nor a still of it goes in — as the Android twin writes it.
+    /// What a source travels as in the carrier: an SVG graphic as the media
+    /// file it is, a still picture as itself, and nil for a clip or an
+    /// animated picture, which no kit file carries.
+    private static func travelling(_ src: String) -> String? {
+        if BrandKit.svgID(src) != nil { return BrandKit.mediaSource(src) }
+        return isStill(src) ? src : nil
+    }
+
+    /// The kit's file: its photo logos, photos and graphics inlined and
+    /// library pictures drawn, as a design file does. A clip or animated
+    /// logo stays as it is — neither it nor a still of it goes in — as the
+    /// Android twin writes it.
     static func contents(of kit: BrandKit, mediaDirectory: URL = MediaStore.directory) -> Contents {
-        let pictures = kit.logos.filter(isStill)
+        let lists = [kit.logos, kit.photos, kit.graphics]
+        let pictures = lists.flatMap { $0.compactMap(travelling) }
         let package = DesignPackage.contents(of: carrier(pictures), mediaDirectory: mediaDirectory)
         let packedPictures = package.design.pages.first?.elements.compactMap(\.src) ?? pictures
         var drawn = packedPictures.makeIterator()
+        // Each list in the carrier's order: logos, photos, then graphics.
+        let packedLists = lists.map { list in
+            list.map { src -> String in
+                guard let travels = travelling(src) else { return src }
+                let packedSrc = drawn.next() ?? travels
+                guard BrandKit.svgID(src) != nil, packedSrc.hasPrefix("media:") else { return packedSrc }
+                return BrandKit.svgSource(String(packedSrc.dropFirst(6)))
+            }
+        }
         var packed = kit
-        packed.logos = kit.logos.map { src in isStill(src) ? (drawn.next() ?? src) : src }
+        packed.logos = packedLists[0]
+        packed.photos = packedLists[1]
+        packed.graphics = packedLists[2]
         return Contents(kit: packed, media: package.media)
     }
 
@@ -486,13 +614,20 @@ enum BrandKitFile {
         var errorDescription: String? { "This file is not a Canvia brand kit." }
     }
 
-    /// The file's logos that arrive: a photo logo whose file it does not
-    /// carry is left out, and so is every clip or animated logo, as no kit
-    /// file carries one; any other — a library picture — is kept as it is,
-    /// as the Android twin's BrandKitPackage.relinked keeps them.
+    /// The file's logos that arrive (see carried(_:media:)).
     static func carried(_ contents: Contents) -> [String] {
-        contents.kit.logos.filter { src in
-            if src.hasPrefix("media:") { return contents.media[String(src.dropFirst(6))] != nil }
+        carried(contents.kit.logos, media: contents.media)
+    }
+
+    /// The sources of one of the file's lists that arrive: a photo whose
+    /// file it does not carry is left out, and so is an SVG graphic whose
+    /// file it does not carry as an SVG, and every clip or animated logo,
+    /// as no kit file carries one; any other — a library picture — is kept
+    /// as it is, as the Android twin's BrandKitPackage.relinked keeps them.
+    static func carried(_ list: [String], media: [String: DesignPackage.Media]) -> [String] {
+        list.filter { src in
+            if let id = BrandKit.svgID(src) { return media[id]?.ext.lowercased() == MediaStore.graphicExtension }
+            if src.hasPrefix("media:") { return media[String(src.dropFirst(6))] != nil }
             return isStill(src)
         }
     }
@@ -503,21 +638,34 @@ enum BrandKitFile {
         VideoStore.split(src) == nil && AnimStore.split(src) == nil
     }
 
-    /// The kit inside, with its logos stored under fresh ids, a fresh id of
-    /// its own and a name no kit here has ("My brand 2"), added to `kits`
-    /// and made active.
+    /// The kit inside, with its logos, photos and graphics stored under
+    /// fresh ids, a fresh id of its own and a name no kit here has ("My
+    /// brand 2"), added to `kits` and made active.
     @discardableResult
     static func `import`(_ data: Data, into kits: inout BrandKits,
                          mediaDirectory: URL = MediaStore.directory) throws -> BrandKit {
         guard let contents = try? JSONDecoder().decode(Contents.self, from: data),
               contents.format == format else { throw KitFileError.notAKit }
-        let package = DesignPackage.Package(design: carrier(carried(contents)), media: contents.media)
+        let lists = [contents.kit.logos, contents.kit.photos, contents.kit.graphics]
+            .map { carried($0, media: contents.media) }
+        let pictures = lists.flatMap { $0.map(BrandKit.mediaSource) }
+        let package = DesignPackage.Package(design: carrier(pictures), media: contents.media)
         let stored = try DesignPackage.import(DesignPackage.encode(package), mediaDirectory: mediaDirectory,
                                               normalize: false)
+        var arrived = (stored.pages.first?.elements.compactMap(\.src) ?? []).makeIterator()
+        let storedLists = lists.map { list in
+            list.compactMap { src -> String? in
+                guard let storedSrc = arrived.next() else { return nil }
+                guard BrandKit.svgID(src) != nil, storedSrc.hasPrefix("media:") else { return storedSrc }
+                return BrandKit.svgSource(String(storedSrc.dropFirst(6)))
+            }
+        }
         var kit = contents.kit
         kit.id = UID.make("kit")
         kit.name = Titles.unique(kit.name, taken: kits.kits.map(\.name))
-        kit.logos = stored.pages.first?.elements.compactMap(\.src) ?? []
+        kit.logos = storedLists[0]
+        kit.photos = storedLists[1]
+        kit.graphics = storedLists[2]
         kits.kits.append(kit)
         kits.activeId = kit.id
         return kit

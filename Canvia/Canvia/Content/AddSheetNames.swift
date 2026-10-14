@@ -42,6 +42,19 @@ enum AddSheetNames {
         "Brand logo \(index + 1) of \(count)"
     }
 
+    static func brandPhoto(_ index: Int, of count: Int) -> String {
+        "Brand photo \(index + 1) of \(count)"
+    }
+
+    static func brandGraphic(_ index: Int, of count: Int) -> String {
+        "Brand graphic \(index + 1) of \(count)"
+    }
+
+    /// A brand colour by its name, and what a tap paints with it.
+    static func brandColour(_ hex: String, selection: Bool) -> String {
+        "\(ElementNames.spokenColour(hex)), brand colour, " + (selection ? "for what is selected" : "for the page background")
+    }
+
     static func artwork(_ photo: PhotoDef, _ index: Int, of count: Int) -> String {
         "\(photo.name), \(photo.category.lowercased()), artwork \(index + 1) of \(count)"
     }
