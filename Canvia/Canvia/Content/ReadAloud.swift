@@ -40,7 +40,7 @@ final class ReadAloud: NSObject, AVSpeechSynthesizerDelegate {
                 if !text.isEmpty { parts.append(text) }
             case .image:
                 if let alt = el.altText?.trimmingCharacters(in: .whitespacesAndNewlines), !alt.isEmpty {
-                    parts.append("Picture: \(alt)")
+                    parts.append(tr("Picture: %@", alt))
                 }
             default:
                 break

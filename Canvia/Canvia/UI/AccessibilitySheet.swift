@@ -78,7 +78,7 @@ struct AccessibilitySheet: View {
 
     /// "Page 2 · 3 things".
     private func pageTitle(_ index: Int, count: Int) -> String {
-        "Page \(index + 1) · \(count == 1 ? "1 thing" : "\(count) things")"
+        tr("Page %d · %@", index + 1, trn("%d thing|%d things", count))
     }
 
     private func contrastSection(_ list: [AccessibilityAudit.Finding]) -> some View {
@@ -89,7 +89,7 @@ struct AccessibilitySheet: View {
                     .fontWeight(.semibold)
             }
         } header: {
-            Text(list.count == 1 ? "Contrast · 1 hard-to-read text" : "Contrast · \(list.count) hard-to-read texts")
+            Text(trn("Contrast · %d hard-to-read text|Contrast · %d hard-to-read texts", list.count))
         } footer: {
             Text("Text against what is behind it, to WCAG AA: 4.5:1, or 3:1 for large text.")
         }
@@ -105,7 +105,7 @@ struct AccessibilitySheet: View {
                     Text(name(of: f))
                         .font(.subheadline.weight(.semibold))
                         .lineLimit(1)
-                    Text(f.kind == .contrast ? "\(f.message) · page \(f.pageIndex + 1)" : f.message)
+                    Text(f.kind == .contrast ? tr("%@ · page %d", f.message, f.pageIndex + 1) : f.message)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -114,7 +114,7 @@ struct AccessibilitySheet: View {
                 Button("Show") { store.reveal(elementId: f.elementId, onPage: f.pageIndex) }
                     .buttonStyle(.bordered)
                 if let fix = f.fix {
-                    Button(fix.rawValue) { apply(fix, f) }
+                    Button(tr(fix.rawValue)) { apply(fix, f) }
                         .buttonStyle(.borderedProminent)
                 }
                 if f.kind == .altText {
@@ -141,7 +141,7 @@ struct AccessibilitySheet: View {
 
     /// The element as Layers names it, or the page.
     private func name(of f: AccessibilityAudit.Finding) -> String {
-        guard let el = element(f) else { return "Page \(f.pageIndex + 1)" }
+        guard let el = element(f) else { return tr("Page %d", f.pageIndex + 1) }
         return ElementNames.name(of: el)
     }
 

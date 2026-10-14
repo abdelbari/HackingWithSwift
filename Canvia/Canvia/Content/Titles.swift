@@ -28,7 +28,7 @@ enum Titles {
     /// problem.
     static func unique(_ base: String, taken: [String]) -> String {
         let trimmed = base.trimmingCharacters(in: .whitespacesAndNewlines)
-        let clean = trimmed.isEmpty ? "Untitled design" : trimmed
+        let clean = trimmed.isEmpty ? tr("Untitled design") : trimmed
         let used = Set(taken.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() })
         guard used.contains(clean.lowercased()) else { return clean }
         var n = 2

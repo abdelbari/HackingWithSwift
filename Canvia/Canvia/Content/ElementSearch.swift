@@ -36,7 +36,7 @@ enum ElementSearch {
         case artwork = "Artwork"
 
         var id: String { rawValue }
-        var title: String { rawValue }
+        var title: String { tr(rawValue) }
     }
 
     /// What a hit is, by the key Recently used keeps it under. The QR code
@@ -159,25 +159,25 @@ enum ElementSearch {
                              category: "Stickers"))
         }
         for frame in DecorativeFrames.presets {
-            out.append(Entry(hit: Hit(kind: .photoFrame, id: frame.id, name: frame.name), words: ["photo frame"],
+            out.append(Entry(hit: Hit(kind: .photoFrame, id: frame.id, name: tr(frame.name)), words: ["photo frame"],
                              category: "Frames"))
         }
         for layout in PhotoGrids.layouts {
             let n = layout.cells.count
             var photos = ["\(n) photos"]
             if n >= 1 && n <= counted.count { photos.append("\(counted[n - 1]) photos") }
-            out.append(Entry(hit: Hit(kind: .grid, id: layout.id, name: layout.name),
+            out.append(Entry(hit: Hit(kind: .grid, id: layout.id, name: tr(layout.name)),
                              words: photos + ["collage", "photo grid"], category: "Grids"))
         }
         for line in linePresets {
-            out.append(Entry(hit: Hit(kind: .line, id: line.name, name: line.name), words: ["line"], category: "Lines"))
+            out.append(Entry(hit: Hit(kind: .line, id: line.name, name: tr(line.name)), words: ["line"], category: "Lines"))
         }
         for kind in DataGraphics.ChartKind.allCases {
-            out.append(Entry(hit: Hit(kind: .chart, id: kind.rawValue, name: "\(kind.name) chart"),
+            out.append(Entry(hit: Hit(kind: .chart, id: kind.rawValue, name: tr("%@ chart", kind.name)),
                              words: ["chart", "graph"], category: "Charts"))
         }
-        out.append(Entry(hit: Hit(kind: .table, id: "table", name: "Table"), words: ["table", "data"], category: "Tables"))
-        out.append(Entry(hit: Hit(kind: .qr, id: "qr", name: "QR code"), words: ["qr", "code", "link"], category: "Codes"))
+        out.append(Entry(hit: Hit(kind: .table, id: "table", name: tr("Table")), words: ["table", "data"], category: "Tables"))
+        out.append(Entry(hit: Hit(kind: .qr, id: "qr", name: tr("QR code")), words: ["qr", "code", "link"], category: "Codes"))
         for art in PhotoLibrary.photos {
             out.append(Entry(hit: Hit(kind: .stockArt, id: art.id, name: art.name), words: ["artwork", "background"],
                              category: art.category))
@@ -220,7 +220,7 @@ enum ElementSearch {
 
     /// What the search says when it finds nothing.
     static func nothingFound(_ query: String) -> String {
-        "Nothing called \"\(query.trimmingCharacters(in: .whitespacesAndNewlines))\". Try a shorter word."
+        tr("Nothing called \"%@\". Try a shorter word.", query.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     private static func rank(_ entry: Entry, _ q: String, _ also: [String]) -> Int? {

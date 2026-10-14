@@ -10,7 +10,7 @@ import Foundation
 enum Presenter {
 
     /// Where the page coming would be, after the last page shown.
-    static let endOfPresentation = "End of presentation"
+    static let endOfPresentation = tr("End of presentation")
 
     /// A timer as the presenter reads it: "0:00", "12:05", "1:02:03". Whole
     /// seconds, rounded down; minutes and seconds two digits each after the
@@ -26,7 +26,7 @@ enum Presenter {
     /// and how long it holds on autoplay to a tenth of a second, as the
     /// pages panel says it: "0:07 · holds 2.5 s".
     static func pageTime(_ seconds: Double, hold: Double) -> String {
-        "\(clockText(seconds)) · holds \(String(format: "%.1f", hold)) s"
+        tr("%@ · holds %@ s", clockText(seconds), String(format: "%.1f", hold))
     }
 
     /// The page after page `index` among `visible` (the design's
@@ -112,16 +112,16 @@ enum Presenter {
     static let effects: [Effect] = timers + others
 
     private static let timers: [Effect] = (1...9).map { (minutes: Int) -> Effect in
-        Effect(id: "timer\(minutes)", key: "\(minutes)", name: "\(minutes) min", symbol: "timer")
+        Effect(id: "timer\(minutes)", key: "\(minutes)", name: tr("%d min", minutes), symbol: "timer")
     }
 
     private static let others: [Effect] = [
-        Effect(id: "blur", key: "b", name: "Blur", symbol: "drop.halffull"),
-        Effect(id: "confetti", key: "c", name: "Confetti", symbol: "party.popper"),
-        Effect(id: "bubbles", key: "o", name: "Bubbles", symbol: "bubbles.and.sparkles"),
-        Effect(id: "quiet", key: "q", name: "Quiet", symbol: "hand.raised"),
-        Effect(id: "curtain", key: "u", name: "Curtain", symbol: "theatermasks"),
-        Effect(id: "clear", key: "x", name: "Clear", symbol: "xmark.circle"),
+        Effect(id: "blur", key: "b", name: tr("Blur"), symbol: "drop.halffull"),
+        Effect(id: "confetti", key: "c", name: tr("Confetti"), symbol: "party.popper"),
+        Effect(id: "bubbles", key: "o", name: tr("Bubbles"), symbol: "bubbles.and.sparkles"),
+        Effect(id: "quiet", key: "q", name: tr("Quiet"), symbol: "hand.raised"),
+        Effect(id: "curtain", key: "u", name: tr("Curtain"), symbol: "theatermasks"),
+        Effect(id: "clear", key: "x", name: tr("Clear"), symbol: "xmark.circle"),
     ]
 
     /// The effect a key asks for, capitals or not; nil for any other key.

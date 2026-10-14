@@ -15,11 +15,11 @@ enum HoldMenu {
 
         var title: String {
             switch self {
-            case .paste: return "Paste"
-            case .pastePage: return "Paste page"
-            case .selectAll: return "Select all"
-            case .addText: return "Add text here"
-            case .background: return "Background"
+            case .paste: return tr("Paste")
+            case .pastePage: return tr("Paste page")
+            case .selectAll: return tr("Select all")
+            case .addText: return tr("Add text here")
+            case .background: return tr("Background")
             }
         }
 
@@ -37,7 +37,7 @@ enum HoldMenu {
     /// What Add text here's box says until it is typed over — the default
     /// text box's words, as on the Android twin; they open chosen, so the
     /// first key replaces them.
-    static let words = "Your text here"
+    static let words = tr("Your text here")
 
     /// The items offered: Paste when there is something to paste — copied
     /// elements, or a picture another app left — Paste page when a page was

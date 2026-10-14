@@ -107,7 +107,7 @@ struct FindReplaceSheet: View {
                 .disabled(needle.isEmpty || found.isEmpty)
             // How many it will change, on the button that changes them, as
             // on the Android twin.
-            Button(found.isEmpty ? "Replace all" : "Replace all \(found.count)") {
+            Button(found.isEmpty ? tr("Replace all") : tr("Replace all %d", found.count)) {
                 replacedCount = store.replaceAll(needle, with: replacement,
                                                  caseSensitive: caseSensitive, wholeWord: wholeWord)
                 current = 0
@@ -192,11 +192,11 @@ struct FindReplaceSheet: View {
     /// once it has been.
     static func summary(needle: String, matches: [DesignStore.TextMatch], replaced: Int?) -> String {
         if let replaced {
-            return replaced == 1 ? "Replaced 1 occurrence." : "Replaced \(replaced) occurrences."
+            return trn("Replaced %d occurrence.|Replaced %d occurrences.", replaced)
         }
-        if needle.isEmpty { return "Searches the text on every page." }
-        if matches.isEmpty { return "Not found in this design." }
+        if needle.isEmpty { return tr("Searches the text on every page.") }
+        if matches.isEmpty { return tr("Not found in this design.") }
         let pages = Set(matches.map(\.pageIndex)).count
-        return "\(matches.count) found on \(pages == 1 ? "1 page" : "\(pages) pages")"
+        return tr("%d found on %@", matches.count, trn("%d page|%d pages", pages))
     }
 }

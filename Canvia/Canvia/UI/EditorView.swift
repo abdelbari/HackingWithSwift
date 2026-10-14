@@ -104,7 +104,9 @@ struct EditorView: View {
 
     /// What the banner says while saves are failing; the Android twin says
     /// the same.
-    static let saveFailedMessage = "Couldn't save your changes. Your phone may be out of space. Canvia will keep trying."
+    static var saveFailedMessage: String {
+        tr("Couldn't save your changes. Your phone may be out of space. Canvia will keep trying.")
+    }
 
     /// The page background panel — on a locked page, which keeps its
     /// background, the refusal, with Unlock, instead.
@@ -340,14 +342,14 @@ struct EditorView: View {
             } else if store.cropping != nil {
                 // Crop mode has its own two keys; the rest wait, since the
                 // photo is the only thing being worked.
-                shortcut(.return, [], "Done cropping") { store.finishCrop() }
-                shortcut(.escape, [], "Cancel crop") { store.cancelCrop() }
+                shortcut(.return, [], tr("Done cropping")) { store.finishCrop() }
+                shortcut(.escape, [], tr("Cancel crop")) { store.cancelCrop() }
             } else if store.editingTextId != nil {
                 // While words are typed in place, the ⌘ keys are the text's —
                 // ⌘A selects its words, ⌘V pastes text, ⌘Z takes back typing —
                 // as on the Android twin. Escape is Done: the typing kept as
                 // its own step, an emptied box removed, the box still chosen.
-                shortcut(.escape, [], "Done typing") { store.endTextEdit() }
+                shortcut(.escape, [], tr("Done typing")) { store.endTextEdit() }
             } else if !titleFocused && !store.textFieldOpen {
                 editingCommands
             }
@@ -361,25 +363,25 @@ struct EditorView: View {
                     // Under the eraser, ⌘Z takes back the last stroke painted,
                     // as the eraser bar's Undo does; the design behind it is
                     // left alone until the eraser is put down, as on Android.
-                    shortcut("z", [.command], "Undo stroke") {
+                    shortcut("z", [.command], tr("Undo stroke")) {
                         if !store.eraserBusy, !store.eraserStrokes.isEmpty { store.eraserStrokes.removeLast() }
                     }
                 } else {
-                    shortcut("z", [.command], "Undo") { store.undo() }
-                    shortcut("z", [.command, .shift], "Redo") { store.redo() }
+                    shortcut("z", [.command], tr("Undo")) { store.undo() }
+                    shortcut("z", [.command, .shift], tr("Redo")) { store.redo() }
                     // As well as ⇧⌘Z: the redo a keyboard used to Windows or
                     // Android reaches for, as the Android twin takes Ctrl+Y.
-                    shortcut("y", [.command], "Redo") { store.redo() }
+                    shortcut("y", [.command], tr("Redo")) { store.redo() }
                 }
-                shortcut("c", [.command], "Copy") { store.copySelected() }
-                shortcut("x", [.command], "Cut") { store.cutSelected() }
-                shortcut("v", [.command], "Paste") { store.paste() }
-                shortcut("d", [.command], "Duplicate") { store.duplicateSelected() }
-                shortcut("a", [.command], "Select all") { store.selectAll() }
-                shortcut(.delete, [.command], "Delete") { store.deleteSelected() }
+                shortcut("c", [.command], tr("Copy")) { store.copySelected() }
+                shortcut("x", [.command], tr("Cut")) { store.cutSelected() }
+                shortcut("v", [.command], tr("Paste")) { store.paste() }
+                shortcut("d", [.command], tr("Duplicate")) { store.duplicateSelected() }
+                shortcut("a", [.command], tr("Select all")) { store.selectAll() }
+                shortcut(.delete, [.command], tr("Delete")) { store.deleteSelected() }
                 // Escape ends paint mode or Select multiple first, keeping
                 // the selection.
-                shortcut(.escape, [], store.selectingMultiple || store.stylePainting ? "Done" : "Deselect") {
+                shortcut(.escape, [], store.selectingMultiple || store.stylePainting ? tr("Done") : tr("Deselect")) {
                     if store.stylePainting {
                         store.stylePainting = false
                     } else if store.selectingMultiple {
@@ -394,43 +396,43 @@ struct EditorView: View {
             // millimetre or one (Units.arrowStep) — only while no text field
             // has the keyboard, or the arrows would never reach the caret.
             if deleteKeysLive {
-                shortcut(.delete, [], "Delete") { store.deleteSelected() }
-                shortcut(.deleteForward, [], "Forward delete") { store.deleteSelected() }
+                shortcut(.delete, [], tr("Delete")) { store.deleteSelected() }
+                shortcut(.deleteForward, [], tr("Forward delete")) { store.deleteSelected() }
             }
             if store.editingTextId == nil && !titleFocused {
                 let step = Units.arrowStep(store.design, shift: false)
                 let big = Units.arrowStep(store.design, shift: true)
                 let bigName = Units.readout(big, store.design) + Units.suffix(store.design)
                 Group {
-                    shortcut(.leftArrow, [], "Nudge left") { store.nudgeSelected(dx: -step, dy: 0) }
-                    shortcut(.rightArrow, [], "Nudge right") { store.nudgeSelected(dx: step, dy: 0) }
-                    shortcut(.upArrow, [], "Nudge up") { store.nudgeSelected(dx: 0, dy: -step) }
-                    shortcut(.downArrow, [], "Nudge down") { store.nudgeSelected(dx: 0, dy: step) }
-                    shortcut(.leftArrow, [.shift], "Nudge left by \(bigName)") { store.nudgeSelected(dx: -big, dy: 0) }
-                    shortcut(.rightArrow, [.shift], "Nudge right by \(bigName)") { store.nudgeSelected(dx: big, dy: 0) }
-                    shortcut(.upArrow, [.shift], "Nudge up by \(bigName)") { store.nudgeSelected(dx: 0, dy: -big) }
-                    shortcut(.downArrow, [.shift], "Nudge down by \(bigName)") { store.nudgeSelected(dx: 0, dy: big) }
+                    shortcut(.leftArrow, [], tr("Nudge left")) { store.nudgeSelected(dx: -step, dy: 0) }
+                    shortcut(.rightArrow, [], tr("Nudge right")) { store.nudgeSelected(dx: step, dy: 0) }
+                    shortcut(.upArrow, [], tr("Nudge up")) { store.nudgeSelected(dx: 0, dy: -step) }
+                    shortcut(.downArrow, [], tr("Nudge down")) { store.nudgeSelected(dx: 0, dy: step) }
+                    shortcut(.leftArrow, [.shift], tr("Nudge left by %@", bigName)) { store.nudgeSelected(dx: -big, dy: 0) }
+                    shortcut(.rightArrow, [.shift], tr("Nudge right by %@", bigName)) { store.nudgeSelected(dx: big, dy: 0) }
+                    shortcut(.upArrow, [.shift], tr("Nudge up by %@", bigName)) { store.nudgeSelected(dx: 0, dy: -big) }
+                    shortcut(.downArrow, [.shift], tr("Nudge down by %@", bigName)) { store.nudgeSelected(dx: 0, dy: big) }
                 }
             }
             Group {
-                shortcut("g", [.command], "Group") { store.groupSelected() }
-                shortcut("g", [.command, .shift], "Ungroup") { store.ungroupSelected() }
-                shortcut("]", [.command], "Bring forward") { store.reorderSelected(.forward) }
-                shortcut("[", [.command], "Send backward") { store.reorderSelected(.backward) }
-                shortcut("]", [.command, .shift], "Bring to front") { store.reorderSelected(.front) }
-                shortcut("[", [.command, .shift], "Send to back") { store.reorderSelected(.back) }
-                shortcut("l", [.command, .shift], "Lock or unlock") { store.toggleLockSelected() }
+                shortcut("g", [.command], tr("Group")) { store.groupSelected() }
+                shortcut("g", [.command, .shift], tr("Ungroup")) { store.ungroupSelected() }
+                shortcut("]", [.command], tr("Bring forward")) { store.reorderSelected(.forward) }
+                shortcut("[", [.command], tr("Send backward")) { store.reorderSelected(.backward) }
+                shortcut("]", [.command, .shift], tr("Bring to front")) { store.reorderSelected(.front) }
+                shortcut("[", [.command, .shift], tr("Send to back")) { store.reorderSelected(.back) }
+                shortcut("l", [.command, .shift], tr("Lock or unlock")) { store.toggleLockSelected() }
             }
             Group {
-                shortcut("f", [.command], "Find and replace") { activeSheet = .find }
-                shortcut("e", [.command], "Export") { activeSheet = .export }
-                shortcut("k", [.command], "Layers") { activeSheet = .layers }
-                shortcut("p", [.command, .shift], "Present") { present() }
-                shortcut("/", [.command], "Help") { activeSheet = .help }
-                shortcut("n", [.command, .shift], "New page") { store.addPage() }
+                shortcut("f", [.command], tr("Find and replace")) { activeSheet = .find }
+                shortcut("e", [.command], tr("Export")) { activeSheet = .export }
+                shortcut("k", [.command], tr("Layers")) { activeSheet = .layers }
+                shortcut("p", [.command, .shift], tr("Present")) { present() }
+                shortcut("/", [.command], tr("Help")) { activeSheet = .help }
+                shortcut("n", [.command, .shift], tr("New page")) { store.addPage() }
                 // The style painter's keys, as on the Android twin's Ctrl+Alt.
-                shortcut("c", [.command, .option], "Copy style") { store.copyStyle() }
-                shortcut("v", [.command, .option], "Paste style") { store.pasteStyle() }
+                shortcut("c", [.command, .option], tr("Copy style")) { store.copyStyle() }
+                shortcut("v", [.command, .option], tr("Paste style")) { store.pasteStyle() }
             }
         }
     }
@@ -489,8 +491,8 @@ struct EditorView: View {
                 }
             }
             .feel(.error, trigger: rewindExhausted)
-            .accessibilityLabel(store.canUndo ? "Undo" : "Undo, nothing to undo")
-            .accessibilityHint(store.canUndo ? "Hold to rewind" : "")
+            .accessibilityLabel(store.canUndo ? tr("Undo") : tr("Undo, nothing to undo"))
+            .accessibilityHint(store.canUndo ? tr("Hold to rewind") : "")
     }
 
     private func startRewind() {
@@ -516,7 +518,9 @@ struct EditorView: View {
     private func shortcut(_ key: KeyEquivalent, _ modifiers: EventModifiers, _ title: String,
                           action: @escaping () -> Void) -> some View {
         Button(title, action: action)
-            .keyboardShortcut(key, modifiers: modifiers)
+            // Never mirrored: the arrows nudge across a design, which is
+            // left to right in any language (ReadingDirection).
+            .keyboardShortcut(key, modifiers: modifiers, localization: .withoutMirroring)
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
@@ -533,7 +537,7 @@ struct EditorView: View {
                 saveNow()
                 onHome()
             } label: {
-                Image(systemName: "chevron.left")
+                Image(systemName: "chevron.backward")
                     .fontWeight(.semibold)
             }
             .accessibilityLabel("Home")
@@ -554,7 +558,7 @@ struct EditorView: View {
                 Button { store.toggleDrawing() } label: {
                     Image(systemName: store.drawing == nil ? "pencil.tip" : "pencil.tip.crop.circle.fill")
                 }
-                .accessibilityLabel(store.drawing == nil ? "Draw" : "Stop drawing")
+                .accessibilityLabel(store.drawing == nil ? tr("Draw") : tr("Stop drawing"))
                 .accessibilityAddTraits(store.drawing == nil ? [] : .isSelected)
             }
 
@@ -668,21 +672,21 @@ struct EditorView: View {
                                                language: store.design.language)
                     }
                 } label: {
-                    Label(ReadAloud.shared.isSpeaking ? "Stop reading" : "Read page aloud",
+                    Label(ReadAloud.shared.isSpeaking ? tr("Stop reading") : tr("Read page aloud"),
                           systemImage: ReadAloud.shared.isSpeaking ? "speaker.slash" : "speaker.wave.2")
                 }
 
                 Button {
                     store.toggleMasterPage()
                 } label: {
-                    Label(store.isOnMasterPage ? "Stop using this page as master" : "Use this page as master",
+                    Label(store.isOnMasterPage ? tr("Stop using this page as master") : tr("Use this page as master"),
                           systemImage: "rectangle.on.rectangle")
                 }
                 if store.design.masterPage != nil && !store.isOnMasterPage {
                     Button {
                         store.toggleUsesMaster()
                     } label: {
-                        Label(store.page.usesMaster == false ? "Show master on this page" : "Hide master on this page",
+                        Label(store.page.usesMaster == false ? tr("Show master on this page") : tr("Hide master on this page"),
                               systemImage: "rectangle.on.rectangle.slash")
                     }
                 }
@@ -872,7 +876,7 @@ struct EditorView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                Text("\(store.selection.count) selected")
+                Text(trn("%d selected|%d selected", store.selection.count))
                     .font(.subheadline.weight(.semibold))
                     .monospacedDigit()
             }
@@ -914,12 +918,12 @@ struct EditorView: View {
     /// takes the part of a stroke it passes over or the whole stroke.
     private func penSliders(_ tool: Freehand.Tool) -> some View {
         HStack(spacing: 14) {
-            penSlider("Size", value: tool.width, in: Freehand.widthRange, readout: "\(Int(tool.width))") { v in
+            penSlider(tr("Size"), value: tool.width, in: Freehand.widthRange, readout: "\(Int(tool.width))") { v in
                 let width = Freehand.snappedWidth(v)
                 if store.drawing?.width != width { store.drawing?.width = width }
             }
             if tool.pen.hasInk {
-                penSlider("Transparency", value: tool.transparency, in: 0...Freehand.maxTransparency,
+                penSlider(tr("Transparency"), value: tool.transparency, in: 0...Freehand.maxTransparency,
                           readout: "\(Int(tool.transparency))%") { v in
                     store.drawing?.transparency = Freehand.keptTransparency(v)
                 }
@@ -945,7 +949,7 @@ struct EditorView: View {
                 .frame(width: 110)
                 .accessibilityLabel(label)
                 .accessibilityValue(readout)
-            Text("\(label) \(readout)")
+            Text(verbatim: "\(label) \(readout)")
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
@@ -1032,10 +1036,11 @@ struct EditorView: View {
                 }
                 .overlay { if own { Circle().stroke(Theme.accent, lineWidth: 2).padding(-3) } }
         }
-        .accessibilityLabel(own ? "\(ElementNames.spokenColour(tool.color)) ink, choose another colour" : "More ink colours")
+        .accessibilityLabel(own ? tr("%@ ink, choose another colour", ElementNames.spokenColour(tool.color))
+                            : tr("More ink colours"))
         .accessibilityAddTraits(own ? .isSelected : [])
         .sheet(isPresented: $choosingInk) {
-            ColorPickerSheet(store: store, title: "Ink colour", current: store.drawing?.color,
+            ColorPickerSheet(store: store, title: tr("Ink colour"), current: store.drawing?.color,
                              onPick: { hex in store.drawing?.color = hex })
         }
     }
@@ -1178,7 +1183,7 @@ struct EditorView: View {
             InsertSheet(store: store)
         case .colorFill:
             // An SVG's line or outline part takes a colour as its ink.
-            ColorPickerSheet(store: store, title: "Fill colour",
+            ColorPickerSheet(store: store, title: tr("Fill colour"),
                              current: store.singleSelection.flatMap(Freehand.fillColour),
                              allowGradients: true,
                              allowPatterns: true,
@@ -1192,7 +1197,7 @@ struct EditorView: View {
             // own field; picking a plain colour clears it.
             // Colours and gradients only: text draws no pattern or photo.
             // Several texts ring what they share, and nothing when they differ.
-            ColorPickerSheet(store: store, title: "Text colour",
+            ColorPickerSheet(store: store, title: tr("Text colour"),
                              current: store.sharedText { $0.color ?? "#1f2430" },
                              allowGradients: true,
                              allowPatterns: false,
@@ -1204,14 +1209,14 @@ struct EditorView: View {
                              },
                              swapsColours: true)
         case .colorLine:
-            ColorPickerSheet(store: store, title: "Line colour",
+            ColorPickerSheet(store: store, title: tr("Line colour"),
                              current: store.singleSelection?.color,
                              onPick: { c in store.updateSelected { $0.color = c } },
                              onPickTransient: { c in store.updateSelectedTransient { $0.color = c } },
                              swapsColours: true)
         case .colorStroke:
             ColorPickerSheet(store: store,
-                             title: store.singleSelection.map(Freehand.isStroke) == true ? "Ink colour" : "Border colour",
+                             title: store.singleSelection.map(Freehand.isStroke) == true ? tr("Ink colour") : tr("Border colour"),
                              current: store.singleSelection?.stroke,
                              onPick: { c in
                                  store.updateSelected {
@@ -1230,14 +1235,14 @@ struct EditorView: View {
             // The words chosen while typing, from the bar's colour well:
             // the text colour sheet's title, as Android has no heading of
             // its own for them, and the note both phones show.
-            ColorPickerSheet(store: store, title: "Text colour",
+            ColorPickerSheet(store: store, title: tr("Text colour"),
                              current: store.wordColour,
                              note: DesignStore.wordColourNote,
                              onPick: { c in store.colourWords(c) },
                              onPickTransient: { c in store.colourWordsTransient(c) })
         case .colorSelection:
             // Several things at once: each takes the colour its own way.
-            ColorPickerSheet(store: store, title: "Colour",
+            ColorPickerSheet(store: store, title: tr("Colour"),
                              current: nil,
                              allowGradients: store.selectionTakesGradient,
                              allowPatterns: FillChoices.offersPatterns(for: store.selectedElements),
@@ -1499,7 +1504,7 @@ struct EditorView: View {
         toastUndoes = undoable
         toastVersion = store.historyVersion
         withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { toast = text }
-        AccessibilityNotification.Announcement(undoable ? "\(text). Undo available." : text).post()
+        AccessibilityNotification.Announcement(undoable ? tr("%@. Undo available.", text) : text).post()
         // Held open only when there is an Undo to reach; a toast with none
         // goes in the usual time.
         let assisted = UIAccessibility.isVoiceOverRunning || UIAccessibility.isSwitchControlRunning
@@ -1553,7 +1558,7 @@ struct EditorView: View {
         saveNow()
         let copy = CopyResize.madeCopy(of: store.design, taken: DesignLibrary.recents().map(\.title))
         guard DesignLibrary.save(copy) else {
-            show(toast: "Couldn't make a copy", undoable: false)
+            show(toast: tr("Couldn't make a copy"), undoable: false)
             return
         }
         DesignLibrary.writeThumbnail(for: copy)
@@ -1618,7 +1623,7 @@ struct EditorView: View {
         }
         // Which palette it was, said and felt, as on the Android twin.
         store.buzz(.confirm)
-        store.announce("Colours: \(palette.name)")
+        store.announce(tr("Colours: %@", palette.name))
     }
 
     private func scheduleSave() {
@@ -1665,11 +1670,11 @@ private extension View {
     /// the Android twin's words; Delete there goes ahead. Shown from the
     /// editor, or from the sheet over it while one is up.
     func asksBeforeLockedDelete(_ isPresented: Binding<Bool>, several: Bool, store: DesignStore) -> some View {
-        alert(several ? "Delete these?" : "Delete this?", isPresented: isPresented) {
+        alert(several ? tr("Delete these?") : tr("Delete this?"), isPresented: isPresented) {
             Button("Delete", role: .destructive) { store.deleteSelected(confirmed: true) }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text(several ? "Some of them have their position locked." : "Its position is locked.")
+            Text(several ? tr("Some of them have their position locked.") : tr("Its position is locked."))
         }
     }
 }

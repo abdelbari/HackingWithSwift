@@ -49,8 +49,8 @@ enum MovieExporter {
 
         var errorDescription: String? {
             switch self {
-            case .nothingToRender: return "there was nothing to render"
-            case .writerFailed(let why): return "the video could not be written (\(why))"
+            case .nothingToRender: return tr("there was nothing to render")
+            case .writerFailed(let why): return tr("the video could not be written (%@)", why)
             }
         }
     }

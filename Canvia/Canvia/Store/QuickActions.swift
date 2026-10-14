@@ -36,15 +36,15 @@ enum QuickActions {
     /// then the most recently touched designs.
     static func items(recents: [RecentDesign]) -> [Item] {
         var items = [
-            Item(type: newType, title: "New post", subtitle: "New Instagram post", symbol: "plus.square",
+            Item(type: newType, title: tr("New post"), subtitle: tr("New Instagram post"), symbol: "plus.square",
                  info: [presetKey: "insta-post"]),
-            Item(type: newType, title: "New story", subtitle: "New Instagram story", symbol: "plus.rectangle.portrait",
+            Item(type: newType, title: tr("New story"), subtitle: tr("New Instagram story"), symbol: "plus.rectangle.portrait",
                  info: [presetKey: "insta-story"]),
         ]
         let latest = recents.sorted { $0.updatedAt > $1.updatedAt }.prefix(recentCount)
         for recent in latest {
             let title = recent.title.trimmingCharacters(in: .whitespacesAndNewlines)
-            items.append(Item(type: openType, title: title.isEmpty ? "Untitled design" : title, subtitle: nil,
+            items.append(Item(type: openType, title: title.isEmpty ? tr("Untitled design") : title, subtitle: nil,
                               symbol: "doc.richtext", info: [designKey: recent.id]))
         }
         return items

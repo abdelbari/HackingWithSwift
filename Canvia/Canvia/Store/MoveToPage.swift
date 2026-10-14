@@ -58,7 +58,7 @@ extension DesignStore {
         }
         pageIndex = index
         selection = Set(moved.map(\.id))
-        announce("Moved to page \(index + 1)")
+        announce(tr("Moved to page %d", index + 1))
         return true
     }
 
@@ -91,7 +91,7 @@ extension DesignStore {
 
     /// What VoiceOver hears as Select multiple comes on, as TalkBack does
     /// on the Android twin; the view that turns it on says it.
-    static let selectMultipleOn = "Select multiple on"
+    static let selectMultipleOn = tr("Select multiple on")
 
     /// Select multiple on, from the toolbar or the menu.
     func startSelectingMultiple() {

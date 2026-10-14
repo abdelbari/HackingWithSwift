@@ -33,7 +33,7 @@ struct PagesBar: View {
                     Button {
                         if store.previewTime == nil { store.playPreview() } else { store.stopPreview() }
                     } label: { Image(systemName: store.previewTime == nil ? "play.circle" : "stop.circle") }
-                        .accessibilityLabel(store.previewTime == nil ? "Play this page's animation" : "Stop preview")
+                        .accessibilityLabel(store.previewTime == nil ? tr("Play this page's animation") : tr("Stop preview"))
                 }
                 Menu {
                     Button { store.duplicatePage() } label: {
@@ -50,12 +50,12 @@ struct PagesBar: View {
                     // a lone page already hidden can still be shown again.
                     if store.design.pages.count > 1 || store.page.hidden == true {
                         Button { store.setPageHidden(store.page.hidden != true) } label: {
-                            Label(store.page.hidden == true ? "Show page" : "Hide page",
+                            Label(store.page.hidden == true ? tr("Show page") : tr("Hide page"),
                                   systemImage: store.page.hidden == true ? "eye" : "eye.slash")
                         }
                     }
                     Button { store.setPageLocked(!store.isPageLocked) } label: {
-                        Label(store.isPageLocked ? "Unlock page" : "Lock page",
+                        Label(store.isPageLocked ? tr("Unlock page") : tr("Lock page"),
                               systemImage: store.isPageLocked ? "lock.open" : "lock")
                     }
                 } label: { Image(systemName: "plus.square.on.square") }
@@ -104,10 +104,14 @@ struct PagesBar: View {
 
     /// The page menu as VoiceOver says it: what is in it.
     private var pageMenuLabel: String {
-        let lock = store.isPageLocked ? "unlock" : "lock"
-        if store.page.hidden == true { return "Duplicate, copy, paste, show or \(lock) page" }
-        return store.design.pages.count > 1 ? "Duplicate, copy, paste, hide or \(lock) page"
-            : "Duplicate, copy, paste or \(lock) page"
+        let locked = store.isPageLocked
+        if store.page.hidden == true {
+            return locked ? tr("Duplicate, copy, paste, show or unlock page") : tr("Duplicate, copy, paste, show or lock page")
+        }
+        if store.design.pages.count > 1 {
+            return locked ? tr("Duplicate, copy, paste, hide or unlock page") : tr("Duplicate, copy, paste, hide or lock page")
+        }
+        return locked ? tr("Duplicate, copy, paste or unlock page") : tr("Duplicate, copy, paste or lock page")
     }
 
     /// The thumbnails, made as they scroll into view, then +.
@@ -143,6 +147,10 @@ struct PagesBar: View {
         }
         .onChange(of: holding) { _, held in if !held { putDown(moving: false) } }
         .onDisappear { edges.stop() }
+        // The pages lie left to right in any language, as the timeline's
+        // and the canvas's do, so Move page left and right are where they
+        // say; the buttons beside them read as the language does.
+        .designDirection()
     }
 
     /// Press and hold, then drag: the page lifted and carried along the
@@ -252,10 +260,10 @@ struct PagesBar: View {
     /// whether it is the one on screen, and whether it is hidden or locked.
     static func spokenThumb(number: Int, title: String?, current: Bool, hidden: Bool,
                             locked: Bool = false) -> String {
-        var label = "Page \(number)"
+        var label = tr("Page %d", number)
         if let title = title.flatMap(PageTitles.kept) { label += ", " + title }
-        if current { label += ", current" }
-        if hidden { label += ", hidden" }
+        if current { label += ", " + tr("current") }
+        if hidden { label += ", " + tr("hidden") }
         if locked { label += ", " + PageLocks.spoken }
         return label
     }
@@ -322,7 +330,7 @@ struct PageNotesSheet: View {
                         get: { hold },
                         set: { v in finishTyping(); store.applyToPage { $0.holdSeconds = v } }),
                             in: MotionSettings.pageHoldRange, step: 0.5) {
-                        Text("Hold \(String(format: "%.1f", hold))s" + (store.page.holdSeconds == nil ? " (document setting)" : ""))
+                        Text(holdLabel(hold))
                     }
                     Picker("Transition to the next page", selection: Binding(
                         get: { store.page.transition ?? "default" },
@@ -330,7 +338,8 @@ struct PageNotesSheet: View {
                         // In Android's order, the shared list's.
                         Text("Document setting").tag("default")
                         Text("Fade").tag("fade")
-                        Text("Cut").tag("cut")
+                        // The film editor's cut, not the clipboard's.
+                        Text(tr("Cut", context: "transition")).tag("cut")
                         Text("Slide").tag("slide")
                         Text("Push").tag("push")
                         Text("Wipe").tag("wipe")
@@ -384,6 +393,13 @@ struct PageNotesSheet: View {
         .presentationDetents([.medium])
         .onAppear { titleText = store.page.title ?? "" }
         .onDisappear { finishTyping() }
+    }
+
+    /// "Hold 3.0s", and "(document setting)" when the page has no time of
+    /// its own.
+    private func holdLabel(_ hold: Double) -> String {
+        let seconds = String(format: "%.1f", hold)
+        return store.page.holdSeconds == nil ? tr("Hold %@s (document setting)", seconds) : tr("Hold %@s", seconds)
     }
 
     /// A keystroke in the title: cut at the cap, and the page given the title

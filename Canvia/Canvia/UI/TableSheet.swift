@@ -38,13 +38,13 @@ struct TableSheet: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
             .sheet(isPresented: $choosingColour) {
-                ColorPickerSheet(store: store, title: "Cell colour",
+                ColorPickerSheet(store: store, title: tr("Cell colour"),
                                  current: store.tableCellColour,
                                  onPick: { c in store.setTableCellColour(c) },
                                  onPickTransient: { c in store.setTableCellColourTransient(c) })
             }
             .sheet(isPresented: $choosingBorderColour) {
-                ColorPickerSheet(store: store, title: "Border colour",
+                ColorPickerSheet(store: store, title: tr("Border colour"),
                                  current: store.tableBorderColour,
                                  onPick: { c in store.setTableBorderColour(c) },
                                  onPickTransient: { c in store.setTableBorderTransient(width: nil, color: c) })
@@ -111,7 +111,7 @@ struct TableSheet: View {
             Toggle("Header row", isOn: Binding(get: { table.header },
                                                set: { on in store.setTableHeader(on) }))
             Button { choosingColour = true } label: {
-                swatchRow("Cell colour", colour: store.tableCellColour ?? DataGraphics.tableBody)
+                swatchRow(tr("Cell colour"), colour: store.tableCellColour ?? DataGraphics.tableBody)
             }
             .accessibilityLabel("Cell colour")
             .accessibilityValue(ElementNames.spokenColour(store.tableCellColour))
@@ -150,7 +150,7 @@ struct TableSheet: View {
             .pickerStyle(.segmented)
             borderSlider(width ?? 0)
             Button { choosingBorderColour = true } label: {
-                swatchRow("Border colour", colour: store.tableBorderColour ?? DataGraphics.tableHairline)
+                swatchRow(tr("Border colour"), colour: store.tableBorderColour ?? DataGraphics.tableHairline)
             }
             .accessibilityLabel("Border colour")
             .accessibilityValue(ElementNames.spokenColour(store.tableBorderColour))

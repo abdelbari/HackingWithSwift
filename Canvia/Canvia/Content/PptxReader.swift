@@ -107,8 +107,8 @@ enum PptxReader {
     static let kinds = [chart, smartArt, video, sound, picture, shape, font, other]
 
     /// What a file is said to be when it is not a deck with slides.
-    static let notADeck = "That file isn't a PowerPoint presentation."
-    static let tooBig = "That PowerPoint is too big to open."
+    static let notADeck = tr("That file isn't a PowerPoint presentation.")
+    static let tooBig = tr("That PowerPoint is too big to open.")
 
     private static let mediaPrefix = "media:"
 
@@ -179,22 +179,29 @@ enum PptxReader {
     /// anything was left out, "3 items couldn't be brought in (2 charts, 1
     /// SmartArt)." — each kind in `kinds`' order.
     static func summary(slides: Int, skipped: [String: Int]) -> String {
-        let head = "Imported \(slides) \(slides == 1 ? "slide" : "slides")."
+        let head = trn("Imported %d slide.|Imported %d slides.", slides)
         let counted = kinds.compactMap { kind -> (String, Int)? in
             guard let n = skipped[kind], n > 0 else { return nil }
             return (kind, n)
         }
         let total = counted.reduce(0) { $0 + $1.1 }
         guard total > 0 else { return head }
-        let parts = counted.map { "\($0.1) \(label($0.0, $0.1))" }.joined(separator: ", ")
-        return "\(head) \(total) \(total == 1 ? "item" : "items") couldn't be brought in (\(parts))."
+        let parts = counted.map { label($0.0, $0.1) }.joined(separator: ", ")
+        return head + " " + trn("%d item couldn't be brought in (%@).|%d items couldn't be brought in (%@).", total, parts)
     }
 
+    /// "2 charts", "1 SmartArt": `n` of `kind`.
     private static func label(_ kind: String, _ n: Int) -> String {
         switch kind {
-        case smartArt: return smartArt
-        case other: return n == 1 ? "other item" : "other items"
-        default: return n == 1 ? kind : kind + "s"
+        case chart: return trn("%d chart|%d charts", n)
+        case smartArt: return trn("%d SmartArt|%d SmartArt", n)
+        case video: return trn("%d video|%d videos", n)
+        case sound: return trn("%d sound|%d sounds", n)
+        case picture: return trn("%d picture|%d pictures", n)
+        case shape: return trn("%d shape|%d shapes", n)
+        case font: return trn("%d font|%d fonts", n)
+        case other: return trn("%d other item|%d other items", n)
+        default: return "\(n) " + (n == 1 ? kind : kind + "s")
         }
     }
 

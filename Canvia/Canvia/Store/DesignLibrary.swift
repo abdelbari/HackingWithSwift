@@ -200,10 +200,10 @@ enum DesignLibrary {
     /// What emptying Recently deleted asks first, as the Android twin asks
     /// it: "Delete 3 designs forever?", then `cannotBeUndone`.
     static func emptyTrashQuestion(count: Int) -> String {
-        "Delete \(count) \(count == 1 ? "design" : "designs") forever?"
+        trn("Delete %d design forever?|Delete %d designs forever?", count)
     }
 
-    static let cannotBeUndone = "This can't be undone."
+    static let cannotBeUndone = tr("This can't be undone.")
 
     // MARK: search and sort
 
@@ -212,9 +212,9 @@ enum DesignLibrary {
         var id: String { rawValue }
         var label: String {
             switch self {
-            case .recent: return "Last edited"
-            case .name: return "Name"
-            case .largest: return "Most pages"
+            case .recent: return tr("Last edited")
+            case .name: return tr("Name")
+            case .largest: return tr("Most pages")
             }
         }
     }
@@ -282,7 +282,7 @@ enum DesignLibrary {
         var seeded: [Design] = []
         for (n, template) in templates.prefix(2).enumerated() {
             var design = template.instantiate()
-            design.title = "Sample: \(template.name)"
+            design.title = tr("Sample: %@", template.name)
             // A moment apart, so the two sort predictably.
             design.updatedAt = now.timeIntervalSince1970 * 1000 - Double(n) * 1000
             save(design)
@@ -396,7 +396,7 @@ enum DesignLibrary {
     /// 3 Oct 2026, 14:05)", `date` being when the version was kept.
     static func versionCopyTitle(_ title: String, date: String) -> String {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return "\(trimmed.isEmpty ? "Untitled design" : trimmed) (version from \(date))"
+        return tr("%@ (version from %@)", trimmed.isEmpty ? tr("Untitled design") : trimmed, date)
     }
 
     /// When a version was kept, as its copy's title says it: the phone's

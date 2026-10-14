@@ -77,7 +77,9 @@ struct ThemeSheet: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.hairline))
                 .frame(maxWidth: .infinity)
-            Text(design.pages.count == 1 ? "Preview" : "Preview of page 1 — applies to all \(design.pages.count) pages")
+            Text(design.pages.count == 1 ? tr("Preview")
+                 : trn("Preview of page 1 — applies to all %d page|Preview of page 1 — applies to all %d pages",
+                       design.pages.count))
                 .font(.caption).foregroundStyle(.secondary)
         }
     }
@@ -111,7 +113,7 @@ struct ThemeSheet: View {
                         .stroke(chosen ? Theme.accent : Theme.hairline))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(BrandKit.isBrandPalette(p) ? "\(kit.name), \(p.name)" : p.name)
+                .accessibilityLabel(BrandKit.isBrandPalette(p) ? tr("%@, %@", kit.name, p.name) : p.name)
                 .accessibilityAddTraits(chosen ? [.isSelected] : [])
             }
         }

@@ -51,13 +51,13 @@ enum CopyResize {
     /// "<title> – <size>": an en dash, spaced, as on Android.
     static func title(_ title: String, target: ResizeTarget) -> String {
         let base = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return "\(base.isEmpty ? "Untitled design" : base) – \(target.label)"
+        return "\(base.isEmpty ? tr("Untitled design") : base) – \(target.label)"
     }
 
     /// The editor's Make a copy: "<title> copy".
     static func copyTitle(_ title: String) -> String {
         let base = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        return "\(base.isEmpty ? "Untitled design" : base) copy"
+        return tr("%@ copy", base.isEmpty ? tr("Untitled design") : base)
     }
 
     /// The design again with every id fresh: its own, each page's (the
@@ -124,20 +124,20 @@ enum CopyResize {
 
     /// The button: "Make 1 copy", "Make 3 copies".
     static func buttonTitle(count: Int) -> String {
-        count == 1 ? "Make 1 copy" : "Make \(count) copies"
+        trn("Make %d copy|Make %d copies", count)
     }
 
     /// While they are made: "Making copy 2 of 3…".
     static func progressText(_ n: Int, of total: Int) -> String {
-        "Making copy \(n) of \(total)…"
+        tr("Making copy %d of %d…", n, total)
     }
 
     /// When none could be saved — the disk full, say — as Android says it.
-    static let failedText = "Couldn't make the copies"
+    static let failedText = tr("Couldn't make the copies")
 
     /// Afterwards: "Made 1 resized copy", "Made 3 resized copies".
     static func doneText(count: Int) -> String {
-        count == 1 ? "Made 1 resized copy" : "Made \(count) resized copies"
+        trn("Made %d resized copy|Made %d resized copies", count)
     }
 
     /// Whether a design has anything on it, so the Resize sheet opens on

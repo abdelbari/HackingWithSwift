@@ -100,12 +100,12 @@ struct ColorPickerSheet: View {
 
                     let recents = RecentColors.all
                     if !recents.isEmpty {
-                        section("Recent", colors: recents)
+                        section(tr("Recent"), colors: recents)
                     }
 
                     let docColors = ColorTools.documentColors(store.design)
                     if !docColors.isEmpty {
-                        section("In this design", colors: docColors)
+                        section(tr("In this design"), colors: docColors)
                     }
 
                     // The colours of the photos on the page — every one, the
@@ -114,20 +114,20 @@ struct ColorPickerSheet: View {
                     // making the two look like one design.
                     Group {
                         if !photoColors.isEmpty {
-                            section("From the photos", colors: photoColors)
+                            section(tr("From the photos"), colors: photoColors)
                         }
 
                         // The palette that best covers what is on the page
                         // already, as the Android twin suggests it — a second
                         // colour that belongs is the hard part.
                         if let suggested = ColorTools.suggestedPalette(for: store.page) {
-                            section("Goes with these · \(suggested.name)", colors: suggested.colors)
+                            section(tr("Goes with these · %@", suggested.name), colors: suggested.colors)
                         }
                     }
 
                     harmonySection
 
-                    section("Default colours", colors: ContentLibrary.defaultSwatches)
+                    section(tr("Default colours"), colors: ContentLibrary.defaultSwatches)
 
                     if allowGradients, swapTarget == nil, let onPickGradient {
                         Text("Gradients").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
@@ -407,8 +407,19 @@ struct ColorPickerSheet: View {
                 .frame(height: 40)
                 .overlay(chosenRing(chosen))
         }
-        .accessibilityLabel("\(preset.name) \(gradientKind) gradient")
+        .accessibilityLabel(tr("%@ %@ gradient", preset.name, Self.gradientKindWord(gradientKind)))
         .accessibilityAddTraits(chosen ? .isSelected : [])
+    }
+
+    /// A gradient's shape — "linear", "radial", "angular" — as its spoken
+    /// name says it; the background's gradients say it too.
+    static func gradientKindWord(_ kind: String) -> String {
+        switch kind {
+        case "linear": return tr("linear")
+        case "radial": return tr("radial")
+        case "angular": return tr("angular")
+        default: return kind
+        }
     }
 
     private func chosenRing(_ chosen: Bool) -> some View {

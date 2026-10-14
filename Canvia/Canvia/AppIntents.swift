@@ -170,12 +170,12 @@ struct NewDesignIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        let typeName = size.preset?.name ?? "Design"
+        let typeName = size.preset?.name ?? tr("Design")
         let title = name?.trimmingCharacters(in: .whitespaces)
         // By id, so the design starts in its type's unit; a type this build
         // no longer lists is the first one.
         LaunchRequest.set(.newType(id: size.rawValue,
-                                   title: (title?.isEmpty ?? true) ? "Untitled \(typeName)" : title!))
+                                   title: (title?.isEmpty ?? true) ? tr("Untitled %@", typeName) : title!))
         return .result()
     }
 }

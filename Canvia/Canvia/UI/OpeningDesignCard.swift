@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct OpeningDesignCard: View {
-    var label = "Opening the design…"
+    var label = tr("Opening the design…")
 
     var body: some View {
         ZStack {

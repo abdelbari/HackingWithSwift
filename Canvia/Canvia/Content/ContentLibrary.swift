@@ -10,6 +10,11 @@ struct ShapeDef: Codable, Identifiable {
     var category: String
     var path: String
     var rectLike: Bool?
+    /// Its name in English, as the catalogue keys it, for a library shape;
+    /// `name` is what the app calls it.
+    var englishName: String? = nil
+
+    private enum CodingKeys: String, CodingKey { case id, name, category, path, rectLike }
 }
 
 /// One page of a template that has several: what is on it, and the title
@@ -276,13 +281,19 @@ enum ContentLibrary {
     static let bundle: ContentBundle = {
         guard let url = Bundle.main.url(forResource: "Content", withExtension: "json"),
               let data = try? Data(contentsOf: url),
-              let decoded = try? JSONDecoder().decode(ContentBundle.self, from: data) else {
+              var decoded = try? JSONDecoder().decode(ContentBundle.self, from: data) else {
             assertionFailure("Content.json missing or invalid")
             return ContentBundle(
                 shapes: [fallbackShape],
                 templates: [], palettes: [], gradients: [], pairings: [],
                 stickerGroups: [],
                 photoSpecs: PhotoSpecs(meshes: [], waves: [], stripes: []))
+        }
+        // A shape's name is the app's words, as the Android twin's
+        // ShapeLibrary has them; its id is what a design keeps.
+        for i in decoded.shapes.indices {
+            decoded.shapes[i].englishName = decoded.shapes[i].name
+            decoded.shapes[i].name = tr(decoded.shapes[i].name)
         }
         return decoded
     }()
@@ -316,9 +327,9 @@ enum ContentLibrary {
     ]
 
     /// A plain square, used whenever a shape id cannot be resolved.
-    static let fallbackShape = ShapeDef(id: "rect", name: "Square",
+    static let fallbackShape = ShapeDef(id: "rect", name: tr("Square"),
                                         category: "Basic", path: "M0,0H100V100H0Z",
-                                        rectLike: true)
+                                        rectLike: true, englishName: "Square")
 
     // `uniqueKeysWithValues:` traps on a duplicate id, and the trap would
     // happen at launch, on first access. A duplicate in the content library
@@ -334,7 +345,7 @@ enum ContentLibrary {
     /// else the library shape it names.
     static func shape(for el: Element) -> ShapeDef {
         if let d = el.pathData, !d.isEmpty {
-            return ShapeDef(id: "custom", name: "Custom shape", category: "Custom", path: d, rectLike: false)
+            return ShapeDef(id: "custom", name: tr("Custom shape"), category: "Custom", path: d, rectLike: false)
         }
         return shape(el.shapeId)
     }
@@ -387,8 +398,8 @@ enum ContentLibrary {
     /// every size is there when none is made for this one.
     static func editorTemplatesNote(exactCount: Int) -> String {
         exactCount == 0
-            ? "Nothing is made for this exact size, so every template is fitted to it. It replaces this page; Undo brings it back."
-            : "Replaces what is on this page. Undo brings it back."
+            ? tr("Nothing is made for this exact size, so every template is fitted to it. It replaces this page; Undo brings it back.")
+            : tr("Replaces what is on this page. Undo brings it back.")
     }
 
     /// A size's templates: those made at exactly its pixels, then any made
@@ -423,8 +434,9 @@ enum ContentLibrary {
     /// Android twin names its groups — a search for "badge" or "speech"
     /// should find the whole group, and a header should read as words.
     static let shapeGroupNames: [String: String] = [
-        "Basic": "Basic shapes", "Stars": "Stars and badges", "Arrows": "Arrows",
-        "Callouts": "Speech and labels", "Symbols": "Symbols", "Blobs": "Blobs", "Decor": "Decorative",
+        "Basic": tr("Basic shapes"), "Stars": tr("Stars and badges"), "Arrows": tr("Arrows"),
+        "Callouts": tr("Speech and labels"), "Symbols": tr("Symbols"), "Blobs": tr("Blobs"),
+        "Decor": tr("Decorative"),
     ]
 
     static func shapeGroupName(_ category: String) -> String {

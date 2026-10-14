@@ -143,6 +143,13 @@
 			knownRegions = (
 				en,
 				Base,
+				es,
+				fr,
+				de,
+				"pt-BR",
+				it,
+				ja,
+				ar,
 			);
 			mainGroup = CA0000000000000000000002;
 			minimizedProjectReferenceProxies = 1;

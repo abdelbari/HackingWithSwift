@@ -77,16 +77,16 @@ enum TypeReadouts {
 
     /// "None", or "0.4 em".
     static func paragraphSpacing(_ value: Double) -> String {
-        value < 0.01 ? "None" : "\(Double((value * 10).rounded()) / 10) em"
+        value < 0.01 ? tr("None") : "\(Double((value * 10).rounded()) / 10) em"
     }
 
     /// The alignment as a word, for VoiceOver.
     static func alignment(_ align: String?) -> String {
         switch align ?? "center" {
-        case "left": return "Left"
-        case "right": return "Right"
-        case "justify": return "Justify"
-        default: return "Center"
+        case "left": return tr("Left")
+        case "right": return tr("Right")
+        case "justify": return tr("Justify")
+        default: return tr("Center")
         }
     }
 
@@ -132,7 +132,7 @@ enum TypeReadouts {
     // MARK: several texts
 
     /// What a control says where the texts selected differ.
-    static let mixed = "Mixed"
+    static let mixed = tr("Mixed")
 
     /// The one value every item has, or nil when they differ or there are
     /// none.
@@ -179,10 +179,10 @@ enum TypeReadouts {
     /// The list style as the List menu names it.
     static func listStyle(_ style: String?) -> String {
         switch style {
-        case "bullet": return "Bullets"
-        case "number": return "Numbers"
-        case "letter": return "Letters"
-        default: return "No list"
+        case "bullet": return tr("Bullets")
+        case "number": return tr("Numbers")
+        case "letter": return tr("Letters")
+        default: return tr("No list")
         }
     }
 }

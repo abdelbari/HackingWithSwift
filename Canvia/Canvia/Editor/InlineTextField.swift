@@ -464,7 +464,7 @@ struct InlineTextField: UIViewRepresentable {
             strip.addSubview(tools)
             strip.contentSize = tools.frame.size
             let ending = UIToolbar()
-            ending.items = [UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(finish))]
+            ending.items = [UIBarButtonItem(title: tr("Done"), style: .done, target: self, action: #selector(finish))]
             for bar in [tools, ending] {
                 bar.setBackgroundImage(UIImage(), forToolbarPosition: .any, barMetrics: .default)
                 bar.setShadowImage(UIImage(), forToolbarPosition: .any)
@@ -502,30 +502,30 @@ struct InlineTextField: UIViewRepresentable {
             }
             let well = UIBarButtonItem(image: UIImage(systemName: "circle.fill"), style: .plain,
                                        target: self, action: #selector(colourWords))
-            well.accessibilityLabel = "Colour of the selected words"
+            well.accessibilityLabel = tr("Colour of the selected words")
             let smaller = UIBarButtonItem(title: "A-", style: .plain, target: self, action: #selector(sizeWords(_:)))
             smaller.tag = 0
-            smaller.accessibilityLabel = "Smaller"
+            smaller.accessibilityLabel = tr("Smaller")
             let larger = UIBarButtonItem(title: "A+", style: .plain, target: self, action: #selector(sizeWords(_:)))
             larger.tag = 1
-            larger.accessibilityLabel = "Larger"
+            larger.accessibilityLabel = tr("Larger")
             let face = UIBarButtonItem(title: "Aa", style: .plain, target: self, action: #selector(fontWords))
-            face.accessibilityLabel = "Font of the selected words"
+            face.accessibilityLabel = tr("Font of the selected words")
             let link = UIBarButtonItem(image: UIImage(systemName: "link"), style: .plain,
                                        target: self, action: #selector(linkWords))
-            link.accessibilityLabel = "Link"
+            link.accessibilityLabel = tr("Link")
             wordItems = parent.wordStyles ? [well, smaller, larger, face, link] : []
             let list = UIBarButtonItem(image: UIImage(systemName: "list.bullet"), style: .plain,
                                        target: self, action: #selector(cycleList))
-            list.accessibilityLabel = "List"
+            list.accessibilityLabel = tr("List")
             let outdent = UIBarButtonItem(image: UIImage(systemName: "decrease.indent"), style: .plain,
                                           target: self, action: #selector(indentLines(_:)))
             outdent.tag = 0
-            outdent.accessibilityLabel = "Outdent"
+            outdent.accessibilityLabel = tr("Outdent")
             let indent = UIBarButtonItem(image: UIImage(systemName: "increase.indent"), style: .plain,
                                          target: self, action: #selector(indentLines(_:)))
             indent.tag = 1
-            indent.accessibilityLabel = "Indent"
+            indent.accessibilityLabel = tr("Indent")
             lineItems = parent.wordStyles ? [list, outdent, indent] : []
             bar.items = styleItems + wordItems + lineItems
             bar.sizeToFit()
@@ -846,10 +846,10 @@ struct InlineTextField: UIViewRepresentable {
     /// The bar's face for each style.
     static func face(of mark: RichText.Mark) -> (symbol: String, name: String) {
         switch mark {
-        case .bold: return ("bold", "Bold")
-        case .italic: return ("italic", "Italic")
-        case .underline: return ("underline", "Underline")
-        case .strike: return ("strikethrough", "Strikethrough")
+        case .bold: return ("bold", tr("Bold"))
+        case .italic: return ("italic", tr("Italic"))
+        case .underline: return ("underline", tr("Underline"))
+        case .strike: return ("strikethrough", tr("Strikethrough"))
         }
     }
 }

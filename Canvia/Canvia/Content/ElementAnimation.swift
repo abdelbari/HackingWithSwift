@@ -47,30 +47,30 @@ struct ElementAnimation: Codable, Equatable {
 
     static func exitName(_ kind: String?) -> String {
         switch kind {
-        case nil: return "No exit"
-        case "rise": return "Rise"
-        case "pop": return "Pop"
-        case "slideLeft": return "Slide left"
-        case "slideRight": return "Slide right"
-        default: return "Fade"
+        case nil: return tr("No exit")
+        case "rise": return tr("Rise")
+        case "pop": return tr("Pop")
+        case "slideLeft": return tr("Slide left")
+        case "slideRight": return tr("Slide right")
+        default: return tr("Fade")
         }
     }
 
     static func name(_ kind: String) -> String {
         switch kind {
-        case "fade": return "Fade in"
-        case "rise": return "Rise"
-        case "pop": return "Pop"
-        case "slideLeft": return "Slide from right"
-        case "slideRight": return "Slide from left"
-        case "typewriter": return "Typewriter"
-        case "words": return "Word by word"
-        case "letterPop": return "Letter pop"
-        case "lineRise": return "Line rise"
-        case "pulse": return "Pulse (loop)"
-        case "wiggle": return "Wiggle (loop)"
-        case "bounce": return "Bounce (loop)"
-        case "spin": return "Spin (loop)"
+        case "fade": return tr("Fade in")
+        case "rise": return tr("Rise")
+        case "pop": return tr("Pop")
+        case "slideLeft": return tr("Slide from right")
+        case "slideRight": return tr("Slide from left")
+        case "typewriter": return tr("Typewriter")
+        case "words": return tr("Word by word")
+        case "letterPop": return tr("Letter pop")
+        case "lineRise": return tr("Line rise")
+        case "pulse": return tr("Pulse (loop)")
+        case "wiggle": return tr("Wiggle (loop)")
+        case "bounce": return tr("Bounce (loop)")
+        case "spin": return tr("Spin (loop)")
         default: return kind
         }
     }

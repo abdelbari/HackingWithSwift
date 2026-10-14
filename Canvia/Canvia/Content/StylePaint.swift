@@ -12,7 +12,7 @@ import Foundation
 enum StylePaint {
 
     /// What the paint-mode chip at the top of the canvas says.
-    static let chip = "Tap something to paste the style"
+    static let chip = tr("Tap something to paste the style")
 
     /// `el` with `style`, copied from an element of kind `source`, painted
     /// on. Between kinds, a colour the source has no value for leaves the

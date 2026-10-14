@@ -114,7 +114,7 @@ struct SelectionOverlay: View {
                 // How many, over the box — but not while a drag's readout is
                 // up there too.
                 if store.badge == nil {
-                    pill("\(selected.count) selected", colour: Theme.accent,
+                    pill(trn("%d selected|%d selected", selected.count), colour: Theme.accent,
                          at: CGPoint(x: bounds.midX, y: bounds.minY - 9 * iz), alignment: .bottom)
                 }
             }

@@ -23,7 +23,7 @@ enum CanvasAccessibility {
         }
         if let own = LayerNames.custom(of: el) { return own }
         if el.type == .text, RichText.strip(el.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Empty text"
+            return tr("Empty text")
         }
         return ElementNames.name(of: el)
     }
@@ -32,14 +32,14 @@ enum CanvasAccessibility {
     /// down; 50% wide, 30% tall". Pixels would be true and meaningless.
     static func value(for el: Element, design: Design) -> String {
         let w = max(design.width, 1), h = max(design.height, 1)
-        func pct(_ v: Double, of total: Double) -> Int { Int((v / total * 100).rounded()) }
+        func pct(_ v: Double, of total: Double) -> String { "\(Int((v / total * 100).rounded()))%" }
         var parts = [
-            "at \(pct(el.x, of: w))% across, \(pct(el.y, of: h))% down",
-            "\(pct(el.w, of: w))% wide, \(pct(el.h, of: h))% tall",
+            tr("at %@ across, %@ down", pct(el.x, of: w), pct(el.y, of: h)),
+            tr("%@ wide, %@ tall", pct(el.w, of: w), pct(el.h, of: h)),
         ]
         let turn = Int(el.rotation.rounded()) % 360
-        if turn != 0 { parts.append("rotated \(turn) degrees") }
-        if el.locked { parts.append("locked") } else if el.lockPosition == true { parts.append("position locked") }
+        if turn != 0 { parts.append(trn("rotated %d degrees|rotated %d degrees", turn)) }
+        if el.locked { parts.append(tr("locked")) } else if el.lockPosition == true { parts.append(tr("position locked")) }
         return parts.joined(separator: "; ")
     }
 

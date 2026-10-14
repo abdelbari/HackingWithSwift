@@ -36,9 +36,9 @@ enum LineRoutes {
         var key: String? { self == .straight ? nil : rawValue }
         var label: String {
             switch self {
-            case .straight: return "Straight"
-            case .elbow: return "Elbow"
-            case .curve: return "Curve"
+            case .straight: return tr("Straight")
+            case .elbow: return tr("Elbow")
+            case .curve: return tr("Curve")
             }
         }
     }

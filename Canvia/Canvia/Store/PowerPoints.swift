@@ -28,7 +28,7 @@ enum PowerPoints {
             switch self {
             case .notADeck: return PptxReader.notADeck
             case .tooBig: return PptxReader.tooBig
-            case .notSaved: return "Couldn't save the design"
+            case .notSaved: return tr("Couldn't save the design")
             }
         }
     }

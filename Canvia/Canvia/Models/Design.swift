@@ -394,7 +394,7 @@ struct AudioTrack: Codable, Equatable, Identifiable {
 struct Design: Codable, Equatable, Identifiable {
     var version: Int = 1
     var id: String = UID.make("doc")
-    var title: String = "Untitled design"
+    var title: String = tr("Untitled design")
     var width: Double = 1080
     var height: Double = 1080
     var createdAt: Double = Date().timeIntervalSince1970 * 1000
@@ -491,7 +491,7 @@ struct Design: Codable, Equatable, Identifiable {
     /// hidden master page still draws behind the pages that use it.
     var visiblePageIndices: [Int] { pages.indices.filter { pages[$0].hidden != true } }
 
-    init(title: String = "Untitled design", width: Double = 1080, height: Double = 1080) {
+    init(title: String = tr("Untitled design"), width: Double = 1080, height: Double = 1080) {
         self.title = title
         self.width = width
         self.height = height
@@ -501,7 +501,7 @@ struct Design: Codable, Equatable, Identifiable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         version = (try? c.decode(Int.self, forKey: .version)) ?? 1
         id = (try? c.decode(String.self, forKey: .id)) ?? UID.make("doc")
-        title = (try? c.decode(String.self, forKey: .title)) ?? "Untitled design"
+        title = (try? c.decode(String.self, forKey: .title)) ?? tr("Untitled design")
         width = (try? c.decode(Double.self, forKey: .width)) ?? 1080
         height = (try? c.decode(Double.self, forKey: .height)) ?? 1080
         createdAt = (try? c.decode(Double.self, forKey: .createdAt)) ?? Date().timeIntervalSince1970 * 1000

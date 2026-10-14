@@ -72,12 +72,12 @@ struct SelectionBubble: View {
 
     private var pill: some View {
         HStack(spacing: 0) {
-            action("doc.on.doc", "Copy") { store.copySelected() }
+            action("doc.on.doc", tr("Copy")) { store.copySelected() }
             if pastes {
-                action("doc.on.clipboard", "Paste") { store.paste() }
+                action("doc.on.clipboard", tr("Paste")) { store.paste() }
             }
-            action("plus.square.on.square", "Duplicate") { store.duplicateSelected() }
-            action("trash", "Delete", destructive: true) { store.deleteSelected() }
+            action("plus.square.on.square", tr("Duplicate")) { store.duplicateSelected() }
+            action("trash", tr("Delete"), destructive: true) { store.deleteSelected() }
         }
         .padding(.horizontal, 6)
         .frame(height: Self.height)

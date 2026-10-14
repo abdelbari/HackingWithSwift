@@ -97,7 +97,7 @@ struct EditorYourTemplates: View {
                     .lineLimit(1)
             }
         }
-        .accessibilityLabel(entry.pageCount == 1 ? entry.name : "\(entry.name), \(entry.pageCount) pages")
+        .accessibilityLabel(entry.pageCount == 1 ? entry.name : entry.name + ", " + trn("%d page|%d pages", entry.pageCount))
         .contextMenu {
             Button { renameText = entry.name; renaming = entry } label: { Label("Rename", systemImage: "pencil") }
             Button {
@@ -111,7 +111,7 @@ struct EditorYourTemplates: View {
     /// show their strip first.
     private func use(_ entry: UserTemplate) {
         guard let design = UserTemplates.load(id: entry.id) else {
-            store.announce("Couldn't open that template", undoable: false)
+            store.announce(tr("Couldn't open that template"), undoable: false)
             return
         }
         if design.pages.count > 1 {
@@ -143,12 +143,12 @@ struct EditorYourTemplates: View {
     /// The template made again from the design open, every page.
     private func update(_ entry: UserTemplate) {
         guard let updated = UserTemplates.update(entry.id, from: store.design) else {
-            store.announce("Couldn't update that template", undoable: false)
+            store.announce(tr("Couldn't update that template"), undoable: false)
             return
         }
         if let design = UserTemplates.load(id: updated.id) { UserTemplates.writeThumbnail(for: design) }
         entries = UserTemplates.all()
-        store.announce("Updated \u{201C}\(updated.name)\u{201D}", undoable: false)
+        store.announce(tr("Updated \u{201C}%@\u{201D}", updated.name), undoable: false)
     }
 }
 
@@ -240,7 +240,7 @@ private struct SaveTemplateAlert: ViewModifier {
         content
             .alert("Save as template", isPresented: $isPresented) {
                 TextField("Name", text: $typedName)
-                TextField("Category (\(UserTemplates.defaultCategory))", text: $typedCategory)
+                TextField("Category (\(UserTemplates.shownCategory(UserTemplates.defaultCategory)))", text: $typedCategory)
                 Button("Save") { save() }
                 Button("Cancel", role: .cancel) {}
             } message: {
@@ -258,11 +258,11 @@ private struct SaveTemplateAlert: ViewModifier {
         let title = UserTemplates.name(typedName, design: design)
         guard let saved = UserTemplates.save(design, name: title, category: UserTemplates.category(typedCategory)) else {
             store.buzz(.reject)
-            onSaved("Couldn't save the template")
+            onSaved(tr("Couldn't save the template"))
             return
         }
         if let kept = UserTemplates.load(id: saved.id) { UserTemplates.writeThumbnail(for: kept) }
         store.buzz(.confirm)
-        onSaved("Saved \u{201C}\(saved.name)\u{201D} to your templates")
+        onSaved(tr("Saved \u{201C}%@\u{201D} to your templates", saved.name))
     }
 }

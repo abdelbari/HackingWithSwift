@@ -33,8 +33,8 @@ struct VersionHistorySheet: View {
                     ContentUnavailableView(
                         "No earlier versions yet",
                         systemImage: "clock.arrow.circlepath",
-                        description: Text("A version is kept every couple of minutes while you "
-                                          + "edit, and each time you leave the editor."))
+                        description: Text(tr("A version is kept every couple of minutes while you "
+                                             + "edit, and each time you leave the editor.")))
                 } else {
                     versionList
                 }
@@ -62,7 +62,7 @@ struct VersionHistorySheet: View {
     private var versionList: some View {
         List {
             ForEach(DesignLibrary.versionSections(versions)) { group in
-                Section(group.section.rawValue) {
+                Section(tr(group.section.rawValue)) {
                     ForEach(group.versions) { version in
                         row(version)
                     }
@@ -92,7 +92,7 @@ struct VersionHistorySheet: View {
                     if let name = version.pinnedName, !name.isEmpty {
                         Text(name).fontWeight(.semibold).lineLimit(1)
                     }
-                    Text(version.savedAt, style: .relative) + Text(" ago")
+                    Text("\(version.savedAt, style: .relative) ago")
                     Text(summary(version))
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -104,7 +104,7 @@ struct VersionHistorySheet: View {
                         .foregroundStyle(Theme.accent)
                         .accessibilityLabel("Pinned")
                 }
-                Image(systemName: "chevron.right")
+                Image(systemName: "chevron.forward")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(.tertiary)
             }
@@ -177,8 +177,8 @@ struct VersionHistorySheet: View {
     }
 
     private func summary(_ v: DesignLibrary.Version) -> String {
-        let pages = v.pages == 1 ? "1 page" : "\(v.pages) pages"
-        let elements = v.elements == 1 ? "1 element" : "\(v.elements) elements"
+        let pages = trn("%d page|%d pages", v.pages)
+        let elements = trn("%d element|%d elements", v.elements)
         return "\(pages), \(elements)"
     }
 }
@@ -308,7 +308,7 @@ struct VersionPreview: View {
             return
         }
         DesignLibrary.writeThumbnail(for: copy)
-        AccessibilityNotification.Announcement("Copy saved").post()
+        AccessibilityNotification.Announcement(tr("Copy saved")).post()
         savedTask?.cancel()
         withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { copySaved = true }
         savedTask = Task { @MainActor in
@@ -367,10 +367,10 @@ private struct NamedVersionAlert: ViewModifier {
         store.endTextEdit()
         guard DesignLibrary.saveNamedVersion(store.design, name: typedName) != nil else {
             store.buzz(.reject)
-            onSaved("Couldn't save the version")
+            onSaved(tr("Couldn't save the version"))
             return
         }
         store.buzz(.confirm)
-        onSaved("Version saved")
+        onSaved(tr("Version saved"))
     }
 }

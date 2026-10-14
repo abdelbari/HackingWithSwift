@@ -102,7 +102,7 @@ struct FontSheet: View {
             }
             .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always),
                         prompt: "Search fonts")
-            .navigationTitle(choice?.title ?? "Fonts")
+            .navigationTitle(choice?.title ?? tr("Fonts"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
@@ -128,7 +128,8 @@ struct FontSheet: View {
                 ForEach([FontLibrary.allCategories] + FontLibrary.categories, id: \.self) { name in
                     let selected = category == name
                     Button { category = name } label: {
-                        Text(name)
+                        // The catalogue's category, said in the app's words.
+                        Text(tr(name))
                             .font(.subheadline.weight(.medium))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 7)
@@ -215,11 +216,12 @@ struct FontSheet: View {
     /// the one in use; one of your own not on this phone says Missing, and
     /// a family of yours how many weights it has.
     private func row(_ key: String?, weights: Int? = nil) -> some View {
-        let name = key.map { FontStore.displayName($0, in: store.design) } ?? "None"
+        let name = key.map { FontStore.displayName($0, in: store.design) } ?? tr("None")
         let missing = key.flatMap { FontStore.missingNote($0, in: store.design) } != nil
         let ticked = key == chosen
         let count = weights.map(CustomFonts.weightCount)
-        let said: String = key == nil ? "No font" : missing ? "\(name) font, missing" : "\(name) font"
+        let said: String = key == nil ? tr("No font")
+            : missing ? tr("%@ font, missing", name) : tr("%@ font", name)
         let spoken = count.map { "\(said), \($0)" } ?? said
         return Button { pick(key) } label: {
             HStack {

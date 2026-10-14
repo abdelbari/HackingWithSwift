@@ -45,7 +45,7 @@ enum SvgImport {
     /// The graphic's longer side, as a share of the page's shorter one.
     static let fitShare = 0.4
     /// What the phone says when anything was left out.
-    static let partialNote = "Some parts of this SVG couldn't be brought in"
+    static let partialNote = tr("Some parts of this SVG couldn't be brought in")
 
     struct Graphic {
         var elements: [Element]

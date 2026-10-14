@@ -42,8 +42,8 @@ enum DesignExporter {
 
         var errorDescription: String? {
             switch self {
-            case .renderFailed: return "could not render the page"
-            case .encodeFailed: return "could not encode the image"
+            case .renderFailed: return tr("could not render the page")
+            case .encodeFailed: return tr("could not encode the image")
             }
         }
     }
@@ -140,12 +140,12 @@ enum DesignExporter {
     }
 
     static let sizePresets: [SizePreset] = [
-        SizePreset(name: "Instagram post (1080)", longEdge: 1080),
-        SizePreset(name: "Story / Reel (1920)", longEdge: 1920),
-        SizePreset(name: "Full HD (1920)", longEdge: 1920),
+        SizePreset(name: tr("Instagram post (1080)"), longEdge: 1080),
+        SizePreset(name: tr("Story / Reel (1920)"), longEdge: 1920),
+        SizePreset(name: tr("Full HD (1920)"), longEdge: 1920),
         SizePreset(name: "4K (3840)", longEdge: 3840),
-        SizePreset(name: "A4 at 300 dpi (3508)", longEdge: 3508),
-        SizePreset(name: "US Letter at 300 dpi (3300)", longEdge: 3300),
+        SizePreset(name: tr("A4 at 300 dpi (3508)"), longEdge: 3508),
+        SizePreset(name: tr("US Letter at 300 dpi (3300)"), longEdge: 3300),
     ]
 
     // MARK: resolution guard

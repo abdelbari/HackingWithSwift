@@ -23,8 +23,8 @@ enum Units {
     /// The sides the app makes, in pixels once converted: one limit on both
     /// phones, whatever unit it was typed in.
     static let pixelRange: ClosedRange<Double> = 40...8000
-    static let rangeText = "40 to 8000 px"
-    static let outOfRangeText = "Must be 40 to 8000 px"
+    static let rangeText = tr("40 to 8000 px")
+    static let outOfRangeText = tr("Must be 40 to 8000 px")
 
     /// Millimetres, centimetres and inches; pixels — or anything a newer
     /// build writes — are not.

@@ -295,7 +295,7 @@ enum SharedInbox {
     /// came in.
     static func failureText(failed: Int, total: Int) -> String? {
         guard failed > 0 else { return nil }
-        return total <= 1 ? "Couldn't open that item" : "Couldn't open \(failed) of \(total) items"
+        return total <= 1 ? tr("Couldn't open that item") : tr("Couldn't open %d of %@", failed, trn("%d item|%d items", total))
     }
 
     /// Each item brought in as one element on a page of its own, fitted

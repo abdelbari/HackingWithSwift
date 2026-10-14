@@ -14,7 +14,7 @@ enum ImageFilterPreset: String, CaseIterable, Identifiable {
     case summer, street, nordic, bliss, whimsical, selfie, festive, coastal, drama, edge, solar, classic
 
     var id: String { rawValue }
-    var displayName: String { rawValue == "none" ? "None" : rawValue.capitalized }
+    var displayName: String { rawValue == "none" ? tr("None") : tr(rawValue.capitalized) }
 
     static func from(_ key: String?) -> ImageFilterPreset {
         ImageFilterPreset(rawValue: key ?? "none") ?? .none
@@ -80,7 +80,7 @@ enum PhotoEdits {
     }
 
     /// What VoiceOver says as Hold to compare is pressed.
-    static let comparingNote = "Showing original"
+    static let comparingNote = tr("Showing original")
 }
 
 /// Free-hand adjustments on top of a preset.
@@ -206,12 +206,12 @@ struct Duotone: Codable, Equatable, Hashable {
     var light: String
 
     static let presets: [(name: String, tone: Duotone)] = [
-        ("Ink", Duotone(dark: "#0b1020", light: "#e9edff")),
-        ("Ultraviolet", Duotone(dark: "#2a0a5e", light: "#ffd6f2")),
-        ("Sunset", Duotone(dark: "#3d1436", light: "#ffc773")),
-        ("Forest", Duotone(dark: "#0d2b1d", light: "#c9f2a0")),
-        ("Steel", Duotone(dark: "#131a22", light: "#9fd4ff")),
-        ("Rose", Duotone(dark: "#3b0d20", light: "#ffd9d0")),
+        (tr("Ink"), Duotone(dark: "#0b1020", light: "#e9edff")),
+        (tr("Ultraviolet"), Duotone(dark: "#2a0a5e", light: "#ffd6f2")),
+        (tr("Sunset"), Duotone(dark: "#3d1436", light: "#ffc773")),
+        (tr("Forest"), Duotone(dark: "#0d2b1d", light: "#c9f2a0")),
+        (tr("Steel"), Duotone(dark: "#131a22", light: "#9fd4ff")),
+        (tr("Rose"), Duotone(dark: "#3b0d20", light: "#ffd9d0")),
     ]
 
     private enum CodingKeys: String, CodingKey { case dark, light }

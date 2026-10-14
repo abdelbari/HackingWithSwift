@@ -44,7 +44,7 @@ struct StartSheet: View {
                 }
             }
             .background(Theme.workspace)
-            .navigationTitle(preset?.name ?? "What are you making?")
+            .navigationTitle(preset?.name ?? tr("What are you making?"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) { header }
@@ -72,7 +72,7 @@ struct StartSheet: View {
 
     private var header: some View {
         VStack(spacing: 1) {
-            Text(preset?.name ?? "What are you making?")
+            Text(preset?.name ?? tr("What are you making?"))
                 .font(.headline)
                 .lineLimit(1)
             if let preset {
@@ -111,7 +111,7 @@ struct StartSheet: View {
     }
 
     /// Home ▸ New design's way to bring in a deck.
-    static let openPowerPoint = "Open a PowerPoint…"
+    static var openPowerPoint: String { tr("Open a PowerPoint…") }
 }
 
 /// A size, drawn at the shape it makes with a real design at that size
@@ -142,14 +142,14 @@ struct SizeTile: View {
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
                     .padding(.top, 4)
-                Text("\(count) ready-made")
+                Text(trn("%d ready-made|%d ready-made", count))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(preset.name), \(count) ready-made designs")
+        .accessibilityLabel(tr("%@, %@", preset.name, trn("%d ready-made designs|%d ready-made designs", count)))
     }
 }
 
@@ -269,7 +269,7 @@ private struct StartGrid: View {
     private func topicChips(_ bucket: [Template]) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                chip("All \(bucket.count)", selected: category == nil) { category = nil }
+                chip(tr("All %d", bucket.count), selected: category == nil) { category = nil }
                 ForEach(ContentLibrary.topics(in: bucket), id: \.self) { name in
                     chip(name, selected: category == name) {
                         category = category == name ? nil : name
@@ -336,7 +336,7 @@ private struct StartTemplateCard: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(template.name), \(template.category) template")
+        .accessibilityLabel("\(template.name), \(UserTemplates.shownCategory(template.category)) template")
     }
 }
 
@@ -403,8 +403,8 @@ struct CustomSizeSheet: View {
                             height = CustomSizes.convert(height, from: old, to: new)
                         }
                     HStack(alignment: .top, spacing: 12) {
-                        sideField("Width", text: $width, valid: w != nil)
-                        sideField("Height", text: $height, valid: h != nil)
+                        sideField(tr("Width"), text: $width, valid: w != nil)
+                        sideField(tr("Height"), text: $height, valid: h != nil)
                     }
                     HStack(spacing: 8) {
                         ForEach(CustomSizes.ratios.indices, id: \.self) { i in

@@ -88,7 +88,7 @@ struct BackgroundColourChoices: View {
             .sheet(isPresented: $choosing) {
                 // The wheel changes the page as it turns, and the sheet keeps
                 // the whole turn as one step when it closes.
-                ColorPickerSheet(store: store, title: "Background colour", current: current,
+                ColorPickerSheet(store: store, title: tr("Background colour"), current: current,
                                  onPick: { hex in store.setBackground(.color(hex)) },
                                  onPickTransient: { hex in store.setBackgroundTransient(.color(hex)) })
             }
@@ -121,7 +121,7 @@ struct BackgroundYourPhotos: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Your photos").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
             PhotosPicker(selection: $picked, matching: .images) {
-                Label(loading ? "Bringing it in…" : "Choose a photo", systemImage: "photo.badge.plus")
+                Label(loading ? tr("Bringing it in…") : tr("Choose a photo"), systemImage: "photo.badge.plus")
                     .frame(maxWidth: .infinity)
                     .padding(10)
                     .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accentSubtle))
@@ -177,7 +177,7 @@ struct BackgroundYourPhotos: View {
             loading = false
             guard let src = saved else {
                 store.buzz(.reject)
-                store.announce("Couldn't open that photo", undoable: false)
+                store.announce(tr("Couldn't open that photo"), undoable: false)
                 return
             }
             store.setBackground(.image(src))

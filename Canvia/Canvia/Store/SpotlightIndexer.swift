@@ -32,7 +32,7 @@ enum SpotlightIndexer {
         attrs.title = design.title
         let words = words(in: design)
         attrs.contentDescription = words.isEmpty
-            ? "\(design.pages.count == 1 ? "1 page" : "\(design.pages.count) pages"), \(Int(design.width)) × \(Int(design.height))"
+            ? trn("%d page|%d pages", design.pages.count) + ", \(Int(design.width)) × \(Int(design.height))"
             : words.prefix(40).joined(separator: " ")
         attrs.keywords = Array(words.prefix(60))
         attrs.thumbnailData = thumbnail?.jpegData(compressionQuality: 0.6)

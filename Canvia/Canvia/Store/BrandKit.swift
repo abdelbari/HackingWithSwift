@@ -68,17 +68,17 @@ struct BrandFonts: Codable, Equatable {
         var id: String { rawValue }
 
         /// "Title", "Heading" …
-        var label: String { rawValue.prefix(1).uppercased() + rawValue.dropFirst() }
+        var label: String { tr(rawValue.prefix(1).uppercased() + rawValue.dropFirst()) }
 
         /// What Add text calls a text in this role.
         var addLabel: String {
             switch self {
-            case .title: return "Add a title"
-            case .heading: return "Add a heading"
-            case .subheading: return "Add a subheading"
-            case .body: return "Add body text"
-            case .quote: return "Add a quote"
-            case .caption: return "Add a caption"
+            case .title: return tr("Add a title")
+            case .heading: return tr("Add a heading")
+            case .subheading: return tr("Add a subheading")
+            case .body: return tr("Add body text")
+            case .quote: return tr("Add a quote")
+            case .caption: return tr("Add a caption")
             }
         }
 
@@ -211,10 +211,10 @@ struct BrandKit: Codable, Equatable, Identifiable {
 
     /// What the first kit, and the one an earlier build's kit becomes, is
     /// called, and its id.
-    static let firstName = "My brand"
+    static let firstName = tr("My brand")
     static let firstId = "kit-1"
     /// What a palette of colours with no other name is called.
-    static let firstPaletteName = "Colours"
+    static let firstPaletteName = tr("Colours")
     /// The most colours a palette holds.
     static let limit = 12
 
@@ -236,7 +236,7 @@ struct BrandKit: Codable, Equatable, Identifiable {
     }
 
     /// What the row of the kit's templates is headed: "From My brand".
-    var templatesTitle: String { "From \(name)" }
+    var templatesTitle: String { tr("From %@", name) }
 
     /// The kit's templates among `entries` (your own, as listed), in the
     /// kit's order; an id with no template here is passed over.
@@ -437,7 +437,7 @@ struct BrandKits: Codable, Equatable {
 
     /// A new empty kit, "Brand kit 2" or the like, made active.
     @discardableResult
-    mutating func addKit(named name: String = "Brand kit") -> BrandKit {
+    mutating func addKit(named name: String = tr("Brand kit")) -> BrandKit {
         let kit = BrandKit(name: Titles.unique(name, taken: kits.map(\.name)))
         kits.append(kit)
         activeId = kit.id
@@ -618,7 +618,7 @@ enum BrandKitFile {
 
     enum KitFileError: LocalizedError {
         case notAKit
-        var errorDescription: String? { "This file is not a Canvia brand kit." }
+        var errorDescription: String? { tr("This file is not a Canvia brand kit.") }
     }
 
     /// The file's logos that arrive (see carried(_:media:)).

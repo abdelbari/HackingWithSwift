@@ -44,7 +44,7 @@ enum ExportJobs {
             let made = try await render(report)
             let outcome = try await PhotoSaver.save(made.urls)
             if outcome.cancelled && !outcome.anySaved { return ExportQueue.Result() }
-            var text = outcome.anySaved ? "Saved the video to your photos." : "Couldn't save to your photos."
+            var text = outcome.anySaved ? tr("Saved the video to your photos.") : tr("Couldn't save to your photos.")
             if made.musicLost { text += " " + ExportChoices.musicLost }
             return ExportQueue.Result(photosNote: text, photosSaved: outcome.anySaved)
         }
@@ -94,7 +94,7 @@ enum ExportJobs {
             let size = snapshot.design.size(at: snapshot.pages.first ?? snapshot.current)
             let title = snapshot.design.title
             return ExportQueue.Result(print: ExportQueue.PrintRequest(
-                url: url, jobName: title.isEmpty ? "Canvia design" : title, landscape: size.width > size.height))
+                url: url, jobName: title.isEmpty ? tr("Canvia design") : title, landscape: size.width > size.height))
         }
     }
 

@@ -1,0 +1,218 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSCameraUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يستخدم Canvia الكاميرا لالتقاط صور ومقاطع فيديو لتصاميمك ولمسح المستندات ضوئيًا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia verwendet die Kamera, um Fotos und Videos für deine Designs aufzunehmen und Dokumente zu scannen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia uses the camera to take photos and videos for your designs and to scan documents."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia usa la cámara para hacer fotos y vídeos para tus diseños y para escanear documentos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia utilise l’appareil photo pour prendre des photos et des vidéos pour vos designs et pour numériser des documents."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia usa la fotocamera per scattare foto e girare video per i tuoi design e per scansionare documenti."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia はデザイン用の写真や動画の撮影と、書類のスキャンにカメラを使用します。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Canvia usa a câmera para tirar fotos e gravar vídeos para os seus designs e para digitalizar documentos."
+          }
+        }
+      }
+    },
+    "NSMicrophoneUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يستمع Canvia أثناء إملائك في عنصر نص، ويسجّل التعليقات الصوتية التي تُعدّها لفيديو."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia hört zu, während du in ein Textelement diktierst, und nimmt die Sprachaufnahmen für ein Video auf."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia listens while you dictate into a text element, and records the voice-overs you make for a video."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia escucha mientras dictas en un elemento de texto y graba las voces en off que haces para un vídeo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia écoute pendant que vous dictez dans un élément de texte, et enregistre les voix off que vous créez pour une vidéo."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia ascolta mentre detti in un elemento di testo e registra le voci fuori campo che crei per un video."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia は、テキスト素材への音声入力中と、動画用のナレーションの録音中にマイクを使用します。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Canvia escuta enquanto você dita em um elemento de texto e grava as narrações que você faz para um vídeo."
+          }
+        }
+      }
+    },
+    "NSPhotoLibraryAddUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يحفظ Canvia تصاميمك المصدَّرة في مكتبة صورك عند اختيار «حفظ الصورة»."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia speichert deine exportierten Designs in deiner Fotomediathek, wenn du „Bild speichern“ wählst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia saves your exported designs to your photo library when you choose Save Image."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia guarda tus diseños exportados en tu fototeca cuando eliges Guardar imagen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia enregistre vos designs exportés dans votre photothèque lorsque vous choisissez Enregistrer l’image."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia salva i design esportati nella libreria foto quando scegli Salva immagine."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「画像を保存」を選ぶと、Canvia は書き出したデザインを写真ライブラリに保存します。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Canvia salva os designs exportados na sua fototeca quando você escolhe Salvar imagem."
+          }
+        }
+      }
+    },
+    "NSSpeechRecognitionUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يحوّل Canvia ما تقوله إلى كلمات عنصر نص."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia wandelt das Gesprochene in den Text eines Textelements um."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia turns what you say into the words of a text element."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia convierte lo que dices en las palabras de un elemento de texto."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia transforme ce que vous dites en texte dans un élément de texte."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia trasforma ciò che dici nelle parole di un elemento di testo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canvia は話した言葉をテキスト素材の文字に変換します。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Canvia transforma o que você diz nas palavras de um elemento de texto."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

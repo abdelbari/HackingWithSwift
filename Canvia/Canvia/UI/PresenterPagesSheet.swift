@@ -81,6 +81,6 @@ struct PresenterPagesSheet: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(name)
-        .accessibilityValue(here ? "showing" : "")
+        .accessibilityValue(here ? tr("showing") : "")
     }
 }

@@ -57,12 +57,13 @@ enum AccessibilityAudit {
             let shown = page.elements.filter { !$0.isHidden }
             for f in contrast[p] ?? [] {
                 out.append(Finding(kind: .contrast, pageIndex: p, elementId: f.elementId,
-                                   message: String(format: "Hard to read: %.1f:1, needs %.1f:1", f.ratio, f.required),
+                                   message: tr("Hard to read: %@:1, needs %@:1", String(format: "%.1f", f.ratio),
+                                               String(format: "%.1f", f.required)),
                                    fix: .fixColour, contrast: f))
             }
             for el in shown where needsAltText(el) {
                 out.append(Finding(kind: .altText, pageIndex: p, elementId: el.id,
-                                   message: "\(describedKind(el)) has no alt text", fix: .addAltText))
+                                   message: missingAltText(el), fix: .addAltText))
             }
             for el in shown where isSmallText(el, in: design) {
                 out.append(Finding(kind: .smallText, pageIndex: p, elementId: el.id,
@@ -70,19 +71,19 @@ enum AccessibilityAudit {
             }
             if let hold = holds[p], hold < minFlashPeriod {
                 out.append(Finding(kind: .flashing, pageIndex: p, elementId: nil,
-                                   message: "Gives way to the next page faster than three times a second"))
+                                   message: tr("Gives way to the next page faster than three times a second")))
             }
             for el in shown where flashes(el) {
                 out.append(Finding(kind: .flashing, pageIndex: p, elementId: el.id,
-                                   message: "Moves faster than three times a second"))
+                                   message: tr("Moves faster than three times a second")))
             }
             for el in shown where isSilentLink(el) {
                 out.append(Finding(kind: .linkText, pageIndex: p, elementId: el.id,
-                                   message: "A link with no words and no alt text", fix: .addAltText))
+                                   message: tr("A link with no words and no alt text"), fix: .addAltText))
             }
             if let first = readingOrderMismatch(page, height: Double(design.size(for: page).height)) {
                 out.append(Finding(kind: .readingOrder, pageIndex: p, elementId: first,
-                                   message: "The layers are in a different order from how the page reads"))
+                                   message: tr("The layers are in a different order from how the page reads")))
             }
         }
         return out
@@ -122,6 +123,16 @@ enum AccessibilityAudit {
         }
     }
 
+    /// "Photo has no alt text", and so on for describedKind's others.
+    static func missingAltText(_ el: Element) -> String {
+        switch describedKind(el) {
+        case "Video": return tr("Video has no alt text")
+        case "Photo": return tr("Photo has no alt text")
+        case "Sticker": return tr("Sticker has no alt text")
+        default: return tr("Icon has no alt text")
+        }
+    }
+
     /// The smallest type a design should have, in its own pixels: 12, or
     /// 9 pt on paper at its dpi (37.5 px at 300 dpi).
     static func smallest(_ design: Design) -> Double {
@@ -142,8 +153,8 @@ enum AccessibilityAudit {
     /// "Text is 8 px, under 12 px", or on paper "Text is 7 pt, under 9 pt".
     static func smallMessage(_ el: Element, in design: Design) -> String {
         let size = el.fontSize ?? 42
-        guard design.physicalUnit != nil else { return "Text is \(Int(size.rounded())) px, under 12 px" }
-        return "Text is \(Int((size * 72 / design.effectiveDPI).rounded())) pt, under 9 pt"
+        guard design.physicalUnit != nil else { return tr("Text is %d px, under 12 px", Int(size.rounded())) }
+        return tr("Text is %d pt, under 9 pt", Int((size * 72 / design.effectiveDPI).rounded()))
     }
 
     /// A loop that cycles faster than every 0.33 s.
@@ -200,10 +211,9 @@ enum AccessibilityAudit {
     /// "5 things on 3 pages", "1 thing on 1 page"; nothing is "Nothing to
     /// fix".
     static func summary(_ findings: [Finding]) -> String {
-        guard !findings.isEmpty else { return "Nothing to fix" }
+        guard !findings.isEmpty else { return tr("Nothing to fix") }
         let pages = Set(findings.map(\.pageIndex)).count
-        let things = findings.count == 1 ? "1 thing" : "\(findings.count) things"
-        return "\(things) on \(pages == 1 ? "1 page" : "\(pages) pages")"
+        return trn("%d thing on %@|%d things on %@", findings.count, trn("%d page|%d pages", pages))
     }
 
     /// One page's findings, for a section of the sheet.

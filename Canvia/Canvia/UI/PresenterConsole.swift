@@ -63,7 +63,7 @@ struct PresenterConsole<Controls: View>: View {
     /// timer.
     private var timer: some View {
         Menu {
-            Button(timerPaused ? "Resume timer" : "Pause timer", action: toggleTimer)
+            Button(timerPaused ? tr("Resume timer") : tr("Pause timer"), action: toggleTimer)
             Button("Reset timer", action: resetTimer)
         } label: {
             Label(elapsed, systemImage: timerPaused ? "pause.circle" : "timer")
@@ -73,18 +73,18 @@ struct PresenterConsole<Controls: View>: View {
             toggleTimer()
         }
         .accessibilityLabel("Elapsed \(elapsed)")
-        .accessibilityValue(timerPaused ? "paused" : "")
+        .accessibilityValue(timerPaused ? tr("paused") : "")
     }
 
     private var slides: some View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                caption("Now")
+                caption(tr("Now"))
                 PresenterPreview(session: session)
             }
             .frame(maxWidth: .infinity)
             VStack(alignment: .leading, spacing: 4) {
-                caption("Next")
+                caption(tr("Next"))
                 upNext
             }
             .frame(width: 128)
@@ -109,8 +109,8 @@ struct PresenterConsole<Controls: View>: View {
                 .aspectRatio(size.width / max(size.height, 1), contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .accessibilityLabel("Next, " + PageTitles.counter(index < session.index ? 1 : place.number + 1,
-                                                                  of: place.count, title: page.title))
+                .accessibilityLabel(tr("Next, %@", PageTitles.counter(index < session.index ? 1 : place.number + 1,
+                                                                      of: place.count, title: page.title)))
         } else {
             Text(Presenter.endOfPresentation)
                 .font(.subheadline)
@@ -132,7 +132,7 @@ struct PresenterConsole<Controls: View>: View {
             Spacer()
             // "This page 0:07 · holds 2.5 s", read as it is written, as on
             // the Android twin.
-            Text("This page " + Presenter.pageTime(onPage, hold: session.holdSeconds(session.page)))
+            Text(tr("This page %@", Presenter.pageTime(onPage, hold: session.holdSeconds(session.page))))
                 .font(.subheadline.monospacedDigit())
                 .foregroundStyle(.white.opacity(0.8))
         }
@@ -141,7 +141,7 @@ struct PresenterConsole<Controls: View>: View {
     private var notes: some View {
         VStack(spacing: 6) {
             HStack {
-                caption("Notes")
+                caption(tr("Notes"))
                 Spacer()
                 Button { notesSize = Presenter.notesSize(notesSize, steps: -1) } label: {
                     Text("A−").font(.callout.weight(.semibold)).padding(.horizontal, 8)
@@ -167,12 +167,12 @@ struct PresenterConsole<Controls: View>: View {
 
     private var notesText: String {
         if let notes = session.page.notes, !notes.isEmpty { return notes }
-        return "No notes for this page."
+        return tr("No notes for this page.")
     }
 
     private var bottomBar: some View {
         HStack(spacing: 12) {
-            stepButton("Previous", symbol: "chevron.left", action: previous)
+            stepButton("Previous", symbol: "chevron.backward", action: previous)
                 .disabled(PageVisibility.previous(before: session.index, in: visible) == nil)
             Button(action: showPages) {
                 Image(systemName: "square.grid.2x2")
@@ -181,19 +181,20 @@ struct PresenterConsole<Controls: View>: View {
                     .background(Color.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 10))
             }
             .accessibilityLabel("Pages")
-            stepButton("Next", symbol: "chevron.right", action: next)
+            stepButton("Next", symbol: "chevron.forward", action: next)
                 .disabled(Presenter.next(after: session.index, in: visible, loop: session.loop) == nil)
         }
     }
 
+    /// `title` is "Previous" or "Next", shown in the app's language.
     private func stepButton(_ title: String, symbol: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Label(title, systemImage: symbol)
+            Label(tr(title), systemImage: symbol)
                 .font(.headline)
                 .frame(maxWidth: .infinity, minHeight: 48)
                 .background(Color.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 10))
         }
-        .accessibilityLabel(title == "Next" ? "Next page" : "Previous page")
+        .accessibilityLabel(title == "Next" ? tr("Next page") : tr("Previous page"))
     }
 }
 
@@ -219,6 +220,8 @@ struct PresenterPreview: View {
             .contentShape(Rectangle())
             .gesture(PresenterPointing.gesture(session: session, in: geo.size))
         }
+        // Where the finger points is where the pointer goes, in any language.
+        .designDirection()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Page up")
         .accessibilityHint("Press and hold to point at the screen")

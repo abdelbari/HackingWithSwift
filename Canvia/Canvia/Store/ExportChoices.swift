@@ -49,16 +49,16 @@ enum ExportChoices {
 
     /// "3 of 8 pages", as the rows say a choice.
     static func countText(_ chosen: Int, of total: Int) -> String {
-        "\(chosen) of \(total) \(total == 1 ? "page" : "pages")"
+        tr("%d of %@", chosen, trn("%d page|%d pages", total))
     }
 
     // MARK: in the background — the Android twin's ExportPlan words
 
     /// Asked when the sheet is closed with an export running; Keep is the
     /// default.
-    static let keepQuestion = "Keep exporting in the background?"
-    static let keep = "Keep"
-    static let stop = "Stop"
+    static let keepQuestion = tr("Keep exporting in the background?")
+    static let keep = tr("Keep")
+    static let stop = tr("Stop")
 
     /// The pill while an export runs: "Rendering the video 42%".
     static func pillText(label: String, fraction: Double) -> String {
@@ -67,24 +67,24 @@ enum ExportChoices {
 
     /// "1 more waiting", under the progress while others wait their turn.
     static func waitingText(_ count: Int) -> String {
-        "\(count) more waiting"
+        trn("%d more waiting|%d more waiting", count)
     }
 
     /// The notifications: done, with Share and Open; failed; paused.
-    static let readyTitle = "Your export is ready"
-    static let failedTitle = "Export failed"
-    static let pausedTitle = "Export paused"
-    static let paused = "Paused — return to Canvia to finish"
-    static let shareAction = "Share"
-    static let openAction = "Open"
+    static let readyTitle = tr("Your export is ready")
+    static let failedTitle = tr("Export failed")
+    static let pausedTitle = tr("Export paused")
+    static let paused = tr("Paused — return to Canvia to finish")
+    static let shareAction = tr("Share")
+    static let openAction = tr("Open")
 
     /// "Export failed: <why>", in the sheet or the pill.
     static func failedText(_ reason: String) -> String {
-        "Export failed: \(reason)"
+        tr("Export failed: %@", reason)
     }
 
     /// Said when a video's music could not be mixed in.
-    static let musicLost = "Couldn't add the music, so it has none."
+    static let musicLost = tr("Couldn't add the music, so it has none.")
 
     // MARK: PDF options
 
@@ -152,7 +152,7 @@ enum ExportChoices {
     static let pdfSheetBytes = 30_000
 
     /// Said where the Compress switch is, on the print-ready PDF.
-    static let printKeepsQuality = "Print-ready PDFs keep full quality"
+    static let printKeepsQuality = tr("Print-ready PDFs keep full quality")
 
     /// The pixels a photo of `natural` pixels keeps in a compressed PDF:
     /// 150 for each inch it prints across at its largest use in `uses` —
@@ -246,8 +246,8 @@ enum ExportChoices {
     /// "About 3.2 MB", or "About 450 KB" under a megabyte — decimal, as a
     /// file's size is said.
     static func sizeText(_ bytes: Int) -> String {
-        if bytes >= 1_000_000 { return String(format: "About %.1f MB", Double(bytes) / 1_000_000) }
-        return "About \(max(1, Int((Double(bytes) / 1000).rounded()))) KB"
+        if bytes >= 1_000_000 { return tr("About %@ MB", String(format: "%.1f", Double(bytes) / 1_000_000)) }
+        return tr("About %d KB", max(1, Int((Double(bytes) / 1000).rounded())))
     }
 }
 

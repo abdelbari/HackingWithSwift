@@ -38,19 +38,19 @@ extension DesignStore {
         if cropping != nil { return true }
         guard let photo = element(id), photo.type == .image, !refusesLockedPage() else { return false }
         if photo.locked {
-            announce("This photo is locked. Tap Unlock to crop it.", undoable: false)
+            announce(tr("This photo is locked. Tap Unlock to crop it."), undoable: false)
             return false
         }
         if let src = photo.src, CodeGenerator.payload(from: src) != nil {
-            announce("A QR code is used whole, so it can't be cropped.", undoable: false)
+            announce(tr("A QR code is used whole, so it can't be cropped."), undoable: false)
             return false
         }
         guard photo.src != nil else {
-            announce("This frame is empty. Tap Replace to put a photo in it.", undoable: false)
+            announce(tr("This frame is empty. Tap Replace to put a photo in it."), undoable: false)
             return false
         }
         guard let image = PhotoLibrary.resolve(photo.src), image.size.width > 0, image.size.height > 0 else {
-            announce("This photo can't be opened, so it can't be cropped.", undoable: false)
+            announce(tr("This photo can't be opened, so it can't be cropped."), undoable: false)
             return false
         }
         drawing = nil
@@ -121,7 +121,7 @@ extension DesignStore {
         guard let crop = cropping else { return }
         cropEdit { Crop.zoomed($0, image: crop.imageSize, by: factor, around: point) }
         if let photo = cropElement {
-            badge = "Zoom \(Int((max(1, photo.cropScale ?? 1) * 100).rounded()))%"
+            badge = tr("Zoom %@", "\(Int((max(1, photo.cropScale ?? 1) * 100).rounded()))%")
         }
     }
 

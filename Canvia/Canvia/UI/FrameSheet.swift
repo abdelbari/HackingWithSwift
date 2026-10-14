@@ -17,8 +17,8 @@ struct FrameSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("A frame clips the photo to a shape. Square frames keep "
-                         + "their proportions, so applying one squares the picture.")
+                    Text(tr("A frame clips the photo to a shape. Square frames keep "
+                            + "their proportions, so applying one squares the picture."))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
 

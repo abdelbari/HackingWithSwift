@@ -276,7 +276,7 @@ final class ExportQueue {
     private static func readyBody(_ result: Result) -> String {
         if let note = result.photosNote { return note }
         guard let first = result.urls.first else { return "" }
-        return result.urls.count == 1 ? first.lastPathComponent : "\(result.urls.count) files"
+        return result.urls.count == 1 ? first.lastPathComponent : trn("%d file|%d files", result.urls.count)
     }
 
     private func report(_ fraction: Double, for id: UUID) {

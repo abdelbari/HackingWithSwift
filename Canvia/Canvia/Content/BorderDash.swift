@@ -19,7 +19,9 @@ enum BorderDash {
 
     /// The styles the Border control offers, in its order: the key's value,
     /// nil for solid, and the name it shows.
-    static let styles: [(key: String?, name: String)] = [(nil, "Solid"), ("dashed", "Dashed"), ("dotted", "Dotted")]
+    static let styles: [(key: String?, name: String)] = [
+        (nil, tr("Solid")), ("dashed", tr("Dashed")), ("dotted", tr("Dotted")),
+    ]
 
     /// `dash` as kept on a shape or a photo: "dashed" or "dotted", else nil
     /// — a line's "solid" included.
@@ -49,6 +51,6 @@ enum BorderDash {
 
     /// The name the Border control shows for a style.
     static func name(_ dash: String?) -> String {
-        styles.first { $0.key == kept(dash) }?.name ?? "Solid"
+        styles.first { $0.key == kept(dash) }?.name ?? tr("Solid")
     }
 }

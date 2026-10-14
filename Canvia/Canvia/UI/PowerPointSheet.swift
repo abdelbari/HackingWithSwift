@@ -65,7 +65,7 @@ private struct PowerPointHost: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .overlay { if working { OpeningDesignCard(label: "Opening the PowerPoint…") } }
+            .overlay { if working { OpeningDesignCard(label: tr("Opening the PowerPoint…")) } }
             .onAppear { take() }
             .onChange(of: decks) { _, _ in take() }
             .sheet(item: $opened, onDismiss: afterSheet) { shown in

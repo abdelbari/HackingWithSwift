@@ -58,10 +58,10 @@ struct PageHeaderRow: View {
     /// and More.
     @ViewBuilder
     private var actions: some View {
-        button("plus.square", "Add page below") { store.addPage() }
-        button("plus.square.on.square", "Duplicate page") { store.duplicatePage() }
+        button("plus.square", tr("Add page below")) { store.addPage() }
+        button("plus.square.on.square", tr("Duplicate page")) { store.duplicatePage() }
         if store.design.pages.count > 1 {
-            button("trash", "Delete page") { onDelete() }
+            button("trash", tr("Delete page")) { onDelete() }
         }
         moreMenu
     }
@@ -72,12 +72,12 @@ struct PageHeaderRow: View {
         Menu {
             if store.design.pages.count > 1 || page.hidden == true {
                 Button { onPage { store.setPageHidden(store.page.hidden != true) } } label: {
-                    Label(page.hidden == true ? "Show page" : "Hide page",
+                    Label(page.hidden == true ? tr("Show page") : tr("Hide page"),
                           systemImage: page.hidden == true ? "eye" : "eye.slash")
                 }
             }
             Button { onPage { store.setPageLocked(!store.isPageLocked) } } label: {
-                Label(PageLocks.isLocked(page) ? "Unlock page" : "Lock page",
+                Label(PageLocks.isLocked(page) ? tr("Unlock page") : tr("Lock page"),
                       systemImage: PageLocks.isLocked(page) ? "lock.open" : "lock")
             }
             Button { onPage { store.copyPage() } } label: {

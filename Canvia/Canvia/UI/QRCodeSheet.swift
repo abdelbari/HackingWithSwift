@@ -50,7 +50,7 @@ struct QRCodeSheet: View {
                 } header: {
                     Text("QR code")
                 } footer: {
-                    Text(problem ?? "The code on the page changes as you type.")
+                    Text(problem ?? tr("The code on the page changes as you type."))
                         .foregroundStyle(problem == nil ? Color.secondary : Color(.systemRed))
                 }
                 QRStyleSections(store: store, id: id, picking: $picking)
@@ -63,7 +63,7 @@ struct QRCodeSheet: View {
         }
         .presentationDetents([.medium, .large])
         .sheet(item: $picking) { which in
-            ColorPickerSheet(store: store, title: which == .code ? "Code colour" : "Background",
+            ColorPickerSheet(store: store, title: which == .code ? tr("Code colour") : tr("Background"),
                              current: which == .code ? style.color : (style.background ?? CodeGenerator.defaultBackground),
                              onPick: { hex in restyle(which, hex) },
                              onPickTransient: { hex in
@@ -154,13 +154,12 @@ private struct QRStyleSections: View {
 
     /// The Margin, 0 to 4 modules round the code.
     private func marginStepper(_ style: CodeGenerator.Look) -> some View {
-        let unit = style.margin == 1 ? "module" : "modules"
         return Stepper(value: Binding(get: { style.margin }, set: { margin in
             var next = style
             next.margin = margin
             Self.restyle(store: store, id: id, next)
         }), in: 0...CodeGenerator.quiet) {
-            Text("Margin: \(style.margin) \(unit)").monospacedDigit()
+            Text(trn("Margin: %d module|Margin: %d modules", style.margin)).monospacedDigit()
         }
     }
 

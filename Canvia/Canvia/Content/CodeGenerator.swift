@@ -49,8 +49,8 @@ enum CodeGenerator {
     /// Android twin's words. Not trimmed: a code scans as exactly what was
     /// typed.
     static func problem(with text: String) -> String? {
-        if text.isEmpty { return "A code needs a link or some words; it keeps the last until then." }
-        if modules(for: text) == nil { return "Too long for a QR code; it keeps the last that fitted." }
+        if text.isEmpty { return tr("A code needs a link or some words; it keeps the last until then.") }
+        if modules(for: text) == nil { return tr("Too long for a QR code; it keeps the last that fitted.") }
         return nil
     }
 
@@ -164,7 +164,7 @@ enum CodeGenerator {
     }
 
     /// What the code sheet says of a look that may not scan.
-    static let scanRiskWarning = "This may be hard to scan"
+    static let scanRiskWarning = tr("This may be hard to scan")
 
     /// scanRiskWarning when a code in `color` over `background` — nil for
     /// none, when `pageBehind` is what shows — may not scan: the two under

@@ -29,8 +29,8 @@ enum PageTitles {
 
     /// "Page 2 · Intro", or "Page 2" untitled. `number` is one-based.
     static func named(_ number: Int, title: String?) -> String {
-        guard let title = title.flatMap(kept) else { return "Page \(number)" }
-        return "Page \(number) · \(title)"
+        guard let title = title.flatMap(kept) else { return tr("Page %d", number) }
+        return tr("Page %d · %@", number, title)
     }
 
     /// Present's counter: "2 / 5 · Intro", or "2 / 5" untitled.
