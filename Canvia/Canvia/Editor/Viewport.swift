@@ -1,7 +1,8 @@
 // How the view moves on its own while a finger works the canvas: the edge
-// scroll that carries a dragged thing past the edge of the screen, and how
-// far a flick of the view glides on. Both phones share these rules and test
-// rows (the Android twin's Viewport.edgeScroll and Viewport.flingCarry).
+// scroll that carries a dragged thing past the edge of the screen, how far a
+// flick of the view glides on, and the zoom typing into small words brings
+// them up to. Both phones share these rules and test rows (the Android
+// twin's Viewport.edgeScroll, Viewport.flingCarry and Viewport.typingZoom).
 
 import CoreGraphics
 import Foundation
@@ -57,5 +58,34 @@ enum Viewport {
         guard Double(hypot(velocity.x, velocity.y)) > flingMinSpeed else { return nil }
         let carry = CGFloat(flingCarry)
         return CGPoint(x: offset.x - velocity.x * carry, y: offset.y - velocity.y * carry)
+    }
+
+    // MARK: typing zoom
+
+    /// Settings ▸ Editing's "Zoom in to type small text": on unless turned
+    /// off. A setting of the phone, never of the design.
+    static let typingZoomKey = "canvia.typingZoom"
+    /// Words drawn at least this tall on screen, in points, are read as
+    /// they are: typing in them never zooms.
+    static let minReadable = 14.0
+    /// The size on screen typing zooms small words up to, in points.
+    static let typingTarget = 18.0
+    /// The room kept beside a box zoomed to for typing, in points in all.
+    static let typingMargin = 48.0
+
+    /// The zoom typing into words `fontSize` tall, in a box `box` (in page
+    /// units), brings the view to, shown in `viewport` (on screen, the
+    /// keyboard taken off) at `zoom`: nil when they already stand at least
+    /// `minReadable` tall on screen; else the zoom that sets them `target`
+    /// tall, no further in than `maxZoom`, and never so far that the box is
+    /// wider than the screen less typingMargin. Nil too when that is no
+    /// closer than `zoom`: typing never zooms out.
+    static func typingZoom(fontSize: Double, box: CGRect, viewport: CGRect, zoom: Double,
+                           minReadable: Double = Viewport.minReadable, target: Double = Viewport.typingTarget,
+                           maxZoom: Double) -> Double? {
+        guard fontSize > 0, fontSize * zoom < minReadable else { return nil }
+        var wanted = min(target / fontSize, maxZoom)
+        if box.width > 0 { wanted = min(wanted, (Double(viewport.width) - typingMargin) / Double(box.width)) }
+        return wanted > zoom ? wanted : nil
     }
 }

@@ -50,6 +50,10 @@ final class DesignStore {
     /// chooses them all, so the first key replaces them, as in Canva. View
     /// state only — never saved.
     @ObservationIgnored var freshTexts: [String: String] = [:]
+    /// Where on the page the tap that opened the typing under way landed,
+    /// for the line the view zooms in on (Viewport.typingZoom); nil when it
+    /// opened without one. View state only — never saved.
+    @ObservationIgnored var typingPoint: CGPoint?
     /// The words the colour sheet is open for, from the typing bar's colour
     /// well (see WordStyles).
     var wordColourTarget: WordRange?
@@ -645,6 +649,7 @@ final class DesignStore {
         typingSteps = 0
         typingRedos = 0
         let length = ((element(id)?.text ?? "") as NSString).length
+        typingPoint = point
         let opening = openingSelection(id, at: point, word: word) ?? NSRange(location: length, length: 0)
         typingSelection = opening
         askTypingSelection(opening)

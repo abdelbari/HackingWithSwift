@@ -73,6 +73,17 @@ struct CanvasRequest: Equatable {
     var serial: Int
 }
 
+/// The words being typed brought up to a readable size (Viewport.typingZoom):
+/// the box typed in, the zoom, and the point of the content to centre on —
+/// on the line the typing opened on. While it is set the view is there,
+/// unless a finger has moved it; set to nil, the view goes back to where it
+/// was before, unless a finger moved it meanwhile.
+struct TypingFocus: Equatable {
+    var id: String
+    var zoom: Double
+    var around: CGPoint
+}
+
 /// The page being worked, when the canvas holds the column of every page
 /// (PageColumn): where it lies in the content, in column units, how many of
 /// those one page unit takes, and as many for the widest page, whose zoom
@@ -181,6 +192,9 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     /// the same hold, told through onOtherPageHold, draws it on the page
     /// nearest.
     var holdsWorkspace: (CGPoint) -> Bool = { _ in false }
+    /// Typing into small words: the view zoomed in on them, and back again
+    /// as the typing ends (TypingFocus).
+    var typingFocus: TypingFocus? = nil
     /// Told the part of the page on screen, in page units, and the zoom that
     /// fits the page, whenever either changes.
     var onViewport: (CGRect, Double) -> Void = { _, _ in }
@@ -308,6 +322,15 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             coordinator.fitToScreen(animated: false)
         }
         coordinator.centerContent()
+        if coordinator.typingFocus != typingFocus {
+            let was = coordinator.typingFocus
+            coordinator.typingFocus = typingFocus
+            if let typingFocus {
+                coordinator.zoomForTyping(typingFocus)
+            } else if was != nil {
+                coordinator.returnFromTyping()
+            }
+        }
         if let request, request.serial != coordinator.handledRequest {
             coordinator.handledRequest = request.serial
             coordinator.perform(request.kind)
@@ -351,6 +374,12 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         private var keyboard: CGRect?
         /// The edge scroll's frames, while a drag is tracked.
         private var edgeLink: CADisplayLink?
+        /// The typing zoom acted on, and where the view was before it — to go
+        /// back to as the typing ends, unless a finger pinched or panned the
+        /// view meanwhile (typingMoved), when it stays where they left it.
+        var typingFocus: TypingFocus?
+        private var typingReturn: (zoom: CGFloat, offset: CGPoint)?
+        private var typingMoved = false
         private weak var edges: EdgeScroller?
 
         init(_ parent: ZoomableCanvas) {
@@ -405,6 +434,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
             // A second finger takes the view: the edge scroll gives way.
             stopEdgeScroll()
+            typingMoved = true
             publishMotion(true)
         }
 
@@ -419,6 +449,8 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
 
         func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) {
             stopEdgeScroll()
+            // A pinch, not a zoom asked for in code.
+            if scrollView.pinchGestureRecognizer?.state == .began { typingMoved = true }
             publishMotion(true)
         }
 
@@ -497,6 +529,49 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
                 let y = column.page.minY * z - pageTop(column, zoom: z, in: scroll)
                 scroll.setContentOffset(clamped(CGPoint(x: scroll.contentOffset.x, y: y), in: scroll), animated: true)
             }
+        }
+
+        /// Typing into small words: the view zoomed to `focus.zoom` with its
+        /// point in the middle of what shows above the keyboard — where it
+        /// was kept first, to go back to. The reveal that follows keeps the
+        /// box above the keyboard as it comes. Not animated under Reduce
+        /// Motion.
+        func zoomForTyping(_ focus: TypingFocus) {
+            guard let scroll = scrollView, scroll.bounds.width > 0, scroll.bounds.height > 0 else { return }
+            if typingReturn == nil {
+                typingReturn = (scroll.zoomScale, scroll.contentOffset)
+                typingMoved = false
+            }
+            let target = min(max(CGFloat(focus.zoom), scroll.minimumZoomScale), scroll.maximumZoomScale)
+            animateTyping { [self] in
+                scroll.zoomScale = target
+                let at = scroll.convert(focus.around, from: host.view)
+                let shown = visibleBounds(of: scroll, covered: 0)
+                let offset = CGPoint(x: scroll.contentOffset.x + at.x - shown.midX,
+                                     y: scroll.contentOffset.y + at.y - shown.midY)
+                scroll.contentOffset = clamped(offset, in: scroll)
+            }
+        }
+
+        /// The typing over: the view back where it was before it zoomed in,
+        /// unless a finger moved it meanwhile.
+        func returnFromTyping() {
+            guard let back = typingReturn, let scroll = scrollView else { return }
+            typingReturn = nil
+            guard !typingMoved else { return }
+            animateTyping { [self] in
+                scroll.zoomScale = back.zoom
+                scroll.contentOffset = clamped(back.offset, in: scroll)
+            }
+        }
+
+        private func animateTyping(_ change: @escaping () -> Void) {
+            guard !UIAccessibility.isReduceMotionEnabled else {
+                change()
+                return
+            }
+            UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseInOut, .beginFromCurrentState],
+                           animations: change)
         }
 
         /// Where Fit puts the page being worked on screen at `zoom`: its top
@@ -702,6 +777,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             switch pan.state {
             case .began:
                 panOrigin = scroll.contentOffset
+                typingMoved = true
                 publishMotion(true)
             case .changed:
                 let t = pan.translation(in: scroll)

@@ -69,6 +69,13 @@ struct CanvasView: View {
     @State private var bleedLabel = false
     /// Rulers, from the More menu: off unless turned on (RulersView).
     @AppStorage(Guides.rulersKey) private var rulers = false
+    /// Settings ▸ Editing's "Zoom in to type small text": on unless turned
+    /// off (Viewport.typingZoom).
+    @AppStorage(Viewport.typingZoomKey) private var typingZoomOn = true
+    /// The view zoomed in on the words being typed, in page units, while it
+    /// is; and the box last weighed for it, so it is weighed once a box.
+    @State private var typingFocus: TypingFocus?
+    @State private var typingWeighed: String?
 
     /// Where the view is in the column, written as it scrolls, the zoom
     /// that fits it, and whether a finger set it moving; read when it comes
@@ -228,6 +235,7 @@ struct CanvasView: View {
         // Typing in place stays above the keyboard: when it starts, when the
         // keyboard arrives or changes, and as the box grows line by line.
         .onChange(of: typingBox) { _, _ in revealTyping() }
+        .onChange(of: store.editingTextId) { _, id in typingChanged(id) }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { _ in
             revealTyping()
         }
@@ -258,6 +266,7 @@ struct CanvasView: View {
             holdsOtherPage: { point in otherPageEmpty(at: point) },
             onOtherPageHold: { phase, start, now in otherPageHold(phase, from: start, to: now) },
             holdsWorkspace: { point in onWorkspace(point) },
+            typingFocus: typingFocus.map { canvasTypingFocus($0, in: slot) },
             onViewport: { visible, fit in viewportChanged(visible, fit: fit) },
             onMotion: { moving in motionChanged(moving) },
             edgeScroller: edges,
@@ -317,7 +326,51 @@ struct CanvasView: View {
 
     private func revealTyping() {
         guard let box = typingBox else { return }
+        // Small words zoom up to be read as typing opens in them; the
+        // keyboard's reveal keeps them above it once it comes.
+        if let focus = typingZoom(box) {
+            typingFocus = focus
+            return
+        }
         store.requestCanvas(.reveal(box, typing: true))
+    }
+
+    /// The zoom typing in the box `box` asks for, weighed once as typing
+    /// opens in it (Viewport.typingZoom): its words brought up to a size
+    /// that reads, centred on the line the typing opened on — or none, when
+    /// they read as they are, the setting is off, or crop, the pen or a
+    /// preview has the page; typing never zooms out.
+    private func typingZoom(_ box: CGRect) -> TypingFocus? {
+        guard let id = store.editingTextId, typingWeighed != id else { return nil }
+        typingWeighed = id
+        guard typingZoomOn, store.cropping == nil, store.drawing == nil, store.erasing == nil,
+              store.previewTime == nil, let el = store.element(id) else { return nil }
+        let words = el.type == .shape ? ShapeText.textElement(for: el) : el
+        let size = FontLibrary.effectiveFontSize(for: words)
+        let screen = CGRect(x: 0, y: 0, width: store.viewport.width * store.zoom, height: store.viewport.height * store.zoom)
+        let most = Geometry.zoomRange(fit: store.fitZoom).upperBound
+        guard let zoom = Viewport.typingZoom(fontSize: size, box: box, viewport: screen, zoom: store.zoom,
+                                             maxZoom: most) else { return nil }
+        // The line the tap landed on, else the last line, where the caret
+        // opens.
+        let lineY = store.typingPoint.map { Double($0.y) } ?? Double(box.maxY) - size
+        let y = min(max(lineY, Double(box.minY)), Double(box.maxY))
+        return TypingFocus(id: id, zoom: zoom, around: CGPoint(x: box.midX, y: y))
+    }
+
+    /// Typing opened in another box, or ended: ended, the view goes back
+    /// to where it was before it zoomed in (ZoomableCanvas.returnFromTyping).
+    private func typingChanged(_ id: String?) {
+        guard id == nil else { return }
+        typingWeighed = nil
+        if typingFocus != nil { typingFocus = nil }
+    }
+
+    /// The typing zoom asked of the page, asked of the column: the column's
+    /// zoom at the page's scale, its point where it lies in the column.
+    private func canvasTypingFocus(_ focus: TypingFocus, in slot: PageColumn.Slot?) -> TypingFocus {
+        guard let slot else { return focus }
+        return TypingFocus(id: focus.id, zoom: focus.zoom / slot.scale, around: slot.toColumn(focus.around))
     }
 
     // MARK: page + overlay

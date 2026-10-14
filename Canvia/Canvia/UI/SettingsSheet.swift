@@ -102,6 +102,8 @@ struct SettingsSheet: View {
     @AppStorage(Appearance.key) private var appearance = Appearance.system.rawValue
     @AppStorage(Haptics.key) private var haptics = true
     @AppStorage(SelectionBubble.key) private var quickActions = true
+    /// Typing into small words zooms them up to be read (Viewport.typingZoom).
+    @AppStorage(Viewport.typingZoomKey) private var typingZoom = true
     @AppStorage(AppDefaults.exportFormatKey) private var exportFormat = "png"
     @AppStorage(AppDefaults.unitKey) private var unit = "px"
     @State private var snapping = SnapSettings.load()
@@ -183,6 +185,7 @@ struct SettingsSheet: View {
             Toggle("Snap to elements", isOn: $snapping.toElements)
             Toggle("Snap to page", isOn: $snapping.toPage)
             Toggle("Quick actions at the selection", isOn: $quickActions)
+            Toggle("Zoom in to type small text", isOn: $typingZoom)
             Picker("Custom sizes start in", selection: $unit) {
                 ForEach(Units.all, id: \.self) { Text($0).tag($0) }
             }

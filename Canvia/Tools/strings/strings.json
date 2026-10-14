@@ -23963,6 +23963,15 @@
     "ja": "ズーム %@",
     "pt-BR": "Zoom %@"
   },
+  "Zoom in to type small text": {
+    "ar": "التكبير لكتابة النص الصغير",
+    "de": "Zum Tippen kleiner Texte heranzoomen",
+    "es": "Ampliar para escribir texto pequeño",
+    "fr": "Zoomer pour écrire un petit texte",
+    "it": "Ingrandisci per scrivere testo piccolo",
+    "ja": "小さな文字の入力時に拡大",
+    "pt-BR": "Ampliar para digitar texto pequeno"
+  },
   "Zoom the picture": {
     "ar": "تكبير الصورة",
     "de": "Bild zoomen",
