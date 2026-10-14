@@ -55,6 +55,9 @@ struct CanvasView: View {
     /// The part of the column on screen, kept without redrawing the canvas
     /// on every frame of a scroll.
     @State private var seen = ColumnSeen()
+    /// How long the finger was last down on an element, for telling a quick
+    /// tap that types from one on its way to a hold.
+    @State private var press = PressClock()
     /// A page header's Delete asking first, and its Notes.
     @State private var confirmingPageDelete = false
     @State private var editingPageNotes = false
@@ -76,6 +79,15 @@ struct CanvasView: View {
         /// The column's left and right edges on screen, in column units;
         /// nil until the canvas has said.
         var across: ClosedRange<Double>?
+    }
+
+    /// When the finger last landed on an element, and how long it stayed
+    /// down once lifted: written and read by the gestures alone, so nothing
+    /// is watched and nothing redraws as it changes.
+    final class PressClock {
+        var began: Date?
+        /// Seconds from landing to lifting, once lifted.
+        var held: Double?
     }
 
     /// Inverse zoom: ornaments are drawn in page units but should
@@ -343,7 +355,15 @@ struct CanvasView: View {
 
             if store.cropping == nil { selectionOverlay }
 
-            if let band = gesture.marquee { marqueeView(band) }
+            // The band being drawn, and the letters of the match Find and
+            // replace is showing.
+            Group {
+                if let band = gesture.marquee { marqueeView(band) }
+                if let match = store.findHighlight, match.pageIndex == store.pageIndex,
+                   let el = store.element(match.elementId), store.editingTextId != el.id {
+                    findMark(el, match)
+                }
+            }
 
             if let id = store.editingTextId, let el = store.element(id) {
                 if el.type == .shape { shapeTextEditor(el) } else { inlineTextEditor(el) }
@@ -397,6 +417,7 @@ struct CanvasView: View {
                              moveEnded(from: start, to: at)
                          },
                          onBodyTap: { at, count in bodyTap(at: at, count: count) },
+                         onBodyPressing: pressed,
                          onBodyHold: { if let at = pagePress { bodyHold(at: at) } })
     }
 
@@ -1050,6 +1071,27 @@ struct CanvasView: View {
         .accessibilityHidden(true)
     }
 
+    /// The letters of the match Find and replace is showing, marked over
+    /// its box and turning with it — or the whole box, where its words are
+    /// drawn round a curve, along a path or the like.
+    private func findMark(_ el: Element, _ match: DesignStore.TextMatch) -> some View {
+        let rects = FindReplace.letterRects(of: match.plain, in: el)
+        let marks = rects.isEmpty ? [CGRect(x: 0, y: 0, width: el.w, height: el.h)] : rects
+        return ZStack(alignment: .topLeading) {
+            ForEach(marks.indices, id: \.self) { i in
+                Rectangle()
+                    .fill(Theme.accent.opacity(0.3))
+                    .frame(width: marks[i].width, height: marks[i].height)
+                    .offset(x: marks[i].minX, y: marks[i].minY)
+            }
+        }
+        .frame(width: el.w, height: el.h, alignment: .topLeading)
+        .rotationEffect(.degrees(el.rotation))
+        .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
     private var marginOverlay: some View {
         let m = store.snapping.marginInset(for: store.pageSize)
         return Rectangle()
@@ -1068,9 +1110,10 @@ struct CanvasView: View {
                    height: max(el.h, Touch.pageUnits(Touch.minTarget, zoom: store.zoom)))
             .rotationEffect(.degrees(el.rotation))
             .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
-            .onTapGesture(count: 2) { elementDoubleTap(el) }
-            .onTapGesture { elementTap(el) }
-            .onLongPressGesture(minimumDuration: CanvasGestures.holdSeconds) { elementHold(el) }
+            .onTapGesture(count: 2, coordinateSpace: .named("page")) { elementDoubleTap(el, at: $0) }
+            .onTapGesture(count: 1, coordinateSpace: .named("page")) { elementTap(el, at: $0) }
+            .onLongPressGesture(minimumDuration: CanvasGestures.holdSeconds,
+                                perform: { elementHold(el) }, onPressingChanged: pressed)
             .gesture(moveGesture(el))
             .accessibilityElement()
             .accessibilityLabel(CanvasAccessibility.label(for: el))
@@ -1081,12 +1124,18 @@ struct CanvasView: View {
             .accessibilityActions { accessibilityActions(for: el) }
     }
 
-    /// A tap on `el` — on its own hit area, or passed on from the
-    /// selection's body over it. In paint mode it takes the copied style.
-    private func elementTap(_ el: Element) {
+    /// A tap on `el` at page point `point` — on its own hit area, or passed
+    /// on from the selection's body over it. In paint mode it takes the
+    /// copied style. On what is already the one thing selected it types in
+    /// it, the caret where the finger was, as in Canva.
+    private func elementTap(_ el: Element, at point: CGPoint) {
         dismissHoldMenu()
         if store.stylePainting {
             store.paintStyle(onto: el.id)
+            return
+        }
+        if startsTyping(el), let target = store.typedIn(el) {
+            startTextEdit(target, at: point)
             return
         }
         commitTextEditIfAny()
@@ -1101,7 +1150,7 @@ struct CanvasView: View {
         if !store.selectMember(el.id) { store.select(el.id) }
     }
 
-    private func elementDoubleTap(_ el: Element) {
+    private func elementDoubleTap(_ el: Element, at point: CGPoint) {
         dismissHoldMenu()
         if store.stylePainting {
             store.paintStyle(onto: el.id)
@@ -1116,9 +1165,10 @@ struct CanvasView: View {
             return
         }
         // A shape double-tapped is typed in, as a text box is; a
-        // table cell's rectangle, its words.
+        // table cell's rectangle, its words — the word under the
+        // finger chosen, as in Canva.
         if let target = store.typedIn(el) {
-            startTextEdit(target)
+            startTextEdit(target, at: point, word: true)
         } else if el.type == .image {
             // A photo double-tapped opens crop, where the picture is
             // worked directly — or says why it cannot.
@@ -1151,7 +1201,7 @@ struct CanvasView: View {
             if count == 1 { emptyPageTap() }
             return
         }
-        if count == 2 { elementDoubleTap(hit) } else { elementTap(hit) }
+        if count == 2 { elementDoubleTap(hit, at: point) } else { elementTap(hit, at: point) }
     }
 
     /// A hold on the selection's body: the selected thing under the finger
@@ -1170,6 +1220,27 @@ struct CanvasView: View {
     private func topmost(at point: CGPoint) -> Element? {
         let target = Touch.pageUnits(Touch.minTarget, zoom: store.zoom)
         return store.page.elements.last { !$0.isHidden && Geometry.hits(Self.reach($0, target), point: point) }
+    }
+
+    /// A finger landing on an element or lifting from it: how long it was
+    /// down, kept for the tap that may follow.
+    private func pressed(_ pressing: Bool) {
+        if pressing {
+            press.began = Date()
+            press.held = nil
+        } else {
+            press.held = press.began.map { Date().timeIntervalSince($0) }
+        }
+    }
+
+    /// Whether a tap on `el` types in it rather than selecting it
+    /// (CanvasGestures.tapTypes): how long the finger was down is read once.
+    private func startsTyping(_ el: Element) -> Bool {
+        let held = press.held ?? 0
+        press.held = nil
+        guard store.editingTextId == nil else { return false }
+        return CanvasGestures.tapTypes(onlySelected: store.selection == [el.id], typable: store.typedIn(el) != nil,
+                                       selectingMultiple: store.selectingMultiple, held: held)
     }
 
     /// The edits that otherwise need a drag, as VoiceOver actions. Each acts
@@ -1200,7 +1271,7 @@ struct CanvasView: View {
         Button("Bring forward") { store.select(el.id); store.reorderSelected(.forward) }
         Button("Send backward") { store.select(el.id); store.reorderSelected(.backward) }
         if let target = store.typedIn(el) {
-            Button("Edit text") { startTextEdit(target) }
+            Button("Edit text") { startTextEdit(target, at: nil) }
         }
         if el.type == .image && !el.locked {
             Button("Crop") { store.startCrop(el.id) }
@@ -1640,8 +1711,10 @@ struct CanvasView: View {
 
     // MARK: inline text editing
 
-    private func startTextEdit(_ el: Element) {
-        store.startTyping(el.id)
+    /// Typing in `el`, the caret where a tap at page point `point` puts
+    /// it — the word there chosen with `word` — or at the end.
+    private func startTextEdit(_ el: Element, at point: CGPoint?, word: Bool = false) {
+        store.startTyping(el.id, at: point, word: word)
     }
 
     func commitTextEditIfAny() {
@@ -1658,13 +1731,12 @@ struct CanvasView: View {
         return InlineTextField(element: el,
                                onChange: { typeInline(id, $0) },
                                onDone: { commitTextEditIfAny() },
-                               onToggle: { store.toggleText($0) },
                                onStyled: { store.styleWhileTyping($0) },
                                onWordColour: { store.chooseWordColour(id, range: $0) },
                                onWordScale: { store.scaleWords(id, range: $0, by: $1) },
                                onWordFont: { store.chooseWordFont(id, range: $0) },
                                onWordLink: { store.chooseWordLink(id, range: $0) },
-                               selectsWords: store.typingSelectsWords)
+                               typing: typingHooks)
             .frame(width: el.w)
             .frame(width: el.w, height: el.h, alignment: sits)
             // The whole box is the field's: the field is only as tall as its
@@ -1689,9 +1761,9 @@ struct CanvasView: View {
         return InlineTextField(element: words,
                                onChange: { typeInline(id, $0) },
                                onDone: { commitTextEditIfAny() },
-                               onToggle: { store.toggleText($0) },
                                onStyled: { store.styleWhileTyping($0) },
-                               wordStyles: false)
+                               wordStyles: false,
+                               typing: typingHooks)
             .frame(width: box.width)
             .frame(width: box.width, height: box.height, alignment: sits)
             .overlay(Rectangle().stroke(Theme.accent, lineWidth: 1 * iz).allowsHitTesting(false))
@@ -1706,6 +1778,20 @@ struct CanvasView: View {
 
     private func typeInline(_ id: String, _ words: String) {
         store.typeWords(words, into: id)
+    }
+
+    /// The typing field's caret, its bursts and their Undo, kept by the
+    /// store: Undo while typing takes back a burst and the typing stays open.
+    private var typingHooks: InlineTextField.Typing {
+        var hooks = InlineTextField.Typing()
+        hooks.selection = { store.typingSelection = $0 }
+        hooks.step = { store.closeTypingStep() }
+        hooks.undo = { store.undo() }
+        hooks.redo = { store.redo() }
+        hooks.canUndo = { store.canUndo }
+        hooks.canRedo = { store.canRedo }
+        hooks.asked = store.typingSelectionAsked
+        return hooks
     }
 
     // MARK: scroll through pages
@@ -1930,7 +2016,7 @@ struct CanvasView: View {
         store.select(hit.id)
         // A table cell's words are found on the page now worked.
         if let target = store.typedIn(hit) {
-            startTextEdit(target)
+            startTextEdit(target, at: nil)
         } else if hit.type == .image {
             store.startCrop(hit.id)
         }

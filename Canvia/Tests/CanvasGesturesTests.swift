@@ -142,7 +142,7 @@ final class CanvasGesturesTests: XCTestCase {
         let typed = try? XCTUnwrap(s.page.elements.first)
         XCTAssertEqual(s.editingTextId, typed?.id, "typing at once")
         XCTAssertEqual(typed?.text, "Your text here", "the default text box, as on the Android twin")
-        XCTAssertTrue(s.typingSelectsWords, "its words chosen, so the first key replaces them")
+        XCTAssertEqual(s.typingSelectionAsked?.range, NSRange(location: 0, length: 14), "its words chosen, so the first key replaces them")
         XCTAssertEqual(typed?.fontSize, 65)
         XCTAssertEqual(typed?.w, 778)
         XCTAssertEqual(typed?.x, 151, "centred on the finger")

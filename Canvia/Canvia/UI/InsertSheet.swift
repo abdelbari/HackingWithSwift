@@ -540,7 +540,7 @@ struct InsertSheet: View {
                                   w: (store.pageWidth * 0.72).rounded())
             el.fontWeight = weight
             el.h = FontLibrary.layoutHeight(for: el)
-            store.add(el)
+            store.addText(el)
             dismiss()
         } label: {
             Text(label)
@@ -558,7 +558,7 @@ struct InsertSheet: View {
         let size = 12 + role.widthFraction * 160
         let weight = face?.weight ?? role.defaultWeight
         return Button {
-            store.add(BrandFonts.element(role, face: face, pageWidth: store.pageWidth))
+            store.addText(BrandFonts.element(role, face: face, pageWidth: store.pageWidth))
             dismiss()
         } label: {
             Text(role.addLabel)

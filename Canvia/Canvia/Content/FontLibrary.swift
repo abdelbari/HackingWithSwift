@@ -557,9 +557,23 @@ enum FontLibrary {
     /// are set so on top — in capitals, moved as the runs are.
     static func attributedString(for el: Element) -> NSAttributedString {
         let marked = markedDisplayText(for: el, pageNumber: nil, pageCount: nil)
+        return styledWords(marked, of: el, capitals: el.uppercase == true, spans: displaySpans(for: el, marked: marked))
+    }
+
+    /// The words as the field typed in on the canvas lays them out: as they
+    /// read, styled as the canvas draws them, but neither in capitals nor
+    /// after a list's markers, as the field types the words as they are
+    /// kept (InlineTextField). Where a tap puts the caret is found in it.
+    static func typedAttributedString(for el: Element) -> NSAttributedString {
+        let spans = el.textFill?.kind == "gradient" ? Spans.withoutColours(el.liveSpans) : el.liveSpans
+        return styledWords(el.text ?? "", of: el, capitals: false, spans: spans)
+    }
+
+    /// `marked` — words with their style markers — in `el`'s type, the runs
+    /// and `spans` on them, in capitals when `capitals`.
+    private static func styledWords(_ marked: String, of el: Element, capitals: Bool,
+                                    spans: [TextSpan]) -> NSAttributedString {
         let base = attributes(for: el)
-        let capitals = el.uppercase == true
-        let spans = displaySpans(for: el, marked: marked)
         guard RichText.hasMarkup(marked) || !spans.isEmpty else {
             return NSAttributedString(string: capitals ? marked.uppercased() : marked, attributes: base)
         }

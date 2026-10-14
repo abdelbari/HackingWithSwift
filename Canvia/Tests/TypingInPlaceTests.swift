@@ -96,10 +96,11 @@ final class TypingInPlaceTests: XCTestCase {
         s.add(heading)
         type(s, "Summer Sale", into: heading.id)
         s.undo()
-        XCTAssertNil(s.editingTextId)
+        XCTAssertEqual(s.editingTextId, heading.id, "the typing stays open")
         XCTAssertEqual(s.element(heading.id)?.text, "Heading", "the heading stays; only the words go")
         s.redo()
         XCTAssertEqual(s.element(heading.id)?.text, "Summer Sale")
+        XCTAssertEqual(s.editingTextId, heading.id)
     }
 
     func testACommandWhileTypingIsAStepOfItsOwn() {

@@ -334,4 +334,84 @@ final class FindReplaceTests: XCTestCase {
         XCTAssertEqual(FindReplaceSheet.summary(needle: "Zed", matches: [], replaced: nil), "Not found in this design.")
         XCTAssertEqual(FindReplaceSheet.summary(needle: "Acme", matches: found, replaced: 3), "Replaced 3 occurrences.")
     }
+
+    // MARK: the words as they read
+
+    /// The rows the Android twin's FindReplaceTest runs too: the words are
+    /// searched as they read, whatever their styles, and a match is placed
+    /// with the markers between it and the words beside it taken in.
+    func testStyledWordsAreFoundAsTheyRead() throws {
+        var design = Design(title: "styled", width: 800, height: 600)
+        design.pages[0].elements = [Element.text("**Big** sale", fontSize: 24, w: 400)]
+        let found = DesignStore.matches(in: design, for: "big sale", caseSensitive: false, wholeWord: false)
+        XCTAssertEqual(found.count, 1)
+        XCTAssertEqual(found.map { [$0.range.location, NSMaxRange($0.range)] }, [[0, 12]])
+        XCTAssertEqual(found.first?.preview, "Big sale", "the line as it reads")
+        let after = try XCTUnwrap(DesignStore.replacingOne(design, found[0], with: "huge deal"))
+        XCTAssertEqual(after.pages[0].elements[0].text, "**huge deal**")
+        // Whole words and Match case as ever.
+        XCTAssertEqual(DesignStore.matches(in: design, for: "big", caseSensitive: true, wholeWord: false).count, 0)
+        let word = DesignStore.matches(in: design, for: "big", caseSensitive: false, wholeWord: true)
+        XCTAssertEqual(word.map { [$0.range.location, NSMaxRange($0.range)] }, [[0, 7]])
+        XCTAssertTrue(DesignStore.matches(in: design, for: "bi", caseSensitive: false, wholeWord: true).isEmpty)
+    }
+
+    /// The rule a match is placed by, the Android twin's rows too: from just
+    /// after the character before it to just before the character after,
+    /// the markers between taken in whichever style they open or close.
+    func testAMatchRunsFromTheCharacterBeforeToTheCharacterAfter() {
+        func found(_ text: String, _ needle: String) -> [[Int]] {
+            var design = Design(title: "styled", width: 800, height: 600)
+            design.pages[0].elements = [Element.text(text, fontSize: 24, w: 400)]
+            return DesignStore.matches(in: design, for: needle, caseSensitive: false, wholeWord: false)
+                .map { [$0.range.location, NSMaxRange($0.range)] }
+        }
+        XCTAssertEqual(found("**Big**", "ig"), [[3, 7]])
+        XCTAssertEqual(found("**Big sale** today", "sale"), [[6, 12]])
+    }
+
+    /// Replacing keeps the styling round the words: the new ones in the
+    /// style of the first they replace, markers outside them where they were.
+    func testReplacingKeepsTheStylingRoundTheWords() {
+        func replaced(_ text: String, _ needle: String, _ with: String) -> String {
+            let plain = RichText.strip(text) as NSString
+            return FindReplace.replacing(plain.range(of: needle), in: text, with: with)
+        }
+        XCTAssertEqual(replaced("**Big** sale", "Big sale", "huge deal"), "**huge deal**")
+        XCTAssertEqual(replaced("a **Big** sale", "Big", "huge"), "a **huge** sale")
+        XCTAssertEqual(replaced("**Big sale** today", "sale", "deal"), "**Big deal** today")
+        XCTAssertEqual(replaced("**Big** sale", "sale", "deal"), "**Big** deal")
+        XCTAssertEqual(replaced("*so* very", "so very", "quite"), "*quite*")
+    }
+
+    func testReplaceAllFindsStyledWordsAndKeepsTheirStyle() {
+        let s = store([["**Big** sale and big"]])
+        XCTAssertEqual(s.replaceAll("big", with: "huge"), 2)
+        XCTAssertEqual(s.design.pages[0].elements[0].text, "**huge** sale and huge")
+    }
+
+    /// The match showing is marked over its own letters on the canvas; a
+    /// curve has none to mark, and the canvas marks the whole box.
+    func testTheMatchShowingIsMarkedOverItsLetters() throws {
+        var el = Element.text("Hello world", fontSize: 40, w: 600)
+        el.align = "left"
+        el.h = FontLibrary.layoutHeight(for: el)
+        let rects = FindReplace.letterRects(of: NSRange(location: 6, length: 5), in: el)
+        let rect = try XCTUnwrap(rects.first)
+        XCTAssertEqual(rects.count, 1)
+        XCTAssertGreaterThan(rect.minX, 0)
+        XCTAssertGreaterThan(rect.width, 0)
+        XCTAssertLessThan(rect.maxX, 600)
+        el.curve = 120
+        XCTAssertTrue(FindReplace.letterRects(of: NSRange(location: 6, length: 5), in: el).isEmpty)
+    }
+
+    func testRevealMarksTheMatchAndReplaceAllClearsIt() throws {
+        let s = store([["Acme"], ["Acme"]])
+        let match = try XCTUnwrap(s.matches(for: "Acme").last)
+        s.reveal(match)
+        XCTAssertEqual(s.findHighlight, match)
+        s.replaceAll("Acme", with: "Globex")
+        XCTAssertNil(s.findHighlight)
+    }
 }

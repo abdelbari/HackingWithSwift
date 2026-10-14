@@ -6,9 +6,10 @@
 //
 // The search is non-mutating and runs on every keystroke, so the count is
 // live. Previous and Next step through the matches — "3 of 12" between them
-// — each switching to its page and selecting its box, with the sheet at
-// half height so the canvas shows; Replace changes the one match showing and
-// moves on to the next. Replace all is one undo step: forty separate steps
+// — each switching to its page and selecting its box, its letters marked
+// there, with the sheet at half height so the canvas shows; Replace changes
+// the one match showing and moves on to the next. The words are searched as
+// they read, whatever their styles (FindReplace.matches). Replace all is one undo step: forty separate steps
 // to undo a mistaken replace would be worse than no undo at all. Match case
 // and Whole words narrow the search (FindReplace), as on the Android twin.
 
@@ -59,9 +60,11 @@ struct FindReplaceSheet: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
             .onAppear { needleFocused = true }
-            .onChange(of: needle) { replacedCount = nil; current = 0 }
-            .onChange(of: caseSensitive) { current = 0 }
-            .onChange(of: wholeWord) { current = 0 }
+            // The letters marked stay only while their match is showing.
+            .onDisappear { store.findHighlight = nil }
+            .onChange(of: needle) { replacedCount = nil; searchChanged() }
+            .onChange(of: caseSensitive) { searchChanged() }
+            .onChange(of: wholeWord) { searchChanged() }
             // The count spoken as it changes, once typing pauses, so a
             // VoiceOver user hears what the footer shows.
             .task(id: summary) {
@@ -137,13 +140,20 @@ struct FindReplaceSheet: View {
         }
     }
 
+    /// A new search starts at its first match, nothing marked until one is
+    /// shown.
+    private func searchChanged() {
+        current = 0
+        store.findHighlight = nil
+    }
+
     /// Previous or Next: the match before or after, round at either end.
     private func step(_ delta: Int, in found: [DesignStore.TextMatch]) {
         show(FindReplace.step(from: current, by: delta, count: found.count), in: found)
     }
 
-    /// Match `index` showing: its page, its box selected under the sheet,
-    /// kept at half height so the canvas shows.
+    /// Match `index` showing: its page, its box selected under the sheet
+    /// and its letters marked, kept at half height so the canvas shows.
     private func show(_ index: Int, in found: [DesignStore.TextMatch]) {
         guard found.indices.contains(index) else { return }
         current = index
@@ -163,7 +173,12 @@ struct FindReplaceSheet: View {
         let now = matches
         let next = DesignStore.matchAfter(replacing: found[at], at: at,
                                           length: (replacement as NSString).length, in: now)
-        if now.isEmpty { current = 0 } else { show(next, in: now) }
+        if now.isEmpty {
+            current = 0
+            store.findHighlight = nil
+        } else {
+            show(next, in: now)
+        }
     }
 
     private var summary: String {

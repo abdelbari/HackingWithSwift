@@ -23,6 +23,9 @@ struct SelectionOverlay: View {
     /// inside the selection still picks the topmost thing).
     var onBodyTap: (CGPoint, Int) -> Void = { _, _ in }
     var onBodyHold: () -> Void = {}
+    /// A finger landing on the body or lifting from it, for how long a tap
+    /// there was down (a quick one on a text selected alone types in it).
+    var onBodyPressing: (Bool) -> Void = { _ in }
 
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -452,7 +455,8 @@ struct SelectionOverlay: View {
             .contentShape(Path(zone))
             .onTapGesture(count: 2, coordinateSpace: .named("page")) { onBodyTap($0, 2) }
             .onTapGesture(count: 1, coordinateSpace: .named("page")) { onBodyTap($0, 1) }
-            .onLongPressGesture(minimumDuration: CanvasGestures.holdSeconds) { onBodyHold() }
+            .onLongPressGesture(minimumDuration: CanvasGestures.holdSeconds,
+                                perform: { onBodyHold() }, onPressingChanged: onBodyPressing)
             // As far on the glass as an element's own drag waits, so a tap
             // that wanders a little is still a tap.
             .gesture(moveDrag(after: Touch.dragSlop))
