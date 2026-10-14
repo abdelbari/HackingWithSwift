@@ -1,6 +1,10 @@
-// Settings: Appearance, Editing, Export, Help, Storage, Backup and About —
-// the same sections, in the same words, as the Android twin's. Opened from
-// Home's gear and the editor's More menu.
+// Settings: Appearance, Language, Editing, Export, Help, Storage, Backup
+// and About — the same sections, in the same words, as the Android twin's.
+// Opened from Home's gear and the editor's More menu.
+//
+// Language opens Canvia's page in the Settings app, where iOS keeps an
+// app's own language; the row shows the one it speaks now, in its own
+// words (AppLanguage).
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -94,6 +98,7 @@ struct SettingsSheet: View {
     /// Asked for from Help: the welcome tour, once Settings has gone.
     var onTour: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @AppStorage(Appearance.key) private var appearance = Appearance.system.rawValue
     @AppStorage(Haptics.key) private var haptics = true
     @AppStorage(SelectionBubble.key) private var quickActions = true
@@ -125,6 +130,7 @@ struct SettingsSheet: View {
         NavigationStack {
             Form {
                 appearanceSection
+                languageSection
                 editingSection
                 exportSection
                 helpSection
@@ -153,6 +159,21 @@ struct SettingsSheet: View {
             Text("Appearance")
         } footer: {
             Text("System follows your phone's light and dark setting.")
+        }
+    }
+
+    private var languageSection: some View {
+        Section {
+            Button {
+                if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+            } label: {
+                LabeledContent("Language") {
+                    Text(verbatim: AppLanguage.name(AppLanguage.current()))
+                }
+            }
+            .foregroundStyle(.primary)
+        } footer: {
+            Text("Canvia uses your phone's language. To choose another for Canvia alone, open its page in the Settings app.")
         }
     }
 
