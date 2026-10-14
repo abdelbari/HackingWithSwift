@@ -52,6 +52,10 @@ struct CanvasView: View {
     /// The pages near enough to the part of the column on screen to draw
     /// live (PageColumn.livePages); the others show a thumbnail.
     @State private var livePages: Set<Int> = []
+    /// The pages near enough for a thumbnail (PageColumn.thumbnailPages),
+    /// and those of them in view, whose thumbnails are made first.
+    @State private var thumbPages: Set<Int> = []
+    @State private var pagesInView: Set<Int> = []
     /// The part of the column on screen, kept without redrawing the canvas
     /// on every frame of a scroll.
     @State private var seen = ColumnSeen()
@@ -1908,8 +1912,13 @@ struct CanvasView: View {
             if seen.across != across { seen.across = across }
             shown = slot.pageBox(visible)
             fitting = fit * slot.scale
-            let live = Set(PageColumn.livePages(columnSlots, visible: visible))
+            let slots = columnSlots
+            let live = Set(PageColumn.livePages(slots, visible: visible))
             if livePages != live { livePages = live }
+            let thumbs = Set(PageColumn.thumbnailPages(slots, visible: visible))
+            if thumbPages != thumbs { thumbPages = thumbs }
+            let inView = Set(PageColumn.pages(slots, within: 0, of: visible))
+            if pagesInView != inView { pagesInView = inView }
         }
         // Only real changes: every write redraws whatever reads it.
         if store.viewport != shown { store.viewport = shown }
@@ -2142,8 +2151,8 @@ struct CanvasView: View {
             .offset(x: slot.origin.x, y: slot.origin.y)
     }
 
-    /// Another page: live near the view, a thumbnail further off, with
-    /// nothing on it to touch — a tap there is the canvas's (backgroundTap).
+    /// Another page: live near the view, a thumbnail further off, a white
+    /// page further still, with nothing on it to touch — a tap there is the canvas's (backgroundTap).
     private func otherPage(_ index: Int, slot: PageColumn.Slot) -> some View {
         let page = store.design.pages[index]
         let r = slot.rect
@@ -2162,8 +2171,12 @@ struct CanvasView: View {
                     .environment(\.onScreen, true)
                     .scaleEffect(slot.scale, anchor: .topLeading)
                     .frame(width: r.width, height: r.height, alignment: .topLeading)
+            } else if thumbPages.contains(index) {
+                // Those in view are drawn first (ThumbnailCache).
+                PageThumbnail(design: store.design, page: page, priority: pagesInView.contains(index) ? 0 : 1)
+                    .frame(width: r.width, height: r.height)
             } else {
-                PageThumbnail(design: store.design, page: page)
+                Color.white
                     .frame(width: r.width, height: r.height)
             }
         }

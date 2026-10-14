@@ -371,13 +371,20 @@ struct PageNotesSheet: View {
 /// in the hierarchy — each text element re-running CoreText layout — just to
 /// fill a row of 56pt thumbnails.
 ///
-/// `task(id: page)` re-renders exactly when the page's contents change,
-/// because Page is Equatable, so the cache can never go stale — but "when
-/// the contents change" includes every frame of a drag, so the render is
-/// debounced below.
+/// The bitmap comes from ThumbnailCache: kept for the page as it stands, or
+/// made in its turn, those on screen first (`priority` 0). `task(id: page)`
+/// asks again exactly when the page's contents change, because Page is
+/// Equatable — but "when the contents change" includes every frame of a
+/// drag, so a thumbnail already drawn asks again only once the page stops
+/// changing (below).
 struct PageThumbnail: View {
     let design: Design
     let page: Page
+    /// How many pixels wide it is drawn.
+    var pixelWidth = 140
+    /// Its place in line when several wait to be drawn: 0 on screen, more
+    /// further off.
+    var priority = 0
     @State private var image: UIImage?
 
     var body: some View {
@@ -388,9 +395,9 @@ struct PageThumbnail: View {
                 Color.white
             }
         }
-        .task(id: ThumbKey(page: page, baked: bakedVersion)) {
-            // Debounced, because a drag rewrites the page on every frame.
-            // Without the wait, each of those frames started a full
+        .task(id: ThumbKey(page: page, baked: bakedVersion, subjects: subjectsVersion, width: pixelWidth)) {
+            // Debounced once drawn, because a drag rewrites the page on every
+            // frame. Without the wait, each of those frames started a full
             // ImageRenderer pass over the whole page — rasterising every
             // element, re-running CoreText for every text run — to refresh a
             // 56pt thumbnail nobody is looking at mid-gesture.
@@ -402,21 +409,31 @@ struct PageThumbnail: View {
             // are never re-rendered at all. A look made off the main thread
             // goes through the same wait: a dial dragged, or a clip playing,
             // finishes a run of them, which end in one render of each page
-            // with such a photo, and none of any other page.
-            try? await Task.sleep(for: .milliseconds(180))
-            guard !Task.isCancelled else { return }
-            render()
+            // with such a photo, and none of any other page. A thumbnail not
+            // yet drawn — scrolled into view — asks at once, and one kept
+            // shows straight away.
+            if image != nil {
+                try? await Task.sleep(for: .milliseconds(180))
+                guard !Task.isCancelled else { return }
+            }
+            let key = ThumbnailCache.key(page: page, design: design, baked: bakedVersion,
+                                         subjects: subjectsVersion, pixelWidth: pixelWidth)
+            if let made = await ThumbnailCache.shared.image(key, priority: priority, make: render) {
+                image = made
+            }
         }
-        // A photo's focus subject, found off the main thread meanwhile.
-        .onChange(of: ImageFilterEngine.subjectsFound.version) { render() }
     }
 
-    /// The thumbnail's task id: the page, and for a page with a photo whose
-    /// clarity or pixelate is made off the main thread, how many such looks
-    /// are made, so a new one draws it again.
+    /// The thumbnail's task id: the page, for a page with a photo whose
+    /// clarity or pixelate is made off the main thread how many such looks
+    /// are made, for one with a photo whose focus keeps its subject sharp
+    /// how many subjects are found — so a new one draws it again — and its
+    /// width.
     private struct ThumbKey: Equatable {
         let page: Page
         let baked: Int
+        let subjects: Int
+        let width: Int
     }
 
     /// The count of looks made off the main thread, read only by a page
@@ -427,13 +444,21 @@ struct PageThumbnail: View {
         return ImageFilterEngine.looksBaked.version
     }
 
+    /// The count of focus subjects found off the main thread, read only by
+    /// a page with a photo whose focus waits for its subject; 0 for any
+    /// other, which a subject found elsewhere never draws again.
+    private var subjectsVersion: Int {
+        guard design.drawnElements(on: page).contains(where: { $0.focusBlur?.subject == true }) else { return 0 }
+        return ImageFilterEngine.subjectsFound.version
+    }
+
     @MainActor
-    private func render() {
+    private func render() -> UIImage? {
         // On screen, so a focus subject is found off the main thread rather
         // than holding up the strip; the thumbnail is drawn again when it is.
         let renderer = ImageRenderer(content: PageRenderView(design: design, page: page).environment(\.onScreen, true))
-        renderer.scale = max(0.02, 140 / max(design.size(for: page).width, 1))
+        renderer.scale = max(0.02, CGFloat(pixelWidth) / max(design.size(for: page).width, 1))
         renderer.isOpaque = true
-        if let ui = renderer.uiImage { image = ui }
+        return renderer.uiImage
     }
 }
