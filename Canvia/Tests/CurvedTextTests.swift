@@ -156,4 +156,56 @@ final class CurvedTextTests: XCTestCase {
         XCTAssertTrue(svg.contains("<path d=\"M"))
         XCTAssertTrue(XMLParser(data: Data(svg.utf8)).parse())
     }
+
+    // MARK: words' own styles
+
+    /// The fixture both phones check: "**Sale** today" curved 90° draws Sale
+    /// bold, so its outline is wider than plain "Sale today" on the same
+    /// curve — and curvedSize, which the box is sized by, takes it in.
+    func testABoldWordStaysBoldOnACurve() throws {
+        let plain = text("Sale today", curve: 90)
+        let bold = text("**Sale** today", curve: 90)
+        let plainWidth = try XCTUnwrap(TextOutliner.path(for: plain)).boundingBox.width
+        let boldWidth = try XCTUnwrap(TextOutliner.path(for: bold)).boundingBox.width
+        XCTAssertGreaterThan(boldWidth, plainWidth)
+        let plainSize = try XCTUnwrap(TextOutliner.curvedSize(for: plain, degrees: 90))
+        let boldSize = try XCTUnwrap(TextOutliner.curvedSize(for: bold, degrees: 90))
+        XCTAssertGreaterThan(boldSize.width, plainSize.width)
+    }
+
+    /// A word set twice the size stays twice the size round the curve, and
+    /// the box grows to hold it.
+    func testALargerWordTakesItsRoomOnACurve() throws {
+        let plain = text("Sale today", curve: 90)
+        var sized = plain
+        sized.setSpans([TextSpan(start: 0, end: 4, scale: 2)])
+        let plainSize = try XCTUnwrap(TextOutliner.curvedSize(for: plain, degrees: 90))
+        let sizedSize = try XCTUnwrap(TextOutliner.curvedSize(for: sized, degrees: 90))
+        XCTAssertGreaterThan(sizedSize.width, plainSize.width)
+        XCTAssertGreaterThan(sizedSize.height, plainSize.height)
+        XCTAssertGreaterThan(FontLibrary.layoutHeight(for: sized), FontLibrary.layoutHeight(for: plain))
+    }
+
+    /// An underline or a strike follows the curve under or through its
+    /// words: on a valley the underline hangs below the lowest letters.
+    func testUnderlinesAndStrikesFollowTheCurve() throws {
+        let plain = try XCTUnwrap(TextOutliner.curvedSize(for: text("SALE NOW"), degrees: -90))
+        let underlined = try XCTUnwrap(TextOutliner.curvedSize(for: text("__SALE NOW__"), degrees: -90))
+        XCTAssertGreaterThan(underlined.height, plain.height, "the underline below the baseline")
+        let struck = try XCTUnwrap(TextOutliner.path(for: text("~~SALE~~ NOW", curve: 90)))
+        let bare = try XCTUnwrap(TextOutliner.path(for: text("SALE NOW", curve: 90)))
+        XCTAssertNotEqual(TextOutliner.svgPathData(struck), TextOutliner.svgPathData(bare), "the strike is drawn")
+    }
+
+    /// Text along a path keeps a word's bold, as round a curve.
+    func testABoldWordStaysBoldAlongAPath() throws {
+        var plain = text("Sale today", w: 600)
+        plain.textPath = "M0 50 L100 50"
+        plain.h = 100
+        var bold = plain
+        bold.text = "**Sale** today"
+        let plainWidth = try XCTUnwrap(TextOutliner.path(for: plain)).boundingBox.width
+        let boldWidth = try XCTUnwrap(TextOutliner.path(for: bold)).boundingBox.width
+        XCTAssertGreaterThan(boldWidth, plainWidth)
+    }
 }

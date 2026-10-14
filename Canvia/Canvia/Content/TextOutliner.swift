@@ -9,9 +9,12 @@
 //
 // The layout is CoreText's, in the element's own box, so it matches what the
 // canvas draws: same attributes from FontLibrary, same wrap width, same line
-// height. What it deliberately does not carry is the text effects — a neon
-// glow or a splice is a raster or a stroke on top of these outlines, and
-// belongs to whoever draws them, not to the geometry.
+// height. Round a curve, along a path and down a column it keeps each
+// word's own style too — bold, italic, underline, strike, colour, face and
+// size, as set before it was bent — the underline and strike drawn a glyph
+// at a time along the line. What it deliberately does not carry is the
+// text effects — a neon glow or a splice is a raster or a stroke on top of
+// these outlines, and belongs to whoever draws them, not to the geometry.
 
 import CoreGraphics
 import CoreText
@@ -74,9 +77,9 @@ enum TextOutliner {
             Self.part(color, in: &glyphs).addPath(glyph, transform: transform)
         }
 
-        func addRule(_ rect: CGRect, color: String?) {
-            allRules.addRect(rect)
-            Self.part(color, in: &rules).addRect(rect)
+        func addRule(_ rect: CGRect, transform: CGAffineTransform = .identity, color: String?) {
+            allRules.addRect(rect, transform: transform)
+            Self.part(color, in: &rules).addRect(rect, transform: transform)
         }
 
         private static func part(_ color: String?, in parts: inout [(color: String?, path: CGMutablePath)]) -> CGMutablePath {
@@ -179,28 +182,58 @@ enum TextOutliner {
                     .translatedBy(x: -advances[i].width / 2, y: 0)
                     .scaledBy(x: 1, y: -1)
                 ink.add(glyph, transform: transform, color: tint)
+                for rule in rules(attributes, font: font, advance: advances[i].width) {
+                    ink.addRule(rule, transform: transform, color: tint)
+                }
             }
         }
         return ink.isEmpty ? nil : ink
     }
 
     /// The words on one line, for a curve or a path: the lines joined by
-    /// spaces and the ends trimmed, in the box's type and the colours set on
-    /// words — never their sizes, which a curve does not take.
+    /// spaces and the ends trimmed, styled as the straight box draws them
+    /// (FontLibrary.attributedString) — each word's bold, italic, underline,
+    /// strike, colour, face and size kept, so CoreText shapes and kerns each
+    /// run in its own font and a larger word takes more of the line.
     private static func flatLine(for el: Element) -> NSAttributedString? {
-        let joined = FontLibrary.displayText(for: el)
-            .components(separatedBy: "\n")
-            .joined(separator: " ")
+        let styled = NSMutableAttributedString(attributedString: FontLibrary.attributedString(for: el))
+        // Each break a space, in place, so every run keeps its letters.
+        let breaks = (styled.string as NSString)
+        var at = breaks.range(of: "\n")
+        while at.location != NSNotFound {
+            styled.replaceCharacters(in: at, with: " ")
+            let next = at.location + 1
+            at = breaks.range(of: "\n", range: NSRange(location: next, length: breaks.length - next))
+        }
+        let joined = styled.string
         let flat = joined.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !flat.isEmpty else { return nil }
-        let attributed = NSMutableAttributedString(string: flat, attributes: FontLibrary.attributes(for: el))
-        let colours = FontLibrary.displayColours(for: el)
-        if !colours.isEmpty {
-            // Moved back by the spaces trimmed from the start.
-            let lead = (joined as NSString).range(of: flat).location
-            FontLibrary.colourWords(attributed, colours, shift: -lead)
+        // Less the spaces trimmed from either end.
+        let lead = (joined as NSString).range(of: flat).location
+        return styled.attributedSubstring(from: NSRange(location: lead, length: (flat as NSString).length))
+    }
+
+    /// A run's underline and strike under or through one glyph `advance`
+    /// wide, in the glyph's own space — y up from its baseline, before it is
+    /// placed on the line — so each follows the curve or path with its
+    /// letter: `size`/18 thick, the underline at the face's underline
+    /// position, the strike halfway up its lower-case letters. The rule
+    /// both phones keep.
+    private static func rules(_ attributes: [String: Any]?, font: CTFont, advance: CGFloat) -> [CGRect] {
+        let underlined = (attributes?[NSAttributedString.Key.underlineStyle.rawValue] as? Int ?? 0) != 0
+        let struck = (attributes?[NSAttributedString.Key.strikethroughStyle.rawValue] as? Int ?? 0) != 0
+        guard underlined || struck, advance > 0 else { return [] }
+        let thickness = CTFontGetSize(font) / 18
+        var out: [CGRect] = []
+        if underlined {
+            let centre = CTFontGetUnderlinePosition(font)
+            out.append(CGRect(x: 0, y: centre - thickness / 2, width: advance, height: thickness))
         }
-        return attributed
+        if struck {
+            let centre = CTFontGetXHeight(font) / 2
+            out.append(CGRect(x: 0, y: centre - thickness / 2, width: advance, height: thickness))
+        }
+        return out
     }
 
     /// Vertical writing: each character upright, stacked down a column at
@@ -220,6 +253,15 @@ enum TextOutliner {
         let attrs = FontLibrary.attributes(for: el)
         let declared = FontLibrary.uiFont(family: el.fontFamily, size: size,
                                           weight: el.fontWeight ?? 400, italic: el.italic ?? false)
+        // Each word's own face — bold, italic, a font or size of its own —
+        // read where the character is in the styled text, when that reads
+        // as the text does; else the box's.
+        let styled = FontLibrary.attributedString(for: el)
+        let styledAgrees = styled.string == text
+        func style(at offset: Int) -> [NSAttributedString.Key: Any] {
+            guard styledAgrees, offset < styled.length else { return attrs }
+            return styled.attributes(at: offset, effectiveRange: nil)
+        }
         // Each character with where it is in the text, for its colour.
         let colours = FontLibrary.displayColours(for: el)
         func colour(at offset: Int) -> String? {
@@ -227,12 +269,12 @@ enum TextOutliner {
         }
         // Columns: split at newlines, then at the box's height.
         let perColumn = max(1, Int(el.h / step))
-        var columns: [[(char: Character, color: String?)]] = []
+        var columns: [[(char: Character, color: String?, at: Int)]] = []
         var offset = 0
         for paragraph in text.components(separatedBy: "\n") {
-            var chars: [(char: Character, color: String?)] = []
+            var chars: [(char: Character, color: String?, at: Int)] = []
             for ch in paragraph {
-                chars.append((char: ch, color: colour(at: offset)))
+                chars.append((char: ch, color: colour(at: offset), at: offset))
                 offset += String(ch).utf16.count
             }
             offset += 1
@@ -257,7 +299,8 @@ enum TextOutliner {
             default: top = 0
             }
             for (r, entry) in column.enumerated() where entry.char != " " {
-                let line = CTLineCreateWithAttributedString(NSAttributedString(string: String(entry.char), attributes: attrs))
+                let line = CTLineCreateWithAttributedString(NSAttributedString(string: String(entry.char),
+                                                                               attributes: style(at: entry.at)))
                 var ascent: CGFloat = 0, descent: CGFloat = 0
                 let advance = CTLineGetTypographicBounds(line, &ascent, &descent, nil)
                 guard let runs = CTLineGetGlyphRuns(line) as? [CTRun] else { continue }
@@ -457,6 +500,9 @@ enum TextOutliner {
                     .translatedBy(x: -advances[i].width / 2, y: 0)
                     .scaledBy(x: 1, y: -1)
                 ink.add(glyph, transform: transform, color: tint)
+                for rule in rules(attributes, font: font, advance: advances[i].width) {
+                    ink.addRule(rule, transform: transform, color: tint)
+                }
             }
         }
         guard !ink.isEmpty else { return nil }
@@ -464,7 +510,8 @@ enum TextOutliner {
         // Centre the arc in the element's box. Its own bounds are the only
         // honest anchor: where the apex lands depends on the angle, and a
         // fixed offset would slide the text off a steeply curved element.
-        let bounds = ink.all.boundingBoxOfPath
+        // The rules count, an underline below the letters most of all.
+        let bounds = ink.all.boundingBoxOfPath.union(ink.allRules.boundingBoxOfPath)
         let centring = CGAffineTransform(
             translationX: (el.w - bounds.width) / 2 - bounds.minX,
             y: (el.h - bounds.height) / 2 - bounds.minY)
@@ -473,7 +520,8 @@ enum TextOutliner {
 
     /// The box a curved element needs. Bending a line of text makes it both
     /// narrower and much taller, and nothing else in the app can work that
-    /// out — the straight measurement would clip the arc away.
+    /// out — the straight measurement would clip the arc away. Read from the
+    /// ink itself, so a word set larger, or bold, takes its room.
     static func curvedSize(for el: Element, degrees: Double) -> CGSize? {
         var probe = el
         // Measure in a box large enough that the centring above cannot clamp
