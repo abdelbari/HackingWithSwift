@@ -691,7 +691,7 @@ final class DesignStore {
         guard total > 0 else { return 0 }
         apply { design in
             for p in design.pages.indices {
-                for i in design.pages[p].elements.indices where ColourSwap.takesSwap(design.pages[p].elements[i]) {
+                for i in design.pages[p].elements.indices where ColourSwap.takesChangeAll(design.pages[p].elements[i]) {
                     design.pages[p].elements[i] = ColourSwap.swapped([design.pages[p].elements[i]], from: from, to: to)[0]
                 }
             }

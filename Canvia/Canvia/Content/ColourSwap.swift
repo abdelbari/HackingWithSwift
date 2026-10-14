@@ -46,11 +46,12 @@ enum ColourSwap {
     /// "#00ff0080". Colours are compared as "#rrggbb", whatever case or
     /// short form they are written in; what is swapped is written as
     /// lowercase "#rrggbb", its alpha after it when it had one. Every other
-    /// field is left as written.
+    /// field is left as written, and so is a use wholly see-through
+    /// ("#rrggbb00"), which nobody sees — as on the Android twin.
     static func swapped(_ elements: [Element], from: String, to: String) -> [Element] {
         guard let source = parse(from)?.rgb, let target = parse(to)?.rgb else { return elements }
         func swap(_ raw: String?) -> String? {
-            guard let raw, let parsed = parse(raw), parsed.rgb == source else { return raw }
+            guard let raw, let parsed = parse(raw), parsed.rgb == source, parsed.alpha != "00" else { return raw }
             return target + (parsed.alpha ?? "")
         }
         return elements.map { el in
@@ -84,15 +85,22 @@ enum ColourSwap {
     }
 
     /// How many elements on every page of `design` use `colour` and would
-    /// take Change all: a fully locked one keeps its colours, so it is not
-    /// counted (a position lock still takes a new colour).
+    /// take Change all (see `takesChangeAll`).
     static func count(_ design: Design, from colour: String) -> Int {
         guard let rgb = parse(colour)?.rgb else { return 0 }
         var n = 0
         for page in design.pages {
-            for el in page.elements where takesSwap(el) && colours([el]).contains(rgb) { n += 1 }
+            for el in page.elements where takesChangeAll(el) && colours([el]).contains(rgb) { n += 1 }
         }
         return n
+    }
+
+    /// Whether Change all reaches an element: not one locked whole, which
+    /// keeps its colours (a position lock still takes a new colour), nor a
+    /// hidden one, which is not on the page to be seen changing — as Find
+    /// and replace and the Android twin pass them over.
+    static func takesChangeAll(_ el: Element) -> Bool {
+        takesSwap(el) && !el.isHidden
     }
 
     /// Whether an element's colours may be swapped: not when it is locked

@@ -82,6 +82,14 @@ final class ColourSwapTests: XCTestCase {
         let swapped = ColourSwap.swapped([see], from: "#ff0000", to: "#00aaff")[0]
         XCTAssertEqual(swapped.fill?.color, "#00aaff80")
         XCTAssertEqual(swapped.shadow?.color, "#00aaff")
+
+        // A use nobody sees is left as it is, as on the Android twin.
+        var clear = Element.shape("rect")
+        clear.fill = .solid("#ff0000")
+        clear.shadow = Shadow(color: "#ff000000")
+        let blue = ColourSwap.swapped([clear], from: "#ff0000", to: "#0000ff")[0]
+        XCTAssertEqual(blue.fill?.color, "#0000ff")
+        XCTAssertEqual(blue.shadow?.color, "#ff000000")
     }
 
     func testSwapReachesWordsAndLeavesWhatHasNoneOfTheColourAlone() {
@@ -94,7 +102,7 @@ final class ColourSwapTests: XCTestCase {
         XCTAssertEqual(out[3], input[3])
     }
 
-    func testCountTakesEveryPageAndLeavesOutLockedOnes() {
+    func testCountTakesEveryPageAndLeavesOutLockedAndHiddenOnes() {
         var red = Element.shape("rect")
         red.fill = .solid("#ff0000")
         var line = Element.line()
@@ -105,9 +113,13 @@ final class ColourSwapTests: XCTestCase {
         var held = red
         held.id = "held"
         held.lockPosition = true
+        var hidden = red
+        hidden.id = "hidden"
+        hidden.hidden = true
         var d = Design(title: "d", width: 400, height: 300)
-        d.pages = [Page(elements: [red, line]), Page(elements: [locked, held])]
-        // The fully locked one keeps its colours; a position lock does not.
+        d.pages = [Page(elements: [red, line]), Page(elements: [locked, held, hidden])]
+        // The fully locked one keeps its colours; a position lock does not;
+        // a hidden one is passed over.
         XCTAssertEqual(ColourSwap.count(d, from: "#ff0000"), 3)
         XCTAssertEqual(ColourSwap.count(d, from: "#00ff00"), 0)
     }
@@ -166,12 +178,16 @@ final class ColourSwapTests: XCTestCase {
         var locked = Element.shape("circle")
         locked.fill = .solid("#ff0000")
         locked.locked = true
-        let s = store([a], more: [other, locked])
+        var hidden = Element.shape("star")
+        hidden.fill = .solid("#ff0000")
+        hidden.hidden = true
+        let s = store([a], more: [other, locked, hidden])
         s.swapSelectionColour(from: "#ff0000", to: "#0000ff")
         XCTAssertEqual(ColourSwap.count(s.design, from: "#ff0000"), 1, "Change all (1)")
         XCTAssertEqual(s.swapColourEverywhere(from: "#ff0000", to: "#0000ff"), 1)
         XCTAssertEqual(s.design.pages[1].elements[0].color, "#0000ff")
         XCTAssertEqual(s.design.pages[1].elements[1].fill?.color, "#ff0000", "a locked one keeps its colour")
+        XCTAssertEqual(s.design.pages[1].elements[2].fill?.color, "#ff0000", "a hidden one keeps its colour")
         XCTAssertEqual(s.announcement, "Changed the colour of 1 element")
         XCTAssertTrue(s.announcementUndoes)
         s.undo()
