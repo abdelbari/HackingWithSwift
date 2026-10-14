@@ -957,8 +957,9 @@ final class DesignStore {
     /// here" (HoldMenu.words), 6% of the page's width in type, 72% of it
     /// wide — centred on `point` and kept on the page, typed into at once
     /// with its words chosen, so the first key replaces them, as on the
-    /// Android twin. Putting it there and the words typed are one Undo; left
-    /// as it is, it stays, as that one step.
+    /// Android twin. Putting it there is a step of its own, as Add text's
+    /// is, so Undo while typing takes back what was typed and leaves the box
+    /// open with its words; left as it is, it stays, as that one step.
     func addText(at point: CGPoint) {
         // Typing, or a step left open, is closed first, as its own.
         endTextEdit()
@@ -971,6 +972,7 @@ final class DesignStore {
         el.y = Double(at.y)
         beginGesture()
         design.pages[pageIndex].elements.append(el)
+        commit()
         // Just added (freshTexts): the field opens with its words chosen.
         freshTexts[el.id] = el.text ?? ""
         startTyping(el.id)

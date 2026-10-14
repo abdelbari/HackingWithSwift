@@ -135,7 +135,7 @@ final class CanvasGesturesTests: XCTestCase {
         XCTAssertEqual(s.page.elements.map(\.id), ["a"], "one step")
     }
 
-    func testAddTextHereTypesOverTheDefaultBoxAndLeavesItAsOneStep() {
+    func testAddTextHereTypesOverTheDefaultBoxPutThereAsAStepOfItsOwn() {
         let s = store([])
         s.addText(at: CGPoint(x: 540, y: 540))
         XCTAssertEqual(s.page.elements.count, 1)
@@ -158,7 +158,9 @@ final class CanvasGesturesTests: XCTestCase {
         s.endTextEdit()
         XCTAssertEqual(s.page.elements.first?.text, "Hello")
         s.undo()
-        XCTAssertTrue(s.page.elements.isEmpty, "the box and its words are one Undo")
+        XCTAssertEqual(s.page.elements.first?.text, "Your text here", "the words typed are a step of their own")
+        s.undo()
+        XCTAssertTrue(s.page.elements.isEmpty, "then the box, as on the Android twin")
     }
 
     // MARK: move handle

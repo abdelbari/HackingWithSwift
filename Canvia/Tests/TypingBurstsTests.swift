@@ -158,6 +158,24 @@ final class TypingBurstsTests: XCTestCase {
         XCTAssertNil(s.editingTextId)
     }
 
+    /// Add text here puts its box there as a step of its own: Undo while
+    /// typing in it takes back the words typed, and the box stays open with
+    /// its words chosen, as on the Android twin.
+    func testUndoWhileTypingInAddTextHereKeepsTheBox() {
+        let s = store([])
+        s.addText(at: CGPoint(x: 500, y: 500))
+        let id = try? XCTUnwrap(s.editingTextId)
+        if let id { s.typeWords("Sale ", into: id) }
+        s.typingSelection = NSRange(location: 5, length: 0)
+        s.closeTypingStep()
+
+        s.undo()
+        XCTAssertNotNil(id)
+        XCTAssertEqual(s.editingTextId, id, "still typing")
+        XCTAssertEqual(s.page.elements.first?.text, "Your text here")
+        XCTAssertEqual(s.typingSelectionAsked?.range, NSRange(location: 0, length: 14), "its words chosen again")
+    }
+
     /// With nothing typed since it opened left to take back, Undo ends the
     /// typing and takes back what came before, as ever.
     func testUndoPastTheTypingEndsIt() {
