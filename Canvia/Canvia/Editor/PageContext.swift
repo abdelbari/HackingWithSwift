@@ -31,6 +31,14 @@ struct LiveVideoKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+/// Whether the page's clock is running — Play, a play through the film,
+/// Present — rather than standing where a scrub of the timeline put it:
+/// only then does a clip played live play on in a player of its own
+/// (ClipPlayers); a scrub shows the frame at each moment.
+struct ClipsPlayKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 /// Whether clips are asked for frame after frame, in order — a video
 /// export — so each is read on from its last frame by a reader of its own
 /// (ClipReader) rather than sought for every one.
@@ -73,6 +81,11 @@ extension EnvironmentValues {
     var liveVideo: Bool {
         get { self[LiveVideoKey.self] }
         set { self[LiveVideoKey.self] = newValue }
+    }
+
+    var clipsPlay: Bool {
+        get { self[ClipsPlayKey.self] }
+        set { self[ClipsPlayKey.self] = newValue }
     }
 
     var clipsInOrder: Bool {

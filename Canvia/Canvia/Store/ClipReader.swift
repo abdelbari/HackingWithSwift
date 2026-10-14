@@ -16,6 +16,9 @@
 //   CADisplayLink takes from an AVPlayerItemVideoOutput as the screen shows
 //   them; it plays on at the clip's speed while the page's moment moves on,
 //   and is sought to that moment when it goes back or the two drift apart.
+//   Each element showing the clip has its own player, as a clip on a page
+//   twice, trimmed two ways, plays two parts of it at once; and the
+//   player plays only while the page's clock runs, never for a scrub.
 //
 // Either way the moment is the one VideoStore.clipTime stamps from the
 // page's time, so a clip's trim, speed and loop are kept as before. Each
@@ -67,6 +70,19 @@ final class ClipReader {
         return t >= position && t - position <= reach
     }
 
+    /// Whether the frame showing `t` seconds into the clip is the first
+    /// after it rather than the last at or before it — `before` and `after`
+    /// their times, nil where there is none: the nearer of the two, the
+    /// earlier on a tie, as the Android twin's reader and its random-access
+    /// frame pick it, so both phones export the same frames. No tolerance
+    /// for a stamp's rounding is needed: a frame stamped a hair after the
+    /// moment is nearer than the one a whole frame before.
+    static func showsAhead(before: Double?, after: Double?, at t: Double) -> Bool {
+        guard let after else { return false }
+        guard let before else { return true }
+        return after - t < t - before
+    }
+
     /// The way up a clip filmed with `transform` is drawn, as
     /// AVAssetImageGenerator's appliesPreferredTrackTransform turns it: a
     /// phone held upright films a quarter turn.
@@ -100,8 +116,11 @@ final class ClipReader {
     private var output: AVAssetReaderTrackOutput?
     /// Where the reader stands: the moment last asked.
     private var position: Double?
-    /// The frame last given.
+    /// The frame last given, and its time.
     private var shown: CGImage?
+    private var shownTime: Double?
+    /// The last frame read at or before the moment last asked.
+    private var behind: CMSampleBuffer?
     /// The frame read past the moment last asked, kept for the next.
     private var ahead: CMSampleBuffer?
     /// A clip whose reader would not start is not tried again.
@@ -117,35 +136,31 @@ final class ClipReader {
         turn = Self.orientation(track.preferredTransform)
     }
 
-    /// The frame showing `t` seconds into the clip: the last whose time is
-    /// at or before `t`, or the first after it when a seek lands there;
-    /// past the end, the last. Nil when the clip cannot be read.
+    /// The frame showing `t` seconds into the clip: the nearer of the last
+    /// whose time is at or before `t` and the first after it (showsAhead),
+    /// the first there when a seek lands after the moment; past the end,
+    /// the last. Nil when the clip cannot be read.
     func frame(at time: Double) -> CGImage? {
         lock.lock(); defer { lock.unlock() }
         let t = max(0, time)
-        // Still the frame given last: the next one is not due yet.
-        if let position, let shown, t >= position, let next = ahead, t < Self.seconds(next) { return shown }
         if reader == nil || !Self.readsOn(from: position, to: t) { start(at: t) }
         guard let output else { return nil }
-        var chosen: CMSampleBuffer?
-        while let sample = ahead ?? output.copyNextSampleBuffer() {
-            ahead = nil
-            guard CMSampleBufferGetImageBuffer(sample) != nil else { continue }
-            if Self.seconds(sample) > t + 0.0005 {
-                ahead = sample
-                break
+        // Read on to the first frame after the moment, keeping the one
+        // before it; nothing is read while that frame is still ahead.
+        while ahead.map({ Self.seconds($0) <= t }) ?? true {
+            if let next = ahead {
+                behind = next
+                ahead = nil
             }
-            chosen = sample
+            guard let sample = output.copyNextSampleBuffer() else { break }
+            if CMSampleBufferGetImageBuffer(sample) != nil { ahead = sample }
         }
-        // Just after a seek, the first frame there, which may be a little
-        // after the moment.
-        if chosen == nil, shown == nil, let first = ahead {
-            chosen = first
-            ahead = nil
-        }
-        if let chosen, let pixels = CMSampleBufferGetImageBuffer(chosen),
+        let after = Self.showsAhead(before: behind.map(Self.seconds), after: ahead.map(Self.seconds), at: t)
+        if let chosen = after ? ahead : behind, Self.seconds(chosen) != shownTime,
+           let pixels = CMSampleBufferGetImageBuffer(chosen),
            let image = Self.picture(pixels, orientation: turn) {
             shown = image
+            shownTime = Self.seconds(chosen)
         }
         position = t
         return shown
@@ -157,6 +172,7 @@ final class ClipReader {
         reader?.cancelReading()
         reader = nil
         output = nil
+        behind = nil
         ahead = nil
     }
 
@@ -165,8 +181,10 @@ final class ClipReader {
         reader?.cancelReading()
         reader = nil
         output = nil
+        behind = nil
         ahead = nil
         shown = nil
+        shownTime = nil
         position = t
         guard !failed else { return }
         guard let reading = try? AVAssetReader(asset: asset) else { failed = true; return }
@@ -232,7 +250,7 @@ final class ClipPlayer {
     /// How far the player and the page's moment may drift apart, in
     /// seconds, before the player is sought back to the page.
     static let drift = 0.3
-    /// How long the page may go without asking, in seconds, before the
+    /// How long the page's moment may stand still, in seconds, before the
     /// player stops.
     static let idle = 0.25
 
@@ -241,7 +259,8 @@ final class ClipPlayer {
     private var turn: CGImagePropertyOrientation = .up
     /// Whether the clip's way up has been read; no frame is shown before.
     private var oriented = false
-    /// The moment the page last asked of the clip, and when it asked.
+    /// The moment the page last asked of the clip, and when that moment
+    /// last moved on.
     private var wanted: Double?
     private(set) var askedAt: CFTimeInterval = 0
     /// Where the clip's trim ends, which the player stops at.
@@ -275,7 +294,9 @@ final class ClipPlayer {
     /// on from the last asked by at most a second (ClipReader.readsOn) and
     /// the player is near it, and is sought to it otherwise. It stops at
     /// the trim's end, where a clip that does not loop is held; one that
-    /// loops comes round to its start, and is sought there.
+    /// loops comes round to its start, and is sought there. Asked again at
+    /// the same moment — drawn again for a frame that landed — it does not
+    /// count as asked, so a page whose clock has stopped lets it stop.
     func want(_ t: Double, clip: ClipPlayback) {
         if clip.end != end {
             end = clip.end
@@ -283,7 +304,7 @@ final class ClipPlayer {
         }
         let previous = wanted
         wanted = t
-        askedAt = CACurrentMediaTime()
+        if t != previous { askedAt = CACurrentMediaTime() }
         guard !seeking else { return }
         let at = player.currentTime().seconds
         let near = at.isFinite && abs(at - t) <= Self.drift
@@ -308,11 +329,14 @@ final class ClipPlayer {
         }
     }
 
-    /// On each frame of the display: stopped when the page has stopped
-    /// asking, and the frame the screen shows now taken from the player
-    /// when there is a new one. Whether one was.
+    /// On each frame of the display: stopped when the page's moment has
+    /// stopped moving on — sought back to that moment, so the clip shows
+    /// where the page stopped — and the frame the screen shows now taken
+    /// from the player when there is a new one. Whether one was.
     func tick(_ now: CFTimeInterval) -> Bool {
-        if now - askedAt > Self.idle, player.rate != 0 { player.pause() }
+        if now - askedAt > Self.idle, player.rate != 0 {
+            if let wanted { seek(to: wanted) } else { player.pause() }
+        }
         guard oriented else { return false }
         let time = player.rate != 0 ? output.itemTime(forHostTime: now) : player.currentTime()
         guard output.hasNewPixelBuffer(forItemTime: time),
@@ -329,8 +353,9 @@ final class ClipPlayer {
     }
 }
 
-/// The players Present and Play in the editor play their clips in, one a
-/// clip, and the display link that takes their frames. Main thread only.
+/// The players Present and Play in the editor play their clips in, one for
+/// each element showing a clip, and the display link that takes their
+/// frames. Main thread only.
 final class ClipPlayers: NSObject {
 
     static let shared = ClipPlayers()
@@ -356,18 +381,21 @@ final class ClipPlayers: NSObject {
         VideoStore.closeClips()
     }
 
-    /// The latest frame of clip `id` played live, and where in the clip it
-    /// is, once the player has one; asking plays the clip on to `time`
-    /// seconds into it as `clip` plays it (ClipPlayer.want).
-    func frame(_ id: String, at time: Double, clip: ClipPlayback) -> (image: UIImage, time: Double)? {
-        var player = open[id]
+    /// The latest frame of clip `id` played live for `element`, and where
+    /// in the clip it is, once its player has one; asking plays the clip on
+    /// to `time` seconds into it as `clip` plays it (ClipPlayer.want). Each
+    /// element showing the clip has a player of its own, so two showing
+    /// different moments of it never take each other's frames.
+    func frame(_ id: String, for element: String, at time: Double, clip: ClipPlayback) -> (image: UIImage, time: Double)? {
+        let key = element + "/" + id
+        var player = open[key]
         if player == nil, let url = VideoStore.url(for: id) {
             let made = ClipPlayer(url: url)
-            open[id] = made
+            open[key] = made
             player = made
         }
         guard let player else { return nil }
-        let touched = ClipPool.touched(order, id)
+        let touched = ClipPool.touched(order, key)
         order = touched.order
         for gone in touched.dropped { open.removeValue(forKey: gone)?.close() }
         player.want(time, clip: clip)

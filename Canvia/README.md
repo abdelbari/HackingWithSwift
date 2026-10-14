@@ -737,8 +737,9 @@ carries a clip. Played live — Present, and Play in the editor — a clip
 plays smoothly in a muted player of its own (AVPlayer), its frames taken
 as the screen shows them, and never holds up the screen; the exports wait
 for every frame, read in order by a reader of its own per clip
-(AVAssetReader) rather than sought one by one, so a video exports close
-to real time. Seeking frame by frame is left to posters, thumbnails, the
+(AVAssetReader) rather than sought one by one, each moment showing the
+frame nearest it, the earlier on a tie, as on the Android twin — so a
+video exports close to real time, and both phones export the same frames. Seeking frame by frame is left to posters, thumbnails, the
 trimmer and a trim handle dragged. At most four clips are open at once;
 another page, or the phone short of memory, lets them go.
 The clip's own sound is not carried; a soundtrack is.

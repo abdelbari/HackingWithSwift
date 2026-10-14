@@ -2487,6 +2487,10 @@ final class DesignStore {
 
     /// Seconds into the current page while a preview plays; nil at rest.
     var previewTime: Double?
+    /// Whether the page's clock is running — Play, or a play through the
+    /// film — rather than standing where a scrub of the timeline put
+    /// previewTime: only then does a clip play on in a player of its own.
+    private(set) var previewRuns = false
     /// A clip's trim handle being dragged in the Clip sheet: the canvas
     /// shows that element at the handle's moment. View state only, never
     /// saved.
@@ -2549,6 +2553,7 @@ final class DesignStore {
         previewSound.page(AudioMix.clips(design: design, page: page), since: since, length: hold)
         previewSound.tracks(design: design, offset: AudioMix.pageStart(design: design, index: pageIndex), since: since,
                             film: AudioMix.filmLength(design: design))
+        previewRuns = true
         previewTask = Task { @MainActor in
             // Timed by the clock rather than by counting passes: a pass that
             // runs long — a busy page, a clip's frame being decoded — would
@@ -2566,6 +2571,7 @@ final class DesignStore {
                 guard !Task.isCancelled else { return }
             }
             previewTime = nil
+            previewRuns = false
             previewSound.stop()
         }
     }
@@ -2592,6 +2598,7 @@ final class DesignStore {
         previewTask?.cancel()
         previewTask = nil
         previewTime = nil
+        previewRuns = false
         previewSound.stop()
         endThrough()
     }
@@ -2615,6 +2622,7 @@ final class DesignStore {
             .filter { design.pages.indices.contains($0) }
             .map { design.pages[$0].id }
         previewEnded = onEnd
+        previewRuns = true
         previewTask = Task { @MainActor in
             for id in ids {
                 guard let index = design.pages.firstIndex(where: { $0.id == id }) else { break }
@@ -2623,6 +2631,7 @@ final class DesignStore {
             }
             guard !Task.isCancelled else { return }
             previewTime = nil
+            previewRuns = false
             endThrough()
         }
     }

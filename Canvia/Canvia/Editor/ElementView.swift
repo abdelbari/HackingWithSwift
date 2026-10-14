@@ -40,6 +40,7 @@ struct ElementView: View {
     @Environment(\.exitTime) private var exitTime
     @Environment(\.pageNumber) private var pageNumber
     @Environment(\.liveVideo) private var liveVideo
+    @Environment(\.clipsPlay) private var clipsPlay
     @Environment(\.playsPictures) private var playsPictures
 
     /// The element with "{page}" and "{pages}" filled in, where the page is
@@ -154,8 +155,9 @@ struct ElementView: View {
                 }
             } else {
                 // Whether the page's clock runs, read here once so a photo
-                // is not drawn again on every tick of it.
-                ImageElementView(element: el, clipPlays: animationTime != nil)
+                // is not drawn again on every tick of it — not for a scrub,
+                // whose time stands still between drags.
+                ImageElementView(element: el, clipPlays: clipsPlay && animationTime != nil)
             }
         case .sticker: StickerElementView(element: el)
         case .line: LineElementView(element: el)
@@ -766,7 +768,7 @@ struct ImageElementView: View {
             // clock runs, its player plays it on at its speed.
             _ = VideoStore.live.version
             let playing: ClipPlayback? = clipPlays ? (element.clip ?? ClipPlayback()) : nil
-            guard let shown = VideoStore.peek(src, playing: playing) else { return nil }
+            guard let shown = VideoStore.peek(src, playing: playing, for: element.id) else { return nil }
             base = shown.image
             // Keyed by the frame shown, not the moment asked for, so a
             // filtered copy is never kept of a stand-in frame.

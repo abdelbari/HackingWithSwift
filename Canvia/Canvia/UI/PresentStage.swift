@@ -140,6 +140,7 @@ struct PresentStage: View {
                 // on the next: this redraws every display frame, and a
                 // decode on the main thread each time made it stutter.
                 .environment(\.liveVideo, true)
+                .environment(\.clipsPlay, true)
                 .environment(\.onScreen, true)
         }
         .overlay(alignment: .topLeading) { PointerDot(point: session.pointer, page: pageSize) }

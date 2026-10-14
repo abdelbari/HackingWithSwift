@@ -494,6 +494,7 @@ final class TimelineTests: XCTestCase {
         XCTAssertEqual(s.pageIndex, 1)
         XCTAssertEqual(s.previewTime ?? -1, 0.5, accuracy: 1e-9)
         XCTAssertEqual(s.playheadInPage ?? -1, 0.5, accuracy: 1e-9)
+        XCTAssertFalse(s.previewRuns, "a scrub's clock stands still, so no clip plays on")
         s.scrub(to: 99)
         XCTAssertEqual(s.filmPlayhead ?? -1, 5, accuracy: 1e-9, "kept to the film")
         XCTAssertEqual(s.previewTime ?? -1, 3, accuracy: 1e-9)

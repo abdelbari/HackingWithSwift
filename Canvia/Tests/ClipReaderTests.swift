@@ -1,7 +1,8 @@
 // Clips read in order (ClipReader): the moments a video asks of a trimmed,
 // sped-up, looping clip only go back at its loop points, so between them
-// its reader reads on rather than seeking; and each pool keeps four clips
-// open, the least recently used let go first — the Android twin's rules.
+// its reader reads on rather than seeking; it shows the frame nearest each
+// moment; and each pool keeps four clips open, the least recently used let
+// go first — the Android twin's rules.
 
 import XCTest
 import CoreGraphics
@@ -26,6 +27,30 @@ final class ClipReaderTests: XCTestCase {
         ]
         for row in rows {
             XCTAssertEqual(ClipReader.readsOn(from: row.0, to: row.1), row.2, "from \(String(describing: row.0)) to \(row.1)")
+        }
+    }
+
+    /// A reader shows the frame nearest the moment — the last at or before
+    /// it, or the first after — the earlier on a tie, as the Android twin
+    /// reads it: the same rows on both phones.
+    func testAReaderShowsTheFrameNearestTheMoment() {
+        // Rows: the frame at or before, the first after, the moment → whether the one after shows.
+        let rows: [(Double?, Double?, Double, Bool)] = [
+            // 29.97 frames a second, frame 18 stamped 0.6006 and asked at 0.60.
+            (0.5672, 0.6006, 0.60, true),
+            // 30 frames a second: 0.06 is nearer the third frame than the second.
+            (0.0333, 0.0667, 0.06, true),
+            (0.0333, 0.0667, 0.04, false),
+            // Halfway: the earlier.
+            (0, 0.04, 0.02, false),
+            (2, 2.0333, 2, false),
+            // Before the first frame, the first; past the last, the last.
+            (nil, 0.0333, 0, true),
+            (4.9667, nil, 6, false),
+        ]
+        for row in rows {
+            XCTAssertEqual(ClipReader.showsAhead(before: row.0, after: row.1, at: row.2), row.3,
+                           "\(String(describing: row.0)) \(String(describing: row.1)) at \(row.2)")
         }
     }
 

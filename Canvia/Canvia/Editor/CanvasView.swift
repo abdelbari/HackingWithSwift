@@ -341,6 +341,9 @@ struct CanvasView: View {
             // the opaque page sits above it in the ZStack.
             PageRenderView(design: store.design, page: shownPage)
                 .environment(\.animationTime, store.previewTime.map { ($0, store.pageHold) })
+                // A clip plays on in a player only while the clock runs,
+                // never for a scrub.
+                .environment(\.clipsPlay, store.previewRuns)
                 // While Play runs, or a trim handle is dragged, a clip shows
                 // the frames decoded so far rather than holding up the
                 // canvas for each one.

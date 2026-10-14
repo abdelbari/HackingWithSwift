@@ -350,10 +350,11 @@ enum VideoStore {
     /// moment asked for, a filtered copy would keep a stale frame for good.
     ///
     /// A clip `playing` — the page's clock running, as `clip` plays it —
-    /// plays in a player of its own (ClipPlayers), whose frames come at the
-    /// screen's pace; until the player has one, and for a trim handle
-    /// dragged, the frame asked for is decoded on the worker as above.
-    static func peek(_ source: String, playing clip: ClipPlayback? = nil) -> (image: UIImage, key: String)? {
+    /// plays in a player of its own for `element` (ClipPlayers), whose
+    /// frames come at the screen's pace; until the player has one, and for
+    /// a trim handle dragged, the frame asked for is decoded on the worker
+    /// as above.
+    static func peek(_ source: String, playing clip: ClipPlayback? = nil, for element: String = "") -> (image: UIImage, key: String)? {
         guard let parts = split(source) else { return nil }
         let id = parts.id
         let rest = VideoStore.src(id, at: nil)
@@ -370,7 +371,7 @@ enum VideoStore {
         // the answer.
         if let length {
             let at = stampedTime(time, duration: length)
-            if let clip, Thread.isMainThread, let shown = ClipPlayers.shared.frame(id, at: at, clip: clip) {
+            if let clip, Thread.isMainThread, let shown = ClipPlayers.shared.frame(id, for: element, at: at, clip: clip) {
                 return (shown.image, VideoStore.src(id, at: shown.time))
             }
             if let hit = frames.object(forKey: frameKey(id, at)) {
