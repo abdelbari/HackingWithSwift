@@ -108,7 +108,7 @@ struct SizeTile: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 8).fill(Theme.card)
                     if let preview = ContentLibrary.sizedTemplates(for: preset).first {
-                        TemplateThumb(template: preview).opacity(0.4)
+                        TemplateThumb(template: preview, badge: false).opacity(0.4)
                     }
                 }
                 .aspectRatio(ratio, contentMode: .fit)

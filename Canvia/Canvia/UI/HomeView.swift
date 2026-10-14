@@ -72,6 +72,8 @@ struct HomeView: View {
     /// is up.
     @State private var openingFile = false
     @State private var templateCategory: String?
+    /// A built-in template of several pages, while its pages are shown.
+    @State private var templateSet: Template?
     @State private var folder: String?
     /// The Starred chip: starred folders, then starred designs.
     @State private var starredOnly = false
@@ -1381,6 +1383,11 @@ struct HomeView: View {
         }
         .modifier(UserTemplateDialogs(renaming: $renamingTemplate, renameText: $templateRenameText,
                                       deleting: $deletingTemplate) { reload() })
+        // A new design is empty, so "Apply all" makes it of every page.
+        .sheet(item: $templateSet) { template in
+            TemplateSetSheet(template: template, applyAll: { create(template.instantiate()) },
+                             usePage: { create(template.instantiate(onlyPage: $0)) })
+        }
     }
 
     private var shownUserTemplates: [UserTemplate] {
@@ -1433,11 +1440,18 @@ struct HomeView: View {
         .padding(.horizontal)
     }
 
+    /// "Business · 1920 × 1080 · 10 pages".
+    private func templateCaption(_ template: Template) -> String {
+        let line = "\(template.category) · \(Int(template.width)) × \(Int(template.height))"
+        return template.pageCount > 1 ? line + " · \(template.pageCount) pages" : line
+    }
+
     private var templatesGrid: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
             ForEach(shownTemplates) { template in
                 Button {
-                    create(template.instantiate())
+                    // A set of several pages shows them first.
+                    if template.pageCount > 1 { templateSet = template } else { create(template.instantiate()) }
                 } label: {
                     VStack(alignment: .leading, spacing: 0) {
                         TemplateThumb(template: template)
@@ -1447,7 +1461,7 @@ struct HomeView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(template.name)
                                 .font(.subheadline.weight(.semibold))
-                            Text("\(template.category) · \(Int(template.width)) × \(Int(template.height))")
+                            Text(templateCaption(template))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }

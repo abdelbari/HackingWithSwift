@@ -22,18 +22,7 @@ struct UserTemplateThumb: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(alignment: .bottomTrailing) {
-            if entry.pageCount > 1 {
-                Text("\(entry.pageCount)")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.black.opacity(0.55)))
-                    .padding(5)
-                    .accessibilityHidden(true)
-            }
-        }
+        .overlay(alignment: .bottomTrailing) { PageCountBadge(count: entry.pageCount) }
         .task(id: "\(entry.id)-\(entry.updatedAt)") {
             let id = entry.id
             image = await Task.detached(priority: .userInitiated) { UserTemplates.thumbnail(for: id) }.value
