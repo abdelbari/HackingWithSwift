@@ -124,6 +124,20 @@ final class ColourSwapTests: XCTestCase {
         XCTAssertEqual(ColourSwap.count(d, from: "#00ff00"), 0)
     }
 
+    func testChangeAllCountsAnElementByItsLeastUsedColourPastTheSwatchCap() {
+        // Thirteen stops of thirteen colours: the swatches stop at twelve,
+        // but the last stop's colour is still in use.
+        let stops = (1...13).map { GradientStop(offset: Double($0 - 1) / 12, color: "#00000" + String($0, radix: 16)) }
+        var many = Element.shape("rect")
+        many.fill = Paint(kind: "gradient", color: nil, angle: 90, stops: stops)
+        XCTAssertEqual(ColourSwap.colours([many]).count, 12)
+        XCTAssertFalse(ColourSwap.colours([many]).contains("#00000d"))
+        XCTAssertTrue(ColourSwap.uses(many, "#00000D"))
+        var d = Design(title: "d", width: 400, height: 300)
+        d.pages = [Page(elements: [many])]
+        XCTAssertEqual(ColourSwap.count(d, from: "#00000d"), 1)
+    }
+
     // MARK: the store
 
     @MainActor

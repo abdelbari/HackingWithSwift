@@ -1179,12 +1179,14 @@ struct EditorView: View {
                              onPickGradient: { p in store.updateSelected { $0.textFill = p } },
                              onPickTransient: { c in
                                  store.updateSelectedTransient { $0.color = c; $0.textFill = nil }
-                             })
+                             },
+                             swapsColours: true)
         case .colorLine:
             ColorPickerSheet(store: store, title: "Line colour",
                              current: store.singleSelection?.color,
                              onPick: { c in store.updateSelected { $0.color = c } },
-                             onPickTransient: { c in store.updateSelectedTransient { $0.color = c } })
+                             onPickTransient: { c in store.updateSelectedTransient { $0.color = c } },
+                             swapsColours: true)
         case .colorStroke:
             ColorPickerSheet(store: store,
                              title: store.singleSelection.map(Freehand.isStroke) == true ? "Ink colour" : "Border colour",
@@ -1200,7 +1202,8 @@ struct EditorView: View {
                                      $0.stroke = c
                                      if ($0.strokeWidth ?? 0) == 0 { $0.strokeWidth = 4 }
                                  }
-                             })
+                             },
+                             swapsColours: true)
         case .colorWords:
             // The words chosen while typing, from the bar's colour well:
             // the text colour sheet's title, as Android has no heading of
