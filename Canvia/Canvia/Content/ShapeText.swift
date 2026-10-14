@@ -108,7 +108,10 @@ enum ShapeText {
     /// and lines are other kinds altogether.
     static func takesText(_ el: Element) -> Bool {
         guard el.type == .shape, el.fill?.kind != "image", !Freehand.isStroke(el) else { return false }
-        if el.pathData?.isEmpty == false, el.stroke != nil, ContrastAudit.isFaint(el.fill?.color ?? "") {
+        // No fill anyone sees, and a stroke: a line. An imported SVG's
+        // unfilled part (no fill at all) is one too.
+        let unseen = el.fill?.kind == "none" || ContrastAudit.isFaint(el.fill?.color ?? "")
+        if el.pathData?.isEmpty == false, el.stroke != nil, unseen {
             return false
         }
         return true

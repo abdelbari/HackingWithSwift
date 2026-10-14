@@ -30,7 +30,7 @@ final class StyleAndExportParityTests: XCTestCase {
         let shape = DesignStore.recoloured(Element.shape("rect"), to: "#ff0000")
         XCTAssertEqual(shape.fill, .solid("#ff0000"))
 
-        var stroke = Element.shape("rect")
+        var stroke = Element.shape("freehand")
         stroke.pathData = "M0 0 L10 10"
         stroke.fill = .clear
         stroke.stroke = "#000000"

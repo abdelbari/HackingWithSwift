@@ -90,9 +90,21 @@ enum ColourSwap {
         guard let rgb = parse(colour)?.rgb else { return 0 }
         var n = 0
         for page in design.pages {
-            for el in page.elements where takesChangeAll(el) && colours([el]).contains(rgb) { n += 1 }
+            for el in page.elements where takesChangeAll(el) && uses(el, rgb) { n += 1 }
         }
         return n
+    }
+
+    /// Whether `el` paints with `colour` in any field, a wholly see-through
+    /// use aside. Every field is read, not only the swatches `colours`
+    /// keeps, so an element of many colours still counts for its least
+    /// used one — as the Android twin's uses reads it.
+    static func uses(_ el: Element, _ colour: String) -> Bool {
+        guard let rgb = parse(colour)?.rgb else { return false }
+        return fields(of: el).contains { raw in
+            guard let parsed = parse(raw) else { return false }
+            return parsed.rgb == rgb && parsed.alpha != "00"
+        }
     }
 
     /// Whether Change all reaches an element: not one locked whole, which

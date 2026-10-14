@@ -290,6 +290,9 @@ struct EditorView: View {
             store.stopPreview()
             store.finishDictation()
             store.endTextEdit()
+            // A drawing under way is put down first, so its strokes are
+            // saved as one drawing, as the Android twin's editor does.
+            store.drawing = nil
             closeRename()
             saveNow()
         }
@@ -422,6 +425,8 @@ struct EditorView: View {
             store.announce(PageVisibility.everyPageHidden, undoable: false)
             return
         }
+        // The pen is put down, as the menu's Present puts it down.
+        store.drawing = nil
         presenting = true
     }
 
@@ -502,6 +507,9 @@ struct EditorView: View {
             Button {
                 closeRename()
                 store.endSelectingMultiple()
+                // The pen is put down first: the session's strokes go home
+                // as one drawing.
+                store.drawing = nil
                 saveNow()
                 onHome()
             } label: {
@@ -622,6 +630,7 @@ struct EditorView: View {
                     // first, as on the Android twin.
                     store.finishCrop()
                     store.endTextEdit()
+                    store.drawing = nil
                     presenting = true
                 } label: {
                     Label("Present", systemImage: "play.rectangle")
@@ -1147,14 +1156,15 @@ struct EditorView: View {
         case .insert:
             InsertSheet(store: store)
         case .colorFill:
+            // An SVG's line or outline part takes a colour as its ink.
             ColorPickerSheet(store: store, title: "Fill colour",
-                             current: store.singleSelection?.fill?.primaryColor,
+                             current: store.singleSelection.flatMap(Freehand.fillColour),
                              allowGradients: true,
                              allowPatterns: true,
                              currentPaint: store.singleSelection?.fill,
-                             onPick: { c in store.updateSelected { $0.fill = .solid(c) } },
+                             onPick: { c in store.updateSelected { $0 = Freehand.coloured($0, c) } },
                              onPickGradient: { p in store.updateSelected { $0.fill = p } },
-                             onPickTransient: { c in store.updateSelectedTransient { $0.fill = .solid(c) } },
+                             onPickTransient: { c in store.updateSelectedTransient { $0 = Freehand.coloured($0, c) } },
                              swapsColours: true)
         case .colorText:
             // A gradient on text is a fill, not a colour, so it lives in its
@@ -1170,12 +1180,14 @@ struct EditorView: View {
                              onPickGradient: { p in store.updateSelected { $0.textFill = p } },
                              onPickTransient: { c in
                                  store.updateSelectedTransient { $0.color = c; $0.textFill = nil }
-                             })
+                             },
+                             swapsColours: true)
         case .colorLine:
             ColorPickerSheet(store: store, title: "Line colour",
                              current: store.singleSelection?.color,
                              onPick: { c in store.updateSelected { $0.color = c } },
-                             onPickTransient: { c in store.updateSelectedTransient { $0.color = c } })
+                             onPickTransient: { c in store.updateSelectedTransient { $0.color = c } },
+                             swapsColours: true)
         case .colorStroke:
             ColorPickerSheet(store: store,
                              title: store.singleSelection.map(Freehand.isStroke) == true ? "Ink colour" : "Border colour",
@@ -1191,7 +1203,8 @@ struct EditorView: View {
                                      $0.stroke = c
                                      if ($0.strokeWidth ?? 0) == 0 { $0.strokeWidth = 4 }
                                  }
-                             })
+                             },
+                             swapsColours: true)
         case .colorWords:
             // The words chosen while typing, from the bar's colour well:
             // the text colour sheet's title, as Android has no heading of
