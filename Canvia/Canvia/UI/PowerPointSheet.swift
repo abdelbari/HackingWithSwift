@@ -41,34 +41,33 @@ struct PowerPointSheet: View {
 }
 
 extension View {
-    /// The PowerPoint put in `deck` read in as a new design under an
-    /// "Opening the PowerPoint…" card, then the sheet that says what came
-    /// in, whose Open design hands the design to `onOpen` once the sheet has
-    /// gone.
-    func powerPointImport(_ deck: Binding<URL?>, onOpen: @escaping (Design) -> Void) -> some View {
-        modifier(PowerPointHost(deck: deck, onOpen: onOpen))
+    /// The PowerPoints put in `decks` read in as new designs, one at a
+    /// time, under an "Opening the PowerPoint…" card, then the sheet that
+    /// says what came in, whose Open design hands the design to `onOpen`
+    /// once the sheet has gone. The host empties `decks` as it takes them,
+    /// so each is served once.
+    func powerPointImport(_ decks: Binding<[URL]>, onOpen: @escaping (Design) -> Void) -> some View {
+        modifier(PowerPointHost(decks: decks, onOpen: onOpen))
     }
 }
 
 private struct PowerPointHost: ViewModifier {
-    @Binding var deck: URL?
+    @Binding var decks: [URL]
     var onOpen: (Design) -> Void
     @State private var working = false
     @State private var opened: PowerPoints.Opened?
     /// Open design was tapped: opened once the sheet has gone.
     @State private var opening: Design?
     @State private var failure: String?
-    /// Decks that came in while another was being read or said, read in
-    /// turn — two opened together from Files are two designs, as on the
-    /// Android twin.
+    /// Decks taken from `decks`, read in turn — two opened together from
+    /// Files are two designs, as on the Android twin.
     @State private var waiting: [URL] = []
 
     func body(content: Content) -> some View {
         content
             .overlay { if working { OpeningDesignCard(label: "Opening the PowerPoint…") } }
-            .onChange(of: deck) { _, url in
-                if let url { start(url) }
-            }
+            .onAppear { take() }
+            .onChange(of: decks) { _, _ in take() }
             .sheet(item: $opened, onDismiss: afterSheet) { shown in
                 PowerPointSheet(opened: shown) {
                     opening = shown.design
@@ -83,12 +82,16 @@ private struct PowerPointHost: ViewModifier {
             }
     }
 
+    /// Every deck handed over moved to `waiting` and the hand-off emptied,
+    /// so each is served once; then the first read if nothing else is.
+    private func take() {
+        guard !decks.isEmpty else { return }
+        waiting.append(contentsOf: decks)
+        decks = []
+        next()
+    }
+
     private func start(_ url: URL) {
-        if deck != nil { deck = nil }
-        guard !working, opened == nil, opening == nil, failure == nil else {
-            waiting.append(url)
-            return
-        }
         working = true
         let taken = DesignLibrary.recents().map(\.title)
         Task { @MainActor in
@@ -120,7 +123,7 @@ private struct PowerPointHost: ViewModifier {
 
     /// The next deck waiting, once nothing is being read or said.
     private func next() {
-        guard !waiting.isEmpty else { return }
+        guard !waiting.isEmpty, !working, opened == nil, opening == nil, failure == nil else { return }
         start(waiting.removeFirst())
     }
 }

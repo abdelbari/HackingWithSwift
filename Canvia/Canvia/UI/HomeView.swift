@@ -53,8 +53,9 @@ struct HomeView: View {
     /// The PowerPoint file picker, up.
     @State private var pickingDeck = false
     /// A PowerPoint picked, with Open a PowerPoint… or "Open a Canvia design
-    /// file", to be read in as a new design.
-    @State private var deckURL: URL?
+    /// file", to be read in as a new design. A list the host empties as
+    /// it takes each one, so every deck is read once.
+    @State private var deckURLs: [URL] = []
     /// Your own templates, first under the templates.
     @State private var userTemplates: [UserTemplate] = []
     /// The brand kit in use, whose templates lead the rest.
@@ -199,7 +200,7 @@ struct HomeView: View {
         }
         // A deck as a new design, then the sheet that says what came in.
         .background { deckPicker }
-        .powerPointImport($deckURL, onOpen: onOpen)
+        .powerPointImport($deckURLs, onOpen: onOpen)
         .onReceive(NotificationCenter.default.publisher(for: PowerPoints.didImport)) { _ in reload() }
         .alert("New folder", isPresented: Binding(
             get: { !filingInto.isEmpty },
@@ -279,7 +280,7 @@ struct HomeView: View {
     /// share one with the design file's.
     private var deckPicker: some View {
         Color.clear.fileImporter(isPresented: $pickingDeck, allowedContentTypes: [PowerPoints.contentType]) { result in
-            if case .success(let url) = result { deckURL = url }
+            if case .success(let url) = result { deckURLs.append(url) }
         }
     }
 
@@ -364,7 +365,7 @@ struct HomeView: View {
             // A PowerPoint is a ZIP, which a design file never is: it comes
             // in as a deck.
             if PowerPoints.isDeck(url) {
-                deckURL = url
+                deckURLs.append(url)
                 return
             }
             // Read, and its photos and clips written out, away from the
