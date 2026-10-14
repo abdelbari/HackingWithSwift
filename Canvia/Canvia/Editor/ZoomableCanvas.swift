@@ -33,7 +33,14 @@
 // from the empty workspace and the empty page — Canva's model and the
 // Android twin's (see CanvasGestures). On the page it refuses a touch that
 // lands on something to work, and a drag that began only after a hold, which
-// is the band's.
+// is the band's. Let go still moving, it glides on, on a page alone as in
+// the column (Viewport.flingTarget).
+//
+// While a finger drags something near the edge of the canvas — a move, a
+// handle, the band, a guide — the view scrolls that way each frame
+// (Viewport.edgeScroll), and the drag carries on with the point then under
+// the finger (EdgeScroller), so a thing can be carried past the screen's
+// edge or down to another page.
 
 import SwiftUI
 import UIKit
@@ -76,6 +83,37 @@ struct CanvasColumn: Equatable {
 /// is (ZoomableCanvas.onOtherPageDrag).
 enum CanvasDrag {
     case began, moved, ended
+}
+
+/// The edge scroll's go-between: a drag on the canvas says where the finger
+/// is, in the canvas content's units, and how to carry on with the finger at
+/// another point; the canvas scrolls while the finger is near an edge and
+/// hands the drag the point then under it. Stopped as the drag lets go.
+final class EdgeScroller {
+    /// Where the finger is, in the content, while a drag is tracked.
+    fileprivate(set) var finger: CGPoint?
+    /// The drag, carried on with the finger at a point in the content.
+    fileprivate var carry: ((CGPoint) -> Void)?
+    /// How much of the window, from the bottom, a panel covers: the edge
+    /// is that panel's top.
+    var covered = 0.0
+    fileprivate var onTrack: (() -> Void)?
+    fileprivate var onStop: (() -> Void)?
+
+    /// The finger at `point` in the content, dragging something that
+    /// `carry` moves on.
+    func track(_ point: CGPoint, carry: @escaping (CGPoint) -> Void) {
+        finger = point
+        self.carry = carry
+        onTrack?()
+    }
+
+    func stop() {
+        guard finger != nil || carry != nil else { return }
+        finger = nil
+        carry = nil
+        onStop?()
+    }
 }
 
 struct ZoomableCanvas<Content: View>: UIViewRepresentable {
@@ -130,6 +168,12 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     /// Told when the view starts moving — a pan, a pinch, a glide — and when
     /// it comes to rest.
     var onMotion: (Bool) -> Void = { _ in }
+    /// The edge scroll for drags on the canvas.
+    var edgeScroller: EdgeScroller? = nil
+    /// A finger landing on the page being worked, at this point in its
+    /// units — or on what of it hangs off it — whatever it lands on: where a
+    /// hold that follows was, since a hold says nothing of where it is.
+    var onPress: (CGPoint) -> Void = { _ in }
     @ViewBuilder var content: () -> Content
 
     func makeUIView(context: Context) -> UIScrollView {
@@ -194,6 +238,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         let coordinator = context.coordinator
         coordinator.parent = self
         coordinator.host.rootView = content()
+        coordinator.attach(edgeScroller)
         scroll.pinchGestureRecognizer?.isEnabled = pinchZooms
         scroll.panGestureRecognizer.isEnabled = pinchZooms
         // Fitting below drives the scroll view, which calls back into
@@ -270,6 +315,9 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         private var panOrigin: CGPoint = .zero
         /// Where the keyboard is, in screen coordinates, while one is up.
         private var keyboard: CGRect?
+        /// The edge scroll's frames, while a drag is tracked.
+        private var edgeLink: CADisplayLink?
+        private weak var edges: EdgeScroller?
 
         init(_ parent: ZoomableCanvas) {
             self.parent = parent
@@ -287,6 +335,15 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
                                name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
             centre.addObserver(self, selector: #selector(keyboardWillHide(_:)),
                                name: UIResponder.keyboardWillHideNotification, object: nil)
+            // A call or Notification Center cancels a drag without ending it:
+            // the edge scroll stops with it.
+            centre.addObserver(self, selector: #selector(willResignActive(_:)),
+                               name: UIApplication.willResignActiveNotification, object: nil)
+        }
+
+        @objc private func willResignActive(_ note: Notification) {
+            edges?.stop()
+            stopEdgeScroll()
         }
 
         @objc private func keyboardWillChange(_ note: Notification) {
@@ -311,7 +368,11 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             publishViewport()
         }
 
-        func scrollViewWillBeginDragging(_ scrollView: UIScrollView) { publishMotion(true) }
+        func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+            // A second finger takes the view: the edge scroll gives way.
+            stopEdgeScroll()
+            publishMotion(true)
+        }
 
         func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
             if !decelerate { publishMotion(false) }
@@ -322,7 +383,10 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         /// A glide cut short by a move asked for in code ends here instead.
         func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) { publishMotion(false) }
 
-        func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) { publishMotion(true) }
+        func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) {
+            stopEdgeScroll()
+            publishMotion(true)
+        }
 
         func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
             publishMotion(false)
@@ -525,19 +589,72 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             return CGPoint(x: min(max(offset.x, -inset.left), maxX), y: min(max(offset.y, -inset.top), maxY))
         }
 
-        /// One finger let go of the column still moving: it glides on the way
-        /// it was going, as a scroll view's own flick does, and comes to rest
-        /// in the column — scrollViewDidEndScrollingAnimation says so.
+        /// One finger let go of the view still moving: it glides on the way
+        /// it was going, as a scroll view's own flick does, for
+        /// Viewport.flingCarry of its speed, and comes to rest where the view
+        /// may go — in the column, or round a page alone —
+        /// scrollViewDidEndScrollingAnimation says so. Too slow, it stays.
         private func glide(_ scroll: UIScrollView, velocity: CGPoint) {
-            // How far a flick carries, in seconds of its speed at let-go.
-            let carry: CGFloat = 0.2
-            let target = clamped(CGPoint(x: scroll.contentOffset.x - velocity.x * carry,
-                                         y: scroll.contentOffset.y - velocity.y * carry), in: scroll)
+            guard let aim = Viewport.flingTarget(offset: scroll.contentOffset, velocity: velocity) else {
+                publishMotion(false)
+                return
+            }
+            let target = clamped(aim, in: scroll)
             guard hypot(target.x - scroll.contentOffset.x, target.y - scroll.contentOffset.y) > 1 else {
                 publishMotion(false)
                 return
             }
             scroll.setContentOffset(target, animated: true)
+        }
+
+        // MARK: edge scroll
+
+        /// The drags' edge scroll, taken up by this canvas.
+        func attach(_ scroller: EdgeScroller?) {
+            guard scroller !== edges else { return }
+            edges?.onTrack = nil
+            edges?.onStop = nil
+            edges = scroller
+            scroller?.onTrack = { [weak self] in self?.startEdgeScroll() }
+            scroller?.onStop = { [weak self] in self?.stopEdgeScroll() }
+        }
+
+        private func startEdgeScroll() {
+            guard edgeLink == nil else { return }
+            let link = CADisplayLink(target: self, selector: #selector(edgeFrame(_:)))
+            link.add(to: RunLoop.main, forMode: RunLoop.Mode.common)
+            edgeLink = link
+        }
+
+        func stopEdgeScroll() {
+            edgeLink?.invalidate()
+            edgeLink = nil
+        }
+
+        /// One frame of the edge scroll: with the finger near an edge of the
+        /// part of the canvas showing, the view moves that way, as far as it
+        /// may, and the drag is carried on with the point now under the
+        /// finger — which has not moved on the glass. Half speed under
+        /// Reduce Motion.
+        @objc private func edgeFrame(_ link: CADisplayLink) {
+            guard let scroll = scrollView, scroll.window != nil, let edges, let finger = edges.finger else {
+                stopEdgeScroll()
+                return
+            }
+            let onScreen = scroll.convert(finger, from: host.view)
+            let shown = visibleBounds(of: scroll, covered: edges.covered)
+            let speed = Viewport.topSpeed(reduceMotion: UIAccessibility.isReduceMotionEnabled)
+            let step = Viewport.edgeScroll(finger: onScreen, viewport: shown, maxSpeed: speed)
+            guard step.dx != 0 || step.dy != 0 else { return }
+            let now = scroll.contentOffset
+            let next = clamped(CGPoint(x: now.x + step.dx, y: now.y + step.dy), in: scroll)
+            // Held at the end of where the view may go: nothing to carry.
+            guard abs(next.x - now.x) > 0.01 || abs(next.y - now.y) > 0.01 else { return }
+            scroll.contentOffset = next
+            let z = max(scroll.zoomScale, 0.01)
+            let moved = CGPoint(x: finger.x + (next.x - now.x) / z, y: finger.y + (next.y - now.y) / z)
+            edges.finger = moved
+            edges.carry?(moved)
         }
 
         // MARK: gestures
@@ -555,9 +672,9 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             case .changed:
                 let t = pan.translation(in: scroll)
                 scroll.contentOffset = CGPoint(x: panOrigin.x - t.x, y: panOrigin.y - t.y)
-            case .ended where parent.column != nil:
+            case .ended:
                 glide(scroll, velocity: pan.velocity(in: scroll))
-            case .ended, .cancelled, .failed:
+            case .cancelled, .failed:
                 publishMotion(false)
             default:
                 break
@@ -631,6 +748,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
                 return !((onPage || held) && parent.claimsDoubleTap(point))
             }
             if gestureRecognizer === backgroundPan {
+                if onPage || held { parent.onPress(point) }
                 // Moving something from another page, the pan is that one
                 // finger's alone.
                 if otherPageStart != nil && gestureRecognizer.state != .possible { return false }

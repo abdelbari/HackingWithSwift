@@ -108,9 +108,10 @@ struct EditorView: View {
             if saveFailed { saveFailedBanner }
             if let tip { tipBanner(tip) }
             ZStack(alignment: .bottomTrailing) {
-                CanvasView(store: store)
+                CanvasView(store: store, onBackground: { activeSheet = .background })
                     .overlay { if rulers { RulersView(store: store).allowsHitTesting(!pageTaken) } }
                     .overlay { SelectionBubble(store: store) }
+                    .overlay { HoldMenuPill(store: store) { activeSheet = .background } }
                     .overlay(alignment: .top) {
                         CanvasChips(store: store).padding(.top, CGFloat(rulers ? Guides.rulerThickness : 0))
                     }
@@ -207,6 +208,9 @@ struct EditorView: View {
         .onChange(of: activeSheet) { _, sheet in
             // A question left from before is not asked out of place.
             store.askingDelete = false
+            // The edge scroll stops at a panel's top; the hold menu goes.
+            store.panelOpen = sheet != nil
+            store.holdMenuAt = nil
             if sheet != nil {
                 // A panel opening ends Select multiple; the selection stays.
                 store.endSelectingMultiple()
@@ -338,9 +342,16 @@ struct EditorView: View {
                 shortcut("d", [.command], "Duplicate") { store.duplicateSelected() }
                 shortcut("a", [.command], "Select all") { store.selectAll() }
                 shortcut(.delete, [.command], "Delete") { store.deleteSelected() }
-                // Escape ends Select multiple first, keeping the selection.
-                shortcut(.escape, [], store.selectingMultiple ? "Done" : "Deselect") {
-                    if store.selectingMultiple { store.endSelectingMultiple() } else { store.select(nil) }
+                // Escape ends paint mode or Select multiple first, keeping
+                // the selection.
+                shortcut(.escape, [], store.selectingMultiple || store.stylePainting ? "Done" : "Deselect") {
+                    if store.stylePainting {
+                        store.stylePainting = false
+                    } else if store.selectingMultiple {
+                        store.endSelectingMultiple()
+                    } else {
+                        store.select(nil)
+                    }
                 }
             }
             // Arrow keys nudge a page unit, ten with Shift — only while no
@@ -378,6 +389,9 @@ struct EditorView: View {
                 shortcut("p", [.command, .shift], "Present") { present() }
                 shortcut("/", [.command], "Help") { activeSheet = .help }
                 shortcut("n", [.command, .shift], "New page") { store.addPage() }
+                // The style painter's keys, as on the Android twin's Ctrl+Alt.
+                shortcut("c", [.command, .option], "Copy style") { store.copyStyle() }
+                shortcut("v", [.command, .option], "Paste style") { store.pasteStyle() }
             }
         }
     }
@@ -426,6 +440,9 @@ struct EditorView: View {
                 } else {
                     rewindTask?.cancel()
                     rewindTask = nil
+                    // What the rewind came back to, brought into view once,
+                    // as it lets go.
+                    if rewound { store.revealSelection() }
                     // After the release's own tap has been read and skipped.
                     DispatchQueue.main.async { rewound = false }
                 }
@@ -444,7 +461,7 @@ struct EditorView: View {
             rewound = true
             var steps = 0
             while store.canUndo && !Task.isCancelled {
-                store.undo()
+                store.undo(reveal: false)
                 steps += 1
                 try? await Task.sleep(for: .milliseconds(steps < 30 ? 120 : 60))
             }

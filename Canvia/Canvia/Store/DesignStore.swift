@@ -55,6 +55,9 @@ final class DesignStore {
     /// True while the view itself moves — a pan, a pinch, the glide after
     /// one — so what floats over the selection on screen waits for it.
     var canvasMoving = false
+    /// True while a panel is up over the lower half of the canvas: the edge
+    /// scroll's bottom edge is the panel's top.
+    var panelOpen = false
     /// Mirrors the canvas scroll view's zoomScale, so selection handles can
     /// stay a constant size on screen. The scroll view owns pan entirely.
     var zoom: Double = 1
@@ -822,7 +825,9 @@ final class DesignStore {
     /// Putting it there and the words typed are one Undo; left without
     /// words, it goes, and leaves no step.
     func addText(at point: CGPoint) {
+        // Typing, or a step left open, is closed first, as its own.
         endTextEdit()
+        commit()
         var el = Element.text("", fontSize: (pageWidth * 0.06).rounded(), w: (pageWidth * 0.72).rounded())
         let at = HoldMenu.placed(CGSize(width: el.w, height: el.h), at: point, page: pageSize)
         el.x = Double(at.x)

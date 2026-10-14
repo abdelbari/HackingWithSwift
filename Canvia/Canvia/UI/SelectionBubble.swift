@@ -43,6 +43,7 @@ struct SelectionBubble: View {
         on && !store.selection.isEmpty && !store.canvasTouchActive && !store.canvasMoving
             && store.cropping == nil && store.editingTextId == nil && store.drawing == nil
             && store.erasing == nil && !store.selectingMultiple && store.previewTime == nil
+            && store.holdMenuAt == nil
     }
 
     /// The pill's middle on screen, or nil when it is not shown or the
