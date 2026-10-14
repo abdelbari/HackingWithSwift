@@ -23,6 +23,9 @@ struct CanviaApp: App {
     /// gathered for a moment, then landed as one share.
     @State private var arriving: [URL] = []
     @State private var arrivingTask: Task<Void, Never>?
+    /// A PowerPoint opened in Canvia, to be read in as a new design
+    /// (PowerPoints).
+    @State private var deckURL: URL?
     @Environment(\.scenePhase) private var scenePhase
     /// Settings' Appearance: System, Light or Dark.
     @AppStorage(Appearance.key) private var appearance = Appearance.system.rawValue
@@ -212,9 +215,19 @@ struct CanviaApp: App {
             }
             // A design file tapped in Files, opened from Mail or shared from
             // another app — at launch or while the app is open, once each.
-            // A photo, video, PDF or SVG opened in Canvia becomes a design.
+            // A photo, video, PDF or SVG opened in Canvia becomes a design,
+            // and so does a PowerPoint, after the sheet that says what came in.
             .onOpenURL { url in
-                if SharedInbox.kind(of: url) != nil { receiveShared(url) } else { openDesignFile(url) }
+                if SharedInbox.kind(of: url) != nil {
+                    receiveShared(url)
+                } else if PowerPoints.isDeck(url) {
+                    deckURL = url
+                } else {
+                    openDesignFile(url)
+                }
+            }
+            .powerPointImport($deckURL) { design in
+                withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
             }
             .sharedDesignSheet($sharedBox, editing: $editingStore, failure: $openError)
             // Exports finished with their sheet closed, shared as the app
