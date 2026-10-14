@@ -287,18 +287,20 @@ enum DesignLibrary {
         var savedAt: Date
         var pages: Int
         var elements: Int
-    }
+        /// Its name when pinned — "" for pinned without one — or nil.
+        var pinnedName: String? = nil
 
-    /// How many versions a design keeps. Thirty at a few kilobytes each is
-    /// nothing; a thousand is a directory listing that takes a second.
-    static let versionLimit = 30
+        /// Its file's name without ".json": what meta.json pins it by.
+        var stem: String { url.deletingPathExtension().lastPathComponent }
+        var isPinned: Bool { pinnedName != nil }
+    }
 
     /// The least time between two versions of the same design. Autosave runs
     /// 900ms after every edit, and a version per edit would be undo with a
     /// worse interface.
     static var versionInterval: TimeInterval = 120
 
-    private static func historyDir(for id: String) -> URL {
+    static func historyDir(for id: String) -> URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("history", isDirectory: true)
             .appendingPathComponent(id, isDirectory: true)
@@ -309,7 +311,8 @@ enum DesignLibrary {
     ///
     /// Content-deduplicated, so saving the same document twice records it
     /// once; and rate-limited, so a burst of edits records the state at the
-    /// end of the burst rather than every keystroke of it.
+    /// end of the burst rather than every keystroke of it. The history is
+    /// thinned after each one (retainedVersions).
     @discardableResult
     static func snapshot(_ design: Design, force: Bool = false, now: Date = Date()) -> Bool {
         // Sorted keys, so encoding the same document twice gives the same
@@ -320,52 +323,51 @@ enum DesignLibrary {
         guard let data = try? encoder.encode(design) else { return false }
         let dir = historyDir(for: design.id)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let existing = versions(for: design.id)
-        if let latest = existing.first {
-            if !force, now.timeIntervalSince(latest.savedAt) < versionInterval { return false }
-            if let last = try? Data(contentsOf: latest.url), last == data { return false }
+        // The newest by the time in its name, without reading every version:
+        // a design keeps up to two hundred, and this runs after every save.
+        if let latest = versionFiles(in: dir).first,
+           let stamp = versionStamp(latest.deletingPathExtension().lastPathComponent) {
+            if !force, now.timeIntervalSince1970 - stamp / 1000 < versionInterval { return false }
+            if let last = try? Data(contentsOf: latest), last == data { return false }
         }
-        let name = String(format: "%.3f", now.timeIntervalSince1970)
         // Whole or not at all, as a save is: a version is what a damaged
         // design is restored from.
-        guard (try? data.write(to: dir.appendingPathComponent("\(name).json"), options: .atomic)) != nil else {
+        guard (try? data.write(to: dir.appendingPathComponent("\(versionStem(now)).json"), options: .atomic)) != nil else {
             return false
         }
-        // Oldest out once past the limit, by the time in each name, as the
-        // Android twin does: a version that no longer reads ages out with
-        // the rest rather than staying for good.
-        for stale in versionFiles(in: dir).dropFirst(versionLimit) {
-            try? FileManager.default.removeItem(at: stale)
-        }
+        // Thinned by the time in each name, as the Android twin does: a
+        // version that no longer reads ages out with the rest rather than
+        // staying for good.
+        pruneVersions(of: design.id, now: now)
         return true
     }
 
     /// The version files in a history folder, newest first by the time in
-    /// their names, whether or not they still read.
-    private static func versionFiles(in dir: URL) -> [URL] {
+    /// their names, whether or not they still read. meta.json is not one.
+    static func versionFiles(in dir: URL) -> [URL] {
         let files = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
         return files.compactMap { url -> (url: URL, stamp: Double)? in
             guard url.pathExtension == "json",
-                  let stamp = Double(url.deletingPathExtension().lastPathComponent) else { return nil }
+                  let stamp = versionStamp(url.deletingPathExtension().lastPathComponent) else { return nil }
             return (url, stamp)
         }
         .sorted { $0.stamp > $1.stamp }
         .map { $0.url }
     }
 
-    /// Newest first.
+    /// Newest first, each with its pin.
     static func versions(for id: String) -> [Version] {
-        guard let files = try? FileManager.default.contentsOfDirectory(
-            at: historyDir(for: id), includingPropertiesForKeys: nil) else { return [] }
-        return files.filter { $0.pathExtension == "json" }.compactMap { url -> Version? in
-            guard let stamp = Double(url.deletingPathExtension().lastPathComponent),
+        let pinned = versionMeta(for: id).pinned
+        return versionFiles(in: historyDir(for: id)).compactMap { url -> Version? in
+            let stem = url.deletingPathExtension().lastPathComponent
+            guard let stamp = versionStamp(stem),
                   let data = try? Data(contentsOf: url),
                   let design = try? JSONDecoder().decode(Design.self, from: data) else { return nil }
-            return Version(url: url, savedAt: Date(timeIntervalSince1970: stamp),
+            return Version(url: url, savedAt: Date(timeIntervalSince1970: stamp / 1000),
                            pages: design.pages.count,
-                           elements: design.pages.reduce(0) { $0 + $1.elements.count })
+                           elements: design.pages.reduce(0) { $0 + $1.elements.count },
+                           pinnedName: pinned[stem])
         }
-        .sorted { $0.savedAt > $1.savedAt }
     }
 
     static func load(version: Version) -> Design? {
@@ -761,8 +763,8 @@ enum DesignLibrary {
         guard let dirs = try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil) else { return [] }
         var versions: [Design] = []
         for dir in dirs {
-            guard let files = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) else { continue }
-            versions += files.filter { $0.pathExtension == "json" }.compactMap { url -> Design? in
+            // The versions alone: meta.json beside them is not a design.
+            versions += versionFiles(in: dir).compactMap { url -> Design? in
                 guard let data = try? Data(contentsOf: url) else { return nil }
                 return try? JSONDecoder().decode(Design.self, from: data)
             }

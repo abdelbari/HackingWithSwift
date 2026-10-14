@@ -17,6 +17,8 @@
 //   videos/<id>.<ext>        their clips,
 //   audio/<id>               the music, and <id>.name beside it, its name,
 //   fonts/<sha12>.<ext>      and your fonts.
+//   history/<id>/meta.json   each design's pinned versions and their names
+//                            (the versions themselves stay on the phone).
 //
 // Restoring merges, keeping every id: what is not here is added; a design
 // or template already here is replaced only by a newer one (its updatedAt
@@ -239,6 +241,14 @@ enum Backup {
             try step()
         }
         manifest.counts.templates = packedTemplates.count
+        // Each design's pinned versions, by name, as history/<id>/meta.json.
+        for file in live + binned {
+            let id = file.deletingPathExtension().lastPathComponent
+            let meta = DesignLibrary.versionMetaURL(for: id)
+            if let data = try? Data(contentsOf: meta), DesignLibrary.VersionMeta.read(data) != nil {
+                try writer.add("history/\(id)/\(DesignLibrary.versionMetaName)", data)
+            }
+        }
         try writer.add(UserTemplates.indexName, json(packedTemplates))
 
         try writer.add(BrandKits.fileName, json(kits))
@@ -427,6 +437,8 @@ enum Backup {
             try step()
         }
 
+        restoreVersionMeta(reader)
+
         if let data = reader.file(BrandKits.fileName), let incoming = BrandKits.read(data) {
             var kits = BrandKits.load()
             report.brandKits = mergeKits(incoming, into: &kits)
@@ -519,6 +531,18 @@ enum Backup {
         try? fm.removeItem(at: trashFile)
         try? fm.removeItem(at: DesignLibrary.thumbnailURL(for: id, trashed: true))
         return .added
+    }
+
+    /// Each design's pins merged into its own meta.json here
+    /// (DesignLibrary.mergeVersionMeta): a pin already here keeps its name.
+    private static func restoreVersionMeta(_ reader: ZipStore.Reader) {
+        let suffix = "/" + DesignLibrary.versionMetaName
+        for name in reader.names(in: "history/") where name.hasSuffix(suffix) {
+            let id = String(name.dropFirst("history/".count).dropLast(suffix.count))
+            guard DesignPackage.isSafeFileName(id), let data = reader.file(name),
+                  let meta = DesignLibrary.VersionMeta.read(data) else { continue }
+            DesignLibrary.mergeVersionMeta(meta, for: id)
+        }
     }
 
     /// The files under `folder` stored in `directory` under their own
