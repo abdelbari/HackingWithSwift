@@ -562,14 +562,27 @@ struct PresentationView: View {
             key(.escape, "End presentation") { dismiss() }
             // The effects' keys: 1 to 9, B, C, O, Q, U and X.
             ForEach(Presenter.effects) { effect in
-                key(KeyEquivalent(Character(effect.key)), effect.name) { show(effect: effect.id) }
+                effectKeys(effect)
             }
         }
     }
 
-    private func key(_ key: KeyEquivalent, _ title: String, action: @escaping () -> Void) -> some View {
+    /// An effect's key, and for a letter its capital too, with Shift or
+    /// Caps Lock: either case shows it, as on the Android twin.
+    @ViewBuilder
+    private func effectKeys(_ effect: Presenter.Effect) -> some View {
+        let typed = KeyEquivalent(Character(effect.key))
+        key(typed, effect.name) { show(effect: effect.id) }
+        if effect.key.first?.isLetter == true {
+            key(typed, effect.name, modifiers: .shift) { show(effect: effect.id) }
+            key(typed, effect.name, modifiers: .capsLock) { show(effect: effect.id) }
+        }
+    }
+
+    private func key(_ key: KeyEquivalent, _ title: String, modifiers: EventModifiers = [],
+                     action: @escaping () -> Void) -> some View {
         Button(title, action: action)
-            .keyboardShortcut(key, modifiers: [])
+            .keyboardShortcut(key, modifiers: modifiers)
             .frame(width: 0, height: 0)
             .opacity(0)
             .accessibilityHidden(true)
