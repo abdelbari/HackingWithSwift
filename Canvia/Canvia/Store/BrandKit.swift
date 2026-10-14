@@ -160,6 +160,18 @@ struct BrandFonts: Codable, Equatable {
         if let size = sized(face, pageWidth: pageWidth) { el.fontSize = size }
     }
 
+    /// The face a role is set in: its own, or — when the kit leaves it out —
+    /// a title's and a subheading's the heading's, a quote's and a
+    /// caption's the body's, and the heading and the body each other's. Nil
+    /// when the kit has neither. The Android twin's BrandRoles.fontFor.
+    func fontFor(_ role: Role) -> BrandFont? {
+        if let own = self[role] { return own }
+        switch role {
+        case .title, .subheading, .heading: return heading ?? body
+        case .body, .quote, .caption: return body ?? heading
+        }
+    }
+
     /// The roles a theme sets by size rank, largest first: those with a face
     /// among title, heading, subheading and body. A quote or a caption is
     /// not a rank — it is what a text says, not how big it is — so the theme

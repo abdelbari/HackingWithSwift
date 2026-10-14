@@ -502,9 +502,12 @@ struct InsertSheet: View {
 
     // MARK: text
 
-    /// The role inserts and a page number, then the font combinations two
-    /// to a row, the six pairings first. A search keeps the combinations
-    /// whose name or a tag has it, and only them — as on the Android twin.
+    /// The role inserts and a page number, then the font combinations: chips
+    /// for their categories, this phone's Recently used, From your brand
+    /// when the kit sets a title, heading or body face, and the grid, two to
+    /// a row, the six pairings first. A search keeps the combinations whose
+    /// name, a tag or category has it, and only them — as on the Android
+    /// twin.
     private var textList: some View {
         // In the active brand kit's faces, role by role.
         let fonts = BrandKit.load().fonts
@@ -516,47 +519,13 @@ struct InsertSheet: View {
                 }
                 textInsert("Page {page} of {pages}", size: 0.022, weight: 500)
             }
-            comboGrid(TextCombos.search(search))
+            ComboChoices(search: search, fonts: fonts) { combo in
+                store.addTextCombo(combo)
+                RecentCombos.record(combo.id)
+                dismiss()
+            }
         }
         .padding()
-    }
-
-    /// "Font combinations", each a tile drawn as it goes on a page, its name
-    /// under it; or, when a search finds none, that said.
-    @ViewBuilder
-    private func comboGrid(_ combos: [TextCombos.Combo]) -> some View {
-        if combos.isEmpty {
-            Text(TextCombos.noneFound(search))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .padding(.top, 8)
-        } else {
-            sectionHeader("Font combinations")
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                ForEach(combos) { combo in comboTile(combo) }
-            }
-        }
-    }
-
-    /// A tap puts the combination on this page, centred and selected, as
-    /// one Undo (DesignStore.addTextCombo).
-    private func comboTile(_ combo: TextCombos.Combo) -> some View {
-        Button {
-            store.addTextCombo(combo)
-            dismiss()
-        } label: {
-            VStack(spacing: 4) {
-                ComboThumb(combo: combo)
-                Text(combo.name)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(combo.name) font combination")
-        .accessibilityAddTraits(.isButton)
     }
 
     private func textInsert(_ label: String, size: Double, weight: Int) -> some View {
@@ -1667,7 +1636,10 @@ enum ComboThumbCache {
     }()
 
     static func thumbnail(for combo: TextCombos.Combo) -> UIImage? {
-        let key = combo.id as NSString
+        // By its faces too: one in the brand's (TextCombos.branded) is drawn
+        // again when the kit's faces change.
+        let faces = combo.elements.map { "\($0.fontFamily ?? "")/\($0.fontWeight ?? 0)" }.joined(separator: ",")
+        let key = "\(combo.id)#\(faces)" as NSString
         if let cached = cache.object(forKey: key) { return cached }
         let scale = min(width * fill / combo.w, height * fill / max(combo.h, 1))
         let placed = TextCombos.placed(combo, scale: scale, pageWidth: width, pageHeight: height)
