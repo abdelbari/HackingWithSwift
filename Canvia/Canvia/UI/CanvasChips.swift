@@ -1,4 +1,5 @@
-// Two small answers floating over the canvas, as the Android twin has them.
+// Two small answers floating over the canvas, as the Android twin has them,
+// and, while Copy style's paint mode is on, a chip that says so.
 //
 // The zoom pill says how far in you are — "Fit", or a percentage — and one
 // tap goes between the whole page and actual size, which a pinch can only
@@ -19,6 +20,19 @@ struct CanvasChips: View {
     @AppStorage(PageColumn.key) private var pageScroll = true
 
     var body: some View {
+        VStack(spacing: 8) {
+            answers
+            if store.stylePainting {
+                paintChip.transition(.opacity)
+            }
+        }
+        .padding(12)
+        .animation(.easeOut(duration: 0.2), value: offscreenSelection != nil)
+        .animation(.easeOut(duration: 0.2), value: store.stylePainting)
+    }
+
+    /// Bring it back, and the zoom pill.
+    private var answers: some View {
         ZStack(alignment: .top) {
             if let box = offscreenSelection {
                 chip("Bring it back") { store.requestCanvas(.reveal(box)) }
@@ -34,8 +48,28 @@ struct CanvasChips: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
-        .padding(12)
-        .animation(.easeOut(duration: 0.2), value: offscreenSelection != nil)
+    }
+
+    // MARK: paint mode
+
+    /// "Tap something to paste the style", and Done, which ends paint mode.
+    private var paintChip: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "paintbrush.pointed.fill")
+                .foregroundStyle(Theme.accent)
+                .accessibilityHidden(true)
+            Text(StylePaint.chip)
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Button("Done") { store.stylePainting = false }
+                .font(.subheadline.weight(.bold))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .background(.thickMaterial, in: Capsule())
+        .overlay(Capsule().stroke(Theme.hairline))
+        .accessibilityElement(children: .contain)
     }
 
     // MARK: zoom
