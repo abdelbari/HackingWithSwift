@@ -186,4 +186,19 @@ final class DrawPensTests: XCTestCase {
         store.finishStroke([CGPoint(x: 50, y: 5)])
         XCTAssertTrue(store.page.elements.isEmpty)
     }
+
+    func testAnImportedSVGsUnfilledPartsAreNoStrokesAndNeitherEraserTakesThem() throws {
+        let svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\">"
+            + "<path d=\"M5 12h14M12 5v14\" fill=\"none\" stroke=\"#000000\" stroke-width=\"2\"/>"
+            + "<line x1=\"2\" y1=\"2\" x2=\"22\" y2=\"2\" stroke=\"#ff0000\"/></svg>"
+        let parts = try XCTUnwrap(SvgImport.graphic(svg, pageWidth: 1000, pageHeight: 1000)).elements
+        XCTAssertEqual(parts.count, 2)
+        for part in parts {
+            XCTAssertEqual(part.fill?.kind, "none")
+            XCTAssertFalse(Freehand.isStroke(part))
+        }
+        let sweep = [CGPoint(x: 0, y: 0), CGPoint(x: 1000, y: 1000), CGPoint(x: 0, y: 1000), CGPoint(x: 1000, y: 0)]
+        XCTAssertEqual(Freehand.erasedPartially(parts, path: sweep, radius: 1000), [])
+        XCTAssertTrue(Freehand.erased(parts, path: sweep, radius: 1000).isEmpty)
+    }
 }

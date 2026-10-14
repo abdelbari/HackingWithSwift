@@ -340,9 +340,12 @@ enum Freehand {
         return hypot(Double(p.x) - x, Double(p.y) - y)
     }
 
-    /// Whether an element is a drawn stroke: a path shape with no fill.
+    /// Whether an element is a drawn stroke: a "freehand" path shape with
+    /// no fill. The shape id matters: an imported SVG's unfilled parts are
+    /// path shapes with no fill too, but they are a graphic, not ink to
+    /// erase.
     static func isStroke(_ el: Element) -> Bool {
-        el.type == .shape && el.pathData?.isEmpty == false && el.fill?.kind == "none"
+        el.type == .shape && el.shapeId == "freehand" && el.pathData?.isEmpty == false && el.fill?.kind == "none"
     }
 
     /// The strokes drawn black on white at `scale` pixels per page unit,
