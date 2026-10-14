@@ -403,7 +403,7 @@ enum SvgImport {
         switch node.name {
         case "path":
             guard let d = a["d"], !d.isEmpty else { return nil }
-            let path = SVGPath.path(d)
+            let path = SVGPath.parse(d)
             // One that only moves draws nothing.
             return drawsSegment(path) ? path : nil
         case "rect":

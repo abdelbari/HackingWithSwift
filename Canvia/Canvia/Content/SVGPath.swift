@@ -8,11 +8,28 @@ import Foundation
 
 enum SVGPath {
 
+    // Read and written from the main thread and from background work
+    // (exports, thumbnails), so every access goes through the lock.
     private static var cache: [String: CGPath] = [:]
+    private static let cacheLock = NSLock()
 
-    /// Parse a path definition in the library's 0…100 viewBox space.
+    /// Parse a path definition in the library's 0…100 viewBox space,
+    /// cached by its text: what drawing the same shape again uses.
     static func path(_ d: String) -> CGPath {
-        if let cached = cache[d] { return cached }
+        cacheLock.lock()
+        let cached = cache[d]
+        cacheLock.unlock()
+        if let cached { return cached }
+        let parsed = parse(d)
+        cacheLock.lock()
+        cache[d] = parsed
+        cacheLock.unlock()
+        return parsed
+    }
+
+    /// Parse a path definition without the cache: for one-off text, such as
+    /// the paths of an imported SVG, which would otherwise stay cached.
+    static func parse(_ d: String) -> CGPath {
         let path = CGMutablePath()
         var scanner = Tokenizer(d)
         var current = CGPoint.zero
@@ -124,7 +141,6 @@ enum SVGPath {
             }
             lastWasCurve = thisWasCurve
         }
-        cache[d] = path
         return path
     }
 
@@ -163,7 +179,7 @@ enum SVGPath {
         let tag = String(text[range])
         guard let dStart = tag.range(of: #"d\s*=\s*""#, options: .regularExpression) else { return nil }
         let d = tag[dStart.upperBound...].dropLast()
-        let parsed = path(String(d))
+        let parsed = parse(String(d))
         return parsed.isEmpty ? nil : normalised(parsed)
     }
 
