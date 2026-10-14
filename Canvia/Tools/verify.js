@@ -54,9 +54,22 @@ FILES.sort();
 // throws "Invalid argument" past about 32 KB. The callback form has no such
 // limit, so anything large is fed through it — a source file crossing that
 // size must not silently stop being checked.
-const parse = src => src.length < 30000
-  ? parser.parse(src)
-  : parser.parse(index => src.slice(index, index + 4096));
+//
+// Each source is parsed once and the tree shared by every check: the trees
+// live in native memory, which the JS heap limit neither counts nor frees,
+// and parsing every file afresh for each of the checks was enough for the
+// process to be killed on a busy machine.
+const trees = new Map();
+const parse = src => {
+  let tree = trees.get(src);
+  if (!tree) {
+    tree = src.length < 30000
+      ? parser.parse(src)
+      : parser.parse(index => src.slice(index, index + 4096));
+    trees.set(src, tree);
+  }
+  return tree;
+};
 const each = (n, f) => { f(n); for (let i = 0; i < n.namedChildCount; i++) each(n.namedChild(i), f); };
 const rel = f => path.relative(process.cwd(), f);
 let FAILURES = 0;
