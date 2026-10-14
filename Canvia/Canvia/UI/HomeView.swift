@@ -157,6 +157,15 @@ struct HomeView: View {
         }
         .overlay(alignment: .bottom) { trashedToast }
         .overlay(alignment: .bottom) { copiesToast }
+        // An export still running from the editor; a tap opens its design.
+        .overlay(alignment: .bottom) {
+            ExportPill {
+                if let id = ExportQueue.shared.current?.designId, let design = DesignLibrary.load(id: id) {
+                    onOpen(design)
+                }
+            }
+            .padding(.bottom, 12)
+        }
         .overlay { if openingFile { OpeningDesignCard() } }
         .onAppear {
             reload()

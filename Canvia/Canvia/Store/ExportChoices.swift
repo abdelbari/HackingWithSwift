@@ -47,6 +47,40 @@ enum ExportChoices {
     static func countText(_ chosen: Int, of total: Int) -> String {
         "\(chosen) of \(total) \(total == 1 ? "page" : "pages")"
     }
+
+    // MARK: in the background — the Android twin's ExportPlan words
+
+    /// Asked when the sheet is closed with an export running; Keep is the
+    /// default.
+    static let keepQuestion = "Keep exporting in the background?"
+    static let keep = "Keep"
+    static let stop = "Stop"
+
+    /// The pill while an export runs: "Rendering the video 42%".
+    static func pillText(label: String, fraction: Double) -> String {
+        "\(label) \(Int((min(1, max(0, fraction)) * 100).rounded()))%"
+    }
+
+    /// "1 more waiting", under the progress while others wait their turn.
+    static func waitingText(_ count: Int) -> String {
+        "\(count) more waiting"
+    }
+
+    /// The notifications: done, with Share and Open; failed; paused.
+    static let readyTitle = "Your export is ready"
+    static let failedTitle = "Export failed"
+    static let pausedTitle = "Export paused"
+    static let paused = "Paused — return to Canvia to finish"
+    static let shareAction = "Share"
+    static let openAction = "Open"
+
+    /// "Export failed: <why>", in the sheet or the pill.
+    static func failedText(_ reason: String) -> String {
+        "Export failed: \(reason)"
+    }
+
+    /// Said when a video's music could not be mixed in.
+    static let musicLost = "Couldn't add the music, so it has none."
 }
 
 /// The last export, as "Remember these settings" keeps it:

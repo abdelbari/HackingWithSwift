@@ -136,6 +136,17 @@ struct EditorView: View {
                         .padding(18)
                 }
             }
+            // An export running in the app's queue, just above the toolbar
+            // and beside the insert button — out of the way of the pen's,
+            // the eraser's and the crop's bars: a tap opens the sheet on its
+            // progress.
+            .overlay(alignment: .bottomLeading) {
+                if store.drawing == nil && store.erasing == nil && store.cropping == nil {
+                    ExportPill { activeSheet = .export }
+                        .padding(.trailing, 72)
+                        .padding(.bottom, 26)
+                }
+            }
             // Always rendered, never inserted. Adding and removing this from
             // the stack resized the canvas on every selection — and by a
             // different amount for a text selection than a shape one, so the

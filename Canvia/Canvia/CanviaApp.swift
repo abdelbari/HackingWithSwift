@@ -215,6 +215,9 @@ struct CanviaApp: App {
                 if SharedInbox.kind(of: url) != nil { receiveShared(url) } else { openDesignFile(url) }
             }
             .sharedDesignSheet($sharedBox, editing: $editingStore, failure: $openError)
+            // Exports finished with their sheet closed, shared as the app
+            // comes back (ExportQueue).
+            .modifier(ExportDelivery())
             .overlay { if openingFile { OpeningDesignCard() } }
             .preferredColorScheme(Appearance.scheme(appearance))
             .alert("Couldn't open that file", isPresented: Binding(

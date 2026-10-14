@@ -402,9 +402,16 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   none of it ever in an export. Remembered across launches.
 - Version history: a copy of the design is kept at most every two
   minutes while editing, and whenever the editor is left, only when
-  something changed, thirty deep. Restoring one is a single undo step
-  and the current state is kept as a version first, so it is never a
-  one-way door.
+  something changed. Older history is thinned rather than lost: every
+  version from the last two hours, the newest of each hour for 48 hours
+  and of each day for 60 days, 200 unpinned at most, by the same rule as
+  the Android twin's VersionPolicy. Rows sit under Today, Yesterday, This
+  week and Earlier; "Name this version…" pins one for good (in
+  history/<id>/meta.json, which backups carry), and More's "Save a named
+  version…" keeps and pins the design as it is. Versions are written as
+  <epoch ms>.json, as on Android, and the seconds older builds wrote
+  still read. Restoring one is a single undo step and the current state
+  is kept as a version first, so it is never a one-way door.
 - An undo toast after the edits people regret — delete, cut, delete page,
   replace all, restore, resize — naming what just happened with an Undo
   button and a close button on it, gone after four seconds; read out by
@@ -449,6 +456,21 @@ sheet or frame and leaves no partial file behind. Pages and frames are
 drawn on the main actor, which steps aside every thirtieth of a second
 so the bar moves and Cancel can be tapped. The PDF row says which pages
 it will hold ("All 4 pages" or "Page 2 only"), following the page choice.
+
+Exports keep going once the sheet is closed. Each row hands the app's
+ExportQueue a job made from a snapshot of the design as it was tapped —
+the design copied, its pages fixed — so editing carries on beside it; one
+export runs at a time and another waits its turn. Closing the sheet asks
+"Keep exporting in the background?" (Keep, the default, or Stop), and a
+pill above the editor's toolbar, and on Home, says "Rendering the video
+42%": a tap opens the sheet on its progress, its X stops it. Out of the
+app, the work runs in a background task; when the system's time runs out
+it waits between two pages or frames — the video's AVAssetWriter simply
+waits for its next frame — and a notification says "Paused — return to
+Canvia to finish". Done while away, a notification with Share and Open
+says so, and the file is shared or opened as the app comes back, as the
+sheet would have. The Android twin holds the same job in a foreground
+service with the same words.
 
 **Save to Photos** — PNG or JPEG (this page or the selected range, JPEG
 at the quality set above) or the MP4 straight into the photo library
@@ -532,8 +554,14 @@ Actions and Siri's intents share one LaunchRequest hand-off, and a design
 opened over another closes the first, which saves it.
 
 **Home** — templates browse by category from a row of chips; designs can be
-filed into folders from their context menu (folder chips appear when one
-exists) and filing is not an edit, so the order stays. The first launch
+filed into folders from their context menu and filing is not an edit, so
+the order stays. Designs and folders can be starred from their menus or
+from Select; the Starred chip after All shows starred folders, then
+starred designs in the current sort. The design file carries
+"starred": true only when starred, and the shelf cache carries it too;
+starred folders live in the home-folders preference, whose bare names
+still read. A copy is never starred; a design back from Recently deleted
+still is. The first launch
 shows a four-card tour, once — `-canviaSkipTour` keeps it off the CI
 screenshot — and contextual tips fire the first time you rotate, add a
 page, draw or drop something in.

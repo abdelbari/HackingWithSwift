@@ -111,6 +111,13 @@ enum QuickActions {
 /// a scene too, and is given the one that shows the slides on it.
 @MainActor
 final class CanviaAppDelegate: NSObject, UIApplicationDelegate {
+    /// An export's notifications: their Share and Open heard here.
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        ExportNotifications.register()
+        return true
+    }
+
     func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession,
                      options: UIScene.ConnectionOptions) -> UISceneConfiguration {
         if connectingSceneSession.role == .windowExternalDisplayNonInteractive {
