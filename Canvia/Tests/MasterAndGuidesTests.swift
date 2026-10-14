@@ -39,6 +39,26 @@ final class MasterAndGuidesTests: XCTestCase {
         XCTAssertNil(s.design.masterPageId)
     }
 
+    /// The Android twin's PageExtrasTest rows: a page's numbering counts
+    /// for its thumbnail only when it shows a number.
+    func testAPagesNumberingCountsForItsThumbnailOnlyWhenItShowsANumber() {
+        let footer = Element.text("Page {page} of {pages}")
+        var d = Design(title: "n", width: 400, height: 300)
+        d.pages = [Page(), Page(elements: [footer]), Page()]
+        XCTAssertNil(d.pageNumbering(shownOn: d.pages[0]))
+        XCTAssertEqual(d.pageNumbering(shownOn: d.pages[1])?.number, 2)
+        XCTAssertEqual(d.pageNumbering(shownOn: d.pages[1])?.count, 3)
+        // A hidden footer shows no number.
+        d.pages[1].elements[0].hidden = true
+        XCTAssertNil(d.pageNumbering(shownOn: d.pages[1]))
+        // On the master, it numbers every page drawn over it, and itself.
+        var m = Design(title: "m", width: 400, height: 300)
+        m.pages = [Page(elements: [footer]), Page(), Page()]
+        m.masterPageId = m.pages[0].id
+        XCTAssertEqual(m.pages.map { m.pageNumbering(shownOn: $0)?.number }, [1, 2, 3])
+        XCTAssertEqual(m.pages.map { m.pageNumbering(shownOn: $0)?.count }, [3, 3, 3])
+    }
+
     func testTheSVGDrawsMasterElementsAndPageNumbers() {
         var d = design()
         d.masterPageId = d.pages[0].id
