@@ -892,9 +892,13 @@ struct InsertSheet: View {
         }
         .fileImporter(isPresented: $importingSVG, allowedContentTypes: [.svg]) { result in
             guard case .success(let url) = result else { return }
-            let scoped = url.startAccessingSecurityScopedResource()
-            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            if svgWhole { importGraphic(from: url) } else { importFirstPath(from: url) }
+            if svgWhole {
+                importGraphic(from: url)
+            } else {
+                let scoped = url.startAccessingSecurityScopedResource()
+                defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+                importFirstPath(from: url)
+            }
         }
     }
 
@@ -926,35 +930,68 @@ struct InsertSheet: View {
     }
 
     /// The whole file as a graphic, and the file kept among your uploads to
-    /// place again.
+    /// place again. Read, parsed and kept off the main thread, so a large
+    /// illustration does not hold the editor up.
     private func importGraphic(from url: URL) {
-        let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
-        guard size <= SvgImport.maxBytes, let data = try? Data(contentsOf: url), data.count <= SvgImport.maxBytes,
-              let text = String(data: data, encoding: .utf8),
-              let graphic = SvgImport.graphic(text, pageWidth: store.pageWidth, pageHeight: store.pageHeight) else {
-            refuseSVG()
-            return
+        let width = store.pageWidth, height = store.pageHeight
+        Task {
+            let read = await Task.detached(priority: .userInitiated) { () -> GraphicRead in
+                // The picker's permission held while the file is read.
+                let scoped = url.startAccessingSecurityScopedResource()
+                defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+                return GraphicRead.of(url, keep: true, pageWidth: width, pageHeight: height)
+            }.value
+            finishGraphic(read)
         }
-        if let id = MediaStore.storeGraphic(data) { Uploads.record(id, kind: .image) }
-        store.addGraphic(graphic)
-        dismiss()
     }
 
     /// An SVG from your uploads placed again.
     private func placeGraphic(_ id: String) {
-        guard let data = try? Data(contentsOf: MediaStore.graphicURL(id)),
-              let text = String(data: data, encoding: .utf8),
-              let graphic = SvgImport.graphic(text, pageWidth: store.pageWidth, pageHeight: store.pageHeight) else {
-            refuseSVG()
-            return
+        let width = store.pageWidth, height = store.pageHeight
+        let url = MediaStore.graphicURL(id)
+        Task {
+            let read = await Task.detached(priority: .userInitiated) {
+                GraphicRead.of(url, keep: false, pageWidth: width, pageHeight: height)
+            }.value
+            finishGraphic(read)
         }
-        store.addGraphic(graphic)
-        dismiss()
     }
 
-    private func refuseSVG() {
+    /// What reading an SVG came to: the graphic, or what to say instead.
+    private enum GraphicRead {
+        case graphic(SvgImport.Graphic)
+        case refused(String)
+
+        /// An SVG file read and made a graphic, and kept among the uploads
+        /// when `keep` — or refused in the Android twin's words: one past
+        /// 2 MB, one that cannot be read, and one with nothing to draw.
+        static func of(_ url: URL, keep: Bool, pageWidth: Double, pageHeight: Double) -> GraphicRead {
+            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+            guard size <= SvgImport.maxBytes else { return .refused("That SVG is larger than 2 MB") }
+            guard let data = try? Data(contentsOf: url) else { return .refused("Couldn't open that") }
+            guard data.count <= SvgImport.maxBytes else { return .refused("That SVG is larger than 2 MB") }
+            guard let text = String(data: data, encoding: .utf8),
+                  let graphic = SvgImport.graphic(text, pageWidth: pageWidth, pageHeight: pageHeight) else {
+                return .refused("No shape to take from that file")
+            }
+            if keep, let id = MediaStore.storeGraphic(data) { Uploads.record(id, kind: .image) }
+            return .graphic(graphic)
+        }
+    }
+
+    private func finishGraphic(_ read: GraphicRead) {
+        switch read {
+        case .graphic(let graphic):
+            store.addGraphic(graphic)
+            dismiss()
+        case .refused(let note):
+            refuseSVG(note)
+        }
+    }
+
+    private func refuseSVG(_ note: String = "No shape to take from that file") {
         store.buzz(.reject)
-        store.announce("No shape to take from that file", undoable: false)
+        store.announce(note, undoable: false)
         dismiss()
     }
 
