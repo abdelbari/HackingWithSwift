@@ -22,6 +22,8 @@ struct RecentDesign: Identifiable, Sendable {
     /// The unit and dpi the design is read in, for its card's size line.
     var unit: String? = nil
     var dpi: Double? = nil
+    /// Starred on Home.
+    var starred = false
 
     /// "210 × 297 mm", or "1080 × 1920" for a design in pixels.
     var sizeText: String { Units.dimensions(width: width, height: height, unit: unit, dpi: dpi) }
@@ -400,6 +402,7 @@ enum DesignLibrary {
         copy.id = UID.make("doc")
         copy.title = versionCopyTitle(version.title, date: versionCopyDate(savedAt))
         copy.titleAuto = false
+        copy.isStarred = false
         copy.folder = folder
         copy.createdAt = now.timeIntervalSince1970 * 1000
         copy.updatedAt = copy.createdAt

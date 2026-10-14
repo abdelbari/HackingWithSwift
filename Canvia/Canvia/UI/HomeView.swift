@@ -73,6 +73,10 @@ struct HomeView: View {
     @State private var openingFile = false
     @State private var templateCategory: String?
     @State private var folder: String?
+    /// The Starred chip: starred folders, then starred designs.
+    @State private var starredOnly = false
+    /// The folders starred, from the home-folders preference.
+    @State private var starredFolders: Set<String> = []
     /// The designs a new folder is being named for.
     @State private var filingInto: [String] = []
     @State private var newFolderName = ""
@@ -120,8 +124,11 @@ struct HomeView: View {
                         sortMenu
                     }
                     .padding(.horizontal)
-                    if !folders.isEmpty { folderChips }
-                    if shownRecents.isEmpty {
+                    // All, Starred, then the folders.
+                    if !recents.isEmpty { folderChips }
+                    if starredOnly {
+                        starredPart
+                    } else if shownRecents.isEmpty {
                         Text("No design matches “\(query)”.")
                             .foregroundStyle(.secondary)
                             .padding(.horizontal)
@@ -272,6 +279,7 @@ struct HomeView: View {
 
     private func show(_ shelf: DesignLibrary.Shelf, trashed: [RecentDesign]) {
         recents = shelf.designs
+        starredFolders = DesignLibrary.starredFolders()
         damaged = shelf.damaged
         self.trashed = trashed
         loaded = true
@@ -329,9 +337,15 @@ struct HomeView: View {
         }
     }
 
-    /// The designs to show, damaged ones among them in their place.
+    /// The designs to show, damaged ones among them in their place — or,
+    /// under Starred, the starred ones.
     private var shownRecents: [RecentDesign] {
-        DesignLibrary.filter(recents + damaged, query: query, sort: sort, folder: folder)
+        if starredOnly { return starredShelf.designs }
+        return DesignLibrary.filter(recents + damaged, query: query, sort: sort, folder: folder)
+    }
+
+    private var starredShelf: (folders: [String], designs: [RecentDesign]) {
+        DesignLibrary.starredShelf(recents, starredFolders: starredFolders, query: query, sort: sort)
     }
 
     private var folders: [String] { DesignLibrary.folders(in: recents) }
@@ -411,12 +425,22 @@ struct HomeView: View {
     private var folderChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                chip("All", selected: folder == nil) { folder = nil }
+                chip("All", selected: folder == nil && !starredOnly) {
+                    folder = nil
+                    starredOnly = false
+                }
+                chip("Starred", selected: starredOnly, systemImage: "star") {
+                    starredOnly.toggle()
+                    folder = nil
+                }
                 ForEach(folders, id: \.self) { name in
-                    chip(name, selected: folder == name, systemImage: "folder") {
+                    chip(name, selected: folder == name, systemImage: starredFolders.contains(name) ? "star.fill" : "folder") {
                         folder = folder == name ? nil : name
+                        starredOnly = false
                     }
+                    .accessibilityLabel(starredFolders.contains(name) ? "\(name), starred" : name)
                     .contextMenu {
+                        starFolderButton(name)
                         Button {
                             folderRenameText = name
                             renamingFolder = name
@@ -475,6 +499,7 @@ struct HomeView: View {
 
     private func applyRename(_ plan: DesignLibrary.FolderRename) {
         for id in plan.ids { DesignLibrary.move(id: id, toFolder: plan.name) }
+        DesignLibrary.renameFolderStar(plan.from, to: plan.name)
         folder = plan.name
         reload()
     }
@@ -485,12 +510,89 @@ struct HomeView: View {
     private func deleteFolder(_ name: String, trashingDesigns: Bool) {
         let inFolder = recents.filter { $0.folder == name }
         folder = nil
+        DesignLibrary.renameFolderStar(name, to: nil)
         if trashingDesigns {
             trash(inFolder)
         } else {
             for design in inFolder { DesignLibrary.move(id: design.id, toFolder: nil) }
             reload()
         }
+    }
+
+    /// Add to starred / Remove from starred, for a folder chip.
+    private func starFolderButton(_ name: String) -> some View {
+        let on = starredFolders.contains(name)
+        return Button {
+            DesignLibrary.setFolderStarred(name, !on)
+            starredFolders = DesignLibrary.starredFolders()
+        } label: {
+            Label(on ? "Remove from starred" : "Add to starred", systemImage: on ? "star.slash" : "star")
+        }
+    }
+
+    /// Under Starred: the starred folders first, each opening its folder,
+    /// then the starred designs in the current sort — or, with none, where
+    /// stars come from.
+    @ViewBuilder
+    private var starredPart: some View {
+        let starred = starredShelf
+        if starred.folders.isEmpty && starred.designs.isEmpty {
+            Text(DesignLibrary.starredEmpty)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal)
+        } else {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
+                ForEach(starred.folders, id: \.self) { name in folderCard(name) }
+                ForEach(starred.designs) { recent in designCard(recent) }
+            }
+            .padding(.horizontal)
+        }
+    }
+
+    /// A starred folder among the starred designs: its name and how many
+    /// designs it holds; a tap shows them.
+    private func folderCard(_ name: String) -> some View {
+        let count = recents.filter { $0.folder == name }.count
+        let said = count == 1 ? "1 design" : "\(count) designs"
+        return Button {
+            starredOnly = false
+            folder = name
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                Image(systemName: "folder.fill")
+                    .font(.largeTitle)
+                    .foregroundStyle(Theme.accent)
+                    .frame(maxWidth: .infinity, minHeight: 96)
+                Text(name).font(.subheadline.weight(.semibold)).lineLimit(1)
+                Text(said).font(.caption).foregroundStyle(.secondary)
+            }
+            .padding(10)
+            .background(Theme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .shadow(color: .black.opacity(0.08), radius: 5, y: 2)
+            .overlay(alignment: .topLeading) { starBadge }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(name), folder, \(said), starred")
+        .contextMenu { starFolderButton(name) }
+    }
+
+    /// The small star on a starred card.
+    private var starBadge: some View {
+        Image(systemName: "star.fill")
+            .font(.caption)
+            .foregroundStyle(.yellow)
+            .padding(5)
+            .background(.black.opacity(0.35), in: Circle())
+            .padding(6)
+            .accessibilityHidden(true)
+    }
+
+    /// Stars or unstars the designs, then shows it.
+    private func star(_ designs: [RecentDesign], _ on: Bool) {
+        for design in designs where !design.damaged { DesignLibrary.setStarred(id: design.id, on) }
+        stopSelecting()
+        reload()
     }
 
     private func chip(_ title: String, selected: Bool, systemImage: String? = nil,
@@ -710,6 +812,7 @@ struct HomeView: View {
                     } else {
                         query = ""
                         folder = nil
+                        starredOnly = false
                         highlighted = Set(made.map(\.id))
                     }
                 }
@@ -944,6 +1047,7 @@ struct HomeView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .shadow(color: .black.opacity(0.08), radius: 5, y: 2)
             .overlay(alignment: .topTrailing) { if selecting { checkCircle(picked.contains(recent.id)) } }
+            .overlay(alignment: .topLeading) { if recent.starred { starBadge } }
             // A copy just made, ringed until the next one is opened.
             .overlay {
                 if highlighted.contains(recent.id) {
@@ -952,7 +1056,8 @@ struct HomeView: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(recent.title), \(caption(for: recent).spoken)")
+        .accessibilityLabel(recent.starred ? "\(recent.title), \(caption(for: recent).spoken), starred"
+                                           : "\(recent.title), \(caption(for: recent).spoken)")
         .accessibilityValue(pickedValue(recent))
         .contextMenu {
             if !selecting {
@@ -963,6 +1068,12 @@ struct HomeView: View {
                 Button {
                     duplicate([recent])
                 } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
+                Button {
+                    star([recent], !recent.starred)
+                } label: {
+                    Label(recent.starred ? "Remove from starred" : "Add to starred",
+                          systemImage: recent.starred ? "star.slash" : "star")
+                }
                 Button {
                     copyResizing = DesignLibrary.load(id: recent.id)
                 } label: { Label("Copy & resize", systemImage: "rectangle.on.rectangle.angled") }
@@ -1017,6 +1128,8 @@ struct HomeView: View {
             let sourceId = design.id
             design.id = UID.make("doc")
             design.title += " (copy)"
+            // A copy is not starred.
+            design.isStarred = false
             design.updatedAt = Date().timeIntervalSince1970 * 1000
             DesignLibrary.save(design)
             DesignLibrary.copyThumbnail(from: sourceId, to: design.id)
@@ -1120,6 +1233,7 @@ struct HomeView: View {
             }
             .disabled(!chosen.contains { !$0.damaged })
             .accessibilityLabel("Duplicate")
+            starBarButton(chosen)
             Button(role: .destructive) {
                 let gone = chosen
                 stopSelecting()
@@ -1135,6 +1249,18 @@ struct HomeView: View {
         .background(.bar)
         .accessibilityElement(children: .contain)
         .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    /// Add to starred, or Remove from starred once every design picked is.
+    private func starBarButton(_ chosen: [RecentDesign]) -> some View {
+        let designs = chosen.filter { !$0.damaged }
+        let allStarred = !designs.isEmpty && designs.allSatisfy(\.starred)
+        let title = allStarred ? "Remove from starred" : "Add to starred"
+        return Button { star(designs, !allStarred) } label: {
+            barLabel(title, systemImage: allStarred ? "star.slash" : "star")
+        }
+        .disabled(designs.isEmpty)
+        .accessibilityLabel(title)
     }
 
     private func barLabel(_ title: String, systemImage: String) -> some View {
