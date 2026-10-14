@@ -1421,8 +1421,9 @@ struct CanvasView: View {
                                        selectingMultiple: store.selectingMultiple, held: held)
     }
 
-    /// The edits that otherwise need a drag, as VoiceOver actions. Each acts
-    /// on this element alone, selecting it first, and is one undo step.
+    /// The edits that otherwise need a drag, as VoiceOver actions — moving,
+    /// resizing and turning among them. Each acts on this element alone,
+    /// selecting it first, and is one undo step.
     @ViewBuilder
     private func accessibilityActions(for el: Element) -> some View {
         let step = CanvasAccessibility.nudge(for: store.design)
@@ -1438,6 +1439,11 @@ struct CanvasView: View {
             Button("Move right") { nudge(el, dx: step, dy: 0) }
             Button("Move up") { nudge(el, dx: 0, dy: -step) }
             Button("Move down") { nudge(el, dx: 0, dy: step) }
+            // Each said after, where it is and how big, as its value is.
+            Button("Make larger") { if store.resizeForScreenReader(el.id, larger: true) { sayPlacement(el.id) } }
+            Button("Make smaller") { if store.resizeForScreenReader(el.id, larger: false) { sayPlacement(el.id) } }
+            Button("Turn clockwise") { if store.turnForScreenReader(el.id, clockwise: true) { sayPlacement(el.id) } }
+            Button("Turn anticlockwise") { if store.turnForScreenReader(el.id, clockwise: false) { sayPlacement(el.id) } }
         }
         if !el.locked {
             Button("Duplicate") { store.select(el.id); store.duplicateSelected() }
@@ -1454,6 +1460,13 @@ struct CanvasView: View {
         if el.type == .image && !el.locked {
             Button("Crop") { store.startCrop(el.id) }
         }
+    }
+
+    /// Where `id` is and how big, said: its VoiceOver value, as a resize or
+    /// a turn from the actions leaves it.
+    private func sayPlacement(_ id: String) {
+        guard let now = store.element(id) else { return }
+        AccessibilityNotification.Announcement(CanvasAccessibility.value(for: now, design: store.design)).post()
     }
 
     private func nudge(_ el: Element, dx: Double, dy: Double) {

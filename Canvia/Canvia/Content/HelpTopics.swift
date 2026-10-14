@@ -71,7 +71,7 @@ enum HelpTopics {
                   body: tr("With a hardware keyboard: ⌘Z undo, ⇧⌘Z or ⌘Y redo, ⌘C/⌘X/⌘V copy, cut, paste, ⌘D duplicate, ⌘A select all, ⌘G group, ⌘F find, ⌘E export."),
                   keywords: ["shortcut", "ipad", "command"], opens: nil),
         HelpTopic(id: "voiceover", title: tr("VoiceOver and accessibility"),
-                  body: tr("Every element on the canvas is named and can be moved, duplicated, deleted or reordered from the VoiceOver actions rotor. Reduce Motion, Increase Contrast and Differentiate Without Colour are honoured. More ▸ Check accessibility finds hard-to-read text, pictures with no alt text, text under 12 px and flashing, each with a way to fix it."),
+                  body: tr("Every element on the canvas is named and can be moved, made larger or smaller, turned, duplicated, deleted or reordered from the VoiceOver actions rotor; a photo can be cropped and words edited there too. Reduce Motion, Increase Contrast and Differentiate Without Colour are honoured. More ▸ Check accessibility finds hard-to-read text, pictures with no alt text, text under 12 px and flashing, each with a way to fix it."),
                   keywords: ["accessibility", "voice", "motion", "contrast"], opens: nil),
     ]
 

@@ -9914,6 +9914,15 @@
     "ja": "キャンバス上のすべての素材には名前があり、VoiceOver のアクションローターから移動、複製、削除、順序変更ができます。「視差効果を減らす」「コントラストを上げる」「カラー以外で区別」に対応しています。「その他 ▸ アクセシビリティをチェック」で、読みにくいテキスト、代替テキストのない画像、12 px 未満のテキスト、点滅を見つけ、それぞれ修正方法を示します。",
     "pt-BR": "Cada elemento na tela de design tem nome e pode ser movido, duplicado, excluído ou reordenado pelo rotor de ações do VoiceOver. Reduzir Movimento, Aumentar Contraste e Diferenciar Sem Cor são respeitados. Mais ▸ Verificar acessibilidade encontra texto difícil de ler, imagens sem texto alternativo, texto com menos de 12 px e piscadas, cada um com uma forma de corrigir."
   },
+  "Every element on the canvas is named and can be moved, made larger or smaller, turned, duplicated, deleted or reordered from the VoiceOver actions rotor; a photo can be cropped and words edited there too. Reduce Motion, Increase Contrast and Differentiate Without Colour are honoured. More ▸ Check accessibility finds hard-to-read text, pictures with no alt text, text under 12 px and flashing, each with a way to fix it.": {
+    "ar": "كل عنصر في اللوحة مسمّى ويمكن تحريكه أو تكبيره أو تصغيره أو تدويره أو تكراره أو حذفه أو إعادة ترتيبه من دوّار إجراءات VoiceOver، ويمكن هناك أيضًا قص الصورة وتحرير النص. تُراعى إعدادات تقليل الحركة وزيادة التباين والتمييز دون لون. ويعثر «المزيد ▸ التحقق من إمكانية الوصول» على النصوص صعبة القراءة والصور بلا نص بديل والنصوص الأصغر من 12 بكسل والوميض، مع طريقة لإصلاح كل منها.",
+    "de": "Jedes Element auf der Arbeitsfläche hat einen Namen und kann über den VoiceOver-Aktionsrotor verschoben, vergrößert oder verkleinert, gedreht, dupliziert, gelöscht oder neu angeordnet werden; dort lassen sich auch Fotos zuschneiden und Texte bearbeiten. „Bewegung reduzieren“, „Kontrast erhöhen“ und „Ohne Farbe unterscheiden“ werden berücksichtigt. Mehr ▸ Barrierefreiheit prüfen findet schwer lesbaren Text, Bilder ohne Alternativtext, Text unter 12 px und Blinken, jeweils mit einer Lösung.",
+    "es": "Cada elemento del lienzo tiene nombre y se puede mover, agrandar o reducir, girar, duplicar, eliminar o reordenar desde el rotor de acciones de VoiceOver; ahí también se puede recortar una foto y editar el texto. Se respetan Reducir movimiento, Aumentar contraste y Diferenciar sin color. Más ▸ Comprobar accesibilidad encuentra texto difícil de leer, imágenes sin texto alternativo, texto de menos de 12 px y destellos, cada uno con una forma de corregirlo.",
+    "fr": "Chaque élément du canevas est nommé et peut être déplacé, agrandi ou réduit, pivoté, dupliqué, supprimé ou réordonné depuis le rotor d’actions de VoiceOver ; on peut aussi y recadrer une photo et modifier du texte. Réduire les animations, Augmenter le contraste et Différencier sans couleur sont respectés. Plus ▸ Vérifier l’accessibilité repère les textes peu lisibles, les images sans texte alternatif, les textes de moins de 12 px et les clignotements, chacun avec un moyen de le corriger.",
+    "it": "Ogni elemento della tela ha un nome e può essere spostato, ingrandito o rimpicciolito, ruotato, duplicato, eliminato o riordinato dal rotore azioni di VoiceOver; da lì si può anche ritagliare una foto e modificare il testo. Riduci movimento, Aumenta contrasto e Differenzia senza colori sono rispettati. Altro ▸ Verifica accessibilità trova testo difficile da leggere, immagini senza testo alternativo, testo sotto i 12 px e lampeggiamenti, ognuno con un modo per correggerlo.",
+    "ja": "キャンバス上のすべての素材には名前があり、VoiceOver のアクションローターから移動、拡大・縮小、回転、複製、削除、順序変更ができます。写真の切り抜きやテキストの編集もそこからできます。「視差効果を減らす」「コントラストを上げる」「カラー以外で区別」に対応しています。「その他 ▸ アクセシビリティをチェック」で、読みにくいテキスト、代替テキストのない画像、12 px 未満のテキスト、点滅を見つけ、それぞれ修正方法を示します。",
+    "pt-BR": "Cada elemento na tela de design tem nome e pode ser movido, aumentado ou diminuído, girado, duplicado, excluído ou reordenado pelo rotor de ações do VoiceOver; ali também dá para recortar uma foto e editar o texto. Reduzir Movimento, Aumentar Contraste e Diferenciar Sem Cor são respeitados. Mais ▸ Verificar acessibilidade encontra texto difícil de ler, imagens sem texto alternativo, texto com menos de 12 px e piscadas, cada um com uma forma de corrigir."
+  },
   "Every page": {
     "ar": "كل صفحة",
     "de": "Jede Seite",
@@ -13141,6 +13150,24 @@
     "it": "Portalo a 12",
     "ja": "12 にする",
     "pt-BR": "Mudar para 12"
+  },
+  "Make larger": {
+    "ar": "تكبير",
+    "de": "Vergrößern",
+    "es": "Agrandar",
+    "fr": "Agrandir",
+    "it": "Ingrandisci",
+    "ja": "大きくする",
+    "pt-BR": "Aumentar"
+  },
+  "Make smaller": {
+    "ar": "تصغير",
+    "de": "Verkleinern",
+    "es": "Reducir",
+    "fr": "Réduire",
+    "it": "Rimpicciolisci",
+    "ja": "小さくする",
+    "pt-BR": "Diminuir"
   },
   "Makes a new design for each size ticked, reflowed to fit, in the same folder. “%@” stays as it is.": {
     "ar": "ينشئ تصميمًا جديدًا لكل حجم محدد، مُعاد ترتيبه ليناسب، في المجلد نفسه. يبقى «%@» كما هو.",
@@ -22625,6 +22652,15 @@
     "ja": "回転",
     "pt-BR": "Girar"
   },
+  "Turn anticlockwise": {
+    "ar": "تدوير عكس اتجاه عقارب الساعة",
+    "de": "Gegen den Uhrzeigersinn drehen",
+    "es": "Girar en sentido contrario a las agujas del reloj",
+    "fr": "Faire pivoter dans le sens antihoraire",
+    "it": "Ruota in senso antiorario",
+    "ja": "反時計回りに回転",
+    "pt-BR": "Girar no sentido anti-horário"
+  },
   "Turn by": {
     "ar": "التدوير بمقدار",
     "de": "Drehen um",
@@ -22633,6 +22669,15 @@
     "it": "Ruota di",
     "ja": "回転角度",
     "pt-BR": "Girar em"
+  },
+  "Turn clockwise": {
+    "ar": "تدوير باتجاه عقارب الساعة",
+    "de": "Im Uhrzeigersinn drehen",
+    "es": "Girar en el sentido de las agujas del reloj",
+    "fr": "Faire pivoter dans le sens horaire",
+    "it": "Ruota in senso orario",
+    "ja": "時計回りに回転",
+    "pt-BR": "Girar no sentido horário"
   },
   "Turn on Timeline in More to time it by the playhead.": {
     "ar": "فعّل «المخطط الزمني» في «المزيد» لتوقيته بمؤشر التشغيل.",
@@ -23719,6 +23764,15 @@
     "it": "Con TalkBack ogni elemento viene letto in ordine di lettura, con posizione e dimensioni, e ha azioni per selezionare, spostare, duplicare, eliminare, riordinare e modificare. I contorni della selezione diventano più marcati quando il telefono richiede più contrasto, e le animazioni seguono la sua impostazione.",
     "ja": "TalkBack では、すべての素材が読み順に、位置とサイズとともに読み上げられ、選択、移動、複製、削除、並べ替え、編集のアクションがあります。スマートフォンでコントラストを上げる設定にすると選択枠が太くなり、アニメーションも端末の設定に従います。",
     "pt-BR": "Com o TalkBack, cada elemento é lido na ordem de leitura, com a posição e o tamanho, e tem ações para selecionar, mover, duplicar, excluir, reordenar e editar. Os contornos de seleção ficam mais grossos quando o celular pede mais contraste, e as animações seguem a configuração dele."
+  },
+  "With TalkBack every element is read in reading order, with where it sits and its size, and has actions to select, move, make larger or smaller, turn, crop, duplicate, delete, reorder and edit. Selection outlines grow heavier when the phone asks for more contrast, and animations follow its setting.": {
+    "ar": "مع TalkBack يُقرأ كل عنصر بترتيب القراءة، مع موضعه وحجمه، ولديه إجراءات للتحديد والتحريك والتكبير أو التصغير والتدوير والاقتصاص والتكرار والحذف وإعادة الترتيب والتعديل. تزداد حدود التحديد سُمكًا عندما يطلب الهاتف تباينًا أكبر، وتتبع الحركات إعداده.",
+    "de": "Mit TalkBack wird jedes Element in Lesereihenfolge vorgelesen, mit Position und Größe, und hat Aktionen zum Auswählen, Verschieben, Vergrößern oder Verkleinern, Drehen, Zuschneiden, Duplizieren, Löschen, Neuanordnen und Bearbeiten. Auswahlrahmen werden kräftiger, wenn das Telefon mehr Kontrast verlangt, und Animationen folgen seiner Einstellung.",
+    "es": "Con TalkBack, cada elemento se lee en orden de lectura, con su ubicación y su tamaño, y tiene acciones para seleccionar, mover, agrandar o reducir, girar, recortar, duplicar, eliminar, reordenar y editar. Los contornos de selección se vuelven más gruesos cuando el teléfono pide más contraste, y las animaciones siguen su ajuste.",
+    "fr": "Avec TalkBack, chaque élément est lu dans l’ordre de lecture, avec sa position et sa taille, et propose des actions pour sélectionner, déplacer, agrandir ou réduire, faire pivoter, recadrer, dupliquer, supprimer, réordonner et modifier. Les contours de sélection s’épaississent quand le téléphone demande plus de contraste, et les animations suivent son réglage.",
+    "it": "Con TalkBack ogni elemento viene letto in ordine di lettura, con posizione e dimensioni, e ha azioni per selezionare, spostare, ingrandire o rimpicciolire, ruotare, ritagliare, duplicare, eliminare, riordinare e modificare. I contorni della selezione diventano più marcati quando il telefono richiede più contrasto, e le animazioni seguono la sua impostazione.",
+    "ja": "TalkBack では、すべての素材が読み順に、位置とサイズとともに読み上げられ、選択、移動、拡大・縮小、回転、切り抜き、複製、削除、並べ替え、編集のアクションがあります。スマートフォンでコントラストを上げる設定にすると選択枠が太くなり、アニメーションも端末の設定に従います。",
+    "pt-BR": "Com o TalkBack, cada elemento é lido na ordem de leitura, com a posição e o tamanho, e tem ações para selecionar, mover, aumentar ou diminuir, girar, recortar, duplicar, excluir, reordenar e editar. Os contornos de seleção ficam mais grossos quando o celular pede mais contraste, e as animações seguem a configuração dele."
   },
   "With a hardware keyboard: ⌘Z undo, ⇧⌘Z or ⌘Y redo, ⌘C/⌘X/⌘V copy, cut, paste, ⌘D duplicate, ⌘A select all, ⌘G group, ⌘F find, ⌘E export.": {
     "ar": "مع لوحة مفاتيح فعلية: ⌘Z للتراجع، و⇧⌘Z أو ⌘Y للإعادة، و⌘C/⌘X/⌘V للنسخ والقص واللصق، و⌘D للتكرار، و⌘A لتحديد الكل، و⌘G للتجميع، و⌘F للبحث، و⌘E للتصدير.",
