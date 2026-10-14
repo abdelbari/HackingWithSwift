@@ -20,6 +20,10 @@ final class Dictation {
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
     private let recognizer = SFSpeechRecognizer()
+    /// The recogniser the task runs on — the design's language's own, made
+    /// for it, or the phone's — kept while it listens, as a task stops
+    /// with its recogniser.
+    private var active: SFSpeechRecognizer?
 
     /// Whether this device and locale can recognise speech at all.
     static var isAvailable: Bool { SFSpeechRecognizer()?.isAvailable ?? false }
@@ -81,6 +85,7 @@ final class Dictation {
         engine.prepare()
         do { try engine.start() } catch { self.error = "The microphone could not be started."; return }
         isListening = true
+        active = recognizer
         task = recognizer.recognitionTask(with: request) { [weak self] result, err in
             if let result {
                 onText(result.bestTranscription.formattedString, result.isFinal)
@@ -98,6 +103,7 @@ final class Dictation {
         task?.cancel()
         task = nil
         request = nil
+        active = nil
         isListening = false
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
