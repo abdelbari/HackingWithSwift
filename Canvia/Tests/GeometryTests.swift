@@ -740,15 +740,28 @@ final class GroupFlipTests: XCTestCase {
         var joined = arrow
         joined.id = "joined"
         joined.connectFrom = "a"
+        var bridge = arrow
+        bridge.id = "bridge"
+        bridge.connectFrom = "a"
+        bridge.connectTo = "b"
         var locked = box("l", x: 0, y: 200)
         locked.locked = true
         let frame = CGRect(x: 0, y: 0, width: 400, height: 300)
-        let across = Geometry.flipAll([arrow, joined, locked], box: frame, horizontal: true)
+        let across = Geometry.flipAll([arrow, joined, locked, bridge], box: frame, horizontal: true)
         XCTAssertEqual(across[0].startCap, "arrow")
         XCTAssertEqual(across[0].endCap, "none")
         XCTAssertFalse(across[0].flipH, "a line is not flipped; its caps swap")
-        XCTAssertEqual(across[1].endCap, "arrow", "a connector keeps its caps")
+        // Tied by one end: the tie goes with its end, as the caps do, so the
+        // arrow stays on the free end and the tie on its element's edge.
+        XCTAssertEqual(across[1].startCap, "arrow")
+        XCTAssertEqual(across[1].endCap, "none")
+        XCTAssertNil(across[1].connectFrom)
+        XCTAssertEqual(across[1].connectTo, "a", "the tie goes with its end")
         XCTAssertEqual(across[2], locked, "a locked thing stays as it is")
+        // Tied by both ends, it is laid from its elements: caps and ties stay.
+        XCTAssertEqual(across[3].endCap, "arrow", "a connector tied at both ends keeps its caps")
+        XCTAssertEqual(across[3].connectFrom, "a")
+        XCTAssertEqual(across[3].connectTo, "b")
         let down = Geometry.flipAll([arrow], box: frame, horizontal: false)
         XCTAssertEqual(down[0].endCap, "arrow", "a vertical flip keeps a line's direction")
         XCTAssertFalse(down[0].flipV)
