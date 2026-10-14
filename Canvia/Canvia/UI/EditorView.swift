@@ -247,7 +247,11 @@ struct EditorView: View {
             if activeSheet != nil { revealSelection() }
         }
         .fullScreenCover(isPresented: $presenting) {
-            PresentationView(design: store.design, startPage: store.pageIndex)
+            // Loop turned on or off in Present is the design's own, kept
+            // for next time, as one step Undo takes back.
+            PresentationView(design: store.design, startPage: store.pageIndex) { on in
+                store.apply { $0.presentLoops = on }
+            }
         }
         // A page playing in place stops as the talk begins, so the two are
         // never heard at once.

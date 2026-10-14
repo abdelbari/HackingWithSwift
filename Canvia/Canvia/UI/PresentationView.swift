@@ -19,12 +19,18 @@
 // instead, with its page grid and pointer; the screen taken away mid-talk,
 // the phone presents again on the same page. Without one, Present is as it
 // was.
+// Loop, beside Autoplay, goes round from the last page shown to the first,
+// the music from its start — kept in the design, so a kiosk keeps looping.
+// The presenter's effects (Presenter.effects) come from the keys 1 to 9, B,
+// C, O, Q, U and X, or the sparkle button's grid, and show on both screens.
 
 import SwiftUI
 
 struct PresentationView: View {
     let design: Design
     var startPage = 0
+    /// Loop turned on or off, for the design to keep.
+    var onLoopChange: (Bool) -> Void = { _ in }
     @Environment(\.dismiss) private var dismiss
     /// The page up, its clock and autoplay: what the phone and a second
     /// screen both draw.
@@ -33,6 +39,8 @@ struct PresentationView: View {
     @State private var showingChrome = true
     /// The console's page grid, to go straight to a page.
     @State private var showingPages = false
+    /// The effects' grid, the sparkle button's.
+    @State private var showingEffects = false
     /// When the talk began, for the music.
     @State private var started = Date()
     /// The talk's timer, which the console can pause and reset.
@@ -62,9 +70,10 @@ struct PresentationView: View {
     @State private var away = false
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
-    init(design: Design, startPage: Int = 0) {
+    init(design: Design, startPage: Int = 0, onLoopChange: @escaping (Bool) -> Void = { _ in }) {
         self.design = design
         self.startPage = startPage
+        self.onLoopChange = onLoopChange
         _session = State(initialValue: PresentSession(design: design))
     }
 
@@ -89,6 +98,9 @@ struct PresentationView: View {
         .background(keyCommands)
         .sheet(isPresented: $showingPages) {
             PresenterPagesSheet(design: design, current: index) { turn(to: $0) }
+        }
+        .sheet(isPresented: $showingEffects) {
+            PresentEffectsSheet { show(effect: $0) }
         }
         .onAppear {
             // A hidden page is not shown: Present starts at the next page
@@ -194,6 +206,8 @@ struct PresentationView: View {
                          showPages: { showingPages = true }) {
             soundButton
             autoplayButton
+            loopButton
+            effectsButton
         }
     }
 
@@ -355,7 +369,7 @@ struct PresentationView: View {
     /// runs on from where it was held through them — the clips playing on,
     /// not started again — and the page turns once they are done. False when
     /// there is nothing to play first: no exits, autoplay, Reduce Motion.
-    private func beginExit(to next: Int) -> Bool {
+    private func beginExit(to next: Int, looping: Bool = false) -> Bool {
         guard session.exitFrom == nil, let held = session.heldAt(page), PresentSession.moves(page, in: design),
               !reduceMotion else { return false }
         let left = max(0, session.holdSeconds(page) - held)
@@ -366,7 +380,7 @@ struct PresentationView: View {
         exitTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(left))
             guard !Task.isCancelled, showing == index else { return }
-            turn(to: next)
+            turn(to: next, looping: looping)
         }
         return true
     }
@@ -429,6 +443,8 @@ struct PresentationView: View {
                 Spacer()
                 soundButton
                 autoplayButton
+                loopButton
+                effectsButton
                 Button { showingNotes.toggle() } label: {
                     // A blank note, dimmed, when this page has none — as on
                     // the Android twin — so the button says so before it is
@@ -490,6 +506,38 @@ struct PresentationView: View {
             .accessibilityLabel(autoplay ? "Pause autoplay" : "Autoplay")
     }
 
+    /// Loop, beside Autoplay: lit while on. The design keeps it.
+    private var loopButton: some View {
+        Button {
+            session.loop.toggle()
+            onLoopChange(session.loop)
+        } label: {
+            Image(systemName: "repeat")
+                .padding(8)
+                .background(Circle().fill(Color.white.opacity(session.loop ? 0.3 : 0)))
+                .opacity(session.loop ? 1 : 0.6)
+        }
+        .accessibilityLabel("Loop")
+        .accessibilityValue(session.loop ? "On" : "Off")
+    }
+
+    /// The effects' grid, for a phone with no keyboard to give them.
+    private var effectsButton: some View {
+        Button { showingEffects = true } label: { Image(systemName: "sparkles").padding(10) }
+            .accessibilityLabel("Effects")
+    }
+
+    /// An effect asked for, by key or from the grid: shown on both
+    /// screens; one of three seconds is let go of once they are up.
+    private func show(effect id: String) {
+        session.effects = Presenter.showing(session.effects, adding: id, at: Date())
+        guard id != "clear", !Presenter.lasts(id) else { return }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(Presenter.effectSeconds + 0.05))
+            session.effects = Presenter.live(session.effects, at: Date())
+        }
+    }
+
     /// A keyboard, or the clicker a presenter holds — which sends Page Down
     /// and Page Up, or the arrows — turns the pages with the same transition
     /// and autoplay a swipe gives, and Escape ends the presentation, as on
@@ -511,6 +559,10 @@ struct PresentationView: View {
                 key(.end, "Last page") { turn(to: design.visiblePageIndices.last) }
             }
             key(.escape, "End presentation") { dismiss() }
+            // The effects' keys: 1 to 9, B, C, O, Q, U and X.
+            ForEach(Presenter.effects) { effect in
+                key(KeyEquivalent(Character(effect.key)), effect.name) { show(effect: effect.id) }
+            }
         }
     }
 
@@ -528,29 +580,40 @@ struct PresentationView: View {
     }
 
     /// One page on, or one back, among the pages shown: a hidden page is
-    /// stepped over. Going on by hand from a page whose elements leave plays
-    /// them first; going on again meanwhile turns the page at once.
+    /// stepped over, and with Loop on the last page goes on to the first.
+    /// Going on by hand from a page whose elements leave plays them first;
+    /// going on again meanwhile turns the page at once.
     private func go(_ delta: Int) {
         let visible = design.visiblePageIndices
         guard delta > 0 else {
             turn(to: PageVisibility.previous(before: index, in: visible))
             return
         }
-        guard let next = PageVisibility.next(after: index, in: visible) else { return }
-        if session.exitFrom == nil, !autoplay, beginExit(to: next) { return }
-        turn(to: next)
+        guard let next = Presenter.next(after: index, in: visible, loop: session.loop) else { return }
+        // Round from the last page to the first.
+        let looping = next < index
+        if session.exitFrom == nil, !autoplay, beginExit(to: next, looping: looping) { return }
+        turn(to: next, looping: looping)
     }
 
     /// Turn to page `target`, by index; nowhere when it is nil or the page
-    /// already up.
-    private func turn(to target: Int?) {
+    /// already up. `looping` is going round from the last page shown to the
+    /// first: a turn forward, by the last page's own transition, with the
+    /// music from its start.
+    private func turn(to target: Int?, looping: Bool = false) {
         guard let next = target, next != index, design.pages.indices.contains(next) else { return }
         // Any exits still playing are over; the page leaving keeps its
         // clock as it was drawn. The pointer is on the page leaving, so it
-        // goes with it.
+        // goes with it, and so do the effects that last until the next page.
         exitTask?.cancel()
         session.pointer = nil
-        let forward = next > index
+        session.effects = Presenter.afterPageTurn(session.effects)
+        if looping {
+            sound.stop()
+            musicFrom = 0
+            started = Date()
+        }
+        let forward = looping || next > index
         // Going on, the page being left decides; going back, the page being
         // returned to, played in reverse. With a hidden page between, that
         // is the page before the gap, as the video plays it.
@@ -573,7 +636,10 @@ struct PresentationView: View {
         // The transition is read when the views change, so it is set first,
         // and the page moves on the next turn of the run loop.
         DispatchQueue.main.async {
-            withAnimation(animation) { session.index = next }
+            withAnimation(animation) {
+                session.layer += forward ? 1 : -1
+                session.index = next
+            }
             session.exitFrom = nil
             pageArrived()
             if autoplay { scheduleAdvance() }
@@ -581,15 +647,16 @@ struct PresentationView: View {
     }
 
     /// Wait this page's own hold (or the document's) — or `wait` seconds,
-    /// when given — then move on; stop at the last page shown rather than
-    /// looping back to a title slide.
+    /// when given — then move on; at the last page shown, round to the
+    /// first with Loop on, else stop there rather than looping back to a
+    /// title slide.
     private func scheduleAdvance(after wait: Double? = nil) {
         autoplayTask?.cancel()
         let delay = wait ?? max(session.holdSeconds(page), 0.5)
         autoplayTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(delay))
             guard !Task.isCancelled, autoplay else { return }
-            if PageVisibility.next(after: index, in: design.visiblePageIndices) != nil {
+            if Presenter.next(after: index, in: design.visiblePageIndices, loop: session.loop) != nil {
                 go(1)
             } else {
                 session.autoplay = false
