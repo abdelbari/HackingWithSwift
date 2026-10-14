@@ -34455,6 +34455,6774 @@
      "letterSpacing": 4
     }
    ]
+  },
+  {
+   "id": "portrait-new-collection",
+   "name": "New Collection Portrait",
+   "category": "Marketing",
+   "width": 1080,
+   "height": 1350,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#1b1033"
+      },
+      {
+       "offset": 1,
+       "color": "#3a1d63"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -270,
+     "y": -270,
+     "w": 756,
+     "h": 756,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffcf4a"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 648,
+     "y": 918,
+     "w": 702,
+     "h": 702,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff6fb5"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 236,
+     "w": 907,
+     "text": "AUTUMN / WINTER EDIT",
+     "fontSize": 53,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ffcf4a",
+     "letterSpacing": 13
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 347,
+     "w": 907,
+     "text": "NEW\nCOLLECTION",
+     "fontSize": 190,
+     "fontFamily": "impact",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#ffffff"
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 775,
+     "w": 907,
+     "text": "Thirty pieces made to layer.\nIn stores and online Friday.",
+     "fontSize": 57,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.35,
+     "color": "#cbbfe6"
+    },
+    {
+     "type": "shape",
+     "x": 289,
+     "y": 995,
+     "w": 503,
+     "h": 119,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffcf4a"
+     },
+     "radius": 59
+    },
+    {
+     "type": "text",
+     "x": 289,
+     "y": 1027,
+     "w": 503,
+     "text": "SHOP THE DROP",
+     "fontSize": 46,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#1b1033",
+     "letterSpacing": 2
+    },
+    {
+     "type": "sticker",
+     "glyph": "✨",
+     "x": 864,
+     "y": 76,
+     "w": 140,
+     "h": 140,
+     "rotation": 12
+    }
+   ]
+  },
+  {
+   "id": "portrait-five-habits",
+   "name": "Five Habits Portrait",
+   "category": "Education",
+   "width": 1080,
+   "height": 1350,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 160,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#eef7f1"
+      },
+      {
+       "offset": 1,
+       "color": "#d6efe0"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 702,
+     "y": -130,
+     "w": 540,
+     "h": 540,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1f9d6b"
+     },
+     "opacity": 0.18
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 102,
+     "w": 907,
+     "text": "SAVE THIS FOR LATER",
+     "fontSize": 40,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#1f9d6b",
+     "letterSpacing": 10
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 170,
+     "w": 907,
+     "text": "Five habits for\ncalmer mornings",
+     "fontSize": 100,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.05,
+     "color": "#123326"
+    },
+    {
+     "type": "shape",
+     "x": 86,
+     "y": 503,
+     "w": 102,
+     "h": 102,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1f9d6b"
+     }
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 516,
+     "w": 102,
+     "text": "1",
+     "fontSize": 64,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#eef7f1"
+    },
+    {
+     "type": "text",
+     "x": 229,
+     "y": 486,
+     "w": 765,
+     "text": "Leave your phone in\nanother room",
+     "fontSize": 54,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#123326"
+    },
+    {
+     "type": "shape",
+     "x": 86,
+     "y": 661,
+     "w": 102,
+     "h": 102,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1f9d6b"
+     }
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 673,
+     "w": 102,
+     "text": "2",
+     "fontSize": 64,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#eef7f1"
+    },
+    {
+     "type": "text",
+     "x": 229,
+     "y": 678,
+     "w": 765,
+     "text": "Drink a glass of water",
+     "fontSize": 54,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#123326"
+    },
+    {
+     "type": "shape",
+     "x": 86,
+     "y": 818,
+     "w": 102,
+     "h": 102,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1f9d6b"
+     }
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 831,
+     "w": 102,
+     "text": "3",
+     "fontSize": 64,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#eef7f1"
+    },
+    {
+     "type": "text",
+     "x": 229,
+     "y": 836,
+     "w": 765,
+     "text": "Make the bed first",
+     "fontSize": 54,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#123326"
+    },
+    {
+     "type": "shape",
+     "x": 86,
+     "y": 976,
+     "w": 102,
+     "h": 102,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1f9d6b"
+     }
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 989,
+     "w": 102,
+     "text": "4",
+     "fontSize": 64,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#eef7f1"
+    },
+    {
+     "type": "text",
+     "x": 229,
+     "y": 993,
+     "w": 765,
+     "text": "Write three lines",
+     "fontSize": 54,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#123326"
+    },
+    {
+     "type": "shape",
+     "x": 86,
+     "y": 1134,
+     "w": 102,
+     "h": 102,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1f9d6b"
+     }
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 1147,
+     "w": 102,
+     "text": "5",
+     "fontSize": 64,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#eef7f1"
+    },
+    {
+     "type": "text",
+     "x": 229,
+     "y": 1117,
+     "w": 765,
+     "text": "Step outside for\nten minutes",
+     "fontSize": 54,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#123326"
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 1268,
+     "w": 907,
+     "text": "@SLOWMORNINGS",
+     "fontSize": 30,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#4f6f60",
+     "letterSpacing": 2
+    }
+   ]
+  },
+  {
+   "id": "portrait-morning-pages",
+   "name": "Morning Pages Quote",
+   "category": "Personal",
+   "width": 1080,
+   "height": 1350,
+   "background": {
+    "type": "color",
+    "value": "#f6efe4"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 38,
+     "y": 38,
+     "w": 1004,
+     "h": 1274,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "none"
+     },
+     "stroke": "#c4552d",
+     "strokeWidth": 4
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 413,
+     "w": 907,
+     "text": "“",
+     "fontSize": 140,
+     "fontFamily": "didone",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 0.8,
+     "color": "#c4552d"
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 525,
+     "w": 907,
+     "text": "Begin before you\nfeel ready. Ready\nis something you\nbecome by beginning.",
+     "fontSize": 64,
+     "fontFamily": "didone",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.15,
+     "color": "#2a211b"
+    },
+    {
+     "type": "line",
+     "x": 86,
+     "y": 849,
+     "w": 64,
+     "thickness": 3,
+     "color": "#c4552d",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 874,
+     "w": 907,
+     "text": "JUNE ALCOTT",
+     "fontSize": 27,
+     "fontFamily": "sans",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#2a211b",
+     "letterSpacing": 4
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 906,
+     "w": 907,
+     "text": "From her letters, 1971",
+     "fontSize": 24,
+     "fontFamily": "serif",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#7a6b5d"
+    }
+   ]
+  },
+  {
+   "id": "portrait-brunch-special",
+   "name": "Brunch Special Portrait",
+   "category": "Food",
+   "width": 1080,
+   "height": 1350,
+   "background": {
+    "type": "color",
+    "value": "#fff3ee"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 0,
+     "y": 0,
+     "w": 1080,
+     "h": 675,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff5a3c"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 756,
+     "y": 481,
+     "w": 389,
+     "h": 389,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff5a3c"
+     },
+     "opacity": 0.35
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 157,
+     "w": 907,
+     "text": "THIS SUNDAY ONLY",
+     "fontSize": 40,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#ff5a3c",
+     "letterSpacing": 10
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 237,
+     "w": 907,
+     "text": "Brunch\nfor two",
+     "fontSize": 126,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.02,
+     "color": "#ffffff"
+    },
+    {
+     "type": "line",
+     "x": 86,
+     "y": 531,
+     "w": 151,
+     "thickness": 9,
+     "color": "#ff5a3c",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 821,
+     "w": 907,
+     "text": "Shakshuka & sourdough\nTwo flat whites\nLemon ricotta pancakes",
+     "fontSize": 38,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.6,
+     "color": "#2b1a17"
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 1029,
+     "w": 907,
+     "text": "£34 for the table, 9am to 2pm",
+     "fontSize": 33,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.4,
+     "color": "#7d5a52"
+    },
+    {
+     "type": "shape",
+     "x": 86,
+     "y": 1113,
+     "w": 321,
+     "h": 80,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff5a3c"
+     },
+     "radius": 40
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 1135,
+     "w": 321,
+     "text": "BOOK A TABLE",
+     "fontSize": 31,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#fff3ee",
+     "letterSpacing": 2
+    }
+   ]
+  },
+  {
+   "id": "portrait-countdown-launch",
+   "name": "Launch Countdown Portrait",
+   "category": "Events",
+   "width": 1080,
+   "height": 1350,
+   "background": {
+    "type": "color",
+    "value": "#111318"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -216,
+     "y": 810,
+     "w": 756,
+     "h": 756,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#5b8cff"
+     },
+     "opacity": 0.16
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 416,
+     "w": 907,
+     "text": "THE WAIT IS NEARLY OVER",
+     "fontSize": 33,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#7cf0a0",
+     "letterSpacing": 8
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 456,
+     "w": 907,
+     "text": "7",
+     "fontSize": 272,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#7cf0a0"
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 728,
+     "w": 907,
+     "text": "days until the doors open\non our new studio",
+     "fontSize": 44,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#ffffff"
+    },
+    {
+     "type": "line",
+     "x": 86,
+     "y": 874,
+     "w": 163,
+     "thickness": 5,
+     "color": "#a3a8b8",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 86,
+     "y": 901,
+     "w": 907,
+     "text": "OPENING 14 JUNE · LINK IN BIO",
+     "fontSize": 27,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#a3a8b8",
+     "letterSpacing": 2
+    }
+   ]
+  },
+  {
+   "id": "pin-lemon-bars",
+   "name": "Lemon Bars Recipe Pin",
+   "category": "Food",
+   "width": 1000,
+   "height": 1500,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 160,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#ff7a59"
+      },
+      {
+       "offset": 1,
+       "color": "#ffb347"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 650,
+     "y": -120,
+     "w": 500,
+     "h": 500,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffffff"
+     },
+     "opacity": 0.18
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 132,
+     "w": 840,
+     "text": "EASY BAKE · 45 MINUTES",
+     "fontSize": 37,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#ffffff",
+     "letterSpacing": 9
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 195,
+     "w": 840,
+     "text": "Bright lemon\nbars",
+     "fontSize": 92,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.05,
+     "color": "#2a1310"
+    },
+    {
+     "type": "shape",
+     "x": 80,
+     "y": 587,
+     "w": 94,
+     "h": 94,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffffff"
+     }
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 599,
+     "w": 94,
+     "text": "1",
+     "fontSize": 59,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ff7a59"
+    },
+    {
+     "type": "text",
+     "x": 212,
+     "y": 572,
+     "w": 708,
+     "text": "Press the shortbread\ninto the tin",
+     "fontSize": 50,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#2a1310"
+    },
+    {
+     "type": "shape",
+     "x": 80,
+     "y": 812,
+     "w": 94,
+     "h": 94,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffffff"
+     }
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 824,
+     "w": 94,
+     "text": "2",
+     "fontSize": 59,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ff7a59"
+    },
+    {
+     "type": "text",
+     "x": 212,
+     "y": 828,
+     "w": 708,
+     "text": "Bake until pale gold",
+     "fontSize": 50,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#2a1310"
+    },
+    {
+     "type": "shape",
+     "x": 80,
+     "y": 1036,
+     "w": 94,
+     "h": 94,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffffff"
+     }
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 1048,
+     "w": 94,
+     "text": "3",
+     "fontSize": 59,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ff7a59"
+    },
+    {
+     "type": "text",
+     "x": 212,
+     "y": 1021,
+     "w": 708,
+     "text": "Whisk eggs, sugar\nand lemon",
+     "fontSize": 50,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#2a1310"
+    },
+    {
+     "type": "shape",
+     "x": 80,
+     "y": 1261,
+     "w": 94,
+     "h": 94,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffffff"
+     }
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 1272,
+     "w": 94,
+     "text": "4",
+     "fontSize": 59,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ff7a59"
+    },
+    {
+     "type": "text",
+     "x": 212,
+     "y": 1245,
+     "w": 708,
+     "text": "Pour, bake, chill\nand slice",
+     "fontSize": 50,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#2a1310"
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 1423,
+     "w": 840,
+     "text": "FULL RECIPE ON THE BLOG",
+     "fontSize": 29,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#5e2a1f",
+     "letterSpacing": 2
+    }
+   ]
+  },
+  {
+   "id": "pin-hidden-beaches",
+   "name": "Hidden Beaches Pin",
+   "category": "Travel",
+   "width": 1000,
+   "height": 1500,
+   "background": {
+    "type": "color",
+    "value": "#0b2239"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 0,
+     "y": 0,
+     "w": 1000,
+     "h": 720,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#3fd0c9"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 700,
+     "y": 540,
+     "w": 360,
+     "h": 360,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#3fd0c9"
+     },
+     "opacity": 0.35
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 87,
+     "w": 840,
+     "text": "TRAVEL GUIDE",
+     "fontSize": 45,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#3fd0c9",
+     "letterSpacing": 11
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 175,
+     "w": 840,
+     "text": "Hidden\nbeaches\nof Crete",
+     "fontSize": 139,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.02,
+     "color": "#0b2239"
+    },
+    {
+     "type": "line",
+     "x": 80,
+     "y": 643,
+     "w": 167,
+     "thickness": 10,
+     "color": "#3fd0c9",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 811,
+     "w": 840,
+     "text": "Balos lagoon at dawn\nSeitan Limania\nPreveli palm beach\nAgiofarago gorge",
+     "fontSize": 47,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.6,
+     "color": "#ffffff"
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 1141,
+     "w": 840,
+     "text": "Where to park, when to go\nand what to pack",
+     "fontSize": 40,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.4,
+     "color": "#b8d4e8"
+    },
+    {
+     "type": "shape",
+     "x": 80,
+     "y": 1301,
+     "w": 438,
+     "h": 98,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#3fd0c9"
+     },
+     "radius": 49
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 1328,
+     "w": 438,
+     "text": "READ THE GUIDE",
+     "fontSize": 38,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#0b2239",
+     "letterSpacing": 2
+    }
+   ]
+  },
+  {
+   "id": "pin-weekend-diy",
+   "name": "Weekend DIY Checklist Pin",
+   "category": "Personal",
+   "width": 1000,
+   "height": 1500,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 160,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#f6efe4"
+      },
+      {
+       "offset": 1,
+       "color": "#efe2cf"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 650,
+     "y": -120,
+     "w": 500,
+     "h": 500,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#c4552d"
+     },
+     "opacity": 0.18
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 132,
+     "w": 840,
+     "text": "PRINTABLE CHECKLIST",
+     "fontSize": 37,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#c4552d",
+     "letterSpacing": 9
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 195,
+     "w": 840,
+     "text": "Refresh a room\nin one weekend",
+     "fontSize": 92,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.05,
+     "color": "#2a211b"
+    },
+    {
+     "type": "shape",
+     "x": 80,
+     "y": 565,
+     "w": 94,
+     "h": 94,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#c4552d"
+     }
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 577,
+     "w": 94,
+     "text": "1",
+     "fontSize": 59,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#f6efe4"
+    },
+    {
+     "type": "text",
+     "x": 212,
+     "y": 581,
+     "w": 708,
+     "text": "Clear every surface",
+     "fontSize": 50,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#2a211b"
+    },
+    {
+     "type": "shape",
+     "x": 80,
+     "y": 744,
+     "w": 94,
+     "h": 94,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#c4552d"
+     }
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 756,
+     "w": 94,
+     "text": "2",
+     "fontSize": 59,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#f6efe4"
+    },
+    {
+     "type": "text",
+     "x": 212,
+     "y": 760,
+     "w": 708,
+     "text": "Paint one wall",
+     "fontSize": 50,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#2a211b"
+    },
+    {
+     "type": "shape",
+     "x": 80,
+     "y": 924,
+     "w": 94,
+     "h": 94,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#c4552d"
+     }
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 936,
+     "w": 94,
+     "text": "3",
+     "fontSize": 59,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#f6efe4"
+    },
+    {
+     "type": "text",
+     "x": 212,
+     "y": 940,
+     "w": 708,
+     "text": "Swap the cushion covers",
+     "fontSize": 50,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#2a211b"
+    },
+    {
+     "type": "shape",
+     "x": 80,
+     "y": 1104,
+     "w": 94,
+     "h": 94,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#c4552d"
+     }
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 1115,
+     "w": 94,
+     "text": "4",
+     "fontSize": 59,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#f6efe4"
+    },
+    {
+     "type": "text",
+     "x": 212,
+     "y": 1119,
+     "w": 708,
+     "text": "Move one big piece",
+     "fontSize": 50,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#2a211b"
+    },
+    {
+     "type": "shape",
+     "x": 80,
+     "y": 1283,
+     "w": 94,
+     "h": 94,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#c4552d"
+     }
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 1295,
+     "w": 94,
+     "text": "5",
+     "fontSize": 59,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#f6efe4"
+    },
+    {
+     "type": "text",
+     "x": 212,
+     "y": 1268,
+     "w": 708,
+     "text": "Add a lamp, not a\nceiling light",
+     "fontSize": 50,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#2a211b"
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 1423,
+     "w": 840,
+     "text": "PIN IT FOR LATER",
+     "fontSize": 29,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#7a6b5d",
+     "letterSpacing": 2
+    }
+   ]
+  },
+  {
+   "id": "pin-keep-going",
+   "name": "Keep Going Pin",
+   "category": "Social",
+   "width": 1000,
+   "height": 1500,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#0a0820"
+      },
+      {
+       "offset": 1,
+       "color": "#1d0f45"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -250,
+     "y": -250,
+     "w": 700,
+     "h": 700,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff3ce8"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 600,
+     "y": 1100,
+     "w": 650,
+     "h": 650,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2ee6ff"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 331,
+     "w": 840,
+     "text": "A NOTE FOR TODAY",
+     "fontSize": 64,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ff3ce8",
+     "letterSpacing": 16
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 465,
+     "w": 840,
+     "text": "KEEP\nGOING",
+     "fontSize": 230,
+     "fontFamily": "impact",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#ffffff"
+    },
+    {
+     "type": "text",
+     "x": 80,
+     "y": 983,
+     "w": 840,
+     "text": "Small steps still\nmove you forward.",
+     "fontSize": 69,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.35,
+     "color": "#c7c1ef"
+    }
+   ]
+  },
+  {
+   "id": "linkedin-were-hiring",
+   "name": "Hiring Announcement Post",
+   "category": "Business",
+   "width": 1200,
+   "height": 627,
+   "background": {
+    "type": "color",
+    "value": "#f2f6ff"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 0,
+     "y": 0,
+     "w": 504,
+     "h": 627,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 391,
+     "y": 439,
+     "w": 226,
+     "h": 226,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     },
+     "opacity": 0.35
+    },
+    {
+     "type": "text",
+     "x": 50,
+     "y": 187,
+     "w": 416,
+     "text": "JOIN THE TEAM",
+     "fontSize": 27,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#2f6bff",
+     "letterSpacing": 7
+    },
+    {
+     "type": "text",
+     "x": 50,
+     "y": 240,
+     "w": 416,
+     "text": "We’re\nhiring",
+     "fontSize": 83,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.02,
+     "color": "#ffffff"
+    },
+    {
+     "type": "line",
+     "x": 50,
+     "y": 434,
+     "w": 100,
+     "thickness": 6,
+     "color": "#2f6bff",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 548,
+     "y": 139,
+     "w": 602,
+     "text": "Senior product designer\nData engineer\nCustomer success lead",
+     "fontSize": 36,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.6,
+     "color": "#14203d"
+    },
+    {
+     "type": "text",
+     "x": 548,
+     "y": 334,
+     "w": 602,
+     "text": "Remote in Europe · Apply by 30 May",
+     "fontSize": 31,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.4,
+     "color": "#56627f"
+    },
+    {
+     "type": "shape",
+     "x": 548,
+     "y": 413,
+     "w": 318,
+     "h": 75,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     },
+     "radius": 38
+    },
+    {
+     "type": "text",
+     "x": 548,
+     "y": 433,
+     "w": 318,
+     "text": "SEE THE ROLES",
+     "fontSize": 29,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#f2f6ff",
+     "letterSpacing": 2
+    }
+   ]
+  },
+  {
+   "id": "linkedin-milestone",
+   "name": "Milestone Announcement",
+   "category": "Business",
+   "width": 1200,
+   "height": 627,
+   "background": {
+    "type": "color",
+    "value": "#111318"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -125,
+     "y": 314,
+     "w": 439,
+     "h": 439,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#5b8cff"
+     },
+     "opacity": 0.16
+    },
+    {
+     "type": "text",
+     "x": 50,
+     "y": 126,
+     "w": 1100,
+     "text": "THANK YOU",
+     "fontSize": 27,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#7cf0a0",
+     "letterSpacing": 7
+    },
+    {
+     "type": "text",
+     "x": 50,
+     "y": 158,
+     "w": 1100,
+     "text": "10,000",
+     "fontSize": 221,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#7cf0a0"
+    },
+    {
+     "type": "text",
+     "x": 50,
+     "y": 379,
+     "w": 1100,
+     "text": "teams now plan their week with Fieldnote",
+     "fontSize": 35,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#ffffff"
+    },
+    {
+     "type": "line",
+     "x": 50,
+     "y": 452,
+     "w": 133,
+     "thickness": 4,
+     "color": "#a3a8b8",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 50,
+     "y": 474,
+     "w": 1100,
+     "text": "FIELDNOTE · SINCE 2021",
+     "fontSize": 22,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#a3a8b8",
+     "letterSpacing": 2
+    }
+   ]
+  },
+  {
+   "id": "linkedin-leadership-quote",
+   "name": "Leadership Quote Post",
+   "category": "Business",
+   "width": 1200,
+   "height": 627,
+   "background": {
+    "type": "color",
+    "value": "#f4f5f7"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 22,
+     "y": 22,
+     "w": 1156,
+     "h": 583,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "none"
+     },
+     "stroke": "#0e7c86",
+     "strokeWidth": 3
+    },
+    {
+     "type": "text",
+     "x": 50,
+     "y": 126,
+     "w": 1100,
+     "text": "“",
+     "fontSize": 139,
+     "fontFamily": "didone",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 0.8,
+     "color": "#0e7c86"
+    },
+    {
+     "type": "text",
+     "x": 50,
+     "y": 237,
+     "w": 1100,
+     "text": "Clarity is kindness. Say\nwhat done looks like.",
+     "fontSize": 63,
+     "fontFamily": "didone",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.15,
+     "color": "#1d2433"
+    },
+    {
+     "type": "line",
+     "x": 50,
+     "y": 414,
+     "w": 63,
+     "thickness": 3,
+     "color": "#0e7c86",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 50,
+     "y": 438,
+     "w": 1100,
+     "text": "PRIYA RAMAN",
+     "fontSize": 27,
+     "fontFamily": "sans",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#1d2433",
+     "letterSpacing": 4
+    },
+    {
+     "type": "text",
+     "x": 50,
+     "y": 470,
+     "w": 1100,
+     "text": "Head of Operations, Lattice Works",
+     "fontSize": 24,
+     "fontFamily": "serif",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#5b6475"
+    }
+   ]
+  },
+  {
+   "id": "linkedin-panel-invite",
+   "name": "Panel Talk Invite",
+   "category": "Events",
+   "width": 1200,
+   "height": 627,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#14261c"
+      },
+      {
+       "offset": 1,
+       "color": "#24412f"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -157,
+     "y": -157,
+     "w": 439,
+     "h": 439,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#e8c15a"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 949,
+     "y": 376,
+     "w": 408,
+     "h": 408,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#d9734e"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 50,
+     "y": 92,
+     "w": 1100,
+     "text": "LIVE PANEL · 12 JUNE · 6PM",
+     "fontSize": 29,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#e8c15a",
+     "letterSpacing": 7
+    },
+    {
+     "type": "text",
+     "x": 50,
+     "y": 153,
+     "w": 1100,
+     "text": "THE FUTURE OF\nHYBRID WORK",
+     "fontSize": 105,
+     "fontFamily": "condensed",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#f3efe2"
+    },
+    {
+     "type": "text",
+     "x": 50,
+     "y": 390,
+     "w": 1100,
+     "text": "Four founders on offices, rituals and trust",
+     "fontSize": 32,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.35,
+     "color": "#b9c4a8"
+    },
+    {
+     "type": "shape",
+     "x": 453,
+     "y": 470,
+     "w": 293,
+     "h": 66,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#e8c15a"
+     },
+     "radius": 33
+    },
+    {
+     "type": "text",
+     "x": 453,
+     "y": 487,
+     "w": 293,
+     "text": "RESERVE A SEAT",
+     "fontSize": 25,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#14261c",
+     "letterSpacing": 2
+    }
+   ]
+  },
+  {
+   "id": "x-product-launch",
+   "name": "Product Launch Post",
+   "category": "Marketing",
+   "width": 1600,
+   "height": 900,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#0a0820"
+      },
+      {
+       "offset": 1,
+       "color": "#1d0f45"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -225,
+     "y": -225,
+     "w": 630,
+     "h": 630,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff3ce8"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 1240,
+     "y": 540,
+     "w": 585,
+     "h": 585,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2ee6ff"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 207,
+     "w": 1456,
+     "text": "OUT NOW",
+     "fontSize": 42,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ff3ce8",
+     "letterSpacing": 11
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 296,
+     "w": 1456,
+     "text": "MEET ORBIT 2",
+     "fontSize": 151,
+     "fontFamily": "impact",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#ffffff"
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 485,
+     "w": 1456,
+     "text": "Faster sync, offline mode and a new dark theme.",
+     "fontSize": 45,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.35,
+     "color": "#c7c1ef"
+    },
+    {
+     "type": "shape",
+     "x": 621,
+     "y": 599,
+     "w": 358,
+     "h": 94,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff3ce8"
+     },
+     "radius": 47
+    },
+    {
+     "type": "text",
+     "x": 621,
+     "y": 624,
+     "w": 358,
+     "text": "TRY IT FREE",
+     "fontSize": 36,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#0a0820",
+     "letterSpacing": 2
+    },
+    {
+     "type": "sticker",
+     "glyph": "🚀",
+     "x": 1420,
+     "y": 63,
+     "w": 117,
+     "h": 117,
+     "rotation": 12
+    }
+   ]
+  },
+  {
+   "id": "x-thread-opener",
+   "name": "Thread Opener",
+   "category": "Social",
+   "width": 1600,
+   "height": 900,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 160,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#f2f6ff"
+      },
+      {
+       "offset": 1,
+       "color": "#dde8ff"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 1285,
+     "y": -108,
+     "w": 450,
+     "h": 450,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     },
+     "opacity": 0.18
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 72,
+     "w": 1456,
+     "text": "A THREAD",
+     "fontSize": 28,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#2f6bff",
+     "letterSpacing": 8
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 120,
+     "w": 1456,
+     "text": "What I learned shipping\n12 side projects",
+     "fontSize": 70,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.05,
+     "color": "#14203d"
+    },
+    {
+     "type": "shape",
+     "x": 72,
+     "y": 349,
+     "w": 113,
+     "h": 113,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     }
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 363,
+     "w": 113,
+     "text": "1",
+     "fontSize": 71,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#f2f6ff"
+    },
+    {
+     "type": "text",
+     "x": 231,
+     "y": 368,
+     "w": 1297,
+     "text": "Ship the boring version first",
+     "fontSize": 60,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#14203d"
+    },
+    {
+     "type": "shape",
+     "x": 72,
+     "y": 518,
+     "w": 113,
+     "h": 113,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     }
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 532,
+     "w": 113,
+     "text": "2",
+     "fontSize": 71,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#f2f6ff"
+    },
+    {
+     "type": "text",
+     "x": 231,
+     "y": 537,
+     "w": 1297,
+     "text": "Charge from day one",
+     "fontSize": 60,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#14203d"
+    },
+    {
+     "type": "shape",
+     "x": 72,
+     "y": 687,
+     "w": 113,
+     "h": 113,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     }
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 701,
+     "w": 113,
+     "text": "3",
+     "fontSize": 71,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#f2f6ff"
+    },
+    {
+     "type": "text",
+     "x": 231,
+     "y": 668,
+     "w": 1297,
+     "text": "Write the launch post before\nthe code",
+     "fontSize": 60,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#14203d"
+    }
+   ]
+  },
+  {
+   "id": "x-stat-of-the-week",
+   "name": "Stat of the Week",
+   "category": "Business",
+   "width": 1600,
+   "height": 900,
+   "background": {
+    "type": "color",
+    "value": "#fff3ee"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -180,
+     "y": 450,
+     "w": 630,
+     "h": 630,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#3b5bdb"
+     },
+     "opacity": 0.16
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 181,
+     "w": 1456,
+     "text": "STAT OF THE WEEK",
+     "fontSize": 38,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#ff5a3c",
+     "letterSpacing": 10
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 227,
+     "w": 1456,
+     "text": "73%",
+     "fontSize": 318,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#ff5a3c"
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 545,
+     "w": 1456,
+     "text": "of shoppers read reviews before buying",
+     "fontSize": 51,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#2b1a17"
+    },
+    {
+     "type": "line",
+     "x": 72,
+     "y": 649,
+     "w": 191,
+     "thickness": 6,
+     "color": "#7d5a52",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 681,
+     "w": 1456,
+     "text": "SOURCE: RETAIL PULSE SURVEY 2026",
+     "fontSize": 32,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#7d5a52",
+     "letterSpacing": 2
+    }
+   ]
+  },
+  {
+   "id": "x-hot-take",
+   "name": "Hot Take Quote",
+   "category": "Social",
+   "width": 1600,
+   "height": 900,
+   "background": {
+    "type": "color",
+    "value": "#fdf0f5"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 32,
+     "y": 32,
+     "w": 1537,
+     "h": 837,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "none"
+     },
+     "stroke": "#c2185b",
+     "strokeWidth": 4
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 180,
+     "w": 1456,
+     "text": "“",
+     "fontSize": 200,
+     "fontFamily": "didone",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 0.8,
+     "color": "#c2185b"
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 340,
+     "w": 1456,
+     "text": "Meetings are where\nmomentum goes to rest.",
+     "fontSize": 91,
+     "fontFamily": "didone",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.15,
+     "color": "#3a0d24"
+    },
+    {
+     "type": "line",
+     "x": 72,
+     "y": 594,
+     "w": 91,
+     "thickness": 4,
+     "color": "#c2185b",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 629,
+     "w": 1456,
+     "text": "@MAYA_BUILDS",
+     "fontSize": 38,
+     "fontFamily": "sans",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#3a0d24",
+     "letterSpacing": 5
+    },
+    {
+     "type": "text",
+     "x": 72,
+     "y": 675,
+     "w": 1456,
+     "text": "Unpopular opinion, Tuesday edition",
+     "fontSize": 34,
+     "fontFamily": "serif",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#7d4a63"
+    }
+   ]
+  },
+  {
+   "id": "facebook-cover-corner-bakery",
+   "name": "Corner Bakery Cover",
+   "category": "Food",
+   "width": 1640,
+   "height": 624,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#f6efe4"
+      },
+      {
+       "offset": 1,
+       "color": "#efe2cf"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -156,
+     "y": -156,
+     "w": 437,
+     "h": 437,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#c4552d"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 1390,
+     "y": 374,
+     "w": 406,
+     "h": 406,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6f5e"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 492,
+     "y": 206,
+     "w": 1017,
+     "text": "FRESH EVERY MORNING SINCE 1998",
+     "fontSize": 27,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#c4552d",
+     "letterSpacing": 7
+    },
+    {
+     "type": "text",
+     "x": 492,
+     "y": 261,
+     "w": 1017,
+     "text": "CORNER BAKERY",
+     "fontSize": 95,
+     "fontFamily": "didone",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#2a211b"
+    },
+    {
+     "type": "text",
+     "x": 492,
+     "y": 380,
+     "w": 1017,
+     "text": "Sourdough, pastries and good coffee on Elm Street",
+     "fontSize": 28,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.35,
+     "color": "#7a6b5d"
+    },
+    {
+     "type": "sticker",
+     "glyph": "🥐",
+     "x": 1515,
+     "y": 44,
+     "w": 81,
+     "h": 81,
+     "rotation": 12
+    }
+   ]
+  },
+  {
+   "id": "facebook-cover-community",
+   "name": "Community Garden Cover",
+   "category": "Personal",
+   "width": 1640,
+   "height": 624,
+   "background": {
+    "type": "color",
+    "value": "#eef7f1"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 0,
+     "y": 0,
+     "w": 984,
+     "h": 624,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#123326"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 872,
+     "y": 437,
+     "w": 225,
+     "h": 225,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1f9d6b"
+     },
+     "opacity": 0.35
+    },
+    {
+     "type": "text",
+     "x": 492,
+     "y": 204,
+     "w": 455,
+     "text": "EVERYONE WELCOME",
+     "fontSize": 23,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#1f9d6b",
+     "letterSpacing": 6
+    },
+    {
+     "type": "text",
+     "x": 492,
+     "y": 249,
+     "w": 455,
+     "text": "Oakfield\nGarden Club",
+     "fontSize": 71,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.02,
+     "color": "#eef7f1"
+    },
+    {
+     "type": "line",
+     "x": 492,
+     "y": 415,
+     "w": 85,
+     "thickness": 5,
+     "color": "#1f9d6b",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 1028,
+     "y": 240,
+     "w": 481,
+     "text": "Saturday digs, 10am\nSeed swap every month",
+     "fontSize": 29,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.6,
+     "color": "#123326"
+    },
+    {
+     "type": "text",
+     "x": 1028,
+     "y": 350,
+     "w": 481,
+     "text": "Bring gloves, leave with tomatoes",
+     "fontSize": 25,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.4,
+     "color": "#4f6f60"
+    }
+   ]
+  },
+  {
+   "id": "facebook-cover-design-studio",
+   "name": "Design Studio Cover",
+   "category": "Business",
+   "width": 1640,
+   "height": 624,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#111318"
+      },
+      {
+       "offset": 1,
+       "color": "#23262f"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -156,
+     "y": -156,
+     "w": 437,
+     "h": 437,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#7cf0a0"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 1390,
+     "y": 374,
+     "w": 406,
+     "h": 406,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#5b8cff"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 492,
+     "y": 214,
+     "w": 1017,
+     "text": "BRANDING · WEB · PRINT",
+     "fontSize": 25,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#7cf0a0",
+     "letterSpacing": 6
+    },
+    {
+     "type": "text",
+     "x": 492,
+     "y": 265,
+     "w": 1017,
+     "text": "NORTH & FIELD STUDIO",
+     "fontSize": 88,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#ffffff"
+    },
+    {
+     "type": "text",
+     "x": 492,
+     "y": 375,
+     "w": 1017,
+     "text": "Independent design for independent businesses",
+     "fontSize": 26,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.35,
+     "color": "#a3a8b8"
+    }
+   ]
+  },
+  {
+   "id": "facebook-cover-summer-camp",
+   "name": "Summer Camp Cover",
+   "category": "Education",
+   "width": 1640,
+   "height": 624,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#ff7a59"
+      },
+      {
+       "offset": 1,
+       "color": "#ffb347"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -156,
+     "y": -156,
+     "w": 437,
+     "h": 437,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffffff"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 1390,
+     "y": 374,
+     "w": 406,
+     "h": 406,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2a1310"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 492,
+     "y": 206,
+     "w": 1017,
+     "text": "AGES 7 TO 12 · JULY & AUGUST",
+     "fontSize": 27,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ffffff",
+     "letterSpacing": 7
+    },
+    {
+     "type": "text",
+     "x": 492,
+     "y": 261,
+     "w": 1017,
+     "text": "SUMMER SCIENCE CAMP",
+     "fontSize": 95,
+     "fontFamily": "impact",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#2a1310"
+    },
+    {
+     "type": "text",
+     "x": 492,
+     "y": 380,
+     "w": 1017,
+     "text": "Rockets, robots and rock pools",
+     "fontSize": 28,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.35,
+     "color": "#5e2a1f"
+    },
+    {
+     "type": "sticker",
+     "glyph": "🔬",
+     "x": 1515,
+     "y": 44,
+     "w": 81,
+     "h": 81,
+     "rotation": 12
+    }
+   ]
+  },
+  {
+   "id": "youtube-banner-tech-reviews",
+   "name": "Tech Reviews Channel Art",
+   "category": "Social",
+   "width": 2560,
+   "height": 1440,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#111318"
+      },
+      {
+       "offset": 1,
+       "color": "#23262f"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -360,
+     "y": -360,
+     "w": 1008,
+     "h": 1008,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#7cf0a0"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 1984,
+     "y": 864,
+     "w": 936,
+     "h": 936,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#5b8cff"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 547,
+     "y": 552,
+     "w": 1466,
+     "text": "NEW VIDEOS EVERY TUESDAY",
+     "fontSize": 42,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#7cf0a0",
+     "letterSpacing": 11
+    },
+    {
+     "type": "text",
+     "x": 547,
+     "y": 640,
+     "w": 1466,
+     "text": "SIGNAL / NOISE",
+     "fontSize": 150,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#ffffff"
+    },
+    {
+     "type": "text",
+     "x": 547,
+     "y": 827,
+     "w": 1466,
+     "text": "Honest reviews of the gadgets worth your money",
+     "fontSize": 45,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.35,
+     "color": "#a3a8b8"
+    }
+   ]
+  },
+  {
+   "id": "youtube-banner-home-cooking",
+   "name": "Home Cooking Channel Art",
+   "category": "Food",
+   "width": 2560,
+   "height": 1440,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#fff3ee"
+      },
+      {
+       "offset": 1,
+       "color": "#ffe0d3"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -360,
+     "y": -360,
+     "w": 1008,
+     "h": 1008,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff5a3c"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 1984,
+     "y": 864,
+     "w": 936,
+     "h": 936,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#3b5bdb"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 547,
+     "y": 576,
+     "w": 1466,
+     "text": "WEEKNIGHT RECIPES · SUNDAYS 6PM",
+     "fontSize": 36,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ff5a3c",
+     "letterSpacing": 9
+    },
+    {
+     "type": "text",
+     "x": 547,
+     "y": 652,
+     "w": 1466,
+     "text": "SMALL KITCHEN, BIG FLAVOUR",
+     "fontSize": 128,
+     "fontFamily": "condensed",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#2b1a17"
+    },
+    {
+     "type": "text",
+     "x": 547,
+     "y": 812,
+     "w": 1466,
+     "text": "Thirty-minute dinners for two",
+     "fontSize": 38,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.35,
+     "color": "#7d5a52"
+    },
+    {
+     "type": "sticker",
+     "glyph": "🍳",
+     "x": 2272,
+     "y": 101,
+     "w": 187,
+     "h": 187,
+     "rotation": 12
+    }
+   ]
+  },
+  {
+   "id": "youtube-banner-wander-vlogs",
+   "name": "Wander Vlogs Channel Art",
+   "category": "Travel",
+   "width": 2560,
+   "height": 1440,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#0b2239"
+      },
+      {
+       "offset": 1,
+       "color": "#0f4c75"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -360,
+     "y": -360,
+     "w": 1008,
+     "h": 1008,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#3fd0c9"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 1984,
+     "y": 864,
+     "w": 936,
+     "h": 936,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffb454"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 547,
+     "y": 552,
+     "w": 1466,
+     "text": "SLOW TRAVEL · NEW FILM EVERY MONTH",
+     "fontSize": 42,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#3fd0c9",
+     "letterSpacing": 11
+    },
+    {
+     "type": "text",
+     "x": 547,
+     "y": 640,
+     "w": 1466,
+     "text": "WANDER WITH ALEX",
+     "fontSize": 150,
+     "fontFamily": "didone",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#ffffff"
+    },
+    {
+     "type": "text",
+     "x": 547,
+     "y": 827,
+     "w": 1466,
+     "text": "Trains, trails and tiny towns",
+     "fontSize": 45,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.35,
+     "color": "#b8d4e8"
+    }
+   ]
+  },
+  {
+   "id": "youtube-banner-gaming",
+   "name": "Gaming Channel Art",
+   "category": "Social",
+   "width": 2560,
+   "height": 1440,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#0a0820"
+      },
+      {
+       "offset": 1,
+       "color": "#1d0f45"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -360,
+     "y": -360,
+     "w": 1008,
+     "h": 1008,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff3ce8"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 1984,
+     "y": 864,
+     "w": 936,
+     "h": 936,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2ee6ff"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 547,
+     "y": 552,
+     "w": 1466,
+     "text": "LIVE THURSDAY · FRIDAY · SATURDAY",
+     "fontSize": 42,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ff3ce8",
+     "letterSpacing": 11
+    },
+    {
+     "type": "text",
+     "x": 547,
+     "y": 640,
+     "w": 1466,
+     "text": "PIXEL RAIDERS",
+     "fontSize": 150,
+     "fontFamily": "impact",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#ffffff"
+    },
+    {
+     "type": "text",
+     "x": 547,
+     "y": 827,
+     "w": 1466,
+     "text": "Co-op chaos and speedrun attempts",
+     "fontSize": 45,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.35,
+     "color": "#c7c1ef"
+    },
+    {
+     "type": "sticker",
+     "glyph": "🎮",
+     "x": 2272,
+     "y": 101,
+     "w": 187,
+     "h": 187,
+     "rotation": 12
+    }
+   ]
+  },
+  {
+   "id": "linkedin-banner-consultant",
+   "name": "Consultant Profile Banner",
+   "category": "Business",
+   "width": 1584,
+   "height": 396,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#f4f5f7"
+      },
+      {
+       "offset": 1,
+       "color": "#e4e7ec"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -99,
+     "y": -99,
+     "w": 277,
+     "h": 277,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#0e7c86"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 1426,
+     "y": 238,
+     "w": 257,
+     "h": 257,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#d1495b"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 507,
+     "y": 144,
+     "w": 982,
+     "text": "STRATEGY · OPERATIONS · GROWTH",
+     "fontSize": 19,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#0e7c86",
+     "letterSpacing": 5
+    },
+    {
+     "type": "text",
+     "x": 507,
+     "y": 184,
+     "w": 982,
+     "text": "Helping teams scale calmly",
+     "fontSize": 69,
+     "fontFamily": "serif",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#1d2433"
+    }
+   ]
+  },
+  {
+   "id": "linkedin-banner-engineer",
+   "name": "Engineer Profile Banner",
+   "category": "Business",
+   "width": 1584,
+   "height": 396,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#111318"
+      },
+      {
+       "offset": 1,
+       "color": "#23262f"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -99,
+     "y": -99,
+     "w": 277,
+     "h": 277,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#7cf0a0"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 1426,
+     "y": 238,
+     "w": 257,
+     "h": 257,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#5b8cff"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 507,
+     "y": 148,
+     "w": 982,
+     "text": "PLATFORM ENGINEER · OPEN SOURCE",
+     "fontSize": 18,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#7cf0a0",
+     "letterSpacing": 4
+    },
+    {
+     "type": "text",
+     "x": 507,
+     "y": 185,
+     "w": 982,
+     "text": "Building reliable systems",
+     "fontSize": 63,
+     "fontFamily": "mono",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#ffffff"
+    }
+   ]
+  },
+  {
+   "id": "linkedin-banner-designer",
+   "name": "Designer Profile Banner",
+   "category": "Business",
+   "width": 1584,
+   "height": 396,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#fdf0f5"
+      },
+      {
+       "offset": 1,
+       "color": "#f8d7e6"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -99,
+     "y": -99,
+     "w": 277,
+     "h": 277,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#c2185b"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 1426,
+     "y": 238,
+     "w": 257,
+     "h": 257,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#6a4bc4"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 507,
+     "y": 140,
+     "w": 982,
+     "text": "PRODUCT DESIGN · RESEARCH",
+     "fontSize": 20,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#c2185b",
+     "letterSpacing": 5
+    },
+    {
+     "type": "text",
+     "x": 507,
+     "y": 183,
+     "w": 982,
+     "text": "Design that earns its keep",
+     "fontSize": 73,
+     "fontFamily": "didone",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#3a0d24"
+    }
+   ]
+  },
+  {
+   "id": "linkedin-banner-coach",
+   "name": "Coach Profile Banner",
+   "category": "Education",
+   "width": 1584,
+   "height": 396,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#14261c"
+      },
+      {
+       "offset": 1,
+       "color": "#24412f"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -99,
+     "y": -99,
+     "w": 277,
+     "h": 277,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#e8c15a"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 1426,
+     "y": 238,
+     "w": 257,
+     "h": 257,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#d9734e"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 507,
+     "y": 127,
+     "w": 982,
+     "text": "CAREER COACHING · 1:1 AND TEAMS",
+     "fontSize": 25,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#e8c15a",
+     "letterSpacing": 6
+    },
+    {
+     "type": "text",
+     "x": 507,
+     "y": 180,
+     "w": 982,
+     "text": "Find work that fits",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#f3efe2"
+    }
+   ]
+  },
+  {
+   "id": "x-header-writer",
+   "name": "Writer Header",
+   "category": "Personal",
+   "width": 1500,
+   "height": 500,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#f6efe4"
+      },
+      {
+       "offset": 1,
+       "color": "#efe2cf"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -125,
+     "y": -125,
+     "w": 350,
+     "h": 350,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#c4552d"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 1300,
+     "y": 300,
+     "w": 325,
+     "h": 325,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6f5e"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 40,
+     "y": 163,
+     "w": 1420,
+     "text": "ESSAYS · FICTION · NOTES",
+     "fontSize": 31,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#c4552d",
+     "letterSpacing": 8
+    },
+    {
+     "type": "text",
+     "x": 40,
+     "y": 227,
+     "w": 1420,
+     "text": "Words on Wednesdays",
+     "fontSize": 110,
+     "fontFamily": "didone",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#2a211b"
+    }
+   ]
+  },
+  {
+   "id": "x-header-startup",
+   "name": "Startup Header",
+   "category": "Business",
+   "width": 1500,
+   "height": 500,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#f2f6ff"
+      },
+      {
+       "offset": 1,
+       "color": "#dde8ff"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -125,
+     "y": -125,
+     "w": 350,
+     "h": 350,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 1300,
+     "y": 300,
+     "w": 325,
+     "h": 325,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff8a3d"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 40,
+     "y": 175,
+     "w": 1420,
+     "text": "NOW IN PUBLIC BETA",
+     "fontSize": 26,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#2f6bff",
+     "letterSpacing": 7
+    },
+    {
+     "type": "text",
+     "x": 40,
+     "y": 231,
+     "w": 1420,
+     "text": "Ledgerly: books in minutes",
+     "fontSize": 94,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#14203d"
+    }
+   ]
+  },
+  {
+   "id": "x-header-photographer",
+   "name": "Photographer Header",
+   "category": "Personal",
+   "width": 1500,
+   "height": 500,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#111318"
+      },
+      {
+       "offset": 1,
+       "color": "#23262f"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -125,
+     "y": -125,
+     "w": 350,
+     "h": 350,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#7cf0a0"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 1300,
+     "y": 300,
+     "w": 325,
+     "h": 325,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#5b8cff"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 40,
+     "y": 163,
+     "w": 1420,
+     "text": "FILM · STREET · PORTRAIT",
+     "fontSize": 31,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#7cf0a0",
+     "letterSpacing": 8
+    },
+    {
+     "type": "text",
+     "x": 40,
+     "y": 227,
+     "w": 1420,
+     "text": "LIGHT CHASER",
+     "fontSize": 110,
+     "fontFamily": "condensed",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#ffffff"
+    }
+   ]
+  },
+  {
+   "id": "x-header-podcast",
+   "name": "Podcast Header",
+   "category": "Marketing",
+   "width": 1500,
+   "height": 500,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#1b1033"
+      },
+      {
+       "offset": 1,
+       "color": "#3a1d63"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -125,
+     "y": -125,
+     "w": 350,
+     "h": 350,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffcf4a"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 1300,
+     "y": 300,
+     "w": 325,
+     "h": 325,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff6fb5"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 40,
+     "y": 163,
+     "w": 1420,
+     "text": "NEW EPISODE EVERY MONDAY",
+     "fontSize": 31,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ffcf4a",
+     "letterSpacing": 8
+    },
+    {
+     "type": "text",
+     "x": 40,
+     "y": 227,
+     "w": 1420,
+     "text": "THE LONG LUNCH",
+     "fontSize": 110,
+     "fontFamily": "impact",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#ffffff"
+    },
+    {
+     "type": "sticker",
+     "glyph": "🎙️",
+     "x": 1400,
+     "y": 35,
+     "w": 65,
+     "h": 65,
+     "rotation": 12
+    }
+   ]
+  },
+  {
+   "id": "slides-4x3-classic-title",
+   "name": "Classic Title Slide",
+   "category": "Business",
+   "width": 1024,
+   "height": 768,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#f2f6ff"
+      },
+      {
+       "offset": 1,
+       "color": "#dde8ff"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -192,
+     "y": -192,
+     "w": 538,
+     "h": 538,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 717,
+     "y": 461,
+     "w": 499,
+     "h": 499,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff8a3d"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 61,
+     "y": 175,
+     "w": 901,
+     "text": "QUARTERLY REVIEW · Q2",
+     "fontSize": 36,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#2f6bff",
+     "letterSpacing": 9
+    },
+    {
+     "type": "text",
+     "x": 61,
+     "y": 251,
+     "w": 901,
+     "text": "Growing\nTogether",
+     "fontSize": 129,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#14203d"
+    },
+    {
+     "type": "text",
+     "x": 61,
+     "y": 541,
+     "w": 901,
+     "text": "Results, lessons and the plan for Q3",
+     "fontSize": 39,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.35,
+     "color": "#56627f"
+    }
+   ]
+  },
+  {
+   "id": "slides-4x3-agenda",
+   "name": "Classic Agenda Slide",
+   "category": "Business",
+   "width": 1024,
+   "height": 768,
+   "background": {
+    "type": "color",
+    "value": "#f4f5f7"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 0,
+     "y": 0,
+     "w": 430,
+     "h": 768,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#1d2433"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 292,
+     "y": 538,
+     "w": 276,
+     "h": 276,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#0e7c86"
+     },
+     "opacity": 0.35
+    },
+    {
+     "type": "text",
+     "x": 61,
+     "y": 319,
+     "w": 323,
+     "text": "TODAY",
+     "fontSize": 21,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#0e7c86",
+     "letterSpacing": 5
+    },
+    {
+     "type": "text",
+     "x": 61,
+     "y": 360,
+     "w": 323,
+     "text": "Agenda",
+     "fontSize": 65,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.02,
+     "color": "#f4f5f7"
+    },
+    {
+     "type": "line",
+     "x": 61,
+     "y": 445,
+     "w": 77,
+     "thickness": 5,
+     "color": "#0e7c86",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 484,
+     "y": 266,
+     "w": 479,
+     "text": "Where we are\nWhat we learned\nWhat changes next\nQuestions",
+     "fontSize": 29,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.6,
+     "color": "#1d2433"
+    },
+    {
+     "type": "text",
+     "x": 484,
+     "y": 467,
+     "w": 479,
+     "text": "Forty minutes, then coffee",
+     "fontSize": 24,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.4,
+     "color": "#5b6475"
+    }
+   ]
+  },
+  {
+   "id": "slides-4x3-lesson",
+   "name": "Lesson Title Slide",
+   "category": "Education",
+   "width": 1024,
+   "height": 768,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 160,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#eef7f1"
+      },
+      {
+       "offset": 1,
+       "color": "#d6efe0"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 755,
+     "y": -92,
+     "w": 384,
+     "h": 384,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1f9d6b"
+     },
+     "opacity": 0.18
+    },
+    {
+     "type": "text",
+     "x": 61,
+     "y": 88,
+     "w": 901,
+     "text": "SCIENCE · YEAR 8",
+     "fontSize": 26,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#1f9d6b",
+     "letterSpacing": 6
+    },
+    {
+     "type": "text",
+     "x": 61,
+     "y": 132,
+     "w": 901,
+     "text": "The water cycle",
+     "fontSize": 65,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.05,
+     "color": "#123326"
+    },
+    {
+     "type": "shape",
+     "x": 61,
+     "y": 298,
+     "w": 97,
+     "h": 97,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1f9d6b"
+     }
+    },
+    {
+     "type": "text",
+     "x": 61,
+     "y": 310,
+     "w": 97,
+     "text": "1",
+     "fontSize": 61,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#eef7f1"
+    },
+    {
+     "type": "text",
+     "x": 197,
+     "y": 314,
+     "w": 766,
+     "text": "Evaporation",
+     "fontSize": 51,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#123326"
+    },
+    {
+     "type": "shape",
+     "x": 61,
+     "y": 442,
+     "w": 97,
+     "h": 97,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1f9d6b"
+     }
+    },
+    {
+     "type": "text",
+     "x": 61,
+     "y": 454,
+     "w": 97,
+     "text": "2",
+     "fontSize": 61,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#eef7f1"
+    },
+    {
+     "type": "text",
+     "x": 197,
+     "y": 458,
+     "w": 766,
+     "text": "Condensation",
+     "fontSize": 51,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#123326"
+    },
+    {
+     "type": "shape",
+     "x": 61,
+     "y": 586,
+     "w": 97,
+     "h": 97,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1f9d6b"
+     }
+    },
+    {
+     "type": "text",
+     "x": 61,
+     "y": 598,
+     "w": 97,
+     "text": "3",
+     "fontSize": 61,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#eef7f1"
+    },
+    {
+     "type": "text",
+     "x": 197,
+     "y": 602,
+     "w": 766,
+     "text": "Precipitation",
+     "fontSize": 51,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.25,
+     "color": "#123326"
+    }
+   ]
+  },
+  {
+   "id": "slides-4x3-thank-you",
+   "name": "Thank You Slide",
+   "category": "Business",
+   "width": 1024,
+   "height": 768,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#1b1033"
+      },
+      {
+       "offset": 1,
+       "color": "#3a1d63"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -192,
+     "y": -192,
+     "w": 538,
+     "h": 538,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffcf4a"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 717,
+     "y": 461,
+     "w": 499,
+     "h": 499,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff6fb5"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 61,
+     "y": 239,
+     "w": 901,
+     "text": "QUESTIONS WELCOME",
+     "fontSize": 36,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ffcf4a",
+     "letterSpacing": 9
+    },
+    {
+     "type": "text",
+     "x": 61,
+     "y": 315,
+     "w": 901,
+     "text": "Thank you",
+     "fontSize": 129,
+     "fontFamily": "didone",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#ffffff"
+    },
+    {
+     "type": "text",
+     "x": 61,
+     "y": 476,
+     "w": 901,
+     "text": "hello@northwind.example · @northwind",
+     "fontSize": 39,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.35,
+     "color": "#cbbfe6"
+    }
+   ]
+  },
+  {
+   "id": "postcard-greetings-from",
+   "name": "Greetings From Postcard",
+   "category": "Travel",
+   "width": 1800,
+   "height": 1200,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#ff7a59"
+      },
+      {
+       "offset": 1,
+       "color": "#ffb347"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -300,
+     "y": -300,
+     "w": 840,
+     "h": 840,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffffff"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 1320,
+     "y": 720,
+     "w": 780,
+     "h": 780,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2a1310"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 96,
+     "y": 374,
+     "w": 1608,
+     "text": "GREETINGS FROM",
+     "fontSize": 56,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ffffff",
+     "letterSpacing": 14
+    },
+    {
+     "type": "text",
+     "x": 96,
+     "y": 492,
+     "w": 1608,
+     "text": "SEASIDE BAY",
+     "fontSize": 202,
+     "fontFamily": "impact",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#2a1310"
+    },
+    {
+     "type": "text",
+     "x": 96,
+     "y": 744,
+     "w": 1608,
+     "text": "Wish you were here",
+     "fontSize": 60,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.35,
+     "color": "#5e2a1f"
+    },
+    {
+     "type": "sticker",
+     "glyph": "🏖️",
+     "x": 1560,
+     "y": 84,
+     "w": 156,
+     "h": 156,
+     "rotation": 12
+    }
+   ]
+  },
+  {
+   "id": "postcard-weve-moved",
+   "name": "We’ve Moved Postcard",
+   "category": "Personal",
+   "width": 1800,
+   "height": 1200,
+   "background": {
+    "type": "color",
+    "value": "#eef7f1"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 0,
+     "y": 0,
+     "w": 810,
+     "h": 1200,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#123326"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 594,
+     "y": 840,
+     "w": 432,
+     "h": 432,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1f9d6b"
+     },
+     "opacity": 0.35
+    },
+    {
+     "type": "text",
+     "x": 96,
+     "y": 405,
+     "w": 642,
+     "text": "NEW ADDRESS",
+     "fontSize": 41,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#1f9d6b",
+     "letterSpacing": 10
+    },
+    {
+     "type": "text",
+     "x": 96,
+     "y": 486,
+     "w": 642,
+     "text": "We’ve\nmoved!",
+     "fontSize": 128,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.02,
+     "color": "#eef7f1"
+    },
+    {
+     "type": "line",
+     "x": 96,
+     "y": 786,
+     "w": 154,
+     "thickness": 9,
+     "color": "#1f9d6b",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 894,
+     "y": 441,
+     "w": 810,
+     "text": "14 Willow Lane\nHarrowgate\nHG1 4QT",
+     "fontSize": 49,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.6,
+     "color": "#123326"
+    },
+    {
+     "type": "text",
+     "x": 894,
+     "y": 703,
+     "w": 810,
+     "text": "Come for tea once the boxes are gone",
+     "fontSize": 40,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.4,
+     "color": "#4f6f60"
+    }
+   ]
+  },
+  {
+   "id": "postcard-thank-you",
+   "name": "Thank You Postcard",
+   "category": "Personal",
+   "width": 1800,
+   "height": 1200,
+   "background": {
+    "type": "color",
+    "value": "#fdf0f5"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 42,
+     "y": 42,
+     "w": 1716,
+     "h": 1116,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "none"
+     },
+     "stroke": "#c2185b",
+     "strokeWidth": 5
+    },
+    {
+     "type": "text",
+     "x": 96,
+     "y": 293,
+     "w": 1608,
+     "text": "“",
+     "fontSize": 248,
+     "fontFamily": "didone",
+     "fontWeight": 400,
+     "align": "center",
+     "lineHeight": 0.8,
+     "color": "#c2185b"
+    },
+    {
+     "type": "text",
+     "x": 96,
+     "y": 491,
+     "w": 1608,
+     "text": "Thank you for being\nthere when it mattered.",
+     "fontSize": 113,
+     "fontFamily": "didone",
+     "fontWeight": 400,
+     "align": "center",
+     "lineHeight": 1.15,
+     "color": "#3a0d24"
+    },
+    {
+     "type": "line",
+     "x": 844,
+     "y": 806,
+     "w": 113,
+     "thickness": 5,
+     "color": "#c2185b",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 96,
+     "y": 850,
+     "w": 1608,
+     "text": "WITH LOVE, SAM",
+     "fontSize": 47,
+     "fontFamily": "sans",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#3a0d24",
+     "letterSpacing": 7
+    }
+   ]
+  },
+  {
+   "id": "postcard-store-sale",
+   "name": "Store Sale Postcard",
+   "category": "Marketing",
+   "width": 1800,
+   "height": 1200,
+   "background": {
+    "type": "color",
+    "value": "#fff3ee"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -240,
+     "y": 600,
+     "w": 840,
+     "h": 840,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#3b5bdb"
+     },
+     "opacity": 0.16
+    },
+    {
+     "type": "text",
+     "x": 96,
+     "y": 265,
+     "w": 1608,
+     "text": "SPRING SALE · IN STORE ONLY",
+     "fontSize": 48,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#ff5a3c",
+     "letterSpacing": 12
+    },
+    {
+     "type": "text",
+     "x": 96,
+     "y": 322,
+     "w": 1608,
+     "text": "30% OFF",
+     "fontSize": 396,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#ff5a3c"
+    },
+    {
+     "type": "text",
+     "x": 96,
+     "y": 718,
+     "w": 1608,
+     "text": "everything in the shop this weekend",
+     "fontSize": 63,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#2b1a17"
+    },
+    {
+     "type": "line",
+     "x": 96,
+     "y": 848,
+     "w": 238,
+     "thickness": 8,
+     "color": "#7d5a52",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 96,
+     "y": 888,
+     "w": 1608,
+     "text": "BRING THIS CARD · 12 MARKET ST",
+     "fontSize": 40,
+     "fontFamily": "mono",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#7d5a52",
+     "letterSpacing": 2
+    }
+   ]
+  },
+  {
+   "id": "a3-poster-summer-concert",
+   "name": "Summer Concert Poster",
+   "category": "Events",
+   "width": 3508,
+   "height": 4961,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#0a0820"
+      },
+      {
+       "offset": 1,
+       "color": "#1d0f45"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -877,
+     "y": -877,
+     "w": 2456,
+     "h": 2456,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff3ce8"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 2105,
+     "y": 3558,
+     "w": 2280,
+     "h": 2280,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2ee6ff"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 281,
+     "y": 554,
+     "w": 2947,
+     "text": "OPEN AIR · RIVERSIDE PARK",
+     "fontSize": 183,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ff3ce8",
+     "letterSpacing": 46
+    },
+    {
+     "type": "text",
+     "x": 281,
+     "y": 998,
+     "w": 2947,
+     "text": "SUMMER\nSOUNDS",
+     "fontSize": 900,
+     "fontFamily": "impact",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#ffffff"
+    },
+    {
+     "type": "text",
+     "x": 281,
+     "y": 3023,
+     "w": 2947,
+     "text": "Saturday 19 July · Gates 4pm\nSix bands, one stage",
+     "fontSize": 188,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.35,
+     "color": "#c7c1ef"
+    },
+    {
+     "type": "shape",
+     "x": 689,
+     "y": 3846,
+     "w": 2130,
+     "h": 562,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff3ce8"
+     },
+     "radius": 281
+    },
+    {
+     "type": "text",
+     "x": 689,
+     "y": 3997,
+     "w": 2130,
+     "text": "TICKETS £15",
+     "fontSize": 216,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#0a0820",
+     "letterSpacing": 2
+    }
+   ]
+  },
+  {
+   "id": "a3-poster-gallery-exhibition",
+   "name": "Gallery Exhibition Poster",
+   "category": "Events",
+   "width": 3508,
+   "height": 4961,
+   "background": {
+    "type": "color",
+    "value": "#f6efe4"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 123,
+     "y": 123,
+     "w": 3262,
+     "h": 4715,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "none"
+     },
+     "stroke": "#c4552d",
+     "strokeWidth": 14
+    },
+    {
+     "type": "text",
+     "x": 281,
+     "y": 1748,
+     "w": 2947,
+     "text": "“",
+     "fontSize": 454,
+     "fontFamily": "didone",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 0.8,
+     "color": "#c4552d"
+    },
+    {
+     "type": "text",
+     "x": 281,
+     "y": 2111,
+     "w": 2947,
+     "text": "Quiet Forms:\nceramics from\nthe north coast",
+     "fontSize": 206,
+     "fontFamily": "didone",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.15,
+     "color": "#2a211b"
+    },
+    {
+     "type": "line",
+     "x": 281,
+     "y": 2926,
+     "w": 206,
+     "thickness": 8,
+     "color": "#c4552d",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 281,
+     "y": 3007,
+     "w": 2947,
+     "text": "3 – 28 SEPTEMBER",
+     "fontSize": 87,
+     "fontFamily": "sans",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#2a211b",
+     "letterSpacing": 12
+    },
+    {
+     "type": "text",
+     "x": 281,
+     "y": 3111,
+     "w": 2947,
+     "text": "The Lantern Gallery, free entry",
+     "fontSize": 78,
+     "fontFamily": "serif",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.3,
+     "color": "#7a6b5d"
+    }
+   ]
+  },
+  {
+   "id": "a3-poster-science-fair",
+   "name": "Science Fair Poster",
+   "category": "Education",
+   "width": 3508,
+   "height": 4961,
+   "background": {
+    "type": "color",
+    "value": "#f2f6ff"
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": 0,
+     "y": 0,
+     "w": 3508,
+     "h": 2084,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     }
+    },
+    {
+     "type": "shape",
+     "x": 2456,
+     "y": 1452,
+     "w": 1263,
+     "h": 1263,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     },
+     "opacity": 0.35
+    },
+    {
+     "type": "text",
+     "x": 281,
+     "y": 495,
+     "w": 2947,
+     "text": "HILLSIDE SCHOOL",
+     "fontSize": 122,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#2f6bff",
+     "letterSpacing": 31
+    },
+    {
+     "type": "text",
+     "x": 281,
+     "y": 737,
+     "w": 2947,
+     "text": "Science\nfair",
+     "fontSize": 382,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.02,
+     "color": "#ffffff"
+    },
+    {
+     "type": "line",
+     "x": 281,
+     "y": 1632,
+     "w": 459,
+     "thickness": 27,
+     "color": "#2f6bff",
+     "dash": "solid"
+    },
+    {
+     "type": "text",
+     "x": 281,
+     "y": 2522,
+     "w": 2947,
+     "text": "Volcanoes and slime\nRobot races\nPlanetarium show\nPrizes at 3pm",
+     "fontSize": 176,
+     "fontFamily": "sans",
+     "fontWeight": 600,
+     "align": "left",
+     "lineHeight": 1.6,
+     "color": "#14203d"
+    },
+    {
+     "type": "text",
+     "x": 281,
+     "y": 3756,
+     "w": 2947,
+     "text": "Friday 6 June · Main hall · All welcome",
+     "fontSize": 135,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.4,
+     "color": "#56627f"
+    },
+    {
+     "type": "shape",
+     "x": 281,
+     "y": 4121,
+     "w": 1309,
+     "h": 367,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     },
+     "radius": 183
+    },
+    {
+     "type": "text",
+     "x": 281,
+     "y": 4220,
+     "w": 1309,
+     "text": "FREE ENTRY",
+     "fontSize": 141,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#f2f6ff",
+     "letterSpacing": 2
+    }
+   ]
+  },
+  {
+   "id": "a3-poster-night-market",
+   "name": "Night Market Poster",
+   "category": "Food",
+   "width": 3508,
+   "height": 4961,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#14261c"
+      },
+      {
+       "offset": 1,
+       "color": "#24412f"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -877,
+     "y": -877,
+     "w": 2456,
+     "h": 2456,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#e8c15a"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 2105,
+     "y": 3558,
+     "w": 2280,
+     "h": 2280,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#d9734e"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 281,
+     "y": 933,
+     "w": 2947,
+     "text": "EVERY FRIDAY IN AUGUST",
+     "fontSize": 208,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#e8c15a",
+     "letterSpacing": 52
+    },
+    {
+     "type": "text",
+     "x": 281,
+     "y": 1432,
+     "w": 2947,
+     "text": "NIGHT\nMARKET",
+     "fontSize": 1000,
+     "fontFamily": "condensed",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#f3efe2"
+    },
+    {
+     "type": "text",
+     "x": 281,
+     "y": 3682,
+     "w": 2947,
+     "text": "Street food, live music and late shopping\nCanal Yard · 5pm till late",
+     "fontSize": 128,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "center",
+     "lineHeight": 1.35,
+     "color": "#b9c4a8"
+    },
+    {
+     "type": "sticker",
+     "glyph": "🏮",
+     "x": 2806,
+     "y": 246,
+     "w": 456,
+     "h": 456,
+     "rotation": 12
+    }
+   ]
+  },
+  {
+   "id": "infographic-five-step-process",
+   "name": "Five Step Process",
+   "category": "Business",
+   "width": 800,
+   "height": 2000,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 180,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#f2f6ff"
+      },
+      {
+       "offset": 1,
+       "color": "#dde8ff"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "text",
+     "x": 64,
+     "y": 112,
+     "w": 672,
+     "text": "HOW WE WORK",
+     "fontSize": 24,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#2f6bff",
+     "letterSpacing": 6
+    },
+    {
+     "type": "text",
+     "x": 64,
+     "y": 161,
+     "w": 672,
+     "text": "From brief\nto launch",
+     "fontSize": 81,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.05,
+     "color": "#14203d"
+    },
+    {
+     "type": "text",
+     "x": 64,
+     "y": 354,
+     "w": 672,
+     "text": "Five steps, one team, no surprises.",
+     "fontSize": 26,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.4,
+     "color": "#56627f"
+    },
+    {
+     "type": "shape",
+     "x": 101,
+     "y": 570,
+     "w": 6,
+     "h": 1138,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#56627f"
+     },
+     "opacity": 0.5
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 530,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 517,
+     "w": 543,
+     "text": "01",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#2f6bff"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 619,
+     "w": 543,
+     "text": "Discover: listen and\nmap the problem",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#14203d"
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 814,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff8a3d"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 802,
+     "w": 543,
+     "text": "02",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#ff8a3d"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 904,
+     "w": 543,
+     "text": "Define: agree what\ndone looks like",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#14203d"
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 1099,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1086,
+     "w": 543,
+     "text": "03",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#2f6bff"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1188,
+     "w": 543,
+     "text": "Design: sketch, test\nand refine",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#14203d"
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 1384,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff8a3d"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1371,
+     "w": 543,
+     "text": "04",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#ff8a3d"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1473,
+     "w": 543,
+     "text": "Build: ship in small\nweekly steps",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#14203d"
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 1668,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1655,
+     "w": 543,
+     "text": "05",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#2f6bff"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1757,
+     "w": 543,
+     "text": "Launch: measure and\nkeep improving",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#14203d"
+    }
+   ]
+  },
+  {
+   "id": "infographic-year-in-numbers",
+   "name": "Year in Numbers",
+   "category": "Marketing",
+   "width": 800,
+   "height": 2000,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 180,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#111318"
+      },
+      {
+       "offset": 1,
+       "color": "#23262f"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "text",
+     "x": 64,
+     "y": 142,
+     "w": 672,
+     "text": "2026 IN REVIEW",
+     "fontSize": 24,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#7cf0a0",
+     "letterSpacing": 6
+    },
+    {
+     "type": "text",
+     "x": 64,
+     "y": 191,
+     "w": 672,
+     "text": "Our year\nin numbers",
+     "fontSize": 81,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.05,
+     "color": "#ffffff"
+    },
+    {
+     "type": "shape",
+     "x": 101,
+     "y": 570,
+     "w": 6,
+     "h": 1138,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#a3a8b8"
+     },
+     "opacity": 0.5
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 530,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#7cf0a0"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 517,
+     "w": 543,
+     "text": "48K",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#7cf0a0"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 619,
+     "w": 543,
+     "text": "customers served",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#ffffff"
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 814,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#5b8cff"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 802,
+     "w": 543,
+     "text": "12",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#5b8cff"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 904,
+     "w": 543,
+     "text": "new cities",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#ffffff"
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 1099,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#7cf0a0"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1086,
+     "w": 543,
+     "text": "99.9%",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#7cf0a0"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1188,
+     "w": 543,
+     "text": "uptime",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#ffffff"
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 1384,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#5b8cff"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1371,
+     "w": 543,
+     "text": "3.2M",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#5b8cff"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1473,
+     "w": 543,
+     "text": "orders delivered",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#ffffff"
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 1668,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#7cf0a0"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1655,
+     "w": 543,
+     "text": "4.8★",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#7cf0a0"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1757,
+     "w": 543,
+     "text": "average rating",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#ffffff"
+    }
+   ]
+  },
+  {
+   "id": "infographic-project-timeline",
+   "name": "Project Timeline",
+   "category": "Business",
+   "width": 800,
+   "height": 2000,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 180,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#f4f5f7"
+      },
+      {
+       "offset": 1,
+       "color": "#e4e7ec"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "text",
+     "x": 64,
+     "y": 154,
+     "w": 672,
+     "text": "PROJECT ATLAS",
+     "fontSize": 24,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#0e7c86",
+     "letterSpacing": 6
+    },
+    {
+     "type": "text",
+     "x": 64,
+     "y": 203,
+     "w": 672,
+     "text": "Timeline",
+     "fontSize": 81,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.05,
+     "color": "#1d2433"
+    },
+    {
+     "type": "text",
+     "x": 64,
+     "y": 312,
+     "w": 672,
+     "text": "Key dates for the new office move.",
+     "fontSize": 26,
+     "fontFamily": "sans",
+     "fontWeight": 400,
+     "align": "left",
+     "lineHeight": 1.4,
+     "color": "#5b6475"
+    },
+    {
+     "type": "shape",
+     "x": 101,
+     "y": 570,
+     "w": 6,
+     "h": 1138,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#5b6475"
+     },
+     "opacity": 0.5
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 530,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#0e7c86"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 517,
+     "w": 543,
+     "text": "JAN",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#0e7c86"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 619,
+     "w": 543,
+     "text": "Lease signed",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#1d2433"
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 814,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#d1495b"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 802,
+     "w": 543,
+     "text": "MAR",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#d1495b"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 904,
+     "w": 543,
+     "text": "Design approved",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#1d2433"
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 1099,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#0e7c86"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1086,
+     "w": 543,
+     "text": "JUN",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#0e7c86"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1188,
+     "w": 543,
+     "text": "Fit-out begins",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#1d2433"
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 1384,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#d1495b"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1371,
+     "w": 543,
+     "text": "SEP",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#d1495b"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1473,
+     "w": 543,
+     "text": "Teams move in",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#1d2433"
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 1668,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#0e7c86"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1655,
+     "w": 543,
+     "text": "OCT",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#0e7c86"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1757,
+     "w": 543,
+     "text": "Opening party",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#1d2433"
+    }
+   ]
+  },
+  {
+   "id": "infographic-drink-water",
+   "name": "Drink More Water",
+   "category": "Education",
+   "width": 800,
+   "height": 2000,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 180,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#0b2239"
+      },
+      {
+       "offset": 1,
+       "color": "#0f4c75"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "text",
+     "x": 64,
+     "y": 142,
+     "w": 672,
+     "text": "HEALTHY HABITS",
+     "fontSize": 24,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "left",
+     "lineHeight": 1.2,
+     "color": "#3fd0c9",
+     "letterSpacing": 6
+    },
+    {
+     "type": "text",
+     "x": 64,
+     "y": 191,
+     "w": 672,
+     "text": "Why drink\nmore water?",
+     "fontSize": 81,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "left",
+     "lineHeight": 1.05,
+     "color": "#ffffff"
+    },
+    {
+     "type": "shape",
+     "x": 101,
+     "y": 584,
+     "w": 6,
+     "h": 1067,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#b8d4e8"
+     },
+     "opacity": 0.5
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 544,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#3fd0c9"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 531,
+     "w": 543,
+     "text": "60%",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#3fd0c9"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 633,
+     "w": 543,
+     "text": "of your body is water",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#ffffff"
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 900,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffb454"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 887,
+     "w": 543,
+     "text": "2L",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#ffb454"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 989,
+     "w": 543,
+     "text": "a day is a good aim",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#ffffff"
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 1255,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#3fd0c9"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1243,
+     "w": 543,
+     "text": "15 min",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#3fd0c9"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1345,
+     "w": 543,
+     "text": "to feel more alert",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#ffffff"
+    },
+    {
+     "type": "shape",
+     "x": 64,
+     "y": 1611,
+     "w": 81,
+     "h": 81,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffb454"
+     }
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1598,
+     "w": 543,
+     "text": "1st",
+     "fontSize": 89,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "left",
+     "lineHeight": 1.0,
+     "color": "#ffb454"
+    },
+    {
+     "type": "text",
+     "x": 193,
+     "y": 1700,
+     "w": 543,
+     "text": "thing to try for\na headache",
+     "fontSize": 34,
+     "fontFamily": "sans",
+     "fontWeight": 500,
+     "align": "left",
+     "lineHeight": 1.35,
+     "color": "#ffffff"
+    }
+   ]
+  },
+  {
+   "id": "email-header-monthly-newsletter",
+   "name": "Monthly Newsletter Header",
+   "category": "Marketing",
+   "width": 600,
+   "height": 200,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#eef7f1"
+      },
+      {
+       "offset": 1,
+       "color": "#d6efe0"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -50,
+     "y": -50,
+     "w": 140,
+     "h": 140,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#1f9d6b"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 520,
+     "y": 120,
+     "w": 130,
+     "h": 130,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#f2a541"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 20,
+     "y": 56,
+     "w": 560,
+     "text": "THE GREEN THUMB · ISSUE 24",
+     "fontSize": 16,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#1f9d6b",
+     "letterSpacing": 4
+    },
+    {
+     "type": "text",
+     "x": 20,
+     "y": 88,
+     "w": 560,
+     "text": "June in the garden",
+     "fontSize": 56,
+     "fontFamily": "didone",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#123326"
+    }
+   ]
+  },
+  {
+   "id": "email-header-flash-sale",
+   "name": "Flash Sale Email Header",
+   "category": "Marketing",
+   "width": 600,
+   "height": 200,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#fff3ee"
+      },
+      {
+       "offset": 1,
+       "color": "#ffe0d3"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -50,
+     "y": -50,
+     "w": 140,
+     "h": 140,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff5a3c"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 520,
+     "y": 120,
+     "w": 130,
+     "h": 130,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#3b5bdb"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 20,
+     "y": 56,
+     "w": 560,
+     "text": "24 HOURS ONLY",
+     "fontSize": 16,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ff5a3c",
+     "letterSpacing": 4
+    },
+    {
+     "type": "text",
+     "x": 20,
+     "y": 88,
+     "w": 560,
+     "text": "FLASH SALE 40% OFF",
+     "fontSize": 56,
+     "fontFamily": "impact",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#2b1a17"
+    }
+   ]
+  },
+  {
+   "id": "email-header-welcome",
+   "name": "Welcome Email Header",
+   "category": "Business",
+   "width": 600,
+   "height": 200,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#f2f6ff"
+      },
+      {
+       "offset": 1,
+       "color": "#dde8ff"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -50,
+     "y": -50,
+     "w": 140,
+     "h": 140,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 520,
+     "y": 120,
+     "w": 130,
+     "h": 130,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff8a3d"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 20,
+     "y": 60,
+     "w": 560,
+     "text": "GLAD YOU’RE HERE",
+     "fontSize": 14,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#2f6bff",
+     "letterSpacing": 4
+    },
+    {
+     "type": "text",
+     "x": 20,
+     "y": 89,
+     "w": 560,
+     "text": "Welcome to Ledgerly",
+     "fontSize": 51,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#14203d"
+    }
+   ]
+  },
+  {
+   "id": "email-header-event-reminder",
+   "name": "Event Reminder Header",
+   "category": "Events",
+   "width": 600,
+   "height": 200,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#1b1033"
+      },
+      {
+       "offset": 1,
+       "color": "#3a1d63"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -50,
+     "y": -50,
+     "w": 140,
+     "h": 140,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffcf4a"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 520,
+     "y": 120,
+     "w": 130,
+     "h": 130,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff6fb5"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 20,
+     "y": 62,
+     "w": 560,
+     "text": "SEE YOU TOMORROW · 7PM",
+     "fontSize": 14,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ffcf4a",
+     "letterSpacing": 3
+    },
+    {
+     "type": "text",
+     "x": 20,
+     "y": 90,
+     "w": 560,
+     "text": "Your ticket is ready",
+     "fontSize": 48,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#ffffff"
+    }
+   ]
+  },
+  {
+   "id": "display-ad-weekend-sale",
+   "name": "Weekend Sale Ad",
+   "category": "Marketing",
+   "width": 300,
+   "height": 250,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#ff7a59"
+      },
+      {
+       "offset": 1,
+       "color": "#ffb347"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -62,
+     "y": -62,
+     "w": 175,
+     "h": 175,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffffff"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 200,
+     "y": 150,
+     "w": 162,
+     "h": 162,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2a1310"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 25,
+     "y": 40,
+     "w": 250,
+     "text": "THIS WEEKEND",
+     "fontSize": 14,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ffffff",
+     "letterSpacing": 3
+    },
+    {
+     "type": "text",
+     "x": 25,
+     "y": 68,
+     "w": 250,
+     "text": "UP TO\n50% OFF",
+     "fontSize": 48,
+     "fontFamily": "impact",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#2a1310"
+    },
+    {
+     "type": "shape",
+     "x": 103,
+     "y": 180,
+     "w": 94,
+     "h": 30,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#ffffff"
+     },
+     "radius": 15
+    },
+    {
+     "type": "text",
+     "x": 103,
+     "y": 189,
+     "w": 94,
+     "text": "SHOP NOW",
+     "fontSize": 14,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#ff7a59",
+     "letterSpacing": 2
+    }
+   ]
+  },
+  {
+   "id": "display-ad-app-download",
+   "name": "App Download Ad",
+   "category": "Business",
+   "width": 300,
+   "height": 250,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#111318"
+      },
+      {
+       "offset": 1,
+       "color": "#23262f"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -62,
+     "y": -62,
+     "w": 175,
+     "h": 175,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#7cf0a0"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 200,
+     "y": 150,
+     "w": 162,
+     "h": 162,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#5b8cff"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 25,
+     "y": 40,
+     "w": 250,
+     "text": "FREE ON iOS & ANDROID",
+     "fontSize": 14,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#7cf0a0",
+     "letterSpacing": 3
+    },
+    {
+     "type": "text",
+     "x": 25,
+     "y": 68,
+     "w": 250,
+     "text": "Budget\nin a tap",
+     "fontSize": 48,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#ffffff"
+    },
+    {
+     "type": "shape",
+     "x": 93,
+     "y": 180,
+     "w": 114,
+     "h": 30,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#7cf0a0"
+     },
+     "radius": 15
+    },
+    {
+     "type": "text",
+     "x": 93,
+     "y": 189,
+     "w": 114,
+     "text": "GET THE APP",
+     "fontSize": 14,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#111318",
+     "letterSpacing": 2
+    }
+   ]
+  },
+  {
+   "id": "display-ad-online-course",
+   "name": "Online Course Ad",
+   "category": "Education",
+   "width": 300,
+   "height": 250,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#f2f6ff"
+      },
+      {
+       "offset": 1,
+       "color": "#dde8ff"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -62,
+     "y": -62,
+     "w": 175,
+     "h": 175,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 200,
+     "y": 150,
+     "w": 162,
+     "h": 162,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#ff8a3d"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 25,
+     "y": 40,
+     "w": 250,
+     "text": "6-WEEK COURSE",
+     "fontSize": 14,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#2f6bff",
+     "letterSpacing": 3
+    },
+    {
+     "type": "text",
+     "x": 25,
+     "y": 68,
+     "w": 250,
+     "text": "Learn to\ncode",
+     "fontSize": 48,
+     "fontFamily": "grotesk",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#14203d"
+    },
+    {
+     "type": "shape",
+     "x": 93,
+     "y": 180,
+     "w": 114,
+     "h": 30,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6bff"
+     },
+     "radius": 15
+    },
+    {
+     "type": "text",
+     "x": 93,
+     "y": 189,
+     "w": 114,
+     "text": "ENROL TODAY",
+     "fontSize": 14,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#f2f6ff",
+     "letterSpacing": 2
+    }
+   ]
+  },
+  {
+   "id": "display-ad-cafe-opening",
+   "name": "Cafe Opening Ad",
+   "category": "Food",
+   "width": 300,
+   "height": 250,
+   "background": {
+    "type": "gradient",
+    "value": {
+     "kind": "gradient",
+     "angle": 135,
+     "stops": [
+      {
+       "offset": 0,
+       "color": "#f6efe4"
+      },
+      {
+       "offset": 1,
+       "color": "#efe2cf"
+      }
+     ]
+    }
+   },
+   "elements": [
+    {
+     "type": "shape",
+     "x": -62,
+     "y": -62,
+     "w": 175,
+     "h": 175,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#c4552d"
+     },
+     "opacity": 0.14
+    },
+    {
+     "type": "shape",
+     "x": 200,
+     "y": 150,
+     "w": 162,
+     "h": 162,
+     "shapeId": "circle",
+     "fill": {
+      "kind": "solid",
+      "color": "#2f6f5e"
+     },
+     "opacity": 0.12
+    },
+    {
+     "type": "text",
+     "x": 25,
+     "y": 47,
+     "w": 250,
+     "text": "NOW OPEN ON HIGH ST",
+     "fontSize": 14,
+     "fontFamily": "grotesk",
+     "fontWeight": 700,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#c4552d",
+     "letterSpacing": 3
+    },
+    {
+     "type": "text",
+     "x": 25,
+     "y": 73,
+     "w": 250,
+     "text": "Your new\ncoffee spot",
+     "fontSize": 44,
+     "fontFamily": "didone",
+     "fontWeight": 900,
+     "align": "center",
+     "lineHeight": 1.0,
+     "color": "#2a211b"
+    },
+    {
+     "type": "shape",
+     "x": 89,
+     "y": 176,
+     "w": 122,
+     "h": 27,
+     "shapeId": "rect",
+     "fill": {
+      "kind": "solid",
+      "color": "#c4552d"
+     },
+     "radius": 14
+    },
+    {
+     "type": "text",
+     "x": 89,
+     "y": 183,
+     "w": 122,
+     "text": "FIRST CUP FREE",
+     "fontSize": 14,
+     "fontFamily": "grotesk",
+     "fontWeight": 800,
+     "align": "center",
+     "lineHeight": 1.2,
+     "color": "#f6efe4",
+     "letterSpacing": 2
+    }
+   ]
   }
  ],
  "palettes": [

@@ -1,0 +1,14 @@
+{
+  "template": "portrait-brunch-special",
+  "limit": 8,
+  "expect": [
+    "food-story-todays-special",
+    "documents-supper-club-menu",
+    "logo-northbound-roasters",
+    "logo-honey-rye-bakehouse",
+    "food-recipe-lemon-orzo",
+    "food-menu-colour-blocks",
+    "food-card-coffee-loyalty",
+    "deck-cooking-class"
+  ]
+}

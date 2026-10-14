@@ -1,0 +1,17 @@
+{
+  "preset": "insta-portrait",
+  "expect": [
+    "resume-two-page-ink",
+    "resume-two-page-coral",
+    "calendar-letter-october",
+    "worksheet-letter-reading",
+    "letterhead-letter-meridian",
+    "planner-weekly-focus",
+    "newsletter-school-term",
+    "folded-birthday-balloons",
+    "folded-thank-you-botanical",
+    "folded-congrats-confetti",
+    "folded-season-greetings",
+    "flyers-gym-membership-offer"
+  ]
+}

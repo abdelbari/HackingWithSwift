@@ -30,6 +30,8 @@ struct InsertSheet: View {
     @State private var everySizeTemplates = false
     /// A built-in template of several pages, while its pages are shown.
     @State private var templateSet: Template?
+    /// A template, while its preview is up.
+    @State private var previewing: Template?
     /// The component whose deletion is being asked about.
     @State private var removingComponent: Component?
     /// The words typed for a code are more than a code holds.
@@ -327,12 +329,21 @@ struct InsertSheet: View {
             TemplateSetSheet(template: template, note: TemplateSetSheet.editorNote(empty: DesignStore.isEmptyForTemplates(store.design)),
                              applyAll: { applyAll(template) }, usePage: { startOver(from: template, page: $0) })
         }
+        // A template's own page first, as on Home: Customize starts this
+        // page over from it — or, for every page of a set, applies them all.
+        .sheet(item: $previewing, onDismiss: { favoritesVersion += 1 }) { template in
+            TemplatePreviewSheet(template: template,
+                                 note: TemplateSetSheet.editorNote(empty: DesignStore.isEmptyForTemplates(store.design))) {
+                chosen, page in
+                if page == nil && chosen.pageCount > 1 { applyAll(chosen) } else { startOver(from: chosen, page: page) }
+            }
+        }
     }
 
     private func templateTile(_ template: Template) -> some View {
         let starred = Favorites.isFavorite("template", template.id)
         return Button {
-            startOver(from: template)
+            previewing = template
         } label: {
             VStack(alignment: .leading, spacing: 6) {
                 TemplateThumb(template: template)
