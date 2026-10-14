@@ -38,6 +38,10 @@ final class DesignStore {
         }
     }
     var editingTextId: String?
+    /// Whether the field for the box being typed into opens with its words
+    /// chosen, so the first key replaces them — Add text here's box
+    /// (addText(at:)). Cleared when the next typing starts.
+    var typingSelectsWords = false
     /// The words the colour sheet is open for, from the typing bar's colour
     /// well (see WordStyles).
     var wordColourTarget: WordRange?
@@ -408,8 +412,11 @@ final class DesignStore {
         // sticky groups and all, so you can see what came back and go on
         // working on it, as in Canva; a step that only took things away
         // leaves nothing selected. The selection is never a step itself.
+        // A page the step brought back whole — Delete page undone — is
+        // compared with itself, so nothing on it is selected, as on the
+        // Android twin.
         let shown = page
-        let was = before.pages.first { $0.id == shown.id } ?? Page(id: shown.id, elements: [])
+        let was = before.pages.first { $0.id == shown.id } ?? shown
         let ids = Set(shown.elements.map(\.id))
         let changed = History.changedIds(before: was, after: shown).intersection(ids)
         let groups = Set(shown.elements.filter { changed.contains($0.id) }.compactMap(\.group))
@@ -504,6 +511,7 @@ final class DesignStore {
     /// typing and leaving are one Undo.
     func startTyping(_ id: String) {
         endTextEdit()
+        typingSelectsWords = false
         selection = [id]
         beginGesture()
         editingTextId = id
@@ -819,22 +827,26 @@ final class DesignStore {
     /// state only.
     var holdMenuAt: CGPoint?
 
-    /// The hold menu's Add text here: a text box as the Add panel makes one
-    /// — 6% of the page's width in type, 72% of it wide — but with no words
-    /// yet, centred on `point` and kept on the page, typed into at once.
-    /// Putting it there and the words typed are one Undo; left without
-    /// words, it goes, and leaves no step.
+    /// The hold menu's Add text here: the default text box — "Your text
+    /// here" (HoldMenu.words), 6% of the page's width in type, 72% of it
+    /// wide — centred on `point` and kept on the page, typed into at once
+    /// with its words chosen, so the first key replaces them, as on the
+    /// Android twin. Putting it there and the words typed are one Undo; left
+    /// as it is, it stays, as that one step.
     func addText(at point: CGPoint) {
         // Typing, or a step left open, is closed first, as its own.
         endTextEdit()
         commit()
-        var el = Element.text("", fontSize: (pageWidth * 0.06).rounded(), w: (pageWidth * 0.72).rounded())
+        var el = Element.text(HoldMenu.words, fontSize: (pageWidth * 0.06).rounded(), w: (pageWidth * 0.72).rounded())
+        el.fontWeight = 400
+        el.h = FontLibrary.layoutHeight(for: el)
         let at = HoldMenu.placed(CGSize(width: el.w, height: el.h), at: point, page: pageSize)
         el.x = Double(at.x)
         el.y = Double(at.y)
         beginGesture()
         design.pages[pageIndex].elements.append(el)
         startTyping(el.id)
+        typingSelectsWords = true
     }
 
     func selectAll() {
@@ -1707,17 +1719,21 @@ final class DesignStore {
     }
 
     /// Flip what is selected: one thing in place, a group or several as one
-    /// unit, mirrored about their box (Geometry.flipAll). One undo step.
+    /// unit, mirrored about their box (Geometry.flipAll). What is locked in
+    /// place stays, and is not part of the box — the box of those free to
+    /// move, as on the Android twin. One undo step.
     func flipSelected(horizontal: Bool) {
         guard unlockedSelectionCount > 0 else { return }
         buzz(.tick)
-        guard selection.count > 1, let box = selectionBox else {
+        let members = selectedElements.filter { !$0.holdsPlace }
+        guard selectedElements.count > 1, !members.isEmpty else {
             updateSelected { el in
                 if horizontal { el.flipH.toggle() } else { el.flipV.toggle() }
             }
             return
         }
-        let flipped = Geometry.flipAll(selectedElements, box: box, horizontal: horizontal)
+        let box = Geometry.union(members.map(Geometry.aabb))
+        let flipped = Geometry.flipAll(members, box: box, horizontal: horizontal)
         applyToPage { page in
             let byId = Dictionary(uniqueKeysWithValues: flipped.map { ($0.id, $0) })
             for i in page.elements.indices {

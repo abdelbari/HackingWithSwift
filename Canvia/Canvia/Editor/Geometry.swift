@@ -186,7 +186,9 @@ enum Geometry {
     /// The move handle, beside the rotate handle: as far beyond the same
     /// edge, and that same `offset` along the element's own "left" of it —
     /// so the two never sit on each other, and the move handle stays on the
-    /// rotate handle's side, away from the quick actions.
+    /// rotate handle's side, away from the quick actions. The Android twin's
+    /// Geometry.moveHandlePosition, row for row; its turn handle sits above,
+    /// so it passes `above`.
     static func moveHandlePosition(_ el: Element, offset: Double, above: Bool = false) -> CGPoint {
         let c = el.center
         let reach = el.h / 2 + offset

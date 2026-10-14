@@ -269,11 +269,27 @@ struct SelectionOverlay: View {
                           inside: Touch.pageUnits(Touch.handleReachInside, zoom: store.zoom)) != nil
     }
 
+    /// Whether a touch at `point`, in page units, is within reach of the
+    /// move handle, when the selection has one (Touch.showsMoveHandle) — so
+    /// the view's own pan leaves it to the handle, as handlesTake leaves the
+    /// rotate handle.
+    static func moveHandleTakes(_ point: CGPoint, store: DesignStore) -> Bool {
+        guard let el = store.singleSelection,
+              Touch.showsMoveHandle(el, zoom: store.zoom, typing: store.editingTextId == el.id) else { return false }
+        let page = reachablePage(store)
+        let iz = 1 / max(store.zoom, 0.01)
+        let outsetY = outsets(for: el, zoom: store.zoom, page: page).y
+        let above = rotatesAbove(el, outsetY: outsetY, iz: iz, page: page)
+        let at = Geometry.moveHandlePosition(el, offset: outsetY + 28 * iz, above: above)
+        let reach = Touch.pageUnits(Touch.handleReach, zoom: store.zoom)
+        return hypot(Double(point.x - at.x), Double(point.y - at.y)) <= reach
+    }
+
     /// The selection's body, in page units, where a drag moves the
     /// selection whatever lies on top (CanvasGestures.onSelectedBody): one
     /// element free to move, shown and not being typed in, as its turned
-    /// frame; several, any of them free, as the box round them. Nil when
-    /// there is none.
+    /// frame; several, any of them free, as the box round those free to move
+    /// (CanvasGestures.bodyBox). Nil when there is none.
     static func bodyZone(_ store: DesignStore) -> CGPath? {
         if let el = store.singleSelection {
             guard !el.holdsPlace, !el.isHidden, store.editingTextId != el.id else { return nil }
@@ -283,9 +299,8 @@ struct SelectionOverlay: View {
                 .translatedBy(x: -c.x, y: -c.y)
             return CGPath(rect: el.frame, transform: &turn)
         }
-        let selected = store.selectedElements
-        guard selected.count > 1, selected.contains(where: { !$0.holdsPlace }) else { return nil }
-        return CGPath(rect: Geometry.union(selected.map(Geometry.aabb)), transform: nil)
+        guard let box = CanvasGestures.bodyBox(store.selectedElements) else { return nil }
+        return CGPath(rect: box, transform: nil)
     }
 
     /// Whether a touch at `point`, in page units, is the selection's body's.

@@ -3,8 +3,9 @@
 // across (DesignStore.apply). Between kinds only what both have: opacity,
 // shadow and blend, and the colour carried to where the other kind keeps
 // it — a text's colour becomes a shape's fill and the reverse, a line's
-// colour a shape's outline or a text's colour, a photo's border a shape's
-// outline. The Android twin's ElementStyle, with the same test rows.
+// colour a shape's outline or a text's colour, a photo's border colour a
+// shape's outline colour (each keeps its own width). The Android twin's
+// ElementStyle, with the same test rows.
 
 import Foundation
 
@@ -17,7 +18,8 @@ enum StylePaint {
     /// on. Between kinds, a colour the source has no value for leaves the
     /// target's as it was; a shape's fill goes to a text only when it is a
     /// solid colour (to the text's colour) or a gradient (to its textFill),
-    /// and a text's gradient goes to a shape as its fill.
+    /// and a text's gradient goes to a shape as its fill — only a gradient:
+    /// any other paint in the letters leaves the text's colour to fill it.
     static func pasted(_ style: DesignStore.Style, from source: ElementType, onto el: Element) -> Element {
         var out = el
         guard source != el.type else {
@@ -29,7 +31,7 @@ enum StylePaint {
         out.blendMode = style.blendMode
         switch (source, el.type) {
         case (.text, .shape):
-            if let gradient = style.textFill {
+            if let gradient = style.textFill, gradient.kind == "gradient" {
                 out.fill = gradient
             } else if let colour = style.color {
                 out.fill = .solid(colour)

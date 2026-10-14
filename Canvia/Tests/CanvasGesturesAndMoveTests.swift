@@ -48,7 +48,8 @@ final class CanvasGesturesAndMoveTests: XCTestCase {
             // Round 25: a still hold on the empty page brings up the menu.
             (.hold, .emptyPage, .menu),
             (.tap, .element, .select),
-            (.tap, .emptyPage, .deselect),
+            // Nothing there: nothing selected (the Android twin's SELECT).
+            (.tap, .emptyPage, .select),
             // Round 25: inside the selection a drag moves it, whatever lies
             // on top, while a tap still picks the topmost thing.
             (.drag, .selectedBody, .move),

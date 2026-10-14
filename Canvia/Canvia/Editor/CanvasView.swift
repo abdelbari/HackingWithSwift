@@ -894,9 +894,10 @@ struct CanvasView: View {
 
     /// Whether `point` on the page being worked is on something of it to
     /// work: an element shown, at its touch target's size, or within reach
-    /// of a handle of the selection — the rest of the page round the
-    /// selection still pans. Scrolling through pages, these keep their
-    /// touches where they hang off the page, too (ZoomableCanvas.holdsPage).
+    /// of a handle of the selection, its move handle among them — the rest
+    /// of the page round the selection still pans. Scrolling through pages,
+    /// these keep their touches where they hang off the page, too
+    /// (ZoomableCanvas.holdsPage).
     private func holdsWorkedPage(at point: CGPoint) -> Bool {
         let target = Touch.pageUnits(Touch.minTarget, zoom: store.zoom)
         // Only what is shown has a hit area: a hidden layer is empty page.
@@ -904,6 +905,7 @@ struct CanvasView: View {
             !el.isHidden && Geometry.hits(Self.reach(el, target), point: point)
         }
         return onElement || SelectionOverlay.handlesTake(point, store: store)
+            || SelectionOverlay.moveHandleTakes(point, store: store)
             || SelectionOverlay.bodyTakes(point, store: store)
     }
 
@@ -1152,8 +1154,15 @@ struct CanvasView: View {
         if count == 2 { elementDoubleTap(hit) } else { elementTap(hit) }
     }
 
+    /// A hold on the selection's body: the selected thing under the finger
+    /// — the uppermost of them, in its turned frame — goes out of the
+    /// selection, with its group, as a hold on it does where it is on top;
+    /// in the gap between several, nothing. As on the Android twin
+    /// (Gestures: a hold on the body is TOGGLE). Taps still go to the
+    /// topmost thing (bodyTap).
     private func bodyHold(at point: CGPoint) {
-        if let hit = topmost(at: point) { elementHold(hit) }
+        let under = store.page.elements.last { store.selection.contains($0.id) && Geometry.hits($0, point: point) }
+        if let under { elementHold(under) }
     }
 
     /// The topmost thing shown at `point`, at its touch target's size, as
@@ -1654,7 +1663,8 @@ struct CanvasView: View {
                                onWordColour: { store.chooseWordColour(id, range: $0) },
                                onWordScale: { store.scaleWords(id, range: $0, by: $1) },
                                onWordFont: { store.chooseWordFont(id, range: $0) },
-                               onWordLink: { store.chooseWordLink(id, range: $0) })
+                               onWordLink: { store.chooseWordLink(id, range: $0) },
+                               selectsWords: store.typingSelectsWords)
             .frame(width: el.w)
             .frame(width: el.w, height: el.h, alignment: sits)
             // The whole box is the field's: the field is only as tall as its

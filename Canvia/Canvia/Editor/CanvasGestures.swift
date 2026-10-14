@@ -40,10 +40,10 @@ enum CanvasGestures {
     }
 
     enum Action: Equatable {
-        /// The topmost element shown under the finger is selected.
+        /// The topmost element shown under the finger is selected, with its
+        /// group — or nothing, where there is nothing: a tap on the empty
+        /// page lets the selection go. The Android twin's SELECT.
         case select
-        /// The selection goes.
-        case deselect
         case move, pan, band, toggleInSelection
         /// The menu at the finger: Paste, Select all, Add text here…
         case menu
@@ -53,16 +53,19 @@ enum CanvasGestures {
     static func action(_ input: Input, on target: Target) -> Action {
         switch (input, target) {
         case (.twoFingers, _): return .panAndZoom
-        case (.tap, .emptyPage): return .deselect
-        // A tap inside the selection still picks the topmost thing there,
-        // so the element covering it can be tapped as before.
-        case (.tap, .element), (.tap, .selectedBody): return .select
+        // A tap is the same everywhere: what is on top there, or nothing.
+        // Inside the selection it still picks the topmost thing, so the
+        // element covering it can be tapped as before.
+        case (.tap, _): return .select
         case (.drag, .element), (.drag, .selectedBody): return .move
         case (.drag, .emptyPage): return .pan
         case (.holdThenDrag, .emptyPage): return .band
         // A held element joins the selection as the hold ends, and the
         // drag that follows moves the selection.
         case (.holdThenDrag, .element), (.holdThenDrag, .selectedBody): return .move
+        // The selection's body is the selection under the finger, so a hold
+        // there takes the selected thing under it out, as a hold on it does
+        // where it is on top.
         case (.hold, .element), (.hold, .selectedBody): return .toggleInSelection
         // A hold on the empty page let go without a drag draws no band: it
         // brings up the menu at the finger.
@@ -80,16 +83,24 @@ enum CanvasGestures {
 
     /// Whether `point`, in page units, is inside the selection's body: one
     /// element free to move and shown, tested in its own turned frame; or
-    /// several, any of them free to move, inside the box round them all —
-    /// the box their handles are drawn on. A locked or hidden one alone has
-    /// no body to drag.
+    /// several, any of them free to move, inside the box round those free
+    /// to move (bodyBox) — what a drag there moves, as the Android twin's
+    /// groupBox. A locked or hidden one alone has no body to drag.
     static func onSelectedBody(_ point: CGPoint, selected: [Element]) -> Bool {
         if selected.count == 1, let el = selected.first {
             guard !el.holdsPlace, !el.isHidden else { return false }
             let local = el.rotation == 0 ? point : Geometry.rotate(point, around: el.center, degrees: -el.rotation)
             return el.frame.contains(local)
         }
-        guard selected.count > 1, selected.contains(where: { !$0.holdsPlace }) else { return false }
-        return Geometry.union(selected.map(Geometry.aabb)).contains(point)
+        return bodyBox(selected)?.contains(point) ?? false
+    }
+
+    /// The body of several selected: the box round the turned bounds of
+    /// those free to move — what is locked in place is not part of it. Nil
+    /// for one thing or nothing, or when none of them is free.
+    static func bodyBox(_ selected: [Element]) -> CGRect? {
+        let members = selected.filter { !$0.holdsPlace }
+        guard selected.count > 1, !members.isEmpty else { return nil }
+        return Geometry.union(members.map(Geometry.aabb))
     }
 }

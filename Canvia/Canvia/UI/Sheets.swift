@@ -1066,6 +1066,12 @@ struct PositionSheet: View {
     /// which way it points.
     @State private var nudgeHold: Task<Void, Never>?
     @State private var nudgeHeld: String?
+    /// The arrow a finger is on, as its press gesture keeps it: back to nil
+    /// the moment the press ends or is cancelled — the Form's scroll or the
+    /// sheet's drag taking the touch, a system gesture — so a hold never
+    /// runs on with no finger on it.
+    @GestureState private var nudgePress: NudgePress? = nil
+    @Environment(\.scenePhase) private var scenePhase
     /// Keep proportions as switched in this panel; nil until it is, when it
     /// is what the one selected element starts with (RatioLock.startsOn).
     /// Never saved.
@@ -1272,6 +1278,27 @@ struct PositionSheet: View {
                 }
             }
         }
+        .onChange(of: nudgePress) { _, press in pressChanged(to: press) }
+        // Or as the app leaves the screen.
+        .onChange(of: scenePhase) { _, phase in if phase != .active { stopNudging() } }
+    }
+
+    /// An arrow under a finger: which way it points, and its step.
+    private struct NudgePress: Equatable {
+        let direction: String
+        let dx: Double
+        let dy: Double
+    }
+
+    /// The hold starts as a finger lands on an arrow and stops, as one
+    /// step, as the press ends — however it ends.
+    private func pressChanged(to press: NudgePress?) {
+        guard let press else {
+            stopNudging()
+            return
+        }
+        if nudgeHeld != press.direction { stopNudging() }
+        startNudging(press.direction, dx: press.dx, dy: press.dy)
     }
 
     /// "x, y  ·  w × h" of the selection's box, whole units, as the Android
@@ -1294,8 +1321,9 @@ struct PositionSheet: View {
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
-                    .onChanged { _ in startNudging(direction, dx: dx, dy: dy) }
-                    .onEnded { _ in stopNudging() }
+                    .updating($nudgePress) { _, press, _ in
+                        press = NudgePress(direction: direction, dx: dx, dy: dy)
+                    }
             )
             .accessibilityElement(children: .ignore)
             .accessibilityAddTraits(.isButton)

@@ -755,4 +755,23 @@ final class GroupFlipTests: XCTestCase {
         XCTAssertEqual(s.element("a")?.x, 0, "one step")
         XCTAssertEqual(s.element("b")?.x, 300)
     }
+
+    func testWhatIsLockedInPlaceIsNotPartOfTheFlipsBox() {
+        // The Android twin's row (HistoryTest).
+        var pinned = box("c", x: 600, y: 0)
+        pinned.lockPosition = true
+        var d = Design(title: "flip", width: 1080, height: 1080)
+        d.pages = [Page(id: "p1", elements: [box("a", x: 0, y: 0), box("b", x: 300, y: 0), pinned])]
+        let s = DesignStore(design: d)
+        s.selection = ["a", "b", "c"]
+        s.flipSelected(horizontal: true)
+        XCTAssertEqual(s.element("a")?.x, 300)
+        XCTAssertEqual(s.element("b")?.x, 0)
+        XCTAssertEqual(s.element("c")?.x, 600, "it stays")
+        XCTAssertEqual(s.element("c")?.flipH, false)
+        // The body a drag moves is the same box.
+        XCTAssertEqual(CanvasGestures.bodyBox(s.selectedElements), CGRect(x: 0, y: 0, width: 400, height: 100))
+        XCTAssertFalse(CanvasGestures.onSelectedBody(CGPoint(x: 500, y: 50), selected: s.selectedElements))
+        XCTAssertTrue(CanvasGestures.onSelectedBody(CGPoint(x: 350, y: 50), selected: s.selectedElements))
+    }
 }

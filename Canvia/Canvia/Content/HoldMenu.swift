@@ -34,6 +34,11 @@ enum HoldMenu {
         }
     }
 
+    /// What Add text here's box says until it is typed over — the default
+    /// text box's words, as on the Android twin; they open chosen, so the
+    /// first key replaces them.
+    static let words = "Your text here"
+
     /// The items offered: Paste when there is something to paste — copied
     /// elements, or a picture another app left — Paste page when a page was
     /// copied, and the rest always.

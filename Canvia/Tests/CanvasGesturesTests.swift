@@ -135,19 +135,23 @@ final class CanvasGesturesTests: XCTestCase {
         XCTAssertEqual(s.page.elements.map(\.id), ["a"], "one step")
     }
 
-    func testAddTextHereTypesIntoANewBoxAndLeavesNothingWhenLeftEmpty() {
+    func testAddTextHereTypesOverTheDefaultBoxAndLeavesItAsOneStep() {
         let s = store([])
         s.addText(at: CGPoint(x: 540, y: 540))
         XCTAssertEqual(s.page.elements.count, 1)
         let typed = try? XCTUnwrap(s.page.elements.first)
         XCTAssertEqual(s.editingTextId, typed?.id, "typing at once")
+        XCTAssertEqual(typed?.text, "Your text here", "the default text box, as on the Android twin")
+        XCTAssertTrue(s.typingSelectsWords, "its words chosen, so the first key replaces them")
         XCTAssertEqual(typed?.fontSize, 65)
         XCTAssertEqual(typed?.w, 778)
         XCTAssertEqual(typed?.x, 151, "centred on the finger")
-        XCTAssertEqual(typed.map { $0.y + $0.h / 2 }, 540)
+        XCTAssertEqual((typed?.y ?? 0) + (typed?.h ?? 0) / 2, 540, accuracy: 0.0001)
         s.endTextEdit()
-        XCTAssertTrue(s.page.elements.isEmpty, "left without words, it goes")
-        XCTAssertFalse(s.canUndo, "and leaves no step")
+        XCTAssertEqual(s.page.elements.first?.text, "Your text here", "left as it is, it stays")
+        s.undo()
+        XCTAssertTrue(s.page.elements.isEmpty, "as one step")
+        XCTAssertFalse(s.canUndo)
 
         s.addText(at: CGPoint(x: 540, y: 540))
         if let id = s.editingTextId { s.typeWords("Hello", into: id) }
@@ -256,6 +260,15 @@ final class CanvasGesturesTests: XCTestCase {
         XCTAssertEqual(StylePaint.pasted(DesignStore.style(of: text), from: .text, onto: line).color, "#ff0000")
         XCTAssertEqual(StylePaint.pasted(DesignStore.style(of: photo), from: .image, onto: shape).stroke, "#abcdef")
         XCTAssertEqual(StylePaint.pasted(DesignStore.style(of: shape), from: .shape, onto: photo).stroke, "#123456")
+        // The colour only: each keeps its own outline width.
+        photo.strokeWidth = 6
+        shape.strokeWidth = 4
+        XCTAssertEqual(StylePaint.pasted(DesignStore.style(of: photo), from: .image, onto: shape).strokeWidth, 4)
+        XCTAssertEqual(StylePaint.pasted(DesignStore.style(of: shape), from: .shape, onto: photo).strokeWidth, 6)
+        // Only a gradient in the letters fills a shape with it.
+        var pictured = text
+        pictured.textFill = .solid("#0000ff")
+        XCTAssertEqual(StylePaint.pasted(DesignStore.style(of: pictured), from: .text, onto: shape).fill, .solid("#ff0000"))
 
         var other = Element.text("Other")
         other.fontFamily = "mono"
@@ -345,5 +358,18 @@ final class CanvasGesturesTests: XCTestCase {
         s.selection = []
         s.undo()
         XCTAssertEqual(s.selection, ["g1", "g2"], "widened to the whole sticky group")
+    }
+
+    func testUndoingDeletePageSelectsNothingOnIt() {
+        // The Android twin's row (HistoryTest).
+        var d = Design(title: "editing", width: 1080, height: 1080)
+        d.pages = [Page(id: "p1", elements: [box("a", x: 0, y: 0)]),
+                   Page(id: "p2", elements: [box("x", x: 0, y: 0), box("y", x: 300, y: 0)])]
+        let s = DesignStore(design: d)
+        s.pageIndex = 1
+        s.deletePage()
+        s.undo()
+        XCTAssertEqual(s.page.id, "p2")
+        XCTAssertTrue(s.selection.isEmpty, "a page brought back whole has nothing changed on it")
     }
 }
