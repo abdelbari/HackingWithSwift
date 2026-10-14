@@ -71,12 +71,16 @@ struct DataSheet: View {
 
     private static let sampleTable = "Item, Qty, Price\nCoffee, 2, 3.50\nBagel, 1, 2.25\nJuice, 3, 4.00"
 
-    init(store: DesignStore, editing: ChartSpec? = nil, editingTable: Bool = false) {
+    /// `start`, for a new one, is what Add's search found it by: a chart's
+    /// kind ("pie"), or "table".
+    init(store: DesignStore, editing: ChartSpec? = nil, editingTable: Bool = false, start: String? = nil) {
         self.store = store
         self.editing = editing
         self.editingTable = editingTable
         let text = editing?.data ?? "Spring, 40\nSummer, 65\nAutumn, 30\nWinter, 20"
-        _kind = State(initialValue: editing.flatMap { DataGraphics.ChartKind(rawValue: $0.kind) } ?? .column)
+        let started = editing == nil ? start.flatMap { DataGraphics.ChartKind(rawValue: $0) } : nil
+        _kind = State(initialValue: editing.flatMap { DataGraphics.ChartKind(rawValue: $0.kind) } ?? started ?? .column)
+        _mode = State(initialValue: editing == nil && !editingTable && start == "table" ? 1 : 0)
         _chartText = State(initialValue: text)
         _chartGrid = State(initialValue: DataGrid.cells(text))
         _chartGridOpened = State(initialValue: DataGrid.cells(text))
@@ -458,6 +462,8 @@ struct DataSheet: View {
         guard !elements.isEmpty else { return false }
         store.applyToPage { $0.elements.append(contentsOf: elements) }
         store.selection = Set(elements.map(\.id))
+        // Add's Recently used: the kind of chart, or the table.
+        if mode == 0 { ElementSearch.remember(.chart, kind.rawValue) } else { ElementSearch.remember(.table, "table") }
         return true
     }
 
