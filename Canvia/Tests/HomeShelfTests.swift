@@ -141,7 +141,7 @@ final class HomeShelfTests: XCTestCase {
         XCTAssertEqual(back.starred, true)
     }
 
-    /// Starred folders first, by name, then the starred designs in the
+    /// Starred folders first, then the starred designs, both in the
     /// current sort and search; a starred folder with nothing left in it is
     /// not shown.
     func testTheStarredFilter() {
@@ -164,6 +164,40 @@ final class HomeShelfTests: XCTestCase {
         XCTAssertEqual(searched.folders, [])
         XCTAssertEqual(searched.designs.map(\.id), ["b"])
         XCTAssertEqual(DesignLibrary.starredEmpty, "Star a design from its ⋯ menu to find it here.")
+    }
+
+    /// The Android twin's ShelfTest rows: a folder sorts as its designs
+    /// together do, and a search narrows folders by name.
+    func testStarredFoldersSortAndSearchAsOnAndroid() {
+        func item(_ id: String, _ title: String, pages: Int, at: Double, folder: String?) -> RecentDesign {
+            var made = RecentDesign(id: id, title: title, width: 1080, height: 1080, pages: pages, updatedAt: at, folder: folder)
+            made.starred = ["b", "c", "d"].contains(id)
+            return made
+        }
+        let designs = [
+            item("a", "Café menu", pages: 2, at: 30, folder: "Clients"),
+            item("b", "birthday card", pages: 1, at: 50, folder: nil),
+            item("c", "Annual report", pages: 9, at: 10, folder: "clients work"),
+            item("d", "Poster", pages: 9, at: 40, folder: "Clients"),
+            item("e", "Zine", pages: 3, at: 20, folder: "Archive"),
+        ]
+        let starred: Set<String> = ["Clients", "Archive", "Gone"]
+        // "Gone" holds nothing; "Clients" (newest 40) before "Archive" (20).
+        let recent = DesignLibrary.starredShelf(designs, starredFolders: starred, query: "", sort: .recent)
+        XCTAssertEqual(recent.folders, ["Clients", "Archive"])
+        XCTAssertEqual(recent.designs.map(\.id), ["b", "d", "c"])
+        let named = DesignLibrary.starredShelf(designs, starredFolders: starred, query: "", sort: .name)
+        XCTAssertEqual(named.folders, ["Archive", "Clients"])
+        XCTAssertEqual(named.designs.map(\.id), ["c", "b", "d"])
+        // Most pages: a folder's pages added up — Clients 11, Archive 3.
+        let largest = DesignLibrary.starredShelf(designs, starredFolders: starred, query: "", sort: .largest)
+        XCTAssertEqual(largest.folders, ["Clients", "Archive"])
+        XCTAssertEqual(largest.designs.map(\.id), ["d", "c", "b"])
+        let found = DesignLibrary.starredShelf(designs, starredFolders: starred, query: "arch", sort: .recent)
+        XCTAssertEqual(found.folders, ["Archive"])
+        XCTAssertEqual(found.designs.map(\.id), [])
+        XCTAssertEqual(DesignLibrary.starredShelf(designs, starredFolders: starred, query: "ÁRCH", sort: .recent).folders,
+                       ["Archive"])
     }
 
     /// The home-folders list: bare names still read, starred ones written

@@ -89,6 +89,22 @@ final class ExportQueueTests: XCTestCase {
         XCTAssertNil(queue.failure)
     }
 
+    /// Stop stops them all: the one running, and none waiting starts after.
+    func testStoppingAllLeavesNoneWaiting() async throws {
+        let queue = ExportQueue(host: .none)
+        let recorder = Recorder()
+        let gate = Gate()
+        queue.enqueue(job("pdf", recorder, gate: gate))
+        queue.enqueue(job("video", recorder))
+        while recorder.events.isEmpty { try await Task.sleep(nanoseconds: 5_000_000) }
+        queue.cancelAll()
+        XCTAssertTrue(queue.waiting.isEmpty)
+        await queue.waitUntilIdle()
+        XCTAssertEqual(recorder.events, ["start pdf"])
+        XCTAssertNil(queue.finished)
+        XCTAssertFalse(queue.isBusy)
+    }
+
     func testAFailureIsSaidInTheTwinsWords() async {
         struct Broken: LocalizedError { var errorDescription: String? { "the disk is full" } }
         let queue = ExportQueue(host: .none)

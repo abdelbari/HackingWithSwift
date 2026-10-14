@@ -219,9 +219,14 @@ enum SharedInbox {
     }
 
     /// The design types nearest the photo's shape, nearest first; a tie
-    /// keeps the catalogue's order.
-    static func suggestions(for size: CGSize, among presets: [SizePreset] = SizePreset.all,
+    /// keeps the catalogue's order. When the size is unknown — nil, as for
+    /// an SVG or a picture that does not read, or not a positive size — the
+    /// first types in the catalogue, as the Android twin offers them; the
+    /// sheet then has no "Fit to the photo" either.
+    static func suggestions(for size: CGSize?, among presets: [SizePreset] = SizePreset.all,
                             count: Int = 4) -> [SizePreset] {
+        guard let size, size.width > 0, size.height > 0,
+              size.width.isFinite, size.height.isFinite else { return Array(presets.prefix(count)) }
         let ranked = presets.enumerated().sorted { a, b in
             let da = aspectDistance(size, a.element), db = aspectDistance(size, b.element)
             return da != db ? da < db : a.offset < b.offset
@@ -240,10 +245,12 @@ enum SharedInbox {
         var total = 0
     }
 
-    /// "Couldn't open 1 of 3 items", or nil when every one came in.
+    /// "Couldn't open 1 of 3 items" — "Couldn't open that item" when it
+    /// was the only one, as the Android twin says it — or nil when every one
+    /// came in.
     static func failureText(failed: Int, total: Int) -> String? {
         guard failed > 0 else { return nil }
-        return "Couldn't open \(failed) of \(total) \(total == 1 ? "item" : "items")"
+        return total <= 1 ? "Couldn't open that item" : "Couldn't open \(failed) of \(total) items"
     }
 
     /// Each item brought in as one element on a page of its own, fitted
@@ -289,7 +296,9 @@ enum SharedInbox {
             return pages
         case .svg:
             guard let d = SVGPath.importFirstPath(fromFileAt: url) else { return [] }
-            let side = (min(pageSize.width, pageSize.height) * 0.6).rounded()
+            // Square at 0.4 of the page's shorter side and centred, as one
+            // from the Add panel is, and as the Android twin brings it in.
+            let side = (min(pageSize.width, pageSize.height) * 0.4).rounded()
             var el = Element.shape("rect", w: side, h: side)
             el.pathData = d
             el.x = ((pageSize.width - side) / 2).rounded()

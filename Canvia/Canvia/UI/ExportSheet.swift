@@ -100,7 +100,7 @@ struct ExportSheet: View {
                     Button(ExportChoices.keep) { keepGoing() }
                         .keyboardShortcut(.defaultAction)
                     Button(ExportChoices.stop, role: .destructive) {
-                        queue.cancelCurrent()
+                        queue.cancelAll()
                         dismiss()
                     }
                 }

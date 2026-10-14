@@ -157,6 +157,14 @@ final class ExportQueue {
         if let id = current?.id { cancel(id) }
     }
 
+    /// Stops every export, those waiting first so none starts after: the
+    /// Stop of "Keep exporting in the background?", as the Android twin's
+    /// Exports.cancelAll.
+    func cancelAll() {
+        waiting.removeAll()
+        cancelCurrent()
+    }
+
     /// Returns once nothing runs or waits.
     func waitUntilIdle() async {
         while let runner { await runner.value }

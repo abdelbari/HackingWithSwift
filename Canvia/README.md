@@ -407,7 +407,7 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   and of each day for 60 days, 200 unpinned at most, by the same rule as
   the Android twin's VersionPolicy. Rows sit under Today, Yesterday, This
   week and Earlier; "Name this version…" pins one for good (in
-  history/<id>/meta.json, which backups carry), and More's "Save a named
+  history/<id>/meta.json, which backups carry as history/<id>.meta.json), and More's "Save a named
   version…" keeps and pins the design as it is. Versions are written as
   <epoch ms>.json, as on Android, and the seconds older builds wrote
   still read. Restoring one is a single undo step and the current state
@@ -461,8 +461,8 @@ Exports keep going once the sheet is closed. Each row hands the app's
 ExportQueue a job made from a snapshot of the design as it was tapped —
 the design copied, its pages fixed — so editing carries on beside it; one
 export runs at a time and another waits its turn. Closing the sheet asks
-"Keep exporting in the background?" (Keep, the default, or Stop), and a
-pill above the editor's toolbar, and on Home, says "Rendering the video
+"Keep exporting in the background?" (Keep, the default, or Stop, which
+stops those waiting too), and a pill above the editor's toolbar, and on Home, says "Rendering the video
 42%": a tap opens the sheet on its progress, its X stops it. Out of the
 app, the work runs in a background task; when the system's time runs out
 it waits between two pages or frames — the video's AVAssetWriter simply
@@ -557,7 +557,8 @@ opened over another closes the first, which saves it.
 filed into folders from their context menu and filing is not an edit, so
 the order stays. Designs and folders can be starred from their menus or
 from Select; the Starred chip after All shows starred folders, then
-starred designs in the current sort. The design file carries
+starred designs, both in the current sort and search (a folder sorting by
+its name, its newest edit or its pages added up). The design file carries
 "starred": true only when starred, and the shelf cache carries it too;
 starred folders live in the home-folders preference, whose bare names
 still read. A copy is never starred; a design back from Recently deleted

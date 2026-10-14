@@ -17,8 +17,10 @@
 //   videos/<id>.<ext>        their clips,
 //   audio/<id>               the music, and <id>.name beside it, its name,
 //   fonts/<sha12>.<ext>      and your fonts.
-//   history/<id>/meta.json   each design's pinned versions and their names
-//                            (the versions themselves stay on the phone).
+//   history/<id>.meta.json   each design's history/<id>/meta.json: its pinned
+//                            versions and their names (the versions
+//                            themselves stay on the phone). One file per
+//                            design, as no entry is more than one folder deep.
 //
 // Restoring merges, keeping every id: what is not here is added; a design
 // or template already here is replaced only by a newer one (its updatedAt
@@ -241,12 +243,12 @@ enum Backup {
             try step()
         }
         manifest.counts.templates = packedTemplates.count
-        // Each design's pinned versions, by name, as history/<id>/meta.json.
+        // Each design's pinned versions, by name, as history/<id>.meta.json.
         for file in live + binned {
             let id = file.deletingPathExtension().lastPathComponent
             let meta = DesignLibrary.versionMetaURL(for: id)
             if let data = try? Data(contentsOf: meta), DesignLibrary.VersionMeta.read(data) != nil {
-                try writer.add("history/\(id)/\(DesignLibrary.versionMetaName)", data)
+                try writer.add(versionMetaEntry(for: id), data)
             }
         }
         try writer.add(UserTemplates.indexName, json(packedTemplates))
@@ -533,13 +535,29 @@ enum Backup {
         return .added
     }
 
+    /// The backup entry holding design `id`'s meta.json, as both phones
+    /// name it: history/<id>.meta.json.
+    static func versionMetaEntry(for id: String) -> String {
+        "history/\(id).\(DesignLibrary.versionMetaName)"
+    }
+
+    /// The design a backup entry holds the meta.json of: the id before
+    /// ".meta.json" in history/, when it is a safe file name; nil for any
+    /// other entry.
+    static func versionMetaID(_ name: String) -> String? {
+        let prefix = "history/"
+        let suffix = "." + DesignLibrary.versionMetaName
+        guard name.hasPrefix(prefix), name.hasSuffix(suffix),
+              name.count > prefix.count + suffix.count else { return nil }
+        let id = String(name.dropFirst(prefix.count).dropLast(suffix.count))
+        return DesignPackage.isSafeFileName(id) ? id : nil
+    }
+
     /// Each design's pins merged into its own meta.json here
     /// (DesignLibrary.mergeVersionMeta): a pin already here keeps its name.
-    private static func restoreVersionMeta(_ reader: ZipStore.Reader) {
-        let suffix = "/" + DesignLibrary.versionMetaName
-        for name in reader.names(in: "history/") where name.hasSuffix(suffix) {
-            let id = String(name.dropFirst("history/".count).dropLast(suffix.count))
-            guard DesignPackage.isSafeFileName(id), let data = reader.file(name),
+    static func restoreVersionMeta(_ reader: ZipStore.Reader) {
+        for name in reader.names(in: "history/") {
+            guard let id = versionMetaID(name), let data = reader.file(name),
                   let meta = DesignLibrary.VersionMeta.read(data) else { continue }
             DesignLibrary.mergeVersionMeta(meta, for: id)
         }

@@ -29,6 +29,12 @@ final class BrandAndAuditTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: file), Data([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]))
         XCTAssertEqual(back.pages[0].elements[1].src, "asset:sun", "library assets are references, not files")
         XCTAssertThrowsError(try DesignPackage.import(Data("{}".utf8), mediaDirectory: dir))
+
+        // A starred design sent on opens as a new one, not starred.
+        d.isStarred = true
+        let starred = try DesignPackage.import(try DesignPackage.export(d, mediaDirectory: dir), mediaDirectory: dir)
+        XCTAssertFalse(starred.isStarred)
+        XCTAssertNil(starred.starred)
     }
 
     /// A design file exactly as the Android twin writes it — the same bytes

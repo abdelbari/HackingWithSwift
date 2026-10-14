@@ -90,11 +90,16 @@ final class SharedInboxTests: XCTestCase {
         XCTAssertEqual(SharedInbox.suggestions(for: CGSize(width: 500, height: 500), among: halves.reversed()).map(\.id),
                        ["square", "tall2", "wide2"])
         XCTAssertEqual(SharedInbox.suggestions(for: photo).count, 4)
+        // Its size unknown, the first four in the catalogue, as on Android.
+        XCTAssertEqual(SharedInbox.suggestions(for: nil, among: presets).map(\.id),
+                       ["square", "story", "wide", "portrait"])
+        XCTAssertEqual(SharedInbox.suggestions(for: .zero, among: presets).map(\.id),
+                       ["square", "story", "wide", "portrait"])
     }
 
     func testWhatIsSaidOfItemsThatWouldNotOpen() {
         XCTAssertEqual(SharedInbox.failureText(failed: 1, total: 3), "Couldn't open 1 of 3 items")
-        XCTAssertEqual(SharedInbox.failureText(failed: 1, total: 1), "Couldn't open 1 of 1 item")
+        XCTAssertEqual(SharedInbox.failureText(failed: 1, total: 1), "Couldn't open that item")
         XCTAssertNil(SharedInbox.failureText(failed: 0, total: 3))
     }
 
@@ -126,9 +131,9 @@ final class SharedInboxTests: XCTestCase {
         XCTAssertEqual(SharedInbox.failureText(failed: brought.failed, total: brought.total), "Couldn't open 1 of 2 items")
         let shape = try XCTUnwrap(brought.pages.first?.elements.first)
         XCTAssertNotNil(shape.pathData)
-        XCTAssertEqual(shape.w, 300)
-        XCTAssertEqual(shape.x, 350)
-        XCTAssertEqual(shape.y, 100)
+        XCTAssertEqual(shape.w, 200)
+        XCTAssertEqual(shape.x, 400)
+        XCTAssertEqual(shape.y, 150)
 
         SharedInbox.remove(box.id)
         XCTAssertFalse(FileManager.default.fileExists(atPath: box.directory.path))

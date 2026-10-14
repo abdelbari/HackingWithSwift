@@ -31,15 +31,14 @@ struct SharedDesignSheet: View {
         case nothing(note: String?)
     }
 
-    /// A design sized to its photo when the photo's size is unknown.
-    private static let fallbackSize = CGSize(width: 1080, height: 1080)
-
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    fitRow
-                    ForEach(SharedInbox.suggestions(for: firstSize ?? Self.fallbackSize)) { preset in
+                    // No size to fit to — an SVG first, or a picture that
+                    // does not read — no "Fit to the photo".
+                    if !measured || firstSize != nil { fitRow }
+                    ForEach(SharedInbox.suggestions(for: firstSize)) { preset in
                         presetRow(preset)
                     }
                 } header: {
@@ -89,7 +88,7 @@ struct SharedDesignSheet: View {
     }
 
     private var fitRow: some View {
-        let size = SharedInbox.fitSize(firstSize ?? Self.fallbackSize)
+        let size = SharedInbox.fitSize(firstSize ?? CGSize(width: 1, height: 1))
         return Button {
             make(Design(title: newTitle("Untitled design"), width: size.width, height: size.height))
         } label: {

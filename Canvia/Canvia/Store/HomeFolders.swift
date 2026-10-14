@@ -139,13 +139,35 @@ extension DesignLibrary {
     }
 
     /// What the Starred chip shows: the starred folders that still hold a
-    /// design, in the folder chips' order (by name), then the starred
-    /// designs — in every folder — that match the search, in the current
-    /// sort.
+    /// design, then the starred designs — in every folder — each matching
+    /// the search and in the current sort, as the Android twin's
+    /// Shelf.starred shows them. A folder matches by its name, capitals and
+    /// accents aside, and sorts as its designs together do (sortedFolders).
     static func starredShelf(_ designs: [RecentDesign], starredFolders: Set<String>, query: String,
                              sort: Sort) -> (folders: [String], designs: [RecentDesign]) {
-        let starred = folders(in: designs).filter { starredFolders.contains($0) }
-        return (starred, filter(designs.filter(\.starred), query: query, sort: sort))
+        let needle = query.trimmingCharacters(in: .whitespaces)
+        let starred = folders(in: designs).filter { name in
+            starredFolders.contains(name)
+                && (needle.isEmpty || name.range(of: needle, options: [.caseInsensitive, .diacriticInsensitive]) != nil)
+        }
+        return (sortedFolders(starred, of: designs, sort: sort), filter(designs.filter(\.starred), query: query, sort: sort))
+    }
+
+    /// Folders in a sort, each as its designs together: by its name, by its
+    /// newest edit, or by its pages added up — the most first, then the
+    /// newest.
+    static func sortedFolders(_ names: [String], of designs: [RecentDesign], sort: Sort) -> [String] {
+        let inside = Dictionary(grouping: designs.filter { $0.folder != nil }) { $0.folder ?? "" }
+        func newest(_ name: String) -> Double { inside[name]?.map(\.updatedAt).max() ?? 0 }
+        func pages(_ name: String) -> Int { inside[name]?.reduce(0) { $0 + $1.pages } ?? 0 }
+        switch sort {
+        case .recent:
+            return names.sorted { newest($0) > newest($1) }
+        case .name:
+            return names.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        case .largest:
+            return names.sorted { pages($0) != pages($1) ? pages($0) > pages($1) : newest($0) > newest($1) }
+        }
     }
 
     /// What the Starred chip says with nothing starred.

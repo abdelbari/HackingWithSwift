@@ -53,7 +53,11 @@ extension DesignLibrary {
     /// Each version falls in one tier by its age. The hours and days are
     /// whole hours and days of epoch time (UTC), so the rule needs no time
     /// zone and both phones keep the same files: within a tier, the newest
-    /// version of each such hour or day is kept. A version from the future
+    /// version of each such hour or day is kept — newest among that tier's
+    /// versions only, so an hour whose newer versions are still under two
+    /// hours old keeps its newest one past two hours, and a day whose newer
+    /// ones are hourly keeps its newest one past 48 hours. A tie in time
+    /// goes to the greater stem, as on Android. A version from the future
     /// — a clock put back — counts as recent. Unparseable stems are passed
     /// over, so never kept here.
     static func retainedVersions(_ stems: [String], pinned: Set<String>, now: Date) -> Set<String> {
@@ -78,14 +82,14 @@ extension DesignLibrary {
             } else {
                 continue
             }
-            if let held = newest[key], held.ms >= ms { continue }
+            if let held = newest[key], held.ms > ms || (held.ms == ms && held.stem > stem) { continue }
             newest[key] = (stem, ms)
         }
         kept.formUnion(newest.values.map { $0.stem })
         // The cap, newest first, over the unpinned only.
         let unpinned = kept.subtracting(pinned)
             .compactMap { stem in versionStamp(stem).map { (stem, $0) } }
-            .sorted { $0.1 > $1.1 }
+            .sorted { $0.1 != $1.1 ? $0.1 > $1.1 : $0.0 > $1.0 }
         if unpinned.count > versionCap {
             kept.subtract(unpinned.dropFirst(versionCap).map { $0.0 })
         }

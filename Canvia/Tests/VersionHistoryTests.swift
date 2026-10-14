@@ -138,6 +138,28 @@ final class VersionHistoryTests: XCTestCase {
         XCTAssertFalse(kept.contains(stem(1439 * 10)))
     }
 
+    /// The Android twin's fixture, kept the same by both phones: midnight
+    /// UTC on 4 October 2024 (1 728 000 000 000 ms, a whole day and hour),
+    /// version i kept at now - i × 10 minutes for i in 0..<1440. Kept: i = 0
+    /// to 12 (12 the newest of its hour among those over two hours old),
+    /// every 6th from 13 to 283 (the newest of each hour), 288 (48 hours
+    /// old, the newest of its day among the daily ones) and 289 + 144k up to
+    /// 1297 (the newest of each day before) — 68 in all.
+    func testPruningTheAndroidTwinsTenDayLog() {
+        let now: Double = 1_728_000_000_000
+        func stem(_ i: Int) -> String { String(Int64(now - Double(i) * 600_000)) }
+        let log = (0..<1440).map(stem)
+        let kept = DesignLibrary.retainedVersions(log, pinned: [], now: Date(timeIntervalSince1970: now / 1000))
+        var expected = Array(0...12)
+        expected += Array(stride(from: 13, through: 283, by: 6))
+        expected.append(288)
+        expected += Array(stride(from: 289, through: 1297, by: 144))
+        XCTAssertEqual(expected.count, 68)
+        XCTAssertEqual(kept, Set(expected.map(stem)))
+        // Pruned again at the same moment, nothing more goes.
+        XCTAssertEqual(DesignLibrary.retainedVersions(Array(kept), pinned: [], now: Date(timeIntervalSince1970: now / 1000)), kept)
+    }
+
     /// A pinned version stays whatever its age; past 60 days nothing else
     /// does.
     func testPinnedVersionsSurvive() {
@@ -215,6 +237,26 @@ final class VersionHistoryTests: XCTestCase {
         XCTAssertEqual(DesignLibrary.versionMeta(for: design.id).pinned["1"], "New")
     }
 
+    /// A backup holds each design's meta.json as history/<id>.meta.json, as
+    /// the Android twin writes it, and restoring one merges its pins in.
+    func testABackupsVersionMetaIsOneFilePerDesign() throws {
+        XCTAssertEqual(Backup.versionMetaEntry(for: "doc_1"), "history/doc_1.meta.json")
+        XCTAssertEqual(Backup.versionMetaID("history/doc_1.meta.json"), "doc_1")
+        XCTAssertNil(Backup.versionMetaID("history/doc_1/meta.json"))
+        XCTAssertNil(Backup.versionMetaID("history/.meta.json"))
+        XCTAssertNil(Backup.versionMetaID("designs/doc_1.meta.json"))
+
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID().uuidString).canviabackup")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let writer = try ZipStore.Writer(url: url)
+        let meta = Data(#"{"version":1,"pinned":{"1728000000000":"Before client feedback"}}"#.utf8)
+        try writer.add(Backup.versionMetaEntry(for: design.id), meta)
+        try writer.finish()
+        let reader = try ZipStore.Reader(url: url)
+        Backup.restoreVersionMeta(reader)
+        XCTAssertEqual(DesignLibrary.versionMeta(for: design.id).pinned, ["1728000000000": "Before client feedback"])
+    }
+
     /// Today, Yesterday, This week (two to six days back) and Earlier, by
     /// calendar day.
     func testVersionsGroupByDay() throws {
@@ -251,11 +293,15 @@ final class VersionHistoryTests: XCTestCase {
         store.add(Element.shape("circle"))
         XCTAssertEqual(store.page.elements.count, 3)
 
+        // Starred after that version was kept: the star stays.
+        store.design.isStarred = true
         var old = DesignLibrary.load(version: earlier)!
         old.id = "someone-else"
+        XCTAssertFalse(old.isStarred)
         store.restore(old)
         XCTAssertEqual(store.page.elements.count, 1)
         XCTAssertEqual(store.design.id, design.id)
+        XCTAssertTrue(store.design.isStarred)
         XCTAssertEqual(store.announcement, "Restored an earlier version")
 
         store.undo()
