@@ -135,6 +135,39 @@ final class LineRoutesTests: XCTestCase {
         for (e, a) in zip([CGPoint(x: 0, y: 0), CGPoint(x: -10, y: -6), CGPoint(x: -10, y: 6)], head) { near(e, a, 1e-12) }
     }
 
+    func testALinesWeightChangedKeepsItsEndsWhereTheyWere() {
+        // An elbow from (100, 100) to (300, 300), 4 thick, is 208 tall; 6
+        // thick it is 212, its ends held, not squashed into an 8 tall band.
+        let elbow = LineRoutes.withEnds(LineRoutes.withType(flat, .elbow), CGPoint(x: 100, y: 100), CGPoint(x: 300, y: 300))
+        XCTAssertEqual(elbow.h, 208)
+        let heavier = LineRoutes.withThickness(elbow, 6)
+        XCTAssertEqual(heavier.thickness, 6)
+        XCTAssertEqual([heavier.x, heavier.y, heavier.w, heavier.h], [94, 94, 212, 212])
+        near(CGPoint(x: 100, y: 100), LineRoutes.ends(of: heavier).start, 1e-9)
+        near(CGPoint(x: 300, y: 300), LineRoutes.ends(of: heavier).end, 1e-9)
+        // A straight line is as tall as its weight, and at least 8; with no
+        // weight written its height is kept.
+        XCTAssertEqual(LineRoutes.withThickness(flat, 20).h, 20)
+        XCTAssertEqual(LineRoutes.withThickness(flat, 2).h, 8)
+        var tall = flat
+        tall.h = 20
+        XCTAssertEqual(LineRoutes.withThickness(tall, 2).h, 8)
+        XCTAssertEqual(LineRoutes.withThickness(tall, nil).h, 20)
+
+        // A line's style pasted on an elbow, as the Android twin's
+        // ElementStyleTest has it: the weight lays it round the same ends.
+        var arrow = Element.line()
+        arrow.thickness = 12
+        arrow.endCap = "arrow"
+        var heavy = LineRoutes.withEnds(LineRoutes.withType(Element.line(), .elbow),
+                                        CGPoint(x: 100, y: 100), CGPoint(x: 300, y: 300))
+        DesignStore.apply(DesignStore.style(of: arrow), to: &heavy)
+        XCTAssertEqual([heavy.x, heavy.y, heavy.w, heavy.h], [88, 88, 224, 224])
+        near(CGPoint(x: 100, y: 100), LineRoutes.ends(of: heavy).start, 1e-9)
+        near(CGPoint(x: 300, y: 300), LineRoutes.ends(of: heavy).end, 1e-9)
+        XCTAssertEqual(heavy.endCap, "arrow")
+    }
+
     func testALinesTypeChangesWithItsEndsKeptAndIsInTheFile() throws {
         var turned = Element.line(w: 300)
         turned.x = 100

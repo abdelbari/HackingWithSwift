@@ -1125,18 +1125,9 @@ struct ContextToolbar: View {
         let weightReach = reach("Weight", 1...60, weight)
         sliderControl("Weight", value: weight, in: weightReach,
                       onEditing: { holdReach("Weight", weightReach, $0) }) { v in
-            store.updateSelectedTransient { e in
-                guard LineRoutes.keepsLevel(e) else {
-                    e.thickness = v
-                    e.h = max(8, v)
-                    return
-                }
-                // An elbow's or a curve's box is its ends padded by its
-                // weight: laid round the same ends again.
-                let ends = LineRoutes.ends(of: e)
-                e.thickness = v
-                e = LineRoutes.withEnds(e, ends.start, ends.end)
-            }
+            // An elbow's or a curve's box is its ends padded by its weight:
+            // laid round the same ends again.
+            store.updateSelectedTransient { $0 = LineRoutes.withThickness($0, v) }
         }
         lineTypePicker(el)
         if LineRoutes.keepsLevel(el) {

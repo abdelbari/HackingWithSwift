@@ -128,7 +128,7 @@
   },
   {
    "id": "arrow-right",
-   "name": "Arrow Right",
+   "name": "Arrow",
    "category": "Arrows",
    "path": "M0,30H60V10L100,50L60,90V70H0Z",
    "rectLike": false

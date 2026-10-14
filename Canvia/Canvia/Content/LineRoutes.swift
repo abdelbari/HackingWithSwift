@@ -176,6 +176,22 @@ enum LineRoutes {
         return out
     }
 
+    /// `el` `thickness` thick, or with none written: a straight line at
+    /// least 8 tall, as tall as its weight (its height kept with none); an
+    /// elbowed or curved one laid round the same ends again, its box their
+    /// bounds padded by its new weight — so a weight changed, or a style
+    /// pasted on, never squashes its route.
+    static func withThickness(_ el: Element, _ thickness: Double?) -> Element {
+        var out = el
+        out.thickness = thickness
+        guard keepsLevel(el) else {
+            if let thickness { out.h = max(8, thickness) }
+            return out
+        }
+        let was = ends(of: el)
+        return withEnds(out, was.start, was.end)
+    }
+
     /// `el` mirrored in place across its box's middle — horizontally or not
     /// — as flipping several things together mirrors a line: an elbowed or
     /// curved line's ends mirrored within its box, a curve bowing the other

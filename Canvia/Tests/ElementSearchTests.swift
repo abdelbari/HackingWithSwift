@@ -1,8 +1,5 @@
 // One search across every kind of element, and Recently used, as the
-// Android twin's ElementSearchTest has them, row for row. One row differs
-// by a name the phones' shape libraries already give differently: the
-// right arrow is "Arrow Right" here and "Arrow" there, so here it is a
-// prefix match after the line called Arrow, there an exact one before it.
+// Android twin's ElementSearchTest has them, row for row.
 
 import XCTest
 @testable import Canvia
@@ -17,7 +14,7 @@ final class ElementSearchTests: XCTestCase {
         let rows: [(query: String, first: [String])] = [
             // An exact name first, kind by kind; then names that start so.
             ("heart", ["shape/heart", "sticker/💝"]),
-            ("Arrow", ["line/Arrow", "shape/arrow-right", "shape/arrow-left"]),
+            ("Arrow", ["shape/arrow-right", "line/Arrow", "shape/arrow-left"]),
             // A synonym finds what the word it stands for finds, as a word match.
             ("pointer", ["shape/arrow-right", "shape/arrow-left"]),
             ("Love", ["sticker/😍", "shape/heart"]),
