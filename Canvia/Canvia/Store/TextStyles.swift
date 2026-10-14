@@ -48,7 +48,7 @@ enum TextStyles {
     @discardableResult
     static func add(named name: String, from element: Element, url: URL = fileURL) -> TextStyle {
         var styles = load(from: url)
-        let style = TextStyle(name: name, style: textOnly(DesignStore.style(of: element)))
+        let style = TextStyle(name: name, style: textOnly(DesignStore.style(of: element, wholeBoxList: false)))
         styles.append(style)
         save(styles, to: url)
         return style
@@ -57,7 +57,7 @@ enum TextStyles {
     static func update(_ id: String, from element: Element, url: URL = fileURL) {
         var styles = load(from: url)
         guard let i = styles.firstIndex(where: { $0.id == id }) else { return }
-        styles[i].style = textOnly(DesignStore.style(of: element))
+        styles[i].style = textOnly(DesignStore.style(of: element, wholeBoxList: false))
         save(styles, to: url)
     }
 
@@ -65,13 +65,14 @@ enum TextStyles {
         save(load(from: url).filter { $0.id != id }, to: url)
     }
 
-    /// The style poured into a text element, which then follows it.
+    /// The style poured into a text element, which then follows it; its
+    /// opacity and its own lines' lists stay its own.
     static func apply(_ style: TextStyle, to el: inout Element) {
         guard el.type == .text else { return }
         let opacity = el.opacity
         var s = style.style
         s.opacity = opacity
-        DesignStore.apply(s, to: &el)
+        DesignStore.apply(s, to: &el, keepingLines: true)
         el.textStyleId = style.id
     }
 }
