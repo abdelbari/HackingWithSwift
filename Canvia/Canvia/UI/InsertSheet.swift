@@ -145,6 +145,32 @@ struct InsertSheet: View {
         }
     }
 
+    /// What the camera took, kept among your uploads and placed as a
+    /// picked photo or clip is: into the frame being replaced, else into
+    /// the selection's first empty frame, else onto the page.
+    private func bringInCaptured(_ outcome: CameraCapture.Outcome) {
+        let target = store.replaceTargetId
+        let store = self.store
+        if case .cancelled = outcome {
+            store.announce(CameraCapture.cancelledNote, undoable: false)
+            return
+        }
+        Task {
+            guard let stored = await CameraCapture.store(outcome) else {
+                store.buzz(.reject)
+                store.announce(CameraCapture.failedNote, undoable: false)
+                return
+            }
+            if let target {
+                insertImage(stored.src, natural: stored.natural, replacing: target)
+            } else {
+                place(stored.src, natural: stored.natural)
+                store.buzz(.confirm)
+            }
+            dismiss()
+        }
+    }
+
     /// One picked item stored: a clip whole, shown by its poster frame, an
     /// animated GIF or WebP whole, shown by its first frame, or a picture
     /// decoded, scaled and re-encoded — all off the main actor, where a
@@ -1127,6 +1153,9 @@ struct InsertSheet: View {
             // One when replacing — a replace has one slot to fill — and a
             // clip may fill it, so a frame or a grid's cell can hold one.
             Group {
+                // The camera first: a photo or a video straight in, or into
+                // the frame being replaced.
+                CameraTiles { outcome in bringInCaptured(outcome) }
                 PhotosPicker(selection: $pickedItems,
                              maxSelectionCount: store.replaceTargetId == nil ? 10 : 1,
                              matching: .any(of: [.images, .videos])) {
