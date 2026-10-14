@@ -271,9 +271,14 @@ struct CanvasView: View {
             }
     }
 
-    /// The box being typed in, as it is now.
+    /// The box being typed in, as it is now — none while a finger is
+    /// working it, its move handle dragged, so the view follows the finger
+    /// and the scroll at the screen's edge (edgeTrack) rather than pulling
+    /// the box back over the keyboard; it is kept above the keyboard again
+    /// as the finger lifts.
     private var typingBox: CGRect? {
-        store.editingTextId.flatMap { store.element($0) }.map(Geometry.aabb)
+        guard !store.canvasTouchActive else { return nil }
+        return store.editingTextId.flatMap { store.element($0) }.map(Geometry.aabb)
     }
 
     private func revealTyping() {

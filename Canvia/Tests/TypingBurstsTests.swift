@@ -107,6 +107,27 @@ final class TypingBurstsTests: XCTestCase {
         return DesignStore(design: design)
     }
 
+    /// Undo selects what a step changed, a whole group for a member
+    /// (restore); while typing in a grouped box, the box stays the one thing
+    /// selected and typing goes on, as on the Android twin.
+    func testUndoWhileTypingInAGroupKeepsTypingInTheBox() {
+        var text = Element.text("Hi", fontSize: 24, w: 400)
+        var other = Element.text("There", fontSize: 24, w: 400)
+        text.group = "g"
+        other.group = "g"
+        other.y = 300
+        let s = store([text, other])
+        s.startTyping(text.id)
+        s.typeWords("Hi you", into: text.id)
+        s.typingSelection = NSRange(location: 6, length: 0)
+        s.closeTypingStep()
+
+        s.undo()
+        XCTAssertEqual(s.editingTextId, text.id, "still typing")
+        XCTAssertEqual(s.selection, [text.id], "the box alone, not its group")
+        XCTAssertEqual(s.element(text.id)?.text, "Hi")
+    }
+
     func testUndoWhileTypingTakesBackABurstAndKeepsTyping() {
         let text = Element.text("Hi", fontSize: 24, w: 400)
         let s = store([text])
