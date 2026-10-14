@@ -39,6 +39,14 @@ final class ExportQueue {
         var musicLost = false
         /// A PDF to hand to the printer.
         var print: PrintRequest?
+        /// Why it could not finish, said in its turn as any other result
+        /// is — as the Android twin's ExportHandoff.Say — so a second
+        /// failure does not replace the first.
+        var failed: String?
+
+        /// Nothing to share, open or print — a failure, or only what
+        /// Photos took — so only said.
+        var isOnlySaid: Bool { urls.isEmpty && print == nil }
     }
 
     /// The printer's part of "Send to a printer".
@@ -76,12 +84,15 @@ final class ExportQueue {
     }
 
     /// Begins and ends the background task, says whether the app is out of
-    /// sight, and posts notifications: the app's own, or none in a test.
+    /// sight, and posts and takes down an export's notification — one for
+    /// each export, so one done does not replace another's: the app's own,
+    /// or none in a test.
     struct Host {
         var begin: @MainActor (_ expired: @escaping @MainActor () -> Void) -> UIBackgroundTaskIdentifier
         var end: @MainActor (UIBackgroundTaskIdentifier) -> Void
         var isAway: @MainActor () -> Bool
-        var notify: @MainActor (_ title: String, _ body: String, _ actions: Bool) -> Void
+        var notify: @MainActor (_ job: UUID, _ title: String, _ body: String, _ actions: Bool) -> Void
+        var clear: @MainActor (_ job: UUID) -> Void
 
         static let app = Host(
             begin: { expired in
@@ -93,9 +104,13 @@ final class ExportQueue {
                 if id != .invalid { UIApplication.shared.endBackgroundTask(id) }
             },
             isAway: { UIApplication.shared.applicationState != .active },
-            notify: { title, body, actions in ExportNotifications.post(title: title, body: body, actions: actions) })
+            notify: { job, title, body, actions in
+                ExportNotifications.post(job: job, title: title, body: body, actions: actions)
+            },
+            clear: { job in ExportNotifications.clear(job: job) })
 
-        static let none = Host(begin: { _ in .invalid }, end: { _ in }, isAway: { false }, notify: { _, _, _ in })
+        static let none = Host(begin: { _ in .invalid }, end: { _ in }, isAway: { false },
+                               notify: { _, _, _, _ in }, clear: { _ in })
     }
 
     private let host: Host
@@ -104,18 +119,22 @@ final class ExportQueue {
     private(set) var progress: Double = 0
     /// The exports asked for while one runs, in turn.
     private(set) var waiting: [Job] = []
-    /// The last export done, until it is taken.
-    var finished: Finished?
-    /// Why the last export failed, until it is said.
-    var failure: String?
+    /// The exports done, oldest first, each until it is taken: one done
+    /// while another waits to be delivered — the app away — is kept too.
+    var finished: [Finished] = []
     /// Something to say once the sheet has gone: a save to Photos, a video
     /// without its music, a failure.
     var note: String?
     /// Out of the app with the background time run out: the export waits
     /// between two pages or frames until the app is back.
     private(set) var paused = false
-    /// A notification's Share or Open, waiting for the app to come back.
+    /// A notification's Share or Open, waiting for the app to come back,
+    /// and the export whose notification it was (tapped).
     var requested: Request?
+    var requestedJob: UUID?
+    /// Whether a delivered export's share sheet, preview or print dialog is
+    /// up; the next is delivered once it has gone.
+    var delivering = false
     /// Whether the Export sheet is up, which then shows what is done
     /// itself.
     var sheetOpen = false
@@ -138,7 +157,6 @@ final class ExportQueue {
     /// Runs the job now, or after those ahead of it.
     func enqueue(_ job: Job) {
         waiting.append(job)
-        failure = nil
         guard runner == nil else { return }
         runner = Task { await drain() }
     }
@@ -170,10 +188,52 @@ final class ExportQueue {
         while let runner { await runner.value }
     }
 
-    /// The finished export handed over, and forgotten here.
+    /// The oldest finished export handed over, forgotten here, and its
+    /// notification taken down.
     func takeFinished() -> Finished? {
-        defer { finished = nil }
-        return finished
+        guard !finished.isEmpty else { return nil }
+        return take(at: 0)
+    }
+
+    /// A notification tapped for export [job]: its Share or Open hands that
+    /// export on first, as asked; a tap on the notification itself
+    /// (request nil) leaves every export to be handed on in turn, oldest
+    /// first — as the Android twin's Exports.acted.
+    func tapped(_ request: Request?, job: UUID?) {
+        guard let request else { return }
+        requestedJob = job
+        requested = request
+    }
+
+    /// Whether the next takeRequested would hand on is only said: it waits
+    /// until the pill is free, so each is said in turn.
+    var nextIsOnlySaid: Bool {
+        let target = requestedJob.flatMap { id in finished.first { $0.id == id } }
+        guard let next = target ?? finished.first else { return false }
+        return next.result.isOnlySaid
+    }
+
+    /// The next finished export to deliver, and how a notification asked
+    /// for it: the one whose notification was tapped, else the oldest. The
+    /// tap is used up either way, so one for an export delivered already
+    /// does not change how a later one is delivered — as the Android twin's
+    /// ExportsReady takes them.
+    func takeRequested() -> (finished: Finished, request: Request?)? {
+        let request = requested
+        let target = requestedJob
+        requested = nil
+        requestedJob = nil
+        if let target, let i = finished.firstIndex(where: { $0.id == target }) {
+            return (take(at: i), request)
+        }
+        guard let oldest = takeFinished() else { return nil }
+        return (oldest, target == nil ? request : nil)
+    }
+
+    private func take(at index: Int) -> Finished {
+        let done = finished.remove(at: index)
+        host.clear(done.id)
+        return done
     }
 
     private func drain() async {
@@ -196,13 +256,14 @@ final class ExportQueue {
             running = task
             do {
                 let result = try await task.value
-                finished = Finished(id: job.id, label: job.label, designId: job.designId, result: result)
-                if host.isAway() { host.notify(ExportChoices.readyTitle, Self.readyBody(result), !result.urls.isEmpty) }
+                finished.append(Finished(id: job.id, label: job.label, designId: job.designId, result: result))
+                if host.isAway() { host.notify(job.id, ExportChoices.readyTitle, Self.readyBody(result), !result.urls.isEmpty) }
             } catch is CancellationError {
                 // Asked for; nothing to say.
             } catch {
-                failure = ExportChoices.failedText(error.localizedDescription)
-                if host.isAway() { host.notify(ExportChoices.failedTitle, error.localizedDescription, false) }
+                let failed = Result(failed: ExportChoices.failedText(error.localizedDescription))
+                finished.append(Finished(id: job.id, label: job.label, designId: job.designId, result: failed))
+                if host.isAway() { host.notify(job.id, ExportChoices.failedTitle, error.localizedDescription, false) }
             }
             running = nil
             current = nil
@@ -239,9 +300,9 @@ final class ExportQueue {
     /// and says so, until the app is back.
     private func backgroundTimeRanOut() {
         endBackground()
-        guard current != nil, host.isAway() else { return }
+        guard let job = current, host.isAway() else { return }
         paused = true
-        host.notify(ExportChoices.pausedTitle, ExportChoices.paused, false)
+        host.notify(job.id, ExportChoices.pausedTitle, ExportChoices.paused, false)
     }
 
     /// The app is back: a paused export carries on, under a fresh
@@ -307,24 +368,48 @@ final class ExportNotifications: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
-    static func post(title: String, body: String, actions: Bool) {
+    /// Each export's own, so one done does not replace another's; its
+    /// "Paused" is replaced by its "ready".
+    static let identifierPrefix = "canvia.export."
+
+    static func identifier(job: UUID) -> String { identifierPrefix + job.uuidString }
+
+    static func post(job: UUID, title: String, body: String, actions: Bool) {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         if actions { content.categoryIdentifier = category }
-        let request = UNNotificationRequest(identifier: "canvia.export", content: content, trigger: nil)
+        let request = UNNotificationRequest(identifier: identifier(job: job), content: content, trigger: nil)
         UNUserNotificationCenter.current().add(request)
     }
 
-    /// Share, Open, or the notification itself — which shares, as the sheet
-    /// would have.
+    /// Taken down once its export has been delivered in the app.
+    static func clear(job: UUID) {
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [identifier(job: job)])
+    }
+
+    /// Share or Open, for the export it was posted for; the notification
+    /// itself opens the app, which hands every export on in turn
+    /// (ExportQueue.tapped).
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
-        let open = response.actionIdentifier == Self.openAction
+        let request = Self.request(for: response.actionIdentifier)
+        let identifier = response.notification.request.identifier
+        let job = identifier.hasPrefix(Self.identifierPrefix)
+            ? UUID(uuidString: String(identifier.dropFirst(Self.identifierPrefix.count))) : nil
         Task { @MainActor in
-            ExportQueue.shared.requested = open ? .open : .share
+            ExportQueue.shared.tapped(request, job: job)
         }
         completionHandler()
+    }
+
+    /// The Share or Open button tapped; nil for the notification itself.
+    static func request(for action: String) -> ExportQueue.Request? {
+        switch action {
+        case openAction: return .open
+        case shareAction: return .share
+        default: return nil
+        }
     }
 
     /// In the app, the pill already says it.
@@ -350,9 +435,19 @@ enum ExportPresenter {
         return top
     }
 
+    /// The share sheet, preview or print dialog of a delivered export gone:
+    /// the next can be delivered.
+    private static func dismissed() {
+        ExportQueue.shared.delivering = false
+    }
+
     static func share(_ urls: [URL]) {
         guard !urls.isEmpty, let top = topController else { return }
         let sheet = UIActivityViewController(activityItems: urls, applicationActivities: nil)
+        ExportQueue.shared.delivering = true
+        sheet.completionWithItemsHandler = { _, _, _, _ in
+            MainActor.assumeIsolated { dismissed() }
+        }
         // iPad shows it as a popover, which needs somewhere to point.
         sheet.popoverPresentationController?.sourceView = top.view
         sheet.popoverPresentationController?.sourceRect = CGRect(x: top.view.bounds.midX, y: top.view.bounds.midY,
@@ -370,6 +465,8 @@ enum ExportPresenter {
         previewSource = source
         let preview = QLPreviewController()
         preview.dataSource = source
+        preview.delegate = source
+        ExportQueue.shared.delivering = true
         top.present(preview, animated: true)
     }
 
@@ -382,20 +479,30 @@ enum ExportPresenter {
         let controller = UIPrintInteractionController.shared
         controller.printInfo = info
         controller.printingItem = request.url
+        ExportQueue.shared.delivering = true
+        let done: UIPrintInteractionController.CompletionHandler = { _, _, _ in
+            MainActor.assumeIsolated { dismissed() }
+        }
         // iPad refuses the sheet-less presentation and raises rather than
         // failing quietly, so it gets an anchor rect.
+        let shown: Bool
         if let anchor = topController?.view, UIDevice.current.userInterfaceIdiom == .pad {
-            controller.present(from: CGRect(x: anchor.bounds.midX, y: anchor.bounds.midY, width: 1, height: 1),
-                               in: anchor, animated: true, completionHandler: nil)
+            shown = controller.present(from: CGRect(x: anchor.bounds.midX, y: anchor.bounds.midY, width: 1, height: 1),
+                                       in: anchor, animated: true, completionHandler: done)
         } else {
-            controller.present(animated: true, completionHandler: nil)
+            shown = controller.present(animated: true, completionHandler: done)
         }
+        if !shown { dismissed() }
     }
 
     /// A result delivered with the sheet gone: printed, shared — or opened,
     /// when Open asked — and what there is to say put in the pill.
     static func deliver(_ finished: ExportQueue.Finished, request: ExportQueue.Request?, queue: ExportQueue) {
         let result = finished.result
+        if let failed = result.failed {
+            queue.note = failed
+            return
+        }
         if let print = result.print {
             self.print(print)
         } else if request == .open, let first = result.urls.first {
@@ -410,12 +517,15 @@ enum ExportPresenter {
         }
     }
 
-    private final class PreviewSource: NSObject, QLPreviewControllerDataSource {
+    private final class PreviewSource: NSObject, QLPreviewControllerDataSource, QLPreviewControllerDelegate {
         let url: URL
         init(url: URL) { self.url = url }
         func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
         func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
             url as NSURL
+        }
+        func previewControllerDidDismiss(_ controller: QLPreviewController) {
+            MainActor.assumeIsolated { ExportPresenter.dismissed() }
         }
     }
 }

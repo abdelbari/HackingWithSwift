@@ -36,6 +36,23 @@ enum SharedInbox {
         /// Its file in the inbox folder: "0.jpg".
         var file: String
         var mime: String
+
+        init(kind: Kind, file: String, mime: String) {
+            self.kind = kind
+            self.file = file
+            self.mime = mime
+        }
+
+        private enum CodingKeys: String, CodingKey { case kind, file, mime }
+
+        /// A missing mime reads as "", as the Android twin reads it; the
+        /// kind and the file are needed.
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            kind = try c.decode(Kind.self, forKey: .kind)
+            file = try c.decode(String.self, forKey: .file)
+            mime = (try? c.decode(String.self, forKey: .mime)) ?? ""
+        }
     }
 
     struct ShareManifest: Codable, Equatable, Sendable {
@@ -82,10 +99,20 @@ enum SharedInbox {
         }
     }
 
-    /// One share, landed: its folder's id and what is in it.
+    /// One share, landed: its folder's id and what is in it, and how many
+    /// items were handed over — those that would not copy in counted among
+    /// what could not be opened, as the Android twin counts what was shared.
     struct Box: Identifiable, Equatable, Sendable {
         var id: String
         var manifest: ShareManifest
+        var asked: Int
+
+        init(id: String, manifest: ShareManifest, asked: Int? = nil) {
+            self.id = id
+            self.manifest = manifest
+            self.asked = max(asked ?? manifest.items.count, manifest.items.count)
+        }
+
         var directory: URL { SharedInbox.directory(for: id) }
 
         func url(of item: Item) -> URL { directory.appendingPathComponent(item.file) }
@@ -147,7 +174,7 @@ enum SharedInbox {
             remove(id)
             return nil
         }
-        return Box(id: id, manifest: manifest)
+        return Box(id: id, manifest: manifest, asked: min(urls.count, maxItems))
     }
 
     /// A landed share read back, as the Android twin's would be.
@@ -163,6 +190,24 @@ enum SharedInbox {
         guard DesignPackage.isSafeFileName(id) else { return }
         try? FileManager.default.removeItem(at: directory(for: id))
     }
+
+    /// Inbox folders a day old or more — a sheet never answered, the app
+    /// stopped before it was — gone. Run at launch, as the Android twin's
+    /// Inbox.sweep is.
+    static func sweep(now: Date = Date(), in folder: URL = SharedInbox.root) {
+        let fm = FileManager.default
+        let keys: [URLResourceKey] = [.isDirectoryKey, .contentModificationDateKey]
+        guard let entries = try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: keys) else { return }
+        for entry in entries {
+            guard let values = try? entry.resourceValues(forKeys: Set(keys)), values.isDirectory == true,
+                  let changed = values.contentModificationDate,
+                  now.timeIntervalSince(changed) > dayAge else { continue }
+            try? fm.removeItem(at: entry)
+        }
+    }
+
+    /// How old an inbox folder is let get before the sweep takes it.
+    static let dayAge: TimeInterval = 24 * 3600
 
     // MARK: sizes
 
@@ -259,7 +304,8 @@ enum SharedInbox {
     /// outline as a shape, a PDF a page for each of its pages. Files only,
     /// away from the main actor.
     static func bringIn(_ box: Box, pageSize: CGSize) -> Brought {
-        var brought = Brought(total: box.manifest.items.count)
+        // Those handed over that never landed are counted as not opened.
+        var brought = Brought(failed: box.asked - box.manifest.items.count, total: box.asked)
         for item in box.manifest.items {
             let pages = bringIn(item, from: box, pageSize: pageSize)
             if pages.isEmpty { brought.failed += 1 }

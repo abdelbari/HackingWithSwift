@@ -36,6 +36,8 @@ struct CanviaApp: App {
         // first — everything already stored, the first time — as the sweep
         // never takes one.
         DesignLibrary.purgeTrash()
+        // Shares never brought in — the app stopped with the sheet up.
+        SharedInbox.sweep()
         Uploads.seedIfNeeded()
         DesignLibrary.pruneUnusedFiles()
         // The bundled fonts and your own, registered with CoreText for this

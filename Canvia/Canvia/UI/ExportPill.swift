@@ -110,20 +110,17 @@ private struct PillChrome: ViewModifier {
 /// At the app's root: what finished with the Export sheet closed is shared —
 /// or opened, or printed — once the app is in front, and a paused export
 /// carries on as the app comes back. A failure, or what there is to say, goes
-/// in the pill.
+/// in the pill, each in its turn once the one before has gone.
 struct ExportDelivery: ViewModifier {
     @Environment(\.scenePhase) private var scenePhase
     private var queue: ExportQueue { ExportQueue.shared }
 
     func body(content: Content) -> some View {
         content
-            .onChange(of: queue.finished?.id) { deliverSoon() }
+            .onChange(of: queue.finished.count) { deliverSoon() }
             .onChange(of: queue.requested) { deliverSoon() }
-            .onChange(of: queue.failure) { _, failure in
-                guard let failure, !queue.sheetOpen else { return }
-                queue.note = failure
-                queue.failure = nil
-            }
+            .onChange(of: queue.delivering) { deliverSoon() }
+            .onChange(of: queue.note) { deliverSoon() }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }
                 queue.resume()
@@ -133,16 +130,18 @@ struct ExportDelivery: ViewModifier {
 
     /// A moment after, so a notification's Share or Open — which lands just
     /// after the app comes back — decides how; and only with the app in
-    /// front and the sheet, which delivers its own, not up.
+    /// front, the sheet, which delivers its own, not up, and the last one
+    /// delivered gone: several done while away come one after another, and
+    /// one only said waits for the pill to be free. The tap is used up even
+    /// when what it was for has gone already.
     private func deliverSoon() {
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(500))
             let queue = ExportQueue.shared
-            guard UIApplication.shared.applicationState == .active, !queue.sheetOpen,
-                  let done = queue.takeFinished() else { return }
-            let request = queue.requested
-            queue.requested = nil
-            ExportPresenter.deliver(done, request: request, queue: queue)
+            let pillBusy = queue.note != nil && queue.nextIsOnlySaid
+            guard UIApplication.shared.applicationState == .active, !queue.sheetOpen, !queue.delivering, !pillBusy,
+                  let next = queue.takeRequested() else { return }
+            ExportPresenter.deliver(next.finished, request: next.request, queue: queue)
         }
     }
 }

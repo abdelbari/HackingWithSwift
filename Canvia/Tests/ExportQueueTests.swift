@@ -4,6 +4,7 @@
 
 import XCTest
 import CoreGraphics
+import UserNotifications
 @testable import Canvia
 
 @MainActor
@@ -61,8 +62,73 @@ final class ExportQueueTests: XCTestCase {
         XCTAssertEqual(recorder.most, 1, "two ran at once")
         XCTAssertFalse(queue.isBusy)
         XCTAssertNil(queue.current)
+        // Each one done is kept until taken, oldest first: one finishing
+        // while the app is away does not replace the one before.
+        XCTAssertEqual(queue.finished.map(\.label), ["a", "b", "c"])
+        XCTAssertEqual(queue.takeFinished()?.label, "a")
+        XCTAssertEqual(queue.takeFinished()?.label, "b")
         XCTAssertEqual(queue.takeFinished()?.label, "c")
-        XCTAssertNil(queue.finished)
+        XCTAssertNil(queue.takeFinished())
+        XCTAssertTrue(queue.finished.isEmpty)
+    }
+
+    /// The rows the Android twin's ExportsReadyTest checks: oldest first;
+    /// a notification tapped takes its own export, the rest left in order;
+    /// a tap for one delivered already is let go, the oldest delivered as
+    /// it would have been.
+    func testATappedNotificationTakesItsOwnExport() async {
+        let queue = ExportQueue(host: .none)
+        let recorder = Recorder()
+        let jobs = ["a", "b", "c"].map { job($0, recorder) }
+        for j in jobs { queue.enqueue(j) }
+        await queue.waitUntilIdle()
+
+        queue.requested = .open
+        queue.requestedJob = jobs[1].id
+        let tapped = queue.takeRequested()
+        XCTAssertEqual(tapped?.finished.label, "b")
+        XCTAssertEqual(tapped?.request, .open)
+        XCTAssertNil(queue.requested)
+        XCTAssertNil(queue.requestedJob)
+
+        queue.requested = .share
+        queue.requestedJob = jobs[1].id
+        let stale = queue.takeRequested()
+        XCTAssertEqual(stale?.finished.label, "a")
+        XCTAssertNil(stale?.request, "a tap for one gone already")
+        XCTAssertNil(queue.requested)
+
+        XCTAssertEqual(queue.takeRequested()?.finished.label, "c")
+        queue.requested = .open
+        queue.requestedJob = jobs[0].id
+        XCTAssertNil(queue.takeRequested())
+        XCTAssertNil(queue.requested, "a tap with nothing waiting is used up")
+    }
+
+    /// The row the Android twin's ExportsReadyTest checks: a tap on b's
+    /// notification itself, with a waiting, leaves them in turn — a first;
+    /// its Share or Open takes b first, as asked.
+    func testATapOnTheNotificationItselfLeavesThemInTurn() async {
+        let queue = ExportQueue(host: .none)
+        let recorder = Recorder()
+        let jobs = ["a", "b", "c"].map { job($0, recorder) }
+        for j in jobs { queue.enqueue(j) }
+        await queue.waitUntilIdle()
+
+        XCTAssertNil(ExportNotifications.request(for: UNNotificationDefaultActionIdentifier))
+        XCTAssertEqual(ExportNotifications.request(for: ExportNotifications.shareAction), .share)
+        XCTAssertEqual(ExportNotifications.request(for: ExportNotifications.openAction), .open)
+
+        queue.tapped(nil, job: jobs[1].id)
+        XCTAssertNil(queue.requested)
+        XCTAssertNil(queue.requestedJob)
+        XCTAssertEqual(queue.takeRequested()?.finished.label, "a")
+
+        queue.tapped(.open, job: jobs[2].id)
+        let opened = queue.takeRequested()
+        XCTAssertEqual(opened?.finished.label, "c")
+        XCTAssertEqual(opened?.request, .open)
+        XCTAssertEqual(queue.takeRequested()?.finished.label, "b")
     }
 
     /// One asked for while another runs waits its turn; taken out of the
@@ -85,8 +151,8 @@ final class ExportQueueTests: XCTestCase {
         queue.cancelCurrent()
         await queue.waitUntilIdle()
         XCTAssertEqual(recorder.events, ["start first", "start third", "end third"])
-        XCTAssertEqual(queue.finished?.label, "third")
-        XCTAssertNil(queue.failure)
+        XCTAssertEqual(queue.finished.map(\.label), ["third"])
+        XCTAssertNil(queue.finished.first?.result.failed)
     }
 
     /// Stop stops them all: the one running, and none waiting starts after.
@@ -101,7 +167,7 @@ final class ExportQueueTests: XCTestCase {
         XCTAssertTrue(queue.waiting.isEmpty)
         await queue.waitUntilIdle()
         XCTAssertEqual(recorder.events, ["start pdf"])
-        XCTAssertNil(queue.finished)
+        XCTAssertTrue(queue.finished.isEmpty)
         XCTAssertFalse(queue.isBusy)
     }
 
@@ -110,8 +176,27 @@ final class ExportQueueTests: XCTestCase {
         let queue = ExportQueue(host: .none)
         queue.enqueue(ExportQueue.Job(label: "Making the PDF", designId: "d") { _ in throw Broken() })
         await queue.waitUntilIdle()
-        XCTAssertEqual(queue.failure, "Export failed: the disk is full")
-        XCTAssertNil(queue.finished)
+        XCTAssertEqual(queue.finished.map(\.result.failed), ["Export failed: the disk is full"])
+        XCTAssertTrue(queue.finished.first?.result.isOnlySaid ?? false)
+    }
+
+    /// The row the Android twin's ExportsReadyTest checks: two failing
+    /// jobs leave two messages, oldest first — the second does not replace
+    /// the first.
+    func testTwoFailuresLeaveTwoMessagesOldestFirst() async {
+        struct Broken: LocalizedError {
+            let why: String
+            var errorDescription: String? { why }
+        }
+        let queue = ExportQueue(host: .none)
+        queue.enqueue(ExportQueue.Job(label: "Making the PDF", designId: "d") { _ in throw Broken(why: "the disk is full") })
+        queue.enqueue(ExportQueue.Job(label: "Rendering the video", designId: "d") { _ in throw Broken(why: "no room") })
+        await queue.waitUntilIdle()
+        XCTAssertTrue(queue.nextIsOnlySaid)
+        XCTAssertEqual(queue.takeRequested()?.finished.result.failed, "Export failed: the disk is full")
+        XCTAssertEqual(queue.takeRequested()?.finished.result.failed, "Export failed: no room")
+        XCTAssertNil(queue.takeRequested())
+        XCTAssertFalse(queue.nextIsOnlySaid)
     }
 
     /// Reported progress lands on the job running, from any thread.
@@ -152,7 +237,7 @@ final class ExportQueueTests: XCTestCase {
         gate.isOpen = true
         await queue.waitUntilIdle()
 
-        let url = try XCTUnwrap(queue.finished?.result.urls.first)
+        let url = try XCTUnwrap(queue.finished.last?.result.urls.first)
         defer { try? FileManager.default.removeItem(at: url) }
         XCTAssertEqual(url.lastPathComponent, "snapshot.pdf")
         XCTAssertEqual(CGPDFDocument(url as CFURL)?.numberOfPages, 2)

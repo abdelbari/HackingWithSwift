@@ -515,14 +515,16 @@ struct HomeView: View {
 
     /// The folder goes, its designs either out of any folder or to
     /// Recently deleted with one Undo for them all; the shelf shows
-    /// everything again.
+    /// everything again. Kept designs leave no folder to star; deleted
+    /// with its designs, the folder keeps its star should they come back,
+    /// as on the Android twin.
     private func deleteFolder(_ name: String, trashingDesigns: Bool) {
         let inFolder = recents.filter { $0.folder == name }
         folder = nil
-        DesignLibrary.renameFolderStar(name, to: nil)
         if trashingDesigns {
             trash(inFolder)
         } else {
+            DesignLibrary.renameFolderStar(name, to: nil)
             for design in inFolder { DesignLibrary.move(id: design.id, toFolder: nil) }
             reload()
         }
