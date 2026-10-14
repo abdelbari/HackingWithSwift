@@ -152,6 +152,11 @@ struct ContextToolbar: View {
 
     @ViewBuilder
     private func typeControls(_ el: Element) -> some View {
+        // Edit first, for a text box or a shape's words — a table cell's
+        // too — as Canva puts it: the keyboard opens on the words.
+        if let target = store.typedIn(el), store.editingTextId != target.id {
+            toolButton("keyboard", "Edit") { store.startTyping(target.id) }
+        }
         switch el.type {
         case .text: textControls(el)
         case .shape: shapeControls(el)
