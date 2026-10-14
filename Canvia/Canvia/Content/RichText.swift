@@ -637,8 +637,13 @@ enum RichText {
     /// between them and the words beside them are taken in: "Big sale" in
     /// "**Big** sale" is 0..12. Find's matches are placed by this rule.
     static func storedRange(of range: NSRange, in text: String) -> NSRange {
-        let units = typedUnits(text)
-        let length = (text as NSString).length
+        storedRange(of: range, units: typedUnits(text), length: (text as NSString).length)
+    }
+
+    /// storedRange, from `text`'s typedUnits and stored length already
+    /// worked out — for many ranges of the same words, each in one step
+    /// rather than a fresh pass over all of them.
+    static func storedRange(of range: NSRange, units: [Int], length: Int) -> NSRange {
         let lo = min(max(range.location, 0), units.count)
         let hi = min(max(NSMaxRange(range), lo), units.count)
         let start = lo == 0 ? 0 : units[lo - 1] + 1

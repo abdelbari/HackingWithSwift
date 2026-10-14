@@ -34,7 +34,9 @@ struct FindReplaceSheet: View {
     }
 
     var body: some View {
+        // One search a render, the count and the list both from it.
         let found = matches
+        let said = Self.summary(needle: needle, matches: found, replaced: replacedCount)
         return NavigationStack {
             Form {
                 Section {
@@ -48,7 +50,7 @@ struct FindReplaceSheet: View {
                     Toggle("Match case", isOn: $caseSensitive)
                     Toggle("Whole words", isOn: $wholeWord)
                 } footer: {
-                    Text(summary)
+                    Text(said)
                 }
                 if !found.isEmpty { stepping(found) }
                 replaceSection(found)
@@ -67,10 +69,10 @@ struct FindReplaceSheet: View {
             .onChange(of: wholeWord) { searchChanged() }
             // The count spoken as it changes, once typing pauses, so a
             // VoiceOver user hears what the footer shows.
-            .task(id: summary) {
+            .task(id: said) {
                 try? await Task.sleep(for: .milliseconds(600))
                 guard !Task.isCancelled, !needle.isEmpty else { return }
-                AccessibilityNotification.Announcement(summary).post()
+                AccessibilityNotification.Announcement(said).post()
             }
             .feel(trigger: replacedCount) { _, count in count != nil ? .success : nil }
         }
@@ -179,10 +181,6 @@ struct FindReplaceSheet: View {
         } else {
             show(next, in: now)
         }
-    }
-
-    private var summary: String {
-        Self.summary(needle: needle, matches: matches, replaced: replacedCount)
     }
 
     /// The title of page `index`, to name a match's page by.

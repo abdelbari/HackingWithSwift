@@ -278,6 +278,51 @@ final class TypingBurstsTests: XCTestCase {
         XCTAssertEqual(s.typingSelectionAsked?.range, NSRange(location: 9, length: 0), "changed: the caret at the end")
     }
 
+    /// Only the latest add is just added: a text added before it opens with
+    /// its caret, not its words chosen, as on the Android twin.
+    func testOnlyTheLatestTextAddedOpensWithItsWordsChosen() {
+        let s = store([])
+        let heading = Element.text("Add a heading", fontSize: 60, w: 600)
+        let body = Element.text("Add a little bit of body text", fontSize: 30, w: 600)
+        s.addText(heading)
+        s.addText(body)
+        s.startTyping(heading.id)
+        XCTAssertEqual(s.typingSelectionAsked?.range, NSRange(location: 13, length: 0), "the earlier add: the caret at the end")
+    }
+
+    /// Words typed after an Undo while typing: Redo is off — it would only
+    /// close them as a step, and nothing would be left to make again — and a
+    /// Redo asked for all the same leaves the typing open, as on the Android
+    /// twin.
+    func testRedoIsOffWhileWordsTypedSinceUndoAreOpen() {
+        let text = Element.text("Hi", fontSize: 24, w: 400)
+        let s = store([text])
+        s.startTyping(text.id)
+        s.typeWords("Hi there", into: text.id)
+        s.closeTypingStep()
+        s.typeWords("Hi there you", into: text.id)
+        s.closeTypingStep()
+        s.undo()
+        XCTAssertTrue(s.canRedo)
+        s.typeWords("Hi there!", into: text.id)
+        XCTAssertFalse(s.canRedo)
+        s.redo()
+        XCTAssertEqual(s.editingTextId, text.id, "still typing")
+        XCTAssertEqual(s.element(text.id)?.text, "Hi there!")
+    }
+
+    /// Typing, with nothing typed and nothing before it to take back: Undo
+    /// leaves the typing open, as on the Android twin.
+    func testUndoWithNothingAtAllToTakeBackKeepsTyping() {
+        let text = Element.text("Hi", fontSize: 24, w: 400)
+        let s = store([text])
+        s.startTyping(text.id)
+        s.undo()
+        XCTAssertEqual(s.editingTextId, text.id)
+        s.redo()
+        XCTAssertEqual(s.editingTextId, text.id)
+    }
+
     /// A tap types only in what is already the one thing selected, unlocked,
     /// outside Select multiple, and only a quick one.
     func testOnlyAQuickTapOnTheOneThingSelectedTypes() {

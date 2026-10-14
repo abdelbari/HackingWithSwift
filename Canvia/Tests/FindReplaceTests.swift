@@ -356,6 +356,22 @@ final class FindReplaceTests: XCTestCase {
         XCTAssertTrue(DesignStore.matches(in: design, for: "bi", caseSensitive: false, wholeWord: true).isEmpty)
     }
 
+    /// Shared with the Android twin: every match in a box is placed from one
+    /// map of its words, just as each would be alone.
+    func testSeveralMatchesInOneBoxAreEachPlacedAsAlone() {
+        let text = "**Big** big sale"
+        var design = Design(title: "styled", width: 800, height: 600)
+        design.pages[0].elements = [Element.text(text, fontSize: 24, w: 400)]
+        let found = DesignStore.matches(in: design, for: "big", caseSensitive: false, wholeWord: false)
+        XCTAssertEqual(found.map { [$0.range.location, NSMaxRange($0.range)] }, [[0, 7], [8, 11]])
+        let units = RichText.typedUnits(text)
+        let length = (text as NSString).length
+        for range in [NSRange(location: 4, length: 3), NSRange(location: 0, length: 12)] {
+            XCTAssertEqual(RichText.storedRange(of: range, units: units, length: length),
+                           RichText.storedRange(of: range, in: text))
+        }
+    }
+
     /// The rule a match is placed by, the Android twin's rows too: from just
     /// after the character before it to just before the character after,
     /// the markers between taken in whichever style they open or close.
