@@ -36,7 +36,7 @@ extension DesignStore {
     @discardableResult
     func startCrop(_ id: String) -> Bool {
         if cropping != nil { return true }
-        guard let photo = element(id), photo.type == .image else { return false }
+        guard let photo = element(id), photo.type == .image, !refusesLockedPage() else { return false }
         if photo.locked {
             announce("This photo is locked. Tap Unlock to crop it.", undoable: false)
             return false

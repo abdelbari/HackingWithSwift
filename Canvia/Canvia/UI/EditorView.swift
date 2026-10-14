@@ -58,6 +58,9 @@ struct EditorView: View {
     /// The copies Copy & resize just made, which the toast offers to Open
     /// in place of an Undo.
     @State private var toastOpens: [String] = []
+    /// The locked page the toast offers to unlock, when it says a page is
+    /// locked (DesignStore.refusesLockedPage).
+    @State private var toastUnlocks: String?
     @State private var toastTask: Task<Void, Never>?
     @State private var tip: Tip?
     @State private var presenting = false
@@ -103,6 +106,12 @@ struct EditorView: View {
     /// the same.
     static let saveFailedMessage = "Couldn't save your changes. Your phone may be out of space. Canvia will keep trying."
 
+    /// The page background panel — on a locked page, which keeps its
+    /// background, the refusal, with Unlock, instead.
+    private func openBackground() {
+        if !store.refusesLockedPage() { activeSheet = .background }
+    }
+
     /// The editor's stack and the modifiers that answer the canvas — split
     /// from `body`'s sheets, alerts and lifecycle so the type checker takes
     /// each chain in reasonable time.
@@ -112,10 +121,10 @@ struct EditorView: View {
             if saveFailed { saveFailedBanner }
             if let tip { tipBanner(tip) }
             ZStack(alignment: .bottomTrailing) {
-                CanvasView(store: store, onBackground: { activeSheet = .background })
+                CanvasView(store: store, onBackground: openBackground)
                     .overlay { if rulers { RulersView(store: store).allowsHitTesting(!pageTaken) } }
                     .overlay { SelectionBubble(store: store) }
-                    .overlay { HoldMenuPill(store: store) { activeSheet = .background } }
+                    .overlay { HoldMenuPill(store: store, openBackground: openBackground) }
                     .overlay(alignment: .top) {
                         CanvasChips(store: store).padding(.top, CGFloat(rulers ? Guides.rulerThickness : 0))
                     }
@@ -181,7 +190,10 @@ struct EditorView: View {
         .onChange(of: store.announcement) { _, text in
             guard let text else { return }
             store.announcement = nil
+            let unlocks = store.announcementUnlocks
+            store.announcementUnlocks = nil
             show(toast: text, undoable: store.announcementUndoes)
+            toastUnlocks = unlocks
         }
         .onChange(of: store.tipEvent) { _, event in
             guard let event else { return }
@@ -664,7 +676,7 @@ struct EditorView: View {
                 } label: { Label("Layers", systemImage: "square.3.layers.3d") }
 
                 Button {
-                    activeSheet = .background
+                    openBackground()
                 } label: { Label("Page background", systemImage: "photo.artframe") }
 
                 Button {
@@ -1307,7 +1319,14 @@ struct EditorView: View {
                 Text(toast)
                     .font(.subheadline)
                     .lineLimit(1)
-                if !toastOpens.isEmpty {
+                if let id = toastUnlocks {
+                    Button("Unlock") {
+                        dismissToast()
+                        store.unlockPage(id)
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
+                } else if !toastOpens.isEmpty {
                     Button("Open") {
                         let ids = toastOpens
                         dismissToast()
@@ -1454,6 +1473,7 @@ struct EditorView: View {
     private func show(toast text: String, undoable: Bool) {
         toastTask?.cancel()
         toastOpens = []
+        toastUnlocks = nil
         toastUndoes = undoable
         toastVersion = store.historyVersion
         withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { toast = text }

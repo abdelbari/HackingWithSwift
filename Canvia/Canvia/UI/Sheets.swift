@@ -1403,7 +1403,8 @@ struct PositionSheet: View {
 /// to select, the eye to hide and the padlock to lock — each one undo step —
 /// and press and hold for Rename…. Elements sharing a group fold into one
 /// "Group (n)" row, which opens to list them and drags as one block.
-/// Overlapping lists only what overlaps the selection.
+/// Overlapping lists only what overlaps the selection. On a locked page the
+/// rows are read only, each with a padlock, under a line with Unlock.
 struct LayersSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
@@ -1428,12 +1429,14 @@ struct LayersSheet: View {
     var body: some View {
         NavigationStack {
             let rows = self.rows
+            let locked = store.isPageLocked
             List {
+                if locked { lockedNote }
                 if rows.isEmpty { emptyState }
                 ForEach(rows) { row in
                     rowView(row)
-                        .moveDisabled(filter != .all || !row.movable)
-                        .deleteDisabled(!row.elements.contains { !$0.locked })
+                        .moveDisabled(locked || filter != .all || !row.movable)
+                        .deleteDisabled(locked || !row.elements.contains { !$0.locked })
                 }
                 .onMove(perform: moveAction(rows))
                 .onDelete { offsets in delete(offsets.map { rows[$0] }) }
@@ -1477,6 +1480,21 @@ struct LayersSheet: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .background(.bar)
+    }
+
+    /// Over a locked page's rows: why nothing here can be changed, and
+    /// Unlock.
+    private var lockedNote: some View {
+        HStack {
+            Label(PageLocks.lockedNote, systemImage: "lock.fill")
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button("Unlock") { store.setPageLocked(false) }
+                .buttonStyle(.borderless)
+                .foregroundStyle(Theme.accent)
+        }
+        .moveDisabled(true)
+        .deleteDisabled(true)
     }
 
     @ViewBuilder
@@ -1559,8 +1577,7 @@ struct LayersSheet: View {
                 Image(systemName: "checkmark").foregroundStyle(Theme.accent)
                     .accessibilityHidden(true)
             }
-            eyeButton([el.id], hidden: el.isHidden, name: name)
-            lockButton([el.id], mode: ElementLock.mode(of: el), name: name)
+            rowControls([el.id], hidden: el.isHidden, mode: ElementLock.mode(of: el), name: name)
         }
         .contentShape(Rectangle())
         .onTapGesture { pick(el, alone: alone) }
@@ -1601,11 +1618,25 @@ struct LayersSheet: View {
                 Image(systemName: "checkmark").foregroundStyle(Theme.accent)
                     .accessibilityHidden(true)
             }
-            eyeButton(ids, hidden: allHidden, name: name)
-            lockButton(ids, mode: Self.sharedLock(members), name: name)
+            rowControls(ids, hidden: allHidden, mode: Self.sharedLock(members), name: name)
         }
         .contentShape(Rectangle())
         .onTapGesture { pickGroup(members) }
+    }
+
+    /// The eye and the padlock — or, on a locked page, only a padlock that
+    /// does nothing, the row read only.
+    @ViewBuilder
+    private func rowControls(_ ids: Set<String>, hidden: Bool, mode: ElementLock.Mode, name: String) -> some View {
+        if store.isPageLocked {
+            Image(systemName: "lock.fill")
+                .foregroundStyle(.secondary)
+                .frame(width: 30, height: 30)
+                .accessibilityLabel(PageLocks.lockedNote)
+        } else {
+            eyeButton(ids, hidden: hidden, name: name)
+            lockButton(ids, mode: mode, name: name)
+        }
     }
 
     /// Hides what the row stands for, or — when all of it is hidden — shows
@@ -1656,15 +1687,19 @@ struct LayersSheet: View {
         return modes.count == 1 ? modes.first ?? .unlocked : .unlocked
     }
 
+    /// A row tapped selects what it stands for; nothing, on a locked page.
     private func pick(_ el: Element, alone: Bool) {
+        guard !store.isPageLocked else { return }
         if alone { store.selectLayer(el.id) } else { store.select(el.id) }
     }
 
     private func pickGroup(_ members: [Element]) {
+        guard !store.isPageLocked else { return }
         if let top = members.first { store.select(top.id) }
     }
 
     private func startRename(_ el: Element) {
+        guard !store.isPageLocked else { return }
         typedName = el.layerName ?? ""
         renaming = el
     }

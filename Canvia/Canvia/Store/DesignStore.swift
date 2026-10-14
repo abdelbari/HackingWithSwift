@@ -303,8 +303,21 @@ final class DesignStore {
         commit()
     }
 
-    /// Mutate the current page + record one undo step.
+    /// Mutate the current page + record one undo step. A locked page keeps
+    /// what is on it and its background (PageLocks.allows): an edit that
+    /// would change either is refused, and said, with Unlock.
     func applyToPage(_ mutate: (inout Page) -> Void) {
+        if isPageLocked {
+            var changed = page
+            mutate(&changed)
+            guard PageLocks.allows(page, becoming: changed) else {
+                refusesLockedPage()
+                return
+            }
+            let index = pageIndex
+            apply { $0.pages[index] = changed }
+            return
+        }
         apply { design in
             mutate(&design.pages[self.pageIndex])
         }
@@ -498,7 +511,9 @@ final class DesignStore {
         let shown = page
         let was = before.pages.first { $0.id == shown.id } ?? shown
         let ids = Set(shown.elements.map(\.id))
-        let changed = History.changedIds(before: was, after: shown).intersection(ids)
+        // Nothing on a locked page is ever selected.
+        let changed: Set<String> = PageLocks.isLocked(shown) ? []
+            : History.changedIds(before: was, after: shown).intersection(ids)
         let groups = Set(shown.elements.filter { changed.contains($0.id) }.compactMap(\.group))
         selection = changed.union(shown.elements.filter { $0.group.map(groups.contains) == true }.map(\.id))
         // Undo while typing keeps the box typed in, alone even in a group,
@@ -531,6 +546,8 @@ final class DesignStore {
             selection.removeAll()
             return
         }
+        // Nothing on a locked page is selected: the tap is said, with Unlock.
+        guard !refusesLockedPage() else { return }
         // Expand to sticky group.
         var ids: Set<String> = [id]
         if let group = element(id)?.group {
@@ -606,6 +623,7 @@ final class DesignStore {
     /// are as they were added (freshTexts), so the first key replaces them;
     /// else at the end.
     func startTyping(_ id: String, at point: CGPoint?, word: Bool = false) {
+        guard !refusesLockedPage() else { return }
         endTextEdit()
         selection = [id]
         editingTextId = id
@@ -692,6 +710,8 @@ final class DesignStore {
     // MARK: element commands
 
     func add(_ element: Element, centered: Bool = true) {
+        // Onto the next unlocked page when this one is locked, or not at all.
+        guard landsOnUnlockedPage() else { return }
         defer {
             let count = page.elements.count
             tipEvent = count == 1 ? .firstElementAdded
@@ -712,7 +732,7 @@ final class DesignStore {
     /// the page as one step, the whole graphic selected, and a word when
     /// some of the file could not come with it.
     func addGraphic(_ graphic: SvgImport.Graphic) {
-        guard !graphic.elements.isEmpty else { return }
+        guard !graphic.elements.isEmpty, landsOnUnlockedPage() else { return }
         applyToPage { $0.elements += graphic.elements }
         selection = Set(graphic.elements.map(\.id))
         if graphic.skipped {
@@ -951,6 +971,8 @@ final class DesignStore {
     /// the empty page brings up — what was copied is put down centred there
     /// and kept on the page (HoldMenu.placed), in the paste's one step.
     func paste(at point: CGPoint? = nil) {
+        // Nothing is pasted onto a locked page.
+        guard !refusesLockedPage() else { return }
         // Our own copy first; otherwise whatever another app left: a
         // picture, or some text.
         if clipboard.isEmpty {
@@ -1024,6 +1046,7 @@ final class DesignStore {
     /// is, so Undo while typing takes back what was typed and leaves the box
     /// open with its words; left as it is, it stays, as that one step.
     func addText(at point: CGPoint) {
+        guard !refusesLockedPage() else { return }
         // Typing, or a step left open, is closed first, as its own.
         endTextEdit()
         commit()
@@ -1041,8 +1064,11 @@ final class DesignStore {
         startTyping(el.id)
     }
 
+    /// Everything on this page that can be selected; nothing on a locked
+    /// page, which is said instead.
     func selectAll() {
         endTextEdit()
+        guard !refusesLockedPage() else { return }
         selection = Set(page.elements.filter { !$0.locked && !$0.isHidden }.map(\.id))
     }
 
@@ -1050,6 +1076,7 @@ final class DesignStore {
     /// groups expanded so a band across one member takes the whole group.
     func select(within rect: CGRect) {
         endTextEdit()
+        guard !isPageLocked else { return }
         var ids = Set(Geometry.intersecting(page.elements, rect).map(\.id))
         let groups = Set(page.elements.filter { ids.contains($0.id) }.compactMap(\.group))
         for el in page.elements where el.group.map(groups.contains) == true {
@@ -1344,6 +1371,9 @@ final class DesignStore {
     /// still under way: there Undo would take back whatever was done last,
     /// which has nothing to do with the message.
     var announcementUndoes = true
+    /// The locked page that toast offers to unlock (refusesLockedPage);
+    /// nil for any other toast.
+    var announcementUnlocks: String?
 
     /// Something just happened that a first-timer might want a word about.
     /// The editor hands it to TipEngine, which decides whether to say it.
@@ -1480,6 +1510,8 @@ final class DesignStore {
 
     func toggleDrawing() {
         if drawing == nil {
+            // Nothing is drawn onto a locked page.
+            guard !refusesLockedPage() else { return }
             endTextEdit()
             selection.removeAll()
             // The pen as it was last put away — ink, width and kind — for
@@ -1493,6 +1525,8 @@ final class DesignStore {
     /// A finished stroke in page units becomes one shape and one undo step;
     /// nothing is selected, so the next stroke starts clean.
     func finishStroke(_ points: [CGPoint]) {
+        // The page under the pen may have been locked since it was taken up.
+        guard !refusesLockedPage() else { return }
         if let tool = drawing, tool.pen == .eraser {
             if tool.eraseWhole {
                 eraseStrokes(points, radius: Freehand.eraserRadius(tool))
@@ -1567,6 +1601,7 @@ final class DesignStore {
     }
 
     func announce(_ text: String, undoable: Bool = true) {
+        announcementUnlocks = nil
         announcementUndoes = undoable
         announcement = text
     }
@@ -1903,7 +1938,7 @@ final class DesignStore {
     /// is selected and takes the copied style, as one undo step, felt as it
     /// lands. A locked one is left as it is.
     func paintStyle(onto id: String) {
-        guard copiedStyle != nil, let el = element(id) else { return }
+        guard copiedStyle != nil, let el = element(id), !refusesLockedPage() else { return }
         guard !el.locked else {
             buzz(.reject)
             return
@@ -1992,6 +2027,7 @@ final class DesignStore {
     /// without the rest of the group.
     func selectLayer(_ id: String) {
         endTextEdit()
+        guard !refusesLockedPage() else { return }
         selection = [id]
     }
 
@@ -2035,7 +2071,7 @@ final class DesignStore {
     /// it — and the rest are added after it, in order, each at this page's
     /// size.
     func applyTemplatePages(_ pages: [Page], name: String) {
-        guard !pages.isEmpty else { return }
+        guard !pages.isEmpty, !refusesLockedPage() else { return }
         let at = pageIndex
         apply { $0 = Self.appliedTemplate($0, pages: pages, at: at) }
         selection.removeAll()
@@ -2091,15 +2127,25 @@ final class DesignStore {
         if let i = design.pages.firstIndex(where: { $0.id == currentId }) { pageIndex = i }
     }
 
-    /// Delete several pages in one undo step, never the last one.
+    /// Delete several pages in one undo step, never the last one. A locked
+    /// page among them stays, and the note says how many did
+    /// (PageLocks.deletedNote).
     func deletePages(_ ids: Set<String>) {
-        let victims = design.pages.filter { ids.contains($0.id) }
-        guard !victims.isEmpty, victims.count < design.pages.count else { return }
+        let victims = Set(design.pages.filter { ids.contains($0.id) && !PageLocks.isLocked($0) }.map(\.id))
+        let skipped = design.pages.filter { ids.contains($0.id) && PageLocks.isLocked($0) }.count
+        guard victims.count < design.pages.count else { return }
+        guard !victims.isEmpty else {
+            if skipped > 0 {
+                buzz(.reject)
+                announce(PageLocks.deletedNote(deleted: 0, skipped: skipped), undoable: false)
+            }
+            return
+        }
         let currentId = page.id
-        apply { $0.pages.removeAll { ids.contains($0.id) } }
+        apply { $0.pages.removeAll { victims.contains($0.id) } }
         pageIndex = design.pages.firstIndex { $0.id == currentId } ?? min(pageIndex, design.pages.count - 1)
         selection.removeAll()
-        announce(victims.count == 1 ? "Deleted 1 page" : "Deleted \(victims.count) pages")
+        announce(PageLocks.deletedNote(deleted: victims.count, skipped: skipped))
     }
 
     /// Duplicate several pages, each copy landing right after its source.
@@ -2242,6 +2288,7 @@ final class DesignStore {
 
     /// Drop a component onto the page at half its width, centred.
     func insertComponent(_ component: Component) {
+        guard landsOnUnlockedPage() else { return }
         let width = (pageWidth * 0.5).rounded()
         let height = width * component.height / max(component.width, 1)
         let origin = CGPoint(x: ((pageWidth - width) / 2).rounded(), y: ((pageHeight - height) / 2).rounded())
@@ -2257,6 +2304,7 @@ final class DesignStore {
     /// group, selected, as one Undo, as the Android twin inserts one. Brand
     /// colours are left to the theme sheet, as Canva leaves them.
     func addTextCombo(_ combo: TextCombos.Combo) {
+        guard landsOnUnlockedPage() else { return }
         let made = TextCombos.measured(TextCombos.placed(combo, pageWidth: pageWidth, pageHeight: pageHeight))
         guard !made.isEmpty else { return }
         applyToPage { $0.elements.append(contentsOf: made) }

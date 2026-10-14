@@ -141,6 +141,9 @@ struct CanvasView: View {
         /// Whether a hold on the empty page has taken, so a band is being
         /// held out.
         var banding = false
+        /// Whether a hold on a locked page has been refused, for the rest
+        /// of its drag.
+        var lockedHold = false
         /// What a finger in crop mode is working, from when it lands.
         var crop: CropTouch?
         /// A crop-mode pinch's magnification when last applied.
@@ -831,6 +834,15 @@ struct CanvasView: View {
             .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("page")))
             .onChanged { value in
                 guard case .second(true, let drag) = value else { return }
+                // No band, and no menu, on a locked page: the hold is said
+                // once, with Unlock, as a tap there is.
+                if gesture.lockedHold { return }
+                if !gesture.banding && store.isPageLocked {
+                    gesture.lockedHold = true
+                    dismissHoldMenu()
+                    store.refusesLockedPage()
+                    return
+                }
                 if !gesture.banding {
                     gesture.banding = true
                     commitTextEditIfAny()
@@ -845,6 +857,7 @@ struct CanvasView: View {
             }
             .onEnded { _ in
                 edges.stop()
+                gesture.lockedHold = false
                 // Let go without having drawn a band, the hold was a still
                 // one: the menu at the finger (CanvasGestures).
                 let drawn = gesture.marquee.map { max($0.width, $0.height) * store.zoom } ?? 0
@@ -1196,6 +1209,8 @@ struct CanvasView: View {
         commitTextEditIfAny()
         dismissHoldMenu()
         if store.stylePainting { store.stylePainting = false }
+        // A locked page's own tap says so, with Unlock.
+        if store.refusesLockedPage() { return }
         if !store.selectingMultiple { store.select(nil) }
     }
 
@@ -1487,11 +1502,13 @@ struct CanvasView: View {
     }
 
     /// The page in the column under `point` on the page being worked, when
-    /// it is another one.
+    /// it is another one — and not locked, which nothing goes onto.
     private func dropPage(at point: CGPoint) -> Int? {
-        guard let slot = columnSlot else { return nil }
-        let index = PageColumn.pageAt(slot.toColumn(point), in: columnSlots)
-        return index == store.pageIndex ? nil : index
+        guard let slot = columnSlot,
+              let index = PageColumn.pageAt(slot.toColumn(point), in: columnSlots),
+              index != store.pageIndex, store.design.pages.indices.contains(index),
+              !PageLocks.isLocked(store.design.pages[index]) else { return nil }
+        return index
     }
 
     // MARK: resize / rotate (called from the overlay)
@@ -2068,7 +2085,7 @@ struct CanvasView: View {
     /// Delete from a header: asked first when the page has something on it,
     /// as in the pages bar.
     private func askDeletePage() {
-        if store.page.elements.isEmpty {
+        if store.page.elements.isEmpty && !store.isPageLocked {
             store.deletePage()
         } else {
             confirmingPageDelete = true

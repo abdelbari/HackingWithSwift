@@ -57,6 +57,16 @@ struct PageOrganizerSheet: View {
                     }
                         .disabled(selected.isEmpty)
                     Spacer()
+                    // Unlock when every page picked is locked; otherwise
+                    // Lock, which locks the rest of them too.
+                    Button {
+                        store.setPagesLocked(selected, locked: !selectionLocked)
+                        selected = []
+                    } label: {
+                        Label(selectionLocked ? "Unlock" : "Lock", systemImage: selectionLocked ? "lock.open" : "lock")
+                    }
+                        .disabled(selected.isEmpty)
+                    Spacer()
                     Button(role: .destructive) {
                         confirmingDelete = true
                     } label: { Label("Delete", systemImage: "trash") }
@@ -73,6 +83,12 @@ struct PageOrganizerSheet: View {
             }
         }
         .presentationDetents([.large])
+    }
+
+    /// Whether every page picked is locked, so the bar offers Unlock.
+    private var selectionLocked: Bool {
+        let picked = store.design.pages.filter { selected.contains($0.id) }
+        return !picked.isEmpty && picked.allSatisfy(PageLocks.isLocked)
     }
 
     /// Whether every page picked is hidden, so the bar offers Show.

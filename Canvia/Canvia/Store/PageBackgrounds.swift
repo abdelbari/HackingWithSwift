@@ -17,6 +17,9 @@ extension DesignStore {
     /// The page's background changed live, as the colour wheel turns; the
     /// colour sheet closes the step when it goes.
     func setBackgroundTransient(_ background: Background) {
+        // A locked page keeps its background; the pick itself is refused
+        // (setBackground), once, rather than every turn of the wheel.
+        guard !isPageLocked else { return }
         beginGesture()
         page.background = background
     }

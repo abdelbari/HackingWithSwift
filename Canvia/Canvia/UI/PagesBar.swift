@@ -57,6 +57,10 @@ struct PagesBar: View {
                                   systemImage: store.page.hidden == true ? "eye" : "eye.slash")
                         }
                     }
+                    Button { store.setPageLocked(!store.isPageLocked) } label: {
+                        Label(store.isPageLocked ? "Unlock page" : "Lock page",
+                              systemImage: store.isPageLocked ? "lock.open" : "lock")
+                    }
                 } label: { Image(systemName: "plus.square.on.square") }
                     .accessibilityLabel(pageMenuLabel)
                 // Said as what they do to the page: the symbols alone read
@@ -76,7 +80,8 @@ struct PagesBar: View {
                     // A page can hold an hour's work and the bin is next to
                     // the arrows. Undo covers it, but only if you notice
                     // before the next edit pushes it down the stack.
-                    if store.page.elements.isEmpty {
+                    // A locked page always asks.
+                    if store.page.elements.isEmpty && !store.isPageLocked {
                         store.deletePage()
                     } else {
                         confirmingDelete = true
@@ -102,8 +107,10 @@ struct PagesBar: View {
 
     /// The page menu as VoiceOver says it: what is in it.
     private var pageMenuLabel: String {
-        if store.page.hidden == true { return "Duplicate, copy, paste or show page" }
-        return store.design.pages.count > 1 ? "Duplicate, copy, paste or hide page" : "Duplicate, copy or paste page"
+        let lock = store.isPageLocked ? "unlock" : "lock"
+        if store.page.hidden == true { return "Duplicate, copy, paste, show or \(lock) page" }
+        return store.design.pages.count > 1 ? "Duplicate, copy, paste, hide or \(lock) page"
+            : "Duplicate, copy, paste or \(lock) page"
     }
 
     private func pageThumb(index: Int, page: Page) -> some View {
@@ -124,6 +131,7 @@ struct PagesBar: View {
                     HStack(spacing: 2) {
                         Text("\(index + 1)")
                         if page.hidden == true { Image(systemName: "eye.slash") }
+                        if PageLocks.isLocked(page) { Image(systemName: "lock.fill") }
                     }
                     .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(.white)
@@ -149,34 +157,34 @@ struct PagesBar: View {
                 }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Self.spokenThumb(number: index + 1, title: page.title,
-                                             current: index == store.pageIndex, hidden: page.hidden == true))
+        .accessibilityLabel(Self.spokenThumb(number: index + 1, title: page.title, current: index == store.pageIndex,
+                                             hidden: page.hidden == true, locked: PageLocks.isLocked(page)))
     }
 
     /// What VoiceOver says for a page's thumbnail: which page and its title,
-    /// whether it is the one on screen, and whether it is hidden.
-    static func spokenThumb(number: Int, title: String?, current: Bool, hidden: Bool) -> String {
+    /// whether it is the one on screen, and whether it is hidden or locked.
+    static func spokenThumb(number: Int, title: String?, current: Bool, hidden: Bool,
+                            locked: Bool = false) -> String {
         var label = "Page \(number)"
         if let title = title.flatMap(PageTitles.kept) { label += ", " + title }
         if current { label += ", current" }
         if hidden { label += ", hidden" }
+        if locked { label += ", " + PageLocks.spoken }
         return label
     }
 }
 
 extension View {
-    /// Deleting a page with something on it asks first — from the pages
-    /// bar, or a page's header while scrolling through pages. The page on
-    /// screen is the one asked about.
+    /// Deleting a page with something on it, or a locked one, asks first —
+    /// from the pages bar, or a page's header while scrolling through
+    /// pages. The page on screen is the one asked about.
     func asksBeforeDeletingPage(_ isPresented: Binding<Bool>, store: DesignStore) -> some View {
         confirmationDialog("Delete page \(store.pageIndex + 1)?",
                            isPresented: isPresented, titleVisibility: .visible) {
             Button("Delete page", role: .destructive) { store.deletePage() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text(store.page.elements.count == 1
-                 ? "It has 1 element on it."
-                 : "It has \(store.page.elements.count) elements on it.")
+            Text(PageLocks.deleteMessage(elements: store.page.elements.count, locked: store.isPageLocked))
         }
     }
 }

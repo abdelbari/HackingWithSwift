@@ -1,7 +1,7 @@
 // Things dropped onto the page from other apps — a photo from Photos or
 // Files, a passage from Notes, a link from Safari — land where the finger
 // let go, as the elements the Add sheet would have made; a photo let go over
-// a frame goes into the frame.
+// a frame goes into the frame. Nothing lands on a locked page.
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -60,6 +60,8 @@ enum CanvasDrop {
     /// twin says it.
     @MainActor
     static func handle(_ providers: [NSItemProvider], at point: CGPoint, store: DesignStore) -> Bool {
+        // Nothing dropped lands on a locked page.
+        guard !store.refusesLockedPage() else { return false }
         let page = store.pageSize
         let tally = Tally(store: store)
         var taken = 0

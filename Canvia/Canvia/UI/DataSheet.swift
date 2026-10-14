@@ -271,6 +271,8 @@ struct DataSheet: View {
                              legend: legend, values: values, gridlines: gridlines)
         // Drawn again where it was, as one step, keeping its colours.
         if mode == 0, editing != nil { return store.updateChart(spec) }
+        // A new one goes onto the next unlocked page when this one is locked.
+        guard store.landsOnUnlockedPage() else { return false }
         let w = store.pageWidth, h = store.pageHeight
         let frame = CGRect(x: (w * 0.1).rounded(), y: (h * 0.2).rounded(), width: (w * 0.8).rounded(), height: (h * 0.6).rounded())
         // The design's colours that show on this page, and labels in an ink

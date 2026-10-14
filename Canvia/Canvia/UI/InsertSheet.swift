@@ -279,6 +279,8 @@ struct InsertSheet: View {
     /// fitted to this page's own size — which in a design of mixed sizes
     /// need not be the document's — as one step the toast can take back.
     private func startOver(from template: Template) {
+        // A locked page keeps what is on it.
+        guard !store.refusesLockedPage() else { return }
         // One of several pages asks first: all of them, or one.
         guard template.pageCount == 1 else {
             templateChoice = TemplateChoice(id: template.id, name: template.name, design: template.instantiate())
@@ -1006,6 +1008,9 @@ struct InsertSheet: View {
                 HStack(spacing: 10) {
                     ForEach(PhotoGrids.layouts) { layout in
                         Button {
+                            // Onto the next unlocked page when this one is
+                            // locked, or not at all.
+                            guard store.landsOnUnlockedPage() else { return }
                             // Laid out across this page, which may be a size
                             // of its own, not the document's.
                             let width = store.pageWidth, height = store.pageHeight
@@ -1072,6 +1077,7 @@ struct InsertSheet: View {
 
     /// Laid out on this page, which may be a size of its own, as one step.
     private func insertDecorativeFrame(_ preset: FrameDef) {
+        guard store.landsOnUnlockedPage() else { return }
         let made = DecorativeFrames.elements(preset, page: CGSize(width: store.pageWidth, height: store.pageHeight))
         guard !made.isEmpty else { return }
         store.applyToPage { $0.elements.append(contentsOf: made) }
