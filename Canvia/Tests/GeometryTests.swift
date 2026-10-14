@@ -517,6 +517,11 @@ final class TouchTests: XCTestCase {
         line.connectFrom = "a"
         line.connectTo = "b"
         XCTAssertEqual(Set(Touch.handleSet(for: line)), [.e, .w])
+        // Shared rows with the Android twin's ResizeTest: tied at both ends,
+        // an elbow or a curve offers nothing to stretch.
+        XCTAssertEqual(Touch.handleSet(for: LineRoutes.withType(line, .elbow)), [])
+        XCTAssertEqual(Touch.handleSet(for: LineRoutes.withType(line, .curve)), [])
+        XCTAssertEqual(Touch.handleSet(for: shape(w: 20, h: 20)).count, 8)
     }
 
     /// Stickers and QR codes scale from their corners; a photo's sides trim.

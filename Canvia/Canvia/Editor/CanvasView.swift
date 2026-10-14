@@ -965,12 +965,21 @@ struct CanvasView: View {
         let target = Touch.pageUnits(Touch.minTarget, zoom: store.zoom)
         // Only what is shown has a hit area: a hidden layer is empty page.
         let onElement = store.page.elements.contains { el in
-            !el.isHidden && Geometry.hits(Self.reach(el, target), point: point)
+            !el.isHidden && Self.touches(el, point, target)
         }
         return onElement || SelectionOverlay.handlesTake(point, store: store)
             || SelectionOverlay.lineEndsTake(point, store: store)
             || SelectionOverlay.moveHandleTakes(point, store: store)
             || SelectionOverlay.bodyTakes(point, store: store)
+    }
+
+    /// Whether a finger at `point` takes `el`, its touch target `target`
+    /// across: an elbowed or curved line within half that of its route,
+    /// anything else in its box grown to the target (reach) — as the
+    /// Android twin's elementAt.
+    private static func touches(_ el: Element, _ point: CGPoint, _ target: Double) -> Bool {
+        if LineRoutes.keepsLevel(el) { return !el.isHidden && LineRoutes.near(el, point, reach: target / 2) }
+        return Geometry.hits(reach(el, target), point: point)
     }
 
     /// `el` grown about its centre to at least `target` across and down —
@@ -1148,13 +1157,13 @@ struct CanvasView: View {
     }
 
     private func elementHitArea(_ el: Element) -> some View {
-        Rectangle()
+        let zone = HitZone(el, target: Touch.pageUnits(Touch.minTarget, zoom: store.zoom))
+        return Rectangle()
             .fill(Color.clear)
-            .contentShape(Rectangle())
-            .frame(width: max(el.w, Touch.pageUnits(Touch.minTarget, zoom: store.zoom)),
-                   height: max(el.h, Touch.pageUnits(Touch.minTarget, zoom: store.zoom)))
-            .rotationEffect(.degrees(el.rotation))
-            .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
+            .contentShape(zone.shape)
+            .frame(width: zone.size.width, height: zone.size.height)
+            .rotationEffect(.degrees(zone.rotation))
+            .position(zone.center)
             .onTapGesture(count: 2, coordinateSpace: .named("page")) { elementDoubleTap(el, at: $0) }
             .onTapGesture(count: 1, coordinateSpace: .named("page")) { elementTap(el, at: $0) }
             .onLongPressGesture(minimumDuration: CanvasGestures.holdSeconds,
@@ -1266,7 +1275,7 @@ struct CanvasView: View {
     /// its hit area takes touches.
     private func topmost(at point: CGPoint) -> Element? {
         let target = Touch.pageUnits(Touch.minTarget, zoom: store.zoom)
-        return store.page.elements.last { !$0.isHidden && Geometry.hits(Self.reach($0, target), point: point) }
+        return store.page.elements.last { !$0.isHidden && Self.touches($0, point, target) }
     }
 
     /// A finger landing on an element or lifting from it: how long it was
@@ -2110,7 +2119,7 @@ struct CanvasView: View {
         let zoom = store.zoom / (columnSlot?.scale ?? 1) * slots[index].scale
         let target = Touch.pageUnits(Touch.minTarget, zoom: zoom)
         return store.design.pages[index].elements.last { el in
-            !el.isHidden && Geometry.hits(Self.reach(el, target), point: at)
+            !el.isHidden && Self.touches(el, at, target)
         }
     }
 
@@ -2366,5 +2375,49 @@ private struct ColumnRow<Content: View>: View {
                 .frame(width: r.width, height: r.height, alignment: .topLeading)
                 .offset(x: r.minX, y: r.minY)
         }
+    }
+}
+
+/// Where a finger takes an element on the canvas: its box grown about its
+/// centre to the touch target, or, for an elbowed or curved line, a band a
+/// target wide along its route, so a curve is taken where it bows and an
+/// elbow leaves what is in its box to be touched — as touches (above) and
+/// the Android twin's elementAt find them.
+private struct HitZone {
+    var size: CGSize
+    var center: CGPoint
+    var rotation: Double
+    var shape: AnyShape
+
+    init(_ el: Element, target: Double) {
+        guard LineRoutes.keepsLevel(el) else {
+            size = CGSize(width: max(el.w, target), height: max(el.h, target))
+            center = CGPoint(x: el.x + el.w / 2, y: el.y + el.h / 2)
+            rotation = el.rotation
+            shape = AnyShape(Rectangle())
+            return
+        }
+        let box = LineRoutes.outlineOf(el)
+        let originX = box.x - target / 2, originY = box.y - target / 2
+        let points = LineRoutes.polyline(el).map { local -> CGPoint in
+            let page = LineRoutes.toPage(el, local)
+            return CGPoint(x: Double(page.x) - originX, y: Double(page.y) - originY)
+        }
+        size = CGSize(width: box.w + target, height: box.h + target)
+        center = CGPoint(x: box.x + box.w / 2, y: box.y + box.h / 2)
+        rotation = 0
+        shape = AnyShape(RouteBand(points: points, width: target))
+    }
+}
+
+/// A line's route, `points` in the zone's own frame, stroked `width` wide.
+private struct RouteBand: Shape {
+    var points: [CGPoint]
+    var width: Double
+
+    func path(in rect: CGRect) -> Path {
+        var route = Path()
+        route.addLines(points)
+        return route.strokedPath(StrokeStyle(lineWidth: width, lineCap: .round, lineJoin: .round))
     }
 }

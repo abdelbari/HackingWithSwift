@@ -76,7 +76,8 @@ struct SelectionOverlay: View {
                     // a whole one.
                     dashedOutline(el, badge: ElementLock.symbol(ElementLock.mode(of: el)))
                 } else {
-                    outline(el, lineWidth: (selected.count > 1 ? 1 : 1.5) * weight)
+                    // A curve's outline goes round where it bows.
+                    outline(LineRoutes.outlineOf(el), lineWidth: (selected.count > 1 ? 1 : 1.5) * weight)
                 }
             }
 

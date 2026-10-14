@@ -2065,9 +2065,7 @@ final class DesignStore {
         buzz(.tick)
         let members = selectedElements.filter { !$0.holdsPlace }
         guard selectedElements.count > 1, !members.isEmpty else {
-            updateSelected { el in
-                if horizontal { el.flipH.toggle() } else { el.flipV.toggle() }
-            }
+            updateSelected { el in el = LineRoutes.flippedAlone(el, horizontal: horizontal) }
             return
         }
         let box = Geometry.union(members.map(Geometry.aabb))
