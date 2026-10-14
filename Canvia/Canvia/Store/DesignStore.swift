@@ -346,7 +346,7 @@ final class DesignStore {
             || a.paragraphSpacing != b.paragraphSpacing || a.fontSize != b.fontSize
             || a.listStyle != b.listStyle || a.indent != b.indent || a.vertical != b.vertical
             || a.dropCap != b.dropCap || a.effect != b.effect || a.text != b.text
-            || a.spans != b.spans
+            || a.spans != b.spans || a.paragraphs != b.paragraphs
     }
 
     /// Transient variant for continuous controls; call commit() on release.

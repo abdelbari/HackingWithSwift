@@ -31,6 +31,13 @@
 // as they are typed. A shape's words take none, so its bar leaves them out,
 // as the Android twin's bar keeps them off.
 //
+// List turns the lines the choice covers — the caret's, with nothing chosen
+// — to bullets, then numbers, then no list, and Indent and Outdent nest them
+// a level at a time (TextLists); Tab and Shift-Tab on a hardware keyboard do
+// as Indent and Outdent, and Return on an empty item ends the list there
+// rather than starting another. Each is a step of its own. The bar scrolls
+// sideways on a narrow phone, Done always in reach at its end.
+//
 // Typing is taken back a burst at a time (TypingCoalescer): the field tells
 // the store where each burst ends, and the keyboard's own Undo — ⌘Z, a
 // shake, three fingers — is the store's, so the typing stays open.
@@ -55,8 +62,13 @@ struct InlineTextField: UIViewRepresentable {
     var onWordFont: (NSRange) -> Void = { _ in }
     /// Link, for the words chosen.
     var onWordLink: (NSRange) -> Void = { _ in }
-    /// Whether the bar has the colour well, A- and A+, Aa and Link: not for
-    /// a shape's words, which take no colours, sizes, fonts or links.
+    /// List, Indent, Outdent, Return on an empty item and Tab: the lines
+    /// a range of the stored words covers changed, as a step of its own;
+    /// whether anything changed.
+    var onLines: (NSRange, (inout TextParagraph) -> Void) -> Bool = { _, _ in false }
+    /// Whether the bar has the colour well, A- and A+, Aa, Link, List,
+    /// Indent and Outdent: not for a shape's words, which take no colours,
+    /// sizes, fonts, links or lists.
     var wordStyles = true
     /// The typing itself, apart from its words: its caret, its bursts and
     /// their Undo.
@@ -90,11 +102,12 @@ struct InlineTextField: UIViewRepresentable {
         view.delegate = context.coordinator
         let coordinator = context.coordinator
         view.onEscape = { [weak coordinator] in coordinator?.parent.onDone() }
+        view.onTab = { [weak coordinator] outdent in coordinator?.tab(outdent: outdent) ?? false }
         view.typingUndo.onUndo = { [weak coordinator] in coordinator?.undo() }
         view.typingUndo.onRedo = { [weak coordinator] in coordinator?.redo() }
         view.typingUndo.canUndoing = { [weak coordinator] in coordinator?.parent.typing.canUndo() ?? false }
         view.typingUndo.canRedoing = { [weak coordinator] in coordinator?.parent.typing.canRedo() ?? false }
-        view.inputAccessoryView = context.coordinator.typingBar()
+        view.inputAccessoryView = context.coordinator.typingAccessory()
         context.coordinator.view = view
         context.coordinator.apply(element, to: view)
         // The caret at the end of the words, as it opens on the Android twin,
@@ -134,7 +147,8 @@ struct InlineTextField: UIViewRepresentable {
     static func signature(_ el: Element) -> String {
         [el.fontFamily ?? "", "\(el.fontSize ?? 42)", "\(el.fontWeight ?? 400)", "\(el.italic == true)",
          "\(el.underline == true)", el.align ?? "", "\(el.lineHeight ?? 1.25)", "\(el.letterSpacing ?? 0)",
-         el.color ?? "", "\(el.paragraphSpacing ?? 0)", "\(el.indent ?? 0)", el.listStyle ?? ""]
+         el.color ?? "", "\(el.paragraphSpacing ?? 0)", "\(el.indent ?? 0)", el.listStyle ?? "",
+         (el.paragraphs ?? []).map { "\($0.list)\($0.level)" }.joined(separator: ",")]
             .joined(separator: "|")
     }
 
@@ -146,6 +160,8 @@ struct InlineTextField: UIViewRepresentable {
         private var styleItems: [UIBarButtonItem] = []
         /// The colour well, A- and A+, Aa and Link, for the words chosen.
         private var wordItems: [UIBarButtonItem] = []
+        /// List, Outdent and Indent, for the lines the choice covers.
+        private var lineItems: [UIBarButtonItem] = []
         /// The colours and sizes the words are shown in now, and the words
         /// they were put on.
         private var painted: [TextSpan] = []
@@ -222,10 +238,15 @@ struct InlineTextField: UIViewRepresentable {
             let attrs = FontLibrary.attributes(for: drawn)
             painted = spans
             paintedWords = words
+            // Each line at its own level, its list moved with the words
+            // typed since the box was last given them.
+            var lined = drawn
+            if lined.text != words { lined.setText(words) }
             InlineTextField.paint(view.textStorage, words: words, spans: spans, attrs: attrs,
                                   weight: drawn.fontWeight ?? 400, italic: drawn.italic == true,
                                   gradient: el.textFill?.kind == "gradient",
                                   runFont: InlineTextField.runFont(for: drawn))
+            FontLibrary.setParagraphStyles(view.textStorage, for: lined)
             view.typingAttributes = attrs
         }
 
@@ -257,6 +278,8 @@ struct InlineTextField: UIViewRepresentable {
                 editing = true
                 return true
             }
+            // Return on an empty list item ends the list there, as in Canva.
+            if text == "\n", range.length == 0, endsList(at: range.location, in: textView) { return false }
             let words = textView.text ?? ""
             let waiting = range.length == 0 && pendingCaret == range.location ? pending : nil
             let typed = RichText.typing(text, over: range, in: words, pending: waiting)
@@ -343,6 +366,75 @@ struct InlineTextField: UIViewRepresentable {
             parent.typing.selection(kept)
         }
 
+        // MARK: lines
+
+        /// The lines the choice covers changed by `change`, as a step of its
+        /// own (TextLists); false when there is nothing to change — a
+        /// shape's words, a composition under way.
+        @discardableResult
+        private func changeLines(_ range: NSRange, _ change: (inout TextParagraph) -> Void) -> Bool {
+            guard let view, view.markedTextRange == nil, parent.wordStyles,
+                  parent.element.text == view.text else { return false }
+            coalescer.close()
+            return parent.onLines(range, change)
+        }
+
+        /// What the lines the choice covers are: each line's list and level,
+        /// and the lines, as the box sets them now.
+        private func chosenLines(_ view: UITextView) -> (lines: [TextParagraph], covered: ClosedRange<Int>) {
+            let lines = TextLists.lines(parent.element)
+            let covered = TextLists.lineRange(view.text ?? "", view.selectedRange)
+            return (lines, covered.clamped(to: 0...max(lines.count - 1, 0)))
+        }
+
+        /// List: the lines chosen turned to the next of no list, bullets and
+        /// numbers after the first one's, all alike.
+        @objc private func cycleList() {
+            guard let view else { return }
+            let chosen = chosenLines(view)
+            let first = chosen.covered.lowerBound < chosen.lines.count ? chosen.lines[chosen.covered.lowerBound].list : "none"
+            let next = TextLists.nextList(first)
+            changeLines(view.selectedRange) { $0.list = next }
+            refreshStyles(view)
+        }
+
+        /// Outdent (tag 0) or Indent (tag 1): the lines chosen a level
+        /// shallower or deeper, each within 0 to the deepest.
+        @objc private func indentLines(_ sender: UIBarButtonItem) {
+            guard let view else { return }
+            indent(view, by: sender.tag == 0 ? -1 : 1)
+        }
+
+        /// Tab, or Shift-Tab to `outdent`, on a hardware keyboard: as Indent
+        /// and Outdent, as Canva nests its items. False for a shape's words,
+        /// which have no lists, and the key is typed as ever.
+        func tab(outdent: Bool) -> Bool {
+            guard let view, parent.wordStyles else { return false }
+            indent(view, by: outdent ? -1 : 1)
+            return true
+        }
+
+        private func indent(_ view: UITextView, by delta: Int) {
+            changeLines(view.selectedRange) {
+                $0.level = min(TextLists.maxLevel, max(0, $0.level + delta))
+            }
+            refreshStyles(view)
+        }
+
+        /// Return typed at `caret` on an empty list item: the item's list
+        /// cleared instead of a new line put in. False — and Return types a
+        /// line as ever — on any other line.
+        private func endsList(at caret: Int, in view: UITextView) -> Bool {
+            let words = view.text ?? ""
+            guard parent.wordStyles, parent.element.text == words else { return false }
+            let line = TextLists.lineRange(words, NSRange(location: caret, length: 0)).lowerBound
+            let raw = words.components(separatedBy: "\n")
+            let lines = TextLists.lines(parent.element)
+            guard line < raw.count, line < lines.count, lines[line].isListed,
+                  RichText.strip(raw[line]).trimmingCharacters(in: .whitespaces).isEmpty else { return false }
+            return changeLines(NSRange(location: caret, length: 0)) { $0.list = "none" }
+        }
+
         /// The keyboard's Undo: the store's, a burst at a time.
         func undo() {
             coalescer.close()
@@ -354,9 +446,51 @@ struct InlineTextField: UIViewRepresentable {
             parent.typing.redo()
         }
 
+        /// What sits over the keyboard: the bar (typingBar) in a strip that
+        /// scrolls sideways when it is wider than the phone, and Done at its
+        /// end, always in reach — the plainest way out.
+        func typingAccessory() -> UIView {
+            let accessory = UIView(frame: CGRect(x: 0, y: 0, width: 320, height: 44))
+            accessory.autoresizingMask = .flexibleWidth
+            // The bar's own look behind both, across the whole width.
+            let backing = UIToolbar(frame: accessory.bounds)
+            backing.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            accessory.addSubview(backing)
+            let tools = typingBar()
+            let width = CGFloat((tools.items ?? []).count) * 44 + 16
+            tools.frame = CGRect(x: 0, y: 0, width: width, height: 44)
+            let strip = UIScrollView()
+            strip.showsHorizontalScrollIndicator = false
+            strip.alwaysBounceHorizontal = false
+            strip.addSubview(tools)
+            strip.contentSize = tools.frame.size
+            let ending = UIToolbar()
+            ending.items = [UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(finish))]
+            for bar in [tools, ending] {
+                bar.setBackgroundImage(UIImage(), forToolbarPosition: .any, barMetrics: .default)
+                bar.setShadowImage(UIImage(), forToolbarPosition: .any)
+            }
+            for part in [strip, ending] as [UIView] {
+                part.translatesAutoresizingMaskIntoConstraints = false
+                accessory.addSubview(part)
+            }
+            NSLayoutConstraint.activate([
+                strip.leadingAnchor.constraint(equalTo: accessory.leadingAnchor),
+                strip.topAnchor.constraint(equalTo: accessory.topAnchor),
+                strip.bottomAnchor.constraint(equalTo: accessory.bottomAnchor),
+                strip.trailingAnchor.constraint(equalTo: ending.leadingAnchor),
+                ending.trailingAnchor.constraint(equalTo: accessory.trailingAnchor),
+                ending.topAnchor.constraint(equalTo: accessory.topAnchor),
+                ending.bottomAnchor.constraint(equalTo: accessory.bottomAnchor),
+                ending.widthAnchor.constraint(equalToConstant: 76),
+            ])
+            return accessory
+        }
+
         /// A bar over the keyboard: Bold, Italic, Underline and
         /// Strikethrough for the words chosen, their colour, A- and A+, their
-        /// font and a link, and Done, the plainest way out.
+        /// font and a link, and List, Outdent and Indent for the lines the
+        /// choice covers.
         func typingBar() -> UIToolbar {
             let bar = UIToolbar(frame: CGRect(x: 0, y: 0, width: 320, height: 44))
             styleItems = RichText.Mark.allCases.enumerated().map { entry -> UIBarButtonItem in
@@ -382,9 +516,19 @@ struct InlineTextField: UIViewRepresentable {
                                        target: self, action: #selector(linkWords))
             link.accessibilityLabel = "Link"
             wordItems = parent.wordStyles ? [well, smaller, larger, face, link] : []
-            let done = UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(finish))
-            bar.items = styleItems + wordItems
-                + [UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil), done]
+            let list = UIBarButtonItem(image: UIImage(systemName: "list.bullet"), style: .plain,
+                                       target: self, action: #selector(cycleList))
+            list.accessibilityLabel = "List"
+            let outdent = UIBarButtonItem(image: UIImage(systemName: "decrease.indent"), style: .plain,
+                                          target: self, action: #selector(indentLines(_:)))
+            outdent.tag = 0
+            outdent.accessibilityLabel = "Outdent"
+            let indent = UIBarButtonItem(image: UIImage(systemName: "increase.indent"), style: .plain,
+                                         target: self, action: #selector(indentLines(_:)))
+            indent.tag = 1
+            indent.accessibilityLabel = "Indent"
+            lineItems = parent.wordStyles ? [list, outdent, indent] : []
+            bar.items = styleItems + wordItems + lineItems
             bar.sizeToFit()
             return bar
         }
@@ -510,6 +654,7 @@ struct InlineTextField: UIViewRepresentable {
                 link.tintColor = on ? UIColor(Theme.accent) : .label
                 link.accessibilityTraits = on ? [.button, .selected] : .button
             }
+            refreshLines(view)
             let atCaret = chosen.length == 0 ? caretStyle(view) : RichText.Style()
             for (item, mark) in zip(styleItems, RichText.Mark.allCases) {
                 let on: Bool
@@ -521,6 +666,25 @@ struct InlineTextField: UIViewRepresentable {
                 item.tintColor = on ? UIColor(Theme.accent) : .label
                 item.accessibilityTraits = on ? [.button, .selected] : .button
             }
+        }
+
+        /// List shows the list of the first line the choice covers — numbers
+        /// for numbers or letters, bullets otherwise, lit while it is a list
+        /// — and Outdent and Indent are there while the lines can go
+        /// shallower or deeper.
+        private func refreshLines(_ view: UITextView) {
+            guard lineItems.count == 3 else { return }
+            let chosen = chosenLines(view)
+            let covered = chosen.lines.indices.filter { chosen.covered.contains($0) }.map { chosen.lines[$0] }
+            let list = covered.first?.list ?? "none"
+            let counted = list == "number" || list == "letter"
+            lineItems[0].image = UIImage(systemName: counted ? "list.number" : "list.bullet")
+            lineItems[0].tintColor = list != "none" ? UIColor(Theme.accent) : .label
+            lineItems[0].accessibilityValue = TypeReadouts.listStyle(list)
+            lineItems[0].accessibilityTraits = list != "none" ? [.button, .selected] : .button
+            let levels = covered.map(\.level)
+            lineItems[1].isEnabled = (levels.max() ?? 0) > 0
+            lineItems[2].isEnabled = (levels.min() ?? TextLists.maxLevel) < TextLists.maxLevel
         }
     }
 
@@ -682,6 +846,9 @@ struct InlineTextField: UIViewRepresentable {
 /// its Undo to the store (TypingUndo).
 final class InlineTextView: UITextView {
     var onEscape: () -> Void = {}
+    /// Tab, or Shift-Tab (true), on a hardware keyboard; whether it was
+    /// taken.
+    var onTab: (Bool) -> Bool = { _ in false }
     let typingUndo = TypingUndo()
 
     override var undoManager: UndoManager? { typingUndo }
@@ -689,6 +856,12 @@ final class InlineTextView: UITextView {
     override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
         if presses.contains(where: { $0.key?.keyCode == .keyboardEscape }) {
             onEscape()
+            return
+        }
+        // Tab nests the lines chosen rather than typing a tab, and Shift-Tab
+        // brings them back out; with Command it is the system's.
+        if let key = presses.first(where: { $0.key?.keyCode == .keyboardTab })?.key,
+           !key.modifierFlags.contains(.command), onTab(key.modifierFlags.contains(.shift)) {
             return
         }
         super.pressesBegan(presses, with: event)

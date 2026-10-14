@@ -548,16 +548,21 @@ enum PptxExporter {
         var link: String? = nil
     }
 
-    /// The words as typed — page numbers filled in, a list's markers in
-    /// front, the inline style marks read, before any capitals — as
+    /// The words as typed — page numbers filled in, the inline style marks
+    /// read, before any capitals, and without a list's markers, which
+    /// PowerPoint draws for each paragraph itself (paragraphProperties) — as
     /// paragraphs of runs: cut at every line break and every change of
     /// style, colour, size, font or link, and joined again where neighbours
     /// turn out the same. A linked word with no colour of its own is in the
     /// link colour, as the canvas draws it.
     static func paragraphs(of el: Element) -> [[TextRun]] {
-        let marked = FontLibrary.markedDisplayText(for: el, pageNumber: nil, pageCount: nil)
+        var unlisted = el
+        if TextLists.isList(el) {
+            unlisted.setLines(TextLists.lines(el).map { TextParagraph(level: $0.level) })
+        }
+        let marked = FontLibrary.markedDisplayText(for: unlisted, pageNumber: nil, pageCount: nil)
         let parsed = RichText.parse(marked)
-        let spans = FontLibrary.displaySpans(for: el, marked: marked)
+        let spans = FontLibrary.displaySpans(for: unlisted, marked: marked)
         let box = RichText.Style(bold: (el.fontWeight ?? 400) >= 700, italic: el.italic == true,
                                  underline: el.underline == true)
         let ns = parsed.plain as NSString
@@ -614,13 +619,6 @@ enum PptxExporter {
                                 rels: inout Relationships) -> String {
         // The size the canvas draws it at: fitted type at the size that fits.
         let size = FontLibrary.effectiveFontSize(for: el)
-        var align = ""
-        switch el.align ?? "center" {
-        case "left": align = ""
-        case "right": align = "<a:pPr algn=\"r\"/>"
-        case "justify": align = "<a:pPr algn=\"just\"/>"
-        default: align = "<a:pPr algn=\"ctr\"/>"
-        }
         var anchor = ""
         switch el.vAlign {
         case "middle": anchor = " anchor=\"ctr\""
@@ -628,7 +626,8 @@ enum PptxExporter {
         default: anchor = ""
         }
         var body = ""
-        for runs in paragraphs(of: el) {
+        let properties = paragraphProperties(el, em: size * frame.unit)
+        for (line, runs) in paragraphs(of: el).enumerated() {
             var content = runs.isEmpty ? "<a:endParaRPr sz=\"\(typeSize(size * frame.unit))\"/>" : ""
             for run in runs {
                 let face = typeface(run.font ?? el.fontFamily, in: design)
@@ -636,12 +635,57 @@ enum PptxExporter {
                 if let url = run.link { onClick = rels.add("hyperlink", url, external: true) }
                 content += runXML(run, el: el, size: size, face: face, link: onClick, unit: frame.unit)
             }
-            body += "<a:p>\(align)\(content)</a:p>"
+            let pPr = line < properties.count ? properties[line] : ""
+            body += "<a:p>\(pPr)\(content)</a:p>"
         }
-        let properties = "<p:nvSpPr>\(cNvPr(el, id: id, link: link))<p:cNvSpPr txBox=\"1\"/><p:nvPr/></p:nvSpPr>"
+        let shape = "<p:nvSpPr>\(cNvPr(el, id: id, link: link))<p:cNvSpPr txBox=\"1\"/><p:nvPr/></p:nvSpPr>"
         let look = "<p:spPr>\(elementBox(el, frame: frame))\(geometry("rect"))<a:noFill/></p:spPr>"
         let bodyProperties = "<a:bodyPr lIns=\"0\" tIns=\"0\" rIns=\"0\" bIns=\"0\"\(anchor)/><a:lstStyle/>"
-        return "<p:sp>\(properties)\(look)<p:txBody>\(bodyProperties)\(body)</p:txBody></p:sp>"
+        return "<p:sp>\(shape)\(look)<p:txBody>\(bodyProperties)\(body)</p:txBody></p:sp>"
+    }
+
+    /// Each line's paragraph properties: aligned as the box is, at its list
+    /// level, pushed in a level's ems (`em` a type size on the slide) and
+    /// its item's bullet or number hanging in the marker's room before its
+    /// words, as PowerPoint's own — a bullet by its character, a number,
+    /// letter or numeral counted on from the item's place. Empty for a
+    /// left-aligned plain line. The Android twin's PptxWriter, attribute
+    /// for attribute.
+    static func paragraphProperties(_ el: Element, em: Double) -> [String] {
+        let align: String
+        switch el.align ?? "center" {
+        case "left": align = ""
+        case "right": align = " algn=\"r\""
+        case "justify": align = " algn=\"just\""
+        default: align = " algn=\"ctr\""
+        }
+        let items = TextLists.items(el)
+        return TextLists.lines(el).enumerated().map { line, paragraph -> String in
+            let indent = Double(paragraph.level) * FontLibrary.indentEm * em
+            let hang = paragraph.isListed ? FontLibrary.markerEm * em : 0
+            var attributes = align
+            if paragraph.level > 0 { attributes += " lvl=\"\(paragraph.level)\"" }
+            if indent + hang > 0 { attributes += " marL=\"\(emu(indent + hang))\"" }
+            if hang > 0 { attributes += " indent=\"\(emu(-hang))\"" }
+            let bullet = line < items.count ? items[line].map(bulletXML) ?? "" : ""
+            if !bullet.isEmpty { return "<a:pPr\(attributes)>\(bullet)</a:pPr>" }
+            return attributes.isEmpty ? "" : "<a:pPr\(attributes)/>"
+        }
+    }
+
+    /// A list item's bullet or number as PowerPoint draws it.
+    private static func bulletXML(_ item: TextLists.Item) -> String {
+        guard item.list != "bullet" else {
+            let char = SVGExporter.escape(item.marker.trimmingCharacters(in: .whitespaces))
+            return "<a:buFont typeface=\"Arial\"/><a:buChar char=\"\(char)\"/>"
+        }
+        let scheme: String
+        switch TextLists.counting(item.list, level: item.depth) {
+        case 0: scheme = "arabicPeriod"
+        case 1: scheme = "alphaLcPeriod"
+        default: scheme = "romanLcPeriod"
+        }
+        return "<a:buAutoNum type=\"\(scheme)\" startAt=\"\(item.index)\"/>"
     }
 
     /// One run: bold, italic, underlined or struck as its style is, in

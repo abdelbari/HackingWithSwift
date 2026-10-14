@@ -386,21 +386,26 @@ extension Element {
     }
 
     /// The words changed to `new`, the colours and sizes on them moved
-    /// along (Spans.remap) and written down against the new words. Every
-    /// way the words are changed comes through here.
+    /// along (Spans.remap) and written down against the new words, and the
+    /// lists and levels on its lines with them (TextLists.remap). Every way
+    /// the words are changed comes through here.
     mutating func setText(_ new: String) {
         let oldPlain = RichText.strip(text ?? "")
         let kept = liveSpans
+        let lines = TextLists.paragraphsOf(self)
         text = new
+        moveLines(from: oldPlain, lines)
         guard spans != nil || spansText != nil else { return }
         setSpans(Spans.remap(oldPlain, RichText.strip(new), kept))
     }
 
     /// "{page}" and "{pages}" filled in with the page's number and the
     /// number of pages, where the page is known; a colour or size on a token
-    /// stays on the number that stands for it.
+    /// stays on the number that stands for it, and each line keeps its list.
     mutating func fillPageTokens(number: Int, count: Int) {
         guard let raw = text, raw.contains("{page") else { return }
+        let oldPlain = RichText.strip(raw)
+        let lines = TextLists.paragraphsOf(self)
         var moved = liveSpans
         var words = raw
         for (token, value) in [("{pages}", String(count)), ("{page}", String(number))] {
@@ -418,6 +423,7 @@ extension Element {
             }
         }
         text = words
+        moveLines(from: oldPlain, lines)
         if spans != nil || spansText != nil { setSpans(moved) }
     }
 

@@ -906,7 +906,7 @@ extension DataGraphics {
             || a.letterSpacing != b.letterSpacing
         let marks = a.spans != b.spans || a.spansText != b.spansText || a.table != b.table
         let lines = a.uppercase != b.uppercase || a.listStyle != b.listStyle || a.indent != b.indent
-            || a.paragraphSpacing != b.paragraphSpacing || a.dropCap != b.dropCap
+            || a.paragraphs != b.paragraphs || a.paragraphSpacing != b.paragraphSpacing || a.dropCap != b.dropCap
         let run = a.vertical != b.vertical || a.curve != b.curve || a.textPath != b.textPath
             || a.fitText != b.fitText || a.vAlign != b.vAlign
         return face || marks || lines || run

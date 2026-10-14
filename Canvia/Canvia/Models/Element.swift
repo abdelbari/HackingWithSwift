@@ -508,6 +508,13 @@ struct Element: Codable, Equatable, Identifiable {
     var listStyle: String?
     /// Indent level, 0…4. Each level is one and a half ems.
     var indent: Int?
+    /// Each line's own list and indent level, one entry per line of the
+    /// words, over `listStyle` and `indent` (see TextLists); nil when those
+    /// two set every line.
+    var paragraphs: [TextParagraph]?
+    /// The words as they read when `paragraphs` were made: paragraphs made
+    /// for other words are ignored, and not kept.
+    var paragraphsText: String?
     /// Where the text sits in a box taller than it: "top" | "middle" |
     /// "bottom"; nil is top and the box hugs the text.
     var vAlign: String?
@@ -677,6 +684,11 @@ struct Element: Codable, Equatable, Identifiable {
                               plain: RichText.strip(text ?? ""))
         spans = live.isEmpty ? nil : live
         spansText = live.isEmpty ? nil : madeFor
+        // Paragraphs made for other words are left behind the same way, and
+        // the box-wide list and indent set every line again.
+        paragraphs = try? c.decode([TextParagraph].self, forKey: .paragraphs)
+        paragraphsText = try? c.decode(String.self, forKey: .paragraphsText)
+        if TextLists.paragraphsOf(self) == nil { dropParagraphs() }
         src = try? c.decode(String.self, forKey: .src)
         filter = try? c.decode(String.self, forKey: .filter)
         maskShapeId = try? c.decode(String.self, forKey: .maskShapeId)
@@ -727,7 +739,7 @@ struct Element: Codable, Equatable, Identifiable {
         case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners, fillRule
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
-        case spans, spansText
+        case spans, spansText, paragraphs, paragraphsText
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns, timing
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit, clip
         case filterStrength, pixelate, focusBlur, edge
