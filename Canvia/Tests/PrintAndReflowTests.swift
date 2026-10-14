@@ -270,6 +270,13 @@ final class PrintAndReflowTests: XCTestCase {
                                        "a mark inside a trim, bleed \(bleed)")
                     }
                 }
+                // Nor along or onto any page placed, its edge included.
+                for cell in cells {
+                    let reach = cell.insetBy(dx: -0.01, dy: -0.01)
+                    let across = max(a.x, b.x) > reach.minX && min(a.x, b.x) < reach.maxX
+                    let down = max(a.y, b.y) > reach.minY && min(a.y, b.y) < reach.maxY
+                    XCTAssertFalse(across && down, "a mark touching a page, bleed \(bleed)")
+                }
             }
             // Every trim line has its marks: each column edge upright, each
             // row edge level.

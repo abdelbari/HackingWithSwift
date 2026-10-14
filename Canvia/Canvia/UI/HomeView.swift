@@ -74,6 +74,8 @@ struct HomeView: View {
     @State private var templateCategory: String?
     /// A built-in template of several pages, while its pages are shown.
     @State private var templateSet: Template?
+    /// One of your own of several pages, while its strip asks which.
+    @State private var ownSet: TemplateChoice?
     @State private var folder: String?
     /// The Starred chip: starred folders, then starred designs.
     @State private var starredOnly = false
@@ -1397,14 +1399,14 @@ struct HomeView: View {
         UserTemplates.matching(userTemplates, query: query)
     }
 
-    /// Your own: a tap makes a new design from a fresh copy, every page.
+    /// Your own: a tap makes a new design from a fresh copy — one of
+    /// several pages shows its strip first, all of them or the page picked
+    /// alone, as the Android twin's Home asks.
     private var userTemplatesGrid: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 14)], spacing: 14) {
             ForEach(shownUserTemplates) { entry in
                 Button {
-                    if let template = UserTemplates.load(id: entry.id) {
-                        create(UserTemplates.newDesign(from: template))
-                    }
+                    startOwn(entry)
                 } label: {
                     VStack(alignment: .leading, spacing: 0) {
                         UserTemplateThumb(entry: entry)
@@ -1441,6 +1443,20 @@ struct HomeView: View {
             }
         }
         .padding(.horizontal)
+        .sheet(item: $ownSet) { shown in
+            TemplateSetSheet(name: shown.name, design: shown.design, note: TemplateSetSheet.startNote,
+                             applyAll: { create(UserTemplates.newDesign(from: shown.design)) },
+                             usePage: { create(UserTemplates.newDesign(from: shown.design, onlyPage: $0)) })
+        }
+    }
+
+    private func startOwn(_ entry: UserTemplate) {
+        guard let template = UserTemplates.load(id: entry.id) else { return }
+        if template.pages.count > 1 {
+            ownSet = TemplateChoice(id: entry.id, name: entry.name, design: template)
+        } else {
+            create(UserTemplates.newDesign(from: template))
+        }
     }
 
     /// "Business · 1920 × 1080 · 10 pages".
