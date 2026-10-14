@@ -124,7 +124,10 @@ struct SelectionOverlay: View {
                 TableColumnHandles(store: store, edges: edges)
             }
 
-            guides
+            Group {
+                guides
+                spacingMarks
+            }
             badgeView
         }
         .allowsHitTesting(!store.selection.isEmpty)
@@ -659,6 +662,63 @@ struct SelectionOverlay: View {
             }
             if source == .pageCentre { centreDot(colour) }
         }
+    }
+
+    /// The equal gaps a move has landed on, each bracketed with its width
+    /// in the design's unit, and the sizes a resize has matched, each marked
+    /// "=" — in the guide colour, as the guides are (Geometry.matchingGap,
+    /// Geometry.matchingSize). The snap haptic marks the landing; these say
+    /// what it was.
+    @ViewBuilder
+    private var spacingMarks: some View {
+        let gaps = store.gapMarks
+        let sizes = store.sizeMarks
+        if !gaps.isEmpty || !sizes.isEmpty {
+            ZStack {
+                gapBrackets(gaps)
+                ForEach(gaps.indices, id: \.self) { i in gapLabel(gaps[i]) }
+                ForEach(sizes.indices, id: \.self) { i in sizeLabel(sizes[i]) }
+            }
+        }
+    }
+
+    /// A bracket across each gap: a line from edge to edge, a tick at each.
+    private func gapBrackets(_ gaps: [Geometry.GapPair]) -> some View {
+        let tick = 5 * iz
+        let width = 1.5 * iz
+        return Canvas { context, _ in
+            var path = Path()
+            for pair in gaps {
+                let ends = pair.ends
+                let across = pair.alongX ? CGVector(dx: 0, dy: tick) : CGVector(dx: tick, dy: 0)
+                path.move(to: ends.from)
+                path.addLine(to: ends.to)
+                for end in [ends.from, ends.to] {
+                    path.move(to: CGPoint(x: end.x - across.dx, y: end.y - across.dy))
+                    path.addLine(to: CGPoint(x: end.x + across.dx, y: end.y + across.dy))
+                }
+            }
+            context.stroke(path, with: .color(Theme.guide), lineWidth: width)
+        }
+        .frame(width: store.pageWidth, height: store.pageHeight)
+        .position(x: store.pageWidth / 2, y: store.pageHeight / 2)
+        .allowsHitTesting(false)
+    }
+
+    /// A gap's width, over its bracket across, beside it down.
+    private func gapLabel(_ pair: Geometry.GapPair) -> some View {
+        let ends = pair.ends
+        let mid = CGPoint(x: (ends.from.x + ends.to.x) / 2, y: (ends.from.y + ends.to.y) / 2)
+        let width = Units.readout(pair.gap, store.design) + Units.suffix(store.design)
+        let at = pair.alongX ? CGPoint(x: mid.x, y: mid.y - 6 * iz) : CGPoint(x: mid.x + 6 * iz, y: mid.y)
+        return pill(width, colour: Theme.guide, at: at, alignment: pair.alongX ? .bottom : .leading)
+    }
+
+    /// "=" under a box whose width matches, beside one whose height does.
+    private func sizeLabel(_ mark: Geometry.SizeMark) -> some View {
+        let b = mark.box
+        let at = mark.width ? CGPoint(x: b.midX, y: b.maxY + 6 * iz) : CGPoint(x: b.maxX + 6 * iz, y: b.midY)
+        return pill("=", colour: Theme.guide, at: at, alignment: mark.width ? .top : .leading)
     }
 
     private func centreDot(_ colour: Color) -> some View {

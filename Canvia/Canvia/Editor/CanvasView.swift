@@ -125,6 +125,10 @@ struct CanvasView: View {
         var dragUnion: CGRect = .zero
         /// Sibling boxes at grab time, for equal-spacing hints.
         var siblingBoxes: [CGRect] = []
+        /// What a resize may match the size of, taken as the handle is
+        /// grabbed: the other shown elements, while snapping to elements is
+        /// on (Geometry.matchingSize).
+        var sizeSiblings: [Element] = []
         /// The photo being moved, when it is one photo or clip that can go
         /// into a frame (PhotoFrames.canDrop).
         var framePhoto: String?
@@ -1452,15 +1456,24 @@ struct CanvasView: View {
             // on an axis no line is holding (a grid line gives way),
             // so the two never pull the box between them.
             if store.snapping.toElements {
-                let even = Geometry.equalGap(moving: gesture.dragUnion.offsetBy(dx: dx, dy: dy),
-                                             siblings: gesture.siblingBoxes, threshold: 6 / store.zoom)
-                gapX = (snap.guideX == nil || sourceX == .grid) ? even.gapX : nil
-                gapY = (snap.guideY == nil || sourceY == .grid) ? even.gapY : nil
-                if gapX != nil { dx += even.dx }
-                if gapY != nil { dy += even.dy }
+                let spacing = evenSpacing(gesture.dragUnion.offsetBy(dx: dx, dy: dy),
+                                          freeX: snap.guideX == nil || sourceX == .grid,
+                                          freeY: snap.guideY == nil || sourceY == .grid)
+                gapX = spacing.gapX
+                gapY = spacing.gapY
+                dx += spacing.dx
+                dy += spacing.dy
             }
             let spaced = gapX != nil || gapY != nil
             if store.spacingSnapped != spaced { store.spacingSnapped = spaced }
+            // Every gap now equal, bracketed with its width.
+            var marks: [Geometry.GapPair] = []
+            if gapX != nil || gapY != nil {
+                let landed = gesture.dragUnion.offsetBy(dx: dx, dy: dy)
+                if gapX != nil { marks += Geometry.equalGapPairs(landed, siblings: gesture.siblingBoxes, alongX: true) }
+                if gapY != nil { marks += Geometry.equalGapPairs(landed, siblings: gesture.siblingBoxes, alongX: false) }
+            }
+            if store.gapMarks != marks { store.gapMarks = marks }
         }
 
         // Where it is going, for the page edges it crosses, and — once
@@ -1496,6 +1509,34 @@ struct CanvasView: View {
                                          heldX: store.guideX != nil, heldY: store.guideY != nil,
                                          gapX: gapX, gapY: gapY, in: store.design))
         }
+    }
+
+    /// Equal spacing for the moving box `moved`, on an axis no line is
+    /// holding (`freeX`, `freeY`; a grid line gives way): between two
+    /// neighbours, the same distance from each (Geometry.equalGap) — else a
+    /// gap to a neighbour matching one already there, a third card added to
+    /// a row at the gap the first two have (Geometry.matchingGap). The shift
+    /// and the gap made equal on each axis.
+    private func evenSpacing(_ moved: CGRect, freeX: Bool, freeY: Bool) -> Geometry.EqualGap {
+        let reach = 6 / store.zoom
+        let even = Geometry.equalGap(moving: moved, siblings: gesture.siblingBoxes, threshold: reach)
+        let match = Geometry.matchingGap(moving: moved, siblings: gesture.siblingBoxes, threshold: reach)
+        var out = Geometry.EqualGap()
+        if freeX, let gap = even.gapX {
+            out.gapX = gap
+            out.dx = even.dx
+        } else if freeX, let gap = match.gapX {
+            out.gapX = gap
+            out.dx = match.dx
+        }
+        if freeY, let gap = even.gapY {
+            out.gapY = gap
+            out.dy = even.dy
+        } else if freeY, let gap = match.gapY {
+            out.gapY = gap
+            out.dy = match.dy
+        }
+        return out
     }
 
     /// The move let go with the finger at `location`, having started at
@@ -1633,14 +1674,17 @@ struct CanvasView: View {
             gesture.snapTagsY = lines.y
             gesture.snapX = lines.x.map(\.position)
             gesture.snapY = lines.y.map(\.position)
+            gesture.sizeSiblings = store.snapping.toElements
+                ? store.page.elements.filter { $0.id != selected.id && !$0.isHidden } : []
         }
         guard let original = gesture.resizeOriginal else { return }
         if trimPhoto(original, handle: handle, to: location) { return }
         let proportional = original.type != .line && handle.isCorner
         let minSize = original.type == .text ? 12.0 : 8.0
-        let next = snapped(Geometry.resize(original, handle: handle, to: location,
-                                           proportional: proportional, minSize: minSize),
-                           original: original, handle: handle, proportional: proportional, minSize: minSize)
+        let lined = snapped(Geometry.resize(original, handle: handle, to: location,
+                                            proportional: proportional, minSize: minSize),
+                            original: original, handle: handle, proportional: proportional, minSize: minSize)
+        let next = matchedSize(lined, original: original, handle: handle, proportional: proportional, minSize: minSize)
         store.updateSelectedTransient { el in
             el.x = next.minX
             el.w = next.width
@@ -1726,6 +1770,44 @@ struct CanvasView: View {
                                              minSize: minSize) ?? Geometry.ResizeSnap(box: box)
         showGuides(snap)
         return snap.box
+    }
+
+    /// A resized box `box` with the sides `handle` moves that no snap line
+    /// holds matched to another element's width or height within a move's
+    /// reach (Geometry.matchingSize) — the edges across from them staying
+    /// put, a corner keeping its proportions matching one side — and every
+    /// box of that size marked "=" (store.sizeMarks), felt as a snap is.
+    /// Only on an element square to the page, as the snap lines are, and
+    /// not a line; the box as it was when nothing came within reach.
+    private func matchedSize(_ box: CGRect, original: Element, handle: Handle,
+                             proportional: Bool, minSize: Double) -> CGRect {
+        var marks: [Geometry.SizeMark] = []
+        defer {
+            if store.sizeMarks != marks { store.sizeMarks = marks }
+            let spaced = !marks.isEmpty
+            if store.spacingSnapped != spaced { store.spacingSnapped = spaced }
+        }
+        let turn = (original.rotation.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
+        guard !gesture.sizeSiblings.isEmpty, original.type != .line, turn == 0,
+              !(proportional && (store.guideX != nil || store.guideY != nil)) else { return box }
+        // A side a line holds stays on it.
+        let sideX = store.guideX == nil ? handle.unit.x : 0.5
+        let sideY = store.guideY == nil ? handle.unit.y : 0.5
+        guard let side = Handle.allCases.first(where: { $0.unit == CGPoint(x: sideX, y: sideY) }) else { return box }
+        let m = Geometry.matchingSize(box, handle: side, siblings: gesture.sizeSiblings,
+                                      threshold: 6 / store.zoom, proportional: proportional)
+        guard !m.widthOf.isEmpty || !m.heightOf.isEmpty, m.w >= minSize, m.h >= minSize else { return box }
+        // The edges across from the handle stay put.
+        let u = handle.unit, w = CGFloat(m.w), h = CGFloat(m.h)
+        let x: CGFloat = u.x == 0 ? box.maxX - w : (u.x == 1 ? box.minX : box.midX - w / 2)
+        let y: CGFloat = u.y == 0 ? box.maxY - h : (u.y == 1 ? box.minY : box.midY - h / 2)
+        let out = CGRect(x: x, y: y, width: w, height: h)
+        let boxes = Dictionary(gesture.sizeSiblings.map { ($0.id, Geometry.aabb($0)) }, uniquingKeysWith: { first, _ in first })
+        if !m.widthOf.isEmpty { marks.append(Geometry.SizeMark(box: out, width: true)) }
+        if !m.heightOf.isEmpty { marks.append(Geometry.SizeMark(box: out, width: false)) }
+        marks += m.widthOf.compactMap { boxes[$0].map { Geometry.SizeMark(box: $0, width: true) } }
+        marks += m.heightOf.compactMap { boxes[$0].map { Geometry.SizeMark(box: $0, width: false) } }
+        return out
     }
 
     /// The snap guides a resize is holding, each named for what it lines up
@@ -1829,6 +1911,8 @@ struct CanvasView: View {
         store.badgeRuns = nil
         store.rotationSnapped = false
         store.spacingSnapped = false
+        if !store.gapMarks.isEmpty { store.gapMarks = [] }
+        if !store.sizeMarks.isEmpty { store.sizeMarks = [] }
         store.canvasTouchActive = false
     }
 

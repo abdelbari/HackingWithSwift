@@ -1415,8 +1415,15 @@ final class DesignStore {
     var haptic = HapticEvent(kind: .undo, serial: 0)
     /// True while a rotation drag sits on a 45° snap.
     var rotationSnapped = false
-    /// True while a move sits at an equal gap between two neighbours.
+    /// True while a move sits at an equal gap — between two neighbours, or
+    /// matching a gap already there — or a resize at another's size: what
+    /// the snap haptic is felt for.
     var spacingSnapped = false
+    /// The equal gaps a move has landed on, bracketed with their widths
+    /// (Geometry.equalGapPairs), and the boxes a resize has matched the size
+    /// of, marked "=" (Geometry.matchingSize). Nothing of the design.
+    var gapMarks: [Geometry.GapPair] = []
+    var sizeMarks: [Geometry.SizeMark] = []
     /// The pen, while drawing mode is on: strokes become shape elements.
     var drawing: Freehand.Tool? {
         didSet {
