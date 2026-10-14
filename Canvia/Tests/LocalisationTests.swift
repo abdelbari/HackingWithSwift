@@ -150,7 +150,7 @@ final class LocalisationTests: XCTestCase {
             let text = try XCTUnwrap(byForm[form], "\(key): \(lang) has no \(form)")
             for n in counts {
                 XCTAssertEqual(Tr.plural(key, n, [], bundle: words, locale: locale),
-                               String(format: Tr.key(text), locale: locale, n), "\(lang) \(n) is \(form)")
+                               String(format: Tr.key(text), locale: Tr.numbers(locale), n), "\(lang) \(n) is \(form)")
             }
         }
     }
