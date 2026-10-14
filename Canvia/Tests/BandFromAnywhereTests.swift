@@ -57,8 +57,11 @@ final class BandFromAnywhereTests: XCTestCase {
         // Over nothing but the photo it started on: the photo.
         XCTAssertEqual(CanvasGestures.bandCaught(all, rect: CGRect(x: 600, y: 50, width: 100, height: 100), startedOn: "photo"),
                        ["photo"])
-        // Started on the locked logo, catching nothing else: the logo.
+        // Started on the locked logo, the photo under it is what it catches;
+        // with nothing else there, the logo.
         XCTAssertEqual(CanvasGestures.bandCaught(all, rect: CGRect(x: 110, y: 110, width: 20, height: 20), startedOn: "logo"),
+                       ["photo"])
+        XCTAssertEqual(CanvasGestures.bandCaught([logo, title], rect: CGRect(x: 110, y: 110, width: 20, height: 20), startedOn: "logo"),
                        ["logo"])
         // From the empty page, the photo is caught like anything else.
         XCTAssertEqual(CanvasGestures.bandCaught(all, rect: CGRect(x: 50, y: 50, width: 400, height: 300), startedOn: nil),
