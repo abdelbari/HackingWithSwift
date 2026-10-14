@@ -76,6 +76,8 @@ struct EditorView: View {
     @AppStorage(Guides.rulersKey) private var rulers = false
     /// The timeline above the pages, off unless turned on (TimelineStrip).
     @AppStorage(TimelineStrip.key) private var timeline = false
+    /// Shape assist, on the Draw bar: on unless turned off (ShapeAssist).
+    @AppStorage(ShapeAssist.key) private var shapeAssist = true
     @State private var namingComponent = false
     /// More's "Save as template…" asking for a name and a category.
     @State private var savingTemplate = false
@@ -912,13 +914,22 @@ struct EditorView: View {
     private func drawingBar(_ tool: Freehand.Tool) -> some View {
         VStack(spacing: 6) {
             // How the pen in hand is used, over the bar rather than in it:
-            // the capsule has no room left on a phone held upright.
-            Text(tool.pen.hint)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(.regularMaterial, in: Capsule())
+            // the capsule has no room left on a phone held upright. Beside
+            // it, for a pen with ink, the Shape assist switch.
+            HStack(spacing: 8) {
+                Text(tool.pen.hint)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if tool.pen.hasInk {
+                    Toggle("Shape assist", isOn: $shapeAssist)
+                        .toggleStyle(.button)
+                        .font(.caption)
+                        .accessibilityHint("Rest your finger at the end of a stroke to make it a clean shape")
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(.regularMaterial, in: Capsule())
             penSliders(tool)
             drawingControls(tool)
         }

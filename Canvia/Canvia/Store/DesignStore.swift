@@ -1593,6 +1593,19 @@ final class DesignStore {
         buzz(.stroke)
     }
 
+    /// A stroke shape assist read as a shape (ShapeAssist): the clean line or
+    /// shape in its place, one undo step, and part of the drawing the
+    /// session's strokes are grouped into, as a stroke is.
+    func finishSnappedStroke(_ snap: ShapeAssist.Snap) {
+        guard !refusesLockedPage() else { return }
+        guard let tool = drawing, let el = ShapeAssist.element(snap, tool: tool) else { return }
+        add(el, centered: false)
+        sessionStrokes.append(el.id)
+        sessionStepAt = historyVersion
+        selection.removeAll()
+        buzz(.stroke)
+    }
+
     /// The strokes an eraser swept over go, all of them one undo step.
     func eraseStrokes(_ points: [CGPoint], radius: Double) {
         let gone = Freehand.erased(page.elements, path: points, radius: radius)

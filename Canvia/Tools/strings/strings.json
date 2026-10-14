@@ -13256,6 +13256,15 @@
     "ja": "装飾としてマーク",
     "pt-BR": "Marcar como decorativo"
   },
+  "Marker": {
+    "ar": "قلم تحديد",
+    "de": "Marker",
+    "es": "Marcador",
+    "fr": "Marqueur",
+    "it": "Pennarello",
+    "ja": "マーカー",
+    "pt-BR": "Marcador"
+  },
   "Marks": {
     "ar": "علامات",
     "de": "Markierungen",
@@ -17978,6 +17987,15 @@
     "ja": "サイズを変更…",
     "pt-BR": "Redimensionar…"
   },
+  "Rest your finger at the end of a stroke to make it a clean shape": {
+    "ar": "أبقِ إصبعك ثابتًا في نهاية الخط لتحويله إلى شكل نظيف",
+    "de": "Lass den Finger am Ende eines Strichs ruhen, um eine saubere Form daraus zu machen",
+    "es": "Deja el dedo quieto al final de un trazo para convertirlo en una forma limpia",
+    "fr": "Laissez le doigt immobile à la fin d’un trait pour en faire une forme nette",
+    "it": "Tieni fermo il dito alla fine di un tratto per trasformarlo in una forma pulita",
+    "ja": "線の終わりで指を止めると、きれいな図形になります",
+    "pt-BR": "Deixe o dedo parado no fim de um traço para transformá-lo em uma forma limpa"
+  },
   "Restore": {
     "ar": "استعادة",
     "de": "Wiederherstellen",
@@ -19348,6 +19366,15 @@
     "it": "Forma",
     "ja": "図形",
     "pt-BR": "Forma"
+  },
+  "Shape assist": {
+    "ar": "مساعد الأشكال",
+    "de": "Formhilfe",
+    "es": "Asistente de formas",
+    "fr": "Aide aux formes",
+    "it": "Assistente forme",
+    "ja": "図形アシスト",
+    "pt-BR": "Assistente de formas"
   },
   "Shapes": {
     "ar": "الأشكال",

@@ -31,6 +31,14 @@ struct CanvasView: View {
     /// cancels never ends, so a new touch — a new start — begins a stroke
     /// afresh rather than joining the one cut short with a straight jump.
     @State private var strokeStart: CGPoint?
+    /// Shape assist: the shape the stroke under way snapped to as the
+    /// finger rested at its end, where the finger came to rest, and the
+    /// wait for it to rest long enough.
+    @State private var snapped: ShapeAssist.Snap?
+    @State private var restAt: CGPoint?
+    @State private var restWait: Task<Void, Never>?
+    /// Shape assist, from the Draw bar: on unless turned off.
+    @AppStorage(ShapeAssist.key) private var shapeAssist = true
     @State private var dropTargeted = false
     /// When a tap on the photo in crop mode last landed, for the double tap
     /// that finishes it.
@@ -835,31 +843,76 @@ struct CanvasView: View {
     private func drawingLayer(_ tool: Freehand.Tool) -> some View {
         ZStack {
             Color.clear.contentShape(Rectangle())
-            if !strokePoints.isEmpty {
+            if let snap = snapped, let shape = ShapeAssist.element(snap, tool: tool) {
+                // The shape the stroke will become, as it will be drawn.
+                ElementView(element: shape).allowsHitTesting(false)
+            } else if !strokePoints.isEmpty {
                 livePen(tool)
             }
         }
         .frame(width: store.pageWidth, height: store.pageHeight)
         .gesture(
             DragGesture(minimumDistance: 0, coordinateSpace: .named("page"))
-                .onChanged { value in
-                    if strokePoints.isEmpty || strokeStart != value.startLocation {
-                        strokeStart = value.startLocation
-                        strokePoints = [value.startLocation]
-                    }
-                    strokePoints.append(value.location)
-                }
+                .onChanged { value in drawn(to: value, tool: tool) }
                 .onEnded { _ in
-                    store.finishStroke(strokePoints)
-                    strokePoints = []
-                    strokeStart = nil
+                    restWait?.cancel()
+                    if let snap = snapped {
+                        store.finishSnappedStroke(snap)
+                    } else {
+                        store.finishStroke(strokePoints)
+                    }
+                    endStroke()
                 }
         )
         .accessibilityLabel("Drawing surface")
         .accessibilityHint("Drag to draw a stroke")
         // A stroke a two-finger pan cut short never ended; putting the pen
         // away takes its stub with it.
-        .onDisappear { strokePoints = []; strokeStart = nil }
+        .onDisappear { endStroke() }
+    }
+
+    /// The pen moved on to `value`'s point. A stroke snapped by shape
+    /// assist stays snapped while the finger rests, and is a stroke again
+    /// once it moves on; a pen with ink waits, each time the finger comes to
+    /// rest, for it to rest long enough (awaitRest).
+    private func drawn(to value: DragGesture.Value, tool: Freehand.Tool) {
+        if strokePoints.isEmpty || strokeStart != value.startLocation {
+            endStroke()
+            strokeStart = value.startLocation
+            strokePoints = [value.startLocation]
+        }
+        if snapped != nil {
+            guard let rest = restAt, ShapeAssist.movedOn(from: rest, to: value.location, zoom: store.zoom) else { return }
+            snapped = nil
+        }
+        strokePoints.append(value.location)
+        if shapeAssist && tool.pen.hasInk { awaitRest(at: value.location) }
+    }
+
+    /// Shape assist: the finger come to rest at `point` — or still resting,
+    /// within ShapeAssist.holdSlop of where it did — and, once it has rested
+    /// for ShapeAssist.holdSeconds, the stroke read as a shape: shown as it
+    /// will be drawn, with a tick.
+    private func awaitRest(at point: CGPoint) {
+        if let rest = restAt, !ShapeAssist.movedOn(from: rest, to: point, zoom: store.zoom) { return }
+        restAt = point
+        restWait?.cancel()
+        restWait = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(ShapeAssist.holdSeconds * 1_000_000_000))
+            guard !Task.isCancelled, snapped == nil, let snap = ShapeAssist.classify(strokePoints) else { return }
+            snapped = snap
+            store.buzz(.tick)
+        }
+    }
+
+    /// The stroke under way let go of, snapped or not.
+    private func endStroke() {
+        restWait?.cancel()
+        restWait = nil
+        restAt = nil
+        snapped = nil
+        strokePoints = []
+        strokeStart = nil
     }
 
     /// The stroke under the finger, as the finished one will be drawn: a

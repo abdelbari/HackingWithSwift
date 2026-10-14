@@ -13,17 +13,20 @@ import UIKit
 
 enum Freehand {
 
-    /// What the pen lays down: ink; a highlighter — the ink see-through,
-    /// three times as wide, multiplying with what is under it as a real one
-    /// does; a glow — the ink with a halo of itself; and an eraser, which
-    /// lays nothing down and takes away the strokes it passes over. The
-    /// Android twin has the same four, and makes the same strokes.
+    /// What the pen lays down: ink; a marker — the ink opaque, 1.6 times
+    /// as wide, round at its ends and a little uneven at its edges; a
+    /// highlighter — the ink see-through, three times as wide, multiplying
+    /// with what is under it as a real one does; a glow — the ink with a
+    /// halo of itself; and an eraser, which lays nothing down and takes away
+    /// the strokes it passes over. The Android twin has the same pens, and
+    /// makes the same strokes.
     enum Pen: String, CaseIterable, Identifiable {
-        case pen, highlighter, glow, eraser
+        case pen, marker, highlighter, glow, eraser
         var id: String { rawValue }
         var label: String {
             switch self {
             case .pen: return tr("Pen")
+            case .marker: return tr("Marker")
             case .highlighter: return tr("Highlighter")
             case .glow: return tr("Glow")
             case .eraser: return tr("Eraser")
@@ -39,6 +42,7 @@ enum Freehand {
         var symbol: String {
             switch self {
             case .pen: return "pencil.tip"
+            case .marker: return "paintbrush.pointed"
             case .highlighter: return "highlighter"
             case .glow: return "sparkles"
             case .eraser: return "eraser"
@@ -63,8 +67,66 @@ enum Freehand {
     /// to it.
     static let highlighterAlpha = "73"
 
-    /// The width a stroke is drawn at: a highlighter's is three of the pen's.
-    static func drawnWidth(_ tool: Tool) -> Double { tool.pen == .highlighter ? tool.width * 3 : tool.width }
+    /// The width a stroke is drawn at: a highlighter's is three of the pen's,
+    /// a marker's 1.6.
+    static func drawnWidth(_ tool: Tool) -> Double {
+        switch tool.pen {
+        case .highlighter: return tool.width * 3
+        case .marker: return tool.width * markerWidth
+        default: return tool.width
+        }
+    }
+
+    // MARK: the marker
+
+    /// How much wider a marker draws than the pen's size.
+    static let markerWidth = 1.6
+    /// The marker's opaque middle, as a share of its width; the rest, either
+    /// side, is its uneven edge.
+    static let markerCore = 0.75
+    /// How solid each piece of a marker's edge is: from this up by
+    /// markerJitter, drawn in turn from the stroke's own seed.
+    static let markerEdge = 0.55
+    static let markerJitter = 0.3
+
+    /// Whether `el` is a stroke laid down by the marker.
+    static func isMarker(_ el: Element) -> Bool { isStroke(el) && el.pen == Pen.marker.rawValue }
+
+    /// The seed a marker stroke's edge is drawn from: its path data's bytes
+    /// hashed (FNV-1a, 32 bits), so the same stroke has the same edge every
+    /// time it is drawn, on either phone.
+    static func markerSeed(_ pathData: String) -> Int {
+        var hash: UInt32 = 2_166_136_261
+        for byte in pathData.utf8 {
+            hash ^= UInt32(byte)
+            hash = hash &* 16_777_619
+        }
+        return Int(hash & 0x7fff_ffff)
+    }
+
+    /// How solid each of `count` pieces of a marker's edge is, in order:
+    /// markerEdge plus markerJitter times each draw from `seed`.
+    static func markerAlphas(count: Int, seed: Int) -> [Double] {
+        var random = SeededRandom(seed: Double(seed))
+        return (0..<max(count, 0)).map { _ in markerEdge + markerJitter * random.next() }
+    }
+
+    /// A marker stroke's pieces in its own box, `size` across: each pair of
+    /// neighbouring points of its path, and how solid that piece of its
+    /// edge is.
+    static func markerPieces(_ el: Element, size: CGSize) -> [(from: CGPoint, to: CGPoint, alpha: Double)] {
+        guard let data = el.pathData else { return [] }
+        let numbers = pathNumbers(data)
+        var points: [CGPoint] = []
+        var i = 0
+        while i + 1 < numbers.count {
+            points.append(CGPoint(x: numbers[i] / 100 * Double(size.width), y: numbers[i + 1] / 100 * Double(size.height)))
+            i += 2
+        }
+        guard points.count >= 2 else { return [] }
+        let alphas = markerAlphas(count: points.count - 1, seed: markerSeed(data))
+        return (0..<(points.count - 1)).map { (from: points[$0], to: points[$0 + 1], alpha: alphas[$0]) }
+    }
 
     /// The ink a stroke is drawn in: a highlighter's made see-through.
     static func drawnColor(_ tool: Tool) -> String {
@@ -192,6 +254,7 @@ enum Freehand {
         if shown < 1 { e.opacity = shown }
         if tool.pen == .highlighter { e.blendMode = "multiply" }
         if tool.pen == .glow { e.shadow = glow(of: tool) }
+        if tool.pen == .marker { e.pen = Pen.marker.rawValue }
         return laid(e, along: raw)
     }
 
@@ -287,17 +350,7 @@ enum Freehand {
     /// out of the element's 0…100 box, flipped and turned as it is drawn.
     static func pagePoints(_ el: Element) -> [CGPoint] {
         guard let data = el.pathData else { return [] }
-        var numbers: [Double] = []
-        var current = ""
-        for ch in data {
-            if ch.isNumber || ch == "." || (ch == "-" && current.isEmpty) {
-                current.append(ch)
-            } else {
-                if let v = Double(current) { numbers.append(v) }
-                current = ch == "-" ? "-" : ""
-            }
-        }
-        if let v = Double(current) { numbers.append(v) }
+        let numbers = pathNumbers(data)
         let cx: Double = el.x + el.w / 2, cy: Double = el.y + el.h / 2
         let turn: Double = el.rotation * .pi / 180
         let c: Double = cos(turn), s: Double = sin(turn)
@@ -313,6 +366,22 @@ enum Freehand {
             i += 2
         }
         return out
+    }
+
+    /// Every number in path data, in order.
+    static func pathNumbers(_ data: String) -> [Double] {
+        var numbers: [Double] = []
+        var current = ""
+        for ch in data {
+            if ch.isNumber || ch == "." || (ch == "-" && current.isEmpty) {
+                current.append(ch)
+            } else {
+                if let v = Double(current) { numbers.append(v) }
+                current = ch == "-" ? "-" : ""
+            }
+        }
+        if let v = Double(current) { numbers.append(v) }
+        return numbers
     }
 
     /// The least distance between two segments: none where they cross.

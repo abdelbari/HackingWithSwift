@@ -228,7 +228,11 @@ struct ShapeElementView: View {
                 shape.fill(Color(hex: fill.color ?? "#8b5cf6"), style: rule)
             }
             if let stroke = element.stroke, let sw = element.strokeWidth, sw > 0 {
-                shape.stroke(Color(hex: stroke), style: .border(element.dash, width: sw))
+                if Freehand.isMarker(element) {
+                    MarkerInk(element: element, shape: shape, ink: stroke, width: sw)
+                } else {
+                    shape.stroke(Color(hex: stroke), style: .border(element.dash, width: sw))
+                }
             }
             // Its words, over the fill and the border, set in its text-safe
             // box as a text box sets them. Turned back where the shape is
@@ -240,6 +244,32 @@ struct ShapeElementView: View {
                     .position(x: box.midX, y: box.midY)
             }
         }
+    }
+}
+
+/// A marker's stroke: round at its ends, its edge a little uneven — each
+/// piece of it as solid as Freehand.markerPieces draws from the stroke's
+/// own seed — under an opaque middle (Freehand.markerCore of its width).
+struct MarkerInk: View {
+    let element: Element
+    let shape: LibraryShape
+    let ink: String
+    let width: Double
+
+    var body: some View {
+        Canvas { context, size in
+            let colour = Color(hex: ink)
+            let edge = StrokeStyle(lineWidth: width, lineCap: .round, lineJoin: .round)
+            for piece in Freehand.markerPieces(element, size: size) {
+                var line = Path()
+                line.move(to: piece.from)
+                line.addLine(to: piece.to)
+                context.stroke(line, with: .color(colour.opacity(piece.alpha)), style: edge)
+            }
+            let middle = StrokeStyle(lineWidth: width * Freehand.markerCore, lineCap: .round, lineJoin: .round)
+            context.stroke(shape.path(in: CGRect(origin: .zero, size: size)), with: .color(colour), style: middle)
+        }
+        .frame(width: element.w, height: element.h)
     }
 }
 

@@ -554,6 +554,10 @@ struct Element: Codable, Equatable, Identifiable {
     /// for nonzero, which is never written. Kept as read otherwise, and any
     /// value but "evenodd" is drawn nonzero. Set by an imported SVG graphic.
     var fillRule: String?
+    /// The pen a drawn stroke was laid down with, where its look is more
+    /// than its ink, width and opacity say: "marker" (see Freehand.Pen);
+    /// nil for every other. A build without the marker draws it as ink.
+    var pen: String?
 
     // text
     var text: String?
@@ -740,6 +744,7 @@ struct Element: Codable, Equatable, Identifiable {
         radius = try? c.decode(Double.self, forKey: .radius)
         corners = try? c.decode([Double].self, forKey: .corners)
         fillRule = (try? c.decode(String.self, forKey: .fillRule)).flatMap { $0 == "nonzero" ? nil : $0 }
+        pen = try? c.decode(String.self, forKey: .pen)
         text = try? c.decode(String.self, forKey: .text)
         fontFamily = try? c.decode(String.self, forKey: .fontFamily)
         fontSize = try? c.decode(Double.self, forKey: .fontSize)
@@ -838,7 +843,7 @@ struct Element: Codable, Equatable, Identifiable {
         case id, type, x, y, w, h, rotation, opacity, locked, lockPosition, flipH, flipV, group, shadow, blendMode, altText
         case decorative
         case connectFrom, connectTo, link, hidden, layerName, table, chart, chartPart, grid, photoFrame
-        case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners, fillRule
+        case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners, fillRule, pen
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
         case spans, spansText, paragraphs, paragraphsText
