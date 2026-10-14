@@ -514,4 +514,20 @@ enum MediaStore {
         }
         return nil
     }
+
+    /// A stored picture's pixels, as load() would show them, read from its
+    /// file's header alone — no decode, and nothing main-actor bound, so it
+    /// can be asked off the main thread (the PDF's size estimate).
+    static func pixelSize(_ id: String) -> CGSize? {
+        if let cached = memory.object(forKey: id as NSString) {
+            return CGSize(width: cached.size.width * cached.scale, height: cached.size.height * cached.scale)
+        }
+        for ext in pictureExtensions {
+            let url = directory.appendingPathComponent("\(id).\(ext)")
+            guard let data = try? Data(contentsOf: url, options: .mappedIfSafe),
+                  let size = ImageDownsampler.pixelSize(data) else { continue }
+            return size
+        }
+        return nil
+    }
 }

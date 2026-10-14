@@ -44,6 +44,15 @@ enum Presenter {
         return first
     }
 
+    /// The page whose transition plays on a turn from `index` to `next`:
+    /// the earlier of the two — the page left going on, the page returned
+    /// to going back, in reverse — and round the loop, the first page's own
+    /// played forward, as the Android twin's PresentScreen.goTo(wrap) has
+    /// it: the page arrived at, not the last page left.
+    static func transitionPage(from index: Int, to next: Int, looping: Bool) -> Int {
+        looping ? next : min(index, next)
+    }
+
     /// The pages the page grid offers to jump to, by index: the pages shown,
     /// in order, hidden pages left out.
     static func gridPages(_ design: Design) -> [Int] {
@@ -99,11 +108,11 @@ enum Presenter {
 
     /// Every effect, in the grid's order: a 1 to 9 minute countdown on the
     /// keys 1 to 9, then B blur, C confetti, O bubbles, Q quiet, U curtain
-    /// and X to clear them all — the Android twin's Presenter.effects.
+    /// and X to clear — the Android twin's Presenter.effects, names and all.
     static let effects: [Effect] = timers + others
 
     private static let timers: [Effect] = (1...9).map { (minutes: Int) -> Effect in
-        Effect(id: "timer\(minutes)", key: "\(minutes)", name: "\(minutes) min timer", symbol: "timer")
+        Effect(id: "timer\(minutes)", key: "\(minutes)", name: "\(minutes) min", symbol: "timer")
     }
 
     private static let others: [Effect] = [
@@ -152,17 +161,14 @@ enum Presenter {
         let since: Date
     }
 
-    /// The effects showing once `id` is asked for at `date`: "clear" takes
-    /// every one away; a timer replaces any timer; any other starts again
-    /// in place of itself; and those whose three seconds are over go.
+    /// The effects showing once `id` is asked for at `date`. One effect is
+    /// up at a time, as on the Android twin: a new one takes the place of
+    /// the last, "clear" takes it away, and one whose three seconds are over
+    /// goes. A page turn ends whichever is up (PresentationView.turn).
     static func showing(_ shown: [Shown], adding id: String, at date: Date) -> [Shown] {
         guard effects.contains(where: { $0.id == id }) else { return live(shown, at: date) }
         guard id != "clear" else { return [] }
-        let isTimer = timerMinutes(id) != nil
-        let kept = live(shown, at: date).filter { other in
-            other.id != id && !(isTimer && timerMinutes(other.id) != nil)
-        }
-        return kept + [Shown(id: id, since: date)]
+        return [Shown(id: id, since: date)]
     }
 
     /// Those still up at `date`: every lasting one, and the rest within
@@ -171,61 +177,61 @@ enum Presenter {
         shown.filter { lasts($0.id) || date.timeIntervalSince($0.since) < effectSeconds }
     }
 
-    /// Those that carry on to the next page: none of the lasting ones.
-    static func afterPageTurn(_ shown: [Shown]) -> [Shown] {
-        shown.filter { !lasts($0.id) }
-    }
-
-    /// One piece of confetti or one bubble, in the page's unit square:
-    /// where across it starts, how long after the effect it sets off, how
-    /// far down (or up) it goes a second, how big it is against the page's
-    /// shorter side, how many turns a second it spins and which colour.
+    /// A piece of confetti or a bubble at a moment, in the page's unit
+    /// square: where it is across and down, its size against the page's
+    /// shorter side, its colour by `effectColours`, and its turn in degrees.
     struct Particle: Equatable {
         var x: Double
-        var delay: Double
-        var speed: Double
+        var y: Double
         var size: Double
-        var spin: Double
         var colour: Int
+        var turn: Double
     }
 
-    /// The colours confetti comes in, by Particle.colour.
-    static let confettiColours = ["#ff595e", "#ffca3a", "#8ac926", "#1982c4", "#6a4c93", "#ff924c"]
+    /// The effects' colours, as #rrggbb — the Android twin's EFFECT_COLORS.
+    static let effectColours = ["#f2545b", "#ffc145", "#3ec1d3", "#7b5ea7", "#4caf50", "#ff8a3d"]
 
-    /// `count` particles from `seed`, the same on every screen and on both
-    /// phones: a 32-bit linear congruential generator (Numerical Recipes'
-    /// 1664525 and 1013904223), each draw its state over 2^32, six draws a
-    /// particle in the order of Particle's fields.
-    static func particles(count: Int, seed: UInt32) -> [Particle] {
-        var state = seed
+    /// The pieces of confetti, and the bubbles.
+    static let confettiCount = 80
+    static let bubbleCount = 30
+
+    /// Where every piece of effect `id`'s particles is `t` seconds in — the
+    /// same on every screen and on both phones, the Android twin's
+    /// Presenter.particles sum for sum: from seed 26, a linear congruential
+    /// generator with the C library's constants (1103515245, 12345, modulo
+    /// 2^31), each draw its top 16 bits over 65536. Each piece takes four
+    /// draws, in order: across, start, speed, size; its colour is its
+    /// number round `effectColours`. Confetti falls from up to half a page
+    /// above the top, a third to two thirds of a page a second, swaying and
+    /// turning; bubbles rise from below the bottom. None for another id.
+    static func particles(_ id: String, t: Double) -> [Particle] {
+        let count: Int
+        switch id {
+        case "confetti": count = confettiCount
+        case "bubbles": count = bubbleCount
+        default: return []
+        }
+        var seed: Int64 = 26
         func draw() -> Double {
-            state = state &* 1_664_525 &+ 1_013_904_223
-            return Double(state) / 4_294_967_296
+            seed = (seed &* 1_103_515_245 &+ 12_345) & 0x7fff_ffff
+            return Double(seed >> 15) / 65_536
         }
-        return (0..<max(0, count)).map { _ in
-            let x = draw(), delay = draw() * 0.6, speed = 0.35 + draw() * 0.4
-            let size = 0.012 + draw() * 0.016, spin = draw() * 2 - 1
-            let colour = min(confettiColours.count - 1, Int(draw() * Double(confettiColours.count)))
-            return Particle(x: x, delay: delay, speed: speed, size: size, spin: spin, colour: colour)
+        return (0..<count).map { (n: Int) -> Particle in
+            let across = draw(), start = draw(), speed = draw(), size = draw()
+            let colour = n % effectColours.count
+            guard id == "confetti" else {
+                let y = 1.05 + start * 0.3 - (0.25 + speed * 0.2) * t
+                return Particle(x: across, y: y, size: 0.03 + size * 0.04, colour: colour, turn: 0)
+            }
+            let y = -0.05 - start * 0.5 + (0.33 + speed * 0.33) * t
+            let sway = 0.03 * sin(2 * Double.pi * (t * (0.5 + speed) + start))
+            return Particle(x: across + sway, y: y, size: 0.012 + size * 0.012, colour: colour,
+                            turn: 360 * (start + t * (0.5 + speed)))
         }
     }
 
-    static let confetti = particles(count: 60, seed: 1)
-    static let bubbles = particles(count: 24, seed: 2)
-
-    /// Where a particle is `t` seconds into its effect, in the unit square:
-    /// falling from just above the page, or rising from just below it, with
-    /// a little sway; nil before it sets off.
-    static func particlePosition(_ p: Particle, t: Double, rising: Bool) -> CGPoint? {
-        let run = t - p.delay
-        guard run >= 0 else { return nil }
-        let travel = run * p.speed
-        let x = p.x + 0.03 * sin(t * 4 + p.x * 6.283)
-        return CGPoint(x: x, y: rising ? 1.05 - travel : -0.05 + travel)
-    }
-
-    /// The moment the still stand-in shows, with Reduce Motion on: the
-    /// particles where they would be halfway through.
+    /// The moment the still stand-in shows, with Reduce Motion on:
+    /// confetti and bubbles as they are a second and a half in.
     static let stillTime = 1.5
 }
 

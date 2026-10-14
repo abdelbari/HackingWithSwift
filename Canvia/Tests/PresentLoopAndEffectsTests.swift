@@ -1,8 +1,9 @@
 // Present's Loop and the presenter's effects: the page after the last one
 // shown with Loop on, hidden pages stepped over; "present":{"loop":true}
 // kept in the design and left out when off; the effects' keys; the
-// countdown as Presenter.clockText writes it; which effects stay; and the
-// seeded particles both screens draw. The same cases as the Android twin's.
+// countdown as Presenter.clockText writes it; which effects stay, one at a
+// time; the loop's transition; and the seeded particles both screens draw.
+// The same cases as the Android twin's.
 
 import XCTest
 @testable import Canvia
@@ -33,6 +34,15 @@ final class PresentLoopAndEffectsTests: XCTestCase {
         XCTAssertEqual(Presenter.next(after: 4, in: visible, loop: false), Presenter.next(after: 4, in: visible))
         XCTAssertNil(Presenter.next(after: 3, in: [3], loop: true), "one page goes nowhere")
         XCTAssertNil(Presenter.next(after: 0, in: [], loop: true))
+    }
+
+    /// Going on, the page left; going back, the page returned to; round the
+    /// loop from the last page to the first, the first page's own
+    /// transition, played forward — the Android twin's row.
+    func testGoingRoundTheLoopPlaysTheFirstPagesTransition() {
+        XCTAssertEqual(Presenter.transitionPage(from: 1, to: 2, looping: false), 1)
+        XCTAssertEqual(Presenter.transitionPage(from: 2, to: 1, looping: false), 1)
+        XCTAssertEqual(Presenter.transitionPage(from: 3, to: 1, looping: true), 1)
     }
 
     /// Kept as {"loop":true}, and left out when off, so other designs read
@@ -72,6 +82,7 @@ final class PresentLoopAndEffectsTests: XCTestCase {
         for (key, id) in rows {
             XCTAssertEqual(Presenter.effect(forKey: key)?.id, id, "key \(key)")
         }
+        XCTAssertEqual(Presenter.effects.first?.name, "1 min")
     }
 
     /// The time left, rounded up to the second, as the clock writes it:
@@ -90,7 +101,8 @@ final class PresentLoopAndEffectsTests: XCTestCase {
     }
 
     /// A timer, the curtain and blur stay until X or the next page; the
-    /// rest for three seconds. X clears them all; a timer replaces a timer.
+    /// rest for three seconds. One effect is up at a time, as on the
+    /// Android twin: a new one takes the place of the last, and X clears it.
     func testWhichEffectsStay() {
         let start = Date(timeIntervalSince1970: 1_000)
         XCTAssertTrue(Presenter.lasts("timer3"))
@@ -99,35 +111,41 @@ final class PresentLoopAndEffectsTests: XCTestCase {
         XCTAssertFalse(Presenter.lasts("confetti"))
         XCTAssertFalse(Presenter.lasts("quiet"))
 
-        var shown = Presenter.showing([], adding: "timer3", at: start)
+        var shown = Presenter.showing([], adding: "blur", at: start)
         shown = Presenter.showing(shown, adding: "confetti", at: start)
+        XCTAssertEqual(shown.map(\.id), ["confetti"], "B then C: confetti alone")
+        XCTAssertEqual(Presenter.live(shown, at: start.addingTimeInterval(2.9)).map(\.id), ["confetti"])
+        XCTAssertEqual(Presenter.live(shown, at: start.addingTimeInterval(3)).map(\.id), [], "three seconds")
         shown = Presenter.showing(shown, adding: "timer5", at: start.addingTimeInterval(1))
-        XCTAssertEqual(shown.map(\.id), ["confetti", "timer5"], "a timer replaces a timer")
-        XCTAssertEqual(Presenter.live(shown, at: start.addingTimeInterval(2.9)).map(\.id), ["confetti", "timer5"])
-        XCTAssertEqual(Presenter.live(shown, at: start.addingTimeInterval(3)).map(\.id), ["timer5"], "three seconds")
-        shown = Presenter.showing(shown, adding: "curtain", at: start.addingTimeInterval(1))
-        XCTAssertEqual(Presenter.afterPageTurn(shown).map(\.id), ["confetti"], "the next page ends the lasting ones")
+        XCTAssertEqual(Presenter.live(shown, at: start.addingTimeInterval(600)).map(\.id), ["timer5"], "a timer stays")
         XCTAssertTrue(Presenter.showing(shown, adding: "clear", at: start).isEmpty)
         XCTAssertEqual(Presenter.showing(shown, adding: "nonsense", at: start).map(\.id), shown.map(\.id))
     }
 
-    /// The same particles every time, from Numerical Recipes' generator,
-    /// so the phone and the screen — and both phones — draw the same.
+    /// The same particles every time, from the Android twin's generator
+    /// and seed, so the phone and the screen — and both phones — draw the
+    /// same: 80 pieces of confetti, 30 bubbles.
     func testParticlesAreSeeded() {
-        XCTAssertEqual(Presenter.particles(count: 60, seed: 1), Presenter.particles(count: 60, seed: 1))
-        XCTAssertNotEqual(Presenter.particles(count: 3, seed: 1), Presenter.particles(count: 3, seed: 2))
-        let first = Presenter.particles(count: 1, seed: 1)[0]
-        XCTAssertEqual(first.x, 0.23645552527159452, accuracy: 1e-12)
-        XCTAssertEqual(first.delay, 0.22156240423209964, accuracy: 1e-12)
-        XCTAssertEqual(first.speed, 0.5516968129202724, accuracy: 1e-12)
-        XCTAssertEqual(first.size, 0.023278132218867542, accuracy: 1e-12)
-        XCTAssertEqual(first.spin, -0.8989127427339554, accuracy: 1e-12)
-        XCTAssertEqual(first.colour, 2)
-        XCTAssertEqual(Presenter.confetti.count, 60)
-        XCTAssertEqual(Presenter.bubbles.count, 24)
-        XCTAssertNil(Presenter.particlePosition(first, t: 0.1, rising: false), "not set off yet")
-        let falling = Presenter.particlePosition(first, t: 1.22156240423209964, rising: false)
-        XCTAssertEqual(Double(falling?.y ?? 0), -0.05 + 0.5516968129202724, accuracy: 1e-9)
+        let a = Presenter.particles("confetti", t: 1)
+        XCTAssertEqual(a.count, Presenter.confettiCount)
+        XCTAssertEqual(Presenter.confettiCount, 80)
+        XCTAssertEqual(a, Presenter.particles("confetti", t: 1))
+        XCTAssertEqual(Presenter.particles("bubbles", t: 0).count, 30)
+        XCTAssertTrue(Presenter.particles("blur", t: 1).isEmpty)
+        // The seed's first four draws place the first piece: across
+        // 0.3604736328125, start 0.1904144287109375, speed
+        // 0.404571533203125, size 0.02386474609375 — the Android twin's
+        // PresentLoopTest row.
+        let first = Presenter.particles("confetti", t: 0)[0]
+        XCTAssertEqual(first.x, 0.3604736328125 + 0.03 * sin(2 * Double.pi * 0.1904144287109375), accuracy: 1e-12)
+        XCTAssertEqual(first.y, -0.05 - 0.1904144287109375 * 0.5, accuracy: 1e-12)
+        XCTAssertEqual(first.size, 0.012 + 0.02386474609375 * 0.012, accuracy: 1e-12)
+        XCTAssertEqual(first.colour, 0)
+        // Confetti falls, bubbles rise.
+        XCTAssertGreaterThan(Presenter.particles("confetti", t: 2)[0].y, a[0].y)
+        XCTAssertLessThan(Presenter.particles("bubbles", t: 2)[0].y, Presenter.particles("bubbles", t: 1)[0].y)
+        XCTAssertTrue(a.allSatisfy { Presenter.effectColours.indices.contains($0.colour) })
+        XCTAssertEqual(Presenter.effectColours, ["#f2545b", "#ffc145", "#3ec1d3", "#7b5ea7", "#4caf50", "#ff8a3d"])
     }
 }
 

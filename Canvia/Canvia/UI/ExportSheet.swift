@@ -48,6 +48,9 @@ struct ExportSheet: View {
     /// Each track's music's length in seconds, by AudioStore id, read as
     /// Motion's track rows show.
     @State private var trackLengths: [String: Double] = [:]
+    /// Each photo the PDF holds, its pixels by source, read from the file
+    /// headers off the main thread for the PDF's size note.
+    @State private var pdfPixelSizes: [String: CGSize] = [:]
     /// Close asked with an export running: keep it going, or stop it.
     @State private var askingKeep = false
 
@@ -461,16 +464,34 @@ struct ExportSheet: View {
         Text(pdfSizeNote)
             .font(.footnote)
             .foregroundStyle(.secondary)
+            .task(id: pdfPhotoSources) { await readPDFPixelSizes() }
     }
 
     /// "About 3.2 MB": the PDF's photos as they will be kept, and 30 KB a
-    /// sheet (ExportChoices.estimatedPDFBytes).
+    /// sheet (ExportChoices.estimatedPDFBytes), from the pixel sizes read
+    /// so far.
     private var pdfSizeNote: String {
         let bytes = ExportChoices.estimatedPDFBytes(design: store.design, indices: pdfIndices, notes: pdfNotes,
-                                                    compress: pdfCompress) { src in
-            PhotoLibrary.resolve(src).map { CGSize(width: $0.size.width * $0.scale, height: $0.size.height * $0.scale) }
-        }
+                                                    compress: pdfCompress) { pdfPixelSizes[$0] }
         return ExportChoices.sizeText(bytes)
+    }
+
+    /// Every photo source the PDF holds, the master's and backgrounds too.
+    private var pdfPhotoSources: [String] {
+        ExportChoices.pdfPhotos(design: store.design, indices: pdfIndices).map { $0.src }
+    }
+
+    /// The pixels of each photo not yet read, from its header, off the main
+    /// thread, as the Android twin's sheet reads them on its IO dispatcher.
+    private func readPDFPixelSizes() async {
+        let wanted = pdfPhotoSources.filter { pdfPixelSizes[$0] == nil }
+        guard !wanted.isEmpty else { return }
+        let read = await Task.detached(priority: .utility) { () -> [String: CGSize] in
+            var sizes: [String: CGSize] = [:]
+            for src in wanted { sizes[src] = ExportChoices.photoPixelSize(src) }
+            return sizes
+        }.value
+        pdfPixelSizes.merge(read) { _, new in new }
     }
 
     /// What the PDF holds, from the page choice.
@@ -711,15 +732,21 @@ struct ExportSheet: View {
     }
 
     /// Several to a sheet: one page over and over, or one of each; and, for
-    /// a design of two pages, its back printed on the other side.
+    /// a design of two pages with both printed, its back printed on the
+    /// other side — the switch there, and said, otherwise, as the Android
+    /// twin's is.
     @ViewBuilder
     private var severalSettings: some View {
         Picker("Fill the sheet with", selection: $paper.several) {
             ForEach(PrintLayout.Several.allCases) { Text($0.name).tag($0) }
         }
-        if store.design.pages.count == 2 {
-            Toggle("Double-sided", isOn: $paper.duplex)
-        }
+        let twoSided = exportedDesign.pages.count == 2 && exportedIndices.count == 2
+        Toggle("Double-sided", isOn: Binding(get: { paper.duplex && twoSided }, set: { paper.duplex = $0 }))
+            .disabled(!twoSided)
+        Text(twoSided ? "Page 1 on the front, page 2 on the back. Print on both sides, flipping on the long edge."
+                      : "Double-sided takes a design of two pages, both printed: a front and a back.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
     }
 
     private var motionSection: some View {

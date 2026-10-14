@@ -223,13 +223,18 @@ enum PrintLayout {
     /// The grid of pages on one sheet: a page of `page` points (its bleed
     /// in) at actual size, `gap` between neighbours. Columns are
     /// floor((printable width + gap) / (page width + gap)), and rows the
-    /// same down — at least one of each, so a page too big still prints,
-    /// clipped, as Actual size does. The grid is centred in the printable
-    /// area; its cells come row by row, top left first.
+    /// same down. A page too big for even one is fitted alone onto the
+    /// sheet, as Fit to paper places it — the Android twin's
+    /// PrintLayout.grid. The grid is centred in the printable area; its
+    /// cells come row by row, top left first.
     static func grid(page: CGSize, printable: CGRect, gap: Double) -> (cols: Int, rows: Int, cells: [CGRect]) {
         let pw = Double(page.width), ph = Double(page.height)
-        let cols = max(1, Int(((Double(printable.width) + gap) / max(pw + gap, 1)).rounded(.down)))
-        let rows = max(1, Int(((Double(printable.height) + gap) / max(ph + gap, 1)).rounded(.down)))
+        let fitAcross = ((Double(printable.width) + gap) / max(pw + gap, 1e-9)).rounded(.down)
+        let fitDown = ((Double(printable.height) + gap) / max(ph + gap, 1e-9)).rounded(.down)
+        guard pw > 0, ph > 0, fitAcross >= 1, fitDown >= 1 else {
+            return (1, 1, [fitRect(page: page, in: printable)])
+        }
+        let cols = Int(fitAcross), rows = Int(fitDown)
         let across = Double(cols) * pw + Double(cols - 1) * gap
         let down = Double(rows) * ph + Double(rows - 1) * gap
         let left = Double(printable.midX) - across / 2

@@ -201,8 +201,25 @@ final class PrintAndReflowTests: XCTestCase {
         let printable = CGRect(x: 0, y: 0, width: 100, height: 100)
         XCTAssertEqual(PrintLayout.grid(page: CGSize(width: 30, height: 30), printable: printable, gap: 5).cols, 3)
         XCTAssertEqual(PrintLayout.grid(page: CGSize(width: 30, height: 30), printable: printable, gap: 6).cols, 2)
-        XCTAssertEqual(PrintLayout.grid(page: CGSize(width: 300, height: 30), printable: printable, gap: 0).cols, 1,
-                       "too wide still prints one")
+        let wide = PrintLayout.grid(page: CGSize(width: 300, height: 30), printable: printable, gap: 0)
+        XCTAssertEqual(wide.cols, 1, "too wide still prints one")
+        XCTAssertEqual(wide.cells, [PrintLayout.fitRect(page: CGSize(width: 300, height: 30), in: printable)],
+                       "fitted alone, as Fit to paper")
+        XCTAssertEqual(wide.cells[0].height, 10, accuracy: 1e-9)
+    }
+
+    /// A page too big for even one cell is fitted alone onto the sheet, as
+    /// Fit to paper places it, not cropped — the Android twin's row: a
+    /// Tabloid page on A5.
+    func testAPageTooBigForACellIsFittedAlone() throws {
+        var o = PrintLayout.Options()
+        o.paper = try XCTUnwrap(PrintLayout.papers.first { $0.id == "a5" })
+        o.fit = .several
+        let tabloid = CGSize(width: 792, height: 1224)
+        let grid = PrintLayout.grid(page: tabloid, printable: o.printable, gap: o.gapPoints)
+        XCTAssertEqual(grid.cells.count, 1)
+        XCTAssertEqual(grid.cells[0], PrintLayout.fitRect(page: tabloid, in: o.printable))
+        XCTAssertLessThanOrEqual(grid.cells[0].width, o.printable.width + 0.001)
     }
 
     func testRepeatOrOneOfEach() {

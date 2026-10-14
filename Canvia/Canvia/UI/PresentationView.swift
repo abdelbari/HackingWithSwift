@@ -524,11 +524,12 @@ struct PresentationView: View {
     /// The effects' grid, for a phone with no keyboard to give them.
     private var effectsButton: some View {
         Button { showingEffects = true } label: { Image(systemName: "sparkles").padding(10) }
-            .accessibilityLabel("Effects")
+            .accessibilityLabel("Magic shortcuts")
     }
 
     /// An effect asked for, by key or from the grid: shown on both
-    /// screens; one of three seconds is let go of once they are up.
+    /// screens in place of any other; one of three seconds is let go of
+    /// once they are up.
     private func show(effect id: String) {
         session.effects = Presenter.showing(session.effects, adding: id, at: Date())
         guard id != "clear", !Presenter.lasts(id) else { return }
@@ -598,16 +599,18 @@ struct PresentationView: View {
 
     /// Turn to page `target`, by index; nowhere when it is nil or the page
     /// already up. `looping` is going round from the last page shown to the
-    /// first: a turn forward, by the last page's own transition, with the
-    /// music from its start.
+    /// first: a turn forward, by the first page's own transition — the
+    /// page arrived at, not the one left, as the Android twin's goTo(wrap)
+    /// plays it — with the music from its start.
     private func turn(to target: Int?, looping: Bool = false) {
         guard let next = target, next != index, design.pages.indices.contains(next) else { return }
         // Any exits still playing are over; the page leaving keeps its
         // clock as it was drawn. The pointer is on the page leaving, so it
-        // goes with it, and so do the effects that last until the next page.
+        // goes with it, and so does the effect up, whichever it is, as on
+        // the Android twin.
         exitTask?.cancel()
         session.pointer = nil
-        session.effects = Presenter.afterPageTurn(session.effects)
+        session.effects = []
         if looping {
             sound.stop()
             musicFrom = 0
@@ -616,8 +619,9 @@ struct PresentationView: View {
         let forward = looping || next > index
         // Going on, the page being left decides; going back, the page being
         // returned to, played in reverse. With a hidden page between, that
-        // is the page before the gap, as the video plays it.
-        let earlier = forward ? page : design.pages[next]
+        // is the page before the gap, as the video plays it. Round the loop,
+        // the first page's own, played forward (Presenter.transitionPage).
+        let earlier = design.pages[Presenter.transitionPage(from: index, to: next, looping: looping)]
         let via = transition(after: earlier)
         let animation: Animation?
         if via == "cut" || reduceMotion {

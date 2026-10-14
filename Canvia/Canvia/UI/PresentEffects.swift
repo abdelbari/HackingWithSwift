@@ -55,10 +55,8 @@ private struct PresentEffectsFrame: View {
     private func layer(_ effect: Presenter.Shown) -> some View {
         let t = max(0, date.timeIntervalSince(effect.since))
         switch effect.id {
-        case "confetti":
-            PresentParticles(particles: Presenter.confetti, rising: false, t: still ? Presenter.stillTime : t)
-        case "bubbles":
-            PresentParticles(particles: Presenter.bubbles, rising: true, t: still ? Presenter.stillTime : t)
+        case "confetti", "bubbles":
+            PresentParticles(id: effect.id, t: still ? Presenter.stillTime : t)
         case "quiet":
             quiet
         case "curtain":
@@ -72,66 +70,61 @@ private struct PresentEffectsFrame: View {
 
     private var side: CGFloat { min(size.width, size.height) }
 
-    /// "🤫" and "Quiet, please", in the middle.
+    /// "🤫", large in the middle, as the Android twin draws it.
     private var quiet: some View {
-        VStack(spacing: side * 0.02) {
-            Text("\u{1F92B}")
-                .font(.system(size: side * 0.28))
-            Text("Quiet, please")
-                .font(.system(size: side * 0.07, weight: .bold))
-                .foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.6), radius: side * 0.01)
-        }
+        Text("\u{1F92B}")
+            .font(.system(size: side * 0.35))
     }
 
-    /// The time left, in a dark pill at the page's top right.
+    /// The time left, in a dark pill low on the page, in the middle — where
+    /// the Android twin puts it.
     private func countdown(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: side * 0.08, weight: .bold, design: .monospaced))
+            .font(.system(size: side * 0.12, weight: .bold))
             .foregroundStyle(.white)
-            .padding(.horizontal, side * 0.035)
-            .padding(.vertical, side * 0.015)
-            .background(Capsule().fill(Color.black.opacity(0.65)))
-            .padding(side * 0.04)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            .padding(.horizontal, side * 0.04)
+            .padding(.vertical, side * 0.02)
+            .background(RoundedRectangle(cornerRadius: side * 0.04).fill(Color.black.opacity(170.0 / 255)))
+            .padding(.bottom, side * 0.06)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
     }
 }
 
-/// Confetti falling, or bubbles rising, `t` seconds in.
+/// Confetti falling, or bubbles rising, `t` seconds in, where
+/// Presenter.particles puts them: a piece of confetti a strip its size
+/// across and twice that down, turned; a bubble a ring of its size, its
+/// colour faint inside — as the Android twin draws them.
 private struct PresentParticles: View {
-    let particles: [Presenter.Particle]
-    let rising: Bool
+    let id: String
     let t: Double
 
     var body: some View {
         Canvas { context, size in
             let side = Double(min(size.width, size.height))
-            for p in particles {
-                guard let at = Presenter.particlePosition(p, t: t, rising: rising) else { continue }
-                let centre = CGPoint(x: at.x * Double(size.width), y: at.y * Double(size.height))
-                if rising {
-                    bubble(p, at: centre, side: side, in: context)
+            for p in Presenter.particles(id, t: t) {
+                let centre = CGPoint(x: p.x * Double(size.width), y: p.y * Double(size.height))
+                let colour = Color(hex: Presenter.effectColours[p.colour % Presenter.effectColours.count])
+                let r = p.size * side
+                if id == "bubbles" {
+                    bubble(at: centre, radius: r, colour: colour, in: context)
                 } else {
-                    piece(p, at: centre, side: side, in: context)
+                    piece(at: centre, radius: r, turn: p.turn, colour: colour, in: context)
                 }
             }
         }
     }
 
-    private func bubble(_ p: Presenter.Particle, at centre: CGPoint, side: Double, in context: GraphicsContext) {
-        let d = p.size * side * 2.5
-        let ring = Path(ellipseIn: CGRect(x: Double(centre.x) - d / 2, y: Double(centre.y) - d / 2, width: d, height: d))
-        context.fill(ring, with: .color(.white.opacity(0.18)))
-        context.stroke(ring, with: .color(.white.opacity(0.85)), lineWidth: max(1, d * 0.06))
+    private func bubble(at centre: CGPoint, radius r: Double, colour: Color, in context: GraphicsContext) {
+        let ring = Path(ellipseIn: CGRect(x: Double(centre.x) - r, y: Double(centre.y) - r, width: 2 * r, height: 2 * r))
+        context.fill(ring, with: .color(colour.opacity(70.0 / 255)))
+        context.stroke(ring, with: .color(colour.opacity(200.0 / 255)), lineWidth: r * 0.12)
     }
 
-    private func piece(_ p: Presenter.Particle, at centre: CGPoint, side: Double, in context: GraphicsContext) {
-        let d = p.size * side
+    private func piece(at centre: CGPoint, radius r: Double, turn: Double, colour: Color, in context: GraphicsContext) {
         var turned = context
         turned.translateBy(x: centre.x, y: centre.y)
-        turned.rotate(by: .degrees(p.spin * 360 * t))
-        let colour = Presenter.confettiColours[min(max(p.colour, 0), Presenter.confettiColours.count - 1)]
-        turned.fill(Path(CGRect(x: -d / 2, y: -d / 4, width: d, height: d / 2)), with: .color(Color(hex: colour)))
+        turned.rotate(by: .degrees(turn))
+        turned.fill(Path(CGRect(x: -r / 2, y: -r, width: r, height: 2 * r)), with: .color(colour))
     }
 }
 
@@ -176,7 +169,7 @@ struct PresentEffectsSheet: View {
                 .padding(16)
             }
             .background(Theme.workspace)
-            .navigationTitle("Effects")
+            .navigationTitle("Magic shortcuts")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }

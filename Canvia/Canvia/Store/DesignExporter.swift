@@ -436,8 +436,9 @@ enum DesignExporter {
                           to url: URL, progress: ((Double) -> Void)? = nil) async throws {
         let indices = range.indices(in: source, current: current)
         guard !indices.isEmpty else { throw ExportError.renderFailed }
-        let design = compress ? compressedForPDF(source, indices: indices) : source
         defer { if compress { CompressedPhotos.clear() } }
+        var design = source
+        if compress { design = try await compressedForPDF(source, indices: indices) }
         let sheets = ExportChoices.pdfSheets(design: design, indices: indices, notes: notes)
         // Page units are pixels at the design's dpi; PDF works in points
         // at 72 — so a page comes out at its true size.
@@ -505,30 +506,25 @@ enum DesignExporter {
     }
 
     /// What a notes page shows, drawn into `cg`, the current UIKit context,
-    /// y running down.
+    /// y running down: laid out by ExportChoices' notes numbers, the
+    /// Android twin's PdfNotes.
     @MainActor
     private static func drawNotesContent(design: Design, page: Page, box: CGRect, into cg: CGContext) {
         cg.setFillColor(UIColor.white.cgColor)
         cg.fill(box)
-        let margin = Double(min(box.width, box.height)) * ExportChoices.notesMarginShare
-        let top = CGRect(x: Double(box.minX) + margin, y: Double(box.minY) + margin,
-                         width: Double(box.width) - 2 * margin, height: Double(box.height) / 3 - margin)
-        let pageSize = design.size(for: page)
-        let fitted = PrintLayout.fitRect(page: pageSize, in: top)
-        draw(design: design, page: page, into: cg, fitting: fitted)
+        let thumb = ExportChoices.notesThumbnail(box.size).offsetBy(dx: box.minX, dy: box.minY)
+        draw(design: design, page: page, into: cg, fitting: thumb)
         cg.setStrokeColor(UIColor(white: 0.8, alpha: 1).cgColor)
-        cg.setLineWidth(0.5)
-        cg.stroke(fitted)
-        let body = CGRect(x: Double(box.minX) + margin, y: Double(top.maxY) + margin,
-                          width: Double(box.width) - 2 * margin,
-                          height: max(0, Double(box.maxY) - Double(top.maxY) - 2 * margin))
+        cg.setLineWidth(1)
+        cg.stroke(thumb)
+        let body = ExportChoices.notesTextBox(box.size).offsetBy(dx: box.minX, dy: box.minY)
         let style = NSMutableParagraphStyle()
         style.lineBreakMode = .byWordWrapping
         let font = FontLibrary.uiFont(family: ExportChoices.notesFamily, size: ExportChoices.notesPointSize,
                                       weight: 400, italic: false)
-        let words = NSAttributedString(string: page.notes ?? "", attributes: [
-            .font: font, .foregroundColor: UIColor(white: 0.12, alpha: 1), .paragraphStyle: style,
-        ])
+        let colour = UIColor(hex: ExportChoices.notesColor)
+        let words = NSAttributedString(string: (page.notes ?? "").trimmingCharacters(in: .whitespacesAndNewlines),
+                                       attributes: [.font: font, .foregroundColor: colour, .paragraphStyle: style])
         cg.saveGState()
         cg.clip(to: body)
         words.draw(with: body, options: [.usesLineFragmentOrigin, .usesFontLeading], context: nil)
@@ -539,44 +535,50 @@ enum DesignExporter {
 
     /// `design` with every photo on the pages of `indices` (and the master
     /// behind them) drawn from a copy re-encoded at ExportChoices'
-    /// compressDPI of the size it prints at, as JPEG at its compressQuality
-    /// — a picture with see-through parts kept as it is, smaller, since
-    /// JPEG has no transparency — never larger than it was. The copies are
-    /// kept by stand-in sources (CompressedPhotos) until cleared.
+    /// compressDPI of the size it prints at — one copy a source, at its
+    /// largest use (ExportChoices.compressedPixels) — as JPEG at its
+    /// compressQuality: a picture with see-through parts kept as it is,
+    /// smaller, since JPEG has no transparency; never larger than it was.
+    /// Each photo is read and re-encoded off the main thread, the export
+    /// pausing between them, so the sheet stays live and Cancel works. The
+    /// copies are kept by stand-in sources (CompressedPhotos) until cleared.
     @MainActor
-    static func compressedForPDF(_ design: Design, indices: [Int]) -> Design {
-        var out = design
-        var staged: Set<String> = []
-        let pointsPerPixel = design.pointsPerPixel
-        func standIn(for src: String, box: CGSize, cropScale: Double) -> String? {
-            guard ExportChoices.isPhoto(src), let image = PhotoLibrary.resolve(src) else { return nil }
-            let natural = CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
-            let kept = ExportChoices.compressedPixels(natural: natural, box: box, cropScale: cropScale,
-                                                      pointsPerPixel: pointsPerPixel)
-            // Named by its size too, so the same name is always the same
-            // picture, whatever a filter's cache kept of an earlier export.
-            let name = CompressedPhotos.prefix + "\(Int(kept.width))x\(Int(kept.height)):" + src
-            if staged.contains(name) { return name }
-            guard let copy = reencoded(image, to: kept) else { return nil }
-            CompressedPhotos.staged[name] = copy
-            staged.insert(name)
-            return name
+    static func compressedForPDF(_ design: Design, indices: [Int]) async throws -> Design {
+        let dpi = design.effectiveDPI
+        var standIns: [String: String] = [:]
+        var pacer = Pacer()
+        for photo in ExportChoices.pdfPhotos(design: design, indices: indices) {
+            try await pacer.breathe()
+            let src = photo.src, uses = photo.uses
+            // A library picture is drawn by the app, here; an upload is
+            // read from disk with the rest, off the main thread.
+            let drawn = src.hasPrefix("asset:") ? PhotoLibrary.resolve(src) : nil
+            let made = await Task.detached(priority: .userInitiated) { () -> (name: String, copy: UIImage)? in
+                guard let image = drawn ?? PhotoLibrary.resolve(src) else { return nil }
+                let natural = CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
+                let kept = ExportChoices.compressedPixels(natural: natural, uses: uses, dpi: dpi)
+                guard let copy = DesignExporter.reencoded(image, to: kept) else { return nil }
+                // Named by its size too, so the same name is always the
+                // same picture, whatever a filter's cache kept of an
+                // earlier export.
+                return (CompressedPhotos.prefix + "\(Int(kept.width))x\(Int(kept.height)):" + src, copy)
+            }.value
+            guard let made else { continue }
+            CompressedPhotos.staged[made.name] = made.copy
+            standIns[src] = made.name
         }
+        var out = design
         var pages = Set(indices)
         if let master = design.masterPageId, let at = design.pages.firstIndex(where: { $0.id == master }) {
             pages.insert(at)
         }
         for index in pages.sorted() where out.pages.indices.contains(index) {
-            if case .image(let src) = out.pages[index].background,
-               let replaced = standIn(for: src, box: design.size(for: out.pages[index]), cropScale: 1) {
+            if case .image(let src) = out.pages[index].background, let replaced = standIns[src] {
                 out.pages[index].background = .image(replaced)
             }
             for i in out.pages[index].elements.indices {
                 let el = out.pages[index].elements[i]
-                guard el.type == .image, let src = el.src,
-                      let replaced = standIn(for: src, box: CGSize(width: el.w, height: el.h),
-                                             cropScale: el.cropScale ?? 1)
-                else { continue }
+                guard el.type == .image, let src = el.src, let replaced = standIns[src] else { continue }
                 out.pages[index].elements[i].src = replaced
             }
         }
@@ -733,9 +735,11 @@ enum DesignExporter {
         }
     }
 
-    /// One sheet of several pages: each in its cell at actual size — the
-    /// columns mirrored on the back of a double-sided pair — then the crop
-    /// marks they share, clear of every page and its bleed.
+    /// One sheet of several pages: each fitted into its cell — at actual
+    /// size when it is the first page's size, a page of another shape whole
+    /// and centred in it, as the Android twin places it — the columns
+    /// mirrored on the back of a double-sided pair; then the crop marks
+    /// they share, clear of every page and its bleed.
     @MainActor
     private static func drawSeveral(design: Design, pages: [Int], cols: Int, mirrored: Bool,
                                     options: PrintLayout.Options, flatten: Bool, into cg: CGContext) {
@@ -750,7 +754,7 @@ enum DesignExporter {
             guard cells.indices.contains(at), design.pages.indices.contains(index) else { continue }
             let pagePts = PrintLayout.pagePoints(size: design.size(at: index), dpi: design.effectiveDPI, bleed: options.bleed)
             drawSheet(design: design, page: design.pages[index], pagePoints: pagePts,
-                      placement: (cells[at], CGRect(origin: .zero, size: pagePts)),
+                      placement: (PrintLayout.fitRect(page: pagePts, in: cells[at]), CGRect(origin: .zero, size: pagePts)),
                       options: unmarked, flatten: flatten, into: cg)
             placed.append(cells[at])
         }

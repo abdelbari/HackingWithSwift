@@ -42,17 +42,24 @@ final class PDFOptionsTests: XCTestCase {
     // MARK: settings
 
     /// The shared JSON, character for character, every key in the order the
-    /// Android twin writes them.
+    /// Android twin writes them — a whole number with ".0", as
+    /// kotlinx.serialization writes a Double.
     func testTheSettingsJSONIsTheSharedText() {
         let plain = ExportLast(format: "png", scale: 2, longEdge: nil, jpegQuality: 0.85, transparent: false, pages: "all")
         XCTAssertEqual(plain.json,
-                       #"{"format":"png","scale":2,"longEdge":null,"jpegQuality":0.85,"transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false}"#)
-        let pdf = ExportLast(format: "pdf", scale: 3, longEdge: 1080, jpegQuality: 0.92, transparent: true,
+                       #"{"format":"png","scale":2.0,"longEdge":null,"jpegQuality":0.85,"transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false}"#)
+        let pdf = ExportLast(format: "pdf", scale: 3, longEdge: 1080, jpegQuality: 1, transparent: true,
                              pages: "chosen", pdfNotes: true, pdfCompress: true)
         XCTAssertEqual(pdf.json,
-                       #"{"format":"pdf","scale":3,"longEdge":1080,"jpegQuality":0.92,"transparent":true,"pages":"chosen","pdfNotes":true,"pdfCompress":true}"#)
+                       #"{"format":"pdf","scale":3.0,"longEdge":1080,"jpegQuality":1.0,"transparent":true,"pages":"chosen","pdfNotes":true,"pdfCompress":true}"#)
+        // The Android twin's PdfOptionsTest row.
+        let shared = ExportLast(format: "pdf", scale: 2, longEdge: nil, jpegQuality: 0.85, transparent: false,
+                                pages: "all", pdfNotes: true, pdfCompress: true)
+        XCTAssertEqual(shared.json,
+                       #"{"format":"pdf","scale":2.0,"longEdge":null,"jpegQuality":0.85,"transparent":false,"pages":"all","pdfNotes":true,"pdfCompress":true}"#)
         XCTAssertEqual(ExportLast.read(pdf.json), pdf)
         XCTAssertEqual(ExportLast.read(plain.json), plain)
+        XCTAssertEqual(ExportLast.number(1.5), "1.5")
     }
 
     /// Missing, or not a true or false, is off.
@@ -101,29 +108,57 @@ final class PDFOptionsTests: XCTestCase {
         XCTAssertEqual(CGPDFDocument(url as CFURL)?.numberOfPages, d.pages.count)
     }
 
+    // MARK: notes page layout
+
+    /// The Android twin's PdfNotes numbers: a twelfth of the shorter side
+    /// round it, the page fitted in the top third, the notes from half a
+    /// margin under it to the bottom margin.
+    func testTheNotesPageIsLaidOutByTheSharedNumbers() {
+        let size = CGSize(width: 1920, height: 1080)
+        XCTAssertEqual(ExportChoices.notesMargin(size), 90, accuracy: 1e-9)
+        let thumb = ExportChoices.notesThumbnail(size)
+        XCTAssertEqual(thumb.minY, 90, accuracy: 1e-9)
+        XCTAssertEqual(thumb.maxY, 360, accuracy: 1e-9)
+        XCTAssertEqual(thumb.width, 480, accuracy: 1e-9)
+        XCTAssertEqual(thumb.midX, 960, accuracy: 1e-9)
+        let box = ExportChoices.notesTextBox(size)
+        XCTAssertEqual(box.minY, 405, accuracy: 1e-9)
+        XCTAssertEqual(box.maxY, 990, accuracy: 1e-9)
+        XCTAssertEqual(box.minX, 90, accuracy: 1e-9)
+        XCTAssertEqual(ExportChoices.notesColor, "#1f2430")
+        XCTAssertEqual(ExportChoices.notesPointSize, 14)
+    }
+
     // MARK: compress
 
-    /// 150 for each inch a photo prints across: a 4000 × 3000 photo in a box
-    /// of 400 × 300 px at 96 dpi prints 4.17 in wide, so keeps 625 × 469
-    /// (468.75, to the nearest); a crop zoomed in 1.6 times keeps 1.6 times as many;
-    /// never more than it has.
+    private typealias Use = ExportChoices.PDFPhoto
+
+    /// 150 for each inch a photo prints across, the photo cover-fitted to
+    /// its box as it is drawn — the rows the Android twin's PdfOptionsTest
+    /// shares: a 4000 × 3000 photo in an 800 × 600 frame at 96 dpi keeps
+    /// 1250 × 938 (937.5, a half up); in an 800 × 800 frame, cropped to it,
+    /// 1667 × 1250; behind a 1920 × 1080 page 3000 × 2250; a crop zoomed
+    /// in twice keeps twice as many; used twice, its largest use; never
+    /// more than it has.
     func testACompressedPhotoKeeps150DotsAnInch() {
-        let points = Units.pointsPerPixel(dpi: 96)
         let photo = CGSize(width: 4000, height: 3000)
-        XCTAssertEqual(ExportChoices.compressedPixels(natural: photo, box: CGSize(width: 400, height: 300),
-                                                      cropScale: 1, pointsPerPixel: points),
-                       CGSize(width: 625, height: 469))
-        XCTAssertEqual(ExportChoices.compressedPixels(natural: photo, box: CGSize(width: 400, height: 300),
-                                                      cropScale: 1.6, pointsPerPixel: points),
-                       CGSize(width: 1000, height: 750))
+        XCTAssertEqual(ExportChoices.compressedPixels(natural: photo, uses: [Use(box: CGSize(width: 800, height: 600))], dpi: 96),
+                       CGSize(width: 1250, height: 938))
+        XCTAssertEqual(ExportChoices.compressedPixels(natural: photo, uses: [Use(box: CGSize(width: 800, height: 800))], dpi: 96),
+                       CGSize(width: 1667, height: 1250))
+        XCTAssertEqual(ExportChoices.compressedPixels(natural: photo, uses: [Use(box: CGSize(width: 1920, height: 1080))], dpi: 96),
+                       CGSize(width: 3000, height: 2250))
+        XCTAssertEqual(ExportChoices.compressedPixels(natural: photo, uses: [Use(box: CGSize(width: 800, height: 600), cropScale: 2)],
+                                                      dpi: 96),
+                       CGSize(width: 2500, height: 1875))
+        let twice = [Use(box: CGSize(width: 400, height: 300)), Use(box: CGSize(width: 800, height: 600))]
+        XCTAssertEqual(ExportChoices.compressedPixels(natural: photo, uses: twice, dpi: 96), CGSize(width: 1250, height: 938))
         XCTAssertEqual(ExportChoices.compressedPixels(natural: CGSize(width: 100, height: 50),
-                                                      box: CGSize(width: 400, height: 200),
-                                                      cropScale: 1, pointsPerPixel: points),
+                                                      uses: [Use(box: CGSize(width: 400, height: 200))], dpi: 96),
                        CGSize(width: 100, height: 50), "never more than it has")
         // An A4 page at 300 dpi: a 2480 px photo across it prints 8.27 in.
         XCTAssertEqual(ExportChoices.compressedPixels(natural: CGSize(width: 4000, height: 4000),
-                                                      box: CGSize(width: 2480, height: 2480),
-                                                      cropScale: 1, pointsPerPixel: Units.pointsPerPixel(dpi: 300)),
+                                                      uses: [Use(box: CGSize(width: 2480, height: 2480))], dpi: 300),
                        CGSize(width: 1240, height: 1240))
     }
 
@@ -134,20 +169,34 @@ final class PDFOptionsTests: XCTestCase {
         XCTAssertEqual(ExportChoices.sizeText(90), "About 1 KB")
     }
 
-    /// 30 KB a sheet, notes pages counted, and each photo as a JPEG at 0.75
-    /// of the pixels it keeps.
+    /// The Android twin's ExportPlan.estimatedPdfBytes rows, byte for byte:
+    /// 30 KB a sheet, notes pages counted, and each photo once by source —
+    /// compressed at 1.6125 bits a pixel of what it keeps, else three bytes
+    /// a pixel of all it has — with no floor.
     func testTheEstimate() {
         let d = notedDesign()
         XCTAssertEqual(ExportChoices.estimatedPDFBytes(design: d, indices: [0, 1, 2], notes: true, compress: false) { _ in nil },
                        5 * 30_000)
-        var photo = Design(title: "Photo", width: 800, height: 600)
-        photo.pages = [Page(elements: [Element.image("media:fixture", w: 400, h: 300)])]
+        var photo = Design(title: "Photo", width: 1920, height: 1080)
+        photo.pages = [Page(elements: [Element.image("media:big", w: 800, h: 600)])]
         let size: (String) -> CGSize? = { _ in CGSize(width: 4000, height: 3000) }
         let full = ExportChoices.estimatedPDFBytes(design: photo, indices: [0], notes: false, compress: false, pixelSize: size)
         let small = ExportChoices.estimatedPDFBytes(design: photo, indices: [0], notes: false, compress: true, pixelSize: size)
-        XCTAssertEqual(full, 30_000 + DesignExporter.jpegBytes(pixels: 12_000_000, quality: 0.75))
-        XCTAssertEqual(small, 30_000 + DesignExporter.jpegBytes(pixels: 625 * 469, quality: 0.75))
+        XCTAssertEqual(full, 36_030_000)
+        XCTAssertEqual(small, 266_332)
         XCTAssertLessThan(small, full)
+        XCTAssertEqual(ExportChoices.sizeText(full), "About 36.0 MB")
+        XCTAssertEqual(ExportChoices.sizeText(small), "About 266 KB")
+        var square = Design(title: "Square", width: 1920, height: 1080)
+        square.pages = [Page(elements: [Element.image("media:big", w: 800, h: 800)])]
+        XCTAssertEqual(ExportChoices.estimatedPDFBytes(design: square, indices: [0], notes: false, compress: true, pixelSize: size),
+                       450_005)
+        var twice = Design(title: "Twice", width: 1920, height: 1080)
+        twice.pages = [Page(elements: [Element.image("media:big", w: 400, h: 300), Element.image("media:big", w: 800, h: 600)])]
+        XCTAssertEqual(ExportChoices.estimatedPDFBytes(design: twice, indices: [0], notes: false, compress: true, pixelSize: size),
+                       266_332)
+        XCTAssertEqual(ExportChoices.estimatedPDFBytes(design: twice, indices: [0], notes: false, compress: false, pixelSize: size),
+                       36_030_000)
     }
 
     /// A 4000 px photo noisy enough not to squash: random pixels as a JPEG,
@@ -188,11 +237,11 @@ final class PDFOptionsTests: XCTestCase {
     /// The stand-in design: the photo drawn from a copy of the pixels it
     /// keeps; a text left alone.
     @MainActor
-    func testTheStandInIsThePixelsKept() throws {
+    func testTheStandInIsThePixelsKept() async throws {
         let src = try noisyPhoto(width: 4000, height: 3000)
         var d = Design(title: "Photo", width: 800, height: 600)
         d.pages = [Page(elements: [Element.image(src, w: 400, h: 300), Element.text("Caption")])]
-        let staged = DesignExporter.compressedForPDF(d, indices: [0])
+        let staged = try await DesignExporter.compressedForPDF(d, indices: [0])
         defer { CompressedPhotos.clear() }
         let stand = try XCTUnwrap(staged.pages[0].elements[0].src)
         XCTAssertTrue(stand.hasPrefix(CompressedPhotos.prefix))
