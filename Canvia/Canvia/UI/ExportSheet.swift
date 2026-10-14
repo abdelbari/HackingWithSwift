@@ -106,7 +106,8 @@ struct ExportSheet: View {
                 }
                 .sheet(item: Binding(
                     get: { exportedURL.map(ShareURL.init) },
-                    set: { if $0 == nil { exportedURL = nil; sharedURLs = [] } })) { item in
+                    set: { if $0 == nil { exportedURL = nil; sharedURLs = [] } }),
+                       onDismiss: { takeFinished() }) { item in
                     // Every file at once when a range produced several: handing
                     // them over one sheet at a time would mean nine dismissals for
                     // a nine-page deck.
@@ -128,7 +129,8 @@ struct ExportSheet: View {
         }
         // Gone, the queue delivers what finishes from here on.
         .onDisappear { queue.sheetOpen = false }
-        .onChange(of: queue.finished?.id) { takeFinished() }
+        .onChange(of: queue.finished.count) { takeFinished() }
+        .onChange(of: queue.delivering) { takeFinished() }
         .onChange(of: queue.failure) { _, failure in
             guard let failure else { return }
             errorMessage = failure
@@ -182,9 +184,11 @@ struct ExportSheet: View {
     }
 
     /// An export done while the sheet is up, delivered as it always was:
-    /// shared, printed, or what Photos took said.
+    /// shared, printed, or what Photos took said. One at a time, the next
+    /// once this one's share sheet or print dialog has gone; a
+    /// notification's tap is used up here too.
     private func takeFinished() {
-        guard let done = queue.takeFinished() else { return }
+        guard exportedURL == nil, !queue.delivering, let done = queue.takeRequested()?.finished else { return }
         let result = done.result
         if let print = result.print {
             ExportPresenter.print(print)

@@ -117,8 +117,9 @@ struct ExportDelivery: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .onChange(of: queue.finished?.id) { deliverSoon() }
+            .onChange(of: queue.finished.count) { deliverSoon() }
             .onChange(of: queue.requested) { deliverSoon() }
+            .onChange(of: queue.delivering) { deliverSoon() }
             .onChange(of: queue.failure) { _, failure in
                 guard let failure, !queue.sheetOpen else { return }
                 queue.note = failure
@@ -133,16 +134,16 @@ struct ExportDelivery: ViewModifier {
 
     /// A moment after, so a notification's Share or Open — which lands just
     /// after the app comes back — decides how; and only with the app in
-    /// front and the sheet, which delivers its own, not up.
+    /// front, the sheet, which delivers its own, not up, and the last one
+    /// delivered gone: several done while away come one after another. The
+    /// tap is used up even when what it was for has gone already.
     private func deliverSoon() {
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(500))
             let queue = ExportQueue.shared
-            guard UIApplication.shared.applicationState == .active, !queue.sheetOpen,
-                  let done = queue.takeFinished() else { return }
-            let request = queue.requested
-            queue.requested = nil
-            ExportPresenter.deliver(done, request: request, queue: queue)
+            guard UIApplication.shared.applicationState == .active, !queue.sheetOpen, !queue.delivering,
+                  let next = queue.takeRequested() else { return }
+            ExportPresenter.deliver(next.finished, request: next.request, queue: queue)
         }
     }
 }
