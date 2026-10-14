@@ -4,7 +4,8 @@ phones share (the Android twin's tools/strings/strings.json, the same
 bytes). Run it after every change to the catalogue, and commit what it
 writes:
 
-  Canvia/Localizable.xcstrings   every entry but the Info.plist ones
+  Canvia/Localizable.xcstrings   every entry but the Info.plist ones (and
+                                 the Android twin's own plurals, below)
   Canvia/InfoPlist.xcstrings     the Info.plist usage descriptions
   Canvia.xcodeproj/project.pbxproj   the languages, in knownRegions
   strings.json                   itself, sorted, as both phones write it
@@ -24,9 +25,12 @@ key is the English other form, %d written %lld:
   "%d page|%d pages"  ->  "%lld pages"
 
 which is the key trn looks up (Tr.pluralKey), and each language's forms
-are the entry's plural variations. The count is the first placeholder of
-every form, so that whichever argument the system takes the plural from,
-it is the count; trn passes it first.
+are the entry's plural variations. Here the count is the first placeholder
+of every form, so that whichever argument the system takes the plural
+from, it is the count; trn passes it first. An entry whose count comes
+later ("%@, %d hidden left out|...") is the Android twin's alone, whose
+trn takes the count apart from the other values: it is checked like the
+rest but not written here, where trn could not fill it.
 
 Both catalogue files are written whole from strings.json: what Xcode adds
 to them as it builds (the literals it finds that the catalogue has not)
@@ -68,6 +72,12 @@ def ios(text):
     return "%%".join(part.replace("%d", "%lld") for part in text.split("%%"))
 
 
+def count_first(key):
+    """Whether a plural entry's count is its first placeholder, as trn
+    here fills it."""
+    return placeholders(english_forms(key)["other"])[:1] == ["%d"]
+
+
 def english_forms(key):
     one, _, other = key.partition("|")
     return {"one": one, "other": other}
@@ -89,8 +99,8 @@ def problems(catalogue):
             wanted = placeholders(english["other"])
             if placeholders(english["one"]) != wanted:
                 out.append(f"{key!r}: its one and other forms have different placeholders")
-            if not wanted or wanted[0] != "%d":
-                out.append(f"{key!r}: the count, %d, is not its first placeholder")
+            if "%d" not in wanted:
+                out.append(f"{key!r}: a plural entry has no count, %d")
         else:
             wanted = placeholders(key)
         if not isinstance(entry, dict):
@@ -191,7 +201,7 @@ def main():
 
     strings = {}
     for key in sorted(catalogue):
-        if key in plist_english:
+        if key in plist_english or ("|" in key and not count_first(key)):
             continue
         name = ios(english_forms(key)["other"]) if "|" in key else ios(key)
         if name in strings:
