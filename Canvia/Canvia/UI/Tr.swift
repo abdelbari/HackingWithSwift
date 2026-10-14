@@ -92,7 +92,15 @@ enum Tr {
             return Self.text(english(text), args, bundle: bundle, locale: locale)
         }
         guard !args.isEmpty else { return found == wanted ? text : found }
-        return String(format: found, locale: locale, arguments: args)
+        return String(format: found, locale: numbers(locale), arguments: args)
+    }
+
+    /// `locale` as numbers are written in it: Arabic in its own digits, as
+    /// the Android twin's NumberFormat writes them — recent iOS writes a
+    /// plain "ar" in Latin digits unless asked.
+    static func numbers(_ locale: Locale?) -> Locale? {
+        guard let locale, locale.language.languageCode?.identifier == "ar" else { return locale }
+        return Locale(identifier: locale.identifier + "@numbers=arab")
     }
 
     /// trn, from `bundle`; `locale` picks the plural rules. In English, or
@@ -108,7 +116,7 @@ enum Tr {
             let english = count == 1 ? forms(oneOther).one : forms(oneOther).other
             return String(format: key(english), arguments: all)
         }
-        return String(format: found, locale: locale, arguments: all)
+        return String(format: found, locale: numbers(locale), arguments: all)
     }
 
     /// The language `bundle` speaks to this person, whose plural rules and
