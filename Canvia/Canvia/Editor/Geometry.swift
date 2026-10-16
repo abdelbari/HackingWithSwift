@@ -792,7 +792,8 @@ enum Geometry {
     /// Scale a set of elements together so that the box `from` (their
     /// union, at grab time) becomes `to`. Positions, sizes and text sizes all
     /// scale; rotations are kept, which is exact only for a uniform scale —
-    /// which is why a group offers corner handles and nothing else.
+    /// which is why a group offers corner handles and nothing else. A table
+    /// cell's spacing scales as its type does (TableCell.scaledPad).
     static func scale(_ elements: [Element], from: CGRect, to: CGRect,
                       minSize: Double = 4) -> [Element] {
         guard from.width > 0, from.height > 0 else { return elements }
@@ -808,6 +809,7 @@ enum Geometry {
             e.h = el.type == .line && !LineRoutes.keepsLevel(el) ? el.h : max(minSize, el.h * sy)
             e.x = cx - e.w / 2
             e.y = cy - e.h / 2
+            e.table = TableCell.scaledPad(el.table, by: min(sx, sy))
             if el.type == .text {
                 e.fontSize = max(6, (el.fontSize ?? 42) * min(sx, sy))
             }

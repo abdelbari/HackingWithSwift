@@ -186,6 +186,78 @@ final class TableEditingTests: XCTestCase {
         XCTAssertEqual(fills(plain, column: 0), ["#1f2430", "#f3f4f6", "#ffffff"])
     }
 
+    func testTheHeaderRowStaysAtTheTop() throws {
+        // Moved with the alternating rows on, the old header would be
+        // striped as a body row, its light bold words on white: neither it
+        // nor the row under it crosses the top. A table with no header
+        // moves its first row freely.
+        let table = made()
+        let id = tableId(table)
+        let on = DataGraphics.withTableBands(table, id: id, on: true, colour: "#ffd6e0")
+        XCTAssertTrue(DataGraphics.tableHeaderStays(on, id: id, row: 0, by: 1))
+        XCTAssertTrue(DataGraphics.tableHeaderStays(on, id: id, row: 1, by: -1))
+        XCTAssertFalse(DataGraphics.tableHeaderStays(on, id: id, row: 1, by: 1))
+        XCTAssertNil(DataGraphics.movedTableRow(on, id: id, row: 0, by: 1, heightFor: heightFor))
+        XCTAssertNil(DataGraphics.movedTableRow(on, id: id, row: 1, by: -1, heightFor: heightFor))
+        XCTAssertNil(DataGraphics.movedTableRow(table, id: id, row: 0, by: 1, heightFor: heightFor))
+        let headless = DataGraphics.withTableHeader(on, id: id, on: false, accent: "#1f2430", heightFor: heightFor)
+        XCTAssertFalse(DataGraphics.tableHeaderStays(headless, id: id, row: 0, by: 1))
+        let moved = try XCTUnwrap(DataGraphics.movedTableRow(headless, id: id, row: 0, by: 1, heightFor: heightFor))
+        XCTAssertEqual(words(moved), ["Coffee", "2", "Item", "Qty", "Bagel", "1"])
+        XCTAssertEqual(fills(moved, column: 0), ["#ffd6e0", "#ffffff", "#ffd6e0"])
+    }
+
+    func testRowsTypedInTakeTheTablesAlternatingRows() throws {
+        let table = made()
+        let id = tableId(table)
+        let one = try XCTUnwrap(DataGraphics.deletingTableRow(DataGraphics.withTableBands(table, id: id, on: true, colour: "#ffd6e0"),
+                                                              id: id, row: 2, heightFor: heightFor))
+        let rows = [["Item", "Qty"], ["Coffee", "2"], ["Tea", "3"], ["Milk", "4"]]
+        let more = try XCTUnwrap(DataGraphics.rebuiltTable(one, id: id, rows: rows, heightFor: heightFor))
+        XCTAssertEqual(words(more), ["Item", "Qty", "Coffee", "2", "Tea", "3", "Milk", "4"])
+        XCTAssertEqual(fills(more, column: 0), ["#1f2430", "#ffffff", "#ffd6e0", "#ffffff"])
+        // With none kept, the default band as a table is made.
+        let plain = try XCTUnwrap(DataGraphics.rebuiltTable(
+            try XCTUnwrap(DataGraphics.deletingTableRow(table, id: id, row: 2, heightFor: heightFor)),
+            id: id, rows: rows, heightFor: heightFor))
+        XCTAssertEqual(fills(plain, column: 0), ["#1f2430", "#ffffff", "#f3f4f6", "#ffffff"])
+    }
+
+    // MARK: cell spacing scaled
+
+    func testCellSpacingScalesWithTheTableSoItsNextRelayoutHoldsItsRows() throws {
+        // Lines as tall as the type, so a scaled table measures scaled.
+        let typed: (Element) -> Double = { $0.fontSize ?? 20 }
+        let table = DataGraphics.table(DataGraphics.parseTable("Item, Qty\nCoffee, 2\nBagel, 1"),
+                                       in: CGRect(x: 100, y: 200, width: 400, height: 300), accent: "#1f2430",
+                                       heightFor: typed)
+        let id = tableId(table)
+        let padded = DataGraphics.withTablePadding(table, id: id, padding: 30, heightFor: typed)
+        XCTAssertEqual(rect(padded, 0, 0).table?.pad, 30)
+        XCTAssertEqual(DataGraphics.tableRows(padded, id: id).map { rect(padded, $0, 0).h }, [82, 82, 82])
+        // With the page (scaledSizes): pad 15 and rows 41 tall, which the
+        // relayout keeps.
+        let small = padded.map { el -> Element in
+            var out = el.scaledSizes(by: 0.5)
+            out.x = el.x * 0.5
+            out.y = el.y * 0.5
+            return out
+        }
+        XCTAssertEqual(rect(small, 0, 0).table?.pad, 15)
+        XCTAssertEqual(text(small, 1, 0).fontSize, 11)
+        let relaid = DataGraphics.relaidTable(small, id: id, heightFor: typed)
+        XCTAssertEqual(DataGraphics.tableRows(relaid, id: id).map { rect(relaid, $0, 0).h }, [41, 41, 41])
+        XCTAssertEqual(rowTops(small), rowTops(relaid))
+        // With the selection (Geometry.scale): the same.
+        let box = Geometry.union(padded.map(Geometry.aabb))
+        let grouped = Geometry.scale(padded, from: box, to: CGRect(x: box.minX, y: box.minY, width: box.width / 2, height: box.height / 2))
+        XCTAssertEqual(rect(grouped, 0, 0).table?.pad, 15)
+        let regrouped = DataGraphics.relaidTable(grouped, id: id, heightFor: typed)
+        XCTAssertEqual(DataGraphics.tableRows(regrouped, id: id).map { rect(regrouped, $0, 0).h }, [41, 41, 41])
+        // Nothing kept scales to nothing.
+        XCTAssertNil(rect(table.map { $0.scaledSizes(by: 0.5) }, 0, 0).table?.pad)
+    }
+
     // MARK: the file
 
     func testSpacingAndBandsAreWrittenOnlyWhenSetAndReadTolerantly() throws {

@@ -2925,6 +2925,7 @@ final class DesignStore {
             if let r = el.radius { e.radius = r * s }
             if let c = el.corners { e.corners = c.map { $0 * s } }
             if let sw = el.strokeWidth { e.strokeWidth = sw * s }
+            e.table = TableCell.scaledPad(el.table, by: s)
             if el.type == .text, rx > s {
                 e.w = min(el.w * rx, new.width)
                 e.h = FontLibrary.layoutHeight(for: e)

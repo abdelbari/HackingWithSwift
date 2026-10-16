@@ -269,6 +269,16 @@ struct TableCell: Codable, Equatable, Hashable {
 
     private enum CodingKeys: String, CodingKey { case id, row, col, rowSpan, colSpan, pad, bands }
 
+    /// `cell` with its spacing, in page units, times `scale` — as a table
+    /// scaled with its page or its selection keeps its inset in proportion,
+    /// so its next relayout holds its rows; as it is when it is no cell or
+    /// keeps none. The Android twin's Tables.scaledPad.
+    static func scaledPad(_ cell: TableCell?, by scale: Double) -> TableCell? {
+        guard var out = cell, let pad = out.pad else { return cell }
+        out.pad = pad * scale
+        return out
+    }
+
     init(id: String, row: Int, col: Int, rowSpan: Int = 1, colSpan: Int = 1, pad: Double? = nil, bands: String? = nil) {
         self.id = id
         self.row = row
@@ -953,6 +963,7 @@ struct Element: Codable, Equatable, Identifiable {
         if let radius { e.radius = radius * scale }
         if let corners { e.corners = corners.map { $0 * scale } }
         if let strokeWidth { e.strokeWidth = strokeWidth * scale }
+        e.table = TableCell.scaledPad(table, by: scale)
         return e
     }
 }

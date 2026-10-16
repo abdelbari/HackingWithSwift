@@ -216,6 +216,24 @@ final class TablesTests: XCTestCase {
         XCTAssertEqual(table.filter { $0.table?.row != 0 }, on.filter { $0.table?.row != 0 })
     }
 
+    func testTheHeaderOffTakesTheAlternatingRowsColourOrWhite() {
+        // Row 0 is filled as row 0 of the body is banded: the colour kept,
+        // the default band while the body is striped as made, white with
+        // the rows off. The other rows are left as they are.
+        let table = made()
+        let id = tableId(table)
+        let pink = DataGraphics.withTableHeader(DataGraphics.withTableBands(table, id: id, on: true, colour: "#ffd6e0"),
+                                                id: id, on: false, accent: "#1f2430", heightFor: heightFor)
+        XCTAssertEqual(DataGraphics.tableRows(pink, id: id).map { rect(pink, $0, 0).fill?.color }, ["#ffd6e0", "#ffffff", "#ffd6e0"])
+        let white = DataGraphics.withTableHeader(DataGraphics.withTableBands(table, id: id, on: false, colour: "#ffd6e0"),
+                                                 id: id, on: false, accent: "#1f2430", heightFor: heightFor)
+        XCTAssertEqual(DataGraphics.tableRows(white, id: id).map { rect(white, $0, 0).fill?.color }, ["#ffffff", "#ffffff", "#ffffff"])
+        let own = DataGraphics.colouringTableCells(table, id: id, cells: Set([rect(table, 2, 1).table].compactMap { $0 }), color: "#ef4444")
+        let kept = DataGraphics.withTableHeader(own, id: id, on: false, accent: "#1f2430", heightFor: heightFor)
+        XCTAssertEqual(rect(kept, 0, 0).fill?.color, "#ffffff")
+        XCTAssertEqual(rect(kept, 2, 1).fill?.color, "#ef4444")
+    }
+
     func testACellsColourFillsItsRectangleOnly() {
         let table = made()
         let coloured = DataGraphics.colouringTableCells(table, id: tableId(table),

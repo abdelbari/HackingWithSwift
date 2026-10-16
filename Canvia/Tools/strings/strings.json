@@ -22034,6 +22034,15 @@
     "ja": "前回の書き出しの形式、サイズ、品質、背景、ページの選択、PDF オプションが次回も使えます。「選択…」でチェックしたページは、アプリを閉じるまでこのデザインで保持されます。",
     "pt-BR": "O formato, o tamanho, a qualidade, o fundo, a escolha de páginas e as opções de PDF da sua última exportação, prontos para a próxima vez. As páginas marcadas em Escolher… ficam com este design até o app ser fechado."
   },
+  "The header row stays at the top": {
+    "ar": "يبقى صف العنوان في الأعلى",
+    "de": "Die Kopfzeile bleibt oben",
+    "es": "La fila de encabezado se queda arriba",
+    "fr": "La ligne d’en-tête reste en haut",
+    "it": "La riga di intestazione resta in alto",
+    "ja": "見出し行は一番上のままです",
+    "pt-BR": "A linha de cabeçalho fica no topo"
+  },
   "The kit in use is the one every design is offered: its colours, its fonts in Add text and Document theme, and its logos.": {
     "ar": "المجموعة المستخدمة هي التي تُعرض على كل تصميم: ألوانها، وخطوطها في «إضافة نص» و«سمة المستند»، وشعاراتها.",
     "de": "Das verwendete Kit wird jedem Design angeboten: seine Farben, seine Schriften in „Text hinzufügen“ und „Dokumentthema“ und seine Logos.",

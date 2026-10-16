@@ -226,15 +226,19 @@ extension DataGraphics {
 
     /// Row 0 made the header, as table() makes one — filled with `accent`,
     /// its words bold in ink that reads on it — or, with `on` false, a body
-    /// row like the rest: banded, regular, in the table's ink.
+    /// row like the rest: regular, in the table's ink, and filled as row 0
+    /// of the body is banded — in the table's alternating rows' colour as
+    /// the sheet shows it (tableBandsShown), white when they are off — the
+    /// other rows left as they are.
     static func withTableHeader(_ elements: [Element], id: String, on: Bool, accent: String,
                                 heightFor: (Element) -> Double) -> [Element] {
+        let band = tableBandsShown(elements, id: id)
         let styled = elements.map { el -> Element in
             guard let cell = el.table, cell.id == id, cell.row == 0 else { return el }
             var out = el
             switch el.type {
             case .shape:
-                out.fill = .solid(on ? accent : tableBodyFill(0))
+                out.fill = .solid(on ? accent : band.map { tableBodyFill(0, band: $0) } ?? tableBody)
             case .text:
                 out.fontWeight = on ? 700 : 400
                 out.color = on ? ColorTheory.readableInk(on: accent) : tableInk
@@ -487,16 +491,27 @@ extension DataGraphics {
         }
     }
 
+    /// Whether moving row `row` of table `id` `step` rows would take its
+    /// header off the top, or put another row there: refused, as the
+    /// Android twin's Tables.keepsHeader refuses it, with "The header row
+    /// stays at the top" — striped again, the old header would be a body
+    /// row, its light bold words on white.
+    static func tableHeaderStays(_ elements: [Element], id: String, row: Int, by step: Int) -> Bool {
+        tableHasHeader(elements, id: id) && (row == 0 || row + step == 0)
+    }
+
     /// Row `row` of table `id` and the row `step` (±1) from it changed
     /// places — their cells, words and colours with them — the alternating
     /// rows striped again (restriped) and the table laid out again. Nil when
-    /// there is no row there, or when a merged cell would be parted
+    /// there is no row there, when the header would leave the top
+    /// (tableHeaderStays), or when a merged cell would be parted
     /// (rowMoveSplitsMerge).
     static func movedTableRow(_ elements: [Element], id: String, row: Int, by step: Int,
                               heightFor: (Element) -> Double) -> [Element]? {
         let rows = tableRows(elements, id: id)
         let other = row + step
         guard step != 0, rows.contains(row), rows.contains(other),
+              !tableHeaderStays(elements, id: id, row: row, by: step),
               !rowMoveSplitsMerge(elements, id: id, row: row, by: step) else { return nil }
         let swapped = elements.map { el -> Element in
             guard var cell = el.table, cell.id == id, cell.row == row || cell.row == other else { return el }
