@@ -392,15 +392,23 @@ enum PhotoEffects {
             cg.translateBy(x: el.w / 2 + (dispW - el.w) * (0.5 - cropX), y: el.h / 2 + (dispH - el.h) * (0.5 - cropY))
             cg.rotate(by: tilt * .pi / 180)
             let placed = CGRect(x: -dispW / 2, y: -dispH / 2, width: dispW, height: dispH)
-            if let alpha = shown.alpha {
-                // The mask's top row at the picture's top: the context's own
-                // way up turned over to clip, and back.
-                let over = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: placed.minX, ty: placed.maxY)
-                cg.concatenate(over)
-                cg.clip(to: CGRect(origin: .zero, size: placed.size), mask: alpha)
-                cg.concatenate(over.inverted())
+            // Each picture under its grid — the grid's top row at the
+            // picture's top: the context's own way up turned over to clip,
+            // and back — the picture itself, then the one before the cut
+            // where Restore painted it back.
+            func lay(_ picture: UIImage, under grey: CGImage?) {
+                cg.saveGState()
+                if let grey {
+                    let over = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: placed.minX, ty: placed.maxY)
+                    cg.concatenate(over)
+                    cg.clip(to: CGRect(origin: .zero, size: placed.size), mask: grey)
+                    cg.concatenate(over.inverted())
+                }
+                picture.draw(in: placed)
+                cg.restoreGState()
             }
-            shown.picture.draw(in: placed)
+            lay(shown.picture, under: shown.alpha)
+            if let restored = shown.restored { lay(restored.picture, under: restored.cover) }
         }
         guard let cg = silhouette.cgImage else { return nil }
         let shape = CIImage(cgImage: cg)

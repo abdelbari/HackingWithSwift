@@ -1552,7 +1552,13 @@ final class DesignStore {
                     return
                 }
                 self.selection = [id]
-                self.updateSelected { $0.src = src }
+                // The inpainted copy is no longer the Cut out its mask's base
+                // was the original of, so the base goes with the old picture;
+                // the strokes, painted over the same picture, stay.
+                self.updateSelected {
+                    $0.src = src
+                    $0.mask = ImageMask.withoutBase($0.mask)
+                }
                 self.buzz(.confirm)
                 self.announce(tr("Erased — Undo brings it back"))
             }

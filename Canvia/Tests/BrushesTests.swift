@@ -232,6 +232,19 @@ final class BrushesTests: XCTestCase {
         XCTAssertEqual(try read(#"{"strokes": [], "base": "media:a"}"#), ImageMask(base: "media:a"))
     }
 
+    func testTheBaseGoesWhenThePictureIsNoLongerTheCutOutTheStrokesStay() {
+        // The object eraser's inpainted copy: the Android twin's
+        // PhotoMask.withoutBase, row for row.
+        let mask = ImageMask(strokes: [stroke("restore", 0.1, 0, [(0.5, 0.5)])], base: "media:before")
+        let kept = ImageMask.withoutBase(mask)
+        XCTAssertNil(kept?.base)
+        XCTAssertEqual(kept?.strokes, mask.strokes)
+        // A base on its own leaves no mask at all; no base is no change.
+        XCTAssertNil(ImageMask.withoutBase(ImageMask(base: "media:before")))
+        XCTAssertEqual(ImageMask.withoutBase(kept), kept)
+        XCTAssertNil(ImageMask.withoutBase(nil))
+    }
+
     func testRetouchIsWrittenOnlyWithAPaintedLayerAndReadBack() throws {
         var el = Element.image("media:p", w: 300, h: 200)
         el.retouch = RetouchLayer.kept([RetouchLayer(kind: "blur", amount: 0.4)])

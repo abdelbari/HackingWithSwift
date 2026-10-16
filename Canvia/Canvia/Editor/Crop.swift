@@ -211,11 +211,15 @@ enum Crop {
     /// covering it and level. The frame is what the layout depends on, so a
     /// replacement keeps it, with its corners, look and border: what Replace
     /// does, and a picture dropped or picked into a frame, as the Android
-    /// twin's Crop.replaced.
+    /// twin's Crop.replaced. What was brushed onto the old picture — its
+    /// mask, the picture before its Cut out with it, and its retouch — was
+    /// painted over that picture, and goes with it.
     static func replaced(_ el: Element, src: String?) -> Element {
         var out = reset(el)
         out.src = src
         out.straighten = nil
+        out.mask = nil
+        out.retouch = nil
         return out
     }
 
