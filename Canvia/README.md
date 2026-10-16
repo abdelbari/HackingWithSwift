@@ -13,6 +13,16 @@ dependencies, fully offline. See [PLAN.md](PLAN.md) for the design plan.
 Open `Canvia.xcodeproj` in Xcode, pick a simulator or device, and Run.
 No packages to resolve, nothing to configure.
 
+CI's checks, on this machine instead of on GitHub (`ci-local.sh` and
+`../.github/workflows/canvia-ios.yml` are two copies of one list):
+
+```sh
+./ci-local.sh                  # static, then the build leg this Mac can run
+./ci-local.sh static           # Tools/verify.js — needs Node, no Xcode
+./ci-local.sh build baseline   # Xcode 16.4, iPhone 16, iOS 18.6: build, tests, launch, screenshots
+./ci-local.sh build latest     # Xcode 26.6, iPhone 17 Pro, iOS 26.5
+```
+
 ## What it does
 
 **Home** — size presets (Instagram post/story, presentation, YouTube,

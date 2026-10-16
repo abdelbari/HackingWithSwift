@@ -1,5 +1,9 @@
 name: Canvia iOS
 
+# Canvia/ci-local.sh runs these same checks on a developer's machine, for when
+# GitHub cannot: it is the one other copy of this list. A check added, changed
+# or removed here is added, changed or removed there too.
+#
 # This repository is public, so GitHub-hosted runners - macOS included - are
 # free. Runs on the working branches and on demand.
 on:
