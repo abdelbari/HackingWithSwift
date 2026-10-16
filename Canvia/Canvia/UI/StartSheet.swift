@@ -262,7 +262,13 @@ private struct StartGrid: View {
         .padding(.top, 8)
         .padding(.bottom, 24)
         .onAppear { mine = UserTemplates.sized(UserTemplates.all(), width: preset.w, height: preset.h) }
-        .task(id: preset.id) { adapted = Templates.nearby(preset) }
+        // Reflowed off the main thread, as the Android twin does it: every
+        // text box of every borrowed template is measured as it re-wraps.
+        .task(id: preset.id) {
+            let size = preset
+            let made = await Task.detached(priority: .userInitiated) { Templates.nearby(size) }.value
+            if !Task.isCancelled { adapted = made }
+        }
         // A template's own page first; Customize makes the design — every
         // page, or the one shown — at this size.
         .sheet(item: $previewing) { template in

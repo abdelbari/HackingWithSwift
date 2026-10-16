@@ -82,6 +82,9 @@ struct TemplatePreviewSheet: View {
         }
         .tabViewStyle(.page(indexDisplayMode: design.pages.count > 1 ? .always : .never))
         .indexViewStyle(.page(backgroundDisplayMode: .always))
+        // Left to right in every language, as the page strip is: a design's
+        // pages run that way (ReadingDirection).
+        .designDirection()
         .aspectRatio(ratio, contentMode: .fit)
         .frame(maxWidth: .infinity, maxHeight: 460)
     }
