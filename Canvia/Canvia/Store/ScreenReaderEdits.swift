@@ -2,7 +2,9 @@
 // Switch Control: Make larger, Make smaller, Turn clockwise and Turn
 // anticlockwise, as the Android twin's TalkBack actions. Each selects the
 // element first and is one undo step; something locked, or locked in
-// position, is left as it is, as a move leaves it.
+// position, is left as it is, as a move leaves it. On a locked page each
+// is refused once, and said, with Unlock — and nothing is read out as if
+// it had happened.
 
 import Foundation
 
@@ -13,6 +15,10 @@ extension DesignStore {
     /// True when it changed.
     @discardableResult
     func resizeForScreenReader(_ id: String, larger: Bool) -> Bool {
+        guard !isPageLocked else {
+            refusesLockedPage()
+            return false
+        }
         guard let el = element(id), !el.holdsPlace else { return false }
         select(id)
         guard let scaled = CanvasAccessibility.scaled(el, larger: larger) else {
@@ -31,6 +37,10 @@ extension DesignStore {
     /// changed.
     @discardableResult
     func turnForScreenReader(_ id: String, clockwise: Bool) -> Bool {
+        guard !isPageLocked else {
+            refusesLockedPage()
+            return false
+        }
         guard let el = element(id), !el.holdsPlace, !LineRoutes.keepsLevel(el) else { return false }
         select(id)
         let angle = CanvasAccessibility.turned(el.rotation, clockwise: clockwise)

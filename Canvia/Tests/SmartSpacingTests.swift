@@ -80,6 +80,57 @@ final class SmartSpacingTests: XCTestCase {
         XCTAssertEqual(pairs.map(\.gap), [150])
     }
 
+    func testTheSiblingsNeighboursWorkedOutOnceGiveTheGapsAFreshScanDoes() {
+        // A card let go between the two: their gap is no longer a gap, its
+        // own to each are — the row's in the siblings' order, its own last.
+        let between = box(125, 0, 100, 100)
+        let siblings = [a, box(250, 0, 100, 100)]
+        let rows = Geometry.neighbours(siblings, alongX: true)
+        let columns = Geometry.neighbours(siblings, alongX: false)
+        let pairs = Geometry.equalGapPairs(between, siblings: siblings, alongX: true, near: rows)
+        XCTAssertEqual(pairs.map(\.gap), [25, 25])
+        XCTAssertEqual(pairs.first?.a, a)
+        XCTAssertEqual(pairs.first?.b, between)
+        XCTAssertEqual(pairs.last?.a, between)
+        XCTAssertEqual(pairs, Geometry.equalGapPairs(between, siblings: siblings, alongX: true))
+        // A neighbour touching a card keeps it: the moving box, further on,
+        // is not that card's next, so its gap to it is never bracketed.
+        let touched = box(100.2, 0, 100, 100)
+        let far = box(-300.2, 0, 100, 100)
+        let row = [far, a, touched, box(500.2, 0, 100, 100)]
+        let moving = box(300.2, 0, 100, 100)
+        let equal = Geometry.equalGapPairs(moving, siblings: row, alongX: true,
+                                           near: Geometry.neighbours(row, alongX: true))
+        XCTAssertEqual(equal.map { ($0.gap * 1e6).rounded() / 1e6 }, [100, 100])
+        XCTAssertEqual(equal, Geometry.equalGapPairs(moving, siblings: row, alongX: true))
+        // And matching finds the same gap either way.
+        let fresh = Geometry.matchingGap(moving: box(297, 10, 100, 80), siblings: siblings, threshold: 6)
+        let cached = Geometry.matchingGap(moving: box(297, 10, 100, 80), siblings: siblings, threshold: 6,
+                                          nearX: rows, nearY: columns)
+        XCTAssertEqual(fresh.dx, cached.dx, accuracy: 1e-9)
+        XCTAssertEqual(fresh.gapX, cached.gapX)
+        XCTAssertEqual(fresh.pairs, cached.pairs)
+    }
+
+    func testSizesAreMatchedOnlyByAnElementSquareToThePageAndNeverALine() {
+        var square = el("s", 0, 0, 100, 40)
+        XCTAssertTrue(Geometry.matchesSizes(square))
+        square.rotation = 360
+        XCTAssertTrue(Geometry.matchesSizes(square))
+        square.rotation = -720
+        XCTAssertTrue(Geometry.matchesSizes(square))
+        // A quarter turn beside a sibling of its width matches nothing.
+        square.rotation = 90
+        XCTAssertFalse(Geometry.matchesSizes(square))
+        square.rotation = 180
+        XCTAssertFalse(Geometry.matchesSizes(square))
+        square.rotation = 15
+        XCTAssertFalse(Geometry.matchesSizes(square))
+        var line = Element.line(w: 100)
+        line.h = 4
+        XCTAssertFalse(Geometry.matchesSizes(line))
+    }
+
     func testASideResizedToAnothersWidthSnapsToItAndSaysWhich() {
         let siblings = [el("card", 0, 200, 100, 40), el("other", 300, 200, 100, 70), el("wide", 0, 400, 300, 50)]
         let m = Geometry.matchingSize(box(0, 0, 97, 60), handle: .e, siblings: siblings, threshold: 6)

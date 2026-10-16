@@ -88,4 +88,18 @@ enum Viewport {
         if box.width > 0 { wanted = min(wanted, (Double(viewport.width) - typingMargin) / Double(box.width)) }
         return wanted > zoom ? wanted : nil
     }
+
+    /// How far above a box's bottom the middle of its last line sits, as a
+    /// share of the type's size: where the caret opens without a tap.
+    static let typingLastLine = 0.6
+
+    /// The line typing zooms in on, as a y on the page: the one tapped
+    /// (`tapY`), held within `box` — a tap just past its edge opens it all
+    /// the same — else the last, where the caret goes without a tap, its
+    /// middle `typingLastLine` of `fontSize` above the box's bottom (and
+    /// never above its top). The same rule on both phones.
+    static func typingLine(box: CGRect, fontSize: Double, tapY: Double?) -> Double {
+        let line = tapY ?? Double(box.maxY) - fontSize * typingLastLine
+        return max(Double(box.minY), min(Double(box.maxY), line))
+    }
 }

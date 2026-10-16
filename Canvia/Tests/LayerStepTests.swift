@@ -124,6 +124,16 @@ final class LayerStepTests: XCTestCase {
 
     // MARK: the store
 
+    func testAScreenReadersStepOnAMemberMovesItsWholeGroup() {
+        // Bring forward on g2, whose group a tap selects whole (select): the
+        // group goes above e, as on the Android twin — not g2 within its run.
+        let s = store([box("g1", x: 0, y: 0, group: "G"), box("g2", x: 0, y: 0, group: "G"), box("e", x: 0, y: 0)])
+        s.select("g2")
+        XCTAssertEqual(s.selection, ["g1", "g2"])
+        s.reorderSelected(.forward)
+        XCTAssertEqual(ids(s.page.elements), ["e", "g1", "g2"])
+    }
+
     func testAStepIsOneUndoAndAtTheFrontItIsRefusedAndSaid() {
         let s = store([box("e", x: 0, y: 0), box("g1", x: 50, y: 0, group: "g"), box("g2", x: 0, y: 50, group: "g")])
         s.select("e")

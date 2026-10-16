@@ -128,6 +128,21 @@ final class ReaderTransformsTests: XCTestCase {
         XCTAssertTrue(CanvasAccessibility.value(for: s.element("a")!, design: s.design).contains("11% wide"))
     }
 
+    func testOnALockedPageEachIsRefusedOnceAndNothingChanges() {
+        var d = Design(title: "reader", width: 1000, height: 1000)
+        var page = Page(id: "p1", elements: [box("a", 0, 0, 100, 100)])
+        page.locked = true
+        d.pages = [page]
+        let s = DesignStore(design: d)
+        XCTAssertFalse(s.resizeForScreenReader("a", larger: true))
+        XCTAssertEqual(s.element("a")?.w, 100)
+        XCTAssertEqual(s.announcement, PageLocks.lockedNote)
+        XCTAssertEqual(s.haptic.kind, .reject)
+        XCTAssertFalse(s.turnForScreenReader("a", clockwise: true))
+        XCTAssertEqual(s.element("a")?.rotation, 0)
+        XCTAssertTrue(s.selection.isEmpty, "nothing on a locked page is selected")
+    }
+
     func testAnElbowedLineIsNotTurned() {
         var d = Design(title: "reader", width: 1000, height: 1000)
         var elbow = Element.line(w: 200)

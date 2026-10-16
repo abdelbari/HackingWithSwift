@@ -499,20 +499,30 @@ enum Geometry {
         alongX ? a.maxY > b.minY && a.minY < b.maxY : a.maxX > b.minX && a.minX < b.maxX
     }
 
-    /// Every gap between neighbours among `boxes`, by their places in it.
-    private static func indexedGapPairs(_ boxes: [CGRect], alongX: Bool) -> [(a: Int, b: Int, pair: GapPair)] {
-        var out: [(a: Int, b: Int, pair: GapPair)] = []
+    /// Each box's nearest neighbour after it among some boxes, in rows
+    /// (`alongX`) or columns — the one gapPairs pairs it with, touching or
+    /// not — by its place among them, or -1 for none. Worked out once for
+    /// the siblings of a drag, which do not move while it lasts, so that
+    /// each frame's gap matching is a pass over them rather than a pass per
+    /// box. The Android twin's Geometry.Neighbours.
+    struct Neighbours {
+        let alongX: Bool
+        fileprivate let next: [Int]
+    }
+
+    /// The `Neighbours` of `boxes` in rows (`alongX`) or columns: each box's
+    /// nearest after it that overlaps it across the axis, the first on a tie.
+    static func neighbours(_ boxes: [CGRect], alongX: Bool) -> Neighbours {
+        var next = [Int](repeating: -1, count: boxes.count)
         for (i, a) in boxes.enumerated() {
-            let after = boxes.indices.filter { j in
-                j != i && beside(a, boxes[j], alongX: alongX)
-                    && (alongX ? boxes[j].minX >= a.maxX : boxes[j].minY >= a.maxY)
+            var found = -1
+            for (j, b) in boxes.enumerated() {
+                if j == i || !beside(a, b, alongX: alongX) || (alongX ? b.minX < a.maxX : b.minY < a.maxY) { continue }
+                if found < 0 || (alongX ? b.minX < boxes[found].minX : b.minY < boxes[found].minY) { found = j }
             }
-            guard let j = after.min(by: { alongX ? boxes[$0].minX < boxes[$1].minX : boxes[$0].minY < boxes[$1].minY })
-            else { continue }
-            let pair = GapPair(a: a, b: boxes[j], alongX: alongX)
-            if pair.gap > 0.5 { out.append((a: i, b: j, pair: pair)) }
+            next[i] = found
         }
-        return out
+        return Neighbours(alongX: alongX, next: next)
     }
 
     /// Every gap between neighbours among `boxes` in rows (`alongX`) or
@@ -521,21 +531,71 @@ enum Geometry {
     /// Android twin's Geometry.gapPairs). A gap of half a unit or less is
     /// two things touching, not a gap.
     static func gapPairs(_ boxes: [CGRect], alongX: Bool) -> [GapPair] {
-        indexedGapPairs(boxes, alongX: alongX).map { $0.pair }
+        gapPairs(boxes, near: neighbours(boxes, alongX: alongX))
+    }
+
+    /// The gaps among `boxes` from their nearest neighbours, in their order.
+    private static func gapPairs(_ boxes: [CGRect], near: Neighbours) -> [GapPair] {
+        var out: [GapPair] = []
+        for i in boxes.indices {
+            let j = near.next[i]
+            if j < 0 { continue }
+            let pair = GapPair(a: boxes[i], b: boxes[j], alongX: near.alongX)
+            if pair.gap > 0.5 { out.append(pair) }
+        }
+        return out
+    }
+
+    /// The gaps among `siblings` and `moving` together — gapPairs of the
+    /// two, from the siblings' nearest neighbours alone: a sibling's gap to
+    /// the moving box where it now comes before that sibling's own next,
+    /// else its own; then the moving box's to the nearest sibling after it.
+    /// In the siblings' order, the moving box's last, as gapPairs lists
+    /// them; `mine` marks the moving box's own.
+    private static func gapPairsWith(moving: CGRect, siblings: [CGRect],
+                                     near: Neighbours) -> [(mine: Bool, pair: GapPair)] {
+        let alongX = near.alongX
+        func close(_ r: CGRect) -> CGFloat { alongX ? r.minX : r.minY }
+        func far(_ r: CGRect) -> CGFloat { alongX ? r.maxX : r.maxY }
+        var out: [(mine: Bool, pair: GapPair)] = []
+        for (i, a) in siblings.enumerated() {
+            let j = near.next[i]
+            let movingNext = beside(a, moving, alongX: alongX) && close(moving) >= far(a)
+                && (j < 0 || close(moving) < close(siblings[j]))
+            if movingNext {
+                let pair = GapPair(a: a, b: moving, alongX: alongX)
+                if pair.gap > 0.5 { out.append((mine: true, pair: pair)) }
+            } else if j >= 0 {
+                let pair = GapPair(a: a, b: siblings[j], alongX: alongX)
+                if pair.gap > 0.5 { out.append((mine: false, pair: pair)) }
+            }
+        }
+        var next: CGRect?
+        for b in siblings {
+            if !beside(moving, b, alongX: alongX) || close(b) < far(moving) { continue }
+            if let seen = next, close(b) >= close(seen) { continue }
+            next = b
+        }
+        if let next {
+            let pair = GapPair(a: moving, b: next, alongX: alongX)
+            if pair.gap > 0.5 { out.append((mine: true, pair: pair)) }
+        }
+        return out
     }
 
     /// The gaps as wide as one of `moving`'s own to its neighbours among
     /// `siblings`, within `tolerance`, in rows (`alongX`) or columns — its
     /// own among them — where there are at least two: what draws a
-    /// bracket. None where its gaps match nothing.
+    /// bracket. None where its gaps match nothing. `near` is the siblings'
+    /// neighbours on that axis, worked out once for a drag; else they are
+    /// worked out here.
     static func equalGapPairs(_ moving: CGRect, siblings: [CGRect], alongX: Bool,
-                              tolerance: Double = 0.5) -> [GapPair] {
-        let boxes = siblings + [moving]
-        let mine = boxes.count - 1
-        let pairs = indexedGapPairs(boxes, alongX: alongX)
+                              tolerance: Double = 0.5, near: Neighbours? = .none) -> [GapPair] {
+        let pairs = gapPairsWith(moving: moving, siblings: siblings,
+                                 near: near ?? neighbours(siblings, alongX: alongX))
         var out: [GapPair] = []
         var taken: Set<Int> = []
-        for own in pairs where own.a == mine || own.b == mine {
+        for own in pairs where own.mine {
             let same = pairs.indices.filter { abs(pairs[$0].pair.gap - own.pair.gap) <= tolerance }
             guard same.count >= 2 else { continue }
             for k in same where !taken.contains(k) {
@@ -565,11 +625,16 @@ enum Geometry {
     /// `threshold` of one of them, the shift that makes it that gap — the
     /// smallest such shift, the left (top) side on a tie — and the equal
     /// gaps then, its own among them. The page's edges are never
-    /// neighbours. The Android twin's Geometry.matchingGap, over the same
-    /// test vectors.
-    static func matchingGap(moving: CGRect, siblings: [CGRect], threshold: Double) -> MatchingGap {
+    /// neighbours. `nearX` and `nearY` are the siblings' neighbours in rows
+    /// and columns, worked out once for a drag, which does not move them;
+    /// else they are worked out here. The Android twin's
+    /// Geometry.matchingGap, over the same test vectors.
+    static func matchingGap(moving: CGRect, siblings: [CGRect], threshold: Double,
+                            nearX: Neighbours? = .none, nearY: Neighbours? = .none) -> MatchingGap {
+        let rows = nearX ?? neighbours(siblings, alongX: true)
+        let columns = nearY ?? neighbours(siblings, alongX: false)
         func axis(_ alongX: Bool) -> (shift: Double, gap: Double)? {
-            let existing = gapPairs(siblings, alongX: alongX).map(\.gap)
+            let existing = gapPairs(siblings, near: alongX ? rows : columns).map(\.gap)
             guard !existing.isEmpty else { return nil }
             let near = siblings.filter { beside($0, moving, alongX: alongX) }
             let low = Double(alongX ? moving.minX : moving.minY)
@@ -595,9 +660,18 @@ enum Geometry {
         var result = MatchingGap(dx: x?.shift ?? 0, dy: y?.shift ?? 0,
                                  gapX: x.map { $0.gap.rounded() }, gapY: y.map { $0.gap.rounded() })
         let moved = moving.offsetBy(dx: result.dx, dy: result.dy)
-        if x != nil { result.pairs += equalGapPairs(moved, siblings: siblings, alongX: true) }
-        if y != nil { result.pairs += equalGapPairs(moved, siblings: siblings, alongX: false) }
+        if x != nil { result.pairs += equalGapPairs(moved, siblings: siblings, alongX: true, near: rows) }
+        if y != nil { result.pairs += equalGapPairs(moved, siblings: siblings, alongX: false, near: columns) }
         return result
+    }
+
+    /// Whether a resize of `el` matches sizes at all: only an element square
+    /// to the page — turned by nothing, or by whole turns — whose edges lie
+    /// along the lines a snap finds, as they do, and never a line, whose
+    /// length is its own. The same rule on both phones.
+    static func matchesSizes(_ el: Element) -> Bool {
+        let turn = (el.rotation.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
+        return el.type != .line && turn == 0
     }
 
     /// A box whose width (else its height) a resize has matched, the
