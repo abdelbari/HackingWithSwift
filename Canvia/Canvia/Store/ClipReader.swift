@@ -23,9 +23,10 @@
 // Either way the moment is the one VideoStore.clipTime stamps from the
 // page's time, so a clip's trim, speed and loop are kept as before. Each
 // clip has its own reader or player, so no clip waits on another; at most
-// four of each are open (ClipPool), and all are closed when another page
-// comes up and when the phone runs short of memory. The design's JSON does
-// not change.
+// four idle ones of each are open (ClipPool); an export's readers are its
+// own, let go as its film moves to the next page, and a page's players are
+// let go when another page comes up; all are closed when the phone runs
+// short of memory. The design's JSON does not change.
 
 import AVFoundation
 import CoreImage
@@ -35,17 +36,37 @@ import UIKit
 /// The clips each pool keeps open, the least recently used let go first.
 enum ClipPool {
 
-    /// How many clips each pool keeps open at once.
+    /// How many clips each pool keeps open at once, idle ones counted.
     static let limit = 4
+
+    /// How long after a clip was last asked for it still counts as in use,
+    /// in seconds. A page's clips are asked for in turn on every frame, so
+    /// none of them is let go for another of the same page: five clips
+    /// playing all stay open, where the fifth once pushed the first out —
+    /// and that one the second, each frame of each clip opening a decoder
+    /// afresh. Only a clip unasked for this long is let go past `limit`.
+    static let recent = 0.5
 
     /// `order` — the clips open, the least recently used first — once `id`
     /// has been used: moved to the end, or put there, and those past
-    /// `limit` taken off the front to be closed.
-    static func touched(_ order: [String], _ id: String) -> (order: [String], dropped: [String]) {
+    /// `limit` taken off the front to be closed — never `id` itself, nor
+    /// one in `recent`, asked for within `recent` seconds, which stays open
+    /// past the limit until it has stood idle.
+    static func touched(_ order: [String], _ id: String, recent: Set<String> = []) -> (order: [String], dropped: [String]) {
         var out = order.filter { $0 != id }
         out.append(id)
-        let excess = max(0, out.count - limit)
-        return (Array(out.dropFirst(excess)), Array(out.prefix(excess)))
+        var excess = max(0, out.count - limit)
+        var kept: [String] = []
+        var dropped: [String] = []
+        for clip in out {
+            if excess > 0, clip != id, !recent.contains(clip) {
+                dropped.append(clip)
+                excess -= 1
+            } else {
+                kept.append(clip)
+            }
+        }
+        return (kept, dropped)
     }
 }
 
@@ -205,16 +226,35 @@ final class ClipReader {
     }
 }
 
-/// The readers a video export reads its clips with, one a clip.
-enum ClipReaders {
+/// The readers a video export reads its clips with, one a clip: the
+/// export's own, so a page turned on screen meanwhile — in the editor, or
+/// in another window — never winds its clips back, as the Android twin's
+/// export owns its readers. Every export's are let go when the phone runs
+/// short of memory (`closeEvery`).
+final class ClipReaders {
 
-    private static var open: [String: ClipReader] = [:]
-    private static var order: [String] = []
-    private static let lock = NSLock()
+    /// Every export's readers there are, for a memory warning.
+    private static let every = NSHashTable<ClipReaders>.weakObjects()
+    private static let everyLock = NSLock()
+
+    private var open: [String: ClipReader] = [:]
+    private var order: [String] = []
+    /// When each clip was last asked for (CACurrentMediaTime).
+    private var askedAt: [String: CFTimeInterval] = [:]
+    private let lock = NSLock()
+
+    init() {
+        Self.everyLock.lock()
+        Self.every.add(self)
+        Self.everyLock.unlock()
+    }
 
     /// The frame showing `time` seconds into clip `id`, read in order by
-    /// the clip's own reader; nil when it cannot be read that way.
-    static func frame(_ id: String, at time: Double) -> CGImage? {
+    /// the clip's own reader; nil when it cannot be read that way. A clip
+    /// asked for within `ClipPool.recent` seconds is never let go for
+    /// another, so a page's clips, asked for in turn each frame, all stay
+    /// open.
+    func frame(_ id: String, at time: Double) -> CGImage? {
         lock.lock()
         var reader = open[id]
         if reader == nil, let url = VideoStore.url(for: id), let made = ClipReader(url: url) {
@@ -223,9 +263,15 @@ enum ClipReaders {
         }
         var dropped: [ClipReader] = []
         if reader != nil {
-            let touched = ClipPool.touched(order, id)
+            let now = CACurrentMediaTime()
+            askedAt[id] = now
+            let recent = Set(askedAt.filter { now - $0.value <= ClipPool.recent }.keys)
+            let touched = ClipPool.touched(order, id, recent: recent)
             order = touched.order
-            dropped = touched.dropped.compactMap { open.removeValue(forKey: $0) }
+            dropped = touched.dropped.compactMap { (gone: String) -> ClipReader? in
+                askedAt.removeValue(forKey: gone)
+                return open.removeValue(forKey: gone)
+            }
         }
         lock.unlock()
         ClipPlayers.watchMemory()
@@ -233,14 +279,24 @@ enum ClipReaders {
         return reader?.frame(at: time)
     }
 
-    /// Lets every clip go.
-    static func closeAll() {
+    /// Lets every clip go: the film has moved to another page, or the
+    /// export is over.
+    func closeAll() {
         lock.lock()
         let all = Array(open.values)
         open.removeAll()
         order.removeAll()
+        askedAt.removeAll()
         lock.unlock()
         all.forEach { $0.close() }
+    }
+
+    /// Every export's readers let go: the phone is short of memory.
+    static func closeEvery() {
+        everyLock.lock()
+        let readers = every.allObjects
+        everyLock.unlock()
+        readers.forEach { $0.closeAll() }
     }
 }
 
@@ -317,9 +373,14 @@ final class ClipPlayer {
     }
 
     /// The player sought to `t` exactly, paused; the next moment asked
-    /// plays it on.
+    /// plays it on. The frame it had is let go, so a page played again —
+    /// or round its loop — never opens on the frame the last play stopped
+    /// at: until the seek lands, the frame asked for comes from the store
+    /// (VideoStore.peek), as the Android twin shows the frame nearest the
+    /// moment.
     private func seek(to t: Double) {
         seeking = true
+        latest = nil
         player.pause()
         let time = CMTime(seconds: max(0, t), preferredTimescale: 600)
         let player = self.player
@@ -385,7 +446,9 @@ final class ClipPlayers: NSObject {
     /// in the clip it is, once its player has one; asking plays the clip on
     /// to `time` seconds into it as `clip` plays it (ClipPlayer.want). Each
     /// element showing the clip has a player of its own, so two showing
-    /// different moments of it never take each other's frames.
+    /// different moments of it never take each other's frames; one asked
+    /// for within `ClipPool.recent` seconds is never let go for another,
+    /// so a page's clips, asked for in turn each frame, all stay open.
     func frame(_ id: String, for element: String, at time: Double, clip: ClipPlayback) -> (image: UIImage, time: Double)? {
         let key = element + "/" + id
         var player = open[key]
@@ -395,10 +458,12 @@ final class ClipPlayers: NSObject {
             player = made
         }
         guard let player else { return nil }
-        let touched = ClipPool.touched(order, key)
+        player.want(time, clip: clip)
+        let now = CACurrentMediaTime()
+        let recent = Set(open.filter { now - $0.value.askedAt <= ClipPool.recent }.keys)
+        let touched = ClipPool.touched(order, key, recent: recent)
         order = touched.order
         for gone in touched.dropped { open.removeValue(forKey: gone)?.close() }
-        player.want(time, clip: clip)
         if link == nil {
             let made = CADisplayLink(target: self, selector: #selector(frameShown(_:)))
             made.add(to: RunLoop.main, forMode: RunLoop.Mode.common)
@@ -414,6 +479,21 @@ final class ClipPlayers: NSObject {
         order.removeAll()
         link?.invalidate()
         link = nil
+    }
+
+    /// Lets go of the players of the clips `elements` show: the page they
+    /// are on has been left — another page brought up, the editor closed —
+    /// while a page playing elsewhere, in another window, keeps its own.
+    func close(elements: Set<String>) {
+        let gone = open.keys.filter { key in
+            elements.contains(String(key.prefix { $0 != "/" }))
+        }
+        for key in gone { open.removeValue(forKey: key)?.close() }
+        order.removeAll { gone.contains($0) }
+        if open.isEmpty {
+            link?.invalidate()
+            link = nil
+        }
     }
 
     /// Each frame of the display: each player's new frame taken, the views

@@ -317,6 +317,9 @@ struct EditorView: View {
             ReadAloud.shared.stop()
             if Dictation.shared.isListening { Dictation.shared.stop() }
             store.stopPreview()
+            // The page's clips' players go with it, as the Android twin's
+            // canvas lets its readers go as it leaves the screen.
+            ClipPlayers.shared.close(elements: store.clipElements(onPage: store.pageIndex))
             store.finishDictation()
             store.endTextEdit()
             // A drawing under way is put down first, so its strokes are

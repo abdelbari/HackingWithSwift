@@ -280,24 +280,26 @@ enum VideoStore {
 
     /// Resolves a "video:" source in a video export, which asks for each
     /// clip's frames in order: as `resolve`, decoded there and then, but by
-    /// the clip's own reader, which reads on from its last frame rather
-    /// than seeking (ClipReader.readsOn) — by `frame` when the reader
-    /// cannot read the clip.
-    static func read(_ src: String) -> UIImage? {
+    /// the clip's own reader among the export's `readers`, which reads on
+    /// from its last frame rather than seeking (ClipReader.readsOn) — by
+    /// `frame` when the reader cannot read the clip.
+    static func read(_ src: String, by readers: ClipReaders) -> UIImage? {
         guard let parts = split(src), let time = parts.time else { return resolve(src) }
         let at = stampedTime(time, duration: duration(of: parts.id) ?? 0)
         let key = frameKey(parts.id, at)
         if let hit = frames.object(forKey: key) { return hit }
-        guard let cg = ClipReaders.frame(parts.id, at: at) else { return frame(parts.id, at: at) }
+        guard let cg = readers.frame(parts.id, at: at) else { return frame(parts.id, at: at) }
         let image = UIImage(cgImage: cg)
         frames.setObject(image, forKey: key, cost: cg.bytesPerRow * cg.height)
         return image
     }
 
-    /// Every clip's reader and player let go: another page has come up, or
-    /// the phone is short of memory. On the main thread.
+    /// Every clip's reader — each export's — and player let go: the phone
+    /// is short of memory. On the main thread. A page left lets only its
+    /// own clips' players go (ClipPlayers.close), as the Android twin's
+    /// page change closes only what the screen reads.
     static func closeClips() {
-        ClipReaders.closeAll()
+        ClipReaders.closeEvery()
         ClipPlayers.shared.closeAll()
     }
 
