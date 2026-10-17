@@ -298,7 +298,7 @@ final class TableEditingTests: XCTestCase {
         let table = s.page.elements
         s.selection = [text(table, 1, 0).id]
         let picked = try XCTUnwrap(s.tableSelection)
-        XCTAssertTrue(picked.canMoveRowUp)
+        XCTAssertFalse(picked.canMoveRowUp, "the row under the header never crosses the top")
         XCTAssertTrue(picked.canMoveRowDown)
         XCTAssertFalse(picked.canMoveColumnLeft)
         XCTAssertTrue(picked.canMoveColumnRight)
@@ -306,6 +306,7 @@ final class TableEditingTests: XCTestCase {
         XCTAssertEqual(words(s.page.elements), ["Item", "Qty", "Bagel", "1", "Coffee", "2"])
         XCTAssertEqual(s.selection, [text(table, 1, 0).id], "the cell moved stays selected")
         XCTAssertEqual(s.tableSelection?.rows, [2])
+        XCTAssertTrue(try XCTUnwrap(s.tableSelection).canMoveRowUp, "a body row moves up to the row under the header")
         s.moveTableColumn(by: 1)
         XCTAssertEqual(words(s.page.elements), ["Qty", "Item", "1", "Bagel", "2", "Coffee"])
         s.undo()
