@@ -276,14 +276,15 @@ enum MovieExporter {
 
     /// A page at a moment, for animated pages: the same render as the page
     /// bitmap, with the clock set. Its clips are asked for frame after
-    /// frame, and read in order (ClipReader).
+    /// frame, and read in order by the export's own `readers` (ClipReader).
     @MainActor
-    static func animatedFrame(design: Design, page: Int, time: Double, hold: Double, size: CGSize) -> CGImage? {
+    static func animatedFrame(design: Design, page: Int, time: Double, hold: Double, size: CGSize,
+                              readers: ClipReaders) -> CGImage? {
         guard design.pages.indices.contains(page), isAnimated(design.pages[page], in: design) else { return nil }
         return autoreleasepool { () -> CGImage? in
             let renderer = ImageRenderer(content: PageRenderView(design: design, page: design.pages[page])
                 .environment(\.animationTime, (time, hold))
-                .environment(\.clipsInOrder, true))
+                .environment(\.clipsInOrder, readers))
             renderer.scale = renderScale(for: design.size(for: design.pages[page]), in: size)
             renderer.isOpaque = true
             return renderer.cgImage
@@ -468,8 +469,10 @@ enum MovieExporter {
     static func exportMP4(design: Design, settings: Settings = Settings(),
                           range: DesignExporter.PageRange = .all, current: Int = 0, to url: URL,
                           progress: (@Sendable (Double) -> Void)? = nil) async throws -> Outcome {
-        // The clips' readers let go once the frames are written, or not.
-        defer { ClipReaders.closeAll() }
+        // The export's own clip readers, let go once the frames are
+        // written, or not.
+        let readers = ClipReaders()
+        defer { readers.closeAll() }
         try? FileManager.default.removeItem(at: url)
         var size = videoSize(for: design, maxEdge: settings.maxEdge)
         var pacer = DesignExporter.Pacer()
@@ -517,19 +520,30 @@ enum MovieExporter {
                 let f = min(max(Int((seconds * fps).rounded()), 0), max(timing.frames - 1, 0))
                 if let kept = recent[place], kept.frame == f { return kept.image }
                 guard let image = animatedFrame(design: design, page: shown[place], time: Double(f) / fps,
-                                                hold: Double(timing.frames) / fps, size: frameSize) else { return nil }
+                                                hold: Double(timing.frames) / fps, size: frameSize,
+                                                readers: readers) else { return nil }
                 recent = recent.filter { abs($0.key - place) <= 1 }
                 recent[place] = (frame: f, image: image)
                 return image
             }
         }
         let drawsMoving = animated
+        // The place in the film whose clips are being read.
+        var reading = -1
 
         do {
             for index in 0..<total {
                 // Between frames, not mid-frame, so the sheet stays live and
                 // a Cancel lands before the next one.
                 try await pacer.breathe()
+                // The film moved to another page: the last one's clips are
+                // let go, the next one's read afresh, as the Android twin's
+                // export lets them go.
+                let place = min(locate(frame: index, in: timings).page, stills.count - 1)
+                if place != reading {
+                    readers.closeAll()
+                    reading = place
+                }
                 while !input.isReadyForMoreMediaData {
                     // A writer that has failed is never ready again.
                     guard writer.status == .writing else {
@@ -693,7 +707,7 @@ enum MovieExporter {
     /// page full of motion is drawn frame by frame.
     @MainActor
     private static func animatedFrames(design: Design, pages: [Int], size: CGSize, settings: Settings,
-                                       timings: [Timing],
+                                       timings: [Timing], readers: ClipReaders,
                                        pacer: inout DesignExporter.Pacer,
                                        progress: ((Double) -> Void)? = nil) async throws -> ((Int, Double, Double) -> CGImage?)? {
         let animatedPlaces = timings.indices.filter {
@@ -707,10 +721,12 @@ enum MovieExporter {
             let t = timings[p]
             let hold = Double(t.frames) / Double(max(settings.fps, 1))
             var frames: [CGImage] = []
+            // Another page's frames: the last one's clips are let go.
+            readers.closeAll()
             for f in 0..<t.frames {
                 try await pacer.breathe()
                 if let frame = animatedFrame(design: design, page: pages[p], time: Double(f) / Double(max(settings.fps, 1)),
-                                             hold: hold, size: size) {
+                                             hold: hold, size: size, readers: readers) {
                     frames.append(frame)
                 }
                 done += 1
@@ -751,8 +767,10 @@ enum MovieExporter {
     static func exportGIF(design: Design, settings: Settings = Settings(),
                           range: DesignExporter.PageRange = .all, current: Int = 0, to url: URL,
                           progress: ((Double) -> Void)? = nil) async throws {
-        // The clips' readers let go once the frames are drawn, or not.
-        defer { ClipReaders.closeAll() }
+        // The export's own clip readers, let go once the frames are drawn,
+        // or not.
+        let readers = ClipReaders()
+        defer { readers.closeAll() }
         // Sized to a budget and paced at a rate the format can state
         // exactly; see gifPlan.
         let plan = gifPlan(design: design, settings: settings, range: range, current: current)
@@ -773,7 +791,7 @@ enum MovieExporter {
         let ahead = Double(animatedFrameCount(design: design, pages: shown, timings: timings))
         let share = ahead / (ahead + Double(total))
         let frames = try await animatedFrames(design: design, pages: shown, size: size, settings: gifSettings,
-                                              timings: timings, pacer: &pacer,
+                                              timings: timings, readers: readers, pacer: &pacer,
                                               progress: { progress?(share * $0) })
         guard let destination = CGImageDestinationCreateWithURL(
             url as CFURL, UTType.gif.identifier as CFString, total, nil) else {

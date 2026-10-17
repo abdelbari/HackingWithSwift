@@ -122,7 +122,8 @@ struct PresentationView: View {
             settleTask?.cancel()
             exitTask?.cancel()
             sound.stop(fade: true)
-            VideoStore.closeClips()
+            // The talk's clips' players: an export's readers are its own.
+            ClipPlayers.shared.closeAll()
             UIApplication.shared.isIdleTimerDisabled = false
             if ExternalDisplay.shared.session === session { ExternalDisplay.shared.session = nil }
         }

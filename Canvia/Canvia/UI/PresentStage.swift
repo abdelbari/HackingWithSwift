@@ -12,10 +12,18 @@ import SwiftUI
 @Observable
 final class PresentSession {
     let design: Design
-    /// The page up, by index. Another page up lets the last one's clips go
-    /// (ClipReader).
+    /// The page up, by index. Another page up lets the last one's clips'
+    /// players go (ClipPlayers) — its own only, so a page playing in
+    /// another window plays on.
     var index = 0 {
-        didSet { if index != oldValue { VideoStore.closeClips() } }
+        didSet { if index != oldValue { ClipPlayers.shared.close(elements: clipElements(onPage: oldValue)) } }
+    }
+
+    /// The ids of the elements showing a clip on page `index` — the
+    /// master's behind it too; none for an index out of range.
+    func clipElements(onPage index: Int) -> Set<String> {
+        guard design.pages.indices.contains(index) else { return [] }
+        return Set(design.drawnElements(on: design.pages[index]).filter { VideoStore.isVideo($0.src) }.map(\.id))
     }
     /// How the page now showing came in, and how the one before it left.
     var moving: AnyTransition = .opacity

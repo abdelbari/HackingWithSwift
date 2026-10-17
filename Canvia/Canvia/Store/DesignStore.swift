@@ -12,10 +12,11 @@ final class DesignStore {
     var pageIndex: Int = 0 {
         // Another page brought up puts the timeline's playhead at its start
         // (TimelineEditing), as the Android twin's playhead follows the page,
-        // and lets the last page's clips go (ClipReader).
+        // and lets the last page's clips' players go (ClipPlayers) — its
+        // own only, so a page playing in another window plays on.
         didSet {
             if pageIndex != oldValue {
-                VideoStore.closeClips()
+                ClipPlayers.shared.close(elements: clipElements(onPage: oldValue))
                 playhead = 0
                 playheadPage = design.pages.indices.contains(pageIndex) ? design.pages[pageIndex].id : nil
             }
@@ -184,6 +185,14 @@ final class DesignStore {
     var page: Page {
         get { design.pages[min(pageIndex, design.pages.count - 1)] }
         set { design.pages[min(pageIndex, design.pages.count - 1)] = newValue }
+    }
+
+    /// The ids of the elements showing a clip on page `index` — the
+    /// master's behind it too — whose players are let go when the page is
+    /// left (ClipPlayers.close); none for an index out of range.
+    func clipElements(onPage index: Int) -> Set<String> {
+        guard design.pages.indices.contains(index) else { return [] }
+        return Set(design.drawnElements(on: design.pages[index]).filter { VideoStore.isVideo($0.src) }.map(\.id))
     }
 
     func element(_ id: String) -> Element? {

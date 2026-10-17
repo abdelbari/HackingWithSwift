@@ -808,10 +808,10 @@ struct ImageElementView: View {
             // Keyed by the frame shown, not the moment asked for, so a
             // filtered copy is never kept of a stand-in frame.
             key = shown.key
-        } else if clipsInOrder, let src = element.src, VideoStore.isVideo(src) {
+        } else if let readers = clipsInOrder, let src = element.src, VideoStore.isVideo(src) {
             // A video export asks for each clip's frames in order, and its
             // reader reads on from the last rather than seeking for each.
-            guard let image = VideoStore.read(src) else { return nil }
+            guard let image = VideoStore.read(src, by: readers) else { return nil }
             base = image
             key = src
         } else if onScreen, let src = element.src, AnimStore.split(src)?.time != nil {

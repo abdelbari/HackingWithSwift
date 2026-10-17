@@ -119,6 +119,37 @@ final class ClipReaderTests: XCTestCase {
         XCTAssertEqual(touched.dropped, ["c"])
     }
 
+    /// A clip asked for lately is never let go for another, so five clips
+    /// asked for in turn all stay open: the Android twin's ClipPoolTest rows.
+    func testAClipAskedForLatelyIsNeverLetGo() {
+        XCTAssertEqual(ClipPool.recent, 0.5)
+        let clips = ["a", "b", "c", "d", "e"]
+        let recent = Set(clips)
+        var order: [String] = []
+        // Three frames of a page playing five clips: each asked for in turn,
+        // none let go for another.
+        for pass in 0..<3 {
+            for id in clips {
+                let touched = ClipPool.touched(order, id, recent: recent)
+                XCTAssertEqual(touched.dropped, [], "pass \(pass), \(id)")
+                order = touched.order
+            }
+        }
+        XCTAssertEqual(order, clips)
+        // A sixth, every other still in use: all six stay open.
+        var touched = ClipPool.touched(order, "f", recent: recent)
+        XCTAssertEqual(touched.dropped, [])
+        XCTAssertEqual(touched.order, ["a", "b", "c", "d", "e", "f"])
+        // Only the clips idle since are let go, the least recently used first.
+        touched = ClipPool.touched(touched.order, "f", recent: ["a", "e", "f"])
+        XCTAssertEqual(touched.dropped, ["b", "c"])
+        XCTAssertEqual(touched.order, ["a", "d", "e", "f"])
+        // The clip asked for is kept even when nothing counts as recent.
+        touched = ClipPool.touched(["a", "b", "c", "d"], "e", recent: [])
+        XCTAssertEqual(touched.dropped, ["a"])
+        XCTAssertEqual(touched.order, ["b", "c", "d", "e"])
+    }
+
     /// A clip filmed with the phone upright is turned the way up the
     /// random-access frame turns it.
     func testAClipIsTurnedTheWayItWasFilmed() {

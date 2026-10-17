@@ -43,7 +43,7 @@ struct ClipsPlayKey: EnvironmentKey {
 /// export — so each is read on from its last frame by a reader of its own
 /// (ClipReader) rather than sought for every one.
 struct ClipsInOrderKey: EnvironmentKey {
-    static let defaultValue = false
+    static let defaultValue: ClipReaders? = nil
 }
 
 /// Whether the page is on a screen that draws it again when slow work lands
@@ -88,7 +88,9 @@ extension EnvironmentValues {
         set { self[ClipsPlayKey.self] = newValue }
     }
 
-    var clipsInOrder: Bool {
+    /// The readers a video export reads the page's clips with, in order;
+    /// nil anywhere else.
+    var clipsInOrder: ClipReaders? {
         get { self[ClipsInOrderKey.self] }
         set { self[ClipsInOrderKey.self] = newValue }
     }
