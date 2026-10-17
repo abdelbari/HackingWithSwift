@@ -373,9 +373,14 @@ final class ClipPlayer {
     }
 
     /// The player sought to `t` exactly, paused; the next moment asked
-    /// plays it on.
+    /// plays it on. The frame it had is let go, so a page played again —
+    /// or round its loop — never opens on the frame the last play stopped
+    /// at: until the seek lands, the frame asked for comes from the store
+    /// (VideoStore.peek), as the Android twin shows the frame nearest the
+    /// moment.
     private func seek(to t: Double) {
         seeking = true
+        latest = nil
         player.pause()
         let time = CMTime(seconds: max(0, t), preferredTimescale: 600)
         let player = self.player
