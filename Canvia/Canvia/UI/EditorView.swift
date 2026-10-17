@@ -102,6 +102,10 @@ struct EditorView: View {
     /// Set while the design on screen could not be written, and cleared by
     /// the next save that could.
     @State private var saveFailed = false
+    /// Counted up each time the editor is the one to answer the system's
+    /// undo gestures again (UndoHost): as it appears, and as typing, the
+    /// title, a sheet or an alert lets the keyboard go.
+    @State private var undoClaim = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// What the banner says while saves are failing; the Android twin says
@@ -189,6 +193,10 @@ struct EditorView: View {
             PagesBar(store: store)
         }
         .background(keyboardCommands)
+        .background(UndoHost(store: store, live: undoHostLive, claim: undoClaim))
+        .onChange(of: undoHostLive, initial: true) { _, live in
+            if live { undoClaim += 1 }
+        }
         .overlay(alignment: .bottom) { undoToast }
         // A toast's Undo is withdrawn once anything else is done, as the
         // Android twin's snackbar is: held open for VoiceOver, it would
