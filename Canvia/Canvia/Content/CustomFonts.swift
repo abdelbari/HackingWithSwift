@@ -1,8 +1,11 @@
-// Fonts of your own: a .ttf or .otf added from the font picker, kept on this
-// phone as fonts/<sha12>.<ext> — the first twelve hex digits of the file's
-// SHA-1, so the same file added twice, or arriving in a design, is one font —
-// and listed in uploads.json with kind "font" and the family name read from
-// the file (see Uploads and FontStore).
+// Fonts of your own: a .ttf, .otf or .woff added from the font picker, kept
+// on this phone as fonts/<sha12>.<ext> — the first twelve hex digits of the
+// file's SHA-1, so the same file added twice, or arriving in a design, is
+// one font — and listed in uploads.json with kind "font" and the family
+// name read from the file (see Uploads and FontStore). A WOFF is unpacked
+// into the TrueType or OpenType font it wraps first (sfnt), and that is
+// what is kept and hashed, as .ttf; a WOFF2 is refused, with what to do
+// instead.
 //
 // A text set in one stores fontFamily "custom:<sha12>", and the design
 // records the fonts its texts use under the top-level key "fonts":
@@ -273,26 +276,38 @@ enum CustomFonts {
         case tooBig = "That font is over 10 MB. Choose a smaller one."
         case collection = "That is a font collection. Choose a single .ttf or .otf font."
         case notAFont = "That file is not a font Canvia can use."
+        case woff2 = "WOFF2 fonts aren't supported yet. Convert it to .ttf or .otf first."
 
         var message: String { tr(rawValue) }
         var errorDescription: String? { tr(rawValue) }
     }
 
     /// The bytes as a font to add, or what is wrong with them: a collection
-    /// (.ttc), something past maxBytes, or no TrueType or OpenType font with
-    /// a family name. Whether the phone can draw it is the app's to find
-    /// out, by loading it (FontStore).
+    /// (.ttc), something past maxBytes, a WOFF2, or no TrueType or OpenType
+    /// font with a family name. A WOFF is checked as the font it unpacks to
+    /// (sfnt), which is kept as .ttf. Whether the phone can draw it is the
+    /// app's to find out, by loading it (FontStore).
     static func check(_ data: Data) -> Result<Checked, Problem> {
-        if data.count > maxBytes { return .failure(.tooBig) }
+        unpacked(data).map { $0.checked }
+    }
+
+    /// check, with the bytes the add flow keeps: the file's own, or for a
+    /// WOFF the font it wraps.
+    static func unpacked(_ data: Data) -> Result<(checked: Checked, font: Data), Problem> {
+        let font: Data
+        switch sfnt(data) {
+        case .success(let bytes): font = bytes
+        case .failure(let problem): return .failure(problem)
+        }
         let ext: String
-        switch tag(data) {
+        switch tag(font) {
         case 0x0001_0000, trueTag: ext = "ttf"
-        case ottoTag: ext = "otf"
+        case ottoTag: ext = font.count == data.count && font == data ? "otf" : "ttf"
         case ttcfTag: return .failure(.collection)
         default: return .failure(.notAFont)
         }
-        guard let name = familyName(data) else { return .failure(.notAFont) }
-        return .success(Checked(ext: ext, name: name))
+        guard let name = familyName(font) else { return .failure(.notAFont) }
+        return .success((Checked(ext: ext, name: name), font))
     }
 
     /// "true", an old Mac TrueType.
@@ -301,6 +316,96 @@ enum CustomFonts {
     private static let ottoTag: UInt32 = 0x4F54_544F
     /// "ttcf", a collection.
     private static let ttcfTag: UInt32 = 0x7474_6366
+    /// "wOFF", a web font wrapping an sfnt.
+    private static let woffTag: UInt32 = 0x774F_4646
+    /// "wOF2", which this build cannot unpack.
+    private static let woff2Tag: UInt32 = 0x774F_4632
+
+    /// The TrueType or OpenType font `data` holds, as the add flow stores
+    /// it: the bytes themselves, or for a WOFF the sfnt it wraps
+    /// (unpackWoff) — the same bytes on both phones. Past maxBytes either
+    /// way, a WOFF2 (with what to do instead), or a WOFF that does not
+    /// unpack, is refused.
+    static func sfnt(_ data: Data) -> Result<Data, Problem> {
+        if data.count > maxBytes { return .failure(.tooBig) }
+        switch tag(data) {
+        case woff2Tag:
+            return .failure(.woff2)
+        case woffTag:
+            guard let font = unpackWoff(data) else { return .failure(.notAFont) }
+            return font.count > maxBytes ? .failure(.tooBig) : .success(font)
+        default:
+            return .success(data)
+        }
+    }
+
+    /// A WOFF's sfnt, unpacked in pure code, the rule both phones share: the
+    /// table directory read (tag, offset, compressed and original lengths,
+    /// checksum, 20 bytes a table after the 44-byte header), each table
+    /// inflated where its compressed length is under its original (a zlib
+    /// stream: ZipStore's inflate over what follows its 2-byte header), and
+    /// an sfnt written in the directory's order — the WOFF's flavour, the
+    /// table count with its search fields, 16-byte records with the
+    /// original checksums and recomputed offsets, each table padded to 4
+    /// bytes. Nil when the file does not read as one.
+    static func unpackWoff(_ data: Data) -> Data? {
+        let bytes = [UInt8](data)
+        let woff = Sfnt(bytes)
+        guard bytes.count >= 44, tag(data) == woffTag, let flavor = woff.u32(4), let count = woff.u16(12),
+              count > 0, 44 + 20 * count <= bytes.count else { return nil }
+        var tables: [(tag: Int, checksum: Int, data: Data)] = []
+        for i in 0..<count {
+            let at = 44 + 20 * i
+            guard let tag = woff.u32(at), let offset = woff.u32(at + 4), let compLength = woff.u32(at + 8),
+                  let origLength = woff.u32(at + 12), let checksum = woff.u32(at + 16),
+                  offset + compLength <= bytes.count else { return nil }
+            let packed = Data(bytes[offset..<(offset + compLength)])
+            let table: Data
+            if compLength < origLength {
+                guard let inflated = inflated(packed, length: origLength) else { return nil }
+                table = inflated
+            } else {
+                table = packed
+            }
+            guard table.count == origLength else { return nil }
+            tables.append((tag, checksum, table))
+        }
+        var searchRange = 1
+        var entrySelector = 0
+        while searchRange * 2 <= count {
+            searchRange *= 2
+            entrySelector += 1
+        }
+        searchRange *= 16
+        var out = Data()
+        func u32(_ v: Int) {
+            for shift in [24, 16, 8, 0] { out.append(UInt8((v >> shift) & 0xFF)) }
+        }
+        func u16(_ v: Int) {
+            out.append(UInt8((v >> 8) & 0xFF))
+            out.append(UInt8(v & 0xFF))
+        }
+        u32(flavor); u16(count); u16(searchRange); u16(entrySelector); u16(count * 16 - searchRange)
+        var offset = 12 + 16 * count
+        for table in tables {
+            u32(table.tag); u32(table.checksum); u32(offset); u32(table.data.count)
+            offset += (table.data.count + 3) & ~3
+        }
+        for table in tables {
+            out.append(table.data)
+            let padded = (table.data.count + 3) & ~3
+            if padded > table.data.count { out.append(Data(count: padded - table.data.count)) }
+        }
+        return out
+    }
+
+    /// `packed`, a zlib stream — its 2-byte header, the deflated bytes, its
+    /// check — inflated to `length` bytes; nil when it is not one, or is
+    /// not that long.
+    private static func inflated(_ packed: Data, length: Int) -> Data? {
+        guard packed.count > 2 else { return nil }
+        return ZipStore.inflate(packed.dropFirst(2), size: length)
+    }
 
     /// The file's first four bytes, as a tag; nought for a shorter one.
     private static func tag(_ data: Data) -> UInt32 {

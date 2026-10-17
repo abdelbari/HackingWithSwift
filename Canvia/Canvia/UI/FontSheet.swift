@@ -37,6 +37,13 @@ struct FontSheet: View {
     /// Why the font last picked could not be added, in the picker's words.
     @State private var problem: String?
 
+    /// What Add a font… lets through: every font type the system knows,
+    /// and a WOFF by its two MIME types and its extension — the Android
+    /// twin's FONT_TYPES — which is unpacked as it is added (CustomFonts).
+    static let fontTypes: [UTType] = [UTType.font]
+        + ["font/woff", "application/font-woff"].compactMap { UTType(mimeType: $0) }
+        + [UTType(filenameExtension: "woff")].compactMap { $0 }
+
     /// A face chosen for something else: the sheet's title, the face it has
     /// now (nil for none) and what to do with the one picked.
     struct Choice {
@@ -116,7 +123,7 @@ struct FontSheet: View {
         }
         .presentationDetents(sheetDetents)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-        .fileImporter(isPresented: $addingFont, allowedContentTypes: [.font]) { result in
+        .fileImporter(isPresented: $addingFont, allowedContentTypes: Self.fontTypes) { result in
             guard case .success(let url) = result else { return }
             add(url)
         }
@@ -351,8 +358,8 @@ struct FontSheet: View {
         }
     }
 
-    /// The .ttf or .otf picked, read and kept as a font of your own away
-    /// from the main thread — checked, loaded as a face, stored once however
+    /// The .ttf, .otf or .woff picked, read and kept as a font of your own
+    /// away from the main thread — checked, loaded as a face, stored once however
     /// often it is added — and then picked; or what was wrong with it, said.
     private func add(_ url: URL) {
         adding = true
