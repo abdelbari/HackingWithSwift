@@ -1969,9 +1969,10 @@ struct CanvasView: View {
                 el.y = next.minY
                 if handle.isCorner {
                     // The type scales with the box, and its tracking with it,
-                    // so a spaced-out headline keeps its proportions.
+                    // so a spaced-out headline keeps its proportions — the
+                    // size to one decimal place, as it is typed.
                     let scale = next.width / original.w
-                    el.fontSize = max(6, (original.fontSize ?? 42) * scale)
+                    el.fontSize = max(6, TypeReadouts.wholeSize((original.fontSize ?? 42) * scale))
                     el.letterSpacing = original.letterSpacing.map { $0 * scale }
                     el.h = next.height
                 } else if el.fitText == true || el.vAlign != nil {

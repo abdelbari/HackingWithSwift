@@ -885,7 +885,8 @@ enum Geometry {
             e.y = cy - e.h / 2
             e.table = TableCell.scaledPad(el.table, by: min(sx, sy))
             if el.type == .text {
-                e.fontSize = max(6, (el.fontSize ?? 42) * min(sx, sy))
+                // To one decimal place, as a size is typed.
+                e.fontSize = max(6, TypeReadouts.wholeSize((el.fontSize ?? 42) * min(sx, sy)))
             }
             return e
         }

@@ -50,6 +50,36 @@ final class TypeReadoutsTests: XCTestCase {
         XCTAssertEqual(TypeReadouts.sizeRange, 1...800)
     }
 
+    /// Shared rows: a type size typed or set is kept to one decimal place,
+    /// a half up at the hundredth, within 1 to 800 — half points for print
+    /// work — a decimal comma read as a point; the Android twin's
+    /// TextBoxesTest, row for row.
+    func testTypeSizesKeepOneDecimalPlace() {
+        // typed, size
+        let rows: [(String, Double)] = [
+            ("12.5", 12.5), ("12.54", 12.5), ("12.55", 12.6), ("0.4", 1), ("12,5", 12.5), ("24", 24),
+            (" 36 ", 36), ("900", 800), ("10.44", 10.4), ("10.46", 10.5),
+        ]
+        for (typed, size) in rows {
+            XCTAssertEqual(TypeReadouts.typedSize(typed) ?? .nan, size, accuracy: 1e-9, typed)
+        }
+        XCTAssertNil(TypeReadouts.typedSize("big"))
+        XCTAssertNil(TypeReadouts.typedSize(""))
+        XCTAssertEqual(TypeReadouts.wholeSize(12.55), 12.6, accuracy: 1e-9)
+        XCTAssertEqual(TypeReadouts.wholeSize(12.54), 12.5, accuracy: 1e-9)
+        XCTAssertEqual(TypeReadouts.wholeSize(0.4), 1)
+        XCTAssertEqual(TypeReadouts.wholeSize(1000), 800)
+        // The readout shows the decimal, and a whole number without ".0".
+        XCTAssertEqual(TypeReadouts.fontSize(12.5), "12.5")
+        XCTAssertEqual(TypeReadouts.fontSize(12), "12")
+        XCTAssertEqual(TypeReadouts.fontSize(12.04), "12")
+        XCTAssertEqual(TypeReadouts.fontSize(12.96), "13")
+        XCTAssertEqual(TypeReadouts.fontSize(nil), "Mixed")
+        // The sizes a deck is given carry the half point: 12.5 px is 9.375 pt,
+        // 938 hundredths.
+        XCTAssertEqual(PptxExporter.fontSize(12.5), 938)
+    }
+
     func testReadouts() {
         XCTAssertEqual(TypeReadouts.letterSpacing(8, size: 80), "10%")
         XCTAssertEqual(TypeReadouts.letterSpacing(-4, size: 80), "-5%")

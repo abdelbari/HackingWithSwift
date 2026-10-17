@@ -138,12 +138,13 @@ final class SeveralTextsTests: XCTestCase {
         XCTAssertNil(TypeReadouts.shared([String]()))
     }
 
-    /// A size made fractional by a corner drag reads as its nearest whole
-    /// point, as on the Android twin; one a hair from another is still not
-    /// the same size.
+    /// A size made fractional by a corner drag reads to one decimal place,
+    /// as on the Android twin; one a hair from another is still not the
+    /// same size.
     func testAFractionalSizeReadsRounded() {
-        XCTAssertEqual(TypeReadouts.fontSize(47.6), "48")
-        XCTAssertEqual(TypeReadouts.fontSize(47.4), "47")
+        XCTAssertEqual(TypeReadouts.fontSize(47.6), "47.6")
+        XCTAssertEqual(TypeReadouts.fontSize(47.44), "47.4")
+        XCTAssertEqual(TypeReadouts.fontSize(47.96), "48")
         let a = Element.text("One", fontSize: 47.6), b = Element.text("Two", fontSize: 48)
         let s = store([a, b])
         s.selection = [a.id, b.id]
@@ -181,8 +182,9 @@ final class SeveralTextsTests: XCTestCase {
     func testATypedSizeIsWholePointsInRange() {
         XCTAssertEqual(TypeReadouts.typedSize("24"), 24)
         XCTAssertEqual(TypeReadouts.typedSize(" 36 "), 36)
-        XCTAssertEqual(TypeReadouts.typedSize("12.5"), 13)
-        XCTAssertEqual(TypeReadouts.typedSize("12,4"), 12)
+        // To one decimal place, a decimal comma read as a point.
+        XCTAssertEqual(TypeReadouts.typedSize("12.5"), 12.5)
+        XCTAssertEqual(TypeReadouts.typedSize("12,4"), 12.4)
         XCTAssertEqual(TypeReadouts.typedSize("3"), 3)
         XCTAssertEqual(TypeReadouts.typedSize("0"), 1)
         XCTAssertEqual(TypeReadouts.typedSize("640"), 640)
