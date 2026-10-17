@@ -87,8 +87,8 @@ extension DesignStore {
     }
 
     /// Clear word colours and sizes: every word of the selected text back in
-    /// the box's own colour, size and face, as one step. Links stay: a link
-    /// is not a look, and it has its own Remove.
+    /// the box's own colour, size, face, weight and slant, as one step.
+    /// Links stay: a link is not a look, and it has its own Remove.
     func clearWordStyles() {
         updateSelected { el in
             guard el.type == .text, el.spans != nil || el.spansText != nil else { return }
@@ -144,6 +144,49 @@ extension DesignStore {
     /// counting as the family it means.
     static func wordFontKey(_ key: String, in el: Element) -> String? {
         FontLibrary.resolve(key) == FontLibrary.resolve(el.fontFamily) ? nil : key
+    }
+
+    // MARK: weight and slant on words
+
+    /// The weight the words the font sheet is open for share — the box's
+    /// own (FontLibrary.weight(of:)) where they have none of their own —
+    /// or nil when they differ ("Mixed"). The Android twin's Spans.weightOf.
+    var wordWeight: Int? {
+        guard let target = wordFontTarget, let el = element(target.id) else { return nil }
+        let shared = Spans.weight(of: el.liveSpans, in: target.range)
+        return shared.shared ? (shared.weight ?? FontLibrary.weight(of: el)) : nil
+    }
+
+    /// Whether the words the font sheet is open for are all slanted — the
+    /// box's own slant for words with none of their own — or nil when they
+    /// differ ("Mixed"). The Android twin's Spans.italicOf.
+    var wordItalic: Bool? {
+        guard let target = wordFontTarget, let el = element(target.id) else { return nil }
+        let shared = Spans.italic(of: el.liveSpans, in: target.range)
+        return shared.shared ? (shared.italic ?? FontLibrary.isItalic(el)) : nil
+    }
+
+    /// The words the sheet is open for at `weight`, as one step, the box
+    /// measured again. The box's own weight takes the words' own away, so
+    /// they follow the box again, as on the Android twin.
+    func weightWords(_ weight: Int) {
+        guard let target = wordFontTarget else { return }
+        updateSelected { el in
+            guard el.id == target.id else { return }
+            let own: Int? = weight == FontLibrary.weight(of: el) ? nil : weight
+            Self.restyleWords(&el, target.range) { Spans.weighting($0, range: $1, weight: own) }
+        }
+    }
+
+    /// The words the sheet is open for slanted or upright, as one step. The
+    /// box's own slant takes the words' own away.
+    func italicWords(_ italic: Bool) {
+        guard let target = wordFontTarget else { return }
+        updateSelected { el in
+            guard el.id == target.id else { return }
+            let own: Bool? = italic == FontLibrary.isItalic(el) ? nil : italic
+            Self.restyleWords(&el, target.range) { Spans.italicising($0, range: $1, italic: own) }
+        }
     }
 
     // MARK: links on words

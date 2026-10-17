@@ -95,6 +95,13 @@ enum FontLibrary {
         weightNames[weight] ?? String(weight)
     }
 
+    /// The same names in English, whatever the app's language: what a
+    /// PowerPoint names a word's cut by ("Montserrat Light"), and reads one
+    /// back from, on both phones.
+    static let englishWeightNames: [Int: String] = [
+        300: "Light", 400: "Regular", 500: "Medium", 600: "Semibold", 700: "Bold", 800: "Extra bold", 900: "Black",
+    ]
+
     /// The file's shape. "source" is informational.
     private struct Catalogue: Decodable {
         var categories: [String]
@@ -638,16 +645,24 @@ enum FontLibrary {
         let size = el.fontSize ?? 42
         let weight = FontLibrary.weight(of: el)
         let italic = FontLibrary.isItalic(el)
-        // A word's own face at the box's size and weight, bold and italic
-        // by the same rule as the box's own words; a plain word in a font
-        // of its own with no weight or slant set is drawn at that face's
-        // (weight(of:in:)), as on the Android twin.
-        let face = { (family: String, bold: Bool, slanted: Bool) -> UIFont in
+        // A word's own face at the box's size: its own font, weight and
+        // slant where it has them (Spans), bold and italic by the same rule
+        // as the box's own words — **bold** over a word's own weight by
+        // boldWeight — and a plain word in a font of its own with no weight
+        // or slant set drawn at that face's (weight(of:in:)), as the
+        // Android twin's TextPaths.face sets it.
+        let face = { (span: TextSpan, bold: Bool, slanted: Bool) -> UIFont in
+            let family = span.font ?? el.fontFamily
             let plain = !bold && !slanted
-            let base = plain ? FontLibrary.weight(of: el, in: family) : weight
-            let lean = plain ? FontLibrary.isItalic(el, in: family) : italic
-            return FontLibrary.uiFont(family: family, size: size, weight: FontLibrary.resolveWeight(base, bold: bold),
-                                      italic: slanted || lean)
+            let base = span.weight ?? (plain ? FontLibrary.weight(of: el, in: family) : weight)
+            let lean = span.italic ?? (plain ? FontLibrary.isItalic(el, in: family) : italic)
+            let drawn: Int
+            if let own = span.weight, bold {
+                drawn = FontLibrary.boldWeight(family, own)
+            } else {
+                drawn = FontLibrary.resolveWeight(base, bold: bold)
+            }
+            return FontLibrary.uiFont(family: family, size: size, weight: drawn, italic: slanted || lean)
         }
         // Under gradient letters a link takes no colour, as words' colours
         // do not (displaySpans), on both phones.
@@ -697,6 +712,16 @@ enum FontLibrary {
     /// a word's own face too.
     static func resolveWeight(_ weight: Int, bold: Bool) -> Int {
         bold ? (weight >= 700 ? 900 : 700) : weight
+    }
+
+    /// The weight **bold** draws a word that has a weight of its own: 700
+    /// when its own is lighter, else the next heavier cut its font has
+    /// (weights) — Roboto's 700 bolded is its 800 — and its own when the
+    /// font has none heavier (Lora's 700 stays 700). The rule both phones
+    /// share (the Android twin's TextPaths.boldWeight), over the same rows.
+    static func boldWeight(_ key: String?, _ weight: Int) -> Int {
+        if weight < 700 { return 700 }
+        return weights(key).first { $0 > weight } ?? weight
     }
 
     /// Display text with the inline style markers still in it.
@@ -784,9 +809,10 @@ enum FontLibrary {
     }
 
     /// Whether some words are set larger or smaller than the box's type, or
-    /// in a face of their own, so measuring has to take them in.
+    /// in a face of their own — a font, a weight or a slant — so measuring
+    /// has to take them in.
     static func hasSizedWords(_ el: Element) -> Bool {
-        el.liveSpans.contains { $0.scale != nil || $0.font != nil }
+        el.liveSpans.contains { $0.scale != nil || $0.setsFace }
     }
 
     /// One indent level, in ems.

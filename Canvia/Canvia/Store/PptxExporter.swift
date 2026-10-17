@@ -627,15 +627,20 @@ enum PptxExporter {
         var font: String? = nil
         /// A link a reader may follow (Links.followable); nil is none.
         var link: String? = nil
+        /// A weight of its own (Spans); nil is the box's.
+        var weight: Int? = nil
     }
 
     /// The words as typed — page numbers filled in, the inline style marks
     /// read, before any capitals, and without a list's markers, which
     /// PowerPoint draws for each paragraph itself (paragraphProperties) — as
     /// paragraphs of runs: cut at every line break and every change of
-    /// style, colour, size, font or link, and joined again where neighbours
-    /// turn out the same. A linked word with no colour of its own is in the
-    /// link colour, as the canvas draws it.
+    /// style, colour, size, font, weight or link, and joined again where
+    /// neighbours turn out the same. A linked word with no colour of its
+    /// own is in the link colour, as the canvas draws it. A word with a
+    /// weight of its own (Spans) is bold from 600, and its run names its
+    /// cut (typeface(_:in:weight:)); a word with a slant of its own is
+    /// italic by it — the rule both phones share.
     static func paragraphs(of el: Element) -> [[TextRun]] {
         var unlisted = el
         if TextLists.isList(el) {
@@ -673,15 +678,18 @@ enum PptxExporter {
                 continue
             }
             let own = parsed.runs.first { NSLocationInRange(from, $0.range) }?.style ?? RichText.Style()
-            let style = RichText.Style(bold: box.bold || own.bold, italic: box.italic || own.italic,
-                                       underline: box.underline || own.underline, strike: own.strike)
             let span = spans.first { $0.start <= from && from < $0.end }
+            let bold = span?.weight.map { $0 >= 600 } ?? box.bold
+            let italic = span?.italic ?? box.italic
+            let style = RichText.Style(bold: bold || own.bold, italic: italic || own.italic,
+                                       underline: box.underline || own.underline, strike: own.strike)
             let linked = span?.link != nil ? Spans.linkColour : nil
             let run = TextRun(text: piece, style: style, color: span?.color ?? linked, scale: span?.scale,
-                              font: span?.font, link: Links.followable(span?.link))
+                              font: span?.font, link: Links.followable(span?.link), weight: span?.weight)
             let last = paragraphs.count - 1
             if var before = paragraphs[last].last, before.style == run.style, before.color == run.color,
-               before.scale == run.scale, before.font == run.font, before.link == run.link {
+               before.scale == run.scale, before.font == run.font, before.link == run.link,
+               before.weight == run.weight {
                 before.text += piece
                 paragraphs[last][paragraphs[last].count - 1] = before
             } else {
@@ -696,6 +704,16 @@ enum PptxExporter {
     static func typeface(_ key: String?, in design: Design) -> String {
         if CustomFonts.isCustom(key), let name = CustomFonts.name(in: design, of: key) { return name }
         return FontLibrary.of(key).name
+    }
+
+    /// The face a word with a `weight` of its own names: its family's name
+    /// and the cut's English name ("Montserrat Light", "Montserrat Black";
+    /// a weight with no name by its number) — a Regular, or no weight of
+    /// its own, the family's name alone. Both phones' rule.
+    static func typeface(_ key: String?, in design: Design, weight: Int?) -> String {
+        let family = typeface(key, in: design)
+        guard let weight, weight != 400 else { return family }
+        return "\(family) \(FontLibrary.englishWeightNames[weight] ?? String(weight))"
     }
 
     /// A text box, its words' links going into `rels` run by run.
@@ -714,7 +732,7 @@ enum PptxExporter {
         for (line, runs) in paragraphs(of: el).enumerated() {
             var content = runs.isEmpty ? "<a:endParaRPr sz=\"\(typeSize(size * frame.unit))\"/>" : ""
             for run in runs {
-                let face = typeface(run.font ?? el.fontFamily, in: design)
+                let face = typeface(run.font ?? el.fontFamily, in: design, weight: run.weight)
                 var onClick: String?
                 if let url = run.link { onClick = rels.add("hyperlink", url, external: true) }
                 content += runXML(run, el: el, size: size, face: face, link: onClick, unit: frame.unit)

@@ -438,8 +438,9 @@ enum RichText {
     /// The plain text with the base attributes, and each run's style on top;
     /// in capitals when `uppercase`, each run still on its own words. Then
     /// the colours, sizes, fonts and links on words, `spans` over the plain
-    /// text before capitals (see Spans): a face of its own from `face`, bold
-    /// and italic as the run under each letter has them; a colour in place
+    /// text before capitals (see Spans): a face of its own from `face` —
+    /// for a span with a font, a weight or a slant of its own — bold and
+    /// italic as the run under each letter has them; a colour in place
     /// of the base one; a size as the letter's font scaled, and the lines of
     /// a paragraph with larger words in it given room for them (makeRoom);
     /// and a link underlined, in the link colour unless the words have a
@@ -447,7 +448,7 @@ enum RichText {
     /// keep the text's ink) — as the Android twin sets them.
     static func attributed(_ marked: String, base: [NSAttributedString.Key: Any], uppercase: Bool = false,
                            spans: [TextSpan] = [], linkColour: Bool = true,
-                           face: ((_ family: String, _ bold: Bool, _ italic: Bool) -> UIFont)? = nil,
+                           face: ((_ span: TextSpan, _ bold: Bool, _ italic: Bool) -> UIFont)? = nil,
                            font: (_ bold: Bool, _ italic: Bool) -> UIFont) -> NSAttributedString {
         var parsed = parse(marked)
         var spans = spans
@@ -466,9 +467,8 @@ enum RichText {
         }
         let length = out.length
         if let face {
-            for span in spans {
-                guard let family = span.font else { continue }
-                setFaces(family, in: out, runs: parsed.runs, from: span.start, to: span.end, face: face)
+            for span in spans where span.setsFace {
+                setFaces(span, in: out, runs: parsed.runs, from: span.start, to: span.end, face: face)
             }
         }
         for span in spans {
@@ -498,11 +498,11 @@ enum RichText {
         return out
     }
 
-    /// Letters `from..<to` of `out` in `family`, cut where the runs' styles
-    /// change so a **bold** word in the face stays bold.
-    private static func setFaces(_ family: String, in out: NSMutableAttributedString, runs: [Run],
+    /// Letters `from..<to` of `out` in `span`'s face, cut where the runs'
+    /// styles change so a **bold** word in the face stays bold.
+    private static func setFaces(_ span: TextSpan, in out: NSMutableAttributedString, runs: [Run],
                                  from: Int, to: Int,
-                                 face: (_ family: String, _ bold: Bool, _ italic: Bool) -> UIFont) {
+                                 face: (_ span: TextSpan, _ bold: Bool, _ italic: Bool) -> UIFont) {
         let start = min(max(from, 0), out.length), end = min(to, out.length)
         guard end > start else { return }
         var cuts: Set<Int> = [start, end]
@@ -514,7 +514,7 @@ enum RichText {
         let sorted = cuts.sorted()
         for (lo, hi) in zip(sorted, sorted.dropFirst()) {
             let style = runs.first { NSLocationInRange(lo, $0.range) }?.style ?? Style()
-            out.addAttribute(.font, value: face(family, style.bold, style.italic),
+            out.addAttribute(.font, value: face(span, style.bold, style.italic),
                              range: NSRange(location: lo, length: hi - lo))
         }
     }

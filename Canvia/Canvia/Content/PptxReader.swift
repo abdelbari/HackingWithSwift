@@ -282,6 +282,33 @@ enum PptxReader {
         return FontLibrary.all.first { fontKey($0.name) == key || fontKey($0.id) == key }?.id
     }
 
+    /// A bundled family's cut a deck's `typeface` names, as the writer names
+    /// one ("Montserrat Light", "Lora Bold"): the family and the weight of
+    /// the cut, by the Weight row's English names
+    /// (FontLibrary.englishWeightNames) or its number; nil for a family
+    /// alone, or any other face. The Android twin's PptxReader.cut.
+    static func cut(_ typeface: String?) -> (family: String, weight: Int)? {
+        guard let face = typeface?.trimmingCharacters(in: .whitespaces), !face.isEmpty else { return nil }
+        let last = face.split(separator: " ", omittingEmptySubsequences: false).last.map(String.init) ?? ""
+        // The longest name that fits: "Extra bold" before "Bold".
+        let named = FontLibrary.englishWeightNames
+            .filter { face.lowercased().hasSuffix(" " + $0.value.lowercased()) }
+            .max { $0.value.count < $1.value.count }
+        let weight: Int
+        let cut: String
+        if let named {
+            weight = named.key
+            cut = named.value
+        } else if let number = Int(last), Spans.weightRange.contains(number) {
+            weight = number
+            cut = last
+        } else {
+            return nil
+        }
+        guard let family = family(of: String(face.dropLast(cut.count + 1))) else { return nil }
+        return (family, weight)
+    }
+
     // MARK: numbers
 
     fileprivate static func px(_ emu: Double) -> Double { emu / emuPerPixel }
@@ -418,6 +445,9 @@ enum PptxReader {
         var underline: Bool
         var colour: String
         var font: String
+        /// The cut its face names ("Montserrat Light"), as the words' own
+        /// weight; nil for a family alone.
+        var weight: Int? = nil
     }
 
     fileprivate struct Words {
@@ -831,11 +861,14 @@ enum PptxReader {
                         let start = length
                         plain += said
                         length += said.utf16.count
+                        // A face named with its cut ("Lora Bold") is its
+                        // family, the cut the word's own weight.
+                        let cut = PptxReader.cut(look.typeface)
                         runs.append(Run(start: start, end: length,
                                         size: (look.size ?? PptxReader.defaultType) / PptxReader.sizePerPixel,
                                         bold: look.bold == true, italic: look.italic == true,
                                         underline: look.underline == true, colour: look.colour ?? "#000000",
-                                        font: font(look.typeface)))
+                                        font: cut?.family ?? font(look.typeface), weight: cut?.weight))
                     case "br":
                         plain += "\n"
                         length += 1
@@ -1331,6 +1364,11 @@ enum PptxReader {
             let w = max(0, box.w - left - inset.right * place.sx)
             let h = max(0, box.h - top - inset.bottom * place.sy)
             let text = PptxReader.marked(words, bold: bold, italic: italic, underline: underline)
+            // Where the markers cannot keep a run's bold or italic apart
+            // from the words' own stars, the runs keep them as their words'
+            // own weight and slant (Spans) instead, as on the Android twin.
+            let plainOnly = RichText.strip(text) == text
+                && words.runs.contains { r in (r.bold && !bold) || (r.italic && !italic) }
             var el = Element.text(text, fontSize: size, w: PptxReader.px(w))
             // No effect key, as a text box from the Android twin has none.
             el.effect = nil
@@ -1356,11 +1394,17 @@ enum PptxReader {
             // The spans are made for the plain words; words the markers
             // cannot keep apart from their own stars keep none.
             if RichText.strip(text) == words.plain {
+                let boxWeight = bold ? 700 : 400
                 el.setSpans(words.runs.map { r in
                     let scale = r.size / size
+                    // A run's cut is its words' weight; a bold run the
+                    // markers could not keep is 700, an italic one slanted.
+                    let weight: Int? = r.weight ?? (plainOnly && r.bold && !bold ? 700 : nil)
                     return TextSpan(start: r.start, end: r.end, color: r.colour == colour ? nil : r.colour,
                                     scale: size > 0 && abs(scale - 1) > Spans.scaleTolerance ? scale : nil,
-                                    font: r.font == face ? nil : r.font)
+                                    font: r.font == face ? nil : r.font,
+                                    weight: weight == boxWeight ? nil : weight,
+                                    italic: plainOnly && r.italic && !italic ? true : nil)
                 })
             }
             return el

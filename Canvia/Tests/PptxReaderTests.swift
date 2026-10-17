@@ -190,6 +190,28 @@ final class PptxReaderTests: XCTestCase {
         XCTAssertEqual(t.spansText, "Big sale\ntoday only")
     }
 
+    /// Shared: a run's cut ("Montserrat Light") is its words' own weight,
+    /// and a bold or italic run the markers cannot keep apart from the
+    /// words' own stars is their own weight and slant instead.
+    func testARunsCutAndTheStylesTheMarkersCannotKeepGoToTheSpans() throws {
+        let body = "<a:p><a:r><a:rPr><a:latin typeface=\"Montserrat\"/></a:rPr><a:t>Big </a:t></a:r>"
+            + "<a:r><a:rPr b=\"1\" i=\"1\"><a:latin typeface=\"Montserrat Semibold\"/></a:rPr><a:t>sale</a:t></a:r>"
+            + "<a:r><a:rPr><a:latin typeface=\"Montserrat Light\"/></a:rPr><a:t> now</a:t></a:r></a:p>"
+        let t = try only(deck([textBox(box, body)]))
+        XCTAssertEqual(t.text, "Big ***sale*** now")
+        XCTAssertEqual(t.fontFamily, "montserrat")
+        XCTAssertEqual(t.spans, [TextSpan(start: 4, end: 8, weight: 600), TextSpan(start: 8, end: 12, weight: 300)])
+        XCTAssertEqual(PptxReader.cut("Montserrat Light").map { "\($0.family) \($0.weight)" }, "montserrat 300")
+        XCTAssertEqual(PptxReader.cut("Lora Bold").map { "\($0.family) \($0.weight)" }, "lora 700")
+        XCTAssertEqual(PptxReader.cut("Lora 350").map { "\($0.family) \($0.weight)" }, "lora 350")
+        XCTAssertEqual(PptxReader.cut("Montserrat Extra bold").map { "\($0.family) \($0.weight)" }, "montserrat 800")
+        XCTAssertNil(PptxReader.cut("Lora"))
+        XCTAssertNil(PptxReader.cut("Comic Sans MS Bold"))
+        let stars = try only(deck([textBox(box, "<a:p><a:r><a:rPr/><a:t>2*3 is </a:t></a:r><a:r><a:rPr b=\"1\" i=\"1\"/><a:t>6*</a:t></a:r></a:p>")]))
+        XCTAssertEqual(stars.text, "2*3 is 6*")
+        XCTAssertEqual(stars.spans, [TextSpan(start: 7, end: 9, weight: 700, italic: true)])
+    }
+
     func testAStyleEveryRunHasIsTheBoxsOwn() throws {
         let body = "<a:p><a:r><a:rPr b=\"1\" u=\"sng\"/><a:t>All </a:t></a:r><a:r><a:rPr b=\"1\" i=\"1\" u=\"sng\"/>"
             + "<a:t>bold</a:t></a:r><a:r><a:rPr/><a:t> </a:t></a:r></a:p>"

@@ -4,8 +4,10 @@
 // RichText.strip(text), before any capitals — in UTF-16 offsets, as
 // RichText.Run counts them, each with a colour, a size (a scale on the
 // box's type size, so fitting and corner-resizing keep working), a font (a
-// key as `fontFamily` stores it, a font of your own's "custom:" too), a link
-// (a web address, email or phone number, as Links reads one) or several.
+// key as `fontFamily` stores it, a font of your own's "custom:" too), a
+// weight and a slant of their own (the family's cut, as the box's
+// fontWeight and italic choose one), a link (a web address, email or phone
+// number, as Links reads one) or several.
 // Beside them `spansText` holds the very words the offsets were made for:
 // should the words have been changed by a build that does not carry spans
 // along, the two no longer agree and the spans are ignored — never a colour
@@ -20,7 +22,8 @@
 import Foundation
 import UIKit
 
-/// One stretch of words in a colour, a size, a font, a link, or several.
+/// One stretch of words in a colour, a size, a font, a weight, a slant, a
+/// link, or several.
 struct TextSpan: Codable, Equatable, Hashable {
     /// UTF-16 offsets into the words as they read, end exclusive.
     var start: Int
@@ -33,18 +36,25 @@ struct TextSpan: Codable, Equatable, Hashable {
     var font: String?
     /// "https://…", "http://…", "mailto:…" or "tel:…"; nil is no link.
     var link: String?
+    /// A weight of the words' own, 100 to 900 as the box's fontWeight
+    /// counts; nil is the box's.
+    var weight: Int?
+    /// Whether the words are slanted; nil is as the box is.
+    var italic: Bool?
 
     init(start: Int, end: Int, color: String? = nil, scale: Double? = nil,
-         font: String? = nil, link: String? = nil) {
+         font: String? = nil, link: String? = nil, weight: Int? = nil, italic: Bool? = nil) {
         self.start = start
         self.end = end
         self.color = color
         self.scale = scale
         self.font = font
         self.link = link
+        self.weight = weight
+        self.italic = italic
     }
 
-    private enum CodingKeys: String, CodingKey { case start, end, color, scale, font, link }
+    private enum CodingKeys: String, CodingKey { case start, end, color, scale, font, link, weight, italic }
 
     // Each key on its own: a stretch missing its ends reads as empty and is
     // dropped when the spans are tidied, never the design.
@@ -56,6 +66,10 @@ struct TextSpan: Codable, Equatable, Hashable {
         scale = try? c.decodeIfPresent(Double.self, forKey: .scale)
         font = try? c.decodeIfPresent(String.self, forKey: .font)
         link = try? c.decodeIfPresent(String.self, forKey: .link)
+        // A weight written as words, or a slant as a number, is none, as on
+        // the Android twin.
+        weight = try? c.decodeIfPresent(Int.self, forKey: .weight)
+        italic = try? c.decodeIfPresent(Bool.self, forKey: .italic)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -66,12 +80,19 @@ struct TextSpan: Codable, Equatable, Hashable {
         try c.encodeIfPresent(scale, forKey: .scale)
         try c.encodeIfPresent(font, forKey: .font)
         try c.encodeIfPresent(link, forKey: .link)
+        try c.encodeIfPresent(weight, forKey: .weight)
+        try c.encodeIfPresent(italic, forKey: .italic)
     }
 
     var range: NSRange { NSRange(location: start, length: max(0, end - start)) }
 
-    /// Whether it says anything: a colour, a size, a font or a link.
-    var says: Bool { color != nil || scale != nil || font != nil || link != nil }
+    /// Whether it says anything: a colour, a size, a font, a weight, a
+    /// slant or a link.
+    var says: Bool { color != nil || scale != nil || font != nil || link != nil || weight != nil || italic != nil }
+
+    /// Whether its letters are set in a face of their own: a font, a weight
+    /// or a slant.
+    var setsFace: Bool { font != nil || weight != nil || italic != nil }
 
     /// The same look over `from..<to`.
     func over(_ from: Int, _ to: Int) -> TextSpan {
@@ -81,10 +102,11 @@ struct TextSpan: Codable, Equatable, Hashable {
         return out
     }
 
-    /// Whether `other` has the same colour, size, font and link: where two
-    /// differ in any of them, a run of words splits.
+    /// Whether `other` has the same colour, size, font, weight, slant and
+    /// link: where two differ in any of them, a run of words splits.
     func looksLike(_ other: TextSpan) -> Bool {
         color == other.color && scale == other.scale && font == other.font && link == other.link
+            && weight == other.weight && italic == other.italic
     }
 }
 
@@ -99,6 +121,9 @@ enum Spans {
     static let larger = 1.25
     /// A size this close to the box's own is the box's own.
     static let scaleTolerance = 1e-9
+    /// The weights a word may have of its own: the box's own range, a
+    /// weight past it held to its end (950 is 900, 50 is 100) on both phones.
+    static let weightRange = 100...900
 
     /// The attribute the drawn words carry their span's colour in, as hex,
     /// so outlines can be gathered by the colour each word is set in.
@@ -121,12 +146,12 @@ enum Spans {
     }
 
     /// The spans tidied: sorted, none overlapping — where two overlap, the
-    /// later in the list wins — each with a colour, a size, a font or a link
-    /// other than the box's own (a blank colour or font, a size of 1, or a
-    /// link Links.normalized does not read as one, is none), sizes kept
-    /// within `scaleRange`, links as Links.normalized writes them,
-    /// neighbours alike in all four joined into one, and no more than
-    /// `maxCount`.
+    /// later in the list wins — each with a colour, a size, a font, a
+    /// weight, a slant or a link other than the box's own (a blank colour
+    /// or font, a size of 1, or a link Links.normalized does not read as
+    /// one, is none), sizes kept within `scaleRange`, weights within
+    /// `weightRange`, links as Links.normalized writes them, neighbours
+    /// alike in all six joined into one, and no more than `maxCount`.
     static func normalised(_ spans: [TextSpan]) -> [TextSpan] {
         let tidy = spans.compactMap { span -> TextSpan? in
             var out = span
@@ -145,6 +170,9 @@ enum Spans {
             }
             if let link = span.link {
                 out.link = Links.normalized(link)
+            }
+            if let weight = span.weight {
+                out.weight = min(max(weight, weightRange.lowerBound), weightRange.upperBound)
             }
             guard out.end > out.start, out.says else { return nil }
             return out
@@ -265,6 +293,19 @@ enum Spans {
         restyled(spans, range) { $0.link = link }
     }
 
+    /// The words in `range` at `weight` — or back at the box's own, with
+    /// nil — keeping their colour, size, font, slant and link: the font
+    /// sheet's Weight row opened for the selected words.
+    static func weighting(_ spans: [TextSpan], range: NSRange, weight: Int?) -> [TextSpan] {
+        restyled(spans, range) { $0.weight = weight }
+    }
+
+    /// The words in `range` slanted or upright — or back as the box is,
+    /// with nil: the font sheet's Italic toggle for the selected words.
+    static func italicising(_ spans: [TextSpan], range: NSRange, italic: Bool?) -> [TextSpan] {
+        restyled(spans, range) { $0.italic = italic }
+    }
+
     /// The spans with no colours: what gradient letters, which colours on
     /// words would not show through, are drawn with.
     static func withoutColours(_ spans: [TextSpan]) -> [TextSpan] {
@@ -290,10 +331,10 @@ enum Spans {
         normalised(spans.map { TextSpan(start: $0.start, end: $0.end, link: $0.link) })
     }
 
-    /// Whether some words have a colour, a size or a font of their own —
-    /// what Clear word colours and sizes takes off.
+    /// Whether some words have a colour, a size, a font, a weight or a slant
+    /// of their own — what Clear word colours and sizes takes off.
     static func hasStyles(_ spans: [TextSpan]) -> Bool {
-        spans.contains { $0.color != nil || $0.scale != nil || $0.font != nil }
+        spans.contains { $0.color != nil || $0.scale != nil || $0.setsFace }
     }
 
     /// The words in `range` a step smaller or larger: each one's size times
@@ -357,12 +398,24 @@ enum Spans {
         return (shared.value, shared.shared)
     }
 
+    /// The same for the weight: nil for the box's own.
+    static func weight(of spans: [TextSpan], in range: NSRange) -> (weight: Int?, shared: Bool) {
+        let shared = sharing(spans, range, \.weight)
+        return (shared.value, shared.shared)
+    }
+
+    /// The same for the slant: nil for the box's own.
+    static func italic(of spans: [TextSpan], in range: NSRange) -> (italic: Bool?, shared: Bool) {
+        let shared = sharing(spans, range, \.italic)
+        return (shared.value, shared.shared)
+    }
+
     /// What every letter in `range` has of `key`, nil where no span is, and
     /// whether they all have the same.
-    private static func sharing(_ spans: [TextSpan], _ range: NSRange,
-                                _ key: KeyPath<TextSpan, String?>) -> (value: String?, shared: Bool) {
+    private static func sharing<T: Equatable>(_ spans: [TextSpan], _ range: NSRange,
+                                              _ key: KeyPath<TextSpan, T?>) -> (value: T?, shared: Bool) {
         let lo = range.location, hi = NSMaxRange(range)
-        var values: [String?] = []
+        var values: [T?] = []
         var cursor = lo
         for span in spans where span.end > lo && span.start < hi {
             if span.start > cursor { values.append(nil) }

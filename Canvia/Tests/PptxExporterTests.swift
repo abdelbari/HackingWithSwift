@@ -538,6 +538,36 @@ final class PptxExporterTests: XCTestCase {
         XCTAssertTrue(isWellFormed(parts.xml))
     }
 
+    /// Shared: a word with a weight of its own is bold from 600 and names
+    /// its cut; a word with a slant of its own is italic by it.
+    func testWordsKeepTheirOwnWeightAndSlant() {
+        var el = Element.text("one two three")
+        el.fontFamily = "montserrat"
+        el.setSpans([TextSpan(start: 0, end: 3, weight: 300), TextSpan(start: 4, end: 7, weight: 600, italic: true),
+                     TextSpan(start: 8, end: 13, italic: false)])
+        let ink = "<a:solidFill><a:srgbClr val=\"1F2430\"/></a:solidFill>"
+        let expected = [
+            "<a:r><a:rPr sz=\"3150\">\(ink)<a:latin typeface=\"Montserrat Light\"/></a:rPr><a:t>one</a:t></a:r>",
+            "<a:r><a:rPr sz=\"3150\">\(ink)<a:latin typeface=\"Montserrat\"/></a:rPr><a:t> </a:t></a:r>",
+            "<a:r><a:rPr sz=\"3150\" b=\"1\" i=\"1\">\(ink)<a:latin typeface=\"Montserrat Semibold\"/></a:rPr><a:t>two</a:t></a:r>",
+            "<a:r><a:rPr sz=\"3150\">\(ink)<a:latin typeface=\"Montserrat\"/></a:rPr><a:t> three</a:t></a:r>",
+        ].joined()
+        let xml = slideXML([el])
+        XCTAssertTrue(xml.contains(expected), xml)
+        // A word set upright in an italic box is upright; one at 900 is Black.
+        var italicBox = Element.text("a b")
+        italicBox.italic = true
+        italicBox.setSpans([TextSpan(start: 2, end: 3, weight: 900, italic: false)])
+        let upright = slideXML([italicBox])
+        XCTAssertTrue(upright.contains("<a:rPr sz=\"3150\" i=\"1\">"), upright)
+        XCTAssertTrue(upright.contains("<a:rPr sz=\"3150\" b=\"1\">\(ink)<a:latin typeface=\"Modern Sans Black\"/></a:rPr><a:t>b</a:t>"), upright)
+        let design = Design(title: "d")
+        XCTAssertEqual(PptxExporter.typeface("lora", in: design, weight: 400), "Lora")
+        XCTAssertEqual(PptxExporter.typeface("lora", in: design, weight: 700), "Lora Bold")
+        XCTAssertEqual(PptxExporter.typeface("lora", in: design, weight: 350), "Lora 350")
+        XCTAssertEqual(PptxExporter.typeface("lora", in: design, weight: nil), "Lora")
+    }
+
     /// Shared: sz is held to 100 to 400000, as a deck must have it.
     func testATypeSizeIsHeldToWhatADeckMayHold() {
         let rows: [(px: Double, size: Int)] = [

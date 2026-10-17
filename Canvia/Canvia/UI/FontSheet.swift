@@ -8,10 +8,12 @@
 // another; for the brand kit it chooses a face, None first, and closes.
 // Opened from the typing bar's Aa it sets the words chosen instead, under a
 // note that says so, as the colour sheet does for their colour; the box's
-// own face gives them back to it. The Android twin's FontSheet, in the same
-// words. Choosing for the texts selected, the Weight row comes first: Light
-// to Black, the weights their fonts have, each named in the face at that
-// weight, as the Android twin's Text panel has it under Font.
+// own face gives them back to it — and then the Weight row and an Italic
+// toggle set those words alone, each reading Mixed where they differ
+// (DesignStore.weightWords, italicWords). The Android twin's FontSheet, in
+// the same words. Choosing for the texts selected, the Weight row comes
+// first: Light to Black, the weights their fonts have, each named in the
+// face at that weight, as the Android twin's Text panel has it under Font.
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -71,6 +73,9 @@ struct FontSheet: View {
                 }
                 if choice == nil && !words {
                     weightRow
+                }
+                if words {
+                    wordsFaceRows
                 }
                 Section { categoryChips }
                     .listRowBackground(Color.clear)
@@ -172,9 +177,54 @@ struct FontSheet: View {
         }
     }
 
-    /// One weight, its name drawn at it in `font`.
-    private func weightChip(_ weight: Int, font: String, chosen: Bool) -> some View {
-        Button { store.setFontWeight(weight) } label: {
+    /// The selected words' Weight row — the cuts their font has, each named
+    /// in that font at that weight, the one they share chosen, "Weight:
+    /// Mixed" where they differ — and the Italic toggle, on when every word
+    /// is slanted, Mixed when some are, as the Android twin's WordsFaceRows.
+    @ViewBuilder
+    private var wordsFaceRows: some View {
+        let font = store.wordFont ?? "sans"
+        let weights = FontLibrary.weights(font)
+        let weight = store.wordWeight
+        let italic = store.wordItalic
+        let readout = weight.map(FontLibrary.weightName) ?? TypeReadouts.mixed
+        Section(tr("Weight: %@", readout)) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(weights, id: \.self) { cut in
+                        weightChip(cut, font: font, chosen: cut == weight, pick: { store.weightWords(cut) })
+                    }
+                    italicChip(italic)
+                }
+                .padding(.vertical, 4)
+            }
+        }
+        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets())
+    }
+
+    /// The Italic toggle for the selected words: on, off, or Mixed.
+    private func italicChip(_ italic: Bool?) -> some View {
+        let on = italic == true
+        let label = italic == nil ? tr("Italic: %@", TypeReadouts.mixed) : tr("Italic")
+        let state = italic.map { $0 ? tr("On") : tr("Off") } ?? TypeReadouts.mixed
+        return Button { store.italicWords(!on) } label: {
+            Text(label)
+                .font(.subheadline.weight(.medium).italic())
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(on ? Theme.accent : Theme.card, in: Capsule())
+                .foregroundStyle(on ? Color.white : Theme.ink)
+        }
+        .buttonStyle(.plain)
+        .accessibilityValue(state)
+        .accessibilityAddTraits(on ? .isSelected : [])
+    }
+
+    /// One weight, its name drawn at it in `font`; a tap sets every
+    /// unlocked text selected to it, or does `pick`.
+    private func weightChip(_ weight: Int, font: String, chosen: Bool, pick: (() -> Void)? = nil) -> some View {
+        Button { if let pick { pick() } else { store.setFontWeight(weight) } } label: {
             Text(FontLibrary.weightName(weight))
                 .font(FontLibrary.font(family: font, size: 15, weight: weight, italic: false))
                 .padding(.horizontal, 12)
