@@ -197,6 +197,79 @@ enum Crop {
         return withPicture(framed, image: image, seen: kept)
     }
 
+    /// The frame trimmed to `ratio` (width over height): the largest box
+    /// of that shape inside the current frame, centred on it, so the frame
+    /// only ever shrinks — a wider ratio keeps the width and cuts the
+    /// height, a taller one keeps the height and cuts the width. The
+    /// picture stays exactly where it is on the page, measured from the new
+    /// frame's corner and re-covered (withPicture), as a trim leaves it. No
+    /// rounding: the sides are whatever the ratio makes them, as on the
+    /// Android twin. The element as it is for a ratio that is not positive,
+    /// or a frame that already has that shape.
+    static func trimmedToRatio(_ el: Element, ratio: Double, image: CGSize) -> Element {
+        guard ratio > 0, ratio.isFinite, el.w > 0, el.h > 0 else { return el }
+        let w: Double, h: Double
+        if el.w / el.h > ratio {
+            h = el.h
+            w = el.h * ratio
+        } else {
+            w = el.w
+            h = el.w / ratio
+        }
+        guard abs(w - el.w) > epsilon || abs(h - el.h) > epsilon else { return el }
+        let left = (el.w - w) / 2
+        let top = (el.h - h) / 2
+        let centre = el.center
+        var framed = el
+        framed.x = centre.x - w / 2
+        framed.y = centre.y - h / 2
+        framed.w = w
+        framed.h = h
+        guard image.width > 0, image.height > 0 else { return framed }
+        // The same picture, measured from the new frame's corner.
+        let seen = picture(el, image: image)
+        let kept = CGRect(x: seen.minX - left, y: seen.minY - top, width: seen.width, height: seen.height)
+        return withPicture(framed, image: image, seen: kept)
+    }
+
+    /// The frame turned a quarter turn clockwise about its centre, its
+    /// width and height swapped so the picture's own sides turn with it,
+    /// the rotation kept within 0..<360. The crop numbers are kept as they
+    /// are: the picture re-covers the frame in its new shape, as on the
+    /// Android twin.
+    static func rotated90(_ el: Element) -> Element {
+        let centre = el.center
+        var out = el
+        out.w = el.h
+        out.h = el.w
+        out.x = centre.x - out.w / 2
+        out.y = centre.y - out.h / 2
+        out.rotation = ((el.rotation + 90).truncatingRemainder(dividingBy: 360) + 360)
+            .truncatingRemainder(dividingBy: 360)
+        return out
+    }
+
+    /// How far the straighten dial reaches either way, in degrees.
+    static let straightenReach = 45.0
+    /// The dial's step, in degrees.
+    static let straightenStep = 0.5
+
+    /// What the straighten dial writes for `degrees`: to the nearest half
+    /// degree, a half up, within ±straightenReach — and nil at level, so a
+    /// levelled photo carries no key, as the crop sheet leaves it. The detent
+    /// is the step itself: within a quarter degree of level is level.
+    static func steppedStraighten(_ degrees: Double) -> Double? {
+        guard degrees.isFinite else { return nil }
+        let held = min(max(degrees, -straightenReach), straightenReach)
+        let stepped = (held / straightenStep + 0.5).rounded(.down) * straightenStep
+        return stepped == 0 ? nil : stepped
+    }
+
+    /// "12.5 deg": the dial's readout, one place always.
+    static func straightenReadout(_ degrees: Double?) -> String {
+        tr("%@ deg", String(format: "%.1f", degrees ?? 0))
+    }
+
     /// Back to just covering the frame, centred. The frame is kept, and so
     /// are the straightening and the fit, which the crop sheet owns.
     static func reset(_ el: Element) -> Element {
@@ -239,5 +312,52 @@ enum Crop {
 
     private static func clamp(_ v: Double, _ lo: Double, _ hi: Double) -> Double {
         min(max(v, lo), hi)
+    }
+}
+
+/// The crop bar's frame shapes, in the order the chips show them. The same
+/// names and ratios as the Android twin's crop bar.
+enum CropAspect: CaseIterable, Hashable {
+    case free, original, square, fourFive, threeTwo, fourThree, sixteenNine, nineSixteen
+
+    /// The chip's words.
+    var name: String {
+        switch self {
+        case .free: return tr("Free")
+        case .original: return tr("Original")
+        case .square: return "1:1"
+        case .fourFive: return "4:5"
+        case .threeTwo: return "3:2"
+        case .fourThree: return "4:3"
+        case .sixteenNine: return "16:9"
+        case .nineSixteen: return "9:16"
+        }
+    }
+
+    /// Width over height; Original is the picture's own, and Free is none —
+    /// the frame as it is.
+    func ratio(image: CGSize) -> Double? {
+        switch self {
+        case .free: return nil
+        case .original: return image.height > 0 ? Double(image.width) / Double(image.height) : nil
+        case .square: return 1
+        case .fourFive: return 4.0 / 5
+        case .threeTwo: return 3.0 / 2
+        case .fourThree: return 4.0 / 3
+        case .sixteenNine: return 16.0 / 9
+        case .nineSixteen: return 9.0 / 16
+        }
+    }
+
+    /// The chip lit for `el`: the first whose ratio the frame has, within
+    /// one percent — Original before 4:3 for a 4:3 picture — and Free when
+    /// none does.
+    static func matching(_ el: Element, image: CGSize) -> CropAspect {
+        guard el.h > 0 else { return .free }
+        let have = el.w / el.h
+        return allCases.first { aspect in
+            guard let ratio = aspect.ratio(image: image), ratio > 0 else { return false }
+            return abs(have / ratio - 1) < 0.01
+        } ?? .free
     }
 }

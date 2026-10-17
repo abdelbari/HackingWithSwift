@@ -1096,54 +1096,20 @@ struct EditorView: View {
     }
 
     /// Crop mode's bar, in place of the insert button: how far in the
-    /// picture is, and the ways out. Done keeps the crop as one Undo, Cancel
-    /// puts the photo back as it was, Reset centres the picture and lets it
-    /// just cover the frame again, and More opens the sheet for straightening,
-    /// fit and the Ken Burns drift. The slider does what a pinch does, for
-    /// anyone who cannot pinch, and carries four moves for VoiceOver.
+    /// picture is, the frame's shape, a straighten dial, a quarter turn and
+    /// a flip, and the ways out — all inside the one open crop step, so
+    /// Done keeps them as one Undo and Cancel puts every one of them back.
+    /// Reset centres the picture and lets it just cover the frame again,
+    /// and More opens the sheet for fit and the Ken Burns drift. The zoom
+    /// slider does what a pinch does, for anyone who cannot pinch, and
+    /// carries four moves for VoiceOver.
     private var cropBar: some View {
         let photo = store.cropElement
-        let zoom = max(1, photo?.cropScale ?? 1)
-        let percent = "\(Int((zoom * 100).rounded()))%"
-        // A trim can leave a picture further in than a zoom may take it; the
-        // slider's end moves out to meet it rather than snapping it back —
-        // but not mid-drag, when a moving range would pull the thumb about.
-        let ceiling = cropSliding ? cropCeiling : max(Crop.maxZoom, zoom)
         return VStack(spacing: 6) {
-            HStack(spacing: 10) {
-                Text("Zoom").font(.subheadline.weight(.semibold))
-                Slider(value: Binding(get: { zoom }, set: { store.setCropZoom($0) }),
-                       in: 1...ceiling,
-                       onEditingChanged: { editing in
-                           if editing { cropCeiling = max(Crop.maxZoom, zoom) }
-                           cropSliding = editing
-                       })
-                .accessibilityLabel("Zoom the picture")
-                .accessibilityValue(percent)
-                .accessibilityAction(named: "Move the picture left") { store.nudgeCrop(dx: -1, dy: 0) }
-                .accessibilityAction(named: "Move the picture right") { store.nudgeCrop(dx: 1, dy: 0) }
-                .accessibilityAction(named: "Move the picture up") { store.nudgeCrop(dx: 0, dy: -1) }
-                .accessibilityAction(named: "Move the picture down") { store.nudgeCrop(dx: 0, dy: 1) }
-                Text(percent)
-                    .font(.subheadline.monospacedDigit())
-                    .frame(minWidth: 48, alignment: .trailing)
-                    .accessibilityHidden(true)
-            }
-            HStack(spacing: 12) {
-                Button("Cancel") { store.cancelCrop() }
-                Spacer(minLength: 0)
-                Button("Reset") { store.resetCrop() }
-                    .disabled(!(photo.map(Crop.isAdjusted) ?? false))
-                Spacer(minLength: 0)
-                Button {
-                    store.finishCrop()
-                    activeSheet = .crop
-                } label: { Image(systemName: "slider.horizontal.3").frame(width: 30, height: 30) }
-                    .accessibilityLabel("Straighten, fit and drift")
-                Button("Done") { store.finishCrop() }
-                    .fontWeight(.semibold)
-                    .buttonStyle(.borderedProminent)
-            }
+            cropZoomRow(photo)
+            cropAspectRow(photo)
+            cropStraightenRow(photo)
+            cropWaysOut(photo)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -1151,6 +1117,106 @@ struct EditorView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
         .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    private func cropZoomRow(_ photo: Element?) -> some View {
+        let zoom = max(1, photo?.cropScale ?? 1)
+        let percent = "\(Int((zoom * 100).rounded()))%"
+        // A trim can leave a picture further in than a zoom may take it; the
+        // slider's end moves out to meet it rather than snapping it back —
+        // but not mid-drag, when a moving range would pull the thumb about.
+        let ceiling = cropSliding ? cropCeiling : max(Crop.maxZoom, zoom)
+        return HStack(spacing: 10) {
+            Text("Zoom").font(.subheadline.weight(.semibold))
+            Slider(value: Binding(get: { zoom }, set: { store.setCropZoom($0) }),
+                   in: 1...ceiling,
+                   onEditingChanged: { editing in
+                       if editing { cropCeiling = max(Crop.maxZoom, zoom) }
+                       cropSliding = editing
+                   })
+            .accessibilityLabel("Zoom the picture")
+            .accessibilityValue(percent)
+            .accessibilityAction(named: "Move the picture left") { store.nudgeCrop(dx: -1, dy: 0) }
+            .accessibilityAction(named: "Move the picture right") { store.nudgeCrop(dx: 1, dy: 0) }
+            .accessibilityAction(named: "Move the picture up") { store.nudgeCrop(dx: 0, dy: -1) }
+            .accessibilityAction(named: "Move the picture down") { store.nudgeCrop(dx: 0, dy: 1) }
+            Text(percent)
+                .font(.subheadline.monospacedDigit())
+                .frame(minWidth: 48, alignment: .trailing)
+                .accessibilityHidden(true)
+        }
+    }
+
+    /// The frame's shape: Free, the picture's own, and the usual ratios
+    /// (CropAspect), the one the frame has lit. Each trims the frame inside
+    /// itself (Crop.trimmedToRatio); a frame locked in position keeps its
+    /// shape, so its chips wait.
+    private func cropAspectRow(_ photo: Element?) -> some View {
+        let lit = photo.flatMap { el in store.cropping.map { CropAspect.matching(el, image: $0.imageSize) } } ?? .free
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(CropAspect.allCases, id: \.self) { aspect in
+                    Button(aspect.name) { store.setCropAspect(aspect) }
+                        .buttonStyle(.bordered)
+                        .tint(aspect == lit ? Theme.accent : .secondary)
+                        .controlSize(.small)
+                        .accessibilityAddTraits(aspect == lit ? .isSelected : [])
+                }
+            }
+        }
+        .disabled(photo?.holdsPlace ?? true)
+    }
+
+    /// The straighten dial: −45 to 45 degrees in half steps, a tick at
+    /// level, writing the photo's straighten live. To VoiceOver one
+    /// adjustable control, a degree a swipe.
+    private func cropStraightenRow(_ photo: Element?) -> some View {
+        let degrees = photo?.straighten ?? 0
+        let readout = Crop.straightenReadout(photo?.straighten)
+        return HStack(spacing: 10) {
+            Text("Straighten").font(.subheadline.weight(.semibold))
+            Slider(value: Binding(get: { degrees }, set: { store.setCropStraighten($0) }),
+                   in: -Crop.straightenReach...Crop.straightenReach, step: Crop.straightenStep,
+                   onEditingChanged: { store.cropDialHeld = $0 })
+            .overlay(alignment: .top) {
+                // The tick at level.
+                Rectangle().fill(.secondary).frame(width: 1, height: 6)
+            }
+            Text(readout)
+                .font(.subheadline.monospacedDigit())
+                .frame(minWidth: 64, alignment: .trailing)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Straighten")
+        .accessibilityValue(readout)
+        .accessibilityAdjustableAction { direction in
+            store.setCropStraighten(degrees + (direction == .increment ? 1 : -1))
+        }
+    }
+
+    /// Cancel, Reset, a quarter turn, a flip, More and Done.
+    private func cropWaysOut(_ photo: Element?) -> some View {
+        HStack(spacing: 12) {
+            Button("Cancel") { store.cancelCrop() }
+            Spacer(minLength: 0)
+            Button("Reset") { store.resetCrop() }
+                .disabled(!(photo.map(Crop.isAdjusted) ?? false))
+            Spacer(minLength: 0)
+            Button { store.rotateCrop90() } label: { Image(systemName: "rotate.right").frame(width: 30, height: 30) }
+                .accessibilityLabel("Rotate 90")
+                .disabled(photo?.holdsPlace ?? true)
+            Button { store.flipCrop() } label: { Image(systemName: "flip.horizontal").frame(width: 30, height: 30) }
+                .accessibilityLabel("Flip")
+                .accessibilityAddTraits(photo?.flipH == true ? .isSelected : [])
+            Button {
+                store.finishCrop()
+                activeSheet = .crop
+            } label: { Image(systemName: "slider.horizontal.3").frame(width: 30, height: 30) }
+                .accessibilityLabel("Fit and drift")
+            Button("Done") { store.finishCrop() }
+                .fontWeight(.semibold)
+                .buttonStyle(.borderedProminent)
+        }
     }
 
     /// Brush size, the strokes so far, and the two ways out.

@@ -1466,6 +1466,9 @@ final class DesignStore {
     /// CropMode.swift. Crop mode is one open step: everything done in it is
     /// live, Done keeps it as a single Undo, and Cancel throws it away.
     var cropping: CropSession?
+    /// True while the crop bar's straighten dial is held: the thirds stay
+    /// up on the frame, as they do under a finger. View state only.
+    var cropDialHeld = false
     /// The image being erased from, while the eraser is out, and the
     /// strokes painted over it so far, in page units.
     var erasing: String?

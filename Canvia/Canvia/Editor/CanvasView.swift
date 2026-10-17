@@ -627,11 +627,12 @@ struct CanvasView: View {
     /// beyond the frame, the frame's part as it will look, and the frame's
     /// brackets. One finger drags the picture or, from a bracket, trims the
     /// frame; two pinch it; a tap anywhere else is Done. Straightening waits
-    /// while the picture is being placed, as it does on the Android twin,
-    /// and comes back when crop mode ends.
+    /// while a finger places the picture or pulls a bracket, as it does on
+    /// the Android twin, and shows the rest of the time — as the bar's dial
+    /// turns it, and as crop mode ends.
     private func cropLayer(_ photo: Element, _ crop: CropSession) -> some View {
         var level = photo
-        level.straighten = nil
+        if gesture.crop?.isWorking == true { level.straighten = nil }
         return ZStack {
             Color.black.opacity(0.45)
             cropPicture(photo, crop)
@@ -681,7 +682,9 @@ struct CanvasView: View {
     private func cropArt(_ photo: Element, _ crop: CropSession) -> some View {
         let seen = Crop.picture(photo, image: crop.imageSize)
         let held = gesture.crop?.handle
-        let working = gesture.crop?.isWorking ?? false
+        // The thirds under a finger, and while the bar's straighten dial is
+        // held.
+        let working = (gesture.crop?.isWorking ?? false) || store.cropDialHeld
         let hairline = 1 * iz
         let bracketLength = 18 * iz
         return Canvas { context, _ in

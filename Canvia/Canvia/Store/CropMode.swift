@@ -106,6 +106,41 @@ extension DesignStore {
         cropEdit { Crop.zoomed($0, image: crop.imageSize, to: zoom) }
     }
 
+    /// A frame shape from the crop bar's chips: the frame trimmed to the
+    /// ratio (Crop.trimmedToRatio), inside the one open step. Free leaves
+    /// the frame as it is. Not for a photo locked in position, whose frame
+    /// stays put, as the brackets are not drawn for it.
+    func setCropAspect(_ aspect: CropAspect) {
+        guard let crop = cropping, let photo = cropElement, !photo.holdsPlace,
+              let ratio = aspect.ratio(image: crop.imageSize) else { return }
+        cropEdit { Crop.trimmedToRatio($0, ratio: ratio, image: crop.imageSize) }
+        if let trimmed = cropElement {
+            badge = Units.readout(width: trimmed.w.rounded(), height: trimmed.h.rounded(), design)
+        }
+    }
+
+    /// The straighten dial: the existing `straighten` key, written live in
+    /// half-degree steps (Crop.steppedStraighten), nil at level.
+    func setCropStraighten(_ degrees: Double) {
+        let was = cropElement?.straighten
+        cropEdit { var e = $0; e.straighten = Crop.steppedStraighten(degrees); return e }
+        // The detent: a tick as the dial lands on level.
+        if was != nil, cropElement?.straighten == nil { buzz(.tick) }
+    }
+
+    /// Rotate 90: a quarter turn clockwise, the frame's sides swapped
+    /// about its centre (Crop.rotated90). Not for a photo locked in
+    /// position, whose frame stays put.
+    func rotateCrop90() {
+        guard let photo = cropElement, !photo.holdsPlace else { return }
+        cropEdit { Crop.rotated90($0) }
+    }
+
+    /// Flip: the picture mirrored left to right, the existing `flipH` key.
+    func flipCrop() {
+        cropEdit { var e = $0; e.flipH.toggle(); return e }
+    }
+
     /// A tenth of the frame in a direction on screen: how VoiceOver, Switch
     /// Control or a keyboard moves the picture.
     func nudgeCrop(dx: Double, dy: Double) {
