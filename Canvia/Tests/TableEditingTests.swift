@@ -312,12 +312,20 @@ final class TableEditingTests: XCTestCase {
         s.undo()
         XCTAssertEqual(s.page.elements, table)
 
+        // A body cell beside the merged one: its row would split the merge.
+        // (The header cell is refused for the header's own reason first,
+        // on both phones: see testTheHeaderRowStaysAtTheTop.)
         let tall = store(try merged(made(), [(1, 0), (2, 0)]))
         let before = tall.page.elements
-        tall.selection = [text(before, 0, 0).id]
+        tall.selection = [text(before, 1, 1).id]
         tall.moveTableRow(by: 1)
         XCTAssertEqual(tall.page.elements, before)
         XCTAssertEqual(tall.announcement, "Unmerge first to move this row")
+        XCTAssertFalse(tall.canUndo)
+        tall.selection = [text(before, 0, 0).id]
+        tall.moveTableRow(by: 1)
+        XCTAssertEqual(tall.page.elements, before)
+        XCTAssertEqual(tall.announcement, "The header row stays at the top")
         XCTAssertFalse(tall.canUndo)
     }
 
