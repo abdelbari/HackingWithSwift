@@ -1132,6 +1132,19 @@ final class DesignStore {
         selection = Set(page.elements.filter { !$0.locked && !$0.isHidden }.map(\.id))
     }
 
+    /// Tab and Shift-Tab: the next shown thing in front of the selection,
+    /// or the one behind it, a group as one (Layers.neighbour), brought
+    /// into view. Nothing on a locked page is selected: the key is said,
+    /// with Unlock.
+    func selectNeighbour(forward: Bool) {
+        endTextEdit()
+        guard !refusesLockedPage() else { return }
+        let next = Layers.neighbour(of: selection, in: page.elements, forward: forward)
+        guard !next.isEmpty else { return }
+        selection = next
+        revealSelection()
+    }
+
     /// Rubber-band selection: everything the rectangle touches but what is
     /// locked, with sticky groups expanded so a band across one member takes
     /// the whole group.

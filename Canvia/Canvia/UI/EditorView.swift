@@ -454,6 +454,50 @@ struct EditorView: View {
                 shortcut("c", [.command, .option], tr("Copy style")) { store.copyStyle() }
                 shortcut("v", [.command, .option], tr("Paste style")) { store.pasteStyle() }
             }
+            viewCommands
+            if plainKeysLive { plainCommands }
+        }
+    }
+
+    /// The view's keys, as Canva has them: ⌘= and ⌘- a quarter in and out
+    /// about the middle of the screen, ⌘0 the whole page, ⌘1 actual size,
+    /// and ⌥↑ and ⌥↓ the page before and after, which the canvas settles on
+    /// as it brings it up.
+    private var viewCommands: some View {
+        Group {
+            Group {
+                shortcut("=", [.command], tr("Zoom in")) { store.requestCanvas(.zoom(store.zoom * 1.25)) }
+                shortcut("-", [.command], tr("Zoom out")) { store.requestCanvas(.zoom(store.zoom / 1.25)) }
+                shortcut("0", [.command], tr("Fit")) { store.requestCanvas(.fit) }
+                shortcut("1", [.command], tr("Actual size")) { store.requestCanvas(.zoom(1)) }
+                shortcut(.upArrow, [.option], tr("Previous page")) { store.setPage(store.pageIndex - 1) }
+                shortcut(.downArrow, [.option], tr("Next page")) { store.setPage(store.pageIndex + 1) }
+                // Position's aligning: to the page, or to each other, as it does.
+                shortcut("l", [.option, .shift], tr("Align left")) { store.alignSelected(.left) }
+                shortcut("c", [.option, .shift], tr("Align centre")) { store.alignSelected(.centerX) }
+                shortcut("r", [.option, .shift], tr("Align right")) { store.alignSelected(.right) }
+                shortcut("t", [.option, .shift], tr("Align top")) { store.alignSelected(.top) }
+            }
+            shortcut("m", [.option, .shift], tr("Align middle")) { store.alignSelected(.centerY) }
+            shortcut("b", [.option, .shift], tr("Align bottom")) { store.alignSelected(.bottom) }
+        }
+    }
+
+    /// Keys with no ⌘ to them, only while no text field anywhere could
+    /// want them (plainKeysLive): Page Up and Page Down, Tab and Shift-Tab
+    /// through what is on the page, front-most last, Shift-H and Shift-V
+    /// flipping, and T, a text box in the middle of the page.
+    private var plainCommands: some View {
+        Group {
+            shortcut(.pageUp, [], tr("Previous page")) { store.setPage(store.pageIndex - 1) }
+            shortcut(.pageDown, [], tr("Next page")) { store.setPage(store.pageIndex + 1) }
+            shortcut(.tab, [], tr("Next element")) { store.selectNeighbour(forward: true) }
+            shortcut(.tab, [.shift], tr("Previous element")) { store.selectNeighbour(forward: false) }
+            shortcut("h", [.shift], tr("Flip horizontally")) { store.flipSelected(horizontal: true) }
+            shortcut("v", [.shift], tr("Flip vertically")) { store.flipSelected(horizontal: false) }
+            shortcut("t", [], tr("Add text")) {
+                store.addText(at: CGPoint(x: store.pageWidth / 2, y: store.pageHeight / 2))
+            }
         }
     }
 
@@ -475,7 +519,22 @@ struct EditorView: View {
     /// Whether plain Delete can safely mean "delete the selection": something
     /// is selected, and no text field anywhere has the keyboard.
     private var deleteKeysLive: Bool {
-        !store.selection.isEmpty && store.editingTextId == nil && !titleFocused && activeSheet == nil
+        !store.selection.isEmpty && plainKeysLive
+    }
+
+    /// Whether the editor answers the system's undo gestures and shake
+    /// (UndoHost): no text field anywhere has the keyboard — typing in
+    /// place keeps its own undo (TypingUndo) — and nothing is presented.
+    private var undoHostLive: Bool {
+        store.editingTextId == nil && !titleFocused && activeSheet == nil && !namingComponent
+            && !savingTemplate && !namingVersion && !askingCustomGrid && !store.textFieldOpen && !presenting
+    }
+
+    /// Whether a key with no modifier can mean anything but typing: no
+    /// text field anywhere has the keyboard, and no pen, eraser or brush
+    /// is out.
+    private var plainKeysLive: Bool {
+        store.editingTextId == nil && !titleFocused && activeSheet == nil
             && !namingComponent && !savingTemplate && !namingVersion && !store.textFieldOpen && store.drawing == nil
             && store.erasing == nil && store.brushing == nil
     }
