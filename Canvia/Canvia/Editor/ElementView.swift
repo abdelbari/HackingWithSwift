@@ -437,8 +437,7 @@ struct TextElementView: View {
         // that draw the letters as strokes or doubles — a gradient across
         // an outline is a smear. Outline's letters are filled, so they take
         // it, the stroke round them left as it is.
-        if let fill = el.textFill, fill.kind == "gradient",
-           [.none, .shadow, .lift, .outlined, .neon, .highlight].contains(effect) {
+        if let fill = el.textFill, fill.kind == "gradient", effect.takesGradient {
             let renderer = UIGraphicsImageRenderer(size: size)
             // The letters as drawn, bold runs and all, so the gradient
             // lands on exactly the glyphs above.

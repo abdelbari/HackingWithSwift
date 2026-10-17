@@ -36,6 +36,8 @@ struct ExportSheet: View {
     @State private var flatten = false
     /// The PDF's notes pages, and its photos at 150 dpi.
     @State private var pdfNotes = false
+    /// The PowerPoint's "Styled text": editable, or the exact look.
+    @State private var pptxStyledText = ExportLast.styledEditable
     @State private var pdfCompress = false
     /// "Remember these settings": the last export, as JSON; empty is off.
     @AppStorage(ExportLast.key) private var exportLast = ""
@@ -432,8 +434,9 @@ struct ExportSheet: View {
             pdfOptions
             exportButton("PowerPoint", subtitle: pptxSubtitle, icon: "rectangle.stack",
                          working: tr("Making the PowerPoint"), unavailable: leftOut(pdfIndices), format: "pptx") {
-                ExportJobs.powerPoint(designSnapshot)
+                ExportJobs.powerPoint(designSnapshot, styled: pptxStyledText != ExportLast.styledPicture)
             }
+            styledTextRow
         } header: {
             Text("Format")
         } footer: {
@@ -520,6 +523,17 @@ struct ExportSheet: View {
         }
     }
 
+    /// The PowerPoint's styled text: editable as the closest DrawingML
+    /// match (shadows, outlines, glows, gradient letters, curves and
+    /// columns kept as text), or the exact look as a picture — the
+    /// "pptxStyledText" setting both phones keep.
+    private var styledTextRow: some View {
+        Picker("Styled text:", selection: $pptxStyledText) {
+            Text("Editable (closest match)").tag(ExportLast.styledEditable)
+            Text("Exact look").tag(ExportLast.styledPicture)
+        }
+    }
+
     /// Said from the page choice above, which the PowerPoint follows as the
     /// PDF does: a slide a page, hidden pages left out of All pages.
     private var pptxSubtitle: String {
@@ -566,7 +580,8 @@ struct ExportSheet: View {
         guard remember else { return }
         exportLast = ExportLast(format: format, scale: scale, longEdge: typedLongEdge.map { Int($0) },
                                 jpegQuality: jpegQuality, transparent: transparent,
-                                pages: pageRange.rawValue, pdfNotes: pdfNotes, pdfCompress: pdfCompress).json
+                                pages: pageRange.rawValue, pdfNotes: pdfNotes, pdfCompress: pdfCompress,
+                                pptxStyledText: pptxStyledText).json
     }
 
     /// The pages ticked this session, the design's bleed, and the
@@ -584,6 +599,7 @@ struct ExportSheet: View {
         transparent = last.transparent
         pdfNotes = last.pdfNotes
         pdfCompress = last.pdfCompress
+        pptxStyledText = last.pptxStyledText
         pageRange = RangeChoice(rawValue: last.pages) ?? .all
         if last.format == "jpg" { photosFormat = .jpeg } else if last.format == "png" { photosFormat = .png }
         // After the scale's own change has cleared the field, which it does
