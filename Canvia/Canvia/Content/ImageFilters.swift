@@ -1096,11 +1096,14 @@ enum ImageFilterEngine {
                                  waits: Bool, image: UIImage, cacheKey: String) -> (image: UIImage, stopgap: Bool) {
         guard let picture = CIImage(image: image) else { return (image, true) }
         let extent = picture.extent
-        // A mask with Restore over a cut-out is laid over the picture before
-        // the cut (ImageMasking.masking), at the cut-out's size; anything
-        // else over the picture itself.
+        // The mask goes over the picture itself, its own edge kept; where
+        // Restore painted, the picture before the cut (ImageMasking.masking)
+        // is laid over it first, at the cut-out's size, so the look is one.
         let masking = ImageMasking.masking(effects.mask, picture: image, key: cacheKey)
-        let input = masking.picture === image ? picture : Self.stretched(masking.picture, over: extent) ?? picture
+        var input = picture
+        if let restored = masking.restored, let base = Self.stretched(restored.picture, over: extent) {
+            input = ImageMasking.mixed(base, over: picture, by: restored.cover, extent: extent)
+        }
         // Preset first, adjustments second: the preset is the look, the dials
         // are the correction on top of it. The other order would have a dial
         // silently undone by whichever preset was picked afterwards.

@@ -31,9 +31,10 @@ struct TableSelection: Equatable {
 
     /// Move row up and down, and Move column left and right, move the one
     /// row, or column, the selected cells are in, while there is one that
-    /// way to change places with.
-    var canMoveRowUp: Bool { rows.count == 1 && (rows.first ?? 0) > 0 }
-    var canMoveRowDown: Bool { rows.count == 1 && (rows.first ?? 0) < rowCount - 1 }
+    /// way to change places with — and the header row stays at the top:
+    /// neither it nor the row under it moves across the top.
+    var canMoveRowUp: Bool { rows.count == 1 && (rows.first ?? 0) > 0 && !(header && rows.first == 1) }
+    var canMoveRowDown: Bool { rows.count == 1 && (rows.first ?? 0) < rowCount - 1 && !(header && rows.first == 0) }
     var canMoveColumnLeft: Bool { columns.count == 1 && (columns.first ?? 0) > 0 }
     var canMoveColumnRight: Bool { columns.count == 1 && (columns.first ?? 0) < columnCount - 1 }
 
@@ -43,6 +44,8 @@ struct TableSelection: Equatable {
     /// Why a row, or a column, a merged cell runs through stays where it is.
     static let unmergeRowNote = tr("Unmerge first to move this row")
     static let unmergeColumnNote = tr("Unmerge first to move this column")
+    /// Why the header row, or the row under it, stays where it is.
+    static let headerRowNote = tr("The header row stays at the top")
 
     /// Why Delete row or Delete column waits, when either does.
     var deleteNote: String? {
@@ -383,19 +386,24 @@ extension DesignStore {
     // MARK: moving rows and columns, spacing and alternating rows
 
     /// The selected cell's row moved up (`step` -1) or down (1), as one
-    /// step; refused, and said, when a merged cell runs through either row.
+    /// step; refused, and said, when the header would leave the top or a
+    /// merged cell runs through either row.
     func moveTableRow(by step: Int) {
         let measure = self.measure
-        var merged = false
+        var note: String?
         editTable { els, t in
-            guard t.rows.count == 1, let row = t.rows.first else { return nil }
+            guard t.rows.count == 1, let row = t.rows.first, row + step >= 0, row + step < t.rowCount else { return nil }
+            if DataGraphics.tableHeaderStays(els, id: t.id, row: row, by: step) {
+                note = TableSelection.headerRowNote
+                return nil
+            }
             if DataGraphics.rowMoveSplitsMerge(els, id: t.id, row: row, by: step) {
-                merged = true
+                note = TableSelection.unmergeRowNote
                 return nil
             }
             return DataGraphics.movedTableRow(els, id: t.id, row: row, by: step, heightFor: measure)
         }
-        if merged { announce(TableSelection.unmergeRowNote, undoable: false) }
+        if let note { announce(note, undoable: false) }
     }
 
     /// The selected cell's column moved left (`step` -1) or right (1), as

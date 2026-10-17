@@ -63,6 +63,7 @@ enum PageClipboard {
             if let r = page.elements[i].radius { page.elements[i].radius = r * scale }
             if let c = page.elements[i].corners { page.elements[i].corners = c.map { $0 * scale } }
             if let sw = page.elements[i].strokeWidth { page.elements[i].strokeWidth = sw * scale }
+            page.elements[i].table = TableCell.scaledPad(page.elements[i].table, by: scale)
         }
         return page
     }

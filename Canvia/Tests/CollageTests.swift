@@ -122,6 +122,21 @@ final class CollageTests: XCTestCase {
         XCTAssertNil(Crop.replaced(el, src: nil).src)
     }
 
+    func testAReplacedPictureLeavesItsMaskItsCutOutsBaseAndItsRetouchBehind() {
+        // What was brushed onto the old picture goes with it; the frame's
+        // other keys stay. The Android twin's CropTest, row for row.
+        var el = photo("media:cut", x: 10, y: 20, w: 300, h: 200)
+        el.corners = [4, 4, 4, 4]
+        el.mask = ImageMask(strokes: [MaskStroke(mode: "erase", w: 0.1, soft: 0, points: [CGPoint(x: 0.5, y: 0.5)])],
+                            base: "media:before")
+        el.retouch = [RetouchLayer(kind: "blur", strokes: [RetouchStroke(points: [CGPoint(x: 0.5, y: 0.5)])])]
+        let out = Crop.replaced(el, src: "media:y")
+        XCTAssertNil(out.mask)
+        XCTAssertNil(out.retouch)
+        XCTAssertEqual(out.corners, [4, 4, 4, 4])
+        XCTAssertNil(Crop.replaced(el, src: nil).mask)
+    }
+
     /// A free photo let go over a frame goes into it and is used up; the
     /// move and the drop are one Undo, felt, and the frame ends selected.
     func testAFreePhotoDroppedIntoAFrameFillsItAsOneStep() {

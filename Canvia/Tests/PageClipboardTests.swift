@@ -50,6 +50,20 @@ final class PageClipboardTests: XCTestCase {
         XCTAssertEqual(landed.elements[0].y, 25, accuracy: 0.001)
     }
 
+    /// The row the Android twin's "a pasted page's table keeps its cell
+    /// spacing in proportion" checks: a table's cell spacing scales with
+    /// the page it lands on.
+    func testAPastedTableKeepsItsCellSpacingInProportion() {
+        var cell = Element.shape("rect", w: 400, h: 200)
+        cell.x = 0; cell.y = 0
+        cell.table = TableCell(id: "tbl_1", row: 0, col: 0, pad: 30)
+        let payload = PageClipboard.Payload(page: Page(elements: [cell]), width: 1080, height: 1080)
+        let landed = PageClipboard.fitted(payload, width: 540, height: 540).elements
+        XCTAssertEqual(landed[0].w, 200, accuracy: 0.001)
+        XCTAssertEqual(landed[0].table?.pad ?? 0, 15, accuracy: 0.001)
+        XCTAssertEqual(PageClipboard.fitted(payload, width: 1080, height: 1080).elements[0].table?.pad, 30)
+    }
+
     func testAnEmptyPasteboardHasNoPage() {
         let board = UIPasteboard.withUniqueName()
         XCTAssertFalse(PageClipboard.hasPage(in: board))

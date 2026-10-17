@@ -1552,7 +1552,13 @@ final class DesignStore {
                     return
                 }
                 self.selection = [id]
-                self.updateSelected { $0.src = src }
+                // The inpainted copy is no longer the Cut out its mask's base
+                // was the original of, so the base goes with the old picture;
+                // the strokes, painted over the same picture, stay.
+                self.updateSelected {
+                    $0.src = src
+                    $0.mask = ImageMask.withoutBase($0.mask)
+                }
                 self.buzz(.confirm)
                 self.announce(tr("Erased — Undo brings it back"))
             }
@@ -2919,6 +2925,7 @@ final class DesignStore {
             if let r = el.radius { e.radius = r * s }
             if let c = el.corners { e.corners = c.map { $0 * s } }
             if let sw = el.strokeWidth { e.strokeWidth = sw * s }
+            e.table = TableCell.scaledPad(el.table, by: s)
             if el.type == .text, rx > s {
                 e.w = min(el.w * rx, new.width)
                 e.h = FontLibrary.layoutHeight(for: e)

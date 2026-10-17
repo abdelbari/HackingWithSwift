@@ -17,34 +17,57 @@ enum ImageMasking {
         return c
     }()
 
-    /// The picture `el`'s look is drawn from, and the mask laid over it: the
-    /// picture before a Cut out (the mask's base) while the mask has strokes
-    /// and the base can be read, `picture` otherwise; the mask nil when it
-    /// has no stroke. `key` names `picture`, so its masks are kept apart.
-    static func drawn(_ el: Element, picture: UIImage, key: String) -> (picture: UIImage, alpha: CGImage?) {
+    /// What a photo shows once its mask is laid over it: `picture` — the
+    /// picture itself, its own edge kept at full size, as the Android twin
+    /// draws it — under `alpha`, the mask's grid from all kept (nil without
+    /// a stroke); and, where Restore painted, the picture before a Cut out
+    /// (the mask's base) laid over it, under `restored.cover`, the grid of
+    /// where Restore reached — only while the mask has a Restore stroke and
+    /// the base can be read.
+    struct Shown {
+        var picture: UIImage
+        var alpha: CGImage?
+        var restored: (picture: UIImage, cover: CGImage)?
+    }
+
+    /// `el` shown through its mask. `key` names `picture`, so its masks are
+    /// kept apart.
+    static func drawn(_ el: Element, picture: UIImage, key: String) -> Shown {
         masking(el.mask, picture: picture, key: key)
     }
 
     /// The same for `mask`.
-    static func masking(_ mask: ImageMask?, picture: UIImage, key: String) -> (picture: UIImage, alpha: CGImage?) {
-        guard let mask, !mask.strokes.isEmpty else { return (picture, nil) }
+    static func masking(_ mask: ImageMask?, picture: UIImage, key: String) -> Shown {
+        guard let mask, !mask.strokes.isEmpty else { return Shown(picture: picture, alpha: nil, restored: nil) }
         let pixels = CGSize(width: picture.size.width * picture.scale, height: picture.size.height * picture.scale)
-        if let base = mask.base, let original = PhotoLibrary.resolve(base) {
-            return (original, alphaImage(mask, picture: pixels, start: picture.cgImage, key: key))
+        var shown = Shown(picture: picture, alpha: alphaImage(mask, picture: pixels, key: key), restored: nil)
+        if mask.strokes.contains(where: \.restores), let base = mask.base,
+           let original = PhotoLibrary.resolve(base), let cover = restoreImage(mask, picture: pixels, key: key) {
+            shown.restored = (original, cover)
         }
-        return (picture, alphaImage(mask, picture: pixels, start: nil, key: key))
+        return shown
     }
 
     /// `mask`'s strokes painted (MaskRaster.raster) into the grid for a
     /// picture `picture` pixels in size, as a grey picture — white kept,
-    /// black clear, top row first — from all kept, or from `start`'s own
-    /// alpha: the cut-out, when Restore paints back the picture before it.
-    static func alphaImage(_ mask: ImageMask, picture: CGSize, start: CGImage?, key: String) -> CGImage? {
+    /// black clear, top row first — from all kept: laid over the picture's
+    /// own alpha, so a cut-out's edge is its own where no stroke went.
+    static func alphaImage(_ mask: ImageMask, picture: CGSize, key: String) -> CGImage? {
+        greyImage(mask, picture: picture, start: 1, key: key, tag: "")
+    }
+
+    /// Where `mask`'s Restore strokes reached, net of the Erase strokes
+    /// after them, as a grey picture — white where the picture before the
+    /// cut is painted back, black where the cut-out shows as it is.
+    static func restoreImage(_ mask: ImageMask, picture: CGSize, key: String) -> CGImage? {
+        greyImage(mask, picture: picture, start: 0, key: key, tag: "restore")
+    }
+
+    private static func greyImage(_ mask: ImageMask, picture: CGSize, start: Float, key: String, tag: String) -> CGImage? {
         let grid = MaskRaster.gridSize(width: Double(picture.width), height: Double(picture.height))
-        let id = "\(key)|\(mask.hashValue)|\(grid.width)x\(grid.height)|\(start == nil ? "" : "cut")" as NSString
+        let id = "\(key)|\(mask.hashValue)|\(grid.width)x\(grid.height)|\(tag)" as NSString
         if let kept = made.object(forKey: id) { return kept }
-        let initial = start.flatMap { alpha(of: $0, width: grid.width, height: grid.height) }
-        let painted = MaskRaster.raster(mask.strokes, width: grid.width, height: grid.height, initial: initial)
+        let painted = MaskRaster.raster(mask.strokes, width: grid.width, height: grid.height, start: start, initial: nil)
         guard let image = grey(painted, width: grid.width, height: grid.height) else { return nil }
         made.setObject(image, forKey: id)
         return image
@@ -59,24 +82,6 @@ enum ImageMasking {
                        space: CGColorSpaceCreateDeviceGray(),
                        bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue),
                        provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent)
-    }
-
-    /// `image`'s alpha, drawn `width` × `height`, top row first, 0…1.
-    static func alpha(of image: CGImage, width: Int, height: Int) -> [Float]? {
-        guard width > 0, height > 0,
-              let ctx = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
-                                  space: CGColorSpaceCreateDeviceRGB(),
-                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
-        ctx.interpolationQuality = .medium
-        ctx.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-        guard let base = ctx.data else { return nil }
-        let bytes = base.assumingMemoryBound(to: UInt8.self)
-        let row = ctx.bytesPerRow
-        var out = [Float](repeating: 1, count: width * height)
-        for y in 0..<height {
-            for x in 0..<width { out[y * width + x] = Float(bytes[y * row + x * 4 + 3]) / 255 }
-        }
-        return out
     }
 
     /// A grey picture as a mask over `extent`: stretched to it, its values

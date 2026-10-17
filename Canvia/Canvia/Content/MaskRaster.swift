@@ -155,6 +155,17 @@ struct ImageMask: Codable, Equatable, Hashable {
     static func kept(_ mask: ImageMask?) -> ImageMask? {
         mask.flatMap { $0.isEmpty ? nil : $0 }
     }
+
+    /// `mask` with its base forgotten, its strokes kept: for a picture that
+    /// is no longer the Cut out the base was the original of — the object
+    /// eraser's inpainted copy — so Restore paints the picture itself back
+    /// and the original is no longer drawn in its place. nil once nothing
+    /// is left. The Android twin's PhotoMask.withoutBase.
+    static func withoutBase(_ mask: ImageMask?) -> ImageMask? {
+        guard var out = mask else { return nil }
+        out.base = nil
+        return kept(out)
+    }
 }
 
 /// One stroke of a retouch layer: `w` and `pts` as a mask stroke's, read

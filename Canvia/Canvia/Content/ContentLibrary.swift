@@ -150,7 +150,8 @@ struct Template: Codable, Identifiable {
     /// line's or a drawing's thickness too, never under 1. Rounding scales
     /// with the box it rounds, so a card is as round on either phone and
     /// both write the same radius. A stroke's width and per-corner radii
-    /// are left as they are on both.
+    /// are left as they are on both. A table cell's spacing scales with
+    /// its box (TableCell.scaledPad), so its next relayout holds its rows.
     static func fitted(_ item: Element, scale: Double, dx: Double, dy: Double) -> Element {
         var el = item
         el.x = el.x * scale + dx
@@ -161,6 +162,7 @@ struct Template: Codable, Identifiable {
         if let ls = el.letterSpacing { el.letterSpacing = ls * scale }
         if let t = el.thickness { el.thickness = max(1, t * scale) }
         if let r = el.radius { el.radius = r * scale }
+        el.table = TableCell.scaledPad(el.table, by: scale)
         return el
     }
 }
