@@ -488,12 +488,33 @@ struct PageThumbnail: View {
     /// Its place in line when several wait to be drawn: 0 on screen, more
     /// further off.
     var priority = 0
+    /// What shows until the thumbnail is made: the page drawn live, where
+    /// the column shows a page near the view as a picture — the page itself
+    /// meanwhile, as the Android twin draws it — or white when nil.
+    var fallback: AnyView?
     @State private var image: UIImage?
+
+    init(design: Design, page: Page, pixelWidth: Int = 140, priority: Int = 0, fallback: AnyView? = nil) {
+        self.design = design
+        self.page = page
+        self.pixelWidth = pixelWidth
+        self.priority = priority
+        self.fallback = fallback
+        // A thumbnail kept for the page as it stands shows from the first
+        // frame: never white, nor the page drawn live, for a frame first.
+        let key = ThumbnailCache.key(page: page, design: design, baked: bakedVersion,
+                                     subjects: subjectsVersion, pixelWidth: pixelWidth)
+        var kept: UIImage?
+        MainActor.assumeIsolated { kept = ThumbnailCache.shared.cached(key) }
+        _image = State(initialValue: kept)
+    }
 
     var body: some View {
         Group {
             if let image {
                 Image(uiImage: image).resizable().scaledToFit()
+            } else if let fallback {
+                fallback
             } else {
                 Color.white
             }

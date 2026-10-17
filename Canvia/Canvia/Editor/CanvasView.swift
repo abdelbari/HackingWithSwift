@@ -2747,7 +2747,8 @@ struct CanvasView: View {
     /// page further still, with nothing on it to touch — a tap there is the canvas's (backgroundTap).
     /// Near the view but small on screen, or among many in view, it is a
     /// picture too (PageColumn.drawMode), until a tap makes it the page
-    /// worked.
+    /// worked — drawn live until there is a picture of it, as the Android
+    /// twin draws it meanwhile, never white for a frame.
     private func otherPage(_ index: Int, slot: PageColumn.Slot) -> some View {
         let page = store.design.pages[index]
         let r = slot.rect
@@ -2756,24 +2757,14 @@ struct CanvasView: View {
         let pixels = PageColumn.pictureWidth(screenPixels: Double(r.width) / point * Double(displayScale))
         return Group {
             if livePages.contains(index) && !picturePages.contains(index) {
-                PageRenderView(design: store.design, page: page)
-                    // Its bleed too, and its trim dashed, as round the page
-                    // being worked — only that page names it.
-                    .background {
-                        if bleed > 0 { BleedBand(design: store.design, page: page, bleed: bleed, unit: point / slot.scale) }
-                    }
-                    .overlay {
-                        if bleed > 0 { TrimLine(size: store.design.size(for: page), unit: point / slot.scale) }
-                    }
-                    .environment(\.onScreen, true)
-                    .scaleEffect(slot.scale, anchor: .topLeading)
-                    .frame(width: r.width, height: r.height, alignment: .topLeading)
+                livePage(page, slot: slot)
             } else if thumbPages.contains(index) {
                 // Those in view are drawn first (ThumbnailCache), each made
                 // again in its turn there when its page changes, the last
                 // one shown meanwhile.
                 PageThumbnail(design: store.design, page: page, pixelWidth: pixels,
-                              priority: pagesInView.contains(index) ? 0 : 1)
+                              priority: pagesInView.contains(index) ? 0 : 1,
+                              fallback: livePages.contains(index) ? AnyView(livePage(page, slot: slot)) : nil)
                     .frame(width: r.width, height: r.height)
             } else {
                 Color.white
@@ -2784,6 +2775,24 @@ struct CanvasView: View {
         .overlay(Rectangle().stroke(Theme.hairline, lineWidth: 1 * point))
         .allowsHitTesting(false)
         .offset(x: r.minX, y: r.minY)
+    }
+
+    /// Another page drawn live, scaled into its place in the column.
+    private func livePage(_ page: Page, slot: PageColumn.Slot) -> some View {
+        let r = slot.rect
+        let point = columnPoint
+        return PageRenderView(design: store.design, page: page)
+            // Its bleed too, and its trim dashed, as round the page
+            // being worked — only that page names it.
+            .background {
+                if bleed > 0 { BleedBand(design: store.design, page: page, bleed: bleed, unit: point / slot.scale) }
+            }
+            .overlay {
+                if bleed > 0 { TrimLine(size: store.design.size(for: page), unit: point / slot.scale) }
+            }
+            .environment(\.onScreen, true)
+            .scaleEffect(slot.scale, anchor: .topLeading)
+            .frame(width: r.width, height: r.height, alignment: .topLeading)
     }
 
     private func pageHeader(_ index: Int, slot: PageColumn.Slot) -> some View {
