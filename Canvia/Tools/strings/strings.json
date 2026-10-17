@@ -458,6 +458,15 @@
     "ja": "%@ インク、その他の色",
     "pt-BR": "Tinta %@, mais cores"
   },
+  "%@ letter frame": {
+    "ar": "إطار الحرف %@",
+    "de": "Buchstabenrahmen %@",
+    "es": "Marco con la letra %@",
+    "fr": "Cadre lettre %@",
+    "it": "Cornice lettera %@",
+    "ja": "文字 %@ のフレーム",
+    "pt-BR": "Moldura da letra %@"
+  },
   "%@ lightning": {
     "ar": "برق (%@)",
     "de": "Blitz (%@)",
@@ -4481,6 +4490,15 @@
     "ja": "調整",
     "pt-BR": "Ajustar"
   },
+  "Adjust photo": {
+    "ar": "ضبط الصورة",
+    "de": "Foto anpassen",
+    "es": "Ajustar foto",
+    "fr": "Ajuster la photo",
+    "it": "Regola foto",
+    "ja": "写真を調整",
+    "pt-BR": "Ajustar foto"
+  },
   "Adjust the corners": {
     "ar": "ضبط الزوايا",
     "de": "Ecken anpassen",
@@ -7010,6 +7028,15 @@
     "ja": "コントラスト",
     "pt-BR": "Contraste"
   },
+  "Contrast can't be measured for photo-filled text": {
+    "ar": "لا يمكن قياس التباين للنص المملوء بصورة",
+    "de": "Der Kontrast lässt sich bei mit einem Foto gefülltem Text nicht messen",
+    "es": "El contraste no se puede medir en texto relleno con una foto",
+    "fr": "Le contraste ne peut pas être mesuré pour un texte rempli d’une photo",
+    "it": "Il contrasto non può essere misurato per il testo riempito con una foto",
+    "ja": "写真で埋めたテキストはコントラストを測定できません",
+    "pt-BR": "O contraste não pode ser medido em texto preenchido com foto"
+  },
   "Contrast · %d hard-to-read text|Contrast · %d hard-to-read texts": {
     "ar": {
       "few": "التباين · %d نصوص صعبة القراءة",
@@ -9170,6 +9197,15 @@
     "ja": "消したい部分をドラッグしてから「消去」をタップします",
     "pt-BR": "Arraste sobre o que deve sair e toque em Apagar"
   },
+  "Drag the photo to move it, pinch to zoom it.": {
+    "ar": "اسحب الصورة لتحريكها، وقرّب بإصبعين لتكبيرها.",
+    "de": "Ziehe das Foto, um es zu verschieben, und ziehe es mit zwei Fingern zum Zoomen.",
+    "es": "Arrastra la foto para moverla y pellizca para hacer zoom.",
+    "fr": "Faites glisser la photo pour la déplacer, pincez pour zoomer.",
+    "it": "Trascina la foto per spostarla, pizzica per ingrandirla.",
+    "ja": "写真をドラッグして移動、ピンチでズームします。",
+    "pt-BR": "Arraste a foto para movê-la e belisque para dar zoom."
+  },
   "Drag the picture to move it, pinch to zoom it, and pull the frame's corners and edges to trim it": {
     "ar": "اسحب الصورة لتحريكها، وقرّب أو بعّد بإصبعين لتكبيرها، واسحب زوايا الإطار وحوافه لقصّها",
     "de": "Ziehe das Bild, um es zu verschieben, zoome mit zwei Fingern und ziehe an den Ecken und Kanten des Rahmens, um es zu beschneiden",
@@ -9637,6 +9673,15 @@
     "it": "Modifica parole",
     "ja": "文字を編集",
     "pt-BR": "Editar palavras"
+  },
+  "Editable (closest match)": {
+    "ar": "قابل للتحرير (أقرب مطابقة)",
+    "de": "Bearbeitbar (nächstbeste Entsprechung)",
+    "es": "Editable (lo más parecido)",
+    "fr": "Modifiable (au plus proche)",
+    "it": "Modificabile (il più simile)",
+    "ja": "編集可能（最も近い形）",
+    "pt-BR": "Editável (o mais próximo)"
   },
   "Editing": {
     "ar": "التعديل",
@@ -10253,6 +10298,15 @@
     "ja": "正確（選択範囲）",
     "pt-BR": "Exato (a seleção)"
   },
+  "Exact look": {
+    "ar": "المظهر الدقيق",
+    "de": "Exaktes Aussehen",
+    "es": "Aspecto exacto",
+    "fr": "Aspect exact",
+    "it": "Aspetto esatto",
+    "ja": "見た目そのまま",
+    "pt-BR": "Aparência exata"
+  },
   "Exclusion": {
     "ar": "الاستبعاد",
     "de": "Ausschluss",
@@ -10495,6 +10549,24 @@
     "it": "Riempi la cornice",
     "ja": "フレームを埋める",
     "pt-BR": "Preencher a moldura"
+  },
+  "Fill the letters": {
+    "ar": "املأ الحروف",
+    "de": "Buchstaben füllen",
+    "es": "Rellenar las letras",
+    "fr": "Remplir les lettres",
+    "it": "Riempi le lettere",
+    "ja": "文字を写真で埋める",
+    "pt-BR": "Preencher as letras"
+  },
+  "Fill the letters?": {
+    "ar": "هل تريد ملء الحروف؟",
+    "de": "Buchstaben füllen?",
+    "es": "¿Rellenar las letras?",
+    "fr": "Remplir les lettres ?",
+    "it": "Riempire le lettere?",
+    "ja": "文字を写真で埋めますか？",
+    "pt-BR": "Preencher as letras?"
   },
   "Fill the sheet with": {
     "ar": "ملء الورقة بـ",
@@ -12428,6 +12500,15 @@
     "ja": "斜体",
     "pt-BR": "Itálico"
   },
+  "Italic: %@": {
+    "ar": "مائل: %@",
+    "de": "Kursiv: %@",
+    "es": "Cursiva: %@",
+    "fr": "Italique : %@",
+    "it": "Corsivo: %@",
+    "ja": "斜体: %@",
+    "pt-BR": "Itálico: %@"
+  },
   "Its %d design can stay, out of any folder, or go to Recently deleted.|Its %d designs can stay, out of any folder, or go to Recently deleted.": {
     "ar": {
       "few": "يمكن أن تبقى تصاميمه (%d) خارج أي مجلد، أو تُنقل إلى «المحذوفة مؤخرًا».",
@@ -12586,6 +12667,15 @@
     "it": "Mantieni i design",
     "ja": "デザインを残す",
     "pt-BR": "Manter os designs"
+  },
+  "Keep the photo": {
+    "ar": "الاحتفاظ بالصورة",
+    "de": "Foto behalten",
+    "es": "Conservar la foto",
+    "fr": "Garder la photo",
+    "it": "Tieni la foto",
+    "ja": "写真をそのままにする",
+    "pt-BR": "Manter a foto"
   },
   "Keep the subject sharp": {
     "ar": "إبقاء العنصر الرئيسي واضحًا",
@@ -12838,6 +12928,15 @@
     "it": "Lettere",
     "ja": "文字",
     "pt-BR": "Letras"
+  },
+  "Letters & numbers": {
+    "ar": "حروف وأرقام",
+    "de": "Buchstaben und Zahlen",
+    "es": "Letras y números",
+    "fr": "Lettres et chiffres",
+    "it": "Lettere e numeri",
+    "ja": "文字と数字",
+    "pt-BR": "Letras e números"
   },
   "Level %d": {
     "ar": "المستوى %d",
@@ -17159,6 +17258,15 @@
     "ja": "ポップ",
     "pt-BR": "Pop"
   },
+  "Popular": {
+    "ar": "شائعة",
+    "de": "Beliebt",
+    "es": "Populares",
+    "fr": "Populaires",
+    "it": "Popolari",
+    "ja": "人気",
+    "pt-BR": "Populares"
+  },
   "Portuguese (Brazil)": {
     "ar": "البرتغالية (البرازيل)",
     "de": "Portugiesisch (Brasilien)",
@@ -17929,6 +18037,15 @@
     "it": "Rimuovi guida",
     "ja": "ガイドを削除",
     "pt-BR": "Remover guia"
+  },
+  "Remove photo": {
+    "ar": "إزالة الصورة",
+    "de": "Foto entfernen",
+    "es": "Quitar foto",
+    "fr": "Retirer la photo",
+    "it": "Rimuovi foto",
+    "ja": "写真を削除",
+    "pt-BR": "Remover foto"
   },
   "Removed the track": {
     "ar": "تمت إزالة المسار",
@@ -21302,6 +21419,15 @@
     "ja": "「スタイル」の色には、デザイン自体の色、それに合う色、最近使った色、ブランドキットが含まれます。⋮ にある「テーマ」と「色をシャッフル」で、デザイン全体の色を変更できます。",
     "pt-BR": "As cores de Estilo incluem as do próprio design, cores que combinam com elas, as suas recentes e o kit de marca. Tema e Embaralhar cores, em ⋮, mudam as cores do design inteiro."
   },
+  "Styled text:": {
+    "ar": "النص المنسّق:",
+    "de": "Gestalteter Text:",
+    "es": "Texto con estilo:",
+    "fr": "Texte stylisé :",
+    "it": "Testo con stile:",
+    "ja": "装飾テキスト:",
+    "pt-BR": "Texto estilizado:"
+  },
   "Styles": {
     "ar": "الأنماط",
     "de": "Stile",
@@ -22142,6 +22268,15 @@
     "ja": "下部のページ数には、すべてのページがノートとタイミング付きで表示されます。⋮ にある「ページを整理」で移動、コピー、削除ができます。ページをデザインのマスターにすると、他のページの背面に描画されます。",
     "pt-BR": "O contador de páginas embaixo mostra todas as páginas, com as anotações e o tempo delas. Organizar páginas, em ⋮, move, copia e exclui páginas; uma página pode ser a mestre do design, desenhada atrás das demais."
   },
+  "The photo goes inside the letters of the selected text, or stays on the page as it is.": {
+    "ar": "تدخل الصورة في حروف النص المحدد، أو تبقى على الصفحة كما هي.",
+    "de": "Das Foto kommt in die Buchstaben des ausgewählten Textes oder bleibt so auf der Seite.",
+    "es": "La foto va dentro de las letras del texto seleccionado, o se queda en la página tal como está.",
+    "fr": "La photo va à l’intérieur des lettres du texte sélectionné, ou reste sur la page telle quelle.",
+    "it": "La foto va dentro le lettere del testo selezionato, oppure resta sulla pagina com’è.",
+    "ja": "写真を選択中のテキストの文字の中に入れるか、そのままページに置きます。",
+    "pt-BR": "A foto vai para dentro das letras do texto selecionado ou fica na página como está."
+  },
   "The photo is no longer on this page": {
     "ar": "لم تعد الصورة في هذه الصفحة",
     "de": "Das Foto ist nicht mehr auf dieser Seite",
@@ -22655,6 +22790,15 @@
     "ja": "このスマートフォンのスペルチェッカーがオフです。設定の「システム」>「言語」>「スペルチェッカー」（キーボードで使用しているもの）でオンにしてから、もう一度チェックしてください。",
     "pt-BR": "O corretor ortográfico deste celular está desativado. Ative-o em Configurações, em Sistema, Idiomas, Corretor ortográfico — o que o seu teclado usa — e verifique de novo."
   },
+  "This photo can't be opened, so it can't be adjusted.": {
+    "ar": "تعذّر فتح هذه الصورة، لذا لا يمكن ضبطها.",
+    "de": "Dieses Foto lässt sich nicht öffnen und daher nicht anpassen.",
+    "es": "Esta foto no se puede abrir, así que no se puede ajustar.",
+    "fr": "Cette photo ne peut pas être ouverte, donc elle ne peut pas être ajustée.",
+    "it": "Questa foto non può essere aperta, quindi non può essere regolata.",
+    "ja": "この写真は開けないため、調整できません。",
+    "pt-BR": "Esta foto não pode ser aberta, então não pode ser ajustada."
+  },
   "This photo can't be opened, so it can't be cropped.": {
     "ar": "يتعذّر فتح هذه الصورة، لذا لا يمكن اقتصاصها.",
     "de": "Dieses Foto kann nicht geöffnet und daher nicht zugeschnitten werden.",
@@ -23149,6 +23293,15 @@
     "it": "Riprova",
     "ja": "もう一度試す",
     "pt-BR": "Tentar de novo"
+  },
+  "Try:": {
+    "ar": "جرّب:",
+    "de": "Versuchen Sie:",
+    "es": "Prueba:",
+    "fr": "Essayez :",
+    "it": "Prova:",
+    "ja": "試す:",
+    "pt-BR": "Experimente:"
   },
   "Turn": {
     "ar": "تدوير",
@@ -24080,6 +24233,15 @@
     "ja": "音量",
     "pt-BR": "Volume"
   },
+  "WOFF2 fonts aren't supported yet. Convert it to .ttf or .otf first.": {
+    "ar": "خطوط WOFF2 غير مدعومة بعد. حوّله أولًا إلى ‎.ttf أو ‎.otf.",
+    "de": "WOFF2-Schriften werden noch nicht unterstützt. Wandle sie zuerst in .ttf oder .otf um.",
+    "es": "Las fuentes WOFF2 aún no son compatibles. Conviértela primero a .ttf u .otf.",
+    "fr": "Les polices WOFF2 ne sont pas encore prises en charge. Convertissez-la d’abord en .ttf ou .otf.",
+    "it": "I font WOFF2 non sono ancora supportati. Convertilo prima in .ttf o .otf.",
+    "ja": "WOFF2 フォントにはまだ対応していません。先に .ttf または .otf に変換してください。",
+    "pt-BR": "Fontes WOFF2 ainda não são compatíveis. Converta-a primeiro para .ttf ou .otf."
+  },
   "Warm": {
     "ar": "دافئ",
     "de": "Warm",
@@ -24743,6 +24905,15 @@
     "ja": "青",
     "pt-BR": "azul"
   },
+  "bold": {
+    "ar": "غامق",
+    "de": "fett",
+    "es": "negrita",
+    "fr": "gras",
+    "it": "grassetto",
+    "ja": "太字",
+    "pt-BR": "negrito"
+  },
   "brown": {
     "ar": "بني",
     "de": "braun",
@@ -24806,6 +24977,15 @@
     "ja": "色",
     "pt-BR": "cor"
   },
+  "condensed": {
+    "ar": "مضغوط",
+    "de": "schmal",
+    "es": "condensado",
+    "fr": "condensé",
+    "it": "condensato",
+    "ja": "コンデンス",
+    "pt-BR": "condensado"
+  },
   "could not encode the image": {
     "ar": "تعذّر ترميز الصورة",
     "de": "das Bild konnte nicht codiert werden",
@@ -24841,6 +25021,15 @@
     "it": "attuale",
     "ja": "現在",
     "pt-BR": "atual"
+  },
+  "cursive": {
+    "ar": "مخطوطة",
+    "de": "Schreibschrift",
+    "es": "cursiva",
+    "fr": "cursive",
+    "it": "corsivo",
+    "ja": "筆記体",
+    "pt-BR": "cursiva"
   },
   "custom shape": {
     "ar": "شكل مخصّص",
@@ -24977,6 +25166,15 @@
     "ja": "編集可能なスライド",
     "pt-BR": "slides editáveis"
   },
+  "elegant": {
+    "ar": "أنيق",
+    "de": "elegant",
+    "es": "elegante",
+    "fr": "élégant",
+    "it": "elegante",
+    "ja": "エレガント",
+    "pt-BR": "elegante"
+  },
   "elongated blob": {
     "ar": "فقاعة مستطيلة",
     "de": "Länglicher Klecks",
@@ -25031,6 +25229,15 @@
     "ja": "4 点のきらめき",
     "pt-BR": "faísca de quatro pontas"
   },
+  "geometric": {
+    "ar": "هندسي",
+    "de": "geometrisch",
+    "es": "geométrico",
+    "fr": "géométrique",
+    "it": "geometrico",
+    "ja": "幾何学的",
+    "pt-BR": "geométrico"
+  },
   "gradient from %@": {
     "ar": "تدرّج من %@",
     "de": "Verlauf aus %@",
@@ -25066,6 +25273,15 @@
     "it": "grigio",
     "ja": "グレー",
     "pt-BR": "cinza"
+  },
+  "handwritten": {
+    "ar": "مكتوب بخط اليد",
+    "de": "handschriftlich",
+    "es": "manuscrito",
+    "fr": "manuscrit",
+    "it": "scritto a mano",
+    "ja": "手書き",
+    "pt-BR": "manuscrito"
   },
   "heart": {
     "ar": "قلب",
@@ -25111,6 +25327,15 @@
     "it": "appena creato",
     "ja": "作成したばかり",
     "pt-BR": "recém-criado"
+  },
+  "kids": {
+    "ar": "أطفال",
+    "de": "Kinder",
+    "es": "niños",
+    "fr": "enfants",
+    "it": "bambini",
+    "ja": "キッズ",
+    "pt-BR": "infantil"
   },
   "light blue": {
     "ar": "أزرق فاتح",
@@ -25238,6 +25463,15 @@
     "ja": "ループ",
     "pt-BR": "em repetição"
   },
+  "minimal": {
+    "ar": "بسيط",
+    "de": "minimalistisch",
+    "es": "minimalista",
+    "fr": "minimaliste",
+    "it": "minimal",
+    "ja": "ミニマル",
+    "pt-BR": "minimalista"
+  },
   "mixed": {
     "ar": "مختلط",
     "de": "gemischt",
@@ -25247,6 +25481,15 @@
     "ja": "混在",
     "pt-BR": "misto"
   },
+  "modern": {
+    "ar": "عصري",
+    "de": "modern",
+    "es": "moderno",
+    "fr": "moderne",
+    "it": "moderno",
+    "ja": "モダン",
+    "pt-BR": "moderno"
+  },
   "moon": {
     "ar": "قمر",
     "de": "Mond",
@@ -25255,6 +25498,15 @@
     "it": "luna",
     "ja": "月",
     "pt-BR": "lua"
+  },
+  "newspaper": {
+    "ar": "صحيفة",
+    "de": "Zeitung",
+    "es": "periódico",
+    "fr": "journal",
+    "it": "giornale",
+    "ja": "新聞",
+    "pt-BR": "jornal"
   },
   "no fill": {
     "ar": "بلا تعبئة",
@@ -25409,6 +25661,15 @@
     "ja": "プレート",
     "pt-BR": "placa"
   },
+  "playful": {
+    "ar": "مرح",
+    "de": "verspielt",
+    "es": "divertido",
+    "fr": "ludique",
+    "it": "giocoso",
+    "ja": "遊び心",
+    "pt-BR": "divertido"
+  },
   "position locked": {
     "ar": "الموضع مقفل",
     "de": "Position gesperrt",
@@ -25462,6 +25723,15 @@
     "it": "rosso",
     "ja": "赤",
     "pt-BR": "vermelho"
+  },
+  "retro": {
+    "ar": "عتيق",
+    "de": "retro",
+    "es": "retro",
+    "fr": "rétro",
+    "it": "retrò",
+    "ja": "レトロ",
+    "pt-BR": "retrô"
   },
   "ribbon": {
     "ar": "شريط",
@@ -25522,6 +25792,15 @@
     "it": "fumetto rotondo",
     "ja": "丸い吹き出し",
     "pt-BR": "balão redondo"
+  },
+  "rounded": {
+    "ar": "مستدير",
+    "de": "rund",
+    "es": "redondeado",
+    "fr": "arrondi",
+    "it": "arrotondato",
+    "ja": "丸みのある",
+    "pt-BR": "arredondado"
   },
   "scalloped circle": {
     "ar": "دائرة مموّجة",
@@ -25685,6 +25964,15 @@
     "ja": "青緑",
     "pt-BR": "verde-azulado"
   },
+  "tech": {
+    "ar": "تقني",
+    "de": "technisch",
+    "es": "tecnológico",
+    "fr": "tech",
+    "it": "tecnologico",
+    "ja": "テック",
+    "pt-BR": "tecnológico"
+  },
   "the file is too large": {
     "ar": "الملف كبير جدًا",
     "de": "die Datei ist zu groß",
@@ -25837,6 +26125,15 @@
     "it": "vettoriale",
     "ja": "ベクター",
     "pt-BR": "vetorial"
+  },
+  "wedding": {
+    "ar": "زفاف",
+    "de": "Hochzeit",
+    "es": "boda",
+    "fr": "mariage",
+    "it": "matrimonio",
+    "ja": "ウェディング",
+    "pt-BR": "casamento"
   },
   "white": {
     "ar": "أبيض",
