@@ -28,7 +28,10 @@ import CoreText
 /// `postScript` is each face's PostScript name, which is how it is asked for
 /// here. A system family has none. `weights` are the upright weights it has,
 /// lightest first — a bundled family's files, a system family's the cuts
-/// both phones' own faces have — the same list on both phones.
+/// both phones' own faces have — the same list on both phones. `tags` are
+/// the style words a search finds it by ("elegant", "handwritten"; see
+/// FontLibrary.tags), and `popular` its rank in the picker's Popular
+/// section, on the eight families that have one.
 struct FontDef: Decodable, Identifiable, Equatable {
     var id: String
     var name: String
@@ -38,8 +41,12 @@ struct FontDef: Decodable, Identifiable, Equatable {
     var files: [String: String] = [:]
     var postScript: [String: String] = [:]
     var weights: [Int] = []
+    var tags: [String] = []
+    var popular: Int?
 
-    private enum CodingKeys: String, CodingKey { case id, name, category, system, licence, files, postScript, weights }
+    private enum CodingKeys: String, CodingKey {
+        case id, name, category, system, licence, files, postScript, weights, tags, popular
+    }
 
     init(id: String, name: String, category: String, system: Bool = false) {
         self.id = id
@@ -58,6 +65,8 @@ struct FontDef: Decodable, Identifiable, Equatable {
         files = (try? c.decodeIfPresent([String: String].self, forKey: .files)) ?? [:]
         postScript = (try? c.decodeIfPresent([String: String].self, forKey: .postScript)) ?? [:]
         weights = (try? c.decodeIfPresent([Int].self, forKey: .weights)) ?? []
+        tags = (try? c.decodeIfPresent([String].self, forKey: .tags)) ?? []
+        popular = try? c.decodeIfPresent(Int.self, forKey: .popular)
     }
 }
 
@@ -76,6 +85,25 @@ enum FontLibrary {
 
     /// How many fonts Recently used keeps, newest first.
     static let recentLimit = 8
+
+    /// How many fonts Popular shows: the top eight by rank.
+    static let popularLimit = 8
+
+    /// The style words a family may be tagged with (the Android twin's
+    /// tools/generate_fonts.py TAGS), in English; each is said in the app's
+    /// language (tagName), and a search in it finds the tag too.
+    static let tags: [String] = [
+        "elegant", "wedding", "modern", "geometric", "rounded", "retro", "condensed", "handwritten",
+        "cursive", "playful", "newspaper", "tech", "bold", "minimal", "kids",
+    ]
+
+    /// The tags the picker offers to try when a search finds nothing, in
+    /// this order: "Try: elegant, retro, handwritten, rounded".
+    static let suggestedTags: [String] = ["elegant", "retro", "handwritten", "rounded"]
+
+    /// `tag` in the app's language, as a chip says it and a search in that
+    /// language matches it.
+    static func tagName(_ tag: String) -> String { tr(tag) }
 
     /// What the Weight row calls each weight it offers, Light to Black: a
     /// weight's "Light" and "Black", not the theme's or the colour's.
@@ -212,16 +240,35 @@ enum FontLibrary {
     }
 
     /// Whether a font called `name` is found by `query`: the name has it,
-    /// case and accents aside. A blank query finds everything.
+    /// case and accents aside. A blank query finds everything. A font of
+    /// your own is matched by its name alone.
     static func matches(_ name: String, _ query: String) -> Bool {
         let needle = folded(query)
         return needle.isEmpty || folded(name).contains(needle)
     }
 
+    /// Whether `font` is found by `query`: its name, its category or any of
+    /// its tags has it, case and accents aside — a tag or category by its
+    /// English or by its word in the app's language (`translate`, tr, as
+    /// tagName says it), so "cursive" finds Dancing Script, Pacifico,
+    /// Sacramento and Satisfy, and "mono" the Mono category. Both phones'
+    /// rule.
+    static func matches(_ font: FontDef, _ query: String, translate: (String) -> String = { tr($0) }) -> Bool {
+        if matches(font.name, query) { return true }
+        let words = [font.category, translate(font.category)] + font.tags.flatMap { [$0, translate($0)] }
+        return words.contains { matches($0, query) }
+    }
+
     /// The families the picker lists for `query` in `category`
     /// (allCategories for every one), in catalogue order.
     static func search(_ query: String, category: String = allCategories) -> [FontDef] {
-        all.filter { (category == allCategories || $0.category == category) && matches($0.name, query) }
+        all.filter { (category == allCategories || $0.category == category) && matches($0, query) }
+    }
+
+    /// The picker's Popular section: the families ranked, by rank, the top
+    /// `popularLimit`.
+    static var popular: [FontDef] {
+        Array(all.filter { $0.popular != nil }.sorted { ($0.popular ?? 0) < ($1.popular ?? 0) }.prefix(popularLimit))
     }
 
     /// Recently used after `key` is chosen: it first, once, then the rest as

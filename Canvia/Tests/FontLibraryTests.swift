@@ -40,7 +40,7 @@ final class FontLibraryTests: XCTestCase {
         // The Android twin's FontLibraryTest checks the same digest of its copy.
         let url = try XCTUnwrap(Bundle.main.url(forResource: "Fonts", withExtension: "json"))
         let digest = SHA256.hash(data: try Data(contentsOf: url)).map { String(format: "%02x", $0) }.joined()
-        XCTAssertEqual(digest, "5c4dcec41f2e9f8ccaaa9e8de361255c1c271123bf963fbb4575d356e1be4cde")
+        XCTAssertEqual(digest, "9327f6f54d72f2c1d15e4dc55098dc11f3d2b7464d5c3c101667740095dc7c30")
     }
 
     func testEveryBundledFileIsThereATrueTypeFontOfItsFamilyThatLoads() throws {
@@ -259,6 +259,43 @@ final class FontLibraryTests: XCTestCase {
         XCTAssertEqual(FontLibrary.search("zzz"), [])
     }
 
+    /// Shared: a search matches the name, the category or a tag, in
+    /// English or in the app's language; a font of your own by its name
+    /// alone.
+    func testSearchFindsStyleTagsAndCategoriesInEnglishAndTranslated() {
+        XCTAssertEqual(FontLibrary.search("cursive").map(\.id), ["dancing-script", "pacifico", "sacramento", "satisfy"])
+        XCTAssertEqual(FontLibrary.search("mono").map(\.id), ["mono", "roboto-mono", "space-mono", "jetbrains-mono", "ibm-plex-mono"])
+        XCTAssertEqual(FontLibrary.search("condensed").map(\.id), ["oswald", "anton", "bebas-neue"])
+        let handwritten = Set(FontLibrary.search("handwritten").map(\.id))
+        XCTAssertTrue(handwritten.isSuperset(of: ["caveat", "indie-flower", "patrick-hand"]))
+        XCTAssertEqual(FontLibrary.search("elegant", category: "Script").map(\.id), ["dancing-script", "sacramento"])
+        // Every family is tagged from the shared list, and the chips offered are tags.
+        XCTAssertTrue(FontLibrary.all.allSatisfy { !$0.tags.isEmpty && $0.tags.allSatisfy { FontLibrary.tags.contains($0) } })
+        XCTAssertEqual(FontLibrary.tags.count, 15)
+        XCTAssertTrue(FontLibrary.suggestedTags.allSatisfy { FontLibrary.tags.contains($0) })
+        XCTAssertEqual(FontLibrary.suggestedTags, ["elegant", "retro", "handwritten", "rounded"])
+        // In the app's language: the tag's word there finds it too.
+        let italian: (String) -> String = { $0 == "cursive" ? "corsivo" : $0 == "Mono" ? "Monospazio" : $0 }
+        let found = FontLibrary.all.filter { FontLibrary.matches($0, "Corsivo", translate: italian) }.map(\.id)
+        XCTAssertEqual(found, ["dancing-script", "pacifico", "sacramento", "satisfy"])
+        XCTAssertTrue(FontLibrary.matches(FontLibrary.of("space-mono"), "monospazio", translate: italian))
+        XCTAssertEqual(FontLibrary.tagName("cursive"), tr("cursive"))
+        // A font of your own is matched by its name alone.
+        let own = [Uploads.FontEntry(id: "ab12cd34ef56", name: "Handwritten Mine", file: "ab12cd34ef56.ttf", added: 1)]
+        XCTAssertTrue(FontChoices.found(query: "mine", category: "All", own: own).contains("custom:ab12cd34ef56"))
+        XCTAssertEqual(FontLibrary.search("zzz"), [])
+        XCTAssertEqual(FontChoices.tryTitle, "Try:")
+    }
+
+    /// Shared: the eight most popular, by rank.
+    func testPopularIsTheTopEightByRank() {
+        XCTAssertEqual(FontLibrary.popular.map(\.id),
+                       ["montserrat", "poppins", "playfair-display", "roboto", "open-sans", "lato", "oswald", "dancing-script"])
+        XCTAssertEqual(FontLibrary.of("montserrat").popular, 1)
+        XCTAssertNil(FontLibrary.of("lora").popular)
+        XCTAssertEqual(FontChoices.popularTitle, "Popular")
+    }
+
     func testRecentlyUsedIsNewestFirstEachOnceEightAtMost() {
         var recent: [String] = []
         for key in ["lora", "anton", "lora", "didone", "caveat", "mono", "roboto", "karla", "bungee", "pacifico", "lato"] {
@@ -306,10 +343,11 @@ final class FontLibraryTests: XCTestCase {
         var a = Element.text("A"); a.fontFamily = "caveat"
         design.pages = [Page(elements: [a])]
         XCTAssertEqual(FontChoices.browsing(kit: kit, recent: ["anton"], design: design).map(\.title),
-                       ["Brand fonts", "Recently used", "In this design"])
-        // A run with nothing in it is left out.
+                       ["Brand fonts", "Recently used", "Popular", "In this design"])
+        // A run with nothing in it is left out; Popular is always there.
         XCTAssertEqual(FontChoices.browsing(kit: BrandKit(), recent: [], design: design),
-                       [FontChoices.Section(title: "In this design", keys: ["caveat"])])
+                       [FontChoices.Section(title: "Popular", keys: FontLibrary.popular.map(\.id)),
+                        FontChoices.Section(title: "In this design", keys: ["caveat"])])
 
         XCTAssertTrue(FontChoices.isBrowsing(query: "  ", category: "All"))
         XCTAssertFalse(FontChoices.isBrowsing(query: "", category: "Serif"))

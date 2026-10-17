@@ -99,6 +99,7 @@ struct FontSheet: View {
                         if found.isEmpty {
                             Text(FontChoices.noneFound(query))
                                 .foregroundStyle(.secondary)
+                            tagChips
                         } else {
                             ForEach(found, id: \.self) { row($0) }
                         }
@@ -123,6 +124,31 @@ struct FontSheet: View {
             own = FontStore.installed()
             recent = RecentFonts.all()
             kit = BrandKit.load()
+        }
+    }
+
+    /// "Try: elegant, retro, handwritten, rounded": the tags offered when a
+    /// search finds nothing, each in the app's language, a tap filling the
+    /// search with it, as on the Android twin.
+    private var tagChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                Text(FontChoices.tryTitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                ForEach(FontLibrary.suggestedTags, id: \.self) { tag in
+                    Button { query = FontLibrary.tagName(tag) } label: {
+                        Text(FontLibrary.tagName(tag))
+                            .font(.subheadline.weight(.medium))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(Theme.card, in: Capsule())
+                            .foregroundStyle(Theme.ink)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 4)
         }
     }
 
