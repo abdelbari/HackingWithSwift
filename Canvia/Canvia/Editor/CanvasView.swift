@@ -2240,6 +2240,8 @@ struct CanvasView: View {
                                onWordScale: { store.scaleWords(id, range: $0, by: $1) },
                                onWordFont: { store.chooseWordFont(id, range: $0) },
                                onWordLink: { store.chooseWordLink(id, range: $0) },
+                               onToggle: { toggle in store.styleWhileTyping { store.toggleText(toggle) } },
+                               onAlign: { align in store.styleWhileTyping { alignTyped(align) } },
                                onLines: { store.changeLines(id, covering: $0, $1) },
                                onNextCell: nextCell(el),
                                typing: typingHooks)
@@ -2268,6 +2270,8 @@ struct CanvasView: View {
                                onChange: { typeInline(id, $0) },
                                onDone: { commitTextEditIfAny() },
                                onStyled: { store.styleWhileTyping($0) },
+                               onToggle: { toggle in store.styleWhileTyping { store.toggleText(toggle) } },
+                               onAlign: { align in store.styleWhileTyping { alignTyped(align) } },
                                wordStyles: false,
                                typing: typingHooks)
             .frame(width: box.width)
@@ -2295,6 +2299,15 @@ struct CanvasView: View {
 
     private func typeInline(_ id: String, _ words: String) {
         store.typeWords(words, into: id)
+    }
+
+    /// ⇧⌘L, C, R or J while typing: the box typed in aligned, as the Align
+    /// button aligns it.
+    private func alignTyped(_ align: String) {
+        store.updateSelected { e in
+            guard ShapeText.carriesWords(e) else { return }
+            e.align = align
+        }
     }
 
     /// The typing field's caret, its bursts and their Undo, kept by the
