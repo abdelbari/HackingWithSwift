@@ -1538,6 +1538,59 @@
         }
       }
     },
+    "%@ deg" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@°"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@°"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ deg"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@°"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@°"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@°"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@°"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@°"
+          }
+        }
+      }
+    },
     "%@ diamond" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24577,6 +24630,324 @@
         }
       }
     },
+    "Align bottom" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "محاذاة للأسفل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unten ausrichten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Align bottom"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alinear abajo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aligner en bas"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allinea in basso"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下揃え"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alinhar à base"
+          }
+        }
+      }
+    },
+    "Align centre" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "توسيط"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zentrieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Align centre"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Centrar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Centrer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Centra"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中央揃え"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Centralizar"
+          }
+        }
+      }
+    },
+    "Align left" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "محاذاة لليسار"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Links ausrichten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Align left"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alinear a la izquierda"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aligner à gauche"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allinea a sinistra"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "左揃え"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alinhar à esquerda"
+          }
+        }
+      }
+    },
+    "Align middle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "محاذاة للوسط"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mittig ausrichten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Align middle"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alinear al medio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aligner au milieu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allinea al centro"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上下中央揃え"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alinhar ao meio"
+          }
+        }
+      }
+    },
+    "Align right" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "محاذاة لليمين"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechts ausrichten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Align right"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alinear a la derecha"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aligner à droite"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allinea a destra"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "右揃え"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alinhar à direita"
+          }
+        }
+      }
+    },
+    "Align top" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "محاذاة للأعلى"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oben ausrichten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Align top"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alinear arriba"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aligner en haut"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allinea in alto"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上揃え"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alinhar ao topo"
+          }
+        }
+      }
+    },
     "All" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32950,6 +33321,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bolhas"
+          }
+        }
+      }
+    },
+    "Bulleted list" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قائمة نقطية"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufzählung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bulleted list"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lista con viñetas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liste à puces"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elenco puntato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "箇条書きリスト"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lista com marcadores"
           }
         }
       }
@@ -59929,6 +60353,59 @@
         }
       }
     },
+    "Fit and drift" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الملاءمة والانجراف"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einpassen und Bewegung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fit and drift"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustar y movimiento"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajuster et mouvement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adatta e movimento"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サイズ合わせとドリフト"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustar e movimento"
+          }
+        }
+      }
+    },
     "Fit page to clip" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -60667,6 +61144,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Espelhar na horizontal"
+          }
+        }
+      }
+    },
+    "Flip vertically" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قلب عمودي"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vertikal spiegeln"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flip vertically"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voltear verticalmente"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retourner verticalement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capovolgi in verticale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上下反転"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Espelhar na vertical"
           }
         }
       }
@@ -62151,6 +62681,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Molduras"
+          }
+        }
+      }
+    },
+    "Free" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حر"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Libre"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Libre"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Libero"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自由"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Livre"
           }
         }
       }
@@ -79611,6 +80194,59 @@
         }
       }
     },
+    "Move page" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نقل الصفحة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seite verschieben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move page"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mover página"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déplacer la page"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sposta pagina"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページを移動"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mover página"
+          }
+        }
+      }
+    },
     "Move page earlier" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -82848,6 +83484,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Próxima célula"
+          }
+        }
+      }
+    },
+    "Next element" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "العنصر التالي"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nächstes Element"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next element"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elemento siguiente"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Élément suivant"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elemento successivo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の要素"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Próximo elemento"
           }
         }
       }
@@ -88364,6 +89053,59 @@
         }
       }
     },
+    "Numbered list" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "قائمة مرقّمة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nummerierte Liste"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Numbered list"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lista numerada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liste numérotée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elenco numerato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "番号付きリスト"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lista numerada"
+          }
+        }
+      }
+    },
     "Numbers" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -91222,6 +91964,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Organizar páginas"
+          }
+        }
+      }
+    },
+    "Original" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الأصلي"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Originale"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元の比率"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
           }
         }
       }
@@ -99086,6 +99881,59 @@
         }
       }
     },
+    "Previous element" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "العنصر السابق"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorheriges Element"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous element"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elemento anterior"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Élément précédent"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elemento precedente"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前の要素"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elemento anterior"
+          }
+        }
+      }
+    },
     "Previous page" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -106155,6 +107003,112 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Flor rosa"
+          }
+        }
+      }
+    },
+    "Rotate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تدوير"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rotate"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Girar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pivoter"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ruota"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回転"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Girar"
+          }
+        }
+      }
+    },
+    "Rotate 90" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تدوير 90"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um 90 drehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rotate 90"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Girar 90"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pivoter de 90"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ruota di 90"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "90度回転"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Girar 90"
           }
         }
       }
@@ -134215,6 +135169,59 @@
         }
       }
     },
+    "Undo and redo are in the top bar; hold Undo to rewind step after step, and Redo walks forward again. A three-finger swipe left or right, a three-finger double tap and a shake undo and redo the same steps. Version history keeps a copy of the design every couple of minutes while you edit; restoring one is itself undoable." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "التراجع والإعادة في الشريط العلوي؛ اضغط مطولًا على «تراجع» للإرجاع خطوة بعد خطوة، و«إعادة» يتقدم مجددًا. والسحب بثلاثة أصابع يسارًا أو يمينًا، والنقر المزدوج بثلاثة أصابع، والهزّ تتراجع عن الخطوات نفسها وتعيدها. ويحتفظ «سجل الإصدارات» بنسخة من التصميم كل دقيقتين تقريبًا أثناء التعديل؛ ويمكن التراجع عن استعادة إحداها."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Rückgängig“ und „Wiederholen“ sind in der oberen Leiste; halte „Rückgängig“ gedrückt, um Schritt für Schritt zurückzuspulen, und „Wiederholen“ geht wieder vorwärts. Ein Streichen mit drei Fingern nach links oder rechts, ein Doppeltippen mit drei Fingern und Schütteln machen dieselben Schritte rückgängig und wiederholen sie. Der Versionsverlauf speichert beim Bearbeiten alle paar Minuten eine Kopie des Designs; auch das Wiederherstellen lässt sich rückgängig machen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo and redo are in the top bar; hold Undo to rewind step after step, and Redo walks forward again. A three-finger swipe left or right, a three-finger double tap and a shake undo and redo the same steps. Version history keeps a copy of the design every couple of minutes while you edit; restoring one is itself undoable."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deshacer y rehacer están en la barra superior; mantén pulsado Deshacer para retroceder paso a paso, y Rehacer vuelve a avanzar. Deslizar con tres dedos a la izquierda o a la derecha, un doble toque con tres dedos y agitar deshacen y rehacen los mismos pasos. Historial de versiones guarda una copia del diseño cada par de minutos mientras editas; restaurar una también se puede deshacer."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annuler et Rétablir sont dans la barre du haut ; maintenez Annuler pour revenir en arrière étape par étape, et Rétablir avance à nouveau. Un balayage à trois doigts vers la gauche ou la droite, un double tap à trois doigts et une secousse annulent et rétablissent les mêmes étapes. Historique des versions garde une copie du design toutes les deux minutes pendant que vous modifiez ; une restauration peut elle-même être annulée."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla e Ripeti sono nella barra in alto; tieni premuto Annulla per tornare indietro passo dopo passo, e Ripeti va di nuovo avanti. Uno scorrimento con tre dita a sinistra o a destra, un doppio tocco con tre dita e una scossa annullano e ripetono gli stessi passi. Cronologia versioni conserva una copia del design ogni paio di minuti mentre modifichi; anche il ripristino si può annullare."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元に戻すとやり直しは上部のバーにあります。元に戻すを長押しすると 1 ステップずつ巻き戻し、やり直しで再び進めます。3 本指で左右にスワイプ、3 本指でダブルタップ、またはシェイクでも同じステップを元に戻したりやり直したりできます。「バージョン履歴」には編集中は数分ごとにデザインのコピーが保存され、復元自体も元に戻せます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desfazer e refazer ficam na barra superior; segure Desfazer para retroceder etapa por etapa, e Refazer avança de novo. Deslizar com três dedos para a esquerda ou a direita, um toque duplo com três dedos e sacudir desfazem e refazem as mesmas etapas. Histórico de versões guarda uma cópia do design a cada dois minutos enquanto você edita; restaurar uma também pode ser desfeito."
+          }
+        }
+      }
+    },
     "Undo and redo are in the top bar; hold Undo to rewind step after step, and Redo walks forward again. Version history keeps a copy of the design every couple of minutes while you edit; restoring one is itself undoable." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -139902,6 +140909,59 @@
         }
       }
     },
+    "With a hardware keyboard: ⌘Z undo, ⇧⌘Z or ⌘Y redo, ⌘C/⌘X/⌘V copy, cut, paste, ⌘D duplicate, ⌘A select all, ⌘G group, ⌘F find, ⌘E export. ⌘= and ⌘- zoom in and out, ⌘0 fits the page, ⌘1 is actual size. Page Up and Page Down (or ⌥↑ and ⌥↓) go to the previous and next page. Tab and ⇧Tab select the next and previous element, ⇧H and ⇧V flip, ⌥⇧L, C, R, T, M and B align left, centre, right, top, middle and bottom, and T adds a text box. While typing: ⌘B, ⌘I and ⌘U bold, italic and underline, ⇧⌘X strikethrough, ⇧⌘K capitals, ⇧⌘L, C, R and J align, ⇧⌘7 and ⇧⌘8 numbered and bulleted lists, ⇧⌘, and ⇧⌘. smaller and larger. Hold ⌘ to see them all." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مع لوحة مفاتيح فعلية: ⌘Z للتراجع، و⇧⌘Z أو ⌘Y للإعادة، و⌘C/⌘X/⌘V للنسخ والقص واللصق، و⌘D للتكرار، و⌘A لتحديد الكل، و⌘G للتجميع، و⌘F للبحث، و⌘E للتصدير. ⌘= و⌘- للتكبير والتصغير، و⌘0 لملاءمة الصفحة، و⌘1 للحجم الفعلي. Page Up وPage Down (أو ⌥↑ و⌥↓) للصفحة السابقة والتالية. Tab و⇧Tab لتحديد العنصر التالي والسابق، و⇧H و⇧V للقلب، و⌥⇧L وC وR وT وM وB للمحاذاة لليسار والوسط واليمين والأعلى والمنتصف والأسفل، وT لإضافة مربع نص. أثناء الكتابة: ⌘B و⌘I و⌘U للخط العريض والمائل والمسطّر، و⇧⌘X لليطب، و⇧⌘K للأحرف الكبيرة، و⇧⌘L وC وR وJ للمحاذاة، و⇧⌘7 و⇧⌘8 للقوائم المرقّمة والنقطية، و⇧⌘, و⇧⌘. للتصغير والتكبير. اضغط مطولًا على ⌘ لرؤيتها كلها."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit einer Hardware-Tastatur: ⌘Z Rückgängig, ⇧⌘Z oder ⌘Y Wiederholen, ⌘C/⌘X/⌘V Kopieren, Ausschneiden, Einfügen, ⌘D Duplizieren, ⌘A Alles auswählen, ⌘G Gruppieren, ⌘F Suchen, ⌘E Exportieren. ⌘= und ⌘- vergrößern und verkleinern, ⌘0 passt die Seite ein, ⌘1 ist die tatsächliche Größe. Bild auf und Bild ab (oder ⌥↑ und ⌥↓) gehen zur vorherigen und nächsten Seite. Tab und ⇧Tab wählen das nächste und vorherige Element, ⇧H und ⇧V spiegeln, ⌥⇧L, C, R, T, M und B richten links, mittig, rechts, oben, in der Mitte und unten aus, und T fügt ein Textfeld hinzu. Beim Tippen: ⌘B, ⌘I und ⌘U fett, kursiv und unterstrichen, ⇧⌘X durchgestrichen, ⇧⌘K Großbuchstaben, ⇧⌘L, C, R und J richten aus, ⇧⌘7 und ⇧⌘8 nummerierte Liste und Aufzählung, ⇧⌘, und ⇧⌘. kleiner und größer. Halte ⌘ gedrückt, um alle zu sehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With a hardware keyboard: ⌘Z undo, ⇧⌘Z or ⌘Y redo, ⌘C/⌘X/⌘V copy, cut, paste, ⌘D duplicate, ⌘A select all, ⌘G group, ⌘F find, ⌘E export. ⌘= and ⌘- zoom in and out, ⌘0 fits the page, ⌘1 is actual size. Page Up and Page Down (or ⌥↑ and ⌥↓) go to the previous and next page. Tab and ⇧Tab select the next and previous element, ⇧H and ⇧V flip, ⌥⇧L, C, R, T, M and B align left, centre, right, top, middle and bottom, and T adds a text box. While typing: ⌘B, ⌘I and ⌘U bold, italic and underline, ⇧⌘X strikethrough, ⇧⌘K capitals, ⇧⌘L, C, R and J align, ⇧⌘7 and ⇧⌘8 numbered and bulleted lists, ⇧⌘, and ⇧⌘. smaller and larger. Hold ⌘ to see them all."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con un teclado físico: ⌘Z deshacer, ⇧⌘Z o ⌘Y rehacer, ⌘C/⌘X/⌘V copiar, cortar, pegar, ⌘D duplicar, ⌘A seleccionar todo, ⌘G agrupar, ⌘F buscar, ⌘E exportar. ⌘= y ⌘- acercan y alejan, ⌘0 ajusta la página, ⌘1 es el tamaño real. Re Pág y Av Pág (o ⌥↑ y ⌥↓) van a la página anterior y siguiente. Tab y ⇧Tab seleccionan el elemento siguiente y anterior, ⇧H y ⇧V voltean, ⌥⇧L, C, R, T, M y B alinean a la izquierda, al centro, a la derecha, arriba, al medio y abajo, y T añade un cuadro de texto. Al escribir: ⌘B, ⌘I y ⌘U negrita, cursiva y subrayado, ⇧⌘X tachado, ⇧⌘K mayúsculas, ⇧⌘L, C, R y J alinean, ⇧⌘7 y ⇧⌘8 listas numeradas y con viñetas, ⇧⌘, y ⇧⌘. más pequeño y más grande. Mantén ⌘ para verlos todos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec un clavier physique : ⌘Z annuler, ⇧⌘Z ou ⌘Y rétablir, ⌘C/⌘X/⌘V copier, couper, coller, ⌘D dupliquer, ⌘A tout sélectionner, ⌘G grouper, ⌘F rechercher, ⌘E exporter. ⌘= et ⌘- zooment en avant et en arrière, ⌘0 ajuste la page, ⌘1 est la taille réelle. Page précédente et Page suivante (ou ⌥↑ et ⌥↓) vont à la page précédente et suivante. Tab et ⇧Tab sélectionnent l’élément suivant et précédent, ⇧H et ⇧V retournent, ⌥⇧L, C, R, T, M et B alignent à gauche, au centre, à droite, en haut, au milieu et en bas, et T ajoute une zone de texte. En tapant : ⌘B, ⌘I et ⌘U gras, italique et souligné, ⇧⌘X barré, ⇧⌘K majuscules, ⇧⌘L, C, R et J alignent, ⇧⌘7 et ⇧⌘8 listes numérotées et à puces, ⇧⌘, et ⇧⌘. plus petit et plus grand. Maintenez ⌘ pour tous les voir."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con una tastiera fisica: ⌘Z annulla, ⇧⌘Z o ⌘Y ripeti, ⌘C/⌘X/⌘V copia, taglia, incolla, ⌘D duplica, ⌘A seleziona tutto, ⌘G raggruppa, ⌘F trova, ⌘E esporta. ⌘= e ⌘- ingrandiscono e riducono, ⌘0 adatta la pagina, ⌘1 è la dimensione reale. Pag su e Pag giù (o ⌥↑ e ⌥↓) vanno alla pagina precedente e successiva. Tab e ⇧Tab selezionano l’elemento successivo e precedente, ⇧H e ⇧V capovolgono, ⌥⇧L, C, R, T, M e B allineano a sinistra, al centro, a destra, in alto, al centro verticale e in basso, e T aggiunge una casella di testo. Mentre scrivi: ⌘B, ⌘I e ⌘U grassetto, corsivo e sottolineato, ⇧⌘X barrato, ⇧⌘K maiuscolo, ⇧⌘L, C, R e J allineano, ⇧⌘7 e ⇧⌘8 elenchi numerati e puntati, ⇧⌘, e ⇧⌘. più piccolo e più grande. Tieni premuto ⌘ per vederli tutti."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ハードウェアキーボードでは：⌘Z 元に戻す、⇧⌘Z または ⌘Y やり直す、⌘C/⌘X/⌘V コピー・切り取り・貼り付け、⌘D 複製、⌘A すべて選択、⌘G グループ化、⌘F 検索、⌘E 書き出し。⌘= と ⌘- で拡大と縮小、⌘0 でページ全体、⌘1 で実際のサイズ。Page Up と Page Down（または ⌥↑ と ⌥↓）で前後のページへ。Tab と ⇧Tab で次と前の要素を選択、⇧H と ⇧V で反転、⌥⇧L・C・R・T・M・B で左・中央・右・上・中・下に揃え、T でテキストボックスを追加。入力中は：⌘B・⌘I・⌘U で太字・斜体・下線、⇧⌘X で取り消し線、⇧⌘K で大文字、⇧⌘L・C・R・J で揃え、⇧⌘7 と ⇧⌘8 で番号付きリストと箇条書き、⇧⌘, と ⇧⌘. で小さく・大きく。⌘ を長押しするとすべて表示されます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Com um teclado físico: ⌘Z desfaz, ⇧⌘Z ou ⌘Y refaz, ⌘C/⌘X/⌘V copiam, recortam, colam, ⌘D duplica, ⌘A seleciona tudo, ⌘G agrupa, ⌘F localiza, ⌘E exporta. ⌘= e ⌘- aproximam e afastam, ⌘0 ajusta a página, ⌘1 é o tamanho real. Page Up e Page Down (ou ⌥↑ e ⌥↓) vão para a página anterior e a seguinte. Tab e ⇧Tab selecionam o elemento seguinte e o anterior, ⇧H e ⇧V espelham, ⌥⇧L, C, R, T, M e B alinham à esquerda, ao centro, à direita, ao topo, ao meio e à base, e T adiciona uma caixa de texto. Ao digitar: ⌘B, ⌘I e ⌘U negrito, itálico e sublinhado, ⇧⌘X tachado, ⇧⌘K maiúsculas, ⇧⌘L, C, R e J alinham, ⇧⌘7 e ⇧⌘8 listas numeradas e com marcadores, ⇧⌘, e ⇧⌘. menor e maior. Segure ⌘ para ver todos."
+          }
+        }
+      }
+    },
     "With a keyboard: Ctrl+Z and Ctrl+Shift+Z undo and redo, Ctrl+C, X, V and D copy, cut, paste and duplicate, the arrows nudge, Ctrl+K lists the page, Ctrl+E shares, Ctrl+F finds, and Ctrl+/ opens this help. Hold Meta and / to see them all." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -141280,6 +142340,59 @@
         }
       }
     },
+    "Zoom in" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تكبير"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergrößern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom in"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acercar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom avant"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingrandisci"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拡大"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aproximar"
+          }
+        }
+      }
+    },
     "Zoom in to type small text" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -141329,6 +142442,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ampliar para digitar texto pequeno"
+          }
+        }
+      }
+    },
+    "Zoom out" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تصغير"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verkleinern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom out"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alejar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoom arrière"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riduci"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "縮小"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afastar"
           }
         }
       }
