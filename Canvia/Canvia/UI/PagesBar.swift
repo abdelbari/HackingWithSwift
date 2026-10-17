@@ -500,12 +500,15 @@ struct PageThumbnail: View {
         self.pixelWidth = pixelWidth
         self.priority = priority
         self.fallback = fallback
-        // A thumbnail kept for the page as it stands shows from the first
-        // frame: never white, nor the page drawn live, for a frame first.
-        let key = ThumbnailCache.key(page: page, design: design, baked: bakedVersion,
-                                     subjects: subjectsVersion, pixelWidth: pixelWidth)
+        // The page's last thumbnail shows from the first frame — never
+        // white, nor the page drawn live, for a frame first — found by its
+        // id alone, as the Android twin's PagePictures keeps one a page: the
+        // key, a hash of the whole page, is made in the task below once per
+        // change of the page, never here, where every frame of a pan builds
+        // the view again. One for the page as it stands follows from the
+        // task, as the last does after an edit.
         var kept: UIImage?
-        MainActor.assumeIsolated { kept = ThumbnailCache.shared.cached(key) }
+        MainActor.assumeIsolated { kept = ThumbnailCache.shared.lastThumbnail(pageId: page.id) }
         _image = State(initialValue: kept)
     }
 

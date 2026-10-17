@@ -23,6 +23,21 @@ final class ThumbnailCache {
         return c
     }()
 
+    /// Each page's latest thumbnail, by its id, at whatever width: what a
+    /// PageThumbnail shows from its first frame while the one for the page
+    /// as it stands is found or made — the last picture meanwhile, as the
+    /// Android twin's PagePictures keeps one a page — found by the id alone,
+    /// never by hashing the page as a key does: a view is built again on
+    /// every frame of a pan, and a key for each would cost more than the
+    /// pan. Held to half of what the thumbnails are, so a long design's
+    /// never all stay.
+    private let lastImages: NSCache<NSString, UIImage> = {
+        let c = NSCache<NSString, UIImage>()
+        c.countLimit = 600
+        c.totalCostLimit = 32 * 1024 * 1024
+        return c
+    }()
+
     /// A thumbnail waiting its turn.
     private struct Waiting {
         let id: Int
@@ -64,12 +79,29 @@ final class ThumbnailCache {
         images.object(forKey: key as NSString)
     }
 
+    /// The last thumbnail found or made for the page `pageId`, at any
+    /// width — fitted where it stands in — or nil for a page with none yet.
+    func lastThumbnail(pageId: String) -> UIImage? {
+        lastImages.object(forKey: pageId as NSString)
+    }
+
+    /// `image` as the last thumbnail of the page `key` names: the key begins
+    /// with the page's id (key(page:design:baked:subjects:pixelWidth:)).
+    private func keepLast(_ image: UIImage, key: String) {
+        guard let bar = key.firstIndex(of: "|") else { return }
+        let pixels = image.size.width * image.size.height * image.scale * image.scale
+        lastImages.setObject(image, forKey: String(key[..<bar]) as NSString, cost: Int(pixels) * 4)
+    }
+
     /// The thumbnail kept under `key`, or made by `make` in its turn — the
     /// lowest `priority` first, then the first asked — and kept. Nil when
     /// the task asking is cancelled first: its view gone, scrolled away, or
     /// its page changed again.
     func image(_ key: String, priority: Int, make: @escaping @MainActor () -> UIImage?) async -> UIImage? {
-        if let hit = cached(key) { return hit }
+        if let hit = cached(key) {
+            keepLast(hit, key: key)
+            return hit
+        }
         let id = nextId
         nextId += 1
         return await withTaskCancellationHandler {
@@ -107,6 +139,7 @@ final class ThumbnailCache {
         if let image {
             let pixels = image.size.width * image.size.height * image.scale * image.scale
             images.setObject(image, forKey: job.key as NSString, cost: Int(pixels) * 4)
+            keepLast(image, key: job.key)
         }
         job.done.resume(returning: image)
         scheduleNext()
