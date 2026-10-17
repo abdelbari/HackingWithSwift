@@ -1,7 +1,8 @@
 // Things dropped onto the page from other apps — a photo from Photos or
 // Files, a passage from Notes, a link from Safari — land where the finger
 // let go, as the elements the Add sheet would have made; a photo let go over
-// a frame goes into the frame. Nothing lands on a locked page.
+// a frame goes into the frame, and one let go over a selected text box is
+// offered to its letters (PhotoInLetters). Nothing lands on a locked page.
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -73,6 +74,15 @@ enum CanvasDrop {
                 taken += 1
                 loadPicture(provider) { stored in
                     guard let stored else { tally.finished(landed: false); return }
+                    // Let go over a selected text box, the picture may fill
+                    // its letters: asked (PhotoInLettersPrompts), the photo
+                    // kept for the page meanwhile.
+                    if let text = store.letterFillTarget(at: at) {
+                        let frame = imageFrame(natural: stored.natural, page: page, at: at)
+                        store.letterFillOffer = LetterFillOffer(id: text.id, src: stored.src, frame: frame)
+                        tally.finished(landed: true)
+                        return
+                    }
                     // Let go over a frame or a grid's cell, the picture goes
                     // into it rather than onto the page beside it.
                     if let target = pictureTarget(at: at, in: store.page.elements, filled: tally.filled),

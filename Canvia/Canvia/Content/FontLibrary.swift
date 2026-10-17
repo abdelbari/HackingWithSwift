@@ -638,7 +638,7 @@ enum FontLibrary {
     /// after a list's markers, as the field types the words as they are
     /// kept (InlineTextField). Where a tap puts the caret is found in it.
     static func typedAttributedString(for el: Element) -> NSAttributedString {
-        let spans = el.textFill?.kind == "gradient" ? Spans.withoutColours(el.liveSpans) : el.liveSpans
+        let spans = paintsLetters(el) ? Spans.withoutColours(el.liveSpans) : el.liveSpans
         return styledWords(el.text ?? "", of: el, capitals: false, spans: spans)
     }
 
@@ -711,9 +711,9 @@ enum FontLibrary {
             }
             return FontLibrary.uiFont(family: family, size: size, weight: drawn, italic: slanted || lean)
         }
-        // Under gradient letters a link takes no colour, as words' colours
-        // do not (displaySpans), on both phones.
-        let linkColour = el.textFill?.kind != "gradient"
+        // Under gradient letters, or a photo in them, a link takes no
+        // colour, as words' colours do not (displaySpans), on both phones.
+        let linkColour = !paintsLetters(el)
         let styled = RichText.attributed(marked, base: base, uppercase: capitals, spans: spans,
                                          linkColour: linkColour, face: face) { bold, slanted in
             uiFont(family: el.fontFamily, size: size, weight: resolveWeight(weight, bold: bold), italic: slanted || italic)
@@ -790,6 +790,14 @@ enum FontLibrary {
 
     // MARK: colours, sizes, fonts and links on words
 
+    /// Whether the letters are painted as a whole — a gradient, or a photo
+    /// in them (Paint.isPhoto) — so that a colour on a word would not show
+    /// through, and is left out, on both phones.
+    static func paintsLetters(_ el: Element) -> Bool {
+        guard let fill = el.textFill else { return false }
+        return fill.kind == "gradient" || fill.isPhoto
+    }
+
     /// The element's colours, sizes, fonts and links on words, moved from
     /// the words as they read onto the display text before capitals — past
     /// a list's markers, a line at a time. Colours are left out while the
@@ -798,7 +806,7 @@ enum FontLibrary {
     static func displaySpans(for el: Element, marked: String) -> [TextSpan] {
         var spans = el.liveSpans
         guard !spans.isEmpty else { return [] }
-        if el.textFill?.kind == "gradient" {
+        if paintsLetters(el) {
             spans = Spans.withoutColours(spans)
             guard !spans.isEmpty else { return [] }
         }
@@ -832,7 +840,7 @@ enum FontLibrary {
     /// and faces are left out there, where the letters keep the box's type.
     static func displayColours(for el: Element) -> [TextSpan] {
         let marked = markedDisplayText(for: el, pageNumber: nil, pageCount: nil)
-        let gradient = el.textFill?.kind == "gradient"
+        let gradient = paintsLetters(el)
         let colours = displaySpans(for: el, marked: marked).compactMap { span -> TextSpan? in
             let linked = span.link != nil && !gradient ? Spans.linkColour : nil
             return (span.color ?? linked).map { TextSpan(start: span.start, end: span.end, color: $0) }

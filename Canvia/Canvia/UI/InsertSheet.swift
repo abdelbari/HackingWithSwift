@@ -1196,6 +1196,41 @@ struct InsertSheet: View {
         }
     }
 
+    /// Letters & numbers: A to Z and 0 to 9, each an empty photo frame in
+    /// the glyph's shape (GlyphFrames), put in the middle of the page and
+    /// selected, so a photo picked next goes straight into it.
+    private var glyphFramesRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            sectionHeader(tr("Letters & numbers"))
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(GlyphFrames.all) { frame in
+                        Button {
+                            insertGlyphFrame(frame)
+                        } label: {
+                            LibraryShape(definition: frame.shape, cornerRadius: 0)
+                                .fill(Theme.inkSecondary)
+                                .frame(width: 44 * frame.width / 100, height: 44)
+                                .frame(width: 56, height: 56)
+                                .background(RoundedRectangle(cornerRadius: 8).fill(Color(.systemGray6)))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(GlyphFrames.label(frame))
+                    }
+                }
+            }
+        }
+    }
+
+    /// On this page, which may be a size of its own, as one step — on the
+    /// next unlocked page when this one is locked (DesignStore.add).
+    private func insertGlyphFrame(_ frame: GlyphFrames.Frame) {
+        let made = GlyphFrames.element(frame, page: CGSize(width: store.pageWidth, height: store.pageHeight))
+        guard store.add(made, centered: false) else { return }
+        store.selection = [made.id]
+        dismiss()
+    }
+
     /// Laid out on this page, which may be a size of its own, as one step.
     private func insertDecorativeFrame(_ preset: FrameDef) {
         guard store.landsOnUnlockedPage() else { return }
@@ -1361,6 +1396,7 @@ struct InsertSheet: View {
             if !isReplacing {
                 layoutsRow
                 decorativeFramesRow
+                glyphFramesRow
             }
             Button {
                 importingPDF = true

@@ -372,7 +372,7 @@ enum PhotoEffects {
         let silhouette = UIGraphicsImageRenderer(size: canvas, format: format).image { ctx in
             let cg = ctx.cgContext
             cg.translateBy(x: pad, y: pad)
-            let frame = FrameShape(definition: el.maskShapeId.flatMap { ContentLibrary.shapeMap[$0] },
+            let frame = FrameShape(definition: ContentLibrary.frameShape(el.maskShapeId),
                                    cornerRadius: el.radius ?? 0)
             cg.addPath(frame.path(in: CGRect(x: 0, y: 0, width: el.w, height: el.h)).cgPath)
             cg.clip()

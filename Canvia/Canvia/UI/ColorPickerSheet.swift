@@ -21,6 +21,9 @@ struct ColorPickerSheet: View {
     var allowGradients = false
     /// Patterns and photo fills, which only a shape draws.
     var allowPatterns = false
+    /// Photo fills alone: a text's letters take a photo (PhotoFills), as
+    /// Canva pours one into type, but no pattern.
+    var allowPhotos = false
     /// The fill there now, when it is a gradient, a pattern or a photo, so
     /// its tile is ringed and tapping it again records nothing.
     var currentPaint: Paint?
@@ -144,8 +147,8 @@ struct ColorPickerSheet: View {
                         }
                     }
 
-                    if allowGradients, allowPatterns, swapTarget == nil, let onPickGradient {
-                        patternsSection(onPickGradient)
+                    if allowGradients, allowPatterns || allowPhotos, swapTarget == nil, let onPickGradient {
+                        if allowPatterns { patternsSection(onPickGradient) }
                         photoFillSection(onPickGradient)
                     }
 
@@ -353,7 +356,7 @@ struct ColorPickerSheet: View {
                     let chosen = FillChoices.isPhoto(currentPaint, src: src)
                     Button {
                         guard !chosen else { return }
-                        pick(.image(src))
+                        pick(.photo(src))
                         store.buzz(.tick)
                     } label: {
                         Group {

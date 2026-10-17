@@ -140,6 +140,8 @@ enum ContrastAudit {
         var findings: [Finding] = []
         for (p, page) in design.pages.enumerated() {
             for el in page.elements where el.type == .text {
+                // Letters full of a photo are measured by nothing: Check
+                // accessibility says so instead (AccessibilityAudit).
                 guard el.textFill == nil, el.opacity > 0.05, !el.isHidden else { continue }
                 let ink = el.color ?? "#1f2430"
                 let back = backdrop(for: el, in: page)

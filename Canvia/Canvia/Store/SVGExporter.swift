@@ -262,10 +262,26 @@ enum SVGExporter {
         // canvas strokes all the letters before it fills any.
         let stroke = outlinedStroke(drawn)
         let ring = stroke.isEmpty ? "" : "<path d=\"\(d)\" fill=\"none\"\(stroke)/>"
-        if !gradient, outlines.parts.contains(where: { $0.color != nil }) {
+        // Letters full of a photo: their outlines as a clipPath, and the
+        // picture inside it where PhotoFills.window puts it — where the
+        // effect lets the photo through; else the letters in its average
+        // colour (ink). Word colours are not drawn: the photo colours
+        // every word, as a gradient does. The Android twin's photoText.
+        if let fill = el.textFill, fill.isPhoto, TextEffect.from(el.effect).takesPhoto, let src = fill.src,
+           let photo = PhotoFills.stored(src) {
+            let window = PhotoFills.window(imageW: Double(photo.size.width), imageH: Double(photo.size.height),
+                                           boxW: el.w, boxH: el.h, paint: fill)
+            let clip = "<clipPath id=\"textclip\(index)\"><path d=\"\(d)\"/></clipPath>"
+            let place = "x=\"\(num(window.minX))\" y=\"\(num(window.minY))\" width=\"\(num(window.width))\" height=\"\(num(window.height))\""
+            let picture = "<image clip-path=\"url(#textclip\(index))\" \(place) preserveAspectRatio=\"none\" " +
+                "xlink:href=\"data:image/\(photo.type);base64,\(photo.data.base64EncodedString())\"/>"
+            return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + ring + clip + picture + "</g>"
+        }
+        let ink = textInk(el)
+        if !gradient, el.textFill?.isPhoto != true, outlines.parts.contains(where: { $0.color != nil }) {
             // Words in colours of their own: a path for each colour.
             let paths = outlines.parts.map { part in
-                "<path d=\"\(data(part.path))\" fill=\"\(escape(part.color ?? el.color ?? "#1f2430"))\" fill-rule=\"nonzero\"/>"
+                "<path d=\"\(data(part.path))\" fill=\"\(escape(part.color ?? ink))\" fill-rule=\"nonzero\"/>"
             }
             return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + ring + paths.joined() + "</g>"
         }
@@ -280,10 +296,19 @@ enum SVGExporter {
                                     height: el.h - top, circular: true))
             paint = "url(#\(id))"
         } else {
-            paint = escape(el.color ?? "#1f2430")
+            paint = escape(ink)
         }
         return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + ring +
                "<path d=\"\(d)\" fill=\"\(paint)\" fill-rule=\"nonzero\"/></g>"
+    }
+
+    /// The ink text is written in: its colour, or for letters full of a
+    /// photo that cannot show it, the photo's average.
+    static func textInk(_ el: Element) -> String {
+        if let fill = el.textFill, fill.isPhoto, let src = fill.src, let average = PhotoPalette.averageColour(src) {
+            return average
+        }
+        return el.color ?? "#1f2430"
     }
 
     /// Outline's stroke round the letters as path attributes, for a pass

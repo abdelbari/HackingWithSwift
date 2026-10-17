@@ -29,7 +29,8 @@ extension DesignStore {
     /// why not.
     func chooseWordColour(_ id: String, range: NSRange) {
         guard let el = element(id), el.type == .text, !el.locked, range.length > 0 else { return }
-        if el.textFill?.kind == "gradient" {
+        // A photo in the letters colours every word too, as a gradient does.
+        if FontLibrary.paintsLetters(el) {
             buzz(.reject)
             announce(Self.gradientWordsNote, undoable: false)
             return

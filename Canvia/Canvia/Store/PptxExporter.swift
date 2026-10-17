@@ -267,11 +267,13 @@ enum PptxExporter {
 
     // MARK: a slide
 
-    /// A picture a slide needs drawn.
+    /// A picture a slide needs drawn — or, for letters full of a photo,
+    /// the photo as it is stored, which the runs' blipFill points to.
     struct MediaPart: Equatable {
         enum Source: Equatable {
             case element(Element)
             case background
+            case photo(String)
         }
 
         /// Its file under ppt/media: "image3.png".
@@ -325,23 +327,53 @@ enum PptxExporter {
         }
     }
 
+    /// What a photo in letters needs known of the picture without drawing
+    /// it: its pixels, its average colour and its file's type — this
+    /// phone's stored pictures, or a test's stand-ins.
+    struct PhotoLookup {
+        var size: (String) -> CGSize?
+        var average: (String) -> String?
+        var type: (String) -> String
+
+        static let stored = PhotoLookup(size: { ExportChoices.photoPixelSize($0) },
+                                        average: { PhotoPalette.averageColour($0) },
+                                        type: { PhotoFills.storedType($0) })
+    }
+
     /// A picture's file name, by its number in the deck: a JPEG for the
-    /// page's background, a PNG for an element.
-    static func fileName(_ number: Int, for source: MediaPart.Source) -> String {
-        source == .background ? "image\(number).jpeg" : "image\(number).png"
+    /// page's background, a PNG for an element, a photo in letters as it
+    /// is stored.
+    static func fileName(_ number: Int, for source: MediaPart.Source, photos: PhotoLookup = .stored) -> String {
+        switch source {
+        case .background: return "image\(number).jpeg"
+        case .element: return "image\(number).png"
+        case .photo(let src): return "image\(number).\(photos.type(src))"
+        }
+    }
+
+    /// The photo `el`'s letters are full of, when the effect lets it
+    /// through (TextEffect.takesPhoto) and the box goes out as text.
+    static func pouredPhoto(_ el: Element) -> String? {
+        guard el.type == .text, let fill = el.textFill, fill.isPhoto, TextEffect.from(el.effect).takesPhoto else { return nil }
+        return fill.src
     }
 
     /// The pictures `page` needs drawn, in the order its slide meets them —
-    /// a gradient or photo behind it first, then each element that comes
-    /// through as a picture — named from `firstImage` as if each one draws.
-    static func media(design: Design, page: Page, firstImage: Int, styled: Bool = true) -> [MediaPart] {
+    /// a gradient or photo behind it first, then the photos letters are
+    /// full of, then each element that comes through as a picture — named
+    /// from `firstImage` as if each one draws.
+    static func media(design: Design, page: Page, firstImage: Int, styled: Bool = true,
+                      photos: PhotoLookup = .stored) -> [MediaPart] {
         var parts: [MediaPart] = []
         func add(_ source: MediaPart.Source) {
-            parts.append(MediaPart(name: fileName(firstImage + parts.count, for: source), source: source))
+            parts.append(MediaPart(name: fileName(firstImage + parts.count, for: source, photos: photos), source: source))
         }
         if case .color(_) = page.background {} else { add(.background) }
-        for el in drawnElements(design: design, page: page)
-        where form(of: el, styled: styled) == .picture && el.w > 0 && el.h > 0 {
+        let drawn = drawnElements(design: design, page: page)
+        for el in drawn where form(of: el, styled: styled) == .text {
+            if let src = pouredPhoto(el) { add(.photo(src)) }
+        }
+        for el in drawn where form(of: el, styled: styled) == .picture && el.w > 0 && el.h > 0 {
             add(.element(el))
         }
         return parts
@@ -349,13 +381,13 @@ enum PptxExporter {
 
     /// Every slide of the pages at `indices`, in order, as it is when every
     /// picture draws.
-    static func deck(design: Design, indices: [Int], styled: Bool = true) -> [SlideParts] {
+    static func deck(design: Design, indices: [Int], styled: Bool = true, photos: PhotoLookup = .stored) -> [SlideParts] {
         var slides: [SlideParts] = []
         var image = 1
         for (n, index) in indices.enumerated() {
             let previous = n > 0 ? design.pages[indices[n - 1]] : nil
             let parts = slide(design: design, page: design.pages[index], number: n + 1,
-                              previous: previous, firstImage: image, styled: styled)
+                              previous: previous, firstImage: image, styled: styled, photos: photos)
             image += parts.media.count
             slides.append(parts)
         }
@@ -365,9 +397,10 @@ enum PptxExporter {
     /// Slide `number` of the deck, showing `page`, after `previous`, as it
     /// is when every picture draws; its pictures numbered from `firstImage`.
     static func slide(design: Design, page: Page, number: Int, previous: Page?, firstImage: Int,
-                      styled: Bool = true) -> SlideParts {
+                      styled: Bool = true, photos: PhotoLookup = .stored) -> SlideParts {
         slide(design: design, page: page, number: number, previous: previous,
-              drawn: media(design: design, page: page, firstImage: firstImage, styled: styled), styled: styled)
+              drawn: media(design: design, page: page, firstImage: firstImage, styled: styled, photos: photos),
+              styled: styled, photos: photos)
     }
 
     /// Slide `number` of the deck, showing `page`, after `previous`, with
@@ -377,7 +410,7 @@ enum PptxExporter {
     /// "pptxStyledText" setting's "editable"); else as the picture of its
     /// exact look.
     static func slide(design: Design, page: Page, number: Int, previous: Page?, drawn: [MediaPart],
-                      styled: Bool = true) -> SlideParts {
+                      styled: Bool = true, photos: PhotoLookup = .stored) -> SlideParts {
         let scale = slideScale(width: design.width, height: design.height)
         let placed = fit(design: design, page: page)
         let frame = Frame(unit: scale * placed.factor, dx: placed.dx * scale, dy: placed.dy * scale)
@@ -433,7 +466,16 @@ enum PptxExporter {
             }
             switch kind {
             case .text:
-                shapes.append(textXML(el, id: id, link: link, design: design, frame: frame, rels: &rels))
+                // Letters full of a photo: the picture, cropped to the
+                // window, as the runs' fill; where the effect cannot hold
+                // it, the letters in the photo's average colour.
+                var poured: PouredPhoto?
+                if let src = pouredPhoto(el), let part = take(.photo(src)), let size = photos.size(src) {
+                    poured = PouredPhoto(embed: rels.add("image", "../media/\(part.name)"), size: size)
+                }
+                let average = el.textFill?.isPhoto == true ? el.textFill?.src.flatMap(photos.average) : nil
+                shapes.append(textXML(el, id: id, link: link, design: design, frame: frame, rels: &rels,
+                                      photo: poured, ink: average))
             case .shape(let preset):
                 shapes.append(shapeXML(el, preset: preset, id: id, link: link, frame: frame))
             case .line:
@@ -742,9 +784,18 @@ enum PptxExporter {
         return "\(family) \(FontLibrary.englishWeightNames[weight] ?? String(weight))"
     }
 
-    /// A text box, its words' links going into `rels` run by run.
+    /// The photo a text's letters are full of, as its slide holds it: its
+    /// media's relationship id, and its pixels for the window.
+    struct PouredPhoto {
+        var embed: String
+        var size: CGSize
+    }
+
+    /// A text box, its words' links going into `rels` run by run; its
+    /// letters full of `photo`, or in `ink` (the photo's average colour)
+    /// where the effect cannot hold it.
     private static func textXML(_ el: Element, id: Int, link: String?, design: Design, frame: Frame,
-                                rels: inout Relationships) -> String {
+                                rels: inout Relationships, photo: PouredPhoto? = nil, ink: String? = nil) -> String {
         // The size the canvas draws it at: fitted type at the size that fits.
         let size = FontLibrary.effectiveFontSize(for: el)
         var anchor = ""
@@ -757,7 +808,7 @@ enum PptxExporter {
         let properties = paragraphProperties(el, em: size * frame.unit)
         // What the effect, the shadow, the gradient letters and the drop cap
         // put in every run, the box's own warp and column in its body.
-        let style = styledParts(el, size: size, frame: frame)
+        let style = styledParts(el, size: size, frame: frame, photo: photo, average: ink)
         let cap: Double? = el.dropCap == true ? FontLibrary.dropCapLines : nil
         for (line, runs) in paragraphs(of: el).enumerated() {
             var content = runs.isEmpty ? "<a:endParaRPr sz=\"\(typeSize(size * frame.unit))\"/>" : ""
@@ -770,14 +821,17 @@ enum PptxExporter {
                 if let cap, line == 0, k == 0, let first = run.text.first {
                     var letter = run
                     letter.text = String(first)
-                    content += runXML(letter, el: el, size: size * cap, face: face, link: onClick, unit: frame.unit, style: style)
+                    content += runXML(letter, el: el, size: size * cap, face: face, link: onClick, unit: frame.unit,
+                                      style: style, ink: ink)
                     var rest = run
                     rest.text = String(run.text.dropFirst())
                     if rest.text.isEmpty { continue }
-                    content += runXML(rest, el: el, size: size, face: face, link: onClick, unit: frame.unit, style: style)
+                    content += runXML(rest, el: el, size: size, face: face, link: onClick, unit: frame.unit,
+                                      style: style, ink: ink)
                     continue
                 }
-                content += runXML(run, el: el, size: size, face: face, link: onClick, unit: frame.unit, style: style)
+                content += runXML(run, el: el, size: size, face: face, link: onClick, unit: frame.unit,
+                                  style: style, ink: ink)
             }
             let pPr = line < properties.count ? properties[line] : ""
             body += "<a:p>\(pPr)\(content)</a:p>"
@@ -819,8 +873,14 @@ enum PptxExporter {
     ///  - a curve: prstTxWarp textArchUp, textArchDown when negative, adj
     ///    the arc's degrees in 60000ths
     ///  - vertical: vert eaVert for CJK words, else wordArtVert
-    static func styledParts(_ el: Element, size: Double, frame: Frame) -> Styled {
-        let ink = el.color ?? "#1f2430"
+    ///  - letters full of a photo (`photo`, its media's relationship id and
+    ///    pixels): a blipFill, srcRect cropping it to the window PhotoFills
+    ///    gives (in 1000ths of a percent off each side), stretched to the
+    ///    box — where the effect takes a photo; else the letters in the
+    ///    photo's `average` colour, which is also the ink the effect draws in
+    static func styledParts(_ el: Element, size: Double, frame: Frame, photo: PouredPhoto? = nil,
+                            average: String? = nil) -> Styled {
+        let ink = average ?? el.color ?? "#1f2430"
         let effect = TextEffect.from(el.effect)
         let fx = TextEffect.resolve(el.effect, fontSize: size, ink: ink)
         let unit = frame.unit
@@ -835,6 +895,9 @@ enum PptxExporter {
         if let paint = el.textFill, paint.kind == "gradient", let stops = paint.stops, !stops.isEmpty,
            effect.takesGradient, out.fill == nil {
             out.fill = gradientFill(paint, opacity: el.opacity)
+        }
+        if let paint = el.textFill, paint.isPhoto, effect.takesPhoto, let photo, out.fill == nil {
+            out.fill = blipFill(photo.embed, size: photo.size, paint: paint, w: el.w, h: el.h)
         }
         var effects = ""
         if effect == .neon, fx.casts {
@@ -859,6 +922,23 @@ enum PptxExporter {
             out.vert = " vert=\"\(column)\""
         }
         return out
+    }
+
+    /// A photo as a run's fill: the media `embed`, cropped by srcRect to the
+    /// part of it the window shows over a `w` × `h` box (PhotoFills.window)
+    /// — each side's share cut away, in 1000ths of a percent, written only
+    /// when something is — stretched to the letters.
+    static func blipFill(_ embed: String, size: CGSize, paint: Paint, w: Double, h: Double) -> String {
+        let window = PhotoFills.window(imageW: Double(size.width), imageH: Double(size.height), boxW: w, boxH: h, paint: paint)
+        func share(_ cut: Double, _ whole: Double) -> Int {
+            whole > 0 ? max(0, Int((cut / whole * 100_000).rounded())) : 0
+        }
+        let cuts: [(String, Int)] = [
+            ("l", share(-Double(window.minX), Double(window.width))), ("t", share(-Double(window.minY), Double(window.height))),
+            ("r", share(Double(window.maxX) - w, Double(window.width))), ("b", share(Double(window.maxY) - h, Double(window.height))),
+        ].filter { $0.1 > 0 }
+        let srcRect = cuts.isEmpty ? "" : "<a:srcRect" + cuts.map { " \($0.0)=\"\($0.1)\"" }.joined() + "/>"
+        return "<a:blipFill><a:blip r:embed=\"\(embed)\"/>\(srcRect)<a:stretch><a:fillRect/></a:stretch></a:blipFill>"
     }
 
     /// A gradient over the letters: every stop, along the CSS angle the
@@ -933,7 +1013,7 @@ enum PptxExporter {
     /// styling's line before the fill, its own fill in place of the
     /// colour, and its effects after (`style`).
     private static func runXML(_ run: TextRun, el: Element, size: Double, face: String, link: String?,
-                               unit: Double, style: Styled = Styled()) -> String {
+                               unit: Double, style: Styled = Styled(), ink: String? = nil) -> String {
         var attributes = " sz=\"\(typeSize(size * (run.scale ?? 1) * unit))\""
         if run.style.bold { attributes += " b=\"1\"" }
         if run.style.italic { attributes += " i=\"1\"" }
@@ -943,7 +1023,10 @@ enum PptxExporter {
         let tracking = (el.letterSpacing ?? 0) * unit
         let spacing = tracking.isFinite ? Int((min(max(tracking, -1000), 1000) * 75).rounded()) : 0
         if spacing != 0 { attributes += " spc=\"\(spacing)\"" }
-        let paint = style.fill ?? "<a:solidFill>\(color(run.color ?? el.color ?? "#1f2430", opacity: el.opacity))</a:solidFill>"
+        // Under a photo a word's own colour is not drawn: the letters are
+        // the photo's, or its average where the effect cannot hold it.
+        let own = ink == nil ? run.color : nil
+        let paint = style.fill ?? "<a:solidFill>\(color(own ?? ink ?? el.color ?? "#1f2430", opacity: el.opacity))</a:solidFill>"
         var font = "<a:latin typeface=\"\(SVGExporter.escape(face))\"/>"
         if let link { font += "<a:hlinkClick r:id=\"\(link)\"/>" }
         let look = style.line + paint + style.effects
@@ -1054,12 +1137,13 @@ enum PptxExporter {
     /// Every entry's name in the order the file holds them when every
     /// picture draws: the package's parts, then each slide's pictures, the
     /// slide with its relationships, and its notes slide.
-    static func entryNames(design: Design, indices: [Int], styled: Bool = true) -> [String] {
+    static func entryNames(design: Design, indices: [Int], styled: Bool = true,
+                           photos: PhotoLookup = .stored) -> [String] {
         let pages = indices.map { design.pages[$0] }
         var names = packageParts(design: design, noted: pages.map(hasNotes)).map(\.name)
         var image = 1
         for (n, page) in pages.enumerated() {
-            let pictures = media(design: design, page: page, firstImage: image, styled: styled)
+            let pictures = media(design: design, page: page, firstImage: image, styled: styled, photos: photos)
             image += pictures.count
             names += pictures.map { "ppt/media/\($0.name)" }
             names += slideEntryNames(number: n + 1, notes: hasNotes(page))
@@ -1301,11 +1385,14 @@ enum PptxExporter {
     /// A picture a slide names, drawn: the page's background as a JPEG, or
     /// an element upright — the slide turns it — with its flip, opacity and
     /// shadow, at twice its size within the pixel budget, as a PNG with
-    /// room round it for what reaches past its box. Nil when it will not
-    /// draw, and the slide goes without it.
+    /// room round it for what reaches past its box; a photo in letters as
+    /// it is stored. Nil when it will not draw, and the slide goes without
+    /// it.
     @MainActor
     static func render(_ source: MediaPart.Source, design: Design, page: Page) -> Data? {
         switch source {
+        case .photo(let src):
+            return PhotoFills.stored(src)?.data
         case .background:
             let size = design.size(for: page)
             let renderer = ImageRenderer(content: PageBackgroundView(design: design, page: page))

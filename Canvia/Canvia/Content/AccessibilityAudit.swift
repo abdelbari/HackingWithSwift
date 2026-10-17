@@ -42,6 +42,9 @@ enum AccessibilityAudit {
     /// One thing found: {kind, pageIndex, elementId, message, fix}.
     typealias Finding = AccessibilityFinding
 
+    /// Said of letters full of a photo, whose contrast cannot be measured.
+    static let photoFilledNote = tr("Contrast can't be measured for photo-filled text")
+
     /// The smallest text that passes: in pixels at export size, and in
     /// points on paper for a design measured in mm, cm or inches.
     static let minTextSize = 12.0
@@ -60,6 +63,11 @@ enum AccessibilityAudit {
                                    message: tr("Hard to read: %@:1, needs %@:1", String(format: "%.1f", f.ratio),
                                                String(format: "%.1f", f.required)),
                                    fix: .fixColour, contrast: f))
+            }
+            // Letters full of a photo have no one ink to measure: said, with
+            // nothing to fix, as on the Android twin.
+            for el in shown where el.type == .text && el.textFill?.isPhoto == true && el.opacity > 0.05 {
+                out.append(Finding(kind: .contrast, pageIndex: p, elementId: el.id, message: photoFilledNote))
             }
             for el in shown where needsAltText(el) {
                 out.append(Finding(kind: .altText, pageIndex: p, elementId: el.id,

@@ -32,6 +32,15 @@ struct Paint: Codable, Equatable, Hashable {
     var scale: Double?
     /// image: a photo source, "asset:…" or "media:…", filling the shape.
     var src: String?
+    /// image: where the picture is looked at — the share of its width (and
+    /// height) that sits at the same share of the box, 0 its left (top)
+    /// edge, 1 its right (bottom); nil is half, centred — and how far into
+    /// it, 1 just covering the box, 2 showing half of it across; nil is 1.
+    /// Each written only away from its default, the same on both phones
+    /// (see PhotoFills).
+    var focusX: Double?
+    var focusY: Double?
+    var zoom: Double?
 
     static func solid(_ color: String) -> Paint {
         Paint(kind: "solid", color: color, angle: nil, stops: nil)
@@ -48,6 +57,43 @@ struct Paint: Codable, Equatable, Hashable {
 
     static func image(_ src: String) -> Paint {
         Paint(kind: "image", color: nil, angle: nil, stops: nil, pattern: nil, secondary: nil, scale: nil, src: src)
+    }
+
+    /// How far a photo fill can be zoomed in.
+    static let maxZoom = 4.0
+
+    /// A photo fill looked at `focusX`, `focusY` of the way across and
+    /// down it, `zoom` times closer than just covering its box — the keys a
+    /// photo poured into a text's letters (and a shape) carries beside
+    /// "src": "focusX", "focusY" and "zoom", each written only away from
+    /// its default (0.5, 0.5 and 1), the same on both phones.
+    static func photo(_ src: String, focusX: Double = 0.5, focusY: Double = 0.5, zoom: Double = 1) -> Paint {
+        var paint = image(src)
+        let x = min(max(focusX, 0), 1), y = min(max(focusY, 0), 1), z = min(max(zoom, 1), maxZoom)
+        paint.focusX = x == 0.5 ? nil : x
+        paint.focusY = y == 0.5 ? nil : y
+        paint.zoom = z == 1 ? nil : z
+        return paint
+    }
+
+    /// Whether this is a photo fill with a picture to show.
+    var isPhoto: Bool { kind == "image" && !(src ?? "").isEmpty }
+
+    /// Where a photo fill is looked at, each held between 0 and 1, half
+    /// where the key is missing or not a number.
+    var focus: (x: Double, y: Double) {
+        func held(_ value: Double?) -> Double {
+            guard let value, value.isFinite else { return 0.5 }
+            return min(max(value, 0), 1)
+        }
+        return (held(focusX), held(focusY))
+    }
+
+    /// How far into the picture a photo fill looks: never under 1 nor past
+    /// maxZoom, 1 where the key is missing.
+    var zoomFactor: Double {
+        guard let zoom, zoom.isFinite else { return 1 }
+        return min(max(zoom, 1), Paint.maxZoom)
     }
 
     var primaryColor: String {
