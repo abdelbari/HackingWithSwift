@@ -180,6 +180,19 @@ final class UserTemplatesTests: XCTestCase {
         XCTAssertEqual(fitted.radius ?? 0, 12, accuracy: 0.001)
     }
 
+    /// The row the Android twin's "a template of your own scales its
+    /// table's cell spacing" checks: a table's cell spacing scales with
+    /// the page it lands on, so its next relayout holds its rows.
+    func testATemplateOfYourOwnScalesItsTablesCellSpacing() {
+        var cell = Element.shape("rect", w: 400, h: 200)
+        cell.table = TableCell(id: "tbl_1", row: 0, col: 0, pad: 30)
+        var d = Design(title: "Menu", width: 1080, height: 1080)
+        d.pages = [Page(elements: [cell])]
+        let fitted = UserTemplates.pages(of: d, width: 540, height: 540)[0].elements
+        XCTAssertEqual(fitted[0].w, 200, accuracy: 0.001)
+        XCTAssertEqual(fitted[0].table?.pad ?? 0, 15, accuracy: 0.001)
+    }
+
     /// The rows the Android twin's "a template back from a backup takes its
     /// listed name and time" checks: renamed in the list, it comes back
     /// under that name, at the later time; unlisted, as it was, in Personal.
