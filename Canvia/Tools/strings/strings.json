@@ -422,6 +422,15 @@
     "ja": "%@ フレーム",
     "pt-BR": "Moldura %@"
   },
+  "%@ graphic": {
+    "ar": "رسم %@",
+    "de": "Grafik %@",
+    "es": "Gráfico %@",
+    "fr": "Graphisme %@",
+    "it": "Grafica %@",
+    "ja": "%@ のグラフィック",
+    "pt-BR": "Gráfico %@"
+  },
   "%@ heart": {
     "ar": "قلب (%@)",
     "de": "Herz (%@)",
@@ -520,6 +529,15 @@
     "it": "%@ di durata",
     "ja": "長さ %@",
     "pt-BR": "%@ de duração"
+  },
+  "%@ mockup": {
+    "ar": "نموذج عرض %@",
+    "de": "Mockup %@",
+    "es": "Maqueta de %@",
+    "fr": "Maquette %@",
+    "it": "Mockup %@",
+    "ja": "%@ のモックアップ",
+    "pt-BR": "Mockup de %@"
   },
   "%@ moon": {
     "ar": "قمر (%@)",
@@ -4004,6 +4022,15 @@
     "ja": "このバージョンのアクション",
     "pt-BR": "Ações para esta versão"
   },
+  "Activities": {
+    "ar": "الأنشطة",
+    "de": "Aktivitäten",
+    "es": "Actividades",
+    "fr": "Activités",
+    "it": "Attività",
+    "ja": "アクティビティ",
+    "pt-BR": "Atividades"
+  },
   "Actual size": {
     "ar": "الحجم الفعلي",
     "de": "Originalgröße",
@@ -4526,6 +4553,15 @@
     "ja": "スター付きに追加",
     "pt-BR": "Adicionar às estrelas"
   },
+  "Add to this design": {
+    "ar": "أضف إلى هذا التصميم",
+    "de": "Zu diesem Design hinzufügen",
+    "es": "Añadir a este diseño",
+    "fr": "Ajouter à ce design",
+    "it": "Aggiungi a questo design",
+    "ja": "このデザインに追加",
+    "pt-BR": "Adicionar a este design"
+  },
   "Add to this page": {
     "ar": "إضافة إلى هذه الصفحة",
     "de": "Zu dieser Seite hinzufügen",
@@ -4931,6 +4967,15 @@
     "ja": "円錐",
     "pt-BR": "Angular"
   },
+  "Animals & Nature": {
+    "ar": "الحيوانات والطبيعة",
+    "de": "Tiere und Natur",
+    "es": "Animales y naturaleza",
+    "fr": "Animaux et nature",
+    "it": "Animali e natura",
+    "ja": "動物と自然",
+    "pt-BR": "Animais e natureza"
+  },
   "Animate": {
     "ar": "تحريك",
     "de": "Animieren",
@@ -4993,6 +5038,15 @@
     "it": "Ogni elemento può proiettare un’ombra o un bagliore: scegli una preimpostazione o imposta tu colore, sfocatura e scostamento.",
     "ja": "どの素材にも影や光彩を付けられます。プリセットを選ぶか、色・ぼかし・オフセットを自分で設定します。",
     "pt-BR": "Qualquer elemento pode ter sombra ou brilho: escolha uma predefinição ou defina você mesmo a cor, o desfoque e o deslocamento."
+  },
+  "Apparel": {
+    "ar": "الملابس",
+    "de": "Kleidung",
+    "es": "Ropa",
+    "fr": "Vêtements",
+    "it": "Abbigliamento",
+    "ja": "アパレル",
+    "pt-BR": "Roupas"
   },
   "Appearance": {
     "ar": "المظهر",
@@ -5611,6 +5665,24 @@
     "it": "Macchia a fagiolo",
     "ja": "ビーンブロブ",
     "pt-BR": "Mancha de feijão"
+  },
+  "Beat Sync": {
+    "ar": "مزامنة الإيقاع",
+    "de": "Beat-Sync",
+    "es": "Sincronizar con el ritmo",
+    "fr": "Synchro sur le rythme",
+    "it": "Sincronizza col ritmo",
+    "ja": "ビート同期",
+    "pt-BR": "Sincronizar com a batida"
+  },
+  "Beat Sync needs a song this phone can play": {
+    "ar": "تحتاج مزامنة الإيقاع إلى أغنية يمكن لهذا الهاتف تشغيلها",
+    "de": "Beat-Sync braucht einen Song, den dieses Telefon abspielen kann",
+    "es": "La sincronización con el ritmo necesita una canción que este teléfono pueda reproducir",
+    "fr": "La synchro sur le rythme nécessite un morceau que ce téléphone peut lire",
+    "it": "La sincronizzazione col ritmo richiede un brano riproducibile su questo telefono",
+    "ja": "ビート同期には、この端末で再生できる曲が必要です",
+    "pt-BR": "A sincronização com a batida precisa de uma música que este telefone consiga reproduzir"
   },
   "Before client feedback": {
     "ar": "قبل ملاحظات العميل",
@@ -7817,6 +7889,15 @@
     "ja": "画像を作成できませんでした",
     "pt-BR": "Não foi possível criar a imagem"
   },
+  "Couldn't make the mockup": {
+    "ar": "تعذّر إنشاء نموذج العرض",
+    "de": "Das Mockup konnte nicht erstellt werden",
+    "es": "No se ha podido crear la maqueta",
+    "fr": "Impossible de créer la maquette",
+    "it": "Impossibile creare il mockup",
+    "ja": "モックアップを作成できませんでした",
+    "pt-BR": "Não foi possível criar o mockup"
+  },
   "Couldn't make the print PDF": {
     "ar": "تعذّر إنشاء PDF للطباعة",
     "de": "Die Druck-PDF konnte nicht erstellt werden",
@@ -8416,6 +8497,15 @@
     "it": "Scuro",
     "ja": "ダーク",
     "pt-BR": "Escuro"
+  },
+  "Dark skin tone": {
+    "ar": "لون بشرة داكن",
+    "de": "Dunkler Hautton",
+    "es": "Tono de piel oscuro",
+    "fr": "Teint foncé",
+    "it": "Tonalità scura",
+    "ja": "濃い肌の色",
+    "pt-BR": "Tom de pele escuro"
   },
   "Darken": {
     "ar": "تغميق",
@@ -9146,6 +9236,15 @@
     "ja": "画像を切り離す",
     "pt-BR": "Separar imagem"
   },
+  "Devices": {
+    "ar": "الأجهزة",
+    "de": "Geräte",
+    "es": "Dispositivos",
+    "fr": "Appareils",
+    "it": "Dispositivi",
+    "ja": "デバイス",
+    "pt-BR": "Dispositivos"
+  },
   "Diamond": {
     "ar": "معيّن",
     "de": "Raute",
@@ -9272,6 +9371,15 @@
     "ja": "区切り %d",
     "pt-BR": "Divisor %d"
   },
+  "Dividers": {
+    "ar": "فواصل",
+    "de": "Trennlinien",
+    "es": "Separadores",
+    "fr": "Séparateurs",
+    "it": "Divisori",
+    "ja": "区切り線",
+    "pt-BR": "Divisórias"
+  },
   "Document": {
     "ar": "المستند",
     "de": "Dokument",
@@ -9343,6 +9451,15 @@
     "it": "Ciambella",
     "ja": "ドーナツ",
     "pt-BR": "Rosca"
+  },
+  "Doodle arrows": {
+    "ar": "أسهم مرسومة",
+    "de": "Gekritzelte Pfeile",
+    "es": "Flechas a mano",
+    "fr": "Flèches dessinées",
+    "it": "Frecce a mano",
+    "ja": "手描きの矢印",
+    "pt-BR": "Setas desenhadas"
   },
   "Dot": {
     "ar": "نقطة",
@@ -10234,6 +10351,15 @@
     "it": "Bagliore di brace",
     "ja": "エンバーグロウ",
     "pt-BR": "Brilho de brasa"
+  },
+  "Emoji": {
+    "ar": "الرموز التعبيرية",
+    "de": "Emoji",
+    "es": "Emoji",
+    "fr": "Emoji",
+    "it": "Emoji",
+    "ja": "絵文字",
+    "pt-BR": "Emoji"
   },
   "Empty %@ frame": {
     "ar": "إطار %@ فارغ",
@@ -11282,6 +11408,15 @@
     "ja": "色を修正",
     "pt-BR": "Corrigir cor"
   },
+  "Flags": {
+    "ar": "الأعلام",
+    "de": "Flaggen",
+    "es": "Banderas",
+    "fr": "Drapeaux",
+    "it": "Bandiere",
+    "ja": "旗",
+    "pt-BR": "Bandeiras"
+  },
   "Flatten": {
     "ar": "تسطيح",
     "de": "Reduzieren",
@@ -12074,6 +12209,15 @@
     "ja": "ハーフトーン",
     "pt-BR": "Meio-tom"
   },
+  "Hand-drawn frames": {
+    "ar": "إطارات مرسومة",
+    "de": "Handgezeichnete Rahmen",
+    "es": "Marcos a mano",
+    "fr": "Cadres dessinés",
+    "it": "Cornici a mano",
+    "ja": "手描きのフレーム",
+    "pt-BR": "Molduras desenhadas"
+  },
   "Handwriting": {
     "ar": "الكتابة اليدوية",
     "de": "Handschrift",
@@ -12532,6 +12676,15 @@
     "it": "Home",
     "ja": "ホーム",
     "pt-BR": "Início"
+  },
+  "Home\u0004mockup": {
+    "ar": "المنزل",
+    "de": "Wohnen",
+    "es": "Hogar",
+    "fr": "Maison",
+    "it": "Casa",
+    "ja": "インテリア",
+    "pt-BR": "Casa"
   },
   "Horizontal": {
     "ar": "أفقي",
@@ -13580,6 +13733,15 @@
     "ja": "ライト",
     "pt-BR": "Luz"
   },
+  "Light skin tone": {
+    "ar": "لون بشرة فاتح",
+    "de": "Heller Hautton",
+    "es": "Tono de piel claro",
+    "fr": "Teint clair",
+    "it": "Tonalità chiara",
+    "ja": "明るい肌の色",
+    "pt-BR": "Tom de pele claro"
+  },
   "Lighten": {
     "ar": "تفتيح",
     "de": "Aufhellen",
@@ -14291,6 +14453,33 @@
     "ja": "中",
     "pt-BR": "Médio"
   },
+  "Medium skin tone": {
+    "ar": "لون بشرة متوسط",
+    "de": "Mittlerer Hautton",
+    "es": "Tono de piel medio",
+    "fr": "Teint moyen",
+    "it": "Tonalità media",
+    "ja": "中間の肌の色",
+    "pt-BR": "Tom de pele médio"
+  },
+  "Medium-dark skin tone": {
+    "ar": "لون بشرة داكن متوسط",
+    "de": "Mitteldunkler Hautton",
+    "es": "Tono de piel oscuro medio",
+    "fr": "Teint moyennement foncé",
+    "it": "Tonalità medio-scura",
+    "ja": "やや濃い肌の色",
+    "pt-BR": "Tom de pele médio-escuro"
+  },
+  "Medium-light skin tone": {
+    "ar": "لون بشرة فاتح متوسط",
+    "de": "Mittelheller Hautton",
+    "es": "Tono de piel claro medio",
+    "fr": "Teint moyennement clair",
+    "it": "Tonalità medio-chiara",
+    "ja": "やや明るい肌の色",
+    "pt-BR": "Tom de pele médio-claro"
+  },
   "Merge": {
     "ar": "دمج",
     "de": "Zusammenführen",
@@ -14425,6 +14614,33 @@
     "it": "Misto",
     "ja": "混在",
     "pt-BR": "Misto"
+  },
+  "Mockup": {
+    "ar": "نموذج عرض",
+    "de": "Mockup",
+    "es": "Maqueta",
+    "fr": "Maquette",
+    "it": "Mockup",
+    "ja": "モックアップ",
+    "pt-BR": "Mockup"
+  },
+  "Mockup of %@": {
+    "ar": "نموذج عرض لـ %@",
+    "de": "Mockup von %@",
+    "es": "Maqueta de %@",
+    "fr": "Maquette de %@",
+    "it": "Mockup di %@",
+    "ja": "%@ のモックアップ",
+    "pt-BR": "Mockup de %@"
+  },
+  "Mockups": {
+    "ar": "نماذج عرض",
+    "de": "Mockups",
+    "es": "Maquetas",
+    "fr": "Maquettes",
+    "it": "Mockup",
+    "ja": "モックアップ",
+    "pt-BR": "Mockups"
   },
   "Mode": {
     "ar": "الوضع",
@@ -14960,6 +15176,15 @@
     "ja": "「%@」を「最近削除した項目」に移動しました",
     "pt-BR": "“%@” movido para Excluídos recentemente"
   },
+  "Moves each page's cut to the nearest beat of this song.": {
+    "ar": "ينقل قطع كل صفحة إلى أقرب إيقاع في هذه الأغنية.",
+    "de": "Legt den Schnitt jeder Seite auf den nächsten Beat dieses Songs.",
+    "es": "Mueve el corte de cada página al compás más cercano de esta canción.",
+    "fr": "Place la fin de chaque page sur le temps le plus proche de ce morceau.",
+    "it": "Sposta il taglio di ogni pagina sul battito più vicino di questo brano.",
+    "ja": "各ページの切り替えを、この曲のいちばん近いビートに合わせます。",
+    "pt-BR": "Move o corte de cada página para a batida mais próxima desta música."
+  },
   "Moves faster than three times a second": {
     "ar": "يتحرك أسرع من ثلاث مرات في الثانية",
     "de": "Bewegt sich schneller als dreimal pro Sekunde",
@@ -15175,6 +15400,15 @@
     "it": "Nuovo design",
     "ja": "新しいデザイン",
     "pt-BR": "Novo design"
+  },
+  "New design from mockup": {
+    "ar": "تصميم جديد من نموذج العرض",
+    "de": "Neues Design aus dem Mockup",
+    "es": "Nuevo diseño con la maqueta",
+    "fr": "Nouveau design à partir de la maquette",
+    "it": "Nuovo design dal mockup",
+    "ja": "モックアップから新しいデザイン",
+    "pt-BR": "Novo design a partir do mockup"
   },
   "New design from shared": {
     "ar": "تصميم جديد من محتوى مُشارك",
@@ -15662,6 +15896,15 @@
     "ja": "そのファイルから取り出せる図形がありません",
     "pt-BR": "Não há forma para usar nesse arquivo"
   },
+  "No skin tone": {
+    "ar": "بلا لون بشرة",
+    "de": "Ohne Hautton",
+    "es": "Sin tono de piel",
+    "fr": "Sans teint",
+    "it": "Nessuna tonalità",
+    "ja": "肌の色なし",
+    "pt-BR": "Sem tom de pele"
+  },
   "No speech was heard.": {
     "ar": "لم يُسمع أي كلام.",
     "de": "Es wurde keine Sprache gehört.",
@@ -15931,6 +16174,15 @@
     "it": "Non c’è altro da vedere.",
     "ja": "表示するものはもうありません。",
     "pt-BR": "Não há mais nada para ver."
+  },
+  "Nothing like this yet": {
+    "ar": "لا يوجد شيء مشابه بعد",
+    "de": "Noch nichts Ähnliches",
+    "es": "Aún no hay nada parecido",
+    "fr": "Rien de semblable pour l'instant",
+    "it": "Ancora niente di simile",
+    "ja": "似たものはまだありません",
+    "pt-BR": "Ainda não há nada parecido"
   },
   "Nothing new to restore.": {
     "ar": "لا يوجد جديد لاستعادته.",
@@ -17873,6 +18125,15 @@
     "ja": "再生",
     "pt-BR": "Reproduzir"
   },
+  "Play %@": {
+    "ar": "تشغيل %@",
+    "de": "%@ abspielen",
+    "es": "Reproducir %@",
+    "fr": "Écouter %@",
+    "it": "Riproduci %@",
+    "ja": "%@ を再生",
+    "pt-BR": "Reproduzir %@"
+  },
   "Play in the editor": {
     "ar": "تشغيل في المحرر",
     "de": "Im Editor abspielen",
@@ -18211,6 +18472,15 @@
     "it": "Stampa",
     "ja": "印刷",
     "pt-BR": "Imprimir"
+  },
+  "Print\u0004mockup": {
+    "ar": "المطبوعات",
+    "de": "Druck",
+    "es": "Impresos",
+    "fr": "Imprimés",
+    "it": "Stampati",
+    "ja": "印刷物",
+    "pt-BR": "Impressos"
   },
   "Print and the print-ready PDF take %@, as chosen above.": {
     "ar": "تستخدم الطباعة وPDF الجاهز للطباعة %@، كما هو مختار أعلاه.",
@@ -19382,6 +19652,15 @@
     "ja": "リボン",
     "pt-BR": "Fita"
   },
+  "Ribbons": {
+    "ar": "أشرطة",
+    "de": "Bänder",
+    "es": "Cintas",
+    "fr": "Rubans",
+    "it": "Nastri",
+    "ja": "リボン",
+    "pt-BR": "Fitas"
+  },
   "Right": {
     "ar": "يمين",
     "de": "Rechts",
@@ -19898,6 +20177,15 @@
       "other": "%d fotos salvas"
     }
   },
+  "Saved as a new design on Home": {
+    "ar": "حُفظ كتصميم جديد في الرئيسية",
+    "de": "Als neues Design auf dem Startbildschirm gesichert",
+    "es": "Guardado como diseño nuevo en Inicio",
+    "fr": "Enregistré comme nouveau design dans l'accueil",
+    "it": "Salvato come nuovo design nella Home",
+    "ja": "ホームに新しいデザインとして保存しました",
+    "pt-BR": "Salvo como novo design no Início"
+  },
   "Saved styles": {
     "ar": "الأنماط المحفوظة",
     "de": "Gespeicherte Stile",
@@ -20033,6 +20321,15 @@
     "ja": "スクリーン",
     "pt-BR": "Tela"
   },
+  "Scribbles": {
+    "ar": "خربشات",
+    "de": "Kritzeleien",
+    "es": "Garabatos",
+    "fr": "Gribouillis",
+    "it": "Scarabocchi",
+    "ja": "落書き",
+    "pt-BR": "Rabiscos"
+  },
   "Script": {
     "ar": "خط يدوي",
     "de": "Schreibschrift",
@@ -20096,6 +20393,15 @@
     "ja": "素材を検索",
     "pt-BR": "Pesquisar elementos"
   },
+  "Search emoji": {
+    "ar": "ابحث عن رموز تعبيرية",
+    "de": "Emoji suchen",
+    "es": "Buscar emoji",
+    "fr": "Rechercher des emoji",
+    "it": "Cerca emoji",
+    "ja": "絵文字を検索",
+    "pt-BR": "Pesquisar emoji"
+  },
   "Search font combinations": {
     "ar": "البحث في تشكيلات الخطوط",
     "de": "Schriftkombinationen suchen",
@@ -20131,6 +20437,15 @@
     "it": "Cerca dimensioni, come TikTok o A4",
     "ja": "サイズを検索（TikTok、A4 など）",
     "pt-BR": "Pesquise tamanhos, como TikTok ou A4"
+  },
+  "Search sound effects": {
+    "ar": "ابحث عن مؤثرات صوتية",
+    "de": "Soundeffekte suchen",
+    "es": "Buscar efectos de sonido",
+    "fr": "Rechercher des effets sonores",
+    "it": "Cerca effetti sonori",
+    "ja": "効果音を検索",
+    "pt-BR": "Pesquisar efeitos sonoros"
   },
   "Searches the text on every page.": {
     "ar": "يبحث في نص كل صفحة.",
@@ -21212,6 +21527,15 @@
     "ja": "サイズのプリセット",
     "pt-BR": "Tamanhos predefinidos"
   },
+  "Skin tone": {
+    "ar": "لون البشرة",
+    "de": "Hautton",
+    "es": "Tono de piel",
+    "fr": "Teint",
+    "it": "Tonalità della pelle",
+    "ja": "肌の色",
+    "pt-BR": "Tom de pele"
+  },
   "Skip": {
     "ar": "تخطٍّ",
     "de": "Überspringen",
@@ -21379,6 +21703,15 @@
     "it": "Faccine",
     "ja": "表情",
     "pt-BR": "Carinhas"
+  },
+  "Smileys & People": {
+    "ar": "الوجوه والأشخاص",
+    "de": "Smileys und Personen",
+    "es": "Caras y personas",
+    "fr": "Smileys et personnes",
+    "it": "Faccine e persone",
+    "ja": "顔と人",
+    "pt-BR": "Carinhas e pessoas"
   },
   "Smooth line": {
     "ar": "خط ناعم",
@@ -21578,6 +21911,15 @@
     "ja": "%@で並べ替え",
     "pt-BR": "Ordenar por %@"
   },
+  "Sound effects": {
+    "ar": "مؤثرات صوتية",
+    "de": "Soundeffekte",
+    "es": "Efectos de sonido",
+    "fr": "Effets sonores",
+    "it": "Effetti sonori",
+    "ja": "効果音",
+    "pt-BR": "Efeitos sonoros"
+  },
   "Sound off": {
     "ar": "الصوت متوقف",
     "de": "Ton aus",
@@ -21641,6 +21983,15 @@
     "ja": "きらめき",
     "pt-BR": "Faísca"
   },
+  "Sparkles": {
+    "ar": "بريق",
+    "de": "Funkeln",
+    "es": "Destellos",
+    "fr": "Étincelles",
+    "it": "Scintille",
+    "ja": "きらめき",
+    "pt-BR": "Brilhos"
+  },
   "Speech Bubble": {
     "ar": "فقاعة كلام",
     "de": "Sprechblase",
@@ -21658,6 +22009,15 @@
     "it": "Voce ed etichette",
     "ja": "音声とラベル",
     "pt-BR": "Fala e rótulos"
+  },
+  "Speech bubbles": {
+    "ar": "فقاعات كلام",
+    "de": "Sprechblasen",
+    "es": "Bocadillos",
+    "fr": "Bulles",
+    "it": "Fumetti",
+    "ja": "吹き出し",
+    "pt-BR": "Balões de fala"
   },
   "Speech recognition is not allowed. You can turn it on in Settings.": {
     "ar": "التعرّف على الكلام غير مسموح به. يمكنك تفعيله في الإعدادات.",
@@ -21811,6 +22171,15 @@
     "it": "Aggiungi una stella a un design dal suo menu ⋯ per trovarlo qui.",
     "ja": "デザインの ⋯ メニューからスターを付けると、ここに表示されます。",
     "pt-BR": "Marque um design com estrela pelo menu ⋯ dele para encontrá-lo aqui."
+  },
+  "Starbursts & badges": {
+    "ar": "انفجارات نجمية وشارات",
+    "de": "Sterne und Siegel",
+    "es": "Estallidos e insignias",
+    "fr": "Éclats et badges",
+    "it": "Esplosioni e badge",
+    "ja": "スターバーストとバッジ",
+    "pt-BR": "Explosões e selos"
   },
   "Starred": {
     "ar": "المميّزة بنجمة",
@@ -22465,6 +22834,15 @@
     "it": "Toccane uno per cambiare solo quel colore.",
     "ja": "1 つをタップすると、その色だけを変更します。",
     "pt-BR": "Toque em uma para mudar só essa cor."
+  },
+  "Tap one to swap it in. Press and hold to add it as well.": {
+    "ar": "اضغط على أحدها لاستبداله. اضغط مطولًا لإضافته أيضًا.",
+    "de": "Tippe eines an, um es auszutauschen. Halte es gedrückt, um es zusätzlich hinzuzufügen.",
+    "es": "Toca uno para cambiarlo. Mantén pulsado para añadirlo además.",
+    "fr": "Touchez-en un pour l'échanger. Maintenez le doigt pour l'ajouter en plus.",
+    "it": "Tocca un elemento per sostituirlo. Tieni premuto per aggiungerlo.",
+    "ja": "タップで入れ替え、長押しで追加します。",
+    "pt-BR": "Toque em um para trocá-lo. Mantenha pressionado para adicioná-lo também."
   },
   "Tap something to paste the style": {
     "ar": "انقر على شيء للصق النمط",
@@ -24044,6 +24422,15 @@
     "ja": "台形",
     "pt-BR": "Trapézio"
   },
+  "Travel": {
+    "ar": "السفر",
+    "de": "Reisen",
+    "es": "Viajes",
+    "fr": "Voyages",
+    "it": "Viaggi",
+    "ja": "旅行",
+    "pt-BR": "Viagens"
+  },
   "Triadic": {
     "ar": "ثلاثية",
     "de": "Triadisch",
@@ -24323,6 +24710,15 @@
     "ja": "下線",
     "pt-BR": "Sublinhado"
   },
+  "Underlines & circles": {
+    "ar": "خطوط سفلية ودوائر",
+    "de": "Unterstreichungen und Kreise",
+    "es": "Subrayados y círculos",
+    "fr": "Soulignements et cercles",
+    "it": "Sottolineature e cerchi",
+    "ja": "下線と丸囲み",
+    "pt-BR": "Sublinhados e círculos"
+  },
   "Undo": {
     "ar": "تراجع",
     "de": "Rückgängig",
@@ -24466,6 +24862,15 @@
     "it": "Sblocca %d",
     "ja": "%d 件のロックを解除",
     "pt-BR": "Desbloquear %d"
+  },
+  "Unlock it to change it": {
+    "ar": "ألغِ قفله لتغييره",
+    "de": "Entsperre es, um es zu ändern",
+    "es": "Desbloquéalo para cambiarlo",
+    "fr": "Déverrouillez-le pour le modifier",
+    "it": "Sbloccalo per modificarlo",
+    "ja": "変更するにはロックを解除してください",
+    "pt-BR": "Desbloqueie para alterar"
   },
   "Unlock page": {
     "ar": "إلغاء قفل الصفحة",
