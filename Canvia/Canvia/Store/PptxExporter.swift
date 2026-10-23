@@ -236,7 +236,10 @@ enum PptxExporter {
     /// arrowhead, which covers a dot and half the line.
     static func margin(_ el: Element) -> Double {
         var reach = SVGExporter.overflow(el)
-        if let shadow = el.shadow { reach += shadow.blur * 1.5 + max(abs(shadow.offsetX), abs(shadow.offsetY)) }
+        if let shadow = el.shadow {
+            reach += shadow.blur * 1.5 + max(abs(shadow.offsetX), abs(shadow.offsetY))
+                + ShadowShapes.reach(of: shadow, w: el.w, h: el.h)
+        }
         if el.type == .text, TextEffect.from(el.effect) != .none {
             let size = FontLibrary.effectiveFontSize(for: el)
             reach += TextEffect.resolve(el.effect, fontSize: size, ink: el.color ?? "#1f2430").reach

@@ -74,15 +74,22 @@ enum SVGExporter {
         if !transforms.isEmpty { attributes += " transform=\"\(transforms.joined(separator: " "))\"" }
         if el.opacity < 1 { attributes += " opacity=\"\(num(el.opacity))\"" }
         attributes += BlendModes.svgStyle(el.blendMode)
+        // A styled shadow is its own path, blurred, under the element in
+        // its group; a drop shadow is a filter on the group.
+        var cast = ""
         if let shadow = el.shadow {
             let id = "shadow\(index)"
-            defs.append(shadowDef(id: id, shadow: shadow, element: el))
-            attributes += " filter=\"url(#\(id))\""
+            if let path = ShadowShapes.path(for: shadow, w: el.w, h: el.h) {
+                cast = styledShadowMarkup(path, id: id, shadow: shadow, element: el, defs: &defs)
+            } else if !ShadowShapes.isStyled(shadow) {
+                defs.append(shadowDef(id: id, shadow: shadow, element: el))
+                attributes += " filter=\"url(#\(id))\""
+            }
         }
         // An alt text becomes the group's title, which is what screen readers
         // and browsers read for an SVG element.
         let title = el.altText.map { "<title>\(escape($0))</title>" } ?? ""
-        let group = "<g\(attributes)>\(title)\(markup(el, index: index, defs: &defs))</g>"
+        let group = "<g\(attributes)>\(title)\(cast)\(markup(el, index: index, defs: &defs))</g>"
         let words = wordLinksMarkup(el, transforms: transforms)
         // A link wraps the element, so a browser follows it on a click —
         // one of the kinds a link is, never a script or a file.
@@ -126,6 +133,44 @@ enum SVGExporter {
         "<feDropShadow dx=\"\(num(shadow.offsetX))\" dy=\"\(num(shadow.offsetY))\" " +
         "stdDeviation=\"\(num(shadow.blur / 2))\" flood-color=\"\(escape(shadow.color))\" " +
         "flood-opacity=\"\(num(shadow.opacity))\"/></filter>"
+    }
+
+    /// A styled shadow (ShadowShapes) as a <path> in the shadow's colour and
+    /// opacity at the element's place and the shadow's offset, blurred by
+    /// an feGaussianBlur filter of its own — none for a backdrop, which is
+    /// not blurred — with room round the element for its reach.
+    static func styledShadowMarkup(_ path: CGPath, id: String, shadow: Shadow, element el: Element,
+                                   defs: inout [String]) -> String {
+        let blur = ShadowShapes.blur(of: shadow)
+        var filter = ""
+        if blur > 0 {
+            let pad: Double = max(64, blur * 1.5 + max(abs(shadow.offsetX), abs(shadow.offsetY))
+                                      + ShadowShapes.reach(of: shadow, w: el.w, h: el.h))
+            defs.append("<filter id=\"\(id)\" filterUnits=\"userSpaceOnUse\" x=\"\(num(el.x - pad))\" " +
+                        "y=\"\(num(el.y - pad))\" width=\"\(num(el.w + 2 * pad))\" height=\"\(num(el.h + 2 * pad))\">" +
+                        "<feGaussianBlur stdDeviation=\"\(num(blur / 2))\"/></filter>")
+            filter = " filter=\"url(#\(id))\""
+        }
+        let d = pathData(path, dx: el.x + shadow.offsetX, dy: el.y + shadow.offsetY)
+        return "<path d=\"\(d)\" fill=\"\(escape(shadow.color))\" fill-opacity=\"\(num(shadow.opacity))\"\(filter)/>"
+    }
+
+    /// `path` as SVG path data, moved by `dx`, `dy`.
+    static func pathData(_ path: CGPath, dx: Double, dy: Double) -> String {
+        var out = ""
+        func point(_ p: CGPoint) -> String { "\(num(Double(p.x) + dx)) \(num(Double(p.y) + dy))" }
+        path.applyWithBlock { element in
+            let points = element.pointee.points
+            switch element.pointee.type {
+            case .moveToPoint: out += "M\(point(points[0]))"
+            case .addLineToPoint: out += "L\(point(points[0]))"
+            case .addQuadCurveToPoint: out += "Q\(point(points[0])) \(point(points[1]))"
+            case .addCurveToPoint: out += "C\(point(points[0])) \(point(points[1])) \(point(points[2]))"
+            case .closeSubpath: out += "Z"
+            @unknown default: break
+            }
+        }
+        return out
     }
 
     @MainActor
