@@ -839,7 +839,8 @@ struct ImageElementView: View {
         // A plain code is drawn as rectangles, sharp at any size and vectors
         // in a PDF; any other picture through its look.
         let code = CodeGenerator.vector(element)
-        let picture = code == nil ? resolvedPicture() : nil
+        let barcode = code == nil ? Barcodes.vector(element) : nil
+        let picture = code == nil && barcode == nil ? resolvedPicture() : nil
         let waits = waitsForSubject()
         let later = makesLookLater()
         let resolved = picture.map {
@@ -848,6 +849,8 @@ struct ImageElementView: View {
         GeometryReader { _ in
             if let code {
                 CodeVectorView(code: code)
+            } else if let barcode {
+                BarcodeVectorView(code: barcode)
             } else if let ui = resolved {
                 let frameW = element.w, frameH = element.h
                 // Fill covers the frame and crops; fit shows the whole picture
@@ -990,6 +993,9 @@ struct ImageElementView: View {
 /// A QR code as rectangles (CodeGenerator.vector): its background, unless
 /// it has none, then its modules in its colour, in the element's own space.
 /// Shapes, not pixels, so a PDF of the page keeps them as vectors.
+/// A styled code's dots and eyes are its outline (CodeGenerator.marks),
+/// filled even-odd so the eyes' rings stay open; a logo sits on a pad of
+/// the background's colour in its middle.
 struct CodeVectorView: View {
     let code: CodeGenerator.Vector
 
@@ -998,8 +1004,55 @@ struct CodeVectorView: View {
             if let paper = code.style.background, let box = code.background {
                 Path(box).fill(Color(hex: paper))
             }
-            Path { path in path.addRects(code.modules) }
+            if code.marks.isEmpty {
+                Path { path in path.addRects(code.modules) }
+                    .fill(Color(hex: code.style.color))
+            } else {
+                Path(CodeGenerator.path(code.marks))
+                    .fill(Color(hex: code.style.color), style: FillStyle(eoFill: true))
+            }
+            if let pad = code.logoPad {
+                logo(on: pad)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func logo(on pad: CGRect) -> some View {
+        Path(pad).fill(Color(hex: code.style.background ?? CodeGenerator.defaultBackground))
+        if let src = code.style.logo, let picture = PhotoLibrary.resolve(src), let box = CodeGenerator.logoBox(pad) {
+            let shown = CodeGenerator.fitted(picture.size, in: box)
+            Image(uiImage: picture)
+                .resizable()
+                .frame(width: shown.width, height: shown.height)
+                .offset(x: shown.minX, y: shown.minY)
+        }
+    }
+}
+
+/// A barcode as rectangles (Barcodes.vector): its background, unless it
+/// has none, its bars in its colour, and its words — or why it cannot be
+/// made — under them, in the element's own space. Shapes and text, not
+/// pixels, so a PDF of the page keeps them as vectors.
+struct BarcodeVectorView: View {
+    let code: Barcodes.Drawing
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            if let paper = code.style.background, let box = code.background {
+                Path(box).fill(Color(hex: paper))
+            }
+            Path { path in path.addRects(code.bars) }
                 .fill(Color(hex: code.style.color))
+            if let words = code.caption, let box = code.captionBox {
+                Text(verbatim: words)
+                    .font(.system(size: max(1, code.fontSize)))
+                    .foregroundStyle(Color(hex: code.style.color))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.3)
+                    .frame(width: box.width, height: box.height)
+                    .offset(x: box.minX, y: box.minY)
+            }
         }
     }
 }

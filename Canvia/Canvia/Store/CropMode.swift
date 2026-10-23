@@ -41,7 +41,7 @@ extension DesignStore {
             announce(tr("This photo is locked. Tap Unlock to crop it."), undoable: false)
             return false
         }
-        if let src = photo.src, CodeGenerator.payload(from: src) != nil {
+        if CodeGenerator.isCode(photo.src) {
             announce(tr("A QR code is used whole, so it can't be cropped."), undoable: false)
             return false
         }

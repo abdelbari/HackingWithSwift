@@ -53,6 +53,15 @@
     "ja": "%@（%@ のバージョン）",
     "pt-BR": "%@ (versão de %@)"
   },
+  "%@ QR code": {
+    "ar": "رمز QR لـ %@",
+    "de": "%@-QR-Code",
+    "es": "Código QR de %@",
+    "fr": "Code QR %@",
+    "it": "Codice QR %@",
+    "ja": "%@ の QR コード",
+    "pt-BR": "Código QR de %@"
+  },
   "%@ across, %@ down": {
     "ar": "%@ عرضًا، %@ طولًا",
     "de": "%@ breit, %@ hoch",
@@ -160,6 +169,15 @@
     "it": "Banner (%@)",
     "ja": "%@のバナー",
     "pt-BR": "Faixa (%@)"
+  },
+  "%@ barcode": {
+    "ar": "رمز شريطي %@",
+    "de": "%@-Strichcode",
+    "es": "Código de barras %@",
+    "fr": "Code-barres %@",
+    "it": "Codice a barre %@",
+    "ja": "%@ バーコード",
+    "pt-BR": "Código de barras %@"
   },
   "%@ bean blob": {
     "ar": "فقاعة حبة الفول (%@)",
@@ -4211,6 +4229,15 @@
     "ja": "QR コードを追加",
     "pt-BR": "Adicionar um código QR"
   },
+  "Add a barcode": {
+    "ar": "إضافة رمز شريطي",
+    "de": "Strichcode hinzufügen",
+    "es": "Añadir un código de barras",
+    "fr": "Ajouter un code-barres",
+    "it": "Aggiungi un codice a barre",
+    "ja": "バーコードを追加",
+    "pt-BR": "Adicionar um código de barras"
+  },
   "Add a caption": {
     "ar": "إضافة تسمية توضيحية",
     "de": "Bildunterschrift hinzufügen",
@@ -4309,6 +4336,15 @@
     "it": "Aggiungi una tavolozza",
     "ja": "パレットを追加",
     "pt-BR": "Adicionar uma paleta"
+  },
+  "Add a picture or a brand logo to use it here.": {
+    "ar": "أضف صورة أو شعار علامة تجارية لاستخدامه هنا.",
+    "de": "Fügen Sie ein Bild oder ein Markenlogo hinzu, um es hier zu verwenden.",
+    "es": "Añade una imagen o un logotipo de marca para usarlo aquí.",
+    "fr": "Ajoutez une image ou un logo de marque pour l’utiliser ici.",
+    "it": "Aggiungi un’immagine o un logo del brand per usarlo qui.",
+    "ja": "画像かブランドロゴを追加すると、ここで使えます。",
+    "pt-BR": "Adicione uma imagem ou um logotipo da marca para usá-lo aqui."
   },
   "Add a picture to the design, then mark it here as a logo.": {
     "ar": "أضف صورة إلى التصميم، ثم حدّدها هنا كشعار.",
@@ -5755,6 +5791,15 @@
     "it": "Spazio tra le barre",
     "ja": "棒の間隔",
     "pt-BR": "Espaço entre barras"
+  },
+  "Barcode": {
+    "ar": "رمز شريطي",
+    "de": "Strichcode",
+    "es": "Código de barras",
+    "fr": "Code-barres",
+    "it": "Codice a barre",
+    "ja": "バーコード",
+    "pt-BR": "Código de barras"
   },
   "Basic": {
     "ar": "أساسي",
@@ -7277,6 +7322,24 @@
     "ja": "コースタル",
     "pt-BR": "Litoral"
   },
+  "Code 128 takes only the letters, digits and signs on a keyboard": {
+    "ar": "يقبل Code 128 الحروف والأرقام والرموز الموجودة على لوحة المفاتيح فقط",
+    "de": "Code 128 nimmt nur die Buchstaben, Ziffern und Zeichen einer Tastatur",
+    "es": "Code 128 solo admite las letras, cifras y signos de un teclado",
+    "fr": "Le Code 128 n’accepte que les lettres, chiffres et signes d’un clavier",
+    "it": "Il Code 128 accetta solo lettere, cifre e simboli di una tastiera",
+    "ja": "Code 128 に使えるのはキーボードの英字・数字・記号だけです",
+    "pt-BR": "O Code 128 aceita só as letras, os dígitos e os sinais de um teclado"
+  },
+  "Code 39 takes A–Z, 0–9, spaces and - . $ / + %": {
+    "ar": "يقبل Code 39 الحروف A–Z والأرقام 0–9 والمسافات و- . $ / + %",
+    "de": "Code 39 nimmt A–Z, 0–9, Leerzeichen und - . $ / + %",
+    "es": "Code 39 admite A–Z, 0–9, espacios y - . $ / + %",
+    "fr": "Le Code 39 accepte A–Z, 0–9, les espaces et - . $ / + %",
+    "it": "Il Code 39 accetta A–Z, 0–9, spazi e - . $ / + %",
+    "ja": "Code 39 に使えるのは A–Z、0–9、スペース、- . $ / + % です",
+    "pt-BR": "O Code 39 aceita A–Z, 0–9, espaços e - . $ / + %"
+  },
   "Code colour": {
     "ar": "لون الرمز",
     "de": "Codefarbe",
@@ -7555,6 +7618,15 @@
     "it": "Collegata: la freccia segue entrambe le estremità",
     "ja": "接続済み — 矢印は両端に追従します",
     "pt-BR": "Conectada — a seta acompanha as duas pontas"
+  },
+  "Contact": {
+    "ar": "جهة اتصال",
+    "de": "Kontakt",
+    "es": "Contacto",
+    "fr": "Contact",
+    "it": "Contatto",
+    "ja": "連絡先",
+    "pt-BR": "Contato"
   },
   "Continue": {
     "ar": "متابعة",
@@ -9398,6 +9470,15 @@
     "ja": "差の絶対値",
     "pt-BR": "Diferença"
   },
+  "Digits": {
+    "ar": "الأرقام",
+    "de": "Ziffern",
+    "es": "Cifras",
+    "fr": "Chiffres",
+    "it": "Cifre",
+    "ja": "数字",
+    "pt-BR": "Dígitos"
+  },
   "Direction": {
     "ar": "الاتجاه",
     "de": "Richtung",
@@ -10082,6 +10163,24 @@
     "ja": "ダッチ",
     "pt-BR": "Holandês"
   },
+  "EAN-13 and UPC-A take digits, their check digit worked out for you; Code 128 and Code 39 take words too.": {
+    "ar": "يقبل EAN-13 وUPC-A الأرقام مع حساب رقم التحقق تلقائيًا، ويقبل Code 128 وCode 39 الكلمات أيضًا.",
+    "de": "EAN-13 und UPC-A nehmen Ziffern, die Prüfziffer wird berechnet; Code 128 und Code 39 nehmen auch Wörter.",
+    "es": "EAN-13 y UPC-A admiten cifras y calculan su dígito de control; Code 128 y Code 39 también admiten palabras.",
+    "fr": "EAN-13 et UPC-A acceptent des chiffres, leur clé de contrôle calculée pour vous ; Code 128 et Code 39 acceptent aussi des mots.",
+    "it": "EAN-13 e UPC-A accettano cifre e calcolano la cifra di controllo; Code 128 e Code 39 accettano anche parole.",
+    "ja": "EAN-13 と UPC-A は数字を使い、チェックデジットは自動で計算されます。Code 128 と Code 39 は文字も使えます。",
+    "pt-BR": "EAN-13 e UPC-A aceitam dígitos, com o dígito verificador calculado para você; Code 128 e Code 39 aceitam palavras também."
+  },
+  "EAN-13 needs 12 or 13 digits": {
+    "ar": "يحتاج EAN-13 إلى 12 أو 13 رقمًا",
+    "de": "EAN-13 braucht 12 oder 13 Ziffern",
+    "es": "EAN-13 necesita 12 o 13 cifras",
+    "fr": "EAN-13 demande 12 ou 13 chiffres",
+    "it": "EAN-13 richiede 12 o 13 cifre",
+    "ja": "EAN-13 には 12 桁か 13 桁の数字が必要です",
+    "pt-BR": "EAN-13 precisa de 12 ou 13 dígitos"
+  },
   "Each one goes on a new page after this one. Hold one to use it on this page instead.": {
     "ar": "يُضاف كل قالب في صفحة جديدة بعد هذه الصفحة. اضغط مطولًا على أحدها لاستخدامه في هذه الصفحة بدلًا من ذلك.",
     "de": "Jede kommt auf eine neue Seite nach dieser. Halte eine gedrückt, um sie stattdessen auf dieser Seite zu verwenden.",
@@ -10478,6 +10577,15 @@
     "ja": "細長いブロブ",
     "pt-BR": "Mancha alongada"
   },
+  "Email": {
+    "ar": "البريد الإلكتروني",
+    "de": "E-Mail",
+    "es": "Correo electrónico",
+    "fr": "E-mail",
+    "it": "Email",
+    "ja": "メール",
+    "pt-BR": "E-mail"
+  },
   "Ember Glow": {
     "ar": "توهّج الجمر",
     "de": "Glut",
@@ -10804,6 +10912,15 @@
     "it": "Cancellazione",
     "ja": "消去中",
     "pt-BR": "Apagando"
+  },
+  "Error correction": {
+    "ar": "تصحيح الأخطاء",
+    "de": "Fehlerkorrektur",
+    "es": "Corrección de errores",
+    "fr": "Correction d’erreurs",
+    "it": "Correzione degli errori",
+    "ja": "誤り訂正",
+    "pt-BR": "Correção de erros"
   },
   "Event": {
     "ar": "فعالية",
@@ -11165,6 +11282,15 @@
     "ja": "スポイト",
     "pt-BR": "Conta-gotas"
   },
+  "Eyes": {
+    "ar": "العيون",
+    "de": "Augen",
+    "es": "Ojos",
+    "fr": "Yeux",
+    "it": "Occhi",
+    "ja": "目（位置検出）",
+    "pt-BR": "Olhos"
+  },
   "Fade": {
     "ar": "تلاشٍ",
     "de": "Verblassen",
@@ -11425,6 +11551,15 @@
     "it": "Esportazioni completate",
     "ja": "完了した書き出し",
     "pt-BR": "Exportações concluídas"
+  },
+  "First name": {
+    "ar": "الاسم الأول",
+    "de": "Vorname",
+    "es": "Nombre",
+    "fr": "Prénom",
+    "it": "Nome",
+    "ja": "名",
+    "pt-BR": "Nome"
   },
   "First page": {
     "ar": "الصفحة الأولى",
@@ -12532,6 +12667,15 @@
     "it": "Nascosto",
     "ja": "非表示",
     "pt-BR": "Oculto"
+  },
+  "Hidden network": {
+    "ar": "شبكة مخفية",
+    "de": "Verborgenes Netzwerk",
+    "es": "Red oculta",
+    "fr": "Réseau masqué",
+    "it": "Rete nascosta",
+    "ja": "非公開ネットワーク",
+    "pt-BR": "Rede oculta"
   },
   "Hide": {
     "ar": "إخفاء",
@@ -13679,6 +13823,15 @@
     "ja": "最終編集",
     "pt-BR": "Última edição"
   },
+  "Last name": {
+    "ar": "اسم العائلة",
+    "de": "Nachname",
+    "es": "Apellido",
+    "fr": "Nom",
+    "it": "Cognome",
+    "ja": "姓",
+    "pt-BR": "Sobrenome"
+  },
   "Last page": {
     "ar": "الصفحة الأخيرة",
     "de": "Letzte Seite",
@@ -14138,6 +14291,15 @@
     "ja": "ロック中",
     "pt-BR": "Bloqueado"
   },
+  "Logo": {
+    "ar": "الشعار",
+    "de": "Logo",
+    "es": "Logotipo",
+    "fr": "Logo",
+    "it": "Logo",
+    "ja": "ロゴ",
+    "pt-BR": "Logotipo"
+  },
   "Logo %d of %d": {
     "ar": "الشعار %d من %d",
     "de": "Logo %d von %d",
@@ -14146,6 +14308,15 @@
     "it": "Logo %d di %d",
     "ja": "ロゴ %d / %d",
     "pt-BR": "Logotipo %d de %d"
+  },
+  "Logo too large": {
+    "ar": "الشعار كبير جدًا",
+    "de": "Logo zu groß",
+    "es": "Logotipo demasiado grande",
+    "fr": "Logo trop grand",
+    "it": "Logo troppo grande",
+    "ja": "ロゴが大きすぎます",
+    "pt-BR": "Logotipo grande demais"
   },
   "Logos": {
     "ar": "الشعارات",
@@ -14218,6 +14389,15 @@
     "it": "Ripeti fino alla fine",
     "ja": "最後までループ",
     "pt-BR": "Repetir até o fim"
+  },
+  "Low contrast dots": {
+    "ar": "نقاط منخفضة التباين",
+    "de": "Punkte mit wenig Kontrast",
+    "es": "Puntos con poco contraste",
+    "fr": "Points peu contrastés",
+    "it": "Punti a basso contrasto",
+    "ja": "コントラストの低いドット",
+    "pt-BR": "Pontos com pouco contraste"
   },
   "Luminosity": {
     "ar": "الإضاءة",
@@ -14632,6 +14812,15 @@
     "it": "Unire in “%@”?",
     "ja": "「%@」に結合しますか？",
     "pt-BR": "Mesclar em “%@”?"
+  },
+  "Message": {
+    "ar": "الرسالة",
+    "de": "Nachricht",
+    "es": "Mensaje",
+    "fr": "Message",
+    "it": "Messaggio",
+    "ja": "メッセージ",
+    "pt-BR": "Mensagem"
   },
   "Microphone access is off": {
     "ar": "الوصول إلى الميكروفون متوقف",
@@ -15455,6 +15644,15 @@
     "ja": "ネオン",
     "pt-BR": "Neon"
   },
+  "Network name": {
+    "ar": "اسم الشبكة",
+    "de": "Netzwerkname",
+    "es": "Nombre de la red",
+    "fr": "Nom du réseau",
+    "it": "Nome della rete",
+    "ja": "ネットワーク名",
+    "pt-BR": "Nome da rede"
+  },
   "New Design": {
     "ar": "تصميم جديد",
     "de": "Neues Design",
@@ -15940,6 +16138,15 @@
     "it": "Nessuna pagina scelta",
     "ja": "ページが選択されていません",
     "pt-BR": "Nenhuma página escolhida"
+  },
+  "No password": {
+    "ar": "بلا كلمة مرور",
+    "de": "Kein Passwort",
+    "es": "Sin contraseña",
+    "fr": "Sans mot de passe",
+    "it": "Nessuna password",
+    "ja": "パスワードなし",
+    "pt-BR": "Sem senha"
   },
   "No results for “%@”": {
     "ar": "لا توجد نتائج لـ «%@»",
@@ -16598,6 +16805,15 @@
     "ja": "さらに上へ微調整",
     "pt-BR": "Ajustar mais para cima"
   },
+  "Number": {
+    "ar": "الرقم",
+    "de": "Nummer",
+    "es": "Número",
+    "fr": "Numéro",
+    "it": "Numero",
+    "ja": "番号",
+    "pt-BR": "Número"
+  },
   "Numbered list": {
     "ar": "قائمة مرقّمة",
     "de": "Nummerierte Liste",
@@ -17074,6 +17290,15 @@
     "it": "Arancione",
     "ja": "オレンジ",
     "pt-BR": "Laranja"
+  },
+  "Organisation": {
+    "ar": "المؤسسة",
+    "de": "Organisation",
+    "es": "Organización",
+    "fr": "Organisation",
+    "it": "Organizzazione",
+    "ja": "組織",
+    "pt-BR": "Organização"
   },
   "Organise pages…": {
     "ar": "تنظيم الصفحات…",
@@ -17638,6 +17863,15 @@
     "it": "Parte",
     "ja": "一部",
     "pt-BR": "Parte"
+  },
+  "Password": {
+    "ar": "كلمة المرور",
+    "de": "Passwort",
+    "es": "Contraseña",
+    "fr": "Mot de passe",
+    "it": "Password",
+    "ja": "パスワード",
+    "pt-BR": "Senha"
   },
   "Paste": {
     "ar": "لصق",
@@ -18706,6 +18940,15 @@
     "it": "Spingi",
     "ja": "プッシュ",
     "pt-BR": "Empurrar"
+  },
+  "Put in the middle of the code": {
+    "ar": "وضعه في منتصف الرمز",
+    "de": "In die Mitte des Codes setzen",
+    "es": "Poner en el centro del código",
+    "fr": "Placer au centre du code",
+    "it": "Metti al centro del codice",
+    "ja": "コードの中央に置く",
+    "pt-BR": "Colocar no meio do código"
   },
   "QR code": {
     "ar": "رمز QR",
@@ -19922,6 +20165,15 @@
     "ja": "角を丸くする",
     "pt-BR": "Cantos arredondados"
   },
+  "Rounded": {
+    "ar": "مستدير الحواف",
+    "de": "Abgerundet",
+    "es": "Redondeado",
+    "fr": "Arrondi",
+    "it": "Arrotondato",
+    "ja": "角丸",
+    "pt-BR": "Arredondado"
+  },
   "Rounded bars": {
     "ar": "أعمدة مستديرة",
     "de": "Abgerundete Balken",
@@ -20011,6 +20263,15 @@
     "it": "Curva a S",
     "ja": "S 字カーブ",
     "pt-BR": "Curva em S"
+  },
+  "SMS": {
+    "ar": "رسالة نصية",
+    "de": "SMS",
+    "es": "SMS",
+    "fr": "SMS",
+    "it": "SMS",
+    "ja": "SMS",
+    "pt-BR": "SMS"
   },
   "Sale": {
     "ar": "تخفيضات",
@@ -22673,6 +22934,15 @@
     "ja": "小見出し",
     "pt-BR": "Subtítulo"
   },
+  "Subject": {
+    "ar": "الموضوع",
+    "de": "Betreff",
+    "es": "Asunto",
+    "fr": "Objet",
+    "it": "Oggetto",
+    "ja": "件名",
+    "pt-BR": "Assunto"
+  },
   "Suffix": {
     "ar": "لاحقة",
     "de": "Suffix",
@@ -23249,6 +23519,15 @@
     "ja": "QR コードには長すぎます。",
     "pt-BR": "É longo demais para um código QR."
   },
+  "That is too long for a barcode": {
+    "ar": "هذا أطول من أن يتسع له رمز شريطي",
+    "de": "Das ist zu lang für einen Strichcode",
+    "es": "Es demasiado largo para un código de barras",
+    "fr": "C’est trop long pour un code-barres",
+    "it": "È troppo lungo per un codice a barre",
+    "ja": "バーコードには長すぎます",
+    "pt-BR": "Isso é longo demais para um código de barras"
+  },
   "That version could not be opened.": {
     "ar": "تعذّر فتح ذلك الإصدار.",
     "de": "Diese Version konnte nicht geöffnet werden.",
@@ -23341,6 +23620,15 @@
     "it": "La barra in basso mostra ogni pagina. Aggiungi, duplica, riordina, copia e incolla pagine (anche in un altro design), tieni note su una pagina e apri l’organizzatore per gestirne molte insieme.",
     "ja": "下部のバーにすべてのページが表示されます。ページの追加、複製、並べ替え、コピー、貼り付け（別のデザインへも可能）、ページへのノートの記入ができ、整理画面を開くと多数のページをまとめて管理できます。",
     "pt-BR": "A barra embaixo mostra todas as páginas. Adicione, duplique, reordene, copie e cole páginas (até em outro design), faça anotações em uma página e abra o organizador para gerenciar várias de uma vez."
+  },
+  "The check digit should be %@": {
+    "ar": "يجب أن يكون رقم التحقق %@",
+    "de": "Die Prüfziffer müsste %@ sein",
+    "es": "El dígito de control debería ser %@",
+    "fr": "La clé de contrôle devrait être %@",
+    "it": "La cifra di controllo dovrebbe essere %@",
+    "ja": "チェックデジットは %@ のはずです",
+    "pt-BR": "O dígito verificador deveria ser %@"
   },
   "The code on the page changes as you type.": {
     "ar": "يتغيّر الرمز في الصفحة أثناء الكتابة.",
@@ -24278,6 +24566,15 @@
     "ja": "タイトル",
     "pt-BR": "Título"
   },
+  "To": {
+    "ar": "إلى",
+    "de": "An",
+    "es": "Para",
+    "fr": "À",
+    "it": "A",
+    "ja": "宛先",
+    "pt-BR": "Para"
+  },
   "To back": {
     "ar": "إلى الخلف",
     "de": "Nach hinten",
@@ -24719,6 +25016,15 @@
     "ja": "文字サイズ",
     "pt-BR": "Tamanho da fonte"
   },
+  "Type something to encode": {
+    "ar": "اكتب شيئًا لترميزه",
+    "de": "Geben Sie etwas zum Codieren ein",
+    "es": "Escribe algo para codificar",
+    "fr": "Saisissez quelque chose à coder",
+    "it": "Scrivi qualcosa da codificare",
+    "ja": "コードにする文字を入力してください",
+    "pt-BR": "Digite algo para codificar"
+  },
   "Type the words to look for.": {
     "ar": "اكتب الكلمات المراد البحث عنها.",
     "de": "Gib die gesuchten Wörter ein.",
@@ -24736,6 +25042,15 @@
     "it": "Macchina da scrivere",
     "ja": "タイプライター",
     "pt-BR": "Máquina de escrever"
+  },
+  "UPC-A needs 11 or 12 digits": {
+    "ar": "يحتاج UPC-A إلى 11 أو 12 رقمًا",
+    "de": "UPC-A braucht 11 oder 12 Ziffern",
+    "es": "UPC-A necesita 11 o 12 cifras",
+    "fr": "UPC-A demande 11 ou 12 chiffres",
+    "it": "UPC-A richiede 11 o 12 cifre",
+    "ja": "UPC-A には 11 桁か 12 桁の数字が必要です",
+    "pt-BR": "UPC-A precisa de 11 ou 12 dígitos"
   },
   "US Letter": {
     "ar": "US Letter",
@@ -25676,6 +25991,15 @@
     "ja": "ウェブアドレス、メール、電話番号",
     "pt-BR": "Endereço da web, e-mail ou telefone"
   },
+  "Website": {
+    "ar": "الموقع الإلكتروني",
+    "de": "Website",
+    "es": "Sitio web",
+    "fr": "Site web",
+    "it": "Sito web",
+    "ja": "ウェブサイト",
+    "pt-BR": "Site"
+  },
   "Wedding": {
     "ar": "زفاف",
     "de": "Hochzeit",
@@ -25847,6 +26171,15 @@
     "ja": "単語単位",
     "pt-BR": "Palavras inteiras"
   },
+  "Wi-Fi": {
+    "ar": "Wi-Fi",
+    "de": "WLAN",
+    "es": "Wi-Fi",
+    "fr": "Wi-Fi",
+    "it": "Wi-Fi",
+    "ja": "Wi-Fi",
+    "pt-BR": "Wi-Fi"
+  },
   "Width": {
     "ar": "العرض",
     "de": "Breite",
@@ -25945,6 +26278,15 @@
     "it": "Le parole stanno dentro la forma. Aggiungi parole qui, o tocca due volte la forma, per scriverle sopra.",
     "ja": "文字は図形の中に配置されます。ここで文字を追加するか、図形をダブルタップして入力してください。",
     "pt-BR": "As palavras ficam dentro da forma. Adicione palavras aqui, ou toque duas vezes na forma, para digitá-las nela."
+  },
+  "Words under the bars": {
+    "ar": "النص أسفل الأشرطة",
+    "de": "Text unter den Balken",
+    "es": "Texto bajo las barras",
+    "fr": "Texte sous les barres",
+    "it": "Testo sotto le barre",
+    "ja": "バーの下に文字",
+    "pt-BR": "Texto sob as barras"
   },
   "Wrap words in **two stars** for bold, *one star* for italic, __two underscores__ for underline and ~~two tildes~~ to strike them through. The rest of the box keeps its own style.": {
     "ar": "أحِط الكلمات بـ **نجمتين** للغامق، و*نجمة واحدة* للمائل، و__شرطتين سفليتين__ للتسطير، و~~علامتي تلدة~~ ليتوسطها خط. يحتفظ باقي المربع بنمطه الخاص.",

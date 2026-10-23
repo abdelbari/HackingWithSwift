@@ -22,7 +22,7 @@ enum PhotoPalette {
         var out: [String] = []
         if case .image(let src) = page.background { out.append(src) }
         for el in page.elements where el.type == .image {
-            guard let src = el.src, CodeGenerator.payload(from: src) == nil else { continue }
+            guard let src = el.src, !CodeGenerator.isCode(src) else { continue }
             out.append(src)
         }
         var seen = Set<String>()

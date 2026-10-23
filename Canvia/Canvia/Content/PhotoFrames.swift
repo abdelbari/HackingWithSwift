@@ -28,7 +28,7 @@ enum PhotoFrames {
 
     /// Whether `el` is a code, whose source is its payload.
     private static func isCode(_ el: Element) -> Bool {
-        CodeGenerator.payload(from: el.src ?? "") != nil
+        CodeGenerator.isCode(el.src)
     }
 
     /// A frame with no picture in it yet.
@@ -41,7 +41,7 @@ enum PhotoFrames {
     /// code no longer scans — nor an empty frame, which has nothing to give.
     static func canDrop(_ el: Element) -> Bool {
         guard el.type == .image, !el.locked, let src = el.src, !src.isEmpty else { return false }
-        return CodeGenerator.payload(from: src) == nil
+        return !CodeGenerator.isCode(src)
     }
 
     /// The topmost frame under `point`, never `excluding` — the thing being

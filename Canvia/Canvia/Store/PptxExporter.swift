@@ -224,8 +224,13 @@ enum PptxExporter {
             return .line
         case .image:
             // A code drawn in its colours alone, and not flipped, goes out
-            // as rectangles; any other photo as its picture.
-            return !flipped && CodeGenerator.vector(el) != nil ? .code : .picture
+            // as rectangles — a barcode with its words — and a QR code with
+            // a logo as the picture the canvas draws, the logo in it, as on
+            // the Android twin; any other photo as its picture.
+            if flipped { return .picture }
+            if Barcodes.vector(el) != nil { return .code }
+            if let code = CodeGenerator.vector(el), code.logoPad == nil { return .code }
+            return .picture
         case .sticker:
             return .picture
         }
@@ -484,6 +489,11 @@ enum PptxExporter {
             case .line:
                 shapes.append(lineXML(el, id: id, link: link, frame: frame))
             case .code:
+                if let bars = Barcodes.vector(el) {
+                    shapes.append(contentsOf: barcodeXML(el, bars, id: id, nextId: &nextId, link: link, design: design,
+                                                         frame: frame, rels: &rels))
+                    continue
+                }
                 guard let code = CodeGenerator.vector(el) else { continue }
                 // Its background first, a shape of its own under the
                 // modules, which carry the element's name and link.
@@ -497,6 +507,10 @@ enum PptxExporter {
                 if !code.modules.isEmpty {
                     shapes.append(rectanglesXML(el, properties: cNvPr(el, id: modulesId, link: link),
                                                 rects: code.modules, colour: code.style.color, frame: frame))
+                }
+                if !code.marks.isEmpty {
+                    shapes.append(outlineXML(el, properties: cNvPr(el, id: modulesId, link: link),
+                                             steps: code.marks, colour: code.style.color, frame: frame))
                 }
             case .picture:
                 let embed = rels.add("image", "../media/\(picture?.name ?? "")")
@@ -607,6 +621,59 @@ enum PptxExporter {
             path += "<a:moveTo>\(pt(x0, y0))</a:moveTo>"
             path += "<a:lnTo>\(pt(x1, y0))</a:lnTo><a:lnTo>\(pt(x1, y1))</a:lnTo><a:lnTo>\(pt(x0, y1))</a:lnTo>"
             path += "<a:close/>"
+        }
+        path += "</a:path>"
+        let geometry = "<a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l=\"0\" t=\"0\" r=\"r\" b=\"b\"/>" +
+            "<a:pathLst>\(path)</a:pathLst></a:custGeom>"
+        let paint = "<a:solidFill>\(color(colour, opacity: el.opacity))</a:solidFill><a:ln><a:noFill/></a:ln>"
+        let shape = "<p:nvSpPr>\(properties)<p:cNvSpPr/><p:nvPr/></p:nvSpPr>"
+        return "<p:sp>\(shape)<p:spPr>\(elementBox(el, frame: frame))\(geometry)\(paint)</p:spPr></p:sp>"
+    }
+
+    /// A barcode's shapes: its background, a shape of its own under the
+    /// bars, the bars, which carry the element's name and link, and its
+    /// words, a text box of their own turned with it — as the Android twin
+    /// writes them.
+    private static func barcodeXML(_ el: Element, _ bars: Barcodes.Drawing, id: Int, nextId: inout Int, link: String?,
+                                   design: Design, frame: Frame, rels: inout Relationships) -> [String] {
+        var out: [String] = []
+        var barsId = id
+        if let paper = bars.style.background, let box = bars.background {
+            let properties = "<p:cNvPr id=\"\(id)\" name=\"\(SVGExporter.escape(el.id)) background\"/>"
+            out.append(rectanglesXML(el, properties: properties, rects: [box], colour: paper, frame: frame))
+            barsId = nextId
+            nextId += 1
+        }
+        if !bars.bars.isEmpty {
+            out.append(rectanglesXML(el, properties: cNvPr(el, id: barsId, link: link), rects: bars.bars,
+                                     colour: bars.style.color, frame: frame))
+        }
+        if let words = Barcodes.captionElement(el, bars, onPage: true) {
+            out.append(textXML(words, id: nextId, link: nil, design: design, frame: frame, rels: &rels))
+            nextId += 1
+        }
+        return out
+    }
+
+    /// `steps` (CodeGenerator.outline), in `el`'s own space, as one
+    /// free-form shape on its box as rectanglesXML writes one: a styled QR
+    /// code's dots and eyes, curves as cubics, each eye's hole wound against
+    /// its ring.
+    private static func outlineXML(_ el: Element, properties: String, steps: [CodeGenerator.Step], colour: String,
+                                   frame: Frame) -> String {
+        let w = max(1, emu(el.w * frame.unit))
+        let h = max(1, emu(el.h * frame.unit))
+        func pt(_ p: CGPoint) -> String {
+            "<a:pt x=\"\(emu(Double(p.x) * frame.unit))\" y=\"\(emu(Double(p.y) * frame.unit))\"/>"
+        }
+        var path = "<a:path w=\"\(w)\" h=\"\(h)\">"
+        for step in steps {
+            switch step {
+            case .move(let p): path += "<a:moveTo>\(pt(p))</a:moveTo>"
+            case .line(let p): path += "<a:lnTo>\(pt(p))</a:lnTo>"
+            case .cubic(let a, let b, let p): path += "<a:cubicBezTo>\(pt(a))\(pt(b))\(pt(p))</a:cubicBezTo>"
+            case .close: path += "<a:close/>"
+            }
         }
         path += "</a:path>"
         let geometry = "<a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l=\"0\" t=\"0\" r=\"r\" b=\"b\"/>" +

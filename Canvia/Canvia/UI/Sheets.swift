@@ -561,7 +561,7 @@ struct FiltersSheet: View {
     /// A code has to stay crisp to scan: no effects for it, and no Auto
     /// adjust, as it is black and white already.
     private var isCode: Bool {
-        CodeGenerator.payload(from: store.singleSelection?.src ?? "") != nil
+        CodeGenerator.isCode(store.singleSelection?.src)
     }
 
     var body: some View {

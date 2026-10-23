@@ -495,6 +495,30 @@ struct GridCell: Codable, Equatable, Hashable {
 /// `roundBars`; a line's `lineWidth` (1 to 12, scaled by the frame) and its
 /// `points`; and the `icon` a pictogram is drawn in, an Icons.json id,
 /// "person" — not written — when it has none.
+/// A QR code's form as kept: its type ("wifi", "contact"…) and what is
+/// typed in each of its fields, by the fields' keys — the Android twin's
+/// `qrForm` object, `{type, fields}`. Read tolerantly: a field that is no
+/// words is left out; a type this build does not know is kept as it is and
+/// opens no form (QRForms.form(of:)).
+struct QRFormFields: Codable, Equatable {
+    var type: String
+    var fields: [String: String]
+
+    private enum CodingKeys: String, CodingKey { case type, fields }
+
+    init(type: String, fields: [String: String]) {
+        self.type = type
+        self.fields = fields
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        type = try c.decode(String.self, forKey: .type)
+        let raw = (try? c.decodeIfPresent([String: Lossy<String>].self, forKey: .fields)) ?? nil
+        fields = (raw ?? [:]).compactMapValues(\.value)
+    }
+}
+
 struct ChartSpec: Codable, Equatable, Hashable {
     /// "chart_<uid>", shared by every element of the chart.
     var id: String
@@ -847,6 +871,21 @@ struct Element: Codable, Equatable, Identifiable {
     var qrColor: String?
     var qrBackground: String?
     var qrMargin: Int?
+    /// A QR code's dots' shape ("round", "rounded"), its finder eyes'
+    /// ("rounded", "circle"), a logo in its middle (an image src) and its
+    /// error correction level ("L", "Q", "H"): each nil at its default —
+    /// square, square, none, M — and H whenever there is a logo; written
+    /// only when not the default, as on the Android twin (CodeGenerator.Look).
+    var qrDots: String?
+    var qrEyes: String?
+    var qrLogo: String?
+    var qrEc: String?
+    /// A barcode's words under its bars: never true — nil is shown — so
+    /// written only when false (Barcodes).
+    var barcodeText: Bool?
+    /// The form a QR code was made from, kept beside its payload only so it
+    /// opens again filled in (QRForms); nil for a code typed as it is.
+    var qrForm: QRFormFields?
 
     // sticker
     var glyph: String?
@@ -989,6 +1028,12 @@ struct Element: Codable, Equatable, Identifiable {
         qrColor = (try? c.decode(String.self, forKey: .qrColor)).flatMap(CodeGenerator.keptColor)
         qrBackground = (try? c.decode(String.self, forKey: .qrBackground)).flatMap(CodeGenerator.keptBackground)
         qrMargin = (try? c.decode(Double.self, forKey: .qrMargin)).flatMap(CodeGenerator.keptMargin)
+        qrDots = (try? c.decode(String.self, forKey: .qrDots)).flatMap { CodeGenerator.kept($0, among: CodeGenerator.dotShapes) }
+        qrEyes = (try? c.decode(String.self, forKey: .qrEyes)).flatMap { CodeGenerator.kept($0, among: CodeGenerator.eyeShapes) }
+        qrLogo = (try? c.decode(String.self, forKey: .qrLogo)).flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0 }
+        qrEc = (try? c.decode(String.self, forKey: .qrEc)).flatMap { $0 == CodeGenerator.defaultLevel || !CodeGenerator.levels.contains($0) ? nil : $0 }
+        barcodeText = (try? c.decode(Bool.self, forKey: .barcodeText)) == false ? false : nil
+        qrForm = try? c.decode(QRFormFields.self, forKey: .qrForm)
         glyph = try? c.decode(String.self, forKey: .glyph)
         thickness = try? c.decode(Double.self, forKey: .thickness)
         dash = try? c.decode(String.self, forKey: .dash)
@@ -1028,7 +1073,7 @@ struct Element: Codable, Equatable, Identifiable {
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns, timing
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit, clip
         case filterStrength, pixelate, focusBlur, edge, fx, mask, retouch
-        case qrColor, qrBackground, qrMargin
+        case qrColor, qrBackground, qrMargin, qrDots, qrEyes, qrLogo, qrEc, barcodeText, qrForm
         case glyph
         case thickness, dash, startCap, endCap
         case lineType, ends, bend

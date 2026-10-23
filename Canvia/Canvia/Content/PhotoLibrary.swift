@@ -75,6 +75,11 @@ enum PhotoLibrary {
         if VideoStore.isVideo(src) { return VideoStore.resolve(src) }
         if AnimStore.isAnim(src) { return AnimStore.resolve(src) }
         if let payload = CodeGenerator.payload(from: src) { return CodeGenerator.qr(payload) }
+        // A barcode drawn at the size a new one has on a 1080 page.
+        if Barcodes.isBarcode(src) {
+            let size = Barcodes.newSize(1080)
+            return Barcodes.picture(of: .image(src, w: size.width, h: size.height))
+        }
         return nil
     }
 

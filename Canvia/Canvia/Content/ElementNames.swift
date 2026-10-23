@@ -49,7 +49,12 @@ enum ElementNames {
         case .image:
             let shape = ContentLibrary.frameShape(el.maskShapeId)
             let frame = shape.map { tr(englishNoun($0)) }
-            if let src = el.src, CodeGenerator.payload(from: src) != nil { return tr("QR code") }
+            // Named for what it holds, as its sheet names it: "Wi-Fi QR
+            // code", "EAN-13 barcode".
+            if let src = el.src, CodeGenerator.payload(from: src) != nil {
+                return QRForms.form(of: el).map { tr("%@ QR code", $0.kind.name) } ?? tr("QR code")
+            }
+            if let code = Barcodes.parse(el.src) { return tr("%@ barcode", code.kind.name) }
             // A letter frame is named for its glyph, as its tile is: "Empty
             // A letter frame", the same on both phones.
             if let glyph = GlyphFrames.frame(shape?.id)?.glyph {

@@ -41,7 +41,7 @@ enum FillChoices {
         var out = PhotoLibrary.photos.prefix(builtInPhotoFills).map { "asset:\($0.id)" }
         for page in design.pages {
             for el in page.elements where el.type == .image {
-                guard let src = el.src, CodeGenerator.payload(from: src) == nil, !out.contains(src) else { continue }
+                guard let src = el.src, !CodeGenerator.isCode(src), !out.contains(src) else { continue }
                 out.append(src)
             }
         }
