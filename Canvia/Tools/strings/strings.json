@@ -863,6 +863,15 @@
     "ja": "幅 %@、高さ %@",
     "pt-BR": "%@ de largura, %@ de altura"
   },
+  "%@ · %@": {
+    "ar": "%@ · %@",
+    "de": "%@ · %@",
+    "es": "%@ · %@",
+    "fr": "%@ · %@",
+    "it": "%@ · %@",
+    "ja": "%@ · %@",
+    "pt-BR": "%@ · %@"
+  },
   "%@ · Page %d of %d": {
     "ar": "%@ · الصفحة %d من %d",
     "de": "%@ · Seite %d von %d",
@@ -1003,6 +1012,15 @@
     "it": "%@, %@, grafica %d di %d",
     "ja": "%@、%@、アートワーク %d / %d",
     "pt-BR": "%@, %@, arte %d de %d"
+  },
+  "%@, %@, selected": {
+    "ar": "%@، %@، محدد",
+    "de": "%@, %@, ausgewählt",
+    "es": "%@, %@, seleccionado",
+    "fr": "%@, %@, sélectionné",
+    "it": "%@, %@, selezionato",
+    "ja": "%@、%@、選択中",
+    "pt-BR": "%@, %@, selecionado"
   },
   "%@, %@, starred": {
     "ar": "%@، %@، مميّز بنجمة",
@@ -1432,6 +1450,15 @@
     "it": "%@, direttamente nella tua libreria",
     "ja": "%@、ライブラリに直接保存",
     "pt-BR": "%@, direto para sua biblioteca"
+  },
+  "%@, suggested": {
+    "ar": "%@، مقترح",
+    "de": "%@, vorgeschlagen",
+    "es": "%@, sugerido",
+    "fr": "%@, suggéré",
+    "it": "%@, consigliato",
+    "ja": "%@、おすすめ",
+    "pt-BR": "%@, sugerido"
   },
   "%@, the brand kit in use. Double tap to switch or manage kits.": {
     "ar": "%@، مجموعة العلامة التجارية المستخدمة. انقر مرتين للتبديل أو إدارة المجموعات.",
@@ -3584,6 +3611,15 @@
     "ja": "QR コードは全体で使うため、トリミングできません。",
     "pt-BR": "Um código QR é usado inteiro, por isso não pode ser cortado."
   },
+  "A bookmark for each page, by its title, so a reader can jump between them.": {
+    "ar": "إشارة مرجعية لكل صفحة باسمها، ليتنقل القارئ بينها.",
+    "de": "Ein Lesezeichen je Seite, mit ihrem Titel, damit ein Reader zwischen ihnen springen kann.",
+    "es": "Un marcador por página, con su título, para saltar entre ellas en el lector.",
+    "fr": "Un signet par page, à son titre, pour passer de l’une à l’autre dans le lecteur.",
+    "it": "Un segnalibro per ogni pagina, con il suo titolo, per saltare dall’una all’altra nel lettore.",
+    "ja": "各ページにタイトル付きのブックマークを付け、リーダーでページ間を移動できるようにします。",
+    "pt-BR": "Um favorito por página, com seu título, para pular entre elas no leitor."
+  },
   "A border colour of your own…": {
     "ar": "لون حدود من اختيارك…",
     "de": "Eigene Rahmenfarbe …",
@@ -3647,6 +3683,15 @@
     "ja": "テキストが段組みの間、カーブやパスは待機します。",
     "pt-BR": "Uma curva ou um caminho fica em espera enquanto as palavras estão em colunas."
   },
+  "A document: sharp at any size, on screen or paper.": {
+    "ar": "مستند: واضح بأي حجم، على الشاشة أو الورق.",
+    "de": "Ein Dokument: in jeder Größe scharf, auf dem Bildschirm wie auf Papier.",
+    "es": "Un documento: nítido a cualquier tamaño, en pantalla o en papel.",
+    "fr": "Un document : net à toute taille, à l’écran comme sur papier.",
+    "it": "Un documento: nitido a qualsiasi dimensione, su schermo o su carta.",
+    "ja": "ドキュメント：画面でも紙でも、どんなサイズでも鮮明です。",
+    "pt-BR": "Um documento: nítido em qualquer tamanho, na tela ou no papel."
+  },
   "A first line of names, as in \"Quarter, North, South\", makes a series of each column after the first.": {
     "ar": "سطر أول من الأسماء، مثل «الربع، الشمال، الجنوب»، يجعل كل عمود بعد الأول سلسلة.",
     "de": "Eine erste Zeile mit Namen wie „Quartal, Nord, Süd“ macht jede Spalte nach der ersten zu einer Datenreihe.",
@@ -3673,6 +3718,15 @@
     "it": "Un link senza parole e senza testo alternativo",
     "ja": "文字も代替テキストもないリンク",
     "pt-BR": "Um link sem palavras e sem texto alternativo"
+  },
+  "A looping animation, without sound.": {
+    "ar": "رسم متحرك متكرر، بدون صوت.",
+    "de": "Eine Animation in Schleife, ohne Ton.",
+    "es": "Una animación en bucle, sin sonido.",
+    "fr": "Une animation en boucle, sans son.",
+    "it": "Un’animazione in loop, senza audio.",
+    "ja": "音声なしでループするアニメーションです。",
+    "pt-BR": "Uma animação em loop, sem som."
   },
   "A multiple of the type size, 0.5 to 2.5.": {
     "ar": "مضاعف لحجم الخط، من 0.5 إلى 2.5.",
@@ -3790,6 +3844,15 @@
     "it": "Viene salvata una versione ogni paio di minuti mentre modifichi e ogni volta che esci dall’editor.",
     "ja": "編集中は数分ごと、またエディタを閉じるたびにバージョンが保存されます。",
     "pt-BR": "Uma versão é salva a cada dois minutos enquanto você edita e sempre que você sai do editor."
+  },
+  "A video of the pages, with their motion and music.": {
+    "ar": "فيديو للصفحات مع حركتها وموسيقاها.",
+    "de": "Ein Video der Seiten, mit ihrer Bewegung und Musik.",
+    "es": "Un vídeo de las páginas, con su movimiento y su música.",
+    "fr": "Une vidéo des pages, avec leur mouvement et leur musique.",
+    "it": "Un video delle pagine, con il loro movimento e la loro musica.",
+    "ja": "ページの動きと音楽を含む動画です。",
+    "pt-BR": "Um vídeo das páginas, com seu movimento e sua música."
   },
   "A web address, email or phone number. Clickable in a PDF, and opened by a tap in Present.": {
     "ar": "عنوان ويب أو بريد إلكتروني أو رقم هاتف. قابل للنقر في PDF، ويُفتح بنقرة في العرض التقديمي.",
@@ -5525,6 +5588,15 @@
     "ja": "テキスト内の太字や斜体の単語",
     "pt-BR": "Palavras em negrito ou itálico dentro de um texto"
   },
+  "Bookmarks": {
+    "ar": "الإشارات المرجعية",
+    "de": "Lesezeichen",
+    "es": "Marcadores",
+    "fr": "Signets",
+    "it": "Segnalibri",
+    "ja": "ブックマーク",
+    "pt-BR": "Favoritos"
+  },
   "Border": {
     "ar": "الحدود",
     "de": "Rahmenlinie",
@@ -6703,6 +6775,15 @@
     "it": "Clip",
     "ja": "クリップ",
     "pt-BR": "Clipe"
+  },
+  "Clips": {
+    "ar": "المقاطع",
+    "de": "Clips",
+    "es": "Clips",
+    "fr": "Clips",
+    "it": "Clip",
+    "ja": "クリップ",
+    "pt-BR": "Clipes"
   },
   "Close": {
     "ar": "إغلاق",
@@ -8216,6 +8297,39 @@
       "other": "Excluir %d páginas?"
     }
   },
+  "Delete %d upload?|Delete %d uploads?": {
+    "ar": {
+      "few": "هل تريد حذف %d ملفات محمّلة؟",
+      "many": "هل تريد حذف %d ملفًا محمّلًا؟",
+      "one": "هل تريد حذف %d ملف محمّل؟",
+      "other": "هل تريد حذف %d ملف محمّل؟",
+      "two": "هل تريد حذف %d ملفين محمّلين؟",
+      "zero": "هل تريد حذف %d ملفات محمّلة؟"
+    },
+    "de": {
+      "one": "%d Upload löschen?",
+      "other": "%d Uploads löschen?"
+    },
+    "es": {
+      "one": "¿Eliminar %d archivo subido?",
+      "other": "¿Eliminar %d archivos subidos?"
+    },
+    "fr": {
+      "one": "Supprimer %d importation ?",
+      "other": "Supprimer %d importations ?"
+    },
+    "it": {
+      "one": "Eliminare %d caricamento?",
+      "other": "Eliminare %d caricamenti?"
+    },
+    "ja": {
+      "other": "%d 件のアップロードを削除しますか？"
+    },
+    "pt-BR": {
+      "one": "Excluir %d upload?",
+      "other": "Excluir %d uploads?"
+    }
+  },
   "Delete column": {
     "ar": "حذف العمود",
     "de": "Spalte löschen",
@@ -9638,6 +9752,24 @@
     "ja": "文字を編集",
     "pt-BR": "Editar palavras"
   },
+  "Editable slides.": {
+    "ar": "شرائح قابلة للتعديل.",
+    "de": "Bearbeitbare Folien.",
+    "es": "Diapositivas editables.",
+    "fr": "Des diapositives modifiables.",
+    "it": "Diapositive modificabili.",
+    "ja": "編集できるスライドです。",
+    "pt-BR": "Slides editáveis."
+  },
+  "Editable vectors for another program.": {
+    "ar": "متجهات قابلة للتعديل لبرنامج آخر.",
+    "de": "Bearbeitbare Vektoren für ein anderes Programm.",
+    "es": "Vectores editables para otro programa.",
+    "fr": "Des vecteurs modifiables pour un autre programme.",
+    "it": "Vettori modificabili per un altro programma.",
+    "ja": "他のプログラムで編集できるベクター形式です。",
+    "pt-BR": "Vetores editáveis para outro programa."
+  },
   "Editing": {
     "ar": "التعديل",
     "de": "Bearbeiten",
@@ -10460,6 +10592,15 @@
     "ja": "お祝い",
     "pt-BR": "Festivo"
   },
+  "File type": {
+    "ar": "نوع الملف",
+    "de": "Dateityp",
+    "es": "Tipo de archivo",
+    "fr": "Type de fichier",
+    "it": "Tipo di file",
+    "ja": "ファイルの種類",
+    "pt-BR": "Tipo de arquivo"
+  },
   "Fill": {
     "ar": "التعبئة",
     "de": "Füllung",
@@ -10918,6 +11059,15 @@
     "it": "Piè di pagina, cartellino prezzo, richiamo…",
     "ja": "フッター、値札、吹き出し…",
     "pt-BR": "Rodapé, etiqueta de preço, destaque…"
+  },
+  "For a printer or a print shop, laid out on paper with bleed and crop marks.": {
+    "ar": "لطابعة أو مطبعة، مُعدّ على الورق مع هوامش القص وعلامات القص.",
+    "de": "Für einen Drucker oder eine Druckerei, auf Papier angelegt mit Beschnitt und Schnittmarken.",
+    "es": "Para una impresora o una imprenta, maquetado en papel con sangrado y marcas de corte.",
+    "fr": "Pour une imprimante ou un imprimeur, mis en page sur papier avec fond perdu et traits de coupe.",
+    "it": "Per una stampante o una tipografia, impaginato su carta con abbondanza e segni di taglio.",
+    "ja": "プリンターや印刷所向けに、塗り足しとトンボ付きで用紙にレイアウトします。",
+    "pt-BR": "Para uma impressora ou gráfica, diagramado no papel com sangria e marcas de corte."
   },
   "For the selected words": {
     "ar": "للكلمات المحددة",
@@ -12704,6 +12854,15 @@
     "ja": "文字を大きく",
     "pt-BR": "Fonte maior"
   },
+  "Largest": {
+    "ar": "الأكبر",
+    "de": "Größte",
+    "es": "Más grandes",
+    "fr": "Plus volumineux",
+    "it": "Più grandi",
+    "ja": "大きい順",
+    "pt-BR": "Maiores"
+  },
   "Last edited": {
     "ar": "آخر تعديل",
     "de": "Zuletzt bearbeitet",
@@ -14489,6 +14648,15 @@
     "ja": "共有されたものから新しいデザイン",
     "pt-BR": "Novo design a partir do compartilhado"
   },
+  "New design from this": {
+    "ar": "تصميم جديد من هذا",
+    "de": "Neues Design hieraus",
+    "es": "Nuevo diseño a partir de esto",
+    "fr": "Nouveau design à partir de ceci",
+    "it": "Nuovo design da questo",
+    "ja": "これから新しいデザインを作成",
+    "pt-BR": "Novo design a partir disto"
+  },
   "New folder": {
     "ar": "مجلد جديد",
     "de": "Neuer Ordner",
@@ -14560,6 +14728,15 @@
     "it": "Nuova storia",
     "ja": "新しいストーリー",
     "pt-BR": "Novo story"
+  },
+  "Newest": {
+    "ar": "الأحدث",
+    "de": "Neueste",
+    "es": "Más recientes",
+    "fr": "Plus récents",
+    "it": "Più recenti",
+    "ja": "新しい順",
+    "pt-BR": "Mais recentes"
   },
   "Next": {
     "ar": "التالي",
@@ -15119,6 +15296,15 @@
     "ja": "未選択、%@",
     "pt-BR": "Não selecionado; %@"
   },
+  "Not used in any design": {
+    "ar": "غير مستخدم في أي تصميم",
+    "de": "In keinem Design verwendet",
+    "es": "No se usa en ningún diseño",
+    "fr": "Utilisé dans aucun design",
+    "it": "Non usato in nessun design",
+    "ja": "どのデザインでも使われていません",
+    "pt-BR": "Não usado em nenhum design"
+  },
   "Notes": {
     "ar": "الملاحظات",
     "de": "Notizen",
@@ -15199,6 +15385,15 @@
     "it": "Niente di nuovo da ripristinare.",
     "ja": "新たに復元するものはありません。",
     "pt-BR": "Nada novo para restaurar."
+  },
+  "Nothing of this kind yet.": {
+    "ar": "لا شيء من هذا النوع بعد.",
+    "de": "Noch nichts von dieser Art.",
+    "es": "Todavía no hay nada de este tipo.",
+    "fr": "Rien de ce type pour l’instant.",
+    "it": "Ancora niente di questo tipo.",
+    "ja": "この種類のものはまだありません。",
+    "pt-BR": "Ainda não há nada desse tipo."
   },
   "Nothing of yours matches \"%@\".": {
     "ar": "لا يوجد شيء من عناصرك يطابق «%@».",
@@ -16583,6 +16778,15 @@
     "ja": "パターン",
     "pt-BR": "Padrões"
   },
+  "Pause": {
+    "ar": "إيقاف مؤقت",
+    "de": "Pause",
+    "es": "Pausar",
+    "fr": "Pause",
+    "it": "Pausa",
+    "ja": "一時停止",
+    "pt-BR": "Pausar"
+  },
   "Pause autoplay": {
     "ar": "إيقاف التشغيل التلقائي مؤقتًا",
     "de": "Automatische Wiedergabe pausieren",
@@ -16834,6 +17038,15 @@
     "it": "Le foto che importi vengono conservate qui.",
     "ja": "取り込んだ写真はここに保存されます。",
     "pt-BR": "As fotos que você importa ficam guardadas aqui."
+  },
+  "Photos, clips and sounds you add appear here": {
+    "ar": "تظهر هنا الصور والمقاطع والأصوات التي تضيفها",
+    "de": "Fotos, Clips und Sounds, die Sie hinzufügen, erscheinen hier",
+    "es": "Las fotos, clips y sonidos que añadas aparecen aquí",
+    "fr": "Les photos, clips et sons que vous ajoutez apparaissent ici",
+    "it": "Le foto, i clip e i suoni che aggiungi compaiono qui",
+    "ja": "追加した写真、クリップ、サウンドがここに表示されます",
+    "pt-BR": "As fotos, clipes e sons que você adicionar aparecem aqui"
   },
   "Photos: crop, filters, frames": {
     "ar": "الصور: الاقتصاص والفلاتر والإطارات",
@@ -17212,6 +17425,15 @@
     "it": "Poster",
     "ja": "ポスター",
     "pt-BR": "Pôster"
+  },
+  "PowerPoint": {
+    "ar": "PowerPoint",
+    "de": "PowerPoint",
+    "es": "PowerPoint",
+    "fr": "PowerPoint",
+    "it": "PowerPoint",
+    "ja": "PowerPoint",
+    "pt-BR": "PowerPoint"
   },
   "PowerPoint…": {
     "ar": "ملف PowerPoint…",
@@ -21329,6 +21551,15 @@
     "ja": "提案",
     "pt-BR": "Sugerir"
   },
+  "Suggested": {
+    "ar": "مقترح",
+    "de": "Vorgeschlagen",
+    "es": "Sugerido",
+    "fr": "Suggéré",
+    "it": "Consigliato",
+    "ja": "おすすめ",
+    "pt-BR": "Sugerido"
+  },
   "Summer": {
     "ar": "صيفي",
     "de": "Sommer",
@@ -23817,6 +24048,72 @@
     "pt-BR": {
       "one": "Usado em %d design. Continua nele.",
       "other": "Usado em %d designs. Continua neles."
+    }
+  },
+  "Used in %d design. That design will show an empty frame.|Used in %d designs. Those designs will show an empty frame.": {
+    "ar": {
+      "few": "مستخدم في %d تصاميم. ستعرض تلك التصاميم إطارًا فارغًا.",
+      "many": "مستخدم في %d تصميمًا. ستعرض تلك التصاميم إطارًا فارغًا.",
+      "one": "مستخدم في %d تصميم. سيعرض ذلك التصميم إطارًا فارغًا.",
+      "other": "مستخدم في %d تصميم. ستعرض تلك التصاميم إطارًا فارغًا.",
+      "two": "مستخدم في %d تصميمين. سيعرض هذان التصميمان إطارًا فارغًا.",
+      "zero": "مستخدم في %d تصميم. سيعرض ذلك التصميم إطارًا فارغًا."
+    },
+    "de": {
+      "one": "In %d Design verwendet. Dieses Design zeigt dann einen leeren Rahmen.",
+      "other": "In %d Designs verwendet. Diese Designs zeigen dann einen leeren Rahmen."
+    },
+    "es": {
+      "one": "Se usa en %d diseño. Ese diseño mostrará un marco vacío.",
+      "other": "Se usa en %d diseños. Esos diseños mostrarán un marco vacío."
+    },
+    "fr": {
+      "one": "Utilisé dans %d design. Ce design affichera un cadre vide.",
+      "other": "Utilisé dans %d designs. Ces designs afficheront un cadre vide."
+    },
+    "it": {
+      "one": "Usato in %d design. Quel design mostrerà una cornice vuota.",
+      "other": "Usato in %d design. Quei design mostreranno una cornice vuota."
+    },
+    "ja": {
+      "other": "%d 件のデザインで使用中です。それらのデザインでは空のフレームが表示されます。"
+    },
+    "pt-BR": {
+      "one": "Usado em %d design. Esse design mostrará um quadro vazio.",
+      "other": "Usado em %d designs. Esses designs mostrarão um quadro vazio."
+    }
+  },
+  "Used in %d design|Used in %d designs": {
+    "ar": {
+      "few": "مستخدم في %d تصاميم",
+      "many": "مستخدم في %d تصميمًا",
+      "one": "مستخدم في %d تصميم",
+      "other": "مستخدم في %d تصميم",
+      "two": "مستخدم في %d تصميمين",
+      "zero": "مستخدم في %d تصميم"
+    },
+    "de": {
+      "one": "In %d Design verwendet",
+      "other": "In %d Designs verwendet"
+    },
+    "es": {
+      "one": "Se usa en %d diseño",
+      "other": "Se usa en %d diseños"
+    },
+    "fr": {
+      "one": "Utilisé dans %d design",
+      "other": "Utilisé dans %d designs"
+    },
+    "it": {
+      "one": "Usato in %d design",
+      "other": "Usato in %d design"
+    },
+    "ja": {
+      "other": "%d 件のデザインで使用中"
+    },
+    "pt-BR": {
+      "one": "Usado em %d design",
+      "other": "Usado em %d designs"
     }
   },
   "Valley": {
