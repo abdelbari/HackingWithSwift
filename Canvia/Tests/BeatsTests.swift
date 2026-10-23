@@ -69,6 +69,8 @@ final class BeatsTests: XCTestCase {
         // A page with no beat in reach keeps its hold.
         XCTAssertEqual(BeatSync.holds([2.5, 3.0], beats: [0.4, 2.4]), [2.4, 3.0])
         XCTAssertEqual(BeatSync.holds([2.5], beats: []), [2.5])
+        // A locked page keeps its hold; the next starts where it ends.
+        XCTAssertEqual(BeatSync.holds([2.5, 2.5], beats: beats, fixed: [true, false]), [2.5, 2.4])
         // Ties go to the earlier beat.
         XCTAssertEqual(BeatSync.holds([2.5], beats: [2.0, 3.0]), [2.0])
     }
@@ -100,6 +102,25 @@ final class BeatsTests: XCTestCase {
         XCTAssertNil(back.pages[1].holdSeconds)
         XCTAssertNil(back.beatSyncRestore)
         XCTAssertEqual(BeatSync.off(design), design)
+    }
+
+    func testALockedPageKeepsItsHoldIsNotKeptAndIsLeftAloneWhenTurnedOff() throws {
+        var a = Page()
+        a.holdSeconds = 3
+        a.locked = true
+        let b = Page()
+        var design = Design(title: "beats")
+        design.pages = [a, b]
+        let synced = BeatSync.on(design, beats: [1.0, 2.0, 3.2, 4.0, 5.0])
+        XCTAssertEqual(try XCTUnwrap(synced.pages[0].holdSeconds), 3.0, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(synced.pages[1].holdSeconds), 2.0, accuracy: 1e-9)
+        let kept = try XCTUnwrap(synced.beatSyncRestore)
+        XCTAssertEqual(Set(kept.keys), [b.id])
+        // B locked since: off leaves its synced hold as it is.
+        var lockedSince = synced
+        lockedSince.pages[1].locked = true
+        XCTAssertEqual(try XCTUnwrap(BeatSync.off(lockedSince).pages[1].holdSeconds), 2.0, accuracy: 1e-9)
+        XCTAssertNil(BeatSync.off(synced).pages[1].holdSeconds)
     }
 
     func testATrackKeepsItsBeatSyncKeyForOlderBuildsAndLosesItWhenOff() throws {

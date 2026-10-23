@@ -239,15 +239,17 @@ enum Beats {
 /// nearest beat at least `minHold` after its start, the earlier on a tie;
 /// its hold is then from its start to that beat, to the thousandth. A page
 /// with no such beat within the longest hold (MotionSettings.pageHoldRange)
-/// keeps its hold. The holds as they were are kept in the design's
-/// `beatSyncRestore` — page id to its own hold, nil for one that followed
-/// the design's — written only the first time, so turning it on for a second
-/// track still keeps the first holds. The track says it is on in its own
-/// `beatSync`.
+/// keeps its hold, and so does a locked page, whose end the next page then
+/// starts from. The holds as they were are kept in the design's
+/// `beatSyncRestore` — each unlocked shown page's id to its own hold, nil
+/// for one that followed the design's — written only the first time, so
+/// turning it on for a second track still keeps the first holds. The track
+/// says it is on in its own `beatSync`.
 ///
-/// Turned off (`off`), the kept holds come back, page by page, and the key
-/// goes. While it is on, a page's end dragged on the timeline snaps to a
-/// beat within `snapSeconds` (Beats.snapped).
+/// Turned off (`off`), the kept holds come back, page by page — a page
+/// locked since keeps the hold it has — and the key goes. While it is on, a
+/// page's end dragged on the timeline snaps to a beat within `snapSeconds`
+/// (Beats.snapped).
 enum BeatSync {
 
     /// The shortest hold Beat Sync gives a page.
@@ -265,11 +267,15 @@ enum BeatSync {
     }
 
     /// The holds Beat Sync gives pages holding `holds`, in film order, for
-    /// `beats` seconds into the film.
-    static func holds(_ holds: [Double], beats: [Double]) -> [Double] {
+    /// `beats` seconds into the film; a page `fixed` (locked) keeps its own.
+    static func holds(_ holds: [Double], beats: [Double], fixed: [Bool] = []) -> [Double] {
         let sorted = beats.sorted()
         var start = 0.0
-        return holds.map { hold in
+        return holds.enumerated().map { i, hold in
+            if i < fixed.count && fixed[i] {
+                start += hold
+                return hold
+            }
             let target = start + hold
             var best: Double?
             for b in sorted {
@@ -288,14 +294,17 @@ enum BeatSync {
     /// were kept to come back to.
     static func on(_ design: Design, beats: [Double]) -> Design {
         let shown = Timeline.pages(of: design)
-        let synced = holds(shown.map { $0.hold }, beats: beats)
+        let locked = shown.map { PageLocks.isLocked(design.pages[$0.index]) }
+        let synced = holds(shown.map { $0.hold }, beats: beats, fixed: locked)
         var out = design
         if out.beatSyncRestore == nil {
             var kept: [String: Double?] = [:]
-            for page in shown { kept[design.pages[page.index].id] = .some(design.pages[page.index].holdSeconds) }
+            for (n, page) in shown.enumerated() where !locked[n] {
+                kept[design.pages[page.index].id] = .some(design.pages[page.index].holdSeconds)
+            }
             out.beatSyncRestore = kept
         }
-        for (n, page) in shown.enumerated() { out.pages[page.index].holdSeconds = synced[n] }
+        for (n, page) in shown.enumerated() where !locked[n] { out.pages[page.index].holdSeconds = synced[n] }
         return out
     }
 
@@ -304,7 +313,7 @@ enum BeatSync {
     static func off(_ design: Design) -> Design {
         guard let kept = design.beatSyncRestore else { return design }
         var out = design
-        for i in out.pages.indices {
+        for i in out.pages.indices where !PageLocks.isLocked(out.pages[i]) {
             guard let hold = kept[out.pages[i].id] else { continue }
             out.pages[i].holdSeconds = hold
         }

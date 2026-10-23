@@ -410,7 +410,10 @@ struct AudioTrackView: View {
                 return
             }
             beats = found
-            store.turnBeatSyncOn(trackId, beats: found, length: length)
+            // A length not read (nil, or 0 when it could not be) is taken
+            // as the file's end, as on the Android twin.
+            let known = length.flatMap { $0 > 0 ? $0 : nil }
+            store.turnBeatSyncOn(trackId, beats: found, length: known)
             store.buzz(.confirm)
         }
     }
@@ -636,7 +639,12 @@ struct SoundEffectsList: View {
 
     var body: some View {
         List {
-            ForEach(SoundEffects.search(query)) { effect in row(effect) }
+            let found = SoundEffects.search(query)
+            if found.isEmpty {
+                Text(tr("No sound effects match “%@”.", query.trimmingCharacters(in: .whitespaces)))
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(found) { effect in row(effect) }
         }
         .searchable(text: $query, prompt: Text("Search sound effects"))
         .navigationTitle("Sound effects")
@@ -660,7 +668,8 @@ struct SoundEffectsList: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(tr("Play %@", effect.name))
+            .accessibilityLabel(tr("%@, %@", effect.name, AudioTracks.secondsLabel(effect.seconds)))
+            .accessibilityHint(tr("Play"))
             Button { add(effect) } label: {
                 Image(systemName: "plus.circle.fill").font(.title3)
             }

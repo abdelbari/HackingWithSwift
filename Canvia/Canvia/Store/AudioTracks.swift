@@ -123,8 +123,8 @@ extension DesignStore {
     /// the file, AudioStore.beats) and `length` known, as one step: the
     /// track says so, and each shown page's hold moves to the nearest beat
     /// where the track plays in the film (BeatSync.on), the holds as they
-    /// were kept to come back to. A locked page's hold moves too: its timing
-    /// is not what a lock keeps (PageLocks.allows).
+    /// were kept to come back to. A locked page keeps its hold, as on the
+    /// Android twin; the next page starts from its end.
     func turnBeatSyncOn(_ id: String, beats: [Double], length: Double?) {
         guard let index = design.audioTracks.firstIndex(where: { $0.id == id }) else { return }
         apply { design in
