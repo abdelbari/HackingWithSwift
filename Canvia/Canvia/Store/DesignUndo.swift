@@ -24,12 +24,46 @@ import UIKit
 final class DesignUndo: UndoManager {
     weak var store: DesignStore?
 
-    override var canUndo: Bool { store?.canUndo ?? false }
-    override var canRedo: Bool { store?.canRedo ?? false }
-    override func undo() { store?.undo() }
-    override func redo() { store?.redo() }
-    override var undoActionName: String { store?.undoLabel ?? "" }
-    override var redoActionName: String { store?.redoLabel ?? "" }
+    override var canUndo: Bool {
+        guard let store else { return false }
+        switch mode {
+        case .design: return store.canUndo
+        case .crop: return false
+        case .eraser: return !store.eraserBusy && !store.eraserStrokes.isEmpty
+        case .brush: return (store.brushing?.painted ?? 0) > 0
+        }
+    }
+    override var canRedo: Bool { mode == .design && (store?.canRedo ?? false) }
+
+    /// Under the eraser or a brush, Undo takes back the last stroke, as
+    /// ⌘Z and the bar's Undo stroke do; in crop mode it does nothing, as
+    /// ⌘Z does there. The design's history waits until the mode is put down.
+    override func undo() {
+        guard let store else { return }
+        switch mode {
+        case .design: store.undo()
+        case .crop: break
+        case .eraser:
+            if !store.eraserBusy, !store.eraserStrokes.isEmpty { store.eraserStrokes.removeLast() }
+        case .brush: store.undoBrushStroke()
+        }
+    }
+    override func redo() {
+        guard mode == .design else { return }
+        store?.redo()
+    }
+    override var undoActionName: String { mode == .design ? (store?.undoLabel ?? "") : "" }
+    override var redoActionName: String { mode == .design ? (store?.redoLabel ?? "") : "" }
+
+    private enum UndoRoute { case design, crop, eraser, brush }
+
+    private var mode: UndoRoute {
+        guard let store else { return .design }
+        if store.cropping != nil { return .crop }
+        if store.brushing != nil { return .brush }
+        if store.erasing != nil { return .eraser }
+        return .design
+    }
 }
 
 /// A view that takes the first responder for the editor, so the system's

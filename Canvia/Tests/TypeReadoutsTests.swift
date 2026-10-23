@@ -74,6 +74,7 @@ final class TypeReadoutsTests: XCTestCase {
         XCTAssertEqual(TypeReadouts.fontSize(12), "12")
         XCTAssertEqual(TypeReadouts.fontSize(12.04), "12")
         XCTAssertEqual(TypeReadouts.fontSize(12.96), "13")
+        XCTAssertEqual(TypeReadouts.fontSize(12.25), "12.3", "a half up, not to the even tenth")
         XCTAssertEqual(TypeReadouts.fontSize(nil), "Mixed")
         // The sizes a deck is given carry the half point: 12.5 px is 9.375 pt,
         // 938 hundredths.

@@ -155,6 +155,7 @@ final class CropToolsTests: XCTestCase {
         s.setCropAspect(.square)
         XCTAssertEqual(s.cropElement?.w ?? 0, 200, accuracy: 1e-9)
         XCTAssertEqual(s.cropElement?.h ?? 0, 200, accuracy: 1e-9)
+        s.cropDialHeld = true
         s.setCropStraighten(7.3)
         XCTAssertEqual(s.cropElement?.straighten ?? 0, 7.5, accuracy: 1e-9)
         s.rotateCrop90()
@@ -166,12 +167,15 @@ final class CropToolsTests: XCTestCase {
         s.cancelCrop()
         XCTAssertEqual(s.element(original.id), original, "Cancel put the photo back differently")
         XCTAssertFalse(s.canUndo, "Cancel recorded a step")
+        XCTAssertFalse(s.cropDialHeld, "the thirds would stay up for the next crop")
 
         XCTAssertTrue(s.startCrop(original.id))
         s.setCropAspect(.fourFive)
+        s.cropDialHeld = true
         s.setCropStraighten(-2)
         s.flipCrop()
         s.finishCrop()
+        XCTAssertFalse(s.cropDialHeld, "the thirds would stay up for the next crop")
         let kept = s.element(original.id)
         XCTAssertEqual(kept?.w ?? 0, 160, accuracy: 1e-9)
         XCTAssertEqual(kept?.h ?? 0, 200, accuracy: 1e-9)

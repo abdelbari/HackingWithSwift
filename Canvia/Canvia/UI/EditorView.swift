@@ -513,9 +513,10 @@ struct EditorView: View {
             shortcut(.tab, [.shift], tr("Select previous")) { store.selectNeighbour(forward: false) }
             shortcut("h", [.shift], tr("Flip horizontally")) { store.flipSelected(horizontal: true) }
             shortcut("v", [.shift], tr("Flip vertically")) { store.flipSelected(horizontal: false) }
-            shortcut("t", [], tr("Add a text box")) {
-                store.addText(at: CGPoint(x: store.pageWidth / 2, y: store.pageHeight / 2))
-            }
+            // T is Add text: the box centred and selected, not opened for
+            // typing, onto the next unlocked page from a locked one — the
+            // Android twin's rule (EditorKeys).
+            shortcut("t", [], tr("Add a text box")) { store.addTextBox() }
         }
     }
 
