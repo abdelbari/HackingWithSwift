@@ -220,13 +220,16 @@ final class PptxReaderTests: XCTestCase {
             try only(deck([textBox(box, "<a:p><a:r>\(rPr)<a:t>Hi</a:t></a:r></a:p>", bodyPr: bodyPr)]))
         }
         let ink = "<a:solidFill><a:srgbClr val=\"1F2430\"/></a:solidFill>"
-        let shadow = try styledBox("<a:rPr sz=\"3150\">\(ink)<a:effectLst><a:outerShdw blurRad=\"48006\" dist=\"33946\" dir=\"2700000\" algn=\"ctr\">"
+        let shadow = try styledBox("<a:rPr sz=\"3150\">\(ink)<a:effectLst><a:outerShdw blurRad=\"48006\" dist=\"33945\" dir=\"2700000\" algn=\"ctr\">"
                                    + "<a:srgbClr val=\"000000\"><a:alpha val=\"55000\"/></a:srgbClr></a:outerShdw></a:effectLst></a:rPr>")
         XCTAssertEqual(shadow.effect?.type, "shadow")
         XCTAssertEqual(TextEffect.value(shadow.effect, .offset, for: .shadow), 50, accuracy: 0.5)
         XCTAssertEqual(TextEffect.value(shadow.effect, .direction, for: .shadow), 45, accuracy: 0.01)
         XCTAssertEqual(TextEffect.value(shadow.effect, .blur, for: .shadow), 50, accuracy: 0.5)
         XCTAssertEqual(TextEffect.value(shadow.effect, .transparency, for: .shadow), 45, accuracy: 0.01)
+        // Its colour comes without the alpha, so a default shadow reads back as the default.
+        XCTAssertNil(shadow.effect?.color)
+        XCTAssertEqual(shadow.effect, TextEffectSpec(type: "shadow"))
         let glow = try styledBox("<a:rPr sz=\"3150\">\(ink)<a:effectLst><a:glow rad=\"140018\"><a:srgbClr val=\"1F2430\"><a:alpha val=\"85000\"/></a:srgbClr></a:glow></a:effectLst></a:rPr>")
         XCTAssertEqual(glow.effect?.type, "neon")
         XCTAssertEqual(TextEffect.value(glow.effect, .intensity, for: .neon), 50, accuracy: 0.5)
@@ -235,7 +238,7 @@ final class PptxReaderTests: XCTestCase {
         XCTAssertEqual(TextEffect.value(hollow.effect, .thickness, for: .outline), 50, accuracy: 0.5)
         let outlined = try styledBox("<a:rPr sz=\"3150\"><a:ln w=\"16002\"><a:solidFill><a:srgbClr val=\"FF0000\"/></a:solidFill></a:ln>\(ink)</a:rPr>")
         XCTAssertEqual(outlined.effect, TextEffectSpec(type: "outlined", color: "#ff0000"))
-        let lit = try styledBox("<a:rPr sz=\"3150\">\(ink)<a:highlight><a:srgbClr val=\"FFE066\"/></a:highlight></a:rPr>")
+        let lit = try styledBox("<a:rPr sz=\"3150\">\(ink)<a:highlight><a:srgbClr val=\"FFE066\"><a:alpha val=\"60000\"/></a:srgbClr></a:highlight></a:rPr>")
         XCTAssertEqual(lit.effect, TextEffectSpec(type: "highlight", color: "#ffe066"))
         let arched = try styledBox("<a:rPr/>", bodyPr: "<a:bodyPr><a:prstTxWarp prst=\"textArchUp\"><a:avLst><a:gd name=\"adj\" fmla=\"val 5400000\"/></a:avLst></a:prstTxWarp></a:bodyPr>")
         XCTAssertEqual(arched.curve, 90)

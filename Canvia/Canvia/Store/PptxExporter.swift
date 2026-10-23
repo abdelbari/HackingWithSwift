@@ -809,7 +809,7 @@ enum PptxExporter {
         // What the effect, the shadow, the gradient letters and the drop cap
         // put in every run, the box's own warp and column in its body.
         let style = styledParts(el, size: size, frame: frame, photo: photo, average: ink)
-        let cap: Double? = el.dropCap == true ? FontLibrary.dropCapLines : nil
+        let cap: Double? = FontLibrary.dropCapLayout(for: el) != nil ? FontLibrary.dropCapLines : nil
         for (line, runs) in paragraphs(of: el).enumerated() {
             var content = runs.isEmpty ? "<a:endParaRPr sz=\"\(typeSize(size * frame.unit))\"/>" : ""
             for (k, run) in runs.enumerated() {

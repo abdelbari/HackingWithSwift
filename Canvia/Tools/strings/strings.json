@@ -9800,6 +9800,15 @@
     "ja": "空の%@フレーム",
     "pt-BR": "Moldura %@ vazia"
   },
+  "Empty %@ letter frame": {
+    "ar": "إطار الحرف %@ فارغ",
+    "de": "Leerer Buchstabenrahmen %@",
+    "es": "Marco con la letra %@ vacío",
+    "fr": "Cadre lettre %@ vide",
+    "it": "Cornice lettera %@ vuota",
+    "ja": "空の文字 %@ のフレーム",
+    "pt-BR": "Moldura da letra %@ vazia"
+  },
   "Empty Recently deleted": {
     "ar": "إفراغ «المحذوفة مؤخرًا»",
     "de": "„Zuletzt gelöscht“ leeren",
@@ -16852,6 +16861,15 @@
     "it": "Foto in una cornice %@",
     "ja": "%@ フレーム内の写真",
     "pt-BR": "Foto em uma moldura %@"
+  },
+  "Photo in the %@ letter frame": {
+    "ar": "صورة في إطار الحرف %@",
+    "de": "Foto im Buchstabenrahmen %@",
+    "es": "Foto en el marco con la letra %@",
+    "fr": "Photo dans le cadre lettre %@",
+    "it": "Foto nella cornice lettera %@",
+    "ja": "文字 %@ のフレーム内の写真",
+    "pt-BR": "Foto na moldura da letra %@"
   },
   "Photo or video…": {
     "ar": "صورة أو فيديو…",

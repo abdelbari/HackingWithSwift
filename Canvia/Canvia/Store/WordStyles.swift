@@ -130,6 +130,13 @@ extension DesignStore {
         return shared.shared ? (shared.font ?? el.fontFamily ?? "sans") : nil
     }
 
+    /// The font the selected words' Weight row lists: theirs when they
+    /// share one, else the box's own — as the Android twin's WordsFace.
+    var wordFace: String {
+        if let font = wordFont { return font }
+        return FontLibrary.resolve(wordFontTarget.flatMap { element($0.id) }?.fontFamily)
+    }
+
     /// The words the sheet is open for in face `key`, as one step, the box
     /// measured again. The box's own face takes the words' own away.
     func fontWords(_ key: String) {

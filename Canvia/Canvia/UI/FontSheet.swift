@@ -216,7 +216,7 @@ struct FontSheet: View {
     /// is slanted, Mixed when some are, as the Android twin's WordsFaceRows.
     @ViewBuilder
     private var wordsFaceRows: some View {
-        let font = store.wordFont ?? "sans"
+        let font = store.wordFace
         let weights = FontLibrary.weights(font)
         let weight = store.wordWeight
         let italic = store.wordItalic

@@ -121,8 +121,9 @@ struct PhotoInLettersPrompts: ViewModifier {
         content
             .confirmationDialog(DesignStore.fillLettersQuestion, isPresented: fillAsked, titleVisibility: .visible) {
                 Button(DesignStore.fillLetters) { store.acceptLetterFill() }
-                Button(DesignStore.keepPhoto) { store.declineLetterFill() }
-                Button("Cancel", role: .cancel) { store.letterFillOffer = nil }
+                // The photo already counts as dropped, so going away keeps it
+                // on the page, as on Android: Keep the photo is the cancel.
+                Button(DesignStore.keepPhoto, role: .cancel) { store.declineLetterFill() }
             } message: {
                 Text(DesignStore.fillLettersNote)
             }
@@ -145,7 +146,12 @@ struct PhotoInLettersPrompts: ViewModifier {
     }
 
     private var fillAsked: Binding<Bool> {
-        Binding(get: { store.letterFillOffer != nil }, set: { if !$0 { store.letterFillOffer = nil } })
+        // Dismissed any other way, the photo is kept too — after the tapped
+        // button's own action, which has taken the offer by then if it was
+        // Fill the letters.
+        Binding(get: { store.letterFillOffer != nil }, set: { shown in
+            if !shown { Task { @MainActor in store.declineLetterFill() } }
+        })
     }
 
     private var adjustOffered: Binding<Bool> {

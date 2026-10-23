@@ -406,7 +406,7 @@ final class PptxExporterTests: XCTestCase {
         let rows: [(Element, String)] = [
             // Shadow at its defaults: 3.56 px at 45°, 5.04 px soft, black at 55%.
             (with(text) { $0.effect = TextEffectSpec(type: "shadow") },
-             "<a:rPr sz=\"3150\">\(ink)<a:effectLst><a:outerShdw blurRad=\"48006\" dist=\"33946\" dir=\"2700000\" algn=\"ctr\">"
+             "<a:rPr sz=\"3150\">\(ink)<a:effectLst><a:outerShdw blurRad=\"48006\" dist=\"33945\" dir=\"2700000\" algn=\"ctr\">"
              + "<a:srgbClr val=\"000000\"><a:alpha val=\"55000\"/></a:srgbClr></a:outerShdw></a:effectLst>\(face)</a:rPr>"),
             // Lift: straight down, soft.
             (with(text) { $0.effect = TextEffectSpec(type: "lift") },
@@ -455,6 +455,10 @@ final class PptxExporterTests: XCTestCase {
         XCTAssertTrue(capped.contains("<a:r><a:rPr sz=\"9450\">\(ink)\(face)</a:rPr><a:t>H</a:t></a:r>"
                                       + "<a:r><a:rPr sz=\"3150\">\(ink)\(face)</a:rPr><a:t>ello</a:t></a:r></a:p>"), capped)
         XCTAssertTrue(capped.contains("<a:r><a:rPr sz=\"3150\">\(ink)\(face)</a:rPr><a:t>there</a:t></a:r></a:p>"), capped)
+        // Only where the canvas draws one: not before a quote mark, nor on a curve.
+        let quoted = slideXML([with(text) { $0.dropCap = true; $0.text = "\"Quote\"" }])
+        XCTAssertFalse(quoted.contains("sz=\"9450\""), quoted)
+        XCTAssertFalse(slideXML([with(text) { $0.dropCap = true; $0.curve = 90 }]).contains("sz=\"9450\""))
         // "Exact look": the same text is a picture.
         let glowing = onePage([with(text) { $0.effect = TextEffectSpec(type: "neon") }])
         let exact = PptxExporter.slide(design: glowing, page: glowing.pages[0], number: 1, previous: nil,

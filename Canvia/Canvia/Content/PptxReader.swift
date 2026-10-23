@@ -902,8 +902,9 @@ enum PptxReader {
             var out = el
             let fs = max(size, 1)
             let emu = PptxReader.emuPerPixel
+            // To a tenth, so what the writer wrote from a default reads back as it.
             func pct(_ node: SvgImport.Node?, _ key: String, _ scale: Double) -> Double {
-                min(max((PptxReader.number(node, key) ?? 0) / scale * 50, 0), 100)
+                min(max(((PptxReader.number(node, key) ?? 0) / scale * 50 * 10).rounded() / 10, 0), 100)
             }
             func ink(_ holder: SvgImport.Node?) -> String? {
                 holder.flatMap(colour(in:)).map { String($0.prefix(7)) }
@@ -928,7 +929,7 @@ enum PptxReader {
                                           offset: pct(shadow, "dist", 0.06 * 2.0.squareRoot() * fs * emu),
                                           direction: min(max(dir, -180), 180),
                                           blur: pct(shadow, "blurRad", 0.12 * fs * emu),
-                                          transparency: min(max((1 - alpha) * 100, 0), 100),
+                                          transparency: min(max(((1 - alpha) * 1000).rounded() / 10, 0), 100),
                                           color: ink(shadow))
                 out.effect = spec.tidied
             } else if let glow {

@@ -94,6 +94,21 @@ final class WordWeightsTests: XCTestCase {
         XCTAssertEqual(s.element(text.id)?.liveSpans, [span(4, 8, link: "https://x.com")])
     }
 
+    /// Words in different fonts list the box's own font's weights, as the
+    /// Android twin's WordsFace does.
+    func testWordsInDifferentFontsListTheBoxsOwnWeights() {
+        var text = Element.text("Big sale today")
+        text.fontFamily = "lora"
+        text.setSpans([span(4, 8, font: "montserrat")])
+        let s = store([text])
+        s.select(text.id)
+        s.chooseWordFont(text.id, range: NSRange(location: 0, length: 8))
+        XCTAssertNil(s.wordFont)
+        XCTAssertEqual(s.wordFace, "lora")
+        s.wordFontTarget = WordRange(id: text.id, range: NSRange(location: 4, length: 4))
+        XCTAssertEqual(s.wordFace, "montserrat")
+    }
+
     // MARK: drawing — the shared rows
 
     /// Shared: **bold** over a word with a weight of its own is 700 when
@@ -121,7 +136,7 @@ final class WordWeightsTests: XCTestCase {
         // A word upright in an italic box is upright; one in a font of its own at its own weight.
         var slanted = Element.text("a b", fontSize: 40)
         slanted.italic = true
-        slanted.setSpans([span(2, 3, font: "lora", italic: false, weight: 700)])
+        slanted.setSpans([span(2, 3, font: "lora", weight: 700, italic: false)])
         let upright = FontLibrary.attributedString(for: slanted)
         XCTAssertEqual((upright.attribute(.font, at: 2, effectiveRange: nil) as? UIFont)?.fontName,
                        FontLibrary.uiFont(family: "lora", size: 40, weight: 700, italic: false).fontName)

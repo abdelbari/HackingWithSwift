@@ -142,6 +142,11 @@ final class PhotoInLettersTests: XCTestCase {
         XCTAssertEqual(a.y, 200, accuracy: 1e-9)
         XCTAssertTrue(PhotoFrames.isFrameLike(a, among: [a]))
         XCTAssertEqual(GlyphFrames.label(frames[0]), "A letter frame")
+        // A screen reader names it for its glyph, empty or filled.
+        XCTAssertEqual(ElementNames.name(of: a), "Empty A letter frame")
+        var filled = a
+        filled.src = "media:x"
+        XCTAssertEqual(ElementNames.name(of: filled), "Photo in the A letter frame")
         // A photo dropped in goes into the letter, as into any frame.
         var photo = Element.image("media:x", w: 100, h: 100)
         photo.id = "p"
