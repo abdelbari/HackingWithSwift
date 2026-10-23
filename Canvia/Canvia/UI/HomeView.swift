@@ -136,6 +136,8 @@ struct HomeView: View {
     @State private var highlighted: Set<String> = []
     /// The design whose Share… is open over Home, as saved.
     @State private var exporting: Design?
+    /// A design whose card's Mockups is up.
+    @State private var mockingUp: Design?
     /// The design presented from its card.
     @State private var presenting: Design?
     /// Share… or Present on a design whose file does not read, said.
@@ -169,7 +171,8 @@ struct HomeView: View {
             // A deck as a new design, then the sheet that says what came in.
             .background { deckPicker }
             .background { designFilePicker }
-            .modifier(HomeSharing(exporting: $exporting, presenting: $presenting, unopened: $unopened))
+            .modifier(HomeSharing(exporting: $exporting, presenting: $presenting, unopened: $unopened,
+                                  mockingUp: $mockingUp, open: { create($0) }))
             .importPickers(media: $pickingMedia, pdf: $pickingPDF, onLanded: onImport) { importError = $0 }
             .powerPointImport($deckURLs, onOpen: onOpen)
             .onReceive(NotificationCenter.default.publisher(for: PowerPoints.didImport)) { _ in reload() }
@@ -1266,8 +1269,8 @@ struct HomeView: View {
         }
     }
 
-    /// Share…, Send a copy, Present and Print…, on the design as saved,
-    /// without opening the editor.
+    /// Share…, Send a copy, Mockups, Present and Print…, on the design as
+    /// saved, without opening the editor.
     @ViewBuilder
     private func shareItems(_ recent: RecentDesign) -> some View {
         Button {
@@ -1276,6 +1279,9 @@ struct HomeView: View {
         Button {
             HomeExports.sendCopy(recent.id, queue: ExportQueue.shared)
         } label: { Label("Send a copy", systemImage: "paperplane") }
+        Button {
+            withDesign(recent.id) { mockingUp = $0 }
+        } label: { Label("Mockups", systemImage: "iphone") }
         Button {
             withDesign(recent.id) { presenting = $0 }
         } label: { Label("Present", systemImage: "play.rectangle") }
