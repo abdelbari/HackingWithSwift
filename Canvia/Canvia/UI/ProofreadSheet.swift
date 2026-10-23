@@ -3,7 +3,8 @@
 // undo step and the check runs again; Show takes you to its box; Ignore
 // passes over the word in this design from now on (its Ignore list, one
 // undo step), and Add to dictionary in every design on this phone — as the
-// Android twin's sheet does.
+// Android twin's sheet does. The pages' speaker notes are checked too,
+// listed under Notes; Show opens a page's notes.
 
 import SwiftUI
 
@@ -42,6 +43,7 @@ struct ProofreadSheet: View {
             }
         }
         .presentationDetents(sheetDetents)
+        .sheet(isPresented: notesShown) { PageNotesSheet(store: store) }
         .onAppear {
             dictionary = SpellingDictionary.load()
             refresh()
@@ -82,10 +84,23 @@ struct ProofreadSheet: View {
                                    systemImage: "checkmark.seal",
                                    description: Text("Every word in the document is in the dictionary."))
         } else {
-            List(shown) { miss in
-                row(miss)
+            List {
+                Section {
+                    ForEach(shown.filter { $0.kind == .element }) { row($0) }
+                }
+                let notes = shown.filter { $0.kind == .notes }
+                if !notes.isEmpty {
+                    Section("Notes") {
+                        ForEach(notes) { row($0) }
+                    }
+                }
             }
         }
+    }
+
+    /// A page's notes open while a misspelling in them is showing.
+    private var notesShown: Binding<Bool> {
+        Binding(get: { store.notesAsked != nil }, set: { if !$0 { store.notesAsked = nil } })
     }
 
     private func row(_ miss: Proofreader.Misspelling) -> some View {
@@ -124,7 +139,8 @@ struct ProofreadSheet: View {
     /// Jump to the word and mark it there, as Find and replace does.
     private func show(_ miss: Proofreader.Misspelling) {
         store.reveal(DesignStore.TextMatch(pageIndex: miss.pageIndex, elementId: miss.elementId,
-                                           range: miss.range, plain: miss.plain, preview: miss.word))
+                                           range: miss.range, plain: miss.plain, preview: miss.word,
+                                           kind: miss.kind))
     }
 
     private func refresh() {

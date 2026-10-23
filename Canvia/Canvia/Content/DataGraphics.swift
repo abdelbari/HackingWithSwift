@@ -29,6 +29,57 @@ enum DataGraphics {
         }
     }
 
+    // MARK: labels changed in place
+
+    /// The chart parts whose words are the data's own: an item's label and
+    /// the legend. Find and replace and a spelling fix change the data with
+    /// them, so the chart's next Update keeps the new words.
+    static let labelParts: Set<String> = ["label", "legend"]
+
+    /// `data` with every item labelled `old` — its first cell, words as
+    /// typed, spaces aside — labelled `new` (DataGrid.chartText writes it
+    /// back); `data` as it was when none is.
+    static func withRows(_ data: String, renaming old: String, to new: String) -> String {
+        var cells = DataGrid.cells(data)
+        let header = DataGrid.chartHasHeader(cells)
+        var changed = false
+        for r in cells.indices where !(header && r == 0) && cells[r].first == old {
+            cells[r][0] = new
+            changed = true
+        }
+        return changed ? DataGrid.chartText(cells) : data
+    }
+
+    /// `data` with every series named `old` in its header named `new`;
+    /// `data` as it was when none is.
+    static func withNames(_ data: String, renaming old: String, to new: String) -> String {
+        var cells = DataGrid.cells(data)
+        guard DataGrid.chartHasHeader(cells), let names = cells.first else { return data }
+        var changed = false
+        for c in names.indices.dropFirst() where names[c] == old {
+            cells[0][c] = new
+            changed = true
+        }
+        return changed ? DataGrid.chartText(cells) : data
+    }
+
+    /// `page` with the chart `after` belongs to drawing `after`'s words
+    /// from now on, when `after` is that chart's label or legend whose
+    /// words changed from `before`'s: every item and series that read as
+    /// the old words reads as the new ones, in the spec every element of
+    /// the chart carries. The rule both phones share.
+    static func keepingLabel(_ page: inout Page, was before: Element, now after: Element) {
+        guard let spec = after.chart, labelParts.contains(after.chartPart ?? "") else { return }
+        let old = RichText.strip(before.text ?? "").trimmingCharacters(in: .whitespaces)
+        let new = RichText.strip(after.text ?? "").trimmingCharacters(in: .whitespaces)
+        guard old != new, !old.isEmpty else { return }
+        let data = withNames(withRows(spec.data, renaming: old, to: new), renaming: old, to: new)
+        guard data != spec.data else { return }
+        for i in page.elements.indices where page.elements[i].chart?.id == spec.id {
+            page.elements[i].chart?.data = data
+        }
+    }
+
     /// The first series of `parseChart`, item by item: "Label, value" per
     /// line; a line with no number is skipped, a line with only a number
     /// gets a numbered label.

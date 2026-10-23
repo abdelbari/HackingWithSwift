@@ -9,6 +9,13 @@ import UIKit
 
 enum FindReplace {
 
+    /// Where a match or a misspelling is: in a box's words, or in a page's
+    /// speaker notes — searched and checked as plain text after the page's
+    /// boxes. The Android twin's kinds, by the same names.
+    enum Kind: String {
+        case element, notes
+    }
+
     /// Where `needle` is in `body`, as UTF-16 ranges, left to right and never
     /// overlapping: "aa" is twice in "aaaa", not three times. Case aside
     /// unless `caseSensitive`.
@@ -88,11 +95,18 @@ enum FindReplace {
     /// words a shape carries, unless it is hidden or locked against typing
     /// (Lock; a position lock still takes new words), or a caption box, whose
     /// words are its cues, drawn one at a time, and changed in Edit
-    /// captions. The same rule on the Android twin.
+    /// captions — nor a chart's value labels and axis numbers, which its
+    /// data draws (a chart's own labels and legend are searched, and a
+    /// replacement there changes its data too: DataGraphics.keepingLabel).
+    /// The same rule on the Android twin.
     static func searches(_ el: Element) -> Bool {
         ShapeText.carriesWords(el) && !el.isHidden && el.captions == nil
             && ElementLock.allows(ElementLock.mode(of: el), ElementLock.Action.editText)
+            && !(el.chart != nil && derivedParts.contains(el.chartPart ?? ""))
     }
+
+    /// A chart's parts drawn from its numbers, never replaced.
+    static let derivedParts: Set<String> = ["value", "axis"]
 
     // MARK: the words as they read
 

@@ -16,7 +16,7 @@ import UIKit
 enum Proofreader {
 
     struct Misspelling: Identifiable, Equatable {
-        var id: String { "\(pageIndex)|\(elementId)|\(range.location)" }
+        var id: String { "\(kind.rawValue)|\(pageIndex)|\(elementId)|\(range.location)" }
         var pageIndex: Int
         var elementId: String
         var range: NSRange
@@ -25,11 +25,15 @@ enum Proofreader {
         /// Where the word is in the words as they read, for marking it when
         /// shown (DesignStore.TextMatch.plain).
         var plain = NSRange(location: 0, length: 0)
+        /// In a box's words, or in the page's speaker notes — then
+        /// `elementId` is empty and `range` is `plain`, of the notes.
+        var kind: FindReplace.Kind = .element
     }
 
     /// Every word the checker does not know, in reading order: page by page,
     /// element by element — text boxes and the words in shapes — left to
-    /// right. Words that are not words — numbers, hashtags, addresses,
+    /// right, then the page's speaker notes, read as plain text. Words that
+    /// are not words — numbers, hashtags, addresses,
     /// SHOUTED acronyms — are left alone. Each box is read as it reads,
     /// style marks left out, so "he**llo**" is one word, and each word found
     /// is placed back where it is stored.
@@ -50,25 +54,44 @@ enum Proofreader {
             for el in page.elements where ShapeText.carriesWords(el) && !el.isHidden && el.captions == nil {
                 guard let text = el.text, !text.isEmpty else { continue }
                 let (plain, rawAt) = RichText.mapped(text)
-                let ns = plain as NSString
-                var location = 0
-                while location < ns.length {
-                    let range = checker.rangeOfMisspelledWord(
-                        in: plain, range: NSRange(location: location, length: ns.length - location),
-                        startingAt: location, wrap: false, language: lang)
-                    guard range.location != NSNotFound, range.length > 0 else { break }
-                    let word = ns.substring(with: range)
-                    if isWorthFlagging(word, skip: skip), let stored = storedRange(range, plain: plain, rawAt: rawAt, in: text) {
-                        let guesses = checker.guesses(forWordRange: range, in: plain, language: lang) ?? []
-                        found.append(Misspelling(pageIndex: p, elementId: el.id, range: stored,
-                                                 word: word, suggestions: Array(guesses.prefix(maxSuggestions)),
-                                                 plain: range))
-                    }
-                    location = range.location + range.length
+                for miss in unknownWords(in: plain, checker: checker, language: lang, skip: skip,
+                                         maxSuggestions: maxSuggestions) {
+                    guard let stored = storedRange(miss.range, plain: plain, rawAt: rawAt, in: text) else { continue }
+                    found.append(Misspelling(pageIndex: p, elementId: el.id, range: stored, word: miss.word,
+                                             suggestions: miss.suggestions, plain: miss.range))
                 }
+            }
+            // The speaker notes, after the page's boxes, as plain text.
+            for miss in unknownWords(in: page.notes ?? "", checker: checker, language: lang, skip: skip,
+                                     maxSuggestions: maxSuggestions) {
+                found.append(Misspelling(pageIndex: p, elementId: "", range: miss.range, word: miss.word,
+                                         suggestions: miss.suggestions, plain: miss.range, kind: .notes))
             }
         }
         return found
+    }
+
+    /// The words of `plain` worth flagging that the checker does not know,
+    /// left to right, with its suggestions for each.
+    private static func unknownWords(in plain: String, checker: UITextChecker, language lang: String,
+                                     skip: Set<String>, maxSuggestions: Int)
+        -> [(range: NSRange, word: String, suggestions: [String])] {
+        let ns = plain as NSString
+        var out: [(range: NSRange, word: String, suggestions: [String])] = []
+        var location = 0
+        while location < ns.length {
+            let range = checker.rangeOfMisspelledWord(
+                in: plain, range: NSRange(location: location, length: ns.length - location),
+                startingAt: location, wrap: false, language: lang)
+            guard range.location != NSNotFound, range.length > 0 else { break }
+            let word = ns.substring(with: range)
+            if isWorthFlagging(word, skip: skip) {
+                let guesses = checker.guesses(forWordRange: range, in: plain, language: lang) ?? []
+                out.append((range: range, word: word, suggestions: Array(guesses.prefix(maxSuggestions))))
+            }
+            location = range.location + range.length
+        }
+        return out
     }
 
     /// A range of the plain reading text, as the stored text's own range:
@@ -183,8 +206,16 @@ enum Proofreader {
     /// letters, or its page has been locked since.
     static func fixed(_ design: Design, _ m: Misspelling, with replacement: String) -> Design? {
         guard design.pages.indices.contains(m.pageIndex),
-              !PageLocks.isLocked(design.pages[m.pageIndex]),
-              let i = design.pages[m.pageIndex].elements.firstIndex(where: { $0.id == m.elementId }),
+              !PageLocks.isLocked(design.pages[m.pageIndex]) else { return nil }
+        if m.kind == .notes {
+            // The notes are plain text: the word replaced as it is.
+            let notes = (design.pages[m.pageIndex].notes ?? "") as NSString
+            guard NSMaxRange(m.range) <= notes.length, notes.substring(with: m.range) == m.word else { return nil }
+            var out = design
+            out.pages[m.pageIndex].notes = notes.replacingCharacters(in: m.range, with: replacement)
+            return out
+        }
+        guard let i = design.pages[m.pageIndex].elements.firstIndex(where: { $0.id == m.elementId }),
               let text = design.pages[m.pageIndex].elements[i].text,
               let r = Range(m.range, in: text) else { return nil }
         let start = text.distance(from: text.startIndex, to: r.lowerBound)
@@ -194,8 +225,11 @@ enum Proofreader {
         let reads = String(rawAt.indices.filter { (start..<end).contains(rawAt[$0]) }.map { letters[$0] })
         guard reads == m.word else { return nil }
         var out = design
+        let before = out.pages[m.pageIndex].elements[i]
         out.pages[m.pageIndex].elements[i].setText(replacing(m, in: text, with: replacement))
         ShapeText.fitWords(&out.pages[m.pageIndex].elements[i])
+        // A chart's label keeps its new word through the chart's Update.
+        DataGraphics.keepingLabel(&out.pages[m.pageIndex], was: before, now: out.pages[m.pageIndex].elements[i])
         return out
     }
 
