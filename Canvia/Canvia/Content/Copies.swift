@@ -96,16 +96,20 @@ enum Copies {
     }
 
     /// Frame `frame` given the picture of `photo` as a drag into it gives it
-    /// (Crop.replaced: the crop reset to cover, the source replaced), keeping
-    /// the look of the photo pasted — its filter and strength, adjustments,
-    /// duotone and effect — when it had one.
-    static func filled(_ frame: Element, with photo: Element) -> Element {
+    /// (Crop.replaced: the crop reset to cover, the source replaced). A photo
+    /// copied in the app brings its look — its filter and strength,
+    /// adjustments, duotone and effect — in place of the frame's, so one
+    /// with none clears the frame's; a `foreign` picture, from another app,
+    /// has no look of its own and leaves the frame's as it was. The Android
+    /// twin's Copies.filled, with the same rows.
+    static func filled(_ frame: Element, with photo: Element, foreign: Bool) -> Element {
         var out = Crop.replaced(frame, src: photo.src)
-        if photo.filter != nil { out.filter = photo.filter }
-        if photo.filterStrength != nil { out.filterStrength = photo.filterStrength }
-        if photo.adjustments != nil { out.adjustments = photo.adjustments }
-        if photo.duotone != nil { out.duotone = photo.duotone }
-        if photo.fx != nil { out.fx = photo.fx }
+        guard !foreign else { return out }
+        out.filter = photo.filter
+        out.filterStrength = photo.filterStrength
+        out.adjustments = photo.adjustments
+        out.duotone = photo.duotone
+        out.fx = photo.fx
         return out
     }
 

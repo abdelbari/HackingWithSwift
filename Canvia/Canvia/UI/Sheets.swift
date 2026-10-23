@@ -1496,11 +1496,12 @@ struct PositionSheet: View {
         .disabled(store.movableSelectionCount == 0)
     }
 
-    /// The selection scaled evenly by `factor`: a turned group in its own
-    /// axes, else its box from its top left corner.
+    /// The selection scaled evenly by `factor`: a whole group about its
+    /// frame's middle, in its own axes, as on the Android twin; else its box
+    /// from its top left corner.
     private func scaleSelection(by factor: Double, box: CGRect) {
-        if store.turnedGroupFrame != nil {
-            store.scaleTurnedGroup(by: factor)
+        if store.selectedGroupTurn != nil {
+            store.scaleGroup(by: factor)
         } else {
             store.setSelectionBox(CGRect(x: box.minX, y: box.minY, width: box.width * factor, height: box.height * factor))
         }
@@ -1980,12 +1981,15 @@ struct LayersSheet: View {
         let ids = store.selection
         let allHidden = !picked.isEmpty && picked.allSatisfy(\.isHidden)
         let anyUnlocked = picked.contains { !$0.locked }
+        // A locked row is ticked to be unlocked: with any ticked row locked
+        // the button unlocks them all, as on the Android twin.
+        let anyLocked = picked.contains { $0.locked }
         barButton(tr("Group"), "square.on.square") { store.groupSelected() }
             .disabled(!store.canGroup)
         barButton(tr("Align"), "align.horizontal.left") { onAlign() }
             .disabled(picked.isEmpty)
-        barButton(anyUnlocked ? tr("Lock") : tr("Unlock"), anyUnlocked ? "lock" : "lock.open") {
-            store.setLock(ids, anyUnlocked ? .full : .unlocked)
+        barButton(anyLocked ? tr("Unlock") : tr("Lock"), anyLocked ? "lock.open" : "lock") {
+            store.setLock(ids, anyLocked ? .unlocked : .full)
         }
         .disabled(picked.isEmpty)
         barButton(allHidden ? tr("Show") : tr("Hide"), allHidden ? "eye" : "eye.slash") {

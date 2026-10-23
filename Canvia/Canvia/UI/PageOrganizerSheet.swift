@@ -27,6 +27,11 @@ struct PageOrganizerSheet: View {
     private static let space = "organizer"
     private static let spacing = 20.0
 
+    /// "Copy", or "Copy 3 pages" with several ticked, as on the Android twin.
+    private var copyPagesLabel: String {
+        selected.count > 1 ? trn("Copy %d page|Copy %d pages", selected.count) : tr("Copy")
+    }
+
     var body: some View {
         NavigationStack {
             content
@@ -265,7 +270,7 @@ struct PageOrganizerSheet: View {
                 // another; they stay ticked.
                 Button {
                     store.copyPages(selected)
-                } label: { Label("Copy", systemImage: "doc.on.doc") }
+                } label: { Label(copyPagesLabel, systemImage: "doc.on.doc") }
                     .disabled(selected.isEmpty)
             }
             Spacer()

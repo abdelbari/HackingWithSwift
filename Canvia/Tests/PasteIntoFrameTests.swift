@@ -50,12 +50,26 @@ final class PasteIntoFrameTests: XCTestCase {
         var pasted = photo()
         pasted.filter = "vivid"
         pasted.cropScale = 2
-        let filled = Copies.filled(frame(), with: pasted)
+        let filled = Copies.filled(frame(), with: pasted, foreign: false)
         XCTAssertEqual(filled.src, "asset:beach")
         XCTAssertEqual(filled.maskShapeId, "circle")
         XCTAssertEqual([filled.w, filled.h], [300, 300])
         XCTAssertEqual(filled.filter, "vivid")
         XCTAssertEqual(filled.cropScale ?? 1, 1, "the crop reset to cover")
+    }
+
+    /// Shared with the Android twin: a copied photo brings its look, none
+    /// clearing the frame's; a picture from another app keeps the frame's.
+    func testACopiedPhotoBringsItsLookAndAForeignOneKeepsTheFrames() {
+        var filtered = frame()
+        filtered.filter = "vivid"
+        filtered.filterStrength = 0.5
+        let plain = Copies.filled(filtered, with: photo(), foreign: false)
+        XCTAssertNil(plain.filter, "an unfiltered photo clears the frame's filter")
+        XCTAssertNil(plain.filterStrength)
+        let outside = Copies.filled(filtered, with: photo(), foreign: true)
+        XCTAssertEqual(outside.filter, "vivid", "a picture from another app keeps the frame's")
+        XCTAssertEqual(outside.src, "asset:beach")
     }
 
     func testPastingACopiedPhotoIntoASelectedFrameIsOneStepAndKeepsTheFrameSelected() {

@@ -331,6 +331,47 @@ final class NestedGroupsTests: XCTestCase {
         XCTAssertEqual(s.page.elements.map(\.rotation), [0, 0], "Turn is a group's alone")
     }
 
+    /// Shared with the Android twin: Position's Width for a turned group
+    /// scales it evenly about its frame's middle, which stays put.
+    func testPositionsWidthScalesAGroupAboutItsFramesMiddle() throws {
+        let s = store(pair)
+        s.select("a")
+        s.setGroupTurn(30)
+        let before = try XCTUnwrap(s.turnedGroupFrame)
+        s.scaleGroup(by: 2)
+        let after = try XCTUnwrap(s.turnedGroupFrame)
+        XCTAssertEqual(Double(after.size.width), Double(before.size.width) * 2, accuracy: 1e-6)
+        XCTAssertEqual(Double(after.size.height), Double(before.size.height) * 2, accuracy: 1e-6)
+        XCTAssertEqual(Double(after.center.x), Double(before.center.x), accuracy: 1e-6)
+        XCTAssertEqual(Double(after.center.y), Double(before.center.y), accuracy: 1e-6)
+        XCTAssertEqual(after.angle, 30)
+    }
+
+    /// Shared with the Android twin: a group with a member locked keeps the
+    /// upright box, and turning it writes no groupTurn on any member.
+    func testAGroupWithALockedMemberIsNeverTurnedAsOne() {
+        var members = pair
+        members[1].locked = true
+        let s = store(members)
+        s.select("a")
+        XCTAssertEqual(s.selection, ["a", "b"])
+        XCTAssertNil(s.selectedGroupTurn)
+        XCTAssertNil(s.turnedGroupFrame)
+        s.rotateSelection(by: 30)
+        s.setGroupTurn(30)
+        XCTAssertEqual(s.page.elements.map(\.groupTurn), [nil, nil])
+    }
+
+    /// Shared with the Android twin: Ungroup takes off each selected
+    /// member's outermost group, whatever level is selected — with the logo
+    /// alone selected, it is the card the logo leaves, and the heading stays
+    /// in the card.
+    func testUngroupTakesOffTheOutermostLevelWhateverLevelIsSelected() throws {
+        let els = try card().pages[0].elements
+        let out = Groups.ungrouped(els, ids: ["mark", "word"])
+        XCTAssertEqual(out.map(Groups.chain), [[], ["g-logo"], ["g-logo"], ["g-card"]])
+    }
+
     func testAFlipMirrorsTheTurn() {
         var a = box("a", x: 0, y: 0, group: "g")
         a.groupTurn = 30

@@ -7571,6 +7571,39 @@
     "ja": "コピー %d",
     "pt-BR": "Cópia %d"
   },
+  "Copy %d page|Copy %d pages": {
+    "ar": {
+      "few": "نسخ %d صفحات",
+      "many": "نسخ %d صفحة",
+      "one": "نسخ %d صفحة",
+      "other": "نسخ %d صفحة",
+      "two": "نسخ %d صفحتين",
+      "zero": "نسخ %d صفحة"
+    },
+    "de": {
+      "one": "%d Seite kopieren",
+      "other": "%d Seiten kopieren"
+    },
+    "es": {
+      "one": "Copiar %d página",
+      "other": "Copiar %d páginas"
+    },
+    "fr": {
+      "one": "Copier %d page",
+      "other": "Copier %d pages"
+    },
+    "it": {
+      "one": "Copia %d pagina",
+      "other": "Copia %d pagine"
+    },
+    "ja": {
+      "other": "%d ページをコピー"
+    },
+    "pt-BR": {
+      "one": "Copiar %d página",
+      "other": "Copiar %d páginas"
+    }
+  },
   "Copy & resize": {
     "ar": "نسخ وتغيير الحجم",
     "de": "Kopieren & Größe ändern",
@@ -17372,17 +17405,8 @@
     "es": "Pegar páginas",
     "fr": "Coller les pages",
     "it": "Incolla pagine",
-    "ja": "ページを貼り付け",
+    "ja": "複数のページを貼り付け",
     "pt-BR": "Colar páginas"
-  },
-  "Paste pages after": {
-    "ar": "لصق الصفحات بعد",
-    "de": "Seiten danach einfügen",
-    "es": "Pegar páginas después",
-    "fr": "Coller les pages après",
-    "it": "Incolla pagine dopo",
-    "ja": "後ろにページを貼り付け",
-    "pt-BR": "Colar páginas depois"
   },
   "Paste style": {
     "ar": "لصق النمط",
@@ -24421,11 +24445,11 @@
   },
   "Undo %@": {
     "ar": "تراجع عن %@",
-    "de": "%@ widerrufen",
+    "de": "%@ rückgängig machen",
     "es": "Deshacer %@",
     "fr": "Annuler %@",
     "it": "Annulla %@",
-    "ja": "%@ を取り消す",
+    "ja": "%@ を元に戻す",
     "pt-BR": "Desfazer %@"
   },
   "Undo and redo are at the bottom; hold Undo to rewind. Version history, under ⋮, brings back how the design was earlier.": {

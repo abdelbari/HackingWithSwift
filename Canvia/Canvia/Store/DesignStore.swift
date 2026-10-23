@@ -1140,7 +1140,7 @@ final class DesignStore {
         case .fill(let id):
             applyToPage { page in
                 if let i = page.elements.firstIndex(where: { $0.id == id }) {
-                    page.elements[i] = Copies.filled(page.elements[i], with: photo)
+                    page.elements[i] = Copies.filled(page.elements[i], with: photo, foreign: foreign)
                 }
             }
             selection = [id]
@@ -1441,19 +1441,32 @@ final class DesignStore {
         }
     }
 
+    /// The outermost group the selection is the whole of, when every member
+    /// can move; nil for anything else. A group with something locked or
+    /// held in place keeps the upright box and is never turned as one, so
+    /// no groupTurn is written for it — the Android twin's
+    /// DesignStore.groupFrame keeps the same rule.
+    private var movableWholeGroup: String? {
+        guard let group = Groups.whole(page.elements, selection: selection),
+              !selectedElements.contains(where: \.holdsPlace) else { return nil }
+        return group
+    }
+
     /// The selection's frame when it is a whole group turned as one
     /// (Groups.turn): turned with it, tight round it (Geometry.groupFrame).
     /// Nil for anything else, which keeps the upright box.
     var turnedGroupFrame: Geometry.GroupFrame? {
+        guard movableWholeGroup != nil else { return nil }
         let turn = Groups.turn(page.elements, selection: selection)
         guard turn != 0 else { return nil }
         return Geometry.groupFrame(selectedElements, angle: turn)
     }
 
     /// How far the selected group is turned as a whole (groupTurn), 0 when
-    /// upright; nil when the selection is not one whole group.
+    /// upright; nil when the selection is not one whole group whose members
+    /// can all move.
     var selectedGroupTurn: Double? {
-        guard Groups.whole(page.elements, selection: selection) != nil else { return nil }
+        guard movableWholeGroup != nil else { return nil }
         return Groups.turn(page.elements, selection: selection)
     }
 
@@ -1461,12 +1474,12 @@ final class DesignStore {
     /// frame's middle until it stands at `degrees`, which its members keep
     /// as their groupTurn — so Turn to 0 straightens it. One undo step.
     func setGroupTurn(_ degrees: Double) {
-        guard let group = Groups.whole(page.elements, selection: selection) else { return }
+        guard let group = movableWholeGroup else { return }
         let current = Groups.turn(page.elements, selection: selection)
         let target = Groups.normalisedTurn(degrees)
-        let members = selectedElements.filter { !$0.holdsPlace }
+        let members = selectedElements
         guard !members.isEmpty, target != current else { return }
-        let middle = Geometry.groupFrame(selectedElements, angle: current).center
+        let middle = Geometry.groupFrame(members, angle: current).center
         let turned = Geometry.rotate(members, around: middle, by: target - current)
         let byId = Dictionary(uniqueKeysWithValues: turned.map { ($0.id, $0) })
         applyToPage { page in
@@ -1477,14 +1490,16 @@ final class DesignStore {
         }
     }
 
-    /// Scale a turned group by `factor` in its frame's own axes, its frame's
-    /// top left corner kept — Position's Width and Height for it — one undo
-    /// step.
-    func scaleTurnedGroup(by factor: Double) {
-        let members = selectedElements.filter { !$0.holdsPlace }
-        guard let frame = turnedGroupFrame, !members.isEmpty, factor > 0, factor.isFinite, factor != 1 else { return }
-        let from = frame.upright
-        let to = CGRect(x: from.minX, y: from.minY, width: from.width * factor, height: from.height * factor)
+    /// A whole group scaled evenly by `factor` about its frame's middle, in
+    /// the frame's own axes — Position's Width and Height for it, turned or
+    /// upright — one undo step. The Android twin's DesignStore.scaleGroup.
+    func scaleGroup(by factor: Double) {
+        guard let turn = selectedGroupTurn, factor > 0, factor.isFinite, factor != 1 else { return }
+        let members = selectedElements
+        let frame = Geometry.groupFrame(members, angle: turn)
+        let size = CGSize(width: frame.size.width * factor, height: frame.size.height * factor)
+        let to = CGRect(x: frame.center.x - size.width / 2, y: frame.center.y - size.height / 2,
+                        width: size.width, height: size.height)
         let scaled = Geometry.scale(members, frame: frame, to: to)
         let byId = Dictionary(uniqueKeysWithValues: scaled.map { ($0.id, $0) })
         applyToPage { page in
