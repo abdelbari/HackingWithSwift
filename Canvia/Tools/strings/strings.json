@@ -3155,6 +3155,39 @@
       "other": "%d sons"
     }
   },
+  "%d style|%d styles": {
+    "ar": {
+      "few": "%d أنماط",
+      "many": "%d نمطًا",
+      "one": "%d نمط",
+      "other": "%d نمط",
+      "two": "%d نمطان",
+      "zero": "%d نمط"
+    },
+    "de": {
+      "one": "%d Schnitt",
+      "other": "%d Schnitte"
+    },
+    "es": {
+      "one": "%d estilo",
+      "other": "%d estilos"
+    },
+    "fr": {
+      "one": "%d style",
+      "other": "%d styles"
+    },
+    "it": {
+      "one": "%d stile",
+      "other": "%d stili"
+    },
+    "ja": {
+      "other": "%d スタイル"
+    },
+    "pt-BR": {
+      "one": "%d estilo",
+      "other": "%d estilos"
+    }
+  },
   "%d template|%d templates": {
     "ar": {
       "few": "%d قوالب",
@@ -4561,6 +4594,15 @@
     "it": "Aggiunto %@",
     "ja": "%@を追加しました",
     "pt-BR": "%@ adicionado"
+  },
+  "Added %@: %@": {
+    "ar": "تمت إضافة %@: %@",
+    "de": "%@ hinzugefügt: %@",
+    "es": "Añadido %@: %@",
+    "fr": "Ajouté %@ : %@",
+    "it": "Aggiunto %@: %@",
+    "ja": "%@ を追加しました: %@",
+    "pt-BR": "Adicionado %@: %@"
   },
   "Added %d guide|Added %d guides": {
     "ar": {
@@ -6708,6 +6750,39 @@
     "pt-BR": {
       "one": "Cor de %d elemento alterada",
       "other": "Cor de %d elementos alterada"
+    }
+  },
+  "Changed the font in %d place|Changed the font in %d places": {
+    "ar": {
+      "few": "تم تغيير الخط في %d مواضع",
+      "many": "تم تغيير الخط في %d موضعًا",
+      "one": "تم تغيير الخط في %d موضع",
+      "other": "تم تغيير الخط في %d موضع",
+      "two": "تم تغيير الخط في %d موضعين",
+      "zero": "تم تغيير الخط في %d موضع"
+    },
+    "de": {
+      "one": "Schrift an %d Stelle geändert",
+      "other": "Schrift an %d Stellen geändert"
+    },
+    "es": {
+      "one": "Se cambió la fuente en %d lugar",
+      "other": "Se cambió la fuente en %d lugares"
+    },
+    "fr": {
+      "one": "Police changée à %d endroit",
+      "other": "Police changée à %d endroits"
+    },
+    "it": {
+      "one": "Font cambiato in %d punto",
+      "other": "Font cambiato in %d punti"
+    },
+    "ja": {
+      "other": "%d か所のフォントを変更しました"
+    },
+    "pt-BR": {
+      "one": "Fonte alterada em %d lugar",
+      "other": "Fonte alterada em %d lugares"
     }
   },
   "Changes this design. Undo brings it back.": {
@@ -11453,6 +11528,15 @@
     "ja": "フォント",
     "pt-BR": "Fontes"
   },
+  "Fonts for these letters": {
+    "ar": "خطوط لهذه الحروف",
+    "de": "Schriften für diese Buchstaben",
+    "es": "Fuentes para estas letras",
+    "fr": "Polices pour ces lettres",
+    "it": "Font per queste lettere",
+    "ja": "この文字に対応するフォント",
+    "pt-BR": "Fontes para estas letras"
+  },
   "Fonts: SIL Open Font License 1.1, each by its own designers.": {
     "ar": "الخطوط: رخصة SIL Open Font License 1.1، كلٌّ من تصميم مصمميه.",
     "de": "Schriften: SIL Open Font License 1.1, jeweils von ihren eigenen Designern.",
@@ -13516,6 +13600,15 @@
     "it": "Lettere e numeri",
     "ja": "文字と数字",
     "pt-BR": "Letras e números"
+  },
+  "Letters missing from the font": {
+    "ar": "حروف غير موجودة في الخط",
+    "de": "Buchstaben fehlen in der Schrift",
+    "es": "Letras que faltan en la fuente",
+    "fr": "Lettres absentes de la police",
+    "it": "Lettere mancanti nel font",
+    "ja": "フォントにない文字があります",
+    "pt-BR": "Letras ausentes na fonte"
   },
   "Level %d": {
     "ar": "المستوى %d",
@@ -15877,6 +15970,15 @@
     "it": "Note, nessuna per questa pagina",
     "ja": "ノート、このページにはなし",
     "pt-BR": "Anotações, nenhuma para esta página"
+  },
+  "Notes, page %d": {
+    "ar": "الملاحظات، الصفحة %d",
+    "de": "Notizen, Seite %d",
+    "es": "Notas, página %d",
+    "fr": "Notes, page %d",
+    "it": "Note, pagina %d",
+    "ja": "ノート、%d ページ",
+    "pt-BR": "Anotações, página %d"
   },
   "Notes…": {
     "ar": "الملاحظات…",
@@ -18959,6 +19061,15 @@
     "ja": "置換",
     "pt-BR": "Substituir"
   },
+  "Replace %@ with": {
+    "ar": "استبدال %@ بـ",
+    "de": "%@ ersetzen durch",
+    "es": "Reemplazar %@ por",
+    "fr": "Remplacer %@ par",
+    "it": "Sostituisci %@ con",
+    "ja": "%@ の置き換え先",
+    "pt-BR": "Substituir %@ por"
+  },
   "Replace all": {
     "ar": "استبدال الكل",
     "de": "Alle ersetzen",
@@ -18977,6 +19088,15 @@
     "ja": "%d 件すべて置換",
     "pt-BR": "Substituir todos os %d"
   },
+  "Replace everywhere…": {
+    "ar": "استبدال في كل مكان…",
+    "de": "Überall ersetzen…",
+    "es": "Reemplazar en todas partes…",
+    "fr": "Remplacer partout…",
+    "it": "Sostituisci ovunque…",
+    "ja": "すべての場所で置換…",
+    "pt-BR": "Substituir em todo lugar…"
+  },
   "Replace existing guides": {
     "ar": "استبدال الخطوط الإرشادية الحالية",
     "de": "Vorhandene Hilfslinien ersetzen",
@@ -18985,6 +19105,15 @@
     "it": "Sostituisci le guide esistenti",
     "ja": "既存のガイドを置き換える",
     "pt-BR": "Substituir as guias existentes"
+  },
+  "Replace font": {
+    "ar": "استبدال الخط",
+    "de": "Schrift ersetzen",
+    "es": "Reemplazar fuente",
+    "fr": "Remplacer la police",
+    "it": "Sostituisci font",
+    "ja": "フォントを置換",
+    "pt-BR": "Substituir fonte"
   },
   "Replace image": {
     "ar": "استبدال الصورة",
@@ -21221,6 +21350,39 @@
     "ja": "スキップ",
     "pt-BR": "Pular"
   },
+  "Skipped %d file|Skipped %d files": {
+    "ar": {
+      "few": "تم تخطي %d ملفات",
+      "many": "تم تخطي %d ملفًا",
+      "one": "تم تخطي %d ملف",
+      "other": "تم تخطي %d ملف",
+      "two": "تم تخطي %d ملفين",
+      "zero": "تم تخطي %d ملف"
+    },
+    "de": {
+      "one": "%d Datei übersprungen",
+      "other": "%d Dateien übersprungen"
+    },
+    "es": {
+      "one": "Se omitió %d archivo",
+      "other": "Se omitieron %d archivos"
+    },
+    "fr": {
+      "one": "%d fichier ignoré",
+      "other": "%d fichiers ignorés"
+    },
+    "it": {
+      "one": "%d file saltato",
+      "other": "%d file saltati"
+    },
+    "ja": {
+      "other": "%d 件のファイルをスキップしました"
+    },
+    "pt-BR": {
+      "one": "%d arquivo ignorado",
+      "other": "%d arquivos ignorados"
+    }
+  },
   "Skipped %d locked page|Skipped %d locked pages": {
     "ar": {
       "few": "تم تخطي %d صفحات مقفلة",
@@ -21532,6 +21694,15 @@
     "it": "Colori pieni",
     "ja": "単色",
     "pt-BR": "Cores sólidas"
+  },
+  "Some letters will use a stand-in font": {
+    "ar": "ستستخدم بعض الحروف خطًا بديلًا",
+    "de": "Einige Buchstaben erscheinen in einer Ersatzschrift",
+    "es": "Algunas letras usarán una fuente sustituta",
+    "fr": "Certaines lettres utiliseront une police de remplacement",
+    "it": "Alcune lettere useranno un font sostitutivo",
+    "ja": "一部の文字は代替フォントで表示されます",
+    "pt-BR": "Algumas letras usarão uma fonte substituta"
   },
   "Some of the music was chosen on another phone and isn't on this one.": {
     "ar": "اختيرت بعض الموسيقى على هاتف آخر وليست موجودة على هذا الهاتف.",
@@ -21892,6 +22063,15 @@
     "it": "Inizia da un modello",
     "ja": "テンプレートから始める",
     "pt-BR": "Começar com um modelo"
+  },
+  "Start lists as you type": {
+    "ar": "بدء القوائم أثناء الكتابة",
+    "de": "Listen beim Tippen beginnen",
+    "es": "Empezar listas al escribir",
+    "fr": "Créer des listes en tapant",
+    "it": "Avvia elenchi mentre scrivi",
+    "ja": "入力中にリストを開始",
+    "pt-BR": "Iniciar listas ao digitar"
   },
   "Start over from a template": {
     "ar": "البدء من جديد من قالب",
@@ -26857,6 +27037,39 @@
     "it": "fiore a sei petali",
     "ja": "6 枚花びらの花",
     "pt-BR": "flor de seis pétalas"
+  },
+  "skipped %d file|skipped %d files": {
+    "ar": {
+      "few": "تم تخطي %d ملفات",
+      "many": "تم تخطي %d ملفًا",
+      "one": "تم تخطي %d ملف",
+      "other": "تم تخطي %d ملف",
+      "two": "تم تخطي %d ملفين",
+      "zero": "تم تخطي %d ملف"
+    },
+    "de": {
+      "one": "%d Datei übersprungen",
+      "other": "%d Dateien übersprungen"
+    },
+    "es": {
+      "one": "se omitió %d archivo",
+      "other": "se omitieron %d archivos"
+    },
+    "fr": {
+      "one": "%d fichier ignoré",
+      "other": "%d fichiers ignorés"
+    },
+    "it": {
+      "one": "%d file saltato",
+      "other": "%d file saltati"
+    },
+    "ja": {
+      "other": "%d 件のファイルをスキップ"
+    },
+    "pt-BR": {
+      "one": "%d arquivo ignorado",
+      "other": "%d arquivos ignorados"
+    }
   },
   "sparkle": {
     "ar": "بريق",
