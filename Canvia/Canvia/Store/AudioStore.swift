@@ -53,8 +53,12 @@ enum AudioStore {
 
     private static let nameSuffix = ".name"
 
+    /// Where track id `id` is played from: a song in the store, or — for
+    /// an effect's "sfx:<id>" (AudioTrack.audioId) — the WAV bundled with
+    /// the app (SoundEffects.url).
     static func url(for id: String?) -> URL? {
         guard let id, !id.isEmpty else { return nil }
+        if AudioTrack.isEffect(id) { return SoundEffects.url(AudioTrack.sfxId(of: id)) }
         let url = directory.appendingPathComponent(id)
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }
@@ -83,10 +87,32 @@ enum AudioStore {
     /// The music's own file name, where it was kept; otherwise what the
     /// id's extension says it is.
     static func label(for id: String) -> String {
+        if let effect = SoundEffects.effect(AudioTrack.sfxId(of: id)) { return effect.name }
         if let data = try? Data(contentsOf: nameFile(for: id)) {
             let name = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
             if !name.isEmpty { return name }
         }
         return tr("Audio (%@)", URL(fileURLWithPath: id).pathExtension.uppercased())
+    }
+}
+
+extension AudioStore {
+
+    /// Where song `id`'s beats fall, in seconds into the file (Beats.detect):
+    /// read the first time — its first Beats.maxSeconds, one channel at
+    /// Beats.rate — and kept beside its peaks, Caches/peaks/<id>.beats, as
+    /// the Android twin keeps them. Nil for a song not on this phone, or one
+    /// it cannot play. Never on the main thread.
+    static func beats(of id: String) async -> [Double]? {
+        let file = Peaks.directory.appendingPathComponent("\(id).beats")
+        if let data = try? Data(contentsOf: file), let kept = Beats.decode(String(decoding: data, as: UTF8.self)) {
+            return kept
+        }
+        guard let url = AudioStore.url(for: id),
+              let samples = await Peaks.samples(of: url, rate: Beats.rate,
+                                                limit: Int(Beats.maxSeconds) * Beats.rate) else { return nil }
+        let found = Beats.detect(samples, rate: Beats.rate)
+        try? Data(Beats.encode(found).utf8).write(to: file, options: .atomic)
+        return found
     }
 }

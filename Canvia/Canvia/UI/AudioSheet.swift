@@ -1,12 +1,13 @@
 // The design's audio: every track under the film, listed with where it
 // starts and how long it plays, and more added — music from Files or from
-// your uploads, or a voice-over recorded over the design as it plays. A
-// track opens to its start, trim, volume, fades, loop and Delete, each
-// change one undo step, a slider's or a trim handle's when it is let go. Its
-// trim is a trimmer bar over its waveform (TrimmerBar): letting a handle go
-// plays the first second and a half of the new trim, and Play trimmed part
-// plays all of it. The Android twin's Audio panel sets the same `audio`
-// array.
+// your uploads, one of the built-in sound effects (heard with a tap, found
+// by its tags), or a voice-over recorded over the design as it plays. A
+// track opens to its start, trim, volume, fades, loop, Beat Sync and
+// Delete, each change one undo step, a slider's or a trim handle's when it
+// is let go. Its trim is a trimmer bar over its waveform (TrimmerBar), its
+// song's beats ticked across it: letting a handle go plays the first second
+// and a half of the new trim, and Play trimmed part plays all of it. The
+// Android twin's Audio panel sets the same `audio` array.
 
 import SwiftUI
 import UIKit
@@ -25,6 +26,8 @@ struct AudioSheet: View {
     /// A voice-over under way: counting down, then recording.
     @State private var recording = false
     @State private var detent: PresentationDetent = .medium
+    /// The built-in sound effects, over the list.
+    @State private var showingEffects = false
 
     private var tracks: [AudioTrack] { store.design.audioTracks }
 
@@ -35,6 +38,9 @@ struct AudioSheet: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .navigationDestination(for: String.self) { id in
                     AudioTrackView(store: store, trackId: id)
+                }
+                .navigationDestination(isPresented: $showingEffects) {
+                    SoundEffectsList(store: store)
                 }
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
@@ -106,7 +112,7 @@ struct AudioSheet: View {
     private func trackRow(_ track: AudioTrack) -> some View {
         let duration = track.audioId.flatMap { lengths[$0] }
         return HStack(spacing: 12) {
-            Image(systemName: "waveform")
+            Image(systemName: AudioTrack.isEffect(track.src) ? "speaker.wave.2" : "waveform")
                 .foregroundStyle(Theme.accent)
                 .frame(width: 34, height: 34)
                 .background(RoundedRectangle(cornerRadius: 8).fill(Theme.accentSubtle))
@@ -127,6 +133,9 @@ struct AudioSheet: View {
                 Label("Music from Files…", systemImage: "folder")
             }
             musicMenu
+            Button { showingEffects = true } label: {
+                Label("Sound effects", systemImage: "speaker.wave.2")
+            }
             Button { startRecording() } label: {
                 Label("Record voice-over", systemImage: "mic")
             }
@@ -227,6 +236,12 @@ struct AudioTrackView: View {
     @State private var draftFadeOut: Double?
     /// The Captions sheet, over this one.
     @State private var captioning = false
+    /// The song's beats, once read, ticked over its waveform.
+    @State private var beats: [Double] = []
+    /// Beat Sync reading the song's beats before it turns on.
+    @State private var syncing = false
+    /// Why Beat Sync did not turn on, under its switch.
+    @State private var beatNote: String?
 
     private var track: AudioTrack? { store.design.audioTracks.first { $0.id == trackId } }
 
@@ -236,6 +251,7 @@ struct AudioTrackView: View {
                 placeSection(track)
                 trimSection(track)
                 levelSection(track)
+                beatSection(track)
                 captionsSection(track)
                 Section {
                     Button(role: .destructive) { delete() } label: {
@@ -248,9 +264,12 @@ struct AudioTrackView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task(id: track?.audioId) {
             peaks = []
+            beats = []
             guard let id = track?.audioId else { return }
             length = await AudioStore.duration(of: id) ?? 0
             peaks = await Peaks.of(id) ?? []
+            // A song's beats; an effect has none worth ticking.
+            if !AudioTrack.isEffect(id) { beats = await AudioStore.beats(of: id) ?? [] }
         }
         .onDisappear { Audition.shared.stop() }
     }
@@ -320,6 +339,7 @@ struct AudioTrackView: View {
                 TrimmerBar(length: length, start: start, end: end, minLength: AudioTrack.minLength,
                            commit: { s, e in commitTrim(s, e, length: length) }) {
                     WaveformView(peaks: peaks)
+                        .overlay { BeatTicks(beats: beats, length: length) }
                 }
                 .padding(.vertical, 4)
                 Button { audition(start...max(start, end)) } label: {
@@ -351,6 +371,47 @@ struct AudioTrackView: View {
                    draft: $draftFadeOut, readout: AudioTracks.secondsLabel) { v in
                 write { $0.fadeOut = AudioTracks.tenths(v) }
             }
+        }
+    }
+
+    /// Beat Sync, for a song: each page's cut on the nearest beat, the
+    /// holds as they were back when it goes off — one step each. Its beats
+    /// are read first; a song this phone cannot play says so.
+    @ViewBuilder
+    private func beatSection(_ track: AudioTrack) -> some View {
+        if !AudioTrack.isEffect(track.src) {
+            Section {
+                Toggle("Beat Sync", isOn: Binding(get: { track.beatSync }, set: { setBeatSync($0) }))
+                    .disabled(syncing)
+            } footer: {
+                Text(beatNote ?? Self.beatSyncNote)
+            }
+        }
+    }
+
+    static var beatSyncNote: String { tr("Moves each page's cut to the nearest beat of this song.") }
+    static var beatSyncRefusal: String { tr("Beat Sync needs a song this phone can play") }
+
+    private func setBeatSync(_ on: Bool) {
+        beatNote = nil
+        guard on else {
+            store.turnBeatSyncOff(trackId)
+            return
+        }
+        guard let id = track?.audioId else { return }
+        syncing = true
+        Task {
+            let found = await AudioStore.beats(of: id)
+            syncing = false
+            guard let found else {
+                beatNote = Self.beatSyncRefusal
+                store.buzz(.reject)
+                store.announce(Self.beatSyncRefusal, undoable: false)
+                return
+            }
+            beats = found
+            store.turnBeatSyncOn(trackId, beats: found, length: length)
+            store.buzz(.confirm)
         }
     }
 
@@ -561,5 +622,62 @@ struct VoiceOverPanel: View {
         store.buzz(.confirm)
         store.announce(tr("Added %@", name))
         onDone()
+    }
+}
+
+// MARK: - sound effects
+
+/// The built-in sound effects (SoundEffects), found by their names and
+/// tags: a tap on one plays it, its + adds it as a track from where the
+/// page on screen starts in the film, once — as the Android twin's row.
+struct SoundEffectsList: View {
+    @Bindable var store: DesignStore
+    @State private var query = ""
+
+    var body: some View {
+        List {
+            ForEach(SoundEffects.search(query)) { effect in row(effect) }
+        }
+        .searchable(text: $query, prompt: Text("Search sound effects"))
+        .navigationTitle("Sound effects")
+        .navigationBarTitleDisplayMode(.inline)
+        .onDisappear { Audition.shared.stop() }
+    }
+
+    private func row(_ effect: SoundEffect) -> some View {
+        HStack(spacing: 12) {
+            Button { audition(effect) } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "play.circle")
+                        .font(.title3)
+                        .foregroundStyle(Theme.accent)
+                    Text(effect.name)
+                    Spacer(minLength: 0)
+                    Text(AudioTracks.secondsLabel(effect.seconds))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(tr("Play %@", effect.name))
+            Button { add(effect) } label: {
+                Image(systemName: "plus.circle.fill").font(.title3)
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel(tr("Add %@", effect.name))
+        }
+    }
+
+    /// The effect heard once, whole.
+    private func audition(_ effect: SoundEffect) {
+        guard let url = SoundEffects.url(effect.id) else { return }
+        Audition.shared.play(url, 0...max(effect.seconds, 0.05))
+    }
+
+    private func add(_ effect: SoundEffect) {
+        store.addSoundEffect(effect)
+        store.buzz(.confirm)
+        store.announce(tr("Added to the audio."))
     }
 }

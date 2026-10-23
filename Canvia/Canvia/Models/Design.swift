@@ -362,14 +362,18 @@ struct PresentSettings: Codable, Equatable {
     }
 }
 
-/// One sound under the design's film — a song, a voice-over — as the Audio
-/// sheet sets it. `src` names its file, "audio:<AudioStore id>"; `start` is
+/// One sound under the design's film — a song, a voice-over, one of the
+/// built-in sound effects — as the Audio sheet sets it. `src` names its
+/// file, "audio:<AudioStore id>", or an effect, "sfx:<id>" (SoundEffects);
+/// `start` is
 /// where it comes in, in seconds into the film; `trimStart` and `trimEnd`
 /// the part of the file it plays, nil being to the file's end; `volume`
 /// 0...1; `fadeIn` and `fadeOut` in seconds; `loop` goes round again until
 /// the film ends; `name` is what the sheet calls it. Written as one of the
 /// design's `audio` array, with the Android twin's keys; each read
-/// leniently, as a clip's are, and a track with no "audio:" source is none.
+/// leniently, as a clip's are, and a track with no "audio:" or "sfx:"
+/// source is none. `beatSync` is true while Beat Sync holds the pages to
+/// its beats (BeatSync), and written only then.
 struct AudioTrack: Codable, Equatable, Identifiable {
     var id: String = UID.make("track")
     var src: String
@@ -381,8 +385,11 @@ struct AudioTrack: Codable, Equatable, Identifiable {
     var fadeOut: Double = 0
     var loop: Bool = false
     var name: String = ""
+    var beatSync: Bool = false
 
     static let prefix = "audio:"
+    /// A built-in sound effect's source: "sfx:<id>" (SoundEffects).
+    static let sfxPrefix = "sfx:"
     /// What the sheet offers a fade, and what the mix plays one within.
     static let fadeRange = 0.0...5.0
     /// The shortest a trim leaves a track, in seconds, as a clip's.
@@ -395,15 +402,39 @@ struct AudioTrack: Codable, Equatable, Identifiable {
     static let migratedId = "soundtrack"
     static let migratedName = "Soundtrack"
 
-    /// The AudioStore id the track plays, or nil for a source that is not
-    /// one.
+    /// The id the track's sound is found by: the AudioStore id an
+    /// "audio:" source names, or an effect's whole "sfx:<id>" source — the
+    /// prefix kept, so it never names a song in the store, and AudioStore
+    /// knows to find it among the effects the app comes with. Nil for any
+    /// other source. As the Android twin's AudioTracks.idOf.
     var audioId: String? {
+        if Self.isEffect(src) { return src }
         guard src.hasPrefix(Self.prefix) else { return nil }
         let id = String(src.dropFirst(Self.prefix.count))
         return id.isEmpty ? nil : id
     }
 
     static func src(_ id: String) -> String { prefix + id }
+
+    static func sfxSrc(_ effectId: String) -> String { sfxPrefix + effectId }
+
+    /// Whether `src` — or an audioId — is a built-in effect's.
+    static func isEffect(_ src: String?) -> Bool {
+        guard let src else { return false }
+        return src.hasPrefix(sfxPrefix) && src.count > sfxPrefix.count
+    }
+
+    /// The effect an "sfx:" source (or its audioId) names.
+    static func sfxId(of src: String?) -> String? {
+        guard let src, isEffect(src) else { return nil }
+        return String(src.dropFirst(sfxPrefix.count))
+    }
+
+    /// The song's id in the audio store — what a design file and a backup
+    /// carry — or nil for an effect, which every copy of the app has.
+    var storedAudioId: String? {
+        Self.isEffect(src) ? nil : audioId
+    }
 
     init(id: String = UID.make("track"), src: String, start: Double = 0, trimStart: Double = 0,
          trimEnd: Double? = nil, volume: Double = 1, fadeIn: Double = 0, fadeOut: Double = 0,
@@ -430,13 +461,13 @@ struct AudioTrack: Codable, Equatable, Identifiable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, src, start, trimStart, trimEnd, volume, fadeIn, fadeOut, loop, name
+        case id, src, start, trimStart, trimEnd, volume, fadeIn, fadeOut, loop, name, beatSync
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         src = try c.decode(String.self, forKey: .src)
-        guard src.hasPrefix(Self.prefix), src.count > Self.prefix.count else {
+        guard (src.hasPrefix(Self.prefix) && src.count > Self.prefix.count) || Self.isEffect(src) else {
             throw DecodingError.dataCorrupted(.init(codingPath: c.codingPath, debugDescription: "Not an audio track"))
         }
         // One with no id of its own goes by its source, as on Android: the
@@ -451,10 +482,11 @@ struct AudioTrack: Codable, Equatable, Identifiable {
         fadeOut = (try? c.decodeIfPresent(Double.self, forKey: .fadeOut)) ?? 0
         loop = (try? c.decodeIfPresent(Bool.self, forKey: .loop)) ?? false
         name = (try? c.decodeIfPresent(String.self, forKey: .name)) ?? ""
+        beatSync = (try? c.decodeIfPresent(Bool.self, forKey: .beatSync)) == true
     }
 
     /// Every key but `trimEnd`, which is written only when the track stops
-    /// short of its file's end.
+    /// short of its file's end, and `beatSync`, written only when on.
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)
@@ -467,6 +499,7 @@ struct AudioTrack: Codable, Equatable, Identifiable {
         try c.encode(fadeOut, forKey: .fadeOut)
         try c.encode(loop, forKey: .loop)
         try c.encode(name, forKey: .name)
+        if beatSync { try c.encode(true, forKey: .beatSync) }
     }
 
     /// One track of an `audio` array: none, rather than the whole array,
@@ -542,6 +575,13 @@ struct Design: Codable, Equatable, Identifiable {
     /// How Present plays it; nil, and not written, is as it always played.
     var present: PresentSettings?
 
+    /// The pages' holds as they were before Beat Sync set them, page id to
+    /// its own hold — nil, written null, for one that followed the
+    /// design's — so turning it off puts them back (BeatSync). Nil, and not
+    /// written, while no track has Beat Sync on. The Android twin's design
+    /// extras "beatSyncRestore".
+    var beatSyncRestore: [String: Double?]?
+
     /// Whether Present goes round from the last page shown to the first;
     /// turning it off takes the key away.
     var presentLoops: Bool {
@@ -616,6 +656,8 @@ struct Design: Codable, Equatable, Identifiable {
         spellIgnore = ignored.isEmpty ? nil : ignored
         language = Proofreader.languageTag(try? c.decode(String.self, forKey: .language))
         present = (try? c.decode(PresentSettings.self, forKey: .present)).flatMap { $0.loop ? $0 : nil }
+        // Each hold on its own: one that is not a number is none.
+        beatSyncRestore = (try? c.decode([String: KeptHold].self, forKey: .beatSyncRestore))?.mapValues(\.seconds)
         let tracks = (try? c.decode([AudioTrack.IfReadable].self, forKey: .audio))?.compactMap(\.track) ?? []
         audio = tracks.isEmpty ? nil : tracks
         // The old soundtrack, read forever: the one track of a file with no
@@ -624,6 +666,15 @@ struct Design: Codable, Equatable, Identifiable {
         if audio == nil, let old = try? c.decode(LegacySound.self, forKey: .motion),
            let id = old.soundtrack, !id.isEmpty {
             audio = [AudioTrack.migrated(soundtrack: id, volume: old.soundVolume)]
+        }
+    }
+
+    /// One hold Beat Sync kept: a number, or none.
+    private struct KeptHold: Decodable {
+        var seconds: Double?
+
+        init(from decoder: Decoder) throws {
+            seconds = (try? decoder.singleValueContainer().decode(Double.self)).flatMap { $0.isFinite ? $0 : nil }
         }
     }
 
@@ -643,7 +694,7 @@ struct Design: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides, folder
-        case titleAuto, fonts, unit, dpi, bleed, audio, starred, spellIgnore, language, present
+        case titleAuto, fonts, unit, dpi, bleed, audio, starred, spellIgnore, language, present, beatSyncRestore
     }
 
     /// The master page, if one is set and still exists.
