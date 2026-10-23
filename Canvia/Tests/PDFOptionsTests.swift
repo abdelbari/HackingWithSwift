@@ -47,16 +47,16 @@ final class PDFOptionsTests: XCTestCase {
     func testTheSettingsJSONIsTheSharedText() {
         let plain = ExportLast(format: "png", scale: 2, longEdge: nil, jpegQuality: 0.85, transparent: false, pages: "all")
         XCTAssertEqual(plain.json,
-                       #"{"format":"png","scale":2.0,"longEdge":null,"jpegQuality":0.85,"transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false,"pptxStyledText":"editable"}"#)
+                       #"{"format":"png","scale":2.0,"longEdge":null,"jpegQuality":0.85,"transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false,"pptxStyledText":"editable","suggested":false,"pdfBookmarks":true}"#)
         let pdf = ExportLast(format: "pdf", scale: 3, longEdge: 1080, jpegQuality: 1, transparent: true,
                              pages: "chosen", pdfNotes: true, pdfCompress: true)
         XCTAssertEqual(pdf.json,
-                       #"{"format":"pdf","scale":3.0,"longEdge":1080,"jpegQuality":1.0,"transparent":true,"pages":"chosen","pdfNotes":true,"pdfCompress":true,"pptxStyledText":"editable"}"#)
+                       #"{"format":"pdf","scale":3.0,"longEdge":1080,"jpegQuality":1.0,"transparent":true,"pages":"chosen","pdfNotes":true,"pdfCompress":true,"pptxStyledText":"editable","suggested":false,"pdfBookmarks":true}"#)
         // The Android twin's PdfOptionsTest row.
         let shared = ExportLast(format: "pdf", scale: 2, longEdge: nil, jpegQuality: 0.85, transparent: false,
                                 pages: "all", pdfNotes: true, pdfCompress: true)
         XCTAssertEqual(shared.json,
-                       #"{"format":"pdf","scale":2.0,"longEdge":null,"jpegQuality":0.85,"transparent":false,"pages":"all","pdfNotes":true,"pdfCompress":true,"pptxStyledText":"editable"}"#)
+                       #"{"format":"pdf","scale":2.0,"longEdge":null,"jpegQuality":0.85,"transparent":false,"pages":"all","pdfNotes":true,"pdfCompress":true,"pptxStyledText":"editable","suggested":false,"pdfBookmarks":true}"#)
         XCTAssertEqual(ExportLast.read(pdf.json), pdf)
         XCTAssertEqual(ExportLast.read(plain.json), plain)
         XCTAssertEqual(ExportLast.number(1.5), "1.5")
@@ -70,7 +70,7 @@ final class PDFOptionsTests: XCTestCase {
         let odd = try XCTUnwrap(ExportLast.read(#"{"format":"pdf","pdfNotes":"yes","pdfCompress":1}"#))
         XCTAssertFalse(odd.pdfNotes)
         XCTAssertFalse(odd.pdfCompress)
-        let on = try XCTUnwrap(ExportLast.read(#"{"format":"pdf","pdfNotes":true,"pdfCompress":true}"#))
+        let on = try XCTUnwrap(ExportLast.read(#"{"format":"pdf","pdfNotes":true,"pdfCompress":true,"suggested":false,"pdfBookmarks":true}"#))
         XCTAssertTrue(on.pdfNotes)
         XCTAssertTrue(on.pdfCompress)
         // Shared: "pptxStyledText" is "editable" (the default) or "picture"; anything else is the default.
@@ -78,10 +78,17 @@ final class PDFOptionsTests: XCTestCase {
         XCTAssertTrue(old.styledTextEditable)
         let picture = ExportLast(format: "pptx", scale: 2, longEdge: nil, jpegQuality: 0.85, transparent: false,
                                  pages: "all", pptxStyledText: "picture")
-        XCTAssertTrue(picture.json.hasSuffix(#""pdfCompress":false,"pptxStyledText":"picture"}"#))
+        XCTAssertTrue(picture.json.hasSuffix(#""pdfCompress":false,"pptxStyledText":"picture","suggested":false,"pdfBookmarks":true}"#))
         XCTAssertEqual(ExportLast.read(picture.json)?.pptxStyledText, "picture")
         XCTAssertFalse(try XCTUnwrap(ExportLast.read(picture.json)).styledTextEditable)
         XCTAssertEqual(ExportLast.read(#"{"format":"pptx","pptxStyledText":"vector"}"#)?.pptxStyledText, "editable")
+        // Missing, the format was picked by hand and the bookmarks are on.
+        XCTAssertFalse(old.suggested)
+        XCTAssertTrue(old.pdfBookmarks)
+        let round = ExportLast(format: "mp4", scale: 2, longEdge: nil, jpegQuality: 0.85, transparent: false,
+                               pages: "all", suggested: true, pdfBookmarks: false)
+        XCTAssertEqual(ExportLast.read(round.json), round)
+        XCTAssertTrue(round.json.hasSuffix(#""pdfCompress":false,"pptxStyledText":"editable","suggested":true,"pdfBookmarks":false}"#))
     }
 
     // MARK: notes pages

@@ -137,7 +137,7 @@ struct HitTile: View {
                     .padding(14)
             }
         case .sticker:
-            Text(hit.id).font(.system(size: 34))
+            Text(hit.id).font(.largeTitle)
         case .photoFrame:
             if let preset = DecorativeFrames.preset(hit.id) { InsertSheet.decorativeFrameThumb(preset) }
         case .grid:
@@ -157,7 +157,7 @@ struct HitTile: View {
 
     private func symbol(_ name: String) -> some View {
         Image(systemName: name)
-            .font(.system(size: 22))
+            .font(.title2)
             .foregroundStyle(.primary)
     }
 }

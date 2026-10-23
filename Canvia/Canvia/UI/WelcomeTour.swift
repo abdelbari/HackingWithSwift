@@ -47,6 +47,8 @@ enum Onboarding {
 struct WelcomeTour: View {
     var onDone: () -> Void
     @State private var index = 0
+    /// Each card's picture, growing with Larger Text.
+    @ScaledMetric(relativeTo: .largeTitle) private var pictureSize: CGFloat = 56
 
     var body: some View {
         VStack(spacing: 0) {
@@ -54,7 +56,7 @@ struct WelcomeTour: View {
                 ForEach(Array(Onboarding.cards.enumerated()), id: \.element.id) { i, card in
                     VStack(spacing: 18) {
                         Image(systemName: card.systemImage)
-                            .font(.system(size: 56, weight: .light))
+                            .font(.system(size: pictureSize, weight: .light))
                             .foregroundStyle(Theme.accent)
                             .padding(.top, 30)
                         Text(card.title)

@@ -229,7 +229,7 @@ struct TimelineStrip: View {
             .fill(current ? Theme.accentSubtle : Color(.systemGray5))
             .overlay(alignment: .leading) {
                 Text("\(index + 1)  " + Self.holdLabel(hold))
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.caption2.weight(.semibold))
                     .lineLimit(1)
                     .padding(.leading, 6)
             }

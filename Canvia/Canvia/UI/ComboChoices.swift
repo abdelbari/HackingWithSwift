@@ -80,7 +80,7 @@ struct ComboChoices: View {
             VStack(spacing: 4) {
                 ComboThumb(combo: combo)
                 Text(combo.name)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
             }
@@ -106,7 +106,7 @@ struct ComboChoices: View {
 
     private func header(_ title: String) -> some View {
         Text(title.uppercased())
-            .font(.system(size: 11, weight: .bold))
+            .font(.caption2.weight(.bold))
             .foregroundStyle(.secondary)
             .padding(.top, 8)
     }

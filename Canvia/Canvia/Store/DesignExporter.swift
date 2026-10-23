@@ -439,9 +439,14 @@ enum DesignExporter {
     /// size (drawNotesPage); with `compress`, every photo is drawn from a
     /// copy at 150 dpi of the size it prints at, as JPEG at 0.75
     /// (compressedForPDF), and nothing else changes.
+    ///
+    /// Finished, the file says what it is (PDFMetadata): its title,
+    /// language and maker, with `bookmarks` an outline entry for each page
+    /// — none for a notes page, which its page's leads to — and each
+    /// page's pictures' alt texts, flattened or not.
     @MainActor
     static func exportPDF(design source: Design, range: PageRange = .all, current: Int = 0, flatten: Bool = false,
-                          notes: Bool = false, compress: Bool = false,
+                          notes: Bool = false, compress: Bool = false, bookmarks: Bool = true,
                           to url: URL, progress: ((Double) -> Void)? = nil) async throws {
         let indices = range.indices(in: source, current: current)
         guard !indices.isEmpty else { throw ExportError.renderFailed }
@@ -456,8 +461,12 @@ enum DesignExporter {
             let size = design.size(for: page)
             return CGRect(x: 0, y: 0, width: Double(size.width) * pxToPt, height: Double(size.height) * pxToPt)
         }
-        let writer = try PDFWriter(url: url, bounds: bounds(design.pages[indices[0]]))
+        let writer = try PDFWriter(url: url, bounds: bounds(design.pages[indices[0]]), title: design.title)
         var pacer = Pacer()
+        // One entry per sheet written, in the order written: the file's
+        // pages, not the design's.
+        var titles: [String?] = []
+        var figures: [[PDFUpdate.Picture]] = []
         do {
             for (n, sheet) in sheets.enumerated() {
                 try await pacer.breathe()
@@ -475,15 +484,21 @@ enum DesignExporter {
                             linkAreas(of: page, in: design, onto: cg, pageHeight: box.height)
                         }
                     }
+                    titles.append(bookmarks ? PDFMetadata.bookmarkTitle(page, number: index + 1) : nil)
+                    figures.append(figureAreas(of: page, in: design, pageHeight: Double(box.height)))
                 case .notes(let index):
                     let page = design.pages[index]
                     let box = bounds(page)
                     writer.page(box) { cg in drawNotesPage(design: design, page: page, box: box, flatten: flatten, into: cg) }
+                    titles.append(nil)
+                    figures.append([])
                 }
                 progress?(Double(n + 1) / Double(sheets.count))
             }
             try await pacer.finish()
             writer.close()
+            // A file whose metadata could not be added is still the PDF.
+            PDFUpdate.appendUpdate(to: url, metadata: metadata(for: design, titles: titles, figures: figures))
         } catch {
             writer.close()
             try? FileManager.default.removeItem(at: url)
@@ -629,6 +644,26 @@ enum DesignExporter {
         cg.restoreGState()
     }
 
+    /// The page's pictures with alt text (PDFMetadata.figures), each over
+    /// its area in the PDF's own space — points up from the bottom of the
+    /// page — as the alt-text annotations take them.
+    private static func figureAreas(of page: Page, in design: Design, pageHeight: Double) -> [PDFUpdate.Picture] {
+        let pxToPt = PrintLayout.pxToPt(design)
+        return PDFMetadata.figures(design, page: page).map { f in
+            PDFUpdate.Picture(left: f.x * pxToPt, bottom: pageHeight - (f.y + f.h) * pxToPt,
+                             right: (f.x + f.w) * pxToPt, top: pageHeight - f.y * pxToPt, alt: f.alt)
+        }
+    }
+
+    /// What a PDF of `design` says about itself: its title, this app at its
+    /// version, its language — the design's, else the app's — `titles`,
+    /// one per sheet of the file, and `figures`, each sheet's alt texts.
+    static func metadata(for design: Design, titles: [String?], figures: [[PDFUpdate.Picture]] = []) -> PDFUpdate.Metadata {
+        PDFUpdate.Metadata(info: PDFMetadata.info(design, version: PDFMetadata.appVersion),
+                           lang: PDFMetadata.language(design, appLanguage: AppLanguage.current()),
+                           bookmarks: titles, figures: figures)
+    }
+
     /// Where each piece of a page goes on the paper: one sheet for fitted
     /// or actual size, several for tiles; for several to a sheet, every
     /// cell of the sheet it fills when repeated.
@@ -685,19 +720,27 @@ enum DesignExporter {
     /// what was put past the trim in the band (PrintLayout.drawing).
     /// Written a sheet at a time, with `progress` after each and a pause
     /// between them, so a forty-sheet tiled poster can be watched and
-    /// cancelled; a cancelled PDF is deleted.
+    /// cancelled; a cancelled PDF is deleted. It says what the plain PDF
+    /// says about itself (PDFMetadata), with a bookmark on each page's first
+    /// sheet — a sheet of several is bookmarked by the first page on it —
+    /// and no alt texts, its pages being laid out on paper.
     @MainActor
     static func exportPrintPDF(design: Design, range: PageRange = .all, current: Int = 0,
-                               options: PrintLayout.Options, flatten: Bool = false, to url: URL,
-                               progress: ((Double) -> Void)? = nil) async throws {
+                               options: PrintLayout.Options, flatten: Bool = false, bookmarks: Bool = true,
+                               to url: URL, progress: ((Double) -> Void)? = nil) async throws {
         let sheet = CGRect(origin: .zero, size: options.sheet)
         let indices = range.indices(in: design, current: current)
         guard !indices.isEmpty else { throw ExportError.renderFailed }
         let total = max(1, sheetCount(design: design, indices: indices, options: options))
-        let writer = try PDFWriter(url: url, bounds: sheet)
+        let writer = try PDFWriter(url: url, bounds: sheet, title: design.title)
         let designed = Bleed.shown(design)
         var pacer = Pacer()
         var done = 0
+        var titles: [String?] = []
+        func title(_ index: Int) -> String? {
+            bookmarks && design.pages.indices.contains(index)
+                ? PDFMetadata.bookmarkTitle(design.pages[index], number: index + 1) : nil
+        }
         do {
             if options.fit == .several {
                 // Several to a sheet: a sheet at a time, the back of a
@@ -710,13 +753,15 @@ enum DesignExporter {
                         drawSeveral(design: design, pages: pages, cols: plan.cols, mirrored: mirrored,
                                     options: options, flatten: flatten, into: cg)
                     }
+                    titles.append(pages.first.flatMap(title))
                     done += 1
                     progress?(Double(done) / Double(total))
                 }
             }
-            for page in indices.map({ design.pages[$0] }) where options.fit != .several {
+            for index in indices where options.fit != .several {
+                let page = design.pages[index]
                 let pagePts = PrintLayout.pagePoints(size: design.size(for: page), dpi: design.effectiveDPI, bleed: options.bleed)
-                for placement in placements(pagePoints: pagePts, options: options) {
+                for (n, placement) in placements(pagePoints: pagePts, options: options).enumerated() {
                     try await pacer.breathe()
                     // A sheet holding a whole page of a design with a bleed
                     // of its own says where its trim and bleed are, for the
@@ -731,12 +776,15 @@ enum DesignExporter {
                         drawSheet(design: design, page: page, pagePoints: pagePts,
                                   placement: placement, options: options, flatten: flatten, into: cg)
                     }
+                    // A poster's first sheet alone carries the page's bookmark.
+                    titles.append(n == 0 ? title(index) : nil)
                     done += 1
                     progress?(Double(done) / Double(total))
                 }
             }
             try await pacer.finish()
             writer.close()
+            PDFUpdate.appendUpdate(to: url, metadata: metadata(for: design, titles: titles))
         } catch {
             writer.close()
             try? FileManager.default.removeItem(at: url)
@@ -833,10 +881,17 @@ enum DesignExporter {
         private let context: CGContext
         private var closed = false
 
-        init(url: URL, bounds: CGRect) throws {
+        /// `title` is the design's, said as the file's own (PDFMetadata),
+        /// with Canvia as its creator; the rest of what the file says about
+        /// itself is added once it is finished (PDFUpdate), and the title
+        /// and creator stand should that fail.
+        init(url: URL, bounds: CGRect, title: String? = nil) throws {
             try? FileManager.default.removeItem(at: url)
             var box = bounds
-            guard let context = CGContext(url as CFURL, mediaBox: &box, nil) else {
+            var info: [String: String] = [kCGPDFContextCreator as String: PDFMetadata.creator,
+                                          kCGPDFContextAuthor as String: PDFMetadata.creator]
+            if let title { info[kCGPDFContextTitle as String] = title }
+            guard let context = CGContext(url as CFURL, mediaBox: &box, info as CFDictionary) else {
                 throw ExportError.encodeFailed
             }
             self.context = context

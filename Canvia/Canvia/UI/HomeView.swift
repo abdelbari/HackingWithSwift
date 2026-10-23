@@ -15,6 +15,8 @@ enum HomeSheet: Identifiable, Equatable {
     case settings
     /// The brand kits, with no design attached.
     case brandKit
+    /// Everything brought in: photos, clips, songs and fonts.
+    case uploads
 
     var id: String {
         switch self {
@@ -25,6 +27,7 @@ enum HomeSheet: Identifiable, Equatable {
         case .designTypes: return "design-types"
         case .settings: return "settings"
         case .brandKit: return "brand-kit"
+        case .uploads: return "uploads"
         }
     }
 }
@@ -99,6 +102,12 @@ struct HomeView: View {
     @State private var folder: String?
     /// The Starred chip: starred folders, then starred designs.
     @State private var starredOnly = false
+    /// Whether anything has been brought in, for the Uploads chip.
+    @State private var hasUploads = false
+    /// From Uploads: a design that uses an upload, opened once the sheet
+    /// has gone; or an upload's file, landed as a share into Canvia is.
+    @State private var openAfterSheet: Design?
+    @State private var landAfterSheet: URL?
     /// The folders starred, from the home-folders preference.
     @State private var starredFolders: Set<String> = []
     /// The designs a new folder is being named for.
@@ -190,7 +199,7 @@ struct HomeView: View {
                         sortMenu
                     }
                     .padding(.horizontal)
-                    // All, Starred, then the folders.
+                    // All, Starred, Uploads, then the folders.
                     if !recents.isEmpty { folderChips }
                     if starredOnly {
                         starredPart
@@ -201,6 +210,10 @@ struct HomeView: View {
                     } else {
                         recentsGrid
                     }
+                }
+                // Uploads with no design yet still have their chip.
+                if recents.isEmpty && hasUploads {
+                    uploadsChip.padding(.horizontal)
                 }
                 if !trashed.isEmpty {
                     trashSection
@@ -265,7 +278,26 @@ struct HomeView: View {
             StandaloneBrandKitSheet()
                 // Its templates lead Home's.
                 .onDisappear { reload() }
+        case .uploads:
+            uploadsSheet
         }
+    }
+
+    /// Home ▸ Uploads: a design it lists opens, Import picks, and a new
+    /// design from an upload lands it as a share into Canvia does — so Fit
+    /// to the photo and the nearest types follow — each once the sheet has
+    /// gone.
+    private var uploadsSheet: some View {
+        UploadsSheet(onOpen: { design in
+            openAfterSheet = design
+            homeSheet = nil
+        }, onImport: {
+            importFromSheet(.media)
+        }, onNewDesign: { file in
+            landAfterSheet = file
+            homeSheet = nil
+        })
+        .onDisappear { reload() }
     }
 
     /// A new design, under a name the shelf does not already have — "Poster",
@@ -316,9 +348,26 @@ struct HomeView: View {
             Onboarding.reset(.standard)
             touring = true
         }
+        if let design = openAfterSheet {
+            openAfterSheet = nil
+            onOpen(DesignLibrary.load(id: design.id) ?? design)
+        }
+        if let file = landAfterSheet {
+            landAfterSheet = nil
+            landUpload(file)
+        }
         guard let design = pendingOpen else { return }
         pendingOpen = nil
         create(design)
+    }
+
+    /// An upload's file as a share into Canvia: copied into the inbox, then
+    /// the app's "New design from shared" sheet.
+    private func landUpload(_ file: URL) {
+        Task { @MainActor in
+            let box = await Task.detached(priority: .userInitiated) { SharedInbox.land([file]) }.value
+            if let box { onImport(box) } else { importError = tr("Couldn't open that file") }
+        }
     }
 
     /// The shelf and the trash, read off the main thread — every design
@@ -334,6 +383,9 @@ struct HomeView: View {
                 (DesignLibrary.shelf(), DesignLibrary.trashed(), UserTemplates.all())
             }.value
             guard generation == reloads else { return }
+            hasUploads = await Task.detached(priority: .utility) {
+                !Uploads.all().isEmpty || !Uploads.fonts().isEmpty
+            }.value
             userTemplates = mine
             brandKit = BrandKit.load()
             show(shelf, trashed: binned)
@@ -528,6 +580,7 @@ struct HomeView: View {
                     starredOnly.toggle()
                     folder = nil
                 }
+                uploadsChip
                 ForEach(folders, id: \.self) { name in
                     chip(name, selected: folder == name, systemImage: starredFolders.contains(name) ? "star.fill" : "folder") {
                         folder = folder == name ? nil : name
@@ -690,6 +743,11 @@ struct HomeView: View {
         for design in designs where !design.damaged { DesignLibrary.setStarred(id: design.id, on) }
         stopSelecting()
         reload()
+    }
+
+    /// Everything brought in, on a sheet of its own.
+    private var uploadsChip: some View {
+        chip(tr("Uploads"), selected: false, systemImage: "photo.on.rectangle") { homeSheet = .uploads }
     }
 
     private func chip(_ title: String, selected: Bool, systemImage: String? = nil,

@@ -1,0 +1,1159 @@
+{
+  "cases": [
+    {
+      "name": "a clip on a page",
+      "suggested": "mp4",
+      "design": {
+        "id": "d-clip",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "image",
+                "x": 0,
+                "y": 0,
+                "w": 500,
+                "h": 500,
+                "src": "video:vid-1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "an audio track",
+      "suggested": "mp4",
+      "design": {
+        "id": "d-audio",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ],
+        "audio": [
+          {
+            "src": "audio:song-1",
+            "start": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "an element entrance",
+      "suggested": "mp4",
+      "design": {
+        "id": "d-anim",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello",
+                "animation": {
+                  "kind": "rise",
+                  "delay": 0,
+                  "duration": 0.6
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "an element exit",
+      "suggested": "mp4",
+      "design": {
+        "id": "d-exit",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello",
+                "exitAnimation": {
+                  "kind": "fade",
+                  "delay": 0,
+                  "duration": 0.6
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "a page transition of its own",
+      "suggested": "mp4",
+      "design": {
+        "id": "d-transition",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ],
+            "transition": "slide"
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e2",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "an animated GIF",
+      "suggested": "mp4",
+      "design": {
+        "id": "d-gif",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "image",
+                "x": 0,
+                "y": 0,
+                "w": 500,
+                "h": 500,
+                "src": "anim:gif-1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "a clip on a hidden page does not count",
+      "suggested": "png",
+      "design": {
+        "id": "d-hidden-clip",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e2",
+                "type": "image",
+                "x": 0,
+                "y": 0,
+                "w": 500,
+                "h": 500,
+                "src": "video:vid-1"
+              }
+            ],
+            "hidden": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "three A4 pages are a document",
+      "suggested": "pdf",
+      "design": {
+        "id": "d-a4",
+        "title": "Design",
+        "width": 2480,
+        "height": 3508,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e2",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          },
+          {
+            "id": "p3",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e3",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ],
+        "unit": "mm",
+        "dpi": 300
+      }
+    },
+    {
+      "name": "a landscape A4 is still a document",
+      "suggested": "pdf",
+      "design": {
+        "id": "d-a4-wide",
+        "title": "Design",
+        "width": 3508,
+        "height": 2480,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e2",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ],
+        "unit": "mm",
+        "dpi": 300
+      }
+    },
+    {
+      "name": "two presentation slides are a document",
+      "suggested": "pdf",
+      "design": {
+        "id": "d-slides",
+        "title": "Design",
+        "width": 1920,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e2",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "a deck with one shown page is a picture",
+      "suggested": "png",
+      "design": {
+        "id": "d-slide-hidden",
+        "title": "Design",
+        "width": 1920,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e2",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ],
+            "hidden": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "three Instagram posts are pictures",
+      "suggested": "png",
+      "design": {
+        "id": "d-posts",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e2",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          },
+          {
+            "id": "p3",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e3",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "two pages of a size of its own are pictures",
+      "suggested": "png",
+      "design": {
+        "id": "d-custom",
+        "title": "Design",
+        "width": 1000,
+        "height": 700,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e2",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "a photo covering the page is a JPG",
+      "suggested": "jpg",
+      "design": {
+        "id": "d-photo",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "image",
+                "x": -20,
+                "y": -20,
+                "w": 1120,
+                "h": 1120,
+                "src": "media:photo-1"
+              },
+              {
+                "id": "e2",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "a photo covering nine tenths is a JPG",
+      "suggested": "jpg",
+      "design": {
+        "id": "d-photo-90",
+        "title": "Design",
+        "width": 1000,
+        "height": 1000,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "image",
+                "x": 0,
+                "y": 0,
+                "w": 1000,
+                "h": 900,
+                "src": "media:photo-1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "a photo covering less is a PNG",
+      "suggested": "png",
+      "design": {
+        "id": "d-photo-80",
+        "title": "Design",
+        "width": 1000,
+        "height": 1000,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "image",
+                "x": 0,
+                "y": 0,
+                "w": 1000,
+                "h": 800,
+                "src": "media:photo-1"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "an empty frame covering the page is a PNG",
+      "suggested": "png",
+      "design": {
+        "id": "d-frame",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "image",
+                "x": 0,
+                "y": 0,
+                "w": 1080,
+                "h": 1080
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "a photo background is a JPG",
+      "suggested": "jpg",
+      "design": {
+        "id": "d-bg",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "image",
+              "value": "media:photo-1"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "every shown page must be a photo",
+      "suggested": "png",
+      "design": {
+        "id": "d-mixed",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "image",
+                "x": 0,
+                "y": 0,
+                "w": 1080,
+                "h": 1080,
+                "src": "media:photo-1"
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e2",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "every page hidden is a PNG",
+      "suggested": "png",
+      "design": {
+        "id": "d-all-hidden",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "image",
+                "x": 0,
+                "y": 0,
+                "w": 1080,
+                "h": 1080,
+                "src": "media:photo-1"
+              }
+            ],
+            "hidden": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "a hidden element that enters does not count",
+      "suggested": "png",
+      "design": {
+        "id": "d-hidden-anim",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello",
+                "animation": {
+                  "kind": "rise",
+                  "delay": 0,
+                  "duration": 0.6
+                },
+                "hidden": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "a hidden element on the master does not count",
+      "suggested": "png",
+      "design": {
+        "id": "d-hidden-master",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "m",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello",
+                "animation": {
+                  "kind": "rise",
+                  "delay": 0,
+                  "duration": 0.6
+                },
+                "hidden": true
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e2",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ],
+        "masterPageId": "m"
+      }
+    },
+    {
+      "name": "an element that enters on a hidden master counts behind its pages",
+      "suggested": "mp4",
+      "design": {
+        "id": "d-master-anim",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "m",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello",
+                "animation": {
+                  "kind": "rise",
+                  "delay": 0,
+                  "duration": 0.6
+                }
+              }
+            ],
+            "hidden": true
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e2",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ],
+        "masterPageId": "m"
+      }
+    },
+    {
+      "name": "a clip behind the page is a film, not a JPG",
+      "suggested": "mp4",
+      "design": {
+        "id": "d-clip-bg",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "image",
+              "value": "video:vid-1"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "an animated GIF behind the page is a film",
+      "suggested": "mp4",
+      "design": {
+        "id": "d-gif-bg",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "image",
+              "value": "anim:gif-1"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "a shape filled with a clip is a film",
+      "suggested": "mp4",
+      "design": {
+        "id": "d-clip-fill",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "shape",
+                "x": 0,
+                "y": 0,
+                "w": 500,
+                "h": 500,
+                "shapeId": "rect",
+                "fill": {
+                  "kind": "image",
+                  "src": "video:vid-1"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "a hidden photo covering the page is a PNG",
+      "suggested": "png",
+      "design": {
+        "id": "d-hidden-photo",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "image",
+                "x": 0,
+                "y": 0,
+                "w": 1080,
+                "h": 1080,
+                "src": "media:photo-1",
+                "hidden": true
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

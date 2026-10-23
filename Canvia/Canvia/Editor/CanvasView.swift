@@ -26,6 +26,9 @@ struct CanvasView: View {
     @State private var pagePress: CGPoint?
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @Environment(\.displayScale) private var displayScale
+    /// The empty page's hint grows with Larger Text, by this much: words
+    /// about the canvas, not on it.
+    @ScaledMetric(relativeTo: .subheadline) private var hintScale: Double = 1
     /// The stroke being drawn, in page units, while the pen is on.
     @State private var strokePoints: [CGPoint] = []
     /// Where the stroke under way began. A drag the canvas's two-finger pan
@@ -467,7 +470,8 @@ struct CanvasView: View {
             }
 
             if store.cropping == nil {
-                selectionOverlay
+                // Its badges grow with Larger Text, as far as accessibility2.
+                selectionOverlay.chromeTypeSize()
                 endTargetOutline
             }
 
@@ -1032,9 +1036,9 @@ struct CanvasView: View {
     private var emptyPageHint: some View {
         VStack(spacing: 10 * iz) {
             Image(systemName: "plus.circle")
-                .font(.system(size: 34 * iz, weight: .light))
+                .font(.system(size: 34 * iz * hintScale, weight: .light))
             Text("Tap + to add text, photos,\nshapes and QR codes")
-                .font(.system(size: 15 * iz, weight: .medium))
+                .font(.system(size: 15 * iz * hintScale, weight: .medium))
                 .multilineTextAlignment(.center)
         }
         .foregroundStyle(Theme.onPage)
@@ -1342,7 +1346,7 @@ struct CanvasView: View {
             ForEach(order.indices, id: \.self) { n in
                 if let box = boxes[order[n]] {
                     Text("\(n + 1)")
-                        .font(.system(size: 13, weight: .bold).monospacedDigit())
+                        .font(.footnote.weight(.bold).monospacedDigit())
                         .foregroundStyle(.white)
                         .frame(minWidth: 22, minHeight: 22)
                         .background(Theme.accent, in: Capsule())

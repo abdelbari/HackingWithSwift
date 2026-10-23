@@ -27,6 +27,8 @@ struct PageHeaderRow: View {
             if !pinned { actions }
         }
         .frame(height: PageColumn.header)
+        // A row of a fixed height: Larger Text up to accessibility2.
+        .chromeTypeSize()
     }
 
     /// "Page 2 · Intro", the eye struck through on a hidden page and the
@@ -34,17 +36,17 @@ struct PageHeaderRow: View {
     private var title: some View {
         HStack(spacing: 4) {
             Text(PageTitles.named(index + 1, title: page.title))
-                .font(.system(size: 13, weight: current ? .semibold : .regular))
+                .font(.footnote.weight(current ? .semibold : .regular))
                 .foregroundStyle(current ? Color.primary : Color.secondary)
                 .lineLimit(1)
             if page.hidden == true {
                 Image(systemName: "eye.slash")
-                    .font(.system(size: 12))
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
             if PageLocks.isLocked(page) {
                 Image(systemName: "lock.fill")
-                    .font(.system(size: 11))
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
             }
         }
@@ -88,7 +90,7 @@ struct PageHeaderRow: View {
             }
         } label: {
             Image(systemName: "ellipsis")
-                .font(.system(size: 14))
+                .font(.subheadline)
                 .frame(width: 32, height: 32)
                 .contentShape(Rectangle())
         }
@@ -98,7 +100,7 @@ struct PageHeaderRow: View {
     private func button(_ symbol: String, _ name: String, action: @escaping () -> Void) -> some View {
         Button { onPage(action) } label: {
             Image(systemName: symbol)
-                .font(.system(size: 14))
+                .font(.subheadline)
                 .frame(width: 32, height: 32)
                 .contentShape(Rectangle())
         }
@@ -125,7 +127,7 @@ struct AddPageRow: View {
             store.addPage()
         } label: {
             Label("Add page", systemImage: "plus")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.subheadline.weight(.semibold))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(RoundedRectangle(cornerRadius: 10)
                     .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [5]))
@@ -134,5 +136,6 @@ struct AddPageRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Add page")
+        .chromeTypeSize()
     }
 }

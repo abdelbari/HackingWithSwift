@@ -816,6 +816,16 @@ enum DesignLibrary {
         return designs
     }
 
+    /// The designs on the shelf, each that reads: what Home's Uploads says
+    /// an upload is used in, and opens. Every file is read, so off the
+    /// main thread.
+    static func shelfDesigns() -> [Design] {
+        let files = (try? FileManager.default.contentsOfDirectory(at: designsDir, includingPropertiesForKeys: nil)) ?? []
+        return files.filter { isDesignFile($0) }.compactMap { url in
+            (try? Data(contentsOf: url)).flatMap { try? JSONDecoder().decode(Design.self, from: $0) }
+        }
+    }
+
     /// The designs in these files, or nil at the first that does not read.
     private static func decodeAll(_ files: [URL]) -> [Design]? {
         var designs: [Design] = []

@@ -153,7 +153,8 @@ struct PageOrganizerSheet: View {
                 if page.hidden == true { Image(systemName: "eye.slash") }
                 if PageLocks.isLocked(page) { Image(systemName: "lock.fill") }
             }
-            .font(.system(size: 10, weight: .bold))
+            .font(.caption2.weight(.bold))
+            .imageScale(.small)
             .foregroundStyle(.white)
             .padding(.horizontal, 4)
             .padding(.vertical, 2)
@@ -170,7 +171,7 @@ struct PageOrganizerSheet: View {
             : tr("Add a page before page %d", gap + 1)
         return Button { store.insertPage(at: gap) } label: {
             Image(systemName: "plus.circle.fill")
-                .font(.system(size: 20))
+                .font(.title3)
                 .symbolRenderingMode(.palette)
                 .foregroundStyle(Color.white, Theme.accent)
         }

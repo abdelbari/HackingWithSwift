@@ -440,6 +440,8 @@ struct StepSlider: View {
 struct VoiceOverPanel: View {
     @Bindable var store: DesignStore
     var onDone: () -> Void
+    /// The countdown's number, growing with Larger Text.
+    @ScaledMetric(relativeTo: .largeTitle) private var countSize: CGFloat = 72
     private let recorder = VoiceRecorder.shared
     @State private var count = 3
     /// When the recording began; nil while counting down.
@@ -468,7 +470,7 @@ struct VoiceOverPanel: View {
     private var countdown: some View {
         VStack(spacing: 12) {
             Text("\(count)")
-                .font(.system(size: 72, weight: .bold, design: .rounded))
+                .font(.system(size: countSize, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .accessibilityLabel("Recording in \(count)")
             Text("The design plays from the start of this page as you speak.")

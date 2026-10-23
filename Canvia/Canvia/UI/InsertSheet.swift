@@ -17,6 +17,10 @@ import PhotosUI
 struct InsertSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
+    /// A sticker's tile, and the text styles' previews, growing with
+    /// Larger Text.
+    @ScaledMetric(relativeTo: .largeTitle) private var stickerSide: CGFloat = 52
+    @ScaledMetric(relativeTo: .body) private var previewScale: Double = 1
     @State private var tab = "Templates"
     @State private var search = ""
     @State private var pickedItems: [PhotosPickerItem] = []
@@ -353,7 +357,7 @@ struct InsertSheet: View {
             VStack(alignment: .leading, spacing: 6) {
                 TemplateThumb(template: template)
                     .overlay(alignment: .topTrailing) { if starred { starBadge } }
-                Text(template.name).font(.system(size: 12, weight: .semibold))
+                Text(template.name).font(.caption.weight(.semibold))
                     .foregroundStyle(.primary)
             }
         }
@@ -567,7 +571,7 @@ struct InsertSheet: View {
         } label: {
             VStack(spacing: 4) {
                 Image(systemName: preset.symbol)
-                    .font(.system(size: 20))
+                    .font(.title3)
                     .frame(width: 64, height: 52)
                     .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
                 Text(name)
@@ -687,7 +691,7 @@ struct InsertSheet: View {
             dismiss()
         } label: {
             Text(label)
-                .font(.system(size: 12 + size * 160, weight: weight >= 700 ? .bold : weight >= 600 ? .semibold : .regular))
+                .font(.system(size: (12 + size * 160) * previewScale, weight: Self.previewWeight(weight)))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
                 .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
@@ -985,7 +989,8 @@ struct InsertSheet: View {
     /// only leads the order.
     private var starBadge: some View {
         Image(systemName: "star.fill")
-            .font(.system(size: 10, weight: .bold))
+            .font(.caption2.weight(.bold))
+            .imageScale(.small)
             .foregroundStyle(.yellow)
             .padding(4)
             .background(Circle().fill(Color.black.opacity(0.55)))
@@ -1793,12 +1798,17 @@ struct InsertSheet: View {
         return Button {
             addSticker(glyph)
         } label: {
-            Text(glyph).font(.system(size: 34))
-                .frame(width: 52, height: 52)
+            Text(glyph).font(.largeTitle)
+                .frame(width: stickerSide, height: stickerSide)
                 .overlay(alignment: .topTrailing) { if starred { starBadge.scaleEffect(0.8) } }
         }
         .accessibilityValue(starred ? tr("Favourite") : "")
         .contextMenu { favoriteButton("sticker", glyph) }
+    }
+
+    /// A text style's weight in its preview.
+    private static func previewWeight(_ weight: Int) -> Font.Weight {
+        weight >= 700 ? .bold : weight >= 600 ? .semibold : .regular
     }
 
     private func addSticker(_ glyph: String) {
@@ -1854,7 +1864,7 @@ struct InsertSheet: View {
     /// A section's heading, as every list in the sheet heads one.
     static func header(_ title: String) -> some View {
         Text(title.uppercased())
-            .font(.system(size: 11, weight: .bold))
+            .font(.caption2.weight(.bold))
             .foregroundStyle(.secondary)
             .padding(.top, 8)
     }
@@ -1865,6 +1875,7 @@ struct InsertSheet: View {
 private struct AnimatedStickerFace: View {
     let sticker: AnimatedSticker
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .largeTitle) private var glyphSize: CGFloat = 30
 
     var body: some View {
         if reduceMotion {
@@ -1879,7 +1890,7 @@ private struct AnimatedStickerFace: View {
 
     private func face(_ state: ElementAnimation.State) -> some View {
         Text(sticker.glyph)
-            .font(.system(size: 30))
+            .font(.system(size: glyphSize))
             .scaleEffect(state.scale)
             .rotationEffect(.degrees(state.rotation))
             .offset(state.offset)

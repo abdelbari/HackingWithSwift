@@ -254,7 +254,8 @@ enum ExportChoices {
 /// The last export, as "Remember these settings" keeps it:
 /// {"format":"png","scale":2.0,"longEdge":null,"jpegQuality":0.85,
 ///  "transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false,
-///  "pptxStyledText":"editable"}. A missing "pptxStyledText" is "editable".
+///  "pptxStyledText":"editable","suggested":false,"pdfBookmarks":true}.
+/// A missing "pptxStyledText" is "editable".
 struct ExportLast: Codable, Equatable {
     /// "png" | "jpg" | "pdf" | "print" | "svg" | "pptx" | "mp4" | "gif".
     var format: String
@@ -271,9 +272,19 @@ struct ExportLast: Codable, Equatable {
     /// The PowerPoint's "Styled text": "editable" (the closest DrawingML
     /// match, PptxExporter's styled text) or "picture" (the exact look).
     var pptxStyledText = ExportLast.styledEditable
+    /// Whether the format was the sheet's Suggested one, taken as offered
+    /// (ExportSuggestion) — so a remembered choice can go back to being
+    /// suggested — rather than picked by hand.
+    var suggested = false
+    /// The PDF's bookmarks: an outline entry for each page, titled by the
+    /// page's title or "Page N" (PDFMetadata). On unless turned off.
+    var pdfBookmarks = true
 
     static let key = "exportLast"
     static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif"]
+    /// The export sheet's file types, in the order its picker lists them —
+    /// the Android twin's ExportSettings.formats.
+    static let fileTypes = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif"]
     static let pageChoices: Set<String> = ["all", "current", "chosen"]
 
     static let styledEditable = "editable"
@@ -281,11 +292,13 @@ struct ExportLast: Codable, Equatable {
     static let styledTextChoices: [String] = [styledEditable, styledPicture]
 
     private enum CodingKeys: String, CodingKey {
-        case format, scale, longEdge, jpegQuality, transparent, pages, pdfNotes, pdfCompress, pptxStyledText
+        case format, scale, longEdge, jpegQuality, transparent, pages, pdfNotes, pdfCompress, pptxStyledText,
+             suggested, pdfBookmarks
     }
 
     init(format: String, scale: Double, longEdge: Int?, jpegQuality: Double, transparent: Bool, pages: String,
-         pdfNotes: Bool = false, pdfCompress: Bool = false, pptxStyledText: String = ExportLast.styledEditable) {
+         pdfNotes: Bool = false, pdfCompress: Bool = false, pptxStyledText: String = ExportLast.styledEditable,
+         suggested: Bool = false, pdfBookmarks: Bool = true) {
         self.format = format
         self.scale = scale
         self.longEdge = longEdge
@@ -295,6 +308,8 @@ struct ExportLast: Codable, Equatable {
         self.pdfNotes = pdfNotes
         self.pdfCompress = pdfCompress
         self.pptxStyledText = pptxStyledText
+        self.suggested = suggested
+        self.pdfBookmarks = pdfBookmarks
     }
 
     /// Whether styled text goes out editable, as the setting says.
@@ -318,6 +333,9 @@ struct ExportLast: Codable, Equatable {
         // "editable" or "picture"; anything else, or none, is editable.
         let styled = (try? c.decode(String.self, forKey: .pptxStyledText)) ?? Self.styledEditable
         pptxStyledText = Self.styledTextChoices.contains(styled) ? styled : Self.styledEditable
+        // Missing, the format was picked by hand and the bookmarks are on.
+        suggested = (try? c.decode(Bool.self, forKey: .suggested)) ?? false
+        pdfBookmarks = (try? c.decode(Bool.self, forKey: .pdfBookmarks)) ?? true
     }
 
     /// Every key written, the long edge as null when there is none, in the
@@ -333,6 +351,8 @@ struct ExportLast: Codable, Equatable {
         try c.encode(pdfNotes, forKey: .pdfNotes)
         try c.encode(pdfCompress, forKey: .pdfCompress)
         try c.encode(pptxStyledText, forKey: .pptxStyledText)
+        try c.encode(suggested, forKey: .suggested)
+        try c.encode(pdfBookmarks, forKey: .pdfBookmarks)
     }
 
     /// As stored: every key, in the order above, written out here rather
@@ -351,6 +371,8 @@ struct ExportLast: Codable, Equatable {
             "\"pdfNotes\":" + String(pdfNotes),
             "\"pdfCompress\":" + String(pdfCompress),
             "\"pptxStyledText\":" + Self.quoted(pptxStyledText),
+            "\"suggested\":" + String(suggested),
+            "\"pdfBookmarks\":" + String(pdfBookmarks),
         ]
         return "{" + fields.joined(separator: ",") + "}"
     }

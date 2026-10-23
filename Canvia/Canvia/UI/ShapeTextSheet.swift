@@ -147,7 +147,7 @@ struct ShapeTextSheet: View {
             write { el in style.apply(turnOn, to: &el) }
         } label: {
             glyph
-                .font(.system(size: 17, weight: .semibold))
+                .font(.body.weight(.semibold))
                 .frame(maxWidth: .infinity, minHeight: Touch.minTarget)
                 .foregroundStyle(on ? Color.white : Color.primary)
                 .background(RoundedRectangle(cornerRadius: 8).fill(on ? Theme.accent : Color(.systemGray6)))

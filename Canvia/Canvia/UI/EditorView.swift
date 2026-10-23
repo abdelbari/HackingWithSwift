@@ -191,8 +191,9 @@ struct EditorView: View {
                 .overlay {
                     if store.selectingMultiple { selectMultipleBanner }
                 }
-            if timeline { TimelineStrip(store: store) }
-            PagesBar(store: store)
+            // Rows with no room to grow: Larger Text up to accessibility2.
+            if timeline { TimelineStrip(store: store).chromeTypeSize() }
+            PagesBar(store: store).chromeTypeSize()
         }
         .background(keyboardCommands)
         .background(UndoHost(store: store, live: undoHostLive, claim: undoClaim))
@@ -681,7 +682,7 @@ struct EditorView: View {
         VStack(spacing: 1) {
             TextField("Untitled design", text: $store.design.title)
                 .multilineTextAlignment(.center)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.subheadline.weight(.semibold))
                 .focused($titleFocused)
                 // Record the rename atomically when editing ends. Holding the
                 // store's single pending slot for the whole session was
@@ -1146,7 +1147,7 @@ struct EditorView: View {
                 .overlay(Circle().stroke(Theme.hairline))
                 .overlay {
                     Image(systemName: "plus")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.caption2.weight(.bold))
                         .foregroundStyle(own && UIColor(hex: tool.color).isLight ? Color.black : Color.white)
                 }
                 .overlay { if own { Circle().stroke(Theme.accent, lineWidth: 2).padding(-3) } }
@@ -1346,13 +1347,17 @@ struct EditorView: View {
             activeSheet = .insert
         } label: {
             Image(systemName: "plus")
-                .font(.system(size: 22, weight: .bold))
+                .font(.title2.weight(.bold))
                 .foregroundStyle(.white)
                 .frame(width: 54, height: 54)
         }
         .buttonStyle(AccentButtonStyle())
         .shadow(color: .black.opacity(0.25), radius: 8, y: 3)
         .accessibilityLabel("Add element")
+        // Its glyph grows to accessibility2 in its fixed disc; its name is
+        // in the large content viewer a long press brings up.
+        .chromeTypeSize()
+        .toolLargeContent("plus", tr("Add element"))
     }
 
     // MARK: sheets

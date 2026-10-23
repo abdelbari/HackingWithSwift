@@ -916,6 +916,38 @@ carries, so those versions can be re-checked rather than assumed.
 outside the synchronized source folder, so it never joins the app target;
 add it to a test target to run it.
 
+### Large type
+
+The chrome follows the system text size: words are in text styles, and the
+few sizes that are not — a toggle's square, a sticker tile, the type size's
+readout, the selection's badges — are `@ScaledMetric` values. Menus,
+sheets and Home grow all the way; the rows with no room to — the context
+toolbar, the pages bar, a page's header row, the selection's badges and the
+timeline — stop at `accessibility2` (`UI/LargeType.swift`), and past
+`xxxLarge` a toolbar item shows its icon alone, its word in the large
+content viewer a long press brings up and still read by VoiceOver. The
+canvas and the design's own text are the person's sizes and never scale;
+so are the presenter's notes, at the size picked for them. A checklist, at
+the largest size (Settings ▸ Accessibility ▸ Display & Text Size ▸ Larger
+Text at its maximum, or Xcode's Environment Overrides ▸ Dynamic Type at
+AX5):
+
+- Home: the hero's buttons, the size tiles and design cards keep their
+  text readable; the All / Starred / Uploads / folder chips scroll; the
+  Uploads sheet's kind chips stack rather than run off the edge.
+- Start sheet: the size's name and dimensions, the category chips, and
+  every template card's name readable; the Import group's labels whole.
+- Editor with a selection: the context toolbar's items are icons only,
+  each in the large content viewer on a long press; the pages bar and
+  page header rows keep their height; the selection's badges are larger
+  but capped; the Add button's glyph fits its disc.
+- Export sheet: the Share row's buttons stack one under another; the file
+  type picker shows Suggested on one; every note reads whole.
+- Present: the counter and the console's icons; the notes at their own
+  size.
+- Settings: every heading, row and note reads whole; the storage figures
+  stay beside their labels.
+
 ### A note on the iOS 26 look
 
 Linking against any iOS 26 SDK — which the `latest-ios26` leg and the TestFlight
