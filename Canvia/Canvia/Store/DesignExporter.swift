@@ -741,37 +741,53 @@ enum DesignExporter {
     /// mirrored on the back of a double-sided pair; then the crop marks
     /// they share, clear of every page and its bleed.
     @MainActor
-    private static func drawSeveral(design: Design, pages: [Int], cols: Int, mirrored: Bool,
-                                    options: PrintLayout.Options, flatten: Bool, into cg: CGContext) {
-        guard let first = pages.first else { return }
-        let firstPts = PrintLayout.pagePoints(size: design.size(at: first), dpi: design.effectiveDPI, bleed: options.bleed)
-        let cells = PrintLayout.grid(page: firstPts, printable: options.printable, gap: options.gapPoints).cells
+    static func drawSeveral(design: Design, pages: [Int], cols: Int, mirrored: Bool,
+                            options: PrintLayout.Options, flatten: Bool, into cg: CGContext) {
         var unmarked = options
         unmarked.cropMarks = false
-        var placed: [CGRect] = []
-        for (slot, index) in pages.enumerated() {
-            let at = PrintLayout.cellIndex(slot, cols: cols, mirrored: mirrored)
-            guard cells.indices.contains(at), design.pages.indices.contains(index) else { continue }
+        let cells = severalCells(design: design, pages: pages, cols: cols, mirrored: mirrored, options: options)
+        for (index, cell) in cells {
             let pagePts = PrintLayout.pagePoints(size: design.size(at: index), dpi: design.effectiveDPI, bleed: options.bleed)
             drawSheet(design: design, page: design.pages[index], pagePoints: pagePts,
-                      placement: (PrintLayout.fitRect(page: pagePts, in: cells[at]), CGRect(origin: .zero, size: pagePts)),
+                      placement: (PrintLayout.fitRect(page: pagePts, in: cell), CGRect(origin: .zero, size: pagePts)),
                       options: unmarked, flatten: flatten, into: cg)
-            placed.append(cells[at])
         }
         guard options.cropMarks else { return }
-        let trims = placed.map { $0.insetBy(dx: options.bleed, dy: options.bleed) }
         cg.setStrokeColor(gray: 0, alpha: 1)
         cg.setLineWidth(0.5)
-        for (a, b) in PrintLayout.gridMarks(trims: trims, placed: placed, gap: options.bleed + 4) {
+        for (a, b) in severalMarks(cells.map(\.cell), options: options) {
             cg.move(to: a)
             cg.addLine(to: b)
         }
         cg.strokePath()
     }
 
+    /// The cells of one sheet of several, and the page each holds, the
+    /// columns mirrored on the back of a double-sided pair.
+    static func severalCells(design: Design, pages: [Int], cols: Int, mirrored: Bool,
+                             options: PrintLayout.Options) -> [(index: Int, cell: CGRect)] {
+        guard let first = pages.first else { return [] }
+        let firstPts = PrintLayout.pagePoints(size: design.size(at: first), dpi: design.effectiveDPI, bleed: options.bleed)
+        let cells = PrintLayout.grid(page: firstPts, printable: options.printable, gap: options.gapPoints).cells
+        var out: [(index: Int, cell: CGRect)] = []
+        for (slot, index) in pages.enumerated() {
+            let at = PrintLayout.cellIndex(slot, cols: cols, mirrored: mirrored)
+            guard cells.indices.contains(at), design.pages.indices.contains(index) else { continue }
+            out.append((index, cells[at]))
+        }
+        return out
+    }
+
+    /// The crop marks the cells `placed` share, clear of every page and its
+    /// bleed.
+    static func severalMarks(_ placed: [CGRect], options: PrintLayout.Options) -> [(CGPoint, CGPoint)] {
+        let trims = placed.map { $0.insetBy(dx: options.bleed, dy: options.bleed) }
+        return PrintLayout.gridMarks(trims: trims, placed: placed, gap: options.bleed + 4)
+    }
+
     /// One sheet of a print PDF: its piece of the page, and the crop marks.
     @MainActor
-    private static func drawSheet(design: Design, page: Page, pagePoints pagePts: CGSize,
+    static func drawSheet(design: Design, page: Page, pagePoints pagePts: CGSize,
                                   placement: (sheetRect: CGRect, source: CGRect),
                                   options: PrintLayout.Options, flatten: Bool = false, into cg: CGContext) {
         cg.saveGState()

@@ -567,7 +567,8 @@ struct ExportSheet: View {
         guard remember else { return }
         exportLast = ExportLast(format: format, scale: scale, longEdge: typedLongEdge.map { Int($0) },
                                 jpegQuality: jpegQuality, transparent: transparent,
-                                pages: pageRange.rawValue, pdfNotes: pdfNotes, pdfCompress: pdfCompress).json
+                                pages: pageRange.rawValue, pdfNotes: pdfNotes, pdfCompress: pdfCompress,
+                                colourProfile: paper.colourProfile.rawValue).json
     }
 
     /// The pages ticked this session, the design's bleed, and the
@@ -585,6 +586,7 @@ struct ExportSheet: View {
         transparent = last.transparent
         pdfNotes = last.pdfNotes
         pdfCompress = last.pdfCompress
+        paper.colourProfile = PrintLayout.ColourProfile.of(last.colourProfile)
         pageRange = RangeChoice(rawValue: last.pages) ?? .all
         if last.format == "jpg" { photosFormat = .jpeg } else if last.format == "png" { photosFormat = .png }
         // After the scale's own change has cleared the field, which it does
@@ -697,6 +699,7 @@ struct ExportSheet: View {
                          working: tr("Making the print PDF"), unavailable: leftOut(exportedIndices), format: "print") {
                 ExportJobs.printPDF(exportedSnapshot, options: paper, flatten: flatten, printing: false)
             }
+            colourProfileRows
             // Compress is the plain PDF's; a print shop gets every pixel.
             Toggle("Compress", isOn: .constant(false))
                 .disabled(true)
@@ -709,6 +712,34 @@ struct ExportSheet: View {
         } footer: {
             Text(paperNote)
         }
+    }
+
+    /// The print-ready PDF's colour profile: RGB, or CMYK for a print
+    /// shop — flattened, and said how big — with a word when the design has
+    /// colours no press reaches (Cmyk.dullerColours).
+    @ViewBuilder
+    private var colourProfileRows: some View {
+        Picker("Colour profile", selection: $paper.colourProfile) {
+            ForEach(PrintLayout.ColourProfile.allCases) { Text($0.label).tag($0) }
+        }
+        .pickerStyle(.segmented)
+        if paper.colourProfile == .cmyk {
+            Text(cmykNote)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            if !Cmyk.dullerColours(exportedDesign).isEmpty {
+                Label(Cmyk.dullerWarning, systemImage: "exclamationmark.triangle")
+                    .font(.footnote)
+                    .foregroundStyle(.orange)
+            }
+        }
+    }
+
+    /// "CMYK · flattened · about 24 MB": every sheet at 300 dpi, four
+    /// bytes a pixel, packed to about half (CmykPdf.estimatedBytes).
+    private var cmykNote: String {
+        let sheets = DesignExporter.sheetCount(design: exportedDesign, indices: exportedIndices, options: paper)
+        return CmykPdf.note(CmykPdf.estimatedBytes(sheets: sheets, size: paper.sheet))
     }
 
     private var paperNote: String {

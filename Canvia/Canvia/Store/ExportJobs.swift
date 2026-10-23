@@ -87,9 +87,17 @@ enum ExportJobs {
                          printing: Bool) -> Work {
         { report in
             let url = DesignExporter.fileURL(for: snapshot.design, ext: "pdf", suffix: printing ? "" : "-print")
-            try await DesignExporter.exportPrintPDF(design: snapshot.design, range: snapshot.range,
-                                                    current: snapshot.current, options: options,
-                                                    flatten: flatten, to: url, progress: report)
+            if options.colourProfile == .cmyk && !printing {
+                // For a print shop: flattened, in press ink. A printer
+                // here is handed RGB, as ever.
+                try await DesignExporter.exportCmykPrintPDF(design: snapshot.design, range: snapshot.range,
+                                                            current: snapshot.current, options: options,
+                                                            to: url, progress: report)
+            } else {
+                try await DesignExporter.exportPrintPDF(design: snapshot.design, range: snapshot.range,
+                                                        current: snapshot.current, options: options,
+                                                        flatten: flatten, to: url, progress: report)
+            }
             guard printing else { return ExportQueue.Result(urls: [url]) }
             let size = snapshot.design.size(at: snapshot.pages.first ?? snapshot.current)
             let title = snapshot.design.title

@@ -253,7 +253,8 @@ enum ExportChoices {
 
 /// The last export, as "Remember these settings" keeps it:
 /// {"format":"png","scale":2.0,"longEdge":null,"jpegQuality":0.85,
-///  "transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false}.
+///  "transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false,
+///  "colourProfile":"rgb"}.
 struct ExportLast: Codable, Equatable {
     /// "png" | "jpg" | "pdf" | "print" | "svg" | "pptx" | "mp4" | "gif".
     var format: String
@@ -267,17 +268,20 @@ struct ExportLast: Codable, Equatable {
     /// The PDF's "Include notes" and "Compress".
     var pdfNotes = false
     var pdfCompress = false
+    /// The print-ready PDF's colour profile, "rgb" or "cmyk"
+    /// (PrintLayout.ColourProfile); missing, or anything else, is "rgb".
+    var colourProfile = "rgb"
 
     static let key = "exportLast"
     static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif"]
     static let pageChoices: Set<String> = ["all", "current", "chosen"]
 
     private enum CodingKeys: String, CodingKey {
-        case format, scale, longEdge, jpegQuality, transparent, pages, pdfNotes, pdfCompress
+        case format, scale, longEdge, jpegQuality, transparent, pages, pdfNotes, pdfCompress, colourProfile
     }
 
     init(format: String, scale: Double, longEdge: Int?, jpegQuality: Double, transparent: Bool, pages: String,
-         pdfNotes: Bool = false, pdfCompress: Bool = false) {
+         pdfNotes: Bool = false, pdfCompress: Bool = false, colourProfile: String = "rgb") {
         self.format = format
         self.scale = scale
         self.longEdge = longEdge
@@ -286,6 +290,7 @@ struct ExportLast: Codable, Equatable {
         self.pages = pages
         self.pdfNotes = pdfNotes
         self.pdfCompress = pdfCompress
+        self.colourProfile = PrintLayout.ColourProfile.of(colourProfile).rawValue
     }
 
     /// Lenient, as a setting from another build may be: what does not read
@@ -303,6 +308,7 @@ struct ExportLast: Codable, Equatable {
         // Missing, or not a true or false, is off.
         pdfNotes = (try? c.decode(Bool.self, forKey: .pdfNotes)) ?? false
         pdfCompress = (try? c.decode(Bool.self, forKey: .pdfCompress)) ?? false
+        colourProfile = PrintLayout.ColourProfile.of(try? c.decode(String.self, forKey: .colourProfile)).rawValue
     }
 
     /// Every key written, the long edge as null when there is none, in the
@@ -317,6 +323,7 @@ struct ExportLast: Codable, Equatable {
         try c.encode(pages, forKey: .pages)
         try c.encode(pdfNotes, forKey: .pdfNotes)
         try c.encode(pdfCompress, forKey: .pdfCompress)
+        try c.encode(colourProfile, forKey: .colourProfile)
     }
 
     /// As stored: every key, in the order above, written out here rather
@@ -334,6 +341,7 @@ struct ExportLast: Codable, Equatable {
             "\"pages\":" + Self.quoted(pages),
             "\"pdfNotes\":" + String(pdfNotes),
             "\"pdfCompress\":" + String(pdfCompress),
+            "\"colourProfile\":" + Self.quoted(colourProfile),
         ]
         return "{" + fields.joined(separator: ",") + "}"
     }

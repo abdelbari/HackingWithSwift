@@ -47,16 +47,16 @@ final class PDFOptionsTests: XCTestCase {
     func testTheSettingsJSONIsTheSharedText() {
         let plain = ExportLast(format: "png", scale: 2, longEdge: nil, jpegQuality: 0.85, transparent: false, pages: "all")
         XCTAssertEqual(plain.json,
-                       #"{"format":"png","scale":2.0,"longEdge":null,"jpegQuality":0.85,"transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false}"#)
+                       #"{"format":"png","scale":2.0,"longEdge":null,"jpegQuality":0.85,"transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false,"colourProfile":"rgb"}"#)
         let pdf = ExportLast(format: "pdf", scale: 3, longEdge: 1080, jpegQuality: 1, transparent: true,
                              pages: "chosen", pdfNotes: true, pdfCompress: true)
         XCTAssertEqual(pdf.json,
-                       #"{"format":"pdf","scale":3.0,"longEdge":1080,"jpegQuality":1.0,"transparent":true,"pages":"chosen","pdfNotes":true,"pdfCompress":true}"#)
+                       #"{"format":"pdf","scale":3.0,"longEdge":1080,"jpegQuality":1.0,"transparent":true,"pages":"chosen","pdfNotes":true,"pdfCompress":true,"colourProfile":"rgb"}"#)
         // The Android twin's PdfOptionsTest row.
         let shared = ExportLast(format: "pdf", scale: 2, longEdge: nil, jpegQuality: 0.85, transparent: false,
                                 pages: "all", pdfNotes: true, pdfCompress: true)
         XCTAssertEqual(shared.json,
-                       #"{"format":"pdf","scale":2.0,"longEdge":null,"jpegQuality":0.85,"transparent":false,"pages":"all","pdfNotes":true,"pdfCompress":true}"#)
+                       #"{"format":"pdf","scale":2.0,"longEdge":null,"jpegQuality":0.85,"transparent":false,"pages":"all","pdfNotes":true,"pdfCompress":true,"colourProfile":"rgb"}"#)
         XCTAssertEqual(ExportLast.read(pdf.json), pdf)
         XCTAssertEqual(ExportLast.read(plain.json), plain)
         XCTAssertEqual(ExportLast.number(1.5), "1.5")

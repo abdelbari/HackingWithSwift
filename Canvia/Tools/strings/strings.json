@@ -5828,6 +5828,15 @@
     "ja": "ブランドの写真とグラフィックは、どのデザインでも「追加 ▸ ブランド」にあります。",
     "pt-BR": "Fotos e gráficos da marca ficam em Adicionar ▸ Marca, em todos os designs."
   },
+  "Bright colours will print duller": {
+    "ar": "ستُطبع الألوان الزاهية أبهت",
+    "de": "Leuchtende Farben werden matter gedruckt",
+    "es": "Los colores vivos se imprimirán más apagados",
+    "fr": "Les couleurs vives seront plus ternes à l’impression",
+    "it": "I colori brillanti verranno stampati più spenti",
+    "ja": "鮮やかな色は印刷するとくすみます",
+    "pt-BR": "Cores vivas sairão mais opacas na impressão"
+  },
   "Brighten mids": {
     "ar": "تفتيح الدرجات المتوسطة",
     "de": "Mitteltöne aufhellen",
@@ -6013,6 +6022,24 @@
     "it": "Esplosione",
     "ja": "バースト",
     "pt-BR": "Explosão"
+  },
+  "CMYK": {
+    "ar": "CMYK",
+    "de": "CMYK",
+    "es": "CMYK",
+    "fr": "CMJN",
+    "it": "CMYK",
+    "ja": "CMYK",
+    "pt-BR": "CMYK"
+  },
+  "CMYK · flattened · about %d MB": {
+    "ar": "CMYK · مسطّح · نحو %d ميغابايت",
+    "de": "CMYK · reduziert · etwa %d MB",
+    "es": "CMYK · acoplado · unos %d MB",
+    "fr": "CMJN · aplati · environ %d Mo",
+    "it": "CMYK · appiattito · circa %d MB",
+    "ja": "CMYK・統合・約 %d MB",
+    "pt-BR": "CMYK · achatado · cerca de %d MB"
   },
   "Caches": {
     "ar": "ذاكرات التخزين المؤقت",
@@ -6853,6 +6880,15 @@
     "it": "Colore delle parole selezionate",
     "ja": "選択した単語の色",
     "pt-BR": "Cor das palavras selecionadas"
+  },
+  "Colour profile": {
+    "ar": "ملف تعريف الألوان",
+    "de": "Farbprofil",
+    "es": "Perfil de color",
+    "fr": "Profil colorimétrique",
+    "it": "Profilo colore",
+    "ja": "カラープロファイル",
+    "pt-BR": "Perfil de cor"
   },
   "Colouring the border. Its width and style are below.": {
     "ar": "تلوين الحدود. عرضها ونمطها أدناه.",
@@ -17629,6 +17665,15 @@
     "it": "Citazione",
     "ja": "引用",
     "pt-BR": "Citação"
+  },
+  "RGB": {
+    "ar": "RGB",
+    "de": "RGB",
+    "es": "RGB",
+    "fr": "RVB",
+    "it": "RGB",
+    "ja": "RGB",
+    "pt-BR": "RGB"
   },
   "Radial": {
     "ar": "شعاعي",

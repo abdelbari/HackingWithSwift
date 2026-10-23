@@ -59,6 +59,21 @@ enum PrintLayout {
         var name: String { self == .repeatPage ? tr("Repeat this page") : tr("One of each") }
     }
 
+    /// The print-ready PDF's colour profile, as Canva's PDF Print offers
+    /// it: RGB for a screen or a home printer, CMYK for a print shop's press
+    /// (CmykPdf) — which is always flattened. The raw value is how
+    /// exportLast says it, as the Android twin's ColourProfile.key.
+    enum ColourProfile: String, CaseIterable, Identifiable {
+        case rgb, cmyk
+        var id: String { rawValue }
+        var label: String { self == .rgb ? tr("RGB") : tr("CMYK") }
+
+        /// The profile `key` names; RGB for anything else.
+        static func of(_ key: String?) -> ColourProfile {
+            key.flatMap { ColourProfile(rawValue: $0) } ?? .rgb
+        }
+    }
+
     struct Options: Equatable {
         var paper = papers[0]
         var landscape = false
@@ -78,6 +93,8 @@ enum PrintLayout {
         /// Several to a sheet on both sides: a design of two pages prints
         /// its second on the back, its columns mirrored for long-edge flip.
         var duplex = false
+        /// CMYK forces a flattened PDF, whatever Flatten says.
+        var colourProfile = ColourProfile.rgb
 
         /// The gap used: as set, else none without bleed and twice the
         /// bleed with it, so neighbours' bleeds never overlap.
