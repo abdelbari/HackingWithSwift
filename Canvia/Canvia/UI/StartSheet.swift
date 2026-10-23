@@ -311,7 +311,7 @@ private struct StartGrid: View {
         var design = design
         design.unit = preset.unit
         design.dpi = preset.dpi
-        return design
+        return preset.started(design)
     }
 
     private func topicChips(_ bucket: [Template]) -> some View {

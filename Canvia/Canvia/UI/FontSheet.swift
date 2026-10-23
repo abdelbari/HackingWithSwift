@@ -354,7 +354,7 @@ struct FontSheet: View {
         store.updateSelected { el in
             guard ShapeText.carriesWords(el) else { return }
             el.setFontFamily(key)
-            el.h = ShapeText.heightForWords(el)
+            ShapeText.fitWords(&el)
         }
     }
 

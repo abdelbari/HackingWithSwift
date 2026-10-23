@@ -94,6 +94,16 @@ struct CanvasColumn: Equatable {
     var widest: Double
 }
 
+/// A page expanded to a whiteboard (Whiteboards), held by the canvas
+/// alone: the content is everything on it — its bounds, in page units, which
+/// may run negative — with the page's frame of `page` at its own origin
+/// inside. The view pans one screen past the bounds and zooms from 5% to
+/// 400%, and every point the canvas tells or is asked is in page units.
+struct CanvasBoard: Equatable {
+    var bounds: CGRect
+    var page: CGSize
+}
+
 /// Where a one-finger drag from something on another page of the column
 /// is (ZoomableCanvas.onOtherPageDrag), or a hold on the empty part of one
 /// (ZoomableCanvas.onOtherPageHold).
@@ -207,6 +217,10 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     /// units — or on what of it hangs off it — whatever it lands on: where a
     /// hold that follows was, since a hold says nothing of where it is.
     var onPress: (CGPoint) -> Void = { _ in }
+    /// The page worked expanded to a whiteboard; nil for a page alone or
+    /// the column. Two fingers tapped twice on its empty space fit it to its
+    /// content.
+    var board: CanvasBoard? = nil
     @ViewBuilder var content: () -> Content
 
     func makeUIView(context: Context) -> UIScrollView {
@@ -272,7 +286,17 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         otherPageHold.delegate = context.coordinator
         scroll.addGestureRecognizer(otherPageHold)
 
+        // Two fingers tapped twice on a whiteboard's empty space: Fit to
+        // content, as on the Android twin.
+        let boardFit = UITapGestureRecognizer(
+            target: context.coordinator, action: #selector(Coordinator.handleBoardFit(_:)))
+        boardFit.numberOfTouchesRequired = 2
+        boardFit.numberOfTapsRequired = 2
+        boardFit.delegate = context.coordinator
+        scroll.addGestureRecognizer(boardFit)
+
         context.coordinator.scrollView = scroll
+        context.coordinator.boardFit = boardFit
         context.coordinator.doubleTap = doubleTap
         context.coordinator.backgroundPan = backgroundPan
         context.coordinator.otherPageHold = otherPageHold
@@ -286,18 +310,25 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         coordinator.attach(edgeScroller)
         scroll.pinchGestureRecognizer?.isEnabled = pinchZooms
         scroll.panGestureRecognizer.isEnabled = pinchZooms
+        // A whiteboard's dot grid is drawn behind the canvas, in screen
+        // space, as far as the view reaches.
+        let ground = board == nil ? UIColor(Theme.workspace) : .clear
+        if scroll.backgroundColor != ground { scroll.backgroundColor = ground }
         // Fitting below drives the scroll view, which calls back into
         // scrollViewDidZoom, which writes the zoom binding — a SwiftUI state
         // write in the middle of a SwiftUI update. See publishZoom.
         coordinator.isUpdating = true
         defer { coordinator.isUpdating = false }
 
-        if coordinator.contentSize != contentSize {
+        let wasBoard = coordinator.boardOrigin
+        let origin = board?.bounds.origin
+        if coordinator.contentSize != contentSize || wasBoard != origin {
             // The column of pages growing or shrinking down — a page added,
             // duplicated, deleted, or one of those undone — keeps the zoom
             // and the view where they are; only a new width fits afresh.
             let across = coordinator.contentSize.width == contentSize.width
             coordinator.contentSize = contentSize
+            coordinator.boardOrigin = origin
             // By bounds and centre, not frame: the view is scaled by the
             // zoom, and a frame set on a scaled view is undefined — the
             // column of pages changes size with every page added.
@@ -305,7 +336,13 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             coordinator.host.view.bounds = CGRect(origin: .zero, size: contentSize)
             coordinator.host.view.center = CGPoint(x: contentSize.width * z / 2, y: contentSize.height * z / 2)
             scroll.contentSize = CGSize(width: contentSize.width * z, height: contentSize.height * z)
-            if column != nil && across {
+            if let was = wasBoard, let origin {
+                // A whiteboard's bounds grown or shrunk by a step: what is
+                // on screen stays where it is.
+                scroll.contentOffset = CGPoint(x: scroll.contentOffset.x + (was.x - origin.x) * z,
+                                               y: scroll.contentOffset.y + (was.y - origin.y) * z)
+                coordinator.publishViewport()
+            } else if column != nil && across {
                 // Which pages draw live, though the view has not moved.
                 coordinator.publishViewport()
             } else {
@@ -350,6 +387,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         let host: UIHostingController<Content>
         weak var scrollView: UIScrollView?
         weak var doubleTap: UITapGestureRecognizer?
+        weak var boardFit: UITapGestureRecognizer?
         weak var backgroundPan: UIPanGestureRecognizer?
         weak var otherPageHold: UILongPressGestureRecognizer?
         /// Where the hold on another page landed, in the content.
@@ -362,6 +400,9 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         /// something on another page of the column and so moves that.
         private var otherPageStart: CGPoint?
         var contentSize: CGSize = .zero
+        /// A whiteboard's bounds' top left, in page units, as the content
+        /// was last laid out; nil when it is not one.
+        var boardOrigin: CGPoint?
         var fitToken: String = ""
         var needsFit = true
         /// True while updateUIView is running, so zoom changes it causes are
@@ -386,6 +427,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             self.parent = parent
             self.host = UIHostingController(rootView: parent.content())
             self.contentSize = parent.contentSize
+            self.boardOrigin = parent.board?.bounds.origin
             self.fitToken = parent.fitToken
             // A request made before this canvas existed is not for it.
             self.handledRequest = parent.request?.serial ?? 0
@@ -418,6 +460,20 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         }
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? { host.view }
+
+        /// A point of the content as the canvas tells it: on a whiteboard,
+        /// in page units; else as it is.
+        private func outward(_ point: CGPoint) -> CGPoint {
+            guard let origin = parent.board?.bounds.origin else { return point }
+            return CGPoint(x: point.x + origin.x, y: point.y + origin.y)
+        }
+
+        /// The same the other way: a point asked of the canvas, in the
+        /// content's own units.
+        private func inward(_ point: CGPoint) -> CGPoint {
+            guard let origin = parent.board?.bounds.origin else { return point }
+            return CGPoint(x: point.x - origin.x, y: point.y - origin.y)
+        }
 
         func scrollViewDidZoom(_ scrollView: UIScrollView) {
             centerContent()
@@ -475,7 +531,9 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         /// update, as the zoom is.
         func publishViewport() {
             guard let scroll = scrollView, scroll.bounds.width > 0, scroll.bounds.height > 0 else { return }
-            let visible = scroll.convert(scroll.bounds, to: host.view)
+            let seen = scroll.convert(scroll.bounds, to: host.view)
+            let corner = outward(seen.origin)
+            let visible = CGRect(origin: corner, size: seen.size)
             let fit = Double(fitZoom(in: scroll))
             guard isUpdating else {
                 parent.onViewport(visible, fit)
@@ -506,7 +564,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
                 // bigger than that; while typing, the top first and the
                 // bottom winning. Never a zoom, and never a move when it is
                 // already in sight.
-                let r = scroll.convert(box, from: host.view)
+                let r = scroll.convert(box.offsetBy(dx: inward(.zero).x, dy: inward(.zero).y), from: host.view)
                 let b = visibleBounds(of: scroll, covered: covered)
                 let margin: CGFloat = 24
                 guard b.height > margin * 2 else { return }
@@ -545,7 +603,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             let target = min(max(CGFloat(focus.zoom), scroll.minimumZoomScale), scroll.maximumZoomScale)
             animateTyping { [self] in
                 scroll.zoomScale = target
-                let at = scroll.convert(focus.around, from: host.view)
+                let at = scroll.convert(inward(focus.around), from: host.view)
                 let shown = visibleBounds(of: scroll, covered: 0)
                 let offset = CGPoint(x: scroll.contentOffset.x + at.x - shown.midX,
                                      y: scroll.contentOffset.y + at.y - shown.midY)
@@ -629,7 +687,8 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             // Half a viewport of slack on every side, so the page can always be
             // dragged clear of the toolbars. The column has a gap round every
             // page of its own, so it only centres when it is the smaller.
-            let least: CGFloat = parent.column == nil ? 0.5 : 0
+            // A whiteboard reaches a whole screen past its bounds.
+            let least: CGFloat = parent.board != nil ? 1 : parent.column == nil ? 0.5 : 0
             let slackX = max((scroll.bounds.width - scaled.width) / 2, scroll.bounds.width * least)
             let slackY = max((scroll.bounds.height - scaled.height) / 2, scroll.bounds.height * least)
             var top = slackY, bottom = slackY
@@ -650,6 +709,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         /// pages, the column across the width, which fits the widest page
         /// between the gutters.
         func fitZoom(in scroll: UIScrollView) -> CGFloat {
+            if let board = parent.board { return CGFloat(boardFit(board, in: scroll).zoom) }
             guard parent.column != nil else { return Geometry.fitScale(content: contentSize, in: scroll.bounds.size) }
             return contentSize.width > 0 ? scroll.bounds.width / contentSize.width : 1
         }
@@ -658,6 +718,10 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             guard let scroll = scrollView,
                   contentSize.width > 0, contentSize.height > 0,
                   scroll.bounds.width > 0, scroll.bounds.height > 0 else { return }
+            if let board = parent.board {
+                fitBoard(board, in: scroll, animated: animated)
+                return
+            }
             let fit = fitZoom(in: scroll)
             // Let the user zoom well past fit in both directions, but never so
             // far out that the page becomes a speck. The column's range is
@@ -688,6 +752,39 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
                 Geometry.centeredOffset(scaledContent: scaled, in: scroll.bounds.size),
                 animated: animated)
             publishZoom(Double(fit))
+        }
+
+        /// Fit to content on a whiteboard: its bounds and their margin whole
+        /// and centred (Whiteboards.fit), within 5% to 400%.
+        private func boardFit(_ board: CanvasBoard, in scroll: UIScrollView) -> (zoom: Double, pan: CGPoint) {
+            let range = Whiteboards.zoomRange()
+            return Whiteboards.fit(content: Whiteboards.withMargin(board.bounds), viewport: scroll.bounds.size,
+                                   minZoom: range.lowerBound, maxZoom: range.upperBound)
+        }
+
+        private func fitBoard(_ board: CanvasBoard, in scroll: UIScrollView, animated: Bool) {
+            let range = Whiteboards.zoomRange()
+            scroll.minimumZoomScale = CGFloat(range.lowerBound)
+            scroll.maximumZoomScale = CGFloat(range.upperBound)
+            let fit = boardFit(board, in: scroll)
+            let z = CGFloat(fit.zoom)
+            scroll.setZoomScale(z, animated: animated)
+            centerContent()
+            // A page point p shows at pan + p × zoom, and the content's
+            // origin is the bounds' top left.
+            let origin = board.bounds.origin
+            let offset = CGPoint(x: -(fit.pan.x + origin.x * z), y: -(fit.pan.y + origin.y * z))
+            scroll.setContentOffset(offset, animated: animated)
+            publishZoom(fit.zoom)
+            publishViewport()
+        }
+
+        /// Two fingers tapped twice on a whiteboard: fitted to its content,
+        /// unless they landed on something on it.
+        @objc func handleBoardFit(_ tap: UITapGestureRecognizer) {
+            guard let scroll = scrollView, let board = parent.board else { return }
+            guard !parent.holdsPage(outward(tap.location(in: host.view))) else { return }
+            fitBoard(board, in: scroll, animated: true)
         }
 
         /// `offset` kept to where the scroll view itself may go.
@@ -750,7 +847,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
                 stopEdgeScroll()
                 return
             }
-            let onScreen = scroll.convert(finger, from: host.view)
+            let onScreen = scroll.convert(inward(finger), from: host.view)
             let shown = visibleBounds(of: scroll, covered: edges.covered)
             let speed = Viewport.topSpeed(reduceMotion: UIAccessibility.isReduceMotionEnabled)
             let step = Viewport.edgeScroll(finger: onScreen, viewport: shown, maxSpeed: speed)
@@ -809,7 +906,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         }
 
         @objc func handleBackgroundTap(_ tap: UITapGestureRecognizer) {
-            parent.onBackgroundTap(tap.location(in: host.view))
+            parent.onBackgroundTap(outward(tap.location(in: host.view)))
         }
 
         /// The hold on another page's empty part: that page is made the one
@@ -818,7 +915,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         /// finger means the view, as on the Android twin: the hold is let
         /// go of there, with no menu.
         @objc func handleOtherPageHold(_ hold: UILongPressGestureRecognizer) {
-            let now = hold.location(in: host.view)
+            let now = outward(hold.location(in: host.view))
             switch hold.state {
             case .began:
                 holdAt = now
@@ -888,9 +985,15 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         /// anywhere, except where the page claims it for itself.
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                                shouldReceive touch: UITouch) -> Bool {
-            let content = touch.location(in: host.view)
+            if gestureRecognizer === boardFit { return parent.board != nil }
+            let content = outward(touch.location(in: host.view))
             var point = content
             var onPage = host.view.bounds.contains(point)
+            if let board = parent.board {
+                // Round a whiteboard's frame is its own workspace, with
+                // what is put there on it.
+                onPage = CGRect(origin: .zero, size: board.page).contains(point)
+            }
             if let column = parent.column {
                 // A header's buttons and "+ Add page" are left their taps.
                 if parent.isControl(point) { return false }
@@ -901,7 +1004,7 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             // Scrolling through pages, what of the page worked hangs off
             // it — a box half over the gap or the next page, a handle —
             // keeps its own touches there, as it does on the page.
-            let held = parent.column != nil && !onPage && parent.holdsPage(point)
+            let held = (parent.column != nil || parent.board != nil) && !onPage && parent.holdsPage(point)
             if gestureRecognizer === otherPageHold {
                 guard !onPage && !held else { return false }
                 return (parent.column != nil && parent.holdsOtherPage(content)) || parent.holdsWorkspace(content)

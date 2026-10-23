@@ -265,4 +265,16 @@ enum ShapeText {
     static func heightForWords(_ el: Element) -> Double {
         el.type == .shape ? grownHeight(for: el) : FontLibrary.layoutHeight(for: el)
     }
+
+    /// `el` fitted to its words once they or their type changed: its
+    /// height for them (heightForWords) — except a whiteboard's sticky
+    /// note, which keeps its size and shrinks its words to fit it instead
+    /// (StickyNotes.fitted), as the Android twin's shapeGrown does.
+    static func fitWords(_ el: inout Element) {
+        if StickyNotes.isSticky(el) {
+            if words(of: el) != nil { el = StickyNotes.fitted(el) }
+        } else {
+            el.h = heightForWords(el)
+        }
+    }
 }

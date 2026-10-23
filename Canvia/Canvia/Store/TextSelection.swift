@@ -149,7 +149,7 @@ extension DesignStore {
         updateSelected { el in
             guard ShapeText.carriesWords(el) else { return }
             el.fontWeight = weight
-            el.h = ShapeText.heightForWords(el)
+            ShapeText.fitWords(&el)
         }
     }
 
@@ -161,7 +161,7 @@ extension DesignStore {
         updateSelected { el in
             guard ShapeText.carriesWords(el) else { return }
             el.fontSize = size
-            el.h = ShapeText.heightForWords(el)
+            ShapeText.fitWords(&el)
         }
     }
 }

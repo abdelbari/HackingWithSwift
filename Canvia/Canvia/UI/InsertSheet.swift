@@ -442,12 +442,40 @@ struct InsertSheet: View {
 
     // MARK: shapes + lines
 
+    /// The six papers a sticky note comes in (StickyNotes), square, each
+    /// named for VoiceOver by its colour.
+    private var stickyRow: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 10)], spacing: 10) {
+            ForEach(StickyNotes.colours, id: \.self) { paper in
+                Button {
+                    store.addStickyNote(paper)
+                    dismiss()
+                } label: {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color(hex: paper))
+                        .aspectRatio(1, contentMode: .fit)
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.hairline, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(StickyNotes.spoken(paper))
+            }
+        }
+    }
+
     private var elementsGrid: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // What was put on a page lately, of every kind, first.
-            if !recent.isEmpty {
-                sectionHeader(tr("Recently used"))
-                HitRow(hits: recent) { insertHit($0) }
+            Group {
+                // On a whiteboard, its own insert first: a sticky note in
+                // one of six papers, in the middle of what is on screen.
+                if search.isEmpty && store.isWhiteboard {
+                    sectionHeader(tr("Sticky note"))
+                    stickyRow
+                }
+                // What was put on a page lately, of every kind, first.
+                if !recent.isEmpty {
+                    sectionHeader(tr("Recently used"))
+                    HitRow(hits: recent) { insertHit($0) }
+                }
             }
             sectionHeader(tr("QR code"))
             qrRow

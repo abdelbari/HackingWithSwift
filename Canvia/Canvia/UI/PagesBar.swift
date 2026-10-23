@@ -58,6 +58,11 @@ struct PagesBar: View {
                         Label(store.isPageLocked ? tr("Unlock page") : tr("Lock page"),
                               systemImage: store.isPageLocked ? "lock.open" : "lock")
                     }
+                    // An endless canvas round the page, and back to its frame.
+                    Button { store.toggleWhiteboard() } label: {
+                        Label(store.isWhiteboard ? tr("Collapse") : tr("Expand to whiteboard"),
+                              systemImage: store.isWhiteboard ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                    }
                 } label: { Image(systemName: "plus.square.on.square") }
                     .accessibilityLabel(pageMenuLabel)
                     .accessibilityShowsLargeContentViewer()
@@ -602,8 +607,10 @@ struct PageThumbnail: View {
     private func render() -> UIImage? {
         // On screen, so a focus subject is found off the main thread rather
         // than holding up the strip; the thumbnail is drawn again when it is.
-        let renderer = ImageRenderer(content: PageRenderView(design: design, page: page).environment(\.onScreen, true))
-        renderer.scale = max(0.02, CGFloat(pixelWidth) / max(design.size(for: page).width, 1))
+        // An expanded whiteboard as its bounds and their margin.
+        let shown = Whiteboards.drawn(design, page)
+        let renderer = ImageRenderer(content: PageRenderView(design: design, page: shown).environment(\.onScreen, true))
+        renderer.scale = max(0.02, CGFloat(pixelWidth) / max(design.size(for: shown).width, 1))
         renderer.isOpaque = true
         return renderer.uiImage
     }

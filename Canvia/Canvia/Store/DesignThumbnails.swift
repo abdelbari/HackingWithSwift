@@ -33,9 +33,10 @@ extension DesignLibrary {
     /// a kept version's row in Version history draws with this too.
     @MainActor
     static func thumbnailImage(for design: Design) -> UIImage? {
-        guard let first = design.pages.first else { return nil }
+        // An expanded whiteboard as its bounds and their margin.
+        guard let first = design.pages.first.map({ Whiteboards.drawn(design, $0) }) else { return nil }
         let renderer = ImageRenderer(content: PageRenderView(design: design, page: first))
-        renderer.scale = CGFloat(thumbnailScale(pageWidth: Double(design.size(at: 0).width)))
+        renderer.scale = CGFloat(thumbnailScale(pageWidth: Double(design.size(for: first).width)))
         // The alpha channel is discarded by jpegData when the thumbnail is
         // written, so compositing it is wasted work.
         renderer.isOpaque = true

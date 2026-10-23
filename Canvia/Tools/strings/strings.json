@@ -2027,6 +2027,39 @@
       "other": "%d designs"
     }
   },
+  "%d element outside the page is hidden|%d elements outside the page are hidden": {
+    "ar": {
+      "few": "%d عناصر خارج الصفحة مخفية",
+      "many": "%d عنصرًا خارج الصفحة مخفية",
+      "one": "%d عنصر خارج الصفحة مخفي",
+      "other": "%d عنصر خارج الصفحة مخفي",
+      "two": "%d عنصران خارج الصفحة مخفيان",
+      "zero": "%d عنصر خارج الصفحة مخفي"
+    },
+    "de": {
+      "one": "%d Element außerhalb der Seite ist ausgeblendet",
+      "other": "%d Elemente außerhalb der Seite sind ausgeblendet"
+    },
+    "es": {
+      "one": "%d elemento fuera de la página está oculto",
+      "other": "%d elementos fuera de la página están ocultos"
+    },
+    "fr": {
+      "one": "%d élément hors de la page est masqué",
+      "other": "%d éléments hors de la page sont masqués"
+    },
+    "it": {
+      "one": "%d elemento fuori dalla pagina è nascosto",
+      "other": "%d elementi fuori dalla pagina sono nascosti"
+    },
+    "ja": {
+      "other": "ページ外の %d 個の要素を非表示にしました"
+    },
+    "pt-BR": {
+      "one": "%d elemento fora da página está oculto",
+      "other": "%d elementos fora da página estão ocultos"
+    }
+  },
   "%d element|%d elements": {
     "ar": {
       "few": "%d عناصر",
@@ -6047,6 +6080,15 @@
     "ja": "ブランドの写真とグラフィックは、どのデザインでも「追加 ▸ ブランド」にあります。",
     "pt-BR": "Fotos e gráficos da marca ficam em Adicionar ▸ Marca, em todos os designs."
   },
+  "Bright colours will print duller": {
+    "ar": "ستُطبع الألوان الزاهية أبهت",
+    "de": "Leuchtende Farben werden matter gedruckt",
+    "es": "Los colores vivos se imprimirán más apagados",
+    "fr": "Les couleurs vives seront plus ternes à l’impression",
+    "it": "I colori brillanti verranno stampati più spenti",
+    "ja": "鮮やかな色は印刷するとくすみます",
+    "pt-BR": "Cores vivas sairão mais opacas na impressão"
+  },
   "Brighten mids": {
     "ar": "تفتيح الدرجات المتوسطة",
     "de": "Mitteltöne aufhellen",
@@ -6241,6 +6283,24 @@
     "it": "Esplosione",
     "ja": "バースト",
     "pt-BR": "Explosão"
+  },
+  "CMYK": {
+    "ar": "CMYK",
+    "de": "CMYK",
+    "es": "CMYK",
+    "fr": "CMJN",
+    "it": "CMYK",
+    "ja": "CMYK",
+    "pt-BR": "CMYK"
+  },
+  "CMYK · flattened · about %d MB": {
+    "ar": "CMYK · مسطّح · نحو %d ميغابايت",
+    "de": "CMYK · reduziert · etwa %d MB",
+    "es": "CMYK · acoplado · unos %d MB",
+    "fr": "CMJN · aplati · environ %d Mo",
+    "it": "CMYK · appiattito · circa %d MB",
+    "ja": "CMYK・統合・約 %d MB",
+    "pt-BR": "CMYK · achatado · cerca de %d MB"
   },
   "Caches": {
     "ar": "ذاكرات التخزين المؤقت",
@@ -7028,6 +7088,15 @@
     "ja": "コードの色",
     "pt-BR": "Cor do código"
   },
+  "Collapse": {
+    "ar": "طي",
+    "de": "Einklappen",
+    "es": "Contraer",
+    "fr": "Réduire",
+    "it": "Comprimi",
+    "ja": "折りたたむ",
+    "pt-BR": "Recolher"
+  },
   "Color": {
     "ar": "اللون",
     "de": "Farbe",
@@ -7090,6 +7159,15 @@
     "it": "Colore delle parole selezionate",
     "ja": "選択した単語の色",
     "pt-BR": "Cor das palavras selecionadas"
+  },
+  "Colour profile": {
+    "ar": "ملف تعريف الألوان",
+    "de": "Farbprofil",
+    "es": "Perfil de color",
+    "fr": "Profil colorimétrique",
+    "it": "Profilo colore",
+    "ja": "カラープロファイル",
+    "pt-BR": "Perfil de cor"
   },
   "Colouring the border. Its width and style are below.": {
     "ar": "تلوين الحدود. عرضها ونمطها أدناه.",
@@ -10699,6 +10777,15 @@
     "it": "Esci",
     "ja": "終了",
     "pt-BR": "Saída"
+  },
+  "Expand to whiteboard": {
+    "ar": "توسيع إلى سبورة بيضاء",
+    "de": "Zum Whiteboard erweitern",
+    "es": "Ampliar a pizarra",
+    "fr": "Agrandir en tableau blanc",
+    "it": "Espandi in lavagna",
+    "ja": "ホワイトボードに展開",
+    "pt-BR": "Expandir para quadro branco"
   },
   "Export": {
     "ar": "تصدير",
@@ -18341,6 +18428,15 @@
     "ja": "引用",
     "pt-BR": "Citação"
   },
+  "RGB": {
+    "ar": "RGB",
+    "de": "RGB",
+    "es": "RGB",
+    "fr": "RVB",
+    "it": "RGB",
+    "ja": "RGB",
+    "pt-BR": "RGB"
+  },
   "Radial": {
     "ar": "شعاعي",
     "de": "Radial",
@@ -21895,6 +21991,24 @@
     "it": "Sticker",
     "ja": "ステッカー",
     "pt-BR": "Figurinhas"
+  },
+  "Sticky note": {
+    "ar": "ملاحظة لاصقة",
+    "de": "Haftnotiz",
+    "es": "Nota adhesiva",
+    "fr": "Pense-bête",
+    "it": "Nota adesiva",
+    "ja": "付箋",
+    "pt-BR": "Nota adesiva"
+  },
+  "Sticky note, %@": {
+    "ar": "ملاحظة لاصقة، %@",
+    "de": "Haftnotiz, %@",
+    "es": "Nota adhesiva, %@",
+    "fr": "Pense-bête, %@",
+    "it": "Nota adesiva, %@",
+    "ja": "付箋、%@",
+    "pt-BR": "Nota adesiva, %@"
   },
   "Stop": {
     "ar": "إيقاف",
@@ -25615,6 +25729,15 @@
     "it": "Ingrandisci l’immagine",
     "ja": "画像をズーム",
     "pt-BR": "Ampliar a imagem"
+  },
+  "Zoom to fit": {
+    "ar": "تكبير للملاءمة",
+    "de": "Auf Größe zoomen",
+    "es": "Ajustar al zoom",
+    "fr": "Zoomer pour ajuster",
+    "it": "Adatta con lo zoom",
+    "ja": "全体を表示",
+    "pt-BR": "Ajustar zoom"
   },
   "Zoomed to %d percent. Tap to fit the whole page.": {
     "ar": "تم التكبير إلى %d بالمئة. انقر لملاءمة الصفحة كاملة.",

@@ -99,7 +99,7 @@ struct Template: Codable, Identifiable {
         }
         design.unit = preset.unit
         design.dpi = preset.dpi
-        return design
+        return preset.started(design)
     }
 
     /// A page scaled uniformly into a target canvas (Canva-style apply).
@@ -553,7 +553,14 @@ struct SizePreset: Identifiable, Codable, Equatable {
         var design = Design(title: title ?? name, width: w, height: h)
         design.unit = unit
         design.dpi = dpi
-        return design
+        return started(design)
+    }
+
+    /// `design`, made at this type, as it starts: at the Whiteboard type
+    /// its pages expanded (Whiteboards), any other as it is — the Android
+    /// twin's SizePreset.measured.
+    func started(_ design: Design) -> Design {
+        id == Whiteboards.presetId ? Whiteboards.started(design) : design
     }
 
     /// "210 × 297 mm", or "1080 × 1920" for a size in pixels.

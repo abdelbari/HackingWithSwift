@@ -254,8 +254,8 @@ enum ExportChoices {
 /// The last export, as "Remember these settings" keeps it:
 /// {"format":"png","scale":2.0,"longEdge":null,"jpegQuality":0.85,
 ///  "transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false,
-///  "pptxStyledText":"editable","suggested":false,"pdfBookmarks":true}.
-/// A missing "pptxStyledText" is "editable".
+///  "pptxStyledText":"editable","suggested":false,"pdfBookmarks":true,
+///  "colourProfile":"rgb"}. A missing "pptxStyledText" is "editable".
 struct ExportLast: Codable, Equatable {
     /// "png" | "jpg" | "pdf" | "print" | "svg" | "pptx" | "mp4" | "gif".
     var format: String
@@ -279,6 +279,9 @@ struct ExportLast: Codable, Equatable {
     /// The PDF's bookmarks: an outline entry for each page, titled by the
     /// page's title or "Page N" (PDFMetadata). On unless turned off.
     var pdfBookmarks = true
+    /// The print-ready PDF's colour profile, "rgb" or "cmyk"
+    /// (PrintLayout.ColourProfile); missing, or anything else, is "rgb".
+    var colourProfile = "rgb"
 
     static let key = "exportLast"
     static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif"]
@@ -293,12 +296,12 @@ struct ExportLast: Codable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case format, scale, longEdge, jpegQuality, transparent, pages, pdfNotes, pdfCompress, pptxStyledText,
-             suggested, pdfBookmarks
+             suggested, pdfBookmarks, colourProfile
     }
 
     init(format: String, scale: Double, longEdge: Int?, jpegQuality: Double, transparent: Bool, pages: String,
          pdfNotes: Bool = false, pdfCompress: Bool = false, pptxStyledText: String = ExportLast.styledEditable,
-         suggested: Bool = false, pdfBookmarks: Bool = true) {
+         suggested: Bool = false, pdfBookmarks: Bool = true, colourProfile: String = "rgb") {
         self.format = format
         self.scale = scale
         self.longEdge = longEdge
@@ -310,6 +313,7 @@ struct ExportLast: Codable, Equatable {
         self.pptxStyledText = pptxStyledText
         self.suggested = suggested
         self.pdfBookmarks = pdfBookmarks
+        self.colourProfile = PrintLayout.ColourProfile.of(colourProfile).rawValue
     }
 
     /// Whether styled text goes out editable, as the setting says.
@@ -336,6 +340,7 @@ struct ExportLast: Codable, Equatable {
         // Missing, the format was picked by hand and the bookmarks are on.
         suggested = (try? c.decode(Bool.self, forKey: .suggested)) ?? false
         pdfBookmarks = (try? c.decode(Bool.self, forKey: .pdfBookmarks)) ?? true
+        colourProfile = PrintLayout.ColourProfile.of(try? c.decode(String.self, forKey: .colourProfile)).rawValue
     }
 
     /// Every key written, the long edge as null when there is none, in the
@@ -353,6 +358,7 @@ struct ExportLast: Codable, Equatable {
         try c.encode(pptxStyledText, forKey: .pptxStyledText)
         try c.encode(suggested, forKey: .suggested)
         try c.encode(pdfBookmarks, forKey: .pdfBookmarks)
+        try c.encode(colourProfile, forKey: .colourProfile)
     }
 
     /// As stored: every key, in the order above, written out here rather
@@ -373,6 +379,7 @@ struct ExportLast: Codable, Equatable {
             "\"pptxStyledText\":" + Self.quoted(pptxStyledText),
             "\"suggested\":" + String(suggested),
             "\"pdfBookmarks\":" + String(pdfBookmarks),
+            "\"colourProfile\":" + Self.quoted(colourProfile),
         ]
         return "{" + fields.joined(separator: ",") + "}"
     }

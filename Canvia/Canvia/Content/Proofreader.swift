@@ -192,7 +192,7 @@ enum Proofreader {
         guard reads == m.word else { return nil }
         var out = design
         out.pages[m.pageIndex].elements[i].setText(replacing(m, in: text, with: replacement))
-        out.pages[m.pageIndex].elements[i].h = ShapeText.heightForWords(out.pages[m.pageIndex].elements[i])
+        ShapeText.fitWords(&out.pages[m.pageIndex].elements[i])
         return out
     }
 
