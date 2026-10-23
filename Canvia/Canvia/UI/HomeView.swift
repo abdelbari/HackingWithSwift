@@ -172,7 +172,7 @@ struct HomeView: View {
             .background { deckPicker }
             .background { designFilePicker }
             .modifier(HomeSharing(exporting: $exporting, presenting: $presenting, unopened: $unopened,
-                                  mockingUp: $mockingUp, open: { create($0) }))
+                                  mockingUp: $mockingUp, open: { create($0) }, changed: { reload() }))
             .importPickers(media: $pickingMedia, pdf: $pickingPDF, onLanded: onImport) { importError = $0 }
             .powerPointImport($deckURLs, onOpen: onOpen)
             .onReceive(NotificationCenter.default.publisher(for: PowerPoints.didImport)) { _ in reload() }

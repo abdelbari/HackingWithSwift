@@ -20,13 +20,13 @@ struct SimilarSheet: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 8) {
                 if hits.isEmpty {
-                    Text("Nothing like this yet")
+                    Text("Nothing else like this")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal)
                 } else {
                     strip
-                    Text("Tap one to swap it in. Press and hold to add it as well.")
+                    Text("Tap one to swap it in. Touch and hold to add it as well.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal)

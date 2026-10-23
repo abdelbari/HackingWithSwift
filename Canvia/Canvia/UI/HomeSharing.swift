@@ -1,7 +1,9 @@
 // Share…, Mockups and Present from a design's card on Home (HomeExports):
 // the Export sheet over Home for the design as saved, with no editor behind
 // it; Mockups, whose New design from mockup opens the design it makes once
-// the sheet has gone; and Present from its first page. Home only reads the design: Loop turned on or
+// the sheet has gone, and whose Add to this design saves the design with
+// the mockup on it and reads the cards again; and Present from its first
+// page. Home only reads the design: Loop turned on or
 // off there lasts for that presentation and is not saved, as the Android twin's.
 
 import SwiftUI
@@ -14,6 +16,8 @@ struct HomeSharing: ViewModifier {
     @Binding var mockingUp: Design?
     /// Opens a design made on Home.
     var open: (Design) -> Void = { _ in }
+    /// A design saved from here, changed: Home reads its cards again.
+    var changed: () -> Void = {}
     /// The design New design from mockup made, opened as Mockups goes.
     @State private var made: Design?
 
@@ -23,7 +27,7 @@ struct HomeSharing: ViewModifier {
                 HomeExportSheet(design: design)
             }
             .sheet(item: $mockingUp, onDismiss: openMade) { design in
-                MockupSheet(design: design, onNewDesign: { made = $0 })
+                MockupSheet(design: design, onNewDesign: { made = $0 }, onChanged: changed)
             }
             .fullScreenCover(item: $presenting) { design in
                 PresentationView(design: design, startPage: 0)

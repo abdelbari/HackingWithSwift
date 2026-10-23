@@ -87,8 +87,8 @@ struct HitRow: View {
 /// A hit drawn as its own tab draws it, its name under it; a chart, the
 /// table and the QR code, which are made from what you type, by a symbol.
 /// With `onHold`, a press and hold does that instead of the tap (More like
-/// this adds one rather than swapping it in), and VoiceOver offers it as an
-/// action.
+/// this adds one rather than swapping it in), and VoiceOver says the tap
+/// swaps it in and offers the hold as an action, as the Android twin's tile.
 struct HitTile: View {
     let hit: ElementSearch.Hit
     var onHold: (() -> Void)? = nil
@@ -101,14 +101,14 @@ struct HitTile: View {
                     .contentShape(Rectangle())
                     .onTapGesture(perform: action)
                     .onLongPressGesture(perform: onHold)
-                    .accessibilityAction(named: Text("Add to this page"), onHold)
+                    .accessibilityAction(named: Text("Add as well"), onHold)
             } else {
                 Button(action: action) { tile }
                     .buttonStyle(.plain)
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(spoken)
+        .accessibilityLabel(onHold == nil ? spoken : tr("Swap for %@", hit.name))
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { action() }
     }

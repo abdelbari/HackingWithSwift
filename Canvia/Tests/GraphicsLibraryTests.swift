@@ -64,6 +64,10 @@ final class GraphicsLibraryTests: XCTestCase {
         let maxX = one.map { $0.x + $0.w }.max() ?? 0
         let minX = one.map(\.x).min() ?? 0
         XCTAssertLessThanOrEqual(maxX - minX, 432.01)
+        // Each part is named for the graphic, in Layers and aloud.
+        let arrow = GraphicsLibrary.elements(try XCTUnwrap(GraphicsLibrary.graphic("arrow-01")),
+                                             pageWidth: 1080, pageHeight: 1080)
+        XCTAssertEqual(ElementNames.name(of: try XCTUnwrap(arrow.first)), "Curved arrow graphic")
         // Its id goes into the file with each part, and comes back.
         let written = try JSONSerialization.jsonObject(with: JSONEncoder().encode(one[0])) as? [String: Any]
         XCTAssertEqual(written?["graphicId"] as? String, "sparkle-03")

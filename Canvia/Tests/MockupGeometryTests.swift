@@ -70,4 +70,14 @@ final class MockupGeometryTests: XCTestCase {
         XCTAssertEqual(Double(mesh[10].y), 50, accuracy: 1e-9)
         XCTAssertEqual(Double(mesh[12].y), 60, accuracy: 1e-9)
     }
+
+    func testAMockupAddedToADesignGoesOnAsAnyPictureHalfThePageWide() {
+        // The Android twin's InsertSizes.picture gives the same, in the editor and from Home.
+        let a = MockupSheet.placed(CGSize(width: 1600, height: 1200), pageWidth: 1080)
+        XCTAssertEqual(a.width, 540)
+        XCTAssertEqual(a.height, 405)
+        let b = MockupSheet.placed(CGSize(width: 1500, height: 1000), pageWidth: 1081)
+        XCTAssertEqual(b.width, 541)
+        XCTAssertEqual(b.height, 360)
+    }
 }

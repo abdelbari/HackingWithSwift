@@ -4,11 +4,12 @@
 // page renderer (DesignExporter.render), cut to the window's shape
 // (MockupGeometry.cover) and warped into its corners with
 // CIPerspectiveTransform — round a mug, over the cylinder's mesh
-// (MockupGeometry.mesh), a triangle at a time. A scene with a tint (a
-// shirt, a mug) offers its colour. The result is saved to Photos, shared,
-// added to the design as a picture, or made a design of its own. From the
-// Export sheet's Share row and a design's card on Home, as on the Android
-// twin.
+// (MockupGeometry.mesh), a triangle at a time — all of it off the main
+// thread but the page itself. A scene with a tint (a shirt, a mug) offers
+// its colour. The result is saved to Photos, shared, added to the design as
+// a picture (half the page wide, as any picture goes on), or made a design
+// of its own, "<title> mockup". From the Export sheet's Share row and a
+// design's card on Home, as on the Android twin.
 
 import CoreImage
 import CoreImage.CIFilterBuiltins
@@ -22,6 +23,9 @@ struct MockupSheet: View {
     /// A design made of the mockup, to open: from Home. Nil in the editor,
     /// where it is saved beside this one, on Home.
     var onNewDesign: ((Design) -> Void)? = nil
+    /// From Home: the design was saved with the mockup added to it, so its
+    /// card is read again. Nil in the editor, which adds through `store`.
+    var onChanged: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var pageIndex = 0
     @State private var sceneId = MockupScenes.all.first?.id ?? ""
@@ -104,7 +108,7 @@ struct MockupSheet: View {
             .buttonStyle(.borderedProminent)
         Button("Share") { share() }
             .buttonStyle(.bordered)
-        if store != nil {
+        if store != nil || onChanged != nil {
             Button("Add to this design") { addToDesign() }
                 .buttonStyle(.bordered)
         }
@@ -171,77 +175,139 @@ struct MockupSheet: View {
     }
 
     /// The mockup at the scene's own size, its page drawn sharp enough for
-    /// it.
+    /// it: the page on the main actor, where the page renderer works, the
+    /// scene and the warp away from it.
     @MainActor
-    private func finished() -> UIImage? {
+    private func finished() async -> UIImage? {
         guard let scene, let sharp = renderPage(longEdge: max(scene.width, scene.height)) else { return nil }
-        return MockupRenderer.image(scene: scene, page: sharp, tint: tint(scene), width: scene.width)
+        return await MockupRenderer.drawn(scene: scene, page: sharp, tint: tint(scene), width: scene.width)
     }
 
-    /// The mockup as a PNG in the temporary folder, to save or share.
+    /// `use` with the finished mockup, the actions held still until it is
+    /// done; said when it cannot be made.
     @MainActor
-    private func file() -> URL? {
-        guard let image = finished(), let data = image.pngData() else { return nil }
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(tr("Mockup")).png")
-        do {
-            try data.write(to: url, options: .atomic)
-            return url
-        } catch {
-            return nil
-        }
-    }
-
-    @MainActor
-    private func save() {
-        guard let url = file() else { return failed() }
+    private func finishing(_ use: @escaping @MainActor (UIImage) async -> Void) {
+        guard !busy else { return }
         busy = true
-        Task {
-            do {
-                note = try await PhotoSaver.save([url]).message
-            } catch {
-                note = error.localizedDescription
+        Task { @MainActor in
+            if let image = await finished() {
+                await use(image)
+            } else {
+                failed()
             }
             busy = false
         }
     }
 
+    /// The mockup as a PNG in the temporary folder, to save or share, named
+    /// for the design as the Android twin names it.
     @MainActor
-    private func share() {
-        guard let url = file() else { return failed() }
-        sharing = ShareURL(url: url)
+    private func file(_ image: UIImage) async -> URL? {
+        let name = DesignExporter.fileBaseName(tr("%@ mockup", design.title))
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(name).png")
+        return await Task.detached(priority: .userInitiated) { () -> URL? in
+            guard let data = image.pngData() else { return nil }
+            do {
+                try data.write(to: url, options: .atomic)
+                return url
+            } catch {
+                return nil
+            }
+        }.value
     }
 
-    /// The mockup as a picture on the page on screen, 0.8 of its width,
-    /// centred and selected — one step; onto the next unlocked page when
-    /// this one is locked.
+    @MainActor
+    private func save() {
+        finishing { image in
+            guard let url = await file(image) else { return failed() }
+            do {
+                note = try await PhotoSaver.save([url]).message
+            } catch {
+                note = error.localizedDescription
+            }
+        }
+    }
+
+    @MainActor
+    private func share() {
+        finishing { image in
+            guard let url = await file(image) else { return failed() }
+            sharing = ShareURL(url: url)
+        }
+    }
+
+    /// The mockup's size on a page `pageWidth` wide: half the page across,
+    /// as tall as its own shape makes it, each rounded — the rule any
+    /// picture goes on by (the Android twin's InsertSizes.picture), in the
+    /// editor and from Home alike.
+    nonisolated static func placed(_ image: CGSize, pageWidth: Double) -> (width: Double, height: Double) {
+        let w = pageWidth * 0.5
+        let h = image.width > 0 ? w * Double(image.height) / Double(image.width) : w * 0.75
+        return (w.rounded(), h.rounded())
+    }
+
+    /// The mockup as a picture on the page on screen (`placed`), centred
+    /// and selected — one step; onto the next unlocked page when this one
+    /// is locked. From Home, onto the page chosen (`addFromHome`).
     @MainActor
     private func addToDesign() {
-        guard let store, let image = finished(), let src = MediaStore.storeOpaque(image) else { return failed() }
-        Uploads.record(source: src)
-        let w = store.pageWidth * 0.8
-        let h = w * Double(image.size.height) / max(Double(image.size.width), 1)
-        if store.add(.image(src, w: w.rounded(), h: h.rounded())) {
-            store.buzz(.confirm)
-            dismiss()
+        finishing { image in
+            guard let src = MediaStore.storeOpaque(image) else { return failed() }
+            Uploads.record(source: src)
+            guard let store else { return addFromHome(image, src: src) }
+            let size = Self.placed(image.size, pageWidth: store.pageWidth)
+            if store.add(.image(src, w: size.width, h: size.height)) {
+                store.buzz(.confirm)
+                dismiss()
+            }
         }
+    }
+
+    /// From Home: the mockup on the page chosen — or, that page locked, the
+    /// next one that is not (PageLocks.landing) — placed and centred as in
+    /// the editor, and the design saved with its card's picture; as the
+    /// Android twin's Home adds it. Every page from there on locked, it is
+    /// said and nothing changes.
+    @MainActor
+    private func addFromHome(_ image: UIImage, src: String) {
+        guard let target = PageLocks.landing(from: pageIndex, in: design.pages) else {
+            note = tr("Every page from there on is locked")
+            return
+        }
+        let page = design.size(for: design.pages[target])
+        let size = Self.placed(image.size, pageWidth: Double(page.width))
+        var picture = Element.image(src, w: size.width, h: size.height)
+        picture.x = (Double(page.width) - size.width) / 2
+        picture.y = (Double(page.height) - size.height) / 2
+        var changed = design
+        changed.pages[target].elements.append(picture)
+        changed.updatedAt = Date().timeIntervalSince1970 * 1000
+        guard DesignLibrary.save(changed) else { return failed() }
+        DesignLibrary.writeThumbnail(for: changed)
+        onChanged?()
+        UIAccessibility.post(notification: .announcement, argument: tr("Added to the design"))
+        dismiss()
     }
 
     /// A design of its own, the scene's size, the mockup filling its page:
     /// opened from Home, saved beside this one from the editor.
     @MainActor
     private func newDesign() {
-        guard let scene, let image = finished(), let src = MediaStore.storeOpaque(image) else { return failed() }
-        Uploads.record(source: src)
-        var made = Design(title: tr("Mockup of %@", design.title), width: scene.width, height: scene.height)
-        made.pages[0].elements = [.image(src, w: scene.width, h: scene.height)]
-        if let onNewDesign {
-            dismiss()
-            onNewDesign(made)
-        } else if DesignLibrary.save(made) {
-            note = tr("Saved as a new design on Home")
-            store?.buzz(.confirm)
-        } else {
-            failed()
+        guard let scene else { return }
+        finishing { image in
+            guard let src = MediaStore.storeOpaque(image) else { return failed() }
+            Uploads.record(source: src)
+            var made = Design(title: tr("%@ mockup", design.title), width: scene.width, height: scene.height)
+            made.pages[0].elements = [.image(src, w: scene.width, h: scene.height)]
+            if let onNewDesign {
+                dismiss()
+                onNewDesign(made)
+            } else if DesignLibrary.save(made) {
+                note = tr("Saved as a new design on Home")
+                store?.buzz(.confirm)
+            } else {
+                failed()
+            }
         }
     }
 
@@ -252,7 +318,9 @@ struct MockupSheet: View {
 }
 
 /// A scene with the page in it, drawn `width` pixels across once the page
-/// is there (MockupRenderer); its background until then.
+/// is there (MockupRenderer, off the main thread); its background until
+/// then. Drawn again a breath after the last change, so a colour dragged
+/// through the picker is drawn once it rests, not at every step.
 struct MockupTile: View {
     let scene: MockupScenes.Scene
     let page: CGImage?
@@ -271,7 +339,13 @@ struct MockupTile: View {
         }
         .task(id: key) {
             guard let page else { return }
-            image = MockupRenderer.image(scene: scene, page: page, tint: tint, width: width)
+            if image != nil {
+                try? await Task.sleep(nanoseconds: 120_000_000)
+                guard !Task.isCancelled else { return }
+            }
+            let drawn = await MockupRenderer.drawn(scene: scene, page: page, tint: tint, width: width)
+            guard !Task.isCancelled else { return }
+            image = drawn
         }
     }
 
@@ -283,11 +357,18 @@ struct MockupTile: View {
 
 /// A scene drawn with a page in it: its background, its layers — tinted
 /// ones in the tint — the page warped into its window and the window's
-/// glare over it.
-@MainActor
+/// glare over it. Core Graphics, Core Image and an image renderer only, so
+/// it draws on any thread; `drawn` draws away from the main one.
 enum MockupRenderer {
 
     private static let context = CIContext()
+
+    /// `image`, drawn off the main thread.
+    static func drawn(scene: MockupScenes.Scene, page: CGImage, tint: String?, width: Double) async -> UIImage? {
+        await Task.detached(priority: .userInitiated) {
+            MockupRenderer.image(scene: scene, page: page, tint: tint, width: width)
+        }.value
+    }
 
     static func image(scene: MockupScenes.Scene, page: CGImage, tint: String?, width: Double) -> UIImage? {
         guard scene.width > 0, scene.height > 0, width > 0 else { return nil }
