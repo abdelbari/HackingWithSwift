@@ -41,6 +41,10 @@ enum Crop {
 
     private static let epsilon = 1e-9
 
+    /// How near a frame's sides are to a ratio's trim for it to be that
+    /// shape already, in page units: the Android twin's Crop.SAME_SHAPE.
+    static let sameShape = 1e-6
+
     /// Closer than this, in page units, two pictures are the same picture —
     /// so rounding noise never records an Undo that changes nothing.
     private static let same = 1e-3
@@ -205,7 +209,8 @@ enum Crop {
     /// frame's corner and re-covered (withPicture), as a trim leaves it. No
     /// rounding: the sides are whatever the ratio makes them, as on the
     /// Android twin. The element as it is for a ratio that is not positive,
-    /// or a frame that already has that shape.
+    /// or a frame that already has that shape (both sides within sameShape
+    /// of the trim).
     static func trimmedToRatio(_ el: Element, ratio: Double, image: CGSize) -> Element {
         guard ratio > 0, ratio.isFinite, el.w > 0, el.h > 0 else { return el }
         let w: Double, h: Double
@@ -216,7 +221,7 @@ enum Crop {
             w = el.w
             h = el.w / ratio
         }
-        guard abs(w - el.w) > epsilon || abs(h - el.h) > epsilon else { return el }
+        guard abs(w - el.w) >= sameShape || abs(h - el.h) >= sameShape else { return el }
         let left = (el.w - w) / 2
         let top = (el.h - h) / 2
         let centre = el.center

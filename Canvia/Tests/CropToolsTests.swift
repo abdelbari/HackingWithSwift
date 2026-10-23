@@ -47,6 +47,13 @@ final class CropToolsTests: XCTestCase {
         XCTAssertEqual(Crop.trimmedToRatio(square, ratio: 1, image: image), square)
         XCTAssertEqual(Crop.trimmedToRatio(square, ratio: 0, image: image), square)
         XCTAssertEqual(Crop.trimmedToRatio(square, ratio: -2, image: image), square)
+        XCTAssertEqual(Crop.trimmedToRatio(square, ratio: .infinity, image: image), square)
+        // Shared rows: within Crop.sameShape of 16:9 is already that shape;
+        // a hair more is trimmed to it.
+        let near = photo(h: 112.5000005)
+        XCTAssertEqual(Crop.trimmedToRatio(near, ratio: 16.0 / 9, image: image), near)
+        let off = photo(h: 112.5004)
+        XCTAssertEqual(Crop.trimmedToRatio(off, ratio: 16.0 / 9, image: image).h, 112.5, accuracy: 1e-9)
     }
 
     /// The picture does not move on the page as the frame is trimmed to a

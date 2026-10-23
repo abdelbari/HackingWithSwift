@@ -218,7 +218,8 @@ enum Layers {
     /// Tab (or, not `forward`, Shift-Tab): the ids of the next block in
     /// front of the front-most block holding the selection `ids` — or the
     /// one behind it — a group as one, round again past the front and the
-    /// back, and nothing hidden counted. With nothing selected, Tab takes
+    /// back, and nothing hidden counted; with several selected, both keys
+    /// step from the front-most of them. With nothing selected, Tab takes
     /// the back-most block and Shift-Tab the front-most. Empty for a page
     /// with nothing shown on it. The same rule as the Android twin's.
     static func neighbour(of ids: Set<String>, in elements: [Element], forward: Bool) -> Set<String> {

@@ -69,8 +69,9 @@ final class EditorKeysTests: XCTestCase {
         XCTAssertEqual(Layers.neighbour(of: ["b"], in: page, forward: false), ["a"])
         XCTAssertEqual(Layers.neighbour(of: [], in: page, forward: true), ["a"])
         XCTAssertEqual(Layers.neighbour(of: [], in: page, forward: false), ["c", "d"])
-        // Several selected: on from the front-most of them.
+        // Several selected: on from the front-most of them, either way.
         XCTAssertEqual(Layers.neighbour(of: ["a", "b"], in: page, forward: true), ["c", "d"])
+        XCTAssertEqual(Layers.neighbour(of: ["a", "b"], in: page, forward: false), ["a"])
         XCTAssertEqual(Layers.neighbour(of: ["e"], in: page, forward: true), ["a"])
         XCTAssertEqual(Layers.neighbour(of: [], in: [], forward: true), [])
         XCTAssertEqual(Layers.neighbour(of: [], in: [shape("e", hidden: true)], forward: true), [])

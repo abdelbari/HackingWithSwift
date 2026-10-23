@@ -84,6 +84,23 @@ final class LayoutTests: XCTestCase {
         XCTAssertEqual(after.height, to.height, accuracy: 0.01)
     }
 
+    /// Shared rows (the Android twin's GeometryTest): a scaled size is kept
+    /// to a tenth, at least 6 and with no 800 ceiling; the letter spacing
+    /// scales with it.
+    func testScalingTheBoxKeepsTypeToATenthPast800() {
+        func scaled(_ size: Double, by: Double) -> Element {
+            var text = Element.text("Hi", fontSize: size, w: 100)
+            text.x = 0; text.y = 0; text.h = 50; text.letterSpacing = 2
+            return Geometry.scale([text], from: CGRect(x: 0, y: 0, width: 100, height: 50),
+                                  to: CGRect(x: 0, y: 0, width: 100 * by, height: 50 * by))[0]
+        }
+        XCTAssertEqual(scaled(42, by: 4.0 / 3.0).fontSize, 56)
+        XCTAssertEqual(scaled(600, by: 2).fontSize, 1200)
+        XCTAssertEqual(scaled(10, by: 4.0 / 3.0).fontSize, 13.3)
+        XCTAssertEqual(scaled(12, by: 0.25).fontSize, 6)
+        XCTAssertEqual(scaled(40, by: 2).letterSpacing ?? 0, 4, accuracy: 1e-9)
+    }
+
     func testARotatedMemberKeepsItsAngleAndItsRelativePlace() {
         let turned = rect(100, 100, rotation: 30)
         let other = rect(400, 400)

@@ -462,8 +462,14 @@ struct EditorView: View {
                 shortcut("c", [.command, .option], tr("Copy style")) { store.copyStyle() }
                 shortcut("v", [.command, .option], tr("Paste style")) { store.pasteStyle() }
             }
-            viewCommands
-            if plainKeysLive { plainCommands }
+            // The view's keys too wait while any text field has the keyboard
+            // — ⌥↓ is the end of a paragraph there, and ⌥⇧ letters type
+            // characters on many layouts — or a pen is out, as the Android
+            // twin keeps only Undo and Redo under it.
+            if plainKeysLive {
+                viewCommands
+                plainCommands
+            }
         }
     }
 
@@ -476,7 +482,7 @@ struct EditorView: View {
             Group {
                 shortcut("=", [.command], tr("Zoom in")) { store.requestCanvas(.zoom(store.zoom * 1.25)) }
                 shortcut("-", [.command], tr("Zoom out")) { store.requestCanvas(.zoom(store.zoom / 1.25)) }
-                shortcut("0", [.command], tr("Fit")) { store.requestCanvas(.fit) }
+                shortcut("0", [.command], tr("Fit the page")) { store.requestCanvas(.fit) }
                 shortcut("1", [.command], tr("Actual size")) { store.requestCanvas(.zoom(1)) }
                 shortcut(.upArrow, [.option], tr("Previous page")) { store.setPage(store.pageIndex - 1) }
                 shortcut(.downArrow, [.option], tr("Next page")) { store.setPage(store.pageIndex + 1) }
@@ -499,11 +505,11 @@ struct EditorView: View {
         Group {
             shortcut(.pageUp, [], tr("Previous page")) { store.setPage(store.pageIndex - 1) }
             shortcut(.pageDown, [], tr("Next page")) { store.setPage(store.pageIndex + 1) }
-            shortcut(.tab, [], tr("Next element")) { store.selectNeighbour(forward: true) }
-            shortcut(.tab, [.shift], tr("Previous element")) { store.selectNeighbour(forward: false) }
+            shortcut(.tab, [], tr("Select next")) { store.selectNeighbour(forward: true) }
+            shortcut(.tab, [.shift], tr("Select previous")) { store.selectNeighbour(forward: false) }
             shortcut("h", [.shift], tr("Flip horizontally")) { store.flipSelected(horizontal: true) }
             shortcut("v", [.shift], tr("Flip vertically")) { store.flipSelected(horizontal: false) }
-            shortcut("t", [], tr("Add text")) {
+            shortcut("t", [], tr("Add a text box")) {
                 store.addText(at: CGPoint(x: store.pageWidth / 2, y: store.pageHeight / 2))
             }
         }

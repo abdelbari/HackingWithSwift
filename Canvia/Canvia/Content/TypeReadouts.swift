@@ -115,7 +115,17 @@ enum TypeReadouts {
     /// work and fine body copy rely on. Named for the whole points it once
     /// kept to; the Android twin's TextBoxes.whole has the same rule.
     static func wholeSize(_ size: Double) -> Double {
-        min(sizeRange.upperBound, max(sizeRange.lowerBound, halfUp(size * 10) / 10))
+        min(sizeRange.upperBound, max(sizeRange.lowerBound, tenth(size)))
+    }
+
+    /// `size` to one decimal place, a half up at the hundredth, with no
+    /// range: what a corner drag scales type to, which can take it past
+    /// 800 (at least 6 is the caller's). A hair past the half is allowed
+    /// for a product that lands just short of it in floating point — the
+    /// Android twin's TextBoxes.tenth, to the bit.
+    static func tenth(_ size: Double) -> Double {
+        let scaled = size >= 0 ? (size * 10 + 0.5 + 1e-7).rounded(.down) : -(-size * 10 + 0.5 + 1e-7).rounded(.down)
+        return scaled / 10
     }
 
     /// A size as typed — "24", " 36 ", "12.5", "12,5" in a language that
