@@ -86,10 +86,11 @@ enum FindReplace {
 
     /// Whether a box's words are searched and replaced: a text box's, or the
     /// words a shape carries, unless it is hidden or locked against typing
-    /// (Lock; a position lock still takes new words). The same rule on the
-    /// Android twin.
+    /// (Lock; a position lock still takes new words), or a caption box, whose
+    /// words are its cues, drawn one at a time, and changed in Edit
+    /// captions. The same rule on the Android twin.
     static func searches(_ el: Element) -> Bool {
-        ShapeText.carriesWords(el) && !el.isHidden
+        ShapeText.carriesWords(el) && !el.isHidden && el.captions == nil
             && ElementLock.allows(ElementLock.mode(of: el), ElementLock.Action.editText)
     }
 

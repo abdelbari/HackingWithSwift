@@ -46,7 +46,8 @@ enum Proofreader {
         // A locked page is not read: no fix may change its words.
         for (p, page) in design.pages.enumerated() where !PageLocks.isLocked(page) {
             // A hidden element is not read: nobody sees its words.
-            for el in page.elements where ShapeText.carriesWords(el) && !el.isHidden {
+            // A caption box's words are its cues, changed in Edit captions.
+            for el in page.elements where ShapeText.carriesWords(el) && !el.isHidden && el.captions == nil {
                 guard let text = el.text, !text.isEmpty else { continue }
                 let (plain, rawAt) = RichText.mapped(text)
                 let ns = plain as NSString

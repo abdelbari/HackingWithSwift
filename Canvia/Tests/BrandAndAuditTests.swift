@@ -37,6 +37,26 @@ final class BrandAndAuditTests: XCTestCase {
         XCTAssertNil(starred.starred)
     }
 
+    /// The Android twin's DesignPackageTest row: a photo poured into a
+    /// text's letters travels with the design and comes back re-pointed.
+    func testAPhotoPouredIntoATextsLettersTravelsAndComesBackRepointed() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("pkg-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try Data([0xff, 0xd8, 0xff, 0xe0, 9]).write(to: dir.appendingPathComponent("x.jpg"))
+        var letters = Element.text("SALE")
+        letters.textFill = Paint.photo("media:x")
+        var d = Design(title: "Letters", width: 400, height: 300)
+        d.pages[0].elements = [letters]
+        XCTAssertEqual(DesignPackage.mediaIDs(in: d), ["x"])
+        XCTAssertEqual(DesignLibrary.photos(in: [d]), ["x"])
+        XCTAssertEqual(Uploads.usages([d], id: "x", faces: []).map(\.id), [d.id])
+        let back = try DesignPackage.import(try DesignPackage.export(d, mediaDirectory: dir), mediaDirectory: dir)
+        let moved = try XCTUnwrap(back.pages[0].elements[0].textFill?.src)
+        XCTAssertTrue(moved.hasPrefix("media:") && moved != "media:x", moved)
+        XCTAssertEqual(try Data(contentsOf: dir.appendingPathComponent("\(moved.dropFirst(6)).jpg")), Data([0xff, 0xd8, 0xff, 0xe0, 9]))
+    }
+
     /// A design file exactly as the Android twin writes it — the same bytes
     /// its own tests pin (core/src/test/resources/android-package.canvia.json
     /// in canvacloneandroid). If either side changes the format, one of the two

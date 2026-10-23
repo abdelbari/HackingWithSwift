@@ -269,7 +269,8 @@ enum MovieExporter {
     /// too rather than sit on its first frame.
     static func isAnimated(_ page: Page, in design: Design) -> Bool {
         design.drawnElements(on: page).contains {
-            $0.animation != nil || $0.exitAnimation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src)
+            if Captions.plays($0) { return true }
+            return $0.animation != nil || $0.exitAnimation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src)
                 || AnimStore.isAnim($0.src) || $0.timing != nil
         }
     }

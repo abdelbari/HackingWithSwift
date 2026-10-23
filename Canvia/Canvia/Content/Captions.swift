@@ -156,15 +156,32 @@ struct Captions: Codable, Equatable, Hashable {
 
     // MARK: drawing
 
+    /// Whether `el` is a caption box with any cue: its words change as the
+    /// page plays — even one cue comes and goes — so its page is played
+    /// frame by frame, as a clip's is. The rule both phones share.
+    static func plays(_ el: Element) -> Bool {
+        !(el.captions?.cues.isEmpty ?? true)
+    }
+
     /// The box as the renderer draws it `t` seconds into its page: the cue
     /// at `t` alone — none between cues — or the first cue for a still
-    /// (nil). "box" draws a highlight bar behind the words (the Highlight
-    /// text effect); "highlightWord" colours the word being said, the words
+    /// (nil). A still at a moment (`still`, the editor's playhead at rest)
+    /// shows the cue there, or the first cue while the moment is before it,
+    /// so a page whose words start late is not drawn blank. "box" draws a
+    /// highlight bar behind the words (the Highlight text effect);
+    /// "highlightWord" colours the word being said, the words
     /// sharing the cue's time evenly, in `highlightColour` — the first word
     /// in a still. A box with no captions is left alone.
-    static func shown(_ el: Element, at t: Double?) -> Element {
+    static func shown(_ el: Element, at t: Double?, still: Bool = false) -> Element {
         guard let captions = el.captions else { return el }
-        let cue = t.map { captions.cueAt($0) } ?? captions.cues.first
+        let first = captions.cues.first
+        let cue: CaptionCue?
+        if let t {
+            let at = captions.cueAt(t)
+            cue = still ? (at ?? first.flatMap { t < $0.start ? $0 : nil }) : at
+        } else {
+            cue = first
+        }
         let text = cue?.text ?? ""
         var out = el
         out.spans = nil

@@ -43,15 +43,19 @@ struct ElementView: View {
     @Environment(\.clipsPlay) private var clipsPlay
     @Environment(\.playsPictures) private var playsPictures
     @Environment(\.captionTime) private var captionTime
+    @Environment(\.captionsPlay) private var captionsPlay
 
     /// The element with "{page}" and "{pages}" filled in, where the page is
     /// known: what a reveal counts and cuts, so the words that appear are the
     /// words that stay — as the Android twin reveals them. A caption box
     /// shows the cue at the page's moment while it plays; at rest, the cue
-    /// at the timeline's playhead, or its first (Captions.shown).
+    /// at the timeline's playhead — the first cue while it stands before it
+    /// — or its first (Captions.shown).
     private var resolved: Element {
         var el = element
-        if el.captions != nil { el = Captions.shown(el, at: animationTime?.time ?? captionTime) }
+        if el.captions != nil {
+            el = Captions.shown(el, at: animationTime?.time ?? captionTime, still: animationTime == nil && !captionsPlay)
+        }
         guard let pageNumber, el.text?.contains("{page") == true else { return el }
         el.fillPageTokens(number: pageNumber.number, count: pageNumber.count)
         return el

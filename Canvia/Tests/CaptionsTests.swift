@@ -198,6 +198,50 @@ final class CaptionsTests: XCTestCase {
         XCTAssertEqual(Captions.wordRanges("Hello world").map { [$0.start, $0.end] }, [[0, 5], [6, 11]])
     }
 
+    func testAStillAtThePlayheadShowsTheCueThereOrTheFirstWhileThePlayheadIsBeforeIt() {
+        let box = Captions.on(Element.text("x"), hello)
+        XCTAssertEqual(Captions.shown(box, at: 0, still: true).text, "Hello world")
+        XCTAssertEqual(Captions.shown(box, at: 1.5, still: true).text, "Hello world")
+        XCTAssertEqual(Captions.shown(box, at: 2.2, still: true).text, "")
+        XCTAssertEqual(Captions.shown(box, at: 3, still: true).text, "Again")
+        XCTAssertEqual(Captions.shown(box, at: 4, still: true).text, "")
+        // Playing, nothing shows before the first cue.
+        XCTAssertEqual(Captions.shown(box, at: 0).text, "")
+        let sung = Captions.on(box, Captions(source: hello.source, cues: hello.cues, style: Captions.highlightWord))
+        XCTAssertEqual(Captions.shown(sung, at: 0, still: true).liveSpans,
+                       [TextSpan(start: 0, end: 5, color: Captions.highlightColour)])
+    }
+
+    func testACaptionBoxWithCuesPlaysItsPageInTheMoviePresentAndTheSuggestedType() {
+        let box = Captions.on(Element.text("x"), hello)
+        let single = Captions.on(Element.text("x"), Captions(cues: [CaptionCue(start: 0.4, end: 2, text: "Hi")]))
+        let empty = Captions.on(Element.text("x"), Captions(cues: []))
+        XCTAssertTrue(Captions.plays(box))
+        XCTAssertTrue(Captions.plays(single))
+        XCTAssertFalse(Captions.plays(empty))
+        XCTAssertFalse(Captions.plays(Element.text("words")))
+        var captioned = Design(title: "captioned", width: 100, height: 100)
+        captioned.pages = [Page(elements: [single])]
+        XCTAssertTrue(MovieExporter.isAnimated(captioned.pages[0], in: captioned))
+        XCTAssertTrue(ExportSuggestion.moves(captioned, captioned.pages[0]))
+        XCTAssertEqual(ExportSuggestion.suggest(captioned), "mp4")
+        var bare = Design(title: "bare", width: 100, height: 100)
+        bare.pages = [Page(elements: [empty])]
+        XCTAssertFalse(MovieExporter.isAnimated(bare.pages[0], in: bare))
+        XCTAssertEqual(ExportSuggestion.suggest(bare), "png")
+    }
+
+    func testWordsPartAtAnyUnicodeSpaceAsOnAndroid() {
+        let word = "あいうえおかきくけこ"
+        let said = Array(repeating: word, count: 5).joined(separator: "\u{3000}")
+        XCTAssertEqual(Captions.wrapped(said), ["\(word) \(word) \(word)", "\(word) \(word)"])
+        XCTAssertEqual(Captions.wrapped("a\u{00a0}b\u{2003}c"), ["a b c"])
+        XCTAssertEqual(Captions.wrapped("a\u{200b}b"), ["a\u{200b}b"])
+        XCTAssertEqual(Captions.wordRanges("a\u{3000}b\u{00a0}c").map { [$0.start, $0.end] }, [[0, 1], [2, 3], [4, 5]])
+        let long = Array(repeating: word, count: 12).joined(separator: "\u{3000}")
+        XCTAssertEqual(Captions.split([CaptionCue(start: 0, end: 2, text: long)]).count, 2)
+    }
+
     func testAFilmsCaptionsAreEveryPagesMovedOnByWhereThePageStarts() {
         let one = Page(elements: [Captions.on(Element.text(""), Captions(cues: [CaptionCue(start: 1, end: 2, text: "a")]))])
         let two = Page(elements: [Captions.on(Element.text(""), Captions(cues: [CaptionCue(start: 0.5, end: 1, text: "b")]))])
