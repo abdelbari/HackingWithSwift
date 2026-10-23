@@ -101,7 +101,9 @@ extension DesignStore {
     /// is on — another page of the column, too, before it is the one worked.
     func typedIn(_ el: Element, among elements: [Element]) -> Element? {
         guard let cell = el.table, el.type == .shape else {
-            return ShapeText.carriesWords(el) && !el.locked ? el : nil
+            // A caption box is not typed into: its words are its cues,
+            // changed in Edit captions — as on the Android twin.
+            return ShapeText.carriesWords(el) && !el.locked && el.captions == nil ? el : nil
         }
         guard let words = elements.first(where: { $0.type == .text && $0.table == cell }),
               !words.locked else { return nil }

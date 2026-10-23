@@ -18,6 +18,16 @@ final class FindReplaceTests: XCTestCase {
 
     // MARK: finding
 
+    func testACaptionBoxIsNeitherSearchedNorTypedInItsWordsBeingItsCues() {
+        let s = store([["Hello there"]])
+        let box = Captions.on(Element.text("x", fontSize: 24, w: 400),
+                              Captions(cues: [CaptionCue(start: 0, end: 1, text: "Hello world")]))
+        s.design.pages[0].elements.insert(box, at: 0)
+        XCTAssertEqual(s.matches(for: "Hello").map(\.elementId), [s.design.pages[0].elements[1].id])
+        XCTAssertFalse(FindReplace.searches(box))
+        XCTAssertNil(s.typedIn(box))
+    }
+
     func testMatchesAreFoundOnEveryPage() {
         let s = store([["Acme quarterly"], ["Prepared for Acme"], ["Nothing here"]])
         let found = s.matches(for: "Acme")

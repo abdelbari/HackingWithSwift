@@ -676,6 +676,8 @@ final class DesignStore {
     /// are as they were added (freshTexts), so the first key replaces them;
     /// else at the end.
     func startTyping(_ id: String, at point: CGPoint?, word: Bool = false) {
+        // A caption box is not typed into (typedIn).
+        guard element(id)?.captions == nil else { return }
         guard !refusesLockedPage() else { return }
         endTextEdit()
         selection = [id]
