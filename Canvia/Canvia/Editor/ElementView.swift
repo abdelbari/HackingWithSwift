@@ -225,6 +225,7 @@ private struct GrowReveal: ViewModifier {
     let h: Double
     let reach: Double
 
+    @ViewBuilder
     func body(content: Content) -> some View {
         let scaled = content
             .scaleEffect(x: state.scaleX, y: state.scaleY, anchor: UnitPoint(x: state.anchorX, y: state.anchorY))

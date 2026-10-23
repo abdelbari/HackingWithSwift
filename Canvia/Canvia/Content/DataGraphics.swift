@@ -618,8 +618,11 @@ enum DataGraphics {
         let faint = normalised(ink)
         let legendH = legend && kind.hasLegend ? labelSize * 1.6 : 0
         // An axis title takes a strip along the foot or up the left side.
-        let xTitleH: Double = kind.hasAxisTitles && spec.xTitle?.isEmpty == false ? labelSize * 1.6 : 0
-        let yTitleW: Double = kind.hasAxisTitles && spec.yTitle?.isEmpty == false ? labelSize * 1.6 : 0
+        func titled(_ title: String?) -> Bool {
+            kind.hasAxisTitles && !(title ?? "").trimmingCharacters(in: .whitespaces).isEmpty
+        }
+        let xTitleH: Double = titled(spec.xTitle) ? labelSize * 1.6 : 0
+        let yTitleW: Double = titled(spec.yTitle) ? labelSize * 1.6 : 0
         let plot = CGRect(x: frame.minX + yTitleW, y: frame.minY, width: frame.width - yTitleW,
                           height: frame.height - legendH - xTitleH)
 
