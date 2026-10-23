@@ -24,6 +24,12 @@ struct RecentDesign: Identifiable, Sendable {
     var dpi: Double? = nil
     /// Starred on Home.
     var starred = false
+    /// Its words, as Home searches them (DesignLibrary.searchText); none
+    /// for a damaged design.
+    var text = ""
+    /// Its design type's id (DesignLibrary.typeOf), for the Type chips;
+    /// nil when it has no known type.
+    var type: String? = nil
 
     /// "210 × 297 mm", or "1080 × 1920" for a design in pixels.
     var sizeText: String { Units.dimensions(width: width, height: height, unit: unit, dpi: dpi) }

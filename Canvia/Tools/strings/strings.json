@@ -134,6 +134,24 @@
     "ja": "%@の上矢印",
     "pt-BR": "Seta para cima (%@)"
   },
+  "%@ as sections of one index.html.": {
+    "ar": "%@ كأقسام في ملف index.html واحد.",
+    "de": "%@ als Abschnitte einer einzigen index.html.",
+    "es": "%@ como secciones de un solo index.html.",
+    "fr": "%@ en sections d'un seul index.html.",
+    "it": "%@ come sezioni di un unico index.html.",
+    "ja": "%@を1つのindex.htmlのセクションとして。",
+    "pt-BR": "%@ como seções de um único index.html."
+  },
+  "%@ as sections, in a .zip with its videos.": {
+    "ar": "%@ كأقسام، في ملف .zip مع مقاطع الفيديو.",
+    "de": "%@ als Abschnitte, in einer .zip mit den Videos.",
+    "es": "%@ como secciones, en un .zip con sus vídeos.",
+    "fr": "%@ en sections, dans un .zip avec ses vidéos.",
+    "it": "%@ come sezioni, in uno .zip con i video.",
+    "ja": "%@をセクションとして、動画と一緒に.zipで。",
+    "pt-BR": "%@ como seções, em um .zip com os vídeos."
+  },
   "%@ badge": {
     "ar": "شارة (%@)",
     "de": "Abzeichen (%@)",
@@ -421,6 +439,15 @@
     "it": "Cornice %@",
     "ja": "%@ フレーム",
     "pt-BR": "Moldura %@"
+  },
+  "%@ guidelines": {
+    "ar": "إرشادات %@",
+    "de": "%@ Richtlinien",
+    "es": "Guía de %@",
+    "fr": "Charte %@",
+    "it": "Linee guida %@",
+    "ja": "%@ ガイドライン",
+    "pt-BR": "Diretrizes de %@"
   },
   "%@ heart": {
     "ar": "قلب (%@)",
@@ -3932,6 +3959,15 @@
     "ja": "ウェブアドレス、メール、電話番号。PDF ではクリックでき、プレゼンテーションではタップで開きます。",
     "pt-BR": "Um endereço da web, e-mail ou telefone. Clicável em um PDF e aberto com um toque em Apresentar."
   },
+  "A web page: the pages as sections, with a menu, links and video.": {
+    "ar": "صفحة ويب: الصفحات كأقسام، مع قائمة وروابط وفيديو.",
+    "de": "Eine Webseite: die Seiten als Abschnitte, mit Menü, Links und Video.",
+    "es": "Una página web: las páginas como secciones, con menú, enlaces y vídeo.",
+    "fr": "Une page web : les pages en sections, avec un menu, des liens et de la vidéo.",
+    "it": "Una pagina web: le pagine come sezioni, con menu, link e video.",
+    "ja": "ウェブページ：ページをセクションにし、メニュー、リンク、動画付き。",
+    "pt-BR": "Uma página da web: as páginas como seções, com menu, links e vídeo."
+  },
   "A4 at 300 dpi (3508)": {
     "ar": "A4 بدقة 300 dpi (3508)",
     "de": "A4 mit 300 dpi (3508)",
@@ -4976,6 +5012,15 @@
     "ja": "アニメーション",
     "pt-BR": "Animação"
   },
+  "Any": {
+    "ar": "أي",
+    "de": "Alle",
+    "es": "Cualquiera",
+    "fr": "Toutes",
+    "it": "Qualsiasi",
+    "ja": "すべて",
+    "pt-BR": "Qualquer"
+  },
   "Any dimensions": {
     "ar": "أي أبعاد",
     "de": "Beliebige Maße",
@@ -4993,6 +5038,15 @@
     "it": "Ogni elemento può proiettare un’ombra o un bagliore: scegli una preimpostazione o imposta tu colore, sfocatura e scostamento.",
     "ja": "どの素材にも影や光彩を付けられます。プリセットを選ぶか、色・ぼかし・オフセットを自分で設定します。",
     "pt-BR": "Qualquer elemento pode ter sombra ou brilho: escolha uma predefinição ou defina você mesmo a cor, o desfoque e o deslocamento."
+  },
+  "Any time": {
+    "ar": "أي وقت",
+    "de": "Beliebig",
+    "es": "En cualquier momento",
+    "fr": "N'importe quand",
+    "it": "In qualsiasi momento",
+    "ja": "期間指定なし",
+    "pt-BR": "Qualquer data"
   },
   "Appearance": {
     "ar": "المظهر",
@@ -5747,6 +5801,15 @@
     "ja": "青",
     "pt-BR": "Azul"
   },
+  "Blue-blind": {
+    "ar": "عمى الأزرق",
+    "de": "Blaublind",
+    "es": "Ceguera al azul",
+    "fr": "Aveugle au bleu",
+    "it": "Cecità al blu",
+    "ja": "青色盲",
+    "pt-BR": "Cegueira ao azul"
+  },
   "Blur": {
     "ar": "تمويه",
     "de": "Weichzeichnen",
@@ -5900,6 +5963,15 @@
     "ja": "下",
     "pt-BR": "Inferior"
   },
+  "Bottom left": {
+    "ar": "أسفل اليسار",
+    "de": "Unten links",
+    "es": "Abajo a la izquierda",
+    "fr": "En bas à gauche",
+    "it": "In basso a sinistra",
+    "ja": "左下",
+    "pt-BR": "Inferior esquerdo"
+  },
   "Bottom left corner": {
     "ar": "الزاوية السفلية اليسرى",
     "de": "Untere linke Ecke",
@@ -5926,6 +5998,15 @@
     "it": "Solo in basso",
     "ja": "下のみ",
     "pt-BR": "Só embaixo"
+  },
+  "Bottom right": {
+    "ar": "أسفل اليمين",
+    "de": "Unten rechts",
+    "es": "Abajo a la derecha",
+    "fr": "En bas à droite",
+    "it": "In basso a destra",
+    "ja": "右下",
+    "pt-BR": "Inferior direito"
   },
   "Bottom right corner": {
     "ar": "الزاوية السفلية اليمنى",
@@ -5998,6 +6079,15 @@
     "it": "Grafica del brand %d di %d. Tocca due volte per rimuoverla.",
     "ja": "ブランドグラフィック %d / %d。ダブルタップして取り出します。",
     "pt-BR": "Gráfico da marca %d de %d. Toque duas vezes para remover."
+  },
+  "Brand guidelines": {
+    "ar": "إرشادات العلامة التجارية",
+    "de": "Markenrichtlinien",
+    "es": "Guía de marca",
+    "fr": "Charte graphique",
+    "it": "Linee guida del brand",
+    "ja": "ブランドガイドライン",
+    "pt-BR": "Diretrizes da marca"
   },
   "Brand heading": {
     "ar": "عنوان العلامة التجارية",
@@ -6221,6 +6311,15 @@
     "ja": "最初の %d ページを取り込みました（全 %d ページ）",
     "pt-BR": "As primeiras %d de %d páginas foram importadas"
   },
+  "Brown": {
+    "ar": "بني",
+    "de": "Braun",
+    "es": "Marrón",
+    "fr": "Marron",
+    "it": "Marrone",
+    "ja": "茶色",
+    "pt-BR": "Marrom"
+  },
   "Browser window": {
     "ar": "نافذة متصفح",
     "de": "Browserfenster",
@@ -6319,6 +6418,24 @@
     "it": "Richiami",
     "ja": "吹き出し",
     "pt-BR": "Destaques"
+  },
+  "Camera": {
+    "ar": "الكاميرا",
+    "de": "Kamera",
+    "es": "Cámara",
+    "fr": "Caméra",
+    "it": "Fotocamera",
+    "ja": "カメラ",
+    "pt-BR": "Câmera"
+  },
+  "Camera bubble: %@": {
+    "ar": "فقاعة الكاميرا: %@",
+    "de": "Kamerablase: %@",
+    "es": "Burbuja de cámara: %@",
+    "fr": "Bulle de caméra : %@",
+    "it": "Bolla della fotocamera: %@",
+    "ja": "カメラバブル：%@",
+    "pt-BR": "Bolha da câmera: %@"
   },
   "Cancel": {
     "ar": "إلغاء",
@@ -6427,6 +6544,15 @@
     "it": "Canvia ha bisogno dell’autorizzazione per salvare nelle tue foto",
     "ja": "Canvia が写真に保存するには許可が必要です",
     "pt-BR": "O Canvia precisa de permissão para salvar nas suas fotos"
+  },
+  "Canvia needs the microphone to record your talk.": {
+    "ar": "يحتاج Canvia إلى الميكروفون لتسجيل عرضك.",
+    "de": "Canvia braucht das Mikrofon, um deinen Vortrag aufzunehmen.",
+    "es": "Canvia necesita el micrófono para grabar tu presentación.",
+    "fr": "Canvia a besoin du micro pour enregistrer votre présentation.",
+    "it": "Canvia ha bisogno del microfono per registrare la tua presentazione.",
+    "ja": "プレゼンを録音するにはマイクが必要です。",
+    "pt-BR": "O Canvia precisa do microfone para gravar sua apresentação."
   },
   "Canvia records a voice-over with the microphone. You can allow it in Settings, under Canvia.": {
     "ar": "يسجّل Canvia التعليق الصوتي باستخدام الميكروفون. يمكنك السماح بذلك في الإعدادات، ضمن Canvia.",
@@ -6746,6 +6872,15 @@
     "ja": "グラフ",
     "pt-BR": "Gráfico"
   },
+  "Chart colours look alike in %@ view": {
+    "ar": "تبدو ألوان المخطط متشابهة في عرض %@",
+    "de": "Die Diagrammfarben sehen in der Ansicht %@ gleich aus",
+    "es": "Los colores del gráfico se confunden en la vista %@",
+    "fr": "Les couleurs du graphique se confondent en vue %@",
+    "it": "I colori del grafico si confondono nella vista %@",
+    "ja": "%@表示ではグラフの色が見分けにくくなります",
+    "pt-BR": "As cores do gráfico parecem iguais na visualização %@"
+  },
   "Chart font": {
     "ar": "خط المخطط",
     "de": "Diagrammschrift",
@@ -6997,6 +7132,15 @@
     "it": "Svuotare la cache?",
     "ja": "キャッシュを消去しますか？",
     "pt-BR": "Limpar caches?"
+  },
+  "Clear filters": {
+    "ar": "مسح عوامل التصفية",
+    "de": "Filter zurücksetzen",
+    "es": "Borrar filtros",
+    "fr": "Effacer les filtres",
+    "it": "Cancella filtri",
+    "ja": "フィルターをクリア",
+    "pt-BR": "Limpar filtros"
   },
   "Clear search": {
     "ar": "مسح البحث",
@@ -7348,6 +7492,15 @@
     "it": "Collegata: la freccia segue entrambe le estremità",
     "ja": "接続済み — 矢印は両端に追従します",
     "pt-BR": "Conectada — a seta acompanha as duas pontas"
+  },
+  "Content creator": {
+    "ar": "صانع محتوى",
+    "de": "Content Creator",
+    "es": "Creador de contenido",
+    "fr": "Créateur de contenu",
+    "it": "Content creator",
+    "ja": "コンテンツクリエイター",
+    "pt-BR": "Criador de conteúdo"
   },
   "Continue": {
     "ar": "متابعة",
@@ -7835,6 +7988,15 @@
     "ja": "動画を作成できませんでした",
     "pt-BR": "Não foi possível criar o vídeo"
   },
+  "Couldn't make the web page": {
+    "ar": "تعذّر إنشاء صفحة الويب",
+    "de": "Die Webseite konnte nicht erstellt werden",
+    "es": "No se pudo crear la página web",
+    "fr": "Impossible de créer la page web",
+    "it": "Impossibile creare la pagina web",
+    "ja": "ウェブページを作成できませんでした",
+    "pt-BR": "Não foi possível criar a página da web"
+  },
   "Couldn't open %d of %@": {
     "ar": "تعذّر فتح %d من %@",
     "de": "%d von %@ konnten nicht geöffnet werden",
@@ -8068,6 +8230,15 @@
     "it": "Impossibile avviare la stampa",
     "ja": "印刷を開始できませんでした",
     "pt-BR": "Não foi possível iniciar a impressão"
+  },
+  "Couldn't start recording. Another app may be using the microphone.": {
+    "ar": "تعذّر بدء التسجيل. ربما يستخدم تطبيق آخر الميكروفون.",
+    "de": "Die Aufnahme konnte nicht starten. Vielleicht nutzt eine andere App das Mikrofon.",
+    "es": "No se pudo empezar a grabar. Puede que otra app esté usando el micrófono.",
+    "fr": "Impossible de démarrer l'enregistrement. Une autre app utilise peut-être le micro.",
+    "it": "Impossibile avviare la registrazione. Un'altra app potrebbe usare il microfono.",
+    "ja": "録音を開始できませんでした。別のアプリがマイクを使用している可能性があります。",
+    "pt-BR": "Não foi possível começar a gravar. Outro app pode estar usando o microfone."
   },
   "Couldn't update that template": {
     "ar": "تعذّر تحديث ذلك القالب",
@@ -9299,6 +9470,15 @@
     "ja": "ドキュメントテーマ",
     "pt-BR": "Tema do documento"
   },
+  "Documents": {
+    "ar": "المستندات",
+    "de": "Dokumente",
+    "es": "Documentos",
+    "fr": "Documents",
+    "it": "Documenti",
+    "ja": "ドキュメント",
+    "pt-BR": "Documentos"
+  },
   "Done": {
     "ar": "تم",
     "de": "Fertig",
@@ -10127,6 +10307,15 @@
     "ja": "他のプログラムで編集できるベクター形式です。",
     "pt-BR": "Vetores editáveis para outro programa."
   },
+  "Edited: %@": {
+    "ar": "آخر تعديل: %@",
+    "de": "Bearbeitet: %@",
+    "es": "Editado: %@",
+    "fr": "Modifié : %@",
+    "it": "Modificato: %@",
+    "ja": "編集日：%@",
+    "pt-BR": "Editado: %@"
+  },
   "Editing": {
     "ar": "التعديل",
     "de": "Bearbeiten",
@@ -10796,6 +10985,15 @@
     "ja": "書き出し",
     "pt-BR": "Exportar"
   },
+  "Export MP4": {
+    "ar": "تصدير MP4",
+    "de": "Als MP4 exportieren",
+    "es": "Exportar MP4",
+    "fr": "Exporter en MP4",
+    "it": "Esporta MP4",
+    "ja": "MP4を書き出す",
+    "pt-BR": "Exportar MP4"
+  },
   "Export PNG, JPEG, PDF, SVG, a video or an animated GIF — or a print-ready PDF with bleed and crop marks. Present full screen from the menu.": {
     "ar": "صدِّر PNG أو JPEG أو PDF أو SVG أو فيديو أو GIF متحركًا — أو PDF جاهزًا للطباعة مع هامش النزف وعلامات القص. واعرض بملء الشاشة من القائمة.",
     "de": "Exportiere PNG, JPEG, PDF, SVG, ein Video oder ein animiertes GIF – oder eine druckfertige PDF mit Beschnittzugabe und Schnittmarken. Präsentiere im Vollbild über das Menü.",
@@ -11156,6 +11354,15 @@
     "ja": "検索と置換…",
     "pt-BR": "Localizar e substituir…"
   },
+  "Finish": {
+    "ar": "إنهاء",
+    "de": "Beenden",
+    "es": "Terminar",
+    "fr": "Terminer",
+    "it": "Termina",
+    "ja": "終了",
+    "pt-BR": "Concluir"
+  },
   "Finished exports": {
     "ar": "عمليات التصدير المنتهية",
     "de": "Fertige Exporte",
@@ -11200,6 +11407,15 @@
     "it": "Adatta la pagina alla clip",
     "ja": "ページをクリップに合わせる",
     "pt-BR": "Ajustar página ao clipe"
+  },
+  "Fit the menu to phones": {
+    "ar": "ملاءمة القائمة للهواتف",
+    "de": "Menü an Handys anpassen",
+    "es": "Adaptar el menú a teléfonos",
+    "fr": "Adapter le menu aux téléphones",
+    "it": "Adatta il menu ai telefoni",
+    "ja": "メニューをスマホに合わせる",
+    "pt-BR": "Ajustar o menu a celulares"
   },
   "Fit the page": {
     "ar": "ملاءمة الصفحة",
@@ -11966,6 +12182,33 @@
     "ja": "緑",
     "pt-BR": "Verde"
   },
+  "Green-blind": {
+    "ar": "عمى الأخضر",
+    "de": "Grünblind",
+    "es": "Ceguera al verde",
+    "fr": "Aveugle au vert",
+    "it": "Cecità al verde",
+    "ja": "緑色盲",
+    "pt-BR": "Cegueira ao verde"
+  },
+  "Grey": {
+    "ar": "رمادي",
+    "de": "Grau",
+    "es": "Gris",
+    "fr": "Gris",
+    "it": "Grigio",
+    "ja": "グレー",
+    "pt-BR": "Cinza"
+  },
+  "Greyscale": {
+    "ar": "تدرج رمادي",
+    "de": "Graustufen",
+    "es": "Escala de grises",
+    "fr": "Niveaux de gris",
+    "it": "Scala di grigi",
+    "ja": "グレースケール",
+    "pt-BR": "Escala de cinza"
+  },
   "Grid": {
     "ar": "الشبكة",
     "de": "Raster",
@@ -12118,6 +12361,15 @@
     "it": "Luce intensa",
     "ja": "ハードライト",
     "pt-BR": "Luz forte"
+  },
+  "Hard to read in %@ view: %@:1": {
+    "ar": "صعب القراءة في عرض %@: %@:1",
+    "de": "Schwer lesbar in der Ansicht %@: %@:1",
+    "es": "Difícil de leer en la vista %@: %@:1",
+    "fr": "Difficile à lire en vue %@ : %@:1",
+    "it": "Difficile da leggere nella vista %@: %@:1",
+    "ja": "%@表示では読みにくい：%@:1",
+    "pt-BR": "Difícil de ler na visualização %@: %@:1"
   },
   "Hard to read: %@:1, needs %@:1": {
     "ar": "صعب القراءة: %@:1، يحتاج إلى %@:1",
@@ -12605,6 +12857,15 @@
     "ja": "色相",
     "pt-BR": "Matiz"
   },
+  "I'll use Canvia for: %@": {
+    "ar": "سأستخدم Canvia من أجل: %@",
+    "de": "Ich nutze Canvia für: %@",
+    "es": "Usaré Canvia para: %@",
+    "fr": "J'utiliserai Canvia pour : %@",
+    "it": "Userò Canvia per: %@",
+    "ja": "Canviaの用途：%@",
+    "pt-BR": "Vou usar o Canvia para: %@"
+  },
   "Icon has no alt text": {
     "ar": "الرمز بلا نص بديل",
     "de": "Symbol hat keinen Alternativtext",
@@ -12658,6 +12919,15 @@
     "it": "Immagine",
     "ja": "画像",
     "pt-BR": "Imagem"
+  },
+  "Imagery": {
+    "ar": "الصور",
+    "de": "Bildwelt",
+    "es": "Imágenes",
+    "fr": "Imagerie",
+    "it": "Immagini",
+    "ja": "イメージ",
+    "pt-BR": "Imagens"
   },
   "Import": {
     "ar": "استيراد",
@@ -12817,6 +13087,15 @@
     "it": "Includi note",
     "ja": "ノートを含める",
     "pt-BR": "Incluir anotações"
+  },
+  "Include videos": {
+    "ar": "تضمين مقاطع الفيديو",
+    "de": "Videos einbeziehen",
+    "es": "Incluir vídeos",
+    "fr": "Inclure les vidéos",
+    "it": "Includi video",
+    "ja": "動画を含める",
+    "pt-BR": "Incluir vídeos"
   },
   "Indent": {
     "ar": "مسافة بادئة",
@@ -13832,6 +14111,15 @@
     "ja": "ロゴ %d / %d",
     "pt-BR": "Logotipo %d de %d"
   },
+  "Logo and clear space": {
+    "ar": "الشعار والمساحة الفارغة حوله",
+    "de": "Logo und Schutzzone",
+    "es": "Logotipo y espacio de seguridad",
+    "fr": "Logo et zone de protection",
+    "it": "Logo e area di rispetto",
+    "ja": "ロゴと余白",
+    "pt-BR": "Logotipo e área de proteção"
+  },
   "Logos": {
     "ar": "الشعارات",
     "de": "Logos",
@@ -14042,6 +14330,15 @@
     "ja": "コピーを作成",
     "pt-BR": "Fazer uma cópia"
   },
+  "Make brand guidelines": {
+    "ar": "إنشاء إرشادات العلامة التجارية",
+    "de": "Markenrichtlinien erstellen",
+    "es": "Crear guía de marca",
+    "fr": "Créer la charte graphique",
+    "it": "Crea linee guida del brand",
+    "ja": "ブランドガイドラインを作成",
+    "pt-BR": "Criar diretrizes da marca"
+  },
   "Make it 12": {
     "ar": "جعله 12",
     "de": "Auf 12 setzen",
@@ -14132,6 +14429,15 @@
     "ja": "印刷用 PDF を作成中",
     "pt-BR": "Criando o PDF para impressão"
   },
+  "Making the web page": {
+    "ar": "جارٍ إنشاء صفحة الويب",
+    "de": "Webseite wird erstellt",
+    "es": "Creando la página web",
+    "fr": "Création de la page web",
+    "it": "Creazione della pagina web",
+    "ja": "ウェブページを作成中",
+    "pt-BR": "Criando a página da web"
+  },
   "Margin": {
     "ar": "الهامش",
     "de": "Rand",
@@ -14219,6 +14525,15 @@
     "ja": "マーカー",
     "pt-BR": "Marcador"
   },
+  "Marketing": {
+    "ar": "التسويق",
+    "de": "Marketing",
+    "es": "Marketing",
+    "fr": "Marketing",
+    "it": "Marketing",
+    "ja": "マーケティング",
+    "pt-BR": "Marketing"
+  },
   "Marks": {
     "ar": "علامات",
     "de": "Markierungen",
@@ -14291,6 +14606,15 @@
     "ja": "中",
     "pt-BR": "Médio"
   },
+  "Menu from page titles": {
+    "ar": "قائمة من عناوين الصفحات",
+    "de": "Menü aus Seitentiteln",
+    "es": "Menú con los títulos de página",
+    "fr": "Menu à partir des titres de page",
+    "it": "Menu dai titoli delle pagine",
+    "ja": "ページタイトルからメニューを作る",
+    "pt-BR": "Menu com os títulos das páginas"
+  },
   "Merge": {
     "ar": "دمج",
     "de": "Zusammenführen",
@@ -14317,6 +14641,15 @@
     "it": "Unire in “%@”?",
     "ja": "「%@」に結合しますか？",
     "pt-BR": "Mesclar em “%@”?"
+  },
+  "Microphone": {
+    "ar": "الميكروفون",
+    "de": "Mikrofon",
+    "es": "Micrófono",
+    "fr": "Micro",
+    "it": "Microfono",
+    "ja": "マイク",
+    "pt-BR": "Microfone"
   },
   "Microphone access is off": {
     "ar": "الوصول إلى الميكروفون متوقف",
@@ -15608,6 +15941,15 @@
     "ja": "ページが選択されていません",
     "pt-BR": "Nenhuma página escolhida"
   },
+  "No recordings yet.": {
+    "ar": "لا توجد تسجيلات بعد.",
+    "de": "Noch keine Aufnahmen.",
+    "es": "Aún no hay grabaciones.",
+    "fr": "Aucun enregistrement pour l'instant.",
+    "it": "Ancora nessuna registrazione.",
+    "ja": "まだ録画はありません。",
+    "pt-BR": "Ainda não há gravações."
+  },
   "No results for “%@”": {
     "ar": "لا توجد نتائج لـ «%@»",
     "de": "Keine Ergebnisse für „%@“",
@@ -15725,6 +16067,15 @@
     "ja": "「%@」に一致するテンプレートはありません。",
     "pt-BR": "Nenhum modelo corresponde a “%@”."
   },
+  "No templates match those filters": {
+    "ar": "لا توجد قوالب تطابق عوامل التصفية هذه",
+    "de": "Keine Vorlagen passen zu diesen Filtern",
+    "es": "Ninguna plantilla coincide con esos filtros",
+    "fr": "Aucun modèle ne correspond à ces filtres",
+    "it": "Nessun modello corrisponde a questi filtri",
+    "ja": "その条件に合うテンプレートはありません",
+    "pt-BR": "Nenhum modelo corresponde a esses filtros"
+  },
   "No version to restore": {
     "ar": "لا يوجد إصدار لاستعادته",
     "de": "Keine Version zum Wiederherstellen",
@@ -15797,6 +16148,15 @@
     "ja": "まだありません。デザイン内の画像を選択するか、写真から選んでください。",
     "pt-BR": "Nenhuma ainda. Selecione uma imagem no design ou escolha uma das suas fotos."
   },
+  "Nonprofit": {
+    "ar": "منظمة غير ربحية",
+    "de": "Gemeinnützige Organisation",
+    "es": "Organización sin ánimo de lucro",
+    "fr": "Association",
+    "it": "Non profit",
+    "ja": "非営利団体",
+    "pt-BR": "Organização sem fins lucrativos"
+  },
   "Nordic": {
     "ar": "شمالي",
     "de": "Nordisch",
@@ -15815,6 +16175,15 @@
     "ja": "標準",
     "pt-BR": "Normal"
   },
+  "Not animated": {
+    "ar": "غير متحرك",
+    "de": "Nicht animiert",
+    "es": "Sin animación",
+    "fr": "Non animé",
+    "it": "Non animato",
+    "ja": "アニメーションなし",
+    "pt-BR": "Sem animação"
+  },
   "Not checked, the page on screen": {
     "ar": "لم يتم التحقق، الصفحة المعروضة",
     "de": "Nicht geprüft: die angezeigte Seite",
@@ -15823,6 +16192,15 @@
     "it": "Non selezionata, la pagina sullo schermo",
     "ja": "チェックなし、画面上のページ",
     "pt-BR": "Não marcado, a página na tela"
+  },
+  "Not chosen": {
+    "ar": "لم يُختر",
+    "de": "Nicht gewählt",
+    "es": "Sin elegir",
+    "fr": "Non choisi",
+    "it": "Non scelto",
+    "ja": "未選択",
+    "pt-BR": "Não escolhido"
   },
   "Not found in this design.": {
     "ar": "غير موجود في هذا التصميم.",
@@ -16345,6 +16723,15 @@
     "it": "Scostamento",
     "ja": "オフセット",
     "pt-BR": "Deslocamento"
+  },
+  "Older": {
+    "ar": "أقدم",
+    "de": "Älter",
+    "es": "Más antiguos",
+    "fr": "Plus ancien",
+    "it": "Meno recenti",
+    "ja": "それ以前",
+    "pt-BR": "Mais antigos"
   },
   "On": {
     "ar": "مفعّل",
@@ -17306,6 +17693,24 @@
     "ja": "一部",
     "pt-BR": "Parte"
   },
+  "Past 30 days": {
+    "ar": "آخر 30 يومًا",
+    "de": "Letzte 30 Tage",
+    "es": "Últimos 30 días",
+    "fr": "30 derniers jours",
+    "it": "Ultimi 30 giorni",
+    "ja": "過去30日間",
+    "pt-BR": "Últimos 30 dias"
+  },
+  "Past 7 days": {
+    "ar": "آخر 7 أيام",
+    "de": "Letzte 7 Tage",
+    "es": "Últimos 7 días",
+    "fr": "7 derniers jours",
+    "it": "Ultimi 7 giorni",
+    "ja": "過去7日間",
+    "pt-BR": "Últimos 7 dias"
+  },
   "Paste": {
     "ar": "لصق",
     "de": "Einfügen",
@@ -17396,6 +17801,15 @@
     "ja": "タイマーを一時停止",
     "pt-BR": "Pausar cronômetro"
   },
+  "Paused": {
+    "ar": "متوقف مؤقتًا",
+    "de": "Pausiert",
+    "es": "En pausa",
+    "fr": "En pause",
+    "it": "In pausa",
+    "ja": "一時停止中",
+    "pt-BR": "Pausado"
+  },
   "Paused — return to Canvia to finish": {
     "ar": "متوقف مؤقتًا — عُد إلى Canvia للإنهاء",
     "de": "Pausiert – kehre zu Canvia zurück, um abzuschließen",
@@ -17476,6 +17890,15 @@
     "it": "Lingua del telefono",
     "ja": "スマートフォンの言語",
     "pt-BR": "Idioma do celular"
+  },
+  "Phone's microphone": {
+    "ar": "ميكروفون الهاتف",
+    "de": "Mikrofon des Handys",
+    "es": "Micrófono del teléfono",
+    "fr": "Micro du téléphone",
+    "it": "Microfono del telefono",
+    "ja": "本体のマイク",
+    "pt-BR": "Microfone do celular"
   },
   "Photo": {
     "ar": "صورة",
@@ -17593,6 +18016,15 @@
     "it": "Foto ed emoji mantengono i propri colori.",
     "ja": "写真と絵文字は元の色のままです。",
     "pt-BR": "Fotos e emojis mantêm as próprias cores."
+  },
+  "Photos and graphics": {
+    "ar": "الصور والرسومات",
+    "de": "Fotos und Grafiken",
+    "es": "Fotos y gráficos",
+    "fr": "Photos et graphismes",
+    "it": "Foto e grafiche",
+    "ja": "写真とグラフィック",
+    "pt-BR": "Fotos e gráficos"
   },
   "Photos and graphics appear in the Brand tab of Add, in every design. Press and hold one to remove it.": {
     "ar": "تظهر الصور والرسومات في علامة تبويب العلامة التجارية ضمن «إضافة»، في كل تصميم. اضغط مطولًا على أحدها لإزالته.",
@@ -17791,6 +18223,15 @@
     "it": "Pizzica ovunque per lo zoom, anche sopra gli elementi. Scorri con due dita, o con un dito sulla pagina vuota o sull’area di lavoro grigia. Tocca due volte l’area di lavoro per ingrandire un punto, e di nuovo per adattare la pagina. L’indicatore in alto a destra mostra il livello di zoom; toccalo per passare dalla pagina intera alle dimensioni reali. Se ciò che hai selezionato esce dalla vista, Ripristinalo lo ritrova.",
     "ja": "素材の上でも、どこでもピンチでズームできます。2 本指、またはページの空いている所やグレーの作業領域を 1 本指でドラッグしてパンします。作業領域をダブルタップするとその場所を拡大し、もう一度ダブルタップするとページ全体を表示します。右上の表示が現在の倍率で、タップするとページ全体と実際のサイズを切り替えます。選択中のものが画面外にスクロールした場合は、「表示に戻す」で見つけられます。",
     "pt-BR": "Faça o gesto de pinça em qualquer lugar para ampliar, até sobre elementos. Mova a tela com dois dedos, ou com um dedo na página vazia ou na área cinza. Toque duas vezes na área de trabalho para ampliar um ponto, e de novo para ajustar a página. O indicador no canto superior direito mostra o zoom; toque nele para alternar entre a página inteira e o tamanho real. Se o que você selecionou sair da tela, Trazer de volta o encontra."
+  },
+  "Pink": {
+    "ar": "وردي",
+    "de": "Rosa",
+    "es": "Rosa",
+    "fr": "Rose",
+    "it": "Rosa",
+    "ja": "ピンク",
+    "pt-BR": "Rosa"
   },
   "Pinned": {
     "ar": "مثبّت",
@@ -18080,6 +18521,15 @@
     "ja": "プレゼンテーション",
     "pt-BR": "Apresentar"
   },
+  "Present and record": {
+    "ar": "العرض والتسجيل",
+    "de": "Präsentieren und aufnehmen",
+    "es": "Presentar y grabar",
+    "fr": "Présenter et enregistrer",
+    "it": "Presenta e registra",
+    "ja": "プレゼンして録画",
+    "pt-BR": "Apresentar e gravar"
+  },
   "Present full screen": {
     "ar": "عرض تقديمي بملء الشاشة",
     "de": "Im Vollbild präsentieren",
@@ -18097,6 +18547,15 @@
     "it": "Presenta a schermo intero, tutte le pagine sono nascoste",
     "ja": "全画面でプレゼンテーション、すべてのページが非表示です",
     "pt-BR": "Apresentar em tela cheia, todas as páginas estão ocultas"
+  },
+  "Presentations": {
+    "ar": "العروض التقديمية",
+    "de": "Präsentationen",
+    "es": "Presentaciones",
+    "fr": "Présentations",
+    "it": "Presentazioni",
+    "ja": "プレゼンテーション",
+    "pt-BR": "Apresentações"
   },
   "Presets": {
     "ar": "الإعدادات المسبقة",
@@ -18455,6 +18914,15 @@
     "ja": "比率 %@",
     "pt-BR": "Proporção %@"
   },
+  "Re-record": {
+    "ar": "إعادة التسجيل",
+    "de": "Neu aufnehmen",
+    "es": "Volver a grabar",
+    "fr": "Réenregistrer",
+    "it": "Registra di nuovo",
+    "ja": "録り直す",
+    "pt-BR": "Gravar de novo"
+  },
   "Read": {
     "ar": "قراءة",
     "de": "Lesen",
@@ -18626,6 +19094,15 @@
     "ja": "このページからデザインが再生されると録音が始まります。",
     "pt-BR": "A gravação começa quando o design é reproduzido a partir desta página."
   },
+  "Recordings": {
+    "ar": "التسجيلات",
+    "de": "Aufnahmen",
+    "es": "Grabaciones",
+    "fr": "Enregistrements",
+    "it": "Registrazioni",
+    "ja": "録画",
+    "pt-BR": "Gravações"
+  },
   "Rectangle": {
     "ar": "مستطيل",
     "de": "Rechteck",
@@ -18643,6 +19120,15 @@
     "it": "Rosso",
     "ja": "赤",
     "pt-BR": "Vermelho"
+  },
+  "Red-blind": {
+    "ar": "عمى الأحمر",
+    "de": "Rotblind",
+    "es": "Ceguera al rojo",
+    "fr": "Aveugle au rouge",
+    "it": "Cecità al rosso",
+    "ja": "赤色盲",
+    "pt-BR": "Cegueira ao vermelho"
   },
   "Redo": {
     "ar": "إعادة",
@@ -18751,6 +19237,15 @@
     "it": "Rimuovi sfondo",
     "ja": "背景を削除",
     "pt-BR": "Remover fundo"
+  },
+  "Remove filter %@": {
+    "ar": "إزالة عامل التصفية %@",
+    "de": "Filter %@ entfernen",
+    "es": "Quitar filtro %@",
+    "fr": "Retirer le filtre %@",
+    "it": "Rimuovi filtro %@",
+    "ja": "フィルター「%@」を解除",
+    "pt-BR": "Remover filtro %@"
   },
   "Remove from favourites": {
     "ar": "إزالة من المفضلة",
@@ -19345,6 +19840,15 @@
     "it": "Ripristino",
     "ja": "復元中",
     "pt-BR": "Restaurando"
+  },
+  "Resume": {
+    "ar": "استئناف",
+    "de": "Fortsetzen",
+    "es": "Reanudar",
+    "fr": "Reprendre",
+    "it": "Riprendi",
+    "ja": "再開",
+    "pt-BR": "Retomar"
   },
   "Resume timer": {
     "ar": "استئناف المؤقت",
@@ -19952,6 +20456,15 @@
     "ja": "「%@」をあなたのテンプレートに保存しました",
     "pt-BR": "“%@” salvo nos seus modelos"
   },
+  "Saving the recording": {
+    "ar": "جارٍ حفظ التسجيل",
+    "de": "Aufnahme wird gespeichert",
+    "es": "Guardando la grabación",
+    "fr": "Enregistrement en cours de sauvegarde",
+    "it": "Salvataggio della registrazione",
+    "ja": "録画を保存中",
+    "pt-BR": "Salvando a gravação"
+  },
   "Saving to your photos": {
     "ar": "جارٍ الحفظ في صورك",
     "de": "Wird in deinen Fotos gespeichert",
@@ -20519,6 +21032,15 @@
     "ja": "設定",
     "pt-BR": "Definir"
   },
+  "Set\u0004pages": {
+    "ar": "مجموعة",
+    "de": "Set",
+    "es": "Conjunto",
+    "fr": "Ensemble",
+    "it": "Set",
+    "ja": "セット",
+    "pt-BR": "Conjunto"
+  },
   "Set where each track starts, its trim, volume and fades under More > Audio.": {
     "ar": "اضبط بداية كل مسار وقصّه ومستوى صوته وتلاشيه ضمن المزيد > الصوت.",
     "de": "Lege unter Mehr > Audio fest, wo jede Spur beginnt, ihre Kürzung, Lautstärke und Überblendungen.",
@@ -20888,6 +21410,15 @@
     "ja": "このキットを共有…",
     "pt-BR": "Compartilhar este kit…"
   },
+  "Share web page": {
+    "ar": "مشاركة صفحة الويب",
+    "de": "Webseite teilen",
+    "es": "Compartir página web",
+    "fr": "Partager la page web",
+    "it": "Condividi pagina web",
+    "ja": "ウェブページを共有",
+    "pt-BR": "Compartilhar página da web"
+  },
   "Share, at the top, makes a PNG or JPG of a page, every page or the selection, a PDF to share or print with bleed and crop marks, a video or GIF, or a design file either phone can open.": {
     "ar": "تنشئ «مشاركة»، في الأعلى، ملف PNG أو JPG لصفحة أو لكل الصفحات أو للتحديد، أو PDF للمشاركة أو الطباعة مع هامش النزف وعلامات القص، أو فيديو أو GIF، أو ملف تصميم يمكن لكلا الهاتفين فتحه.",
     "de": "„Teilen“ oben erstellt ein PNG oder JPG einer Seite, aller Seiten oder der Auswahl, eine PDF zum Teilen oder Drucken mit Beschnittzugabe und Schnittmarken, ein Video oder GIF oder eine Designdatei, die beide Telefone öffnen können.",
@@ -21113,6 +21644,24 @@
     "ja": "元の写真を表示中",
     "pt-BR": "Mostrando o original"
   },
+  "Showing the design as it is": {
+    "ar": "يُعرض التصميم كما هو",
+    "de": "Das Design wird unverändert gezeigt",
+    "es": "Mostrando el diseño tal como es",
+    "fr": "Affichage du design tel quel",
+    "it": "Il design è mostrato com'è",
+    "ja": "デザインをそのまま表示しています",
+    "pt-BR": "Mostrando o design como ele é"
+  },
+  "Showing the design as seen %@": {
+    "ar": "يُعرض التصميم كما يُرى: %@",
+    "de": "Das Design wird gezeigt wie gesehen: %@",
+    "es": "Mostrando el diseño como lo ve: %@",
+    "fr": "Affichage du design tel que vu : %@",
+    "it": "Il design è mostrato come visto: %@",
+    "ja": "%@の見え方でデザインを表示しています",
+    "pt-BR": "Mostrando o design como é visto: %@"
+  },
   "Shown to you in Present, never on the page.": {
     "ar": "تظهر لك في العرض التقديمي، ولا تظهر أبدًا على الصفحة.",
     "de": "Wird dir beim Präsentieren angezeigt, nie auf der Seite.",
@@ -21157,6 +21706,15 @@
     "it": "Mescola colori",
     "ja": "色をシャッフル",
     "pt-BR": "Embaralhar cores"
+  },
+  "Single page": {
+    "ar": "صفحة واحدة",
+    "de": "Einzelne Seite",
+    "es": "Una página",
+    "fr": "Une seule page",
+    "it": "Pagina singola",
+    "ja": "1ページ",
+    "pt-BR": "Página única"
   },
   "Six-Petal Flower": {
     "ar": "زهرة سداسية البتلات",
@@ -21334,6 +21892,15 @@
     "it": "Zoom lento durante la riproduzione",
     "ja": "再生時にゆっくりズーム",
     "pt-BR": "Zoom lento ao reproduzir"
+  },
+  "Small business": {
+    "ar": "شركة صغيرة",
+    "de": "Kleinunternehmen",
+    "es": "Pequeña empresa",
+    "fr": "Petite entreprise",
+    "it": "Piccola impresa",
+    "ja": "小規模ビジネス",
+    "pt-BR": "Pequena empresa"
   },
   "Smaller": {
     "ar": "أصغر",
@@ -22205,6 +22772,15 @@
     "ja": "ストライプ",
     "pt-BR": "Listras"
   },
+  "Student": {
+    "ar": "طالب",
+    "de": "Studierende",
+    "es": "Estudiante",
+    "fr": "Étudiant",
+    "it": "Studente",
+    "ja": "学生",
+    "pt-BR": "Estudante"
+  },
   "Style": {
     "ar": "النمط",
     "de": "Stil",
@@ -22403,6 +22979,15 @@
     "ja": "写真を撮る",
     "pt-BR": "Tirar foto"
   },
+  "Talk, %@": {
+    "ar": "عرض، %@",
+    "de": "Vortrag, %@",
+    "es": "Presentación, %@",
+    "fr": "Présentation, %@",
+    "it": "Presentazione, %@",
+    "ja": "プレゼン、%@",
+    "pt-BR": "Apresentação, %@"
+  },
   "TalkBack and accessibility": {
     "ar": "TalkBack وإمكانية الوصول",
     "de": "TalkBack und Barrierefreiheit",
@@ -22483,6 +23068,24 @@
     "it": "Tocca il pulsante +. Modelli, forme, linee, stili di testo, foto, sticker e codici QR sono tutti lì, e la casella di ricerca in alto cerca in ogni scheda.",
     "ja": "+ ボタンをタップします。テンプレート、図形、線、テキストスタイル、写真、ステッカー、QR コードがすべてそろっており、上部の検索ボックスですべてのタブを検索できます。",
     "pt-BR": "Toque no botão +. Modelos, formas, linhas, estilos de texto, fotos, figurinhas e códigos QR estão todos lá, e a caixa de pesquisa no topo pesquisa em todas as abas."
+  },
+  "Teacher": {
+    "ar": "معلم",
+    "de": "Lehrkraft",
+    "es": "Docente",
+    "fr": "Enseignant",
+    "it": "Insegnante",
+    "ja": "教師",
+    "pt-BR": "Professor"
+  },
+  "Teal": {
+    "ar": "أزرق مخضر",
+    "de": "Petrol",
+    "es": "Verde azulado",
+    "fr": "Bleu canard",
+    "it": "Verde acqua",
+    "ja": "ティール",
+    "pt-BR": "Verde-azulado"
   },
   "Technical": {
     "ar": "تقني",
@@ -23125,6 +23728,15 @@
     "it": "La foto si ingrandisce lentamente per la durata della pagina, mantenendo la messa a fuoco.",
     "ja": "ページの表示時間中に、フォーカスを保ったまま写真がゆっくりズームインします。",
     "pt-BR": "A foto se aproxima lentamente durante a duração da página, mantendo o foco."
+  },
+  "The quick brown fox jumps over the lazy dog": {
+    "ar": "نص حكيم له سر قاطع وذو شأن عظيم مكتوب على ثوب أخضر",
+    "de": "Franz jagt im komplett verwahrlosten Taxi quer durch Bayern",
+    "es": "El veloz murciélago hindú comía feliz cardillo y kiwi",
+    "fr": "Portez ce vieux whisky au juge blond qui fume",
+    "it": "Quel vituperabile xenofobo zelante assaggia il whisky ed esclama alleluja",
+    "ja": "いろはにほへと ちりぬるを",
+    "pt-BR": "Um pequeno jabuti xereta viu dez cegonhas felizes"
   },
   "The selected thing is off screen": {
     "ar": "العنصر المحدد خارج الشاشة",
@@ -23900,6 +24512,15 @@
     "ja": "上",
     "pt-BR": "Superior"
   },
+  "Top left": {
+    "ar": "أعلى اليسار",
+    "de": "Oben links",
+    "es": "Arriba a la izquierda",
+    "fr": "En haut à gauche",
+    "it": "In alto a sinistra",
+    "ja": "左上",
+    "pt-BR": "Superior esquerdo"
+  },
   "Top left corner": {
     "ar": "الزاوية العلوية اليسرى",
     "de": "Obere linke Ecke",
@@ -23926,6 +24547,15 @@
     "it": "Solo in alto",
     "ja": "上のみ",
     "pt-BR": "Só em cima"
+  },
+  "Top right": {
+    "ar": "أعلى اليمين",
+    "de": "Oben rechts",
+    "es": "Arriba a la derecha",
+    "fr": "En haut à droite",
+    "it": "In alto a destra",
+    "ja": "右上",
+    "pt-BR": "Superior direito"
   },
   "Top right corner": {
     "ar": "الزاوية العلوية اليمنى",
@@ -24278,6 +24908,15 @@
     "ja": "検索する文字を入力してください。",
     "pt-BR": "Digite as palavras a procurar."
   },
+  "Type: %@": {
+    "ar": "النوع: %@",
+    "de": "Typ: %@",
+    "es": "Tipo: %@",
+    "fr": "Type : %@",
+    "it": "Tipo: %@",
+    "ja": "種類：%@",
+    "pt-BR": "Tipo: %@"
+  },
   "Typewriter": {
     "ar": "آلة كاتبة",
     "de": "Schreibmaschine",
@@ -24286,6 +24925,24 @@
     "it": "Macchina da scrivere",
     "ja": "タイプライター",
     "pt-BR": "Máquina de escrever"
+  },
+  "Typical": {
+    "ar": "نموذجي",
+    "de": "Normal",
+    "es": "Típica",
+    "fr": "Typique",
+    "it": "Tipica",
+    "ja": "一般的",
+    "pt-BR": "Típica"
+  },
+  "Typography": {
+    "ar": "الطباعة",
+    "de": "Typografie",
+    "es": "Tipografía",
+    "fr": "Typographie",
+    "it": "Tipografia",
+    "ja": "タイポグラフィ",
+    "pt-BR": "Tipografia"
   },
   "US Letter": {
     "ar": "US Letter",
@@ -25118,6 +25775,15 @@
     "ja": "取り込んだ動画はここに保存されます。",
     "pt-BR": "Os vídeos que você importa ficam guardados aqui."
   },
+  "View as": {
+    "ar": "العرض كـ",
+    "de": "Ansehen als",
+    "es": "Ver como",
+    "fr": "Voir comme",
+    "it": "Visualizza come",
+    "ja": "見え方",
+    "pt-BR": "Ver como"
+  },
   "Vignette": {
     "ar": "تظليل الحواف",
     "de": "Vignette",
@@ -25144,6 +25810,15 @@
     "it": "Livello voce",
     "ja": "音声のレベル",
     "pt-BR": "Nível da voz"
+  },
+  "Voice only": {
+    "ar": "الصوت فقط",
+    "de": "Nur Stimme",
+    "es": "Solo voz",
+    "fr": "Voix seule",
+    "it": "Solo voce",
+    "ja": "音声のみ",
+    "pt-BR": "Só voz"
   },
   "Voice-over": {
     "ar": "التعليق الصوتي",
@@ -25216,6 +25891,15 @@
     "it": "Onda",
     "ja": "波",
     "pt-BR": "Onda"
+  },
+  "We'll put the designs and templates you're likely to want first. You can change this in Settings.": {
+    "ar": "سنضع أولًا التصاميم والقوالب التي يُرجّح أنك تريدها. يمكنك تغيير ذلك من الإعدادات.",
+    "de": "Wir zeigen zuerst die Designs und Vorlagen, die du wahrscheinlich brauchst. Du kannst das in den Einstellungen ändern.",
+    "es": "Pondremos primero los diseños y plantillas que más te pueden servir. Puedes cambiarlo en Ajustes.",
+    "fr": "Nous mettrons en premier les designs et modèles qui vous serviront le plus. Vous pourrez changer cela dans Réglages.",
+    "it": "Metteremo per primi i design e i modelli che probabilmente ti servono. Puoi cambiarlo nelle Impostazioni.",
+    "ja": "よく使いそうなデザインとテンプレートを先頭に表示します。設定でいつでも変更できます。",
+    "pt-BR": "Vamos mostrar primeiro os designs e modelos que você provavelmente vai querer. Dá para mudar isso nos Ajustes."
   },
   "Web address, email or phone": {
     "ar": "عنوان ويب أو بريد إلكتروني أو هاتف",
@@ -25307,6 +25991,24 @@
     "ja": "今日は何をデザインしますか？",
     "pt-BR": "O que você vai criar hoje?"
   },
+  "What will you use Canvia for?": {
+    "ar": "فيمَ ستستخدم Canvia؟",
+    "de": "Wofür wirst du Canvia nutzen?",
+    "es": "¿Para qué usarás Canvia?",
+    "fr": "Pour quoi utiliserez-vous Canvia ?",
+    "it": "Per cosa userai Canvia?",
+    "ja": "Canviaを何に使いますか？",
+    "pt-BR": "Para que você vai usar o Canvia?"
+  },
+  "What you make": {
+    "ar": "ما تصنعه",
+    "de": "Was du gestaltest",
+    "es": "Lo que creas",
+    "fr": "Ce que vous créez",
+    "it": "Cosa crei",
+    "ja": "作るもの",
+    "pt-BR": "O que você cria"
+  },
   "What's on this page": {
     "ar": "محتوى هذه الصفحة",
     "de": "Was ist auf dieser Seite",
@@ -25342,6 +26044,24 @@
     "it": "Stravagante",
     "ja": "ファンシー",
     "pt-BR": "Lúdico"
+  },
+  "White": {
+    "ar": "أبيض",
+    "de": "Weiß",
+    "es": "Blanco",
+    "fr": "Blanc",
+    "it": "Bianco",
+    "ja": "白",
+    "pt-BR": "Branco"
+  },
+  "Whiteboards": {
+    "ar": "السبورات البيضاء",
+    "de": "Whiteboards",
+    "es": "Pizarras",
+    "fr": "Tableaux blancs",
+    "it": "Lavagne",
+    "ja": "ホワイトボード",
+    "pt-BR": "Quadros brancos"
   },
   "Whites": {
     "ar": "الدرجات البيضاء",
@@ -25469,6 +26189,24 @@
     "ja": "自動調整がオンの場合、ボックスをドラッグすると文字サイズが変わってボックスを埋めます。高いボックス内の短いテキストは、配置の設定に従って配置されます。",
     "pt-BR": "Com o ajuste automático ativado, arraste a caixa e a fonte é redimensionada para preenchê-la; o alinhamento posiciona um texto mais curto dentro de uma caixa mais alta."
   },
+  "With photos": {
+    "ar": "مع صور",
+    "de": "Mit Fotos",
+    "es": "Con fotos",
+    "fr": "Avec photos",
+    "it": "Con foto",
+    "ja": "写真あり",
+    "pt-BR": "Com fotos"
+  },
+  "Without photos": {
+    "ar": "بدون صور",
+    "de": "Ohne Fotos",
+    "es": "Sin fotos",
+    "fr": "Sans photos",
+    "it": "Senza foto",
+    "ja": "写真なし",
+    "pt-BR": "Sem fotos"
+  },
   "Word by word": {
     "ar": "كلمة بكلمة",
     "de": "Wort für Wort",
@@ -25531,6 +26269,15 @@
     "it": "Ieri",
     "ja": "昨日",
     "pt-BR": "Ontem"
+  },
+  "Your camera": {
+    "ar": "الكاميرا الخاصة بك",
+    "de": "Deine Kamera",
+    "es": "Tu cámara",
+    "fr": "Votre caméra",
+    "it": "La tua fotocamera",
+    "ja": "あなたのカメラ",
+    "pt-BR": "Sua câmera"
   },
   "Your current design is kept as a version too, and restoring can be undone.": {
     "ar": "يُحتفظ بتصميمك الحالي كإصدار أيضًا، ويمكن التراجع عن الاستعادة.",

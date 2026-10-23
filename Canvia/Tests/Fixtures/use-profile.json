@@ -1,0 +1,15 @@
+{
+  "note": "UseProfile.order(use, presets) over every design type, and Home's hero row (the first eleven of that order). Both phones read this file.",
+  "cases": [
+    {"use": null, "hero": ["insta-post", "insta-story", "presentation", "youtube-thumb", "facebook-post", "poster", "flyer", "a4", "business-card", "quote-card", "logo"]},
+    {"use": "teacher", "hero": ["worksheet-a4", "presentation", "certificate", "planner", "poster", "insta-post", "insta-story", "youtube-thumb", "facebook-post", "flyer", "a4"]},
+    {"use": "content-creator", "hero": ["youtube-thumb", "insta-reel", "tiktok-video", "insta-story", "youtube-banner", "podcast-cover", "insta-post", "presentation", "facebook-post", "poster", "flyer"]},
+    {"use": "small-business", "hero": ["insta-post", "flyer", "business-card", "logo", "menu", "website", "insta-story", "presentation", "youtube-thumb", "facebook-post", "poster"]},
+    {"use": "unknown", "hero": ["insta-post", "insta-story", "presentation", "youtube-thumb", "facebook-post", "poster", "flyer", "a4", "business-card", "quote-card", "logo"]}
+  ],
+  "categories": [
+    {"use": "teacher", "from": ["Social", "Marketing", "Business", "Events", "Personal", "Education", "Food", "Travel"], "expect": ["Education", "Events", "Social", "Marketing", "Business", "Personal", "Food", "Travel"]},
+    {"use": "personal", "from": ["Social", "Business", "Events", "Personal"], "expect": ["Personal", "Events", "Social", "Business"]},
+    {"use": null, "from": ["Social", "Business"], "expect": ["Social", "Business"]}
+  ]
+}

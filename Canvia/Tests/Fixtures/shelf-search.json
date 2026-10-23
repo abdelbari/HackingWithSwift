@@ -1,0 +1,38 @@
+{
+  "note": "Home's search and its Type and Edited filters (Shelf on Android, DesignLibrary on the iPhone). now is 2026-10-23T15:00:00Z; startOfToday is that day's midnight. Both phones read this file.",
+  "now": 1792767600000,
+  "startOfToday": 1792713600000,
+  "items": [
+    {"id": "a", "title": "Bake sale poster", "width": 2480, "height": 3508, "pages": 1, "updatedAt": 1792764000000, "type": "a4", "text": "school bake sale on saturday cakes cookies and lemonade from 10am"},
+    {"id": "b", "title": "Team deck", "width": 1920, "height": 1080, "pages": 12, "updatedAt": 1792500000000, "type": "presentation", "text": "quarterly review the bake off results revenue up 12%"},
+    {"id": "c", "title": "Story", "width": 1080, "height": 1920, "pages": 1, "updatedAt": 1791900000000, "type": "insta-story", "text": "summer sale everything must go"},
+    {"id": "d", "title": "Brainstorm", "width": 1920, "height": 1080, "pages": 1, "updatedAt": 1789000000000, "type": "whiteboard", "text": "ideas for the cafe sale"},
+    {"id": "e", "title": "Untitled design", "width": 1000, "height": 700, "pages": 1, "updatedAt": 1780000000000, "text": ""},
+    {"id": "f", "title": "Damaged design", "width": 1080, "height": 1080, "pages": 0, "updatedAt": 1700000000000, "damaged": true, "text": ""},
+    {"id": "g", "title": "Thumbnail", "width": 1280, "height": 720, "pages": 1, "updatedAt": 1792700000000, "type": "youtube-thumb", "text": "sale ends sunday"}
+  ],
+  "cases": [
+    {"query": "", "type": "all", "edited": "any", "expect": ["a", "g", "b", "c", "d", "e", "f"]},
+    {"query": "sale", "type": "all", "edited": "any", "expect": ["a", "g", "c", "d"]},
+    {"query": "bake", "type": "all", "edited": "any", "expect": ["a", "b"]},
+    {"query": "Café", "type": "all", "edited": "any", "expect": ["d"]},
+    {"query": "1920", "type": "all", "edited": "any", "expect": ["b", "c", "d"]},
+    {"query": "", "type": "presentations", "edited": "any", "expect": ["b", "f"]},
+    {"query": "", "type": "whiteboards", "edited": "any", "expect": ["d", "f"]},
+    {"query": "", "type": "social", "edited": "any", "expect": ["c", "f"]},
+    {"query": "", "type": "video", "edited": "any", "expect": ["g", "f"]},
+    {"query": "", "type": "documents", "edited": "any", "expect": ["a", "f"]},
+    {"query": "", "type": "print", "edited": "any", "expect": ["f"]},
+    {"query": "", "type": "all", "edited": "today", "expect": ["a", "f"]},
+    {"query": "", "type": "all", "edited": "week", "expect": ["a", "g", "b", "f"]},
+    {"query": "", "type": "all", "edited": "month", "expect": ["a", "g", "b", "c", "f"]},
+    {"query": "", "type": "all", "edited": "older", "expect": ["d", "e", "f"]},
+    {"query": "sale", "type": "all", "edited": "week", "expect": ["a", "g"]}
+  ],
+  "snippets": [
+    {"text": "school bake sale on saturday cakes cookies and lemonade from 10am", "query": "Sale", "snippet": "school bake sale on saturday cakes cookies and…", "start": 12, "end": 16},
+    {"text": "welcome to the annual spring fair where the whole town meets for the school bake sale on saturday at noon in the park by the river", "query": "bake sale", "snippet": "…town meets for the school bake sale on saturday at noon in the…", "start": 27, "end": 36},
+    {"text": "sale ends sunday", "query": "ends", "snippet": "sale ends sunday", "start": 5, "end": 9},
+    {"text": "sale ends sunday", "query": "monday", "snippet": null}
+  ]
+}

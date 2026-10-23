@@ -14,6 +14,9 @@
 //   brandkits.json           the brand kits
 //   dictionary.json          this phone's own dictionary, Add to
 //                            dictionary's words, when it has any
+//   settings.json            the settings that travel: {"canvia.use": …},
+//                            what Canvia is used for, when it was answered
+//                            (UseProfile)
 //   uploads.json             your uploads' list, as kept in Documents
 //   media/<id>.<ext>         the photos your uploads and kits' assets are,
 //   videos/<id>.<ext>        their clips,
@@ -260,6 +263,8 @@ enum Backup {
         // This phone's own dictionary, when Add to dictionary has added any.
         let dictionary = SpellingDictionary.load()
         if !dictionary.isEmpty { try writer.add(Proofreader.dictionaryFile, Proofreader.encodeDictionary(dictionary)) }
+        // What Canvia is used for, when it was answered.
+        if let use = UseProfile.current() { try writer.add(UseProfile.settingsFile, UseProfile.encodeSettings(use)) }
         for src in kits.allAssets {
             try await addSource(src, into: writer, written: &written)
         }
@@ -454,6 +459,10 @@ enum Backup {
         // The dictionary's words added to this phone's; none taken away.
         let words = Proofreader.decodeDictionary(reader.file(Proofreader.dictionaryFile))
         if !words.isEmpty { SpellingDictionary.add(words) }
+        // What Canvia is used for, on a phone with no answer yet.
+        if UseProfile.current() == nil, let use = UseProfile.decodeSettings(reader.file(UseProfile.settingsFile)) {
+            UseProfile.set(use)
+        }
         FontStore.installed()
         progress(1)
         return report
