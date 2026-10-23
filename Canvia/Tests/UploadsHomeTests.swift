@@ -38,6 +38,23 @@ final class UploadsHomeTests: XCTestCase {
         XCTAssertEqual(Uploads.usedIn(0), "Not used in any design")
         XCTAssertEqual(Uploads.usedIn(1), "Used in 1 design")
         XCTAssertEqual(Uploads.usedIn(2), "Used in 2 designs")
+        XCTAssertEqual(Uploads.usedIn(0, brandKit: true), "Used in your brand kit")
+        XCTAssertEqual(Uploads.usedIn(2, brandKit: true), "Used in 2 designs and your brand kit")
+    }
+
+    /// A Bold uploaded with the Regular a text is set in is used too, as the
+    /// launch sweep keeps it for that design.
+    func testTheOtherFacesOfAFamilyInUseAreUsedToo() {
+        var text = Element.text("Hi")
+        text.fontFamily = CustomFonts.key("aaaaaaaaaa00")
+        let typed = design("d1", [Page(elements: [text])])
+        let faces = [400, 700].map { weight in
+            Uploads.FontEntry(id: weight == 400 ? "aaaaaaaaaa00" : "aaaaaaaaaa01", name: "Acme", file: "a.ttf",
+                              added: 0, family: "Acme", weight: weight, italic: false, wght: nil)
+        }
+        XCTAssertEqual(Uploads.usageIndex([typed], faces: faces)["aaaaaaaaaa01"]?.map(\.id), ["d1"])
+        XCTAssertEqual(Uploads.usages([typed], id: "aaaaaaaaaa01", faces: faces).map(\.id), ["d1"])
+        XCTAssertTrue(Uploads.usages([typed], id: "aaaaaaaaaa01", faces: []).isEmpty)
     }
 
     func testTheUsageIndexSaysTheSameAndTheGridSortsByNewestOrLargest() {
@@ -72,6 +89,10 @@ final class UploadsHomeTests: XCTestCase {
                        "Used in 2 designs. Those designs will show an empty frame.")
         XCTAssertEqual(Uploads.deletingFromHome(2, designs: 1).text,
                        "Used in 1 design. That design will show an empty frame.")
+        // A brand kit's photo is said as well, after the designs.
+        XCTAssertEqual(Uploads.deletingFromHome(1, designs: 0, brandKit: true).text, "Used in your brand kit.")
+        XCTAssertEqual(Uploads.deletingFromHome(1, designs: 1, brandKit: true).text,
+                       "Used in 1 design. That design will show an empty frame. Used in your brand kit.")
     }
 
     func testATileSaysItsSizeAndWhatItIs() {

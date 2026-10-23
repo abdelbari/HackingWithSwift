@@ -126,8 +126,10 @@ struct UploadsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var items: [UploadItem]?
     @State private var totalBytes: Int64 = 0
-    /// Every design read once, for what each upload is used in.
+    /// Every design on the shelf read once, for what each upload is used
+    /// in, and the brand kits, whose photos are a use too.
     @State private var usages: [String: [Design]] = [:]
+    @State private var kits: BrandKits?
     @State private var filter: String?
     @State private var largest = false
     @State private var selecting = false
@@ -281,7 +283,7 @@ struct UploadsSheet: View {
 
     private func tile(_ item: UploadItem) -> some View {
         UploadTile(item: item, picked: picked.contains(item.id), selecting: selecting,
-                   used: usages[item.id]?.count ?? 0) {
+                   used: usages[item.id]?.count ?? 0, inBrandKit: inBrandKit(item)) {
             if selecting {
                 if picked.contains(item.id) { picked.remove(item.id) } else { picked.insert(item.id) }
             } else {
@@ -298,7 +300,7 @@ struct UploadsSheet: View {
             Button { start(item) } label: { Label("New design from this", systemImage: "plus.square.on.square") }
         }
         Button { listing = item } label: {
-            Label(Uploads.usedIn(usages[item.id]?.count ?? 0), systemImage: "doc.on.doc")
+            Label(Uploads.usedIn(usages[item.id]?.count ?? 0, brandKit: inBrandKit(item)), systemImage: "doc.on.doc")
         }
         Button { sharing = ShareURL(url: item.file) } label: { Label("Share", systemImage: "square.and.arrow.up") }
         Button(role: .destructive) { deleting = [item] } label: { Label("Delete", systemImage: "trash") }
@@ -326,6 +328,11 @@ struct UploadsSheet: View {
             .compactMap { byId[$0.id] }
     }
 
+    /// Whether a brand kit shows `item`'s photo.
+    private func inBrandKit(_ item: UploadItem) -> Bool {
+        kits.map { Uploads.inBrandKit($0, id: item.id) } ?? false
+    }
+
     private var allPicked: Bool { !shown.isEmpty && picked.count == shown.count }
 
     private func endSelect() {
@@ -339,7 +346,8 @@ struct UploadsSheet: View {
         let chosen = deleting ?? []
         var designs = Set<String>()
         for item in chosen { for design in usages[item.id] ?? [] { designs.insert(design.id) } }
-        return Uploads.deletingFromHome(max(chosen.count, 1), designs: designs.count)
+        return Uploads.deletingFromHome(max(chosen.count, 1), designs: designs.count,
+                                        brandKit: chosen.contains { inBrandKit($0) })
     }
 
     // MARK: work
@@ -350,6 +358,7 @@ struct UploadsSheet: View {
         items = read
         totalBytes = total
         usages = await Task.detached(priority: .utility) { Uploads.usageIndex(DesignLibrary.shelfDesigns()) }.value
+        kits = await Task.detached(priority: .utility) { BrandKits.load() }.value
     }
 
     /// The designs that use it, each opening.
@@ -362,7 +371,7 @@ struct UploadsSheet: View {
                     onOpen(design)
                 }
             }
-            .navigationTitle(Uploads.usedIn(designs.count))
+            .navigationTitle(Uploads.usedIn(designs.count, brandKit: inBrandKit(item)))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Close") { listing = nil } }
@@ -404,6 +413,7 @@ private struct UploadTile<Actions: View>: View {
     var picked: Bool
     var selecting: Bool
     var used: Int
+    var inBrandKit: Bool
     var onTap: () -> Void
     @ViewBuilder var menu: () -> Actions
     @State private var picture: UIImage?
@@ -430,7 +440,7 @@ private struct UploadTile<Actions: View>: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(picked ? tr("%@, %@, selected", item.name, item.caption) : tr("%@, %@", item.name, item.caption))
-        .accessibilityHint(Uploads.usedIn(used))
+        .accessibilityHint(Uploads.usedIn(used, brandKit: inBrandKit))
         .task(id: item.id) { if item.pictured { picture = await UploadsHome.thumbnail(item) } }
     }
 

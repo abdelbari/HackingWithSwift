@@ -245,29 +245,30 @@ enum Uploads {
     /// background, a shape's fill, the master's too — a clip, a song on an
     /// audio track, or a font of your own. The rule that keeps an upload
     /// from the launch sweep, so "Used in N designs" counts what the sweep
-    /// would keep it for.
-    static func ids(usedBy design: Design) -> Set<String> {
+    /// would keep it for — with the other faces of a family it uses among
+    /// `faces`, this phone's own as the sweep reads them.
+    static func ids(usedBy design: Design, faces: [FontEntry]) -> Set<String> {
         DesignLibrary.photos(in: [design])
             .union(DesignLibrary.clips(in: [design]))
             .union(design.audioTracks.compactMap(\.audioId))
-            .union(CustomFonts.used(in: design))
+            .union(CustomFonts.used(in: design, faces: faces))
     }
 
     /// The designs among `designs` that use the upload `id`, in their
     /// order, whatever kind it is. A brand kit's use is asked apart
     /// (inBrandKit): it is no design to list. The Android twin's
     /// Uploads.usages.
-    static func usages(_ designs: [Design], id: String) -> [Design] {
-        designs.filter { ids(usedBy: $0).contains(id) }
+    static func usages(_ designs: [Design], id: String, faces: [FontEntry] = FontStore.faces()) -> [Design] {
+        designs.filter { ids(usedBy: $0, faces: faces).contains(id) }
     }
 
     /// Every upload id each of `designs` uses, by id: usages for every
     /// upload at once, each design read once — what the Uploads grid on
     /// Home counts with.
-    static func usageIndex(_ designs: [Design]) -> [String: [Design]] {
+    static func usageIndex(_ designs: [Design], faces: [FontEntry] = FontStore.faces()) -> [String: [Design]] {
         var index: [String: [Design]] = [:]
         for design in designs {
-            for id in ids(usedBy: design) { index[id, default: []].append(design) }
+            for id in ids(usedBy: design, faces: faces) { index[id, default: []].append(design) }
         }
         return index
     }
@@ -307,19 +308,28 @@ enum Uploads {
     }
 
     /// "Used in 2 designs", or "Not used in any design": what the ⋯ menu
-    /// says of an upload on Home.
-    static func usedIn(_ designs: Int) -> String {
-        designs <= 0 ? tr("Not used in any design") : trn("Used in %d design|Used in %d designs", designs)
+    /// says of an upload on Home — and "and your brand kit", or "Used in
+    /// your brand kit" alone, when `brandKit` shows it too.
+    static func usedIn(_ designs: Int, brandKit: Bool = false) -> String {
+        if brandKit {
+            return designs > 0
+                ? trn("Used in %d design and your brand kit|Used in %d designs and your brand kit", designs)
+                : tr("Used in your brand kit")
+        }
+        return designs <= 0 ? tr("Not used in any design") : trn("Used in %d design|Used in %d designs", designs)
     }
 
     /// What deleting uploads from Home asks: for `count` uploads of which
     /// `designs` designs use any — they stay in the designs' files, but
-    /// show an empty frame once swept.
-    static func deletingFromHome(_ count: Int, designs: Int) -> (title: String, text: String?) {
+    /// show an empty frame once swept — and whether a brand kit shows any
+    /// of them, said after the designs.
+    static func deletingFromHome(_ count: Int, designs: Int, brandKit: Bool = false) -> (title: String, text: String?) {
         let title = count == 1 ? tr("Delete this upload?") : trn("Delete %d upload?|Delete %d uploads?", count)
-        let text = designs <= 0 ? nil
+        let inDesigns: String? = designs <= 0 ? nil
             : trn("Used in %d design. That design will show an empty frame.|Used in %d designs. Those designs will show an empty frame.", designs)
-        return (title, text)
+        let inKit: String? = brandKit ? tr("Used in your brand kit.") : nil
+        let said = [inDesigns, inKit].compactMap { $0 }
+        return (title, said.isEmpty ? nil : said.joined(separator: " "))
     }
 
     // MARK: the file

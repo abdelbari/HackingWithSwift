@@ -24017,6 +24017,39 @@
     "ja": "このページをマスターとして使用",
     "pt-BR": "Usar esta página como mestre"
   },
+  "Used in %d design and your brand kit|Used in %d designs and your brand kit": {
+    "ar": {
+      "few": "مستخدم في %d تصاميم وفي مجموعة العلامة التجارية",
+      "many": "مستخدم في %d تصميمًا وفي مجموعة العلامة التجارية",
+      "one": "مستخدم في %d تصميم وفي مجموعة العلامة التجارية",
+      "other": "مستخدم في %d تصميم وفي مجموعة العلامة التجارية",
+      "two": "مستخدم في %d تصميمين وفي مجموعة العلامة التجارية",
+      "zero": "مستخدم في %d تصميم وفي مجموعة العلامة التجارية"
+    },
+    "de": {
+      "one": "In %d Design und im Brand Kit verwendet",
+      "other": "In %d Designs und im Brand Kit verwendet"
+    },
+    "es": {
+      "one": "Se usa en %d diseño y en tu kit de marca",
+      "other": "Se usa en %d diseños y en tu kit de marca"
+    },
+    "fr": {
+      "one": "Utilisé dans %d design et dans votre kit de marque",
+      "other": "Utilisé dans %d designs et dans votre kit de marque"
+    },
+    "it": {
+      "one": "Usato in %d design e nel tuo Brand Kit",
+      "other": "Usato in %d design e nel tuo Brand Kit"
+    },
+    "ja": {
+      "other": "%d 件のデザインとブランドキットで使用中"
+    },
+    "pt-BR": {
+      "one": "Usado em %d design e no seu kit de marca",
+      "other": "Usado em %d designs e no seu kit de marca"
+    }
+  },
   "Used in %d design. It stays in it.|Used in %d designs. It stays in them.": {
     "ar": {
       "few": "مستخدم في %d تصاميم. ويبقى فيها.",
@@ -24115,6 +24148,24 @@
       "one": "Usado em %d design",
       "other": "Usado em %d designs"
     }
+  },
+  "Used in your brand kit": {
+    "ar": "مستخدم في مجموعة العلامة التجارية",
+    "de": "Im Brand Kit verwendet",
+    "es": "Se usa en tu kit de marca",
+    "fr": "Utilisé dans votre kit de marque",
+    "it": "Usato nel tuo Brand Kit",
+    "ja": "ブランドキットで使用中",
+    "pt-BR": "Usado no seu kit de marca"
+  },
+  "Used in your brand kit.": {
+    "ar": "مستخدم في مجموعة العلامة التجارية.",
+    "de": "Im Brand Kit verwendet.",
+    "es": "Se usa en tu kit de marca.",
+    "fr": "Utilisé dans votre kit de marque.",
+    "it": "Usato nel tuo Brand Kit.",
+    "ja": "ブランドキットで使用中です。",
+    "pt-BR": "Usado no seu kit de marca."
   },
   "Valley": {
     "ar": "وادٍ",

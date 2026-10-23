@@ -580,7 +580,7 @@ struct HomeView: View {
                     starredOnly.toggle()
                     folder = nil
                 }
-                if hasUploads { uploadsChip }
+                uploadsChip
                 ForEach(folders, id: \.self) { name in
                     chip(name, selected: folder == name, systemImage: starredFolders.contains(name) ? "star.fill" : "folder") {
                         folder = folder == name ? nil : name
