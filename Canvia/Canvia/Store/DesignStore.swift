@@ -1145,6 +1145,18 @@ final class DesignStore {
         startTyping(el.id)
     }
 
+    /// The T key's text box: Add text's — "Your text here", 6% of the
+    /// page's width in type, 72% of it wide — centred and selected, not
+    /// typed into, and onto the next unlocked page when this one is locked,
+    /// as Add text puts it. The Android twin's T is the same.
+    func addTextBox() {
+        guard landsOnUnlockedPage() else { return }
+        var el = Element.text(HoldMenu.words, fontSize: (pageWidth * 0.06).rounded(), w: (pageWidth * 0.72).rounded())
+        el.fontWeight = 400
+        el.h = FontLibrary.layoutHeight(for: el)
+        addText(el)
+    }
+
     /// Everything on this page that can be selected; nothing on a locked
     /// page, which is said instead.
     func selectAll() {

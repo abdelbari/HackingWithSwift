@@ -163,6 +163,25 @@ final class PageLocksTests: XCTestCase {
     }
 
     @MainActor
+    func testTheTKeyBoxGoesToTheNextUnlockedPageAndIsNotTyped() {
+        let store = DesignStore(design: design(locked: [true, false]))
+        store.addTextBox()
+        XCTAssertEqual(store.pageIndex, 1, "the next unlocked page is brought up")
+        XCTAssertEqual(store.design.pages.map(\.elements.count), [1, 2])
+        let box = store.design.pages[1].elements[1]
+        XCTAssertEqual(box.text, HoldMenu.words)
+        XCTAssertEqual(box.fontSize, 24)
+        XCTAssertEqual(store.selection, [box.id])
+        XCTAssertNil(store.editingTextId, "selected, not typed into")
+        XCTAssertEqual(box.x + box.w / 2, 200, accuracy: 0.5, "centred")
+
+        let all = DesignStore(design: design(locked: [true, true]))
+        all.addTextBox()
+        XCTAssertEqual(all.design.pages.map(\.elements.count), [1, 1])
+        XCTAssertEqual(all.announcement, PageLocks.lockedNote)
+    }
+
+    @MainActor
     func testDeletingSeveralPagesSkipsLockedOnes() {
         let store = DesignStore(design: design(locked: [false, true, false]))
         let ids = Set(store.design.pages.map(\.id))

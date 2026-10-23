@@ -706,7 +706,7 @@ struct CanvasView: View {
         if gesture.crop?.isWorking == true { level.straighten = nil }
         return ZStack {
             Color.black.opacity(0.45)
-            cropPicture(photo, crop)
+            cropPicture(level, crop)
             ElementView(element: level)
                 .allowsHitTesting(false)
                 .environment(\.onScreen, true)
@@ -721,9 +721,15 @@ struct CanvasView: View {
         .accessibilityHint("Drag the picture to move it, pinch to zoom it, and pull the frame's corners and edges to trim it")
     }
 
-    /// The whole picture, faint, where it lies behind and beyond the frame.
+    /// The whole picture, faint, where it lies behind and beyond the frame —
+    /// straightened as the picture inside the frame is (ElementView): turned
+    /// about its own centre, then grown about the crop's focus to keep the
+    /// frame covered, as the Android twin's crop preview draws both.
     private func cropPicture(_ photo: Element, _ crop: CropSession) -> some View {
         let drawn = Crop.drawnPicture(photo, image: crop.imageSize)
+        let tilt = photo.straighten ?? 0
+        let cover = photo.cropFit == true ? 1 : Geometry.coverScale(width: photo.w, height: photo.h, degrees: tilt)
+        let focus = UnitPoint(x: min(max(photo.cropX ?? 0.5, 0), 1), y: min(max(photo.cropY ?? 0.5, 0), 1))
         // A trimmed clip shows the frame at its start, as the frame does.
         let src = VideoStore.atRest(photo)
         // On screen: a focus subject still being found shows the circle, and
@@ -736,10 +742,12 @@ struct CanvasView: View {
                 Image(uiImage: shown)
                     .resizable()
                     .frame(width: drawn.width, height: drawn.height)
+                    .rotationEffect(.degrees(tilt))
                     .position(x: drawn.midX, y: drawn.midY)
             }
         }
         .frame(width: photo.w, height: photo.h)
+        .scaleEffect(cover, anchor: focus)
         .opacity(0.43 * photo.opacity)
         .scaleEffect(x: photo.flipH ? -1 : 1, y: photo.flipV ? -1 : 1)
         .rotationEffect(.degrees(photo.rotation))

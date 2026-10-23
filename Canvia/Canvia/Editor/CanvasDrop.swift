@@ -76,8 +76,10 @@ enum CanvasDrop {
                     guard let stored else { tally.finished(landed: false); return }
                     // Let go over a selected text box, the picture may fill
                     // its letters: asked (PhotoInLettersPrompts), the photo
-                    // kept for the page meanwhile.
-                    if let text = store.letterFillTarget(at: at) {
+                    // kept for the page meanwhile. Only the first of several
+                    // is offered; the rest go on as any photo does, as on the
+                    // Android twin, so none is lost to a later offer.
+                    if store.letterFillOffer == nil, let text = store.letterFillTarget(at: at) {
                         let frame = imageFrame(natural: stored.natural, page: page, at: at)
                         store.letterFillOffer = LetterFillOffer(id: text.id, src: stored.src, frame: frame)
                         tally.finished(landed: true)

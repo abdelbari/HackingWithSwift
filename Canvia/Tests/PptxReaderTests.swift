@@ -199,7 +199,8 @@ final class PptxReaderTests: XCTestCase {
             + "<a:r><a:rPr b=\"1\" i=\"1\"><a:latin typeface=\"Montserrat Semibold\"/></a:rPr><a:t>sale</a:t></a:r>"
             + "<a:r><a:rPr><a:latin typeface=\"Montserrat Light\"/></a:rPr><a:t> now</a:t></a:r></a:p>"
         let t = try only(deck([textBox(box, body)]))
-        XCTAssertEqual(t.text, "Big ***sale*** now")
+        // The cut's b="1" is its weight, not a ** that would draw it bolder.
+        XCTAssertEqual(t.text, "Big *sale* now")
         XCTAssertEqual(t.fontFamily, "montserrat")
         XCTAssertEqual(t.spans, [TextSpan(start: 4, end: 8, weight: 600), TextSpan(start: 8, end: 12, weight: 300)])
         XCTAssertEqual(PptxReader.cut("Montserrat Light").map { "\($0.family) \($0.weight)" }, "montserrat 300")

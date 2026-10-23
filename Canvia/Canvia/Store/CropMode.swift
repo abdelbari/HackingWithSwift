@@ -82,6 +82,8 @@ extension DesignStore {
         finishBrush()
         guard cropping != nil else { return }
         cropping = nil
+        // The dial's bar goes with crop mode, before it can say it was let go.
+        cropDialHeld = false
         badge = nil
         if hasPendingChanges { commit() }
     }
@@ -90,6 +92,8 @@ extension DesignStore {
     func cancelCrop() {
         guard cropping != nil else { return }
         cropping = nil
+        // The dial's bar goes with crop mode, before it can say it was let go.
+        cropDialHeld = false
         badge = nil
         revertGesture()
     }
