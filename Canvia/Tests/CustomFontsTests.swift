@@ -520,7 +520,10 @@ final class CustomFontsTests: XCTestCase {
             ("lora-700i.ttf", "Bold Italic", 700, true),
         ]
         for row in rows {
-            let face = try XCTUnwrap(CustomFonts.describe(try bundled(row.file)), row.file)
+            var face = try XCTUnwrap(CustomFonts.describe(try bundled(row.file)), row.file)
+            // Each face says the letters it has, read from its cmap.
+            XCTAssertEqual(face.scripts?.first, "latin", row.file)
+            face.scripts = nil
             XCTAssertEqual(face, CustomFonts.Face(family: "Lora", subfamily: row.subfamily, weight: row.weight,
                                                   italic: row.italic, wght: nil), row.file)
         }

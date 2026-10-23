@@ -40,7 +40,7 @@ final class FontLibraryTests: XCTestCase {
         // The Android twin's FontLibraryTest checks the same digest of its copy.
         let url = try XCTUnwrap(Bundle.main.url(forResource: "Fonts", withExtension: "json"))
         let digest = SHA256.hash(data: try Data(contentsOf: url)).map { String(format: "%02x", $0) }.joined()
-        XCTAssertEqual(digest, "9327f6f54d72f2c1d15e4dc55098dc11f3d2b7464d5c3c101667740095dc7c30")
+        XCTAssertEqual(digest, "cc119aa93a74e398f12885209e9a53407aed366840c157e576a0a062d0ebd6da")
     }
 
     func testEveryBundledFileIsThereATrueTypeFontOfItsFamilyThatLoads() throws {

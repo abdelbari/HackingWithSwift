@@ -136,6 +136,7 @@ struct AccessibilitySheet: View {
         case .flashing: return "bolt.horizontal"
         case .linkText: return "link"
         case .readingOrder: return "list.number"
+        case .missingLetters: return "character.textbox"
         }
     }
 

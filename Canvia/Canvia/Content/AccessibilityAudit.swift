@@ -17,6 +17,9 @@
 //  - readingOrder: a page whose layers, bottom to top, run in another order
 //    than the page reads — rows top to bottom, left to right — among what a
 //    reader says: words, and pictures with alt text.
+//  - missingLetters: words — a text's or a shape's — with letters their font
+//    does not have (FontLibrary.covers), which the phone draws in a
+//    stand-in font: Cyrillic in a Latin-only face.
 //
 // Findings come page by page; within a page in that order of kinds, and
 // within a kind in layer order, back to front. Hidden elements and hidden
@@ -29,7 +32,7 @@ import Foundation
 enum AccessibilityAudit {
 
     enum Kind: String, CaseIterable {
-        case contrast, altText, smallText, flashing, linkText, readingOrder
+        case contrast, altText, smallText, flashing, linkText, readingOrder, missingLetters
     }
 
     /// What a finding's button does.
@@ -93,8 +96,22 @@ enum AccessibilityAudit {
                 out.append(Finding(kind: .readingOrder, pageIndex: p, elementId: first,
                                    message: tr("The layers are in a different order from how the page reads")))
             }
+            for el in shown where lacksLetters(el) {
+                out.append(Finding(kind: .missingLetters, pageIndex: p, elementId: el.id,
+                                   message: missingLettersNote))
+            }
         }
         return out
+    }
+
+    /// What a box whose font lacks some of its letters is said to have.
+    static let missingLettersNote = tr("Letters missing from the font")
+
+    /// Whether `el`'s words have letters its font does not
+    /// (FontLibrary.covers).
+    static func lacksLetters(_ el: Element) -> Bool {
+        guard ShapeText.carriesWords(el), let text = el.text, !text.isEmpty else { return false }
+        return !FontLibrary.covers(el.fontFamily, RichText.strip(text))
     }
 
     // MARK: the rules
