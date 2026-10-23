@@ -86,25 +86,44 @@ enum DataGraphics {
     ///   there; a blank label is "Item <line>".
     /// Each row's values are its points' x and y in turn: x0, y0, x1, y1…
     static func parseScatter(_ text: String) -> ChartData {
+        parsePoints(text, width: 2)
+    }
+
+    /// A bubble chart's rows, "Label, x, y, size": read as parseScatter
+    /// reads a scatter's, in threes rather than pairs — x, y and size, the
+    /// nth three a bubble of series n, named by its y's header cell ("City,
+    /// Size, Price, People" is one series, "Price"). Each row's values are
+    /// x0, y0, size0, x1, y1, size1… The Android twin's `parseBubble`.
+    static func parseBubble(_ text: String) -> ChartData {
+        parsePoints(text, width: 3)
+    }
+
+    /// Rows of points `width` numbers each, as parseScatter reads them.
+    private static func parsePoints(_ text: String, width: Int) -> ChartData {
         let lines = text.components(separatedBy: .newlines).map(withoutTrailingCommas)
         let first = lines.firstIndex { !$0.isEmpty }
         let header = first.flatMap { headerCells(lines[$0]) }
-        let longest = lines.map { $0.isEmpty ? 0 : ($0.components(separatedBy: ",").count - 1) / 2 }.max() ?? 0
-        let pairs = max(1, header.map { $0.count / 2 } ?? longest)
-        let names = (0..<pairs).map { n -> String in
-            guard let header, 2 * n + 1 < header.count, !header[2 * n + 1].isEmpty else { return "Series \(n + 1)" }
-            return header[2 * n + 1]
+        let longest = lines.map { $0.isEmpty ? 0 : ($0.components(separatedBy: ",").count - 1) / width }.max() ?? 0
+        let points = max(1, header.map { $0.count / width } ?? longest)
+        let names = (0..<points).map { n -> String in
+            guard let header, width * n + 1 < header.count, !header[width * n + 1].isEmpty else { return "Series \(n + 1)" }
+            return header[width * n + 1]
         }
         let rows = lines.enumerated().compactMap { n, line in
-            header != nil && n <= (first ?? -1) ? nil : multiple(n, line, count: 2 * pairs)
+            header != nil && n <= (first ?? -1) ? nil : multiple(n, line, count: width * points)
         }
         return ChartData(names: names, rows: rows)
     }
 
     /// Chart data as a chart of `kind` reads it: parseScatter's for a
-    /// scatter, parseChart's for every other kind.
+    /// scatter, parseBubble's for a bubble chart, parseChart's for every
+    /// other kind.
     static func chartData(_ text: String, kind: ChartKind) -> ChartData {
-        kind == .scatter ? parseScatter(text) : parseChart(text)
+        switch kind {
+        case .scatter: return parseScatter(text)
+        case .bubble: return parseBubble(text)
+        default: return parseChart(text)
+        }
     }
 
     private static func withoutTrailingCommas(_ line: String) -> String {
@@ -162,14 +181,32 @@ enum DataGraphics {
     /// The hint under a scatter's data.
     static let scatterHint = tr("Each row is \"Label, x, y\"; a first line of names, as in \"City, Size, Price\", names x and y.")
 
+    /// The hint under a bubble chart's data.
+    static let bubbleHint = tr("Each row is \"Label, x, y, size\"; a first line of names, as in \"City, Size, Price, People\", names them.")
+
     /// What the chart typed so far comes to, under the box it is typed in,
     /// in the Android twin's words: "4 values", "3 rows × 2 series", or for a
-    /// progress kind the percentage it will show.
+    /// progress kind the percentage it will show. A bubble chart counts its
+    /// bubbles, "6 bubbles"; a funnel its stages, "4 stages, in the order
+    /// typed."; a pictogram its rows, "3 rows of up to 10 icons."; a heat map
+    /// its cells, "4 rows × 3 series, shaded by value.".
     static func chartSummary(_ data: ChartData, kind: ChartKind) -> String {
         let n = data.rows.count
         guard let first = data.rows.first?.values.first else { return tr("No numbers found yet.") }
         if kind.isProgress {
             return tr("The first value, as a percentage: %@.", "\(Int(min(100, max(0, first)).rounded()))%")
+        }
+        switch kind {
+        case .bubble:
+            return tr("%@, coloured from this page.", trn("%d bubble|%d bubbles", n * data.names.count))
+        case .funnel:
+            return tr("%@, in the order typed.", trn("%d stage|%d stages", n))
+        case .pictogram:
+            return tr("%@ of up to 10 icons.", trn("%d row|%d rows", n))
+        case .heatmap:
+            return tr("%@ × %@, shaded by value.", trn("%d row|%d rows", n), trn("%d series|%d series", data.names.count))
+        default:
+            break
         }
         if data.names.count > 1 {
             return tr("%@ × %@, coloured from this page.", trn("%d row|%d rows", n),
@@ -181,6 +218,7 @@ enum DataGraphics {
     /// Raw values are the `kind` written in a chart's JSON.
     enum ChartKind: String, CaseIterable, Identifiable {
         case column, bar, line, pie, donut, stackedColumn, stackedBar, area, progressRing, progressBar, scatter
+        case radar, bubble, funnel, pictogram, heatmap, progressDial
         var id: String { rawValue }
         var name: String {
             switch self {
@@ -195,19 +233,206 @@ enum DataGraphics {
             case .progressRing: return tr("Progress ring")
             case .progressBar: return tr("Progress bar")
             case .scatter: return tr("Scatter")
+            case .radar: return tr("Radar")
+            case .bubble: return tr("Bubble")
+            case .funnel: return tr("Funnel")
+            case .pictogram: return tr("Pictogram")
+            case .heatmap: return tr("Heat map")
+            case .progressDial: return tr("Progress dial")
             }
         }
 
         /// Drawn against a scale, so gridlines have something to mark.
         var hasScale: Bool {
             switch self {
-            case .column, .bar, .line, .stackedColumn, .stackedBar, .area, .scatter: return true
-            case .pie, .donut, .progressRing, .progressBar: return false
+            case .column, .bar, .line, .stackedColumn, .stackedBar, .area, .scatter, .radar, .bubble: return true
+            case .pie, .donut, .progressRing, .progressBar, .funnel, .pictogram, .heatmap, .progressDial: return false
             }
         }
 
         /// One value read as a percentage, written in the chart itself.
-        var isProgress: Bool { self == .progressRing || self == .progressBar }
+        var isProgress: Bool { self == .progressRing || self == .progressBar || self == .progressDial }
+
+        /// Has a legend to show: not a progress kind, which reads one value,
+        /// nor a heat map, whose shades are its key.
+        var hasLegend: Bool { !isProgress && self != .heatmap }
+
+        /// Has an x and a y axis to name (`xTitle`, `yTitle`): a kind with a
+        /// scale, but a radar, whose scale runs out along every spoke.
+        var hasAxisTitles: Bool { hasScale && self != .radar }
+
+        /// Each row in its own colour whatever the series: a pie's slices, a
+        /// funnel's stages, a pictogram's rows.
+        var colourByRow: Bool { self == .pie || self == .donut || self == .funnel || self == .pictogram }
+
+        /// Bars whose gap and far-end rounding (`gap`, `roundBars`) apply.
+        var hasBars: Bool { self == .column || self == .bar || self == .stackedColumn || self == .stackedBar }
+
+        /// Drawn as a line whose weight and points (`lineWidth`, `points`)
+        /// apply; a radar's outline takes its weight too.
+        var hasLine: Bool { self == .line || self == .area || self == .radar }
+
+        /// Has a hole whose size (`hole`) applies.
+        var hasHole: Bool { self == .donut || self == .progressRing }
+    }
+
+    // MARK: format
+
+    /// The most characters a value's prefix or suffix keeps.
+    static let maxAffix = 4
+
+    /// A donut's hole and a progress ring's, as a share of the radius, when
+    /// the chart sets none; and the range one may be set in.
+    static let donutHole = 0.55
+    static let ringHole = 0.8
+    static let minHole = 0.3
+    static let maxHole = 0.85
+
+    /// The share of each slot left between bars when the chart sets none
+    /// (the bar the other 0.64), and the most a gap may be.
+    static let defaultGap = 0.36
+    static let maxGap = 0.8
+
+    /// A line's weight, as set, from thinnest to thickest.
+    static let minLineWidth = 1.0
+    static let maxLineWidth = 12.0
+
+    /// The icon a pictogram is drawn in when it names none.
+    static let defaultIcon = "person"
+
+    /// The icons in a pictogram's row.
+    static let pictogramIcons = 10
+
+    /// `spec`'s donut or ring hole within 0.3…0.85, or its kind's own.
+    static func hole(of spec: ChartSpec) -> Double {
+        let own = spec.kind == ChartKind.donut.rawValue ? donutHole : ringHole
+        guard let hole = spec.hole, hole.isFinite else { return own }
+        return min(max(hole, minHole), maxHole)
+    }
+
+    /// `spec`'s bar gap within 0…0.8, or defaultGap.
+    static func gap(of spec: ChartSpec) -> Double {
+        guard let gap = spec.gap, gap.isFinite else { return defaultGap }
+        return min(max(gap, 0), maxGap)
+    }
+
+    /// The stroke of a line chart's lines (and a radar's outlines) in
+    /// `frame`: the chart's lineWidth, 1 to 12, as it is on a frame 300 on
+    /// its shorter side, scaled to `frame`'s — whole and at least 1.
+    /// `fallback`, as it was always drawn, when the chart sets none. The
+    /// Android twin's `lineWeight`.
+    static func lineWeight(_ spec: ChartSpec, frame: CGRect, fallback: Double) -> Double {
+        guard let set = spec.lineWidth, set.isFinite else { return fallback }
+        let width = min(max(set, minLineWidth), maxLineWidth)
+        return max(1, (width * min(Double(frame.width), Double(frame.height)) / 300).rounded())
+    }
+
+    /// The separator between groups of three digits as the app's language
+    /// writes it — "." in German, a narrow space in French — read each time
+    /// a value is grouped; tests set it. A value's decimal point is a "."
+    /// whatever the language.
+    static var grouping: () -> String = { DataGraphics.groupingSeparator(for: AppLanguage.current()) }
+
+    /// The grouping separator `code` writes: "," in English.
+    static func groupingSeparator(for code: String) -> String {
+        let f = NumberFormatter()
+        f.locale = Locale(identifier: code)
+        return f.groupingSeparator ?? ","
+    }
+
+    /// A value as `spec`'s labels write it, the same on both phones:
+    /// - with no prefix, suffix, decimals or compact set, valueText, as a
+    ///   chart always wrote it;
+    /// - compact: from a thousand on, the value over the largest of 1e12
+    ///   "T", 1e9 "B", 1e6 "M" and 1e3 "k" it reaches, to its decimals, or
+    ///   to the tenth with a trailing ".0" dropped when it sets none —
+    ///   "1.2k", "3.4M", "12M"; below a thousand as without compact;
+    /// - decimals: exactly that many after a "." whatever the language,
+    ///   halves away from zero, the whole part grouped by threes with the
+    ///   app language's separator (grouping) — "1,234.50"; without, the
+    ///   hundredth at most and no grouping, as valueText;
+    /// - from 1e13 on, past a compact "T", valueText's power of ten;
+    /// - the sign, then the prefix, the number and the suffix: "-$5".
+    /// The Android twin's `formatValue` (the test rows are shared).
+    static func formatValue(_ v: Double, _ spec: ChartSpec) -> String {
+        let prefix = ChartSpec.affix(spec.prefix) ?? ""
+        let suffix = ChartSpec.affix(spec.suffix) ?? ""
+        let plain = prefix.isEmpty && suffix.isEmpty && spec.decimals == nil && !spec.compact
+        if plain || !v.isFinite { return valueText(v) }
+        let decimals = spec.decimals.map { min(max($0, 0), 3) }
+        let a = abs(v)
+        let units: [(Double, String)] = [(1e12, "T"), (1e9, "B"), (1e6, "M"), (1e3, "k")]
+        let unit = spec.compact ? units.first(where: { a >= $0.0 }) : nil
+        let number: String
+        if let unit, a / unit.0 < 1e13 {
+            let m = a / unit.0
+            number = (decimals.map { fixed(m, $0) } ?? trimmedTenth(m)) + unit.1
+        } else if a >= 1e13 {
+            number = valueText(a)
+        } else if let decimals {
+            number = fixed(a, decimals)
+        } else {
+            number = valueText(a)
+        }
+        // A value that rounds to nothing has no sign: "-0.00" is "0.00".
+        let negative = v < 0 && number.contains { $0 >= "1" && $0 <= "9" }
+        return (negative ? "-" : "") + prefix + number + suffix
+    }
+
+    /// A pie's or donut's slice as a share of the whole, `share` 0…1: a whole
+    /// percentage, "75%", or to the chart's decimals when it sets them,
+    /// "75.0%". A share has no prefix, suffix or compact form.
+    static func shareText(_ share: Double, _ spec: ChartSpec) -> String {
+        guard let decimals = spec.decimals else { return "\(Int((share * 100).rounded()))%" }
+        return fixed(share * 100, min(max(decimals, 0), 3)) + "%"
+    }
+
+    /// `a`, not negative, to exactly `decimals` places, halves away from
+    /// zero on its exact value (as Java's BigDecimal does on the Android
+    /// twin, so 2.675, a little under, is 2.67), its whole part grouped by
+    /// threes.
+    private static func fixed(_ a: Double, _ decimals: Int) -> String {
+        var exact = Decimal(string: exactDigits(a)) ?? Decimal(a)
+        var rounded = Decimal()
+        NSDecimalRound(&rounded, &exact, decimals, .plain)
+        var text = NSDecimalNumber(decimal: rounded).stringValue
+        // NSDecimalNumber drops trailing zeros: write them back.
+        let point = text.firstIndex(of: ".")
+        let have = point.map { text.distance(from: text.index(after: $0), to: text.endIndex) } ?? 0
+        if decimals > 0 {
+            if point == nil { text += "." }
+            text += String(repeating: "0", count: max(0, decimals - have))
+        }
+        let whole = String(text.prefix { $0 != "." })
+        return grouped(whole) + String(text.dropFirst(whole.count))
+    }
+
+    /// `a`'s exact binary value written out in decimal digits — every
+    /// double is a whole number over a power of two, so it ends — for the
+    /// rounding of `fixed` to see what the number truly is.
+    private static func exactDigits(_ a: Double) -> String {
+        guard a.isFinite, a < 1e16 else { return String(format: "%.0f", a) }
+        // 1074 places is the most any double needs; %.60f is ample below
+        // 1e16 for three places of rounding, as the error is far smaller.
+        return String(format: "%.60f", a)
+    }
+
+    /// `a` to the tenth, a ".0" dropped.
+    private static func trimmedTenth(_ a: Double) -> String {
+        let text = fixed(a, 1)
+        return text.hasSuffix(".0") ? String(text.dropLast(2)) : text
+    }
+
+    /// Digits `whole` grouped by threes from the right with `grouping`.
+    private static func grouped(_ whole: String) -> String {
+        guard whole.count > 3 else { return whole }
+        let sep = grouping()
+        var out = ""
+        for (i, c) in whole.enumerated() {
+            if i > 0 && (whole.count - i) % 3 == 0 { out += sep }
+            out.append(c)
+        }
+        return out
     }
 
     /// The colours a chart or a table is drawn in: the design's own, counted
@@ -343,8 +568,10 @@ enum DataGraphics {
     /// turn, labelled in `ink`, by the same maths as the Android twin's
     /// `chart` (the test vectors are shared); `heightFor` measures a label's
     /// box. Colour n — a series, or an item where each item has its own (one
-    /// series of columns or bars, and every pie) — is `colours[n]` when
-    /// given, else the palette's, and is the mark's part, "series:<n>".
+    /// series of columns or bars, and every pie, funnel and pictogram) — is
+    /// `colours[n]` when given, else the palette's, and is the mark's part,
+    /// "series:<n>". Every such part says what it shows for a screen reader
+    /// (ChartSpeech.partLabel), kept as its alt text.
     ///
     /// A legend takes a row along the bottom, value labels room above the
     /// columns or beside the bars (a stack's total, a slice's share), and
@@ -353,9 +580,13 @@ enum DataGraphics {
     /// kinds read the first value, clamped to 0...100, and write it
     /// themselves, with no legend.
     ///
-    /// `look` is the chart's text look and scale: its labels' font, ink and
-    /// size (labelSize), smooth lines and areas (smoothLine), and the scale's
-    /// ends (axisRange), against which values beyond them are held.
+    /// `look` is the chart's text look, scale and format: its labels' font,
+    /// ink and size (labelSize), smooth lines and areas (smoothLine), the
+    /// scale's ends (axisRange), against which values beyond them are held,
+    /// how values are written (formatValue), the axes' titles — a strip
+    /// along the foot and one up the left, the y title turned a quarter
+    /// anticlockwise — the hole, the bars' gap and rounded ends, the line's
+    /// weight and points, and a pictogram's icon.
     static func chart(_ kind: ChartKind, data: ChartData, in frame: CGRect, palette: [String],
                       ink pageInk: String = "#1f2430", legend: Bool = false, values: Bool = false,
                       gridlines: Bool = false, colours: [Int: Paint] = [:], group: String = UID.make("grp"),
@@ -367,6 +598,13 @@ enum DataGraphics {
         let count = max(1, data.names.count)
         var out: [Element] = []
         let labelSize: Double = Self.labelSize(look, in: frame)
+        // The chart's format, and what its parts say, read from its spec —
+        // the defaults for a chart drawn without one.
+        let spec: ChartSpec = {
+            var s = look ?? ChartSpec(id: "", kind: kind.rawValue, data: "")
+            s.kind = kind.rawValue
+            return s
+        }()
         // The labels' own font and ink, when the chart has them.
         let font = look?.font ?? "sans"
         let ink = look?.ink ?? pageInk
@@ -376,10 +614,14 @@ enum DataGraphics {
         let peak = rows.map { $0.values.max() ?? 0 }.max() ?? 0
         if (kind == .pie || kind == .donut) && total <= 0 { return [] }
         // Each item its own colour, rather than each series.
-        let byItem = kind == .pie || kind == .donut || (count == 1 && (kind == .column || kind == .bar))
+        let byItem = kind.colourByRow || (count == 1 && (kind == .column || kind == .bar))
         let faint = normalised(ink)
-        let legendH = legend && !kind.isProgress ? labelSize * 1.6 : 0
-        let plot = CGRect(x: frame.minX, y: frame.minY, width: frame.width, height: frame.height - legendH)
+        let legendH = legend && kind.hasLegend ? labelSize * 1.6 : 0
+        // An axis title takes a strip along the foot or up the left side.
+        let xTitleH: Double = kind.hasAxisTitles && spec.xTitle?.isEmpty == false ? labelSize * 1.6 : 0
+        let yTitleW: Double = kind.hasAxisTitles && spec.yTitle?.isEmpty == false ? labelSize * 1.6 : 0
+        let plot = CGRect(x: frame.minX + yTitleW, y: frame.minY, width: frame.width - yTitleW,
+                          height: frame.height - legendH - xTitleH)
 
         func paint(_ n: Int) -> Paint { colours[n] ?? .solid(colors[n % colors.count]) }
         func hex(_ n: Int) -> String { colours[n]?.primaryColor ?? colors[n % colors.count] }
@@ -387,6 +629,14 @@ enum DataGraphics {
         func part(_ el: Element, _ name: String) -> Element {
             var e = el
             e.chartPart = name
+            return e
+        }
+        /// Series part `n` for a reader: what it shows, as ChartSpeech says
+        /// it — row `row` of it, or the whole series at -1.
+        func said(_ el: Element, _ n: Int, _ row: Int) -> Element {
+            var e = part(el, "series:\(n)")
+            let words = ChartSpeech.partLabel(spec, data: data, part: "series:\(n)", index: row) ?? ""
+            e.altText = words.isEmpty ? nil : words
             return e
         }
         func label(_ text: String, x: Double, y: Double, w: Double, align: String = "center",
@@ -401,16 +651,37 @@ enum DataGraphics {
         }
         /// A value's label centred on `cx`, its foot at `foot`.
         func valueAbove(_ v: Double, cx: Double, foot: Double, w: Double) -> Element {
-            var t = label(valueText(v), x: 0, y: 0, w: max(w, labelSize * 3), part: "value")
+            var t = label(formatValue(v, spec), x: 0, y: 0, w: max(w, labelSize * 3), part: "value")
             t.x = cx - t.w / 2
             t.y = foot - labelSize * 0.3 - t.h
             return t
+        }
+        /// A value's label beside the end of a bar, centred on its height.
+        func valueBeside(_ v: Double, end: Double, y: Double, h: Double, valueW: Double) -> Element {
+            var t = label(formatValue(v, spec), x: end + labelSize * 0.3, y: 0, w: valueW - labelSize * 0.3,
+                          align: "left", part: "value")
+            t.y = y + (h - t.h) / 2
+            return t
+        }
+        /// A row's label to the left of a row of bars, stages or icons.
+        func rowLabel(_ text: String, top: Double, h: Double, labelW: Double) -> Element {
+            label(text, x: plot.minX, y: top + (h - labelSize * 1.25) / 2, w: labelW - labelSize * 0.5, align: "right")
         }
         func bar(w: Double, h: Double, x: Double, y: Double, fill: Paint) -> Element {
             var b = Element.shape("rect", w: w, h: h)
             b.x = x; b.y = y
             b.fill = fill
             return b
+        }
+        /// `b` with its far end rounded, a quarter of its shorter side, when
+        /// the chart rounds its bars: a column's top, a bar's right end.
+        func farEnd(_ b: Element, column: Bool) -> Element {
+            guard spec.roundBars else { return b }
+            var out = b
+            let r: Double = min(b.w, b.h) / 4
+            out.radius = r
+            out.corners = column ? [r, r, 0, 0] : [0, r, r, 0]
+            return out
         }
         func gridAcross(top: Double, plotH: Double) {
             guard gridlines else { return }
@@ -431,6 +702,8 @@ enum DataGraphics {
             s.pathData = path
             return s
         }
+        // The share of a slot a bar fills: its gap's rest.
+        let barShare: Double = spec.gap == nil ? 0.64 : 1 - gap(of: spec)
 
         /// A dot for each row's point in each series (parseScatter), 2.5%
         /// of the frame's shorter side across (whole, at least 2), centred
@@ -439,50 +712,245 @@ enum DataGraphics {
         /// the dots, gridlines across and down at quarters, and along the
         /// foot, where a line chart labels its rows, the x scale's ends, "0"
         /// on the left and the largest x on the right. An axis a px wide up
-        /// the left and one along the foot are always drawn. Each dot says
-        /// what it is, "<label>: <x>, <y>", for a reader. The Android twin's
-        /// layout, number for number.
+        /// the left and one along the foot are always drawn. A bubble chart's
+        /// (parseBubble) dots are its bubbles: the largest 15% of the plot's
+        /// shorter side across, each other's area in proportion to its size,
+        /// three quarters opaque. The Android twin's layout, number for
+        /// number.
         func scatter() {
+            let bubble = kind == .bubble
+            // A scatter's points are pairs, x and y; a bubble's, x, y and size.
+            let width = bubble ? 3 : 2
             let labelH: Double = labelSize * 1.6
             let valueH: Double = values ? labelH : 0
             let left = Double(plot.minX)
-            let width = Double(plot.width)
+            let plotW = Double(plot.width)
             let top: Double = Double(plot.minY) + valueH
             let plotH: Double = Double(plot.height) - labelH - valueH
             let pairs = 0..<count
-            let xPeak = rows.map { row in pairs.map { value(row, 2 * $0) }.max() ?? 0 }.max() ?? 0
-            let yPeak = rows.map { row in pairs.map { value(row, 2 * $0 + 1) }.max() ?? 0 }.max() ?? 0
+            let xPeak = rows.map { row in pairs.map { value(row, width * $0) }.max() ?? 0 }.max() ?? 0
+            let yPeak = rows.map { row in pairs.map { value(row, width * $0 + 1) }.max() ?? 0 }.max() ?? 0
+            let sizePeak: Double = bubble ? (rows.map { row in pairs.map { value(row, 3 * $0 + 2) }.max() ?? 0 }.max() ?? 0) : 0
             // The axis range is the y scale's: the x scale is the foot's.
             let range = axisRange(look, peak: yPeak)
             let dot: Double = max(2, (min(frame.width, frame.height) * 0.025).rounded())
+            let widest: Double = max(4, (min(plotW, plotH) * 0.15).rounded())
             gridAcross(top: top, plotH: plotH)
-            gridDown(left: left, plotW: width, top: top, plotH: plotH)
+            gridDown(left: left, plotW: plotW, top: top, plotH: plotH)
             let axis = Paint.solid(faint + "66")
             out.append(part(bar(w: 1, h: plotH.rounded(), x: left.rounded(), y: top.rounded(), fill: axis), "axis"))
-            out.append(part(bar(w: width.rounded(), h: 1, x: left.rounded(), y: (top + plotH).rounded(), fill: axis), "axis"))
+            out.append(part(bar(w: plotW.rounded(), h: 1, x: left.rounded(), y: (top + plotH).rounded(), fill: axis), "axis"))
             for j in pairs {
-                for row in rows {
-                    let x = value(row, 2 * j)
-                    let y = value(row, 2 * j + 1)
-                    let across: Double = xPeak > 0 ? width * x / xPeak : 0
+                for (i, row) in rows.enumerated() {
+                    let x = value(row, width * j)
+                    let y = value(row, width * j + 1)
+                    var across = dot
+                    if bubble {
+                        across = sizePeak > 0 ? max(2, (widest * (value(row, 3 * j + 2) / sizePeak).squareRoot()).rounded()) : 2
+                    }
+                    let along: Double = xPeak > 0 ? plotW * x / xPeak : 0
                     let up: Double = range.high > range.low
                         ? plotH * (min(max(y, range.low), range.high) - range.low) / (range.high - range.low) : 0
-                    let cx: Double = left + across
+                    let cx: Double = left + along
                     let cy: Double = top + plotH - up
-                    var mark = Element.shape("circle", w: dot, h: dot)
-                    mark.x = (cx - dot / 2).rounded()
-                    mark.y = (cy - dot / 2).rounded()
+                    var mark = Element.shape("circle", w: across, h: across)
+                    mark.x = (cx - across / 2).rounded()
+                    mark.y = (cy - across / 2).rounded()
                     mark.fill = paint(j)
-                    mark.altText = "\(row.label): \(valueText(x)), \(valueText(y))"
-                    out.append(part(mark, "series:\(j)"))
-                    if values { out.append(valueAbove(y, cx: cx, foot: cy - dot / 2, w: 0)) }
+                    if bubble { mark.opacity = 0.75 }
+                    out.append(said(mark, j, i))
+                    if values { out.append(valueAbove(y, cx: cx, foot: cy - across / 2, w: 0)) }
                 }
             }
             let foot: Double = top + plotH + labelSize * 0.3
             out.append(label("0", x: left, y: foot, w: labelSize * 3, align: "left"))
-            var end = label(valueText(xPeak), x: 0, y: foot, w: labelSize * 3, align: "right")
-            end.x = left + width - end.w
+            var end = label(formatValue(xPeak, spec), x: 0, y: foot, w: labelSize * 3, align: "right")
+            end.x = left + plotW - end.w
             out.append(end)
+        }
+
+        /// A spoke for each row, clockwise from twelve o'clock; each series
+        /// a closed outline across them, 60% opaque, its rows' labels just
+        /// beyond the spokes' ends; gridlines are concentric polygons at
+        /// quarters of the scale. The Android twin's radar.
+        func radar() {
+            let n = rows.count
+            let labelH: Double = labelSize * 1.6
+            let r: Double = max(1, min(Double(plot.width), Double(plot.height)) / 2 - labelH)
+            let box = CGRect(x: plot.midX - r, y: plot.midY - r, width: 2 * r, height: 2 * r)
+            let range = axisRange(look, peak: peak)
+            func share(_ v: Double) -> Double {
+                guard range.high > range.low else { return 0 }
+                return (min(max(v, range.low), range.high) - range.low) / (range.high - range.low)
+            }
+            func angle(_ i: Int) -> Double { -Double.pi / 2 + 2 * Double.pi * Double(i) / Double(n) }
+            func at(_ i: Int, _ s: Double) -> CGPoint {
+                CGPoint(x: 50 + 50 * s * cos(angle(i)), y: 50 + 50 * s * sin(angle(i)))
+            }
+            if gridlines {
+                for g in 1...4 {
+                    let ring = polyline((0..<n).map { at($0, Double(g) / 4) }) + " Z"
+                    var grid = shape(ring, x: box.minX, y: box.minY, w: box.width, h: box.height, fill: .solid("#00000000"))
+                    grid.stroke = faint + "33"
+                    grid.strokeWidth = 1
+                    out.append(part(grid, "grid"))
+                }
+            }
+            let weight = lineWeight(spec, frame: frame, fallback: max(2, (r * 0.02).rounded()))
+            for j in 0..<count {
+                let outline = polyline(rows.indices.map { at($0, share(value(rows[$0], j))) }) + " Z"
+                var mark = shape(outline, x: box.minX, y: box.minY, w: box.width, h: box.height, fill: paint(j))
+                mark.stroke = hex(j)
+                mark.strokeWidth = weight
+                mark.opacity = 0.6
+                out.append(said(mark, j, -1))
+                if values {
+                    for (i, row) in rows.enumerated() {
+                        let p = at(i, share(value(row, j)))
+                        out.append(valueAbove(value(row, j), cx: box.minX + p.x / 100 * box.width,
+                                              foot: box.minY + p.y / 100 * box.height, w: 0))
+                    }
+                }
+            }
+            for (i, row) in rows.enumerated() {
+                var t = label(row.label, x: 0, y: 0, w: labelSize * 6)
+                let reach: Double = r + labelH / 2
+                t.x = plot.midX + reach * cos(angle(i)) - t.w / 2
+                t.y = plot.midY + reach * sin(angle(i)) - t.h / 2
+                out.append(t)
+            }
+        }
+
+        /// A stage a row, in the order typed, each a trapezoid centred on
+        /// the plot: as wide at its top as its value is of the largest,
+        /// narrowing to the next stage's width (the last keeping its own);
+        /// its value inside, its label to the left.
+        func funnel() {
+            let labelW: Double = min(plot.width * 0.28, labelSize * 9)
+            let plotW: Double = plot.width - labelW
+            let left: Double = plot.minX + labelW
+            let slot: Double = plot.height / Double(rows.count)
+            let bandH: Double = slot * 0.9
+            let widest = firsts.max() ?? 0
+            let widths = firsts.map { widest > 0 ? $0 / widest : 0 }
+            for (i, row) in rows.enumerated() {
+                let top: Double = plot.minY + slot * Double(i) + (slot - bandH) / 2
+                let a = widths[i]
+                let b = i + 1 < widths.count ? widths[i + 1] : a
+                if a > 0 || b > 0 {
+                    let path = "M\(num(50 - 50 * a)) 0 L\(num(50 + 50 * a)) 0 L\(num(50 + 50 * b)) 100 L\(num(50 - 50 * b)) 100 Z"
+                    out.append(said(shape(path, x: left, y: top, w: plotW, h: bandH, fill: paint(i)), i, i))
+                }
+                var t = label(formatValue(firsts[i], spec), x: left, y: 0, w: plotW, part: "value")
+                // On the stage when it is wide enough for it, else in the labels' ink.
+                let inside = plotW * min(a, b) >= labelSize * 3
+                t.y = top + (bandH - t.h) / 2
+                t.color = inside ? ColorTheory.readableInk(on: hex(i)) : ink
+                out.append(t)
+                out.append(rowLabel(row.label, top: top, h: bandH, labelW: labelW))
+            }
+        }
+
+        /// Each row's first value as a row of ten icons: whole icons in its
+        /// colour, the last partly so (its icon cut at the share left over,
+        /// clippedPath), the rest faint. Each icon stands for 1 when no value
+        /// passes 10, else a tenth of the largest.
+        func pictogram() {
+            let icon = IconLibrary.icon(spec.icon ?? defaultIcon) ?? IconLibrary.icon(defaultIcon)
+            let outline = icon?.path ?? wedge(from: 0, sweep: 2 * .pi, inner: 0)
+            let labelW: Double = min(plot.width * 0.28, labelSize * 9)
+            let valueW: Double = values ? labelSize * 4 : 0
+            let areaW: Double = plot.width - labelW - valueW
+            let left: Double = plot.minX + labelW
+            let slot: Double = plot.height / Double(rows.count)
+            let icons = Double(pictogramIcons)
+            let step: Double = areaW / icons
+            let side: Double = max(1, min(step * 0.9, slot * 0.8).rounded())
+            let widest = firsts.max() ?? 0
+            let unit: Double = widest <= icons ? 1 : widest / icons
+            for (i, row) in rows.enumerated() {
+                let top: Double = (plot.minY + slot * Double(i) + (slot - side) / 2).rounded()
+                let reached = min(max(firsts[i] / unit, 0), icons)
+                for k in 0..<pictogramIcons {
+                    let x: Double = left + step * Double(k) + (step - side) / 2
+                    let filled = min(max(reached - Double(k), 0), 1)
+                    if filled < 1 {
+                        out.append(part(shape(outline, x: x, y: top, w: side, h: side, fill: .solid(faint + "22")), "axis"))
+                    }
+                    if filled > 0 {
+                        let cut = filled >= 1 ? outline : clippedPath(outline, upTo: filled * 100)
+                        out.append(said(shape(cut, x: x, y: top, w: side, h: side, fill: paint(i)), i, i))
+                    }
+                }
+                if values { out.append(valueBeside(firsts[i], end: left + areaW, y: top, h: side, valueW: valueW)) }
+                out.append(rowLabel(row.label, top: top, h: side, labelW: labelW))
+            }
+        }
+
+        /// A cell for each row and series, the series' names across the top
+        /// and the rows' labels down the left; every cell series 0's colour,
+        /// as opaque as its value is from 15% (the least) to 100% (the most)
+        /// — all 100% when the values are the same. Its cells are all
+        /// "series:0", numbered row by row for a reader.
+        func heatmap() {
+            let labelW: Double = min(plot.width * 0.28, labelSize * 9)
+            let headH: Double = labelSize * 1.6
+            let left: Double = plot.minX + labelW
+            let cellW: Double = (plot.width - labelW) / Double(count)
+            let cellH: Double = (plot.height - headH) / Double(rows.count)
+            let all = rows.flatMap { row in (0..<count).map { value(row, $0) } }
+            let least = all.min() ?? 0
+            let most = all.max() ?? 0
+            func shade(_ v: Double) -> Double { most > least ? 0.15 + 0.85 * (v - least) / (most - least) : 1 }
+            for (j, name) in data.names.enumerated() {
+                out.append(label(name, x: left + cellW * Double(j), y: plot.minY + (headH - labelSize * 1.25) / 2, w: cellW))
+            }
+            for (i, row) in rows.enumerated() {
+                let top: Double = plot.minY + headH + cellH * Double(i)
+                for j in 0..<count {
+                    let v = value(row, j)
+                    var cell = bar(w: max(1, cellW.rounded() - 2), h: max(1, cellH.rounded() - 2),
+                                   x: (left + cellW * Double(j)).rounded() + 1, y: top.rounded() + 1, fill: paint(0))
+                    cell.opacity = shade(v)
+                    out.append(said(cell, 0, i * count + j))
+                    if values {
+                        var t = label(formatValue(v, spec), x: left + cellW * Double(j), y: 0, w: cellW, part: "value")
+                        t.y = top + (cellH - t.h) / 2
+                        t.color = shade(v) > 0.5 ? ColorTheory.readableInk(on: hex(0)) : ink
+                        out.append(t)
+                    }
+                }
+                out.append(rowLabel(row.label, top: top, h: cellH, labelW: labelW))
+            }
+        }
+
+        /// A ring all the way round from twelve o'clock, or a dial: a 240°
+        /// arc from the lower left round to the lower right; the first value
+        /// as a percentage filled and written in the middle.
+        func progressArc(dial: Bool) {
+            let start: Double = dial ? Double.pi * 5 / 6 : -Double.pi / 2
+            let sweep: Double = dial ? Double.pi * 4 / 3 : 2 * Double.pi
+            let inner: Double = dial ? ringHole : hole(of: spec)
+            let percent = min(100, max(0, firsts[0]))
+            let side: Double = min(frame.width, frame.height)
+            let left: Double = frame.midX - side / 2
+            let top: Double = frame.midY - side / 2
+            out.append(part(shape(wedge(from: start, sweep: sweep, inner: inner),
+                                  x: left, y: top, w: side, h: side, fill: .solid(faint + "22")), "axis"))
+            if percent > 0 {
+                out.append(said(shape(wedge(from: start, sweep: sweep * percent / 100, inner: inner),
+                                      x: left, y: top, w: side, h: side, fill: paint(0)), 0, 0))
+            }
+            let figure: Double = (max(10, (side * 0.2).rounded()) * (look.map(textScale(of:)) ?? 1)).rounded()
+            var t = Element.text("\(Int(percent.rounded()))%", fontSize: figure, w: side.rounded())
+            t.align = "center"
+            t.fontWeight = 700
+            t.color = ink
+            t.fontFamily = font
+            t.x = left.rounded()
+            t.h = heightFor(t)
+            t.y = frame.midY - t.h / 2
+            out.append(part(t, "value"))
         }
 
         switch kind {
@@ -494,7 +962,7 @@ enum DataGraphics {
             let plotH: Double = plot.height - labelH - valueH
             let base: Double = top + plotH
             let slot: Double = plot.width / Double(rows.count)
-            let barW: Double = slot * 0.64
+            let barW: Double = slot * barShare
             let range = axisRange(look, peak: stacked ? (rows.map { $0.values.reduce(0, +) }.max() ?? 0) : peak)
             // How far up the plot `v` stands, held to the scale.
             func up(_ v: Double) -> Double {
@@ -506,10 +974,13 @@ enum DataGraphics {
                 let left: Double = plot.minX + slot * Double(i) + (slot - barW) / 2
                 if stacked {
                     var below = 0.0
+                    // Only the top segment of a stack has its end rounded.
+                    let last = row.values.lastIndex { $0 > 0 }
                     for (j, v) in row.values.enumerated() where v > 0 && range.high > range.low {
                         let y0 = (base - up(below + v)).rounded()
                         let y1 = (base - up(below)).rounded()
-                        out.append(part(bar(w: barW.rounded(), h: y1 - y0, x: left.rounded(), y: y0, fill: paint(j)), "series:\(j)"))
+                        let segment = bar(w: barW.rounded(), h: y1 - y0, x: left.rounded(), y: y0, fill: paint(j))
+                        out.append(said(j == last ? farEnd(segment, column: true) : segment, j, i))
                         below += v
                     }
                     let sum = row.values.reduce(0, +)
@@ -523,8 +994,8 @@ enum DataGraphics {
                         let h = up(v)
                         let x = left + w * Double(s)
                         let n = byItem ? i : s
-                        out.append(part(bar(w: w.rounded(), h: max(1, h.rounded()), x: x.rounded(), y: (base - h).rounded(),
-                                            fill: paint(n)), "series:\(n)"))
+                        let b = bar(w: w.rounded(), h: max(1, h.rounded()), x: x.rounded(), y: (base - h).rounded(), fill: paint(n))
+                        out.append(said(farEnd(b, column: true), n, i))
                         if values { out.append(valueAbove(v, cx: x + w / 2, foot: base - h, w: w)) }
                     }
                 }
@@ -537,7 +1008,7 @@ enum DataGraphics {
             let plotW: Double = plot.width - labelW - valueW
             let left: Double = plot.minX + labelW
             let slot: Double = plot.height / Double(rows.count)
-            let barH: Double = slot * 0.64
+            let barH: Double = slot * barShare
             let range = axisRange(look, peak: stacked ? (rows.map { $0.values.reduce(0, +) }.max() ?? 0) : peak)
             // How far along the plot `v` reaches, held to the scale.
             func along(_ v: Double) -> Double {
@@ -545,24 +1016,21 @@ enum DataGraphics {
                 return plotW * (min(max(v, range.low), range.high) - range.low) / (range.high - range.low)
             }
             gridDown(left: left, plotW: plotW, top: Double(plot.minY), plotH: Double(plot.height))
-            func valueBeside(_ v: Double, end: Double, y: Double, h: Double) -> Element {
-                var t = label(valueText(v), x: end + labelSize * 0.3, y: 0, w: valueW - labelSize * 0.3, align: "left", part: "value")
-                t.y = y + (h - t.h) / 2
-                return t
-            }
             for (i, row) in rows.enumerated() {
                 let top: Double = (plot.minY + slot * Double(i) + (slot - barH) / 2).rounded()
                 if stacked {
                     var before = 0.0
+                    let last = row.values.lastIndex { $0 > 0 }
                     for (j, v) in row.values.enumerated() where v > 0 && range.high > range.low {
                         let x0 = (left + along(before)).rounded()
                         let x1 = (left + along(before + v)).rounded()
-                        out.append(part(bar(w: x1 - x0, h: barH.rounded(), x: x0, y: top, fill: paint(j)), "series:\(j)"))
+                        let segment = bar(w: x1 - x0, h: barH.rounded(), x: x0, y: top, fill: paint(j))
+                        out.append(said(j == last ? farEnd(segment, column: false) : segment, j, i))
                         before += v
                     }
                     let sum = row.values.reduce(0, +)
                     if values {
-                        out.append(valueBeside(sum, end: left + along(sum), y: top, h: barH.rounded()))
+                        out.append(valueBeside(sum, end: left + along(sum), y: top, h: barH.rounded(), valueW: valueW))
                     }
                 } else {
                     let h = barH / Double(count)
@@ -572,29 +1040,27 @@ enum DataGraphics {
                         let n = byItem ? i : s
                         let b = bar(w: max(1, w.rounded()), h: h.rounded(), x: left.rounded(),
                                     y: (plot.minY + slot * Double(i) + (slot - barH) / 2 + h * Double(s)).rounded(), fill: paint(n))
-                        out.append(part(b, "series:\(n)"))
-                        if values { out.append(valueBeside(v, end: b.x + b.w, y: b.y, h: b.h)) }
+                        out.append(said(farEnd(b, column: false), n, i))
+                        if values { out.append(valueBeside(v, end: b.x + b.w, y: b.y, h: b.h, valueW: valueW)) }
                     }
                 }
-                out.append(label(row.label, x: plot.minX, y: top + (barH - labelSize * 1.25) / 2, w: labelW - labelSize * 0.5, align: "right"))
+                out.append(rowLabel(row.label, top: top, h: barH, labelW: labelW))
             }
         case .pie, .donut:
             let side: Double = min(plot.width, plot.height)
             let left: Double = plot.midX - side / 2
             let top: Double = plot.midY - side / 2
-            let inner = kind == .donut ? 0.55 : 0
+            let inner = kind == .donut ? hole(of: spec) : 0
             var start = -Double.pi / 2
             for (i, v) in firsts.enumerated() where v > 0 {
                 let sweep = 2 * .pi * v / total
-                let share = "\(Int((v / total * 100).rounded()))%"
-                var slice = shape(wedge(from: start, sweep: sweep, inner: inner), x: left, y: top, w: side, h: side, fill: paint(i))
-                slice.altText = "\(rows[i].label): \(share)"
-                out.append(part(slice, "series:\(i)"))
+                let slice = shape(wedge(from: start, sweep: sweep, inner: inner), x: left, y: top, w: side, h: side, fill: paint(i))
+                out.append(said(slice, i, i))
                 if values {
                     // Halfway across the slice, in ink that reads on it.
                     let middle = start + sweep / 2
                     let reach = side / 2 * (inner > 0 ? (1 + inner) / 2 : 0.62)
-                    var t = label(share, x: 0, y: 0, w: labelSize * 3, part: "value")
+                    var t = label(shareText(v / total, spec), x: 0, y: 0, w: labelSize * 3, part: "value")
                     t.x = plot.midX + reach * cos(middle) - t.w / 2
                     t.y = plot.midY + reach * sin(middle) - t.h / 2
                     t.color = ColorTheory.readableInk(on: hex(i))
@@ -614,6 +1080,7 @@ enum DataGraphics {
                 guard range.high > range.low else { return 0 }
                 return (min(max(v, range.low), range.high) - range.low) / (range.high - range.low)
             }
+            let weight = lineWeight(spec, frame: frame, fallback: max(2, (plotH * 0.02).rounded()))
             gridAcross(top: top, plotH: plotH)
             for s in 0..<count {
                 let points = rows.enumerated().map { i, row in
@@ -625,13 +1092,26 @@ enum DataGraphics {
                 if kind == .line {
                     mark = shape(through, x: plot.minX, y: top, w: plot.width, h: plotH, fill: .solid("#00000000"))
                     mark.stroke = hex(s)
-                    mark.strokeWidth = max(2, (plotH * 0.02).rounded())
+                    mark.strokeWidth = weight
                 } else {
                     mark = shape(through + " L100 100 L0 100 Z", x: plot.minX, y: top, w: plot.width, h: plotH, fill: paint(s))
                     // Several areas overlap, so each lets the others show.
                     mark.opacity = count > 1 ? 0.7 : 1
                 }
-                out.append(part(mark, "series:\(s)"))
+                out.append(said(mark, s, -1))
+                if spec.points {
+                    // A dot on each point, two and a half times the line's weight across.
+                    let dot: Double = max(4, (weight * 2.5).rounded())
+                    for (i, row) in rows.enumerated() {
+                        let cx: Double = plot.minX + Double(i) / Double(n) * plot.width
+                        let cy: Double = top + plotH - plotH * share(value(row, s))
+                        var d = Element.shape("circle", w: dot, h: dot)
+                        d.x = (cx - dot / 2).rounded()
+                        d.y = (cy - dot / 2).rounded()
+                        d.fill = paint(s)
+                        out.append(said(d, s, i))
+                    }
+                }
                 if values {
                     for (i, row) in rows.enumerated() {
                         let v = value(row, s)
@@ -645,29 +1125,18 @@ enum DataGraphics {
                 out.append(label(row.label, x: plot.minX + Double(i) / Double(n) * plot.width - slot / 2,
                                  y: top + plotH + labelSize * 0.3, w: slot))
             }
-        case .scatter:
+        case .scatter, .bubble:
             scatter()
-        case .progressRing:
-            let percent = min(100, max(0, firsts[0]))
-            let side: Double = min(frame.width, frame.height)
-            let left: Double = frame.midX - side / 2
-            let top: Double = frame.midY - side / 2
-            out.append(part(shape(wedge(from: -Double.pi / 2, sweep: 2 * .pi, inner: 0.8),
-                                  x: left, y: top, w: side, h: side, fill: .solid(faint + "22")), "axis"))
-            if percent > 0 {
-                out.append(part(shape(wedge(from: -Double.pi / 2, sweep: 2 * .pi * percent / 100, inner: 0.8),
-                                      x: left, y: top, w: side, h: side, fill: paint(0)), "series:0"))
-            }
-            let figure: Double = (max(10, (side * 0.2).rounded()) * (look.map(textScale(of:)) ?? 1)).rounded()
-            var t = Element.text("\(Int(percent.rounded()))%", fontSize: figure, w: side.rounded())
-            t.align = "center"
-            t.fontWeight = 700
-            t.color = ink
-            t.fontFamily = font
-            t.x = left.rounded()
-            t.h = heightFor(t)
-            t.y = frame.midY - t.h / 2
-            out.append(part(t, "value"))
+        case .radar:
+            radar()
+        case .funnel:
+            funnel()
+        case .pictogram:
+            pictogram()
+        case .heatmap:
+            heatmap()
+        case .progressRing, .progressDial:
+            progressArc(dial: kind == .progressDial)
         case .progressBar:
             let percent = min(100, max(0, firsts[0]))
             let labelW: Double = labelSize * 4
@@ -680,7 +1149,7 @@ enum DataGraphics {
             if percent > 0 {
                 var done = bar(w: max(1, (plotW * percent / 100).rounded()), h: barH, x: frame.minX.rounded(), y: top, fill: paint(0))
                 done.radius = barH / 2
-                out.append(part(done, "series:0"))
+                out.append(said(done, 0, 0))
             }
             var t = label("\(Int(percent.rounded()))%", x: frame.minX + plotW + labelSize * 0.5, y: 0,
                           w: labelW - labelSize * 0.5, align: "left", part: "value")
@@ -688,6 +1157,20 @@ enum DataGraphics {
             out.append(t)
         }
 
+        if xTitleH > 0 {
+            var t = label(spec.xTitle ?? "", x: plot.minX, y: 0, w: plot.width, part: "axisTitle")
+            t.y = plot.minY + plot.height + (xTitleH - t.h) / 2
+            out.append(t)
+        }
+        if yTitleW > 0 {
+            // Turned a quarter anticlockwise about its middle, which sits in
+            // the middle of the strip up the left of the plot.
+            var t = label(spec.yTitle ?? "", x: 0, y: 0, w: plot.height, part: "axisTitle")
+            t.x = frame.minX + yTitleW / 2 - t.w / 2
+            t.y = plot.midY - t.h / 2
+            t.rotation = -90
+            out.append(t)
+        }
         if legendH > 0 {
             // What each colour is: the items' labels where each item has its
             // own, else the series' names — a swatch and a word each, across.
@@ -793,9 +1276,129 @@ enum DataGraphics {
     }
 
     /// The turn every one of a chart's `members` has; 0 when they differ.
+    /// A y axis title is turned a quarter of its own, so it does not count
+    /// — so long as it is the chart's turn and that quarter. The Android
+    /// twin's `turnOf`.
     static func turn(of members: [Element]) -> Double {
-        let turns = Set(members.map(\.rotation))
-        return turns.count == 1 ? turns.first ?? 0 : 0
+        let titles = members.filter { $0.chartPart == "axisTitle" }
+        let upright = titles.count == members.count ? members : members.filter { $0.chartPart != "axisTitle" }
+        let turns = Set(upright.map(\.rotation))
+        guard turns.count == 1, let turn = turns.first else { return 0 }
+        func off(_ el: Element, _ by: Double) -> Bool {
+            let d = ((el.rotation - turn + by).truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
+            return abs(d) < 1e-6 || abs(d - 360) < 1e-6
+        }
+        return titles.allSatisfy { off($0, 0) || off($0, 90) } ? turn : 0
+    }
+
+    /// Slice or arc `el` — a pie's or donut's "series:<n>", a progress
+    /// ring's or dial's "series:0" — drawn to `share` of its sweep from where
+    /// it starts, as the Grow entrance sweeps it round: the wedge chart
+    /// made, made again from its spec with its sweep times `share`. `el`
+    /// itself for anything else, or a share of 1 or more. The Android twin's
+    /// `swept`.
+    static func swept(_ el: Element, share: Double) -> Element {
+        guard share < 1, let spec = el.chart, let kind = ChartKind(rawValue: spec.kind),
+              let part = el.chartPart, part.hasPrefix("series:"),
+              let n = Int(part.dropFirst("series:".count)) else { return el }
+        let firsts = chartData(spec.data, kind: kind).rows.map { $0.values.first ?? 0 }
+        let f = min(max(share, 0), 1)
+        var out = el
+        switch kind {
+        case .pie, .donut:
+            let total = firsts.reduce(0, +)
+            guard n >= 0, n < firsts.count, firsts[n] > 0, total > 0 else { return el }
+            let before = firsts.prefix(n).filter { $0 > 0 }.reduce(0.0) { $0 + 2 * Double.pi * $1 / total }
+            let sweep: Double = 2 * .pi * firsts[n] / total * f
+            out.pathData = wedge(from: -.pi / 2 + before, sweep: sweep, inner: kind == .donut ? hole(of: spec) : 0)
+        case .progressRing, .progressDial:
+            guard let first = firsts.first else { return el }
+            let dial = kind == .progressDial
+            let percent = min(100, max(0, first))
+            let whole: Double = dial ? .pi * 4 / 3 : 2 * .pi
+            out.pathData = wedge(from: dial ? .pi * 5 / 6 : -.pi / 2, sweep: whole * percent / 100 * f,
+                                 inner: dial ? ringHole : hole(of: spec))
+        default:
+            return el
+        }
+        return out
+    }
+
+    /// `path` — an icon's, of M, L, C and Z in the 0…100 box — cut off at
+    /// x = `upTo`, the part to its left kept: each curve flattened to 8
+    /// straight steps and each closed piece clipped to the half-plane
+    /// (Sutherland–Hodgman), written as polyline writes points, each piece
+    /// closed. A piece wholly cut away goes. How a pictogram's last icon
+    /// shows the share of it its value reaches. The Android twin's
+    /// `clippedPath` (the test rows are shared).
+    static func clippedPath(_ path: String, upTo: Double) -> String {
+        let pattern = try? NSRegularExpression(pattern: "[MLCZmlcz]|-?\\d*\\.?\\d+(?:[eE][+-]?\\d+)?")
+        let whole = NSRange(path.startIndex..., in: path)
+        let tokens: [String] = (pattern?.matches(in: path, range: whole) ?? []).compactMap { m in
+            Range(m.range, in: path).map { String(path[$0]) }
+        }
+        var pieces: [[CGPoint]] = []
+        // The piece being drawn, as its index in `pieces`.
+        var current: Int?
+        var i = 0
+        var command: Character = "M"
+        func next() -> Double {
+            defer { i += 1 }
+            return i < tokens.count ? Double(tokens[i]) ?? 0 : 0
+        }
+        reading: while i < tokens.count {
+            let token = tokens[i]
+            if token.count == 1, let c = token.first, c.isLetter {
+                command = Character(c.uppercased())
+                i += 1
+                if command == "Z" { current = nil }
+                continue
+            }
+            switch command {
+            case "M":
+                let p = CGPoint(x: next(), y: next())
+                pieces.append([p])
+                current = pieces.count - 1
+                command = "L"
+            case "L":
+                let p = CGPoint(x: next(), y: next())
+                if let k = current {
+                    pieces[k].append(p)
+                } else {
+                    pieces.append([p])
+                    current = pieces.count - 1
+                }
+            case "C":
+                guard let k = current, let p0 = pieces[k].last else { break reading }
+                let c1 = CGPoint(x: next(), y: next())
+                let c2 = CGPoint(x: next(), y: next())
+                let p3 = CGPoint(x: next(), y: next())
+                for step in 1...8 {
+                    let t = Double(step) / 8
+                    let u = 1 - t
+                    let a: Double = u * u * u, b: Double = 3 * u * u * t, c: Double = 3 * u * t * t, d: Double = t * t * t
+                    pieces[k].append(CGPoint(x: a * p0.x + b * c1.x + c * c2.x + d * p3.x,
+                                             y: a * p0.y + b * c1.y + c * c2.y + d * p3.y))
+                }
+            default:
+                i += 1
+            }
+        }
+        var out: [String] = []
+        for piece in pieces {
+            var kept: [CGPoint] = []
+            for k in piece.indices {
+                let a = piece[k]
+                let b = piece[(k + 1) % piece.count]
+                let aIn = a.x <= upTo
+                let bIn = b.x <= upTo
+                if aIn { kept.append(a) }
+                if aIn != bIn { kept.append(CGPoint(x: upTo, y: a.y + (b.y - a.y) * (upTo - a.x) / (b.x - a.x))) }
+            }
+            guard kept.count >= 3 else { continue }
+            out.append(polyline(kept) + " Z")
+        }
+        return out.joined(separator: " ")
     }
 
     /// `made`, drawn upright, given what `members` had as a whole: turned by

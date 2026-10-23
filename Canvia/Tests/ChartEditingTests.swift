@@ -111,10 +111,10 @@ final class ChartEditingTests: XCTestCase {
         XCTAssertEqual(s.selectedChart?.id, spec.id)
         XCTAssertTrue(s.chartIsLocked(spec.id))
         // A kind from a newer build is kept as it is, not edited as another.
-        var radar = Element.shape("rect")
-        radar.chart = ChartSpec(kind: "radar", data: "A, 1")
-        s.applyToPage { $0.elements.append(radar) }
-        s.select(radar.id)
+        var sankey = Element.shape("rect")
+        sankey.chart = ChartSpec(kind: "sankey", data: "A, 1")
+        s.applyToPage { $0.elements.append(sankey) }
+        s.select(sankey.id)
         XCTAssertNil(s.selectedChart)
     }
 

@@ -18,6 +18,9 @@ enum ElementNames {
     /// one made from what it is.
     static func name(of el: Element) -> String {
         if let own = LayerNames.custom(of: el) { return own }
+        // Any part of a chart is its chart's summary, as a reader meets the
+        // chart as one thing — as on the Android twin.
+        if let chart = ChartSpeech.summary(of: el) { return chart }
         switch el.type {
         case .text:
             let words = RichText.strip(el.text ?? "").replacingOccurrences(of: "\n", with: " ")

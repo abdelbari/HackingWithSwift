@@ -98,6 +98,15 @@
     "ja": "%@、幅 %@",
     "pt-BR": "%@ e %@ de largura"
   },
+  "%@ area, from %@ to %@": {
+    "ar": "مساحة %@، من %@ إلى %@",
+    "de": "Fläche %@, von %@ bis %@",
+    "es": "Área %@, de %@ a %@",
+    "fr": "Aire %@, de %@ à %@",
+    "it": "Area %@, da %@ a %@",
+    "ja": "%@ の面、%@ から %@",
+    "pt-BR": "Área %@, de %@ a %@"
+  },
   "%@ arrow": {
     "ar": "سهم (%@)",
     "de": "Pfeil (%@)",
@@ -512,6 +521,15 @@
     "ja": "%@ 線",
     "pt-BR": "Linha %@"
   },
+  "%@ line, from %@ to %@": {
+    "ar": "خط %@، من %@ إلى %@",
+    "de": "Linie %@, von %@ bis %@",
+    "es": "Línea %@, de %@ a %@",
+    "fr": "Ligne %@, de %@ à %@",
+    "it": "Linea %@, da %@ a %@",
+    "ja": "%@ の線、%@ から %@",
+    "pt-BR": "Linha %@, de %@ a %@"
+  },
   "%@ long": {
     "ar": "بطول %@",
     "de": "%@ lang",
@@ -538,6 +556,15 @@
     "it": "Ottagono (%@)",
     "ja": "%@の八角形",
     "pt-BR": "Octógono (%@)"
+  },
+  "%@ of up to 10 icons.": {
+    "ar": "%@ من 10 أيقونات كحد أقصى.",
+    "de": "%@ mit bis zu 10 Symbolen.",
+    "es": "%@ de hasta 10 iconos.",
+    "fr": "%@ de 10 icônes au plus.",
+    "it": "%@ di massimo 10 icone.",
+    "ja": "最大 10 個のアイコンの %@。",
+    "pt-BR": "%@ de até 10 ícones."
   },
   "%@ options": {
     "ar": "خيارات %@",
@@ -944,6 +971,15 @@
     "ja": "%@ × %@、このページの色を使用。",
     "pt-BR": "%@ × %@, com cores desta página."
   },
+  "%@ × %@, shaded by value.": {
+    "ar": "%@ × %@، مظللة حسب القيمة.",
+    "de": "%@ × %@, nach Wert schattiert.",
+    "es": "%@ × %@, sombreado por valor.",
+    "fr": "%@ × %@, nuancé selon la valeur.",
+    "it": "%@ × %@, sfumato in base al valore.",
+    "ja": "%@ × %@、値で濃淡表示。",
+    "pt-BR": "%@ × %@, sombreado pelo valor."
+  },
   "%@ × %@; the first row is the header.": {
     "ar": "%@ × %@؛ الصف الأول هو العنوان.",
     "de": "%@ × %@; die erste Zeile ist die Kopfzeile.",
@@ -1006,6 +1042,15 @@
     "it": "%@, modello %@",
     "ja": "%@、%@ テンプレート",
     "pt-BR": "%@, modelo %@"
+  },
+  "%@, %@, %@, values %@ to %@": {
+    "ar": "%@، %@، %@، القيم من %@ إلى %@",
+    "de": "%@, %@, %@, Werte von %@ bis %@",
+    "es": "%@, %@, %@, valores de %@ a %@",
+    "fr": "%@, %@, %@, valeurs de %@ à %@",
+    "it": "%@, %@, %@, valori da %@ a %@",
+    "ja": "%@、%@、%@、値 %@～%@",
+    "pt-BR": "%@, %@, %@, valores de %@ a %@"
   },
   "%@, %@, %d ready-made designs|%@, %@, %d ready-made designs": {
     "ar": {
@@ -1084,6 +1129,15 @@
     "it": "%@, %@. Impossibile aprire il file.",
     "ja": "%@、%@。ファイルを開けません。",
     "pt-BR": "%@, %@. Não é possível abrir o arquivo."
+  },
+  "%@, %@: %@": {
+    "ar": "%@، %@: %@",
+    "de": "%@, %@: %@",
+    "es": "%@, %@: %@",
+    "fr": "%@, %@ : %@",
+    "it": "%@, %@: %@",
+    "ja": "%@、%@：%@",
+    "pt-BR": "%@, %@: %@"
   },
   "%@, %@s, %@": {
     "ar": "%@، %@ ث، %@",
@@ -1333,6 +1387,15 @@
     "it": "%@, in ordine.",
     "ja": "%@、順番どおり。",
     "pt-BR": "%@, em ordem."
+  },
+  "%@, in the order typed.": {
+    "ar": "%@، بالترتيب المكتوب.",
+    "de": "%@, in der eingegebenen Reihenfolge.",
+    "es": "%@, en el orden escrito.",
+    "fr": "%@, dans l’ordre saisi.",
+    "it": "%@, nell’ordine digitato.",
+    "ja": "%@、入力した順。",
+    "pt-BR": "%@, na ordem digitada."
   },
   "%@, in this design": {
     "ar": "%@، في هذا التصميم",
@@ -1787,6 +1850,39 @@
       "other": "%d kits de marca"
     }
   },
+  "%d bubble|%d bubbles": {
+    "ar": {
+      "few": "%d فقاعات",
+      "many": "%d فقاعة",
+      "one": "%d فقاعة",
+      "other": "%d فقاعة",
+      "two": "%d فقاعتان",
+      "zero": "%d فقاعة"
+    },
+    "de": {
+      "one": "%d Blase",
+      "other": "%d Blasen"
+    },
+    "es": {
+      "one": "%d burbuja",
+      "other": "%d burbujas"
+    },
+    "fr": {
+      "one": "%d bulle",
+      "other": "%d bulles"
+    },
+    "it": {
+      "one": "%d bolla",
+      "other": "%d bolle"
+    },
+    "ja": {
+      "other": "%d 個のバブル"
+    },
+    "pt-BR": {
+      "one": "%d bolha",
+      "other": "%d bolhas"
+    }
+  },
   "%d by %d": {
     "ar": "%d في %d",
     "de": "%d × %d",
@@ -1795,6 +1891,39 @@
     "it": "%d per %d",
     "ja": "%d × %d",
     "pt-BR": "%d por %d"
+  },
+  "%d category|%d categories": {
+    "ar": {
+      "few": "%d فئات",
+      "many": "%d فئة",
+      "one": "%d فئة",
+      "other": "%d فئة",
+      "two": "%d فئتان",
+      "zero": "%d فئة"
+    },
+    "de": {
+      "one": "%d Kategorie",
+      "other": "%d Kategorien"
+    },
+    "es": {
+      "one": "%d categoría",
+      "other": "%d categorías"
+    },
+    "fr": {
+      "one": "%d catégorie",
+      "other": "%d catégories"
+    },
+    "it": {
+      "one": "%d categoria",
+      "other": "%d categorie"
+    },
+    "ja": {
+      "other": "%d カテゴリ"
+    },
+    "pt-BR": {
+      "one": "%d categoria",
+      "other": "%d categorias"
+    }
   },
   "%d chart|%d charts": {
     "ar": {
@@ -3153,6 +3282,39 @@
     "pt-BR": {
       "one": "%d som",
       "other": "%d sons"
+    }
+  },
+  "%d stage|%d stages": {
+    "ar": {
+      "few": "%d مراحل",
+      "many": "%d مرحلة",
+      "one": "%d مرحلة",
+      "other": "%d مرحلة",
+      "two": "%d مرحلتان",
+      "zero": "%d مرحلة"
+    },
+    "de": {
+      "one": "%d Stufe",
+      "other": "%d Stufen"
+    },
+    "es": {
+      "one": "%d etapa",
+      "other": "%d etapas"
+    },
+    "fr": {
+      "one": "%d étape",
+      "other": "%d étapes"
+    },
+    "it": {
+      "one": "%d fase",
+      "other": "%d fasi"
+    },
+    "ja": {
+      "other": "%d 段階"
+    },
+    "pt-BR": {
+      "one": "%d etapa",
+      "other": "%d etapas"
     }
   },
   "%d template|%d templates": {
@@ -5399,6 +5561,15 @@
     "ja": "軸の範囲",
     "pt-BR": "Intervalo do eixo"
   },
+  "Axis titles": {
+    "ar": "عناوين المحاور",
+    "de": "Achsentitel",
+    "es": "Títulos de los ejes",
+    "fr": "Titres des axes",
+    "it": "Titoli degli assi",
+    "ja": "軸タイトル",
+    "pt-BR": "Títulos dos eixos"
+  },
   "Back": {
     "ar": "رجوع",
     "de": "Zurück",
@@ -5575,6 +5746,15 @@
     "it": "Barre",
     "ja": "棒",
     "pt-BR": "Barras"
+  },
+  "Bar gap": {
+    "ar": "المسافة بين الأعمدة",
+    "de": "Balkenabstand",
+    "es": "Espacio entre barras",
+    "fr": "Espace entre barres",
+    "it": "Spazio tra le barre",
+    "ja": "棒の間隔",
+    "pt-BR": "Espaço entre barras"
   },
   "Basic": {
     "ar": "أساسي",
@@ -6248,6 +6428,15 @@
     "ja": "ブラシのサイズ %d",
     "pt-BR": "Tamanho do pincel %d"
   },
+  "Bubble": {
+    "ar": "فقاعات",
+    "de": "Blasen",
+    "es": "Burbujas",
+    "fr": "Bulles",
+    "it": "Bolle",
+    "ja": "バブル",
+    "pt-BR": "Bolhas"
+  },
   "Bubbles": {
     "ar": "فقاعات",
     "de": "Blasen",
@@ -6745,6 +6934,15 @@
     "it": "Grafico",
     "ja": "グラフ",
     "pt-BR": "Gráfico"
+  },
+  "Chart colours carry meaning": {
+    "ar": "ألوان المخطط تحمل المعنى",
+    "de": "Die Farben des Diagramms tragen Bedeutung",
+    "es": "Los colores del gráfico transmiten significado",
+    "fr": "Les couleurs du graphique portent du sens",
+    "it": "I colori del grafico hanno un significato",
+    "ja": "グラフの色だけで意味を伝えています",
+    "pt-BR": "As cores do gráfico carregam significado"
   },
   "Chart font": {
     "ar": "خط المخطط",
@@ -7276,6 +7474,15 @@
     "it": "Le colonne si dividono la pagina entro il margine, con lo spazio tra di loro. Nessuna riga aggiunge solo colonne.",
     "ja": "列はマージンの内側でページを分け合い、間に段間を挟みます。行なしにすると列だけが追加されます。",
     "pt-BR": "As colunas dividem a página dentro da margem, com o espaçamento entre elas. Sem linhas, só adiciona colunas."
+  },
+  "Compact numbers": {
+    "ar": "أرقام مختصرة",
+    "de": "Kompakte Zahlen",
+    "es": "Números compactos",
+    "fr": "Nombres compacts",
+    "it": "Numeri compatti",
+    "ja": "数値を短縮表示",
+    "pt-BR": "Números compactos"
   },
   "Complementary": {
     "ar": "متكاملة",
@@ -8444,6 +8651,15 @@
     "ja": "破線",
     "pt-BR": "Tracejado"
   },
+  "Decimals": {
+    "ar": "المنازل العشرية",
+    "de": "Dezimalstellen",
+    "es": "Decimales",
+    "fr": "Décimales",
+    "it": "Decimali",
+    "ja": "小数点以下の桁数",
+    "pt-BR": "Casas decimais"
+  },
   "Decor": {
     "ar": "زخارف",
     "de": "Deko",
@@ -9263,6 +9479,15 @@
     "ja": "均等に配置",
     "pt-BR": "Distribuir uniformemente"
   },
+  "Distribute rows": {
+    "ar": "توزيع الصفوف",
+    "de": "Zeilen verteilen",
+    "es": "Distribuir filas",
+    "fr": "Répartir les lignes",
+    "it": "Distribuisci righe",
+    "ja": "行を均等に",
+    "pt-BR": "Distribuir linhas"
+  },
   "Divider %d": {
     "ar": "فاصل %d",
     "de": "Trennlinie %d",
@@ -9614,6 +9839,15 @@
     "ja": "消したい部分をドラッグしてから「消去」をタップします",
     "pt-BR": "Arraste sobre o que deve sair e toque em Apagar"
   },
+  "Drag the handle at the left of a row's lower edge to make it taller.": {
+    "ar": "اسحب المقبض في يسار الحافة السفلية للصف لجعله أطول.",
+    "de": "Ziehen Sie den Griff links an der Unterkante einer Zeile, um sie höher zu machen.",
+    "es": "Arrastra el tirador a la izquierda del borde inferior de una fila para hacerla más alta.",
+    "fr": "Faites glisser la poignée à gauche du bord inférieur d’une ligne pour l’agrandir.",
+    "it": "Trascina la maniglia a sinistra del bordo inferiore di una riga per renderla più alta.",
+    "ja": "行の下端の左にあるハンドルをドラッグすると、行を高くできます。",
+    "pt-BR": "Arraste a alça à esquerda da borda inferior de uma linha para deixá-la mais alta."
+  },
   "Drag the photo to move it, pinch to zoom it.": {
     "ar": "اسحب الصورة لتحريكها، وقرّب بإصبعين لتكبيرها.",
     "de": "Ziehe das Foto, um es zu verschieben, und ziehe es mit zwei Fingern zum Zoomen.",
@@ -9911,6 +10145,15 @@
     "ja": "各行は「ラベル, x, y」です。「都市, サイズ, 価格」のように 1 行目に名前を入れると、x と y に名前が付きます。",
     "pt-BR": "Cada linha é “Rótulo, x, y”; uma primeira linha de nomes, como em “Cidade, Tamanho, Preço”, dá nome a x e y."
   },
+  "Each row is \"Label, x, y, size\"; a first line of names, as in \"City, Size, Price, People\", names them.": {
+    "ar": "كل صف هو \"التسمية، x، y، الحجم\"؛ وسطر أول من الأسماء، مثل \"المدينة، المساحة، السعر، السكان\"، يسمّيها.",
+    "de": "Jede Zeile ist „Beschriftung, x, y, Größe“; eine erste Zeile mit Namen, etwa „Stadt, Größe, Preis, Einwohner“, benennt sie.",
+    "es": "Cada fila es \"Etiqueta, x, y, tamaño\"; una primera línea de nombres, como \"Ciudad, Tamaño, Precio, Personas\", les da nombre.",
+    "fr": "Chaque ligne est « Libellé, x, y, taille » ; une première ligne de noms, comme « Ville, Taille, Prix, Habitants », les nomme.",
+    "it": "Ogni riga è \"Etichetta, x, y, dimensione\"; una prima riga di nomi, come \"Città, Dimensione, Prezzo, Persone\", li nomina.",
+    "ja": "各行は「ラベル, x, y, サイズ」です。「都市, 広さ, 価格, 人口」のような名前の行を先頭に置くと名前になります。",
+    "pt-BR": "Cada linha é \"Rótulo, x, y, tamanho\"; uma primeira linha de nomes, como \"Cidade, Tamanho, Preço, Pessoas\", dá nome a eles."
+  },
   "Each side %@.": {
     "ar": "كل جانب %@.",
     "de": "Jede Seite %@.",
@@ -10054,6 +10297,15 @@
     "it": "Modifica codice",
     "ja": "コードを編集",
     "pt-BR": "Editar código"
+  },
+  "Edit data": {
+    "ar": "تعديل البيانات",
+    "de": "Daten bearbeiten",
+    "es": "Editar datos",
+    "fr": "Modifier les données",
+    "it": "Modifica dati",
+    "ja": "データを編集",
+    "pt-BR": "Editar dados"
   },
   "Edit link": {
     "ar": "تعديل الرابط",
@@ -10976,6 +11228,15 @@
     "ja": "お祝い",
     "pt-BR": "Festivo"
   },
+  "Fewer decimals": {
+    "ar": "منازل عشرية أقل",
+    "de": "Weniger Dezimalstellen",
+    "es": "Menos decimales",
+    "fr": "Moins de décimales",
+    "it": "Meno decimali",
+    "ja": "小数点以下を減らす",
+    "pt-BR": "Menos casas decimais"
+  },
   "File type": {
     "ar": "نوع الملف",
     "de": "Dateityp",
@@ -11732,6 +11993,15 @@
     "ja": "フル HD（1920）",
     "pt-BR": "Full HD (1920)"
   },
+  "Funnel": {
+    "ar": "قمع",
+    "de": "Trichter",
+    "es": "Embudo",
+    "fr": "Entonnoir",
+    "it": "Imbuto",
+    "ja": "ファネル",
+    "pt-BR": "Funil"
+  },
   "Generate": {
     "ar": "إنشاء",
     "de": "Erzeugen",
@@ -12020,6 +12290,15 @@
     "ja": "グループ（%d）",
     "pt-BR": "Agrupar (%d)"
   },
+  "Grow": {
+    "ar": "نمو",
+    "de": "Wachsen",
+    "es": "Crecer",
+    "fr": "Croissance",
+    "it": "Crescita",
+    "ja": "伸びる",
+    "pt-BR": "Crescer"
+  },
   "Guide": {
     "ar": "خط إرشادي",
     "de": "Hilfslinie",
@@ -12190,6 +12469,15 @@
     "it": "Cuore",
     "ja": "ハート",
     "pt-BR": "Coração"
+  },
+  "Heat map": {
+    "ar": "خريطة حرارية",
+    "de": "Heatmap",
+    "es": "Mapa de calor",
+    "fr": "Carte de chaleur",
+    "it": "Mappa di calore",
+    "ja": "ヒートマップ",
+    "pt-BR": "Mapa de calor"
   },
   "Height": {
     "ar": "الارتفاع",
@@ -12515,6 +12803,15 @@
     "ja": "%@ 秒表示（デザインの設定）",
     "pt-BR": "Dura %@ s (a do design)"
   },
+  "Hole": {
+    "ar": "الفتحة",
+    "de": "Loch",
+    "es": "Hueco",
+    "fr": "Trou",
+    "it": "Foro",
+    "ja": "穴",
+    "pt-BR": "Furo"
+  },
   "Hollow": {
     "ar": "مجوّف",
     "de": "Hohl",
@@ -12604,6 +12901,15 @@
     "it": "Tonalità",
     "ja": "色相",
     "pt-BR": "Matiz"
+  },
+  "Icon": {
+    "ar": "أيقونة",
+    "de": "Symbol",
+    "es": "Icono",
+    "fr": "Icône",
+    "it": "Icona",
+    "ja": "アイコン",
+    "pt-BR": "Ícone"
   },
   "Icon has no alt text": {
     "ar": "الرمز بلا نص بديل",
@@ -13679,6 +13985,15 @@
     "ja": "ページに揃える",
     "pt-BR": "Alinhar com a página"
   },
+  "Line weight": {
+    "ar": "سُمك الخط",
+    "de": "Linienstärke",
+    "es": "Grosor de línea",
+    "fr": "Épaisseur du trait",
+    "it": "Spessore della linea",
+    "ja": "線の太さ",
+    "pt-BR": "Espessura da linha"
+  },
   "Linear": {
     "ar": "خطي",
     "de": "Linear",
@@ -14507,6 +14822,15 @@
     "ja": "その他の色",
     "pt-BR": "Mais cores"
   },
+  "More decimals": {
+    "ar": "منازل عشرية أكثر",
+    "de": "Mehr Dezimalstellen",
+    "es": "Más decimales",
+    "fr": "Plus de décimales",
+    "it": "Più decimali",
+    "ja": "小数点以下を増やす",
+    "pt-BR": "Mais casas decimais"
+  },
   "More ink colours": {
     "ar": "مزيد من ألوان الحبر",
     "de": "Weitere Tintenfarben",
@@ -15301,6 +15625,15 @@
     "it": "Pagina successiva",
     "ja": "次のページ",
     "pt-BR": "Próxima página"
+  },
+  "Next value": {
+    "ar": "القيمة التالية",
+    "de": "Nächster Wert",
+    "es": "Valor siguiente",
+    "fr": "Valeur suivante",
+    "it": "Valore successivo",
+    "ja": "次の値",
+    "pt-BR": "Próximo valor"
   },
   "Next, %@": {
     "ar": "التالي، %@",
@@ -17729,6 +18062,15 @@
     "ja": "作るものを選びましょう — 投稿、ポスター、カードなど。ほとんどのサイズにテンプレートが用意されています。",
     "pt-BR": "Escolha o que você vai criar — um post, um pôster, um cartão. A maioria dos tamanhos vem com designs prontos."
   },
+  "Pictogram": {
+    "ar": "رسم بالأيقونات",
+    "de": "Piktogramm",
+    "es": "Pictograma",
+    "fr": "Pictogramme",
+    "it": "Pittogramma",
+    "ja": "ピクトグラム",
+    "pt-BR": "Pictograma"
+  },
   "Picture %d": {
     "ar": "الصورة %d",
     "de": "Bild %d",
@@ -17963,6 +18305,15 @@
     "ja": "ページを表示したときに再生されます。複数ある場合は順に登場します。",
     "pt-BR": "Reproduz quando a página é apresentada. Vários ao mesmo tempo entram um após o outro."
   },
+  "Points": {
+    "ar": "نقاط",
+    "de": "Punkte",
+    "es": "Puntos",
+    "fr": "Points",
+    "it": "Punti",
+    "ja": "点",
+    "pt-BR": "Pontos"
+  },
   "Polaroid": {
     "ar": "بولارويد",
     "de": "Polaroid",
@@ -18061,6 +18412,15 @@
     "it": "PowerPoint…",
     "ja": "PowerPoint…",
     "pt-BR": "PowerPoint…"
+  },
+  "Prefix": {
+    "ar": "بادئة",
+    "de": "Präfix",
+    "es": "Prefijo",
+    "fr": "Préfixe",
+    "it": "Prefisso",
+    "ja": "接頭辞",
+    "pt-BR": "Prefixo"
   },
   "Preparing to print": {
     "ar": "جارٍ التحضير للطباعة",
@@ -18194,6 +18554,15 @@
     "ja": "前のページ",
     "pt-BR": "Página anterior"
   },
+  "Previous value": {
+    "ar": "القيمة السابقة",
+    "de": "Vorheriger Wert",
+    "es": "Valor anterior",
+    "fr": "Valeur précédente",
+    "it": "Valore precedente",
+    "ja": "前の値",
+    "pt-BR": "Valor anterior"
+  },
   "Primary, Seasonal, Accents…": {
     "ar": "أساسية، موسمية، ألوان مميزة…",
     "de": "Primär, Saisonal, Akzente …",
@@ -18283,6 +18652,15 @@
     "it": "Barra di avanzamento",
     "ja": "プログレスバー",
     "pt-BR": "Barra de progresso"
+  },
+  "Progress dial": {
+    "ar": "مقياس التقدم",
+    "de": "Fortschrittsanzeige",
+    "es": "Indicador de progreso",
+    "fr": "Jauge de progression",
+    "it": "Indicatore di avanzamento",
+    "ja": "進捗ゲージ",
+    "pt-BR": "Medidor de progresso"
   },
   "Progress ring": {
     "ar": "حلقة التقدم",
@@ -18436,6 +18814,15 @@
     "it": "RGB",
     "ja": "RGB",
     "pt-BR": "RGB"
+  },
+  "Radar": {
+    "ar": "رادار",
+    "de": "Netz",
+    "es": "Radar",
+    "fr": "Radar",
+    "it": "Radar",
+    "ja": "レーダー",
+    "pt-BR": "Radar"
   },
   "Radial": {
     "ar": "شعاعي",
@@ -19535,6 +19922,15 @@
     "ja": "角を丸くする",
     "pt-BR": "Cantos arredondados"
   },
+  "Rounded bars": {
+    "ar": "أعمدة مستديرة",
+    "de": "Abgerundete Balken",
+    "es": "Barras redondeadas",
+    "fr": "Barres arrondies",
+    "it": "Barre arrotondate",
+    "ja": "角丸の棒",
+    "pt-BR": "Barras arredondadas"
+  },
   "Roundness": {
     "ar": "الاستدارة",
     "de": "Rundung",
@@ -19561,6 +19957,15 @@
     "it": "Riga %d",
     "ja": "行 %d",
     "pt-BR": "Linha %d"
+  },
+  "Row %d of %d, Column %d of %d": {
+    "ar": "الصف %d من %d، العمود %d من %d",
+    "de": "Zeile %d von %d, Spalte %d von %d",
+    "es": "Fila %d de %d, columna %d de %d",
+    "fr": "Ligne %d sur %d, colonne %d sur %d",
+    "it": "Riga %d di %d, colonna %d di %d",
+    "ja": "%d/%d 行目、%d/%d 列目",
+    "pt-BR": "Linha %d de %d, coluna %d de %d"
   },
   "Row %d, column %@": {
     "ar": "الصف %d، العمود %@",
@@ -20933,6 +21338,15 @@
     "ja": "盾",
     "pt-BR": "Escudo"
   },
+  "Shorter row": {
+    "ar": "صف أقصر",
+    "de": "Niedrigere Zeile",
+    "es": "Fila más baja",
+    "fr": "Ligne moins haute",
+    "it": "Riga più bassa",
+    "ja": "行を低く",
+    "pt-BR": "Linha mais baixa"
+  },
   "Show": {
     "ar": "إظهار",
     "de": "Einblenden",
@@ -22259,6 +22673,15 @@
     "ja": "小見出し",
     "pt-BR": "Subtítulo"
   },
+  "Suffix": {
+    "ar": "لاحقة",
+    "de": "Suffix",
+    "es": "Sufijo",
+    "fr": "Suffixe",
+    "it": "Suffisso",
+    "ja": "接尾辞",
+    "pt-BR": "Sufixo"
+  },
   "Suggest": {
     "ar": "اقتراح",
     "de": "Vorschlagen",
@@ -22411,6 +22834,15 @@
     "it": "TalkBack e accessibilità",
     "ja": "TalkBack とアクセシビリティ",
     "pt-BR": "TalkBack e acessibilidade"
+  },
+  "Taller row": {
+    "ar": "صف أطول",
+    "de": "Höhere Zeile",
+    "es": "Fila más alta",
+    "fr": "Ligne plus haute",
+    "it": "Riga più alta",
+    "ja": "行を高く",
+    "pt-BR": "Linha mais alta"
   },
   "Tap + to add": {
     "ar": "انقر على + للإضافة",
@@ -23315,6 +23747,15 @@
     "ja": "太い",
     "pt-BR": "Grossa"
   },
+  "Thicker line": {
+    "ar": "خط أسمك",
+    "de": "Dickere Linie",
+    "es": "Línea más gruesa",
+    "fr": "Trait plus épais",
+    "it": "Linea più spessa",
+    "ja": "線を太く",
+    "pt-BR": "Linha mais grossa"
+  },
   "Thickness": {
     "ar": "السُّمك",
     "de": "Stärke",
@@ -23350,6 +23791,15 @@
     "it": "Gli elementi restano dove sono rispetto ai bordi e al centro, e il testo va a capo secondo la nuova larghezza.",
     "ja": "端や中心に対する位置関係が保たれ、テキストは新しい幅に合わせて折り返されます。",
     "pt-BR": "Os itens ficam onde estão em relação às bordas e ao centro, e o texto se ajusta à nova largura."
+  },
+  "Thinner line": {
+    "ar": "خط أرفع",
+    "de": "Dünnere Linie",
+    "es": "Línea más fina",
+    "fr": "Trait plus fin",
+    "it": "Linea più sottile",
+    "ja": "線を細く",
+    "pt-BR": "Linha mais fina"
   },
   "This Android version shows shadows on straight text only. Exports and other phones show this one.": {
     "ar": "يعرض إصدار Android هذا الظلال على النص المستقيم فقط. تعرض الملفات المصدَّرة والهواتف الأخرى هذا الظل.",
@@ -25514,6 +25964,24 @@
     "ja": "メッセージと同じように単語を囲みます：**アスタリスク 2 つ** で太字、*アスタリスク 1 つ* または _アンダースコア_ で斜体、__アンダースコア 2 つ__ で下線、~~チルダ 2 つ~~ で取り消し線。記号は消え、キャンバスでもすべての書き出しでも単語にスタイルが適用されます。入力中に単語を選んでキーボード上の「太字」「斜体」「下線」「取り消し線」をタップすると、記号を付けたり外したりできます。",
     "pt-BR": "Marque as palavras como faria em uma mensagem: **duas estrelas** para negrito, *uma estrela* ou _sublinhados_ para itálico, __dois sublinhados__ para sublinhar, ~~dois tis~~ para tachar. Os marcadores desaparecem e as palavras ganham o estilo, na tela de design e em todas as exportações. Enquanto digita, escolha algumas palavras e toque em Negrito, Itálico, Sublinhado ou Tachado acima do teclado para colocar ou tirar os marcadores."
   },
+  "X axis": {
+    "ar": "المحور السيني",
+    "de": "X-Achse",
+    "es": "Eje X",
+    "fr": "Axe X",
+    "it": "Asse X",
+    "ja": "X 軸",
+    "pt-BR": "Eixo X"
+  },
+  "Y axis": {
+    "ar": "المحور الصادي",
+    "de": "Y-Achse",
+    "es": "Eje Y",
+    "fr": "Axe Y",
+    "it": "Asse Y",
+    "ja": "Y 軸",
+    "pt-BR": "Eixo Y"
+  },
   "Yellow": {
     "ar": "أصفر",
     "de": "Gelb",
@@ -26857,6 +27325,72 @@
     "it": "fiore a sei petali",
     "ja": "6 枚花びらの花",
     "pt-BR": "flor de seis pétalas"
+  },
+  "spans %d column|spans %d columns": {
+    "ar": {
+      "few": "يمتد على %d أعمدة",
+      "many": "يمتد على %d عمودًا",
+      "one": "يمتد على %d عمود",
+      "other": "يمتد على %d عمود",
+      "two": "يمتد على %d عمودين",
+      "zero": "يمتد على %d عمود"
+    },
+    "de": {
+      "one": "über %d Spalte",
+      "other": "über %d Spalten"
+    },
+    "es": {
+      "one": "abarca %d columna",
+      "other": "abarca %d columnas"
+    },
+    "fr": {
+      "one": "s’étend sur %d colonne",
+      "other": "s’étend sur %d colonnes"
+    },
+    "it": {
+      "one": "occupa %d colonna",
+      "other": "occupa %d colonne"
+    },
+    "ja": {
+      "other": "%d 列にまたがる"
+    },
+    "pt-BR": {
+      "one": "abrange %d coluna",
+      "other": "abrange %d colunas"
+    }
+  },
+  "spans %d row|spans %d rows": {
+    "ar": {
+      "few": "يمتد على %d صفوف",
+      "many": "يمتد على %d صفًا",
+      "one": "يمتد على %d صف",
+      "other": "يمتد على %d صف",
+      "two": "يمتد على %d صفين",
+      "zero": "يمتد على %d صف"
+    },
+    "de": {
+      "one": "über %d Zeile",
+      "other": "über %d Zeilen"
+    },
+    "es": {
+      "one": "abarca %d fila",
+      "other": "abarca %d filas"
+    },
+    "fr": {
+      "one": "s’étend sur %d ligne",
+      "other": "s’étend sur %d lignes"
+    },
+    "it": {
+      "one": "occupa %d riga",
+      "other": "occupa %d righe"
+    },
+    "ja": {
+      "other": "%d 行にまたがる"
+    },
+    "pt-BR": {
+      "one": "abrange %d linha",
+      "other": "abrange %d linhas"
+    }
   },
   "sparkle": {
     "ar": "بريق",
