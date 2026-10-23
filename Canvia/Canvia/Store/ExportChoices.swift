@@ -267,17 +267,27 @@ struct ExportLast: Codable, Equatable {
     /// The PDF's "Include notes" and "Compress".
     var pdfNotes = false
     var pdfCompress = false
+    /// Whether the format was the sheet's Suggested one, taken as offered
+    /// (ExportSuggestion) — so a remembered choice can go back to being
+    /// suggested — rather than picked by hand.
+    var suggested = false
+    /// The PDF's bookmarks: an outline entry for each page, titled by the
+    /// page's title or "Page N" (PDFMetadata). On unless turned off.
+    var pdfBookmarks = true
 
     static let key = "exportLast"
     static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif"]
+    /// The export sheet's file types, in the order its picker lists them —
+    /// the Android twin's ExportSettings.formats.
+    static let fileTypes = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif"]
     static let pageChoices: Set<String> = ["all", "current", "chosen"]
 
     private enum CodingKeys: String, CodingKey {
-        case format, scale, longEdge, jpegQuality, transparent, pages, pdfNotes, pdfCompress
+        case format, scale, longEdge, jpegQuality, transparent, pages, pdfNotes, pdfCompress, suggested, pdfBookmarks
     }
 
     init(format: String, scale: Double, longEdge: Int?, jpegQuality: Double, transparent: Bool, pages: String,
-         pdfNotes: Bool = false, pdfCompress: Bool = false) {
+         pdfNotes: Bool = false, pdfCompress: Bool = false, suggested: Bool = false, pdfBookmarks: Bool = true) {
         self.format = format
         self.scale = scale
         self.longEdge = longEdge
@@ -286,6 +296,8 @@ struct ExportLast: Codable, Equatable {
         self.pages = pages
         self.pdfNotes = pdfNotes
         self.pdfCompress = pdfCompress
+        self.suggested = suggested
+        self.pdfBookmarks = pdfBookmarks
     }
 
     /// Lenient, as a setting from another build may be: what does not read
@@ -303,6 +315,9 @@ struct ExportLast: Codable, Equatable {
         // Missing, or not a true or false, is off.
         pdfNotes = (try? c.decode(Bool.self, forKey: .pdfNotes)) ?? false
         pdfCompress = (try? c.decode(Bool.self, forKey: .pdfCompress)) ?? false
+        // Missing, the format was picked by hand and the bookmarks are on.
+        suggested = (try? c.decode(Bool.self, forKey: .suggested)) ?? false
+        pdfBookmarks = (try? c.decode(Bool.self, forKey: .pdfBookmarks)) ?? true
     }
 
     /// Every key written, the long edge as null when there is none, in the
@@ -317,6 +332,8 @@ struct ExportLast: Codable, Equatable {
         try c.encode(pages, forKey: .pages)
         try c.encode(pdfNotes, forKey: .pdfNotes)
         try c.encode(pdfCompress, forKey: .pdfCompress)
+        try c.encode(suggested, forKey: .suggested)
+        try c.encode(pdfBookmarks, forKey: .pdfBookmarks)
     }
 
     /// As stored: every key, in the order above, written out here rather
@@ -334,6 +351,8 @@ struct ExportLast: Codable, Equatable {
             "\"pages\":" + Self.quoted(pages),
             "\"pdfNotes\":" + String(pdfNotes),
             "\"pdfCompress\":" + String(pdfCompress),
+            "\"suggested\":" + String(suggested),
+            "\"pdfBookmarks\":" + String(pdfBookmarks),
         ]
         return "{" + fields.joined(separator: ",") + "}"
     }

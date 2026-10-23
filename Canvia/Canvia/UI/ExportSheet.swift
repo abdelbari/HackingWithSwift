@@ -1,9 +1,12 @@
-// Export sheet: the chooser. PNG / JPEG at 1-3x, multi-page PDF and a
-// PowerPoint deck, all rendered from the same views the canvas uses and
-// handed to the system share sheet. The rendering and encoding themselves
-// live in DesignExporter and PptxExporter; each row hands the app's
-// ExportQueue a job made from a snapshot of the design (ExportJobs), so an
-// export carries on once the sheet is closed.
+// Export sheet: the chooser. A Share row of one-tap buttons — share now,
+// save to Photos, copy as image, print — over a File type picker that opens
+// on the type suggested from the design (ExportSuggestion), with only that
+// type's options under it: PNG / JPEG at 1-3x, multi-page PDF, print-ready
+// PDF, SVG, a PowerPoint deck, video and GIF, all rendered from the same
+// views the canvas uses and handed to the system share sheet. The rendering
+// and encoding themselves live in DesignExporter and PptxExporter; each
+// button hands the app's ExportQueue a job made from a snapshot of the
+// design (ExportJobs), so an export carries on once the sheet is closed.
 
 import SwiftUI
 import UIKit
@@ -39,13 +42,18 @@ struct ExportSheet: View {
     @State private var pdfCompress = false
     /// "Remember these settings": the last export, as JSON; empty is off.
     @AppStorage(ExportLast.key) private var exportLast = ""
-    /// Settings' default export format, listed first.
+    /// Settings' default export format: the plain picture suggested.
     @AppStorage(AppDefaults.exportFormatKey) private var defaultFormat = "png"
     @State private var remember = false
+    /// The file type the Share row makes, and the one read from the design
+    /// (ExportSuggestion) that the picker badges Suggested.
+    @State private var fileType = "png"
+    @State private var suggested = "png"
+    /// The PDF's outline: a bookmark for each page, by its title.
+    @State private var pdfBookmarks = true
     @State private var sharedURLs: [URL] = []
     /// What the last save to Photos came to, and whether anything went in.
     @State private var photosNote: PhotosNote?
-    @State private var photosFormat = DesignExporter.RasterFormat.png
     /// Said under Motion when a video's music could not be put in.
     @State private var musicNote: String?
     /// Each track's music's length in seconds, by AudioStore id, read as
@@ -150,25 +158,25 @@ struct ExportSheet: View {
         // form was past what the type checker will resolve "in reasonable
         // time" — every string interpolation, ternary and `if` adds a
         // branch, and eight sections of them is too many.
+        //
+        // The Share row first, as Canva's sheet opens: one tap makes the
+        // file type below with the settings as they stand. Then the type,
+        // Suggested badged on the one read from the design, and only that
+        // type's options.
         Form {
-            qualitySection
-            jpegSection
+            shareSection
+            fileTypeSection
             if store.design.pages.count > 1 && !selectionOnly { pagesSection }
-            transparencySection
-            formatSection
-            clipboardSection
-            photosSection
-            if UIPrintInteractionController.isPrintingAvailable { printSection }
-            // Grouped, which changes nothing on screen: a ViewBuilder
-            // block takes at most ten children.
-            Group {
-                motionSection
-                rememberSection
-            }
+            if offersSelection { selectionSection }
+            typeOptions
+            designFileSection
+            rememberSection
             if let errorMessage {
                 Text(errorMessage).foregroundStyle(.red)
             }
         }
+        // The selection on its own is a picture's, an SVG's or a print's.
+        .onChange(of: fileType) { if !offersSelection { selectionOnly = false } }
         .navigationTitle("Export")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -281,9 +289,6 @@ struct ExportSheet: View {
                 } label: {
                     Image(systemName: "list.bullet").accessibilityLabel("Size presets")
                 }
-            }
-            if !store.selection.isEmpty {
-                Toggle("Selection only, cropped to its bounds", isOn: $selectionOnly)
             }
         } header: {
             Text("Size")
@@ -424,58 +429,291 @@ struct ExportSheet: View {
         }
     }
 
-    /// The file formats, Settings' default export format first, then PowerPoint.
-    private var formatSection: some View {
+    // MARK: share
+
+    /// The file types the selection on its own can be made into.
+    private static let selectionTypes: Set<String> = ["png", "jpg", "svg", "print"]
+
+    /// Whether "Selection only" is offered: something is selected, and the
+    /// file type can be cut to it.
+    private var offersSelection: Bool {
+        !store.selection.isEmpty && Self.selectionTypes.contains(fileType)
+    }
+
+    private var selectionSection: some View {
         Section {
-            ForEach(AppDefaults.formatOrder(defaultFormat), id: \.self) { formatRow($0) }
-            Toggle("Flatten PDF", isOn: $flatten)
-            pdfOptions
-            exportButton("PowerPoint", subtitle: pptxSubtitle, icon: "rectangle.stack",
-                         working: tr("Making the PowerPoint"), unavailable: leftOut(pdfIndices), format: "pptx") {
-                ExportJobs.powerPoint(designSnapshot)
+            Toggle("Selection only, cropped to its bounds", isOn: $selectionOnly)
+        }
+    }
+
+    /// Share: one tap each, in the file type chosen below with the settings
+    /// as they stand. Side by side where they fit; one under another at the
+    /// largest text sizes, so every button stays whole.
+    private var shareSection: some View {
+        Section {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) { shareButtons }
+                VStack(alignment: .leading, spacing: 8) { shareButtons }
             }
         } header: {
-            Text("Format")
+            Text("Share")
         } footer: {
-            Text("Flatten draws each PDF page as one 300-dpi picture: no editable text and no links, so a print shop gets no font surprises.")
+            shareFooter
         }
     }
 
-    /// One format's row, said from the page choice above, which each
-    /// follows: PNG and JPEG write a file a page.
     @ViewBuilder
-    private func formatRow(_ format: String) -> some View {
-        let count = exportedIndices.count
-        let what = count > 1 ? tr("%@, one file each", pagesWord(count)) : onePageText
-        switch format {
-        case "png":
-            exportButton("PNG", subtitle: tr("%@, best for sharing", what), icon: "photo",
-                         unavailable: leftOut(exportedIndices), format: "png") {
-                picturesWork(.png)
+    private var shareButtons: some View {
+        Button(Self.shareLabel(fileType, count: shareCount)) { shareNow() }
+            .buttonStyle(.borderedProminent)
+            .disabled(!canShare)
+        Button(fileType == "mp4" || fileType == "gif" ? tr("Save the video to photos") : tr("Save to photos")) { saveNow() }
+            .buttonStyle(.bordered)
+            .disabled(!savesToPhotos || !canShare)
+        Button(copied ? tr("Copied") : tr("Copy as image")) { copyNow() }
+            .buttonStyle(.bordered)
+        if UIPrintInteractionController.isPrintingAvailable {
+            Button("Print") { printNow() }
+                .buttonStyle(.bordered)
+                .disabled(leftOut(exportedIndices) != nil)
+        }
+    }
+
+    /// Why Share cannot now, what Photos took, and a video's lost music.
+    @ViewBuilder
+    private var shareFooter: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if let why = unavailable { Text(why) }
+            if let photosNote {
+                Label(photosNote.text, systemImage: photosNote.ok ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                    .foregroundStyle(photosNote.ok ? Color.green : Color.red)
             }
-        case "jpg":
-            exportButton("JPEG", subtitle: Self.about(what, estimatedSize, eachPage: count > 1),
-                         icon: "photo.fill", unavailable: leftOut(exportedIndices), format: "jpg") {
-                picturesWork(.jpeg)
-            }
-        case "pdf":
-            exportButton("PDF", subtitle: pdfSubtitle, icon: "doc.richtext", working: tr("Making the PDF"),
-                         unavailable: leftOut(pdfIndices), format: "pdf") {
-                ExportJobs.pdf(designSnapshot, flatten: flatten, notes: pdfNotes, compress: pdfCompress)
-            }
-        default:
-            exportButton("SVG", subtitle: count > 1 ? tr("%@, one SVG each", pagesWord(count)) : tr("%@, editable vectors", onePageText),
-                         icon: "scribble.variable", unavailable: leftOut(exportedIndices), format: "svg") {
-                ExportJobs.svg(exportedSnapshot)
+            if let musicNote {
+                Label(musicNote, systemImage: "speaker.slash.fill")
+                    .foregroundStyle(.orange)
             }
         }
     }
 
-    /// The PDF's two switches, under its row, and the size it will come to.
+    /// The pages the chosen type makes: the PDF, PowerPoint, video and GIF
+    /// follow the page choice alone; pictures, SVGs and prints the
+    /// selection too.
+    private var sharedIndices: [Int] {
+        switch fileType {
+        case "pdf", "pptx": return pdfIndices
+        case "mp4", "gif": return moviePages
+        default: return exportedIndices
+        }
+    }
+
+    private var shareCount: Int { sharedIndices.count }
+
+    /// Said in place of making anything: no pages chosen, or every page
+    /// hidden.
+    private var unavailable: String? { leftOut(sharedIndices) }
+
+    private var canShare: Bool { unavailable == nil }
+
+    /// What goes into Photos for the chosen type: the pictures, or the
+    /// film; nothing for a document.
+    private var savesToPhotos: Bool { ["png", "jpg", "mp4", "gif"].contains(fileType) }
+
+    /// The chosen type, made and handed to the share sheet.
+    @MainActor
+    private func shareNow() {
+        switch fileType {
+        case "pdf":
+            run(tr("Making the PDF"), format: "pdf") {
+                ExportJobs.pdf(designSnapshot, flatten: flatten, notes: pdfNotes, compress: pdfCompress, bookmarks: pdfBookmarks)
+            }
+        case "print":
+            // The design the pictures render, so "Selection only" prints
+            // the selection rather than page 1 of the whole thing.
+            run(tr("Making the print PDF"), format: "print") {
+                ExportJobs.printPDF(exportedSnapshot, options: paper, flatten: flatten, printing: false, bookmarks: pdfBookmarks)
+            }
+        case "svg":
+            run(tr("Rendering"), format: "svg") { ExportJobs.svg(exportedSnapshot) }
+        case "pptx":
+            run(tr("Making the PowerPoint"), format: "pptx") { ExportJobs.powerPoint(designSnapshot) }
+        case "mp4":
+            run(tr("Rendering the video"), format: "mp4") { ExportJobs.movie(designSnapshot, settings: movieSettings) }
+        case "gif":
+            run(tr("Rendering the GIF"), format: "gif") { ExportJobs.gif(designSnapshot, settings: movieSettings) }
+        default:
+            let format = fileType
+            run(tr("Rendering"), format: format) { picturesWork(format == "jpg" ? .jpeg : .png) }
+        }
+    }
+
+    /// The chosen type straight into Photos: the pictures, or the film.
+    @MainActor
+    private func saveNow() {
+        photosNote = nil
+        switch fileType {
+        case "mp4":
+            run(tr("Rendering the video"), format: "mp4") { ExportJobs.movieToPhotos(designSnapshot, settings: movieSettings) }
+        case "gif":
+            run(tr("Rendering the GIF"), format: "gif") { ExportJobs.gifToPhotos(designSnapshot, settings: movieSettings) }
+        default:
+            let format = fileType == "jpg" ? DesignExporter.RasterFormat.jpeg : .png
+            run(tr("Saving to your photos"), format: fileType == "jpg" ? "jpg" : "png") {
+                ExportJobs.picturesToPhotos(exportedSnapshot, format: format, scale: scale, longEdge: typedLongEdge ?? 0,
+                                            quality: jpegQuality, transparent: transparent)
+            }
+        }
+    }
+
+    /// AirPrint, on the paper layout under Print-ready PDF.
+    @MainActor
+    private func printNow() {
+        run(tr("Preparing to print"), format: "print") {
+            ExportJobs.printPDF(exportedSnapshot, options: paper, flatten: flatten, printing: true, bookmarks: pdfBookmarks)
+        }
+    }
+
+    /// "Share PDF", "Share 3 PNGs", "Share a print-ready PDF": the one-tap
+    /// button for file type `type`, `count` pages making `count` files of a
+    /// picture or an SVG — as the Android twin labels it.
+    static func shareLabel(_ type: String, count: Int) -> String {
+        switch type {
+        case "pdf": return tr("Share PDF")
+        case "print": return tr("Share a print-ready PDF")
+        case "svg": return count > 1 ? trn("Share %d SVG|Share %d SVGs", count) : tr("Share SVG")
+        case "pptx": return tr("Share PowerPoint")
+        case "mp4": return tr("Share MP4")
+        case "gif": return tr("Share GIF")
+        default:
+            let kind = type == "jpg" ? "JPG" : "PNG"
+            return count > 1 ? trn("Share %d %@|Share %d %@s", count, kind) : tr("Share %@", kind)
+        }
+    }
+
+    // MARK: file type
+
+    /// Every type the design can be made into, Suggested badged on the one
+    /// read from it; what the chosen one is for said under them.
+    private var fileTypeSection: some View {
+        Section {
+            Picker("File type", selection: $fileType) {
+                ForEach(ExportLast.fileTypes, id: \.self) { type in
+                    fileTypeRow(type).tag(type)
+                }
+            }
+            .pickerStyle(.navigationLink)
+        } footer: {
+            Text(Self.typeNote(fileType))
+        }
+    }
+
+    private func fileTypeRow(_ type: String) -> some View {
+        let name = Self.formatName(type)
+        return HStack(spacing: 8) {
+            Text(name)
+            if type == suggested {
+                Text("Suggested")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(Color.accentColor.opacity(0.15)))
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(type == suggested ? tr("%@, suggested", name) : name)
+    }
+
+    /// A file type's name: "PNG", "Print-ready PDF".
+    static func formatName(_ type: String) -> String {
+        switch type {
+        case "png": return "PNG"
+        case "jpg": return "JPG"
+        case "pdf": return "PDF"
+        case "print": return tr("Print-ready PDF")
+        case "svg": return "SVG"
+        case "pptx": return tr("PowerPoint")
+        case "mp4": return "MP4"
+        default: return "GIF"
+        }
+    }
+
+    /// What a file type is for, under the picker.
+    static func typeNote(_ type: String) -> String {
+        switch type {
+        case "png": return tr("Sharp edges, and can be clear")
+        case "jpg": return tr("Smaller, for photos")
+        case "pdf": return tr("A document: sharp at any size, on screen or paper.")
+        case "print": return tr("For a printer or a print shop, laid out on paper with bleed and crop marks.")
+        case "svg": return tr("Editable vectors for another program.")
+        case "pptx": return tr("Editable slides.")
+        case "mp4": return tr("A video of the pages, with their motion and music.")
+        default: return tr("A looping animation, without sound.")
+        }
+    }
+
+    /// The chosen type's options alone.
+    @ViewBuilder
+    private var typeOptions: some View {
+        switch fileType {
+        case "png":
+            qualitySection
+            transparencySection
+        case "jpg":
+            qualitySection
+            jpegSection
+        case "pdf":
+            pdfSection
+        case "print":
+            printSection
+        case "svg":
+            noteSection(svgNote)
+        case "pptx":
+            noteSection(leftOut(pdfIndices) ?? pptxSubtitle)
+        default:
+            motionSection
+        }
+    }
+
+    private func noteSection(_ text: String) -> some View {
+        Section {
+            Text(text)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    /// The SVGs, from the page choice: a file a page.
+    private var svgNote: String {
+        if let why = leftOut(exportedIndices) { return why }
+        let count = exportedIndices.count
+        return count > 1 ? tr("%@, one SVG each", pagesWord(count)) : tr("%@, editable vectors", onePageText)
+    }
+
+    /// The PDF's switches — flattened, notes pages, compressed, bookmarks —
+    /// and the size it will come to.
+    private var pdfSection: some View {
+        Section {
+            Toggle("Flatten PDF", isOn: $flatten)
+            pdfOptions
+        } header: {
+            Text(verbatim: "PDF")
+        } footer: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(leftOut(pdfIndices) ?? pdfSubtitle)
+                Text("Flatten draws each PDF page as one 300-dpi picture: no editable text and no links, so a print shop gets no font surprises.")
+                Text("A bookmark for each page, by its title, so a reader can jump between them.")
+            }
+        }
+    }
+
+    /// The PDF's switches, and the size it will come to.
     @ViewBuilder
     private var pdfOptions: some View {
         Toggle("Include notes", isOn: $pdfNotes)
         Toggle("Compress", isOn: $pdfCompress)
+        // An outline entry a page, by its title, for a reader's navigation;
+        // the file's title and language go in always.
+        Toggle("Bookmarks", isOn: $pdfBookmarks)
         Text(pdfSizeNote)
             .font(.footnote)
             .foregroundStyle(.secondary)
@@ -553,7 +791,7 @@ struct ExportSheet: View {
                         exportLast = ""
                     } else if ExportLast.read(exportLast) == nil {
                         // Switched on here, not restored as the sheet opened.
-                        rememberSettings("png")
+                        rememberSettings(fileType)
                     }
                 }
         } footer: {
@@ -561,12 +799,15 @@ struct ExportSheet: View {
         }
     }
 
-    /// The settings now, under `format`, when Remember is on.
+    /// The settings now, under `format`, when Remember is on — and whether
+    /// that was the type suggested, so the next export follows the
+    /// suggestion for its own design rather than this one's.
     private func rememberSettings(_ format: String) {
         guard remember else { return }
         exportLast = ExportLast(format: format, scale: scale, longEdge: typedLongEdge.map { Int($0) },
                                 jpegQuality: jpegQuality, transparent: transparent,
-                                pages: pageRange.rawValue, pdfNotes: pdfNotes, pdfCompress: pdfCompress).json
+                                pages: pageRange.rawValue, pdfNotes: pdfNotes, pdfCompress: pdfCompress,
+                                suggested: format == suggested, pdfBookmarks: pdfBookmarks).json
     }
 
     /// The pages ticked this session, the design's bleed, and the
@@ -575,67 +816,26 @@ struct ExportSheet: View {
         chosenIds = ExportChoices.chosen(for: store.design)
         // The Bleed stepper starts at the design's own bleed, on paper.
         paper.bleed = Bleed.printPoints(store.design)
-        // The default picture format, unless the last export is remembered.
-        photosFormat = defaultFormat == "jpg" ? .jpeg : .png
+        // The file type: the last export's when remembered and chosen by
+        // hand; else the one suggested from the design (ExportSuggestion),
+        // a plain picture in Settings' default format.
+        let read = ExportSuggestion.suggest(store.design)
+        suggested = read != "png" ? read : (defaultFormat == "jpg" ? "jpg" : "png")
+        fileType = suggested
         guard let last = ExportLast.read(exportLast) else { return }
         remember = true
+        if !last.suggested { fileType = last.format }
+        pdfBookmarks = last.pdfBookmarks
         scale = [1.0, 2.0, 3.0].contains(last.scale) ? last.scale : 2
         jpegQuality = last.jpegQuality
         transparent = last.transparent
         pdfNotes = last.pdfNotes
         pdfCompress = last.pdfCompress
         pageRange = RangeChoice(rawValue: last.pages) ?? .all
-        if last.format == "jpg" { photosFormat = .jpeg } else if last.format == "png" { photosFormat = .png }
         // After the scale's own change has cleared the field, which it does
         // once this pass is drawn.
         let edge = last.longEdge.map { String($0) } ?? ""
         DispatchQueue.main.async { longEdgeText = edge }
-    }
-
-    private var photosSection: some View {
-        let kind = photosFormat == .png ? "PNG" : "JPEG"
-        let title = tr("%@ to Photos", kind)
-        return Section {
-            // The same two picture formats the share rows make: a JPEG for
-            // a photo-heavy post, a PNG for flat colour or a clear
-            // background. The quality above applies to the JPEG.
-            Picker("Picture format", selection: $photosFormat) {
-                Text("PNG").tag(DesignExporter.RasterFormat.png)
-                Text("JPEG").tag(DesignExporter.RasterFormat.jpeg)
-            }
-            .pickerStyle(.segmented)
-            exportButton(title, subtitle: photosSubtitle, icon: "photo.badge.plus",
-                         working: tr("Saving to your photos"), unavailable: leftOut(exportedIndices),
-                         format: photosFormat == .png ? "png" : "jpg") {
-                photosNote = nil
-                return ExportJobs.picturesToPhotos(exportedSnapshot, format: photosFormat, scale: scale,
-                                                   longEdge: typedLongEdge ?? 0, quality: jpegQuality,
-                                                   transparent: transparent)
-            }
-            exportButton(tr("Video to Photos"), subtitle: movieSubtitle, icon: "film.stack",
-                         working: tr("Rendering the video"), unavailable: leftOut(moviePages), format: "mp4") {
-                photosNote = nil
-                return ExportJobs.movieToPhotos(designSnapshot, settings: movieSettings)
-            }
-        } header: {
-            Text("Photos")
-        } footer: {
-            if let photosNote {
-                Label(photosNote.text, systemImage: photosNote.ok ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                    .foregroundStyle(photosNote.ok ? Color.green : Color.red)
-            }
-        }
-    }
-
-    private var photosSubtitle: String {
-        let count = exportedIndices.count
-        let each = count > 1 ? tr("%@, one photo each", pagesWord(count)) : tr("%@, straight into your library", onePageText)
-        return photosFormat == .jpeg ? Self.about(each, estimatedSize, eachPage: count > 1) : each
-    }
-
-    /// "…, about 1.2 MB", and "a page" after it when there are several.
-    private static func about(_ what: String, _ size: String, eachPage: Bool) -> String {
-        eachPage ? tr("%@, about %@ a page", what, size) : tr("%@, about %@", what, size)
     }
 
     /// Said when a video's music could not be mixed in, as the Android twin
@@ -648,23 +848,21 @@ struct ExportSheet: View {
         UIAccessibility.post(notification: .announcement, argument: text)
     }
 
-    private var clipboardSection: some View {
+    /// The design itself, to open in Canvia on another phone.
+    private var designFileSection: some View {
         Section {
             exportButton(tr("Canvia design file"), subtitle: tr("The design and its photos, to send or back up"),
                          icon: "shippingbox", working: tr("Packing the design file")) {
                 ExportJobs.designFile(store.design)
             }
-            // At once, not queued: a picture of one page on the clipboard.
-            Button {
-                errorMessage = nil
-                do { try copyToClipboard() } catch { errorMessage = ExportChoices.failedText(error.localizedDescription) }
-            } label: {
-                rowLabel(copied ? tr("Copied") : tr("Copy as image"),
-                         subtitle: tr("PNG on the clipboard, for Messages, Mail or Notes"),
-                         icon: copied ? "checkmark.circle" : "doc.on.clipboard")
-            }
-            .foregroundStyle(.primary)
         }
+    }
+
+    /// At once, not queued: a picture of one page on the clipboard.
+    @MainActor
+    private func copyNow() {
+        errorMessage = nil
+        do { try copyToClipboard() } catch { errorMessage = ExportChoices.failedText(error.localizedDescription) }
     }
 
     /// The page on screen — or the selection, cut to its bounds — as one
@@ -684,18 +882,12 @@ struct ExportSheet: View {
         }
     }
 
+    /// The print-ready PDF's options — the Share row's Print and Share
+    /// both take them — and its paper.
     private var printSection: some View {
         Section {
-            exportButton(tr("Send to a printer"), subtitle: tr("AirPrint, on the paper layout below"), icon: "printer",
-                         working: tr("Preparing to print"), unavailable: leftOut(exportedIndices), format: "print") {
-                ExportJobs.printPDF(exportedSnapshot, options: paper, flatten: flatten, printing: true)
-            }
-            // The design the other formats render, so "Selection only"
-            // prints the selection rather than page 1 of the whole thing.
-            exportButton(tr("Print-ready PDF"), subtitle: tr("Paper, bleed and crop marks as set"), icon: "doc.badge.gearshape",
-                         working: tr("Making the print PDF"), unavailable: leftOut(exportedIndices), format: "print") {
-                ExportJobs.printPDF(exportedSnapshot, options: paper, flatten: flatten, printing: false)
-            }
+            Toggle("Flatten PDF", isOn: $flatten)
+            Toggle("Bookmarks", isOn: $pdfBookmarks)
             // Compress is the plain PDF's; a print shop gets every pixel.
             Toggle("Compress", isOn: .constant(false))
                 .disabled(true)
@@ -773,31 +965,24 @@ struct ExportSheet: View {
             .foregroundStyle(.secondary)
     }
 
+    /// The video's or GIF's: the video's size, how it moves, and its
+    /// music, set in the editor.
     private var motionSection: some View {
         Section {
-            exportButton(tr("MP4 video"), subtitle: movieSubtitle, icon: "film", working: tr("Rendering the video"),
-                         unavailable: leftOut(moviePages), format: "mp4") {
-                ExportJobs.movie(designSnapshot, settings: movieSettings)
+            Text(leftOut(moviePages) ?? movieSubtitle)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            if fileType == "mp4" {
+                Picker("Video size", selection: $resolution) {
+                    ForEach(MovieExporter.resolutions(for: store.design)) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
             }
-            exportButton(tr("Animated GIF"), subtitle: movieSubtitle, icon: "square.stack.3d.down.right",
-                         working: tr("Rendering the GIF"), unavailable: leftOut(moviePages), format: "gif") {
-                ExportJobs.gif(designSnapshot, settings: movieSettings)
-            }
-            Picker("Video size", selection: $resolution) {
-                ForEach(MovieExporter.resolutions(for: store.design)) { Text($0.rawValue).tag($0) }
-            }
-            .pickerStyle(.segmented)
             if !readOnly { DisclosureGroup("Motion settings") { motionSettings } }
         } header: {
             Text("Motion")
         } footer: {
-            VStack(alignment: .leading, spacing: 4) {
-                if let musicNote {
-                    Label(musicNote, systemImage: "speaker.slash.fill")
-                        .foregroundStyle(.orange)
-                }
-                Text(motionNote)
-            }
+            Text(motionNote)
         }
     }
 
@@ -930,16 +1115,24 @@ struct ExportSheet: View {
                               unavailable: String? = nil, format: String? = nil,
                               job: @escaping @MainActor () -> ExportQueue.Work) -> some View {
         Button {
-            errorMessage = nil
-            musicNote = nil
-            queue.enqueue(ExportQueue.Job(label: working, designId: store.design.id, work: job()))
-            // Kept for next time, when asked to be.
-            if let format { rememberSettings(format) }
+            run(working, format: format, job: job)
         } label: {
             rowLabel(title, subtitle: unavailable ?? subtitle, icon: icon)
         }
         .foregroundStyle(.primary)
         .disabled(unavailable != nil)
+    }
+
+    /// An export asked for: its job, made now from the design and the
+    /// settings as they stand, to the app's queue — after any export
+    /// already running — and the settings kept under `format`, when asked.
+    @MainActor
+    private func run(_ working: String, format: String?, job: @MainActor () -> ExportQueue.Work) {
+        errorMessage = nil
+        musicNote = nil
+        queue.enqueue(ExportQueue.Job(label: working, designId: store.design.id, work: job()))
+        // Kept for next time, when asked to be.
+        if let format { rememberSettings(format) }
     }
 
     private func rowLabel(_ title: String, subtitle: String, icon: String) -> some View {
