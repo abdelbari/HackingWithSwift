@@ -36,15 +36,21 @@ enum ExportSuggestion {
         return !shown.isEmpty && shown.allSatisfy({ isPhoto(design, $0) }) ? "jpg" : "png"
     }
 
-    /// Whether `page` moves: a clip on it or behind it, an animated
-    /// picture, an element that enters or exits, or a transition of its
-    /// own.
+    /// Whether `page` moves: a clip or an animated picture on it — as a
+    /// photo, filling a shape or behind the page — or on the master behind
+    /// it, an element that enters or exits, or a transition of its own.
+    /// Hidden elements are left out, as the film leaves them out.
     static func moves(_ design: Design, _ page: Page) -> Bool {
         if page.transition != nil { return true }
-        let elements = design.masterElements(behind: page) + page.elements
-        return elements.contains {
-            VideoStore.isVideo($0.src) || AnimStore.isAnim($0.src) || $0.animation != nil || $0.exitAnimation != nil
+        if case .image(let src) = page.background, playing(src) { return true }
+        return design.drawnElements(on: page).contains {
+            playing($0.src) || playing($0.fill?.src) || $0.animation != nil || $0.exitAnimation != nil
         }
+    }
+
+    /// Whether `src` is a clip or an animated picture.
+    private static func playing(_ src: String?) -> Bool {
+        VideoStore.isVideo(src) || AnimStore.isAnim(src)
     }
 
     /// The category of the design's type: the first preset of exactly its
@@ -59,18 +65,18 @@ enum ExportSuggestion {
         return (upright ?? presets.first { $0.w == h && $0.h == w })?.category
     }
 
-    /// Whether `page` is a photo: its background is a picture, or one photo
-    /// (a frame with a picture in it, as it sits, rotation aside) covers at
-    /// least `photoCover` of the page's area.
+    /// Whether `page` is a photo: its background is a still picture, or one
+    /// shown photo (a frame with a picture in it, as it sits, rotation
+    /// aside) covers at least `photoCover` of the page's area.
     static func isPhoto(_ design: Design, _ page: Page) -> Bool {
         if case .image(let src) = page.background,
-           !src.trimmingCharacters(in: .whitespaces).isEmpty { return true }
+           !src.trimmingCharacters(in: .whitespaces).isEmpty, !playing(src) { return true }
         let size = design.size(for: page)
         let pageW = Double(size.width), pageH = Double(size.height)
         let area = pageW * pageH
         guard area > 0 else { return false }
         return page.elements.contains { el in
-            el.type == .image && !PhotoFrames.isEmpty(el)
+            !el.isHidden && el.type == .image && !PhotoFrames.isEmpty(el)
                 && covered(el, pageW: pageW, pageH: pageH) / area >= photoCover
         }
     }

@@ -869,6 +869,291 @@
           }
         ]
       }
+    },
+    {
+      "name": "a hidden element that enters does not count",
+      "suggested": "png",
+      "design": {
+        "id": "d-hidden-anim",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello",
+                "animation": {
+                  "kind": "rise",
+                  "delay": 0,
+                  "duration": 0.6
+                },
+                "hidden": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "a hidden element on the master does not count",
+      "suggested": "png",
+      "design": {
+        "id": "d-hidden-master",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "m",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello",
+                "animation": {
+                  "kind": "rise",
+                  "delay": 0,
+                  "duration": 0.6
+                },
+                "hidden": true
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e2",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ],
+        "masterPageId": "m"
+      }
+    },
+    {
+      "name": "an element that enters on a hidden master counts behind its pages",
+      "suggested": "mp4",
+      "design": {
+        "id": "d-master-anim",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "m",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello",
+                "animation": {
+                  "kind": "rise",
+                  "delay": 0,
+                  "duration": 0.6
+                }
+              }
+            ],
+            "hidden": true
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e2",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ],
+        "masterPageId": "m"
+      }
+    },
+    {
+      "name": "a clip behind the page is a film, not a JPG",
+      "suggested": "mp4",
+      "design": {
+        "id": "d-clip-bg",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "image",
+              "value": "video:vid-1"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "an animated GIF behind the page is a film",
+      "suggested": "mp4",
+      "design": {
+        "id": "d-gif-bg",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "image",
+              "value": "anim:gif-1"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "text",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 80,
+                "text": "Hello"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "a shape filled with a clip is a film",
+      "suggested": "mp4",
+      "design": {
+        "id": "d-clip-fill",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "shape",
+                "x": 0,
+                "y": 0,
+                "w": 500,
+                "h": 500,
+                "shapeId": "rect",
+                "fill": {
+                  "kind": "image",
+                  "src": "video:vid-1"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "a hidden photo covering the page is a PNG",
+      "suggested": "png",
+      "design": {
+        "id": "d-hidden-photo",
+        "title": "Design",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "e1",
+                "type": "image",
+                "x": 0,
+                "y": 0,
+                "w": 1080,
+                "h": 1080,
+                "src": "media:photo-1",
+                "hidden": true
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }
