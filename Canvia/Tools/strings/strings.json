@@ -4052,6 +4052,15 @@
     "ja": "自分のテンプレートを追加",
     "pt-BR": "Adicionar um modelo seu"
   },
+  "Add a text box": {
+    "ar": "إضافة مربع نص",
+    "de": "Textfeld hinzufügen",
+    "es": "Añadir un cuadro de texto",
+    "fr": "Ajouter une zone de texte",
+    "it": "Aggiungi una casella di testo",
+    "ja": "テキストボックスを追加",
+    "pt-BR": "Adicionar uma caixa de texto"
+  },
   "Add a title": {
     "ar": "إضافة عنوان",
     "de": "Titel hinzufügen",
@@ -4545,11 +4554,11 @@
     "pt-BR": "Alinhar à esquerda"
   },
   "Align middle": {
-    "ar": "محاذاة للوسط",
-    "de": "Mittig ausrichten",
-    "es": "Alinear al medio",
+    "ar": "توسيط عمودي",
+    "de": "Vertikal zentrieren",
+    "es": "Centrar verticalmente",
     "fr": "Aligner au milieu",
-    "it": "Allinea al centro",
+    "it": "Centra verticalmente",
     "ja": "上下中央揃え",
     "pt-BR": "Alinhar ao meio"
   },
@@ -10730,6 +10739,15 @@
     "ja": "ページをクリップに合わせる",
     "pt-BR": "Ajustar página ao clipe"
   },
+  "Fit the page": {
+    "ar": "ملاءمة الصفحة",
+    "de": "Seite einpassen",
+    "es": "Ajustar la página",
+    "fr": "Ajuster la page",
+    "it": "Adatta la pagina",
+    "ja": "ページを合わせる",
+    "pt-BR": "Ajustar a página"
+  },
   "Fit to paper": {
     "ar": "ملاءمة للورق",
     "de": "An Papier anpassen",
@@ -14687,15 +14705,6 @@
     "ja": "次のセル",
     "pt-BR": "Próxima célula"
   },
-  "Next element": {
-    "ar": "العنصر التالي",
-    "de": "Nächstes Element",
-    "es": "Elemento siguiente",
-    "fr": "Élément suivant",
-    "it": "Elemento successivo",
-    "ja": "次の要素",
-    "pt-BR": "Próximo elemento"
-  },
   "Next page": {
     "ar": "الصفحة التالية",
     "de": "Nächste Seite",
@@ -17480,15 +17489,6 @@
     "ja": "前へ",
     "pt-BR": "Anterior"
   },
-  "Previous element": {
-    "ar": "العنصر السابق",
-    "de": "Vorheriges Element",
-    "es": "Elemento anterior",
-    "fr": "Élément précédent",
-    "it": "Elemento precedente",
-    "ja": "前の要素",
-    "pt-BR": "Elemento anterior"
-  },
   "Previous page": {
     "ar": "الصفحة السابقة",
     "de": "Vorherige Seite",
@@ -19553,6 +19553,15 @@
     "ja": "複数選択 — タップで追加・削除",
     "pt-BR": "Selecionar vários — toque para adicionar ou remover"
   },
+  "Select next": {
+    "ar": "تحديد التالي",
+    "de": "Nächstes auswählen",
+    "es": "Seleccionar el siguiente",
+    "fr": "Sélectionner le suivant",
+    "it": "Seleziona il successivo",
+    "ja": "次を選択",
+    "pt-BR": "Selecionar o próximo"
+  },
   "Select none": {
     "ar": "إلغاء التحديد",
     "de": "Nichts auswählen",
@@ -19570,6 +19579,15 @@
     "it": "Seleziona una cella per eliminarne la riga o la colonna.",
     "ja": "セルを 1 つ選択すると、その行または列を削除できます。",
     "pt-BR": "Selecione uma célula para excluir a linha ou coluna dela."
+  },
+  "Select previous": {
+    "ar": "تحديد السابق",
+    "de": "Vorheriges auswählen",
+    "es": "Seleccionar el anterior",
+    "fr": "Sélectionner le précédent",
+    "it": "Seleziona il precedente",
+    "ja": "前を選択",
+    "pt-BR": "Selecionar o anterior"
   },
   "Select something on the page to animate it.": {
     "ar": "حدّد شيئًا في الصفحة لتحريكه.",
@@ -23537,15 +23555,6 @@
     "ja": "元に戻すとやり直しは上部のバーにあります。元に戻すを長押しすると 1 ステップずつ巻き戻し、やり直しで再び進めます。3 本指で左右にスワイプ、3 本指でダブルタップ、またはシェイクでも同じステップを元に戻したりやり直したりできます。「バージョン履歴」には編集中は数分ごとにデザインのコピーが保存され、復元自体も元に戻せます。",
     "pt-BR": "Desfazer e refazer ficam na barra superior; segure Desfazer para retroceder etapa por etapa, e Refazer avança de novo. Deslizar com três dedos para a esquerda ou a direita, um toque duplo com três dedos e sacudir desfazem e refazem as mesmas etapas. Histórico de versões guarda uma cópia do design a cada dois minutos enquanto você edita; restaurar uma também pode ser desfeito."
   },
-  "Undo and redo are in the top bar; hold Undo to rewind step after step, and Redo walks forward again. Version history keeps a copy of the design every couple of minutes while you edit; restoring one is itself undoable.": {
-    "ar": "التراجع والإعادة في الشريط العلوي؛ اضغط مطولًا على «تراجع» للإرجاع خطوة بعد خطوة، و«إعادة» يتقدم مجددًا. ويحتفظ «سجل الإصدارات» بنسخة من التصميم كل دقيقتين تقريبًا أثناء التعديل؛ ويمكن التراجع عن استعادة إحداها.",
-    "de": "„Rückgängig“ und „Wiederholen“ sind in der oberen Leiste; halte „Rückgängig“ gedrückt, um Schritt für Schritt zurückzuspulen, und „Wiederholen“ geht wieder vorwärts. Der Versionsverlauf speichert beim Bearbeiten alle paar Minuten eine Kopie des Designs; auch das Wiederherstellen lässt sich rückgängig machen.",
-    "es": "Deshacer y rehacer están en la barra superior; mantén pulsado Deshacer para retroceder paso a paso, y Rehacer vuelve a avanzar. Historial de versiones guarda una copia del diseño cada par de minutos mientras editas; restaurar una también se puede deshacer.",
-    "fr": "Annuler et Rétablir sont dans la barre du haut ; maintenez Annuler pour revenir en arrière étape par étape, et Rétablir avance à nouveau. Historique des versions garde une copie du design toutes les deux minutes pendant que vous modifiez ; une restauration peut elle-même être annulée.",
-    "it": "Annulla e Ripeti sono nella barra in alto; tieni premuto Annulla per tornare indietro passo dopo passo, e Ripeti va di nuovo avanti. Cronologia versioni conserva una copia del design ogni paio di minuti mentre modifichi; anche il ripristino si può annullare.",
-    "ja": "元に戻すとやり直しは上部のバーにあります。元に戻すを長押しすると 1 ステップずつ巻き戻し、やり直しで再び進めます。「バージョン履歴」には編集中は数分ごとにデザインのコピーが保存され、復元自体も元に戻せます。",
-    "pt-BR": "Desfazer e refazer ficam na barra superior; segure Desfazer para retroceder etapa por etapa, e Refazer avança de novo. Histórico de versões guarda uma cópia do design a cada dois minutos enquanto você edita; restaurar uma também pode ser desfeito."
-  },
   "Undo brings them back.": {
     "ar": "التراجع يعيدها.",
     "de": "„Rückgängig“ holt sie zurück.",
@@ -24395,6 +24404,15 @@
     "ja": "下部の ⋮ にある「このページの内容」には、すべてが最前面から順に表示されます：行をハンドルでドラッグして重ね順を変え、ボタンでロックや非表示にし、長押しで名前を変更します。「重なり」には選択範囲と重なっているものだけが表示されます。「前面へ」と「背面へ」は「その他」にあります。",
     "pt-BR": "O que há nesta página, em ⋮ embaixo, lista tudo de cima para baixo: arraste uma linha pela alça para reordená-la, bloqueie-a ou oculte-a com os botões dela e segure-a para renomeá-la. Sobrepostos lista só o que se sobrepõe à seleção. Trazer para a frente e Enviar para trás estão em Mais."
   },
+  "While typing": {
+    "ar": "أثناء الكتابة",
+    "de": "Beim Tippen",
+    "es": "Al escribir",
+    "fr": "Pendant la saisie",
+    "it": "Mentre scrivi",
+    "ja": "入力中",
+    "pt-BR": "Ao digitar"
+  },
   "Whimsical": {
     "ar": "خيالي",
     "de": "Verspielt",
@@ -24503,15 +24521,6 @@
     "ja": "TalkBack では、すべての素材が読み順に、位置とサイズとともに読み上げられ、選択、移動、拡大・縮小、回転、切り抜き、複製、削除、並べ替え、編集のアクションがあります。スマートフォンでコントラストを上げる設定にすると選択枠が太くなり、アニメーションも端末の設定に従います。",
     "pt-BR": "Com o TalkBack, cada elemento é lido na ordem de leitura, com a posição e o tamanho, e tem ações para selecionar, mover, aumentar ou diminuir, girar, recortar, duplicar, excluir, reordenar e editar. Os contornos de seleção ficam mais grossos quando o celular pede mais contraste, e as animações seguem a configuração dele."
   },
-  "With a hardware keyboard: ⌘Z undo, ⇧⌘Z or ⌘Y redo, ⌘C/⌘X/⌘V copy, cut, paste, ⌘D duplicate, ⌘A select all, ⌘G group, ⌘F find, ⌘E export.": {
-    "ar": "مع لوحة مفاتيح فعلية: ⌘Z للتراجع، و⇧⌘Z أو ⌘Y للإعادة، و⌘C/⌘X/⌘V للنسخ والقص واللصق، و⌘D للتكرار، و⌘A لتحديد الكل، و⌘G للتجميع، و⌘F للبحث، و⌘E للتصدير.",
-    "de": "Mit einer Hardware-Tastatur: ⌘Z Rückgängig, ⇧⌘Z oder ⌘Y Wiederholen, ⌘C/⌘X/⌘V Kopieren, Ausschneiden, Einfügen, ⌘D Duplizieren, ⌘A Alles auswählen, ⌘G Gruppieren, ⌘F Suchen, ⌘E Exportieren.",
-    "es": "Con un teclado físico: ⌘Z deshacer, ⇧⌘Z o ⌘Y rehacer, ⌘C/⌘X/⌘V copiar, cortar, pegar, ⌘D duplicar, ⌘A seleccionar todo, ⌘G agrupar, ⌘F buscar, ⌘E exportar.",
-    "fr": "Avec un clavier physique : ⌘Z annuler, ⇧⌘Z ou ⌘Y rétablir, ⌘C/⌘X/⌘V copier, couper, coller, ⌘D dupliquer, ⌘A tout sélectionner, ⌘G grouper, ⌘F rechercher, ⌘E exporter.",
-    "it": "Con una tastiera fisica: ⌘Z annulla, ⇧⌘Z o ⌘Y ripeti, ⌘C/⌘X/⌘V copia, taglia, incolla, ⌘D duplica, ⌘A seleziona tutto, ⌘G raggruppa, ⌘F trova, ⌘E esporta.",
-    "ja": "ハードウェアキーボードでは：⌘Z 元に戻す、⇧⌘Z または ⌘Y やり直す、⌘C/⌘X/⌘V コピー・切り取り・貼り付け、⌘D 複製、⌘A すべて選択、⌘G グループ化、⌘F 検索、⌘E 書き出し。",
-    "pt-BR": "Com um teclado físico: ⌘Z desfaz, ⇧⌘Z ou ⌘Y refaz, ⌘C/⌘X/⌘V copiam, recortam, colam, ⌘D duplica, ⌘A seleciona tudo, ⌘G agrupa, ⌘F localiza, ⌘E exporta."
-  },
   "With a hardware keyboard: ⌘Z undo, ⇧⌘Z or ⌘Y redo, ⌘C/⌘X/⌘V copy, cut, paste, ⌘D duplicate, ⌘A select all, ⌘G group, ⌘F find, ⌘E export. ⌘= and ⌘- zoom in and out, ⌘0 fits the page, ⌘1 is actual size. Page Up and Page Down (or ⌥↑ and ⌥↓) go to the previous and next page. Tab and ⇧Tab select the next and previous element, ⇧H and ⇧V flip, ⌥⇧L, C, R, T, M and B align left, centre, right, top, middle and bottom, and T adds a text box. While typing: ⌘B, ⌘I and ⌘U bold, italic and underline, ⇧⌘X strikethrough, ⇧⌘K capitals, ⇧⌘L, C, R and J align, ⇧⌘7 and ⇧⌘8 numbered and bulleted lists, ⇧⌘, and ⇧⌘. smaller and larger. Hold ⌘ to see them all.": {
     "ar": "مع لوحة مفاتيح فعلية: ⌘Z للتراجع، و⇧⌘Z أو ⌘Y للإعادة، و⌘C/⌘X/⌘V للنسخ والقص واللصق، و⌘D للتكرار، و⌘A لتحديد الكل، و⌘G للتجميع، و⌘F للبحث، و⌘E للتصدير. ⌘= و⌘- للتكبير والتصغير، و⌘0 لملاءمة الصفحة، و⌘1 للحجم الفعلي. Page Up وPage Down (أو ⌥↑ و⌥↓) للصفحة السابقة والتالية. Tab و⇧Tab لتحديد العنصر التالي والسابق، و⇧H و⇧V للقلب، و⌥⇧L وC وR وT وM وB للمحاذاة لليسار والوسط واليمين والأعلى والمنتصف والأسفل، وT لإضافة مربع نص. أثناء الكتابة: ⌘B و⌘I و⌘U للخط العريض والمائل والمسطّر، و⇧⌘X لليطب، و⇧⌘K للأحرف الكبيرة، و⇧⌘L وC وR وJ للمحاذاة، و⇧⌘7 و⇧⌘8 للقوائم المرقّمة والنقطية، و⇧⌘, و⇧⌘. للتصغير والتكبير. اضغط مطولًا على ⌘ لرؤيتها كلها.",
     "de": "Mit einer Hardware-Tastatur: ⌘Z Rückgängig, ⇧⌘Z oder ⌘Y Wiederholen, ⌘C/⌘X/⌘V Kopieren, Ausschneiden, Einfügen, ⌘D Duplizieren, ⌘A Alles auswählen, ⌘G Gruppieren, ⌘F Suchen, ⌘E Exportieren. ⌘= und ⌘- vergrößern und verkleinern, ⌘0 passt die Seite ein, ⌘1 ist die tatsächliche Größe. Bild auf und Bild ab (oder ⌥↑ und ⌥↓) gehen zur vorherigen und nächsten Seite. Tab und ⇧Tab wählen das nächste und vorherige Element, ⇧H und ⇧V spiegeln, ⌥⇧L, C, R, T, M und B richten links, mittig, rechts, oben, in der Mitte und unten aus, und T fügt ein Textfeld hinzu. Beim Tippen: ⌘B, ⌘I und ⌘U fett, kursiv und unterstrichen, ⇧⌘X durchgestrichen, ⇧⌘K Großbuchstaben, ⇧⌘L, C, R und J richten aus, ⇧⌘7 und ⇧⌘8 nummerierte Liste und Aufzählung, ⇧⌘, und ⇧⌘. kleiner und größer. Halte ⌘ gedrückt, um alle zu sehen.",
@@ -24521,14 +24530,14 @@
     "ja": "ハードウェアキーボードでは：⌘Z 元に戻す、⇧⌘Z または ⌘Y やり直す、⌘C/⌘X/⌘V コピー・切り取り・貼り付け、⌘D 複製、⌘A すべて選択、⌘G グループ化、⌘F 検索、⌘E 書き出し。⌘= と ⌘- で拡大と縮小、⌘0 でページ全体、⌘1 で実際のサイズ。Page Up と Page Down（または ⌥↑ と ⌥↓）で前後のページへ。Tab と ⇧Tab で次と前の要素を選択、⇧H と ⇧V で反転、⌥⇧L・C・R・T・M・B で左・中央・右・上・中・下に揃え、T でテキストボックスを追加。入力中は：⌘B・⌘I・⌘U で太字・斜体・下線、⇧⌘X で取り消し線、⇧⌘K で大文字、⇧⌘L・C・R・J で揃え、⇧⌘7 と ⇧⌘8 で番号付きリストと箇条書き、⇧⌘, と ⇧⌘. で小さく・大きく。⌘ を長押しするとすべて表示されます。",
     "pt-BR": "Com um teclado físico: ⌘Z desfaz, ⇧⌘Z ou ⌘Y refaz, ⌘C/⌘X/⌘V copiam, recortam, colam, ⌘D duplica, ⌘A seleciona tudo, ⌘G agrupa, ⌘F localiza, ⌘E exporta. ⌘= e ⌘- aproximam e afastam, ⌘0 ajusta a página, ⌘1 é o tamanho real. Page Up e Page Down (ou ⌥↑ e ⌥↓) vão para a página anterior e a seguinte. Tab e ⇧Tab selecionam o elemento seguinte e o anterior, ⇧H e ⇧V espelham, ⌥⇧L, C, R, T, M e B alinham à esquerda, ao centro, à direita, ao topo, ao meio e à base, e T adiciona uma caixa de texto. Ao digitar: ⌘B, ⌘I e ⌘U negrito, itálico e sublinhado, ⇧⌘X tachado, ⇧⌘K maiúsculas, ⇧⌘L, C, R e J alinham, ⇧⌘7 e ⇧⌘8 listas numeradas e com marcadores, ⇧⌘, e ⇧⌘. menor e maior. Segure ⌘ para ver todos."
   },
-  "With a keyboard: Ctrl+Z and Ctrl+Shift+Z undo and redo, Ctrl+C, X, V and D copy, cut, paste and duplicate, the arrows nudge, Ctrl+K lists the page, Ctrl+E shares, Ctrl+F finds, and Ctrl+/ opens this help. Hold Meta and / to see them all.": {
-    "ar": "مع لوحة مفاتيح: Ctrl+Z وCtrl+Shift+Z للتراجع والإعادة، وCtrl+C وX وV وD للنسخ والقص واللصق والتكرار، والأسهم للتحريك الطفيف، وCtrl+K يسرد محتوى الصفحة، وCtrl+E للمشاركة، وCtrl+F للبحث، وCtrl+/ يفتح هذه المساعدة. اضغط مطولًا على Meta و/ لرؤيتها كلها.",
-    "de": "Mit einer Tastatur: Strg+Z und Strg+Umschalt+Z für Rückgängig und Wiederholen, Strg+C, X, V und D für Kopieren, Ausschneiden, Einfügen und Duplizieren, die Pfeiltasten verschieben, Strg+K listet die Seite auf, Strg+E teilt, Strg+F sucht und Strg+/ öffnet diese Hilfe. Halte Meta und / gedrückt, um alle zu sehen.",
-    "es": "Con un teclado: Ctrl+Z y Ctrl+Mayús+Z deshacen y rehacen; Ctrl+C, X, V y D copian, cortan, pegan y duplican; las flechas desplazan; Ctrl+K muestra el contenido de la página; Ctrl+E comparte; Ctrl+F busca, y Ctrl+/ abre esta ayuda. Mantén pulsadas Meta y / para verlos todos.",
-    "fr": "Avec un clavier : Ctrl+Z et Ctrl+Maj+Z annulent et rétablissent, Ctrl+C, X, V et D copient, coupent, collent et dupliquent, les flèches décalent, Ctrl+K liste la page, Ctrl+E partage, Ctrl+F recherche, et Ctrl+/ ouvre cette aide. Maintenez Méta et / pour tous les voir.",
-    "it": "Con una tastiera: Ctrl+Z e Ctrl+Maiusc+Z annullano e ripetono, Ctrl+C, X, V e D copiano, tagliano, incollano e duplicano, le frecce spostano di poco, Ctrl+K elenca la pagina, Ctrl+E condivide, Ctrl+F trova e Ctrl+/ apre questo aiuto. Tieni premuti Meta e / per vederle tutte.",
-    "ja": "キーボードでは：Ctrl+Z と Ctrl+Shift+Z で元に戻す・やり直し、Ctrl+C、X、V、D でコピー・切り取り・貼り付け・複製、矢印キーで微調整、Ctrl+K でページの一覧、Ctrl+E で共有、Ctrl+F で検索、Ctrl+/ でこのヘルプを開きます。Meta と / を長押しするとすべて表示されます。",
-    "pt-BR": "Com um teclado: Ctrl+Z e Ctrl+Shift+Z desfazem e refazem, Ctrl+C, X, V e D copiam, recortam, colam e duplicam, as setas fazem ajustes finos, Ctrl+K lista a página, Ctrl+E compartilha, Ctrl+F localiza e Ctrl+/ abre esta ajuda. Segure Meta e / para ver todos."
+  "With a keyboard: Ctrl+Z and Ctrl+Shift+Z undo and redo, Ctrl+C, X, V and D copy, cut, paste and duplicate, the arrows nudge, Ctrl+K lists the page, Ctrl+E shares, Ctrl+F finds, and Ctrl+/ opens this help. Ctrl+= and Ctrl+- zoom in and out, Ctrl+0 fits the page and Ctrl+1 shows it at actual size. Page Up and Page Down, or Alt+Up and Alt+Down, go to the previous and next page. Tab and Shift+Tab select the next and previous thing on the page, a group as one. Shift+H and Shift+V flip, and Alt+Shift with L, C, R, T, M or B aligns left, centre, right, top, middle or bottom. T adds a text box. While typing, Ctrl+B, I and U are bold, italic and underline, Ctrl+Shift+X strikes through, Ctrl+Shift+K is uppercase, Ctrl+Shift+L, C, R and J align, Ctrl+Shift+7 and 8 are numbered and bulleted lists, and Ctrl+Shift+, and . make the selected words smaller and larger. On an iPhone the three-finger undo gestures and Shake to Undo step the same history. Hold Meta and / to see them all.": {
+    "ar": "مع لوحة مفاتيح: Ctrl+Z وCtrl+Shift+Z للتراجع والإعادة، وCtrl+C وX وV وD للنسخ والقص واللصق والتكرار، والأسهم للتحريك الطفيف، وCtrl+K يسرد محتوى الصفحة، وCtrl+E للمشاركة، وCtrl+F للبحث، وCtrl+/ يفتح هذه المساعدة. Ctrl+= وCtrl+- للتكبير والتصغير، وCtrl+0 يلائم الصفحة، وCtrl+1 يعرضها بالحجم الفعلي. Page Up وPage Down، أو Alt+أعلى وAlt+أسفل، للانتقال إلى الصفحة السابقة والتالية. Tab وShift+Tab يحددان العنصر التالي والسابق في الصفحة، والمجموعة كعنصر واحد. Shift+H وShift+V للقلب، وAlt+Shift مع L أو C أو R أو T أو M أو B للمحاذاة يسارًا أو وسطًا أو يمينًا أو أعلى أو منتصفًا أو أسفل. T يضيف مربع نص. أثناء الكتابة، Ctrl+B وI وU للغامق والمائل والتسطير، وCtrl+Shift+X للشطب، وCtrl+Shift+K للأحرف الكبيرة، وCtrl+Shift+L وC وR وJ للمحاذاة، وCtrl+Shift+7 و8 للقوائم المرقمة والنقطية، وCtrl+Shift+, و. لتصغير الكلمات المحددة وتكبيرها. على iPhone، تمر إيماءات التراجع بثلاثة أصابع وهزّ الجهاز للتراجع عبر السجل نفسه. اضغط مطولًا على Meta و/ لرؤيتها كلها.",
+    "de": "Mit einer Tastatur: Strg+Z und Strg+Umschalt+Z für Rückgängig und Wiederholen, Strg+C, X, V und D für Kopieren, Ausschneiden, Einfügen und Duplizieren, die Pfeiltasten verschieben, Strg+K listet die Seite auf, Strg+E teilt, Strg+F sucht und Strg+/ öffnet diese Hilfe. Strg+= und Strg+- zoomen hinein und heraus, Strg+0 passt die Seite ein und Strg+1 zeigt sie in Originalgröße. Bild auf und Bild ab, oder Alt+Auf und Alt+Ab, gehen zur vorherigen und nächsten Seite. Tab und Umschalt+Tab wählen das nächste und vorherige Element auf der Seite aus, eine Gruppe als eines. Umschalt+H und Umschalt+V spiegeln, und Alt+Umschalt mit L, C, R, T, M oder B richtet links, mittig, rechts, oben, in der Mitte oder unten aus. T fügt ein Textfeld hinzu. Beim Tippen sind Strg+B, I und U fett, kursiv und unterstrichen, Strg+Umschalt+X streicht durch, Strg+Umschalt+K ist Großbuchstaben, Strg+Umschalt+L, C, R und J richten aus, Strg+Umschalt+7 und 8 sind nummerierte Listen und Aufzählungen, und Strg+Umschalt+, und . machen die ausgewählten Wörter kleiner und größer. Auf einem iPhone gehen die Drei-Finger-Gesten zum Rückgängigmachen und Schütteln zum Widerrufen durch dieselbe Chronik. Halte Meta und / gedrückt, um alle zu sehen.",
+    "es": "Con un teclado: Ctrl+Z y Ctrl+Mayús+Z deshacen y rehacen; Ctrl+C, X, V y D copian, cortan, pegan y duplican; las flechas desplazan; Ctrl+K muestra el contenido de la página; Ctrl+E comparte; Ctrl+F busca, y Ctrl+/ abre esta ayuda. Ctrl+= y Ctrl+- acercan y alejan, Ctrl+0 ajusta la página y Ctrl+1 la muestra a tamaño real. Re Pág y Av Pág, o Alt+Arriba y Alt+Abajo, van a la página anterior y siguiente. Tab y Mayús+Tab seleccionan el elemento siguiente y anterior de la página, un grupo como uno solo. Mayús+H y Mayús+V voltean, y Alt+Mayús con L, C, R, T, M o B alinea a la izquierda, al centro, a la derecha, arriba, en medio o abajo. T añade un cuadro de texto. Al escribir, Ctrl+B, I y U son negrita, cursiva y subrayado; Ctrl+Mayús+X tacha; Ctrl+Mayús+K es mayúsculas; Ctrl+Mayús+L, C, R y J alinean; Ctrl+Mayús+7 y 8 son listas numeradas y con viñetas, y Ctrl+Mayús+, y . hacen las palabras seleccionadas más pequeñas y más grandes. En un iPhone, los gestos de deshacer con tres dedos y Agitar para deshacer recorren el mismo historial. Mantén pulsadas Meta y / para verlos todos.",
+    "fr": "Avec un clavier : Ctrl+Z et Ctrl+Maj+Z annulent et rétablissent, Ctrl+C, X, V et D copient, coupent, collent et dupliquent, les flèches décalent, Ctrl+K liste la page, Ctrl+E partage, Ctrl+F recherche, et Ctrl+/ ouvre cette aide. Ctrl+= et Ctrl+- zooment avant et arrière, Ctrl+0 ajuste la page et Ctrl+1 l'affiche en taille réelle. Page précédente et Page suivante, ou Alt+Haut et Alt+Bas, vont à la page précédente et suivante. Tab et Maj+Tab sélectionnent l'élément suivant et précédent de la page, un groupe comme un seul. Maj+H et Maj+V retournent, et Alt+Maj avec L, C, R, T, M ou B aligne à gauche, au centre, à droite, en haut, au milieu ou en bas. T ajoute une zone de texte. Pendant la saisie, Ctrl+B, I et U mettent en gras, en italique et souligné, Ctrl+Maj+X barre, Ctrl+Maj+K met en majuscules, Ctrl+Maj+L, C, R et J alignent, Ctrl+Maj+7 et 8 font des listes numérotées et à puces, et Ctrl+Maj+, et . rendent les mots sélectionnés plus petits et plus grands. Sur un iPhone, les gestes d'annulation à trois doigts et Secouer pour annuler parcourent le même historique. Maintenez Méta et / pour tous les voir.",
+    "it": "Con una tastiera: Ctrl+Z e Ctrl+Maiusc+Z annullano e ripetono, Ctrl+C, X, V e D copiano, tagliano, incollano e duplicano, le frecce spostano di poco, Ctrl+K elenca la pagina, Ctrl+E condivide, Ctrl+F trova e Ctrl+/ apre questo aiuto. Ctrl+= e Ctrl+- ingrandiscono e riducono, Ctrl+0 adatta la pagina e Ctrl+1 la mostra a dimensioni reali. Pag su e Pag giù, o Alt+Su e Alt+Giù, vanno alla pagina precedente e successiva. Tab e Maiusc+Tab selezionano l'elemento successivo e precedente della pagina, un gruppo come uno solo. Maiusc+H e Maiusc+V capovolgono, e Alt+Maiusc con L, C, R, T, M o B allinea a sinistra, al centro, a destra, in alto, al centro verticale o in basso. T aggiunge una casella di testo. Mentre scrivi, Ctrl+B, I e U sono grassetto, corsivo e sottolineato, Ctrl+Maiusc+X barra, Ctrl+Maiusc+K è maiuscolo, Ctrl+Maiusc+L, C, R e J allineano, Ctrl+Maiusc+7 e 8 sono elenchi numerati e puntati, e Ctrl+Maiusc+, e . rendono le parole selezionate più piccole e più grandi. Su un iPhone i gesti di annullamento a tre dita e Agita per annullare percorrono la stessa cronologia. Tieni premuti Meta e / per vederle tutte.",
+    "ja": "キーボードでは：Ctrl+Z と Ctrl+Shift+Z で元に戻す・やり直し、Ctrl+C、X、V、D でコピー・切り取り・貼り付け・複製、矢印キーで微調整、Ctrl+K でページの一覧、Ctrl+E で共有、Ctrl+F で検索、Ctrl+/ でこのヘルプを開きます。Ctrl+= と Ctrl+- で拡大・縮小、Ctrl+0 でページを合わせ、Ctrl+1 で実際のサイズで表示します。Page Up と Page Down、または Alt+上 と Alt+下 で前後のページへ移動します。Tab と Shift+Tab でページ上の次と前の要素を選択します（グループは一つとして）。Shift+H と Shift+V で反転、Alt+Shift と L、C、R、T、M、B で左、中央、右、上、中、下に揃えます。T でテキストボックスを追加します。入力中は、Ctrl+B、I、U で太字・斜体・下線、Ctrl+Shift+X で取り消し線、Ctrl+Shift+K で大文字、Ctrl+Shift+L、C、R、J で揃え、Ctrl+Shift+7 と 8 で番号付きリストと箇条書き、Ctrl+Shift+, と . で選択した文字を小さく・大きくします。iPhone では、3 本指の取り消しジェスチャとシェイクで取り消しが同じ履歴をたどります。Meta と / を長押しするとすべて表示されます。",
+    "pt-BR": "Com um teclado: Ctrl+Z e Ctrl+Shift+Z desfazem e refazem, Ctrl+C, X, V e D copiam, recortam, colam e duplicam, as setas fazem ajustes finos, Ctrl+K lista a página, Ctrl+E compartilha, Ctrl+F localiza e Ctrl+/ abre esta ajuda. Ctrl+= e Ctrl+- aproximam e afastam, Ctrl+0 ajusta a página e Ctrl+1 a mostra em tamanho real. Page Up e Page Down, ou Alt+Cima e Alt+Baixo, vão para a página anterior e a seguinte. Tab e Shift+Tab selecionam o elemento seguinte e o anterior da página, um grupo como um só. Shift+H e Shift+V espelham, e Alt+Shift com L, C, R, T, M ou B alinha à esquerda, ao centro, à direita, ao topo, ao meio ou à base. T adiciona uma caixa de texto. Ao digitar, Ctrl+B, I e U são negrito, itálico e sublinhado, Ctrl+Shift+X tacha, Ctrl+Shift+K é maiúsculas, Ctrl+Shift+L, C, R e J alinham, Ctrl+Shift+7 e 8 são listas numeradas e com marcadores, e Ctrl+Shift+, e . deixam as palavras selecionadas menores e maiores. No iPhone, os gestos de desfazer com três dedos e Agitar para desfazer percorrem o mesmo histórico. Segure Meta e / para ver todos."
   },
   "With auto-fit on, drag the box and the type resizes to fill it; the alignment places shorter text within a taller box.": {
     "ar": "مع تفعيل الملاءمة التلقائية، اسحب المربع وسيتغيّر حجم الخط ليملأه؛ وتضع المحاذاة النص الأقصر داخل مربع أطول.",
