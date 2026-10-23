@@ -178,6 +178,10 @@ enum DesignPackage {
                     fill.src = moved
                     out.pages[p].elements[i].fill = fill
                 }
+                if var letters = out.pages[p].elements[i].textFill, letters.kind == "image", let moved = still(letters.src) {
+                    letters.src = moved
+                    out.pages[p].elements[i].textFill = letters
+                }
             }
         }
         return out
@@ -230,6 +234,10 @@ enum DesignPackage {
                     fill.src = moved
                     out.pages[p].elements[i].fill = fill
                 }
+                if var letters = out.pages[p].elements[i].textFill, letters.kind == "image", let moved = still(letters.src) {
+                    letters.src = moved
+                    out.pages[p].elements[i].textFill = letters
+                }
             }
         }
         return out
@@ -243,6 +251,8 @@ enum DesignPackage {
             for el in page.elements {
                 if let src = el.src, src.hasPrefix("media:") { ids.insert(String(src.dropFirst(6))) }
                 if let src = el.fill?.src, src.hasPrefix("media:") { ids.insert(String(src.dropFirst(6))) }
+                // A photo poured into a text's letters.
+                if let src = el.textFill?.src, src.hasPrefix("media:") { ids.insert(String(src.dropFirst(6))) }
                 // The picture before a Cut out, which Restore paints back.
                 if let src = el.mask?.base, src.hasPrefix("media:") { ids.insert(String(src.dropFirst(6))) }
             }
@@ -465,6 +475,10 @@ enum DesignPackage {
                     fill.src = moved(fill.src)
                     out.pages[p].elements[i].fill = fill
                 }
+                if var letters = out.pages[p].elements[i].textFill, letters.kind == "image" {
+                    letters.src = moved(letters.src)
+                    out.pages[p].elements[i].textFill = letters
+                }
                 if var mask = out.pages[p].elements[i].mask, mask.base != nil {
                     mask.base = moved(mask.base)
                     out.pages[p].elements[i].mask = mask
@@ -641,6 +655,11 @@ enum DesignPackage {
                 if var fill = design.pages[p].elements[i].fill, fill.kind == "image" {
                     fill.src = rewrite(fill.src)
                     design.pages[p].elements[i].fill = fill
+                }
+                // A photo poured into the letters moves as a shape's does.
+                if var letters = design.pages[p].elements[i].textFill, letters.kind == "image" {
+                    letters.src = rewrite(letters.src)
+                    design.pages[p].elements[i].textFill = letters
                 }
                 if var mask = design.pages[p].elements[i].mask, mask.base != nil {
                     mask.base = rewrite(mask.base)

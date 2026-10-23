@@ -515,9 +515,11 @@ enum DesignLibrary {
     private static func collectPhotos(in elements: [Element], into found: inout Set<String>) {
         for el in elements {
             if let id = photoID(el.src) { found.insert(id) }
-            // A shape filled with a photo uses it too, and a cut-out the
+            // A shape filled with a photo uses it too, a text whose letters
+            // are filled with one, and a cut-out the
             // picture before its cut, which Restore paints back.
             if let id = photoID(el.fill?.src) { found.insert(id) }
+            if let id = photoID(el.textFill?.src) { found.insert(id) }
             if let id = photoID(el.mask?.base) { found.insert(id) }
         }
     }
