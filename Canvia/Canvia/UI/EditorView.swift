@@ -102,6 +102,10 @@ struct EditorView: View {
     /// Set while the design on screen could not be written, and cleared by
     /// the next save that could.
     @State private var saveFailed = false
+    /// Counted up each time the editor is the one to answer the system's
+    /// undo gestures again (UndoHost): as it appears, and as typing, the
+    /// title, a sheet or an alert lets the keyboard go.
+    @State private var undoClaim = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// What the banner says while saves are failing; the Android twin says
@@ -189,6 +193,10 @@ struct EditorView: View {
             PagesBar(store: store)
         }
         .background(keyboardCommands)
+        .background(UndoHost(store: store, live: undoHostLive, claim: undoClaim))
+        .onChange(of: undoHostLive, initial: true) { _, live in
+            if live { undoClaim += 1 }
+        }
         .overlay(alignment: .bottom) { undoToast }
         // A toast's Undo is withdrawn once anything else is done, as the
         // Android twin's snackbar is: held open for VoiceOver, it would
@@ -454,6 +462,56 @@ struct EditorView: View {
                 shortcut("c", [.command, .option], tr("Copy style")) { store.copyStyle() }
                 shortcut("v", [.command, .option], tr("Paste style")) { store.pasteStyle() }
             }
+            // The view's keys too wait while any text field has the keyboard
+            // — ⌥↓ is the end of a paragraph there, and ⌥⇧ letters type
+            // characters on many layouts — or a pen is out, as the Android
+            // twin keeps only Undo and Redo under it.
+            if plainKeysLive {
+                viewCommands
+                plainCommands
+            }
+        }
+    }
+
+    /// The view's keys, as Canva has them: ⌘= and ⌘- a quarter in and out
+    /// about the middle of the screen, ⌘0 the whole page, ⌘1 actual size,
+    /// and ⌥↑ and ⌥↓ the page before and after, which the canvas settles on
+    /// as it brings it up.
+    private var viewCommands: some View {
+        Group {
+            Group {
+                shortcut("=", [.command], tr("Zoom in")) { store.requestCanvas(.zoom(store.zoom * 1.25)) }
+                shortcut("-", [.command], tr("Zoom out")) { store.requestCanvas(.zoom(store.zoom / 1.25)) }
+                shortcut("0", [.command], tr("Fit the page")) { store.requestCanvas(.fit) }
+                shortcut("1", [.command], tr("Actual size")) { store.requestCanvas(.zoom(1)) }
+                shortcut(.upArrow, [.option], tr("Previous page")) { store.setPage(store.pageIndex - 1) }
+                shortcut(.downArrow, [.option], tr("Next page")) { store.setPage(store.pageIndex + 1) }
+                // Position's aligning: to the page, or to each other, as it does.
+                shortcut("l", [.option, .shift], tr("Align left")) { store.alignSelected(.left) }
+                shortcut("c", [.option, .shift], tr("Align centre")) { store.alignSelected(.centerX) }
+                shortcut("r", [.option, .shift], tr("Align right")) { store.alignSelected(.right) }
+                shortcut("t", [.option, .shift], tr("Align top")) { store.alignSelected(.top) }
+            }
+            shortcut("m", [.option, .shift], tr("Align middle")) { store.alignSelected(.centerY) }
+            shortcut("b", [.option, .shift], tr("Align bottom")) { store.alignSelected(.bottom) }
+        }
+    }
+
+    /// Keys with no ⌘ to them, only while no text field anywhere could
+    /// want them (plainKeysLive): Page Up and Page Down, Tab and Shift-Tab
+    /// through what is on the page, front-most last, Shift-H and Shift-V
+    /// flipping, and T, a text box in the middle of the page.
+    private var plainCommands: some View {
+        Group {
+            shortcut(.pageUp, [], tr("Previous page")) { store.setPage(store.pageIndex - 1) }
+            shortcut(.pageDown, [], tr("Next page")) { store.setPage(store.pageIndex + 1) }
+            shortcut(.tab, [], tr("Select next")) { store.selectNeighbour(forward: true) }
+            shortcut(.tab, [.shift], tr("Select previous")) { store.selectNeighbour(forward: false) }
+            shortcut("h", [.shift], tr("Flip horizontally")) { store.flipSelected(horizontal: true) }
+            shortcut("v", [.shift], tr("Flip vertically")) { store.flipSelected(horizontal: false) }
+            shortcut("t", [], tr("Add a text box")) {
+                store.addText(at: CGPoint(x: store.pageWidth / 2, y: store.pageHeight / 2))
+            }
         }
     }
 
@@ -475,7 +533,22 @@ struct EditorView: View {
     /// Whether plain Delete can safely mean "delete the selection": something
     /// is selected, and no text field anywhere has the keyboard.
     private var deleteKeysLive: Bool {
-        !store.selection.isEmpty && store.editingTextId == nil && !titleFocused && activeSheet == nil
+        !store.selection.isEmpty && plainKeysLive
+    }
+
+    /// Whether the editor answers the system's undo gestures and shake
+    /// (UndoHost): no text field anywhere has the keyboard — typing in
+    /// place keeps its own undo (TypingUndo) — and nothing is presented.
+    private var undoHostLive: Bool {
+        store.editingTextId == nil && !titleFocused && activeSheet == nil && !namingComponent
+            && !savingTemplate && !namingVersion && !askingCustomGrid && !store.textFieldOpen && !presenting
+    }
+
+    /// Whether a key with no modifier can mean anything but typing: no
+    /// text field anywhere has the keyboard, and no pen, eraser or brush
+    /// is out.
+    private var plainKeysLive: Bool {
+        store.editingTextId == nil && !titleFocused && activeSheet == nil
             && !namingComponent && !savingTemplate && !namingVersion && !store.textFieldOpen && store.drawing == nil
             && store.erasing == nil && store.brushing == nil
     }
@@ -1096,54 +1169,20 @@ struct EditorView: View {
     }
 
     /// Crop mode's bar, in place of the insert button: how far in the
-    /// picture is, and the ways out. Done keeps the crop as one Undo, Cancel
-    /// puts the photo back as it was, Reset centres the picture and lets it
-    /// just cover the frame again, and More opens the sheet for straightening,
-    /// fit and the Ken Burns drift. The slider does what a pinch does, for
-    /// anyone who cannot pinch, and carries four moves for VoiceOver.
+    /// picture is, the frame's shape, a straighten dial, a quarter turn and
+    /// a flip, and the ways out — all inside the one open crop step, so
+    /// Done keeps them as one Undo and Cancel puts every one of them back.
+    /// Reset centres the picture and lets it just cover the frame again,
+    /// and More opens the sheet for fit and the Ken Burns drift. The zoom
+    /// slider does what a pinch does, for anyone who cannot pinch, and
+    /// carries four moves for VoiceOver.
     private var cropBar: some View {
         let photo = store.cropElement
-        let zoom = max(1, photo?.cropScale ?? 1)
-        let percent = "\(Int((zoom * 100).rounded()))%"
-        // A trim can leave a picture further in than a zoom may take it; the
-        // slider's end moves out to meet it rather than snapping it back —
-        // but not mid-drag, when a moving range would pull the thumb about.
-        let ceiling = cropSliding ? cropCeiling : max(Crop.maxZoom, zoom)
         return VStack(spacing: 6) {
-            HStack(spacing: 10) {
-                Text("Zoom").font(.subheadline.weight(.semibold))
-                Slider(value: Binding(get: { zoom }, set: { store.setCropZoom($0) }),
-                       in: 1...ceiling,
-                       onEditingChanged: { editing in
-                           if editing { cropCeiling = max(Crop.maxZoom, zoom) }
-                           cropSliding = editing
-                       })
-                .accessibilityLabel("Zoom the picture")
-                .accessibilityValue(percent)
-                .accessibilityAction(named: "Move the picture left") { store.nudgeCrop(dx: -1, dy: 0) }
-                .accessibilityAction(named: "Move the picture right") { store.nudgeCrop(dx: 1, dy: 0) }
-                .accessibilityAction(named: "Move the picture up") { store.nudgeCrop(dx: 0, dy: -1) }
-                .accessibilityAction(named: "Move the picture down") { store.nudgeCrop(dx: 0, dy: 1) }
-                Text(percent)
-                    .font(.subheadline.monospacedDigit())
-                    .frame(minWidth: 48, alignment: .trailing)
-                    .accessibilityHidden(true)
-            }
-            HStack(spacing: 12) {
-                Button("Cancel") { store.cancelCrop() }
-                Spacer(minLength: 0)
-                Button("Reset") { store.resetCrop() }
-                    .disabled(!(photo.map(Crop.isAdjusted) ?? false))
-                Spacer(minLength: 0)
-                Button {
-                    store.finishCrop()
-                    activeSheet = .crop
-                } label: { Image(systemName: "slider.horizontal.3").frame(width: 30, height: 30) }
-                    .accessibilityLabel("Straighten, fit and drift")
-                Button("Done") { store.finishCrop() }
-                    .fontWeight(.semibold)
-                    .buttonStyle(.borderedProminent)
-            }
+            cropZoomRow(photo)
+            cropAspectRow(photo)
+            cropStraightenRow(photo)
+            cropWaysOut(photo)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -1151,6 +1190,106 @@ struct EditorView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
         .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    private func cropZoomRow(_ photo: Element?) -> some View {
+        let zoom = max(1, photo?.cropScale ?? 1)
+        let percent = "\(Int((zoom * 100).rounded()))%"
+        // A trim can leave a picture further in than a zoom may take it; the
+        // slider's end moves out to meet it rather than snapping it back —
+        // but not mid-drag, when a moving range would pull the thumb about.
+        let ceiling = cropSliding ? cropCeiling : max(Crop.maxZoom, zoom)
+        return HStack(spacing: 10) {
+            Text("Zoom").font(.subheadline.weight(.semibold))
+            Slider(value: Binding(get: { zoom }, set: { store.setCropZoom($0) }),
+                   in: 1...ceiling,
+                   onEditingChanged: { editing in
+                       if editing { cropCeiling = max(Crop.maxZoom, zoom) }
+                       cropSliding = editing
+                   })
+            .accessibilityLabel("Zoom the picture")
+            .accessibilityValue(percent)
+            .accessibilityAction(named: "Move the picture left") { store.nudgeCrop(dx: -1, dy: 0) }
+            .accessibilityAction(named: "Move the picture right") { store.nudgeCrop(dx: 1, dy: 0) }
+            .accessibilityAction(named: "Move the picture up") { store.nudgeCrop(dx: 0, dy: -1) }
+            .accessibilityAction(named: "Move the picture down") { store.nudgeCrop(dx: 0, dy: 1) }
+            Text(percent)
+                .font(.subheadline.monospacedDigit())
+                .frame(minWidth: 48, alignment: .trailing)
+                .accessibilityHidden(true)
+        }
+    }
+
+    /// The frame's shape: Free, the picture's own, and the usual ratios
+    /// (CropAspect), the one the frame has lit. Each trims the frame inside
+    /// itself (Crop.trimmedToRatio); a frame locked in position keeps its
+    /// shape, so its chips wait.
+    private func cropAspectRow(_ photo: Element?) -> some View {
+        let lit = photo.flatMap { el in store.cropping.map { CropAspect.matching(el, image: $0.imageSize) } } ?? .free
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(CropAspect.allCases, id: \.self) { aspect in
+                    Button(aspect.name) { store.setCropAspect(aspect) }
+                        .buttonStyle(.bordered)
+                        .tint(aspect == lit ? Theme.accent : .secondary)
+                        .controlSize(.small)
+                        .accessibilityAddTraits(aspect == lit ? .isSelected : [])
+                }
+            }
+        }
+        .disabled(photo?.holdsPlace ?? true)
+    }
+
+    /// The straighten dial: −45 to 45 degrees in half steps, a tick at
+    /// level, writing the photo's straighten live. To VoiceOver one
+    /// adjustable control, a degree a swipe.
+    private func cropStraightenRow(_ photo: Element?) -> some View {
+        let degrees = photo?.straighten ?? 0
+        let readout = Crop.straightenReadout(photo?.straighten)
+        return HStack(spacing: 10) {
+            Text("Straighten").font(.subheadline.weight(.semibold))
+            Slider(value: Binding(get: { degrees }, set: { store.setCropStraighten($0) }),
+                   in: -Crop.straightenReach...Crop.straightenReach, step: Crop.straightenStep,
+                   onEditingChanged: { store.cropDialHeld = $0 })
+            .overlay(alignment: .top) {
+                // The tick at level.
+                Rectangle().fill(.secondary).frame(width: 1, height: 6)
+            }
+            Text(readout)
+                .font(.subheadline.monospacedDigit())
+                .frame(minWidth: 64, alignment: .trailing)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Straighten")
+        .accessibilityValue(readout)
+        .accessibilityAdjustableAction { direction in
+            store.setCropStraighten(degrees + (direction == .increment ? 1 : -1))
+        }
+    }
+
+    /// Cancel, Reset, a quarter turn, a flip, More and Done.
+    private func cropWaysOut(_ photo: Element?) -> some View {
+        HStack(spacing: 12) {
+            Button("Cancel") { store.cancelCrop() }
+            Spacer(minLength: 0)
+            Button("Reset") { store.resetCrop() }
+                .disabled(!(photo.map(Crop.isAdjusted) ?? false))
+            Spacer(minLength: 0)
+            Button { store.rotateCrop90() } label: { Image(systemName: "rotate.right").frame(width: 30, height: 30) }
+                .accessibilityLabel("Rotate 90")
+                .disabled(photo?.holdsPlace ?? true)
+            Button { store.flipCrop() } label: { Image(systemName: "flip.horizontal").frame(width: 30, height: 30) }
+                .accessibilityLabel("Flip")
+                .accessibilityAddTraits(photo?.flipH == true ? .isSelected : [])
+            Button {
+                store.finishCrop()
+                activeSheet = .crop
+            } label: { Image(systemName: "slider.horizontal.3").frame(width: 30, height: 30) }
+                .accessibilityLabel("Fit and drift")
+            Button("Done") { store.finishCrop() }
+                .fontWeight(.semibold)
+                .buttonStyle(.borderedProminent)
+        }
     }
 
     /// Brush size, the strokes so far, and the two ways out.

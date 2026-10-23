@@ -152,6 +152,10 @@ final class DesignStore {
         /// The caret in the words being typed as the step began, while one
         /// was: where Undo while typing puts it back.
         var caret: NSRange?
+        /// What the step did, in a word (History.label), for the system's
+        /// undo to name: on a past entry, the step that took the design on
+        /// from it; on a future one, the step that was taken back.
+        var label: String?
     }
     private var past: [HistoryEntry] = []
     private var future: [HistoryEntry] = []
@@ -257,7 +261,9 @@ final class DesignStore {
         // in this same step, so one Undo takes back the words and the name.
         adoptHeadline()
         lastWords = Self.words(of: design)
-        past.append(entry)
+        var recorded = entry
+        recorded.label = History.label(before: entry.design, after: design)
+        past.append(recorded)
         if past.count > historyLimit { past.removeFirst() }
         future.removeAll()
         pending = nil
@@ -442,7 +448,7 @@ final class DesignStore {
         // it — and the words typed are never thrown away with that step.
         closeOpenSteps()
         guard let entry = past.popLast() else { return }
-        future.append(HistoryEntry(design: design, pageIndex: pageIndex))
+        future.append(HistoryEntry(design: design, pageIndex: pageIndex, label: entry.label))
         restore(entry, reveal: reveal)
         buzz(.undo)
     }
@@ -455,10 +461,16 @@ final class DesignStore {
         if editingTextId != nil && future.isEmpty { return }
         closeOpenSteps()
         guard let entry = future.popLast() else { return }
-        past.append(HistoryEntry(design: design, pageIndex: pageIndex))
+        past.append(HistoryEntry(design: design, pageIndex: pageIndex, label: entry.label))
         restore(entry, reveal: true)
         buzz(.redo)
     }
+
+    /// What Undo would take back, in a word — "Move", "Delete" — for the
+    /// system's undo gestures and shake to say (DesignUndo); nil with
+    /// nothing to take back. And what Redo would do again.
+    var undoLabel: String? { past.last?.label }
+    var redoLabel: String? { future.last?.label }
 
     /// Whatever is still open — typing, dictation, a crop, a slider's step
     /// — closed as its own step, as the Android twin does before Undo.
@@ -481,7 +493,7 @@ final class DesignStore {
         guard typingSteps > 0, let entry = past.popLast() else { return false }
         typingSteps -= 1
         typingRedos += 1
-        future.append(HistoryEntry(design: design, pageIndex: pageIndex, caret: typingSelection))
+        future.append(HistoryEntry(design: design, pageIndex: pageIndex, caret: typingSelection, label: entry.label))
         restore(entry, reveal: reveal, typing: true)
         buzz(.undo)
         return true
@@ -494,7 +506,7 @@ final class DesignStore {
         guard typingRedos > 0, let entry = future.popLast() else { return false }
         typingRedos -= 1
         typingSteps += 1
-        past.append(HistoryEntry(design: design, pageIndex: pageIndex, caret: typingSelection))
+        past.append(HistoryEntry(design: design, pageIndex: pageIndex, caret: typingSelection, label: entry.label))
         restore(entry, reveal: true, typing: true)
         buzz(.redo)
         return true
@@ -1132,6 +1144,19 @@ final class DesignStore {
         selection = Set(page.elements.filter { !$0.locked && !$0.isHidden }.map(\.id))
     }
 
+    /// Tab and Shift-Tab: the next shown thing in front of the selection,
+    /// or the one behind it, a group as one (Layers.neighbour), brought
+    /// into view. Nothing on a locked page is selected: the key is said,
+    /// with Unlock.
+    func selectNeighbour(forward: Bool) {
+        endTextEdit()
+        guard !refusesLockedPage() else { return }
+        let next = Layers.neighbour(of: selection, in: page.elements, forward: forward)
+        guard !next.isEmpty else { return }
+        selection = next
+        revealSelection()
+    }
+
     /// Rubber-band selection: everything the rectangle touches but what is
     /// locked, with sticky groups expanded so a band across one member takes
     /// the whole group.
@@ -1466,6 +1491,9 @@ final class DesignStore {
     /// CropMode.swift. Crop mode is one open step: everything done in it is
     /// live, Done keeps it as a single Undo, and Cancel throws it away.
     var cropping: CropSession?
+    /// True while the crop bar's straighten dial is held: the thirds stay
+    /// up on the frame, as they do under a finger. View state only.
+    var cropDialHeld = false
     /// The image being erased from, while the eraser is out, and the
     /// strokes painted over it so far, in page units.
     var erasing: String?

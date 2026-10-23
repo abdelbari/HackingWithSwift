@@ -62,6 +62,11 @@ struct InlineTextField: UIViewRepresentable {
     var onWordFont: (NSRange) -> Void = { _ in }
     /// Link, for the words chosen.
     var onWordLink: (NSRange) -> Void = { _ in }
+    /// ⇧⌘K: capitals on or off for the whole box, as a step of its own
+    /// (TextKeys).
+    var onToggle: (TextToggle) -> Void = { _ in }
+    /// ⇧⌘L, C, R and J: the whole box aligned, as a step of its own.
+    var onAlign: (String) -> Void = { _ in }
     /// List, Indent, Outdent, Return on an empty item and Tab: the lines
     /// a range of the stored words covers changed, as a step of its own;
     /// whether anything changed.
@@ -106,6 +111,7 @@ struct InlineTextField: UIViewRepresentable {
         let coordinator = context.coordinator
         view.onEscape = { [weak coordinator] in coordinator?.parent.onDone() }
         view.onTab = { [weak coordinator] outdent in coordinator?.tab(outdent: outdent) ?? false }
+        view.onKey = { [weak coordinator] action in coordinator?.key(action) }
         view.typingUndo.onUndo = { [weak coordinator] in coordinator?.undo() }
         view.typingUndo.onRedo = { [weak coordinator] in coordinator?.redo() }
         view.typingUndo.canUndoing = { [weak coordinator] in coordinator?.parent.typing.canUndo() ?? false }
@@ -503,7 +509,7 @@ struct InlineTextField: UIViewRepresentable {
             styleItems = RichText.Mark.allCases.enumerated().map { entry -> UIBarButtonItem in
                 let face = InlineTextField.face(of: entry.element)
                 let item = UIBarButtonItem(image: UIImage(systemName: face.symbol), style: .plain,
-                                           target: self, action: #selector(style(_:)))
+                                           target: self, action: #selector(styleItem(_:)))
                 item.tag = entry.offset
                 item.accessibilityLabel = face.name
                 return item
@@ -597,10 +603,13 @@ struct InlineTextField: UIViewRepresentable {
         /// have it, and the same words left chosen, as a step of their own.
         /// With nothing chosen, the style waits for what is typed next — or
         /// stops waiting, pressed again — as in Canva.
-        @objc private func style(_ sender: UIBarButtonItem) {
-            guard let view, view.markedTextRange == nil,
-                  RichText.Mark.allCases.indices.contains(sender.tag) else { return }
-            let mark = RichText.Mark.allCases[sender.tag]
+        @objc private func styleItem(_ sender: UIBarButtonItem) {
+            guard RichText.Mark.allCases.indices.contains(sender.tag) else { return }
+            style(RichText.Mark.allCases[sender.tag])
+        }
+
+        private func style(_ mark: RichText.Mark) {
+            guard let view, view.markedTextRange == nil else { return }
             let words = view.text ?? ""
             let chosen = view.selectedRange
             guard chosen.location != NSNotFound else { return }
@@ -634,6 +643,46 @@ struct InlineTextField: UIViewRepresentable {
                 parent.onChange(result.text)
                 parent.typing.selection(result.selection)
             }
+            refreshStyles(view)
+        }
+
+        /// A formatting key on a hardware keyboard (TextKeys), as the bar's
+        /// button for it: the words chosen marked, the box set in capitals
+        /// or aligned, the lines listed, the words chosen a step smaller or
+        /// larger — with words chosen, as A- and A+ are only then; with
+        /// none, the size keys do nothing. A shape's words take no lists or
+        /// sizes, as its bar has none.
+        func key(_ action: TextKeys.Command) {
+            guard let view else { return }
+            switch action {
+            case .bold: style(.bold)
+            case .italic: style(.italic)
+            case .underline: style(.underline)
+            case .strike: style(.strike)
+            case .uppercase:
+                coalescer.close()
+                parent.onToggle(.uppercase)
+            case .alignLeft, .alignCenter, .alignRight, .alignJustify:
+                guard let align = TextKeys.keyAlignment(action) else { return }
+                coalescer.close()
+                parent.onAlign(align)
+            case .numberedList, .bulletedList:
+                guard let list = TextKeys.keyList(action) else { return }
+                toggleList(list, in: view)
+            case .smaller, .larger:
+                guard parent.wordStyles, let range = chosenWords(view) else { return }
+                coalescer.close()
+                parent.onWordScale(range, action == .smaller ? Spans.smaller : Spans.larger)
+            }
+        }
+
+        /// The lines chosen made `list` — or no list, when the first of
+        /// them is that already — all alike, as a step of its own.
+        private func toggleList(_ list: String, in view: UITextView) {
+            let chosen = chosenLines(view)
+            let first = chosen.covered.lowerBound < chosen.lines.count ? chosen.lines[chosen.covered.lowerBound].list : "none"
+            let next = first == list ? "none" : list
+            changeLines(view.selectedRange) { $0.list = next }
             refreshStyles(view)
         }
 
@@ -881,9 +930,32 @@ final class InlineTextView: UITextView {
     /// Tab, or Shift-Tab (true), on a hardware keyboard; whether it was
     /// taken.
     var onTab: (Bool) -> Bool = { _ in false }
+    /// A formatting key (TextKeys): ⌘B and the rest.
+    var onKey: (TextKeys.Command) -> Void = { _ in }
     let typingUndo = TypingUndo()
 
     override var undoManager: UndoManager? { typingUndo }
+
+    /// The formatting keys, each named so holding ⌘ lists it. Over the
+    /// system's own ⌘B, ⌘I and ⌘U, which would set attributes this field
+    /// does not keep: the markers are the style.
+    override var keyCommands: [UIKeyCommand]? {
+        let own = TextKeys.all.map { key -> UIKeyCommand in
+            let name = TextKeys.keyName(key.action)
+            let command = UIKeyCommand(title: name, action: #selector(formatKey(_:)), input: key.key,
+                                       modifierFlags: key.shift ? [.command, .shift] : [.command])
+            command.discoverabilityTitle = name
+            command.wantsPriorityOverSystemBehavior = true
+            return command
+        }
+        return (super.keyCommands ?? []) + own
+    }
+
+    @objc private func formatKey(_ sender: UIKeyCommand) {
+        guard let input = sender.input,
+              let action = TextKeys.action(for: input, shift: sender.modifierFlags.contains(.shift)) else { return }
+        onKey(action)
+    }
 
     override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
         if presses.contains(where: { $0.key?.keyCode == .keyboardEscape }) {

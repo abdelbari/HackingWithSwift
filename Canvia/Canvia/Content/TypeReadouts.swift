@@ -110,23 +110,40 @@ enum TypeReadouts {
     static let presetSizes: [Double] = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56,
                                         64, 72, 80, 96, 120, 144, 200]
 
-    /// A size in whole points, inside the range.
+    /// A size to one decimal place — a half up at the hundredth, so 12.55 is
+    /// 12.6 and 12.54 is 12.5 — inside the range: half points, which print
+    /// work and fine body copy rely on. Named for the whole points it once
+    /// kept to; the Android twin's TextBoxes.whole has the same rule.
     static func wholeSize(_ size: Double) -> Double {
-        min(sizeRange.upperBound, max(sizeRange.lowerBound, size.rounded()))
+        min(sizeRange.upperBound, max(sizeRange.lowerBound, tenth(size)))
     }
 
-    /// A size as typed — "24", " 36 ", "12.5" — in whole points inside the
-    /// range; nil when what is typed is not a number.
+    /// `size` to one decimal place, a half up at the hundredth, with no
+    /// range: what a corner drag scales type to, which can take it past
+    /// 800 (at least 6 is the caller's). A hair past the half is allowed
+    /// for a product that lands just short of it in floating point — the
+    /// Android twin's TextBoxes.tenth, to the bit.
+    static func tenth(_ size: Double) -> Double {
+        let scaled = size >= 0 ? (size * 10 + 0.5 + 1e-7).rounded(.down) : -(-size * 10 + 0.5 + 1e-7).rounded(.down)
+        return scaled / 10
+    }
+
+    /// A size as typed — "24", " 36 ", "12.5", "12,5" in a language that
+    /// writes a decimal comma — to one decimal place inside the range
+    /// (wholeSize); nil when what is typed is not a number.
     static func typedSize(_ typed: String) -> Double? {
         let number = typed.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
         guard let value = Double(number), value.isFinite else { return nil }
         return wholeSize(value)
     }
 
-    /// The size the size control shows: the nearest whole point, as on the
-    /// Android twin, or "Mixed".
+    /// The size the size control shows: to one decimal place, a whole
+    /// number without its ".0" — "12", "12.5" — as on the Android twin, or
+    /// "Mixed".
     static func fontSize(_ size: Double?) -> String {
-        size.map { "\(Int($0.rounded()))" } ?? mixed
+        guard let size else { return mixed }
+        let tenths = halfUp(size * 10) / 10
+        return tenths == tenths.rounded() ? "\(Int(tenths))" : String(format: "%.1f", tenths)
     }
 
     // MARK: several texts

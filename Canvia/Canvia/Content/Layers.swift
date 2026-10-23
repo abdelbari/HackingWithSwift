@@ -215,6 +215,26 @@ enum Layers {
         return moved.flatMap { $0 }
     }
 
+    /// Tab (or, not `forward`, Shift-Tab): the ids of the next block in
+    /// front of the front-most block holding the selection `ids` — or the
+    /// one behind it — a group as one, round again past the front and the
+    /// back, and nothing hidden counted; with several selected, both keys
+    /// step from the front-most of them. With nothing selected, Tab takes
+    /// the back-most block and Shift-Tab the front-most. Empty for a page
+    /// with nothing shown on it. The same rule as the Android twin's.
+    static func neighbour(of ids: Set<String>, in elements: [Element], forward: Bool) -> Set<String> {
+        let blocks = Self.blocks(elements.filter { !$0.isHidden })
+        guard !blocks.isEmpty else { return [] }
+        let count = blocks.count
+        let at: Int
+        if let held = blocks.indices.last(where: { holds(blocks[$0], ids) }) {
+            at = (held + (forward ? 1 : count - 1)) % count
+        } else {
+            at = forward ? 0 : count - 1
+        }
+        return Set(blocks[at].map(\.id))
+    }
+
     /// The block of a group of which the selection `ids` is some members
     /// but not all, and nothing else: the run a member selected alone
     /// steps within.

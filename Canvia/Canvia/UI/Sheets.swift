@@ -1118,11 +1118,13 @@ struct CropSheet: View {
                             .accessibilityValue(Self.percent(el.cropY ?? 0.5))
                     }
                     Section {
-                        Slider(value: cropBinding(el.straighten ?? 0) { v, e in
-                            e.straighten = abs(v) < 0.05 ? nil : v
-                        }, in: -45...45)
-                        .accessibilityLabel("Straighten")
-                        .accessibilityValue("\(String(format: "%.1f", el.straighten ?? 0))°")
+                        // A shortcut into crop mode, where the crop bar's
+                        // dial turns the picture live and Done or Cancel
+                        // decide — one straighten control, as on the
+                        // Android twin's Photo panel.
+                        Button { intoCrop(el) } label: {
+                            LabeledContent("Straighten", value: Crop.straightenReadout(el.straighten))
+                        }
                     } header: {
                         Text("Straighten")
                     } footer: {
@@ -1186,28 +1188,32 @@ struct CropSheet: View {
         Binding(get: { value }, set: { v in store.updateSelectedTransient { set(v, &$0) } })
     }
 
-    /// The frame's proportions, as the platforms name them. Reshaping keeps
-    /// the frame's centre and its width; the picture inside re-covers it.
-    static let aspects: [(name: String, ratio: Double)] = [
-        ("1:1", 1), ("4:5", 4.0 / 5), ("3:2", 3.0 / 2), ("4:3", 4.0 / 3), ("16:9", 16.0 / 9), ("9:16", 9.0 / 16),
-    ]
+    /// Crop mode on this photo, the sheet put away — the frame trimmed to
+    /// `aspect` there when one is given (setCropAspect), so the crop bar's
+    /// chips, dial, Rotate 90 and Flip carry on and Done keeps it all as one
+    /// step or Cancel puts it all back, as the Android twin's Photo panel
+    /// does.
+    private func intoCrop(_ el: Element, _ aspect: CropAspect? = nil) {
+        if store.hasPendingChanges { store.commit() }
+        dismiss()
+        guard store.startCrop(el.id) else { return }
+        if let aspect { store.setCropAspect(aspect) }
+    }
 
+    /// The frame's shapes, as the crop bar's chips have them (CropAspect):
+    /// each a shortcut into crop mode that trims the frame there
+    /// (intoCrop) — Free opens it with the frame as it is.
     private func aspectRow(_ el: Element) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        let image = PhotoLibrary.resolve(el.src)?.size ?? .zero
+        let lit = CropAspect.matching(el, image: image)
+        return ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(Self.aspects, id: \.name) { aspect in
-                    let active = abs(el.w / max(el.h, 1) - aspect.ratio) < 0.01
-                    Button(aspect.name) {
-                        store.updateSelected { e in
-                            let centre = CGPoint(x: e.x + e.w / 2, y: e.y + e.h / 2)
-                            e.h = (e.w / aspect.ratio).rounded()
-                            e.x = centre.x - e.w / 2
-                            e.y = centre.y - e.h / 2
-                        }
-                    }
+                ForEach(CropAspect.allCases, id: \.self) { aspect in
+                    Button(aspect.name) { intoCrop(el, aspect) }
                     .buttonStyle(.bordered)
-                    .tint(active ? Theme.accent : .secondary)
+                    .tint(aspect == lit ? Theme.accent : .secondary)
                     .controlSize(.small)
+                    .accessibilityAddTraits(aspect == lit ? .isSelected : [])
                 }
             }
         }

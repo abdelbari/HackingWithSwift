@@ -1670,19 +1670,21 @@ struct ContextToolbar: View {
         }
     }
 
+    /// A step of whole points from the size as it is — 12.5 steps to 14.5
+    /// — within the range.
     private func bumpFontSize(_ delta: Double) {
-        let range = TypeReadouts.sizeRange
         store.updateSelected { el in
             guard el.type == .text else { return }
-            el.fontSize = min(range.upperBound, max(range.lowerBound, (el.fontSize ?? 42) + delta))
+            el.fontSize = TypeReadouts.wholeSize((el.fontSize ?? 42) + delta)
             el.h = FontLibrary.layoutHeight(for: el)
         }
     }
 }
 
-/// A type size typed on the number pad, or one of the usual ones picked: in
-/// whole points from 1 to 800, for every text selected, each box fitted to
-/// it again — as the Android twin's size readout opens.
+/// A type size typed on the number pad, or one of the usual ones picked: to
+/// one decimal place from 1 to 800 (TypeReadouts.typedSize), for every text
+/// selected, each box fitted to it again — as the Android twin's size
+/// readout opens.
 private struct TypeSizeEntry: View {
     /// The size now; nil when the texts selected differ.
     let current: Double?
@@ -1693,14 +1695,14 @@ private struct TypeSizeEntry: View {
     init(current: Double?, onSet: @escaping (Double) -> Void) {
         self.current = current
         self.onSet = onSet
-        _draft = State(initialValue: current.map { "\(Int($0.rounded()))" } ?? "")
+        _draft = State(initialValue: current.map { TypeReadouts.fontSize($0) } ?? "")
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
                 TextField("Size", text: $draft)
-                    .keyboardType(.numberPad)
+                    .keyboardType(.decimalPad)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: 17, weight: .semibold).monospacedDigit())
                     .frame(width: 96)

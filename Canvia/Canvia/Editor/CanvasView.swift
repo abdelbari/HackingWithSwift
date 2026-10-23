@@ -627,11 +627,12 @@ struct CanvasView: View {
     /// beyond the frame, the frame's part as it will look, and the frame's
     /// brackets. One finger drags the picture or, from a bracket, trims the
     /// frame; two pinch it; a tap anywhere else is Done. Straightening waits
-    /// while the picture is being placed, as it does on the Android twin,
-    /// and comes back when crop mode ends.
+    /// while a finger places the picture or pulls a bracket, as it does on
+    /// the Android twin, and shows the rest of the time — as the bar's dial
+    /// turns it, and as crop mode ends.
     private func cropLayer(_ photo: Element, _ crop: CropSession) -> some View {
         var level = photo
-        level.straighten = nil
+        if gesture.crop?.isWorking == true { level.straighten = nil }
         return ZStack {
             Color.black.opacity(0.45)
             cropPicture(photo, crop)
@@ -681,7 +682,9 @@ struct CanvasView: View {
     private func cropArt(_ photo: Element, _ crop: CropSession) -> some View {
         let seen = Crop.picture(photo, image: crop.imageSize)
         let held = gesture.crop?.handle
-        let working = gesture.crop?.isWorking ?? false
+        // The thirds under a finger, and while the bar's straighten dial is
+        // held.
+        let working = (gesture.crop?.isWorking ?? false) || store.cropDialHeld
         let hairline = 1 * iz
         let bracketLength = 18 * iz
         return Canvas { context, _ in
@@ -1966,9 +1969,11 @@ struct CanvasView: View {
                 el.y = next.minY
                 if handle.isCorner {
                     // The type scales with the box, and its tracking with it,
-                    // so a spaced-out headline keeps its proportions.
+                    // so a spaced-out headline keeps its proportions — the
+                    // size to one decimal place, as it is typed, but free
+                    // to pass 800 as the box does.
                     let scale = next.width / original.w
-                    el.fontSize = max(6, (original.fontSize ?? 42) * scale)
+                    el.fontSize = max(6, TypeReadouts.tenth((original.fontSize ?? 42) * scale))
                     el.letterSpacing = original.letterSpacing.map { $0 * scale }
                     el.h = next.height
                 } else if el.fitText == true || el.vAlign != nil {
@@ -2237,6 +2242,8 @@ struct CanvasView: View {
                                onWordScale: { store.scaleWords(id, range: $0, by: $1) },
                                onWordFont: { store.chooseWordFont(id, range: $0) },
                                onWordLink: { store.chooseWordLink(id, range: $0) },
+                               onToggle: { toggle in store.styleWhileTyping { store.toggleText(toggle) } },
+                               onAlign: { align in store.styleWhileTyping { alignTyped(align) } },
                                onLines: { store.changeLines(id, covering: $0, $1) },
                                onNextCell: nextCell(el),
                                typing: typingHooks)
@@ -2265,6 +2272,8 @@ struct CanvasView: View {
                                onChange: { typeInline(id, $0) },
                                onDone: { commitTextEditIfAny() },
                                onStyled: { store.styleWhileTyping($0) },
+                               onToggle: { toggle in store.styleWhileTyping { store.toggleText(toggle) } },
+                               onAlign: { align in store.styleWhileTyping { alignTyped(align) } },
                                wordStyles: false,
                                typing: typingHooks)
             .frame(width: box.width)
@@ -2292,6 +2301,15 @@ struct CanvasView: View {
 
     private func typeInline(_ id: String, _ words: String) {
         store.typeWords(words, into: id)
+    }
+
+    /// ⇧⌘L, C, R or J while typing: the box typed in aligned, as the Align
+    /// button aligns it.
+    private func alignTyped(_ align: String) {
+        store.updateSelected { e in
+            guard ShapeText.carriesWords(e) else { return }
+            e.align = align
+        }
     }
 
     /// The typing field's caret, its bursts and their Undo, kept by the

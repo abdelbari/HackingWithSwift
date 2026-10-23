@@ -885,7 +885,14 @@ enum Geometry {
             e.y = cy - e.h / 2
             e.table = TableCell.scaledPad(el.table, by: min(sx, sy))
             if el.type == .text {
-                e.fontSize = max(6, (el.fontSize ?? 42) * min(sx, sy))
+                let type = Double(min(sx, sy))
+                // To one decimal place, as a size is typed, and past 800
+                // if the drag takes it there.
+                e.fontSize = max(6, TypeReadouts.tenth((el.fontSize ?? 42) * type))
+                // Letter spacing is in page units, so it scales with the
+                // type, as one box's corner scales it and the Android twin's
+                // scaleAll does.
+                e.letterSpacing = el.letterSpacing.map { $0 * type }
             }
             return e
         }
