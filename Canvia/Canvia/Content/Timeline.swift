@@ -201,7 +201,8 @@ enum Timeline {
     /// length by VideoStore id), its entrances dropped — loops, which are
     /// not entrances, kept on both, and so is one timed to start after the
     /// cut (`entranceStaysAfter`) — its exits kept, and its timings moved
-    /// earlier by the cut. Both keep every element.
+    /// earlier by the cut. Both keep every element; a caption box's cues
+    /// are cut between the halves (Captions.cut).
     static func split(_ page: Page, at t: Double, hold: Double,
                       duration: (String) -> Double?) -> (first: Page, second: Page)? {
         guard let holds = splitHolds(hold: hold, at: t) else { return nil }
@@ -209,8 +210,13 @@ enum Timeline {
         first.holdSeconds = holds.first
         first.transition = "cut"
         first.transitionSeconds = nil
-        for i in first.elements.indices where !exitStaysBefore(first.elements[i].timing, cut: holds.first) {
-            first.elements[i].exitAnimation = nil
+        for i in first.elements.indices {
+            if !exitStaysBefore(first.elements[i].timing, cut: holds.first) { first.elements[i].exitAnimation = nil }
+            // Its captions end at the cut; the rest go to the second half.
+            if var captions = first.elements[i].captions {
+                captions.cues = Captions.cut(captions.cues, at: holds.first).first
+                first.elements[i] = Captions.on(first.elements[i], captions)
+            }
         }
         var second = Copies.of(page)
         second.holdSeconds = holds.second
@@ -222,6 +228,10 @@ enum Timeline {
                 var clip = el.clip ?? ClipPlayback()
                 clip.start = advancedClipStart(clip, by: holds.first, duration: duration(parts.id))
                 el.clip = clip.isDefault ? nil : clip
+            }
+            if var captions = el.captions {
+                captions.cues = Captions.cut(captions.cues, at: holds.first).second
+                el = Captions.on(el, captions)
             }
             second.elements[i] = el
         }

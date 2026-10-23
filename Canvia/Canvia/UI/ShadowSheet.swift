@@ -13,6 +13,19 @@ struct ShadowSheet: View {
 
     private var current: Shadow? { store.singleSelection?.shadow }
 
+    /// The shadow as drawn, whose style picks the dials: text casts the
+    /// drop shadow whatever its style (ShadowShapes.cast).
+    private var drawnStyle: String {
+        store.singleSelection.flatMap(ShadowShapes.cast).map(ShadowShapes.style(of:)) ?? "drop"
+    }
+
+    /// The presets offered: every one, but only the drop shadows while text
+    /// is selected, which casts no other — as the Android twin offers them.
+    private var offered: [(name: String, shadow: Shadow)] {
+        guard store.selectedElements.contains(where: { $0.type == .text }) else { return Shadow.presets }
+        return Shadow.presets.filter { !ShadowShapes.isStyled($0.shadow) }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -36,7 +49,7 @@ struct ShadowSheet: View {
     private var presets: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 84), spacing: 12)], spacing: 12) {
             tile(nil, name: tr("None"))
-            ForEach(Shadow.presets, id: \.name) { preset in
+            ForEach(offered, id: \.name) { preset in
                 tile(preset.shadow, name: preset.name)
             }
         }
@@ -44,6 +57,9 @@ struct ShadowSheet: View {
 
     private func tile(_ shadow: Shadow?, name: String) -> some View {
         let active = current == shadow
+        // A styled shadow's card casts its own silhouette, at half size as
+        // the drop shadow's card does (ShadowSilhouette).
+        let styled = shadow.map(ShadowShapes.isStyled) ?? false
         return Button {
             store.updateSelected { $0.shadow = shadow }
         } label: {
@@ -52,7 +68,8 @@ struct ShadowSheet: View {
                     .fill(Theme.card)
                     .frame(width: 60, height: 44)
                     .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.hairline))
-                    .shadow(color: shadow.map { Color(hex: $0.color).opacity($0.opacity) } ?? .clear,
+                    .background { if let shadow, styled { ShadowSilhouette(shadow: Self.halved(shadow), w: 60, h: 44) } }
+                    .shadow(color: shadow.map { styled ? .clear : Color(hex: $0.color).opacity($0.opacity) } ?? .clear,
                             radius: (shadow?.blur ?? 0) / 2,
                             x: (shadow?.offsetX ?? 0) / 2, y: (shadow?.offsetY ?? 0) / 2)
                     .padding(10)
@@ -68,13 +85,27 @@ struct ShadowSheet: View {
         .accessibilityAddTraits(active ? .isSelected : [])
     }
 
+    /// `shadow` with its blur, offset and distance halved, for a card.
+    private static func halved(_ shadow: Shadow) -> Shadow {
+        var out = shadow
+        out.blur = shadow.blur / 2
+        out.offsetX = shadow.offsetX / 2
+        out.offsetY = shadow.offsetY / 2
+        if let distance = shadow.distance, ShadowShapes.style(of: shadow) == "backdrop" { out.distance = distance / 2 }
+        return out
+    }
+
     private var dials: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Adjust").font(.headline)
             dial(tr("Opacity"), spoken: tr("Shadow opacity"), \.opacity, in: 0...1, format: { "\(Int(($0 * 100).rounded()))%" })
-            dial(tr("Blur"), spoken: tr("Shadow blur"), \.blur, in: 0...60, format: { "\(Int($0.rounded()))" })
+            // A backdrop is a solid block: nothing to blur.
+            if drawnStyle != "backdrop" {
+                dial(tr("Blur"), spoken: tr("Shadow blur"), \.blur, in: 0...60, format: { "\(Int($0.rounded()))" })
+            }
             dial(tr("Across"), spoken: tr("Shadow across"), \.offsetX, in: -60...60, format: { String(format: "%+.0f", $0) })
             dial(tr("Down"), spoken: tr("Shadow down"), \.offsetY, in: -60...60, format: { String(format: "%+.0f", $0) })
+            styleDials
             HStack {
                 Text("Colour").font(.subheadline)
                 Spacer()
@@ -87,6 +118,25 @@ struct ShadowSheet: View {
                     .labelsHidden()
                     .accessibilityLabel("Shadow colour")
             }
+        }
+    }
+
+    /// The style's own settings (ShadowShapes): a curved shadow's Curve, an
+    /// angle's Angle and Distance, a backdrop's Distance.
+    @ViewBuilder
+    private var styleDials: some View {
+        let style = drawnStyle
+        if style == "curved" || style == "pageLift" {
+            dial(tr("Curve"), spoken: tr("Curve"), \.curveDial, in: ShadowShapes.curveRange,
+                 format: { "\(Int(($0 * 100).rounded()))%" })
+        }
+        if style == "angle" {
+            dial(tr("Angle"), spoken: tr("Angle"), \.angleDial, in: ShadowShapes.angleRange,
+                 format: { "\(Int($0.rounded()))°" })
+        }
+        if style == "angle" || style == "backdrop" {
+            dial(tr("Distance"), spoken: tr("Distance"), \.distanceDial, in: ShadowShapes.distanceRange,
+                 format: { "\(Int($0.rounded()))" })
         }
     }
 

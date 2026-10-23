@@ -238,16 +238,20 @@ enum DesignExporter {
     /// With a `bleed`, in page units, the picture is of the page and that
     /// much round it (PageRenderView) — only the print-ready PDF flattened
     /// asks for one.
+    ///
+    /// A caption box shows its cue at `captionTime`, seconds into the page,
+    /// or its first cue with none (Captions.shown).
     @MainActor
     static func render(design: Design, page: Page, scale: Double,
-                       transparent: Bool = false, bleed: Double = 0) -> CGImage? {
+                       transparent: Bool = false, bleed: Double = 0, captionTime: Double? = .none) -> CGImage? {
         // A transparent export drops the page's own background rather than
         // just turning off compositing: "no background" has to mean the
         // background is gone, not that an opaque white one is drawn
         // without an alpha channel.
         var rendered = page
         if transparent { rendered.background = .color("#00000000") }
-        let renderer = ImageRenderer(content: PageRenderView(design: design, page: rendered, bleed: bleed))
+        let view = PageRenderView(design: design, page: rendered, bleed: bleed)
+        let renderer = ImageRenderer(content: view.environment(\.captionTime, captionTime))
         let size = design.size(for: page)
         let reach = max(bleed, 0)
         let drawn = CGSize(width: Double(size.width) + 2 * reach, height: Double(size.height) + 2 * reach)
@@ -273,10 +277,10 @@ enum DesignExporter {
     @MainActor
     static func exportRaster(design: Design, page: Page, format: RasterFormat,
                              scale: Double, quality: Double = 0.92,
-                             transparent: Bool = false, to url: URL) throws {
+                             transparent: Bool = false, captionTime: Double? = .none, to url: URL) throws {
         try autoreleasepool {
-            guard let cg = render(design: design, page: page, scale: scale,
-                                  transparent: transparent) else { throw ExportError.renderFailed }
+            guard let cg = render(design: design, page: page, scale: scale, transparent: transparent,
+                                  captionTime: captionTime) else { throw ExportError.renderFailed }
             guard let destination = CGImageDestinationCreateWithURL(
                 url as CFURL, format.contentType.identifier as CFString, 1, nil)
             else { throw ExportError.encodeFailed }
@@ -335,10 +339,14 @@ enum DesignExporter {
     /// With a `longEdge` above 0, each page is scaled so its own longer side
     /// is that many pixels — a deck of mixed sizes all come out 1080 on the
     /// long side — and `scale` is ignored.
+    ///
+    /// The `current` page's caption boxes show their cue at `captionTime`
+    /// — the editor's playhead — and every other page's their first, as
+    /// the Android twin's pictures do.
     @MainActor
     static func exportPages(design: Design, range: PageRange, current: Int,
                             format: RasterFormat, scale: Double, longEdge: Double = 0,
-                            quality: Double = 0.92, transparent: Bool = false,
+                            quality: Double = 0.92, transparent: Bool = false, captionTime: Double? = .none,
                             progress: ((Double) -> Void)? = nil) async throws -> [URL] {
         let indices = range.indices(in: design, current: current)
         guard !indices.isEmpty else { throw ExportError.renderFailed }
@@ -356,7 +364,8 @@ enum DesignExporter {
             let page = design.pages[index]
             let pageScale = longEdge > 0 ? DesignExporter.scale(forLongEdge: longEdge, size: design.size(for: page)) : scale
             try exportRaster(design: design, page: page, format: format,
-                             scale: pageScale, quality: quality, transparent: transparent, to: url)
+                             scale: pageScale, quality: quality, transparent: transparent,
+                             captionTime: index == current ? captionTime : nil, to: url)
             urls.append(url)
             progress?(Double(n + 1) / Double(indices.count))
         }

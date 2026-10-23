@@ -121,12 +121,23 @@ extension TextEffectSpec {
 /// A glow is a shadow with no offset and a colour, so it is the same struct;
 /// the presets are what tell them apart. Every value has a default so an
 /// element that has a shadow at all gets a sensible one.
+///
+/// A shadow may have a `style` beyond the offset copy (ShadowShapes):
+/// "curved", "pageLift", "angle" or "backdrop", with the settings the
+/// style reads — `curve` 0…1, `angle` −60…60° and `distance` 0…100 — each
+/// written only when it is set, as the Android twin writes them. No style,
+/// or one this build does not know, is drawn as a drop shadow, and kept as
+/// written.
 struct Shadow: Codable, Equatable, Hashable {
     var color: String = "#000000"
     var opacity: Double = 0.35
     var blur: Double = 12
     var offsetX: Double = 0
     var offsetY: Double = 6
+    var style: String?
+    var curve: Double?
+    var angle: Double?
+    var distance: Double?
 
     static let presets: [(name: String, shadow: Shadow)] = [
         (tr("Soft"), Shadow(color: "#000000", opacity: 0.30, blur: 14, offsetX: 0, offsetY: 6)),
@@ -135,17 +146,31 @@ struct Shadow: Codable, Equatable, Hashable {
         (tr("Long"), Shadow(color: "#000000", opacity: 0.25, blur: 4, offsetX: 14, offsetY: 14)),
         (tr("Glow"), Shadow(color: "#ffffff", opacity: 0.9, blur: 20, offsetX: 0, offsetY: 0)),
         (tr("Neon"), Shadow(color: "#5a31f4", opacity: 0.9, blur: 24, offsetX: 0, offsetY: 0)),
+        // The four shaped styles, each at its own settings.
+        (tr("Curved"), Shadow(color: "#000000", opacity: 0.35, blur: 14, offsetX: 0, offsetY: 10,
+                             style: "curved", curve: 0.5)),
+        (tr("Page lift"), Shadow(color: "#000000", opacity: 0.3, blur: 16, offsetX: 0, offsetY: 4,
+                                style: "pageLift", curve: 0.5)),
+        (tr("Angle"), Shadow(color: "#000000", opacity: 0.3, blur: 10, offsetX: 0, offsetY: 0,
+                            style: "angle", angle: 30, distance: 40)),
+        (tr("Backdrop"), Shadow(color: "#5a31f4", opacity: 1, blur: 0, offsetX: 0, offsetY: 0,
+                               style: "backdrop", distance: 16)),
     ]
 
-    private enum CodingKeys: String, CodingKey { case color, opacity, blur, offsetX, offsetY }
+    private enum CodingKeys: String, CodingKey { case color, opacity, blur, offsetX, offsetY, style, curve, angle, distance }
 
     init(color: String = "#000000", opacity: Double = 0.35, blur: Double = 12,
-         offsetX: Double = 0, offsetY: Double = 6) {
+         offsetX: Double = 0, offsetY: Double = 6, style: String? = nil,
+         curve: Double? = nil, angle: Double? = nil, distance: Double? = nil) {
         self.color = color
         self.opacity = opacity
         self.blur = blur
         self.offsetX = offsetX
         self.offsetY = offsetY
+        self.style = style
+        self.curve = curve
+        self.angle = angle
+        self.distance = distance
     }
 
     init(from decoder: Decoder) throws {
@@ -155,6 +180,32 @@ struct Shadow: Codable, Equatable, Hashable {
         blur = (try? c.decode(Double.self, forKey: .blur)) ?? 12
         offsetX = (try? c.decode(Double.self, forKey: .offsetX)) ?? 0
         offsetY = (try? c.decode(Double.self, forKey: .offsetY)) ?? 6
+        // Each setting on its own: a style that is no string, or a number
+        // that is none, is no key — and "drop" is the key's absence.
+        style = (try? c.decodeIfPresent(String.self, forKey: .style)).flatMap { $0 == "drop" ? nil : $0 }
+        curve = Self.finite(try? c.decodeIfPresent(Double.self, forKey: .curve))
+        angle = Self.finite(try? c.decodeIfPresent(Double.self, forKey: .angle))
+        distance = Self.finite(try? c.decodeIfPresent(Double.self, forKey: .distance))
+    }
+
+    private static func finite(_ v: Double??) -> Double? {
+        guard let v, let v, v.isFinite else { return nil }
+        return v
+    }
+
+    /// The style's settings as dials, each at its default when the shadow
+    /// does not hold it (ShadowShapes).
+    var curveDial: Double {
+        get { ShadowShapes.curve(self) }
+        set { curve = newValue }
+    }
+    var angleDial: Double {
+        get { ShadowShapes.angle(self) }
+        set { angle = newValue }
+    }
+    var distanceDial: Double {
+        get { ShadowShapes.distance(self) }
+        set { distance = newValue }
     }
 }
 
@@ -357,21 +408,26 @@ struct TableCell: Codable, Equatable, Hashable {
 /// as the Android twin writes it; one without an id, a layout, a cell or a
 /// gutter is no key at all, and a missing margin is nought. A grid made
 /// before there was a `grid` key has none, and offers neither slider.
+/// `splits` are the grid's custom lattice lines once a divider was dragged
+/// (PhotoGrids.dragged), written only when they differ from the layout's
+/// own; read only when they are sound for the layout (PhotoGrids.kept).
 struct GridCell: Codable, Equatable, Hashable {
     var id: String
     var layout: String
     var cell: Int
     var gutter: Double
     var margin: Double
+    var splits: GridSplits?
 
-    private enum CodingKeys: String, CodingKey { case id, layout, cell, gutter, margin }
+    private enum CodingKeys: String, CodingKey { case id, layout, cell, gutter, margin, splits }
 
-    init(id: String, layout: String, cell: Int, gutter: Double, margin: Double) {
+    init(id: String, layout: String, cell: Int, gutter: Double, margin: Double, splits: GridSplits? = nil) {
         self.id = id
         self.layout = layout
         self.cell = cell
         self.gutter = gutter
         self.margin = margin
+        self.splits = splits
     }
 
     init(from decoder: Decoder) throws {
@@ -391,6 +447,17 @@ struct GridCell: Codable, Equatable, Hashable {
         }
         gutter = try c.decode(Double.self, forKey: .gutter)
         margin = (try? c.decodeIfPresent(Double.self, forKey: .margin)) ?? 0
+        splits = PhotoGrids.kept(try? c.decodeIfPresent(GridSplits.self, forKey: .splits), for: PhotoGrids.layout(layout))
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(layout, forKey: .layout)
+        try c.encode(cell, forKey: .cell)
+        try c.encode(gutter, forKey: .gutter)
+        try c.encode(margin, forKey: .margin)
+        try c.encodeIfPresent(splits, forKey: .splits)
     }
 }
 
@@ -648,6 +715,10 @@ struct Element: Codable, Equatable, Identifiable {
     /// Characters stacked top to bottom in columns that run right to left,
     /// the way Japanese and Chinese are set on a poster.
     var vertical: Bool?
+    /// Captions on this box (see Captions): the words said in a clip or a
+    /// voice-over, timed to the page, drawn one cue at a time as it plays;
+    /// nil for an ordinary text box, and no key in the file.
+    var captions: Captions?
     /// Colours and sizes on chosen words, in offsets into the words as they
     /// read (see Spans); nil when there are none.
     var spans: [TextSpan]?
@@ -799,6 +870,8 @@ struct Element: Codable, Equatable, Identifiable {
         curve = try? c.decode(Double.self, forKey: .curve)
         textPath = try? c.decode(String.self, forKey: .textPath)
         vertical = try? c.decode(Bool.self, forKey: .vertical)
+        // Only a text box carries captions; read leniently (Captions).
+        captions = type == .text ? try? c.decode(Captions.self, forKey: .captions) : nil
         // Spans made for other words than these — the words changed by a
         // build that does not carry them along — are left behind.
         let madeFor = try? c.decode(String.self, forKey: .spansText)
@@ -873,7 +946,7 @@ struct Element: Codable, Equatable, Identifiable {
         case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners, fillRule, pen
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
-        case spans, spansText, paragraphs, paragraphsText
+        case spans, spansText, paragraphs, paragraphsText, captions
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns, timing
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit, clip
         case filterStrength, pixelate, focusBlur, edge, fx, mask, retouch

@@ -551,6 +551,12 @@ struct FiltersSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
     private let columns = [GridItem(.adaptive(minimum: 84), spacing: 12)]
+    /// Selective colour's chosen band, kept while the sheet is open; nil is
+    /// the first chip.
+    @State private var hueBand: String?
+    /// The bands the photo's own colours fall in (PhotoPalette), which the
+    /// chips lead with.
+    @State private var bandsPresent: [String] = []
 
     /// A code has to stay crisp to scan: no effects for it, and no Auto
     /// adjust, as it is black and white already.
@@ -751,6 +757,7 @@ struct FiltersSheet: View {
                 dial(tr("Vibrance"), \.vibrance, in: -1...1)
                 dial(tr("Warmth"), \.warmth, in: -1...1)
                 dial(tr("Tint"), \.tint, in: -1...1)
+                if !isCode { selectiveColour }
             }
             dialGroup(tr("Texture")) {
                 dial(tr("Clarity"), \.clarity, in: -1...1)
@@ -759,6 +766,97 @@ struct FiltersSheet: View {
                 dial(tr("Fade"), \.fade, in: 0...1)
             }
             curveRow
+        }
+    }
+
+    /// Selective colour: one hue band at a time — the eight bands as chips,
+    /// those the photo's own colours fall in first — and its hue,
+    /// saturation and brightness shifted on their own (HueBands), live and
+    /// one step a drag. The chosen band is kept while the sheet is open.
+    private var selectiveColour: some View {
+        let order = HueBands.chipOrder(present: bandsPresent)
+        let chosen = hueBand ?? order.first ?? "red"
+        let shift = store.singleSelection?.adjustments?.hsl[chosen] ?? .neutral
+        return VStack(alignment: .leading, spacing: 10) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(order, id: \.self) { key in bandChip(key, chosen: key == chosen) }
+                }
+                .padding(.vertical, 2)
+            }
+            .task(id: store.singleSelection.flatMap(VideoStore.atRest)) { readBands() }
+            bandSlider(tr("Hue"), band: chosen, shift: shift, \.h)
+            bandSlider(tr("Saturation"), band: chosen, shift: shift, \.s)
+            bandSlider(tr("Brightness"), band: chosen, shift: shift, \.l)
+        }
+    }
+
+    /// The bands the photo's colours fall in, most prominent first, read
+    /// off its preview.
+    private func readBands() {
+        guard let src = store.singleSelection.flatMap(VideoStore.atRest),
+              let full = PhotoLibrary.resolve(src) else {
+            bandsPresent = []
+            return
+        }
+        bandsPresent = HueBands.present(in: PhotoPalette.extract(from: PhotoLibrary.preview(full, key: src)))
+    }
+
+    /// One band's chip: a swatch of its hue and its name, marked when the
+    /// band carries a shift.
+    private func bandChip(_ key: String, chosen: Bool) -> some View {
+        let band = HueBands.bands.first { $0.key == key } ?? HueBands.bands[0]
+        let shifted = !(store.singleSelection?.adjustments?.hsl[key]?.isNeutral ?? true)
+        return Button {
+            hueBand = key
+        } label: {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(Color(hue: band.centre / 360, saturation: 0.85, brightness: 0.95))
+                    .frame(width: 14, height: 14)
+                Text(band.name).font(.callout)
+                if shifted { Image(systemName: "circle.fill").font(.system(size: 5)) }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(chosen ? Theme.accent.opacity(0.18) : Color(.systemGray6)))
+            .overlay(Capsule().stroke(chosen ? Theme.accent : Theme.hairline, lineWidth: chosen ? 2 : 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(band.name)
+        .accessibilityAddTraits(chosen ? .isSelected : [])
+    }
+
+    /// One of the chosen band's three dials, −100 to +100.
+    private func bandSlider(_ label: String, band: String, shift: HueShift,
+                            _ key: WritableKeyPath<HueShift, Double>) -> some View {
+        let value = shift[keyPath: key]
+        let readout = String(format: "%+.0f", value * 100)
+        let name = HueBands.bands.first { $0.key == band }?.name ?? band
+        return VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(label).font(.subheadline)
+                Spacer()
+                Text(readout)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityHidden(true)
+            Slider(value: Binding(
+                get: { value },
+                set: { v in
+                    var next = shift
+                    next[keyPath: key] = (v * 100).rounded() / 100
+                    store.updateSelectedTransient { el in
+                        guard el.type == .image else { return }
+                        el.setHueShift(band, to: next)
+                    }
+                }
+            ), in: -1...1, onEditingChanged: { editing in
+                if !editing { store.commit() }
+            })
+            .accessibilityLabel(tr("%@ %@", name, label))
+            .accessibilityValue(readout)
         }
     }
 

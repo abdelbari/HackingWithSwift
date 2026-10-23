@@ -18,7 +18,7 @@ enum ExportJobs {
                 design: snapshot.design, range: snapshot.range, current: snapshot.current,
                 format: format, scale: scale, longEdge: longEdge, quality: quality,
                 // JPEG has no alpha channel to be transparent in.
-                transparent: transparent && format == .png, progress: report)
+                transparent: transparent && format == .png, captionTime: snapshot.captionTime, progress: report)
             return ExportQueue.Result(urls: urls)
         }
     }
@@ -51,15 +51,31 @@ enum ExportJobs {
     }
 
     /// The MP4. The picture is kept when the music will not go under it,
-    /// and that is said beside the share.
-    static func movie(_ snapshot: ExportSnapshot, settings: MovieExporter.Settings) -> Work {
+    /// and that is said beside the share. With `captions`, the .srt of the
+    /// pages played goes with it (`captionsFile`).
+    static func movie(_ snapshot: ExportSnapshot, settings: MovieExporter.Settings, captions: Bool = false) -> Work {
         { report in
             let url = DesignExporter.fileURL(for: snapshot.design, ext: "mp4")
             let made = try await MovieExporter.exportMP4(design: snapshot.design, settings: settings,
                                                          range: snapshot.range, current: snapshot.current,
                                                          to: url, progress: report)
-            return ExportQueue.Result(urls: [url], musicLost: made.musicLost)
+            var urls = [url]
+            if captions, let srt = try captionsFile(snapshot) { urls.append(srt) }
+            return ExportQueue.Result(urls: urls, musicLost: made.musicLost)
         }
+    }
+
+    /// The captions of the pages the video plays as one .srt beside it —
+    /// every page's cues moved on by where its page starts in the film
+    /// (Captions.film) — or nil when there are none.
+    static func captionsFile(_ snapshot: ExportSnapshot) throws -> URL? {
+        let design = snapshot.design
+        let pages = MovieExporter.playedPages(design: design, range: snapshot.range, current: snapshot.current)
+        let cues = Captions.film(design, indices: pages) { Timeline.hold(of: design.pages[$0], in: design) }
+        guard !cues.isEmpty else { return nil }
+        let url = DesignExporter.fileURL(for: design, ext: "srt")
+        try Captions.srt(cues).write(to: url, atomically: true, encoding: .utf8)
+        return url
     }
 
     static func gif(_ snapshot: ExportSnapshot, settings: MovieExporter.Settings) -> Work {

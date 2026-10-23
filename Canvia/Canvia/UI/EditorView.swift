@@ -943,6 +943,13 @@ struct EditorView: View {
                     } label: { Label("Group", systemImage: "square.on.square") }
                         .disabled(!store.canGroup)
                 }
+                // A frame's or a grid cell's picture, taken out as a photo
+                // of its own, the frame left empty.
+                if store.canDetachImage {
+                    Button {
+                        store.detachImage()
+                    } label: { Label("Detach image", systemImage: "photo.on.rectangle") }
+                }
             }
         } label: {
             Image(systemName: "ellipsis.circle")

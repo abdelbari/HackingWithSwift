@@ -62,7 +62,20 @@ struct PlaysPicturesKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+/// The moment a caption box at rest shows — the editor's timeline
+/// playhead, in seconds into the page — or nil for its first cue, as a
+/// still export shows it. While the page plays, its clock decides instead
+/// (Captions.shown).
+struct CaptionTimeKey: EnvironmentKey {
+    static let defaultValue: Double? = nil
+}
+
 extension EnvironmentValues {
+    var captionTime: Double? {
+        get { self[CaptionTimeKey.self] }
+        set { self[CaptionTimeKey.self] = newValue }
+    }
+
     var pageNumber: (number: Int, count: Int)? {
         get { self[PageNumberKey.self] }
         set { self[PageNumberKey.self] = newValue }

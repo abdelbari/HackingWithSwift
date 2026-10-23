@@ -42,13 +42,17 @@ struct ElementView: View {
     @Environment(\.liveVideo) private var liveVideo
     @Environment(\.clipsPlay) private var clipsPlay
     @Environment(\.playsPictures) private var playsPictures
+    @Environment(\.captionTime) private var captionTime
 
     /// The element with "{page}" and "{pages}" filled in, where the page is
     /// known: what a reveal counts and cuts, so the words that appear are the
-    /// words that stay — as the Android twin reveals them.
+    /// words that stay — as the Android twin reveals them. A caption box
+    /// shows the cue at the page's moment while it plays; at rest, the cue
+    /// at the timeline's playhead, or its first (Captions.shown).
     private var resolved: Element {
-        guard let pageNumber, element.text?.contains("{page") == true else { return element }
         var el = element
+        if el.captions != nil { el = Captions.shown(el, at: animationTime?.time ?? captionTime) }
+        guard let pageNumber, el.text?.contains("{page") == true else { return el }
         el.fillPageTokens(number: pageNumber.number, count: pageNumber.count)
         return el
     }
@@ -115,6 +119,10 @@ struct ElementView: View {
     var body: some View {
         content
             .frame(width: element.w, height: element.h)
+            // A styled shadow (ShadowShapes) is a silhouette of its own,
+            // drawn behind the element in the element's space, where the
+            // drop shadow below is cast too.
+            .background { styledShadow }
             .scaleEffect(motion.scale)
             .offset(motion.offset)
             // Before the flip and rotation, so the shadow is cast in the
@@ -134,10 +142,42 @@ struct ElementView: View {
 
     /// Clear when there is no shadow: SwiftUI's shadow modifier with a clear
     /// colour draws nothing, so the modifier can stay in the chain and the
-    /// view tree keeps one shape whether or not a shadow is set.
+    /// view tree keeps one shape whether or not a shadow is set. Clear for
+    /// a styled shadow too, which `styledShadow` draws.
     private var shadowColor: Color {
-        guard let shadow = element.shadow else { return .clear }
+        guard let shadow = ShadowShapes.cast(element), !ShadowShapes.isStyled(shadow) else { return .clear }
         return Color(hex: shadow.color).opacity(shadow.opacity)
+    }
+
+    /// A curved, page lift, angle or backdrop shadow (ShadowShapes), blurred
+    /// and offset as the drop shadow is. The angle style shears the
+    /// element's own alpha silhouette through its projective transform —
+    /// the element drawn again in the shadow's colour through its mask —
+    /// as the Android twin shears the drawn pixels; the others fill their
+    /// path. Text casts the drop shadow whatever its style (ShadowShapes.cast).
+    @ViewBuilder
+    private var styledShadow: some View {
+        if let shadow = ShadowShapes.cast(element), ShadowShapes.isStyled(shadow) {
+            if ShadowShapes.style(of: shadow) == "angle" {
+                angleShadow(shadow)
+            } else {
+                ShadowSilhouette(shadow: shadow, w: element.w, h: element.h)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func angleShadow(_ shadow: Shadow) -> some View {
+        if let cast = ShadowShapes.angle(w: element.w, h: element.h, angle: ShadowShapes.angle(shadow),
+                                         distance: ShadowShapes.distance(shadow)) {
+            Rectangle()
+                .fill(Color(hex: shadow.color).opacity(shadow.opacity))
+                .frame(width: element.w, height: element.h)
+                .mask { content.frame(width: element.w, height: element.h) }
+                .blur(radius: ShadowShapes.blur(of: shadow))
+                .projectionEffect(ShadowSilhouette.projection(cast.matrix))
+                .offset(x: shadow.offsetX, y: shadow.offsetY)
+        }
     }
 
     @ViewBuilder
@@ -162,6 +202,38 @@ struct ElementView: View {
         case .sticker: StickerElementView(element: el)
         case .line: LineElementView(element: el)
         }
+    }
+}
+
+/// A styled shadow's silhouette (ShadowShapes.path) filled in its colour,
+/// blurred and offset, in a view the element's size: behind the element
+/// on the canvas and behind the Shadow sheet's cards. The angle style's
+/// silhouette here is its box's corners through the transform — right for
+/// a card, and what the SVG writes.
+struct ShadowSilhouette: View {
+    let shadow: Shadow
+    let w: Double
+    let h: Double
+
+    var body: some View {
+        if let path = ShadowShapes.path(for: shadow, w: w, h: h) {
+            Path(path)
+                .fill(Color(hex: shadow.color).opacity(shadow.opacity))
+                .frame(width: w, height: h)
+                .blur(radius: ShadowShapes.blur(of: shadow))
+                .offset(x: shadow.offsetX, y: shadow.offsetY)
+        }
+    }
+
+    /// A homography's nine entries (ShadowShapes.homography) as SwiftUI's
+    /// projection, which multiplies a row vector: x' = (m11 x + m21 y +
+    /// m31) / (m13 x + m23 y + m33).
+    static func projection(_ m: [Double]) -> ProjectionTransform {
+        var t = ProjectionTransform()
+        t.m11 = CGFloat(m[0]); t.m21 = CGFloat(m[1]); t.m31 = CGFloat(m[2])
+        t.m12 = CGFloat(m[3]); t.m22 = CGFloat(m[4]); t.m32 = CGFloat(m[5])
+        t.m13 = CGFloat(m[6]); t.m23 = CGFloat(m[7]); t.m33 = CGFloat(m[8])
+        return t
     }
 }
 

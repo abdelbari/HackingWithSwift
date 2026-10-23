@@ -123,6 +123,10 @@ struct SelectionOverlay: View {
             if let edges = store.tableColumnEdges {
                 TableColumnHandles(store: store, edges: edges)
             }
+            // A whole photo grid selected: the dividers between its cells.
+            if !store.gridDividers.isEmpty {
+                GridDividerHandles(store: store)
+            }
 
             Group {
                 guides
@@ -281,7 +285,7 @@ struct SelectionOverlay: View {
     /// the Android twin, nothing else near the selection is: a locked one,
     /// which draws none, has none.
     static func handlesTake(_ point: CGPoint, store: DesignStore) -> Bool {
-        if onColumnEdge(point, store: store) { return true }
+        if onColumnEdge(point, store: store) || onGridDivider(point, store: store) { return true }
         guard let drawn = ring(store) else { return false }
         let page = reachablePage(store)
         let out = outsets(for: drawn.el, zoom: store.zoom, page: page)
@@ -344,6 +348,13 @@ struct SelectionOverlay: View {
     static func bodyTakes(_ point: CGPoint, store: DesignStore) -> Bool {
         guard bodyZone(store) != nil else { return false }
         return CanvasGestures.onSelectedBody(point, selected: store.selectedElements)
+    }
+
+    /// Whether `point` is on a grid divider's handle (GridDividerHandles):
+    /// a touch target square centred on the divider's middle.
+    private static func onGridDivider(_ point: CGPoint, store: DesignStore) -> Bool {
+        let half = Touch.pageUnits(Touch.minTarget, zoom: store.zoom) / 2
+        return store.gridDividers.contains { abs(Double(point.x - $0.at.x)) <= half && abs(Double(point.y - $0.at.y)) <= half }
     }
 
     /// Whether `point` is on a column edge's handle (TableColumnHandles):

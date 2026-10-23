@@ -314,6 +314,15 @@
     "ja": "%@ ダブルトーン",
     "pt-BR": "Duotone %@"
   },
+  "%@ earlier": {
+    "ar": "%@ أبكر",
+    "de": "%@ früher",
+    "es": "%@ antes",
+    "fr": "%@ plus tôt",
+    "it": "%@ prima",
+    "ja": "%@ を早く",
+    "pt-BR": "%@ antes"
+  },
   "%@ effect": {
     "ar": "تأثير %@",
     "de": "Effekt %@",
@@ -466,6 +475,15 @@
     "it": "Inchiostro %@, altri colori",
     "ja": "%@ インク、その他の色",
     "pt-BR": "Tinta %@, mais cores"
+  },
+  "%@ later": {
+    "ar": "%@ لاحقًا",
+    "de": "%@ später",
+    "es": "%@ después",
+    "fr": "%@ plus tard",
+    "it": "%@ dopo",
+    "ja": "%@ を遅く",
+    "pt-BR": "%@ depois"
   },
   "%@ letter frame": {
     "ar": "إطار الحرف %@",
@@ -3962,6 +3980,15 @@
     "ja": "%@に色を追加",
     "pt-BR": "Adicionar uma cor a %@"
   },
+  "Add a cue": {
+    "ar": "إضافة مقطع",
+    "de": "Eintrag hinzufügen",
+    "es": "Añadir una entrada",
+    "fr": "Ajouter une entrée",
+    "it": "Aggiungi una voce",
+    "ja": "キューを追加",
+    "pt-BR": "Adicionar uma entrada"
+  },
   "Add a font…": {
     "ar": "إضافة خط…",
     "de": "Schrift hinzufügen …",
@@ -4745,6 +4772,15 @@
     "ja": "すでに最前面です",
     "pt-BR": "Já está na frente"
   },
+  "Also save captions (.srt)": {
+    "ar": "حفظ التسميات التوضيحية أيضًا (‎.srt)",
+    "de": "Untertitel auch speichern (.srt)",
+    "es": "Guardar también los subtítulos (.srt)",
+    "fr": "Enregistrer aussi les sous-titres (.srt)",
+    "it": "Salva anche i sottotitoli (.srt)",
+    "ja": "字幕も保存 (.srt)",
+    "pt-BR": "Salvar também as legendas (.srt)"
+  },
   "Alt text": {
     "ar": "النص البديل",
     "de": "Alternativtext",
@@ -4780,6 +4816,15 @@
     "it": "Analoghi",
     "ja": "類似色",
     "pt-BR": "Análogas"
+  },
+  "Angle": {
+    "ar": "زاوية",
+    "de": "Winkel",
+    "es": "Ángulo",
+    "fr": "Angle",
+    "it": "Angolo",
+    "ja": "角度",
+    "pt-BR": "Ângulo"
   },
   "Angular": {
     "ar": "زاوي",
@@ -5024,6 +5069,15 @@
     "ja": "すべてのページに適用",
     "pt-BR": "Aplicar a todas as páginas"
   },
+  "Aqua": {
+    "ar": "سماوي",
+    "de": "Aqua",
+    "es": "Aguamarina",
+    "fr": "Turquoise",
+    "it": "Acqua",
+    "ja": "アクア",
+    "pt-BR": "Água-marinha"
+  },
   "Arch": {
     "ar": "قوس",
     "de": "Bogen",
@@ -5204,6 +5258,15 @@
     "ja": "自動の%@色",
     "pt-BR": "Cor %@ automática"
   },
+  "Automatic captions aren't available on this phone — import an .srt file or type them": {
+    "ar": "التسميات التوضيحية التلقائية غير متاحة على هذا الهاتف — استورد ملف ‎.srt أو اكتبها",
+    "de": "Automatische Untertitel sind auf diesem Telefon nicht verfügbar – importiere eine .srt-Datei oder tippe sie ein",
+    "es": "Los subtítulos automáticos no están disponibles en este teléfono: importa un archivo .srt o escríbelos",
+    "fr": "Les sous-titres automatiques ne sont pas disponibles sur ce téléphone — importez un fichier .srt ou saisissez-les",
+    "it": "I sottotitoli automatici non sono disponibili su questo telefono: importa un file .srt o scrivili",
+    "ja": "この端末では自動字幕を使えません。.srt ファイルを読み込むか、入力してください",
+    "pt-BR": "As legendas automáticas não estão disponíveis neste telefone — importe um arquivo .srt ou digite-as"
+  },
   "Autoplay": {
     "ar": "تشغيل تلقائي",
     "de": "Automatisch abspielen",
@@ -5266,6 +5329,15 @@
     "it": "Fai il backup di tutto",
     "ja": "すべてをバックアップ",
     "pt-BR": "Fazer backup de tudo"
+  },
+  "Backdrop": {
+    "ar": "خلفية",
+    "de": "Hintergrund",
+    "es": "Fondo",
+    "fr": "Fond",
+    "it": "Sfondo",
+    "ja": "バックドロップ",
+    "pt-BR": "Fundo"
   },
   "Backed up %d design, and everything else, to one file.|Backed up %d designs, and everything else, to one file.": {
     "ar": {
@@ -5570,6 +5642,15 @@
     "ja": "ブロブ",
     "pt-BR": "Manchas"
   },
+  "Blue": {
+    "ar": "أزرق",
+    "de": "Blau",
+    "es": "Azul",
+    "fr": "Bleu",
+    "it": "Blu",
+    "ja": "青",
+    "pt-BR": "Azul"
+  },
   "Blur": {
     "ar": "تمويه",
     "de": "Weichzeichnen",
@@ -5758,6 +5839,15 @@
     "it": "Rimbalzo (ciclo)",
     "ja": "バウンス（ループ）",
     "pt-BR": "Quicar (repetir)"
+  },
+  "Box": {
+    "ar": "صندوق",
+    "de": "Kasten",
+    "es": "Recuadro",
+    "fr": "Cadre",
+    "it": "Riquadro",
+    "ja": "ボックス",
+    "pt-BR": "Caixa"
   },
   "Brand": {
     "ar": "العلامة التجارية",
@@ -6268,6 +6358,15 @@
     "it": "Didascalia",
     "ja": "キャプション",
     "pt-BR": "Legenda"
+  },
+  "Captions": {
+    "ar": "تسميات توضيحية",
+    "de": "Untertitel",
+    "es": "Subtítulos",
+    "fr": "Sous-titres",
+    "it": "Sottotitoli",
+    "ja": "字幕",
+    "pt-BR": "Legendas"
   },
   "Card %d of %d": {
     "ar": "البطاقة %d من %d",
@@ -7703,6 +7802,15 @@
     "ja": "ページの色を読み取れませんでした",
     "pt-BR": "Não foi possível ler as cores da página"
   },
+  "Couldn't read the sound.": {
+    "ar": "تعذّرت قراءة الصوت.",
+    "de": "Der Ton konnte nicht gelesen werden.",
+    "es": "No se pudo leer el sonido.",
+    "fr": "Impossible de lire le son.",
+    "it": "Impossibile leggere l'audio.",
+    "ja": "音声を読み取れませんでした。",
+    "pt-BR": "Não foi possível ler o som."
+  },
   "Couldn't restore that backup.": {
     "ar": "تعذّرت استعادة تلك النسخة الاحتياطية.",
     "de": "Diese Sicherung konnte nicht wiederhergestellt werden.",
@@ -7951,6 +8059,15 @@
     "de": "Kurve",
     "es": "Curva",
     "fr": "Courbe",
+    "it": "Curva",
+    "ja": "カーブ",
+    "pt-BR": "Curva"
+  },
+  "Curved": {
+    "ar": "منحنٍ",
+    "de": "Gewölbt",
+    "es": "Curvada",
+    "fr": "Incurvée",
     "it": "Curva",
     "ja": "カーブ",
     "pt-BR": "Curva"
@@ -8828,6 +8945,15 @@
     "ja": "背景から切り離す",
     "pt-BR": "Separar do fundo"
   },
+  "Detach image": {
+    "ar": "فصل الصورة",
+    "de": "Bild lösen",
+    "es": "Separar imagen",
+    "fr": "Détacher l'image",
+    "it": "Stacca immagine",
+    "ja": "画像を切り離す",
+    "pt-BR": "Separar imagem"
+  },
   "Diamond": {
     "ar": "معيّن",
     "de": "Raute",
@@ -8918,6 +9044,15 @@
     "ja": "ディスプレイ",
     "pt-BR": "Display"
   },
+  "Distance": {
+    "ar": "مسافة",
+    "de": "Abstand",
+    "es": "Distancia",
+    "fr": "Distance",
+    "it": "Distanza",
+    "ja": "距離",
+    "pt-BR": "Distância"
+  },
   "Distribute columns": {
     "ar": "توزيع الأعمدة",
     "de": "Spalten verteilen",
@@ -8935,6 +9070,15 @@
     "it": "Distribuisci uniformemente",
     "ja": "均等に配置",
     "pt-BR": "Distribuir uniformemente"
+  },
+  "Divider %d": {
+    "ar": "فاصل %d",
+    "de": "Trennlinie %d",
+    "es": "Divisor %d",
+    "fr": "Séparateur %d",
+    "it": "Divisore %d",
+    "ja": "区切り %d",
+    "pt-BR": "Divisor %d"
   },
   "Document": {
     "ar": "المستند",
@@ -9691,6 +9835,15 @@
     "it": "Modifica come testo",
     "ja": "テキストとして編集",
     "pt-BR": "Editar como texto"
+  },
+  "Edit captions": {
+    "ar": "تعديل التسميات التوضيحية",
+    "de": "Untertitel bearbeiten",
+    "es": "Editar subtítulos",
+    "fr": "Modifier les sous-titres",
+    "it": "Modifica sottotitoli",
+    "ja": "字幕を編集",
+    "pt-BR": "Editar legendas"
   },
   "Edit chart": {
     "ar": "تعديل المخطط",
@@ -11342,6 +11495,24 @@
     "ja": "フル HD（1920）",
     "pt-BR": "Full HD (1920)"
   },
+  "Generate": {
+    "ar": "إنشاء",
+    "de": "Erzeugen",
+    "es": "Generar",
+    "fr": "Générer",
+    "it": "Genera",
+    "ja": "生成",
+    "pt-BR": "Gerar"
+  },
+  "Generating captions…": {
+    "ar": "جارٍ إنشاء التسميات التوضيحية…",
+    "de": "Untertitel werden erzeugt …",
+    "es": "Generando subtítulos…",
+    "fr": "Génération des sous-titres…",
+    "it": "Generazione dei sottotitoli…",
+    "ja": "字幕を生成中…",
+    "pt-BR": "Gerando legendas…"
+  },
   "German": {
     "ar": "الألمانية",
     "de": "Deutsch",
@@ -11548,6 +11719,15 @@
     "it": "Grafiche",
     "ja": "グラフィック",
     "pt-BR": "Gráficos"
+  },
+  "Green": {
+    "ar": "أخضر",
+    "de": "Grün",
+    "es": "Verde",
+    "fr": "Vert",
+    "it": "Verde",
+    "ja": "緑",
+    "pt-BR": "Verde"
   },
   "Grid": {
     "ar": "الشبكة",
@@ -11927,6 +12107,15 @@
     "ja": "ハイライト",
     "pt-BR": "Realce"
   },
+  "Highlight word": {
+    "ar": "إبراز الكلمة",
+    "de": "Wort hervorheben",
+    "es": "Resaltar palabra",
+    "fr": "Mot en surbrillance",
+    "it": "Evidenzia parola",
+    "ja": "単語をハイライト",
+    "pt-BR": "Destacar palavra"
+  },
   "Highlighter": {
     "ar": "قلم التمييز",
     "de": "Textmarker",
@@ -12241,6 +12430,15 @@
     "it": "Importa",
     "ja": "読み込む",
     "pt-BR": "Importar"
+  },
+  "Import .srt": {
+    "ar": "استيراد ‎.srt",
+    "de": ".srt importieren",
+    "es": "Importar .srt",
+    "fr": "Importer un .srt",
+    "it": "Importa .srt",
+    "ja": ".srt を読み込む",
+    "pt-BR": "Importar .srt"
   },
   "Import CSV": {
     "ar": "استيراد CSV",
@@ -12956,6 +13154,15 @@
     "ja": "レイヤー",
     "pt-BR": "Camadas"
   },
+  "Layout": {
+    "ar": "تخطيط",
+    "de": "Layout",
+    "es": "Diseño",
+    "fr": "Disposition",
+    "it": "Layout",
+    "ja": "レイアウト",
+    "pt-BR": "Layout"
+  },
   "Leaves out the page's own background, so nothing is behind the design.": {
     "ar": "يستبعد خلفية الصفحة نفسها، فلا يكون شيء خلف التصميم.",
     "de": "Lässt den eigenen Hintergrund der Seite weg, damit nichts hinter dem Design ist.",
@@ -13528,6 +13735,15 @@
     "it": "Creato su questo telefono, conservato su questo telefono: nessun account, nessun server, nulla inviato altrove.",
     "ja": "このスマートフォンで作成し、このスマートフォンに保存：アカウントもサーバーも不要で、どこにも送信されません。",
     "pt-BR": "Feito neste celular, guardado neste celular: sem conta, sem servidor, nada enviado para lugar nenhum."
+  },
+  "Magenta": {
+    "ar": "أرجواني",
+    "de": "Magenta",
+    "es": "Magenta",
+    "fr": "Magenta",
+    "it": "Magenta",
+    "ja": "マゼンタ",
+    "pt-BR": "Magenta"
   },
   "Magic shortcuts": {
     "ar": "اختصارات سحرية",
@@ -14912,6 +15128,15 @@
     "ja": "大文字なし",
     "pt-BR": "Sem pontas"
   },
+  "No captions were found in that file.": {
+    "ar": "لم يُعثر على تسميات توضيحية في هذا الملف.",
+    "de": "In dieser Datei wurden keine Untertitel gefunden.",
+    "es": "No se encontraron subtítulos en ese archivo.",
+    "fr": "Aucun sous-titre trouvé dans ce fichier.",
+    "it": "Nessun sottotitolo trovato in quel file.",
+    "ja": "そのファイルに字幕は見つかりませんでした。",
+    "pt-BR": "Nenhuma legenda foi encontrada nesse arquivo."
+  },
   "No code found in this picture": {
     "ar": "لم يُعثر على رمز في هذه الصورة",
     "de": "In diesem Bild wurde kein Code gefunden",
@@ -15172,6 +15397,15 @@
     "it": "Nessuna forma da prendere da quel file",
     "ja": "そのファイルから取り出せる図形がありません",
     "pt-BR": "Não há forma para usar nesse arquivo"
+  },
+  "No speech was heard.": {
+    "ar": "لم يُسمع أي كلام.",
+    "de": "Es wurde keine Sprache gehört.",
+    "es": "No se oyó ninguna voz.",
+    "fr": "Aucune parole entendue.",
+    "it": "Nessun parlato rilevato.",
+    "ja": "音声は聞き取れませんでした。",
+    "pt-BR": "Nenhuma fala foi ouvida."
   },
   "No spelling mistakes found": {
     "ar": "لم يُعثر على أخطاء إملائية",
@@ -16217,6 +16451,15 @@
     "ja": "オプション",
     "pt-BR": "Opções"
   },
+  "Orange": {
+    "ar": "برتقالي",
+    "de": "Orange",
+    "es": "Naranja",
+    "fr": "Orange",
+    "it": "Arancione",
+    "ja": "オレンジ",
+    "pt-BR": "Laranja"
+  },
   "Organise pages…": {
     "ar": "تنظيم الصفحات…",
     "de": "Seiten organisieren …",
@@ -16600,6 +16843,15 @@
     "it": "Pagina eliminata",
     "ja": "ページを削除しました",
     "pt-BR": "Página excluída"
+  },
+  "Page lift": {
+    "ar": "رفع الصفحة",
+    "de": "Angehobene Seite",
+    "es": "Página levantada",
+    "fr": "Page soulevée",
+    "it": "Pagina sollevata",
+    "ja": "ページリフト",
+    "pt-BR": "Página levantada"
   },
   "Page margin": {
     "ar": "هامش الصفحة",
@@ -17294,6 +17546,15 @@
     "ja": "配置",
     "pt-BR": "Posicionamento"
   },
+  "Plain": {
+    "ar": "عادي",
+    "de": "Schlicht",
+    "es": "Sencillo",
+    "fr": "Simple",
+    "it": "Semplice",
+    "ja": "プレーン",
+    "pt-BR": "Simples"
+  },
   "Plaque": {
     "ar": "لوحة",
     "de": "Plakette",
@@ -17732,6 +17993,15 @@
     "ja": "パルス（ループ）",
     "pt-BR": "Pulsar (repetir)"
   },
+  "Purple": {
+    "ar": "بنفسجي",
+    "de": "Lila",
+    "es": "Morado",
+    "fr": "Violet",
+    "it": "Viola",
+    "ja": "紫",
+    "pt-BR": "Roxo"
+  },
   "Purple Haze": {
     "ar": "ضباب بنفسجي",
     "de": "Lila Dunst",
@@ -18046,6 +18316,15 @@
     "it": "Rettangolo",
     "ja": "長方形",
     "pt-BR": "Retângulo"
+  },
+  "Red": {
+    "ar": "أحمر",
+    "de": "Rot",
+    "es": "Rojo",
+    "fr": "Rouge",
+    "it": "Rosso",
+    "ja": "赤",
+    "pt-BR": "Vermelho"
   },
   "Redo": {
     "ar": "إعادة",
@@ -24772,6 +25051,15 @@
     "it": "Racchiudi le parole come faresti in un messaggio: **due asterischi** per il grassetto, *un asterisco* o _trattini bassi_ per il corsivo, __due trattini bassi__ per sottolineare, ~~due tilde~~ per barrare. I simboli scompaiono e le parole prendono lo stile, sulla tela e in ogni esportazione. Mentre digiti, scegli alcune parole e tocca Grassetto, Corsivo, Sottolineato o Barrato sopra la tastiera per aggiungere o togliere i simboli intorno.",
     "ja": "メッセージと同じように単語を囲みます：**アスタリスク 2 つ** で太字、*アスタリスク 1 つ* または _アンダースコア_ で斜体、__アンダースコア 2 つ__ で下線、~~チルダ 2 つ~~ で取り消し線。記号は消え、キャンバスでもすべての書き出しでも単語にスタイルが適用されます。入力中に単語を選んでキーボード上の「太字」「斜体」「下線」「取り消し線」をタップすると、記号を付けたり外したりできます。",
     "pt-BR": "Marque as palavras como faria em uma mensagem: **duas estrelas** para negrito, *uma estrela* ou _sublinhados_ para itálico, __dois sublinhados__ para sublinhar, ~~dois tis~~ para tachar. Os marcadores desaparecem e as palavras ganham o estilo, na tela de design e em todas as exportações. Enquanto digita, escolha algumas palavras e toque em Negrito, Itálico, Sublinhado ou Tachado acima do teclado para colocar ou tirar os marcadores."
+  },
+  "Yellow": {
+    "ar": "أصفر",
+    "de": "Gelb",
+    "es": "Amarillo",
+    "fr": "Jaune",
+    "it": "Giallo",
+    "ja": "黄",
+    "pt-BR": "Amarelo"
   },
   "Yesterday": {
     "ar": "أمس",

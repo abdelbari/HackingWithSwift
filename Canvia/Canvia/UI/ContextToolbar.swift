@@ -1163,6 +1163,11 @@ struct ContextToolbar: View {
                 store.replaceTargetId = el.id
                 activeSheet = .insert
             }
+            // A frame's or a grid cell's picture, taken out as a photo of
+            // its own, the frame left empty.
+            if store.canDetachImage {
+                toolButton("photo.on.rectangle", "Detach image") { store.detachImage() }
+            }
             // The photo behind the whole page instead, as it shows here.
             if DesignStore.canBecomeBackground(el) {
                 toolButton("rectangle.inset.filled", "Use as background") {
@@ -1406,10 +1411,24 @@ struct ContextToolbar: View {
                            : tr("Then tap something to paste the style onto it"))
     }
 
-    /// A grid's Spacing, in page units, and Corners, in percent of each
-    /// cell's shorter side — each release one Undo, as every slider here.
+    /// A grid's Layout — another of the library's layouts with as many
+    /// cells or more, its pictures handed on, one step — then its Spacing,
+    /// in page units, and Corners, in percent of each cell's shorter side —
+    /// each release one Undo, as every slider here. The dividers between
+    /// its cells are dragged on the canvas itself.
     @ViewBuilder
     private func gridControls(_ cells: [Element]) -> some View {
+        let current = cells.first?.grid?.layout
+        Menu {
+            ForEach(PhotoGrids.layoutsFor(cells.count)) { layout in
+                Button { store.changeGridLayout(to: layout) } label: {
+                    Label(tr(layout.name), systemImage: layout.id == current ? "checkmark" : "square.grid.2x2")
+                }
+            }
+        } label: {
+            toolLabel("square.grid.2x2", "Layout")
+        }
+        .accessibilityLabel("Layout")
         sliderControl("Spacing", value: PhotoGrids.spacing(of: cells), in: 0...PhotoGrids.maxSpacing) { v in
             store.setGridSpacingTransient(v)
         }

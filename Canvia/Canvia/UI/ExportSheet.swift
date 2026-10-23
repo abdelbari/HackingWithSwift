@@ -32,6 +32,9 @@ struct ExportSheet: View {
     @State private var choosingPages = false
     /// The video's size: 720p, 1080p or, where the encoder takes it, 4K.
     @State private var resolution = MovieExporter.Resolution.standard
+    /// The captions as an .srt beside a shared video, for players that
+    /// show their own; they are drawn into the video regardless.
+    @State private var captionsSrt = false
     /// PDFs drawn as one 300-dpi picture a page.
     @State private var flatten = false
     /// The PDF's notes pages, and its photos at 150 dpi.
@@ -624,7 +627,7 @@ struct ExportSheet: View {
                          working: tr("Saving to your photos"), unavailable: leftOut(exportedIndices),
                          format: photosFormat == .png ? "png" : "jpg") {
                 photosNote = nil
-                return ExportJobs.picturesToPhotos(exportedSnapshot, format: photosFormat, scale: scale,
+                return ExportJobs.picturesToPhotos(picturesSnapshot, format: photosFormat, scale: scale,
                                                    longEdge: typedLongEdge ?? 0, quality: jpegQuality,
                                                    transparent: transparent)
             }
@@ -793,7 +796,7 @@ struct ExportSheet: View {
         Section {
             exportButton(tr("MP4 video"), subtitle: movieSubtitle, icon: "film", working: tr("Rendering the video"),
                          unavailable: leftOut(moviePages), format: "mp4") {
-                ExportJobs.movie(designSnapshot, settings: movieSettings)
+                ExportJobs.movie(designSnapshot, settings: movieSettings, captions: captionsSrt)
             }
             exportButton(tr("Animated GIF"), subtitle: movieSubtitle, icon: "square.stack.3d.down.right",
                          working: tr("Rendering the GIF"), unavailable: leftOut(moviePages), format: "gif") {
@@ -803,6 +806,9 @@ struct ExportSheet: View {
                 ForEach(MovieExporter.resolutions(for: store.design)) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
+            if Captions.any(store.design) {
+                Toggle("Also save captions (.srt)", isOn: $captionsSrt)
+            }
             if !readOnly { DisclosureGroup("Motion settings") { motionSettings } }
         } header: {
             Text("Motion")
@@ -980,8 +986,17 @@ struct ExportSheet: View {
         ExportSnapshot(exportedDesign, range: exportedRange, current: exportedPageIndex)
     }
 
+    /// The pictures' snapshot: the page on screen shows its captions at the
+    /// timeline's playhead, as the canvas does; a selection on its own page
+    /// and every other page their first cue — the Android twin's rule.
+    private var picturesSnapshot: ExportSnapshot {
+        var snapshot = exportedSnapshot
+        if !selectionOnly { snapshot.captionTime = store.playheadInPage }
+        return snapshot
+    }
+
     private func picturesWork(_ format: DesignExporter.RasterFormat) -> ExportQueue.Work {
-        ExportJobs.pictures(exportedSnapshot, format: format, scale: scale, longEdge: typedLongEdge ?? 0,
+        ExportJobs.pictures(picturesSnapshot, format: format, scale: scale, longEdge: typedLongEdge ?? 0,
                             quality: jpegQuality, transparent: transparent)
     }
 
