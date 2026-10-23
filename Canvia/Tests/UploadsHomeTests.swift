@@ -81,6 +81,17 @@ final class UploadsHomeTests: XCTestCase {
         XCTAssertEqual(Uploads.filters, ["image", "video", "audio", "font"])
     }
 
+    func testSelectAllCountsOnlyTheShownUploads() {
+        // Five photos picked, then the grid shows five clips: not all picked.
+        let photos: Set<String> = ["p1", "p2", "p3", "p4", "p5"]
+        let clips = ["c1", "c2", "c3", "c4", "c5"]
+        XCTAssertFalse(Uploads.allPicked(clips, picked: photos))
+        XCTAssertEqual(Uploads.pickingAll(clips, picked: photos), Set(clips))
+        XCTAssertTrue(Uploads.allPicked(clips, picked: photos.union(clips)))
+        XCTAssertEqual(Uploads.pickingAll(clips, picked: photos.union(clips)), [])
+        XCTAssertFalse(Uploads.allPicked([], picked: []))
+    }
+
     func testDeletingFromHomeAsksForTheCountAndWarnsOfTheEmptyFrames() {
         XCTAssertEqual(Uploads.deletingFromHome(1, designs: 0).title, "Delete this upload?")
         XCTAssertNil(Uploads.deletingFromHome(1, designs: 0).text)

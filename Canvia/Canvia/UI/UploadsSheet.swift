@@ -121,7 +121,8 @@ struct UploadsSheet: View {
     var onImport: () -> Void
     /// A new design from the upload's file, as a share into Canvia starts
     /// one.
-    var onNewDesign: (URL) -> Void
+    /// The upload's file, and the source it goes in as.
+    var onNewDesign: (URL, String?) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var items: [UploadItem]?
@@ -174,7 +175,7 @@ struct UploadsSheet: View {
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
             if selecting {
-                Button(allPicked ? "Deselect all" : "Select all") { picked = allPicked ? [] : Set(shown.map(\.id)) }
+                Button(allPicked ? "Deselect all" : "Select all") { picked = Uploads.pickingAll(shown.map(\.id), picked: picked) }
                     .disabled(shown.isEmpty)
             } else {
                 Button("Done") { dismiss() }
@@ -250,10 +251,16 @@ struct UploadsSheet: View {
 
     @ViewBuilder
     private var kindChips: some View {
-        chip(tr("All"), selected: filter == nil) { filter = nil }
+        chip(tr("All"), selected: filter == nil) { show(nil) }
         ForEach(Uploads.filters, id: \.self) { kind in
-            chip(Self.filterName(kind), selected: filter == kind) { filter = kind }
+            chip(Self.filterName(kind), selected: filter == kind) { show(kind) }
         }
+    }
+
+    /// A new kind drops the picks, so Delete never takes hidden ones.
+    private func show(_ kind: String?) {
+        filter = kind
+        picked = []
     }
 
     private func chip(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
@@ -333,7 +340,7 @@ struct UploadsSheet: View {
         kits.map { Uploads.inBrandKit($0, id: item.id) } ?? false
     }
 
-    private var allPicked: Bool { !shown.isEmpty && picked.count == shown.count }
+    private var allPicked: Bool { Uploads.allPicked(shown.map(\.id), picked: picked) }
 
     private func endSelect() {
         selecting = false
@@ -381,7 +388,7 @@ struct UploadsSheet: View {
     }
 
     private func start(_ item: UploadItem) {
-        onNewDesign(item.file)
+        onNewDesign(item.file, SharedInbox.uploadSrc(kind: item.kind, id: item.id))
     }
 
     /// Off the list, and unstarred — or the star would keep their files —
