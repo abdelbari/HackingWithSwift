@@ -1684,6 +1684,9 @@ struct CanvasView: View {
             Button("Move row down") { inCell(el) { store.moveTableRow(by: 1) } }
             Button("Move column left") { inCell(el) { store.moveTableColumn(by: -1) } }
             Button("Move column right") { inCell(el) { store.moveTableColumn(by: 1) } }
+            // Its row's edge, a step either way, as a drag moves it.
+            Button("Taller row") { inCell(el) { store.resizeTableRow(taller: true) } }
+            Button("Shorter row") { inCell(el) { store.resizeTableRow(taller: false) } }
         }
     }
 

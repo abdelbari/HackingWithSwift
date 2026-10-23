@@ -123,9 +123,15 @@ struct SelectionOverlay: View {
                 }
             }
 
-            // A whole table selected: its column edges, to drag.
-            if let edges = store.tableColumnEdges {
-                TableColumnHandles(store: store, edges: edges)
+            Group {
+                // A whole table selected: its column edges, to drag.
+                if let edges = store.tableColumnEdges {
+                    TableColumnHandles(store: store, edges: edges)
+                }
+                // A table or a cell of it selected: its row edges, to drag.
+                if let rows = store.tableRowEdges {
+                    TableRowHandles(store: store, edges: rows)
+                }
             }
             // A whole photo grid selected: the dividers between its cells.
             if !store.gridDividers.isEmpty {
@@ -289,7 +295,7 @@ struct SelectionOverlay: View {
     /// the Android twin, nothing else near the selection is: a locked one,
     /// which draws none, has none.
     static func handlesTake(_ point: CGPoint, store: DesignStore) -> Bool {
-        if onColumnEdge(point, store: store) || onGridDivider(point, store: store) { return true }
+        if onColumnEdge(point, store: store) || onRowEdge(point, store: store) || onGridDivider(point, store: store) { return true }
         guard let drawn = ring(store) else { return false }
         let page = reachablePage(store)
         let out = outsets(for: drawn.el, zoom: store.zoom, page: page)
@@ -369,6 +375,16 @@ struct SelectionOverlay: View {
         let half = Touch.pageUnits(Touch.minTarget, zoom: store.zoom) / 2
         guard abs(Double(point.y) - edges.bottom) <= half else { return false }
         return edges.xs.contains { abs(Double(point.x) - $0) <= half }
+    }
+
+    /// Whether `point` is on a row edge's handle (TableRowHandles): a touch
+    /// target square centred where the row's bottom edge meets the table's
+    /// left.
+    private static func onRowEdge(_ point: CGPoint, store: DesignStore) -> Bool {
+        guard let edges = store.tableRowEdges else { return false }
+        let half = Touch.pageUnits(Touch.minTarget, zoom: store.zoom) / 2
+        guard abs(Double(point.x) - edges.left) <= half else { return false }
+        return edges.ys.contains { abs(Double(point.y) - $0) <= half }
     }
 
     /// Every handle the element offers, at any size or zoom. On a small or

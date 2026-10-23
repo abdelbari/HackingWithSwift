@@ -1061,4 +1061,81 @@ final class TablesTests: XCTestCase {
         // VoiceOver reads a cell so.
         XCTAssertEqual(CanvasAccessibility.label(for: rect(t, 1, 1), on: t), "Row 2 of 3, Column 2 of 2, Qty: 2")
     }
+
+    // MARK: row heights, the shared table
+
+    private func rowHeights(_ els: [Element]) -> [Double] {
+        let boxes = DataGraphics.tableRowBoxes(els, id: tableId(els))
+        return boxes.keys.sorted().compactMap { boxes[$0]?.h }
+    }
+
+    func testARowDraggedTallerKeepsItsHeightWrittenOnItsFirstCellOnly() throws {
+        let t = made()
+        let id = tableId(t)
+        XCTAssertEqual(rowHeights(t), [46, 46, 46])
+        let tall = try XCTUnwrap(DataGraphics.withRowDragged(t, id: id, boundary: 0, dy: 30, heightFor: heightFor))
+        XCTAssertEqual(rowHeights(tall), [76, 46, 46])
+        XCTAssertEqual(rowTops(tall), [200, 276, 322])
+        XCTAssertEqual(rect(tall, 0, 0).table?.minH, 76)
+        XCTAssertEqual(text(tall, 0, 0).table?.minH, 76)
+        XCTAssertNil(rect(tall, 0, 1).table?.minH)
+        XCTAssertNil(rect(tall, 1, 0).table?.minH)
+        // Its words changing keep it so; words taller than it win.
+        XCTAssertEqual(rowHeights(DataGraphics.relaidTable(withWords(tall, 0, 1, "Q"), id: id, heightFor: heightFor))[0], 76)
+        XCTAssertEqual(rowHeights(DataGraphics.relaidTable(withWords(tall, 0, 1, "1\n2\n3"), id: id, heightFor: heightFor))[0], 86)
+        // Dragged back to its words' height or under, it keeps none; never under 24 or its words.
+        let back = try XCTUnwrap(DataGraphics.withRowDragged(tall, id: id, boundary: 0, dy: -50, heightFor: heightFor))
+        XCTAssertEqual(rowHeights(back), [46, 46, 46])
+        XCTAssertNil(rect(back, 0, 0).table?.minH)
+        XCTAssertNil(DataGraphics.withRowDragged(t, id: id, boundary: 0, dy: -40, heightFor: heightFor))
+        XCTAssertNil(DataGraphics.withRowDragged(t, id: id, boundary: 7, dy: 10, heightFor: heightFor))
+        XCTAssertEqual(DataGraphics.minRowHeight, 24)
+        // Written as "minH" in the cell's table object, and read back.
+        let json = try XCTUnwrap(String(data: JSONEncoder().encode(rect(tall, 0, 0)), encoding: .utf8))
+        XCTAssertTrue(json.contains(#""minH":76"#), json)
+        XCTAssertEqual(try JSONDecoder().decode(Element.self, from: Data(json.utf8)).table?.minH, 76)
+    }
+
+    func testDistributeRowsMakesThemOneHeightAndAMovedRowKeepsItsOwn() throws {
+        let t = made()
+        let id = tableId(t)
+        let tall = try XCTUnwrap(DataGraphics.withRowDragged(t, id: id, boundary: 0, dy: 30, heightFor: heightFor))
+        let even = try XCTUnwrap(DataGraphics.evenRows(tall, id: id, heightFor: heightFor))
+        XCTAssertEqual(rowHeights(even), [56, 56, 56])
+        XCTAssertNil(DataGraphics.evenRows(even, id: id, heightFor: heightFor))
+        XCTAssertNil(DataGraphics.evenRows(t, id: id, heightFor: heightFor))
+        // Row moves carry the height with the row.
+        let second = try XCTUnwrap(DataGraphics.withRowDragged(t, id: id, boundary: 1, dy: 30, heightFor: heightFor))
+        let moved = try XCTUnwrap(DataGraphics.movedTableRow(second, id: id, row: 1, by: 1, heightFor: heightFor))
+        XCTAssertEqual(rowHeights(moved), [46, 46, 76])
+        // Scaled with the table, as its spacing is.
+        XCTAssertEqual(TableCell.scaledPad(rect(tall, 0, 0).table, by: 2)?.minH, 152)
+    }
+
+    func testRowEdgesDragAndDistributeAsOneStep() {
+        let s = store(made())
+        let table = s.page.elements
+        s.selection = [text(table, 1, 0).id]
+        XCTAssertEqual(s.tableRowEdges?.ys, [246, 292, 338])
+        XCTAssertEqual(s.tableRowEdges?.left, 100)
+        s.dragTableRowTransient(from: table, row: 0, by: 10)
+        s.dragTableRowTransient(from: table, row: 0, by: 30)
+        s.commit()
+        XCTAssertEqual(s.tableRowHeights[0], 76)
+        s.undo()
+        XCTAssertEqual(s.page.elements, table, "one step for the whole drag")
+        s.selection = [text(table, 1, 0).id]
+        XCTAssertTrue(s.resizeTableRow(taller: true))
+        XCTAssertEqual(s.tableRowHeights[1], 54)
+        XCTAssertTrue(s.resizeTableRow(taller: false))
+        XCTAssertEqual(s.tableRowHeights[1], 46)
+        XCTAssertFalse(s.resizeTableRow(taller: false), "never under its words")
+        XCTAssertFalse(s.distributeTableRows(), "already even")
+        s.dragTableRowTransient(from: s.page.elements, row: 0, by: 30)
+        s.commit()
+        XCTAssertTrue(s.distributeTableRows())
+        XCTAssertEqual(s.tableRowHeights.keys.sorted().compactMap { s.tableRowHeights[$0] }, [56, 56, 56])
+        s.undo()
+        XCTAssertEqual(s.tableRowHeights[0], 76)
+    }
 }

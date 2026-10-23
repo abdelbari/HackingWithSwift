@@ -317,20 +317,28 @@ struct TableCell: Codable, Equatable, Hashable {
     /// The table's alternating rows' colour, "#rrggbb", on every cell of it
     /// alike; nil is no alternating rows kept (DataGraphics.withTableBands).
     var bands: String?
+    /// The least height of the row this cell starts, in page units, when it
+    /// was dragged taller than its words need (DataGraphics
+    /// .withRowDragged): kept on the row's first cell, its rectangle and
+    /// words, written "minH" only then; nil is as tall as the words.
+    var minH: Double?
 
-    private enum CodingKeys: String, CodingKey { case id, row, col, rowSpan, colSpan, pad, bands }
+    private enum CodingKeys: String, CodingKey { case id, row, col, rowSpan, colSpan, pad, bands, minH }
 
-    /// `cell` with its spacing, in page units, times `scale` — as a table
-    /// scaled with its page or its selection keeps its inset in proportion,
-    /// so its next relayout holds its rows; as it is when it is no cell or
-    /// keeps none. The Android twin's Tables.scaledPad.
+    /// `cell` with its spacing and its row's least height, in page units,
+    /// times `scale` — as a table scaled with its page or its selection
+    /// keeps its inset and its rows in proportion, so its next relayout
+    /// holds them; as it is when it is no cell or keeps neither. The
+    /// Android twin's Tables.scaledPad.
     static func scaledPad(_ cell: TableCell?, by scale: Double) -> TableCell? {
-        guard var out = cell, let pad = out.pad else { return cell }
-        out.pad = pad * scale
+        guard var out = cell, out.pad != nil || out.minH != nil else { return cell }
+        out.pad = out.pad.map { $0 * scale }
+        out.minH = out.minH.map { $0 * scale }
         return out
     }
 
-    init(id: String, row: Int, col: Int, rowSpan: Int = 1, colSpan: Int = 1, pad: Double? = nil, bands: String? = nil) {
+    init(id: String, row: Int, col: Int, rowSpan: Int = 1, colSpan: Int = 1, pad: Double? = nil, bands: String? = nil,
+         minH: Double? = nil) {
         self.id = id
         self.row = row
         self.col = col
@@ -338,6 +346,7 @@ struct TableCell: Codable, Equatable, Hashable {
         self.colSpan = max(1, colSpan)
         self.pad = pad
         self.bands = bands
+        self.minH = minH
     }
 
     init(from decoder: Decoder) throws {
@@ -355,6 +364,7 @@ struct TableCell: Codable, Equatable, Hashable {
         // colour that is none, is no key.
         pad = (try? c.decode(Double.self, forKey: .pad)).flatMap { $0.isFinite && $0 >= 0 ? $0 : nil }
         bands = (try? c.decode(String.self, forKey: .bands)).flatMap { ColorTools.rgb255($0) != nil ? $0 : nil }
+        minH = (try? c.decode(Double.self, forKey: .minH)).flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
     }
 
     func encode(to encoder: Encoder) throws {
@@ -366,6 +376,7 @@ struct TableCell: Codable, Equatable, Hashable {
         if colSpan > 1 { try c.encode(colSpan, forKey: .colSpan) }
         try c.encodeIfPresent(pad, forKey: .pad)
         try c.encodeIfPresent(bands, forKey: .bands)
+        try c.encodeIfPresent(minH, forKey: .minH)
     }
 
     /// The rows the cell covers: its own, and those merged into it below.
