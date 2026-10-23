@@ -112,7 +112,7 @@ enum Whiteboards {
 
     /// `design` with every expanded page as the plain page that is drawn of
     /// it — sized to its bounds and their margin, everything moved by the
-    /// same amount, and the key gone — so an export, a thumbnail or Present
+    /// same amount, the master's elements with it, and the key gone — so an export, a thumbnail or Present
     /// draws it as it draws any page. The same design when none is
     /// expanded.
     static func flattened(_ design: Design) -> Design {
@@ -124,11 +124,16 @@ enum Whiteboards {
 
     /// `page` as flattened draws it — the page itself unless it is
     /// expanded. Sized in its own right, so `design` measures it as it is.
+    /// The master's shown elements behind it are carried onto it, moved
+    /// with its own, and the page no longer shows the master — so a logo
+    /// at the frame's corner stays at the frame's corner.
     static func drawn(_ design: Design, _ page: Page) -> Page {
         guard isExpanded(page) else { return page }
         let rect = shownRect(design, page)
         var out = page
         out.whiteboard = nil
+        out.usesMaster = false
+        out.elements = design.masterElements(behind: page) + page.elements
         out.width = Double(rect.width)
         out.height = Double(rect.height)
         for i in out.elements.indices {

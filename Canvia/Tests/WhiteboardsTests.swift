@@ -154,6 +154,30 @@ final class WhiteboardsTests: XCTestCase {
         assertRect(CGRect(x: 0, y: 0, width: 1920, height: 1080), Whiteboards.shownRect(d, d.pages[0]))
     }
 
+    // The master row both phones run: the master's shown elements are carried
+    // onto the drawn page, moved with its own, and the master no longer drawn
+    // behind it — so the logo stays at the frame's corner.
+    func testAnExportMovesTheMastersElementsWithThePagesOwn() {
+        var gone = box("gone", 0, 0)
+        gone.hidden = true
+        let master = Page(id: "m", elements: [box("logo", 40, 40), gone])
+        let page = Whiteboards.expanded(Page(id: "p", elements: [box("n", -500, 0)]), frame: frame)
+        var d = design([])
+        d.pages = [master, page]
+        d.masterPageId = "m"
+        // Bounds (-500, 0, 2420, 1080): 121 and 54 each side.
+        assertRect(CGRect(x: -621, y: -54, width: 2662, height: 1188), Whiteboards.shownRect(d, page))
+        let drawn = Whiteboards.drawn(d, page)
+        XCTAssertEqual(drawn.elements.map(\.id), ["logo", "n"])
+        XCTAssertEqual(drawn.elements[0].x, 661, accuracy: 1e-9)
+        XCTAssertEqual(drawn.elements[0].y, 94, accuracy: 1e-9)
+        XCTAssertEqual(drawn.elements[1].x, 121, accuracy: 1e-9)
+        XCTAssertEqual(drawn.usesMaster, false)
+        XCTAssertTrue(d.masterElements(behind: drawn).isEmpty)
+        // The master itself is drawn as it is.
+        XCTAssertEqual(Whiteboards.drawn(d, master), master)
+    }
+
     // The fit table both phones run: content, viewport, limits -> zoom, pan.
     func testFitToContentCentresTheContentAsLargeAsItGoesWithinTheZoomLimits() {
         let cases: [(CGRect, CGSize, Double, CGPoint)] = [
