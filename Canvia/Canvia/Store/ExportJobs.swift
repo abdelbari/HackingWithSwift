@@ -50,6 +50,17 @@ enum ExportJobs {
         }
     }
 
+    /// The GIF into Photos, which keeps it moving, counted as the
+    /// pictures are.
+    static func gifToPhotos(_ snapshot: ExportSnapshot, settings: MovieExporter.Settings) -> Work {
+        let render = gif(snapshot, settings: settings)
+        return { report in
+            let urls = try await render(report).urls
+            let outcome = try await PhotoSaver.save(urls)
+            return ExportQueue.Result(photosNote: outcome.message, photosSaved: outcome.anySaved)
+        }
+    }
+
     /// The MP4. The picture is kept when the music will not go under it,
     /// and that is said beside the share.
     static func movie(_ snapshot: ExportSnapshot, settings: MovieExporter.Settings) -> Work {
@@ -71,12 +82,13 @@ enum ExportJobs {
         }
     }
 
-    static func pdf(_ snapshot: ExportSnapshot, flatten: Bool, notes: Bool = false, compress: Bool = false) -> Work {
+    static func pdf(_ snapshot: ExportSnapshot, flatten: Bool, notes: Bool = false, compress: Bool = false,
+                    bookmarks: Bool = true) -> Work {
         { report in
             let url = DesignExporter.fileURL(for: snapshot.design, ext: "pdf")
             try await DesignExporter.exportPDF(design: snapshot.design, range: snapshot.range,
                                                current: snapshot.current, flatten: flatten, notes: notes,
-                                               compress: compress, to: url, progress: report)
+                                               compress: compress, bookmarks: bookmarks, to: url, progress: report)
             return ExportQueue.Result(urls: [url])
         }
     }
@@ -84,12 +96,12 @@ enum ExportJobs {
     /// The print-ready PDF, to share; with `printing`, handed to the
     /// printer instead.
     static func printPDF(_ snapshot: ExportSnapshot, options: PrintLayout.Options, flatten: Bool,
-                         printing: Bool) -> Work {
+                         printing: Bool, bookmarks: Bool = true) -> Work {
         { report in
             let url = DesignExporter.fileURL(for: snapshot.design, ext: "pdf", suffix: printing ? "" : "-print")
             try await DesignExporter.exportPrintPDF(design: snapshot.design, range: snapshot.range,
                                                     current: snapshot.current, options: options,
-                                                    flatten: flatten, to: url, progress: report)
+                                                    flatten: flatten, bookmarks: bookmarks, to: url, progress: report)
             guard printing else { return ExportQueue.Result(urls: [url]) }
             let size = snapshot.design.size(at: snapshot.pages.first ?? snapshot.current)
             let title = snapshot.design.title

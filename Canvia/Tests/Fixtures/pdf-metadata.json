@@ -1,0 +1,130 @@
+{
+  "design": {
+    "id": "d-meta",
+    "title": "Quarterly review",
+    "width": 1920,
+    "height": 1080,
+    "createdAt": 0,
+    "updatedAt": 0,
+    "pages": [
+      {
+        "id": "p1",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "elements": [
+          {
+            "id": "e1",
+            "type": "image",
+            "x": 100,
+            "y": 100,
+            "w": 600,
+            "h": 400,
+            "src": "media:photo-1",
+            "altText": "A red bicycle leaning on a wall"
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "x": 100,
+            "y": 100,
+            "w": 400,
+            "h": 80,
+            "text": "Hello"
+          }
+        ],
+        "title": "Intro"
+      },
+      {
+        "id": "p2",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "elements": [
+          {
+            "id": "e3",
+            "type": "image",
+            "x": 0,
+            "y": 0,
+            "w": 1920,
+            "h": 1080,
+            "src": "media:photo-1",
+            "altText": "Skyline at dusk",
+            "decorative": true
+          },
+          {
+            "id": "e4",
+            "type": "sticker",
+            "x": 1500,
+            "y": 800,
+            "w": 200,
+            "h": 200,
+            "glyph": "star",
+            "altText": "A gold star"
+          },
+          {
+            "id": "e5",
+            "type": "image",
+            "x": 200,
+            "y": 600,
+            "w": 300,
+            "h": 300,
+            "src": "media:photo-1",
+            "altText": "Our logo"
+          }
+        ]
+      },
+      {
+        "id": "p3",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "elements": [
+          {
+            "id": "e6",
+            "type": "text",
+            "x": 100,
+            "y": 100,
+            "w": 400,
+            "h": 80,
+            "text": "Hello"
+          }
+        ],
+        "title": "Closing"
+      }
+    ],
+    "language": "fr-FR"
+  },
+  "version": "0.1.0",
+  "appLanguage": "en-GB",
+  "info": {
+    "Title": "Quarterly review",
+    "Creator": "Canvia",
+    "Producer": "Canvia 0.1.0"
+  },
+  "infoKeys": [
+    "Title",
+    "Creator",
+    "Producer"
+  ],
+  "lang": "fr-FR",
+  "outline": [
+    "Intro",
+    "Page 2",
+    "Closing"
+  ],
+  "figures": [
+    [
+      "A red bicycle leaning on a wall"
+    ],
+    [
+      "Our logo",
+      "A gold star"
+    ],
+    []
+  ],
+  "displayDocTitle": true
+}
