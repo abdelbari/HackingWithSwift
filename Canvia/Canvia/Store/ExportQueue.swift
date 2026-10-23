@@ -398,7 +398,9 @@ struct ExportSnapshot {
     let current: Int
 
     init(_ design: Design, range: DesignExporter.PageRange, current: Int) {
-        self.design = design
+        // An expanded whiteboard goes out as its bounds and their margin
+        // (Whiteboards), in every format.
+        self.design = Whiteboards.flattened(design)
         self.current = current
         pages = range.indices(in: design, current: current)
     }

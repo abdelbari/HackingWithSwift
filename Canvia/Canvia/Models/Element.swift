@@ -721,6 +721,12 @@ struct Element: Codable, Equatable, Identifiable {
     var ends: [Double]?
     var bend: Double?
 
+    // sticky note
+    /// A whiteboard's sticky note (StickyNotes): a square shape whose words
+    /// shrink to fit it rather than growing it. Written only when true, the
+    /// key the Android twin keeps in the element's extras.
+    var sticky: Bool?
+
     var frame: CGRect { CGRect(x: x, y: y, width: w, height: h) }
     /// Whether the element is left off the page (see `hidden`).
     var isHidden: Bool { hidden == true }
@@ -845,6 +851,7 @@ struct Element: Codable, Equatable, Identifiable {
         lineType = try? c.decode(String.self, forKey: .lineType)
         ends = try? c.decode([Double].self, forKey: .ends)
         bend = (try? c.decode(Double.self, forKey: .bend)).flatMap { $0.isFinite ? $0 : nil }
+        sticky = (try? c.decode(Bool.self, forKey: .sticky)) == true ? true : nil
     }
 
     private static func defaultHeight(for type: ElementType, decoded c: KeyedDecodingContainer<CodingKeys>) -> Double {
@@ -879,6 +886,7 @@ struct Element: Codable, Equatable, Identifiable {
         case glyph
         case thickness, dash, startCap, endCap
         case lineType, ends, bend
+        case sticky
     }
 
     // MARK: factories (defaults mirror the web factories)

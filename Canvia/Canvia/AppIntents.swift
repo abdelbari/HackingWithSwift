@@ -76,6 +76,7 @@ enum DesignSizeChoice: String, AppEnum, CaseIterable {
     case podcastCover = "podcast-cover"
     case zoomBackground = "zoom-background"
     case etsyShopIcon = "etsy-shop-icon"
+    case whiteboard
 
     static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Design Size")
     static var caseDisplayRepresentations: [DesignSizeChoice: DisplayRepresentation] = [
@@ -148,6 +149,7 @@ enum DesignSizeChoice: String, AppEnum, CaseIterable {
         .podcastCover: "Podcast Cover",
         .zoomBackground: "Zoom Background",
         .etsyShopIcon: "Etsy Shop Icon",
+        .whiteboard: "Whiteboard",
     ]
 
     /// The home screen's preset this stands for.

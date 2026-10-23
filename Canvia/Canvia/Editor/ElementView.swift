@@ -978,9 +978,26 @@ struct PageRenderView: View {
     /// for it; everything else draws the trim, cut at the page's edge. The
     /// trim is the same picture either way.
     var bleed: Double = 0
+    /// The canvas's whiteboard (Whiteboards): the background cut at the
+    /// frame, and what is on the page drawn wherever it is, past the frame
+    /// too. Everything that leaves the app draws the flattened page instead.
+    var board = false
 
     var body: some View {
-        if bleed > 0 { bled } else { trimmed }
+        if board { boardView } else if bleed > 0 { bled } else { trimmed }
+    }
+
+    private var boardView: some View {
+        let size = design.size(for: page)
+        return ZStack {
+            PageBackgroundFill(background: page.background, size: size, cover: Bleed.of(design))
+                .frame(width: size.width, height: size.height)
+                .clipped()
+            drawn
+        }
+        .frame(width: size.width, height: size.height)
+        .environment(\.pageNumber, pageNumberValue)
+        .designDirection()
     }
 
     private var trimmed: some View {

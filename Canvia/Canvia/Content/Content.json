@@ -43587,6 +43587,21 @@
     "icon",
     "avatar"
    ]
+  },
+  {
+   "id": "whiteboard",
+   "name": "Whiteboard",
+   "category": "Presentations",
+   "width": 1920,
+   "height": 1080,
+   "keywords": [
+    "whiteboard",
+    "brainstorm",
+    "sticky notes",
+    "infinite",
+    "canvas",
+    "mind map"
+   ]
   }
  ]
 }

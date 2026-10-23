@@ -173,6 +173,11 @@ struct Page: Codable, Equatable, Identifiable {
     /// locked too. Never false: unlocked is nil, so the key is written only
     /// when true, as `hidden` is.
     var locked: Bool?
+    /// Expanded to a whiteboard (Whiteboards): an endless canvas round the
+    /// page's own frame, which `width` and `height` — or the document's —
+    /// still are. Nil is a page as it always was: collapsing takes the key
+    /// away, as on the Android twin.
+    var whiteboard: PageWhiteboard?
 
     init(id: String = UID.make("page"), background: Background = .color("#ffffff"),
          elements: [Element] = [], notes: String? = nil) {
@@ -197,6 +202,7 @@ struct Page: Codable, Equatable, Identifiable {
         hidden = (try? c.decode(Bool.self, forKey: .hidden)) == true ? true : nil
         title = (try? c.decode(String.self, forKey: .title)).flatMap(PageTitles.kept)
         locked = (try? c.decode(Bool.self, forKey: .locked)) == true ? true : nil
+        whiteboard = (try? c.decode(PageWhiteboard.self, forKey: .whiteboard)).flatMap { $0.expanded ? $0 : nil }
     }
 
     /// As the synthesised encoder wrote it, except that `hidden` and
@@ -218,11 +224,48 @@ struct Page: Codable, Equatable, Identifiable {
         if hidden == true { try c.encode(true, forKey: .hidden) }
         if let title = title.flatMap(PageTitles.kept) { try c.encode(title, forKey: .title) }
         if locked == true { try c.encode(true, forKey: .locked) }
+        try c.encodeIfPresent(whiteboard, forKey: .whiteboard)
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, background, elements, notes, holdSeconds, transition, usesMaster, width, height
-        case hidden, title, transitionSeconds, locked
+        case hidden, title, transitionSeconds, locked, whiteboard
+    }
+}
+
+/// A page's "whiteboard" key, as both phones write it: {"expanded": true,
+/// "bounds": [x, y, w, h]} — the bounds everything on the page reaches, the
+/// frame included, in page units, so they may run negative; kept up to date
+/// by the store (Whiteboards.refreshed). Bounds that do not read — not four
+/// finite numbers, a side negative — are none, and are worked out afresh.
+struct PageWhiteboard: Codable, Equatable {
+    var expanded = true
+    var bounds: [Double]?
+
+    init(bounds: CGRect) {
+        self.bounds = [Double(bounds.minX), Double(bounds.minY), Double(bounds.width), Double(bounds.height)]
+    }
+
+    /// The bounds as written, when they read.
+    var rect: CGRect? {
+        guard let b = bounds, b.count == 4, b.allSatisfy(\.isFinite), b[2] >= 0, b[3] >= 0 else { return nil }
+        return CGRect(x: b[0], y: b[1], width: b[2], height: b[3])
+    }
+
+    private enum CodingKeys: String, CodingKey { case expanded, bounds }
+
+    /// "expanded" a true boolean and nothing else, as the Android twin's
+    /// Whiteboards.isExpanded reads it.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        expanded = (try? c.decode(Bool.self, forKey: .expanded)) == true
+        bounds = try? c.decode([Double].self, forKey: .bounds)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(expanded, forKey: .expanded)
+        try c.encodeIfPresent(bounds, forKey: .bounds)
     }
 }
 

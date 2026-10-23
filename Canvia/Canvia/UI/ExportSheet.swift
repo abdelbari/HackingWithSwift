@@ -346,7 +346,8 @@ struct ExportSheet: View {
                                                         ids: store.selection) {
             return cropped
         }
-        return store.design
+        // An expanded whiteboard measured as it exports (Whiteboards).
+        return Whiteboards.flattened(store.design)
     }
 
     /// Soft output, said before the export rather than discovered in the

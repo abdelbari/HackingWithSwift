@@ -70,13 +70,26 @@ struct PresentationView: View {
     /// Gone to the background, where the sound stopped, to start again on
     /// the way back.
     @State private var away = false
+    /// The pages expanded to a whiteboard, which come up whole — zoomed to
+    /// fit their bounds and margin (Whiteboards) — and then pinch in and
+    /// pan: the zoom over the fit, 1 to boardMaxZoom, about the middle of
+    /// the screen, and how far it is moved. Each page comes up fitted again.
+    private let boards: Set<String>
+    @State private var boardZoom: CGFloat = 1
+    @State private var boardPan: CGSize = .zero
+    @GestureState private var pinching: CGFloat = 1
+    @GestureState private var panning: CGSize = .zero
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     init(design: Design, startPage: Int = 0, onLoopChange: @escaping (Bool) -> Void = { _ in }) {
-        self.design = design
+        // An expanded whiteboard shows its bounds and their margin, as it
+        // exports (Whiteboards).
+        let shown = Whiteboards.flattened(design)
+        self.design = shown
         self.startPage = startPage
         self.onLoopChange = onLoopChange
-        _session = State(initialValue: PresentSession(design: design))
+        boards = Set(design.pages.filter(Whiteboards.isExpanded).map(\.id))
+        _session = State(initialValue: PresentSession(design: shown))
     }
 
     private var index: Int { session.index }
@@ -149,13 +162,15 @@ struct PresentationView: View {
         ZStack {
             Color.black.ignoresSafeArea()
             PresentStage(session: session, size: size)
-                .gesture(DragGesture(minimumDistance: 30).onEnded { value in
-                    if value.translation.width < 0 { go(1) } else { go(-1) }
-                })
+                .scaleEffect(onBoard ? boardZoom * pinching : 1)
+                .offset(onBoard ? boardOffset : .zero)
+                .gesture(swipe)
+                .simultaneousGesture(boardPinch)
                 .onTapGesture { location in
                     // A linked element opens its link, as a click on it
-                    // does in the PDF.
-                    if let url = link(at: location, in: size) { open(url) }
+                    // does in the PDF — where the page is fitted, so not
+                    // while a whiteboard is pinched in.
+                    if !zoomedIn, let url = link(at: location, in: size) { open(url) }
                     else if location.x > size.width * 0.66 { go(1) }
                     else if location.x < size.width * 0.33 { go(-1) }
                     else { withAnimation { showingChrome.toggle() } }
@@ -163,7 +178,78 @@ struct PresentationView: View {
                 .accessibilityLabel(spokenPlace)
                 .accessibilityActions { pageActions }
             if showingChrome { chrome }
+            if showingChrome && onBoard { zoomToFit }
             if let linkRefused { refusedNote(linkRefused) }
+        }
+        .onChange(of: session.index) { _, _ in fitBoard() }
+    }
+
+    // MARK: whiteboards
+
+    /// How far a whiteboard page pinches in, over its fit.
+    static let boardMaxZoom: CGFloat = 8
+
+    private var onBoard: Bool { boards.contains(page.id) }
+
+    /// A whiteboard pinched in or moved, when a drag pans it rather than
+    /// turning the page.
+    private var zoomedIn: Bool { onBoard && (boardZoom > 1 || boardPan != .zero) }
+
+    private var boardOffset: CGSize {
+        CGSize(width: boardPan.width + panning.width, height: boardPan.height + panning.height)
+    }
+
+    /// A swipe turns the page; on a whiteboard pinched in, a drag pans it.
+    private var swipe: some Gesture {
+        DragGesture(minimumDistance: 30)
+            .updating($panning) { value, state, _ in
+                if zoomedIn { state = value.translation }
+            }
+            .onEnded { value in
+                if zoomedIn {
+                    boardPan.width += value.translation.width
+                    boardPan.height += value.translation.height
+                } else if value.translation.width < 0 {
+                    go(1)
+                } else {
+                    go(-1)
+                }
+            }
+    }
+
+    /// Two fingers pinch a whiteboard in, never out past its fit.
+    private var boardPinch: some Gesture {
+        MagnifyGesture()
+            .updating($pinching) { value, state, _ in
+                if onBoard { state = value.magnification }
+            }
+            .onEnded { value in
+                guard onBoard else { return }
+                boardZoom = min(max(boardZoom * value.magnification, 1), Self.boardMaxZoom)
+                if boardZoom == 1 { boardPan = .zero }
+            }
+    }
+
+    /// Back to the whole whiteboard.
+    private func fitBoard() {
+        boardZoom = 1
+        boardPan = .zero
+    }
+
+    /// Zoom to fit, under a whiteboard page: it comes up whole, and comes
+    /// back to it.
+    private var zoomToFit: some View {
+        VStack {
+            Spacer()
+            Button { withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25)) { fitBoard() } } label: {
+                Text("Zoom to fit")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color.white.opacity(0.18), in: Capsule())
+            }
+            .padding(.bottom, 40)
         }
     }
 

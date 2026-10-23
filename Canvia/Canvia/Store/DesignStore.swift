@@ -244,6 +244,8 @@ final class DesignStore {
         // A font or colour given to a chart's words is kept for its Update.
         design = DataGraphics.styleKept(design, since: entry.design)
         Connectors.resolve(in: &design)
+        // A whiteboard's bounds follow what is on it, in the same step.
+        design = Whiteboards.refreshed(design)
         // A step that changed nothing — a text box opened and left as it
         // was, a crop opened and closed untouched — would be an Undo that
         // visibly does nothing, and would wipe Redo; it is closed without
@@ -366,7 +368,7 @@ final class DesignStore {
     static func remeasured(_ el: Element, was before: Element) -> Element {
         guard ShapeText.carriesWords(el), el.h == before.h, typographyChanged(el, from: before) else { return el }
         var out = el
-        out.h = ShapeText.heightForWords(el)
+        ShapeText.fitWords(&out)
         return out
     }
 
@@ -714,7 +716,7 @@ final class DesignStore {
         guard let i = design.pages[pageIndex].elements.firstIndex(where: { $0.id == id }),
               design.pages[pageIndex].elements[i].text != words else { return }
         design.pages[pageIndex].elements[i].setText(words)
-        design.pages[pageIndex].elements[i].h = ShapeText.heightForWords(design.pages[pageIndex].elements[i])
+        ShapeText.fitWords(&design.pages[pageIndex].elements[i])
     }
 
     // MARK: dictation
@@ -1826,7 +1828,7 @@ final class DesignStore {
     /// the box grown or shrunk to its words.
     private static func replaceWords(_ range: NSRange, with replacement: String, in el: inout Element) {
         el.setText(FindReplace.replacing(range, in: el.text ?? "", with: replacement))
-        el.h = ShapeText.heightForWords(el)
+        ShapeText.fitWords(&el)
     }
 
     /// After Replace, the match the sheet moves on to in `matches`, the

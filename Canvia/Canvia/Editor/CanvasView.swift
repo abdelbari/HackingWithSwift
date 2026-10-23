@@ -263,10 +263,11 @@ struct CanvasView: View {
     /// pinching impossible once elements covered the page.
     private var zoomable: some View {
         let slot = columnSlot
+        let board = canvasBoard
         return ZoomableCanvas(
-            contentSize: slot == nil ? CGSize(width: store.pageWidth, height: store.pageHeight) : columnSize,
+            contentSize: board?.bounds.size ?? (slot == nil ? CGSize(width: store.pageWidth, height: store.pageHeight) : columnSize),
             zoom: slot.map { columnZoom($0.scale) } ?? $store.zoom,
-            fitToken: slot == nil ? "\(store.design.id)-\(store.pageWidth)x\(store.pageHeight)" : "\(store.design.id)-column",
+            fitToken: fitToken(slot: slot, board: board),
             onBackgroundTap: { point in backgroundTap(at: point) },
             onPencilTap: { store.toggleDrawing() },
             pinchZooms: store.cropping == nil,
@@ -286,13 +287,16 @@ struct CanvasView: View {
             onViewport: { visible, fit in viewportChanged(visible, fit: fit) },
             onMotion: { moving in motionChanged(moving) },
             edgeScroller: edges,
-            onPress: { point in pagePress = point }
+            onPress: { point in pagePress = point },
+            board: board
         ) {
             // Left to right in any language (ReadingDirection): the page's
             // coordinates, the gestures' and the handles' never mirror.
             Group {
                 if let slot {
                     columnContent(slot)
+                } else if let board {
+                    boardContent(board)
                 } else {
                     pageContent
                         .coordinateSpace(name: "page")
@@ -301,6 +305,67 @@ struct CanvasView: View {
             }
             .designDirection()
         }
+        .background { if board != nil { whiteboardGround } }
+    }
+
+    // MARK: whiteboard
+
+    /// The page worked as a whiteboard, held by the canvas alone: its
+    /// bounds as the store keeps them (Whiteboards), so the content changes
+    /// size step by step, never on every frame of a drag.
+    private var canvasBoard: CanvasBoard? {
+        guard store.isWhiteboard else { return nil }
+        let bounds = Whiteboards.storedBounds(store.page) ?? Whiteboards.bounds(store.design, store.page)
+        return CanvasBoard(bounds: bounds, page: store.pageSize)
+    }
+
+    /// What fits the view afresh when it changes: a new design, a new size,
+    /// the column, or a whiteboard — each its own, so expanding a page
+    /// fits it to its content.
+    private func fitToken(slot: PageColumn.Slot?, board: CanvasBoard?) -> String {
+        if board != nil { return "\(store.design.id)-board-\(store.page.id)" }
+        if slot != nil { return "\(store.design.id)-column" }
+        return "\(store.design.id)-\(store.pageWidth)x\(store.pageHeight)"
+    }
+
+    /// The page in the whiteboard's content: its frame where its own
+    /// origin falls in the bounds, which reach left of and above it.
+    private func boardContent(_ board: CanvasBoard) -> some View {
+        pageContent
+            .coordinateSpace(name: "page")
+            .frame(width: store.pageWidth, height: store.pageHeight)
+            .padding(.leading, max(0, -board.bounds.minX))
+            .padding(.top, max(0, -board.bounds.minY))
+            .frame(width: board.bounds.width, height: board.bounds.height, alignment: .topLeading)
+    }
+
+    /// The workspace round a whiteboard: a light dot grid, in screen space
+    /// over the part of the page's plane on screen, spaced wider as the view
+    /// zooms out (Whiteboards.gridStep). Never on the page: the page covers
+    /// it, and nothing that leaves the app draws it.
+    private var whiteboardGround: some View {
+        let seen = store.viewport
+        let zoom = store.zoom
+        return Canvas { context, size in
+            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Theme.workspace))
+            guard zoom > 0, seen.width > 0 else { return }
+            let step = Whiteboards.gridStep(zoom: zoom)
+            let dot = 1.5
+            var dots = Path()
+            var y = (Double(seen.minY) / step).rounded(.down) * step
+            while y <= Double(seen.maxY) {
+                var x = (Double(seen.minX) / step).rounded(.down) * step
+                while x <= Double(seen.maxX) {
+                    let at = CGPoint(x: (x - Double(seen.minX)) * zoom, y: (y - Double(seen.minY)) * zoom)
+                    dots.addEllipse(in: CGRect(x: at.x - dot, y: at.y - dot, width: 2 * dot, height: 2 * dot))
+                    x += step
+                }
+                y += step
+            }
+            context.fill(dots, with: .color(Theme.inkSecondary.opacity(0.35)))
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     /// The canvas, and what the column of pages answers: the width it is
@@ -416,7 +481,7 @@ struct CanvasView: View {
             // Deselect (and commit any inline text edit) on the page surface
             // itself: the workspace-background tap can't fire here because
             // the opaque page sits above it in the ZStack.
-            PageRenderView(design: store.design, page: shownPage)
+            PageRenderView(design: store.design, page: shownPage, board: store.isWhiteboard)
                 .environment(\.animationTime, store.previewTime.map { ($0, store.pageHold) })
                 // A clip plays on in a player only while the clock runs,
                 // never for a scrub.
@@ -2311,7 +2376,10 @@ struct CanvasView: View {
     // MARK: scroll through pages
 
     /// Whether the canvas is the column of every page.
-    private var columnOn: Bool { pageScroll && canvasWidth > 0 }
+    /// Not while the page worked is a whiteboard, which the canvas holds
+    /// alone: its bounds run on past its frame, over where the other pages
+    /// would be.
+    private var columnOn: Bool { pageScroll && canvasWidth > 0 && !store.isWhiteboard }
 
     /// Every page's place in the column, while it is one; none otherwise.
     private var columnSlots: [PageColumn.Slot] {
@@ -2652,6 +2720,8 @@ struct CanvasView: View {
         commitTextEditIfAny()
         dismissHoldMenu()
         guard !store.refusesLockedPage() else { return }
+        // A whiteboard has no edge to keep the band in.
+        if store.isWhiteboard { return holdBand(from: point, clamped: false) }
         let onPage = CanvasGestures.onPage(columnSlot?.toPage(point) ?? point, page: store.pageSize)
         holdBand(from: onPage, clamped: true)
     }

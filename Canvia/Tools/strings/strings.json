@@ -1964,6 +1964,39 @@
       "other": "%d designs"
     }
   },
+  "%d element outside the page is hidden|%d elements outside the page are hidden": {
+    "ar": {
+      "few": "%d عناصر خارج الصفحة مخفية",
+      "many": "%d عنصرًا خارج الصفحة مخفية",
+      "one": "%d عنصر خارج الصفحة مخفي",
+      "other": "%d عنصر خارج الصفحة مخفي",
+      "two": "%d عنصران خارج الصفحة مخفيان",
+      "zero": "%d عنصر خارج الصفحة مخفي"
+    },
+    "de": {
+      "one": "%d Element außerhalb der Seite ist ausgeblendet",
+      "other": "%d Elemente außerhalb der Seite sind ausgeblendet"
+    },
+    "es": {
+      "one": "%d elemento fuera de la página está oculto",
+      "other": "%d elementos fuera de la página están ocultos"
+    },
+    "fr": {
+      "one": "%d élément hors de la page est masqué",
+      "other": "%d éléments hors de la page sont masqués"
+    },
+    "it": {
+      "one": "%d elemento fuori dalla pagina è nascosto",
+      "other": "%d elementi fuori dalla pagina sono nascosti"
+    },
+    "ja": {
+      "other": "ページ外の %d 個の要素を非表示にしました"
+    },
+    "pt-BR": {
+      "one": "%d elemento fora da página está oculto",
+      "other": "%d elementos fora da página estão ocultos"
+    }
+  },
   "%d element|%d elements": {
     "ar": {
       "few": "%d عناصر",
@@ -6749,6 +6782,15 @@
     "ja": "コードの色",
     "pt-BR": "Cor do código"
   },
+  "Collapse": {
+    "ar": "طي",
+    "de": "Einklappen",
+    "es": "Contraer",
+    "fr": "Réduire",
+    "it": "Comprimi",
+    "ja": "折りたたむ",
+    "pt-BR": "Recolher"
+  },
   "Color": {
     "ar": "اللون",
     "de": "Farbe",
@@ -10270,6 +10312,15 @@
     "it": "Esci",
     "ja": "終了",
     "pt-BR": "Saída"
+  },
+  "Expand to whiteboard": {
+    "ar": "توسيع إلى سبورة بيضاء",
+    "de": "Zum Whiteboard erweitern",
+    "es": "Ampliar a pizarra",
+    "fr": "Agrandir en tableau blanc",
+    "it": "Espandi in lavagna",
+    "ja": "ホワイトボードに展開",
+    "pt-BR": "Expandir para quadro branco"
   },
   "Export": {
     "ar": "تصدير",
@@ -21080,6 +21131,24 @@
     "ja": "ステッカー",
     "pt-BR": "Figurinhas"
   },
+  "Sticky note": {
+    "ar": "ملاحظة لاصقة",
+    "de": "Haftnotiz",
+    "es": "Nota adhesiva",
+    "fr": "Pense-bête",
+    "it": "Nota adesiva",
+    "ja": "付箋",
+    "pt-BR": "Nota adesiva"
+  },
+  "Sticky note, %@": {
+    "ar": "ملاحظة لاصقة، %@",
+    "de": "Haftnotiz, %@",
+    "es": "Nota adhesiva, %@",
+    "fr": "Pense-bête, %@",
+    "it": "Nota adesiva, %@",
+    "ja": "付箋、%@",
+    "pt-BR": "Nota adesiva, %@"
+  },
   "Stop": {
     "ar": "إيقاف",
     "de": "Stopp",
@@ -24592,6 +24661,15 @@
     "it": "Ingrandisci l’immagine",
     "ja": "画像をズーム",
     "pt-BR": "Ampliar a imagem"
+  },
+  "Zoom to fit": {
+    "ar": "تكبير للملاءمة",
+    "de": "Auf Größe zoomen",
+    "es": "Ajustar al zoom",
+    "fr": "Zoomer pour ajuster",
+    "it": "Adatta con lo zoom",
+    "ja": "全体を表示",
+    "pt-BR": "Ajustar zoom"
   },
   "Zoomed to %d percent. Tap to fit the whole page.": {
     "ar": "تم التكبير إلى %d بالمئة. انقر لملاءمة الصفحة كاملة.",

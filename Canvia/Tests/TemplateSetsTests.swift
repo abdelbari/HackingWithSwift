@@ -208,7 +208,9 @@ final class TemplateSetsTests: XCTestCase {
                      "facebook-event-cover", "instagram-ad", "twitch-banner", "etsy-banner", "mobile-video",
                      "logo-animated", "gmail-header", "snapchat-geofilter", "podcast-cover", "zoom-background",
                      "etsy-shop-icon"]
-        XCTAssertEqual(Array(SizePreset.all.map(\.id).suffix(added.count)), added)
+        // Before the Whiteboard type, which came later and is drawn on
+        // rather than started from a template.
+        XCTAssertEqual(Array(SizePreset.all.map(\.id).dropLast().suffix(added.count)), added)
         for id in added {
             let preset = try XCTUnwrap(SizePreset.byId(id), id)
             XCTAssertFalse(preset.keywords.isEmpty, id)
