@@ -107,7 +107,7 @@ struct HomeView: View {
     /// From Uploads: a design that uses an upload, opened once the sheet
     /// has gone; or an upload's file, landed as a share into Canvia is.
     @State private var openAfterSheet: Design?
-    @State private var landAfterSheet: URL?
+    @State private var landAfterSheet: (file: URL, src: String?)?
     /// The folders starred, from the home-folders preference.
     @State private var starredFolders: Set<String> = []
     /// The designs a new folder is being named for.
@@ -293,8 +293,8 @@ struct HomeView: View {
             homeSheet = nil
         }, onImport: {
             importFromSheet(.media)
-        }, onNewDesign: { file in
-            landAfterSheet = file
+        }, onNewDesign: { file, src in
+            landAfterSheet = (file, src)
             homeSheet = nil
         })
         .onDisappear { reload() }
@@ -352,9 +352,9 @@ struct HomeView: View {
             openAfterSheet = nil
             onOpen(DesignLibrary.load(id: design.id) ?? design)
         }
-        if let file = landAfterSheet {
+        if let landing = landAfterSheet {
             landAfterSheet = nil
-            landUpload(file)
+            landUpload(landing.file, src: landing.src)
         }
         guard let design = pendingOpen else { return }
         pendingOpen = nil
@@ -362,10 +362,11 @@ struct HomeView: View {
     }
 
     /// An upload's file as a share into Canvia: copied into the inbox, then
-    /// the app's "New design from shared" sheet.
-    private func landUpload(_ file: URL) {
+    /// the app's "New design from shared" sheet. It goes in as the upload
+    /// `src` itself, so it is not stored and listed twice.
+    private func landUpload(_ file: URL, src: String?) {
         Task { @MainActor in
-            let box = await Task.detached(priority: .userInitiated) { SharedInbox.land([file]) }.value
+            let box = await Task.detached(priority: .userInitiated) { SharedInbox.land([file], srcs: [src]) }.value
             if let box { onImport(box) } else { importError = tr("Couldn't open that file") }
         }
     }

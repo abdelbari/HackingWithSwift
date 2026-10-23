@@ -36,14 +36,18 @@ enum SharedInbox {
         /// Its file in the inbox folder: "0.jpg".
         var file: String
         var mime: String
+        /// Set when it is one of your uploads already ("media:<id>",
+        /// "video:<id>"): it goes in as that upload, not stored again.
+        var src: String?
 
-        init(kind: Kind, file: String, mime: String) {
+        init(kind: Kind, file: String, mime: String, src: String? = nil) {
             self.kind = kind
             self.file = file
             self.mime = mime
+            self.src = src
         }
 
-        private enum CodingKeys: String, CodingKey { case kind, file, mime }
+        private enum CodingKeys: String, CodingKey { case kind, file, mime, src }
 
         /// A missing mime reads as "", as the Android twin reads it; the
         /// kind and the file are needed.
@@ -52,7 +56,35 @@ enum SharedInbox {
             kind = try c.decode(Kind.self, forKey: .kind)
             file = try c.decode(String.self, forKey: .file)
             mime = (try? c.decode(String.self, forKey: .mime)) ?? ""
+            src = (try? c.decode(String.self, forKey: .src)).flatMap { SharedInbox.isUploadSrc($0) ? $0 : nil }
         }
+    }
+
+    /// Whether `src` names an upload as a manifest may carry it.
+    static func isUploadSrc(_ src: String?) -> Bool {
+        guard let src else { return false }
+        let id: Substring
+        if src.hasPrefix("media:") {
+            id = src.dropFirst("media:".count)
+        } else if src.hasPrefix("video:") {
+            id = src.dropFirst("video:".count)
+        } else {
+            return false
+        }
+        let allowed = Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")
+        return !id.isEmpty && id.allSatisfy { allowed.contains($0) }
+    }
+
+    /// The source an upload of `kind` and `id` goes in as — a photo or a
+    /// clip — or nil for any other kind.
+    static func uploadSrc(kind: String, id: String) -> String? {
+        let src: String?
+        switch kind {
+        case Uploads.Kind.image.rawValue: src = "media:" + id
+        case Uploads.Kind.video.rawValue: src = VideoStore.src(id, at: nil)
+        default: src = nil
+        }
+        return isUploadSrc(src) ? src : nil
     }
 
     struct ShareManifest: Codable, Equatable, Sendable {
@@ -152,13 +184,14 @@ enum SharedInbox {
 
     /// The files copied into a fresh inbox folder, numbered, with the
     /// manifest beside them — at most `maxItems`, and only those of a kind
-    /// Canvia takes. Nil when none could be landed.
-    static func land(_ urls: [URL], now: Date = Date()) -> Box? {
+    /// Canvia takes. Nil when none could be landed. `srcs`, beside them,
+    /// names those that are uploads already, which go in as themselves.
+    static func land(_ urls: [URL], srcs: [String?] = [], now: Date = Date()) -> Box? {
         let id = UUID().uuidString.lowercased()
         let dir = directory(for: id)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         var items: [Item] = []
-        for url in urls.prefix(maxItems) {
+        for (n, url) in urls.prefix(maxItems).enumerated() {
             guard let kind = kind(of: url) else { continue }
             let ext = url.pathExtension.lowercased()
             let file = "\(items.count).\(ext.isEmpty ? "bin" : ext)"
@@ -166,7 +199,8 @@ enum SharedInbox {
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
             guard (try? FileManager.default.copyItem(at: url, to: dir.appendingPathComponent(file))) != nil else { continue }
             let mime = UTType(filenameExtension: ext)?.preferredMIMEType ?? "application/octet-stream"
-            items.append(Item(kind: kind, file: file, mime: mime))
+            let src = n < srcs.count ? srcs[n] : nil
+            items.append(Item(kind: kind, file: file, mime: mime, src: isUploadSrc(src) ? src : nil))
         }
         let manifest = ShareManifest(items: items, createdAt: Int64((now.timeIntervalSince1970 * 1000).rounded()))
         guard !items.isEmpty, let data = manifest.data,
@@ -316,6 +350,8 @@ enum SharedInbox {
 
     private static func bringIn(_ item: Item, from box: Box, pageSize: CGSize) -> [Page] {
         let url = box.url(of: item)
+        // An upload already: in as itself, not stored and listed again.
+        if let src = item.src { return kept(src, at: url, pageSize: pageSize) }
         switch item.kind {
         case .image, .anim:
             guard let data = try? Data(contentsOf: url) else { return [] }
@@ -351,6 +387,16 @@ enum SharedInbox {
             el.y = ((pageSize.height - side) / 2).rounded()
             return [Page(elements: [el])]
         }
+    }
+
+    /// The upload `src` as it is kept: a photo, or a clip by its poster.
+    private static func kept(_ src: String, at url: URL, pageSize: CGSize) -> [Page] {
+        if let clip = VideoStore.split(src) {
+            guard let poster = VideoStore.poster(clip.id) else { return [] }
+            return [page(src: VideoStore.src(clip.id, at: nil), natural: poster.size, size: pageSize)]
+        }
+        guard let data = try? Data(contentsOf: url), let prepared = ImageDownsampler.prepare(data) else { return [] }
+        return [page(src: src, natural: prepared.natural, size: pageSize)]
     }
 
     /// A page holding one picture, as large as fits and centred.

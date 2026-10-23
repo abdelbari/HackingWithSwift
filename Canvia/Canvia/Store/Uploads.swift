@@ -307,6 +307,18 @@ enum Uploads {
         }.map(\.element)
     }
 
+    /// Whether every upload the grid `shown` is picked — so the button
+    /// says "Deselect all". Picks the grid does not show do not count.
+    static func allPicked(_ shown: [String], picked: Set<String>) -> Bool {
+        !shown.isEmpty && shown.allSatisfy { picked.contains($0) }
+    }
+
+    /// What "Select all" (or "Deselect all") leaves picked: only what the
+    /// grid `shown`, or nothing.
+    static func pickingAll(_ shown: [String], picked: Set<String>) -> Set<String> {
+        allPicked(shown, picked: picked) ? [] : Set(shown)
+    }
+
     /// "Used in 2 designs", or "Not used in any design": what the ⋯ menu
     /// says of an upload on Home — and "and your brand kit", or "Used in
     /// your brand kit" alone, when `brandKit` shows it too.

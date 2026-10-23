@@ -17,6 +17,21 @@ final class SharedInboxTests: XCTestCase {
         XCTAssertEqual(SharedInbox.ShareManifest.read(Data(text.utf8)), manifest)
     }
 
+    func testAnUploadGoesInAsItselfItsSourceInTheManifest() throws {
+        XCTAssertEqual(SharedInbox.uploadSrc(kind: "image", id: "img-1"), "media:img-1")
+        XCTAssertEqual(SharedInbox.uploadSrc(kind: "video", id: "vid-1"), "video:vid-1")
+        XCTAssertNil(SharedInbox.uploadSrc(kind: "audio", id: "song.m4a"))
+        XCTAssertNil(SharedInbox.uploadSrc(kind: "image", id: "../x"))
+        let manifest = SharedInbox.ShareManifest(items: [SharedInbox.Item(kind: .image, file: "0.jpg", mime: "image/jpeg",
+                                                                          src: "media:img-1")], createdAt: 1)
+        let text = String(decoding: try XCTUnwrap(manifest.data), as: UTF8.self)
+        XCTAssertEqual(text, #"{"createdAt":1,"items":[{"file":"0.jpg","kind":"image","mime":"image\/jpeg","src":"media:img-1"}],"version":1}"#)
+        XCTAssertEqual(SharedInbox.ShareManifest.read(Data(text.utf8)), manifest)
+        // A source that names no upload is not read.
+        let odd = #"{"items":[{"kind":"image","file":"0.jpg","src":"file:/etc/x"},{"kind":"video","file":"1.mp4","src":"video:vid-1@2.00"}]}"#
+        XCTAssertEqual(SharedInbox.ShareManifest.read(Data(odd.utf8))?.items.map(\.src), [nil, nil])
+    }
+
     /// An item of a kind this build does not know, or with no safe file
     /// name, is skipped; the rest still read.
     func testTheManifestReadsLeniently() throws {

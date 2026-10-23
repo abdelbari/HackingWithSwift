@@ -197,6 +197,9 @@ enum DesignExporter {
         // the selection in its top corner.
         only.width = nil
         only.height = nil
+        // Not a whiteboard any more: an expanded page would be drawn at its
+        // bounds plus their margin, not cut to the selection's edges.
+        only.whiteboard = nil
         only.elements = chosen.map { el in
             var moved = el
             moved.x -= box.minX

@@ -120,7 +120,7 @@ enum ExportJobs {
                 // here is handed RGB, as ever.
                 try await DesignExporter.exportCmykPrintPDF(design: snapshot.design, range: snapshot.range,
                                                             current: snapshot.current, options: options,
-                                                            to: url, progress: report)
+                                                            bookmarks: bookmarks, to: url, progress: report)
             } else {
                 try await DesignExporter.exportPrintPDF(design: snapshot.design, range: snapshot.range,
                                                         current: snapshot.current, options: options,

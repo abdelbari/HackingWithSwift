@@ -95,7 +95,8 @@ enum HomeExports {
                                              longEdge: Double(settings.longEdge ?? 0), quality: settings.jpegQuality,
                                              transparent: settings.transparent)
             case .pdf:
-                render = ExportJobs.pdf(made, flatten: false, notes: settings.pdfNotes, compress: settings.pdfCompress)
+                render = ExportJobs.pdf(made, flatten: false, notes: settings.pdfNotes, compress: settings.pdfCompress,
+                                        bookmarks: settings.pdfBookmarks)
             case .designFiles:
                 render = ExportJobs.designFile(made.design)
             }

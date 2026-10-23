@@ -949,6 +949,7 @@ struct ExportSheet: View {
             Text(cmykNote)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
+            // The warning covers what will print: the selection when Selection only is on.
             if !Cmyk.dullerColours(exportedDesign).isEmpty {
                 Label(Cmyk.dullerWarning, systemImage: "exclamationmark.triangle")
                     .font(.footnote)

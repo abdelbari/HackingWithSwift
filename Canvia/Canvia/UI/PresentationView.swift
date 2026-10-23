@@ -79,6 +79,14 @@ struct PresentationView: View {
     @State private var boardPan: CGSize = .zero
     @GestureState private var pinching: CGFloat = 1
     @GestureState private var panning: CGSize = .zero
+    /// Two fingers are pinching, and a drag is under way: a touch that
+    /// pinched neither turns the page nor pans when it ends, as on Android.
+    @GestureState private var magnifying = false
+    @GestureState private var swiping = false
+    /// A finger is down, from the first to touch until the last lifts: a
+    /// touch that pinched keeps that until it ends, however it ends.
+    @GestureState private var touching = false
+    @State private var pinchedThisTouch = false
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     init(design: Design, startPage: Int = 0, onLoopChange: @escaping (Bool) -> Void = { _ in }) {
@@ -166,6 +174,7 @@ struct PresentationView: View {
                 .offset(onBoard ? boardOffset : .zero)
                 .gesture(swipe)
                 .simultaneousGesture(boardPinch)
+                .simultaneousGesture(touch)
                 .onTapGesture { location in
                     // A linked element opens its link, as a click on it
                     // does in the PDF — where the page is fitted, so not
@@ -182,6 +191,10 @@ struct PresentationView: View {
             if let linkRefused { refusedNote(linkRefused) }
         }
         .onChange(of: session.index) { _, _ in fitBoard() }
+        // Ended or cancelled, the touch is over, and the next starts clean.
+        .onChange(of: touching) { _, down in
+            if !down { pinchedThisTouch = false }
+        }
     }
 
     // MARK: whiteboards
@@ -203,9 +216,13 @@ struct PresentationView: View {
     private var swipe: some Gesture {
         DragGesture(minimumDistance: 30)
             .updating($panning) { value, state, _ in
-                if zoomedIn { state = value.translation }
+                if zoomedIn && !magnifying { state = value.translation }
             }
+            .updating($swiping) { _, state, _ in state = true }
             .onEnded { value in
+                let pinched = pinchedThisTouch || magnifying
+                pinchedThisTouch = false
+                if onBoard && pinched { return }
                 if zoomedIn {
                     boardPan.width += value.translation.width
                     boardPan.height += value.translation.height
@@ -217,13 +234,26 @@ struct PresentationView: View {
             }
     }
 
+    /// The whole touch, for as long as any finger is down.
+    private var touch: some Gesture {
+        DragGesture(minimumDistance: 0)
+            .updating($touching) { _, state, _ in state = true }
+    }
+
     /// Two fingers pinch a whiteboard in, never out past its fit.
     private var boardPinch: some Gesture {
         MagnifyGesture()
             .updating($pinching) { value, state, _ in
                 if onBoard { state = value.magnification }
             }
+            .updating($magnifying) { _, state, _ in state = true }
+            .onChanged { _ in
+                if onBoard { pinchedThisTouch = true }
+            }
             .onEnded { value in
+                // The rest of the touch still sees the pinch: a finger
+                // left down cannot then swipe the page over.
+                if !swiping && !touching { pinchedThisTouch = false }
                 guard onBoard else { return }
                 boardZoom = min(max(boardZoom * value.magnification, 1), Self.boardMaxZoom)
                 if boardZoom == 1 { boardPan = .zero }

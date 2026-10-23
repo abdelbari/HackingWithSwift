@@ -15,17 +15,21 @@ extension DesignExporter {
         var trim: CGRect?
         var bleed: CGRect?
         var marks: [(CGPoint, CGPoint)]
+        /// The sheet's bookmark, as the RGB print PDF gives it.
+        var title: String?
     }
 
     /// The print-ready PDF in CMYK, a sheet at a time, with `progress`
     /// after each and a pause between them; a cancelled file is deleted.
+    /// It says what the RGB print PDF says about itself, bookmarks and all,
+    /// as Android's does.
     @MainActor
     static func exportCmykPrintPDF(design: Design, range: PageRange = .all, current: Int = 0,
-                                   options: PrintLayout.Options, to url: URL,
+                                   options: PrintLayout.Options, bookmarks: Bool = true, to url: URL,
                                    progress: ((Double) -> Void)? = nil) async throws {
         let indices = range.indices(in: design, current: current)
         guard !indices.isEmpty else { throw ExportError.renderFailed }
-        let sheets = cmykSheets(design: design, indices: indices, options: options)
+        let sheets = cmykSheets(design: design, indices: indices, options: options, bookmarks: bookmarks)
         try? FileManager.default.removeItem(at: url)
         guard FileManager.default.createFile(atPath: url.path, contents: nil),
               let handle = try? FileHandle(forWritingTo: url) else { throw ExportError.encodeFailed }
@@ -52,6 +56,8 @@ extension DesignExporter {
             try writer.finish()
             try await pacer.finish()
             try handle.close()
+            // Its boxes are written with it; what it says about itself after.
+            PDFUpdate.appendUpdate(to: url, metadata: metadata(for: design, titles: sheets.map(\.title)))
         } catch {
             try? handle.close()
             try? FileManager.default.removeItem(at: url)
@@ -62,7 +68,12 @@ extension DesignExporter {
     /// Every sheet of the print, in order, as exportPrintPDF lays them out,
     /// each drawn without its crop marks, which the PDF draws in ink.
     @MainActor
-    private static func cmykSheets(design: Design, indices: [Int], options: PrintLayout.Options) -> [CmykSheet] {
+    private static func cmykSheets(design: Design, indices: [Int], options: PrintLayout.Options,
+                                   bookmarks: Bool) -> [CmykSheet] {
+        func title(_ index: Int) -> String? {
+            bookmarks && design.pages.indices.contains(index)
+                ? PDFMetadata.bookmarkTitle(design.pages[index], number: index + 1) : nil
+        }
         var unmarked = options
         unmarked.cropMarks = false
         let sheetHeight = Double(options.sheet.height)
@@ -76,15 +87,16 @@ extension DesignExporter {
                 several.append(CmykSheet(draw: { cg in
                     drawSeveral(design: design, pages: pages, cols: plan.cols, mirrored: mirrored,
                                 options: unmarked, flatten: false, into: cg)
-                }, trim: nil, bleed: nil, marks: marks))
+                }, trim: nil, bleed: nil, marks: marks, title: pages.first.flatMap(title)))
             }
             return several
         }
         let designed = Bleed.shown(design)
         var out: [CmykSheet] = []
-        for page in indices.map({ design.pages[$0] }) {
+        for index in indices {
+            let page = design.pages[index]
             let pagePts = PrintLayout.pagePoints(size: design.size(for: page), dpi: design.effectiveDPI, bleed: options.bleed)
-            for placement in placements(pagePoints: pagePts, options: options) {
+            for (n, placement) in placements(pagePoints: pagePts, options: options).enumerated() {
                 let boxes = designed
                     ? PrintLayout.boxes(sheet: placement.sheetRect, source: placement.source, page: pagePts,
                                         bleed: options.bleed, sheetHeight: sheetHeight)
@@ -92,10 +104,11 @@ extension DesignExporter {
                 let marks = options.cropMarks
                     ? PrintLayout.sheetMarks(sheet: placement.sheetRect, source: placement.source, page: pagePts, bleed: options.bleed)
                     : []
+                // A poster's first sheet alone carries the page's bookmark.
                 out.append(CmykSheet(draw: { cg in
                     drawSheet(design: design, page: page, pagePoints: pagePts, placement: placement,
                               options: unmarked, flatten: false, into: cg)
-                }, trim: boxes?.trim, bleed: boxes?.bleed, marks: marks))
+                }, trim: boxes?.trim, bleed: boxes?.bleed, marks: marks, title: n == 0 ? title(index) : nil))
             }
         }
         return out
