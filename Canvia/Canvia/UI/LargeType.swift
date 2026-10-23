@@ -30,9 +30,7 @@ extension View {
     /// long press shows at the accessibility sizes.
     func toolLargeContent(_ system: String, _ label: String) -> some View {
         accessibilityShowsLargeContentViewer {
-            Image(systemName: system)
-        } label: {
-            Text(label)
+            Label(label, systemImage: system)
         }
     }
 }

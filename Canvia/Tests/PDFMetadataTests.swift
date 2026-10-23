@@ -33,8 +33,10 @@ final class PDFMetadataTests: XCTestCase {
     }
 
     /// The small PDF the Android twin's test lays out: a classic
-    /// cross-reference table and trailer, as Core Graphics writes one.
-    private func plainPDF(pages: Int, lang: String? = nil) -> Data {
+    /// cross-reference table and trailer, as Core Graphics writes one —
+    /// `linked`, with a link on the first page in an annotations array of
+    /// its own, as Core Graphics writes a page's links.
+    private func plainPDF(pages: Int, lang: String? = nil, linked: Bool = false) -> Data {
         var objects: [String] = []
         objects.append("<</Producer (Quartz PDFContext)>>")
         objects.append("<</Type /Catalog\n/Pages 3 0 R" + (lang.map { "\n/Lang (\($0))" } ?? "") + ">>")
@@ -42,9 +44,14 @@ final class PDFMetadataTests: XCTestCase {
         objects.append("<</Type /Pages\n/Count \(pages)\n/Kids [\(kids)]>>")
         for p in 0..<pages {
             let content = "0 0 1 rg\n10 10 100 100 re f\n"
+            let annots = linked && p == 0 ? "/Annots \(4 + pages * 2) 0 R\n" : ""
             objects.append("<</Type /Page\n/Resources <</ProcSet [/PDF /Text]>>\n/MediaBox [0 0 1440 810]\n"
-                           + "/Contents \(5 + p * 2) 0 R\n/Parent 3 0 R>>")
+                           + annots + "/Contents \(5 + p * 2) 0 R\n/Parent 3 0 R>>")
             objects.append("<</Length \(content.utf8.count)>> stream\n\(content)endstream")
+        }
+        if linked {
+            objects.append("[\(5 + pages * 2) 0 R]")
+            objects.append("<</Type /Annot /Subtype /Link /Rect [0 0 100 100] /A <</S /URI /URI (https://example.com)>>>>")
         }
         var text = "%PDF-1.4\n"
         var offsets: [Int] = []
@@ -218,6 +225,19 @@ final class PDFMetadataTests: XCTestCase {
             }
             number += 1
         }
+    }
+
+    /// A page's links, which Core Graphics writes in an array of their
+    /// own, are kept with its alt texts when the page is written again.
+    func testAPagesOwnLinksAreKeptWithItsAltTexts() throws {
+        let pdf = plainPDF(pages: 1, linked: true)
+        let alt = PDFUpdate.Picture(left: 0, bottom: 0, right: 10, top: 10, alt: "A dog")
+        let metadata = PDFUpdate.Metadata(info: [("Title", "Poster")], lang: "en", figures: [[alt]])
+        let out = PDFUpdate.annotated(pdf, metadata: metadata)
+        let page = try XCTUnwrap(objects(out, from: pdf.count)[4])
+        // The array was object 6, holding the link, object 7.
+        XCTAssertNotNil(first(#"/Annots \[7 0 R \d+ 0 R\]"#, in: page), page)
+        XCTAssertFalse(page.contains("/Annots 6 0 R"), page)
     }
 
     func testNoBookmarksIsNoOutlineAndAFileItCannotReadIsLeftAlone() {

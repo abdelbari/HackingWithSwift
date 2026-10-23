@@ -180,6 +180,19 @@ enum PDFUpdate {
                 return text.dictionary(at: open)
             }
 
+            /// The array object `number` is, "[" to "]" with neither
+            /// written: a page's annotations kept apart, as Core Graphics
+            /// writes its links, which hold references and nothing nested.
+            func arrayText(_ number: Int) -> String? {
+                guard var at = offsets[number] else { return nil }
+                while at < text.count && text.isSpace(at) { at += 1 }
+                let head = text.string(at, at + 64)
+                guard let match = PDFUpdate.match(#"^(\d+)\s+\d+\s+obj\s*\["#, in: head),
+                      Int((head as NSString).substring(with: match.range(at: 1))) == number,
+                      let close = text.index(of: "]", from: at + match.range.length) else { return nil }
+                return text.string(at + match.range.length, close)
+            }
+
             guard let catalog = objectText(root), let pagesRoot = PDFUpdate.reference(catalog, "Pages") else { return nil }
             var pages: [Int] = []
             func walk(_ number: Int, depth: Int) {
@@ -212,7 +225,10 @@ enum PDFUpdate {
             for (index, pageFigures) in metadata.figures.enumerated() where !pageFigures.isEmpty && index < pages.count {
                 let page = pages[index]
                 guard let dict = objectText(page) else { continue }
-                var refs: [String] = []
+                // The page's own annotations — its links — kept, when they
+                // are an array of their own the page's is written in place of.
+                var refs: [String] = PDFUpdate.reference(dict, "Annots").flatMap(arrayText)
+                    .map { PDFUpdate.allGroups(#"(\d+\s+\d+\s+R)"#, in: $0) } ?? []
                 // A picture's alt text: a widget over its area with nothing
                 // to draw and nothing to click, whose contents a screen
                 // reader reads in the page's order.
@@ -371,7 +387,8 @@ enum PDFUpdate {
             }
         }
         // A reference to an array elsewhere is replaced: the update's own
-        // list stands for the page from now on.
+        // list, which starts with that array's references, stands for the
+        // page from now on.
         let stripped = removing(#"/Annots\s+\d+\s+0\s+R"#, from: dict)
         return String(stripped.dropLast(2)) + " /Annots [\(refs.joined(separator: " "))] >>"
     }
