@@ -93,7 +93,7 @@ struct EditorYourTemplates: View {
         } label: {
             VStack(alignment: .leading, spacing: 6) {
                 UserTemplateThumb(entry: entry)
-                Text(entry.name).font(.system(size: 12, weight: .semibold))
+                Text(entry.name).font(.caption.weight(.semibold))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
             }

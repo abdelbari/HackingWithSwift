@@ -94,7 +94,7 @@ struct SelectionBubble: View {
                         perform: @escaping () -> Void) -> some View {
         Button(role: destructive ? .destructive : nil, action: perform) {
             Image(systemName: system)
-                .font(.system(size: 16, weight: .medium))
+                .font(.callout.weight(.medium))
                 .foregroundStyle(destructive ? Color.red : Color.primary)
                 .frame(width: Self.slot, height: Self.height)
                 .contentShape(Rectangle())

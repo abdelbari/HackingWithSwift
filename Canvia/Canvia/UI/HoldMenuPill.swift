@@ -90,9 +90,9 @@ struct HoldMenuPill: View {
         } label: {
             VStack(spacing: 3) {
                 Image(systemName: item.symbol)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.callout.weight(.medium))
                 Text(item.title)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.caption2.weight(.medium))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }

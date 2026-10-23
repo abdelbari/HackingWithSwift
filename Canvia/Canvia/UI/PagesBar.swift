@@ -60,19 +60,23 @@ struct PagesBar: View {
                     }
                 } label: { Image(systemName: "plus.square.on.square") }
                     .accessibilityLabel(pageMenuLabel)
+                    .accessibilityShowsLargeContentViewer()
                 // Said as what they do to the page: the symbols alone read
                 // as "Back" and "Forward", which sound like navigation.
                 Button { store.movePage(by: -1) } label: { Image(systemName: "chevron.left") }
                     .disabled(store.pageIndex == 0)
                     .accessibilityLabel("Move page left")
+                    .accessibilityShowsLargeContentViewer()
                 Button { store.movePage(by: 1) } label: { Image(systemName: "chevron.right") }
                     .disabled(store.pageIndex >= store.design.pages.count - 1)
                     .accessibilityLabel("Move page right")
+                    .accessibilityShowsLargeContentViewer()
                 Button { editingNotes = true } label: {
                     Image(systemName: (store.page.notes?.isEmpty == false)
                           ? "note.text" : "note")
                 }
                 .accessibilityLabel("Page title and notes")
+                .accessibilityShowsLargeContentViewer()
                 Button(role: .destructive) {
                     // A page can hold an hour's work and the bin is next to
                     // the arrows. Undo covers it, but only if you notice
@@ -86,8 +90,9 @@ struct PagesBar: View {
                 } label: { Image(systemName: "trash") }
                     .disabled(store.design.pages.count <= 1)
                     .accessibilityLabel("Delete page \(store.pageIndex + 1)")
+                    .accessibilityShowsLargeContentViewer()
             }
-            .font(.system(size: 15))
+            .font(.subheadline)
             .padding(.trailing, 12)
         }
         .frame(height: 72)
@@ -232,7 +237,8 @@ struct PagesBar: View {
                     if page.hidden == true { Image(systemName: "eye.slash") }
                     if PageLocks.isLocked(page) { Image(systemName: "lock.fill") }
                 }
-                .font(.system(size: 9, weight: .bold))
+                .font(.caption2.weight(.bold))
+                .imageScale(.small)
                 .foregroundStyle(.white)
                 .padding(.horizontal, 4)
                 .padding(.vertical, 1)
@@ -249,7 +255,7 @@ struct PagesBar: View {
             .overlay(alignment: .bottomTrailing) {
                 if differentiate && index == store.pageIndex {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 12))
+                        .font(.caption)
                         .foregroundStyle(.white, Theme.accent)
                         .padding(2)
                 }

@@ -171,7 +171,7 @@ struct EffectsSheet: View {
             VStack(spacing: 6) {
                 effectPreview(effect)
                     .frame(width: 64, height: 44)
-                Text(effect.displayName).font(.system(size: 11))
+                Text(effect.displayName).font(.caption2)
             }
             .padding(8)
             .background(RoundedRectangle(cornerRadius: 10)
@@ -1588,7 +1588,7 @@ struct PositionSheet: View {
         Button(action: action) {
             VStack(spacing: 4) {
                 Image(systemName: system)
-                Text(label).font(.system(size: 10))
+                Text(label).font(.caption2)
             }
             .frame(maxWidth: .infinity)
         }
@@ -1960,9 +1960,9 @@ struct LayersSheet: View {
                 Image(systemName: "photo").frame(width: 28, height: 28)
             }
         case .sticker:
-            Text(el.glyph ?? "⭐").font(.system(size: 20)).frame(width: 28, height: 28)
+            Text(el.glyph ?? "⭐").font(.title3).frame(minWidth: 28, minHeight: 28)
         case .text:
-            Text("T").font(.system(size: 18, weight: .bold))
+            Text("T").font(.body.weight(.bold))
                 .foregroundStyle(Color(hex: el.color ?? "#333333"))
                 .frame(width: 28, height: 28)
         case .line:

@@ -32,6 +32,10 @@ struct SelectionOverlay: View {
     var onEndDragEnd: (Bool) -> Void = { _ in }
 
     @Environment(\.colorSchemeContrast) private var contrast
+    /// The badges and labels grow with Larger Text, by this much, up to
+    /// accessibility2 (CanvasView caps the overlay); the handles keep their
+    /// size, which is their reach.
+    @ScaledMetric(relativeTo: .caption) private var badgeScale: Double = 1
 
     /// The handle a finger is working, where it took it relative to the
     /// handle, and the ring's outset then — held for the whole drag, since
@@ -152,9 +156,9 @@ struct SelectionOverlay: View {
             .rotationEffect(.degrees(el.rotation))
             .position(x: el.x + el.w / 2, y: el.y + el.h / 2)
             Image(systemName: badge)
-                .font(.system(size: 11 * iz, weight: .bold))
+                .font(.system(size: 11 * iz * badgeScale, weight: .bold))
                 .foregroundStyle(.white)
-                .frame(width: 22 * iz, height: 22 * iz)
+                .frame(width: 22 * iz * badgeScale, height: 22 * iz * badgeScale)
                 .background(Circle().fill(Theme.accent))
                 .overlay(Circle().stroke(Color.black.opacity(0.35), lineWidth: 1 * iz))
                 .position(x: box.minX, y: box.minY)
@@ -168,9 +172,9 @@ struct SelectionOverlay: View {
     private func tick(_ el: Element) -> some View {
         let box = Geometry.aabb(el)
         return Image(systemName: "checkmark")
-            .font(.system(size: 10 * iz, weight: .bold))
+            .font(.system(size: 10 * iz * badgeScale, weight: .bold))
             .foregroundStyle(.white)
-            .frame(width: 20 * iz, height: 20 * iz)
+            .frame(width: 20 * iz * badgeScale, height: 20 * iz * badgeScale)
             .background(Circle().fill(Theme.accent))
             .overlay(Circle().stroke(Color.white, lineWidth: 1.5 * iz))
             .position(x: box.maxX, y: box.minY)
@@ -185,7 +189,7 @@ struct SelectionOverlay: View {
             .frame(width: 0, height: 0)
             .overlay(alignment: alignment) {
                 Text(text)
-                    .font(.system(size: 12.5 * iz, weight: .semibold))
+                    .font(.system(size: 12.5 * iz * badgeScale, weight: .semibold))
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .fixedSize()
@@ -735,7 +739,7 @@ struct SelectionOverlay: View {
         if let badge = store.badge, let el = store.selectedElements.first {
             let box = Geometry.union(store.selectedElements.map(Geometry.aabb))
             badgeText(badge)
-                .font(.system(size: 12 * iz, weight: .semibold))
+                .font(.system(size: 12 * iz * badgeScale, weight: .semibold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 8 * iz)
                 .padding(.vertical, 4 * iz)

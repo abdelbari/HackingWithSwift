@@ -61,6 +61,11 @@ struct ContextToolbar: View {
 
     @State private var cuttingOut = false
     @State private var dictationBase = ""
+    /// The type size's number, a toggle's glyph and its square, growing
+    /// with Larger Text as far as the row does.
+    @ScaledMetric(relativeTo: .subheadline) private var readoutSize: CGFloat = 14
+    @ScaledMetric(relativeTo: .callout) private var toggleGlyph: CGFloat = 16
+    @ScaledMetric(relativeTo: .callout) private var toggleSide: CGFloat = 32
     @State private var cutoutError: String?
 
     var body: some View {
@@ -103,6 +108,9 @@ struct ContextToolbar: View {
         }
         .background(Theme.chrome)
         .overlay(alignment: .top) { Divider() }
+        // A row with no room to grow: Larger Text up to accessibility2,
+        // and past xxxLarge each item its icon alone (LargeType).
+        .chromeTypeSize()
         // Its alerts and the size field type; the editor's plain Delete key
         // must leave them be.
         .onChange(of: editingAlt || editingLink || namingStyle || enteringSize) { _, open in
@@ -134,10 +142,11 @@ struct ContextToolbar: View {
         } label: {
             VStack(spacing: 3) {
                 Image(systemName: "trash").font(Theme.controlGlyph)
-                Text("Delete").font(Theme.controlLabel)
+                ToolCaption(tr("Delete"))
             }
             .foregroundStyle(.red)
         }
+        .toolLargeContent("trash", tr("Delete"))
         .buttonStyle(ToolButtonStyle())
         .feel(.impact(weight: .medium), trigger: store.selection)
     }
@@ -261,7 +270,7 @@ struct ContextToolbar: View {
                     }
                 }
                 .frame(height: 22)
-                Text("Font").font(Theme.controlLabel)
+                ToolCaption(tr("Font"))
             }
         }
         .buttonStyle(ToolButtonStyle())
@@ -823,7 +832,7 @@ struct ContextToolbar: View {
                 .accessibilityLabel("Smaller type")
             Button { enteringSize = true } label: {
                 Text(readout)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: readoutSize, weight: .semibold))
                     .monospacedDigit()
                     .frame(minWidth: 34)
             }
@@ -1412,7 +1421,7 @@ struct ContextToolbar: View {
                     .fill(AngularGradient(colors: [.red, .yellow, .green, .blue, .purple, .red], center: .center))
                     .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.black.opacity(0.15)))
                     .frame(width: 26, height: 26)
-                Text(tr(label)).font(Theme.controlLabel)
+                ToolCaption(tr(label))
             }
         }
         .buttonStyle(ToolButtonStyle())
@@ -1458,7 +1467,7 @@ struct ContextToolbar: View {
                         .opacity(cuttingOut ? 0 : 1)
                     if cuttingOut { ProgressView().controlSize(.small) }
                 }
-                Text("Cut out").font(Theme.controlLabel)
+                ToolCaption(tr("Cut out"))
             }
             .foregroundStyle(Theme.accent)
         }
@@ -1532,19 +1541,21 @@ struct ContextToolbar: View {
         Button(action: action) {
             VStack(spacing: 3) {
                 Image(systemName: system).font(Theme.controlGlyph)
-                Text(tr(label)).font(Theme.controlLabel)
+                ToolCaption(tr(label))
             }
         }
         .buttonStyle(ToolButtonStyle())
+        .toolLargeContent(system, tr(label))
     }
 
     /// The face of a toolButton without the button, for a Menu label.
     private func toolLabel(_ system: String, _ label: String, active: Bool = false) -> some View {
         VStack(spacing: 3) {
             Image(systemName: system).font(Theme.controlGlyph)
-            Text(tr(label)).font(Theme.controlLabel)
+            ToolCaption(tr(label))
         }
         .foregroundStyle(active ? Theme.accent : Color.primary)
+        .toolLargeContent(system, tr(label))
     }
 
     private func toggle(_ system: String, _ name: String, active: Bool,
@@ -1558,8 +1569,8 @@ struct ContextToolbar: View {
                                      action: @escaping () -> Void) -> some View {
         Button(action: action) {
             glyph
-                .font(.system(size: 16, weight: .semibold))
-                .frame(width: 32, height: 32)
+                .font(.system(size: toggleGlyph, weight: .semibold))
+                .frame(width: toggleSide, height: toggleSide)
                 .background(RoundedRectangle(cornerRadius: 8)
                     .fill(active ? Theme.accentSubtle : Color.clear))
                 .overlay {
@@ -1593,7 +1604,7 @@ struct ContextToolbar: View {
                     .fill(Color(hex: hex))
                     .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.black.opacity(0.15)))
                     .frame(width: 26, height: 26)
-                Text(tr(label)).font(Theme.controlLabel)
+                ToolCaption(tr(label))
             }
         }
         .buttonStyle(ToolButtonStyle())
@@ -1702,7 +1713,7 @@ private struct TypeSizeEntry: View {
                 TextField("Size", text: $draft)
                     .keyboardType(.numberPad)
                     .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 17, weight: .semibold).monospacedDigit())
+                    .font(.body.weight(.semibold).monospacedDigit())
                     .frame(width: 96)
                     .focused($typing)
                     .onSubmit(useTyped)
