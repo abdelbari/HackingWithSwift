@@ -239,6 +239,89 @@ enum Uploads {
         trn("Used in %d design. It stays in it.|Used in %d designs. It stays in them.", designs)
     }
 
+    // MARK: Home's Uploads
+
+    /// Every upload id `design` uses: a photo anywhere in it — a frame, a
+    /// background, a shape's fill, the master's too — a clip, a song on an
+    /// audio track, or a font of your own. The rule that keeps an upload
+    /// from the launch sweep, so "Used in N designs" counts what the sweep
+    /// would keep it for.
+    static func ids(usedBy design: Design) -> Set<String> {
+        DesignLibrary.photos(in: [design])
+            .union(DesignLibrary.clips(in: [design]))
+            .union(design.audioTracks.compactMap(\.audioId))
+            .union(CustomFonts.used(in: design))
+    }
+
+    /// The designs among `designs` that use the upload `id`, in their
+    /// order, whatever kind it is. A brand kit's use is asked apart
+    /// (inBrandKit): it is no design to list. The Android twin's
+    /// Uploads.usages.
+    static func usages(_ designs: [Design], id: String) -> [Design] {
+        designs.filter { ids(usedBy: $0).contains(id) }
+    }
+
+    /// Every upload id each of `designs` uses, by id: usages for every
+    /// upload at once, each design read once — what the Uploads grid on
+    /// Home counts with.
+    static func usageIndex(_ designs: [Design]) -> [String: [Design]] {
+        var index: [String: [Design]] = [:]
+        for design in designs {
+            for id in ids(usedBy: design) { index[id, default: []].append(design) }
+        }
+        return index
+    }
+
+    /// Whether a brand kit shows the photo `id` — as a logo, a brand photo
+    /// or a graphic.
+    static func inBrandKit(_ kits: BrandKits, id: String) -> Bool {
+        kits.allAssets.contains("media:\(id)")
+    }
+
+    /// An upload as Home's grid lists it: a photo, clip or song of the
+    /// list, or a font of your own — "image", "video", "audio" or "font".
+    struct Listed: Equatable, Sendable {
+        var id: String
+        var kind: String
+        /// When it came in, in epoch milliseconds.
+        var added: Double
+    }
+
+    /// The Uploads grid's filters, after All: each a kind.
+    static let filters = [Kind.image.rawValue, Kind.video.rawValue, Kind.audio.rawValue, fontKind]
+
+    /// `entries` as the Uploads grid lists them: those of `kind` (every
+    /// kind for nil), newest first, or largest first by `bytes` when
+    /// `largest` — ties by newest.
+    static func sorted(_ entries: [Listed], kind: String?, largest: Bool, bytes: (Listed) -> Int64) -> [Listed] {
+        let kept = kind.map { k in entries.filter { $0.kind == k } } ?? entries
+        // Stable: of two alike, the one listed first stays first.
+        return kept.enumerated().sorted { a, b in
+            if largest {
+                let x = bytes(a.element), y = bytes(b.element)
+                if x != y { return x > y }
+            }
+            if a.element.added != b.element.added { return a.element.added > b.element.added }
+            return a.offset < b.offset
+        }.map(\.element)
+    }
+
+    /// "Used in 2 designs", or "Not used in any design": what the ⋯ menu
+    /// says of an upload on Home.
+    static func usedIn(_ designs: Int) -> String {
+        designs <= 0 ? tr("Not used in any design") : trn("Used in %d design|Used in %d designs", designs)
+    }
+
+    /// What deleting uploads from Home asks: for `count` uploads of which
+    /// `designs` designs use any — they stay in the designs' files, but
+    /// show an empty frame once swept.
+    static func deletingFromHome(_ count: Int, designs: Int) -> (title: String, text: String?) {
+        let title = count == 1 ? tr("Delete this upload?") : trn("Delete %d upload?|Delete %d uploads?", count)
+        let text = designs <= 0 ? nil
+            : trn("Used in %d design. That design will show an empty frame.|Used in %d designs. Those designs will show an empty frame.", designs)
+        return (title, text)
+    }
+
     // MARK: the file
 
     /// The list as written, every key kept. None yet, or one that no

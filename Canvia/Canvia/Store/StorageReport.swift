@@ -55,22 +55,33 @@ struct StorageReport: Equatable, Sendable {
         report.designs = size(of: DesignLibrary.designsDir) + size(of: DesignLibrary.thumbsDir)
         report.photosAndClips = size(of: MediaStore.directory) + size(of: VideoStore.directory)
             + size(of: AudioStore.directory)
-        for entry in Uploads.all() {
-            switch entry.kind {
-            case .image:
-                let file = MediaStore.extensions.map { MediaStore.directory.appendingPathComponent("\(entry.id).\($0)") }
-                    .first { FileManager.default.fileExists(atPath: $0.path) }
-                report.uploads += size(ofFile: file)
-            case .video: report.uploads += size(ofFile: VideoStore.url(for: entry.id))
-            case .audio: report.uploads += size(ofFile: AudioStore.url(for: entry.id))
-            }
-        }
+        report.uploads = uploadsBytes()
         report.fonts = size(of: FontStore.directory)
         report.versions = size(of: documents.appendingPathComponent("history", isDirectory: true))
         report.templates = size(of: UserTemplates.directory) + size(ofFile: UserTemplates.indexURL)
         report.recentlyDeleted = size(of: DesignLibrary.trashDir)
         report.caches = cacheFolders.reduce(0) { $0 + size(of: $1) }
         return report
+    }
+
+    /// The file an upload on the list is kept in, when it is still here.
+    static func file(of entry: Uploads.Entry) -> URL? {
+        switch entry.kind {
+        case .image:
+            return MediaStore.extensions.map { MediaStore.directory.appendingPathComponent("\(entry.id).\($0)") }
+                .first { FileManager.default.fileExists(atPath: $0.path) }
+        case .video: return VideoStore.url(for: entry.id)
+        case .audio: return AudioStore.url(for: entry.id)
+        }
+    }
+
+    /// The bytes of a file, 0 for none.
+    static func bytes(of url: URL?) -> Int64 { size(ofFile: url) }
+
+    /// The photos, clips and songs you brought in, in bytes: Settings'
+    /// "Your uploads", and the figure on Home's Uploads.
+    static func uploadsBytes() -> Int64 {
+        Uploads.all().reduce(0) { $0 + size(ofFile: file(of: $1)) }
     }
 
     /// "12.4 MB", as the Files app says a size.
