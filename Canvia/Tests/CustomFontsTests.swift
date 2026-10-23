@@ -93,6 +93,20 @@ final class CustomFontsTests: XCTestCase {
         XCTAssertEqual(CustomFonts.Problem.woff2.message, "WOFF2 fonts aren't supported yet. Convert it to .ttf or .otf first.")
         XCTAssertEqual(problem(woff.prefix(300)), .notAFont)
         XCTAssertEqual(problem(Data("wOFF".utf8) + Data(count: 40)), .notAFont)
+        // A table that claims to unpack to nearly 4 GB is refused before it
+        // is inflated; a WOFF that says it unpacks past the limit is too big.
+        func claiming(total: UInt32, orig: UInt32) -> Data {
+            var b = [UInt8](repeating: 0, count: 80)
+            func put(_ at: Int, _ v: UInt32) { for k in 0..<4 { b[at + k] = UInt8((v >> UInt32(24 - 8 * k)) & 0xFF) } }
+            b.replaceSubrange(0..<4, with: Array("wOFF".utf8))
+            put(4, 0x0001_0000); put(8, 80); put(12, 0x0001_0000); put(16, total)
+            b.replaceSubrange(44..<48, with: Array("abcd".utf8))
+            put(48, 64); put(52, 16); put(56, orig)
+            return Data(b)
+        }
+        XCTAssertNil(CustomFonts.unpackWoff(claiming(total: 0, orig: 0xFFFF_FF00)))
+        XCTAssertEqual(problem(claiming(total: 0, orig: 0xFFFF_FF00)), .notAFont)
+        XCTAssertEqual(problem(claiming(total: 0xFFFF_FF00, orig: 16)), .tooBig)
         // The picker lets a WOFF through by its types.
         XCTAssertTrue(FontSheet.fontTypes.contains(.font))
         XCTAssertTrue(FontSheet.fontTypes.count > 1)

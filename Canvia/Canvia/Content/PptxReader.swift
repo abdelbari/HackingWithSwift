@@ -576,7 +576,10 @@ enum PptxReader {
         let count = units.count
         var want = [RichText.Style](repeating: RichText.Style(), count: count)
         for r in words.runs where 0 <= r.start && r.start < r.end && r.end <= count {
-            let style = RichText.Style(bold: r.bold && !bold, italic: r.italic && !italic,
+            // A run with a cut of its own ("Montserrat Semibold") has its
+            // weight in its span; its b="1" is only the writer saying the
+            // cut is heavy, and a ** round it would draw it bolder still.
+            let style = RichText.Style(bold: r.bold && r.weight == nil && !bold, italic: r.italic && !italic,
                                        underline: r.underline && !underline)
             for k in r.start..<r.end { want[k] = style }
         }
@@ -1447,7 +1450,7 @@ enum PptxReader {
             // from the words' own stars, the runs keep them as their words'
             // own weight and slant (Spans) instead, as on the Android twin.
             let plainOnly = RichText.strip(text) == text
-                && words.runs.contains { r in (r.bold && !bold) || (r.italic && !italic) }
+                && words.runs.contains { r in (r.bold && r.weight == nil && !bold) || (r.italic && !italic) }
             var el = Element.text(text, fontSize: size, w: PptxReader.px(w))
             // No effect key, as a text box from the Android twin has none.
             el.effect = nil

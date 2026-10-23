@@ -332,6 +332,9 @@ enum CustomFonts {
         case woff2Tag:
             return .failure(.woff2)
         case woffTag:
+            // Past maxBytes by the size it says it unpacks to: refused
+            // before anything is unpacked.
+            if let declared = Sfnt([UInt8](data.prefix(20))).u32(16), declared > maxBytes { return .failure(.tooBig) }
             guard let font = unpackWoff(data) else { return .failure(.notAFont) }
             return font.count > maxBytes ? .failure(.tooBig) : .success(font)
         default:
@@ -354,11 +357,17 @@ enum CustomFonts {
         guard bytes.count >= 44, tag(data) == woffTag, let flavor = woff.u32(4), let count = woff.u16(12),
               count > 0, 44 + 20 * count <= bytes.count else { return nil }
         var tables: [(tag: Int, checksum: Int, data: Data)] = []
+        // The sfnt's size so far, from the directory's own lengths: past
+        // maxBytes, a table is never inflated, so a file that claims more
+        // than it can hold never asks for the memory.
+        var total = 12 + 16 * count
         for i in 0..<count {
             let at = 44 + 20 * i
             guard let tag = woff.u32(at), let offset = woff.u32(at + 4), let compLength = woff.u32(at + 8),
                   let origLength = woff.u32(at + 12), let checksum = woff.u32(at + 16),
                   offset + compLength <= bytes.count else { return nil }
+            total += (origLength + 3) & ~3
+            guard total <= maxBytes else { return nil }
             let packed = Data(bytes[offset..<(offset + compLength)])
             let table: Data
             if compLength < origLength {
