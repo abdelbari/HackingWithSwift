@@ -417,6 +417,20 @@ final class ExportRangeTests: XCTestCase {
         XCTAssertEqual(cropped.size(at: 0), CGSize(width: 40, height: 30))
     }
 
+    func testASelectionFromAWhiteboardIsCutToItsEdgesWithNoMargin() throws {
+        var a = Element.shape("rect", w: 40, h: 30); a.x = 100; a.y = 50; a.id = "a"
+        var far = Element.shape("rect", w: 300, h: 300); far.x = 1500; far.y = 500; far.id = "far"
+        let page = Whiteboards.expanded(Page(elements: [a, far]), frame: CGSize(width: 1000, height: 1000))
+        var d = Design(title: "sel", width: 1000, height: 1000)
+        d.pages = [page]
+        XCTAssertTrue(Whiteboards.isExpanded(page))
+        let cut = try XCTUnwrap(DesignExporter.selectionDesign(design: d, page: page, ids: ["a"]))
+        XCTAssertFalse(Whiteboards.isExpanded(cut.pages[0]))
+        let drawn = Whiteboards.flattened(cut)
+        XCTAssertEqual(drawn.size(for: drawn.pages[0]), CGSize(width: 40, height: 30))
+        XCTAssertEqual(drawn.pages[0].elements[0].x, 0)
+    }
+
     // MARK: transparency
 
     /// The corner of a transparent export has to be actually transparent, not

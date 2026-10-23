@@ -79,6 +79,11 @@ struct PresentationView: View {
     @State private var boardPan: CGSize = .zero
     @GestureState private var pinching: CGFloat = 1
     @GestureState private var panning: CGSize = .zero
+    /// Two fingers are pinching, and a drag is under way: a touch that
+    /// pinched neither turns the page nor pans when it ends, as on Android.
+    @GestureState private var magnifying = false
+    @GestureState private var swiping = false
+    @State private var pinchedThisTouch = false
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     init(design: Design, startPage: Int = 0, onLoopChange: @escaping (Bool) -> Void = { _ in }) {
@@ -203,9 +208,13 @@ struct PresentationView: View {
     private var swipe: some Gesture {
         DragGesture(minimumDistance: 30)
             .updating($panning) { value, state, _ in
-                if zoomedIn { state = value.translation }
+                if zoomedIn && !magnifying { state = value.translation }
             }
+            .updating($swiping) { _, state, _ in state = true }
             .onEnded { value in
+                let pinched = pinchedThisTouch || magnifying
+                pinchedThisTouch = false
+                if onBoard && pinched { return }
                 if zoomedIn {
                     boardPan.width += value.translation.width
                     boardPan.height += value.translation.height
@@ -223,7 +232,13 @@ struct PresentationView: View {
             .updating($pinching) { value, state, _ in
                 if onBoard { state = value.magnification }
             }
+            .updating($magnifying) { _, state, _ in state = true }
+            .onChanged { _ in
+                if onBoard { pinchedThisTouch = true }
+            }
             .onEnded { value in
+                // A drag still under way sees the pinch when it ends.
+                if !swiping { pinchedThisTouch = false }
                 guard onBoard else { return }
                 boardZoom = min(max(boardZoom * value.magnification, 1), Self.boardMaxZoom)
                 if boardZoom == 1 { boardPan = .zero }
