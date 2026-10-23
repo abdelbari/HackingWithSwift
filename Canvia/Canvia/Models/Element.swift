@@ -635,6 +635,10 @@ struct Element: Codable, Equatable, Identifiable {
     /// IconLibrary): what it is named by. The path draws it; an id this
     /// build does not know is just a custom shape.
     var iconId: String?
+    /// The illustrated graphic (see GraphicsLibrary) this shape is a part
+    /// of, each of its parts naming it: what More like this offers alike.
+    /// A build without the pack draws the parts as any SVG graphic's.
+    var graphicId: String?
     var fill: Paint?
     var stroke: String?
     var strokeWidth: Double?
@@ -842,6 +846,7 @@ struct Element: Codable, Equatable, Identifiable {
         shapeId = try? c.decode(String.self, forKey: .shapeId)
         pathData = try? c.decode(String.self, forKey: .pathData)
         iconId = try? c.decode(String.self, forKey: .iconId)
+        graphicId = try? c.decode(String.self, forKey: .graphicId)
         fill = try? c.decode(Paint.self, forKey: .fill)
         stroke = try? c.decode(String.self, forKey: .stroke)
         strokeWidth = try? c.decode(Double.self, forKey: .strokeWidth)
@@ -950,7 +955,7 @@ struct Element: Codable, Equatable, Identifiable {
         case id, type, x, y, w, h, rotation, opacity, locked, lockPosition, flipH, flipV, group, shadow, blendMode, altText
         case decorative
         case connectFrom, connectTo, link, hidden, layerName, table, chart, chartPart, grid, photoFrame
-        case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners, fillRule, pen
+        case shapeId, pathData, iconId, graphicId, fill, stroke, strokeWidth, radius, corners, fillRule, pen
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
         case spans, spansText, paragraphs, paragraphsText, captions

@@ -39,6 +39,8 @@ enum EditorSheet: String, Identifiable {
     case fontWords
     /// Adjust photo: the picture in a text's letters (PhotoInLetters).
     case photoInLetters
+    /// More like this, for a selected icon, sticker, graphic or shape.
+    case similar
     var id: String { rawValue }
 }
 
@@ -133,7 +135,7 @@ struct EditorView: View {
             ZStack(alignment: .bottomTrailing) {
                 CanvasView(store: store, onBackground: openBackground)
                     .overlay { if rulers { RulersView(store: store).allowsHitTesting(!pageTaken) } }
-                    .overlay { SelectionBubble(store: store) }
+                    .overlay { SelectionBubble(store: store) { activeSheet = .similar } }
                     .overlay { HoldMenuPill(store: store, openBackground: openBackground) }
                     .overlay(alignment: .top) {
                         CanvasChips(store: store).padding(.top, CGFloat(rulers ? Guides.rulerThickness : 0))
@@ -1471,6 +1473,8 @@ struct EditorView: View {
             FrameSheet(store: store)
         case .shapes:
             ShapeSwapSheet(store: store)
+        case .similar:
+            SimilarSheet(store: store)
         case .shadow:
             ShadowSheet(store: store)
         case .clip:

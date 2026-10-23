@@ -32,6 +32,7 @@ enum ElementNames {
             let colour = colours(of: el).first { !isFaint($0) }
             // Named for what it shows, as the icons tab names it.
             if let icon = IconLibrary.icon(of: el) { return tr("%@ icon", icon.name) }
+            if let graphic = GraphicsLibrary.graphic(of: el) { return tr("%@ graphic", graphic.name) }
             if Freehand.isStroke(el) { return withColour(el.stroke, tr("drawing"), tr("%@ drawing", colourName(el.stroke))) }
             if el.pathData != nil {
                 if isFaint(el.fill?.color) && el.stroke != nil {
