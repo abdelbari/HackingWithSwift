@@ -237,10 +237,12 @@ final class MediaContentParityTests: XCTestCase {
                        "a locked shape takes nothing, so it is no reason to offer them")
     }
 
-    func testTextTakesAGradientButNotAPatternOrAPhoto() {
+    func testTextTakesAGradientOrAPhotoButNotAPattern() {
         let text = Element.text("Hi")
         XCTAssertEqual(DesignStore.withGradient(text, .pattern("dots", color: "#000000", secondary: "#ffffff")), text)
-        XCTAssertEqual(DesignStore.withGradient(text, .image("asset:sun")), text)
+        // Round 30 (AS, photo inside letters) fills text with a photo, so
+        // a photo paint now lands on the letters rather than being refused.
+        XCTAssertEqual(DesignStore.withGradient(text, .image("asset:sun")).textFill, Paint.image("asset:sun"))
         let rect = Element.shape("rect")
         XCTAssertEqual(DesignStore.withGradient(rect, .image("asset:sun")).fill?.kind, "image")
     }

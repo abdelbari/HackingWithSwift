@@ -837,7 +837,9 @@ final class PptxExporterTests: XCTestCase {
     /// A picture that did not draw is left out, and the next shape takes
     /// its number; a background that did not is white.
     func testWhatDidNotDrawIsLeftOut() {
-        var shadowed = Element.text("Hi")
+        // A shadowed shape, not text: since round 30 (AS, styled text out)
+        // shadowed text goes out as an editable text box, no picture.
+        var shadowed = Element.shape("rect")
         shadowed.shadow = Shadow(blur: 10, offsetX: 4, offsetY: 6)
         var rect = Element.shape("rect")
         rect.id = "r"

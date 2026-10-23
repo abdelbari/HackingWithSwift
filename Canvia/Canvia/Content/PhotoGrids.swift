@@ -374,8 +374,10 @@ enum PhotoGrids {
         let group = sorted[0].group ?? first.id
         let frames = Self.frames(to, in: bounds, gutter: spacing)
         // The pictures in the order their old cells fill, to the new cells
-        // in the order theirs do.
-        let pictures = PhotoFrames.fillOrder(sorted).filter { !PhotoFrames.isEmpty($0) }
+        // in the order theirs do — reading order, as Android's fillOrder
+        // sorts every cell (iOS's own fillOrder keeps only the empty ones,
+        // which would leave no picture to hand on).
+        let pictures = PhotoFrames.readingOrder(sorted).filter { !PhotoFrames.isEmpty($0) }
         // An empty cell as the grid makes one: nothing of a picture's look
         // left on it.
         var newCells: [Element] = frames.enumerated().map { index, f in
@@ -391,7 +393,7 @@ enum PhotoGrids {
             blank.grid = GridCell(id: group, layout: to.id, cell: index, gutter: spacing, margin: first.margin)
             return blank
         }
-        let order = PhotoFrames.fillOrder(newCells).map(\.id)
+        let order = PhotoFrames.readingOrder(newCells).map(\.id)
         var freed: [Element] = []
         var below = bounds.minY
         for (n, picture) in pictures.enumerated() {

@@ -263,6 +263,9 @@ final class CaptionsTests: XCTestCase {
     func testAStillOfThePageOnScreenShowsTheCueAtThePlayhead() throws {
         var design = Design(title: "Talk", width: 400, height: 200)
         design.pages[0].elements = [Captions.element(width: 400, height: 200, captions: hello)]
+        // A dark page: a new caption box sets white words, which on the
+        // default white page draw no pixel at all, whichever cue they say.
+        design.pages[0].background = .color("#000000")
         let page = design.pages[0]
         let first = try XCTUnwrap(DesignExporter.render(design: design, page: page, scale: 1))
         let atFirst = try XCTUnwrap(DesignExporter.render(design: design, page: page, scale: 1, captionTime: 1.5))

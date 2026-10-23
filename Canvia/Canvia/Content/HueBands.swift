@@ -118,7 +118,7 @@ enum HueBands {
         let reach = d >= 0 ? next : prev
         let away = abs(d)
         guard away < reach else { return 0 }
-        return 0.5 + 0.5 * cos(.pi * away / reach)
+        return 0.5 * (1 + cos(.pi * away / reach))
     }
 
     /// A difference of centres as a distance round the circle, in (0, 360].
@@ -193,15 +193,17 @@ enum HueBands {
             guard let shift else { continue }
             let w = weight(c.h, band: i) * c.s
             guard w > 0 else { continue }
-            dh += w * shift.h * turn
+            dh += w * shift.h
             ds += w * shift.s
-            dl += w * shift.l * lightReach
+            dl += w * shift.l
         }
         guard dh != 0 || ds != 0 || dl != 0 else { return (r, g, b) }
-        var h = (c.h + dh).truncatingRemainder(dividingBy: 360)
+        // Scaled once the sums are made, as Android's HueBands.shifted
+        // does, so both phones round the same table alike.
+        var h = (c.h + dh * turn).truncatingRemainder(dividingBy: 360)
         if h < 0 { h += 360 }
         let s = min(max(c.s * (1 + ds), 0), 1)
-        let l = min(max(c.l + dl, 0), 1)
+        let l = min(max(c.l + dl * lightReach, 0), 1)
         return toRGB(h, s, l)
     }
 
@@ -217,39 +219,46 @@ enum HueBands {
 
     /// Unit RGB as hue in degrees, 0 ≤ h < 360, saturation and lightness
     /// 0…1: a grey has hue 0 and no saturation.
+    ///
+    /// Worked as Android's HueBands.hsl works it, step for step, so the
+    /// shared table of colours rounds alike on both phones.
     static func toHSL(_ r: Double, _ g: Double, _ b: Double) -> (h: Double, s: Double, l: Double) {
         let hi = max(r, g, b), lo = min(r, g, b)
         let l = (hi + lo) / 2
-        guard hi > lo else { return (0, 0, l) }
         let d = hi - lo
-        let s = l > 0.5 ? d / (2 - hi - lo) : d / (hi + lo)
+        guard d > 0 else { return (0, 0, l) }
+        let s = d / (1 - abs(2 * l - 1))
         var h: Double
         if hi == r {
-            h = (g - b) / d
-            if h < 0 { h += 6 }
+            h = ((g - b) / d).truncatingRemainder(dividingBy: 6)
         } else if hi == g {
             h = (b - r) / d + 2
         } else {
             h = (r - g) / d + 4
         }
-        return (h * 60, s, l)
+        h *= 60
+        if h < 0 { h += 360 }
+        return (h, min(max(s, 0), 1), l)
     }
 
     /// Hue in degrees, saturation and lightness as unit RGB.
+    ///
+    /// By chroma and sextant, as Android's HueBands.rgb works it: the
+    /// textbook hue-to-channel formula lands a hair under a half where
+    /// this one lands on it (blue turned to 210° is 0x0080ff on both
+    /// phones, not 0x007fff).
     static func toRGB(_ h: Double, _ s: Double, _ l: Double) -> (r: Double, g: Double, b: Double) {
-        guard s > 0 else { return (l, l, l) }
-        let q = l < 0.5 ? l * (1 + s) : l + s - l * s
-        let p = 2 * l - q
-        let hue = h / 360
-        func channel(_ offset: Double) -> Double {
-            var t = hue + offset
-            if t < 0 { t += 1 }
-            if t > 1 { t -= 1 }
-            if t < 1.0 / 6 { return p + (q - p) * 6 * t }
-            if t < 0.5 { return q }
-            if t < 2.0 / 3 { return p + (q - p) * (2.0 / 3 - t) * 6 }
-            return p
-        }
-        return (channel(1.0 / 3), channel(0), channel(-1.0 / 3))
+        let c = (1 - abs(2 * l - 1)) * s
+        let hh = ((h.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)) / 60
+        let x = c * (1 - abs(hh.truncatingRemainder(dividingBy: 2) - 1))
+        let m = l - c / 2
+        let one: (Double, Double, Double)
+        if hh < 1 { one = (c, x, 0) }
+        else if hh < 2 { one = (x, c, 0) }
+        else if hh < 3 { one = (0, c, x) }
+        else if hh < 4 { one = (0, x, c) }
+        else if hh < 5 { one = (x, 0, c) }
+        else { one = (c, 0, x) }
+        return (one.0 + m, one.1 + m, one.2 + m)
     }
 }

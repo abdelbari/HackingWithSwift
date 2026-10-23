@@ -150,7 +150,9 @@ final class PhotoGridLayoutTests: XCTestCase {
         let grid = try XCTUnwrap(PhotoGrids.grid(of: Array(out.prefix(2))))
         XCTAssertEqual(grid.layout.id, "twoStack")
         XCTAssertEqual(out.prefix(2).map(\.src), ["media:a", "media:b"])
-        let free = out[2]
+        // Unwrapped rather than subscripted: a relayout that lost the
+        // picture once took the whole test run down with it here.
+        let free = try XCTUnwrap(out.count > 2 ? out[2] : nil, "the third picture comes out free")
         XCTAssertEqual(free.src, "media:c")
         XCTAssertNil(free.group)
         XCTAssertNil(free.grid)
@@ -231,7 +233,10 @@ final class PhotoGridLayoutTests: XCTestCase {
         s.selection = Set(cells.map(\.id))
         XCTAssertEqual(s.gridDividers.count, 2)
         let box = try XCTUnwrap(s.selectedGridBox)
-        XCTAssertEqual(s.gridDividers[0].at, CGPoint(x: box.minX + box.width / 3, y: box.midY))
+        // Within float noise: the divider is placed through the lattice's
+        // fraction, which rounds a hair apart from box.width / 3.
+        XCTAssertEqual(s.gridDividers[0].at.x, box.minX + box.width / 3, accuracy: 1e-9)
+        XCTAssertEqual(s.gridDividers[0].at.y, box.midY, accuracy: 1e-9)
         XCTAssertEqual(s.dragGridDivider(0, to: 0.25), 0.25)
         XCTAssertTrue(s.hasPendingChanges)
         XCTAssertEqual(PhotoGrids.splits(of: s.selectedElements), GridSplits(x: [0.25, 2.0 / 3], y: []))

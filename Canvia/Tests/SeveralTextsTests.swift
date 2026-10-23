@@ -206,10 +206,12 @@ final class SeveralTextsTests: XCTestCase {
         let b = Element.text("Short", fontSize: 40, w: 300)
         let s = store([a, b])
         s.selection = [a.id, b.id]
-        s.setFontSize(72.4)
+        // Round 30 (AR, half-point sizes) keeps one decimal place, so a
+        // size is rounded to the tenth now, not to the whole point.
+        s.setFontSize(72.44)
         for id in [a.id, b.id] {
             let el = s.element(id)
-            XCTAssertEqual(el?.fontSize, 72)
+            XCTAssertEqual(el?.fontSize, 72.4)
             XCTAssertEqual(el?.h, el.map { FontLibrary.layoutHeight(for: $0) })
         }
         s.undo()

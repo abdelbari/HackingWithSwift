@@ -150,7 +150,9 @@ final class ShadowStylesTests: XCTestCase {
         XCTAssertEqual(corners[3], CGPoint(x: 0, y: 50))
         // Leaning the other way, and flat on its base at no distance.
         XCTAssertEqual(ShadowShapes.angleCorners(w: 100, h: 50, angle: -30, distance: 40)[0].x, -1.547, accuracy: 1e-3)
-        XCTAssertEqual(ShadowShapes.angleCorners(w: 100, h: 50, angle: 30, distance: 0)[0], CGPoint(x: 10, y: 50))
+        let flat = ShadowShapes.angleCorners(w: 100, h: 50, angle: 30, distance: 0)[0]
+        XCTAssertEqual(flat.x, 10, accuracy: 1e-9)
+        XCTAssertEqual(flat.y, 50, accuracy: 1e-9)
         let cast = try XCTUnwrap(ShadowShapes.angle(w: 100, h: 50, angle: 30, distance: 40))
         // The transform takes the box's corners onto the silhouette's.
         for (from, to) in zip(ShadowShapes.corners(w: 100, h: 50), corners) {
@@ -175,7 +177,11 @@ final class ShadowStylesTests: XCTestCase {
         XCTAssertEqual(m[8], 1)
         let mid = ShadowShapes.taken(CGPoint(x: 0.5, y: 0.5), through: m)
         XCTAssertEqual(mid.x, 0.5, accuracy: 1e-9, "the middle stays in the middle")
-        XCTAssertGreaterThan(mid.y, 0.5, "and nearer the wide end, as perspective has it")
+        // A homography keeps where the diagonals cross, and the
+        // trapezium's cross a third of the way down, nearer the narrow
+        // (far) end — as a square floor tile's middle looks in
+        // perspective; the old "nearer the wide end" had it backwards.
+        XCTAssertEqual(mid.y, 1.0 / 3, accuracy: 1e-9, "the diagonals' crossing, nearer the narrow end")
         let identity = try XCTUnwrap(ShadowShapes.homography(from: from, to: from))
         XCTAssertEqual(identity[0], 1, accuracy: 1e-9)
         XCTAssertEqual(identity[1], 0, accuracy: 1e-9)
