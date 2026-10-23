@@ -44,8 +44,14 @@ enum ElementNames {
             let noun = tr(english)
             return withWords(el, noun) ?? withColour(colour, noun, tr("%@ " + english, colourName(colour)))
         case .image:
-            let frame = el.maskShapeId.map { tr(englishNoun(ContentLibrary.shape($0))) }
+            let shape = ContentLibrary.frameShape(el.maskShapeId)
+            let frame = shape.map { tr(englishNoun($0)) }
             if let src = el.src, CodeGenerator.payload(from: src) != nil { return tr("QR code") }
+            // A letter frame is named for its glyph, as its tile is: "Empty
+            // A letter frame", the same on both phones.
+            if let glyph = GlyphFrames.frame(shape?.id)?.glyph {
+                return PhotoFrames.isEmpty(el) ? tr("Empty %@ letter frame", glyph) : tr("Photo in the %@ letter frame", glyph)
+            }
             if el.src == nil { return frame.map { tr("Empty %@ frame", $0) } ?? tr("Empty photo frame") }
             return frame.map { tr("Photo in a %@ frame", $0) } ?? tr("Photo")
         case .sticker:

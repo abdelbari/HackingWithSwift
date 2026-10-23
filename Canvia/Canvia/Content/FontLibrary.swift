@@ -28,7 +28,10 @@ import CoreText
 /// `postScript` is each face's PostScript name, which is how it is asked for
 /// here. A system family has none. `weights` are the upright weights it has,
 /// lightest first — a bundled family's files, a system family's the cuts
-/// both phones' own faces have — the same list on both phones.
+/// both phones' own faces have — the same list on both phones. `tags` are
+/// the style words a search finds it by ("elegant", "handwritten"; see
+/// FontLibrary.tags), and `popular` its rank in the picker's Popular
+/// section, on the eight families that have one.
 struct FontDef: Decodable, Identifiable, Equatable {
     var id: String
     var name: String
@@ -38,8 +41,12 @@ struct FontDef: Decodable, Identifiable, Equatable {
     var files: [String: String] = [:]
     var postScript: [String: String] = [:]
     var weights: [Int] = []
+    var tags: [String] = []
+    var popular: Int?
 
-    private enum CodingKeys: String, CodingKey { case id, name, category, system, licence, files, postScript, weights }
+    private enum CodingKeys: String, CodingKey {
+        case id, name, category, system, licence, files, postScript, weights, tags, popular
+    }
 
     init(id: String, name: String, category: String, system: Bool = false) {
         self.id = id
@@ -58,6 +65,8 @@ struct FontDef: Decodable, Identifiable, Equatable {
         files = (try? c.decodeIfPresent([String: String].self, forKey: .files)) ?? [:]
         postScript = (try? c.decodeIfPresent([String: String].self, forKey: .postScript)) ?? [:]
         weights = (try? c.decodeIfPresent([Int].self, forKey: .weights)) ?? []
+        tags = (try? c.decodeIfPresent([String].self, forKey: .tags)) ?? []
+        popular = try? c.decodeIfPresent(Int.self, forKey: .popular)
     }
 }
 
@@ -77,6 +86,25 @@ enum FontLibrary {
     /// How many fonts Recently used keeps, newest first.
     static let recentLimit = 8
 
+    /// How many fonts Popular shows: the top eight by rank.
+    static let popularLimit = 8
+
+    /// The style words a family may be tagged with (the Android twin's
+    /// tools/generate_fonts.py TAGS), in English; each is said in the app's
+    /// language (tagName), and a search in it finds the tag too.
+    static let tags: [String] = [
+        "elegant", "wedding", "modern", "geometric", "rounded", "retro", "condensed", "handwritten",
+        "cursive", "playful", "newspaper", "tech", "bold", "minimal", "kids",
+    ]
+
+    /// The tags the picker offers to try when a search finds nothing, in
+    /// this order: "Try: elegant, retro, handwritten, rounded".
+    static let suggestedTags: [String] = ["elegant", "retro", "handwritten", "rounded"]
+
+    /// `tag` in the app's language, as a chip says it and a search in that
+    /// language matches it.
+    static func tagName(_ tag: String) -> String { tr(tag) }
+
     /// What the Weight row calls each weight it offers, Light to Black: a
     /// weight's "Light" and "Black", not the theme's or the colour's.
     static let weightNames: [Int: String] = [
@@ -94,6 +122,13 @@ enum FontLibrary {
     static func weightName(_ weight: Int) -> String {
         weightNames[weight] ?? String(weight)
     }
+
+    /// The same names in English, whatever the app's language: what a
+    /// PowerPoint names a word's cut by ("Montserrat Light"), and reads one
+    /// back from, on both phones.
+    static let englishWeightNames: [Int: String] = [
+        300: "Light", 400: "Regular", 500: "Medium", 600: "Semibold", 700: "Bold", 800: "Extra bold", 900: "Black",
+    ]
 
     /// The file's shape. "source" is informational.
     private struct Catalogue: Decodable {
@@ -205,16 +240,35 @@ enum FontLibrary {
     }
 
     /// Whether a font called `name` is found by `query`: the name has it,
-    /// case and accents aside. A blank query finds everything.
+    /// case and accents aside. A blank query finds everything. A font of
+    /// your own is matched by its name alone.
     static func matches(_ name: String, _ query: String) -> Bool {
         let needle = folded(query)
         return needle.isEmpty || folded(name).contains(needle)
     }
 
+    /// Whether `font` is found by `query`: its name, its category or any of
+    /// its tags has it, case and accents aside — a tag or category by its
+    /// English or by its word in the app's language (`translate`, tr, as
+    /// tagName says it), so "cursive" finds Dancing Script, Pacifico,
+    /// Sacramento and Satisfy, and "mono" the Mono category. Both phones'
+    /// rule.
+    static func matches(_ font: FontDef, _ query: String, translate: (String) -> String = { tr($0) }) -> Bool {
+        if matches(font.name, query) { return true }
+        let words = [font.category, translate(font.category)] + font.tags.flatMap { [$0, translate($0)] }
+        return words.contains { matches($0, query) }
+    }
+
     /// The families the picker lists for `query` in `category`
     /// (allCategories for every one), in catalogue order.
     static func search(_ query: String, category: String = allCategories) -> [FontDef] {
-        all.filter { (category == allCategories || $0.category == category) && matches($0.name, query) }
+        all.filter { (category == allCategories || $0.category == category) && matches($0, query) }
+    }
+
+    /// The picker's Popular section: the families ranked, by rank, the top
+    /// `popularLimit`.
+    static var popular: [FontDef] {
+        Array(all.filter { $0.popular != nil }.sorted { ($0.popular ?? 0) < ($1.popular ?? 0) }.prefix(popularLimit))
     }
 
     /// Recently used after `key` is chosen: it first, once, then the rest as
@@ -584,7 +638,7 @@ enum FontLibrary {
     /// after a list's markers, as the field types the words as they are
     /// kept (InlineTextField). Where a tap puts the caret is found in it.
     static func typedAttributedString(for el: Element) -> NSAttributedString {
-        let spans = el.textFill?.kind == "gradient" ? Spans.withoutColours(el.liveSpans) : el.liveSpans
+        let spans = paintsLetters(el) ? Spans.withoutColours(el.liveSpans) : el.liveSpans
         return styledWords(el.text ?? "", of: el, capitals: false, spans: spans)
     }
 
@@ -638,20 +692,28 @@ enum FontLibrary {
         let size = el.fontSize ?? 42
         let weight = FontLibrary.weight(of: el)
         let italic = FontLibrary.isItalic(el)
-        // A word's own face at the box's size and weight, bold and italic
-        // by the same rule as the box's own words; a plain word in a font
-        // of its own with no weight or slant set is drawn at that face's
-        // (weight(of:in:)), as on the Android twin.
-        let face = { (family: String, bold: Bool, slanted: Bool) -> UIFont in
+        // A word's own face at the box's size: its own font, weight and
+        // slant where it has them (Spans), bold and italic by the same rule
+        // as the box's own words — **bold** over a word's own weight by
+        // boldWeight — and a plain word in a font of its own with no weight
+        // or slant set drawn at that face's (weight(of:in:)), as the
+        // Android twin's TextPaths.face sets it.
+        let face = { (span: TextSpan, bold: Bool, slanted: Bool) -> UIFont in
+            let family = span.font ?? el.fontFamily
             let plain = !bold && !slanted
-            let base = plain ? FontLibrary.weight(of: el, in: family) : weight
-            let lean = plain ? FontLibrary.isItalic(el, in: family) : italic
-            return FontLibrary.uiFont(family: family, size: size, weight: FontLibrary.resolveWeight(base, bold: bold),
-                                      italic: slanted || lean)
+            let base = span.weight ?? (plain ? FontLibrary.weight(of: el, in: family) : weight)
+            let lean = span.italic ?? (plain ? FontLibrary.isItalic(el, in: family) : italic)
+            let drawn: Int
+            if let own = span.weight, bold {
+                drawn = FontLibrary.boldWeight(family, own)
+            } else {
+                drawn = FontLibrary.resolveWeight(base, bold: bold)
+            }
+            return FontLibrary.uiFont(family: family, size: size, weight: drawn, italic: slanted || lean)
         }
-        // Under gradient letters a link takes no colour, as words' colours
-        // do not (displaySpans), on both phones.
-        let linkColour = el.textFill?.kind != "gradient"
+        // Under gradient letters, or a photo in them, a link takes no
+        // colour, as words' colours do not (displaySpans), on both phones.
+        let linkColour = !paintsLetters(el)
         let styled = RichText.attributed(marked, base: base, uppercase: capitals, spans: spans,
                                          linkColour: linkColour, face: face) { bold, slanted in
             uiFont(family: el.fontFamily, size: size, weight: resolveWeight(weight, bold: bold), italic: slanted || italic)
@@ -699,6 +761,16 @@ enum FontLibrary {
         bold ? (weight >= 700 ? 900 : 700) : weight
     }
 
+    /// The weight **bold** draws a word that has a weight of its own: 700
+    /// when its own is lighter, else the next heavier cut its font has
+    /// (weights) — Roboto's 700 bolded is its 800 — and its own when the
+    /// font has none heavier (Lora's 700 stays 700). The rule both phones
+    /// share (the Android twin's TextPaths.boldWeight), over the same rows.
+    static func boldWeight(_ key: String?, _ weight: Int) -> Int {
+        if weight < 700 { return 700 }
+        return weights(key).first { $0 > weight } ?? weight
+    }
+
     /// Display text with the inline style markers still in it.
     static func markedDisplayText(for el: Element, pageNumber: Int?, pageCount: Int?) -> String {
         var raw = el.text ?? ""
@@ -718,6 +790,14 @@ enum FontLibrary {
 
     // MARK: colours, sizes, fonts and links on words
 
+    /// Whether the letters are painted as a whole — a gradient, or a photo
+    /// in them (Paint.isPhoto) — so that a colour on a word would not show
+    /// through, and is left out, on both phones.
+    static func paintsLetters(_ el: Element) -> Bool {
+        guard let fill = el.textFill else { return false }
+        return fill.kind == "gradient" || fill.isPhoto
+    }
+
     /// The element's colours, sizes, fonts and links on words, moved from
     /// the words as they read onto the display text before capitals — past
     /// a list's markers, a line at a time. Colours are left out while the
@@ -726,7 +806,7 @@ enum FontLibrary {
     static func displaySpans(for el: Element, marked: String) -> [TextSpan] {
         var spans = el.liveSpans
         guard !spans.isEmpty else { return [] }
-        if el.textFill?.kind == "gradient" {
+        if paintsLetters(el) {
             spans = Spans.withoutColours(spans)
             guard !spans.isEmpty else { return [] }
         }
@@ -760,7 +840,7 @@ enum FontLibrary {
     /// and faces are left out there, where the letters keep the box's type.
     static func displayColours(for el: Element) -> [TextSpan] {
         let marked = markedDisplayText(for: el, pageNumber: nil, pageCount: nil)
-        let gradient = el.textFill?.kind == "gradient"
+        let gradient = paintsLetters(el)
         let colours = displaySpans(for: el, marked: marked).compactMap { span -> TextSpan? in
             let linked = span.link != nil && !gradient ? Spans.linkColour : nil
             return (span.color ?? linked).map { TextSpan(start: span.start, end: span.end, color: $0) }
@@ -784,9 +864,10 @@ enum FontLibrary {
     }
 
     /// Whether some words are set larger or smaller than the box's type, or
-    /// in a face of their own, so measuring has to take them in.
+    /// in a face of their own — a font, a weight or a slant — so measuring
+    /// has to take them in.
     static func hasSizedWords(_ el: Element) -> Bool {
-        el.liveSpans.contains { $0.scale != nil || $0.font != nil }
+        el.liveSpans.contains { $0.scale != nil || $0.setsFace }
     }
 
     /// One indent level, in ems.

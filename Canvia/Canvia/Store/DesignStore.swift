@@ -66,6 +66,13 @@ final class DesignStore {
     var wordFontTarget: WordRange?
     /// The words the link prompt is open for, from the typing bar's Link.
     var wordLinkTarget: WordRange?
+    /// A photo dropped on a selected text box, waiting to be asked whether
+    /// it fills the letters or lands on the page (PhotoInLetters).
+    var letterFillOffer: LetterFillOffer?
+    /// The photo-filled text Adjust photo is open for.
+    var photoAdjustTarget: String?
+    /// The photo-filled text double-tapped, offered Adjust photo.
+    var photoAdjustOffer: String?
     /// The text box dictation writes into while the microphone is on. Its
     /// words go there and nowhere else, whatever is selected meanwhile.
     var dictationTarget: String?
@@ -990,10 +997,10 @@ final class DesignStore {
         guard takesGradient(el) else { return el }
         var e = el
         if el.type == .text {
-            // Letters draw a gradient and nothing else: a pattern or a photo
-            // fill picked for a mixed selection is the shapes', and on the
-            // text would be saved and never shown.
-            guard paint.kind == "gradient" else { return el }
+            // Letters draw a gradient or a photo and nothing else: a pattern
+            // picked for a mixed selection is the shapes', and on the text
+            // would be saved and never shown.
+            guard paint.kind == "gradient" || paint.isPhoto else { return el }
             e.textFill = paint
         } else {
             e.fill = paint

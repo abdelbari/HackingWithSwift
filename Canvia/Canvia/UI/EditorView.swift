@@ -37,6 +37,8 @@ enum EditorSheet: String, Identifiable {
     case audio
     /// The typing bar's Aa: the font sheet for the words chosen.
     case fontWords
+    /// Adjust photo: the picture in a text's letters (PhotoInLetters).
+    case photoInLetters
     var id: String { rawValue }
 }
 
@@ -263,6 +265,7 @@ struct EditorView: View {
             }
             if sheet != .colorWords, store.wordColourTarget != nil { store.wordColourTarget = nil }
             if sheet != .fontWords, store.wordFontTarget != nil { store.wordFontTarget = nil }
+            if sheet != .photoInLetters, store.photoAdjustTarget != nil { store.photoAdjustTarget = nil }
         }
         // Crop, typing, the pen or the eraser taking the page ends Select
         // multiple as a panel does, the selection kept — as on the Android
@@ -1366,12 +1369,14 @@ struct EditorView: View {
         case .colorText:
             // A gradient on text is a fill, not a colour, so it lives in its
             // own field; picking a plain colour clears it.
-            // Colours and gradients only: text draws no pattern or photo.
-            // Several texts ring what they share, and nothing when they differ.
+            // Colours, gradients and photo fills (a photo in the letters,
+            // PhotoFills): text draws no pattern. Several texts ring what
+            // they share, and nothing when they differ.
             ColorPickerSheet(store: store, title: tr("Text colour"),
                              current: store.sharedText { $0.color ?? "#1f2430" },
                              allowGradients: true,
                              allowPatterns: false,
+                             allowPhotos: true,
                              currentPaint: store.sharedText { $0.textFill } ?? nil,
                              onPick: { c in store.updateSelected { $0.color = c; $0.textFill = nil } },
                              onPickGradient: { p in store.updateSelected { $0.textFill = p } },
@@ -1427,6 +1432,8 @@ struct EditorView: View {
             FontSheet(store: store)
         case .fontWords:
             FontSheet(store: store, words: true)
+        case .photoInLetters:
+            PhotoInLettersSheet(store: store)
         case .effects:
             EffectsSheet(store: store)
         case .spacing:
@@ -1865,5 +1872,6 @@ private struct WordRequests: ViewModifier {
                 if target != nil { activeSheet = .fontWords }
             }
             .modifier(WordLinkPrompt(store: store))
+            .modifier(PhotoInLettersPrompts(store: store, openAdjust: { activeSheet = .photoInLetters }))
     }
 }

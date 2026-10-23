@@ -40,10 +40,13 @@ enum PhotoGrids {
         var cells: [[Int]]
     }
 
-    /// PhotoFrames.json: the grids here, the frames in DecorativeFrames.
+    /// PhotoFrames.json: the grids here, the frames in DecorativeFrames,
+    /// the letter and number frames in GlyphFrames (a file without them,
+    /// from an earlier build, has none).
     struct File: Decodable {
         fileprivate var photoGrids: [GridDef]
         var photoFrames: [FrameDef]
+        var glyphFrames: [GlyphFrameDef]?
     }
 
     /// Read once, on first use.
@@ -52,7 +55,7 @@ enum PhotoGrids {
               let data = try? Data(contentsOf: url),
               let decoded = try? JSONDecoder().decode(File.self, from: data) else {
             assertionFailure("PhotoFrames.json missing or invalid")
-            return File(photoGrids: [], photoFrames: [])
+            return File(photoGrids: [], photoFrames: [], glyphFrames: nil)
         }
         return decoded
     }()

@@ -1448,6 +1448,14 @@ struct CanvasView: View {
             store.tapInSelectMultiple(el.id)
             return
         }
+        // Letters full of a photo offer Adjust photo first, with Edit
+        // text beside it (PhotoInLettersPrompts).
+        if el.type == .text, el.textFill?.isPhoto == true, !el.locked {
+            commitTextEditIfAny()
+            store.select(el.id)
+            store.photoAdjustOffer = el.id
+            return
+        }
         // A shape double-tapped is typed in, as a text box is; a
         // table cell's rectangle, its words — the word under the
         // finger chosen, as in Canva.

@@ -633,8 +633,10 @@ struct Element: Codable, Equatable, Identifiable {
     /// When the element shows within its page, in seconds; nil is the
     /// whole page (see ElementTiming).
     var timing: ElementTiming?
-    /// A gradient behind the letters. nil paints `color`; a solid Paint here
-    /// is never stored, since `color` already is one.
+    /// A gradient behind the letters, or a photo in them (Paint.photo: the
+    /// shape fill's keys with a focus and a zoom, see PhotoFills). nil
+    /// paints `color`; a solid Paint here is never stored, since `color`
+    /// already is one.
     var textFill: Paint?
     var effect: TextEffectSpec?
     /// Degrees of arc for curved text. Positive bends the baseline into a

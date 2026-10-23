@@ -253,7 +253,8 @@ enum ExportChoices {
 
 /// The last export, as "Remember these settings" keeps it:
 /// {"format":"png","scale":2.0,"longEdge":null,"jpegQuality":0.85,
-///  "transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false}.
+///  "transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false,
+///  "pptxStyledText":"editable"}. A missing "pptxStyledText" is "editable".
 struct ExportLast: Codable, Equatable {
     /// "png" | "jpg" | "pdf" | "print" | "svg" | "pptx" | "mp4" | "gif".
     var format: String
@@ -267,17 +268,24 @@ struct ExportLast: Codable, Equatable {
     /// The PDF's "Include notes" and "Compress".
     var pdfNotes = false
     var pdfCompress = false
+    /// The PowerPoint's "Styled text": "editable" (the closest DrawingML
+    /// match, PptxExporter's styled text) or "picture" (the exact look).
+    var pptxStyledText = ExportLast.styledEditable
 
     static let key = "exportLast"
     static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif"]
     static let pageChoices: Set<String> = ["all", "current", "chosen"]
 
+    static let styledEditable = "editable"
+    static let styledPicture = "picture"
+    static let styledTextChoices: [String] = [styledEditable, styledPicture]
+
     private enum CodingKeys: String, CodingKey {
-        case format, scale, longEdge, jpegQuality, transparent, pages, pdfNotes, pdfCompress
+        case format, scale, longEdge, jpegQuality, transparent, pages, pdfNotes, pdfCompress, pptxStyledText
     }
 
     init(format: String, scale: Double, longEdge: Int?, jpegQuality: Double, transparent: Bool, pages: String,
-         pdfNotes: Bool = false, pdfCompress: Bool = false) {
+         pdfNotes: Bool = false, pdfCompress: Bool = false, pptxStyledText: String = ExportLast.styledEditable) {
         self.format = format
         self.scale = scale
         self.longEdge = longEdge
@@ -286,7 +294,11 @@ struct ExportLast: Codable, Equatable {
         self.pages = pages
         self.pdfNotes = pdfNotes
         self.pdfCompress = pdfCompress
+        self.pptxStyledText = pptxStyledText
     }
+
+    /// Whether styled text goes out editable, as the setting says.
+    var styledTextEditable: Bool { pptxStyledText != ExportLast.styledPicture }
 
     /// Lenient, as a setting from another build may be: what does not read
     /// takes the sheet's own default.
@@ -303,6 +315,9 @@ struct ExportLast: Codable, Equatable {
         // Missing, or not a true or false, is off.
         pdfNotes = (try? c.decode(Bool.self, forKey: .pdfNotes)) ?? false
         pdfCompress = (try? c.decode(Bool.self, forKey: .pdfCompress)) ?? false
+        // "editable" or "picture"; anything else, or none, is editable.
+        let styled = (try? c.decode(String.self, forKey: .pptxStyledText)) ?? Self.styledEditable
+        pptxStyledText = Self.styledTextChoices.contains(styled) ? styled : Self.styledEditable
     }
 
     /// Every key written, the long edge as null when there is none, in the
@@ -317,6 +332,7 @@ struct ExportLast: Codable, Equatable {
         try c.encode(pages, forKey: .pages)
         try c.encode(pdfNotes, forKey: .pdfNotes)
         try c.encode(pdfCompress, forKey: .pdfCompress)
+        try c.encode(pptxStyledText, forKey: .pptxStyledText)
     }
 
     /// As stored: every key, in the order above, written out here rather
@@ -334,6 +350,7 @@ struct ExportLast: Codable, Equatable {
             "\"pages\":" + Self.quoted(pages),
             "\"pdfNotes\":" + String(pdfNotes),
             "\"pdfCompress\":" + String(pdfCompress),
+            "\"pptxStyledText\":" + Self.quoted(pptxStyledText),
         ]
         return "{" + fields.joined(separator: ",") + "}"
     }

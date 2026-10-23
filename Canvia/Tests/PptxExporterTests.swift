@@ -332,14 +332,20 @@ final class PptxExporterTests: XCTestCase {
             (text, "text"),
             (with(text) { $0.text = "**Bold** and ~~gone~~" }, "text"),
             (with(text) { $0.listStyle = "bullet" }, "text"),
-            (with(text) { $0.effect = TextEffectSpec(type: "neon") }, "picture"),
-            (with(text) { $0.curve = 90 }, "picture"),
-            (with(text) { $0.textFill = gradient }, "picture"),
+            (with(text) { $0.effect = TextEffectSpec(type: "neon") }, "text"),
+            (with(text) { $0.effect = TextEffectSpec(type: "splice") }, "picture"),
+            (with(text) { $0.effect = TextEffectSpec(type: "echo") }, "picture"),
+            (with(text) { $0.effect = TextEffectSpec(type: "glitch") }, "picture"),
+            (with(text) { $0.curve = 90 }, "text"),
+            (with(text) { $0.textPath = TextPaths.presets[0].data }, "picture"),
+            (with(text) { $0.vertical = true }, "text"),
+            (with(text) { $0.textFill = gradient }, "text"),
             (with(text) { $0.textFill = .solid("#ff0000") }, "text"),
             (with(text) { $0.setSpans([TextSpan(start: 0, end: 1, color: "#ff0000")]) }, "text"),
             (with(text) { $0.uppercase = true }, "text"),
             (with(text) { $0.flipH = true }, "picture"),
-            (with(text) { $0.dropCap = true }, "picture"),
+            (with(text) { $0.shadow = Shadow() }, "text"),
+            (with(text) { $0.dropCap = true }, "text"),
             (rect, "shape"),
             (with(rect) { $0.radius = 12 }, "shape"),
             (Element.shape("circle"), "shape"),
@@ -371,6 +377,97 @@ final class PptxExporterTests: XCTestCase {
         }
         XCTAssertEqual(PptxExporter.form(of: Element.shape("circle")), .shape("ellipse"))
         XCTAssertEqual(PptxExporter.form(of: with(rect) { $0.radius = 12 }), .shape("roundRect"))
+        // "Exact look": styled text is the picture it always was.
+        let exact: [(Element, String)] = [
+            (text, "text"),
+            (with(text) { $0.effect = TextEffectSpec(type: "neon") }, "picture"),
+            (with(text) { $0.effect = TextEffectSpec(type: "shadow") }, "picture"),
+            (with(text) { $0.curve = 90 }, "picture"),
+            (with(text) { $0.textFill = gradient }, "picture"),
+            (with(text) { $0.shadow = Shadow() }, "picture"),
+            (with(text) { $0.dropCap = true }, "picture"),
+        ]
+        for (n, row) in exact.enumerated() {
+            XCTAssertEqual(word(PptxExporter.form(of: row.0, styled: false)), row.1, "exact row \(n)")
+        }
+    }
+
+    /// Shared: the mapping table, row for row and byte for byte — what each
+    /// styling puts in the run's rPr and the body's bodyPr.
+    func testStyledTextGoesOutAsTheClosestDrawingMLEditable() {
+        let text = Element.text("Hi")
+        func with(_ el: Element, _ change: (inout Element) -> Void) -> Element {
+            var copy = el
+            change(&copy)
+            return copy
+        }
+        let ink = "<a:solidFill><a:srgbClr val=\"1F2430\"/></a:solidFill>"
+        let face = "<a:latin typeface=\"Modern Sans\"/>"
+        let rows: [(Element, String)] = [
+            // Shadow at its defaults: 3.56 px at 45°, 5.04 px soft, black at 55%.
+            (with(text) { $0.effect = TextEffectSpec(type: "shadow") },
+             "<a:rPr sz=\"3150\">\(ink)<a:effectLst><a:outerShdw blurRad=\"48006\" dist=\"33945\" dir=\"2700000\" algn=\"ctr\">"
+             + "<a:srgbClr val=\"000000\"><a:alpha val=\"55000\"/></a:srgbClr></a:outerShdw></a:effectLst>\(face)</a:rPr>"),
+            // Lift: straight down, soft.
+            (with(text) { $0.effect = TextEffectSpec(type: "lift") },
+             "<a:rPr sz=\"3150\">\(ink)<a:effectLst><a:outerShdw blurRad=\"200025\" dist=\"72009\" dir=\"5400000\" algn=\"ctr\">"
+             + "<a:srgbClr val=\"000000\"><a:alpha val=\"35000\"/></a:srgbClr></a:outerShdw></a:effectLst>\(face)</a:rPr>"),
+            // The element's own shadow: 6 px down, 12 blur, black at 35%.
+            (with(text) { $0.shadow = Shadow() },
+             "<a:rPr sz=\"3150\">\(ink)<a:effectLst><a:outerShdw blurRad=\"114300\" dist=\"57150\" dir=\"5400000\" algn=\"ctr\">"
+             + "<a:srgbClr val=\"000000\"><a:alpha val=\"35000\"/></a:srgbClr></a:outerShdw></a:effectLst>\(face)</a:rPr>"),
+            // Outline: a stroke of its thickness and colour before the fill.
+            (with(text) { $0.effect = TextEffectSpec(type: "outlined", color: "#ff0000") },
+             "<a:rPr sz=\"3150\"><a:ln w=\"16002\"><a:solidFill><a:srgbClr val=\"FF0000\"/></a:solidFill></a:ln>\(ink)\(face)</a:rPr>"),
+            // Hollow: the stroke in the ink, no fill.
+            (with(text) { $0.effect = TextEffectSpec(type: "outline") },
+             "<a:rPr sz=\"3150\"><a:ln w=\"23813\">\(ink)</a:ln><a:noFill/>\(face)</a:rPr>"),
+            // Neon: a glow in the ink.
+            (with(text) { $0.effect = TextEffectSpec(type: "neon") },
+             "<a:rPr sz=\"3150\">\(ink)<a:effectLst><a:glow rad=\"140018\"><a:srgbClr val=\"1F2430\"><a:alpha val=\"85000\"/></a:srgbClr></a:glow></a:effectLst>\(face)</a:rPr>"),
+            // Highlight: the bar's colour on the run.
+            (with(text) { $0.effect = TextEffectSpec(type: "highlight") },
+             "<a:rPr sz=\"3150\">\(ink)<a:highlight><a:srgbClr val=\"FFE066\"/></a:highlight>\(face)</a:rPr>"),
+            // Gradient letters.
+            (with(text) { $0.textFill = Paint(kind: "gradient", color: nil, angle: 90, stops: twoStops()) },
+             "<a:rPr sz=\"3150\"><a:gradFill><a:gsLst><a:gs pos=\"0\"><a:srgbClr val=\"000000\"/></a:gs>"
+             + "<a:gs pos=\"100000\"><a:srgbClr val=\"FFFFFF\"/></a:gs></a:gsLst><a:lin ang=\"0\"/></a:gradFill>\(face)</a:rPr>"),
+        ]
+        for (n, row) in rows.enumerated() {
+            let xml = slideXML([row.0])
+            XCTAssertTrue(xml.contains(row.1), "row \(n)\n\(xml)")
+            XCTAssertTrue(isWellFormed(xml), "row \(n)")
+        }
+        // A curve warps the body; a column stands it up, CJK down a column.
+        let arched = slideXML([with(text) { $0.curve = 90 }])
+        XCTAssertTrue(arched.contains("<a:bodyPr lIns=\"0\" tIns=\"0\" rIns=\"0\" bIns=\"0\"><a:prstTxWarp prst=\"textArchUp\">"
+                                      + "<a:avLst><a:gd name=\"adj\" fmla=\"val 5400000\"/></a:avLst></a:prstTxWarp></a:bodyPr>"), arched)
+        XCTAssertTrue(slideXML([with(text) { $0.curve = -60 }])
+            .contains("<a:prstTxWarp prst=\"textArchDown\"><a:avLst><a:gd name=\"adj\" fmla=\"val 3600000\"/></a:avLst></a:prstTxWarp>"))
+        XCTAssertTrue(slideXML([with(text) { $0.vertical = true }])
+            .contains("<a:bodyPr lIns=\"0\" tIns=\"0\" rIns=\"0\" bIns=\"0\" vert=\"wordArtVert\"/>"))
+        XCTAssertTrue(slideXML([with(text) { $0.vertical = true; $0.text = "縦書き" }]).contains(" vert=\"eaVert\"/>"))
+        XCTAssertTrue(TextOutliner.hasCJK("縦書き"))
+        XCTAssertTrue(TextOutliner.hasCJK("한글"))
+        XCTAssertFalse(TextOutliner.hasCJK("Hello"))
+        // A drop cap: the first letter a run three times the size.
+        let capped = slideXML([with(text) { $0.dropCap = true; $0.text = "Hello\nthere" }])
+        XCTAssertTrue(capped.contains("<a:r><a:rPr sz=\"9450\">\(ink)\(face)</a:rPr><a:t>H</a:t></a:r>"
+                                      + "<a:r><a:rPr sz=\"3150\">\(ink)\(face)</a:rPr><a:t>ello</a:t></a:r></a:p>"), capped)
+        XCTAssertTrue(capped.contains("<a:r><a:rPr sz=\"3150\">\(ink)\(face)</a:rPr><a:t>there</a:t></a:r></a:p>"), capped)
+        // Only where the canvas draws one: not before a quote mark, nor on a curve.
+        let quoted = slideXML([with(text) { $0.dropCap = true; $0.text = "\"Quote\"" }])
+        XCTAssertFalse(quoted.contains("sz=\"9450\""), quoted)
+        XCTAssertFalse(slideXML([with(text) { $0.dropCap = true; $0.curve = 90 }]).contains("sz=\"9450\""))
+        // "Exact look": the same text is a picture.
+        let glowing = onePage([with(text) { $0.effect = TextEffectSpec(type: "neon") }])
+        let exact = PptxExporter.slide(design: glowing, page: glowing.pages[0], number: 1, previous: nil,
+                                       firstImage: 1, styled: false)
+        XCTAssertTrue(exact.xml.contains("<p:pic>"))
+        XCTAssertEqual(exact.media.map(\.name), ["image1.png"])
+        XCTAssertEqual(PptxExporter.entryNames(design: glowing, indices: [0], styled: false).filter { $0.hasPrefix("ppt/media") },
+                       ["ppt/media/image1.png"])
+        XCTAssertEqual(PptxExporter.entryNames(design: glowing, indices: [0]).filter { $0.hasPrefix("ppt/media") }, [])
     }
 
     // MARK: text (shared)
@@ -536,6 +633,36 @@ final class PptxExporterTests: XCTestCase {
             + "Target=\"https://x.com\" TargetMode=\"External\"/>"
         XCTAssertTrue(parts.rels.contains(rel), parts.rels)
         XCTAssertTrue(isWellFormed(parts.xml))
+    }
+
+    /// Shared: a word with a weight of its own is bold from 600 and names
+    /// its cut; a word with a slant of its own is italic by it.
+    func testWordsKeepTheirOwnWeightAndSlant() {
+        var el = Element.text("one two three")
+        el.fontFamily = "montserrat"
+        el.setSpans([TextSpan(start: 0, end: 3, weight: 300), TextSpan(start: 4, end: 7, weight: 600, italic: true),
+                     TextSpan(start: 8, end: 13, italic: false)])
+        let ink = "<a:solidFill><a:srgbClr val=\"1F2430\"/></a:solidFill>"
+        let expected = [
+            "<a:r><a:rPr sz=\"3150\">\(ink)<a:latin typeface=\"Montserrat Light\"/></a:rPr><a:t>one</a:t></a:r>",
+            "<a:r><a:rPr sz=\"3150\">\(ink)<a:latin typeface=\"Montserrat\"/></a:rPr><a:t> </a:t></a:r>",
+            "<a:r><a:rPr sz=\"3150\" b=\"1\" i=\"1\">\(ink)<a:latin typeface=\"Montserrat Semibold\"/></a:rPr><a:t>two</a:t></a:r>",
+            "<a:r><a:rPr sz=\"3150\">\(ink)<a:latin typeface=\"Montserrat\"/></a:rPr><a:t> three</a:t></a:r>",
+        ].joined()
+        let xml = slideXML([el])
+        XCTAssertTrue(xml.contains(expected), xml)
+        // A word set upright in an italic box is upright; one at 900 is Black.
+        var italicBox = Element.text("a b")
+        italicBox.italic = true
+        italicBox.setSpans([TextSpan(start: 2, end: 3, weight: 900, italic: false)])
+        let upright = slideXML([italicBox])
+        XCTAssertTrue(upright.contains("<a:rPr sz=\"3150\" i=\"1\">"), upright)
+        XCTAssertTrue(upright.contains("<a:rPr sz=\"3150\" b=\"1\">\(ink)<a:latin typeface=\"Modern Sans Black\"/></a:rPr><a:t>b</a:t>"), upright)
+        let design = Design(title: "d")
+        XCTAssertEqual(PptxExporter.typeface("lora", in: design, weight: 400), "Lora")
+        XCTAssertEqual(PptxExporter.typeface("lora", in: design, weight: 700), "Lora Bold")
+        XCTAssertEqual(PptxExporter.typeface("lora", in: design, weight: 350), "Lora 350")
+        XCTAssertEqual(PptxExporter.typeface("lora", in: design, weight: nil), "Lora")
     }
 
     /// Shared: sz is held to 100 to 400000, as a deck must have it.

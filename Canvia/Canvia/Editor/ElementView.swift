@@ -315,6 +315,12 @@ struct TextElementView: View {
         if let pageNumber {
             el.fillPageTokens(number: pageNumber.number, count: pageNumber.count)
         }
+        // Letters full of a photo draw in its average colour wherever the
+        // effect needs a solid ink — Neon's glow, Hollow's stroke, Splice's
+        // copies — and the picture over them where it shows (takesPhoto).
+        if let fill = el.textFill, fill.isPhoto, let src = fill.src, let average = PhotoPalette.averageColour(src) {
+            el.color = average
+        }
         let text = FontLibrary.displayText(for: el)
         guard !text.isEmpty else { return }
         if TextOutliner.followsAPath(el) {
@@ -437,8 +443,8 @@ struct TextElementView: View {
         // that draw the letters as strokes or doubles — a gradient across
         // an outline is a smear. Outline's letters are filled, so they take
         // it, the stroke round them left as it is.
-        if let fill = el.textFill, fill.kind == "gradient",
-           [.none, .shadow, .lift, .outlined, .neon, .highlight].contains(effect) {
+        let photo = Self.pouredPhoto(el, effect: effect)
+        if let fill = el.textFill, fill.kind == "gradient" && effect.takesGradient || photo != nil {
             let renderer = UIGraphicsImageRenderer(size: size)
             // The letters as drawn, bold runs and all, so the gradient
             // lands on exactly the glyphs above.
@@ -458,11 +464,38 @@ struct TextElementView: View {
             // The gradient spans the text's part of the box, which in this
             // flipped space runs from the bottom up to where the words start.
             cg.clip(to: CGRect(origin: .zero, size: size), mask: cgMask)
-            Self.paintGradient(fill, in: cg,
-                               rect: CGRect(x: 0, y: 0, width: size.width, height: size.height - rect.minY),
-                               flipped: true)
+            if let photo {
+                // The picture where the window puts it over the whole box,
+                // drawn back in the box's own orientation.
+                cg.scaleBy(x: 1, y: -1)
+                cg.translateBy(x: 0, y: -size.height)
+                Self.drawPhoto(photo, in: PhotoFills.window(photo, box: size, paint: fill), into: cg)
+            } else {
+                Self.paintGradient(fill, in: cg,
+                                   rect: CGRect(x: 0, y: 0, width: size.width, height: size.height - rect.minY),
+                                   flipped: true)
+            }
             cg.restoreGState()
         }
+    }
+
+    /// The photo in `el`'s letters, when they are full of one the effect
+    /// lets through (TextEffect.takesPhoto) and this phone can open.
+    static func pouredPhoto(_ el: Element, effect: TextEffect) -> UIImage? {
+        guard let fill = el.textFill, fill.isPhoto, effect.takesPhoto else { return nil }
+        return PhotoLibrary.resolve(fill.src)
+    }
+
+    /// `image` over `rect` in a context in UIKit orientation (y down):
+    /// CoreGraphics lays an image out y up, so it is flipped about the
+    /// rect, whatever context is current.
+    static func drawPhoto(_ image: UIImage, in rect: CGRect, into cg: CGContext) {
+        guard let picture = image.cgImage else { return }
+        cg.saveGState()
+        cg.translateBy(x: 0, y: rect.maxY)
+        cg.scaleBy(x: 1, y: -1)
+        cg.draw(picture, in: CGRect(x: rect.minX, y: 0, width: rect.width, height: rect.height))
+        cg.restoreGState()
     }
 
     /// The cap at the top-left, the body in a CoreText frame whose path is
@@ -608,12 +641,20 @@ struct TextElementView: View {
             fillParts()
             // The outline is a path, so the gradient clips to it directly —
             // no mask, no flip; the path is already in this context's space.
+            // A photo in the letters the same, where the window puts it.
             if let fill = el.textFill, fill.kind == "gradient" {
                 cg.saveGState()
                 cg.setShadow(offset: .zero, blur: 0, color: nil)
                 cg.addPath(path)
                 cg.clip()
                 Self.paintGradient(fill, in: cg, rect: CGRect(origin: .zero, size: size), flipped: false)
+                cg.restoreGState()
+            } else if let fill = el.textFill, let photo = Self.pouredPhoto(el, effect: effect) {
+                cg.saveGState()
+                cg.setShadow(offset: .zero, blur: 0, color: nil)
+                cg.addPath(path)
+                cg.clip()
+                Self.drawPhoto(photo, in: PhotoFills.window(photo, box: size, paint: fill), into: cg)
                 cg.restoreGState()
             }
         }
@@ -769,7 +810,7 @@ struct ImageElementView: View {
     }
 
     private var frame: FrameShape {
-        FrameShape(definition: element.maskShapeId.flatMap { ContentLibrary.shapeMap[$0] },
+        FrameShape(definition: ContentLibrary.frameShape(element.maskShapeId),
                    cornerRadius: element.radius ?? 0)
     }
 

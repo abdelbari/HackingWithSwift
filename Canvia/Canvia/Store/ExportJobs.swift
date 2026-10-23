@@ -98,12 +98,13 @@ enum ExportJobs {
         }
     }
 
-    /// The deck as a .pptx named after the design.
-    static func powerPoint(_ snapshot: ExportSnapshot) -> Work {
+    /// The deck as a .pptx named after the design, its styled text
+    /// editable (the closest match) or the picture of its exact look.
+    static func powerPoint(_ snapshot: ExportSnapshot, styled: Bool = true) -> Work {
         { report in
             let url = DesignExporter.fileURL(for: snapshot.design, ext: PptxExporter.fileExtension)
             try await PptxExporter.export(design: snapshot.design, range: snapshot.range,
-                                          current: snapshot.current, to: url, progress: report)
+                                          current: snapshot.current, to: url, styled: styled, progress: report)
             return ExportQueue.Result(urls: [url])
         }
     }

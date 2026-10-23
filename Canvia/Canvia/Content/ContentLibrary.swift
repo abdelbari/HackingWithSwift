@@ -343,6 +343,14 @@ enum ContentLibrary {
         shapeMap[id ?? "rect"] ?? shapeMap["rect"] ?? fallbackShape
     }
 
+    /// The shape a photo's `maskShapeId` clips it to: a library shape, or a
+    /// letter or number frame (GlyphFrames); nil for none, or an id this
+    /// build does not have, which is no frame rather than a wrong one.
+    static func frameShape(_ id: String?) -> ShapeDef? {
+        guard let id else { return nil }
+        return shapeMap[id] ?? GlyphFrames.shape(id)
+    }
+
     /// The geometry an element draws: its own path data if it has any,
     /// else the library shape it names.
     static func shape(for el: Element) -> ShapeDef {

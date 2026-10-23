@@ -10,6 +10,7 @@
 import XCTest
 import CoreText
 import UIKit
+import UniformTypeIdentifiers
 @testable import Canvia
 
 final class CustomFontsTests: XCTestCase {
@@ -30,6 +31,71 @@ final class CustomFontsTests: XCTestCase {
 
     private func bundled(_ file: String) throws -> Data {
         try Data(contentsOf: try XCTUnwrap(FontLibrary.bundledURL(file)))
+    }
+
+    /// A fixture's bytes: from the test bundle, or beside this file.
+    private func fixture(_ name: String, _ ext: String, file: StaticString = #filePath) throws -> Data {
+        if let url = Bundle(for: CustomFontsTests.self).url(forResource: name, withExtension: ext) {
+            return try Data(contentsOf: url)
+        }
+        let here = URL(fileURLWithPath: "\(file)").deletingLastPathComponent()
+        return try Data(contentsOf: here.appendingPathComponent("Fixtures/\(name).\(ext)"))
+    }
+
+    /// Shared: Fixtures/righteous-400.woff (the Android twin's
+    /// tools/generate_woff_fixture.py) unpacks to a 40908-byte TrueType
+    /// font of thirteen tables, Righteous; a WOFF2 is refused with what to
+    /// do instead.
+    func testAWOFFIsUnpackedIntoTheFontItWrapsAndAWOFF2Refused() throws {
+        let woff = try fixture("righteous-400", "woff")
+        XCTAssertEqual(try CustomFonts.check(woff).get(), CustomFonts.Checked(ext: "ttf", name: "Righteous"))
+        let font = try CustomFonts.sfnt(woff).get()
+        XCTAssertEqual(font.count, 40908)
+        let bytes = [UInt8](font)
+        func u32(_ at: Int) -> Int { Int(bytes[at]) << 24 | Int(bytes[at + 1]) << 16 | Int(bytes[at + 2]) << 8 | Int(bytes[at + 3]) }
+        let count = Int(bytes[4]) << 8 | Int(bytes[5])
+        XCTAssertEqual(count, 13)
+        let tags = (0..<count).map { String(decoding: bytes[(12 + 16 * $0)..<(16 + 16 * $0)], as: UTF8.self) }
+        XCTAssertEqual(tags, ["OS/2", "VDMX", "cmap", "gasp", "glyf", "head", "hhea", "hmtx", "kern", "loca", "maxp", "name", "post"])
+        XCTAssertEqual(CustomFonts.familyName(font), "Righteous")
+        XCTAssertEqual(CustomFonts.describe(font)?.weight, 400)
+        // Every table the face it was wrapped from has, byte for byte, with
+        // its checksum — laid out in the directory's order, padded to four.
+        func tables(_ sfnt: Data) -> [String: (checksum: Int, bytes: [UInt8])] {
+            let b = [UInt8](sfnt)
+            func word(_ at: Int) -> Int { Int(b[at]) << 24 | Int(b[at + 1]) << 16 | Int(b[at + 2]) << 8 | Int(b[at + 3]) }
+            let n = Int(b[4]) << 8 | Int(b[5])
+            var out: [String: (checksum: Int, bytes: [UInt8])] = [:]
+            for i in 0..<n {
+                let at = 12 + 16 * i
+                let tag = String(decoding: b[at..<(at + 4)], as: UTF8.self)
+                out[tag] = (word(at + 4), Array(b[word(at + 8)..<(word(at + 8) + word(at + 12))]))
+            }
+            return out
+        }
+        let original = tables(try bundled("righteous-400.ttf"))
+        let unpacked = tables(font)
+        XCTAssertEqual(Set(original.keys), Set(unpacked.keys))
+        for (tag, table) in original {
+            XCTAssertEqual(unpacked[tag]?.checksum, table.checksum, tag)
+            XCTAssertEqual(unpacked[tag]?.bytes, table.bytes, tag)
+        }
+        XCTAssertEqual(font.count % 4, 0)
+        XCTAssertTrue(FontStore.loads(font), "the unpacked font draws")
+        // A plain font is itself; a WOFF2 and a WOFF that does not read are refused.
+        let ttf = try bundled("lora-400.ttf")
+        XCTAssertEqual(try CustomFonts.sfnt(ttf).get(), ttf)
+        func problem(_ data: Data) -> CustomFonts.Problem? {
+            if case .failure(let refusal) = CustomFonts.check(data) { return refusal }
+            return nil
+        }
+        XCTAssertEqual(problem(Data("wOF2".utf8) + Data(count: 40)), .woff2)
+        XCTAssertEqual(CustomFonts.Problem.woff2.message, "WOFF2 fonts aren't supported yet. Convert it to .ttf or .otf first.")
+        XCTAssertEqual(problem(woff.prefix(300)), .notAFont)
+        XCTAssertEqual(problem(Data("wOFF".utf8) + Data(count: 40)), .notAFont)
+        // The picker lets a WOFF through by its types.
+        XCTAssertTrue(FontSheet.fontTypes.contains(.font))
+        XCTAssertTrue(FontSheet.fontTypes.count > 1)
     }
 
     /// A smallest sfnt: `tag`, then a name table holding `names` (name id

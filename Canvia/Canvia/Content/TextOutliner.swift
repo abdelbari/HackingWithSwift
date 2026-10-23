@@ -227,6 +227,22 @@ enum TextOutliner {
         return attributes?[Spans.colourKey.rawValue] as? String
     }
 
+    /// Whether `text` has any Chinese, Japanese or Korean letters — what
+    /// vertical text is set down a column for in PowerPoint (eaVert), the
+    /// rest stacked letter by letter (wordArtVert). The Android twin's
+    /// TextPaths.hasCjk, by the same scripts: Han, Hiragana, Katakana,
+    /// Hangul and Bopomofo.
+    static func hasCJK(_ text: String) -> Bool {
+        text.unicodeScalars.contains { scalar in
+            let v = scalar.value
+            return (0x2E80...0x2FDF).contains(v) || (0x3040...0x30FF).contains(v) || (0x3100...0x312F).contains(v)
+                || (0x3130...0x318F).contains(v) || (0x31A0...0x31BF).contains(v) || (0x31F0...0x31FF).contains(v)
+                || (0x3400...0x4DBF).contains(v) || (0x4E00...0x9FFF).contains(v) || (0xA960...0xA97F).contains(v)
+                || (0xAC00...0xD7FF).contains(v) || (0xF900...0xFAFF).contains(v) || (0x1100...0x11FF).contains(v)
+                || (0x20000...0x3134F).contains(v)
+        }
+    }
+
     /// Whether the text is drawn as glyph outlines on a curve or a path
     /// rather than as straight lines.
     static func followsAPath(_ el: Element) -> Bool {

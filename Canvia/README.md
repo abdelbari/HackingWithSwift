@@ -154,8 +154,9 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   remap, naming the palette it applied). The picker's headings are the
   Android twin's ("Brand colours", "In this design", "Default colours", "A
   colour of your own"); the gradient, pattern or photo fill already there
-  is ringed, text is offered colours and gradients only (the fills it
-  draws), and a swatch or style that changes something is felt. "Goes
+  is ringed, text is offered colours, gradients and photo fills (the fills
+  it draws: a photo pours into the letters, see PhotoFills), and a swatch
+  or style that changes something is felt. "Goes
   with these · <palette>" suggests the palette that best covers the
   page's colours (redmean distance, as on Android); the brand kit's colours
   are the first palette in Document theme once it has two; and every

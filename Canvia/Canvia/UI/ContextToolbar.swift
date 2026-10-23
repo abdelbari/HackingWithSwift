@@ -2,6 +2,7 @@
 // cluster (position, opacity, lock, duplicate, layer order, delete).
 
 import SwiftUI
+import PhotosUI
 
 /// `.plain` removes SwiftUI's default press dimming, so every control in this
 /// bar acknowledged a tap with nothing at all. This restores that and enforces
@@ -39,6 +40,8 @@ struct ContextToolbar: View {
     @State private var showingStyles = false
     /// The size control's number was tapped: a size to type or pick.
     @State private var enteringSize = false
+    /// A photo picked for the selected text's letters (PhotoInLetters).
+    @State private var letterPhoto: PhotosPickerItem?
     @Bindable var store: DesignStore
     @Binding var activeSheet: EditorSheet?
     /// Animated pictures play on the canvas, not only in Present and video.
@@ -199,6 +202,7 @@ struct ContextToolbar: View {
             }
             toolButton("wand.and.stars", "Effects") { activeSheet = .effects }
             toolButton("arrow.up.and.down.text.horizontal", "Spacing") { activeSheet = .spacing }
+            if !el.locked { photoInLetters(el) }
             if Dictation.isAvailable && !el.locked { dictateButton(el) }
             if el.vertical == true {
                 // A curve or a path cannot bend words stood in columns; say
@@ -214,6 +218,43 @@ struct ContextToolbar: View {
                     store.updateSelectedTransient { curve(&$0, to: degrees) }
                 }
             }
+        }
+    }
+
+    /// Photo: a picture from the device poured into the letters
+    /// (DesignStore.pourPhoto), as Canva fills type with a photo — the
+    /// colour sheet's Photo fill row offers the design's own too — and,
+    /// once filled, Adjust photo, which a double-tap offers as well.
+    @ViewBuilder
+    private func photoInLetters(_ el: Element) -> some View {
+        PhotosPicker(selection: $letterPhoto, matching: .images) {
+            toolLabel("photo", "Photo")
+        }
+        .buttonStyle(ToolButtonStyle())
+        .onChange(of: letterPhoto) { _, item in
+            guard let item else { return }
+            letterPhoto = nil
+            pourPickedPhoto(item)
+        }
+        if el.textFill?.isPhoto == true {
+            toolButton("arrow.up.left.and.down.right.magnifyingglass", "Adjust photo") {
+                if store.startPhotoAdjust(el.id) { activeSheet = .photoInLetters }
+            }
+        }
+    }
+
+    /// The picked photo stored among your uploads, as the Add sheet stores
+    /// one, then poured into the selected texts' letters as one step.
+    private func pourPickedPhoto(_ item: PhotosPickerItem) {
+        let store = self.store
+        Task {
+            guard let src = await BackgroundYourPhotos.stored(item) else {
+                store.buzz(.reject)
+                store.announce(tr("Couldn't open that photo"), undoable: false)
+                return
+            }
+            store.pourPhoto(src)
+            store.buzz(.confirm)
         }
     }
 

@@ -86,6 +86,18 @@ enum TextEffect: String, CaseIterable, Identifiable {
     }
     var defaultColor2: String? { self == .glitch ? "#ff2d78" : nil }
 
+    /// Whether gradient letters show through the effect: the plain
+    /// letters, and those drawn filled under a shadow, a lift, an outline,
+    /// a glow or a highlight bar — not Hollow, Splice, Echo or Glitch,
+    /// which draw the letters as strokes or doubles. The same set on both
+    /// phones.
+    var takesGradient: Bool { [.none, .shadow, .lift, .outlined, .neon, .highlight].contains(self) }
+
+    /// Whether a photo in the letters shows through the effect: the same
+    /// set as takesGradient. Effects that need a solid ink under a photo
+    /// (Neon's glow, Splice's copies) take the photo's average colour.
+    var takesPhoto: Bool { takesGradient }
+
     /// A setting as drawn: the stored value as it is, else the default —
     /// not kept in range, so a file draws the same on the Android twin.
     static func value(_ spec: TextEffectSpec?, _ param: TextEffectParam, for effect: TextEffect) -> Double {
@@ -273,5 +285,23 @@ struct TextEffectModifier: ViewModifier {
                 .shadow(color: Color(hex: "#ff2d78").opacity(0.85),
                         radius: 0, x: -fontSize * 0.06, y: 0)
         }
+    }
+}
+
+extension TextEffectSpec {
+    /// Every setting at its type's default left out, and a colour that is
+    /// the type's own: what the file holds, as encode writes it — the
+    /// Android twin's TextEffect.normalised, so a spec read back from a
+    /// deck compares equal to one made by hand.
+    var tidied: TextEffectSpec {
+        var out = TextEffectSpec(type: type)
+        let effect = TextEffect(rawValue: type)
+        for param in TextEffectParam.allCases {
+            guard let value = self[param], effect?.defaultValue(param) != value else { continue }
+            out[param] = value
+        }
+        if let color, color.lowercased() != effect?.defaultColor?.lowercased() { out.color = color }
+        if let color2, color2.lowercased() != effect?.defaultColor2?.lowercased() { out.color2 = color2 }
+        return out
     }
 }

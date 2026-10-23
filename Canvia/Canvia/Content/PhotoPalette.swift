@@ -50,6 +50,42 @@ enum PhotoPalette {
         merged(images.prefix(4).map { extract(from: $0) })
     }
 
+    /// The one colour a picture averages to: what letters full of a photo
+    /// draw in where the effect needs a solid ink (Neon's glow, Hollow's
+    /// stroke), and what a file writes where it cannot hold the photo.
+    /// Clear pixels are left out; nothing is mid-grey. The Android twin's
+    /// PhotoPalette.average, channel for channel.
+    static func average(of image: UIImage) -> String {
+        average(samples(of: image) ?? [])
+    }
+
+    /// The same over `pixels` as RGBA bytes.
+    static func average(_ pixels: [UInt8]) -> String {
+        var r = 0, g = 0, b = 0, n = 0
+        var i = 0
+        while i + 3 < pixels.count {
+            if pixels[i + 3] >= 128 {
+                r += Int(pixels[i]); g += Int(pixels[i + 1]); b += Int(pixels[i + 2])
+                n += 1
+            }
+            i += 4
+        }
+        guard n > 0 else { return "#808080" }
+        return hex(Double(r) / Double(n), Double(g) / Double(n), Double(b) / Double(n))
+    }
+
+    private static let averages = NSCache<NSString, NSString>()
+
+    /// The average colour of the picture `src` names, worked out once per
+    /// picture; nil when it cannot be opened.
+    static func averageColour(_ src: String) -> String? {
+        if let known = averages.object(forKey: src as NSString) { return known as String }
+        guard let image = PhotoLibrary.resolve(src) else { return nil }
+        let colour = average(of: image)
+        averages.setObject(colour as NSString, forKey: src as NSString)
+        return colour
+    }
+
     /// Up to `count` colours, most prominent first, each at least `minDistance`
     /// apart (in 0…255 RGB units, Euclidean) from every colour before it.
     static func extract(from image: UIImage, count: Int = 6,

@@ -67,9 +67,10 @@ final class PptxReaderTests: XCTestCase {
         return try archive(files + media)
     }
 
-    private func textBox(_ xfrm: String, _ body: String) -> String {
+    private func textBox(_ xfrm: String, _ body: String,
+                         bodyPr: String = "<a:bodyPr lIns=\"0\" tIns=\"0\" rIns=\"0\" bIns=\"0\"/>") -> String {
         "<p:sp><p:nvSpPr><p:cNvPr id=\"2\" name=\"t\"/><p:cNvSpPr txBox=\"1\"/><p:nvPr/></p:nvSpPr><p:spPr>\(xfrm)</p:spPr>"
-            + "<p:txBody><a:bodyPr lIns=\"0\" tIns=\"0\" rIns=\"0\" bIns=\"0\"/><a:lstStyle/>\(body)</p:txBody></p:sp>"
+            + "<p:txBody>\(bodyPr)<a:lstStyle/>\(body)</p:txBody></p:sp>"
     }
 
     private let box = "<a:xfrm><a:off x=\"952500\" y=\"952500\"/><a:ext cx=\"3810000\" cy=\"952500\"/></a:xfrm>"
@@ -188,6 +189,83 @@ final class PptxReaderTests: XCTestCase {
         XCTAssertNil(t.effect, "no effect key, as on the Android twin")
         XCTAssertEqual(t.spans, [TextSpan(start: 9, end: 19, color: "#ff0000", scale: 0.5, font: "anton")])
         XCTAssertEqual(t.spansText, "Big sale\ntoday only")
+    }
+
+    /// Shared: a run's cut ("Montserrat Light") is its words' own weight,
+    /// and a bold or italic run the markers cannot keep apart from the
+    /// words' own stars is their own weight and slant instead.
+    func testARunsCutAndTheStylesTheMarkersCannotKeepGoToTheSpans() throws {
+        let body = "<a:p><a:r><a:rPr><a:latin typeface=\"Montserrat\"/></a:rPr><a:t>Big </a:t></a:r>"
+            + "<a:r><a:rPr b=\"1\" i=\"1\"><a:latin typeface=\"Montserrat Semibold\"/></a:rPr><a:t>sale</a:t></a:r>"
+            + "<a:r><a:rPr><a:latin typeface=\"Montserrat Light\"/></a:rPr><a:t> now</a:t></a:r></a:p>"
+        let t = try only(deck([textBox(box, body)]))
+        XCTAssertEqual(t.text, "Big ***sale*** now")
+        XCTAssertEqual(t.fontFamily, "montserrat")
+        XCTAssertEqual(t.spans, [TextSpan(start: 4, end: 8, weight: 600), TextSpan(start: 8, end: 12, weight: 300)])
+        XCTAssertEqual(PptxReader.cut("Montserrat Light").map { "\($0.family) \($0.weight)" }, "montserrat 300")
+        XCTAssertEqual(PptxReader.cut("Lora Bold").map { "\($0.family) \($0.weight)" }, "lora 700")
+        XCTAssertEqual(PptxReader.cut("Lora 350").map { "\($0.family) \($0.weight)" }, "lora 350")
+        XCTAssertEqual(PptxReader.cut("Montserrat Extra bold").map { "\($0.family) \($0.weight)" }, "montserrat 800")
+        XCTAssertNil(PptxReader.cut("Lora"))
+        XCTAssertNil(PptxReader.cut("Comic Sans MS Bold"))
+        let stars = try only(deck([textBox(box, "<a:p><a:r><a:rPr/><a:t>2*3 is </a:t></a:r><a:r><a:rPr b=\"1\" i=\"1\"/><a:t>6*</a:t></a:r></a:p>")]))
+        XCTAssertEqual(stars.text, "2*3 is 6*")
+        XCTAssertEqual(stars.spans, [TextSpan(start: 7, end: 9, weight: 700, italic: true)])
+    }
+
+    /// Shared: what the writer's styled text reads back as — a round trip
+    /// keeps the styling.
+    func testStyledRunsComeBackAsEffectsACurveAndAColumn() async throws {
+        func styledBox(_ rPr: String, bodyPr: String = "<a:bodyPr/>") throws -> Element {
+            try only(deck([textBox(box, "<a:p><a:r>\(rPr)<a:t>Hi</a:t></a:r></a:p>", bodyPr: bodyPr)]))
+        }
+        let ink = "<a:solidFill><a:srgbClr val=\"1F2430\"/></a:solidFill>"
+        let shadow = try styledBox("<a:rPr sz=\"3150\">\(ink)<a:effectLst><a:outerShdw blurRad=\"48006\" dist=\"33945\" dir=\"2700000\" algn=\"ctr\">"
+                                   + "<a:srgbClr val=\"000000\"><a:alpha val=\"55000\"/></a:srgbClr></a:outerShdw></a:effectLst></a:rPr>")
+        XCTAssertEqual(shadow.effect?.type, "shadow")
+        XCTAssertEqual(TextEffect.value(shadow.effect, .offset, for: .shadow), 50, accuracy: 0.5)
+        XCTAssertEqual(TextEffect.value(shadow.effect, .direction, for: .shadow), 45, accuracy: 0.01)
+        XCTAssertEqual(TextEffect.value(shadow.effect, .blur, for: .shadow), 50, accuracy: 0.5)
+        XCTAssertEqual(TextEffect.value(shadow.effect, .transparency, for: .shadow), 45, accuracy: 0.01)
+        // Its colour comes without the alpha, so a default shadow reads back as the default.
+        XCTAssertNil(shadow.effect?.color)
+        XCTAssertEqual(shadow.effect, TextEffectSpec(type: "shadow"))
+        let glow = try styledBox("<a:rPr sz=\"3150\">\(ink)<a:effectLst><a:glow rad=\"140018\"><a:srgbClr val=\"1F2430\"><a:alpha val=\"85000\"/></a:srgbClr></a:glow></a:effectLst></a:rPr>")
+        XCTAssertEqual(glow.effect?.type, "neon")
+        XCTAssertEqual(TextEffect.value(glow.effect, .intensity, for: .neon), 50, accuracy: 0.5)
+        let hollow = try styledBox("<a:rPr sz=\"3150\"><a:ln w=\"23813\">\(ink)</a:ln><a:noFill/></a:rPr>")
+        XCTAssertEqual(hollow.effect?.type, "outline")
+        XCTAssertEqual(TextEffect.value(hollow.effect, .thickness, for: .outline), 50, accuracy: 0.5)
+        let outlined = try styledBox("<a:rPr sz=\"3150\"><a:ln w=\"16002\"><a:solidFill><a:srgbClr val=\"FF0000\"/></a:solidFill></a:ln>\(ink)</a:rPr>")
+        XCTAssertEqual(outlined.effect, TextEffectSpec(type: "outlined", color: "#ff0000"))
+        let lit = try styledBox("<a:rPr sz=\"3150\">\(ink)<a:highlight><a:srgbClr val=\"FFE066\"><a:alpha val=\"60000\"/></a:srgbClr></a:highlight></a:rPr>")
+        XCTAssertEqual(lit.effect, TextEffectSpec(type: "highlight", color: "#ffe066"))
+        let arched = try styledBox("<a:rPr/>", bodyPr: "<a:bodyPr><a:prstTxWarp prst=\"textArchUp\"><a:avLst><a:gd name=\"adj\" fmla=\"val 5400000\"/></a:avLst></a:prstTxWarp></a:bodyPr>")
+        XCTAssertEqual(arched.curve, 90)
+        let valley = try styledBox("<a:rPr/>", bodyPr: "<a:bodyPr><a:prstTxWarp prst=\"textArchDown\"><a:avLst><a:gd name=\"adj\" fmla=\"val 3600000\"/></a:avLst></a:prstTxWarp></a:bodyPr>")
+        XCTAssertEqual(valley.curve, -60)
+        XCTAssertEqual(try styledBox("<a:rPr/>", bodyPr: "<a:bodyPr vert=\"eaVert\"/>").vertical, true)
+        XCTAssertNil(try styledBox("<a:rPr/>").effect)
+        let poured = try styledBox("<a:rPr sz=\"3150\"><a:gradFill><a:gsLst><a:gs pos=\"0\"><a:srgbClr val=\"000000\"/></a:gs>"
+                                   + "<a:gs pos=\"100000\"><a:srgbClr val=\"FFFFFF\"/></a:gs></a:gsLst><a:lin ang=\"0\"/></a:gradFill></a:rPr>")
+        XCTAssertEqual(poured.textFill?.kind, "gradient")
+        XCTAssertEqual(poured.textFill?.angle, 90)
+        XCTAssertEqual(poured.textFill?.stops?.map(\.color), ["#000000", "#ffffff"])
+        // A round trip through the writer keeps the styling.
+        var styled = Element.text("Glow", fontSize: 42, w: 300)
+        styled.id = "t"
+        styled.x = 10; styled.y = 10; styled.h = 60
+        styled.effect = TextEffectSpec(type: "neon")
+        styled.curve = 40
+        var design = Design(title: "Deck", width: 800, height: 600)
+        design.pages = [Page(id: "p", elements: [styled])]
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("styled-\(UUID().uuidString).pptx")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try await PptxExporter.export(design: design, range: .all, to: url)
+        let back = try read(try Data(contentsOf: url)).design.pages[0].elements
+        XCTAssertEqual(back.count, 1)
+        XCTAssertEqual(back.first?.effect, TextEffectSpec(type: "neon"))
+        XCTAssertEqual(back.first?.curve, 40)
     }
 
     func testAStyleEveryRunHasIsTheBoxsOwn() throws {

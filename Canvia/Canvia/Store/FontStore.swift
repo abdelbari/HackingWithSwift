@@ -198,15 +198,20 @@ enum FontStore {
     }
 
     /// The bytes kept as a font of your own, after checking them (too big, a
-    /// collection, not a font) and loading them as a face: its key
-    /// "custom:<sha12>", or what was wrong. The same file twice is the same
-    /// font, stored once; one that cannot be written is refused as one the
-    /// phone cannot use, since it cannot.
-    static func add(_ data: Data, now: Date = Date()) -> Result<String, CustomFonts.Problem> {
+    /// collection, a WOFF2, not a font) and loading them as a face: its key
+    /// "custom:<sha12>", or what was wrong. A WOFF is kept as the font it
+    /// wraps (CustomFonts.sfnt), as .ttf, and hashed as that. The same file
+    /// twice is the same font, stored once; one that cannot be written is
+    /// refused as one the phone cannot use, since it cannot.
+    static func add(_ given: Data, now: Date = Date()) -> Result<String, CustomFonts.Problem> {
         let checked: CustomFonts.Checked
-        switch CustomFonts.check(data) {
-        case .success(let ok): checked = ok
-        case .failure(let problem): return .failure(problem)
+        let data: Data
+        switch CustomFonts.unpacked(given) {
+        case .success(let ok):
+            checked = ok.checked
+            data = ok.font
+        case .failure(let problem):
+            return .failure(problem)
         }
         let sha = CustomFonts.sha12(data)
         let url = directory.appendingPathComponent("\(sha).\(checked.ext)")
