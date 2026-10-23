@@ -236,7 +236,8 @@ final class CaptionsTests: XCTestCase {
         let said = Array(repeating: word, count: 5).joined(separator: "\u{3000}")
         XCTAssertEqual(Captions.wrapped(said), ["\(word) \(word) \(word)", "\(word) \(word)"])
         XCTAssertEqual(Captions.wrapped("a\u{00a0}b\u{2003}c"), ["a b c"])
-        XCTAssertEqual(Captions.wrapped("a\u{200b}b"), ["a\u{200b}b"])
+        // Foundation's whitespace set holds the zero-width space, so it parts words too.
+        XCTAssertEqual(Captions.wrapped("a\u{200b}b"), ["a b"])
         XCTAssertEqual(Captions.wordRanges("a\u{3000}b\u{00a0}c").map { [$0.start, $0.end] }, [[0, 1], [2, 3], [4, 5]])
         let long = Array(repeating: word, count: 12).joined(separator: "\u{3000}")
         XCTAssertEqual(Captions.split([CaptionCue(start: 0, end: 2, text: long)]).count, 2)
