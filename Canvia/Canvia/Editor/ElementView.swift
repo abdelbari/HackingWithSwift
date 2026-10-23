@@ -48,10 +48,13 @@ struct ElementView: View {
     /// known: what a reveal counts and cuts, so the words that appear are the
     /// words that stay — as the Android twin reveals them. A caption box
     /// shows the cue at the page's moment while it plays; at rest, the cue
-    /// at the timeline's playhead, or its first (Captions.shown).
+    /// at the timeline's playhead — the first cue while it stands before it
+    /// — or its first (Captions.shown).
     private var resolved: Element {
         var el = element
-        if el.captions != nil { el = Captions.shown(el, at: animationTime?.time ?? captionTime) }
+        if el.captions != nil {
+            el = Captions.shown(el, at: animationTime?.time ?? captionTime, still: animationTime == nil)
+        }
         guard let pageNumber, el.text?.contains("{page") == true else { return el }
         el.fillPageTokens(number: pageNumber.number, count: pageNumber.count)
         return el

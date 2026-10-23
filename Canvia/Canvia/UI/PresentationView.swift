@@ -424,7 +424,8 @@ struct PresentationView: View {
         let elements = design.drawnElements(on: page)
         if elements.contains(where: { VideoStore.isVideo($0.src) || AnimStore.isAnim($0.src) }) { return .infinity }
         var end = elements.compactMap { el in el.animation.map { (el.timing?.start ?? 0) + $0.end } }.max() ?? 0
-        if elements.contains(where: { $0.kenBurns != nil || $0.exitAnimation != nil }) {
+        // A caption box's words change through the page's whole hold.
+        if elements.contains(where: { $0.kenBurns != nil || $0.exitAnimation != nil || Captions.plays($0) }) {
             end = max(end, session.holdSeconds(page))
         }
         end = max(end, elements.compactMap { $0.timing.map { $0.end ?? $0.start } }.max() ?? 0)

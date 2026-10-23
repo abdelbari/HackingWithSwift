@@ -19,7 +19,8 @@ enum ExportSuggestion {
 
     /// "mp4" if any shown page has a clip, an audio track, an element
     /// animation (an entrance or an exit), a page transition of its own or
-    /// an animated GIF or WebP; else "pdf" when more than one page is shown
+    /// an animated GIF or WebP, or a caption box with cues (Captions.plays);
+    /// else "pdf" when more than one page is shown
     /// and the design's type is in `documentCategories`; else "png", or
     /// "jpg" when a photo covers at least `photoCover` of every shown page.
     ///
@@ -38,13 +39,15 @@ enum ExportSuggestion {
 
     /// Whether `page` moves: a clip or an animated picture on it — as a
     /// photo, filling a shape or behind the page — or on the master behind
-    /// it, an element that enters or exits, or a transition of its own.
+    /// it, an element that enters or exits, a caption box with cues, or a
+    /// transition of its own.
     /// Hidden elements are left out, as the film leaves them out.
     static func moves(_ design: Design, _ page: Page) -> Bool {
         if page.transition != nil { return true }
         if case .image(let src) = page.background, playing(src) { return true }
         return design.drawnElements(on: page).contains {
             playing($0.src) || playing($0.fill?.src) || $0.animation != nil || $0.exitAnimation != nil
+                || Captions.plays($0)
         }
     }
 

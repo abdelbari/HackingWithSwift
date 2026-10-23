@@ -85,10 +85,11 @@ final class PresentSession {
 
     /// Whether anything on the page moves: an entrance, an exit, a loop, a
     /// drift, a clip playing, an animated picture, an element shown for
-    /// part of the page.
+    /// part of the page, a caption box whose words change.
     static func moves(_ page: Page, in design: Design) -> Bool {
         design.drawnElements(on: page).contains {
-            $0.animation != nil || $0.exitAnimation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src)
+            if Captions.plays($0) { return true }
+            return $0.animation != nil || $0.exitAnimation != nil || $0.kenBurns != nil || VideoStore.isVideo($0.src)
                 || AnimStore.isAnim($0.src) || $0.timing != nil
         }
     }
