@@ -155,6 +155,16 @@ enum ExportJobs {
         }
     }
 
+    /// The pages as one web page: index.html, or a .zip of it and its
+    /// clips (HTMLExporter).
+    static func html(_ snapshot: ExportSnapshot, settings: HTMLExporter.Settings) -> Work {
+        { report in
+            let url = try HTMLExporter.export(snapshot.design, pages: snapshot.pages, settings: settings)
+            report(1)
+            return ExportQueue.Result(urls: [url])
+        }
+    }
+
     /// The design and its photos as a Canvia design file. Gathered on the
     /// main actor, where library photos are drawn; written out away from
     /// it, since turning every photo and clip into base64 takes long

@@ -31,8 +31,11 @@ enum SVGExporter {
     /// photo-heavy page from becoming a 40 MB text file.
     static let bitmapScale: CGFloat = 2
 
+    /// With `aria`, as a web page holds it (HTMLExporter): each element
+    /// with alt text a group a screen reader reads as one picture, by its
+    /// words — role="img" and aria-label.
     @MainActor
-    static func svg(design: Design, page: Page) -> String {
+    static func svg(design: Design, page: Page, aria: Bool = false) -> String {
         var defs: [String] = []
         var body: [String] = []
 
@@ -44,7 +47,7 @@ enum SVGExporter {
             if ShapeText.carriesWords(el) {
                 resolved.fillPageTokens(number: number, count: design.pages.count)
             }
-            body.append(elementGroup(resolved, index: index, defs: &defs))
+            body.append(elementGroup(resolved, index: index, aria: aria, defs: &defs))
         }
 
         let size = design.size(for: page)
@@ -59,7 +62,7 @@ enum SVGExporter {
     // MARK: elements
 
     @MainActor
-    private static func elementGroup(_ el: Element, index: Int, defs: inout [String]) -> String {
+    private static func elementGroup(_ el: Element, index: Int, aria: Bool = false, defs: inout [String]) -> String {
         var transforms: [String] = []
         let cx = el.x + el.w / 2, cy = el.y + el.h / 2
         if el.rotation != 0 {
@@ -86,6 +89,9 @@ enum SVGExporter {
                 defs.append(shadowDef(id: id, shadow: shadow, element: el))
                 attributes += " filter=\"url(#\(id))\""
             }
+        }
+        if aria, let alt = el.altText?.trimmingCharacters(in: .whitespacesAndNewlines), !alt.isEmpty {
+            attributes += " role=\"img\" aria-label=\"\(escape(alt))\""
         }
         // An alt text becomes the group's title, which is what screen readers
         // and browsers read for an SVG element.

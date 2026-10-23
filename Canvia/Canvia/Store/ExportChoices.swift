@@ -255,9 +255,10 @@ enum ExportChoices {
 /// {"format":"png","scale":2.0,"longEdge":null,"jpegQuality":0.85,
 ///  "transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false,
 ///  "pptxStyledText":"editable","suggested":false,"pdfBookmarks":true,
-///  "colourProfile":"rgb"}. A missing "pptxStyledText" is "editable".
+///  "colourProfile":"rgb","html":{"nav":true,"mobileStack":true,
+///  "embedMedia":true}}. A missing "pptxStyledText" is "editable".
 struct ExportLast: Codable, Equatable {
-    /// "png" | "jpg" | "pdf" | "print" | "svg" | "pptx" | "mp4" | "gif".
+    /// "png" | "jpg" | "pdf" | "print" | "svg" | "pptx" | "mp4" | "gif" | "html".
     var format: String
     var scale: Double
     /// The long edge typed, in pixels; nil when the scale applies.
@@ -282,12 +283,15 @@ struct ExportLast: Codable, Equatable {
     /// The print-ready PDF's colour profile, "rgb" or "cmyk"
     /// (PrintLayout.ColourProfile); missing, or anything else, is "rgb".
     var colourProfile = "rgb"
+    /// The web page's menu, narrow-screen wrapping and clips
+    /// (HTMLExporter.Settings); missing is every one on.
+    var html = HTMLExporter.Settings()
 
     static let key = "exportLast"
-    static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif"]
+    static let formats: Set<String> = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html"]
     /// The export sheet's file types, in the order its picker lists them —
     /// the Android twin's ExportSettings.formats.
-    static let fileTypes = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif"]
+    static let fileTypes = ["png", "jpg", "pdf", "print", "svg", "pptx", "mp4", "gif", "html"]
     static let pageChoices: Set<String> = ["all", "current", "chosen"]
 
     static let styledEditable = "editable"
@@ -296,12 +300,13 @@ struct ExportLast: Codable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case format, scale, longEdge, jpegQuality, transparent, pages, pdfNotes, pdfCompress, pptxStyledText,
-             suggested, pdfBookmarks, colourProfile
+             suggested, pdfBookmarks, colourProfile, html
     }
 
     init(format: String, scale: Double, longEdge: Int?, jpegQuality: Double, transparent: Bool, pages: String,
          pdfNotes: Bool = false, pdfCompress: Bool = false, pptxStyledText: String = ExportLast.styledEditable,
-         suggested: Bool = false, pdfBookmarks: Bool = true, colourProfile: String = "rgb") {
+         suggested: Bool = false, pdfBookmarks: Bool = true, colourProfile: String = "rgb",
+         html: HTMLExporter.Settings = HTMLExporter.Settings()) {
         self.format = format
         self.scale = scale
         self.longEdge = longEdge
@@ -314,6 +319,7 @@ struct ExportLast: Codable, Equatable {
         self.suggested = suggested
         self.pdfBookmarks = pdfBookmarks
         self.colourProfile = PrintLayout.ColourProfile.of(colourProfile).rawValue
+        self.html = html
     }
 
     /// Whether styled text goes out editable, as the setting says.
@@ -341,6 +347,7 @@ struct ExportLast: Codable, Equatable {
         suggested = (try? c.decode(Bool.self, forKey: .suggested)) ?? false
         pdfBookmarks = (try? c.decode(Bool.self, forKey: .pdfBookmarks)) ?? true
         colourProfile = PrintLayout.ColourProfile.of(try? c.decode(String.self, forKey: .colourProfile)).rawValue
+        html = (try? c.decode(HTMLExporter.Settings.self, forKey: .html)) ?? HTMLExporter.Settings()
     }
 
     /// Every key written, the long edge as null when there is none, in the
@@ -359,6 +366,7 @@ struct ExportLast: Codable, Equatable {
         try c.encode(suggested, forKey: .suggested)
         try c.encode(pdfBookmarks, forKey: .pdfBookmarks)
         try c.encode(colourProfile, forKey: .colourProfile)
+        try c.encode(html, forKey: .html)
     }
 
     /// As stored: every key, in the order above, written out here rather
@@ -380,6 +388,7 @@ struct ExportLast: Codable, Equatable {
             "\"suggested\":" + String(suggested),
             "\"pdfBookmarks\":" + String(pdfBookmarks),
             "\"colourProfile\":" + Self.quoted(colourProfile),
+            "\"html\":" + html.json,
         ]
         return "{" + fields.joined(separator: ",") + "}"
     }

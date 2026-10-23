@@ -584,7 +584,7 @@ struct SizePreset: Identifiable, Codable, Equatable {
     }
 
     /// The symbol a size is drawn with: its own for the eleven on Home's
-    /// row, else its category's.
+    /// row and the website, else its category's.
     var icon: String {
         if let own = Self.icons[id] { return own }
         switch category {
@@ -601,7 +601,7 @@ struct SizePreset: Identifiable, Codable, Equatable {
         "insta-post": "square", "insta-story": "iphone", "presentation": "display",
         "youtube-thumb": "play.rectangle", "facebook-post": "rectangle", "poster": "doc.richtext",
         "flyer": "doc", "a4": "doc.text", "business-card": "person.crop.rectangle",
-        "quote-card": "quote.opening", "logo": "seal",
+        "quote-card": "quote.opening", "logo": "seal", "website": "globe",
     ]
 
     /// How many of the catalogue's first sizes Home's row shows: the
