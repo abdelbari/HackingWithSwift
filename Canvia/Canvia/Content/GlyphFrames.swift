@@ -52,6 +52,12 @@ enum GlyphFrames {
         var height: Double
 
         var id: String { shape.id }
+
+        /// Two frames are the same frame when they are the same shape: the
+        /// shape's id names the glyph's outline in the shared file.
+        static func == (a: Frame, b: Frame) -> Bool {
+            a.id == b.id && a.glyph == b.glyph && a.width == b.width && a.height == b.height
+        }
     }
 
     /// Every frame in the file's order: A to Z, then 0 to 9.
