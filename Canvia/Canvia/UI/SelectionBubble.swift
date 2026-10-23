@@ -1,7 +1,7 @@
 // Quick actions at the selection: a small pill floating just above what is
 // selected — below it when there is no room above — with Copy, Paste,
-// Duplicate and Delete, as Canva puts them by the element and as the Android
-// twin does. Each does what the menu's own does: Delete still says so with
+// Duplicate, Detach image on a filled frame or grid cell, and Delete, as
+// Canva puts them by the element and as the Android twin does. Each does what the menu's own does: Delete still says so with
 // its Undo. It keeps out of the way of the work — gone while a finger drags,
 // the view pans or pinches, a photo is cropped, words are typed or the pen
 // is out — and fades back once things are still, at once under Reduce
@@ -68,7 +68,10 @@ struct SelectionBubble: View {
 
     private var pastes: Bool { store.hasClipboard }
 
-    private var width: Double { Self.slot * Double(pastes ? 4 : 3) + 12 }
+    /// A filled frame or grid cell: its picture can be taken out.
+    private var detaches: Bool { store.canDetachImage }
+
+    private var width: Double { Self.slot * Double(3 + (pastes ? 1 : 0) + (detaches ? 1 : 0)) + 12 }
 
     private var pill: some View {
         HStack(spacing: 0) {
@@ -77,6 +80,10 @@ struct SelectionBubble: View {
                 action("doc.on.clipboard", tr("Paste")) { store.paste() }
             }
             action("plus.square.on.square", tr("Duplicate")) { store.duplicateSelected() }
+            // A filled frame or cell: its picture taken out as a photo of its own.
+            if detaches {
+                action("photo.on.rectangle", tr("Detach image")) { store.detachImage() }
+            }
             action("trash", tr("Delete"), destructive: true) { store.deleteSelected() }
         }
         .padding(.horizontal, 6)

@@ -50,6 +50,36 @@ enum PhotoFrames {
         elements.last { $0.id != id && Geometry.hits($0, point: point) && isFrameLike($0, among: elements) }
     }
 
+    /// Whether `el`'s picture can be taken out as a photo of its own: a
+    /// filled, unlocked frame-like photo — a grid's cell, a shaped frame, a
+    /// decorative frame's window.
+    static func canDetach(_ el: Element, among elements: [Element]) -> Bool {
+        el.type == .image && !el.locked && !isEmpty(el) && isFrameLike(el, among: elements)
+    }
+
+    /// `elements` with the picture taken out of the frame `id` (one that
+    /// `canDetach`) as a free photo of its own: at the frame's box, with its
+    /// crop, look, corners and border kept, in no group, out of the grid and
+    /// the frame's shape, laid just above the frame; the frame itself left
+    /// empty, as Replace with nothing leaves it. nil when there is nothing
+    /// to detach. The Android twin's PhotoFrames.detached.
+    static func detached(_ elements: [Element], id: String) -> [Element]? {
+        guard let at = elements.firstIndex(where: { $0.id == id }), canDetach(elements[at], among: elements) else {
+            return nil
+        }
+        let frame = elements[at]
+        var free = frame
+        free.id = UID.make()
+        free.group = nil
+        free.grid = nil
+        free.maskShapeId = nil
+        free.photoFrame = nil
+        var out = elements
+        out[at] = Crop.replaced(frame, src: nil)
+        out.insert(free, at: at + 1)
+        return out
+    }
+
     /// Top to bottom, then left to right, by centre: the order photos fill a
     /// grid's cells in.
     static func readingOrder(_ elements: [Element]) -> [Element] {

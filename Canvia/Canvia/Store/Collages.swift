@@ -1,7 +1,10 @@
 // Pictures into frames, as steps: Replace, a photo dragged onto a frame, a
 // picture dropped onto one from another app, and photos picked while frames
 // are selected. Which elements are frames is PhotoFrames' to say. And a
-// grid's Spacing and Corners, laid out again live as their sliders move.
+// grid's Spacing and Corners, laid out again live as their sliders move;
+// its Layout, moved to another with its pictures handed on; its dividers,
+// dragged on the canvas; and Detach image, a picture taken out of a frame
+// or cell as a photo of its own.
 
 import CoreGraphics
 import Foundation
@@ -106,5 +109,100 @@ extension DesignStore {
             }
         }
         Connectors.resolve(&design.pages[pageIndex])
+    }
+
+    // MARK: dividers
+
+    /// The box round the selected grid's cells; nil for no grid.
+    var selectedGridBox: CGRect? {
+        selectedGrid.map { PhotoGrids.bounds(of: $0.cells) }
+    }
+
+    /// The selected grid's dividers — each lattice line no cell runs across
+    /// (PhotoGrids.dividers) — with where its handle stands on the page:
+    /// the middle of the line. Only while the whole of a level grid that
+    /// can be laid out again is selected, as on the Android twin — and none
+    /// on a locked page, whose cells stay where they are.
+    var gridDividers: [(divider: PhotoGrids.GridDivider, at: CGPoint)] {
+        guard !isPageLocked, selectedGridCanRelay, let grid = selectedGrid, !grid.cells.contains(where: { $0.rotation != 0 }) else {
+            return []
+        }
+        let box = PhotoGrids.bounds(of: grid.cells)
+        return PhotoGrids.dividers(grid.layout, splits: PhotoGrids.splits(of: grid.cells)).map { divider in
+            let at = divider.vertical
+                ? CGPoint(x: box.minX + divider.at * box.width, y: box.midY)
+                : CGPoint(x: box.midX, y: box.minY + divider.at * box.height)
+            return (divider, at)
+        }
+    }
+
+    /// Divider `index` of the selected grid (gridDividers) taken to `to`, a
+    /// share of the grid's side: the line moved there — no cell narrower
+    /// than eight percent, snapped to the middle (PhotoGrids.dragged) — and
+    /// the whole grid laid out again on it, live; letting go closes the
+    /// step (commit). Where the line now stands, as a share, for the
+    /// readout; nil when there is no such divider.
+    @discardableResult
+    func dragGridDivider(_ index: Int, to: Double) -> Double? {
+        guard !isPageLocked, selectedGridCanRelay, let grid = selectedGrid else { return nil }
+        let custom = PhotoGrids.splits(of: grid.cells)
+        let dividers = PhotoGrids.dividers(grid.layout, splits: custom)
+        guard dividers.indices.contains(index) else { return nil }
+        let divider = dividers[index]
+        let splits = PhotoGrids.dragged(grid.layout, splits: custom, divider: divider, to: to)
+            ?? PhotoGrids.ownSplits(grid.layout)
+        let laid = PhotoGrids.relaid(grid.layout, cells: grid.cells, gutter: PhotoGrids.spacing(of: grid.cells),
+                                     corners: PhotoGrids.corners(of: grid.cells), splits: splits)
+        beginGesture()
+        for cell in laid {
+            if let i = design.pages[pageIndex].elements.firstIndex(where: { $0.id == cell.id }) {
+                design.pages[pageIndex].elements[i] = cell
+            }
+        }
+        Connectors.resolve(&design.pages[pageIndex])
+        let lines = divider.vertical ? splits.x : splits.y
+        return lines.indices.contains(divider.index) ? lines[divider.index] : divider.at
+    }
+
+    // MARK: layout and detach
+
+    /// The selected grid moved to `layout` — its box, spacing, corners and
+    /// group kept, its pictures handed on in fill order, any the new layout
+    /// has no cell for set free beside it (PhotoGrids.relayout) — as one
+    /// undo step, the new cells selected. Not when a cell keeps its place,
+    /// nor on a locked page.
+    func changeGridLayout(to layout: PhotoGrids.Layout) {
+        guard selectedGridCanRelay, let grid = selectedGrid, grid.layout.id != layout.id else { return }
+        guard !refusesLockedPage() else { return }
+        let out = PhotoGrids.relayout(grid.cells, to: layout)
+        let ids = Set(grid.cells.map(\.id))
+        applyToPage { page in
+            // The new cells where the old ones stood in the stack, the freed
+            // photos over them.
+            let at = page.elements.firstIndex { ids.contains($0.id) } ?? 0
+            var rest = page.elements.filter { !ids.contains($0.id) }
+            rest.insert(contentsOf: out, at: min(at, rest.count))
+            page.elements = rest
+        }
+        selection = Set(out.prefix(layout.cells.count).map(\.id))
+        buzz(.confirm)
+    }
+
+    /// Whether the one thing selected is a filled frame or cell a picture
+    /// can be taken out of (PhotoFrames.canDetach).
+    var canDetachImage: Bool {
+        guard let el = singleSelection else { return false }
+        return PhotoFrames.canDetach(el, among: page.elements)
+    }
+
+    /// Detach image: the selected frame's or cell's picture made a free
+    /// photo of its own over the frame, which is left empty, as one undo
+    /// step; the photo is selected.
+    func detachImage() {
+        guard let el = singleSelection, !refusesLockedPage(),
+              let out = PhotoFrames.detached(page.elements, id: el.id) else { return }
+        applyToPage { $0.elements = out }
+        if let at = out.firstIndex(where: { $0.id == el.id }), at + 1 < out.count { selection = [out[at + 1].id] }
+        buzz(.confirm)
     }
 }

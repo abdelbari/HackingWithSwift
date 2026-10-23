@@ -408,21 +408,26 @@ struct TableCell: Codable, Equatable, Hashable {
 /// as the Android twin writes it; one without an id, a layout, a cell or a
 /// gutter is no key at all, and a missing margin is nought. A grid made
 /// before there was a `grid` key has none, and offers neither slider.
+/// `splits` are the grid's custom lattice lines once a divider was dragged
+/// (PhotoGrids.dragged), written only when they differ from the layout's
+/// own; read only when they are sound for the layout (PhotoGrids.kept).
 struct GridCell: Codable, Equatable, Hashable {
     var id: String
     var layout: String
     var cell: Int
     var gutter: Double
     var margin: Double
+    var splits: GridSplits?
 
-    private enum CodingKeys: String, CodingKey { case id, layout, cell, gutter, margin }
+    private enum CodingKeys: String, CodingKey { case id, layout, cell, gutter, margin, splits }
 
-    init(id: String, layout: String, cell: Int, gutter: Double, margin: Double) {
+    init(id: String, layout: String, cell: Int, gutter: Double, margin: Double, splits: GridSplits? = nil) {
         self.id = id
         self.layout = layout
         self.cell = cell
         self.gutter = gutter
         self.margin = margin
+        self.splits = splits
     }
 
     init(from decoder: Decoder) throws {
@@ -442,6 +447,17 @@ struct GridCell: Codable, Equatable, Hashable {
         }
         gutter = try c.decode(Double.self, forKey: .gutter)
         margin = (try? c.decodeIfPresent(Double.self, forKey: .margin)) ?? 0
+        splits = PhotoGrids.kept(try? c.decodeIfPresent(GridSplits.self, forKey: .splits), for: PhotoGrids.layout(layout))
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(layout, forKey: .layout)
+        try c.encode(cell, forKey: .cell)
+        try c.encode(gutter, forKey: .gutter)
+        try c.encode(margin, forKey: .margin)
+        try c.encodeIfPresent(splits, forKey: .splits)
     }
 }
 
