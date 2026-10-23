@@ -391,7 +391,8 @@ enum DataGraphics {
         }
         func label(_ text: String, x: Double, y: Double, w: Double, align: String = "center",
                    part name: String = "label") -> Element {
-            var t = Element.text(text, fontSize: labelSize, w: max(w, labelSize * 2))
+            // A label reads as its data has it: its stars are stars.
+            var t = Element.text(RichText.escapeLiteral(text), fontSize: labelSize, w: max(w, labelSize * 2))
             t.align = align
             t.color = ink
             t.fontFamily = font

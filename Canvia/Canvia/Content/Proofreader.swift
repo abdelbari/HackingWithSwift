@@ -113,8 +113,10 @@ enum Proofreader {
     /// past the word ("he**lo world**"), which goes before it: after the
     /// word it would stand before a space, where it cannot open, and show as
     /// typed. The Android twin's rules, step for step.
-    static func replacing(_ m: Misspelling, in text: String, with replacement: String) -> String {
+    static func replacing(_ m: Misspelling, in text: String, with suggestion: String) -> String {
         guard let r = Range(m.range, in: text) else { return text }
+        // A suggestion reads as typed: any star in it is a star.
+        let replacement = RichText.escapeLiteral(suggestion)
         let chars = Array(text)
         let start = text.distance(from: text.startIndex, to: r.lowerBound)
         let end = text.distance(from: text.startIndex, to: r.upperBound)

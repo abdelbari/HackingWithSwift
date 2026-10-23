@@ -41,9 +41,21 @@
 // Typing is taken back a burst at a time (TypingCoalescer): the field tells
 // the store where each burst ends, and the keyboard's own Undo — ⌘Z, a
 // shake, three fingers — is the store's, so the typing stays open.
+//
+// What is typed reads exactly as typed: a star or an underscore is escaped
+// (RichText.escapeLiteral), never a marker; only the bar's styles write
+// markers. Copy and Cut put the words on the clipboard as they read, and
+// beside them as Canvia keeps them (RichClipboard), so a paste into another
+// box keeps their styles, colours, sizes and lists; another app gets the
+// plain words. Paste is a step of its own named Paste. Typing "- ", "* ",
+// "1. " or "a) " at the start of a line starts a list there, a step after
+// the typing, unless Settings has turned it off; Backspace at the start of
+// an item takes it a level out, then out of the list, before it ever joins
+// lines (TextLists).
 
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 struct InlineTextField: UIViewRepresentable {
     let element: Element
@@ -71,6 +83,13 @@ struct InlineTextField: UIViewRepresentable {
     /// a range of the stored words covers changed, as a step of its own;
     /// whether anything changed.
     var onLines: (NSRange, (inout TextParagraph) -> Void) -> Bool = { _, _ in false }
+    /// Paste over a range of the stored words: words copied here, or else
+    /// another app's plain words. Nil leaves Paste to the text view itself,
+    /// which still types the words in as they read.
+    var onPaste: ((NSRange, RichClipboard.Clip?, String) -> Void)?
+    /// A typed prefix started a list: the line, the prefix's length in the
+    /// words as they read, and the list.
+    var onAutoList: (Int, Int, String) -> Void = { _, _, _ in }
     /// For a table's cell: Tab, or the bar's arrow, goes on to the next
     /// cell, and Shift-Tab (true) back to the one before; nil anywhere else.
     var onNextCell: ((Bool) -> Void)?
@@ -112,6 +131,9 @@ struct InlineTextField: UIViewRepresentable {
         view.onEscape = { [weak coordinator] in coordinator?.parent.onDone() }
         view.onTab = { [weak coordinator] outdent in coordinator?.tab(outdent: outdent) ?? false }
         view.onKey = { [weak coordinator] action in coordinator?.key(action) }
+        view.onCopy = { [weak coordinator] cut in coordinator?.copyWords(cut: cut) ?? false }
+        view.onPaste = { [weak coordinator] in coordinator?.pasteWords() ?? false }
+        view.onBackspace = { [weak coordinator] in coordinator?.backspace() ?? false }
         view.typingUndo.onUndo = { [weak coordinator] in coordinator?.undo() }
         view.typingUndo.onRedo = { [weak coordinator] in coordinator?.redo() }
         view.typingUndo.canUndoing = { [weak coordinator] in coordinator?.parent.typing.canUndo() ?? false }
@@ -195,6 +217,8 @@ struct InlineTextField: UIViewRepresentable {
         private var editing = false
         /// The last choice asked of the field that it made.
         private var askedSerial: Int?
+        /// A list a typed prefix starts once the space typed is in.
+        private var autoList: (line: Int, prefix: Int, list: String)?
 
         init(_ parent: InlineTextField) {
             self.parent = parent
@@ -288,6 +312,7 @@ struct InlineTextField: UIViewRepresentable {
             }
             // Return on an empty list item ends the list there, as in Canva.
             if text == "\n", range.length == 0, endsList(at: range.location, in: textView) { return false }
+            autoList = text == " " && range.length == 0 ? autoStart(at: range.location, in: textView) : nil
             let words = textView.text ?? ""
             let waiting = range.length == 0 && pendingCaret == range.location ? pending : nil
             let typed = RichText.typing(text, over: range, in: words, pending: waiting)
@@ -344,6 +369,13 @@ struct InlineTextField: UIViewRepresentable {
             if verdict.closeAfter { parent.typing.step() }
             editRange = nil
             refreshStyles(view)
+            // A typed prefix starts its list as a step after the typing.
+            if let auto = autoList {
+                autoList = nil
+                coalescer.close()
+                parent.typing.step()
+                parent.onAutoList(auto.line, auto.prefix, auto.list)
+            }
         }
 
         /// Whether a change over `range` carries on from where the change
@@ -446,6 +478,82 @@ struct InlineTextField: UIViewRepresentable {
             guard line < raw.count, line < lines.count, lines[line].isListed,
                   RichText.strip(raw[line]).trimmingCharacters(in: .whitespaces).isEmpty else { return false }
             return changeLines(NSRange(location: caret, length: 0)) { $0.list = "none" }
+        }
+
+        /// The list a space typed at `caret` starts (TextLists.autoStart): on
+        /// a line not listed yet, whose words before the caret are a bullet,
+        /// a number or a letter and its stop. Nil anywhere else, for a
+        /// shape's words, and with the setting off.
+        private func autoStart(at caret: Int, in view: UITextView) -> (line: Int, prefix: Int, list: String)? {
+            let words = view.text ?? ""
+            guard parent.wordStyles, parent.onNextCell == nil, TextLists.autoListsOn,
+                  parent.element.text == words else { return nil }
+            let plain = RichText.strip(words)
+            let at = RichText.plainCaret(caret, in: words)
+            let line = TextLists.lineRange(plain, NSRange(location: at, length: 0)).lowerBound
+            let starts = TextLists.lineStarts(plain)
+            let lines = TextLists.lines(parent.element)
+            guard line < starts.count, line < lines.count, !lines[line].isListed, at >= starts[line] else { return nil }
+            let typed = (plain as NSString).substring(with: NSRange(location: starts[line], length: at - starts[line])) + " "
+            guard let list = TextLists.autoStart(typed, caret: (typed as NSString).length) else { return nil }
+            return (line, (typed as NSString).length, list)
+        }
+
+        /// Backspace with the caret at the very start of a listed line: the
+        /// item a level out, or out of its list (TextLists.backspaced) — the
+        /// lines not joined. False anywhere else, and the key deletes as
+        /// ever.
+        func backspace() -> Bool {
+            guard let view, view.markedTextRange == nil, parent.wordStyles, view.selectedRange.length == 0,
+                  parent.element.text == view.text else { return false }
+            let words = view.text ?? ""
+            let plain = RichText.strip(words) as NSString
+            let at = RichText.plainCaret(view.selectedRange.location, in: words)
+            guard at == 0 || (at <= plain.length && plain.character(at: at - 1) == 0x0A) else { return false }
+            let line = TextLists.lineRange(plain as String, NSRange(location: at, length: 0)).lowerBound
+            guard TextLists.backspaceAtItemStart(parent.element, line: line) != nil else { return false }
+            let taken = changeLines(view.selectedRange) { TextLists.backspaced(&$0) }
+            refreshStyles(view)
+            return taken
+        }
+
+        // MARK: the clipboard
+
+        /// Copy, or Cut (`cut`): the words chosen on the clipboard as they
+        /// read and as Canvia keeps them (RichClipboard); cut, they are then
+        /// deleted as a backspace would. False with no words chosen, and
+        /// the text view does as it would.
+        func copyWords(cut: Bool) -> Bool {
+            guard let view, let range = chosenWords(view) else { return false }
+            let words = view.text ?? ""
+            var el = parent.element
+            if el.text != words { el.setText(words) }
+            let clip = RichClipboard.copy(el, start: range.location, end: NSMaxRange(range))
+            UIPasteboard.general.items = [[UTType.utf8PlainText.identifier: clip.plain,
+                                           RichClipboard.type: RichClipboard.json(clip)]]
+            guard cut else { return true }
+            let typed = RichText.typing("", over: view.selectedRange, in: words, pending: nil)
+            applying = true
+            view.textStorage.replaceCharacters(in: NSRange(location: 0, length: view.textStorage.length),
+                                               with: typed.text)
+            view.selectedRange = NSRange(location: typed.caret, length: 0)
+            applying = false
+            changed(view)
+            return true
+        }
+
+        /// Paste: words copied here keep their styles, colours, sizes and
+        /// lists; another app's plain words are pasted as they read — as one
+        /// step (DesignStore.pasteTyped). False when the store does not take
+        /// pastes here, or there is nothing to paste.
+        func pasteWords() -> Bool {
+            guard let view, view.markedTextRange == nil, let paste = parent.onPaste else { return false }
+            let board = UIPasteboard.general
+            let clip = RichClipboard.decode(board.data(forPasteboardType: RichClipboard.type))
+            guard let plain = clip?.plain ?? board.string else { return false }
+            coalescer.close()
+            paste(view.selectedRange, clip, plain)
+            return true
         }
 
         /// The keyboard's Undo: the store's, a burst at a time.
@@ -932,7 +1040,28 @@ final class InlineTextView: UITextView {
     var onTab: (Bool) -> Bool = { _ in false }
     /// A formatting key (TextKeys): ⌘B and the rest.
     var onKey: (TextKeys.Command) -> Void = { _ in }
+    /// Copy, or Cut (true), Paste and Backspace, each true when the field
+    /// took it.
+    var onCopy: (Bool) -> Bool = { _ in false }
+    var onPaste: () -> Bool = { false }
+    var onBackspace: () -> Bool = { false }
     let typingUndo = TypingUndo()
+
+    override func copy(_ sender: Any?) {
+        if !onCopy(false) { super.copy(sender) }
+    }
+
+    override func cut(_ sender: Any?) {
+        if !onCopy(true) { super.cut(sender) }
+    }
+
+    override func paste(_ sender: Any?) {
+        if !onPaste() { super.paste(sender) }
+    }
+
+    override func deleteBackward() {
+        if !onBackspace() { super.deleteBackward() }
+    }
 
     override var undoManager: UndoManager? { typingUndo }
 

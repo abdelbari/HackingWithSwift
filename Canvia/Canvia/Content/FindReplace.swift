@@ -109,9 +109,9 @@ enum FindReplace {
         guard !hits.isEmpty else { return [] }
         // The words' map worked out once for every match, not once each.
         let units = RichText.typedUnits(text)
-        let length = (text as NSString).length
+        let stored = text as NSString
         return hits.map { hit in
-            (plain: hit, stored: RichText.storedRange(of: hit, units: units, length: length))
+            (plain: hit, stored: RichText.storedRange(of: hit, units: units, stored: stored))
         }
     }
 
@@ -122,12 +122,13 @@ enum FindReplace {
     /// written again round the new words (RichText.replacing). "**Big**
     /// sale" with "Big sale" replaced by "huge deal" is "**huge deal**".
     /// Where the markers cannot say it, the stored characters are replaced
-    /// as they are.
+    /// as they are. The replacement reads exactly as typed: its stars and
+    /// underscores are escaped (RichText.escapeLiteral), never styling.
     static func replacing(_ range: NSRange, in text: String, with replacement: String) -> String {
         let style = RichText.styleAt(range.location, in: text)
         if let out = RichText.replacing(range, in: text, with: replacement, style: style) { return out }
         let stored = RichText.storedRange(of: range, in: text)
-        return (text as NSString).replacingCharacters(in: stored, with: replacement)
+        return (text as NSString).replacingCharacters(in: stored, with: RichText.escapeLiteral(replacement))
     }
 
     // MARK: the match showing

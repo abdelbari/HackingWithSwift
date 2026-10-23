@@ -289,21 +289,19 @@ final class PptxReaderTests: XCTestCase {
         XCTAssertEqual(RichText.strip(t.text ?? ""), "2*3 is 6*")
     }
 
-    /// Shared: a marker character RichText would read as one is written as
-    /// its look-alike, every one of its kind in the box, one for one.
-    func testADecksOwnStarsLinesAndTildesStayAsTheyRead() {
+    /// Shared: a deck's own stars, lines, tildes and backslashes are
+    /// escaped, so the box reads exactly as the deck does.
+    func testADecksOwnStarsLinesAndTildesStayAsTheyRead() throws {
         let rows: [(String, String)] = [
-            ("Press *Enter* to continue", "Press \u{2217}Enter\u{2217} to continue"),
-            ("call __init__ first", "call \u{FF3F}\u{FF3F}init\u{FF3F}\u{FF3F} first"),
-            ("~~old~~ price, 2*3 and *new*",
-             "\u{223C}\u{223C}old\u{223C}\u{223C} price, 2\u{2217}3 and \u{2217}new\u{2217}"),
-            ("2*3 is 6* and snake_case", "2*3 is 6* and snake_case"),
-            ("a_b *c_ d*", "a_b \u{2217}c_ d\u{2217}"),
-            ("", ""),
+            ("Press *Enter* to continue", "Press \\*Enter\\* to continue"),
+            ("call __init__ first", "call \\_\\_init\\_\\_ first"),
+            ("~~old~~ price", "\\~\\~old\\~\\~ price"),
+            ("C:\\temp", "C:\\\\temp"),
         ]
         for (plain, kept) in rows {
-            XCTAssertEqual(PptxReader.literal(plain), kept, plain)
-            XCTAssertEqual(RichText.strip(kept), kept, plain)
+            let t = try only(deck([textBox(box, "<a:p><a:r><a:rPr/><a:t>\(plain)</a:t></a:r></a:p>")]))
+            XCTAssertEqual(t.text, kept, plain)
+            XCTAssertEqual(RichText.strip(t.text ?? ""), plain, plain)
         }
     }
 
@@ -312,7 +310,7 @@ final class PptxReaderTests: XCTestCase {
         let body = "<a:p><a:r><a:rPr/><a:t>Press *Enter* </a:t></a:r><a:r><a:rPr b=\"1\"><a:solidFill>"
             + "<a:srgbClr val=\"FF0000\"/></a:solidFill></a:rPr><a:t>now</a:t></a:r></a:p>"
         let t = try only(deck([textBox(box, body)]))
-        XCTAssertEqual(t.text, "Press \u{2217}Enter\u{2217} **now**")
+        XCTAssertEqual(t.text, "Press \\*Enter\\* **now**")
         XCTAssertEqual(t.spans, [TextSpan(start: 14, end: 17, color: "#ff0000")])
     }
 

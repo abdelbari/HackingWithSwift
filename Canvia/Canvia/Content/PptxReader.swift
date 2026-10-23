@@ -34,9 +34,9 @@
 //     spaces, and is bold, italic or underlined when every one is — a run
 //     that is when the box is not is written in RichText's markers, and a
 //     run's own colour, size or font is a span (Spans)
-//   • a *, _ or ~ in the words that RichText would read as a marker is
-//     written as its look-alike, every one of that kind in the box
-//     (literal(_:))
+//   • every *, _, ~ and backslash of the deck's own words is escaped
+//     (RichText.escapeLiteral), so the words read exactly as the deck has
+//     them and only the runs' own styles are markers
 //   • a typeface is a bundled family when its name or id matches, capitals,
 //     accents, spaces and dashes aside (family(of:)); any other — the
 //     theme's fonts among them — is Modern Sans, and said as a font left
@@ -540,37 +540,12 @@ enum PptxReader {
                    flipH: flag(xfrm, "flipH") == true, flipV: flag(xfrm, "flipV") == true)
     }
 
-    /// Each character RichText reads as a marker, and the look-alike a
-    /// deck's own is written as: ∗ (U+2217), ＿ (U+FF3F) and ∼ (U+223C).
-    private static let literals: [(marker: UInt16, lookalike: UInt16)] = [
-        (0x2A, 0x2217), (0x5F, 0xFF3F), (0x7E, 0x223C),
-    ]
-
-    /// A deck's `plain` words as a text box keeps them: each kind of marker
-    /// character (literals, in its order) that RichText would take as a
-    /// marker there — fewer of it read than written — written as its
-    /// look-alike throughout, until the words read as themselves. One
-    /// UTF-16 unit for one, so offsets into the words hold. An invisible
-    /// joiner would not do: RichText's markers look only at spaces and
-    /// letters beside them.
-    static func literal(_ plain: String) -> String {
-        var units = Array(plain.utf16)
-        while true {
-            let text = String(decoding: units, as: UTF16.self)
-            let read = Array(RichText.strip(text).utf16)
-            let found = literals.first { pair in
-                units.filter { $0 == pair.marker }.count > read.filter { $0 == pair.marker }.count
-            }
-            guard let swap = found else { return text }
-            units = units.map { $0 == swap.marker ? swap.lookalike : $0 }
-        }
-    }
-
     /// The box's words with each run's bold, italic and underline that the
     /// box as a whole does not have written in RichText's markers — "**",
     /// "*" and "__", outermost first — round the run's words, line by line,
-    /// spaces at either end left outside. Read back, they must give the same
-    /// words in the same styles; when they do not, the words go in plain.
+    /// spaces at either end left outside, and the deck's own marker
+    /// characters escaped. Read back, they must give the same words in the
+    /// same styles; when they do not, the words go in plain, escaped.
     fileprivate static func marked(_ words: Words, bold: Bool, italic: Bool, underline: Bool) -> String {
         let units = Array(words.plain.utf16)
         let count = units.count
@@ -583,7 +558,8 @@ enum PptxReader {
                                        underline: r.underline && !underline)
             for k in r.start..<r.end { want[k] = style }
         }
-        if want.allSatisfy(\.isPlain) { return words.plain }
+        let plainly = RichText.escapeLiteral(words.plain)
+        if want.allSatisfy(\.isPlain) { return plainly }
         var opens: [Int: String] = [:]
         var closes: [Int: String] = [:]
         var k = 0
@@ -610,14 +586,16 @@ enum PptxReader {
         for i in 0...count {
             if let close = closes[i] { out += Array(close.utf16) }
             if let open = opens[i] { out += Array(open.utf16) }
-            if i < count { out.append(units[i]) }
+            guard i < count else { continue }
+            if units[i] == 0x2A || units[i] == 0x5F || units[i] == 0x7E || units[i] == 0x5C { out.append(0x5C) }
+            out.append(units[i])
         }
         let text = String(decoding: out, as: UTF16.self)
         let read = RichText.parse(text)
-        guard read.plain == words.plain else { return words.plain }
+        guard read.plain == words.plain else { return plainly }
         for i in 0..<count where !isSpace(units[i]) {
             let got = read.runs.first { NSLocationInRange(i, $0.range) }?.style ?? RichText.Style()
-            if got != want[i] { return words.plain }
+            if got != want[i] { return plainly }
         }
         return text
     }
@@ -1428,8 +1406,9 @@ enum PptxReader {
         func textBox(_ given: Words, anchor: String?, inset: Insets, box: Box, place: Place, group: String?,
                      empty: Bool, body: SvgImport.Node? = nil) -> Element? {
             if !empty && PptxReader.isBlank(given.plain) { return nil }
-            // One for one, so the runs' offsets hold.
-            let words = Words(plain: PptxReader.literal(given.plain), runs: given.runs, align: given.align)
+            // The runs' offsets are into the words as they read, which the
+            // escapes leave as they are.
+            let words = given
             let units = Array(words.plain.utf16)
             let shown = words.runs.filter { r in
                 !units[max(0, r.start)..<min(r.end, units.count)].allSatisfy(PptxReader.isSpace)
@@ -1449,7 +1428,7 @@ enum PptxReader {
             // Where the markers cannot keep a run's bold or italic apart
             // from the words' own stars, the runs keep them as their words'
             // own weight and slant (Spans) instead, as on the Android twin.
-            let plainOnly = RichText.strip(text) == text
+            let plainOnly = text == RichText.escapeLiteral(words.plain)
                 && words.runs.contains { r in (r.bold && r.weight == nil && !bold) || (r.italic && !italic) }
             var el = Element.text(text, fontSize: size, w: PptxReader.px(w))
             // No effect key, as a text box from the Android twin has none.
@@ -1474,8 +1453,7 @@ enum PptxReader {
             default: break
             }
             el = reader.styled(el, props: given.props, body: body, size: size)
-            // The spans are made for the plain words; words the markers
-            // cannot keep apart from their own stars keep none.
+            // The spans are made for the plain words, which the escapes keep.
             if RichText.strip(text) == words.plain {
                 let boxWeight = bold ? 700 : 400
                 el.setSpans(words.runs.map { r in

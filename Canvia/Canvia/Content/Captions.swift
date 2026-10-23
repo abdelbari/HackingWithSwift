@@ -132,7 +132,8 @@ struct Captions: Codable, Equatable, Hashable {
         out.spans = nil
         out.spansText = nil
         out.dropParagraphs()
-        out.text = cues.first?.text ?? ""
+        // A cue reads as it was written: its stars are stars.
+        out.text = RichText.escapeLiteral(cues.first?.text ?? "")
         out.captions = Captions(source: captions.source, cues: cues,
                                 style: styles.contains(captions.style) ? captions.style : plain)
         return out
@@ -187,7 +188,7 @@ struct Captions: Codable, Equatable, Hashable {
         out.spans = nil
         out.spansText = nil
         out.dropParagraphs()
-        out.text = text
+        out.text = RichText.escapeLiteral(text)
         switch captions.style {
         case box:
             out.effect = TextEffectSpec(type: "highlight")

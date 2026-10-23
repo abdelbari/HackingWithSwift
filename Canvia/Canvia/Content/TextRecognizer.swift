@@ -42,7 +42,7 @@ enum TextRecognizer {
         lines.map { line in
             let box = CGRect(x: frame.minX + line.box.minX * frame.width, y: frame.minY + line.box.minY * frame.height,
                              width: line.box.width * frame.width, height: line.box.height * frame.height)
-            var el = Element.text(line.text, fontSize: max(8, (box.height * 0.8).rounded()), w: max(20, box.width.rounded() + 8))
+            var el = Element.text(RichText.escapeLiteral(line.text), fontSize: max(8, (box.height * 0.8).rounded()), w: max(20, box.width.rounded() + 8))
             el.align = "left"
             el.color = ink
             el.x = box.minX.rounded(); el.y = box.minY.rounded()

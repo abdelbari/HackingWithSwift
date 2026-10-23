@@ -177,6 +177,9 @@ final class DesignStore {
     /// back again.
     @ObservationIgnored private var typingSteps = 0
     @ObservationIgnored private var typingRedos = 0
+    /// What the next step recorded is called, when it is named for what it
+    /// did rather than by History.label: "Paste", "Replace font".
+    @ObservationIgnored var namedStep: String?
     /// How tall a text's words stand, for a table whose words changed in a
     /// step to be laid out again as part of it (DataGraphics.settlingTables),
     /// and for the Table controls. Tests measure in round numbers.
@@ -248,6 +251,8 @@ final class DesignStore {
     func commit() {
         // Without a beginGesture() snapshot there is no pre-mutation state to
         // record — pushing the current design would make undo a no-op.
+        let named = namedStep
+        namedStep = nil
         guard let entry = pending else { return }
         // A table's rows follow its words, and connectors their ends, as
         // part of the same step.
@@ -271,7 +276,7 @@ final class DesignStore {
         adoptHeadline()
         lastWords = Self.words(of: design)
         var recorded = entry
-        recorded.label = History.label(before: entry.design, after: design)
+        recorded.label = named ?? History.label(before: entry.design, after: design)
         past.append(recorded)
         if past.count > historyLimit { past.removeFirst() }
         future.removeAll()

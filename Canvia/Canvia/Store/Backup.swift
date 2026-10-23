@@ -14,6 +14,7 @@
 //   brandkits.json           the brand kits
 //   dictionary.json          this phone's own dictionary, Add to
 //                            dictionary's words, when it has any
+//   settings.json            the settings that travel: {"autoLists": true}
 //   uploads.json             your uploads' list, as kept in Documents
 //   media/<id>.<ext>         the photos your uploads and kits' assets are,
 //   videos/<id>.<ext>        their clips,
@@ -79,6 +80,26 @@ enum Backup {
               (manifest.format ?? format) == format else { throw BackupError.notABackup }
         guard manifest.version <= version else { throw BackupError.newer }
         return manifest
+    }
+
+    // MARK: settings
+
+    /// The settings that travel with a backup, by the keys both phones
+    /// write: "autoLists", whether a typed "- " or "1. " starts a list.
+    static let settingsFile = "settings.json"
+
+    private struct Settings: Codable {
+        var autoLists: Bool?
+    }
+
+    static func encodeSettings(autoLists: Bool) -> Data {
+        (try? JSONEncoder().encode(Settings(autoLists: autoLists))) ?? Data("{}".utf8)
+    }
+
+    /// The backup's "autoLists"; nil when it has none, as an older backup.
+    static func decodeSettings(_ data: Data?) -> Bool? {
+        guard let data, let settings = try? JSONDecoder().decode(Settings.self, from: data) else { return nil }
+        return settings.autoLists
     }
 
     // MARK: the merge rule
@@ -260,6 +281,7 @@ enum Backup {
         // This phone's own dictionary, when Add to dictionary has added any.
         let dictionary = SpellingDictionary.load()
         if !dictionary.isEmpty { try writer.add(Proofreader.dictionaryFile, Proofreader.encodeDictionary(dictionary)) }
+        try writer.add(settingsFile, encodeSettings(autoLists: TextLists.autoListsOn))
         for src in kits.allAssets {
             try await addSource(src, into: writer, written: &written)
         }
@@ -454,6 +476,10 @@ enum Backup {
         // The dictionary's words added to this phone's; none taken away.
         let words = Proofreader.decodeDictionary(reader.file(Proofreader.dictionaryFile))
         if !words.isEmpty { SpellingDictionary.add(words) }
+        // The settings that travel, as the backup has them.
+        if let autoLists = decodeSettings(reader.file(settingsFile)) {
+            UserDefaults.standard.set(autoLists, forKey: TextLists.autoListsKey)
+        }
         FontStore.installed()
         progress(1)
         return report
