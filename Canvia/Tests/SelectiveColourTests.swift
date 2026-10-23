@@ -136,6 +136,39 @@ final class SelectiveColourTests: XCTestCase {
         XCTAssertLessThan(pixel[2], 20)
     }
 
+    /// Vibrance comes before the bands, on both phones and in the engine's
+    /// one cube: a dull red boosted first is turned by its larger weight.
+    @MainActor
+    func testVibranceComesBeforeTheBandsInThePixelAndTheEngine() throws {
+        var a = Adjustments()
+        a.vibrance = 1
+        a.hsl = ["red": HueShift(h: 1)]
+        let boosted = PhotoLook.vibrant(0xa0, 0x50, 0x50, amount: 1)
+        let want = HueBands.pixel((boosted.r << 16) | (boosted.g << 8) | boosted.b, hsl: a.hsl)
+        XCTAssertEqual(PhotoLook.pixel(0xa05050, filter: nil, adjustments: a, strength: nil), want)
+
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let dull = UIGraphicsImageRenderer(size: CGSize(width: 8, height: 8), format: format).image { ctx in
+            UIColor(red: 0xa0 / 255.0, green: 0x50 / 255.0, blue: 0x50 / 255.0, alpha: 1).setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: 8, height: 8))
+        }
+        let out = ImageFilterEngine.apply(.none, adjustments: a, to: dull, cacheKey: "hsl-vibrance-\(UUID().uuidString)")
+        let cg = try XCTUnwrap(out.cgImage)
+        var pixel: [UInt8] = [0, 0, 0, 0]
+        try pixel.withUnsafeMutableBytes { raw in
+            let ctx = try XCTUnwrap(CGContext(data: raw.baseAddress, width: 1, height: 1, bitsPerComponent: 8,
+                                              bytesPerRow: 4, space: CGColorSpaceCreateDeviceRGB(),
+                                              bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            ctx.draw(cg, in: CGRect(x: -4, y: -4, width: cg.width, height: cg.height))
+        }
+        let channels = [(want >> 16) & 0xff, (want >> 8) & 0xff, want & 0xff]
+        for (got, wanted) in zip(pixel.prefix(3), channels) {
+            XCTAssertLessThanOrEqual(abs(Int(got) - wanted), 8, "the engine draws the shared pixel")
+        }
+    }
+
     // MARK: the file
 
     func testOnlyShiftedBandsAreWrittenAndNoneIsNoKey() throws {

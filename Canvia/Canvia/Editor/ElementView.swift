@@ -145,7 +145,7 @@ struct ElementView: View {
     /// view tree keeps one shape whether or not a shadow is set. Clear for
     /// a styled shadow too, which `styledShadow` draws.
     private var shadowColor: Color {
-        guard let shadow = element.shadow, !ShadowShapes.isStyled(shadow) else { return .clear }
+        guard let shadow = ShadowShapes.cast(element), !ShadowShapes.isStyled(shadow) else { return .clear }
         return Color(hex: shadow.color).opacity(shadow.opacity)
     }
 
@@ -154,10 +154,10 @@ struct ElementView: View {
     /// element's own alpha silhouette through its projective transform —
     /// the element drawn again in the shadow's colour through its mask —
     /// as the Android twin shears the drawn pixels; the others fill their
-    /// path.
+    /// path. Text casts the drop shadow whatever its style (ShadowShapes.cast).
     @ViewBuilder
     private var styledShadow: some View {
-        if let shadow = element.shadow, ShadowShapes.isStyled(shadow) {
+        if let shadow = ShadowShapes.cast(element), ShadowShapes.isStyled(shadow) {
             if ShadowShapes.style(of: shadow) == "angle" {
                 angleShadow(shadow)
             } else {

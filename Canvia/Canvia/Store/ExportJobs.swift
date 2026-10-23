@@ -18,7 +18,7 @@ enum ExportJobs {
                 design: snapshot.design, range: snapshot.range, current: snapshot.current,
                 format: format, scale: scale, longEdge: longEdge, quality: quality,
                 // JPEG has no alpha channel to be transparent in.
-                transparent: transparent && format == .png, progress: report)
+                transparent: transparent && format == .png, captionTime: snapshot.captionTime, progress: report)
             return ExportQueue.Result(urls: urls)
         }
     }

@@ -1434,10 +1434,14 @@ enum ImageFilterEngine {
         return f.outputImage.map(decoded) ?? image
     }
 
-    /// Vibrance, then the preset curve, then the light dials' curve, as one
-    /// colour cube made from the shared maths (`PhotoLook.vibrant`,
-    /// `ToneCurve.at`), on the encoded values.
-    private static func cubed(_ image: CIImage, vibrance: Double, curve: String?, light: [CGPoint]?) -> CIImage {
+    /// Vibrance, then the hue bands' shifts, then the preset curve, then
+    /// the light dials' curve, as one colour cube made from the shared
+    /// maths (`PhotoLook.vibrant`, `HueBands.bandShifted`, `ToneCurve.at`),
+    /// on the encoded values — the order of the shared table's pixel
+    /// (`PhotoLook.pixel`) and the Android twin's PixelLook. 64 a side with
+    /// bands, whose turns of hue want the finer grid; 48 without.
+    private static func cubed(_ image: CIImage, vibrance: Double, hsl: [String: HueShift],
+                              curve: String?, light: [CGPoint]?) -> CIImage {
         let preset = ToneCurve.preset(curve)
         // The two curves one after the other, read finely enough that a
         // straight line between readings is the curve.
@@ -1453,7 +1457,9 @@ enum ImageFilterEngine {
             let i = min(Int(x), steps - 1)
             return tone[i] + (tone[i + 1] - tone[i]) * (x - Double(i))
         }
-        let size = 48
+        let shifts = HueBands.shifts(hsl)
+        let banded = shifts.contains { $0 != nil }
+        let size = banded ? 64 : 48
         var data = [Float](repeating: 1, count: size * size * size * 4)
         for b in 0..<size {
             for g in 0..<size {
@@ -1468,35 +1474,15 @@ enum ImageFilterEngine {
                         gf = luma + (gf - luma) * k
                         bf = luma + (bf - luma) * k
                     }
+                    if banded {
+                        let out = HueBands.bandShifted(r: min(max(rf, 0), 1), g: min(max(gf, 0), 1),
+                                                       b: min(max(bf, 0), 1), shifts: shifts)
+                        rf = out.r; gf = out.g; bf = out.b
+                    }
                     let i = ((b * size + g) * size + r) * 4
                     data[i] = Float(toned(rf))
                     data[i + 1] = Float(toned(gf))
                     data[i + 2] = Float(toned(bf))
-                }
-            }
-        }
-        let f = CIFilter.colorCube()
-        f.inputImage = encoded(image)
-        f.cubeDimension = Float(size)
-        f.cubeData = data.withUnsafeBufferPointer { Data(buffer: $0) }
-        return f.outputImage.map(decoded) ?? image
-    }
-
-    /// The hue bands' shifts (HueBands.shifted) as one colour cube, 64 a
-    /// side, on the encoded values — the same function the shared table
-    /// reads a pixel through.
-    private static func bandCubed(_ image: CIImage, hsl: [String: HueShift]) -> CIImage {
-        let size = 64
-        var data = [Float](repeating: 1, count: size * size * size * 4)
-        for b in 0..<size {
-            for g in 0..<size {
-                for r in 0..<size {
-                    let out = HueBands.shifted(r: Double(r) / Double(size - 1), g: Double(g) / Double(size - 1),
-                                               b: Double(b) / Double(size - 1), by: hsl)
-                    let i = ((b * size + g) * size + r) * 4
-                    data[i] = Float(out.r)
-                    data[i + 1] = Float(out.g)
-                    data[i + 2] = Float(out.b)
                 }
             }
         }
@@ -1562,19 +1548,15 @@ enum ImageFilterEngine {
 
         if min(max(a.fade, 0), 1) > 0 { image = matrixed(image, PhotoLook.fade(a.fade)) }
 
-        // Selective colour after every global colour dial and before the
-        // curves and clarity, as the Android twin's PixelLook lays it: a
-        // cube of the shared maths, so a band shifts the same on both.
-        if !HueBands.kept(a.hsl).isEmpty { image = bandCubed(image, hsl: a.hsl) }
-
         // The curve after the dials, on the already balanced picture; with
-        // vibrance or the light dials, all three in one cube of the shared
-        // maths, in the Android twin's order.
+        // vibrance, selective colour or the light dials, all in one cube of
+        // the shared maths, in the Android twin's order: vibrance, the hue
+        // bands, the curves — so a band turns the colour vibrance left.
         let vibrance = min(max(a.vibrance, -1), 1)
         let light = ToneCurve.light(highlights: a.highlights, shadows: a.shadows,
                                     whites: a.whites, blacks: a.blacks)
-        if vibrance != 0 || light != nil {
-            image = cubed(image, vibrance: vibrance, curve: a.curve, light: light)
+        if vibrance != 0 || light != nil || !HueBands.kept(a.hsl).isEmpty {
+            image = cubed(image, vibrance: vibrance, hsl: a.hsl, curve: a.curve, light: light)
         } else {
             image = ToneCurve.apply(a.curve, to: image)
         }

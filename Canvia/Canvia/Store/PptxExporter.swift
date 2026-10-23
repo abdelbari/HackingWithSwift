@@ -236,7 +236,7 @@ enum PptxExporter {
     /// arrowhead, which covers a dot and half the line.
     static func margin(_ el: Element) -> Double {
         var reach = SVGExporter.overflow(el)
-        if let shadow = el.shadow {
+        if let shadow = ShadowShapes.cast(el) {
             reach += shadow.blur * 1.5 + max(abs(shadow.offsetX), abs(shadow.offsetY))
                 + ShadowShapes.reach(of: shadow, w: el.w, h: el.h)
         }

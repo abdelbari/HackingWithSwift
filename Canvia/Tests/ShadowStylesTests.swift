@@ -55,6 +55,29 @@ final class ShadowStylesTests: XCTestCase {
         XCTAssertEqual(drop, Shadow())
     }
 
+    /// Text casts a styled shadow as the drop shadow, its other settings
+    /// kept; everything else casts its own — the rule both phones keep
+    /// (the Android twin's ShadowShapesTest).
+    @MainActor
+    func testTextCastsAStyledShadowAsTheDropShadow() {
+        let curved = Shadow(style: "curved", curve: 0.5)
+        var text = Element.text("Hi")
+        text.shadow = curved
+        var photo = Element.image("asset:mesh-sunset")
+        photo.shadow = curved
+        var dropped = curved
+        dropped.style = nil
+        XCTAssertEqual(ShadowShapes.cast(text), dropped)
+        XCTAssertFalse(ShadowShapes.isStyled(ShadowShapes.cast(text)!))
+        XCTAssertEqual(ShadowShapes.cast(photo), curved)
+        var design = Design(title: "t", width: 400, height: 200)
+        design.pages[0].elements = [text]
+        let svg = SVGExporter.svg(design: design, page: design.pages[0])
+        XCTAssertTrue(svg.contains("feDropShadow"), "the SVG casts it as a drop shadow too")
+        text.shadow = nil
+        XCTAssertNil(ShadowShapes.cast(text))
+    }
+
     func testTheDialsReadTheirDefaultsUntilSet() {
         var shadow = Shadow(style: "curved")
         XCTAssertEqual(shadow.curveDial, ShadowShapes.defaultCurve)

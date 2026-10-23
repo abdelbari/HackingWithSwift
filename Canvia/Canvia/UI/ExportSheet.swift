@@ -611,7 +611,7 @@ struct ExportSheet: View {
                          working: tr("Saving to your photos"), unavailable: leftOut(exportedIndices),
                          format: photosFormat == .png ? "png" : "jpg") {
                 photosNote = nil
-                return ExportJobs.picturesToPhotos(exportedSnapshot, format: photosFormat, scale: scale,
+                return ExportJobs.picturesToPhotos(picturesSnapshot, format: photosFormat, scale: scale,
                                                    longEdge: typedLongEdge ?? 0, quality: jpegQuality,
                                                    transparent: transparent)
             }
@@ -970,8 +970,17 @@ struct ExportSheet: View {
         ExportSnapshot(exportedDesign, range: exportedRange, current: exportedPageIndex)
     }
 
+    /// The pictures' snapshot: the page on screen shows its captions at the
+    /// timeline's playhead, as the canvas does; a selection on its own page
+    /// and every other page their first cue — the Android twin's rule.
+    private var picturesSnapshot: ExportSnapshot {
+        var snapshot = exportedSnapshot
+        if !selectionOnly { snapshot.captionTime = store.playheadInPage }
+        return snapshot
+    }
+
     private func picturesWork(_ format: DesignExporter.RasterFormat) -> ExportQueue.Work {
-        ExportJobs.pictures(exportedSnapshot, format: format, scale: scale, longEdge: typedLongEdge ?? 0,
+        ExportJobs.pictures(picturesSnapshot, format: format, scale: scale, longEdge: typedLongEdge ?? 0,
                             quality: jpegQuality, transparent: transparent)
     }
 

@@ -255,6 +255,27 @@ final class CaptionsTests: XCTestCase {
         XCTAssertEqual(s.pageStartSeconds, 0)
     }
 
+    /// A still picture of the page on screen shows its captions at the
+    /// timeline's playhead (ExportSnapshot.captionTime); every other page,
+    /// a selection exported alone and a picture with no playhead show the
+    /// first cue — the rule both phones keep (Android's captionsAt).
+    @MainActor
+    func testAStillOfThePageOnScreenShowsTheCueAtThePlayhead() throws {
+        var design = Design(title: "Talk", width: 400, height: 200)
+        design.pages[0].elements = [Captions.element(width: 400, height: 200, captions: hello)]
+        let page = design.pages[0]
+        let first = try XCTUnwrap(DesignExporter.render(design: design, page: page, scale: 1))
+        let atFirst = try XCTUnwrap(DesignExporter.render(design: design, page: page, scale: 1, captionTime: 1.5))
+        let atSecond = try XCTUnwrap(DesignExporter.render(design: design, page: page, scale: 1, captionTime: 3))
+        XCTAssertEqual(pixels(first), pixels(atFirst))
+        XCTAssertNotEqual(pixels(first), pixels(atSecond))
+        XCTAssertNil(ExportSnapshot(design, range: .all, current: 0).captionTime)
+    }
+
+    private func pixels(_ image: CGImage) -> Data? {
+        image.dataProvider?.data as Data?
+    }
+
     /// The .srt beside a video: the pages played, each moved on by where
     /// it starts.
     @MainActor

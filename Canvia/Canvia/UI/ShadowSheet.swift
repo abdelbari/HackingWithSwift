@@ -13,6 +13,19 @@ struct ShadowSheet: View {
 
     private var current: Shadow? { store.singleSelection?.shadow }
 
+    /// The shadow as drawn, whose style picks the dials: text casts the
+    /// drop shadow whatever its style (ShadowShapes.cast).
+    private var drawnStyle: String {
+        store.singleSelection.flatMap(ShadowShapes.cast).map(ShadowShapes.style(of:)) ?? "drop"
+    }
+
+    /// The presets offered: every one, but only the drop shadows while text
+    /// is selected, which casts no other — as the Android twin offers them.
+    private var offered: [(name: String, shadow: Shadow)] {
+        guard store.selectedElements.contains(where: { $0.type == .text }) else { return Shadow.presets }
+        return Shadow.presets.filter { !ShadowShapes.isStyled($0.shadow) }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -36,7 +49,7 @@ struct ShadowSheet: View {
     private var presets: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 84), spacing: 12)], spacing: 12) {
             tile(nil, name: tr("None"))
-            ForEach(Shadow.presets, id: \.name) { preset in
+            ForEach(offered, id: \.name) { preset in
                 tile(preset.shadow, name: preset.name)
             }
         }
@@ -87,7 +100,7 @@ struct ShadowSheet: View {
             Text("Adjust").font(.headline)
             dial(tr("Opacity"), spoken: tr("Shadow opacity"), \.opacity, in: 0...1, format: { "\(Int(($0 * 100).rounded()))%" })
             // A backdrop is a solid block: nothing to blur.
-            if current.map(ShadowShapes.style(of:)) != "backdrop" {
+            if drawnStyle != "backdrop" {
                 dial(tr("Blur"), spoken: tr("Shadow blur"), \.blur, in: 0...60, format: { "\(Int($0.rounded()))" })
             }
             dial(tr("Across"), spoken: tr("Shadow across"), \.offsetX, in: -60...60, format: { String(format: "%+.0f", $0) })
@@ -112,7 +125,7 @@ struct ShadowSheet: View {
     /// angle's Angle and Distance, a backdrop's Distance.
     @ViewBuilder
     private var styleDials: some View {
-        let style = current.map(ShadowShapes.style(of:)) ?? "drop"
+        let style = drawnStyle
         if style == "curved" || style == "pageLift" {
             dial(tr("Curve"), spoken: tr("Curve"), \.curveDial, in: ShadowShapes.curveRange,
                  format: { "\(Int(($0 * 100).rounded()))%" })

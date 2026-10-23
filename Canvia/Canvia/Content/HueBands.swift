@@ -173,13 +173,24 @@ enum HueBands {
     /// weighted saturation shifts, the lightness moved by the weighted
     /// lightness shifts × `lightReach`, each held to 0…1; and back.
     static func shifted(r: Double, g: Double, b: Double, by hsl: [String: HueShift]) -> (r: Double, g: Double, b: Double) {
+        bandShifted(r: r, g: g, b: b, shifts: shifts(hsl))
+    }
+
+    /// The shifts in `hsl` by band index, nil for a band left alone: worked
+    /// out once for a whole colour cube rather than once a colour.
+    static func shifts(_ hsl: [String: HueShift]) -> [HueShift?] {
         let live = kept(hsl)
-        guard !live.isEmpty else { return (r, g, b) }
+        return bands.map { live[$0.key] }
+    }
+
+    /// `shifted`, with the shifts already by band index (`shifts`), so a
+    /// cube of a quarter of a million colours makes nothing for each.
+    static func bandShifted(r: Double, g: Double, b: Double, shifts: [HueShift?]) -> (r: Double, g: Double, b: Double) {
         let c = toHSL(r, g, b)
         guard c.s > 0 else { return (r, g, b) }
         var dh = 0.0, ds = 0.0, dl = 0.0
-        for (i, band) in bands.enumerated() {
-            guard let shift = live[band.key] else { continue }
+        for (i, shift) in shifts.enumerated() where i < bands.count {
+            guard let shift else { continue }
             let w = weight(c.h, band: i) * c.s
             guard w > 0 else { continue }
             dh += w * shift.h * turn

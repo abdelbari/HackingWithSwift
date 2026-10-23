@@ -21,6 +21,8 @@
 //             transform taking the four corners to those four;
 //   backdrop  the box moved `distance` right and down, drawn with no blur.
 // Every style keeps the shadow's own offset on top, as a drop shadow does.
+// Text casts only the drop shadow (`cast`): a styled shadow on a text
+// element is drawn as the drop shadow, on the canvas and in every export.
 
 import CoreGraphics
 import Foundation
@@ -67,6 +69,17 @@ enum ShadowShapes {
     static func style(of shadow: Shadow) -> String {
         guard let style = shadow.style, styles.contains(style) else { return "drop" }
         return style
+    }
+
+    /// `element`'s shadow as it is drawn: its own, with the style taken off
+    /// a text element's. Text casts only the drop shadow, from its letters
+    /// — the styled ones are not offered for it — so a styled shadow on
+    /// text, from a file or a mixed selection, is drawn as the drop shadow
+    /// on both phones (the Android twin's ShadowShapes.cast).
+    static func cast(_ element: Element) -> Shadow? {
+        guard var shadow = element.shadow else { return nil }
+        if element.type == .text { shadow.style = nil }
+        return shadow
     }
 
     /// Whether the shadow is drawn from a silhouette of its own rather

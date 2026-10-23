@@ -75,9 +75,10 @@ enum SVGExporter {
         if el.opacity < 1 { attributes += " opacity=\"\(num(el.opacity))\"" }
         attributes += BlendModes.svgStyle(el.blendMode)
         // A styled shadow is its own path, blurred, under the element in
-        // its group; a drop shadow is a filter on the group.
+        // its group; a drop shadow is a filter on the group. Text casts the
+        // drop shadow whatever its style (ShadowShapes.cast).
         var cast = ""
-        if let shadow = el.shadow {
+        if let shadow = ShadowShapes.cast(el) {
             let id = "shadow\(index)"
             if let path = ShadowShapes.path(for: shadow, w: el.w, h: el.h) {
                 cast = styledShadowMarkup(path, id: id, shadow: shadow, element: el, defs: &defs)

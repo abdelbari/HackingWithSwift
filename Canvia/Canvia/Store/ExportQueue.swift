@@ -396,6 +396,9 @@ struct ExportSnapshot {
     let pages: [Int]
     /// The page on screen when it started.
     let current: Int
+    /// The editor's playhead on that page, in seconds into it: where its
+    /// caption boxes stand in a picture of it; nil for their first cue.
+    var captionTime: Double?
 
     init(_ design: Design, range: DesignExporter.PageRange, current: Int) {
         self.design = design
