@@ -646,6 +646,8 @@ enum DesignLibrary {
         var found = Set<String>()
         for design in designs {
             for page in design.pages { collectClips(on: page, into: &found) }
+            // A talk's camera (Recordings).
+            found.formUnion(Recordings.cameraIds(design))
         }
         return found
     }
@@ -723,7 +725,8 @@ enum DesignLibrary {
     /// The AudioStore ids these designs play under their videos, on any of
     /// their tracks.
     static func soundtracks(in designs: [Design]) -> Set<String> {
-        Set(designs.flatMap { $0.audioTracks.compactMap(\.audioId) })
+        // The talks' voices too (Recordings).
+        Set(designs.flatMap { $0.audioTracks.compactMap(\.audioId) + Recordings.of($0).map(\.audio) })
     }
 
     // MARK: uploads in use

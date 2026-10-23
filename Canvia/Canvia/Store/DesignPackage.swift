@@ -295,6 +295,11 @@ enum DesignPackage {
         var animations: [String: Media] = [:]
         let clipped = packingVideos(drawn, media: &media, videos: &videos)
         let design = packingAnimations(clipped, media: &media, animations: &animations, whole: AnimStore.packedIDs)
+        // Each talk's camera goes whole with the clips (Recordings).
+        for id in Recordings.cameraIds(design) where videos[id] == nil {
+            guard let url = VideoStore.url(for: id), let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { continue }
+            videos[id] = Media(ext: url.pathExtension.lowercased(), data: data)
+        }
         return packed(design, media: media, videos: videos, animations: animations, mediaDirectory: mediaDirectory)
     }
 
@@ -310,6 +315,10 @@ enum DesignPackage {
         var animations: [String: Media] = [:]
         let clipped = packingClipFiles(drawn, media: &media, clipFiles: &clips)
         let design = packingAnimations(clipped, media: &media, animations: &animations, whole: { Set($0.keys) })
+        // Each talk's camera, left as its file as the clips are.
+        for id in Recordings.cameraIds(design) where clips[id] == nil {
+            if let url = VideoStore.url(for: id) { clips[id] = url }
+        }
         return (packed(design, media: media, videos: [:], animations: animations, mediaDirectory: mediaDirectory), clips)
     }
 
@@ -352,15 +361,17 @@ enum DesignPackage {
         return fonts.isEmpty ? nil : fonts
     }
 
-    /// The music of the design's tracks, packed, those on this phone that
-    /// travel (Soundtrack.packed); none when none does. A track whose file
+    /// The music of the design's tracks and its talks' voices, packed,
+    /// those on this phone that travel (Soundtrack.packed); none when none
+    /// does. A track whose file
     /// stays behind names music only the phone it was chosen on has, as the
     /// soundtrack always did.
     static func packedAudio(of design: Design) -> [String: Media]? {
         var files: [String: URL] = [:]
         var sizes: [String: (bytes: Int, ext: String)] = [:]
-        for track in design.audioTracks {
-            guard let id = track.audioId, files[id] == nil, let url = AudioStore.url(for: id) else { continue }
+        let ids = design.audioTracks.compactMap(\.audioId) + Recordings.of(design).map(\.audio)
+        for id in ids {
+            guard files[id] == nil, let url = AudioStore.url(for: id) else { continue }
             files[id] = url
             sizes[id] = (bytes: (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0,
                          ext: url.pathExtension.lowercased())
@@ -678,6 +689,8 @@ enum DesignPackage {
             next.src = AudioTrack.src(moved)
             return next
         }
+        // The talks pointed at where their voices and cameras went.
+        design = Recordings.remapped(design, audio: music, video: clips)
         if normalize { design.normalizeTextHeights() }
         return design
     }

@@ -150,6 +150,9 @@ struct HomeView: View {
     @State private var exporting: Design?
     /// The design presented from its card.
     @State private var presenting: Design?
+    /// Present and record from a card: the studio, then the talks.
+    @State private var talkRecording: Design?
+    @State private var talkReviewing: Design?
     /// Share… or Present on a design whose file does not read, said.
     @State private var unopened = false
     /// Select's Share, asking what as.
@@ -184,6 +187,12 @@ struct HomeView: View {
             .background { deckPicker }
             .background { designFilePicker }
             .modifier(HomeSharing(exporting: $exporting, presenting: $presenting, unopened: $unopened))
+            .modifier(TalkSheets(recording: $talkRecording, reviewing: $talkReviewing) { next in
+                var saved = next
+                saved.updatedAt = Date().timeIntervalSince1970 * 1000
+                DesignLibrary.save(saved)
+                reload()
+            })
             .importPickers(media: $pickingMedia, pdf: $pickingPDF, onLanded: onImport) { importError = $0 }
             .powerPointImport($deckURLs, onOpen: onOpen)
             .onReceive(NotificationCenter.default.publisher(for: PowerPoints.didImport)) { _ in reload() }
@@ -1366,6 +1375,9 @@ struct HomeView: View {
         Button {
             withDesign(recent.id) { presenting = $0 }
         } label: { Label("Present", systemImage: "play.rectangle") }
+        Button {
+            withDesign(recent.id) { talkRecording = $0 }
+        } label: { Label("Present and record", systemImage: "record.circle") }
         if UIPrintInteractionController.isPrintingAvailable {
             Button {
                 HomeExports.printDesign(recent.id, queue: ExportQueue.shared)
