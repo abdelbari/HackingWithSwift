@@ -70,10 +70,23 @@ struct CaptionTimeKey: EnvironmentKey {
     static let defaultValue: Double? = nil
 }
 
+/// Whether `captionTime` is the page's clock running rather than a moment
+/// at rest: Present under Reduce Motion, where nothing else moves but the
+/// words are said in time. A caption box then shows the cue at that
+/// moment alone — none before the first — as while the page plays.
+struct CaptionsPlayKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 extension EnvironmentValues {
     var captionTime: Double? {
         get { self[CaptionTimeKey.self] }
         set { self[CaptionTimeKey.self] = newValue }
+    }
+
+    var captionsPlay: Bool {
+        get { self[CaptionsPlayKey.self] }
+        set { self[CaptionsPlayKey.self] = newValue }
     }
 
     var pageNumber: (number: Int, count: Int)? {

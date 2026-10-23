@@ -131,7 +131,12 @@ struct PresentStage: View {
         let start = session.shownAt
         let exitStart = session.exitZero
         let hold = session.holdSeconds(shown)
-        let plays = PresentSession.moves(shown, in: design) && !reduceMotion
+        let moves = PresentSession.moves(shown, in: design)
+        let plays = moves && !reduceMotion
+        // Under Reduce Motion nothing moves, but a caption box still goes
+        // through its cues on the page's clock, as on the Android twin:
+        // only its words change, everything else drawn at rest.
+        let speaks = moves && reduceMotion && design.drawnElements(on: shown).contains(where: Captions.plays)
         // Turned by hand, the exits of a page whose elements leave are held
         // where they begin, until the person goes on, while its loops, clips,
         // drifts and entrances play on; with autoplay they run freely.
@@ -139,12 +144,16 @@ struct PresentStage: View {
         let exiting = session.exitFrom
         // The page's entrances play as it arrives, and a drifting photo
         // drifts over its hold — the Android twin's presenter plays them too.
-        return TimelineView(.animation(minimumInterval: nil, paused: !plays || session.settled)) { context in
-            let now = PresentationView.clock(at: context.date, from: start, hold: hold, playing: plays,
+        return TimelineView(.animation(minimumInterval: nil, paused: !(plays || speaks) || session.settled)) { context in
+            let now = PresentationView.clock(at: context.date, from: start, hold: hold, playing: plays || speaks,
                                              heldAt: waitAt, exitFrom: exiting, exitZero: exitStart)
+            let moving: PresentationView.Reading? = plays ? now : nil
+            let said: Double? = speaks ? now?.time : nil
             PageRenderView(design: design, page: shown)
-                .environment(\.animationTime, now.map { (time: $0.time, hold: $0.hold) })
-                .environment(\.exitTime, now?.exitTime)
+                .environment(\.animationTime, moving.map { (time: $0.time, hold: $0.hold) })
+                .environment(\.exitTime, moving?.exitTime)
+                .environment(\.captionTime, said)
+                .environment(\.captionsPlay, speaks)
                 // A clip plays from the frames decoded so far, never waiting
                 // on the next: this redraws every display frame, and a
                 // decode on the main thread each time made it stutter.
