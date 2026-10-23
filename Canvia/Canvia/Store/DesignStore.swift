@@ -1561,7 +1561,8 @@ final class DesignStore {
                 guard !text.isEmpty else { self.announce(tr("No words were recognised in the strokes"), undoable: false); return }
                 let frame = rendered.frame
                 let size = max(12, (frame.height / Double(max(lines.count, 1)) * 0.6).rounded())
-                var el = Element.text(text, fontSize: size, w: max(60, frame.width.rounded()))
+                // The recognised words as they read, stars literal.
+                var el = Element.text(RichText.escapeLiteral(text), fontSize: size, w: max(60, frame.width.rounded()))
                 el.align = "left"
                 el.x = frame.minX.rounded(); el.y = frame.minY.rounded()
                 el.h = FontLibrary.layoutHeight(for: el)
@@ -1837,12 +1838,16 @@ final class DesignStore {
     @discardableResult
     func replaceAll(_ needle: String, with replacement: String,
                     caseSensitive: Bool = false, wholeWord: Bool = false) -> Int {
-        let total = matches(for: needle, caseSensitive: caseSensitive, wholeWord: wholeWord).count
+        // A chart's value labels and axis numbers are found, never replaced.
+        let total = matches(for: needle, caseSensitive: caseSensitive, wholeWord: wholeWord).filter { match in
+            match.kind == .notes
+                || design.pages[match.pageIndex].elements.first { $0.id == match.elementId }.map(FindReplace.replaces) == true
+        }.count
         guard total > 0 else { return 0 }
         apply { design in
             for p in design.pages.indices where !PageLocks.isLocked(design.pages[p]) {
                 for i in design.pages[p].elements.indices
-                where FindReplace.searches(design.pages[p].elements[i]) {
+                where FindReplace.replaces(design.pages[p].elements[i]) {
                     guard let body = design.pages[p].elements[i].text, !body.isEmpty else { continue }
                     let found = FindReplace.ranges(of: needle, in: RichText.strip(body),
                                                    caseSensitive: caseSensitive, wholeWord: wholeWord)
@@ -1890,7 +1895,7 @@ final class DesignStore {
             return out
         }
         guard let i = design.pages[match.pageIndex].elements.firstIndex(where: { $0.id == match.elementId }),
-              FindReplace.searches(design.pages[match.pageIndex].elements[i]) else { return nil }
+              FindReplace.replaces(design.pages[match.pageIndex].elements[i]) else { return nil }
         let body = design.pages[match.pageIndex].elements[i].text ?? ""
         let length = (RichText.strip(body) as NSString).length
         guard match.plain.length > 0, NSMaxRange(match.plain) <= length,

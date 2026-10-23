@@ -49,15 +49,18 @@ final class FindScopeTests: XCTestCase {
     }
 
     /// Shared: a chart's row label replaced is its data's too, so drawing
-    /// the chart again keeps the new word; its value labels are not
-    /// searched, being drawn from its numbers.
+    /// the chart again keeps the new word; its value labels are found but
+    /// never replaced, being drawn from its numbers.
     func testReplacingAChartLabelSurvivesTheRedraw() throws {
         let spec = ChartSpec(id: "chart_q", kind: "column", data: "Q1, 10\nQ2, 20", values: true)
         let frame = CGRect(x: 0, y: 0, width: 400, height: 300)
         let drawn = DataGraphics.chart(spec, in: frame, palette: ["#ff0000"], heightFor: { _ in 20 })
         var start = Design(title: "chart", width: 800, height: 600)
         start.pages[0].elements = drawn
-        XCTAssertTrue(DesignStore.matches(in: start, for: "10", caseSensitive: false, wholeWord: true).isEmpty)
+        let values = DesignStore.matches(in: start, for: "10", caseSensitive: false, wholeWord: true)
+        XCTAssertEqual(values.count, 1)
+        XCTAssertNil(DesignStore.replacingOne(start, values[0], with: "11"))
+        XCTAssertEqual(DesignStore(design: start).replaceAll("10", with: "11", wholeWord: true), 0)
         let found = DesignStore.matches(in: start, for: "Q1", caseSensitive: true, wholeWord: true)
         XCTAssertEqual(found.count, 1)
         let after = try XCTUnwrap(DesignStore.replacingOne(start, found[0], with: "Spring"))
@@ -73,6 +76,15 @@ final class FindScopeTests: XCTestCase {
         XCTAssertEqual(DataGraphics.withNames("Quarter, North, South\nQ1, 1, 2", renaming: "North", to: "East"),
                        "Quarter, East, South\nQ1, 1, 2")
         XCTAssertEqual(DataGraphics.withRows("Q1, 10", renaming: "Q9", to: "x"), "Q1, 10", "nothing to rename")
+        // Shared: only the label's cell is written again, the other lines
+        // as typed; a label that would not read back as one cell is not.
+        XCTAssertEqual(DataGraphics.withRows("Q1,\t10\n\nQ2, 20", renaming: "Q1", to: "Q1 2024"),
+                       "Q1 2024,\t10\n\nQ2, 20")
+        XCTAssertEqual(DataGraphics.withRows("Q1, 1\nQ1x, 2", renaming: "Q1", to: "Q1"), "Q1, 1\nQ1x, 2")
+        XCTAssertEqual(DataGraphics.withRows("A,B, 1", renaming: "A", to: "x,y"), "A,B, 1")
+        XCTAssertEqual(DataGraphics.withRows("Q1, 10", renaming: "Q1", to: "Q1, 2024"), "Q1, 10")
+        XCTAssertEqual(DataGraphics.withNames("Quarter, North, South\nQ1, 1, 2", renaming: "Quarter", to: "Season"),
+                       "Quarter, North, South\nQ1, 1, 2")
     }
 
     /// The notes' misspellings are listed after the page's boxes', and a

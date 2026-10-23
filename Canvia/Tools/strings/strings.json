@@ -476,6 +476,15 @@
     "ja": "%@ インク、その他の色",
     "pt-BR": "Tinta %@, mais cores"
   },
+  "%@ is used elsewhere in this design": {
+    "ar": "يُستخدم %@ في مواضع أخرى من هذا التصميم",
+    "de": "%@ wird an anderen Stellen in diesem Design verwendet",
+    "es": "%@ se usa en otras partes de este diseño",
+    "fr": "%@ est utilisée ailleurs dans ce design",
+    "it": "%@ è usato altrove in questo design",
+    "ja": "%@ はこのデザインの他の場所でも使われています",
+    "pt-BR": "%@ é usada em outras partes deste design"
+  },
   "%@ later": {
     "ar": "%@ لاحقًا",
     "de": "%@ später",
@@ -6750,39 +6759,6 @@
     "pt-BR": {
       "one": "Cor de %d elemento alterada",
       "other": "Cor de %d elementos alterada"
-    }
-  },
-  "Changed the font in %d place|Changed the font in %d places": {
-    "ar": {
-      "few": "تم تغيير الخط في %d مواضع",
-      "many": "تم تغيير الخط في %d موضعًا",
-      "one": "تم تغيير الخط في %d موضع",
-      "other": "تم تغيير الخط في %d موضع",
-      "two": "تم تغيير الخط في %d موضعين",
-      "zero": "تم تغيير الخط في %d موضع"
-    },
-    "de": {
-      "one": "Schrift an %d Stelle geändert",
-      "other": "Schrift an %d Stellen geändert"
-    },
-    "es": {
-      "one": "Se cambió la fuente en %d lugar",
-      "other": "Se cambió la fuente en %d lugares"
-    },
-    "fr": {
-      "one": "Police changée à %d endroit",
-      "other": "Police changée à %d endroits"
-    },
-    "it": {
-      "one": "Font cambiato in %d punto",
-      "other": "Font cambiato in %d punti"
-    },
-    "ja": {
-      "other": "%d か所のフォントを変更しました"
-    },
-    "pt-BR": {
-      "one": "Fonte alterada em %d lugar",
-      "other": "Fonte alterada em %d lugares"
     }
   },
   "Changes this design. Undo brings it back.": {
@@ -13604,7 +13580,7 @@
   "Letters missing from the font": {
     "ar": "حروف غير موجودة في الخط",
     "de": "Buchstaben fehlen in der Schrift",
-    "es": "Letras que faltan en la fuente",
+    "es": "Faltan letras en la fuente",
     "fr": "Lettres absentes de la police",
     "it": "Lettere mancanti nel font",
     "ja": "フォントにない文字があります",
@@ -15977,8 +15953,8 @@
     "es": "Notas, página %d",
     "fr": "Notes, page %d",
     "it": "Note, pagina %d",
-    "ja": "ノート、%d ページ",
-    "pt-BR": "Anotações, página %d"
+    "ja": "メモ、%d ページ",
+    "pt-BR": "Notas, página %d"
   },
   "Notes…": {
     "ar": "الملاحظات…",
@@ -19094,7 +19070,7 @@
     "es": "Reemplazar en todas partes…",
     "fr": "Remplacer partout…",
     "it": "Sostituisci ovunque…",
-    "ja": "すべての場所で置換…",
+    "ja": "すべて置き換え…",
     "pt-BR": "Substituir em todo lugar…"
   },
   "Replace existing guides": {
@@ -19248,6 +19224,39 @@
     "pt-BR": {
       "one": "%d substituída",
       "other": "%d substituídas"
+    }
+  },
+  "Replaced the font in %d place|Replaced the font in %d places": {
+    "ar": {
+      "few": "تم استبدال الخط في %d مواضع",
+      "many": "تم استبدال الخط في %d موضعًا",
+      "one": "تم استبدال الخط في موضع واحد (%d)",
+      "other": "تم استبدال الخط في %d موضع",
+      "two": "تم استبدال الخط في موضعين (%d)",
+      "zero": "تم استبدال الخط في %d موضع"
+    },
+    "de": {
+      "one": "Schrift an %d Stelle ersetzt",
+      "other": "Schrift an %d Stellen ersetzt"
+    },
+    "es": {
+      "one": "Se reemplazó la fuente en %d lugar",
+      "other": "Se reemplazó la fuente en %d lugares"
+    },
+    "fr": {
+      "one": "Police remplacée à %d endroit",
+      "other": "Police remplacée à %d endroits"
+    },
+    "it": {
+      "one": "Font sostituito in %d punto",
+      "other": "Font sostituito in %d punti"
+    },
+    "ja": {
+      "other": "%d か所のフォントを置き換えました"
+    },
+    "pt-BR": {
+      "one": "Fonte substituída em %d lugar",
+      "other": "Fonte substituída em %d lugares"
     }
   },
   "Replaces what is on this page. Undo brings it back.": {
@@ -21697,7 +21706,7 @@
   },
   "Some letters will use a stand-in font": {
     "ar": "ستستخدم بعض الحروف خطًا بديلًا",
-    "de": "Einige Buchstaben erscheinen in einer Ersatzschrift",
+    "de": "Einige Buchstaben verwenden eine Ersatzschrift",
     "es": "Algunas letras usarán una fuente sustituta",
     "fr": "Certaines lettres utiliseront une police de remplacement",
     "it": "Alcune lettere useranno un font sostitutivo",
@@ -22068,10 +22077,10 @@
     "ar": "بدء القوائم أثناء الكتابة",
     "de": "Listen beim Tippen beginnen",
     "es": "Empezar listas al escribir",
-    "fr": "Créer des listes en tapant",
-    "it": "Avvia elenchi mentre scrivi",
+    "fr": "Commencer les listes en tapant",
+    "it": "Inizia elenchi durante la digitazione",
     "ja": "入力中にリストを開始",
-    "pt-BR": "Iniciar listas ao digitar"
+    "pt-BR": "Começar listas ao digitar"
   },
   "Start over from a template": {
     "ar": "البدء من جديد من قالب",
@@ -27042,9 +27051,9 @@
     "ar": {
       "few": "تم تخطي %d ملفات",
       "many": "تم تخطي %d ملفًا",
-      "one": "تم تخطي %d ملف",
+      "one": "تم تخطي ملف واحد (%d)",
       "other": "تم تخطي %d ملف",
-      "two": "تم تخطي %d ملفين",
+      "two": "تم تخطي ملفين (%d)",
       "zero": "تم تخطي %d ملف"
     },
     "de": {
@@ -27064,7 +27073,7 @@
       "other": "%d file saltati"
     },
     "ja": {
-      "other": "%d 件のファイルをスキップ"
+      "other": "%d 件のファイルをスキップしました"
     },
     "pt-BR": {
       "one": "%d arquivo ignorado",

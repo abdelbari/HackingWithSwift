@@ -1,1 +1,120 @@
-{"canviaText":1,"paragraphs":[{"list":"bullet"},{"level":1,"list":"bullet"}],"spans":[{"color":"#ff0000","end":3,"start":0}],"text":"**Big** sale\nnow \\*50\\*"}
+{
+  "box": {
+    "text": "**Big** sale\nmilk\nnow \\*50\\*",
+    "spans": [{"start": 4, "end": 8, "color": "#ff0000"}],
+    "paragraphs": [{}, {"list": "bullet"}, {"list": "bullet", "level": 1}]
+  },
+  "cases": [
+    {
+      "name": "a bold word",
+      "start": 0,
+      "end": 3,
+      "plain": "Big",
+      "clip": {"canviaText": 1, "text": "**Big**", "spans": [], "paragraphs": [{}]}
+    },
+    {
+      "name": "a coloured word and a listed line",
+      "start": 4,
+      "end": 13,
+      "plain": "sale\nmilk",
+      "clip": {"canviaText": 1, "text": "sale\nmilk", "spans": [{"start": 0, "end": 4, "color": "#ff0000"}], "paragraphs": [{}, {"list": "bullet"}]}
+    },
+    {
+      "name": "half of a bold word",
+      "start": 1,
+      "end": 3,
+      "plain": "ig",
+      "clip": {"canviaText": 1, "text": "**ig**", "spans": [], "paragraphs": [{}]}
+    },
+    {
+      "name": "literal stars on a deeper item",
+      "start": 14,
+      "end": 21,
+      "plain": "now *50",
+      "clip": {"canviaText": 1, "text": "now \\*50", "spans": [], "paragraphs": [{"list": "bullet", "level": 1}]}
+    }
+  ],
+  "pastes": [
+    {
+      "name": "a bold word into x stays bold",
+      "into": {"text": "x"},
+      "at": 1,
+      "clip": {"canviaText": 1, "text": "**Big**", "spans": [{"start": 0, "end": 3, "color": "#ff0000"}], "paragraphs": [{}]},
+      "text": "x**Big**",
+      "spans": [{"start": 1, "end": 4, "color": "#ff0000"}],
+      "paragraphs": [{}]
+    },
+    {
+      "name": "uncoloured words into a red word stay uncoloured",
+      "into": {"text": "abcd", "spans": [{"start": 0, "end": 4, "color": "#ff0000"}]},
+      "at": 2,
+      "clip": {"canviaText": 1, "text": "xy", "spans": [], "paragraphs": [{}]},
+      "text": "abxycd",
+      "spans": [{"start": 0, "end": 2, "color": "#ff0000"}, {"start": 4, "end": 6, "color": "#ff0000"}],
+      "paragraphs": [{}]
+    },
+    {
+      "name": "a plain line at a bullet's start keeps the bullet",
+      "into": {"text": "milk", "paragraphs": [{"list": "bullet"}]},
+      "at": 0,
+      "clip": {"canviaText": 1, "text": "Big", "spans": [], "paragraphs": [{}]},
+      "text": "Bigmilk",
+      "spans": [],
+      "paragraphs": [{"list": "bullet"}]
+    },
+    {
+      "name": "a bullet line at a line's start makes a bullet",
+      "into": {"text": "milk"},
+      "at": 0,
+      "clip": {"canviaText": 1, "text": "Big", "spans": [], "paragraphs": [{"list": "bullet"}]},
+      "text": "Bigmilk",
+      "spans": [],
+      "paragraphs": [{"list": "bullet"}]
+    },
+    {
+      "name": "two lines within a line: the second takes its list",
+      "into": {"text": "xy"},
+      "at": 1,
+      "clip": {"canviaText": 1, "text": "a\nb", "spans": [], "paragraphs": [{"list": "bullet"}, {"list": "number", "level": 1}]},
+      "text": "xa\nby",
+      "spans": [],
+      "paragraphs": [{}, {"list": "number", "level": 1}]
+    },
+    {
+      "name": "another app's stars show",
+      "into": {"text": "x"},
+      "at": 1,
+      "plain": "a**b**c",
+      "text": "xa\\*\\*b\\*\\*c",
+      "spans": [],
+      "paragraphs": [{}]
+    },
+    {
+      "name": "another app's bullet into an empty box",
+      "into": {"text": ""},
+      "at": 0,
+      "plain": "- milk",
+      "text": "milk",
+      "spans": [],
+      "paragraphs": [{"list": "bullet"}]
+    },
+    {
+      "name": "another app's bullet within a line stays as typed",
+      "into": {"text": "Buy "},
+      "at": 4,
+      "plain": "- milk",
+      "text": "Buy - milk",
+      "spans": [],
+      "paragraphs": [{}]
+    },
+    {
+      "name": "another app's numbered lines",
+      "into": {"text": ""},
+      "at": 0,
+      "plain": "1. a\n2. b",
+      "text": "a\nb",
+      "spans": [],
+      "paragraphs": [{"list": "number"}, {"list": "number"}]
+    }
+  ]
+}

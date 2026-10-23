@@ -26,6 +26,6 @@ extension DesignStore {
 
     /// What Replace font says it did.
     static func replacedFontNote(_ count: Int) -> String {
-        trn("Changed the font in %d place|Changed the font in %d places", count)
+        trn("Replaced the font in %d place|Replaced the font in %d places", count)
     }
 }

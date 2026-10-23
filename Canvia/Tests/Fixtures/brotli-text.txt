@@ -1,0 +1,939 @@
+{
+  "%@ %@": {
+    "ar": "%@ %@",
+    "de": "%@ %@",
+    "es": "%@ %@",
+    "fr": "%@ %@",
+    "it": "%@ %@",
+    "ja": "%@ %@",
+    "pt-BR": "%@ %@"
+  },
+  "%@ %@ gradient": {
+    "ar": "تدرّج %@ %@",
+    "de": "Verlauf %@ %@",
+    "es": "Degradado %@ %@",
+    "fr": "Dégradé %@ %@",
+    "it": "Sfumatura %@ %@",
+    "ja": "%@ %@ グラデーション",
+    "pt-BR": "Degradê %@ %@"
+  },
+  "%@ (copy)": {
+    "ar": "%@ (نسخة)",
+    "de": "%@ (Kopie)",
+    "es": "%@ (copia)",
+    "fr": "%@ (copie)",
+    "it": "%@ (copia)",
+    "ja": "%@（コピー）",
+    "pt-BR": "%@ (cópia)"
+  },
+  "%@ (locked)": {
+    "ar": "%@ (مقفل)",
+    "de": "%@ (gesperrt)",
+    "es": "%@ (bloqueado)",
+    "fr": "%@ (verrouillé)",
+    "it": "%@ (bloccato)",
+    "ja": "%@（ロック中）",
+    "pt-BR": "%@ (bloqueado)"
+  },
+  "%@ (this page)": {
+    "ar": "%@ (هذه الصفحة)",
+    "de": "%@ (diese Seite)",
+    "es": "%@ (esta página)",
+    "fr": "%@ (cette page)",
+    "it": "%@ (questa pagina)",
+    "ja": "%@（このページ）",
+    "pt-BR": "%@ (esta página)"
+  },
+  "%@ (version from %@)": {
+    "ar": "%@ (الإصدار من %@)",
+    "de": "%@ (Version vom %@)",
+    "es": "%@ (versión de %@)",
+    "fr": "%@ (version du %@)",
+    "it": "%@ (versione del %@)",
+    "ja": "%@（%@ のバージョン）",
+    "pt-BR": "%@ (versão de %@)"
+  },
+  "%@ across, %@ down": {
+    "ar": "%@ عرضًا، %@ طولًا",
+    "de": "%@ breit, %@ hoch",
+    "es": "%@ en horizontal, %@ en vertical",
+    "fr": "%@ en largeur, %@ en hauteur",
+    "it": "%@ in orizzontale, %@ in verticale",
+    "ja": "横 %@、縦 %@",
+    "pt-BR": "%@ na horizontal, %@ na vertical"
+  },
+  "%@ ago": {
+    "ar": "منذ %@",
+    "de": "vor %@",
+    "es": "hace %@",
+    "fr": "il y a %@",
+    "it": "%@ fa",
+    "ja": "%@前",
+    "pt-BR": "há %@"
+  },
+  "%@ amount": {
+    "ar": "مقدار %@",
+    "de": "%@: Stärke",
+    "es": "Cantidad de %@",
+    "fr": "%@ : quantité",
+    "it": "Quantità %@",
+    "ja": "%@の量",
+    "pt-BR": "Quantidade de %@"
+  },
+  "%@ and %@": {
+    "ar": "%@ و%@",
+    "de": "%@ und %@",
+    "es": "%@ y %@",
+    "fr": "%@ et %@",
+    "it": "%@ e %@",
+    "ja": "%@ と %@",
+    "pt-BR": "%@ e %@"
+  },
+  "%@ and %@ wide": {
+    "ar": "%@ و%@ عرضًا",
+    "de": "%@ und %@ breit",
+    "es": "%@ y %@ de ancho",
+    "fr": "%@ et %@ de large",
+    "it": "%@ e %@ di larghezza",
+    "ja": "%@、幅 %@",
+    "pt-BR": "%@ e %@ de largura"
+  },
+  "%@ arrow": {
+    "ar": "سهم (%@)",
+    "de": "Pfeil (%@)",
+    "es": "Flecha en %@",
+    "fr": "Flèche (%@)",
+    "it": "Freccia (%@)",
+    "ja": "%@の矢印",
+    "pt-BR": "Seta (%@)"
+  },
+  "%@ arrow down": {
+    "ar": "سهم لأسفل (%@)",
+    "de": "Pfeil nach unten (%@)",
+    "es": "Flecha hacia abajo en %@",
+    "fr": "Flèche vers le bas (%@)",
+    "it": "Freccia giù (%@)",
+    "ja": "%@の下矢印",
+    "pt-BR": "Seta para baixo (%@)"
+  },
+  "%@ arrow left": {
+    "ar": "سهم لليسار (%@)",
+    "de": "Pfeil nach links (%@)",
+    "es": "Flecha hacia la izquierda en %@",
+    "fr": "Flèche vers la gauche (%@)",
+    "it": "Freccia sinistra (%@)",
+    "ja": "%@の左矢印",
+    "pt-BR": "Seta para a esquerda (%@)"
+  },
+  "%@ arrow up": {
+    "ar": "سهم لأعلى (%@)",
+    "de": "Pfeil nach oben (%@)",
+    "es": "Flecha hacia arriba en %@",
+    "fr": "Flèche vers le haut (%@)",
+    "it": "Freccia su (%@)",
+    "ja": "%@の上矢印",
+    "pt-BR": "Seta para cima (%@)"
+  },
+  "%@ badge": {
+    "ar": "شارة (%@)",
+    "de": "Abzeichen (%@)",
+    "es": "Insignia en %@",
+    "fr": "Badge (%@)",
+    "it": "Badge (%@)",
+    "ja": "%@のバッジ",
+    "pt-BR": "Selo (%@)"
+  },
+  "%@ banner": {
+    "ar": "لافتة (%@)",
+    "de": "Banner (%@)",
+    "es": "Banner en %@",
+    "fr": "Bannière (%@)",
+    "it": "Banner (%@)",
+    "ja": "%@のバナー",
+    "pt-BR": "Faixa (%@)"
+  },
+  "%@ bean blob": {
+    "ar": "فقاعة حبة الفول (%@)",
+    "de": "Bohnenklecks (%@)",
+    "es": "Mancha de judía en %@",
+    "fr": "Haricot (%@)",
+    "it": "Macchia a fagiolo (%@)",
+    "ja": "%@のビーンブロブ",
+    "pt-BR": "Mancha de feijão (%@)"
+  },
+  "%@ burst": {
+    "ar": "انفجار (%@)",
+    "de": "Explosion (%@)",
+    "es": "Explosión en %@",
+    "fr": "Éclat (%@)",
+    "it": "Esplosione (%@)",
+    "ja": "%@のバースト",
+    "pt-BR": "Explosão (%@)"
+  },
+  "%@ by %@ centimetres": {
+    "ar": "%@ في %@ سنتيمتر",
+    "de": "%@ × %@ Zentimeter",
+    "es": "%@ por %@ centímetros",
+    "fr": "%@ sur %@ centimètres",
+    "it": "%@ per %@ centimetri",
+    "ja": "%@ × %@ センチメートル",
+    "pt-BR": "%@ por %@ centímetros"
+  },
+  "%@ by %@ inches": {
+    "ar": "%@ في %@ بوصة",
+    "de": "%@ × %@ Zoll",
+    "es": "%@ por %@ pulgadas",
+    "fr": "%@ sur %@ pouces",
+    "it": "%@ per %@ pollici",
+    "ja": "%@ × %@ インチ",
+    "pt-BR": "%@ por %@ polegadas"
+  },
+  "%@ by %@ millimetres": {
+    "ar": "%@ في %@ مليمتر",
+    "de": "%@ × %@ Millimeter",
+    "es": "%@ por %@ milímetros",
+    "fr": "%@ sur %@ millimètres",
+    "it": "%@ per %@ millimetri",
+    "ja": "%@ × %@ ミリメートル",
+    "pt-BR": "%@ por %@ milímetros"
+  },
+  "%@ chart": {
+    "ar": "مخطط %@",
+    "de": "Diagramm %@",
+    "es": "Gráfico de %@",
+    "fr": "Graphique %@",
+    "it": "Grafico %@",
+    "ja": "%@グラフ",
+    "pt-BR": "Gráfico %@"
+  },
+  "%@ chevron": {
+    "ar": "شيفرون (%@)",
+    "de": "Winkelpfeil (%@)",
+    "es": "Cheurón en %@",
+    "fr": "Chevron (%@)",
+    "it": "Chevron (%@)",
+    "ja": "%@の山形",
+    "pt-BR": "Divisa (%@)"
+  },
+  "%@ circle": {
+    "ar": "دائرة (%@)",
+    "de": "Kreis (%@)",
+    "es": "Círculo en %@",
+    "fr": "Cercle (%@)",
+    "it": "Cerchio (%@)",
+    "ja": "%@の円",
+    "pt-BR": "Círculo (%@)"
+  },
+  "%@ colours": {
+    "ar": "ألوان %@",
+    "de": "Farben: %@",
+    "es": "Colores de %@",
+    "fr": "Couleurs : %@",
+    "it": "%@ colori",
+    "ja": "%@ 色",
+    "pt-BR": "Cores de %@"
+  },
+  "%@ copy": {
+    "ar": "نسخة %@",
+    "de": "%@ Kopie",
+    "es": "Copia de %@",
+    "fr": "%@ copie",
+    "it": "Copia di %@",
+    "ja": "%@のコピー",
+    "pt-BR": "Cópia de %@"
+  },
+  "%@ cross": {
+    "ar": "صليب (%@)",
+    "de": "Kreuz (%@)",
+    "es": "Cruz en %@",
+    "fr": "Croix (%@)",
+    "it": "Croce (%@)",
+    "ja": "%@のクロス",
+    "pt-BR": "Cruz (%@)"
+  },
+  "%@ custom shape": {
+    "ar": "شكل مخصّص %@",
+    "de": "Eigene Form %@",
+    "es": "Forma personalizada en %@",
+    "fr": "Forme personnalisée %@",
+    "it": "Forma personalizzata %@",
+    "ja": "%@ カスタム図形",
+    "pt-BR": "Forma personalizada %@"
+  },
+  "%@ deg": {
+    "ar": "%@°",
+    "de": "%@°",
+    "es": "%@°",
+    "fr": "%@°",
+    "it": "%@°",
+    "ja": "%@°",
+    "pt-BR": "%@°"
+  },
+  "%@ diamond": {
+    "ar": "معيّن (%@)",
+    "de": "Raute (%@)",
+    "es": "Rombo en %@",
+    "fr": "Losange (%@)",
+    "it": "Rombo (%@)",
+    "ja": "%@のひし形",
+    "pt-BR": "Losango (%@)"
+  },
+  "%@ double arrow": {
+    "ar": "سهم مزدوج (%@)",
+    "de": "Doppelpfeil (%@)",
+    "es": "Flecha doble en %@",
+    "fr": "Double flèche (%@)",
+    "it": "Doppia freccia (%@)",
+    "ja": "%@の両矢印",
+    "pt-BR": "Seta dupla (%@)"
+  },
+  "%@ drawing": {
+    "ar": "رسم %@",
+    "de": "Zeichnung %@",
+    "es": "Dibujo en %@",
+    "fr": "Dessin %@",
+    "it": "Disegno %@",
+    "ja": "%@ 描画",
+    "pt-BR": "Desenho %@"
+  },
+  "%@ drop": {
+    "ar": "قطرة (%@)",
+    "de": "Tropfen (%@)",
+    "es": "Gota en %@",
+    "fr": "Goutte (%@)",
+    "it": "Goccia (%@)",
+    "ja": "%@のしずく",
+    "pt-BR": "Gota (%@)"
+  },
+  "%@ duotone": {
+    "ar": "ثنائي اللون %@",
+    "de": "Duoton %@",
+    "es": "Duotono %@",
+    "fr": "Bichromie %@",
+    "it": "Bicromia %@",
+    "ja": "%@ ダブルトーン",
+    "pt-BR": "Duotone %@"
+  },
+  "%@ earlier": {
+    "ar": "%@ أبكر",
+    "de": "%@ früher",
+    "es": "%@ antes",
+    "fr": "%@ plus tôt",
+    "it": "%@ prima",
+    "ja": "%@ を早く",
+    "pt-BR": "%@ antes"
+  },
+  "%@ effect": {
+    "ar": "تأثير %@",
+    "de": "Effekt %@",
+    "es": "Efecto %@",
+    "fr": "Effet %@",
+    "it": "Effetto %@",
+    "ja": "%@ エフェクト",
+    "pt-BR": "Efeito %@"
+  },
+  "%@ elongated blob": {
+    "ar": "فقاعة مستطيلة (%@)",
+    "de": "Länglicher Klecks (%@)",
+    "es": "Mancha alargada en %@",
+    "fr": "Tache allongée (%@)",
+    "it": "Macchia allungata (%@)",
+    "ja": "%@の細長いブロブ",
+    "pt-BR": "Mancha alongada (%@)"
+  },
+  "%@ end": {
+    "ar": "نهاية %@",
+    "de": "%@ Ende",
+    "es": "Fin de %@",
+    "fr": "Fin : %@",
+    "it": "Fine %@",
+    "ja": "%@ 終了",
+    "pt-BR": "Fim de %@"
+  },
+  "%@ filter": {
+    "ar": "فلتر %@",
+    "de": "Filter %@",
+    "es": "Filtro %@",
+    "fr": "Filtre %@",
+    "it": "Filtro %@",
+    "ja": "%@ フィルター",
+    "pt-BR": "Filtro %@"
+  },
+  "%@ font": {
+    "ar": "خط %@",
+    "de": "Schrift %@",
+    "es": "Fuente %@",
+    "fr": "Police %@",
+    "it": "Font %@",
+    "ja": "%@ フォント",
+    "pt-BR": "Fonte %@"
+  },
+  "%@ font combination": {
+    "ar": "تشكيلة خطوط %@",
+    "de": "Schriftkombination %@",
+    "es": "Combinación de fuentes %@",
+    "fr": "Combinaison de polices %@",
+    "it": "Combinazione di font %@",
+    "ja": "%@ フォントの組み合わせ",
+    "pt-BR": "Combinação de fontes %@"
+  },
+  "%@ font, missing": {
+    "ar": "خط %@، غير متوفر",
+    "de": "Schrift %@, fehlt",
+    "es": "Fuente %@, no disponible",
+    "fr": "Police %@, manquante",
+    "it": "Font %@, mancante",
+    "ja": "%@ フォント、見つかりません",
+    "pt-BR": "Fonte %@, ausente"
+  },
+  "%@ fonts, by size": {
+    "ar": "خطوط %@، حسب الحجم",
+    "de": "%@ Schriften, nach Größe",
+    "es": "Fuentes %@, por tamaño",
+    "fr": "Polices %@, par taille",
+    "it": "Font %@, per dimensione",
+    "ja": "%@ フォント（サイズ順）",
+    "pt-BR": "Fontes de %@, por tamanho"
+  },
+  "%@ for this page; each page at its own size": {
+    "ar": "%@ لهذه الصفحة؛ كل صفحة بحجمها الخاص",
+    "de": "%@ für diese Seite; jede Seite in eigener Größe",
+    "es": "%@ para esta página; cada página con su propio tamaño",
+    "fr": "%@ pour cette page ; chaque page à sa propre taille",
+    "it": "%@ per questa pagina; ogni pagina nelle sue dimensioni",
+    "ja": "このページは %@。各ページはそれぞれのサイズで",
+    "pt-BR": "%@ para esta página; cada página no próprio tamanho"
+  },
+  "%@ four-point sparkle": {
+    "ar": "بريق رباعي (%@)",
+    "de": "Vierzackiges Funkeln (%@)",
+    "es": "Destello de cuatro puntas en %@",
+    "fr": "Étincelle à quatre branches (%@)",
+    "it": "Scintilla a quattro punte (%@)",
+    "ja": "%@の4 点のきらめき",
+    "pt-BR": "Faísca de quatro pontas (%@)"
+  },
+  "%@ frame": {
+    "ar": "إطار %@",
+    "de": "Rahmen %@",
+    "es": "Marco %@",
+    "fr": "Cadre %@",
+    "it": "Cornice %@",
+    "ja": "%@ フレーム",
+    "pt-BR": "Moldura %@"
+  },
+  "%@ heart": {
+    "ar": "قلب (%@)",
+    "de": "Herz (%@)",
+    "es": "Corazón en %@",
+    "fr": "Cœur (%@)",
+    "it": "Cuore (%@)",
+    "ja": "%@のハート",
+    "pt-BR": "Coração (%@)"
+  },
+  "%@ hexagon": {
+    "ar": "سداسي (%@)",
+    "de": "Sechseck (%@)",
+    "es": "Hexágono en %@",
+    "fr": "Hexagone (%@)",
+    "it": "Esagono (%@)",
+    "ja": "%@の六角形",
+    "pt-BR": "Hexágono (%@)"
+  },
+  "%@ icon": {
+    "ar": "رمز %@",
+    "de": "Symbol %@",
+    "es": "Icono %@",
+    "fr": "Icône %@",
+    "it": "Icona %@",
+    "ja": "%@ アイコン",
+    "pt-BR": "Ícone %@"
+  },
+  "%@ ink": {
+    "ar": "حبر %@",
+    "de": "Tinte %@",
+    "es": "Tinta %@",
+    "fr": "Encre %@",
+    "it": "Inchiostro %@",
+    "ja": "%@ インク",
+    "pt-BR": "Tinta %@"
+  },
+  "%@ ink, choose another colour": {
+    "ar": "حبر %@، اختر لونًا آخر",
+    "de": "Tinte %@, andere Farbe wählen",
+    "es": "Tinta %@, elige otro color",
+    "fr": "Encre %@, choisir une autre couleur",
+    "it": "Inchiostro %@, scegli un altro colore",
+    "ja": "%@ インク、別の色を選択",
+    "pt-BR": "Tinta %@, escolher outra cor"
+  },
+  "%@ ink, more colours": {
+    "ar": "حبر %@، مزيد من الألوان",
+    "de": "Tinte %@, weitere Farben",
+    "es": "Tinta %@, más colores",
+    "fr": "Encre %@, plus de couleurs",
+    "it": "Inchiostro %@, altri colori",
+    "ja": "%@ インク、その他の色",
+    "pt-BR": "Tinta %@, mais cores"
+  },
+  "%@ later": {
+    "ar": "%@ لاحقًا",
+    "de": "%@ später",
+    "es": "%@ después",
+    "fr": "%@ plus tard",
+    "it": "%@ dopo",
+    "ja": "%@ を遅く",
+    "pt-BR": "%@ depois"
+  },
+  "%@ letter frame": {
+    "ar": "إطار الحرف %@",
+    "de": "Buchstabenrahmen %@",
+    "es": "Marco con la letra %@",
+    "fr": "Cadre lettre %@",
+    "it": "Cornice lettera %@",
+    "ja": "文字 %@ のフレーム",
+    "pt-BR": "Moldura da letra %@"
+  },
+  "%@ lightning": {
+    "ar": "برق (%@)",
+    "de": "Blitz (%@)",
+    "es": "Rayo en %@",
+    "fr": "Éclair (%@)",
+    "it": "Fulmine (%@)",
+    "ja": "%@の稲妻",
+    "pt-BR": "Raio (%@)"
+  },
+  "%@ line": {
+    "ar": "خط %@",
+    "de": "Linie %@",
+    "es": "Línea en %@",
+    "fr": "Ligne %@",
+    "it": "Linea %@",
+    "ja": "%@ 線",
+    "pt-BR": "Linha %@"
+  },
+  "%@ long": {
+    "ar": "بطول %@",
+    "de": "%@ lang",
+    "es": "Duración: %@",
+    "fr": "Durée : %@",
+    "it": "%@ di durata",
+    "ja": "長さ %@",
+    "pt-BR": "%@ de duração"
+  },
+  "%@ moon": {
+    "ar": "قمر (%@)",
+    "de": "Mond (%@)",
+    "es": "Luna en %@",
+    "fr": "Lune (%@)",
+    "it": "Luna (%@)",
+    "ja": "%@の月",
+    "pt-BR": "Lua (%@)"
+  },
+  "%@ octagon": {
+    "ar": "ثماني (%@)",
+    "de": "Achteck (%@)",
+    "es": "Octágono en %@",
+    "fr": "Octogone (%@)",
+    "it": "Ottagono (%@)",
+    "ja": "%@の八角形",
+    "pt-BR": "Octógono (%@)"
+  },
+  "%@ options": {
+    "ar": "خيارات %@",
+    "de": "Optionen für %@",
+    "es": "Opciones de %@",
+    "fr": "Options : %@",
+    "it": "Opzioni %@",
+    "ja": "%@ のオプション",
+    "pt-BR": "Opções de %@"
+  },
+  "%@ oval": {
+    "ar": "بيضاوي (%@)",
+    "de": "Oval (%@)",
+    "es": "Óvalo en %@",
+    "fr": "Ovale (%@)",
+    "it": "Ovale (%@)",
+    "ja": "%@の楕円",
+    "pt-BR": "Oval (%@)"
+  },
+  "%@ palette options": {
+    "ar": "خيارات لوحة %@",
+    "de": "Paletten-Optionen für %@",
+    "es": "Opciones de la paleta %@",
+    "fr": "Options de la palette %@",
+    "it": "Opzioni tavolozza %@",
+    "ja": "%@ パレットのオプション",
+    "pt-BR": "Opções da paleta %@"
+  },
+  "%@ parallelogram": {
+    "ar": "متوازي أضلاع (%@)",
+    "de": "Parallelogramm (%@)",
+    "es": "Paralelogramo en %@",
+    "fr": "Parallélogramme (%@)",
+    "it": "Parallelogramma (%@)",
+    "ja": "%@の平行四辺形",
+    "pt-BR": "Paralelogramo (%@)"
+  },
+  "%@ pattern": {
+    "ar": "نقش %@",
+    "de": "Muster %@",
+    "es": "Patrón %@",
+    "fr": "Motif %@",
+    "it": "Motivo %@",
+    "ja": "%@ パターン",
+    "pt-BR": "Padrão %@"
+  },
+  "%@ pentagon": {
+    "ar": "خماسي (%@)",
+    "de": "Fünfeck (%@)",
+    "es": "Pentágono en %@",
+    "fr": "Pentagone (%@)",
+    "it": "Pentagono (%@)",
+    "ja": "%@の五角形",
+    "pt-BR": "Pentágono (%@)"
+  },
+  "%@ photo frame": {
+    "ar": "إطار صورة %@",
+    "de": "Fotorahmen %@",
+    "es": "Marco de foto %@",
+    "fr": "Cadre photo %@",
+    "it": "Cornice foto %@",
+    "ja": "%@ 写真フレーム",
+    "pt-BR": "Moldura de foto %@"
+  },
+  "%@ photo grid": {
+    "ar": "شبكة صور %@",
+    "de": "Fotoraster %@",
+    "es": "Cuadrícula de fotos %@",
+    "fr": "Grille photo %@",
+    "it": "Griglia foto %@",
+    "ja": "%@ 写真グリッド",
+    "pt-BR": "Grade de fotos %@"
+  },
+  "%@ plaque": {
+    "ar": "لوحة (%@)",
+    "de": "Plakette (%@)",
+    "es": "Placa en %@",
+    "fr": "Plaque (%@)",
+    "it": "Targa (%@)",
+    "ja": "%@のプレート",
+    "pt-BR": "Placa (%@)"
+  },
+  "%@ quarter circle": {
+    "ar": "ربع دائرة (%@)",
+    "de": "Viertelkreis (%@)",
+    "es": "Cuarto de círculo en %@",
+    "fr": "Quart de cercle (%@)",
+    "it": "Quarto di cerchio (%@)",
+    "ja": "%@の四分円",
+    "pt-BR": "Quarto de círculo (%@)"
+  },
+  "%@ rectangle": {
+    "ar": "مستطيل (%@)",
+    "de": "Rechteck (%@)",
+    "es": "Rectángulo en %@",
+    "fr": "Rectangle (%@)",
+    "it": "Rettangolo (%@)",
+    "ja": "%@の長方形",
+    "pt-BR": "Retângulo (%@)"
+  },
+  "%@ ribbon": {
+    "ar": "شريط (%@)",
+    "de": "Band (%@)",
+    "es": "Cinta en %@",
+    "fr": "Ruban (%@)",
+    "it": "Nastro (%@)",
+    "ja": "%@のリボン",
+    "pt-BR": "Fita (%@)"
+  },
+  "%@ round blob": {
+    "ar": "فقاعة مستديرة (%@)",
+    "de": "Runder Klecks (%@)",
+    "es": "Mancha redonda en %@",
+    "fr": "Tache ronde (%@)",
+    "it": "Macchia rotonda (%@)",
+    "ja": "%@の丸いブロブ",
+    "pt-BR": "Mancha redonda (%@)"
+  },
+  "%@ round callout": {
+    "ar": "وسيلة شرح مستديرة (%@)",
+    "de": "Runde Sprechblase (%@)",
+    "es": "Llamada redonda en %@",
+    "fr": "Bulle ronde (%@)",
+    "it": "Fumetto rotondo (%@)",
+    "ja": "%@の丸い吹き出し",
+    "pt-BR": "Balão redondo (%@)"
+  },
+  "%@ scalloped circle": {
+    "ar": "دائرة مموّجة (%@)",
+    "de": "Gewellter Kreis (%@)",
+    "es": "Círculo festoneado en %@",
+    "fr": "Cercle festonné (%@)",
+    "it": "Cerchio smerlato (%@)",
+    "ja": "%@の波形の円",
+    "pt-BR": "Círculo ondulado (%@)"
+  },
+  "%@ seal": {
+    "ar": "ختم (%@)",
+    "de": "Siegel (%@)",
+    "es": "Sello en %@",
+    "fr": "Sceau (%@)",
+    "it": "Sigillo (%@)",
+    "ja": "%@のシール",
+    "pt-BR": "Lacre (%@)"
+  },
+  "%@ seconds": {
+    "ar": "%@ ثانية",
+    "de": "%@ Sekunden",
+    "es": "%@ segundos",
+    "fr": "%@ secondes",
+    "it": "%@ secondi",
+    "ja": "%@ 秒",
+    "pt-BR": "%@ segundos"
+  },
+  "%@ semicircle": {
+    "ar": "نصف دائرة (%@)",
+    "de": "Halbkreis (%@)",
+    "es": "Semicírculo en %@",
+    "fr": "Demi-cercle (%@)",
+    "it": "Semicerchio (%@)",
+    "ja": "%@の半円",
+    "pt-BR": "Semicírculo (%@)"
+  },
+  "%@ shadow": {
+    "ar": "ظل %@",
+    "de": "Schatten %@",
+    "es": "Sombra %@",
+    "fr": "Ombre %@",
+    "it": "Ombra %@",
+    "ja": "%@ 影",
+    "pt-BR": "Sombra %@"
+  },
+  "%@ shape": {
+    "ar": "شكل (%@)",
+    "de": "Form (%@)",
+    "es": "Forma en %@",
+    "fr": "Forme (%@)",
+    "it": "Forma (%@)",
+    "ja": "%@の図形",
+    "pt-BR": "Forma (%@)"
+  },
+  "%@ shield": {
+    "ar": "درع (%@)",
+    "de": "Schild (%@)",
+    "es": "Escudo en %@",
+    "fr": "Bouclier (%@)",
+    "it": "Scudo (%@)",
+    "ja": "%@の盾",
+    "pt-BR": "Escudo (%@)"
+  },
+  "%@ six-petal flower": {
+    "ar": "زهرة سداسية البتلات (%@)",
+    "de": "Sechsblättrige Blume (%@)",
+    "es": "Flor de seis pétalos en %@",
+    "fr": "Fleur à six pétales (%@)",
+    "it": "Fiore a sei petali (%@)",
+    "ja": "%@の6 枚花びらの花",
+    "pt-BR": "Flor de seis pétalas (%@)"
+  },
+  "%@ sparkle": {
+    "ar": "بريق (%@)",
+    "de": "Funkeln (%@)",
+    "es": "Destello en %@",
+    "fr": "Étincelle (%@)",
+    "it": "Scintilla (%@)",
+    "ja": "%@のきらめき",
+    "pt-BR": "Faísca (%@)"
+  },
+  "%@ speech bubble": {
+    "ar": "فقاعة كلام (%@)",
+    "de": "Sprechblase (%@)",
+    "es": "Bocadillo en %@",
+    "fr": "Bulle de dialogue (%@)",
+    "it": "Fumetto (%@)",
+    "ja": "%@の吹き出し",
+    "pt-BR": "Balão de fala (%@)"
+  },
+  "%@ square": {
+    "ar": "مربع (%@)",
+    "de": "Quadrat (%@)",
+    "es": "Cuadrado en %@",
+    "fr": "Carré (%@)",
+    "it": "Quadrato (%@)",
+    "ja": "%@の正方形",
+    "pt-BR": "Quadrado (%@)"
+  },
+  "%@ squircle": {
+    "ar": "مربع مستدير (%@)",
+    "de": "Squircle (%@)",
+    "es": "Squircle en %@",
+    "fr": "Squircle (%@)",
+    "it": "Squircle (%@)",
+    "ja": "%@のスクワークル",
+    "pt-BR": "Squircle (%@)"
+  },
+  "%@ star": {
+    "ar": "نجمة (%@)",
+    "de": "Stern (%@)",
+    "es": "Estrella en %@",
+    "fr": "Étoile (%@)",
+    "it": "Stella (%@)",
+    "ja": "%@の星",
+    "pt-BR": "Estrela (%@)"
+  },
+  "%@ star 6": {
+    "ar": "نجمة سداسية (%@)",
+    "de": "Stern 6 (%@)",
+    "es": "Estrella de 6 en %@",
+    "fr": "Étoile à 6 branches (%@)",
+    "it": "Stella a 6 punte (%@)",
+    "ja": "%@の六芒星",
+    "pt-BR": "Estrela de 6 pontas (%@)"
+  },
+  "%@ start": {
+    "ar": "بداية %@",
+    "de": "%@ Anfang",
+    "es": "Inicio de %@",
+    "fr": "Début : %@",
+    "it": "Inizio %@",
+    "ja": "%@ 開始",
+    "pt-BR": "Início de %@"
+  },
+  "%@ sticker": {
+    "ar": "ملصق %@",
+    "de": "Sticker %@",
+    "es": "Sticker %@",
+    "fr": "Autocollant %@",
+    "it": "Sticker %@",
+    "ja": "%@ ステッカー",
+    "pt-BR": "Figurinha %@"
+  },
+  "%@ strength": {
+    "ar": "قوة %@",
+    "de": "%@: Intensität",
+    "es": "Intensidad de %@",
+    "fr": "%@ : intensité",
+    "it": "Intensità %@",
+    "ja": "%@ の強さ",
+    "pt-BR": "Intensidade de %@"
+  },
+  "%@ sunburst": {
+    "ar": "أشعة الشمس (%@)",
+    "de": "Sonnenstrahlen (%@)",
+    "es": "Rayos de sol en %@",
+    "fr": "Rayons de soleil (%@)",
+    "it": "Raggiera (%@)",
+    "ja": "%@のサンバースト",
+    "pt-BR": "Raios de sol (%@)"
+  },
+  "%@ tag": {
+    "ar": "وسم (%@)",
+    "de": "Etikett (%@)",
+    "es": "Etiqueta en %@",
+    "fr": "Étiquette (%@)",
+    "it": "Etichetta (%@)",
+    "ja": "%@のタグ",
+    "pt-BR": "Etiqueta (%@)"
+  },
+  "%@ three-lobed blob": {
+    "ar": "فقاعة ثلاثية الفصوص (%@)",
+    "de": "Dreilappiger Klecks (%@)",
+    "es": "Mancha de tres lóbulos en %@",
+    "fr": "Tache à trois lobes (%@)",
+    "it": "Macchia a tre lobi (%@)",
+    "ja": "%@の三つ葉のブロブ",
+    "pt-BR": "Mancha de três lóbulos (%@)"
+  },
+  "%@ to Photos": {
+    "ar": "%@ إلى الصور",
+    "de": "%@ in Fotos",
+    "es": "%@ a Fotos",
+    "fr": "%@ dans Photos",
+    "it": "%@ in Foto",
+    "ja": "%@を写真に",
+    "pt-BR": "%@ em Fotos"
+  },
+  "%@ trapezoid": {
+    "ar": "شبه منحرف (%@)",
+    "de": "Trapez (%@)",
+    "es": "Trapecio en %@",
+    "fr": "Trapèze (%@)",
+    "it": "Trapezio (%@)",
+    "ja": "%@の台形",
+    "pt-BR": "Trapézio (%@)"
+  },
+  "%@ triangle": {
+    "ar": "مثلث (%@)",
+    "de": "Dreieck (%@)",
+    "es": "Triángulo en %@",
+    "fr": "Triangle (%@)",
+    "it": "Triangolo (%@)",
+    "ja": "%@の三角形",
+    "pt-BR": "Triângulo (%@)"
+  },
+  "%@ triangle down": {
+    "ar": "مثلث مقلوب (%@)",
+    "de": "Dreieck nach unten (%@)",
+    "es": "Triángulo hacia abajo en %@",
+    "fr": "Triangle inversé (%@)",
+    "it": "Triangolo in giù (%@)",
+    "ja": "%@の下向き三角形",
+    "pt-BR": "Triângulo para baixo (%@)"
+  },
+  "%@ type": {
+    "ar": "نوع %@",
+    "de": "%@: Art",
+    "es": "Tipografía %@",
+    "fr": "Typographie %@",
+    "it": "Tipo %@",
+    "ja": "%@ の種類",
+    "pt-BR": "Tipo %@"
+  },
+  "%@ wide, %@ tall": {
+    "ar": "بعرض %@ وارتفاع %@",
+    "de": "%@ breit, %@ hoch",
+    "es": "%@ de ancho, %@ de alto",
+    "fr": "%@ de large, %@ de haut",
+    "it": "%@ di larghezza, %@ di altezza",
+    "ja": "幅 %@、高さ %@",
+    "pt-BR": "%@ de largura, %@ de altura"
+  },
+  "%@ · %@": {
+    "ar": "%@ · %@",
+    "de": "%@ · %@",
+    "es": "%@ · %@",
+    "fr": "%@ · %@",
+    "it": "%@ · %@",
+    "ja": "%@ · %@",
+    "pt-BR": "%@ · %@"
+  },
+  "%@ · Page %d of %d": {
+    "ar": "%@ · الصفحة %d من %d",
+    "de": "%@ · Seite %d von %d",
+    "es": "%@ · Página %d de %d",
+    "fr": "%@ · Page %d sur %d",
+    "it": "%@ · Pagina %d di %d",
+    "ja": "%@ · ページ %d / %d",
+    "pt-BR": "%@ · Página %d de %d"
+  },
+  "%@ · holds %@ s": {
+    "ar": "%@ · يثبت %@ ث",
+    "de": "%@ · hält %@ s",
+    "es": "%@ · dura %@ s",
+    "fr": "%@ · dure %@ s",
+    "it": "%@ · resta %@ s",
+    "ja": "%@ · %@ 秒間表示",
+    "pt-BR": "%@ · dura %@ s"
+  },
+  "%@ · page %d": {
+    "ar": "%@ · الصفحة %d",
+    "de": "%@ · Seite %d",
+    "es": "%@ · página %d",
+    "fr": "%@ · page %d",
+    "it": "%@ · pagina %d",
+    "ja": "%@ · ページ %d",
+    "pt-BR": "%@ · página %d"
+  },
+  "%@ × %@, coloured from this page.": {
+    "ar": "%@ × %@، ب�

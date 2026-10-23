@@ -78,6 +78,25 @@ final class FontSwapTests: XCTestCase {
         XCTAssertEqual(after.pages[0].elements[0].chart?.font, "lora")
     }
 
+    /// Shared: a chart's spec counts once a chart, beside its labels; what
+    /// is counted is what changes, so a locked page's boxes are not.
+    func testAChartCountsOnceAndALockedPageNotAtAll() {
+        var d = Design(title: "chart", width: 800, height: 600)
+        let spec = ChartSpec(id: "chart_f", kind: "column", data: "A, 1", font: "didone")
+        var label = text("A", "didone")
+        label.chart = spec
+        label.chartPart = "label"
+        var second = text("B", "serif", y: 100)
+        second.chart = spec
+        second.chartPart = "label"
+        d.pages[0].elements = [label, second]
+        XCTAssertEqual(FontSwap.uses(d), [FontSwap.Use(family: "playfair-display", count: 2),
+                                          FontSwap.Use(family: "serif", count: 1)])
+        var locked = design()
+        locked.pages[0].locked = true
+        XCTAssertEqual(FontSwap.count(locked, family: "serif"), 0)
+    }
+
     /// One step, named Replace font, that one Undo takes back.
     func testReplaceFontIsOneStepNamedReplaceFont() {
         let store = DesignStore(design: design())

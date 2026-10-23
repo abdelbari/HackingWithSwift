@@ -271,6 +271,8 @@ struct FontSheet: View {
                 } label: {
                     Label("Change all (\(offer.count))", systemImage: "textformat")
                 }
+            } footer: {
+                Text("\(FontStore.displayName(offer.from, in: store.design)) is used elsewhere in this design")
             }
         }
     }

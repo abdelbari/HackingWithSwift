@@ -84,8 +84,9 @@ enum RichClipboard {
     /// `el` with `clip` pasted over the `removed` UTF-16 units of its words
     /// as they read from `at`: its words in their own styles
     /// (RichText.splicing), the box's colours and sizes moved along
-    /// (Spans.remap) and the clip's put on its words, and its lines' lists
-    /// merged (lists).
+    /// (Spans.remap) but cut away from the pasted words, which take the
+    /// clip's own instead, and its lines' lists merged (merge) — as the
+    /// Android twin's RichClipboard.paste does.
     static func paste(_ el: Element, at: Int, removed: Int, clip: Clip) -> Element {
         let text = el.text ?? ""
         let range = NSRange(location: max(0, at), length: max(0, removed))
@@ -98,20 +99,30 @@ enum RichClipboard {
             let to = min(span.end, length)
             return to > span.start ? span.over(span.start + range.location, to + range.location) : nil
         }
-        if !shifted.isEmpty { out.setSpans(out.liveSpans + shifted) }
+        let moved = out.liveSpans
+        let end = range.location + length
+        let kept = moved.flatMap { span -> [TextSpan] in
+            var parts: [TextSpan] = []
+            if span.start < range.location { parts.append(span.over(span.start, min(span.end, range.location))) }
+            if span.end > end { parts.append(span.over(max(span.start, end), span.end)) }
+            return parts
+        }
+        if kept != moved || !shifted.isEmpty { out.setSpans(kept + shifted) }
         merge(&out, lines: lines, from: oldPlain, at: range.location, pasted: clip.paragraphs)
         return out
     }
 
     /// `el` with `plainText` from another app pasted the same way: read as
-    /// written, its bulleted and numbered lines a list (TextLists.fromPasted),
-    /// in the box's style at the caret (RichText.typing).
+    /// written, its bulleted and numbered lines a list (TextLists.fromPasted)
+    /// — the first of them only when the paste starts a line, as merge
+    /// gives it its list; pasted within a line, its bullet or number stays
+    /// as typed — in the box's style at the caret (RichText.typing).
     static func paste(_ el: Element, at: Int, removed: Int, plainText: String) -> Element {
         let text = el.text ?? ""
-        let pasted = TextLists.fromPasted(plainText)
-        let stored = RichText.storedRange(of: NSRange(location: max(0, at), length: max(0, removed)), in: text)
         let lines = TextLists.lines(el)
         let oldPlain = RichText.strip(text)
+        let pasted = TextLists.fromPasted(plainText, firstStartsLine: startsLine(oldPlain, at: max(0, at)))
+        let stored = RichText.storedRange(of: NSRange(location: max(0, at), length: max(0, removed)), in: text)
         var out = el
         out.setText(RichText.typing(pasted.text, over: stored, in: text, pending: nil).text)
         let listed = pasted.paragraphs.contains { $0.isListed }
@@ -120,22 +131,28 @@ enum RichClipboard {
     }
 
     /// The lists of `el`'s lines after a paste at `at`: each line keeps its
-    /// own (TextLists.remap from `oldPlain`), and of several lines pasted,
-    /// every one after the first takes the list it was copied with — and so
-    /// does the first, when it was pasted at a line's start. One line
-    /// pasted leaves the lists as they are. The rule both phones share.
+    /// own (TextLists.remap from `oldPlain`), and every line pasted after
+    /// the first takes the list it was copied with — and so does the first,
+    /// when it was pasted at a line's start and was copied as a list item;
+    /// a paste within a line, or a line copied with no list, leaves that
+    /// line's own (so "Big" from a plain line pasted at the start of a
+    /// bullet keeps the bullet), however many lines came. The rule both
+    /// phones share (the Android twin's RichClipboard.merged).
     private static func merge(_ el: inout Element, lines: [TextParagraph], from oldPlain: String, at: Int,
                               pasted: [TextParagraph]) {
         let plain = RichText.strip(el.text ?? "")
         var now = TextLists.remap(oldPlain, plain, lines)
-        if pasted.count > 1 {
-            let first = TextLists.lineRange(plain, NSRange(location: at, length: 0)).lowerBound
-            let ns = plain as NSString
-            let atStart = at == 0 || (at <= ns.length && ns.character(at: at - 1) == 0x0A)
-            for (i, p) in pasted.enumerated() where (i > 0 || atStart) && first + i < now.count {
-                now[first + i] = p
-            }
+        let first = TextLists.lineRange(plain, NSRange(location: at, length: 0)).lowerBound
+        let atStart = startsLine(oldPlain, at: at)
+        for (i, p) in pasted.enumerated() where (i > 0 || (atStart && p.isListed)) && first + i < now.count {
+            now[first + i] = p
         }
         if now != TextLists.lines(el) { el.setLines(now) }
+    }
+
+    /// Whether `at`, a UTF-16 offset in `plain`, is a line's start.
+    private static func startsLine(_ plain: String, at: Int) -> Bool {
+        let ns = plain as NSString
+        return at <= 0 || (at <= ns.length && ns.character(at: at - 1) == 0x0A)
     }
 }

@@ -2810,6 +2810,59 @@
         }
       }
     },
+    "%@ is used elsewhere in this design" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يُستخدم %@ في مواضع أخرى من هذا التصميم"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ wird an anderen Stellen in diesem Design verwendet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is used elsewhere in this design"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ se usa en otras partes de este diseño"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ est utilisée ailleurs dans ce design"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ è usato altrove in questo design"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ はこのデザインの他の場所でも使われています"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ é usada em outras partes deste design"
+          }
+        }
+      }
+    },
     "%@ later" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37272,173 +37325,6 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "Cor de %lld elementos alterada"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "Changed the font in %lld places" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ar" : {
-          "variations" : {
-            "plural" : {
-              "few" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "تم تغيير الخط في %lld مواضع"
-                }
-              },
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "تم تغيير الخط في %lld موضعًا"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "تم تغيير الخط في %lld موضع"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "تم تغيير الخط في %lld موضع"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "تم تغيير الخط في %lld موضعين"
-                }
-              },
-              "zero" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "تم تغيير الخط في %lld موضع"
-                }
-              }
-            }
-          }
-        },
-        "de" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Schrift an %lld Stelle geändert"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Schrift an %lld Stellen geändert"
-                }
-              }
-            }
-          }
-        },
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Changed the font in %lld place"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Changed the font in %lld places"
-                }
-              }
-            }
-          }
-        },
-        "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Se cambió la fuente en %lld lugar"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Se cambió la fuente en %lld lugares"
-                }
-              }
-            }
-          }
-        },
-        "fr" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Police changée à %lld endroit"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Police changée à %lld endroits"
-                }
-              }
-            }
-          }
-        },
-        "it" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Font cambiato in %lld punto"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Font cambiato in %lld punti"
-                }
-              }
-            }
-          }
-        },
-        "ja" : {
-          "variations" : {
-            "plural" : {
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld か所のフォントを変更しました"
-                }
-              }
-            }
-          }
-        },
-        "pt-BR" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Fonte alterada em %lld lugar"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "Fonte alterada em %lld lugares"
                 }
               }
             }
@@ -77144,7 +77030,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Letras que faltan en la fuente"
+            "value" : "Faltan letras en la fuente"
           }
         },
         "fr" : {
@@ -90982,13 +90868,13 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ノート、%lld ページ"
+            "value" : "メモ、%lld ページ"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Anotações, página %lld"
+            "value" : "Notas, página %lld"
           }
         }
       }
@@ -109283,7 +109169,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "すべての場所で置換…"
+            "value" : "すべて置き換え…"
           }
         },
         "pt-BR" : {
@@ -110106,6 +109992,173 @@
                 "stringUnit" : {
                   "state" : "translated",
                   "value" : "%lld ocorrências substituídas."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Replaced the font in %lld places" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "تم استبدال الخط في %lld مواضع"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "تم استبدال الخط في %lld موضعًا"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "تم استبدال الخط في موضع واحد (%lld)"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "تم استبدال الخط في %lld موضع"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "تم استبدال الخط في موضعين (%lld)"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "تم استبدال الخط في %lld موضع"
+                }
+              }
+            }
+          }
+        },
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Schrift an %lld Stelle ersetzt"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Schrift an %lld Stellen ersetzt"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Replaced the font in %lld place"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Replaced the font in %lld places"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Se reemplazó la fuente en %lld lugar"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Se reemplazó la fuente en %lld lugares"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Police remplacée à %lld endroit"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Police remplacée à %lld endroits"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Font sostituito in %lld punto"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Font sostituito in %lld punti"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld か所のフォントを置き換えました"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Fonte substituída em %lld lugar"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Fonte substituída em %lld lugares"
                 }
               }
             }
@@ -124332,7 +124385,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Einige Buchstaben erscheinen in einer Ersatzschrift"
+            "value" : "Einige Buchstaben verwenden eine Ersatzschrift"
           }
         },
         "en" : {
@@ -126523,13 +126576,13 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Créer des listes en tapant"
+            "value" : "Commencer les listes en tapant"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Avvia elenchi mentre scrivi"
+            "value" : "Inizia elenchi durante la digitazione"
           }
         },
         "ja" : {
@@ -126541,7 +126594,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Iniciar listas ao digitar"
+            "value" : "Começar listas ao digitar"
           }
         }
       }
@@ -155532,7 +155585,7 @@
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "تم تخطي %lld ملف"
+                  "value" : "تم تخطي ملف واحد (%lld)"
                 }
               },
               "other" : {
@@ -155544,7 +155597,7 @@
               "two" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "تم تخطي %lld ملفين"
+                  "value" : "تم تخطي ملفين (%lld)"
                 }
               },
               "zero" : {
@@ -155652,7 +155705,7 @@
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld 件のファイルをスキップ"
+                  "value" : "%lld 件のファイルをスキップしました"
                 }
               }
             }

@@ -82,14 +82,14 @@ final class CustomFontsTests: XCTestCase {
         }
         XCTAssertEqual(font.count % 4, 0)
         XCTAssertTrue(FontStore.loads(font), "the unpacked font draws")
-        // A plain font is itself; a WOFF2 and a WOFF that does not read are refused.
+        // A plain font is itself; a WOFF2 or a WOFF that does not read is not a font.
         let ttf = try bundled("lora-400.ttf")
         XCTAssertEqual(try CustomFonts.sfnt(ttf).get(), ttf)
         func problem(_ data: Data) -> CustomFonts.Problem? {
             if case .failure(let refusal) = CustomFonts.check(data) { return refusal }
             return nil
         }
-        XCTAssertEqual(problem(Data("wOF2".utf8) + Data(count: 40)), .woff2)
+        XCTAssertEqual(problem(Data("wOF2".utf8) + Data(count: 40)), .notAFont)
         XCTAssertEqual(CustomFonts.Problem.woff2.message, "WOFF2 fonts aren't supported yet. Convert it to .ttf or .otf first.")
         XCTAssertEqual(problem(woff.prefix(300)), .notAFont)
         XCTAssertEqual(problem(Data("wOFF".utf8) + Data(count: 40)), .notAFont)

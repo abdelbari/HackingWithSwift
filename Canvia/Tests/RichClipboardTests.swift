@@ -52,20 +52,53 @@ final class RichClipboardTests: XCTestCase {
         XCTAssertEqual(over.text, "**Huge** sale")
     }
 
-    /// Shared fixture: the JSON either phone puts on the clipboard reads the
-    /// same here, and pasted into an empty box keeps its words, bold, colour
-    /// and lists.
+    /// A part of the fixture as JSON data again, for a decoder.
+    private func data(_ object: Any?) throws -> Data {
+        try JSONSerialization.data(withJSONObject: try XCTUnwrap(object), options: [.fragmentsAllowed])
+    }
+
+    /// A box from the fixture: its words, spans and lines.
+    private func box(_ object: [String: Any]) throws -> Element {
+        var el = Element.text(try XCTUnwrap(object["text"] as? String))
+        if let spans = object["spans"] {
+            el.setSpans(try JSONDecoder().decode([TextSpan].self, from: data(spans)))
+        }
+        if let lines = object["paragraphs"] {
+            el.setLines(try JSONDecoder().decode([TextParagraph].self, from: data(lines)))
+        }
+        return el
+    }
+
+    /// Shared fixture, the Android twin's fixtures/rich-clip.json byte for
+    /// byte: the box copied gives the same clip as the JSON either phone
+    /// puts on the clipboard, which reads back the same; and each paste row
+    /// — a clip, or another app's words — leaves the box as it says.
     func testTheSharedClipFixture() throws {
-        let clip = try XCTUnwrap(RichClipboard.decode(try fixture("rich-clip")))
-        XCTAssertEqual(clip.plain, "Big sale\nnow *50*")
-        XCTAssertEqual(clip.spans, [TextSpan(start: 0, end: 3, color: "#ff0000")])
-        XCTAssertEqual(clip.paragraphs, [TextParagraph(list: "bullet"), TextParagraph(list: "bullet", level: 1)])
-        let pasted = RichClipboard.paste(Element.text(""), at: 0, removed: 0, clip: clip)
-        XCTAssertEqual(RichText.strip(pasted.text ?? ""), "Big sale\nnow *50*")
-        XCTAssertEqual(TextLists.lines(pasted), clip.paragraphs)
-        XCTAssertEqual(pasted.liveSpans, clip.spans)
-        // And back to JSON and again, unchanged.
-        XCTAssertEqual(RichClipboard.decode(RichClipboard.json(clip)), clip)
+        let shared = try XCTUnwrap(JSONSerialization.jsonObject(with: try fixture("rich-clip")) as? [String: Any])
+        let el = try box(try XCTUnwrap(shared["box"] as? [String: Any]))
+        for row in try XCTUnwrap(shared["cases"] as? [[String: Any]]) {
+            let name = row["name"] as? String ?? ""
+            let clip = RichClipboard.copy(el, start: row["start"] as? Int ?? 0, end: row["end"] as? Int ?? 0)
+            XCTAssertEqual(clip.plain, row["plain"] as? String, name)
+            XCTAssertEqual(RichClipboard.decode(try data(row["clip"])), clip, name)
+            XCTAssertEqual(RichClipboard.decode(RichClipboard.json(clip)), clip, name)
+        }
+        for row in try XCTUnwrap(shared["pastes"] as? [[String: Any]]) {
+            let name = row["name"] as? String ?? ""
+            let into = try box(try XCTUnwrap(row["into"] as? [String: Any]))
+            let at = row["at"] as? Int ?? 0
+            let pasted: Element
+            if let clip = row["clip"] {
+                let read = try XCTUnwrap(RichClipboard.decode(try data(clip)), name)
+                pasted = RichClipboard.paste(into, at: at, removed: 0, clip: read)
+            } else {
+                pasted = RichClipboard.paste(into, at: at, removed: 0, plainText: row["plain"] as? String ?? "")
+            }
+            XCTAssertEqual(pasted.text, row["text"] as? String, name)
+            XCTAssertEqual(pasted.liveSpans, try JSONDecoder().decode([TextSpan].self, from: data(row["spans"])), name)
+            XCTAssertEqual(TextLists.lines(pasted),
+                           try JSONDecoder().decode([TextParagraph].self, from: data(row["paragraphs"])), name)
+        }
         XCTAssertNil(RichClipboard.decode(Data("{\"canviaText\":2,\"text\":\"x\"}".utf8)))
         XCTAssertNil(RichClipboard.decode(Data("not json".utf8)))
     }
@@ -85,5 +118,22 @@ final class RichClipboardTests: XCTestCase {
                                        clip: RichClipboard.copy(source, start: 5, end: 9))
         XCTAssertEqual(RichText.strip(word.text ?? ""), "Teamilk")
         XCTAssertFalse(TextLists.isList(word))
+        // A plain line pasted at a bullet's start keeps the bullet; a
+        // bullet line pasted at a line's start makes one.
+        var bullet = Element.text("milk")
+        bullet.setLines([TextParagraph(list: "bullet")])
+        let plainWord = RichClipboard.copy(Element.text("Big sale"), start: 0, end: 3)
+        XCTAssertEqual(TextLists.lines(RichClipboard.paste(bullet, at: 0, removed: 0, clip: plainWord)),
+                       [TextParagraph(list: "bullet")])
+        let listed = RichClipboard.paste(Element.text("Tea"), at: 0, removed: 0,
+                                         clip: RichClipboard.copy(source, start: 5, end: 9))
+        XCTAssertEqual(TextLists.lines(listed), [TextParagraph(list: "bullet")])
+        // Another app's bullet: a list item at a line's start, its words as
+        // typed within a line.
+        let empty = RichClipboard.paste(Element.text(""), at: 0, removed: 0, plainText: "- milk")
+        XCTAssertEqual(empty.text, "milk")
+        XCTAssertEqual(TextLists.lines(empty), [TextParagraph(list: "bullet")])
+        XCTAssertEqual(RichClipboard.paste(Element.text("Buy "), at: 4, removed: 0, plainText: "- milk").text,
+                       "Buy - milk")
     }
 }

@@ -330,9 +330,9 @@ struct PageNotesSheet: View {
                     Text("Names the page in the page list, Find and Present. Never on the page or in an export.")
                 }
                 Section("Notes") {
-                    TextEditor(text: Binding(
+                    NotesEditor(text: Binding(
                         get: { store.page.notes ?? "" },
-                        set: { text in typeNotes(text) }))
+                        set: { text in typeNotes(text) }), selected: askedRange)
                     .frame(minHeight: 120)
                 }
                 Section {
@@ -404,6 +404,13 @@ struct PageNotesSheet: View {
         .presentationDetents([.medium])
         .onAppear { titleText = store.page.title ?? "" }
         .onDisappear { finishTyping() }
+    }
+
+    /// The words Find or Proofread opened the notes at (store.notesAsked),
+    /// when they are this page's.
+    private var askedRange: NSRange? {
+        guard let asked = store.notesAsked, asked.kind == .notes, asked.pageIndex == store.pageIndex else { return nil }
+        return asked.range
     }
 
     /// "Hold 3.0s", and "(document setting)" when the page has no time of
@@ -613,5 +620,56 @@ struct PageThumbnail: View {
         renderer.scale = max(0.02, CGFloat(pixelWidth) / max(design.size(for: shown).width, 1))
         renderer.isOpaque = true
         return renderer.uiImage
+    }
+}
+
+/// A page's notes, typed in a UITextView so a range of them can be shown:
+/// Find and replace and Proofread open the notes at their match, its words
+/// selected and scrolled into view, as the Android twin's notes field does.
+struct NotesEditor: UIViewRepresentable {
+    @Binding var text: String
+    /// The words to select and show, once, when they are set.
+    var selected: NSRange?
+
+    func makeCoordinator() -> NotesCoordinator { NotesCoordinator(self) }
+
+    func makeUIView(context: Context) -> UITextView {
+        let view = UITextView()
+        view.font = .preferredFont(forTextStyle: .body)
+        view.adjustsFontForContentSizeCategory = true
+        view.backgroundColor = .clear
+        view.textContainerInset = .zero
+        view.textContainer.lineFragmentPadding = 0
+        view.delegate = context.coordinator
+        view.text = text
+        return view
+    }
+
+    func updateUIView(_ view: UITextView, context: Context) {
+        context.coordinator.parent = self
+        if view.text != text { view.text = text }
+        guard let range = selected, context.coordinator.shown != range,
+              NSMaxRange(range) <= (view.text as NSString).length else { return }
+        context.coordinator.shown = range
+        // After the sheet has laid the view out, so there is somewhere to
+        // scroll to.
+        DispatchQueue.main.async {
+            view.becomeFirstResponder()
+            view.selectedRange = range
+            view.scrollRangeToVisible(range)
+        }
+    }
+
+    final class NotesCoordinator: NSObject, UITextViewDelegate {
+        var parent: NotesEditor
+        /// The range last shown, so it is selected once, not on every
+        /// keystroke.
+        var shown: NSRange?
+
+        init(_ parent: NotesEditor) { self.parent = parent }
+
+        func textViewDidChange(_ textView: UITextView) {
+            parent.text = textView.text
+        }
     }
 }

@@ -332,15 +332,22 @@ enum TextLists {
     /// bullet ("-", "*", "•", "◦", "▪"), a number ("1." or "1)") or a letter
     /// ("a." or "a)") and a space at its start loses them and becomes an
     /// item of that list, its leading tabs and pairs of spaces its level
-    /// (to the deepest); every other line is kept as it is, no list. The
-    /// rule both phones share.
-    static func fromPasted(_ text: String) -> (text: String, paragraphs: [TextParagraph]) {
+    /// (to the deepest); every other line is kept as it is, no list. When
+    /// `firstStartsLine` is false — pasted within a line, whose list the
+    /// first line cannot take — the first line is kept as it is too, its
+    /// bullet or number still in its words. The rule both phones share.
+    static func fromPasted(_ text: String, firstStartsLine: Bool = true) -> (text: String, paragraphs: [TextParagraph]) {
         let rules: [(pattern: String, list: String)] = [
             ("^[-*•◦▪] +", "bullet"), ("^[0-9]+[.)] +", "number"), ("^[a-z][.)] +", "letter"),
         ]
         var lines: [String] = []
         var paragraphs: [TextParagraph] = []
-        for line in text.components(separatedBy: "\n") {
+        for (index, line) in text.components(separatedBy: "\n").enumerated() {
+            if index == 0 && !firstStartsLine {
+                lines.append(line)
+                paragraphs.append(TextParagraph())
+                continue
+            }
             var rest = Substring(line)
             var level = 0
             while true {

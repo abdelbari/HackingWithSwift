@@ -95,14 +95,19 @@ enum FindReplace {
     /// words a shape carries, unless it is hidden or locked against typing
     /// (Lock; a position lock still takes new words), or a caption box, whose
     /// words are its cues, drawn one at a time, and changed in Edit
-    /// captions — nor a chart's value labels and axis numbers, which its
-    /// data draws (a chart's own labels and legend are searched, and a
-    /// replacement there changes its data too: DataGraphics.keepingLabel).
-    /// The same rule on the Android twin.
+    /// captions. A chart's words are searched, all of them; a replacement
+    /// in its labels and legend changes its data too
+    /// (DataGraphics.keepingLabel). The same rule on the Android twin.
     static func searches(_ el: Element) -> Bool {
         ShapeText.carriesWords(el) && !el.isHidden && el.captions == nil
             && ElementLock.allows(ElementLock.mode(of: el), ElementLock.Action.editText)
-            && !(el.chart != nil && derivedParts.contains(el.chartPart ?? ""))
+    }
+
+    /// Whether a box's words found (searches) are replaced: not a chart's
+    /// value labels and axis numbers, which its data draws — found, as the
+    /// Android twin finds them, but never changed, nor counted as replaced.
+    static func replaces(_ el: Element) -> Bool {
+        searches(el) && !(el.chart != nil && derivedParts.contains(el.chartPart ?? ""))
     }
 
     /// A chart's parts drawn from its numbers, never replaced.

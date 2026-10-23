@@ -4,9 +4,10 @@
 // one font — and listed in uploads.json with kind "font" and the family
 // name read from the file (see Uploads and FontStore). A WOFF is unpacked
 // into the TrueType or OpenType font it wraps first (sfnt), and that is
-// what is kept and hashed, as .ttf; a WOFF2 is read by CoreText, and its
-// tables written out as an sfnt the same way (woff2Font) — refused, with
-// what to do instead, only when CoreText cannot read it.
+// what is kept and hashed, as .ttf; a WOFF2 is unpacked by the decoder both
+// phones share (Woff2, Brotli), so its bytes and hash are the same on each
+// — CoreText reads only one that decoder cannot (woff2Font), and one
+// neither reads is refused.
 //
 // Several can be added at once, and a whole family: a picked .zip gives up
 // its .ttf, .otf and .woff faces, and a .ttc or .otc collection is split
@@ -325,19 +326,24 @@ enum CustomFonts {
     private static let ttcfTag: UInt32 = 0x7474_6366
     /// "wOFF", a web font wrapping an sfnt.
     private static let woffTag: UInt32 = 0x774F_4646
-    /// "wOF2", which this build cannot unpack.
+    /// "wOF2", a web font Brotli-compressed (Woff2).
     private static let woff2Tag: UInt32 = 0x774F_4632
 
     /// The TrueType or OpenType font `data` holds, as the add flow stores
     /// it: the bytes themselves, or for a WOFF the sfnt it wraps
-    /// (unpackWoff) — the same bytes on both phones. Past maxBytes either
-    /// way, a WOFF2 (with what to do instead), or a WOFF that does not
-    /// unpack, is refused.
+    /// (unpackWoff), or for a WOFF2 the font it holds (Woff2) — the same
+    /// bytes on both phones. Past maxBytes either way, or a web font that
+    /// does not unpack, is refused.
     static func sfnt(_ data: Data) -> Result<Data, Problem> {
         if data.count > maxBytes { return .failure(.tooBig) }
         switch tag(data) {
         case woff2Tag:
-            guard let font = woff2Font(data) else { return .failure(.woff2) }
+            // Past maxBytes by the size it says it unpacks to: refused
+            // before anything is unpacked. Then the shared decoder (Woff2),
+            // so the bytes kept, and their hash, are the Android twin's;
+            // CoreText only for one the decoder cannot read.
+            if let declared = Sfnt([UInt8](data.prefix(20))).u32(16), declared > maxBytes { return .failure(.tooBig) }
+            guard let font = Woff2.unpack(data, limit: maxBytes) ?? woff2Font(data) else { return .failure(.notAFont) }
             return font.count > maxBytes ? .failure(.tooBig) : .success(font)
         case woffTag:
             // Past maxBytes by the size it says it unpacks to: refused
@@ -455,17 +461,29 @@ enum CustomFonts {
     /// each still no more than maxBytes.
     static let maxPickedBytes = 64 * 1024 * 1024
 
+    /// The most fonts one picked file — a family's .zip, a collection —
+    /// brings in.
+    static let maxFaces = 64
+
     /// The fonts a picked file holds, each with its file's name, the rule
     /// both phones share: a .zip's entries ending .ttf, .otf or .woff (any
-    /// case), in the order of their paths, none under __MACOSX nor a "._"
-    /// file — only those in a "static" folder when it has any, as a family
+    /// case), in the order of their paths (as strings, so the archive's own
+    /// order does not matter), none under __MACOSX nor a hidden "." file —
+    /// only those in a "static" folder when it has any, as a family
     /// downloaded from Google Fonts keeps its static faces beside the
     /// variable file; a .ttc or .otc collection's fonts each on its own
-    /// (standalone), "<name>-<n>.ttf"; any other file as it is.
+    /// (split), "<name>-1.ttf", "<name>-2.ttf"…; any other file, or a
+    /// collection that does not split, as it is. At most maxFaces.
     static func expand(_ data: Data, name: String) -> [(name: String, data: Data)] {
-        if tag(data) == ttcfTag { return split(data, name: name) }
-        if tag(data) == zipTag { return unzipped(data) }
-        return [(name, data)]
+        let out: [(name: String, data: Data)]
+        if tag(data) == ttcfTag {
+            out = split(data, name: name) ?? [(name, data)]
+        } else if tag(data) == zipTag {
+            out = unzipped(data)
+        } else {
+            out = [(name, data)]
+        }
+        return Array(out.prefix(maxFaces))
     }
 
     /// "PK\3\4", a ZIP's first entry.
@@ -475,90 +493,69 @@ enum CustomFonts {
         guard let reader = try? ZipStore.Reader(data: data, inflating: true) else { return [] }
         let fonts = reader.entries.keys.filter { path in
             let parts = path.split(separator: "/")
-            guard let file = parts.last, !file.hasPrefix("._"),
-                  !parts.contains(where: { $0.hasPrefix("__MACOSX") }) else { return false }
+            guard let file = parts.last, !file.hasPrefix("."),
+                  !parts.dropLast().contains("__MACOSX") else { return false }
             let lower = file.lowercased()
             return lower.hasSuffix(".ttf") || lower.hasSuffix(".otf") || lower.hasSuffix(".woff")
         }.sorted()
-        let statics = fonts.filter { $0.lowercased().split(separator: "/").dropLast().contains("static") }
+        let statics = fonts.filter { $0.split(separator: "/").dropLast().contains("static") }
         return (statics.isEmpty ? fonts : statics).compactMap { path -> (name: String, data: Data)? in
             guard let bytes = reader.file(path) else { return nil }
             return (String(path.split(separator: "/").last ?? Substring(path)), bytes)
         }
     }
 
-    /// A collection's fonts, each on its own (standalone).
-    private static func split(_ data: Data, name: String) -> [(name: String, data: Data)] {
+    /// A collection's fonts, each on its own (standalone); nil when it is
+    /// not one that reads, or holds more than maxFaces.
+    private static func split(_ data: Data, name: String) -> [(name: String, data: Data)]? {
         let file = Sfnt([UInt8](data))
-        guard let count = file.u32(8), count > 0, 12 + 4 * count <= file.b.count else { return [] }
+        guard let count = file.u32(8), count > 0, count <= maxFaces, 12 + 4 * count <= file.b.count else { return nil }
         let base = (name as NSString).deletingPathExtension
-        return (0..<count).compactMap { i -> (name: String, data: Data)? in
+        var out: [(name: String, data: Data)] = []
+        for i in 0..<count {
             guard let at = file.u32(12 + 4 * i), let font = standalone(file, at: at) else { return nil }
-            return ("\(base)-\(i + 1).ttf", font)
+            out.append(("\(base)-\(i + 1).ttf", font))
         }
+        return out
     }
 
     /// The font whose offset table is at `at` in a collection, as a file of
-    /// its own — the rule both phones share: its 12-byte offset table as it
-    /// is, then its table records in their order, each with its tag,
-    /// checksum and length as they are and its offset rewritten, then the
-    /// tables' bytes in the same order, each padded to 4 bytes. Nil when it
-    /// does not read.
+    /// its own — the rule both phones share (the Android twin's
+    /// CustomFonts.split): its flavour, then its tables in its records'
+    /// order, each with its checksum as it is, written as every font put
+    /// together here is (written). Nil when it does not read.
     private static func standalone(_ file: Sfnt, at: Int) -> Data? {
-        guard let count = file.u16(at + 4), count > 0, at + 12 + 16 * count <= file.b.count else { return nil }
-        var records = Data(file.b[at..<(at + 12)])
-        var body = Data()
-        var offset = 12 + 16 * count
-        func u32(_ v: Int) {
-            for shift in [24, 16, 8, 0] { records.append(UInt8((v >> shift) & 0xFF)) }
-        }
+        guard let flavor = file.u32(at), let count = file.u16(at + 4), count > 0,
+              at + 12 + 16 * count <= file.b.count else { return nil }
+        var tables: [(tag: Int, checksum: Int, data: Data)] = []
         for i in 0..<count {
             let r = at + 12 + 16 * i
             guard let tag = file.u32(r), let checksum = file.u32(r + 4), let from = file.u32(r + 8),
                   let length = file.u32(r + 12), from + length <= file.b.count else { return nil }
-            u32(tag); u32(checksum); u32(offset); u32(length)
-            body.append(contentsOf: file.b[from..<(from + length)])
-            let padded = (length + 3) & ~3
-            if padded > length { body.append(Data(count: padded - length)) }
-            offset += padded
+            tables.append((tag, checksum, Data(file.b[from..<(from + length)])))
         }
-        return records + body
+        return written(flavor: flavor, tables)
     }
 
-    /// A WOFF2's font as CoreText reads it — which it does on current iOS —
-    /// each table CoreText gives, by tag, written as an sfnt (written) with
-    /// each table's checksum worked out; CFF outlines are OpenType. Nil when
-    /// CoreText cannot read it.
+    /// A WOFF2's font as CoreText reads it — for one the shared decoder
+    /// (Woff2) cannot — each table CoreText gives written by the decoder's
+    /// own rule (Woff2.font): sorted by tag, each checksum worked out, and
+    /// head's checksum adjustment set last; CFF outlines are OpenType. Nil
+    /// when CoreText cannot read it either.
     static func woff2Font(_ data: Data) -> Data? {
         guard let descriptor = (CTFontManagerCreateFontDescriptorsFromData(data as CFData) as? [CTFontDescriptor])?.first
         else { return nil }
         let font = CTFontCreateWithFontDescriptor(descriptor, 12, nil)
         guard let available = CTFontCopyAvailableTables(font, []) else { return nil }
-        var tables: [(tag: Int, checksum: Int, data: Data)] = []
+        var tables: [(tag: Int, data: [UInt8])] = []
         for i in 0..<CFArrayGetCount(available) {
             let tag = Int(UInt(bitPattern: CFArrayGetValueAtIndex(available, i)))
             guard let table = CTFontCopyTable(font, CTFontTableTag(truncatingIfNeeded: tag), []) as Data? else { return nil }
-            tables.append((tag, checksum(table), table))
+            tables.append((tag, [UInt8](table)))
         }
         guard !tables.isEmpty else { return nil }
-        tables.sort { $0.tag < $1.tag }
         let flavor = tables.contains { $0.tag == 0x4346_4620 } ? Int(ottoTag) : 0x0001_0000 // "CFF "
-        return written(flavor: flavor, tables)
-    }
-
-    /// An sfnt table's checksum: its big-endian 32-bit words summed, padded
-    /// with zeros, modulo 2^32.
-    static func checksum(_ table: Data) -> Int {
-        let bytes = [UInt8](table)
-        var sum: UInt32 = 0
-        var i = 0
-        while i < bytes.count {
-            var word: UInt32 = 0
-            for k in 0..<4 { word = word << 8 | UInt32(i + k < bytes.count ? bytes[i + k] : 0) }
-            sum = sum &+ word
-            i += 4
-        }
-        return Int(sum)
+        return Woff2.font(flavor: flavor, tables: tables, limit: maxBytes).map { Data($0) }
     }
 
     /// What adding several fonts came to, in one line: "Added Inter: 9
