@@ -514,6 +514,23 @@ extension DataGraphics {
         return made == elements ? nil : made
     }
 
+    /// The least VoiceOver's Taller row or Shorter row moves an edge.
+    static let rowStep = 8.0
+
+    /// VoiceOver's Taller row (or Shorter row) on table `id` with rows
+    /// `rows` selected — the rows a selection covers, a merged cell's every
+    /// row: the edge under the last of them moved one step, a tenth of that
+    /// row's height to the nearest whole number (halves up), at least
+    /// rowStep, as its drag would (withRowDragged). The same rule on both
+    /// phones: the Android twin's Tables.withRowStepped. Nil when nothing
+    /// moved.
+    static func withRowStepped(_ elements: [Element], id: String, rows: [Int], taller: Bool,
+                               heightFor: (Element) -> Double) -> [Element]? {
+        guard let row = rows.max(), let box = tableRowBoxes(elements, id: id)[row] else { return nil }
+        let step = max(rowStep, (box.h / 10 + 0.5).rounded(.down))
+        return withRowDragged(elements, id: id, boundary: row, dy: taller ? step : -step, heightFor: heightFor)
+    }
+
     /// Distribute rows: table `id`'s rows made one height, the table as
     /// tall as it was — each the whole number nearest its share
     /// (evenColumns' rule), kept as its least height where its words need
@@ -1131,15 +1148,18 @@ extension DataGraphics {
         }
     }
 
-    /// A cell's copy for a new row or column: a new element, no words, and
-    /// no name of its own — the layers list gives it the generated one.
+    /// A cell's copy for a new row or column: a new element, no words, no
+    /// name of its own — the layers list gives it the generated one — and
+    /// no least height (minH): that stays with the cell it was copied
+    /// from, so a new row, or a merged cell's rows split again, is as tall
+    /// as its words.
     private static func blank(_ el: Element, row: Int, col: Int) -> Element {
         var copy = el
         copy.id = UID.make()
         copy.layerName = nil
         if el.type == .text { copy.setText("") }
         if let cell = el.table {
-            copy.table = TableCell(id: cell.id, row: row, col: col, pad: cell.pad, bands: cell.bands, minH: cell.minH)
+            copy.table = TableCell(id: cell.id, row: row, col: col, pad: cell.pad, bands: cell.bands)
         }
         return copy
     }

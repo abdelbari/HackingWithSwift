@@ -1096,6 +1096,40 @@ final class TablesTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(Element.self, from: Data(json.utf8)).table?.minH, 76)
     }
 
+    func testASplitMergedCellOrANewRowKeepsNoLeastHeightOfAnotherRow() throws {
+        let t = made()
+        let id = tableId(t)
+        let tall = try XCTUnwrap(DataGraphics.withRowDragged(t, id: id, boundary: 0, dy: 34, heightFor: heightFor))
+        let merged = try XCTUnwrap(merging(tall, [(0, 0), (1, 0), (2, 0)]))
+        let parted = try XCTUnwrap(DataGraphics.unmergingTableCells(merged, id: id, cells: cells(merged, [(0, 0)]),
+                                                                    heightFor: heightFor))
+        XCTAssertEqual(Array(rowHeights(parted).dropFirst()), [46, 46])
+        XCTAssertNil(rect(parted, 1, 0).table?.minH)
+        XCTAssertNil(rect(parted, 2, 0).table?.minH)
+        let added = DataGraphics.addingTableRow(tall, id: id, row: 0, below: true, heightFor: heightFor)
+        XCTAssertEqual(rowHeights(added), [80, 46, 46, 46])
+        XCTAssertNil(rect(added, 1, 0).table?.minH)
+        XCTAssertNil(text(added, 1, 0).table?.minH)
+    }
+
+    func testAReadersRowStepMovesTheLastSelectedRowATenthOfItAtLeast8() throws {
+        let t = made()
+        let id = tableId(t)
+        // 46 tall: the least step, 8; of rows 0 and 1 (a merged cell's), row 1.
+        let both = try XCTUnwrap(DataGraphics.withRowStepped(t, id: id, rows: [0, 1], taller: true, heightFor: heightFor))
+        XCTAssertEqual(rowHeights(both), [46, 54, 46])
+        // 120 tall: 12; 125 tall: 12.5, halves up, 13.
+        let tall = try XCTUnwrap(DataGraphics.withRowDragged(t, id: id, boundary: 0, dy: 74, heightFor: heightFor))
+        let up = try XCTUnwrap(DataGraphics.withRowStepped(tall, id: id, rows: [0], taller: true, heightFor: heightFor))
+        XCTAssertEqual(rowHeights(up)[0], 132)
+        let taller = try XCTUnwrap(DataGraphics.withRowDragged(t, id: id, boundary: 0, dy: 79, heightFor: heightFor))
+        let down = try XCTUnwrap(DataGraphics.withRowStepped(taller, id: id, rows: [0], taller: false, heightFor: heightFor))
+        XCTAssertEqual(rowHeights(down)[0], 112)
+        // Never under its words; nothing selected moves nothing.
+        XCTAssertNil(DataGraphics.withRowStepped(t, id: id, rows: [2], taller: false, heightFor: heightFor))
+        XCTAssertNil(DataGraphics.withRowStepped(t, id: id, rows: [], taller: true, heightFor: heightFor))
+    }
+
     func testDistributeRowsMakesThemOneHeightAndAMovedRowKeepsItsOwn() throws {
         let t = made()
         let id = tableId(t)

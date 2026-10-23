@@ -194,16 +194,45 @@ final class BarcodesTests: XCTestCase {
         XCTAssertEqual(CodeGenerator.style(of: read).ec, CodeGenerator.defaultLevel)
     }
 
+    /// The error correction level a code's format information names
+    /// (ISO/IEC 18004, 7.9): its 15 bits beside the top-left finder, most
+    /// significant first, unmasked — the same from any encoder, whatever
+    /// data mask it chose.
+    private func levelOf(_ grid: [[Bool]]) -> String {
+        let row: [(x: Int, y: Int)] = [(0, 8), (1, 8), (2, 8), (3, 8), (4, 8), (5, 8), (7, 8), (8, 8), (8, 7)]
+        let column: [(x: Int, y: Int)] = (0...5).reversed().map { (x: 8, y: $0) }
+        var bits = 0
+        for p in row + column { bits = (bits << 1) | (grid[p.y][p.x] ? 1 : 0) }
+        bits ^= 0x5412
+        return ["M", "L", "H", "Q"][bits >> 13]
+    }
+
+    /// Whether `grid` has the patterns the standard fixes: the three
+    /// finders, the timing rows and the dark module by the bottom left.
+    private func hasTheFixedPatterns(_ grid: [[Bool]]) -> Bool {
+        let n = grid.count
+        for (ox, oy) in [(0, 0), (n - 7, 0), (0, n - 7)] {
+            for dy in 0..<7 {
+                for dx in 0..<7 where grid[oy + dy][ox + dx] != (max(abs(dx - 3), abs(dy - 3)) != 2) { return false }
+            }
+        }
+        for i in 8..<(n - 8) where grid[6][i] != (i % 2 == 0) || grid[i][6] != (i % 2 == 0) { return false }
+        return grid[n - 8][8]
+    }
+
     func testTheSharedModuleMatricesAtEachLevel() throws {
-        // Size and dark modules of "https://canvia.app" at L, M, Q and H.
-        let table: [(String, Int, Int)] = [("L", 25, 328), ("M", 25, 324), ("Q", 25, 328), ("H", 29, 420)]
+        // The size of "https://canvia.app" at L, M, Q and H, its fixed
+        // patterns and the level its format names — what the standard fixes,
+        // not the dark modules' count, which follows the encoder's mask.
+        let table: [(String, Int)] = [("L", 25), ("M", 25), ("Q", 25), ("H", 29)]
         XCTAssertEqual(CodeGenerator.levels, table.map { $0.0 })
-        for (level, size, dark) in table {
+        for (level, size) in table {
             guard let grid = CodeGenerator.modules(for: "https://canvia.app", level: level) else {
                 throw XCTSkip("no code generator")
             }
             XCTAssertEqual(grid.count, size, level)
-            XCTAssertEqual(grid.reduce(0) { $0 + $1.filter { $0 }.count }, dark, level)
+            XCTAssertTrue(hasTheFixedPatterns(grid), level)
+            XCTAssertEqual(levelOf(grid), level)
         }
         XCTAssertTrue(CodeGenerator.isFinder(x: 6, y: 6, n: 25))
         XCTAssertTrue(CodeGenerator.isFinder(x: 18, y: 0, n: 25))

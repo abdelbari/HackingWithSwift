@@ -472,29 +472,6 @@ struct GridCell: Codable, Equatable, Hashable {
     }
 }
 
-/// The chart an element was drawn as part of: what Edit chart reopens. Every
-/// element of one chart carries the same object — its id, its kind, the data
-/// exactly as typed and its three switches — beside a `chartPart` of its
-/// own. An object without an id, a kind or data is no chart, and its
-/// elements are a plain group again; a kind this build does not know is kept
-/// as written and offers no Edit chart. The switches are written only when on.
-///
-/// Its text's look, so Update keeps it: the `font` family of every label,
-/// their `ink` (#rrggbb, the axis and legend's too) and `textScale`, 0.5 to
-/// 2 times the size a chart's labels are; and for a kind with a scale,
-/// `smooth` lines and areas and the scale's ends, `axisMin` and `axisMax`.
-/// Each is written only when set: nil, false and a scale of 1 are not — as
-/// the Android twin writes them.
-///
-/// Its format, each written only when it is not the default: a value's
-/// `prefix` and `suffix` (4 characters at most), its `decimals` (0 to 3, nil
-/// for as many as it needs) and whether it is `compact` (1.2k, 3.4M) — see
-/// DataGraphics.formatValue; the axes' titles, `xTitle` and `yTitle`; a
-/// donut's or a progress ring's `hole` (0.3 to 0.85 of its radius); the
-/// bars' `gap` (0 to 0.8 of each slot, the default not written) and
-/// `roundBars`; a line's `lineWidth` (1 to 12, scaled by the frame) and its
-/// `points`; and the `icon` a pictogram is drawn in, an Icons.json id,
-/// "person" — not written — when it has none.
 /// A QR code's form as kept: its type ("wifi", "contact"…) and what is
 /// typed in each of its fields, by the fields' keys — the Android twin's
 /// `qrForm` object, `{type, fields}`. Read tolerantly: a field that is no
@@ -519,6 +496,31 @@ struct QRFormFields: Codable, Equatable {
     }
 }
 
+/// The chart an element was drawn as part of: what Edit chart reopens. Every
+/// element of one chart carries the same object — its id, its kind, the data
+/// exactly as typed and its three switches — beside a `chartPart` of its
+/// own. An object without an id, a kind or data is no chart, and its
+/// elements are a plain group again; a kind this build does not know is kept
+/// as written and offers no Edit chart. The switches are written only when on.
+///
+/// Its text's look, so Update keeps it: the `font` family of every label,
+/// their `ink` (#rrggbb, the axis and legend's too) and `textScale`, 0.5 to
+/// 2 times the size a chart's labels are; and for a kind with a scale,
+/// `smooth` lines and areas and the scale's ends, `axisMin` and `axisMax`.
+/// Each is written only when set: nil, false and a scale of 1 are not — as
+/// the Android twin writes them.
+///
+/// Its format, each written only when it is not the default: a value's
+/// `prefix` and `suffix` (4 characters at most, as a String counts them —
+/// an emoji is one — and as the Android twin counts them), its `decimals`
+/// (0 to 3, nil for as many as it needs) and whether it is `compact` (1.2k,
+/// 3.4M) — see
+/// DataGraphics.formatValue; the axes' titles, `xTitle` and `yTitle`; a
+/// donut's or a progress ring's `hole` (0.3 to 0.85 of its radius); the
+/// bars' `gap` (0 to 0.8 of each slot, the default not written) and
+/// `roundBars`; a line's `lineWidth` (1 to 12, scaled by the frame) and its
+/// `points`; and the `icon` a pictogram is drawn in, an Icons.json id,
+/// "person" — not written — when it has none.
 struct ChartSpec: Codable, Equatable, Hashable {
     /// "chart_<uid>", shared by every element of the chart.
     var id: String
@@ -639,7 +641,8 @@ struct ChartSpec: Codable, Equatable, Hashable {
         if let icon, !icon.isEmpty, icon != DataGraphics.defaultIcon { try c.encode(icon, forKey: .icon) }
     }
 
-    /// A prefix or suffix as kept: its first 4 characters; nil when empty.
+    /// A prefix or suffix as kept: its first 4 characters, an emoji one, as
+    /// the Android twin's DataGraphics.affix counts them; nil when empty.
     static func affix(_ text: String?) -> String? {
         guard let text, !text.isEmpty else { return nil }
         return String(text.prefix(DataGraphics.maxAffix))

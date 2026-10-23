@@ -57,6 +57,36 @@ final class BrandAndAuditTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: dir.appendingPathComponent("\(moved.dropFirst(6)).jpg")), Data([0xff, 0xd8, 0xff, 0xe0, 9]))
     }
 
+    /// The Android twin's DesignPackageTest row: a QR code's logo travels
+    /// with the design and comes back re-pointed; a library photo as a
+    /// logo travels as a picture.
+    func testAQRCodesLogoTravelsAndComesBackRepointed() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("pkg-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try Data([0x89, 0x50, 0x4e, 0x47, 7]).write(to: dir.appendingPathComponent("logo.png"))
+        let source = CodeGenerator.source(for: "https://canvia.app")
+        var code = Element.image(source)
+        code.qrLogo = "media:logo"
+        var d = Design(title: "Code", width: 400, height: 300)
+        d.pages[0].elements = [code]
+        XCTAssertEqual(DesignPackage.mediaIDs(in: d), ["logo"])
+        XCTAssertEqual(DesignLibrary.photos(in: [d]), ["logo"])
+        let back = try DesignPackage.import(try DesignPackage.export(d, mediaDirectory: dir), mediaDirectory: dir)
+        XCTAssertEqual(back.pages[0].elements[0].src, source)
+        let moved = try XCTUnwrap(back.pages[0].elements[0].qrLogo)
+        XCTAssertTrue(moved.hasPrefix("media:") && moved != "media:logo", moved)
+        XCTAssertEqual(try Data(contentsOf: dir.appendingPathComponent("\(moved.dropFirst(6)).png")), Data([0x89, 0x50, 0x4e, 0x47, 7]))
+
+        let drawable = try XCTUnwrap(PhotoLibrary.photos.first?.id)
+        code.qrLogo = "asset:\(drawable)"
+        d.pages[0].elements = [code]
+        var media: [String: DesignPackage.Media] = [:]
+        let packed = DesignPackage.packingLibraryPhotos(d, into: &media)
+        XCTAssertEqual(media.count, 1)
+        XCTAssertEqual(packed.pages[0].elements[0].qrLogo?.hasPrefix("media:"), true)
+    }
+
     /// A design file exactly as the Android twin writes it — the same bytes
     /// its own tests pin (core/src/test/resources/android-package.canvia.json
     /// in canvacloneandroid). If either side changes the format, one of the two

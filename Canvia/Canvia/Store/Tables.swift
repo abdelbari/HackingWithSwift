@@ -370,20 +370,15 @@ extension DesignStore {
     }
 
     /// The edge under the last row the selected cells cover made a step
-    /// lower (taller) or higher, as one step: VoiceOver's Taller row and
-    /// Shorter row. Whether it changed.
+    /// lower (taller) or higher (DataGraphics.withRowStepped), as one step:
+    /// VoiceOver's Taller row and Shorter row. Whether it changed.
     @discardableResult
     func resizeTableRow(taller: Bool) -> Bool {
         let measure = self.measure
         return editTable { els, t in
-            guard let row = t.rows.last else { return nil }
-            return DataGraphics.withRowDragged(els, id: t.id, boundary: row, dy: taller ? DesignStore.rowStep : -DesignStore.rowStep,
-                                               heightFor: measure)
+            DataGraphics.withRowStepped(els, id: t.id, rows: t.rows, taller: taller, heightFor: measure)
         }
     }
-
-    /// How far Taller row and Shorter row move a row's edge.
-    static let rowStep = 8.0
 
     /// Distribute rows, as one step: the selected table's rows made one
     /// height (DataGraphics.evenRows). Whether they changed.

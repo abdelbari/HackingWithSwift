@@ -170,6 +170,8 @@ final class ChartKindsTests: XCTestCase {
                                           (7.25e12, "7.3T"), (12.5, "12.5")]),
             (with { $0.compact = true; $0.decimals = 2; $0.prefix = "€" }, [(1234, "€1.23k"), (5, "€5.00")]),
             (with { $0.prefix = "$"; $0.decimals = 0 }, [(1e14, "$1e14"), (.infinity, "∞")]),
+            // An affix keeps 4 characters as Swift counts them: an emoji is one.
+            (with { $0.prefix = "💰💰💰"; $0.suffix = "a💰💰💰💰" }, [(5, "💰💰💰5a💰💰💰")]),
         ]
         let was = DataGraphics.grouping
         DataGraphics.grouping = { "," }
@@ -209,6 +211,8 @@ final class ChartKindsTests: XCTestCase {
         XCTAssertEqual(read.hole, 0.85)
         XCTAssertEqual(read.gap, 0.8)
         XCTAssertEqual(read.lineWidth, 12)
+        let emoji = #"{"id":"c","kind":"column","data":"1","prefix":"a💰💰💰💰"}"#
+        XCTAssertEqual(try JSONDecoder().decode(ChartSpec.self, from: Data(emoji.utf8)).prefix, "a💰💰💰")
     }
 
     func testTheSharedLayoutTableTitlesGapAndRoundBars() {

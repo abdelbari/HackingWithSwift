@@ -255,6 +255,8 @@ enum DesignPackage {
                 if let src = el.textFill?.src, src.hasPrefix("media:") { ids.insert(String(src.dropFirst(6))) }
                 // The picture before a Cut out, which Restore paints back.
                 if let src = el.mask?.base, src.hasPrefix("media:") { ids.insert(String(src.dropFirst(6))) }
+                // A QR code's logo, a photo of its own.
+                if let src = el.qrLogo, src.hasPrefix("media:") { ids.insert(String(src.dropFirst(6))) }
             }
         }
         return ids
@@ -483,6 +485,9 @@ enum DesignPackage {
                     mask.base = moved(mask.base)
                     out.pages[p].elements[i].mask = mask
                 }
+                if let logo = out.pages[p].elements[i].qrLogo {
+                    out.pages[p].elements[i].qrLogo = moved(logo)
+                }
             }
         }
         return out
@@ -664,6 +669,10 @@ enum DesignPackage {
                 if var mask = design.pages[p].elements[i].mask, mask.base != nil {
                     mask.base = rewrite(mask.base)
                     design.pages[p].elements[i].mask = mask
+                }
+                // A QR code's logo moves as a photo does.
+                if let logo = design.pages[p].elements[i].qrLogo {
+                    design.pages[p].elements[i].qrLogo = rewrite(logo)
                 }
             }
         }

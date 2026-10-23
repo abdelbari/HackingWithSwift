@@ -851,7 +851,7 @@ struct ImageElementView: View {
             if let code {
                 CodeVectorView(code: code)
             } else if let barcode {
-                BarcodeVectorView(code: barcode)
+                BarcodeVectorView(element: element, code: barcode)
             } else if let ui = resolved {
                 let frameW = element.w, frameH = element.h
                 // Fill covers the frame and crops; fit shows the whole picture
@@ -1033,9 +1033,12 @@ struct CodeVectorView: View {
 
 /// A barcode as rectangles (Barcodes.vector): its background, unless it
 /// has none, its bars in its colour, and its words — or why it cannot be
-/// made — under them, in the element's own space. Shapes and text, not
-/// pixels, so a PDF of the page keeps them as vectors.
+/// made — under them, in the element's own space: a text element
+/// (Barcodes.captionElement) drawn as any other is, wrapping as it does,
+/// as the SVG, the PowerPoint and the Android twin draw it. Shapes and
+/// text, not pixels, so a PDF of the page keeps them as vectors.
 struct BarcodeVectorView: View {
+    let element: Element
     let code: Barcodes.Drawing
 
     var body: some View {
@@ -1045,16 +1048,19 @@ struct BarcodeVectorView: View {
             }
             Path { path in path.addRects(code.bars) }
                 .fill(Color(hex: code.style.color))
-            if let words = code.caption, let box = code.captionBox {
-                Text(verbatim: words)
-                    .font(.system(size: max(1, code.fontSize)))
-                    .foregroundStyle(Color(hex: code.style.color))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.3)
-                    .frame(width: box.width, height: box.height)
-                    .offset(x: box.minX, y: box.minY)
+            if let words = caption {
+                TextElementView(element: words)
+                    .position(x: words.x + words.w / 2, y: words.y + words.h / 2)
             }
         }
+    }
+
+    /// The words under the bars, at full opacity: the element's own is
+    /// applied to the whole code.
+    private var caption: Element? {
+        guard var words = Barcodes.captionElement(element, code) else { return nil }
+        words.opacity = 1
+        return words
     }
 }
 
