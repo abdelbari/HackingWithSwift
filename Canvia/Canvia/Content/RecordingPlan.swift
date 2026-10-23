@@ -20,6 +20,13 @@ enum RecordingPlan {
     /// out of what is kept.
     static let minSpan = 0.05
 
+    /// The frame rate a talk's film is made at on both phones, whatever the
+    /// design's own motion says; its holds are rounded to it.
+    static let fps = 30
+
+    /// A rounded bubble's corner radius, as a share of its side.
+    static let roundedRadius = 0.2
+
     /// The longest a page of the film holds: a longer span is split, as a
     /// page's own hold is kept to it (MovieExporter.timeline).
     static let maxHold = 60.0
@@ -126,5 +133,11 @@ enum RecordingPlan {
         let left = bubble.corner.hasSuffix("Left")
         let top = bubble.corner.hasPrefix("top")
         return CGRect(x: left ? m : width - m - d, y: top ? m : height - m - d, width: d, height: d)
+    }
+
+    /// The corner radius of a bubble `side` across: half of it for a
+    /// circle, `roundedRadius` of it for "rounded".
+    static func bubbleRadius(_ bubble: RecordingBubble, side: Double) -> Double {
+        bubble.shape == "rounded" ? side * roundedRadius : side / 2
     }
 }

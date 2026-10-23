@@ -2,12 +2,11 @@
 // page, fixtures website.json and website.html, which the Android twin's
 // HtmlWriterTest reads too.
 //
-// The page around the pages — head, styles, menu, sections, clips — is
-// compared byte for byte, the pictures' base64 aside. The SVG inside each
-// section is this phone's SVGExporter's, which writes its own markup (glyph
-// outlines from Core Text, pictures drawn through the canvas's views), so
-// each <svg> is compared as a placeholder and checked for its links and
-// alt text on its own.
+// The whole page — head, styles, menu, sections, each page's SVG, clips — is
+// compared byte for byte, the pictures' base64 aside. Glyph outlines come
+// from each phone's own type engine, so both phones' tests draw every text
+// with the same stand-in letters and every picture with stand-in bytes
+// (SVGExporter.StandIns here, SvgWriter.Renderer on Android).
 
 import XCTest
 @testable import Canvia
@@ -19,29 +18,31 @@ final class WebsiteExportTests: XCTestCase {
         return try JSONDecoder().decode(Design.self, from: SharedFixture.encoded(try XCTUnwrap(fixture["design"])))
     }
 
-    /// Every embedded picture emptied, and every SVG one placeholder.
-    private func frame(_ html: String) -> String {
-        var out = html.replacingOccurrences(of: "(;base64,)[A-Za-z0-9+/=]*", with: "$1", options: .regularExpression)
-        out = out.replacingOccurrences(of: "<svg[\\s\\S]*?</svg>", with: "<svg/>", options: .regularExpression)
-        return out
+    /// Every embedded picture emptied: what the golden comparison ignores.
+    private func withoutPictures(_ html: String) -> String {
+        html.replacingOccurrences(of: "(;base64,)[A-Za-z0-9+/=]*", with: "$1", options: .regularExpression)
     }
+
+    /// The Android twin's test letters and pictures (HtmlWriterTest.Fixed).
+    private let standIns = SVGExporter.StandIns(letters: { _ in "M0 0L1 1Z" }, picture: { _ in Data([1, 2, 3]) })
 
     @MainActor
     private func golden(_ d: Design, settings: HTMLExporter.Settings = HTMLExporter.Settings()) -> String {
-        HTMLExporter.html(d, pages: d.visiblePageIndices, settings: settings,
-                          clipFile: { el in
-                              guard let id = el.src.flatMap(VideoStore.split)?.id else { return nil }
-                              return HTMLExporter.mediaPath(id, ext: "mp4")
-                          },
-                          svg: { _ in "<svg></svg>" },
-                          poster: { _ in Data([1, 2, 3]) })
+        let standIns = self.standIns
+        return HTMLExporter.html(d, pages: d.visiblePageIndices, settings: settings,
+                                 clipFile: { el in
+                                     guard let id = el.src.flatMap(VideoStore.split)?.id else { return nil }
+                                     return HTMLExporter.mediaPath(id, ext: "mp4")
+                                 },
+                                 svg: { page in SVGExporter.svg(design: d, page: page, aria: true, standIns: standIns) },
+                                 poster: { _ in Data([1, 2, 3]) })
     }
 
-    /// Shared: the same page as the twin's, the pictures and the SVGs aside.
+    /// Shared: the same page as the twin's, byte for byte but the pictures.
     @MainActor
     func testThePageIsTheSharedGoldenPage() throws {
         let want = try SharedFixture.text("website", ext: "html")
-        XCTAssertEqual(frame(golden(try design())), frame(want))
+        XCTAssertEqual(withoutPictures(golden(try design())), withoutPictures(want))
     }
 
     @MainActor

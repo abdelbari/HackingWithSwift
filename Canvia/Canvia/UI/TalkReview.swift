@@ -153,7 +153,7 @@ struct TalkPlayer: View {
     private func bubble(in size: CGSize) -> some View {
         if let face {
             let rect = RecordingPlan.bubbleRect(recording.bubble, width: size.width, height: size.height)
-            let radius = recording.bubble.shape == "rounded" ? rect.width * 0.2 : rect.width / 2
+            let radius = CGFloat(RecordingPlan.bubbleRadius(recording.bubble, side: Double(rect.width)))
             VideoPlayer(player: face)
                 .disabled(true)
                 .frame(width: rect.width, height: rect.height)

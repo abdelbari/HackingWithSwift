@@ -132,13 +132,17 @@ enum DesignPackage {
     /// The design's clips, those `whole` picks (from each one's size and
     /// type, by id) handed to `take` with their files — and any it does not
     /// pick, or `take` turns away, replaced by its first frame packed as a
-    /// photo.
+    /// photo. Present and record's cameras (Recordings) are weighed with the
+    /// clips, as the Android twin weighs them, so the same design makes the
+    /// same file on either phone; a camera not picked stays behind, with no
+    /// still, and its talk plays voice-only.
     private static func packingClips(_ design: Design, media: inout [String: Media],
                                      whole wholeIDs: ([String: (bytes: Int, ext: String)]) -> Set<String>,
                                      take: (String, URL) -> Bool) -> Design {
         var files: [String: URL] = [:]
         var clips: [String: (bytes: Int, ext: String)] = [:]
-        for id in videoIDs(in: design) {
+        let cameras = Recordings.cameraIds(design)
+        for id in videoIDs(in: design).union(cameras) {
             guard let url = VideoStore.url(for: id) else { continue }
             let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? Int.max
             files[id] = url
@@ -149,6 +153,8 @@ enum DesignPackage {
         for id in files.keys.sorted() {
             guard let url = files[id] else { continue }
             if whole.contains(id), take(id, url) {
+                continue
+            } else if cameras.contains(id) {
                 continue
             } else if let still = VideoStore.poster(id)?.jpegData(compressionQuality: 0.9) {
                 let newId = UID.make("img")
@@ -295,11 +301,6 @@ enum DesignPackage {
         var animations: [String: Media] = [:]
         let clipped = packingVideos(drawn, media: &media, videos: &videos)
         let design = packingAnimations(clipped, media: &media, animations: &animations, whole: AnimStore.packedIDs)
-        // Each talk's camera goes whole with the clips (Recordings).
-        for id in Recordings.cameraIds(design) where videos[id] == nil {
-            guard let url = VideoStore.url(for: id), let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { continue }
-            videos[id] = Media(ext: url.pathExtension.lowercased(), data: data)
-        }
         return packed(design, media: media, videos: videos, animations: animations, mediaDirectory: mediaDirectory)
     }
 
@@ -315,10 +316,6 @@ enum DesignPackage {
         var animations: [String: Media] = [:]
         let clipped = packingClipFiles(drawn, media: &media, clipFiles: &clips)
         let design = packingAnimations(clipped, media: &media, animations: &animations, whole: { Set($0.keys) })
-        // Each talk's camera, left as its file as the clips are.
-        for id in Recordings.cameraIds(design) where clips[id] == nil {
-            if let url = VideoStore.url(for: id) { clips[id] = url }
-        }
         return (packed(design, media: media, videos: [:], animations: animations, mediaDirectory: mediaDirectory), clips)
     }
 

@@ -11,8 +11,8 @@ import Foundation
 
 extension MovieExporter {
 
-    /// The frame rate a talk's film is made at.
-    static let talkFps = 30
+    /// The frame rate a talk's film is made at (RecordingPlan.fps).
+    static let talkFps = RecordingPlan.fps
 
     /// The talk `recording` of `design` as an MP4 at `url`. Without its
     /// camera on this phone, the pages and the voice alone.
@@ -68,7 +68,7 @@ extension MovieExporter {
         }
         let size = try await picture.load(.naturalSize)
         let rect = RecordingPlan.bubbleRect(bubble, width: Double(size.width), height: Double(size.height))
-        let radius = bubble.shape == "rounded" ? rect.width * 0.2 : rect.width / 2
+        let radius = CGFloat(RecordingPlan.bubbleRadius(bubble, side: Double(rect.width)))
         let video = AVMutableVideoComposition()
         video.customVideoCompositorClass = TalkBubbleCompositor.self
         video.renderSize = size

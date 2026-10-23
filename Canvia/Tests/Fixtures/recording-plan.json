@@ -1,5 +1,5 @@
 {
-  "note": "RecordingPlan: the page up at a moment of a talk, the spans a talk captures, the film's holds at 30 fps, and where the camera bubble sits. Both phones read this file.",
+  "note": "RecordingPlan: the page up at a moment of a talk, the spans a talk captures, the film's holds at the talk rate of 30 fps, and where the camera bubble sits and how round its corners are. Both phones read this file.",
   "recording": {
     "id": "rec_1",
     "createdAt": 1700000000000,
@@ -48,5 +48,10 @@
   "bubbles": [
     {"bubble": {"corner": "bottomLeft", "size": 0.22, "shape": "circle"}, "width": 1920, "height": 1080, "rect": [43.2, 799.2, 237.6, 237.6]},
     {"bubble": {"corner": "topRight", "size": 0.3, "shape": "rounded"}, "width": 1080, "height": 1920, "rect": [712.8, 43.2, 324.0, 324.0]}
+  ],
+  "radii": [
+    {"shape": "circle", "side": 200, "radius": 100.0},
+    {"shape": "rounded", "side": 200, "radius": 40.0},
+    {"shape": "rounded", "side": 237.6, "radius": 47.52}
   ]
 }

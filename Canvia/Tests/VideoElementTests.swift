@@ -289,6 +289,26 @@ final class VideoElementTests: XCTestCase {
         XCTAssertNil(shared[id], "a file to share carries no Matroska clip")
     }
 
+    /// A talk's camera is weighed with the clips, as the Android twin weighs
+    /// it: one the rule turns away (here a Matroska file) stays out of a
+    /// file to share, with no still, and goes whole in a backup.
+    func testATalksCameraIsWeighedWithTheClips() throws {
+        let id = try XCTUnwrap(VideoStore.store(Data([0, 0, 0, 24, 1, 2, 3, 4]), ext: "mkv"))
+        defer { VideoStore.delete(id) }
+        let talk = Recording(id: "rec_1", createdAt: 0, audio: "rec_1.m4a", camera: "\(id).mkv")
+        let d = Recordings.added(Design(title: "Talk", width: 1080, height: 1080), talk)
+
+        var media: [String: DesignPackage.Media] = [:]
+        var shared: [String: DesignPackage.Media] = [:]
+        XCTAssertEqual(DesignPackage.packingVideos(d, media: &media, videos: &shared), d)
+        XCTAssertNil(shared[id], "a file to share leaves the camera behind")
+        XCTAssertTrue(media.isEmpty, "no still for a camera")
+
+        var clipFiles: [String: URL] = [:]
+        _ = DesignPackage.packingClipFiles(d, media: &media, clipFiles: &clipFiles)
+        XCTAssertEqual(Array(clipFiles.keys), [id])
+    }
+
     /// A clip that only fills a shape travels too, and the fill comes back
     /// pointing at the imported clip.
     func testAClipFillingAShapeTravelsInADesignFile() throws {

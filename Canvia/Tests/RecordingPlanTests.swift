@@ -49,7 +49,10 @@ final class RecordingPlanTests: XCTestCase {
         var design = Design(width: 1920, height: 1080)
         design.pages = ["p1", "p2", "p3"].map { Page(id: $0) }
         design.audioTracks = [AudioTrack(id: "m", src: AudioTrack.src("song.m4a"), volume: 0.8)]
-        let film = RecordingPlan.film(design, try recording(), fps: o["fps"] as? Int ?? 30)
+        // The talk's own rate, which both phones make its film at.
+        XCTAssertEqual(o["fps"] as? Int, RecordingPlan.fps)
+        XCTAssertEqual(MovieExporter.talkFps, RecordingPlan.fps)
+        let film = RecordingPlan.film(design, try recording(), fps: RecordingPlan.fps)
         let holds = try XCTUnwrap(o["holds"] as? [Double])
         XCTAssertEqual(film.pages.count, holds.count)
         for (h, page) in zip(holds, film.pages) {
@@ -68,6 +71,16 @@ final class RecordingPlanTests: XCTestCase {
             let want = try XCTUnwrap(row["rect"] as? [Double])
             let got = [r.minX, r.minY, r.width, r.height].map { (Double($0) * 1000).rounded() / 1000 }
             XCTAssertEqual(got, want)
+        }
+    }
+
+    /// Shared: a circle's corners are half its side, a rounded bubble's
+    /// `RecordingPlan.roundedRadius` of it, in the MP4 and in playback.
+    func testTheCameraBubblesCorners() throws {
+        for row in try XCTUnwrap(fixture()["radii"] as? [[String: Any]]) {
+            let bubble = RecordingBubble(shape: try XCTUnwrap(row["shape"] as? String))
+            let radius = RecordingPlan.bubbleRadius(bubble, side: row["side"] as? Double ?? 0)
+            XCTAssertEqual(radius, row["radius"] as? Double ?? -1, accuracy: 1e-9)
         }
     }
 

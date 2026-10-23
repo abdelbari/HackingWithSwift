@@ -293,8 +293,12 @@ struct TalkStudio: View {
         phase = .saving
         Task { @MainActor in
             let files = await recorder.finish()
-            guard let voice = files.audio, let kept = Self.keep(voice: voice, camera: files.camera, spans: spans) else {
-                problem = tr("Couldn't start recording. Another app may be using the microphone.")
+            // A talk finished before any page was held long enough to keep
+            // (RecordingPlan.minSpan) is nothing, as a voice that could not
+            // be kept is — as the Android twin says it.
+            guard !spans.isEmpty, let voice = files.audio,
+                  let kept = Self.keep(voice: voice, camera: files.camera, spans: spans) else {
+                problem = tr("Nothing was recorded")
                 phase = .setup
                 return
             }
