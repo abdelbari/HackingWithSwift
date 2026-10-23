@@ -47,6 +47,33 @@ extension DataGraphics {
             .flatMap { Array($0.spannedCols) }).sorted()
     }
 
+    /// What VoiceOver says of table `id`'s cell at `row`, `col` — the
+    /// Android twin's Tables.spokenCell, word for word: "Row 2 of 5, Column
+    /// 3 of 4, Price: 3.50", its place counted from 1 among the table's rows
+    /// and columns, then its column's header (the words of row 0's cell over
+    /// it) and its own words. The header row says its words alone, as does
+    /// a cell under a blank header; a merged cell adds how far it spans,
+    /// "spans 2 columns", "spans 3 rows". Its lines are read as one. Nil
+    /// when the table has no such cell.
+    static func spokenCell(_ elements: [Element], id: String, row: Int, col: Int) -> String? {
+        let cells = tableMembers(elements, id: id).compactMap { el in el.table.map { (el: el, cell: $0) } }
+        guard let cell = cells.first(where: { $0.cell.row == row && $0.cell.col == col })?.cell else { return nil }
+        func words(_ r: Int, _ c: Int) -> String {
+            let text = cells.first { $0.el.type == .text && $0.cell.row == r && $0.cell.spannedCols.contains(c) }?.el.text
+            return RichText.strip(text ?? "").replacingOccurrences(of: "\n", with: " ")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        let place = tr("Row %d of %d, Column %d of %d", row + 1, tableRows(elements, id: id).count,
+                       col + 1, tableColumns(elements, id: id).count)
+        let own = words(row, col)
+        let header = row == 0 ? "" : words(0, col)
+        let said = header.isEmpty ? own : tr("%@: %@", header, own)
+        var parts = [place, said]
+        if cell.colSpan > 1 { parts.append(trn("spans %d column|spans %d columns", cell.colSpan)) }
+        if cell.rowSpan > 1 { parts.append(trn("spans %d row|spans %d rows", cell.rowSpan)) }
+        return parts.filter { !$0.isEmpty }.joined(separator: ", ")
+    }
+
     /// Whether table `id` is turned — whose rows and columns are not
     /// edited, as a turned table's cells no longer stand in rows.
     static func tableIsTurned(_ elements: [Element], id: String) -> Bool {

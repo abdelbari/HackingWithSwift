@@ -14,6 +14,10 @@
 //    timeline — so pages change more than three times a second. The last
 //    page gives way to nothing.
 //  - linkText: a link on something with no words to read and no alt text.
+//  - chartColours: a chart with neither a legend nor value labels, whose
+//    colours alone say which is which — but a progress kind or a funnel,
+//    which always write their values. Said once, on the chart's lowest
+//    element.
 //  - readingOrder: a page whose layers, bottom to top, run in another order
 //    than the page reads — rows top to bottom, left to right — among what a
 //    reader says: words, and pictures with alt text.
@@ -29,7 +33,7 @@ import Foundation
 enum AccessibilityAudit {
 
     enum Kind: String, CaseIterable {
-        case contrast, altText, smallText, flashing, linkText, readingOrder
+        case contrast, altText, smallText, flashing, linkText, chartColours, readingOrder
     }
 
     /// What a finding's button does.
@@ -89,6 +93,10 @@ enum AccessibilityAudit {
                 out.append(Finding(kind: .linkText, pageIndex: p, elementId: el.id,
                                    message: tr("A link with no words and no alt text"), fix: .addAltText))
             }
+            for id in colourOnlyCharts(shown) {
+                out.append(Finding(kind: .chartColours, pageIndex: p, elementId: id,
+                                   message: tr("Chart colours carry meaning")))
+            }
             if let first = readingOrderMismatch(page, height: Double(design.size(for: page).height)) {
                 out.append(Finding(kind: .readingOrder, pageIndex: p, elementId: first,
                                    message: tr("The layers are in a different order from how the page reads")))
@@ -98,6 +106,18 @@ enum AccessibilityAudit {
     }
 
     // MARK: the rules
+
+    /// The lowest element of each chart among `elements` that has neither
+    /// a legend nor values, nor is a kind that writes its values anyway.
+    static func colourOnlyCharts(_ elements: [Element]) -> [String] {
+        var seen: Set<String> = []
+        return elements.compactMap { el in
+            guard let spec = el.chart, el.chartPart != nil, seen.insert(spec.id).inserted else { return nil }
+            let kind = DataGraphics.ChartKind(rawValue: spec.kind)
+            let says = spec.legend || spec.values || kind?.isProgress == true || kind == .funnel
+            return says ? nil : el.id
+        }
+    }
 
     /// A photo, video, sticker or icon that is not decorative and has no
     /// alt text.

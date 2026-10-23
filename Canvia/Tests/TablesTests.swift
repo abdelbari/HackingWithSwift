@@ -1046,4 +1046,19 @@ final class TablesTests: XCTestCase {
         s.undo()
         XCTAssertEqual(s.page.elements, table)
     }
+
+    // MARK: read aloud
+
+    func testACellReadsItsPlaceItsHeaderAndItsWords() throws {
+        let t = made()
+        let id = tableId(t)
+        XCTAssertEqual(DataGraphics.spokenCell(t, id: id, row: 1, col: 1), "Row 2 of 3, Column 2 of 2, Qty: 2")
+        XCTAssertEqual(DataGraphics.spokenCell(t, id: id, row: 0, col: 0), "Row 1 of 3, Column 1 of 2, Item")
+        XCTAssertNil(DataGraphics.spokenCell(t, id: id, row: 5, col: 0))
+        // A merged cell says how far it spans.
+        let merged = try XCTUnwrap(merging(t, [(2, 0), (2, 1)]))
+        XCTAssertEqual(DataGraphics.spokenCell(merged, id: id, row: 2, col: 0), "Row 3 of 3, Column 1 of 2, Item: Bagel 1, spans 2 columns")
+        // VoiceOver reads a cell so.
+        XCTAssertEqual(CanvasAccessibility.label(for: rect(t, 1, 1), on: t), "Row 2 of 3, Column 2 of 2, Qty: 2")
+    }
 }

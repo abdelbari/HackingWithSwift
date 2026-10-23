@@ -64,6 +64,9 @@ final class DesignStore {
     var wordColourTarget: WordRange?
     /// The words the font sheet is open for, from the typing bar's Aa.
     var wordFontTarget: WordRange?
+    /// Edit chart asked for from the canvas — VoiceOver's Edit data on a
+    /// chart — with the chart selected; the editor opens it and clears this.
+    var chartEditRequested = false
     /// The words the link prompt is open for, from the typing bar's Link.
     var wordLinkTarget: WordRange?
     /// A photo dropped on a selected text box, waiting to be asked whether
@@ -2817,21 +2820,15 @@ final class DesignStore {
     }
 
     /// Give every selected element an entrance, staggered in layer order so
-    /// a list builds itself rather than arriving as a block.
+    /// a list builds itself rather than arriving as a block — a chart's
+    /// parts given Grow sharing one delay and duration (ElementAnimation
+    /// .applied).
     func animateSelected(_ kind: String?) {
         guard !selection.isEmpty else { return }
         applyToPage { page in
-            var n = 0
-            for i in page.elements.indices where self.selection.contains(page.elements[i].id) {
-                if let kind {
-                    let textOnly = ElementAnimation.textKinds.contains(kind)
-                    if textOnly && page.elements[i].type != .text { continue }
-                    page.elements[i].animation = ElementAnimation(kind: kind, delay: Double(n) * 0.15, duration: 0.6)
-                    n += 1
-                } else {
-                    page.elements[i].animation = nil
-                }
-            }
+            let chosen = page.elements.indices.filter { self.selection.contains(page.elements[$0].id) }
+            let animated = ElementAnimation.applied(chosen.map { page.elements[$0] }, kind: kind)
+            for (i, el) in zip(chosen, animated) { page.elements[i] = el }
         }
     }
 

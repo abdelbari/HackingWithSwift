@@ -11,18 +11,31 @@
 // three fields under `exitAnimation`, its delay counted back from the end of
 // the page, read by `exitState(at:hold:size:)` and combined with the
 // entrance — at parity with the Android twin's ElementAnimation.exitState.
+//
+// A chart can grow in ("grow"): its columns rise from their foot, its bars
+// from their left end, its slices and rings sweep round, its lines draw on
+// left to right and its points pop, series after series, its words fading
+// in at the end — the same maths as the Android twin's, from the part's
+// chartPart. Any other element given it fades in, as a build without it
+// plays it.
 
 import Foundation
 
 struct ElementAnimation: Codable, Equatable {
-    /// "fade" | "rise" | "pop" | "slideLeft" | "slideRight" | "typewriter" | "words" | "letterPop" | "lineRise"
+    /// "grow" | "fade" | "rise" | "pop" | "slideLeft" | "slideRight" | "typewriter" | "words" | "letterPop" | "lineRise"
     var kind: String = "fade"
     /// Seconds after the page starts.
     var delay: Double = 0
     var duration: Double = 0.6
 
-    static let kinds = ["fade", "rise", "pop", "slideLeft", "slideRight", "typewriter", "words", "letterPop", "lineRise",
+    static let kinds = [grow, "fade", "rise", "pop", "slideLeft", "slideRight", "typewriter", "words", "letterPop", "lineRise",
                         "pulse", "wiggle", "bounce", "spin"]
+    /// A chart's entrance, its parts growing from their baseline.
+    static let grow = "grow"
+    /// How long after each other a chart's series start to grow, and how
+    /// long a chart takes, delay aside, when Grow is picked.
+    static let growStagger = 0.08
+    static let growDuration = 1.0
     static let textKinds: Set<String> = ["typewriter", "words", "letterPop", "lineRise"]
     /// Loops never settle: a sticker that keeps moving for as long as the
     /// page is shown.
@@ -58,6 +71,7 @@ struct ElementAnimation: Codable, Equatable {
 
     static func name(_ kind: String) -> String {
         switch kind {
+        case "grow": return tr("Grow")
         case "fade": return tr("Fade in")
         case "rise": return tr("Rise")
         case "pop": return tr("Pop")
@@ -84,7 +98,24 @@ struct ElementAnimation: Codable, Equatable {
         var rotation: Double = 0
         /// For text reveals: how many characters are shown; nil is all.
         var visibleCharacters: Int?
+        /// A chart part growing (grow): its width and height as shares of
+        /// their own, about the point `anchorX`, `anchorY` of its box (0 its
+        /// left or top, 1 its right or bottom) — a column from its foot, a
+        /// bar from its left end.
+        var scaleX: Double = 1
+        var scaleY: Double = 1
+        var anchorX: Double = 0.5
+        var anchorY: Double = 0.5
+        /// The share of its box shown from the left, a line drawing on.
+        var reveal: Double = 1
+        /// The share of its sweep a slice or ring is drawn to
+        /// (DataGraphics.swept).
+        var sweep: Double = 1
         static let settled = State()
+
+        /// Whether nothing of the element shows: grown from nothing, or
+        /// swept or drawn on to none of it yet.
+        var showsNothing: Bool { scaleX <= 0 || scaleY <= 0 || reveal <= 0 || sweep <= 0 }
 
         /// This state with an exit's on top: opacities and scales
         /// multiply, offsets and turns add; the characters shown are this
@@ -95,6 +126,14 @@ struct ElementAnimation: Codable, Equatable {
             s.offset = CGSize(width: offset.width + exit.offset.width, height: offset.height + exit.offset.height)
             s.scale *= exit.scale
             s.rotation += exit.rotation
+            s.scaleX *= exit.scaleX
+            s.scaleY *= exit.scaleY
+            if scaleX == 1 && scaleY == 1 {
+                s.anchorX = exit.anchorX
+                s.anchorY = exit.anchorY
+            }
+            s.reveal *= exit.reveal
+            s.sweep *= exit.sweep
             return s
         }
     }
@@ -108,10 +147,13 @@ struct ElementAnimation: Codable, Equatable {
         return 1 - pow(1 - clamped, 3)
     }
 
-    func state(at t: Double, text: String? = nil, size: Double = 100) -> State {
+    /// `el` is the element moving: a grow needs it, the chart part it
+    /// grows; anything else that grows fades in.
+    func state(at t: Double, text: String? = nil, size: Double = 100, el: Element? = nil) -> State {
         if loops { return loopState(at: t) }
         let p = progress(at: t)
         if p >= 1 { return .settled }
+        if kind == Self.grow, let el { return growState(at: t, el) }
         var s = State()
         switch kind {
         case "rise":
@@ -147,6 +189,104 @@ struct ElementAnimation: Codable, Equatable {
             s.opacity = p
         }
         return s
+    }
+
+    /// A chart part `el` `t` seconds into its page as grow has it, the same
+    /// on both phones. Its series parts ("series:<n>") start growStagger ×
+    /// n seconds after the delay — at most 90% of the duration — and are in
+    /// by its end, each eased as progress eases:
+    /// - columns (and stacked) rise from their foot, scaleY from the bottom
+    ///   edge — values are never below 0, so never from the top;
+    /// - bars (stacked, and a progress bar) grow from their left end;
+    /// - a pie's or a donut's slices, a progress ring's and a dial's arc
+    ///   sweep round, drawn to the share of their sweep reached;
+    /// - lines and areas draw on left to right, a box growing from the left
+    ///   (reveal) — a line's points pop, as a scatter's and a bubble chart's
+    ///   do, and a radar's outlines and a pictogram's icons;
+    /// - a funnel's stages widen from their middle, a heat map's cells fade in.
+    /// Labels, values, the legend and axis titles fade in over the last 30%
+    /// of the duration; gridlines and axes fade in over all of it. A part of
+    /// no chart fades in.
+    private func growState(at t: Double, _ el: Element) -> State {
+        var s = State()
+        guard let spec = el.chart, let part = el.chartPart else {
+            s.opacity = progress(at: t)
+            return s
+        }
+        let linear = duration <= 0 ? (t >= delay ? 1.0 : 0.0) : min(max((t - delay) / duration, 0), 1)
+        guard part.hasPrefix("series:") else {
+            s.opacity = part == "grid" || part == "axis" ? progress(at: t) : min(max((linear - 0.7) / 0.3, 0), 1)
+            return s
+        }
+        let n = Int(part.dropFirst("series:".count)) ?? 0
+        let lag = min(Self.growStagger * Double(n), duration * 0.9)
+        let q = ElementAnimation(kind: kind, delay: delay + lag, duration: duration - lag).progress(at: t)
+        if q >= 1 { return .settled }
+        // A kind this build does not know pops, as a scatter's points do.
+        switch DataGraphics.ChartKind(rawValue: spec.kind) ?? .scatter {
+        case .column, .stackedColumn:
+            s.scaleY = q
+            s.anchorY = 1
+        case .bar, .stackedBar, .progressBar:
+            s.scaleX = q
+            s.anchorX = 0
+        case .pie, .donut, .progressRing, .progressDial:
+            s.sweep = q
+        case .line, .area:
+            if el.shapeId == "circle" {
+                s.opacity = min(1, q * 2)
+                s.scale = 0.4 + 0.6 * q
+            } else {
+                s.reveal = q
+            }
+        case .funnel:
+            s.scaleX = q
+        case .heatmap:
+            s.opacity = q
+        default:
+            s.opacity = min(1, q * 2)
+            s.scale = 0.4 + 0.6 * q
+        }
+        return s
+    }
+
+    /// Whether Grow is offered for `elements`: some of them are parts of a
+    /// chart.
+    static func canGrow(_ elements: [Element]) -> Bool {
+        elements.contains { $0.chart != nil && $0.chartPart != nil }
+    }
+
+    /// `kind` as the entrance of each of `elements`, as the Android twin
+    /// applies it: nil takes entrances away; a text kind passes over all
+    /// but text; each other thing 0.15 s after the one before, for 0.6 s.
+    /// Grow gives every part of a chart one delay and one duration
+    /// (growDuration), its series staggered by the grow itself, each chart
+    /// and each other thing 0.15 s after the one before.
+    static func applied(_ elements: [Element], kind: String?) -> [Element] {
+        var n = 0
+        var charts: [String: Double] = [:]
+        return elements.map { el in
+            var out = el
+            guard let kind else {
+                out.animation = nil
+                return out
+            }
+            if textKinds.contains(kind) && el.type != .text { return el }
+            if kind == grow {
+                var delay = Double(n) * 0.15
+                if let chart = el.chart?.id, let shared = charts[chart] {
+                    delay = shared
+                } else {
+                    if let chart = el.chart?.id { charts[chart] = delay }
+                    n += 1
+                }
+                out.animation = ElementAnimation(kind: kind, delay: delay, duration: growDuration)
+                return out
+            }
+            out.animation = ElementAnimation(kind: kind, delay: Double(n) * 0.15, duration: 0.6)
+            n += 1
+            return out
+        }
     }
 
     /// When the element is fully in; a loop is never in.

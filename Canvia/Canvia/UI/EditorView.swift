@@ -1884,6 +1884,11 @@ private struct WordRequests: ViewModifier {
             .onChange(of: store.wordFontTarget) { _, target in
                 if target != nil { activeSheet = .fontWords }
             }
+            .onChange(of: store.chartEditRequested) { _, asked in
+                guard asked else { return }
+                store.chartEditRequested = false
+                if store.selectedChart != nil { activeSheet = .chart }
+            }
             .modifier(WordLinkPrompt(store: store))
             .modifier(PhotoInLettersPrompts(store: store, openAdjust: { activeSheet = .photoInLetters }))
     }

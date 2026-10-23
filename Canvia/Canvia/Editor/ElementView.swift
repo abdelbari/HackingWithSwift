@@ -76,6 +76,9 @@ struct ElementView: View {
     /// photo's crop drifted along its Ken Burns.
     private var shown: Element {
         var el = resolved
+        // A chart's slice or ring sweeping round as it grows.
+        let sweep = motion.sweep
+        if sweep < 1 { el = DataGraphics.swept(el, share: sweep) }
         if let n = motion.visibleCharacters, let text = el.text {
             // Fitted type stays at the size the whole text fits at, rather than
             // filling the box with the first letter and shrinking as the rest
@@ -127,6 +130,9 @@ struct ElementView: View {
             // drawn behind the element in the element's space, where the
             // drop shadow below is cast too.
             .background { styledShadow }
+            // A chart's part growing from its anchor, or a line drawn on
+            // from its left, in the element's own turned space.
+            .modifier(GrowReveal(state: motion, w: element.w, h: element.h, reach: (element.strokeWidth ?? 0) + 1))
             .scaleEffect(motion.scale)
             .offset(motion.offset)
             // Before the flip and rotation, so the shadow is cast in the
@@ -137,7 +143,7 @@ struct ElementView: View {
                     x: element.shadow?.offsetX ?? 0, y: element.shadow?.offsetY ?? 0)
             .scaleEffect(x: element.flipH ? -1 : 1, y: element.flipV ? -1 : 1)
             .rotationEffect(.degrees(element.rotation + motion.rotation))
-            .opacity(element.opacity * motion.opacity)
+            .opacity(motion.showsNothing ? 0 : element.opacity * motion.opacity)
             .blendMode(BlendModes.swiftUI(element.blendMode))
             .position(x: element.x + element.w / 2, y: element.y + element.h / 2)
             // Left to right in any language, drawn alone for an export too.
@@ -205,6 +211,31 @@ struct ElementView: View {
             }
         case .sticker: StickerElementView(element: el)
         case .line: LineElementView(element: el)
+        }
+    }
+}
+
+/// A chart part as it grows in (ElementAnimation.growState): scaled about
+/// its anchor, and a line or area cut to the share of its box drawn on so
+/// far from the left — its stroke's reach beyond the box kept, as the
+/// Android twin's renderer clips it. Nothing is masked once it is in.
+private struct GrowReveal: ViewModifier {
+    let state: ElementAnimation.State
+    let w: Double
+    let h: Double
+    let reach: Double
+
+    func body(content: Content) -> some View {
+        let scaled = content
+            .scaleEffect(x: state.scaleX, y: state.scaleY, anchor: UnitPoint(x: state.anchorX, y: state.anchorY))
+        if state.reveal < 1 {
+            scaled.mask(alignment: .topLeading) {
+                Rectangle()
+                    .frame(width: max(0, w * state.reveal + reach), height: 3 * h + 2 * reach)
+                    .offset(x: -reach, y: -h - reach)
+            }
+        } else {
+            scaled
         }
     }
 }
