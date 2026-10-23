@@ -1492,7 +1492,7 @@ struct EditorView: View {
         case .accessibility:
             AccessibilitySheet(store: store)
         case .brand:
-            BrandKitSheet(store: store)
+            BrandKitSheet(store: store, onGuidelines: { openGuidelines($0) })
         case .settings:
             SettingsSheet(store: store)
         case .audio:
@@ -1754,6 +1754,22 @@ struct EditorView: View {
         }
         DesignLibrary.writeThumbnail(for: copy)
         openDesign(copy.id)
+    }
+
+    /// Make brand guidelines from the kit sheet: this design saved, the
+    /// guidelines saved as a new design, and opened in its place.
+    @MainActor
+    private func openGuidelines(_ design: Design) {
+        closeRename()
+        saveNow()
+        var named = design
+        named.title = Titles.unique(design.title, taken: DesignLibrary.recents().map(\.title))
+        guard DesignLibrary.save(named) else {
+            show(toast: tr("Couldn't do that"), undoable: false)
+            return
+        }
+        DesignLibrary.writeThumbnail(for: named)
+        openDesign(named.id)
     }
 
     /// Another design opened over this one — saved already — through the

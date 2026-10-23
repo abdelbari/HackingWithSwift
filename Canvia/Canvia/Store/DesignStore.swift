@@ -120,6 +120,11 @@ final class DesignStore {
     /// the canvas in the order VoiceOver reads it. View state only.
     var showsReadingOrder = false
 
+    /// Check accessibility's "View as": the canvas as a colour vision
+    /// deficiency sees it, while the sheet is open. View state only — never
+    /// written to the design.
+    var viewAs: ColourVision.Sight = .typical
+
     // The canvas's view of the page, mirrored from the scroll view: the part
     // of the page on screen, in page units, and the zoom that fits it all.
     // View state only — never saved.

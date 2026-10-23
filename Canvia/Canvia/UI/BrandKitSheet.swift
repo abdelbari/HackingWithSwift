@@ -13,6 +13,9 @@ struct BrandKitSheet: View {
     /// Whether `store` is a design being edited, which colours, pictures
     /// and logos can be taken from; false from Home and Settings.
     var withDesign = true
+    /// Make brand guidelines: the kit as a new design, to open in the
+    /// editor (BrandGuidelines).
+    var onGuidelines: ((Design) -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var kits = BrandKits.load()
     @State private var newColor = Color.blue
@@ -146,6 +149,13 @@ struct BrandKitSheet: View {
                 naming = .kit
             }
             Button("Share this kit…") { share() }
+            if let onGuidelines {
+                Button("Make brand guidelines") {
+                    let made = BrandGuidelines.design(kit, now: Date().timeIntervalSince1970 * 1000)
+                    dismiss()
+                    onGuidelines(made)
+                }
+            }
             Button("Import a kit…") {
                 importKind = .kit
                 importing = true
@@ -600,10 +610,12 @@ struct BrandKitSheet: View {
 
 /// The kit sheet with no design attached, as Home and Settings open it.
 struct StandaloneBrandKitSheet: View {
+    /// Make brand guidelines, from Home; none offers it.
+    var onGuidelines: ((Design) -> Void)? = nil
     /// A blank page, for the font picker to measure against.
     @State private var blank = DesignStore(design: Design(title: "", width: 1080, height: 1080))
 
     var body: some View {
-        BrandKitSheet(store: blank, withDesign: false)
+        BrandKitSheet(store: blank, withDesign: false, onGuidelines: onGuidelines)
     }
 }

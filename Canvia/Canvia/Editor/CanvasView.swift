@@ -515,6 +515,8 @@ struct CanvasView: View {
                 if store.snapping.marginEnabled && store.snapping.showMargins { marginOverlay }
                 ForEach(store.design.guides) { guide in guideLine(guide) }
                 if store.showsReadingOrder { readingOrderOverlay }
+                // Check accessibility's View as, over the page.
+                if store.viewAs != .typical { ColourVisionLayer(store: store, kind: store.viewAs) }
             }
 
             if store.page.elements.isEmpty {

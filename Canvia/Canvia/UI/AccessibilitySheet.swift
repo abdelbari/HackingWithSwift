@@ -26,6 +26,7 @@ struct AccessibilitySheet: View {
                 } footer: {
                     Text("Numbers each element on the page in the order VoiceOver reads it: rows top to bottom, left to right.")
                 }
+                viewAsSection
                 if findings.isEmpty {
                     Section {
                         Label("Nothing to fix. Text reads clearly, pictures are described, nothing is too small or flashes.",
@@ -71,7 +72,28 @@ struct AccessibilitySheet: View {
         // Edits made under the sheet — an undo, a colour changed by hand —
         // are checked again.
         .onChange(of: store.design) { _, _ in refresh() }
-        .onDisappear { store.showsReadingOrder = false }
+        .onDisappear {
+            store.showsReadingOrder = false
+            store.viewAs = .typical
+        }
+        .onChange(of: store.viewAs) { _, kind in
+            AccessibilityNotification.Announcement(ColourVision.announcement(kind)).post()
+        }
+    }
+
+    /// "View as": the canvas as each colour vision deficiency sees it,
+    /// while the sheet is open.
+    private var viewAsSection: some View {
+        Section {
+            Picker("View as", selection: $store.viewAs) {
+                ForEach(ColourVision.Sight.allCases) { kind in
+                    Text(kind.label).tag(kind)
+                }
+            }
+            .pickerStyle(.segmented)
+        } header: {
+            Text("View as")
+        }
     }
 
     private func refresh() { findings = AccessibilityAudit.findings(store.design) }
@@ -136,6 +158,7 @@ struct AccessibilitySheet: View {
         case .flashing: return "bolt.horizontal"
         case .linkText: return "link"
         case .readingOrder: return "list.number"
+        case .colourVision: return "eye"
         }
     }
 

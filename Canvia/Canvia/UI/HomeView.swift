@@ -290,7 +290,7 @@ struct HomeView: View {
             // A restore, or Recently deleted emptied, shows on the shelf.
             .onDisappear { reload() }
         case .brandKit:
-            StandaloneBrandKitSheet()
+            StandaloneBrandKitSheet(onGuidelines: { createFromSheet($0) })
                 // Its templates lead Home's.
                 .onDisappear { reload() }
         case .uploads:
@@ -1180,6 +1180,10 @@ struct HomeView: View {
                 ForEach(ImportChoice.allCases) { choice in
                     Button { startImport(choice) } label: { Label(choice.title, systemImage: choice.systemImage) }
                 }
+            }
+            // The brand kit in use, laid out as a design to share.
+            Button { create(BrandGuidelines.design(BrandKit.load(), now: Date().timeIntervalSince1970 * 1000)) } label: {
+                Label("Make brand guidelines", systemImage: "book.closed")
             }
             Button { homeSheet = .help } label: { Label("How Canvia works", systemImage: "questionmark.circle") }
         } label: {

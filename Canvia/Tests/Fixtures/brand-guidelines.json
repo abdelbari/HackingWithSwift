@@ -1,0 +1,641 @@
+{
+    "note": "BrandGuidelines.design(kit, now): every page's elements, bottom first, with their frames (x, y, w, h), and a text's words, face and size, a picture's source, a shape's fill. Both phones read this file.",
+    "kit": {
+        "id": "kit-1",
+        "name": "Acme",
+        "palettes": [
+            {
+                "name": "Primary",
+                "colors": [
+                    "#0d47a1",
+                    "#ffab00",
+                    "#ffffff",
+                    "#16181d",
+                    "#e53935"
+                ]
+            },
+            {
+                "name": "Seasonal",
+                "colors": [
+                    "#43a047"
+                ]
+            },
+            {
+                "name": "Empty",
+                "colors": []
+            }
+        ],
+        "fonts": {
+            "heading": {
+                "family": "lora",
+                "weight": 700
+            },
+            "body": {
+                "family": "inter",
+                "weight": 400,
+                "size": 28
+            }
+        },
+        "logos": [
+            "logo-1",
+            "logo-2",
+            "logo-3"
+        ],
+        "photos": [
+            "photo-1",
+            "photo-2"
+        ],
+        "graphics": [
+            "svg:g-1",
+            "graphic-2"
+        ]
+    },
+    "title": "Acme guidelines",
+    "width": 3508.0,
+    "height": 2480.0,
+    "unit": "mm",
+    "pages": [
+        [
+            {
+                "type": "image",
+                "frame": [
+                    200.0,
+                    200.0,
+                    600.0,
+                    600.0
+                ],
+                "src": "logo-1"
+            },
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    1000.0,
+                    3108.0,
+                    100.0
+                ],
+                "text": "Brand guidelines",
+                "font": "inter",
+                "size": 80.0
+            },
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    1120.0,
+                    3108.0,
+                    325.0
+                ],
+                "text": "Acme",
+                "font": "lora",
+                "size": 260.0
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    200.0,
+                    2080.0,
+                    518.0,
+                    200.0
+                ],
+                "fill": "#0d47a1"
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    718.0,
+                    2080.0,
+                    518.0,
+                    200.0
+                ],
+                "fill": "#ffab00"
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    1236.0,
+                    2080.0,
+                    518.0,
+                    200.0
+                ],
+                "fill": "#ffffff"
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    1754.0,
+                    2080.0,
+                    518.0,
+                    200.0
+                ],
+                "fill": "#16181d"
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    2272.0,
+                    2080.0,
+                    518.0,
+                    200.0
+                ],
+                "fill": "#e53935"
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    2790.0,
+                    2080.0,
+                    518.0,
+                    200.0
+                ],
+                "fill": "#43a047"
+            }
+        ],
+        [
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    200.0,
+                    3108.0,
+                    75.0
+                ],
+                "text": "Colours",
+                "font": "inter",
+                "size": 60.0
+            },
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    300.0,
+                    3108.0,
+                    175.0
+                ],
+                "text": "Primary",
+                "font": "lora",
+                "size": 140.0
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    200.0,
+                    560.0,
+                    717.0,
+                    280.0
+                ],
+                "fill": "#0d47a1"
+            },
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    864.0,
+                    717.0,
+                    200.0
+                ],
+                "text": "Blue\nHEX #0d47a1\nRGB 13 71 161\nCMYK 92 56 0 37",
+                "font": "inter",
+                "size": 40.0
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    997.0,
+                    560.0,
+                    717.0,
+                    280.0
+                ],
+                "fill": "#ffab00"
+            },
+            {
+                "type": "text",
+                "frame": [
+                    997.0,
+                    864.0,
+                    717.0,
+                    200.0
+                ],
+                "text": "Yellow\nHEX #ffab00\nRGB 255 171 0\nCMYK 0 33 100 0",
+                "font": "inter",
+                "size": 40.0
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    1794.0,
+                    560.0,
+                    717.0,
+                    280.0
+                ],
+                "fill": "#ffffff"
+            },
+            {
+                "type": "text",
+                "frame": [
+                    1794.0,
+                    864.0,
+                    717.0,
+                    200.0
+                ],
+                "text": "White\nHEX #ffffff\nRGB 255 255 255\nCMYK 0 0 0 0",
+                "font": "inter",
+                "size": 40.0
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    2591.0,
+                    560.0,
+                    717.0,
+                    280.0
+                ],
+                "fill": "#16181d"
+            },
+            {
+                "type": "text",
+                "frame": [
+                    2591.0,
+                    864.0,
+                    717.0,
+                    200.0
+                ],
+                "text": "Black\nHEX #16181d\nRGB 22 24 29\nCMYK 24 17 0 89",
+                "font": "inter",
+                "size": 40.0
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    200.0,
+                    1120.0,
+                    717.0,
+                    280.0
+                ],
+                "fill": "#e53935"
+            },
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    1424.0,
+                    717.0,
+                    200.0
+                ],
+                "text": "Red\nHEX #e53935\nRGB 229 57 53\nCMYK 0 75 77 10",
+                "font": "inter",
+                "size": 40.0
+            }
+        ],
+        [
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    200.0,
+                    3108.0,
+                    75.0
+                ],
+                "text": "Colours",
+                "font": "inter",
+                "size": 60.0
+            },
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    300.0,
+                    3108.0,
+                    175.0
+                ],
+                "text": "Seasonal",
+                "font": "lora",
+                "size": 140.0
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    200.0,
+                    560.0,
+                    717.0,
+                    280.0
+                ],
+                "fill": "#43a047"
+            },
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    864.0,
+                    717.0,
+                    200.0
+                ],
+                "text": "Green\nHEX #43a047\nRGB 67 160 71\nCMYK 58 0 56 37",
+                "font": "inter",
+                "size": 40.0
+            }
+        ],
+        [
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    200.0,
+                    3108.0,
+                    75.0
+                ],
+                "text": "Typography",
+                "font": "inter",
+                "size": 60.0
+            },
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    300.0,
+                    3108.0,
+                    175.0
+                ],
+                "text": "Fonts",
+                "font": "lora",
+                "size": 140.0
+            },
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    560.0,
+                    3108.0,
+                    50.0
+                ],
+                "text": "Heading · lora · 700 · 281 px",
+                "font": "inter",
+                "size": 40.0
+            },
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    624.0,
+                    3108.0,
+                    275.0
+                ],
+                "text": "The quick brown fox jumps over the lazy dog",
+                "font": "lora",
+                "size": 220.0
+            },
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    1420.0,
+                    3108.0,
+                    50.0
+                ],
+                "text": "Body · inter · 400 · 91 px",
+                "font": "inter",
+                "size": 40.0
+            },
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    1484.0,
+                    3108.0,
+                    113.75
+                ],
+                "text": "The quick brown fox jumps over the lazy dog",
+                "font": "inter",
+                "size": 91.0
+            }
+        ],
+        [
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    200.0,
+                    3108.0,
+                    75.0
+                ],
+                "text": "Logos",
+                "font": "inter",
+                "size": 60.0
+            },
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    300.0,
+                    3108.0,
+                    175.0
+                ],
+                "text": "Logo and clear space",
+                "font": "lora",
+                "size": 140.0
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    200.0,
+                    560.0,
+                    1514.0,
+                    820.0
+                ],
+                "fill": "#ffffff"
+            },
+            {
+                "type": "image",
+                "frame": [
+                    364.0,
+                    724.0,
+                    1186.0,
+                    492.0
+                ],
+                "src": "logo-1"
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    1794.0,
+                    560.0,
+                    1514.0,
+                    820.0
+                ],
+                "fill": "#16181d"
+            },
+            {
+                "type": "image",
+                "frame": [
+                    1958.0,
+                    724.0,
+                    1186.0,
+                    492.0
+                ],
+                "src": "logo-1"
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    200.0,
+                    1460.0,
+                    1514.0,
+                    820.0
+                ],
+                "fill": "#ffffff"
+            },
+            {
+                "type": "image",
+                "frame": [
+                    364.0,
+                    1624.0,
+                    1186.0,
+                    492.0
+                ],
+                "src": "logo-2"
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    1794.0,
+                    1460.0,
+                    1514.0,
+                    820.0
+                ],
+                "fill": "#16181d"
+            },
+            {
+                "type": "image",
+                "frame": [
+                    1958.0,
+                    1624.0,
+                    1186.0,
+                    492.0
+                ],
+                "src": "logo-2"
+            }
+        ],
+        [
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    200.0,
+                    3108.0,
+                    75.0
+                ],
+                "text": "Logos",
+                "font": "inter",
+                "size": 60.0
+            },
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    300.0,
+                    3108.0,
+                    175.0
+                ],
+                "text": "Logo and clear space",
+                "font": "lora",
+                "size": 140.0
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    200.0,
+                    560.0,
+                    1514.0,
+                    820.0
+                ],
+                "fill": "#ffffff"
+            },
+            {
+                "type": "image",
+                "frame": [
+                    364.0,
+                    724.0,
+                    1186.0,
+                    492.0
+                ],
+                "src": "logo-3"
+            },
+            {
+                "type": "shape",
+                "frame": [
+                    1794.0,
+                    560.0,
+                    1514.0,
+                    820.0
+                ],
+                "fill": "#16181d"
+            },
+            {
+                "type": "image",
+                "frame": [
+                    1958.0,
+                    724.0,
+                    1186.0,
+                    492.0
+                ],
+                "src": "logo-3"
+            }
+        ],
+        [
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    200.0,
+                    3108.0,
+                    75.0
+                ],
+                "text": "Imagery",
+                "font": "inter",
+                "size": 60.0
+            },
+            {
+                "type": "text",
+                "frame": [
+                    200.0,
+                    300.0,
+                    3108.0,
+                    175.0
+                ],
+                "text": "Photos and graphics",
+                "font": "lora",
+                "size": 140.0
+            },
+            {
+                "type": "image",
+                "frame": [
+                    200.0,
+                    560.0,
+                    982.667,
+                    820.0
+                ],
+                "src": "photo-1"
+            },
+            {
+                "type": "image",
+                "frame": [
+                    1262.667,
+                    560.0,
+                    982.667,
+                    820.0
+                ],
+                "src": "photo-2"
+            },
+            {
+                "type": "image",
+                "frame": [
+                    2325.333,
+                    560.0,
+                    982.667,
+                    820.0
+                ],
+                "src": "graphic-2"
+            }
+        ]
+    ]
+}

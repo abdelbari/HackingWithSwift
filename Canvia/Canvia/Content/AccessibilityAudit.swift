@@ -17,6 +17,9 @@
 //  - readingOrder: a page whose layers, bottom to top, run in another order
 //    than the page reads — rows top to bottom, left to right — among what a
 //    reader says: words, and pictures with alt text.
+//  - colourVision: text that passes contrast but not as it is seen with a
+//    colour vision deficiency, and chart series that look alike so
+//    (ColourVision) — each saying which ways of seeing it fails in.
 //
 // Findings come page by page; within a page in that order of kinds, and
 // within a kind in layer order, back to front. Hidden elements and hidden
@@ -29,7 +32,7 @@ import Foundation
 enum AccessibilityAudit {
 
     enum Kind: String, CaseIterable {
-        case contrast, altText, smallText, flashing, linkText, readingOrder
+        case contrast, altText, smallText, flashing, linkText, readingOrder, colourVision
     }
 
     /// What a finding's button does.
@@ -55,6 +58,8 @@ enum AccessibilityAudit {
     static func findings(_ design: Design) -> [Finding] {
         let contrast = Dictionary(grouping: ContrastAudit.audit(design), by: \.pageIndex)
         let holds = filmHolds(design)
+        let seen = Dictionary(grouping: ColourVision.textFindings(design), by: \.contrast.pageIndex)
+        let charts = Dictionary(grouping: ColourVision.chartFindings(design), by: \.pageIndex)
         var out: [Finding] = []
         for (p, page) in design.pages.enumerated() where page.hidden != true {
             let shown = page.elements.filter { !$0.isHidden }
@@ -92,6 +97,17 @@ enum AccessibilityAudit {
             if let first = readingOrderMismatch(page, height: Double(design.size(for: page).height)) {
                 out.append(Finding(kind: .readingOrder, pageIndex: p, elementId: first,
                                    message: tr("The layers are in a different order from how the page reads")))
+            }
+            for f in seen[p] ?? [] {
+                out.append(Finding(kind: .colourVision, pageIndex: p, elementId: f.contrast.elementId,
+                                   message: tr("Hard to read in %@ view: %@:1", ColourVision.names(f.kinds),
+                                               String(format: "%.1f", f.contrast.ratio)),
+                                   fix: .fixColour, contrast: f.contrast))
+            }
+            for f in charts[p] ?? [] {
+                out.append(Finding(kind: .colourVision, pageIndex: p, elementId: f.elementId,
+                                   message: tr("Chart colours look alike in %@ view", ColourVision.names(f.kinds)),
+                                   part: "\(f.first)-\(f.second)"))
             }
         }
         return out
@@ -287,7 +303,10 @@ struct AccessibilityFinding: Identifiable, Equatable {
     var message: String
     var fix: AccessibilityAudit.Fix?
     /// For a contrast finding, what Fix colour applies.
-    var contrast: ContrastAudit.Finding?
+    var contrast: ContrastAudit.Finding? = nil
+    /// Which of several findings of a kind on one element: a chart's two
+    /// series, "1-2", for colourVision; nil for the one.
+    var part: String? = nil
 
-    var id: String { "\(kind.rawValue)|\(pageIndex)|\(elementId ?? "page")" }
+    var id: String { "\(kind.rawValue)|\(pageIndex)|\(elementId ?? "page")" + (part.map { "|" + $0 } ?? "") }
 }
