@@ -101,27 +101,7 @@ struct SelectionOverlay: View {
                 moveHandle(el)
             }
 
-            if selected.count > 1 {
-                let bounds = Geometry.union(selected.map(Geometry.aabb))
-                Rectangle()
-                    .stroke(Theme.accent,
-                            style: StrokeStyle(lineWidth: 1.5 * iz, dash: [6 * iz, 4 * iz]))
-                    .frame(width: bounds.width, height: bounds.height)
-                    .position(x: bounds.midX, y: bounds.midY)
-                    .allowsHitTesting(false)
-                // The group resizes and turns as one unit from its box.
-                // Corners only: a uniform scale is the only one that keeps
-                // rotated members exact (see Geometry.scale).
-                if selected.contains(where: { !$0.holdsPlace }) {
-                    handleRing(for: Geometry.boxElement(bounds), handles: [.nw, .ne, .se, .sw])
-                }
-                // How many, over the box — but not while a drag's readout is
-                // up there too.
-                if store.badge == nil {
-                    pill(trn("%d selected|%d selected", selected.count), colour: Theme.accent,
-                         at: CGPoint(x: bounds.midX, y: bounds.minY - 9 * iz), alignment: .bottom)
-                }
-            }
+            if selected.count > 1 { severalFrame(selected) }
 
             // A whole table selected: its column edges, to drag.
             if let edges = store.tableColumnEdges {
@@ -139,6 +119,40 @@ struct SelectionOverlay: View {
             badgeView
         }
         .allowsHitTesting(!store.selection.isEmpty)
+    }
+
+    /// Round several selected: their box, dashed — turned with a whole
+    /// group turned as one (store.turnedGroupFrame), tight round it, else
+    /// upright — with its corner handles and turn handle, and how many.
+    @ViewBuilder
+    private func severalFrame(_ selected: [Element]) -> some View {
+        let box = Self.severalBox(store, selected)
+        let bounds = Geometry.aabb(box)
+        Rectangle()
+            .stroke(Theme.accent,
+                    style: StrokeStyle(lineWidth: 1.5 * iz, dash: [6 * iz, 4 * iz]))
+            .frame(width: box.w, height: box.h)
+            .rotationEffect(.degrees(box.rotation))
+            .position(x: box.x + box.w / 2, y: box.y + box.h / 2)
+            .allowsHitTesting(false)
+        // The group resizes and turns as one unit from its box.
+        // Corners only: a uniform scale is the only one that keeps
+        // rotated members exact (see Geometry.scale).
+        if selected.contains(where: { !$0.holdsPlace }) {
+            handleRing(for: box, handles: [.nw, .ne, .se, .sw])
+        }
+        // How many, over the box — but not while a drag's readout is
+        // up there too.
+        if store.badge == nil {
+            pill(trn("%d selected|%d selected", selected.count), colour: Theme.accent,
+                 at: CGPoint(x: bounds.midX, y: bounds.minY - 9 * iz), alignment: .bottom)
+        }
+    }
+
+    /// The box round several selected, as a stand-in element: a turned
+    /// group's turned frame, or the upright box round their turned bounds.
+    private static func severalBox(_ store: DesignStore, _ selected: [Element]) -> Element {
+        store.turnedGroupFrame?.element ?? Geometry.boxElement(Geometry.union(selected.map(Geometry.aabb)))
     }
 
     /// A locked element, selected on its own: a dashed outline, which says it
@@ -280,7 +294,7 @@ struct SelectionOverlay: View {
         }
         let selected = store.selectedElements
         guard selected.count > 1, selected.contains(where: { !$0.holdsPlace }) else { return nil }
-        return (el: Geometry.boxElement(Geometry.union(selected.map(Geometry.aabb))), handles: [.nw, .ne, .se, .sw])
+        return (el: severalBox(store, selected), handles: [.nw, .ne, .se, .sw])
     }
 
     /// Whether a touch at `point`, in page units, is within reach of a

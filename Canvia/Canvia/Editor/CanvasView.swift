@@ -26,6 +26,10 @@ struct CanvasView: View {
     @State private var pagePress: CGPoint?
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @Environment(\.displayScale) private var displayScale
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.layoutDirection) private var layoutDirection
+    /// Which way the last swipe turned the page, for the page's slide in.
+    @State private var swipeStep = 0
     /// The empty page's hint grows with Larger Text, by this much: words
     /// about the canvas, not on it.
     @ScaledMetric(relativeTo: .subheadline) private var hintScale: Double = 1
@@ -173,6 +177,12 @@ struct CanvasView: View {
         /// and their union as they were when the handle was grabbed.
         var groupOriginals: [Element] = []
         var groupBox: CGRect = .zero
+        /// A whole group turned as one: its frame as it was when the handle
+        /// was grabbed, which a corner scales in its own axes; and its turn
+        /// then, which a turn adds to (groupTurn). Nil for several things
+        /// that are no group, which keep the upright box.
+        var groupFrame: Geometry.GroupFrame?
+        var groupTurnStart: Double?
         /// The rubber band, in page units, while one is being drawn.
         var marquee: CGRect?
         /// Whether a hold on the empty page has taken, so a band is being
@@ -291,6 +301,9 @@ struct CanvasView: View {
             onMotion: { moving in motionChanged(moving) },
             edgeScroller: edges,
             onPress: { point in pagePress = point },
+            onFling: { velocity, travel, onPage in
+                swipePage(velocity: velocity, travel: travel, onPage: onPage, alone: slot == nil && board == nil)
+            },
             board: board
         ) {
             // Left to right in any language (ReadingDirection): the page's
@@ -301,14 +314,47 @@ struct CanvasView: View {
                 } else if let board {
                     boardContent(board)
                 } else {
-                    pageContent
-                        .coordinateSpace(name: "page")
-                        .frame(width: store.pageWidth, height: store.pageHeight)
+                    ZStack {
+                        pageContent
+                            .coordinateSpace(name: "page")
+                            .frame(width: store.pageWidth, height: store.pageHeight)
+                            .id(store.page.id)
+                            .transition(swipeTransition)
+                    }
                 }
             }
             .designDirection()
         }
         .background { if board != nil { whiteboardGround } }
+    }
+
+    // MARK: a swipe to the next page
+
+    /// A one-finger fling across the empty page or the workspace, a page
+    /// alone (`alone`) at the zoom that fits: the next page, or the one
+    /// before (CanvasGestures.flingAction), hidden ones too, as the strip
+    /// lists them — no undo step. True when the page turned.
+    private func swipePage(velocity: CGPoint, travel: CGPoint, onPage: Bool, alone: Bool) -> Bool {
+        let action = CanvasGestures.flingAction(on: onPage ? .emptyPage : .workspace,
+                                                velocityX: Double(velocity.x), dx: Double(travel.x),
+                                                dy: Double(travel.y), singlePage: alone,
+                                                zoom: store.zoom, fitZoom: store.fitZoom)
+        guard action == .stepPage, store.editingTextId == nil else { return false }
+        let step = CanvasGestures.pageStep(velocityX: Double(velocity.x), rightToLeft: layoutDirection == .rightToLeft)
+        let index = store.pageIndex + step
+        guard store.design.pages.indices.contains(index) else { return false }
+        swipeStep = step
+        withAnimation(.easeOut(duration: 0.2)) { store.setPage(index) }
+        return true
+    }
+
+    /// How a page swiped to comes in: sliding in from the side it was
+    /// swiped from over 200 ms, or a cross-fade with Reduce Motion on. The
+    /// page itself is left to right in any language, so the sides are too.
+    private var swipeTransition: AnyTransition {
+        guard !reduceMotion, swipeStep != 0 else { return .opacity }
+        let edge: Edge = (swipeStep > 0) != (layoutDirection == .rightToLeft) ? .trailing : .leading
+        return .asymmetric(insertion: .move(edge: edge), removal: .opacity)
     }
 
     // MARK: whiteboard
@@ -1508,8 +1554,9 @@ struct CanvasView: View {
             store.tapInSelectMultiple(el.id)
             return
         }
-        // A second tap on a member of the selected group takes just
-        // that member; otherwise the tap takes the element's group.
+        // A second tap on a member of the selected group goes a level
+        // in — the group inside it, then just that member (Groups.deeper);
+        // otherwise the tap takes the element's outermost group.
         if !store.selectMember(el.id) { store.select(el.id) }
     }
 
@@ -2225,17 +2272,27 @@ struct CanvasView: View {
             store.canvasTouchActive = true
             gesture.groupOriginals = members
             gesture.groupBox = Geometry.union(members.map(Geometry.aabb))
+            gesture.groupFrame = store.turnedGroupFrame
         }
+        // A turned group's frame scales in its own axes: the finger taken
+        // into them, the frame's upright box resized from it.
+        let frame = gesture.groupFrame
+        let from = frame?.upright ?? gesture.groupBox
+        let finger = frame.map { Geometry.rotate(location, around: $0.center, degrees: -$0.angle) } ?? location
         // The floor is on the long side only: a row of lines is as short as
         // a line, and 8 on that side kept it from ever shrinking (and made a
         // thinner one jump up on the first move). Each member keeps its own
         // minimum as it scales.
-        let long = max(gesture.groupBox.width, gesture.groupBox.height)
-        let short = min(gesture.groupBox.width, gesture.groupBox.height)
+        let long = max(from.width, from.height)
+        let short = min(from.width, from.height)
         let floor = long > 0 && short > 0 ? 8 * short / long : 8
-        let box = Geometry.resize(Geometry.boxElement(gesture.groupBox), handle: handle,
-                                  to: location, proportional: true, minSize: floor)
-        store.replaceTransient(Geometry.scale(gesture.groupOriginals, from: gesture.groupBox, to: box))
+        let box = Geometry.resize(Geometry.boxElement(from), handle: handle,
+                                  to: finger, proportional: true, minSize: floor)
+        if let frame {
+            store.replaceTransient(Geometry.scale(gesture.groupOriginals, frame: frame, to: box))
+        } else {
+            store.replaceTransient(Geometry.scale(gesture.groupOriginals, from: from, to: box))
+        }
         store.badge = Units.readout(width: box.width, height: box.height, store.design)
     }
 
@@ -2248,18 +2305,43 @@ struct CanvasView: View {
             store.canvasTouchActive = true
             gesture.groupOriginals = members
             gesture.groupBox = Geometry.union(members.map(Geometry.aabb))
-            gesture.rotateCenter = CGPoint(x: gesture.groupBox.midX, y: gesture.groupBox.midY)
+            // A whole group turns about its frame's middle, from its turn.
+            gesture.groupTurnStart = store.selectedGroupTurn
+            let middle = store.turnedGroupFrame?.center
+            gesture.rotateCenter = middle ?? CGPoint(x: gesture.groupBox.midX, y: gesture.groupBox.midY)
             gesture.rotateOffset = Geometry.angle(from: gesture.rotateCenter!, to: location)
         }
         guard let center = gesture.rotateCenter else { return }
         var delta = Geometry.angle(from: center, to: location) - gesture.rotateOffset
         delta = (delta.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
+        if let start = gesture.groupTurnStart {
+            groupTurnDrag(delta, from: start, around: center)
+            return
+        }
         let free = delta
         delta = Geometry.snapAngle(delta, step: 45, threshold: 4)
         store.rotationSnapped = delta != free
         store.replaceTransient(Geometry.rotate(gesture.groupOriginals, around: center,
                                                by: (delta * 10).rounded() / 10))
         store.setBadge(Readouts.angle(delta, snapped: delta != free))
+    }
+
+    /// A whole group turned `delta` from its turn `start`: the group's own
+    /// angle snaps at 45° as one element's does, and the readout says that
+    /// angle; its members keep it as their groupTurn, so the frame turns
+    /// with them.
+    private func groupTurnDrag(_ delta: Double, from start: Double, around center: CGPoint) {
+        let free = Groups.normalisedTurn(start + delta)
+        let snapped = Geometry.snapAngle(free, step: 45, threshold: 4)
+        store.rotationSnapped = snapped != free
+        let turn = Groups.normalisedTurn((snapped * 10).rounded() / 10)
+        let turned = Geometry.rotate(gesture.groupOriginals, around: center, by: turn - start).map { el in
+            var e = el
+            e.groupTurn = Groups.keptTurn(turn)
+            return e
+        }
+        store.replaceTransient(turned)
+        store.setBadge(Readouts.angle(turn, snapped: store.rotationSnapped))
     }
 
     private func rotateDrag(_ location: CGPoint) {

@@ -1156,6 +1156,11 @@ enum PptxReader {
                 case "graphicFrame":
                     frame(child, place: place, group: group)
                 case "grpSp":
+                    // The outermost group is every member's group; a group
+                    // inside it one of their subgroups (Groups), its id made
+                    // as it is met.
+                    let level = reader.ids("grp")
+                    let start = out.count
                     let xfrm = child.at("grpSpPr", "xfrm")
                     if let frame = PptxReader.box(of: xfrm) {
                         let off = xfrm?.child("chOff")
@@ -1164,9 +1169,16 @@ enum PptxReader {
                                                  chy: PptxReader.number(off, "y") ?? frame.y,
                                                  chw: PptxReader.number(ext, "cx") ?? frame.w,
                                                  chh: PptxReader.number(ext, "cy") ?? frame.h)
-                        tree(child, place: inner, group: group ?? reader.ids("grp"), depth: depth + 1)
+                        tree(child, place: inner, group: group ?? level, depth: depth + 1)
                     } else {
-                        tree(child, place: place, group: group ?? reader.ids("grp"), depth: depth + 1)
+                        tree(child, place: place, group: group ?? level, depth: depth + 1)
+                    }
+                    // Its own level goes in front of the levels inside it.
+                    // A table keeps a group of its own, outside this one.
+                    if let group {
+                        for i in start..<out.count where out[i].group == group {
+                            out[i].subgroups = [level] + (out[i].subgroups ?? [])
+                        }
                     }
                 case "AlternateContent":
                     if let fallback = child.child("Fallback") {

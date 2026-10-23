@@ -1,0 +1,60 @@
+{
+  "id": "d-nested",
+  "title": "Nested groups",
+  "width": 1080,
+  "height": 1080,
+  "createdAt": 0,
+  "updatedAt": 0,
+  "pages": [
+    {
+      "id": "p1",
+      "background": {
+        "type": "color",
+        "value": "#ffffff"
+      },
+      "elements": [
+        {
+          "id": "loose",
+          "type": "shape",
+          "shapeId": "rect",
+          "x": 700,
+          "y": 700,
+          "w": 100,
+          "h": 100
+        },
+        {
+          "id": "mark",
+          "type": "shape",
+          "shapeId": "circle",
+          "x": 100,
+          "y": 100,
+          "w": 100,
+          "h": 100,
+          "group": "g-card",
+          "subgroups": ["g-logo"]
+        },
+        {
+          "id": "word",
+          "type": "shape",
+          "shapeId": "rect",
+          "x": 220,
+          "y": 100,
+          "w": 200,
+          "h": 100,
+          "group": "g-card",
+          "subgroups": ["g-logo"]
+        },
+        {
+          "id": "heading",
+          "type": "shape",
+          "shapeId": "rect",
+          "x": 100,
+          "y": 260,
+          "w": 320,
+          "h": 80,
+          "group": "g-card"
+        }
+      ]
+    }
+  ]
+}

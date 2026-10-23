@@ -18,7 +18,8 @@ enum History {
     }
 
     /// What a step did, in a word, for the system's undo gestures and
-    /// shake to name — "Undo Move", "Redo Delete" (DesignUndo). Read from
+    /// shake to name — "Undo Move", "Redo Delete" (DesignUndo) — and the
+    /// toolbar's Undo and Redo (undoTitle). Read from
     /// the two states rather than told by every edit: a page added, taken
     /// away or moved first; then, over what the step changed, anything
     /// taken away is a Delete, anything new an Add, words changed are Edit
@@ -57,6 +58,17 @@ enum History {
         if resized { return tr("Resize") }
         if moved { return tr("Move") }
         return tr("Edit")
+    }
+
+    /// What Undo is called, by VoiceOver and the toolbar: "Undo Move" for
+    /// the step it would take back, or plain "Undo" with no name for it.
+    static func undoTitle(_ label: String?) -> String {
+        label.map { tr("Undo %@", $0) } ?? tr("Undo")
+    }
+
+    /// What Redo is called: "Redo Delete page", or plain "Redo".
+    static func redoTitle(_ label: String?) -> String {
+        label.map { tr("Redo %@", $0) } ?? tr("Redo")
     }
 
     private enum Change { case moved, resized, turned, typed, styled }

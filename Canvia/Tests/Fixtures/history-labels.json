@@ -1,0 +1,1382 @@
+{
+  "vectors": [
+    {
+      "name": "a page added",
+      "label": "Add page",
+      "before": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      },
+      "after": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          },
+          {
+            "id": "p3",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "a page deleted",
+      "label": "Delete page",
+      "before": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      },
+      "after": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "pages reordered",
+      "label": "Move page",
+      "before": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      },
+      "after": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          },
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "an element deleted",
+      "label": "Delete",
+      "before": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      },
+      "after": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "an element added",
+      "label": "Add",
+      "before": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      },
+      "after": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              },
+              {
+                "id": "b",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "words changed",
+      "label": "Edit text",
+      "before": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      },
+      "after": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Goodbye",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "a colour changed",
+      "label": "Edit",
+      "before": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      },
+      "after": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "fill": {
+                  "kind": "solid",
+                  "color": "#ff0000"
+                }
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "moved",
+      "label": "Move",
+      "before": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      },
+      "after": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 300,
+                "y": 40,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "resized",
+      "label": "Resize",
+      "before": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      },
+      "after": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 400,
+                "h": 200
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "turned",
+      "label": "Rotate",
+      "before": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      },
+      "after": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "rotation": 30
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "moved and turned",
+      "label": "Rotate",
+      "before": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      },
+      "after": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 10,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "rotation": 45
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "moved and resized",
+      "label": "Resize",
+      "before": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      },
+      "after": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 10,
+                "y": 100,
+                "w": 50,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "a background changed",
+      "label": "Edit",
+      "before": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      },
+      "after": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#000000"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "deleted beats added",
+      "label": "Delete",
+      "before": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      },
+      "after": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "t",
+                "type": "text",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "text": "Hello",
+                "fontSize": 40
+              },
+              {
+                "id": "c",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      }
+    }
+  ]
+}

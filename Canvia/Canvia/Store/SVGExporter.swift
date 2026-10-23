@@ -39,13 +39,16 @@ enum SVGExporter {
         body.append(backgroundMarkup(design: design, page: page, defs: &defs))
         let number = (design.pages.firstIndex { $0.id == page.id } ?? 0) + 1
         let drawn = design.drawnElements(on: page)
+        var parts: [(el: Element?, part: String)] = []
         for (index, el) in drawn.enumerated() {
             var resolved = el
             if ShapeText.carriesWords(el) {
                 resolved.fillPageTokens(number: number, count: design.pages.count)
             }
-            body.append(elementGroup(resolved, index: index, defs: &defs))
+            parts.append((el: el as Element?, part: elementGroup(resolved, index: index, defs: &defs)))
         }
+        // Groups, nested ones too, as <g> round their members (Groups.nested).
+        body += Groups.nested(parts) { _, _, inner in "<g>" + inner.joined() + "</g>" }
 
         let size = design.size(for: page)
         let header = "<svg xmlns=\"http://www.w3.org/2000/svg\" " +

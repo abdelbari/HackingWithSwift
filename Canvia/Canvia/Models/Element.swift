@@ -580,7 +580,18 @@ struct Element: Codable, Equatable, Identifiable {
     var lockPosition: Bool?
     var flipH: Bool = false
     var flipV: Bool = false
+    /// The outermost group the element belongs to, so a build that knows
+    /// only one level still sees today's flat group.
     var group: String?
+    /// The groups it belongs to below `group`, outer to inner (Groups):
+    /// grouping a group keeps it, and Ungroup takes off one level at a
+    /// time. Nil when there are none, and no key in the file, as on the
+    /// Android twin.
+    var subgroups: [String]?
+    /// How far the group is turned as a whole, in degrees, written the same
+    /// on every member of its outermost level (Geometry.groupFrame): its
+    /// selection frame is turned with it. Nil at 0, and no key in the file.
+    var groupTurn: Double?
     var shadow: Shadow?
     /// How the element composites over what is under it; nil is normal.
     /// See BlendModes for the names.
@@ -825,6 +836,10 @@ struct Element: Codable, Equatable, Identifiable {
         flipH = (try? c.decode(Bool.self, forKey: .flipH)) ?? false
         flipV = (try? c.decode(Bool.self, forKey: .flipV)) ?? false
         group = try? c.decode(String.self, forKey: .group)
+        // Levels below a group only, and never an empty list or a turn of 0.
+        let levels = ((try? c.decode([String].self, forKey: .subgroups)) ?? []).filter { !$0.isEmpty }
+        subgroups = group == nil || levels.isEmpty ? nil : levels
+        groupTurn = group == nil ? nil : (try? c.decode(Double.self, forKey: .groupTurn)).flatMap(Groups.keptTurn)
         shadow = try? c.decode(Shadow.self, forKey: .shadow)
         blendMode = try? c.decode(String.self, forKey: .blendMode)
         altText = try? c.decode(String.self, forKey: .altText)
@@ -948,6 +963,7 @@ struct Element: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case id, type, x, y, w, h, rotation, opacity, locked, lockPosition, flipH, flipV, group, shadow, blendMode, altText
+        case subgroups, groupTurn
         case decorative
         case connectFrom, connectTo, link, hidden, layerName, table, chart, chartPart, grid, photoFrame
         case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners, fillRule, pen

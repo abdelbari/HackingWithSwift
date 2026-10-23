@@ -1454,28 +1454,7 @@ struct PositionSheet: View {
                     }
                     .disabled(el.holdsPlace)
                 } else if let box = store.selectionBox {
-                    // The selection as one thing: its box moves and scales,
-                    // and a rotation turns the whole about the centre.
-                    Section("Exact (selection)") {
-                        lengthRow("X", px: box.minX) { v in
-                            store.setSelectionBox(CGRect(x: v, y: box.minY, width: box.width, height: box.height))
-                        }
-                        lengthRow("Y", px: box.minY) { v in
-                            store.setSelectionBox(CGRect(x: box.minX, y: v, width: box.width, height: box.height))
-                        }
-                        // Always scaled evenly, as on the Android twin: a
-                        // box of several things has no chain to switch off.
-                        lengthRow(tr("Width"), px: box.width) { v in
-                            let w = max(RatioLock.minSide, v)
-                            store.setSelectionBox(CGRect(x: box.minX, y: box.minY, width: w, height: box.height * w / max(box.width, 1)))
-                        }
-                        lengthRow(tr("Height"), px: box.height) { v in
-                            let h = max(RatioLock.minSide, v)
-                            store.setSelectionBox(CGRect(x: box.minX, y: box.minY, width: box.width * h / max(box.height, 1), height: h))
-                        }
-                        numberRow(tr("Rotate by"), value: 0) { v in store.rotateSelection(by: v) }
-                    }
-                    .disabled(store.movableSelectionCount == 0)
+                    selectionExact(box)
                 }
             }
             .navigationTitle("Position")
@@ -1488,6 +1467,57 @@ struct PositionSheet: View {
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
         // Another selection starts from its own proportions rule.
         .onChange(of: store.selection) { _, _ in keepProportions = nil }
+    }
+
+    /// The selection as one thing: its box moves and scales, and a rotation
+    /// turns the whole about the centre. A turned group's Width and Height
+    /// are its turned frame's, and a whole group's Turn is its own angle
+    /// (groupTurn), which Turn to 0 straightens.
+    private func selectionExact(_ box: CGRect) -> some View {
+        let frame = store.turnedGroupFrame
+        let size = frame?.size ?? box.size
+        return Section("Exact (selection)") {
+            lengthRow("X", px: box.minX) { v in
+                store.setSelectionBox(CGRect(x: v, y: box.minY, width: box.width, height: box.height))
+            }
+            lengthRow("Y", px: box.minY) { v in
+                store.setSelectionBox(CGRect(x: box.minX, y: v, width: box.width, height: box.height))
+            }
+            // Always scaled evenly, as on the Android twin: a
+            // box of several things has no chain to switch off.
+            lengthRow(tr("Width"), px: size.width) { v in
+                scaleSelection(by: max(RatioLock.minSide, v) / max(size.width, 1), box: box)
+            }
+            lengthRow(tr("Height"), px: size.height) { v in
+                scaleSelection(by: max(RatioLock.minSide, v) / max(size.height, 1), box: box)
+            }
+            groupTurnRows
+        }
+        .disabled(store.movableSelectionCount == 0)
+    }
+
+    /// The selection scaled evenly by `factor`: a turned group in its own
+    /// axes, else its box from its top left corner.
+    private func scaleSelection(by factor: Double, box: CGRect) {
+        if store.turnedGroupFrame != nil {
+            store.scaleTurnedGroup(by: factor)
+        } else {
+            store.setSelectionBox(CGRect(x: box.minX, y: box.minY, width: box.width * factor, height: box.height * factor))
+        }
+    }
+
+    /// A whole group: Turn, its own angle, and Turn to 0 while it is turned.
+    /// Several things that are no group: Rotate by.
+    @ViewBuilder
+    private var groupTurnRows: some View {
+        if let turn = store.selectedGroupTurn {
+            numberRow(tr("Turn"), value: turn) { v in store.setGroupTurn(v) }
+            if turn != 0 {
+                Button("Turn to 0") { store.setGroupTurn(0) }
+            }
+        } else {
+            numberRow(tr("Rotate by"), value: 0) { v in store.rotateSelection(by: v) }
+        }
     }
 
     /// The chain between Width and Height: on, either number brings the
@@ -1735,10 +1765,17 @@ struct PositionSheet: View {
 /// "Group (n)" row, which opens to list them and drags as one block.
 /// Overlapping lists only what overlaps the selection. On a locked page the
 /// rows are read only, each with a padlock, under a line with Unlock.
+/// Select ticks several rows — buried and hidden ones too — to group,
+/// align, lock, hide or delete together, or drag as one block.
 struct LayersSheet: View {
     @Bindable var store: DesignStore
+    /// The bar's Align: the Position sheet, with its alignment.
+    var onAlign: () -> Void = {}
     @Environment(\.dismiss) private var dismiss
     @State private var filter: LayerRows.Filter = .all
+    /// Select is on: a tap ticks a row (Layers.toggled) rather than taking
+    /// it alone, and the bar below works what is ticked.
+    @State private var selecting = false
     /// The groups opened to list their members; each starts folded.
     @State private var expanded: Set<String> = []
     /// The element Rename… is naming, and the name being typed.
@@ -1773,10 +1810,12 @@ struct LayersSheet: View {
             }
             .environment(\.editMode, .constant(.active))
             .safeAreaInset(edge: .top) { filterPicker }
+            .safeAreaInset(edge: .bottom) { if selecting { selectBar } }
             .navigationTitle("Layers")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                ToolbarItem(placement: .topBarLeading) { selectToggle }
             }
             .alert("Rename", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } }),
                    presenting: renaming) { el in
@@ -1846,7 +1885,9 @@ struct LayersSheet: View {
     private func moveAction(_ rows: [LayerRows.Row]) -> ((IndexSet, Int) -> Void)? {
         guard filter == .all else { return nil }
         return { source, destination in
-            store.moveLayers(rows, from: source, to: destination)
+            // Select on, a ticked row's handle takes every ticked row.
+            let moving = selecting ? Layers.dragged(rows, selection: store.selection, source: source) : source
+            store.moveLayers(rows, from: moving, to: destination)
         }
     }
 
@@ -1870,22 +1911,107 @@ struct LayersSheet: View {
         store.selection.subtract(ids)
     }
 
-    @ViewBuilder
     private func rowView(_ row: LayerRows.Row) -> some View {
-        switch row {
-        case .element(let el, let member):
-            elementRow(el, member: member)
-        case .group(let id, let members):
-            groupRow(id, members: members)
+        HStack(spacing: 10) {
+            if selecting { tickMark(row) }
+            rowContent(row)
         }
     }
 
+    @ViewBuilder
+    private func rowContent(_ row: LayerRows.Row) -> some View {
+        switch row {
+        case .element(let el, let member, let depth):
+            elementRow(el, member: member, depth: depth)
+        case .group(let id, let members, let depth):
+            groupRow(id, members: members, depth: depth)
+        }
+    }
+
+    /// Select's circle on a row: filled while all the row stands for is
+    /// selected.
+    private func tickMark(_ row: LayerRows.Row) -> some View {
+        let on = row.elements.allSatisfy { store.selection.contains($0.id) }
+        return Image(systemName: on ? "checkmark.circle.fill" : "circle")
+            .foregroundStyle(on ? Theme.accent : Color.secondary)
+            .contentShape(Rectangle())
+            .onTapGesture { tick(row.id) }
+            .accessibilityHidden(true)
+    }
+
+    /// Select, in the header: on, each row has a circle and a tap ticks it;
+    /// off again, what was ticked stays selected on the canvas.
+    private var selectToggle: some View {
+        Button {
+            selecting.toggle()
+        } label: {
+            Label("Select", systemImage: selecting ? "checkmark.circle.fill" : "checkmark.circle")
+        }
+        .disabled(store.isPageLocked)
+        .accessibilityLabel("Select several")
+        .accessibilityAddTraits(selecting ? .isSelected : [])
+    }
+
+    /// Row `rowId` ticked, or unticked (Layers.toggled).
+    private func tick(_ rowId: String) {
+        guard !store.isPageLocked else { return }
+        store.selectLayers(Layers.toggled(rows, selection: store.selection, rowId: rowId))
+    }
+
+    /// Under the ticked rows: how many, and Group, Align, Lock or Unlock,
+    /// Hide or Show and Delete — each one undo step, through the store's
+    /// own calls, as the toolbar's are.
+    private var selectBar: some View {
+        let picked = store.selectedElements
+        return HStack(spacing: 4) {
+            Text(trn("%d selected|%d selected", picked.count))
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            selectBarButtons(picked)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(.bar)
+    }
+
+    @ViewBuilder
+    private func selectBarButtons(_ picked: [Element]) -> some View {
+        let ids = store.selection
+        let allHidden = !picked.isEmpty && picked.allSatisfy(\.isHidden)
+        let anyUnlocked = picked.contains { !$0.locked }
+        barButton(tr("Group"), "square.on.square") { store.groupSelected() }
+            .disabled(!store.canGroup)
+        barButton(tr("Align"), "align.horizontal.left") { onAlign() }
+            .disabled(picked.isEmpty)
+        barButton(anyUnlocked ? tr("Lock") : tr("Unlock"), anyUnlocked ? "lock" : "lock.open") {
+            store.setLock(ids, anyUnlocked ? .full : .unlocked)
+        }
+        .disabled(picked.isEmpty)
+        barButton(allHidden ? tr("Show") : tr("Hide"), allHidden ? "eye" : "eye.slash") {
+            store.setHidden(ids, hidden: !allHidden)
+        }
+        .disabled(picked.isEmpty)
+        barButton(tr("Delete"), "trash") { store.deleteSelected() }
+            .disabled(!anyUnlocked)
+    }
+
+    private func barButton(_ name: String, _ symbol: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .frame(width: 36, height: 32)
+        }
+        .buttonStyle(.borderless)
+        .accessibilityLabel(name)
+    }
+
     /// An element's row: faded, with its eye struck through, while hidden.
-    /// A member of an opened group is indented under it, and a tap takes it
+    /// A member of an opened group is indented under it, one step for each
+    /// group it is listed inside, and a tap takes it
     /// alone, as it does on a row of Overlapping, which lists elements one
     /// by one — as on the Android twin; any other row's tap takes its group,
     /// as on the canvas.
-    private func elementRow(_ el: Element, member: Bool) -> some View {
+    private func elementRow(_ el: Element, member: Bool, depth: Int) -> some View {
         let name = layerName(el)
         let selected = store.selection.contains(el.id)
         let alone = member || filter == .overlapping
@@ -1895,7 +2021,7 @@ struct LayersSheet: View {
                 Text(name).lineLimit(1)
             }
             .opacity(el.isHidden ? 0.45 : 1)
-            .padding(.leading, member ? 24 : 0)
+            .padding(.leading, member ? 24 * CGFloat(max(depth, 1)) : 0)
             .accessibilityElement(children: .combine)
             .accessibilityValue([el.isHidden ? tr("Hidden") : nil, lockValue(ElementLock.mode(of: el))]
                 .compactMap { $0 }.joined(separator: ", "))
@@ -1918,7 +2044,9 @@ struct LayersSheet: View {
 
     /// A group's row, "Group (3)": folded until its disclosure opens it, a
     /// tap takes the whole group, and the eye and padlock work every member.
-    private func groupRow(_ id: String, members: [Element]) -> some View {
+    /// A group inside an opened one is indented a step for each level, and
+    /// its tap takes that group alone.
+    private func groupRow(_ id: String, members: [Element], depth: Int) -> some View {
         let open = expanded.contains(id)
         let name = LayerRows.groupName(members.count)
         let ids = Set(members.map(\.id))
@@ -1933,6 +2061,7 @@ struct LayersSheet: View {
                     .frame(width: 20, height: 28)
             }
             .buttonStyle(.borderless)
+            .padding(.leading, 24 * CGFloat(depth))
             .accessibilityLabel(open ? tr("Close %@", name) : tr("Open %@", name))
             HStack(spacing: 12) {
                 Image(systemName: "square.on.square")
@@ -1942,7 +2071,7 @@ struct LayersSheet: View {
             .opacity(allHidden ? 0.45 : 1)
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
-            .accessibilityAction { pickGroup(members) }
+            .accessibilityAction { pickGroup(id, members: members, depth: depth) }
             Spacer(minLength: 4)
             if selected {
                 Image(systemName: "checkmark").foregroundStyle(Theme.accent)
@@ -1951,7 +2080,7 @@ struct LayersSheet: View {
             rowControls(ids, hidden: allHidden, mode: Self.sharedLock(members), name: name)
         }
         .contentShape(Rectangle())
-        .onTapGesture { pickGroup(members) }
+        .onTapGesture { pickGroup(id, members: members, depth: depth) }
     }
 
     /// The eye and the padlock — or, on a locked page, only a padlock that
@@ -2020,12 +2149,18 @@ struct LayersSheet: View {
     /// A row tapped selects what it stands for; nothing, on a locked page.
     private func pick(_ el: Element, alone: Bool) {
         guard !store.isPageLocked else { return }
+        if selecting { return tick(el.id) }
         if alone { store.selectLayer(el.id) } else { store.select(el.id) }
     }
 
-    private func pickGroup(_ members: [Element]) {
+    private func pickGroup(_ id: String, members: [Element], depth: Int) {
         guard !store.isPageLocked else { return }
-        if let top = members.first { store.select(top.id) }
+        if selecting { return tick("group:" + id) }
+        if depth > 0 {
+            store.selectLayers(Set(members.map(\.id)))
+        } else if let top = members.first {
+            store.select(top.id)
+        }
     }
 
     private func startRename(_ el: Element) {

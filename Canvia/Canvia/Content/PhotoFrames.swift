@@ -71,6 +71,8 @@ enum PhotoFrames {
         var free = frame
         free.id = UID.make()
         free.group = nil
+        free.subgroups = nil
+        free.groupTurn = nil
         free.grid = nil
         free.maskShapeId = nil
         free.photoFrame = nil

@@ -938,6 +938,8 @@ enum Geometry {
             }
             let turned = (360 - el.rotation).truncatingRemainder(dividingBy: 360)
             e.rotation = turned < 0 ? turned + 360 : turned
+            // A turned group's frame is mirrored with it.
+            e.groupTurn = el.groupTurn.flatMap { Groups.keptTurn(Groups.normalisedTurn(360 - $0)) }
             let readable = el.type == .text || el.table != nil || el.chart != nil
             if el.type == .line && LineRoutes.keepsLevel(el) {
                 // An elbowed or curved line's route is mirrored in its box
@@ -1021,6 +1023,56 @@ enum Geometry {
         e.x = box.minX; e.y = box.minY
         e.w = box.width; e.h = box.height
         return e
+    }
+
+    /// A group turned as a whole (groupTurn): its frame, turned with it,
+    /// tight round its members — the middle of it, its size in its own
+    /// axes, and its angle.
+    struct GroupFrame: Equatable {
+        var center: CGPoint
+        var size: CGSize
+        var angle: Double
+
+        /// The frame in its own axes: upright, about the same middle.
+        var upright: CGRect {
+            CGRect(x: center.x - size.width / 2, y: center.y - size.height / 2,
+                   width: size.width, height: size.height)
+        }
+
+        /// A stand-in element for the frame, turned, so the single-element
+        /// handle geometry places its handles, as boxElement does upright.
+        var element: Element {
+            var e = Geometry.boxElement(upright)
+            e.rotation = angle
+            return e
+        }
+    }
+
+    /// The frame of `members` turned `angle` degrees as a group: their
+    /// corners turned back by -angle about their centroid — the mean of
+    /// their middles — boxed, and the box's middle turned on again. At 0 it
+    /// is the upright box round them. The Android twin's Geometry.groupFrame.
+    static func groupFrame(_ members: [Element], angle: Double) -> GroupFrame {
+        guard !members.isEmpty else { return GroupFrame(center: .zero, size: .zero, angle: angle) }
+        let count = Double(members.count)
+        let centroid = CGPoint(x: members.map { Double($0.center.x) }.reduce(0, +) / count,
+                               y: members.map { Double($0.center.y) }.reduce(0, +) / count)
+        let box = union(rotate(members, around: centroid, by: -angle).map(aabb))
+        let middle = rotate(CGPoint(x: box.midX, y: box.midY), around: centroid, degrees: angle)
+        return GroupFrame(center: middle, size: box.size, angle: angle)
+    }
+
+    /// `elements` scaled with their turned group's frame `frame` as it
+    /// becomes `to`, a box in the frame's own axes: turned back upright
+    /// about the frame's middle, scaled from its upright box (scale), and
+    /// turned again about the same middle, so what stays put in the frame's
+    /// axes stays put on the page. A corner's uniform scale keeps turned
+    /// members exact, as an upright group's does.
+    static func scale(_ elements: [Element], frame: GroupFrame, to box: CGRect, minSize: Double = 4) -> [Element] {
+        guard frame.angle != 0 else { return scale(elements, from: frame.upright, to: box, minSize: minSize) }
+        let upright = rotate(elements, around: frame.center, by: -frame.angle)
+        let scaled = scale(upright, from: frame.upright, to: box, minSize: minSize)
+        return rotate(scaled, around: frame.center, by: frame.angle)
     }
 
     // MARK: viewport

@@ -43,35 +43,42 @@ enum LayerRows {
         var id: String { rawValue }
     }
 
-    /// One row of the sheet, top-most first.
+    /// One row of the sheet, top-most first. `depth` is how many opened
+    /// groups it is listed under, each one indent.
     enum Row: Identifiable, Equatable {
         /// An element on its own, or — `member` — one of an opened group's,
         /// listed under its group row.
-        case element(Element, member: Bool)
-        /// Two or more elements sharing `group`, top-most first.
-        case group(String, members: [Element])
+        case element(Element, member: Bool, depth: Int = 0)
+        /// Two or more elements sharing `group` at one level — the outermost,
+        /// or one inside an opened group — top-most first.
+        case group(String, members: [Element], depth: Int = 0)
 
         var id: String {
             switch self {
-            case .element(let el, _): return el.id
-            case .group(let id, _): return "group:" + id
+            case .element(let el, _, _): return el.id
+            case .group(let id, _, _): return "group:" + id
             }
         }
 
         /// The elements the row stands for, top-most first.
         var elements: [Element] {
             switch self {
-            case .element(let el, _): return [el]
-            case .group(_, let members): return members
+            case .element(let el, _, _): return [el]
+            case .group(_, let members, _): return members
             }
         }
 
-        /// A row that moves when dragged: not a member, which moves with its
-        /// group.
-        var movable: Bool {
-            if case .element(_, member: true) = self { return false }
-            return true
+        /// How many opened groups the row is listed under.
+        var depth: Int {
+            switch self {
+            case .element(_, _, let depth), .group(_, _, let depth): return depth
+            }
         }
+
+        /// A row that moves when dragged: one of the page's own, not inside
+        /// an opened group — its member rows and the groups inside it move
+        /// with it, the whole subtree as one block.
+        var movable: Bool { depth == 0 }
     }
 
     /// "Group (3)".
@@ -79,27 +86,39 @@ enum LayerRows {
 
     /// The rows for `elements` (as the page holds them, back to front),
     /// top-most first. Elements sharing a group make one group row where the
-    /// top-most of them is; its members follow it, indented, only when the
-    /// group is in `expanded`. A group of one is listed as its element.
+    /// top-most of them is; what is in it follows, indented, only when the
+    /// group is in `expanded` — the groups inside it as rows of their own
+    /// the same way, a level deeper (Groups.chain). A group of one is listed
+    /// as its element.
     static func rows(_ elements: [Element], expanded: Set<String>) -> [Row] {
-        let front = Array(elements.reversed())
+        level(Array(elements.reversed()), depth: 0, expanded: expanded)
+    }
+
+    /// The rows for `front`, top-most first, all inside the same groups
+    /// above `depth`, grouped by their group at `depth`.
+    private static func level(_ front: [Element], depth: Int, expanded: Set<String>) -> [Row] {
         var done: Set<String> = []
         var out: [Row] = []
         for el in front {
-            guard let group = el.group else {
-                out.append(.element(el, member: false))
+            let levels = Groups.chain(el)
+            guard levels.count > depth else {
+                out.append(.element(el, member: depth > 0, depth: depth))
                 continue
             }
+            let group = levels[depth]
             guard !done.contains(group) else { continue }
-            let members = front.filter { $0.group == group }
+            let members = front.filter { other in
+                let chain = Groups.chain(other)
+                return chain.count > depth && chain[depth] == group
+            }
             guard members.count > 1 else {
-                out.append(.element(el, member: false))
+                out.append(.element(el, member: depth > 0, depth: depth))
                 continue
             }
             done.insert(group)
-            out.append(.group(group, members: members))
+            out.append(.group(group, members: members, depth: depth))
             if expanded.contains(group) {
-                out += members.map { .element($0, member: true) }
+                out += level(members, depth: depth + 1, expanded: expanded)
             }
         }
         return out
@@ -155,6 +174,28 @@ enum LayerRows {
 /// steps them: a group is one layer, and a step moves the selection past
 /// the next thing it is seen to overlap.
 enum Layers {
+
+    /// Layers' Select: the selection after the row `rowId` of `rows` is
+    /// ticked or unticked — a group's row, every member of it: all of them
+    /// out when all were in, else all of them in. Hidden and locked rows
+    /// tick as any other (a locked one for Unlock). The Android twin's
+    /// Layers.toggled, with the same table.
+    static func toggled(_ rows: [LayerRows.Row], selection: Set<String>, rowId: String) -> Set<String> {
+        guard let row = rows.first(where: { $0.id == rowId }) else { return selection }
+        let ids = Set(row.elements.map(\.id))
+        return ids.isSubset(of: selection) ? selection.subtracting(ids) : selection.union(ids)
+    }
+
+    /// The rows a drag from `source` moves while Select is on: every ticked
+    /// row that moves — all of whose elements are selected — as one block in
+    /// their order (LayerRows.moved), when the row dragged is one of them;
+    /// else just `source`.
+    static func dragged(_ rows: [LayerRows.Row], selection: Set<String>, source: IndexSet) -> IndexSet {
+        let ticked = IndexSet(rows.indices.filter { i in
+            rows[i].movable && rows[i].elements.allSatisfy { selection.contains($0.id) }
+        })
+        return !source.isEmpty && source.isSubset(of: ticked) ? ticked : source
+    }
 
     /// The page's elements, back to front, as blocks: each group's members
     /// one block, in their order, where its front-most member is (where

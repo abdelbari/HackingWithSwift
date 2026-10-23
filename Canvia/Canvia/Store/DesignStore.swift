@@ -617,13 +617,16 @@ final class DesignStore {
 
     /// A tap on one member of a group that is already selected goes inside
     /// it, as in Canva and on the Android twin: the first tap takes the
-    /// group, the next the thing tapped. A drag still moves the whole group.
-    /// True when the tap was taken that way.
+    /// outermost group, the next the group inside it that the thing tapped
+    /// is in, and so on down, and the last the thing tapped (Groups.deeper).
+    /// A drag still moves what is selected. True when the tap was taken
+    /// that way.
     @discardableResult
     func selectMember(_ id: String) -> Bool {
-        guard selection.count > 1, selection.contains(id), element(id)?.group != nil else { return false }
+        guard selection.count > 1,
+              let next = Groups.deeper(page.elements, selection: selection, tapped: id) else { return false }
         endTextEdit()
-        selection = [id]
+        selection = next
         return true
     }
 
@@ -1211,7 +1214,8 @@ final class DesignStore {
 
     // MARK: grouping
     // Sticky multi-selection rather than nested transforms: selecting any
-    // member selects the whole group (see select(_:additive:)).
+    // member selects its whole outermost group (see select(_:additive:)),
+    // and a tap on it again goes a level in (selectMember).
 
     /// True when every selected element already shares one group.
     var selectionIsGrouped: Bool {
@@ -1224,21 +1228,21 @@ final class DesignStore {
         guard unlockedSelectionCount >= 2 else { return }
         buzz(.grouped)
         let gid = UID.make("grp")
+        let ids = Set(selectedElements.filter { !$0.locked }.map(\.id))
+        // A group among them is kept inside the new one (Groups.grouped).
         applyToPage { page in
-            for i in page.elements.indices
-            where self.selection.contains(page.elements[i].id) && !page.elements[i].locked {
-                page.elements[i].group = gid
-            }
+            page.elements = Groups.grouped(page.elements, ids: ids, into: gid)
         }
     }
 
+    /// One level at a time: each selected element leaves its outermost
+    /// group, and a group inside it comes back as it was (Groups.ungrouped).
     func ungroupSelected() {
         guard selectedElements.contains(where: { $0.group != nil }) else { return }
         buzz(.grouped)
+        let ids = selection
         applyToPage { page in
-            for i in page.elements.indices where self.selection.contains(page.elements[i].id) {
-                page.elements[i].group = nil
-            }
+            page.elements = Groups.ungrouped(page.elements, ids: ids)
         }
     }
 
@@ -1403,8 +1407,66 @@ final class DesignStore {
         }
     }
 
-    /// Turn the whole selection about its centre by `degrees`, one undo step.
+    /// The selection's frame when it is a whole group turned as one
+    /// (Groups.turn): turned with it, tight round it (Geometry.groupFrame).
+    /// Nil for anything else, which keeps the upright box.
+    var turnedGroupFrame: Geometry.GroupFrame? {
+        let turn = Groups.turn(page.elements, selection: selection)
+        guard turn != 0 else { return nil }
+        return Geometry.groupFrame(selectedElements, angle: turn)
+    }
+
+    /// How far the selected group is turned as a whole (groupTurn), 0 when
+    /// upright; nil when the selection is not one whole group.
+    var selectedGroupTurn: Double? {
+        guard Groups.whole(page.elements, selection: selection) != nil else { return nil }
+        return Groups.turn(page.elements, selection: selection)
+    }
+
+    /// Position's Turn for a selected group: the group turned about its
+    /// frame's middle until it stands at `degrees`, which its members keep
+    /// as their groupTurn — so Turn to 0 straightens it. One undo step.
+    func setGroupTurn(_ degrees: Double) {
+        guard let group = Groups.whole(page.elements, selection: selection) else { return }
+        let current = Groups.turn(page.elements, selection: selection)
+        let target = Groups.normalisedTurn(degrees)
+        let members = selectedElements.filter { !$0.holdsPlace }
+        guard !members.isEmpty, target != current else { return }
+        let middle = Geometry.groupFrame(selectedElements, angle: current).center
+        let turned = Geometry.rotate(members, around: middle, by: target - current)
+        let byId = Dictionary(uniqueKeysWithValues: turned.map { ($0.id, $0) })
+        applyToPage { page in
+            for i in page.elements.indices {
+                if let e = byId[page.elements[i].id] { page.elements[i] = e }
+            }
+            page.elements = Groups.turned(page.elements, group: group, to: target)
+        }
+    }
+
+    /// Scale a turned group by `factor` in its frame's own axes, its frame's
+    /// top left corner kept — Position's Width and Height for it — one undo
+    /// step.
+    func scaleTurnedGroup(by factor: Double) {
+        let members = selectedElements.filter { !$0.holdsPlace }
+        guard let frame = turnedGroupFrame, !members.isEmpty, factor > 0, factor.isFinite, factor != 1 else { return }
+        let from = frame.upright
+        let to = CGRect(x: from.minX, y: from.minY, width: from.width * factor, height: from.height * factor)
+        let scaled = Geometry.scale(members, frame: frame, to: to)
+        let byId = Dictionary(uniqueKeysWithValues: scaled.map { ($0.id, $0) })
+        applyToPage { page in
+            for i in page.elements.indices {
+                if let e = byId[page.elements[i].id] { page.elements[i] = e }
+            }
+        }
+    }
+
+    /// Turn the whole selection about its centre by `degrees`, one undo step;
+    /// a whole group, about its frame's middle, its turn kept (setGroupTurn).
     func rotateSelection(by degrees: Double) {
+        if let turn = selectedGroupTurn {
+            setGroupTurn(turn + degrees)
+            return
+        }
         let members = selectedElements.filter { !$0.holdsPlace }
         guard let box = selectionBox, !members.isEmpty, degrees != 0 else { return }
         let turned = Geometry.rotate(members, around: CGPoint(x: box.midX, y: box.midY), by: degrees)
@@ -2184,9 +2246,17 @@ final class DesignStore {
     /// Take the element `id` alone, from its Layers row — a group's member
     /// without the rest of the group.
     func selectLayer(_ id: String) {
+        selectLayers([id])
+    }
+
+    /// Take the elements `ids`, just these, from Layers — a group inside an
+    /// opened group, or the rows ticked in Select (Layers.toggled), hidden
+    /// and locked ones too. Nothing on a locked page.
+    func selectLayers(_ ids: Set<String>) {
         endTextEdit()
         guard !refusesLockedPage() else { return }
-        selection = [id]
+        selection = ids
+        if selection.count >= 2 { tipEvent = .multiSelected }
     }
 
     /// Flip what is selected: one thing in place, a group or several as one

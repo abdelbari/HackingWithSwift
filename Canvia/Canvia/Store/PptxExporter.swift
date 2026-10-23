@@ -445,6 +445,8 @@ enum PptxExporter {
         let background = "<p:bg><p:bgPr>\(fill)<a:effectLst/></p:bgPr></p:bg>"
 
         var shapes: [String] = []
+        // Whose each shape is, so groups go out as grpSp (Groups.nested).
+        var owners: [Element?] = []
         var nextId = 2
         if let backdrop {
             let size = design.size(for: page)
@@ -452,9 +454,11 @@ enum PptxExporter {
             let properties = "<p:nvPicPr><p:cNvPr id=\"\(nextId)\" name=\"Background\"/><p:cNvPicPr/><p:nvPr/></p:nvPicPr>"
             let picture = "<p:blipFill><a:blip r:embed=\"\(backdrop)\"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>"
             shapes.append("<p:pic>\(properties)\(picture)<p:spPr>\(box)\(geometry("rect"))</p:spPr></p:pic>")
+            owners.append(nil)
             nextId += 1
         }
         for el in drawnElements(design: design, page: page) {
+            defer { while owners.count < shapes.count { owners.append(el) } }
             let kind = form(of: el, styled: styled)
             var picture: MediaPart?
             if kind == .picture {
@@ -513,7 +517,13 @@ enum PptxExporter {
             notes = notesXML(page.notes ?? "")
         }
 
-        let tree = "<p:spTree>\(groupHeader)\(shapes.joined())</p:spTree>"
+        let pieces: [(el: Element?, part: String)] = zip(owners, shapes).map { ($0, $1) }
+        let grouped = Groups.nested(pieces) { group, members, inner in
+            let id = nextId
+            nextId += 1
+            return groupXML(group, id: id, members: members, frame: frame) + inner.joined() + "</p:grpSp>"
+        }
+        let tree = "<p:spTree>\(groupHeader)\(grouped.joined())</p:spTree>"
         let xml = [declaration, "<p:sld \(namespaces)>", "<p:cSld>", background, tree, "</p:cSld>",
                    masterColours, transitionXML(after: previous, in: design), "</p:sld>"].joined()
         return SlideParts(xml: xml, rels: rels.xml, media: drawn, notes: notes)
@@ -540,6 +550,20 @@ enum PptxExporter {
         let offset = "<a:off x=\"\(emu(x * frame.unit + frame.dx))\" y=\"\(emu(y * frame.unit + frame.dy))\"/>"
         let extent = "<a:ext cx=\"\(max(0, emu(w * frame.unit)))\" cy=\"\(max(0, emu(h * frame.unit)))\"/>"
         return "<a:xfrm\(turned)>\(offset)\(extent)</a:xfrm>"
+    }
+
+    /// A group's opening, its members to follow: the box round their turned
+    /// bounds, its children's frame the same box, so they keep their places
+    /// as they are — and are read back where they were (PptxReader).
+    private static func groupXML(_ group: String, id: Int, members: [Element], frame: Frame) -> String {
+        let box = Geometry.union(members.map(Geometry.aabb))
+        let x = emu(Double(box.minX) * frame.unit + frame.dx), y = emu(Double(box.minY) * frame.unit + frame.dy)
+        let cx = max(0, emu(Double(box.width) * frame.unit)), cy = max(0, emu(Double(box.height) * frame.unit))
+        let properties = "<p:nvGrpSpPr><p:cNvPr id=\"\(id)\" name=\"\(SVGExporter.escape(group))\"/>"
+            + "<p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>"
+        let offset = "<a:off x=\"\(x)\" y=\"\(y)\"/><a:ext cx=\"\(cx)\" cy=\"\(cy)\"/>"
+        let children = "<a:chOff x=\"\(x)\" y=\"\(y)\"/><a:chExt cx=\"\(cx)\" cy=\"\(cy)\"/>"
+        return "<p:grpSp>" + properties + "<p:grpSpPr><a:xfrm>" + offset + children + "</a:xfrm></p:grpSpPr>"
     }
 
     private static func elementBox(_ el: Element, frame: Frame) -> String {

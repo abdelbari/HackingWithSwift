@@ -459,6 +459,19 @@ final class PptxReaderTests: XCTestCase {
         XCTAssertEqual(els[0].group, els[1].group)
     }
 
+    /// Shared: a group inside a group is a subgroup of the outer one's
+    /// members (Groups), its id made as it is met.
+    func testAGroupInsideAGroupIsASubgroup() throws {
+        let plain = "<p:grpSpPr/>"
+        let square = shape("<a:prstGeom prst=\"rect\"/>", solid("000000"),
+                           xfrm: "<a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"952500\" cy=\"952500\"/></a:xfrm>")
+        let tree = "<p:grpSp>" + plain + "<p:grpSp>" + plain + square + square + "</p:grpSp>" + square + "</p:grpSp>" + square
+        let els = try read(deck([tree])).design.pages[0].elements
+        XCTAssertEqual(els.count, 4)
+        XCTAssertEqual(els.map(\.group), ["grp-3", "grp-3", "grp-3", nil])
+        XCTAssertEqual(els.map(\.subgroups), [["grp-4"], ["grp-4"], nil, nil])
+    }
+
     // MARK: pictures and backgrounds
 
     private let png = Data([0x89, 0x50, 0x4e, 0x47])
@@ -756,6 +769,34 @@ final class PptxReaderTests: XCTestCase {
         XCTAssertEqual(back.pages[0].elements[2].shapeId, "circle")
         XCTAssertEqual(back.pages[0].elements[4].src, "media:image1.png")
         XCTAssertEqual(imported.skipped.filter { $0.key != PptxReader.font }, [:])
+    }
+
+    func testNestedGroupsTheExporterWroteReadBackNested() throws {
+        func square(_ id: String, x: Double, group: String?, subgroups: [String]? = nil) -> Element {
+            var el = Element.shape("rect", w: 100, h: 100)
+            el.id = id
+            el.x = x
+            el.y = 100
+            el.group = group
+            el.subgroups = subgroups
+            return el
+        }
+        var design = Design(title: "Deck", width: 800, height: 600)
+        design.pages = [Page(id: "p1", elements: [
+            square("a", x: 0, group: "card", subgroups: ["logo"]), square("b", x: 120, group: "card", subgroups: ["logo"]),
+            square("c", x: 240, group: "card"), square("d", x: 400, group: nil),
+        ])]
+        let back = try read(exported(design)).design.pages[0].elements
+        XCTAssertEqual(back.count, 4)
+        let chains = back.map(Groups.chain)
+        XCTAssertEqual(chains[0].count, 2)
+        XCTAssertEqual(chains[0], chains[1])
+        XCTAssertEqual(chains[2], [chains[0][0]])
+        XCTAssertEqual(chains[3], [])
+        for (a, b) in zip(design.pages[0].elements, back) {
+            XCTAssertEqual(b.x, a.x, accuracy: 1, "\(a.id) keeps its place")
+            XCTAssertEqual(b.w, a.w, accuracy: 1)
+        }
     }
 
     // MARK: the shared fixture

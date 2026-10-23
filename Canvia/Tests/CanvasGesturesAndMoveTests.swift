@@ -77,6 +77,36 @@ final class CanvasGesturesAndMoveTests: XCTestCase {
         XCTAssertEqual(CanvasGestures.holdSeconds, 0.4)
     }
 
+    /// Round 31's rows, the Android twin's too: with Scroll through pages
+    /// off, a fling across the page at the zoom that fits turns the page;
+    /// zoomed in, or anything else, it pans as before.
+    func testAFlingAtFitStepsThePage() {
+        typealias Row = (CanvasGestures.Target, Double, Double, Double, Bool, Double, CanvasGestures.Action)
+        let rows: [Row] = [
+            // target, vx, dx, dy, single page, zoom (fit 0.5) -> action
+            (.emptyPage, -1200, -200, 20, true, 0.5, .stepPage),
+            (.workspace, 1200, 200, 20, true, 0.5, .stepPage),
+            (.emptyPage, -1200, -200, 20, true, 0.505, .stepPage),
+            (.emptyPage, -1200, -200, 20, true, 1.0, .pan),
+            (.emptyPage, -1200, -200, 20, false, 0.5, .pan),
+            (.emptyPage, -700, -200, 20, true, 0.5, .pan),
+            (.emptyPage, -1200, -200, 120, true, 0.5, .pan),
+            (.element, -1200, -200, 20, true, 0.5, .move),
+            (.selectedBody, -1200, -200, 20, true, 0.5, .move),
+        ]
+        for (target, vx, dx, dy, single, zoom, action) in rows {
+            XCTAssertEqual(CanvasGestures.flingAction(on: target, velocityX: vx, dx: dx, dy: dy,
+                                                      singlePage: single, zoom: zoom, fitZoom: 0.5),
+                           action, "\(target) vx \(vx) dy \(dy) zoom \(zoom) single \(single)")
+        }
+        XCTAssertEqual(CanvasGestures.flingSpeed, 800)
+        XCTAssertEqual(CanvasGestures.fitSlack, 0.02)
+        XCTAssertEqual(CanvasGestures.pageStep(velocityX: -1200, rightToLeft: false), 1, "leftward: the next page")
+        XCTAssertEqual(CanvasGestures.pageStep(velocityX: 1200, rightToLeft: false), -1)
+        XCTAssertEqual(CanvasGestures.pageStep(velocityX: -1200, rightToLeft: true), -1, "mirrored right to left")
+        XCTAssertEqual(CanvasGestures.pageStep(velocityX: 1200, rightToLeft: true), 1)
+    }
+
     func testOneFingerPansFromTheEmptyPageOnlyWhenItDidNotHoldFirst() {
         XCTAssertTrue(CanvasGestures.pansFromPage(onElement: false, held: 0))
         XCTAssertTrue(CanvasGestures.pansFromPage(onElement: false, held: 0.39))

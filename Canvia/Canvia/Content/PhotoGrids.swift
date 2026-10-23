@@ -418,6 +418,8 @@ enum PhotoGrids {
                 free.x = bounds.maxX + spacing
                 free.y = below
                 free.group = nil
+                free.subgroups = nil
+                free.groupTurn = nil
                 free.rotation = 0
                 free.grid = nil
                 freed.append(free)

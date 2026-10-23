@@ -217,6 +217,11 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     /// units — or on what of it hangs off it — whatever it lands on: where a
     /// hold that follows was, since a hold says nothing of where it is.
     var onPress: (CGPoint) -> Void = { _ in }
+    /// One finger let go across the empty page (true) or the workspace,
+    /// moving at this velocity in points a second after this far: true when
+    /// it turned the page (CanvasGestures.flingAction), and the view stays
+    /// where it was rather than gliding on.
+    var onFling: (CGPoint, CGPoint, Bool) -> Bool = { _, _, _ in false }
     /// The page worked expanded to a whiteboard; nil for a page alone or
     /// the column. Two fingers tapped twice on its empty space fit it to its
     /// content.
@@ -880,7 +885,13 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
                 let t = pan.translation(in: scroll)
                 scroll.contentOffset = CGPoint(x: panOrigin.x - t.x, y: panOrigin.y - t.y)
             case .ended:
-                glide(scroll, velocity: pan.velocity(in: scroll))
+                let velocity = pan.velocity(in: scroll)
+                if parent.onFling(velocity, pan.translation(in: scroll), panTouchOnPage) {
+                    scroll.setContentOffset(panOrigin, animated: false)
+                    publishMotion(false)
+                    return
+                }
+                glide(scroll, velocity: velocity)
             case .cancelled, .failed:
                 publishMotion(false)
             default:

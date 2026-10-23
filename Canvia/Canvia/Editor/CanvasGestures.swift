@@ -56,6 +56,9 @@ enum CanvasGestures {
         /// The menu at the finger: Paste, Select all, Add text here…
         case menu
         case panAndZoom
+        /// The next page, or the one before (flingAction). The Android
+        /// twin's STEP_PAGE.
+        case stepPage
     }
 
     static func action(_ input: Input, on target: Target) -> Action {
@@ -81,6 +84,37 @@ enum CanvasGestures {
         // finger.
         case (.hold, .emptyPage), (.hold, .backdrop), (.hold, .workspace): return .menu
         }
+    }
+
+    // MARK: a swipe to the next page
+
+    /// How fast a one-finger fling across the page must go to turn it, in
+    /// points a second (the Android twin's dp a second).
+    static let flingSpeed = 800.0
+
+    /// How near the zoom that fits the page counts as fit: within 2%.
+    static let fitSlack = 0.02
+
+    /// What a one-finger drag let go at `velocityX` across, having gone `dx`
+    /// across and `dy` down, does on `target`: with Scroll through pages off
+    /// (`singlePage`), at the zoom that fits (within fitSlack of `fitZoom`),
+    /// from the empty page or the workspace, faster than flingSpeed and more
+    /// than twice as far across as down, it turns the page (stepPage) —
+    /// never an undo step; anything else is the drag's own action, a pan,
+    /// as today. As the Android twin's Gestures table.
+    static func flingAction(on target: Target, velocityX: Double, dx: Double, dy: Double,
+                            singlePage: Bool, zoom: Double, fitZoom: Double) -> Action {
+        let atFit = fitZoom > 0 && abs(zoom / fitZoom - 1) <= fitSlack
+        guard singlePage, atFit, target == .emptyPage || target == .workspace,
+              abs(velocityX) > flingSpeed, abs(dx) > 2 * abs(dy) else { return action(.drag, on: target) }
+        return .stepPage
+    }
+
+    /// Which way a page-turning fling goes: +1, the next page, for one to
+    /// the left, -1 for one to the right — the other way round when the
+    /// screen reads right to left. Pages keep the design's own order.
+    static func pageStep(velocityX: Double, rightToLeft: Bool) -> Int {
+        (velocityX < 0) != rightToLeft ? 1 : -1
     }
 
     /// How long a finger may stay down, in seconds, for a touch to be a tap

@@ -589,8 +589,30 @@ struct EditorView: View {
                 }
             }
             .feel(.error, trigger: rewindExhausted)
-            .accessibilityLabel(store.canUndo ? tr("Undo") : tr("Undo, nothing to undo"))
+            .overlay(alignment: .bottom) { rewindCaption }
+            .help(History.undoTitle(store.undoLabel))
+            .accessibilityLabel(store.canUndo ? History.undoTitle(store.undoLabel) : tr("Undo, nothing to undo"))
             .accessibilityHint(store.canUndo ? tr("Hold to rewind") : "")
+    }
+
+    /// While Undo is held to rewind: the step about to go, in a word, in a
+    /// small caption just under the button — the top bar has no room above
+    /// it — following the rewind step by step.
+    @ViewBuilder
+    private var rewindCaption: some View {
+        if undoHeld, rewound, let label = store.undoLabel {
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .fixedSize()
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Capsule().fill(Theme.accent))
+                .offset(y: 26)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
     }
 
     private func startRewind() {
@@ -643,7 +665,8 @@ struct EditorView: View {
             undoButton
             Button { store.redo() } label: { Image(systemName: "arrow.uturn.forward") }
                 .disabled(!store.canRedo)
-                .accessibilityLabel("Redo")
+                .help(History.redoTitle(store.redoLabel))
+                .accessibilityLabel(History.redoTitle(store.canRedo ? store.redoLabel : nil))
 
             Spacer()
 
@@ -1458,7 +1481,7 @@ struct EditorView: View {
         case .position:
             PositionSheet(store: store)
         case .layers:
-            LayersSheet(store: store)
+            LayersSheet(store: store) { activeSheet = .position }
         case .export:
             ExportSheet(store: store)
         case .resize:

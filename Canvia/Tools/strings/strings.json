@@ -18653,6 +18653,15 @@
     "ja": "やり直す",
     "pt-BR": "Refazer"
   },
+  "Redo %@": {
+    "ar": "إعادة %@",
+    "de": "%@ wiederholen",
+    "es": "Rehacer %@",
+    "fr": "Rétablir %@",
+    "it": "Ripeti %@",
+    "ja": "%@ をやり直す",
+    "pt-BR": "Refazer %@"
+  },
   "Redo, nothing to redo": {
     "ar": "إعادة، لا شيء لإعادته",
     "de": "Wiederholen, nichts zu wiederholen",
@@ -20320,6 +20329,15 @@
     "it": "Seleziona il precedente",
     "ja": "前を選択",
     "pt-BR": "Selecionar o anterior"
+  },
+  "Select several": {
+    "ar": "تحديد عدة عناصر",
+    "de": "Mehrere auswählen",
+    "es": "Seleccionar varios",
+    "fr": "Sélectionner plusieurs",
+    "it": "Seleziona più elementi",
+    "ja": "複数を選択",
+    "pt-BR": "Selecionar vários"
   },
   "Select something on the page to animate it.": {
     "ar": "حدّد شيئًا في الصفحة لتحريكه.",
@@ -24179,6 +24197,15 @@
     "ja": "行と列を変更するには、表の回転を水平に戻してください。",
     "pt-BR": "Volte a tabela para a posição nivelada para alterar as linhas e colunas."
   },
+  "Turn to 0": {
+    "ar": "تدوير إلى 0",
+    "de": "Auf 0 drehen",
+    "es": "Girar a 0",
+    "fr": "Tourner à 0",
+    "it": "Ruota a 0",
+    "ja": "0 に戻す",
+    "pt-BR": "Girar para 0"
+  },
   "Turning snaps at every 45° with a tick; keep turning to leave the snap.": {
     "ar": "يلتصق التدوير عند كل 45° مع نقرة؛ واصل التدوير لتجاوز الالتصاق.",
     "de": "Die Drehung rastet alle 45° mit einem Klick ein; dreh weiter, um das Einrasten zu verlassen.",
@@ -24331,6 +24358,15 @@
     "it": "Annulla",
     "ja": "元に戻す",
     "pt-BR": "Desfazer"
+  },
+  "Undo %@": {
+    "ar": "تراجع عن %@",
+    "de": "%@ widerrufen",
+    "es": "Deshacer %@",
+    "fr": "Annuler %@",
+    "it": "Annulla %@",
+    "ja": "%@ を取り消す",
+    "pt-BR": "Desfazer %@"
   },
   "Undo and redo are at the bottom; hold Undo to rewind. Version history, under ⋮, brings back how the design was earlier.": {
     "ar": "التراجع والإعادة في الأسفل؛ اضغط مطولًا على «تراجع» للإرجاع. ويعيد «سجل الإصدارات»، ضمن ⋮، التصميم إلى ما كان عليه سابقًا.",
