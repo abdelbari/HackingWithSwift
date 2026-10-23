@@ -225,6 +225,8 @@ struct AudioTrackView: View {
     @State private var draftVolume: Double?
     @State private var draftFadeIn: Double?
     @State private var draftFadeOut: Double?
+    /// The Captions sheet, over this one.
+    @State private var captioning = false
 
     private var track: AudioTrack? { store.design.audioTracks.first { $0.id == trackId } }
 
@@ -234,6 +236,7 @@ struct AudioTrackView: View {
                 placeSection(track)
                 trimSection(track)
                 levelSection(track)
+                captionsSection(track)
                 Section {
                     Button(role: .destructive) { delete() } label: {
                         Label("Delete track", systemImage: "trash")
@@ -250,6 +253,37 @@ struct AudioTrackView: View {
             peaks = await Peaks.of(id) ?? []
         }
         .onDisappear { Audition.shared.stop() }
+    }
+
+    /// The words said in the track, timed to this page: from where the
+    /// track starts in the film, less where the page does.
+    private func captionsSection(_ track: AudioTrack) -> some View {
+        let offset = track.start - track.trimStart - store.pageStartSeconds
+        return Section {
+            Button {
+                captioning = true
+            } label: {
+                Label("Captions", systemImage: "captions.bubble")
+            }
+            .sheet(isPresented: $captioning) {
+                CaptionsSheet(store: store, source: AudioTrack.src(track.id),
+                              audio: { AudioStore.url(for: track.audioId) },
+                              range: Self.heard(track, length: length),
+                              toPage: { cues in
+                                  cues.map { CaptionCue(start: max(0, $0.start + offset), end: $0.end + offset, text: $0.text) }
+                                      .filter { $0.end > $0.start }
+                              })
+            }
+        }
+    }
+
+    /// The part of the track's music its trim plays, within its `length`;
+    /// nil while the length is not known.
+    static func heard(_ track: AudioTrack, length: Double?) -> ClosedRange<Double>? {
+        guard let length, length > 0 else { return nil }
+        let start = min(max(0, track.trimStart), length)
+        let end = min(max(track.trimEnd ?? length, start), length)
+        return start...end
     }
 
     /// Where it starts, over the film's length, and whether it goes round

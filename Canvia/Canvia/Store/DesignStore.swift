@@ -2677,9 +2677,22 @@ final class DesignStore {
     /// one undo step. A clip at all the defaults keeps none, so its file has no
     /// `clip` key.
     func setClip(_ clip: ClipPlayback) {
-        updateSelected { el in
-            guard VideoStore.isVideo(el.src) else { return }
-            el.clip = clip.isDefault ? nil : clip
+        // The clip's captions move with its trim and speed, so the words
+        // stay on the frames they were heard in (Captions.retimed).
+        var retimed: [String: ClipPlayback] = [:]
+        for el in selectedElements where VideoStore.isVideo(el.src) && !el.locked && (el.clip ?? ClipPlayback()) != clip {
+            if let id = el.src.flatMap({ VideoStore.split($0)?.id }) { retimed[VideoStore.src(id, at: nil)] = el.clip ?? ClipPlayback() }
+        }
+        applyToPage { page in
+            for i in page.elements.indices {
+                let el = page.elements[i]
+                if self.selection.contains(el.id), VideoStore.isVideo(el.src), !el.locked {
+                    page.elements[i].clip = clip.isDefault ? nil : clip
+                } else if let c = el.captions, let source = c.source, let was = retimed[source] {
+                    page.elements[i] = Captions.on(el, Captions(source: source, cues: Captions.retimed(c.cues, from: was, to: clip),
+                                                               style: c.style))
+                }
+            }
         }
     }
 

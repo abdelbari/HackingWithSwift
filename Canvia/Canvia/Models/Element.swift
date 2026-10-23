@@ -713,6 +713,10 @@ struct Element: Codable, Equatable, Identifiable {
     /// Characters stacked top to bottom in columns that run right to left,
     /// the way Japanese and Chinese are set on a poster.
     var vertical: Bool?
+    /// Captions on this box (see Captions): the words said in a clip or a
+    /// voice-over, timed to the page, drawn one cue at a time as it plays;
+    /// nil for an ordinary text box, and no key in the file.
+    var captions: Captions?
     /// Colours and sizes on chosen words, in offsets into the words as they
     /// read (see Spans); nil when there are none.
     var spans: [TextSpan]?
@@ -864,6 +868,8 @@ struct Element: Codable, Equatable, Identifiable {
         curve = try? c.decode(Double.self, forKey: .curve)
         textPath = try? c.decode(String.self, forKey: .textPath)
         vertical = try? c.decode(Bool.self, forKey: .vertical)
+        // Only a text box carries captions; read leniently (Captions).
+        captions = type == .text ? try? c.decode(Captions.self, forKey: .captions) : nil
         // Spans made for other words than these — the words changed by a
         // build that does not carry them along — are left behind.
         let madeFor = try? c.decode(String.self, forKey: .spansText)
@@ -938,7 +944,7 @@ struct Element: Codable, Equatable, Identifiable {
         case shapeId, pathData, iconId, fill, stroke, strokeWidth, radius, corners, fillRule, pen
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
-        case spans, spansText, paragraphs, paragraphsText
+        case spans, spansText, paragraphs, paragraphsText, captions
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns, timing
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit, clip
         case filterStrength, pixelate, focusBlur, edge, fx, mask, retouch

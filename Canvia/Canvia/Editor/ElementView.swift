@@ -42,13 +42,17 @@ struct ElementView: View {
     @Environment(\.liveVideo) private var liveVideo
     @Environment(\.clipsPlay) private var clipsPlay
     @Environment(\.playsPictures) private var playsPictures
+    @Environment(\.captionTime) private var captionTime
 
     /// The element with "{page}" and "{pages}" filled in, where the page is
     /// known: what a reveal counts and cuts, so the words that appear are the
-    /// words that stay — as the Android twin reveals them.
+    /// words that stay — as the Android twin reveals them. A caption box
+    /// shows the cue at the page's moment while it plays; at rest, the cue
+    /// at the timeline's playhead, or its first (Captions.shown).
     private var resolved: Element {
-        guard let pageNumber, element.text?.contains("{page") == true else { return element }
         var el = element
+        if el.captions != nil { el = Captions.shown(el, at: animationTime?.time ?? captionTime) }
+        guard let pageNumber, el.text?.contains("{page") == true else { return el }
         el.fillPageTokens(number: pageNumber.number, count: pageNumber.count)
         return el
     }

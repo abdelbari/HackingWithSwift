@@ -24,6 +24,8 @@ struct ClipSheet: View {
     @State private var draftVolume: Double?
     @State private var draftFadeIn: Double?
     @State private var draftFadeOut: Double?
+    /// The Captions sheet, over this one.
+    @State private var captioning = false
 
     private var element: Element? {
         guard let el = store.singleSelection, VideoStore.isVideo(el.src) else { return nil }
@@ -41,6 +43,7 @@ struct ClipSheet: View {
                     playSection(clip)
                     soundSection(clip)
                     fadeSection(clip)
+                    captionsSection(el, clip)
                     actionSection
                 }
             }
@@ -150,6 +153,35 @@ struct ClipSheet: View {
                 write { $0.fadeOut = Self.halves(v) }
             }
         }
+    }
+
+    /// The words said in the clip, timed to the page through its trim and
+    /// speed (Captions.retimed): the Captions sheet, over this one.
+    private func captionsSection(_ el: Element, _ clip: ClipPlayback) -> some View {
+        Section {
+            Button {
+                captioning = true
+            } label: {
+                Label("Captions", systemImage: "captions.bubble")
+            }
+            .sheet(isPresented: $captioning) {
+                if let id = clipId {
+                    CaptionsSheet(store: store, source: VideoStore.src(id, at: nil),
+                                  audio: { VideoStore.url(for: id) },
+                                  range: Self.heard(clip, length: length),
+                                  toPage: { Captions.retimed($0, from: ClipPlayback(), to: clip) })
+                }
+            }
+        }
+    }
+
+    /// The part of the clip's file its trim plays, within its `length`;
+    /// nil while the length is not known.
+    static func heard(_ clip: ClipPlayback, length: Double?) -> ClosedRange<Double>? {
+        guard let length, length > 0 else { return nil }
+        let start = min(max(0, clip.start), length)
+        let end = min(max(clip.end ?? length, start), length)
+        return start...end
     }
 
     private var actionSection: some View {

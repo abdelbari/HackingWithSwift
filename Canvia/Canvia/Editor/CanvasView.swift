@@ -428,6 +428,8 @@ struct CanvasView: View {
                 // A photo's subject is found for focus off the main thread.
                 .environment(\.onScreen, true)
                 .environment(\.playsPictures, playAnimated)
+                // A caption box at rest shows the cue at the playhead.
+                .environment(\.captionTime, store.playheadInPage)
                 // Carries the document edge in dark mode, where a shadow on a
                 // dark workspace is invisible.
                 .overlay(Rectangle().stroke(Theme.hairline, lineWidth: 1 * iz))

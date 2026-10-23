@@ -32,6 +32,9 @@ struct ExportSheet: View {
     @State private var choosingPages = false
     /// The video's size: 720p, 1080p or, where the encoder takes it, 4K.
     @State private var resolution = MovieExporter.Resolution.standard
+    /// The captions as an .srt beside a shared video, for players that
+    /// show their own; they are drawn into the video regardless.
+    @State private var captionsSrt = false
     /// PDFs drawn as one 300-dpi picture a page.
     @State private var flatten = false
     /// The PDF's notes pages, and its photos at 150 dpi.
@@ -777,7 +780,7 @@ struct ExportSheet: View {
         Section {
             exportButton(tr("MP4 video"), subtitle: movieSubtitle, icon: "film", working: tr("Rendering the video"),
                          unavailable: leftOut(moviePages), format: "mp4") {
-                ExportJobs.movie(designSnapshot, settings: movieSettings)
+                ExportJobs.movie(designSnapshot, settings: movieSettings, captions: captionsSrt)
             }
             exportButton(tr("Animated GIF"), subtitle: movieSubtitle, icon: "square.stack.3d.down.right",
                          working: tr("Rendering the GIF"), unavailable: leftOut(moviePages), format: "gif") {
@@ -787,6 +790,9 @@ struct ExportSheet: View {
                 ForEach(MovieExporter.resolutions(for: store.design)) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
+            if Captions.any(store.design) {
+                Toggle("Also save captions (.srt)", isOn: $captionsSrt)
+            }
             if !readOnly { DisclosureGroup("Motion settings") { motionSettings } }
         } header: {
             Text("Motion")
