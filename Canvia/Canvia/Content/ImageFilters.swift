@@ -123,9 +123,20 @@ struct Adjustments: Codable, Equatable, Hashable {
     var clarity: Double = 0
     /// 0…1: the blacks lifted towards grey, the contrast eased.
     var fade: Double = 0
+    /// Selective colour: each hue band's own shift (HueBands), by the
+    /// band's key — only the bands shifted, so empty is none. Written as
+    /// `hsl` only when a band is shifted; a band this build does not know,
+    /// or one with no shift, is left out as it is read.
+    var hsl: [String: HueShift] = [:]
 
     static let neutral = Adjustments()
-    var isNeutral: Bool { self == Adjustments.neutral }
+    /// Whether every dial is at rest — a band read with all three of its
+    /// shifts at zero counts as not moved.
+    var isNeutral: Bool {
+        var plain = self
+        plain.hsl = [:]
+        return plain == Adjustments.neutral && HueBands.kept(hsl).isEmpty
+    }
 
     /// Short and stable, for cache keys — and it only lengthens for the dials
     /// actually moved, so an untouched image keys the same as before.
@@ -141,12 +152,18 @@ struct Adjustments: Codable, Equatable, Hashable {
             ("z", blacks), ("y", vibrance), ("l", clarity), ("f", fade),
         ]
         let curveKey: String = curve.map { "t\($0)" } ?? ""
-        return "adj" + dials.map { f($0.0, $0.1) }.joined() + curveKey
+        // Each shifted band this build draws, in the circle's order, with
+        // its three shifts.
+        let bandKeys: String = HueBands.keys.compactMap { key -> String? in
+            guard let shift = hsl[key], !shift.isNeutral else { return nil }
+            return "H\(key)" + f("h", shift.h) + f("s", shift.s) + f("l", shift.l)
+        }.joined()
+        return "adj" + dials.map { f($0.0, $0.1) }.joined() + curveKey + bandKeys
     }
 
     private enum CodingKeys: String, CodingKey {
         case brightness, contrast, saturation, warmth, sharpness, vignette, curve
-        case tint, highlights, shadows, whites, blacks, vibrance, clarity, fade
+        case tint, highlights, shadows, whites, blacks, vibrance, clarity, fade, hsl
     }
 
     init() {}
@@ -168,6 +185,7 @@ struct Adjustments: Codable, Equatable, Hashable {
         vibrance = (try? c.decode(Double.self, forKey: .vibrance)) ?? 0
         clarity = (try? c.decode(Double.self, forKey: .clarity)) ?? 0
         fade = (try? c.decode(Double.self, forKey: .fade)) ?? 0
+        hsl = HueBands.kept((try? c.decode([String: HueShift].self, forKey: .hsl)) ?? [:])
     }
 
     /// The first seven as they always were; the dials after the curve came
@@ -187,6 +205,8 @@ struct Adjustments: Codable, Equatable, Hashable {
             (blacks, .blacks), (vibrance, .vibrance), (clarity, .clarity), (fade, .fade),
         ]
         for (value, key) in later where value != 0 { try c.encode(value, forKey: key) }
+        let bands = HueBands.kept(hsl)
+        if !bands.isEmpty { try c.encode(bands, forKey: .hsl) }
     }
 }
 
@@ -196,6 +216,15 @@ extension Element {
     mutating func setAdjustment(_ key: WritableKeyPath<Adjustments, Double>, to value: Double) {
         var adjustments = self.adjustments ?? .neutral
         adjustments[keyPath: key] = value
+        self.adjustments = adjustments.isNeutral ? nil : adjustments
+    }
+
+    /// One hue band's shift set (HueBands), a band back to no shift when
+    /// every dial is centred, and the adjustments back to nil as
+    /// `setAdjustment` leaves them.
+    mutating func setHueShift(_ band: String, to shift: HueShift) {
+        var adjustments = self.adjustments ?? .neutral
+        if shift.isNeutral { adjustments.hsl.removeValue(forKey: band) } else { adjustments.hsl[band] = shift }
         self.adjustments = adjustments.isNeutral ? nil : adjustments
     }
 }
@@ -492,7 +521,7 @@ enum PhotoLook {
     /// and its dials — everything that is the colour of a pixel alone, in
     /// the order the picture gets it: the colour matrix (in single
     /// precision, as the Android twin's paint holds it), vibrance, the
-    /// preset curve, the light curve. What a pixel's neighbours decide
+    /// selective colour bands (HueBands), the preset curve, the light curve. What a pixel's neighbours decide
     /// (clarity, sharpness, blurs, pixelate) and the duotone are not in it.
     /// The shared test table both phones check their maths against.
     ///
@@ -517,6 +546,11 @@ enum PhotoLook {
         if vibrance != 0 {
             let v = vibrant(r, g, b, amount: vibrance)
             r = v.r; g = v.g; b = v.b
+        }
+        // The bands after every global colour dial and before the curves.
+        if !HueBands.kept(a.hsl).isEmpty {
+            let shifted = HueBands.pixel((r << 16) | (g << 8) | b, hsl: a.hsl)
+            r = (shifted >> 16) & 0xff; g = (shifted >> 8) & 0xff; b = shifted & 0xff
         }
         if let table = ToneCurve.table(preset: a.curve) { r = table[r]; g = table[g]; b = table[b] }
         if let points = ToneCurve.light(highlights: a.highlights, shadows: a.shadows,
@@ -1448,6 +1482,31 @@ enum ImageFilterEngine {
         return f.outputImage.map(decoded) ?? image
     }
 
+    /// The hue bands' shifts (HueBands.shifted) as one colour cube, 64 a
+    /// side, on the encoded values — the same function the shared table
+    /// reads a pixel through.
+    private static func bandCubed(_ image: CIImage, hsl: [String: HueShift]) -> CIImage {
+        let size = 64
+        var data = [Float](repeating: 1, count: size * size * size * 4)
+        for b in 0..<size {
+            for g in 0..<size {
+                for r in 0..<size {
+                    let out = HueBands.shifted(r: Double(r) / Double(size - 1), g: Double(g) / Double(size - 1),
+                                               b: Double(b) / Double(size - 1), by: hsl)
+                    let i = ((b * size + g) * size + r) * 4
+                    data[i] = Float(out.r)
+                    data[i + 1] = Float(out.g)
+                    data[i + 2] = Float(out.b)
+                }
+            }
+        }
+        let f = CIFilter.colorCube()
+        f.inputImage = encoded(image)
+        f.cubeDimension = Float(size)
+        f.cubeData = data.withUnsafeBufferPointer { Data(buffer: $0) }
+        return f.outputImage.map(decoded) ?? image
+    }
+
     /// Luminance mapped onto two colours: darkest becomes `dark`, lightest
     /// becomes `light`, and everything between is a straight ramp.
     ///
@@ -1502,6 +1561,11 @@ enum ImageFilterEngine {
         }
 
         if min(max(a.fade, 0), 1) > 0 { image = matrixed(image, PhotoLook.fade(a.fade)) }
+
+        // Selective colour after every global colour dial and before the
+        // curves and clarity, as the Android twin's PixelLook lays it: a
+        // cube of the shared maths, so a band shifts the same on both.
+        if !HueBands.kept(a.hsl).isEmpty { image = bandCubed(image, hsl: a.hsl) }
 
         // The curve after the dials, on the already balanced picture; with
         // vibrance or the light dials, all three in one cube of the shared
