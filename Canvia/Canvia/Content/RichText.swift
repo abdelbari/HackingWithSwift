@@ -931,11 +931,6 @@ enum RichText {
 
     // MARK: words copied and pasted
 
-    /// The style each character of the words as they read is in.
-    static func characterStyles(_ text: String) -> [Style] {
-        parseMapped(text).styles
-    }
-
     /// `plain` — words as they read — written so that each character is in
     /// `styles`' style for it (one a character): each stretch of one style
     /// on a line wrapped in its own markers, hard against its letters, the

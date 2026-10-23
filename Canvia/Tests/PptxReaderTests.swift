@@ -210,8 +210,11 @@ final class PptxReaderTests: XCTestCase {
         XCTAssertNil(PptxReader.cut("Lora"))
         XCTAssertNil(PptxReader.cut("Comic Sans MS Bold"))
         let stars = try only(deck([textBox(box, "<a:p><a:r><a:rPr/><a:t>2*3 is </a:t></a:r><a:r><a:rPr b=\"1\" i=\"1\"/><a:t>6*</a:t></a:r></a:p>")]))
-        XCTAssertEqual(stars.text, "2*3 is 6*")
-        XCTAssertEqual(stars.spans, [TextSpan(start: 7, end: 9, weight: 700, italic: true)])
+        // The deck's own stars escaped, the markers keep the bold italic.
+        XCTAssertEqual(stars.text, "2\\*3 is ***6\\****")
+        XCTAssertEqual(RichText.strip(stars.text ?? ""), "2*3 is 6*")
+        XCTAssertEqual(RichText.parse(stars.text ?? "").runs.map(\.style), [RichText.Style(bold: true, italic: true)])
+        XCTAssertNil(stars.spans)
     }
 
     /// Shared: what the writer's styled text reads back as — a round trip
