@@ -83,6 +83,9 @@ struct PresentationView: View {
     /// pinched neither turns the page nor pans when it ends, as on Android.
     @GestureState private var magnifying = false
     @GestureState private var swiping = false
+    /// A finger is down, from the first to touch until the last lifts: a
+    /// touch that pinched keeps that until it ends, however it ends.
+    @GestureState private var touching = false
     @State private var pinchedThisTouch = false
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -171,6 +174,7 @@ struct PresentationView: View {
                 .offset(onBoard ? boardOffset : .zero)
                 .gesture(swipe)
                 .simultaneousGesture(boardPinch)
+                .simultaneousGesture(touch)
                 .onTapGesture { location in
                     // A linked element opens its link, as a click on it
                     // does in the PDF — where the page is fitted, so not
@@ -187,6 +191,10 @@ struct PresentationView: View {
             if let linkRefused { refusedNote(linkRefused) }
         }
         .onChange(of: session.index) { _, _ in fitBoard() }
+        // Ended or cancelled, the touch is over, and the next starts clean.
+        .onChange(of: touching) { _, down in
+            if !down { pinchedThisTouch = false }
+        }
     }
 
     // MARK: whiteboards
@@ -226,6 +234,12 @@ struct PresentationView: View {
             }
     }
 
+    /// The whole touch, for as long as any finger is down.
+    private var touch: some Gesture {
+        DragGesture(minimumDistance: 0)
+            .updating($touching) { _, state, _ in state = true }
+    }
+
     /// Two fingers pinch a whiteboard in, never out past its fit.
     private var boardPinch: some Gesture {
         MagnifyGesture()
@@ -237,8 +251,9 @@ struct PresentationView: View {
                 if onBoard { pinchedThisTouch = true }
             }
             .onEnded { value in
-                // A drag still under way sees the pinch when it ends.
-                if !swiping { pinchedThisTouch = false }
+                // The rest of the touch still sees the pinch: a finger
+                // left down cannot then swipe the page over.
+                if !swiping && !touching { pinchedThisTouch = false }
                 guard onBoard else { return }
                 boardZoom = min(max(boardZoom * value.magnification, 1), Self.boardMaxZoom)
                 if boardZoom == 1 { boardPan = .zero }
