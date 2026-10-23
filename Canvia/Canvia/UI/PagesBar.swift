@@ -43,7 +43,8 @@ struct PagesBar: View {
                         Label("Copy page", systemImage: "doc.on.doc")
                     }
                     Button { store.pastePage() } label: {
-                        Label("Paste page after", systemImage: "doc.on.clipboard")
+                        Label((PageClipboard.copiedCount() ?? 1) > 1 ? tr("Paste pages after") : tr("Paste page after"),
+                              systemImage: "doc.on.clipboard")
                     }
                     .disabled(!store.hasPageOnClipboard)
                     // Hiding the only page would leave nothing to present;

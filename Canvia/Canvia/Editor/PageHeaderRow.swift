@@ -68,8 +68,8 @@ struct PageHeaderRow: View {
         moreMenu
     }
 
-    /// Hide or show, Lock or unlock, Expand to whiteboard or Collapse, Copy page, and the page's title and
-    /// notes. Hiding the only page is not offered, as in the pages bar.
+    /// Hide or show, Lock or unlock, Expand to whiteboard or Collapse, Copy
+    /// page, Paste page (or pages), and the page's title and notes. Hiding the only page is not offered, as in the pages bar.
     private var moreMenu: some View {
         Menu {
             if store.design.pages.count > 1 || page.hidden == true {
@@ -90,6 +90,12 @@ struct PageHeaderRow: View {
             }
             Button { onPage { store.copyPage() } } label: {
                 Label("Copy page", systemImage: "doc.on.doc")
+            }
+            // What was copied — one page or several — after this one.
+            if store.hasPageOnClipboard {
+                Button { onPage { store.pastePage() } } label: {
+                    Label(store.pastePageTitle, systemImage: "doc.on.clipboard")
+                }
             }
             Button { onPage { onNotes() } } label: {
                 Label("Notes…", systemImage: "note.text")

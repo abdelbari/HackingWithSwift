@@ -1,8 +1,9 @@
 // Every page at once, as a grid of thumbnails: tap to tick, press and hold
 // to lift a page — or every ticked page — and drag it to its new place, the
 // gap it would go into marked; + between two thumbnails puts a blank page
-// there. Ticked pages are duplicated, hidden, locked or deleted from the bar
-// below. As the Android twin's organiser.
+// there. Ticked pages are duplicated, copied, hidden, locked or deleted from
+// the bar below, and what was copied is pasted from the top. As the Android
+// twin's organiser.
 //
 // The bottom bar shows a strip of thumbnails and moves a page one step at a
 // time. That is fine for four pages; for a twenty-page deck, moving the
@@ -246,12 +247,27 @@ struct PageOrganizerSheet: View {
     @ToolbarContentBuilder
     private var toolbarItems: some ToolbarContent {
         ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+        // What was copied — from this design or another — after the page
+        // being worked.
+        ToolbarItem(placement: .topBarLeading) {
+            Button(store.pastePageTitle) { store.pastePage() }
+                .disabled(!store.hasPageOnClipboard)
+        }
         ToolbarItemGroup(placement: .bottomBar) {
-            Button {
-                store.duplicatePages(selected)
-                selected = []
-            } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
-                .disabled(selected.isEmpty)
+            Group {
+                Button {
+                    store.duplicatePages(selected)
+                    selected = []
+                } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
+                    .disabled(selected.isEmpty)
+                Spacer()
+                // The ticked pages, in order, to paste into this design or
+                // another; they stay ticked.
+                Button {
+                    store.copyPages(selected)
+                } label: { Label("Copy", systemImage: "doc.on.doc") }
+                    .disabled(selected.isEmpty)
+            }
             Spacer()
             Button {
                 if let id = selected.first, selected.count == 1,

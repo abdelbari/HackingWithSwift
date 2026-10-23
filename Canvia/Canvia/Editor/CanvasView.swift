@@ -1292,7 +1292,7 @@ struct CanvasView: View {
             Button(HoldMenu.HoldItem.paste.title) { chooseFromHoldMenu(.paste, at: centre) }
         }
         if voiceOver && store.hasPageOnClipboard {
-            Button(HoldMenu.HoldItem.pastePage.title) { chooseFromHoldMenu(.pastePage, at: centre) }
+            Button(store.pastePageTitle) { chooseFromHoldMenu(.pastePage, at: centre) }
         }
         Button(HoldMenu.HoldItem.selectAll.title) { chooseFromHoldMenu(.selectAll, at: centre) }
         Button(HoldMenu.HoldItem.addText.title) { chooseFromHoldMenu(.addText, at: centre) }

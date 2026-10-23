@@ -91,7 +91,7 @@ struct HoldMenuPill: View {
             VStack(spacing: 3) {
                 Image(systemName: item.symbol)
                     .font(.callout.weight(.medium))
-                Text(item.title)
+                Text(item == .pastePage ? store.pastePageTitle : item.title)
                     .font(.caption2.weight(.medium))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)

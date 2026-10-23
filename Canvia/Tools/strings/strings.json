@@ -2633,6 +2633,39 @@
       "other": "%d outros itens"
     }
   },
+  "%d page copied|%d pages copied": {
+    "ar": {
+      "few": "تم نسخ %d صفحات",
+      "many": "تم نسخ %d صفحة",
+      "one": "تم نسخ %d صفحة",
+      "other": "تم نسخ %d صفحة",
+      "two": "تم نسخ %d صفحتين",
+      "zero": "تم نسخ %d صفحة"
+    },
+    "de": {
+      "one": "%d Seite kopiert",
+      "other": "%d Seiten kopiert"
+    },
+    "es": {
+      "one": "%d página copiada",
+      "other": "%d páginas copiadas"
+    },
+    "fr": {
+      "one": "%d page copiée",
+      "other": "%d pages copiées"
+    },
+    "it": {
+      "one": "%d pagina copiata",
+      "other": "%d pagine copiate"
+    },
+    "ja": {
+      "other": "%d ページをコピーしました"
+    },
+    "pt-BR": {
+      "one": "%d página copiada",
+      "other": "%d páginas copiadas"
+    }
+  },
   "%d page couldn't be read|%d pages couldn't be read": {
     "ar": {
       "few": "تعذّرت قراءة %d صفحات",
@@ -17333,6 +17366,24 @@
     "ja": "後ろにページを貼り付け",
     "pt-BR": "Colar página depois"
   },
+  "Paste pages": {
+    "ar": "لصق الصفحات",
+    "de": "Seiten einfügen",
+    "es": "Pegar páginas",
+    "fr": "Coller les pages",
+    "it": "Incolla pagine",
+    "ja": "ページを貼り付け",
+    "pt-BR": "Colar páginas"
+  },
+  "Paste pages after": {
+    "ar": "لصق الصفحات بعد",
+    "de": "Seiten danach einfügen",
+    "es": "Pegar páginas después",
+    "fr": "Coller les pages après",
+    "it": "Incolla pagine dopo",
+    "ja": "後ろにページを貼り付け",
+    "pt-BR": "Colar páginas depois"
+  },
   "Paste style": {
     "ar": "لصق النمط",
     "de": "Stil einfügen",
@@ -17350,6 +17401,15 @@
     "it": "Incolla la pagina copiata",
     "ja": "コピーしたページを貼り付け",
     "pt-BR": "Colar a página copiada"
+  },
+  "Pasted into the frame": {
+    "ar": "تم اللصق في الإطار",
+    "de": "In den Rahmen eingefügt",
+    "es": "Pegado en el marco",
+    "fr": "Collé dans le cadre",
+    "it": "Incollato nella cornice",
+    "ja": "フレームに貼り付けました",
+    "pt-BR": "Colado na moldura"
   },
   "Path": {
     "ar": "مسار",

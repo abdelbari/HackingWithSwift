@@ -554,8 +554,8 @@ enum DesignLibrary {
         if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
             collectPhotos(in: elements, into: &found)
         }
-        if PageClipboard.hasPage(in: pasteboard), let payload = PageClipboard.paste(from: pasteboard) {
-            collectPhotos(on: payload.page, into: &found)
+        if PageClipboard.hasPage(in: pasteboard), let copied = PageClipboard.pastePages(from: pasteboard) {
+            for entry in copied.pages { collectPhotos(on: entry.page, into: &found) }
         }
         return found
     }
@@ -655,8 +655,8 @@ enum DesignLibrary {
         if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
             collectClips(in: elements, into: &found)
         }
-        if PageClipboard.hasPage(in: pasteboard), let payload = PageClipboard.paste(from: pasteboard) {
-            collectClips(on: payload.page, into: &found)
+        if PageClipboard.hasPage(in: pasteboard), let copied = PageClipboard.pastePages(from: pasteboard) {
+            for entry in copied.pages { collectClips(on: entry.page, into: &found) }
         }
         return found
     }
@@ -705,10 +705,10 @@ enum DesignLibrary {
         if ElementClipboard.hasElements(in: pasteboard), let elements = ElementClipboard.read(from: pasteboard) {
             collect(elements)
         }
-        if PageClipboard.hasPage(in: pasteboard), let payload = PageClipboard.paste(from: pasteboard) {
-            // Behind the page too, as AnimStore counts a design's.
+        if PageClipboard.hasPage(in: pasteboard), let copied = PageClipboard.pastePages(from: pasteboard) {
+            // Behind the pages too, as AnimStore counts a design's.
             var holder = Design(title: "", width: 1, height: 1)
-            holder.pages = [payload.page]
+            holder.pages = copied.pages.map(\.page)
             found.formUnion(AnimStore.ids(in: holder))
         }
         return found

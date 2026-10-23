@@ -116,4 +116,86 @@ final class PageClipboardTests: XCTestCase {
         XCTAssertEqual(s.page.elements.count, 1)
         XCTAssertNotEqual(s.page.id, s.design.pages[0].id)
     }
+
+    // MARK: several pages (round 31)
+
+    /// Three pages of three sizes, each with one 100 × 100 box at 0, 0, and
+    /// a title, notes and a lock or a hide of its own.
+    private var three: PageClipboard.Pages {
+        let sizes: [(Double, Double)] = [(1000, 1000), (2000, 1000), (500, 1000)]
+        let entries = sizes.enumerated().map { n, size -> PageClipboard.CopiedPage in
+            var box = Element.shape("rect", w: 100, h: 100)
+            box.id = "box\(n)"
+            var page = Page(id: "p\(n)", elements: [box])
+            page.title = "Page \(n)"
+            page.notes = "Notes \(n)"
+            return PageClipboard.CopiedPage(page: page, width: size.0, height: size.1)
+        }
+        return PageClipboard.Pages(pages: entries)
+    }
+
+    func testSeveralPagesTravelInOrderUnderTheNewTypeAndTheFirstUnderTheOld() throws {
+        let board = UIPasteboard.withUniqueName()
+        PageClipboard.copy(three, to: board)
+        XCTAssertTrue(PageClipboard.hasPage(in: board))
+        XCTAssertEqual(PageClipboard.copiedCount(in: board), 3)
+        XCTAssertEqual(try XCTUnwrap(PageClipboard.pastePages(from: board)), three)
+        let old = try XCTUnwrap(PageClipboard.paste(from: board), "an older build reads the first page")
+        XCTAssertEqual(old.page, three.pages[0].page)
+        XCTAssertEqual(old.width, 1000)
+    }
+
+    func testThePayloadIsTheAndroidTwinsJSON() throws {
+        let data = try JSONEncoder().encode(PageClipboard.Pages(pages: [three.pages[0]]))
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(Set(object.keys), ["pages", "fonts"])
+        let first = try XCTUnwrap((object["pages"] as? [[String: Any]])?.first)
+        XCTAssertEqual(Set(first.keys), ["page", "width", "height"])
+        let lenient = try JSONDecoder().decode(PageClipboard.Pages.self, from: Data(#"{"pages":[]}"#.utf8))
+        XCTAssertEqual(lenient.fonts, [], "no fonts key is no fonts")
+    }
+
+    func testThreeMixedSizePagesLandInOrderEachFittedToTheDesign() {
+        let landed = PageClipboard.landed(three, width: 1000, height: 500)
+        XCTAssertEqual(landed.map(\.title), ["Page 0", "Page 1", "Page 2"], "in order, titles travelling")
+        XCTAssertEqual(landed.map(\.notes), ["Notes 0", "Notes 1", "Notes 2"])
+        // 1000² fits by 0.5, centred across; 2000 × 1000 by 0.5, flush;
+        // 500 × 1000 by 0.5, centred across.
+        XCTAssertEqual(landed.map { $0.elements[0].w }, [50, 50, 50])
+        XCTAssertEqual(landed.map { $0.elements[0].x }, [250, 0, 375])
+        XCTAssertEqual(landed.map { $0.elements[0].y }, [0, 0, 0])
+        XCTAssertTrue(landed.allSatisfy { $0.id.hasPrefix("page") }, "fresh ids")
+        XCTAssertFalse(landed.contains { $0.elements[0].id.hasPrefix("box") })
+    }
+
+    func testPastingSeveralIsOneStepAfterTheCurrentPageAndShowsTheFirst() {
+        let s = store(pages: [page(1), page(2)])
+        PageClipboard.copy(three)
+        guard PageClipboard.hasPage() else { return }   // the general pasteboard is unavailable in some hosts
+        s.pastePage()
+        XCTAssertEqual(s.design.pages.count, 5)
+        XCTAssertEqual(s.design.pages[1...3].map(\.title), ["Page 0", "Page 1", "Page 2"])
+        XCTAssertEqual(s.pageIndex, 1, "the first pasted page is shown")
+        s.undo()
+        XCTAssertEqual(s.design.pages.count, 2, "one undo step")
+    }
+
+    func testASinglePagePayloadStillPastesFromTheOldType() throws {
+        let board = UIPasteboard.withUniqueName()
+        PageClipboard.copy(page(2), width: 1000, height: 500, to: board)
+        let read = try XCTUnwrap(PageClipboard.pastePages(from: board))
+        XCTAssertEqual(read.pages.count, 1)
+        XCTAssertEqual(read.pages[0].page.elements.count, 2)
+        XCTAssertEqual(read.pages[0].width, 1000)
+        XCTAssertEqual(PageClipboard.landed(read, width: 1000, height: 500).count, 1)
+    }
+
+    func testCopyingTickedPagesKeepsTheDesignsOrder() {
+        let s = store(pages: [page(1), page(2), page(3)])
+        let ids = Set([s.design.pages[2].id, s.design.pages[0].id])
+        s.copyPages(ids)
+        guard let copied = PageClipboard.pastePages() else { return }   // as above
+        XCTAssertEqual(copied.pages.map { $0.page.id }, [s.design.pages[0].id, s.design.pages[2].id])
+        XCTAssertEqual(copied.pages.map(\.width), [1000, 1000])
+    }
 }

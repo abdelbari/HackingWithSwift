@@ -1069,6 +1069,8 @@ final class DesignStore {
                 pastedOnto = nil
                 pasteCount = 0
             } else if var stranger = ElementClipboard.foreign(designWidth: pageWidth) {
+                // A picture over a frame, or a photo, selected goes into it.
+                if pasteIntoFrame([stranger], foreign: true, at: point) { return }
                 if let point {
                     let at = HoldMenu.placed(Geometry.aabb(stranger).size, at: point, page: pageSize)
                     let box = Geometry.aabb(stranger)
@@ -1087,6 +1089,8 @@ final class DesignStore {
                      undoable: false)
             return
         }
+        // One copied photo, with a frame selected, fills the frame.
+        if pasteIntoFrame(clipboard, foreign: false, at: point) { return }
         // Each page counts its own pastes: the first onto a page other than
         // the copy's lands in place, and only a repeat there steps.
         if pastedOnto != page.id {
@@ -1117,6 +1121,36 @@ final class DesignStore {
             design = CustomFonts.adopting(fonts, into: design)
         }
         selection = Set(copies.map(\.id))
+    }
+
+    /// A paste of `payload` that goes into a frame rather than onto the page
+    /// (Copies.pasteTarget): into the one frame or grid cell selected — or,
+    /// from the hold menu at `point`, the frame under the finger — or in
+    /// place of the picture of the one photo selected, for a picture from
+    /// another app. One undo step, said with Undo; the frame stays
+    /// selected. False when the paste is to be added as ever.
+    private func pasteIntoFrame(_ payload: [Element], foreign: Bool, at point: CGPoint?) -> Bool {
+        let under = point.flatMap { PhotoFrames.target(at: $0, in: page.elements, excluding: nil) }
+        let chosen = under.map { [$0] } ?? selectedElements
+        let target = Copies.pasteTarget(chosen, among: page.elements, payload: payload, foreign: foreign)
+        guard let photo = payload.first else { return false }
+        switch target {
+        case .add:
+            return false
+        case .fill(let id):
+            applyToPage { page in
+                if let i = page.elements.firstIndex(where: { $0.id == id }) {
+                    page.elements[i] = Copies.filled(page.elements[i], with: photo)
+                }
+            }
+            selection = [id]
+            announce(tr("Pasted into the frame"))
+        case .replace(let id):
+            guard let src = photo.src, replacePicture(id, with: src) else { return false }
+            selection = [id]
+        }
+        buzz(.confirm)
+        return true
     }
 
     /// Where a still hold on the empty page brought up its menu, in page
@@ -3008,25 +3042,48 @@ final class DesignStore {
     /// Copying changes nothing on screen, so it is said and felt — as on
     /// the Android twin — rather than the menu closing on nothing.
     func copyPage() {
-        PageClipboard.copy(page, width: pageWidth, height: pageHeight,
-                           fonts: CustomFonts.carried(page.elements, from: design))
-        announce(tr("Page copied"), undoable: false)
+        copyPages([page.id])
+    }
+
+    /// The organiser's Copy: the pages `ids`, in the design's order, each
+    /// with its own size, onto the pasteboard as one (PageClipboard.Pages)
+    /// — hidden, locked, titled and noted as they are — and the fonts of
+    /// your own on any of them.
+    func copyPages(_ ids: Set<String>) {
+        let picked = design.pages.filter { ids.contains($0.id) }
+        guard !picked.isEmpty else { return }
+        let entries = picked.map { page -> PageClipboard.CopiedPage in
+            let size = design.size(for: page)
+            return PageClipboard.CopiedPage(page: page, width: Double(size.width), height: Double(size.height))
+        }
+        let fonts = CustomFonts.carried(picked.flatMap(\.elements), from: design)
+        PageClipboard.copy(PageClipboard.Pages(pages: entries, fonts: fonts))
+        announce(picked.count == 1 ? tr("Page copied") : trn("%d page copied|%d pages copied", picked.count),
+                 undoable: false)
         buzz(.confirm)
     }
 
     var hasPageOnClipboard: Bool { PageClipboard.hasPage() }
 
-    /// Paste the copied page after the current one, scaled to this design.
+    /// Paste page, or — several copied as one — Paste pages.
+    var pastePageTitle: String {
+        (PageClipboard.copiedCount() ?? 1) > 1 ? tr("Paste pages") : tr("Paste page")
+    }
+
+    /// Paste the copied pages after the current one, in order, each scaled
+    /// to this design (PageClipboard.landed), as one undo step; the first
+    /// of them shown.
     func pastePage() {
-        guard let payload = PageClipboard.paste() else { return }
-        let landed = PageClipboard.fitted(payload, width: pageWidth, height: pageHeight)
+        guard let copied = PageClipboard.pastePages() else { return }
+        let landed = PageClipboard.landed(copied, width: pageWidth, height: pageHeight)
+        guard !landed.isEmpty else { return }
         let at = pageIndex + 1
-        // The fonts of your own it brought recorded with it, one step.
+        // The fonts of your own they brought recorded with them, one step.
         apply { design in
-            design.pages.insert(landed, at: at)
-            design = CustomFonts.adopting(payload.fonts ?? [], into: design)
+            design.pages.insert(contentsOf: landed, at: at)
+            design = CustomFonts.adopting(copied.fonts, into: design)
         }
-        pageIndex += 1
+        pageIndex = at
         selection.removeAll()
         buzz(.confirm)
     }
