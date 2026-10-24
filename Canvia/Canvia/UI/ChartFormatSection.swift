@@ -2,7 +2,8 @@
 // prefix and suffix, its decimals and compact numbers, for any kind that
 // writes values; the axes' titles for a kind with axes; a donut's or ring's
 // hole; the bars' gap and rounded ends; a line's weight and points; a
-// pictogram's icon. Each is kept in the chart's spec (only its format
+// pictogram's icon; how a part-to-whole kind's values read, while they are
+// shown, and where the legend sits, while there is one. Each is kept in the chart's spec (only its format
 // fields are read from `format`), so Update makes the chart again with it as
 // one undo step.
 
@@ -10,6 +11,10 @@ import SwiftUI
 
 struct ChartFormatSection: View {
     let kind: DataGraphics.ChartKind
+    /// Whether the chart writes its values, and has a legend: the Labels
+    /// and the Legend position are offered only then.
+    let values: Bool
+    let legend: Bool
     @Binding var format: ChartSpec
 
     /// The icons a pictogram offers, those the library has.
@@ -23,6 +28,53 @@ struct ChartFormatSection: View {
         if kind.hasAxisTitles { titles }
         if kind.hasHole || kind.hasBars || kind.hasLine { shapes }
         if kind == .pictogram { iconPicker }
+        if (values && kind.isPartToWhole) || (legend && kind.hasLegend) { labelsAndLegend }
+    }
+
+    /// Value, % or both on a part-to-whole kind's values; the legend along
+    /// the bottom, the top or down the right.
+    private var labelsAndLegend: some View {
+        Section {
+            if values && kind.isPartToWhole {
+                Picker("Labels", selection: labelAs) {
+                    Text("Value").tag("value")
+                    Text(verbatim: "%").tag("percent")
+                    Text("Both").tag("both")
+                }
+                .pickerStyle(.segmented)
+            }
+            if legend && kind.hasLegend {
+                Picker("Legend position", selection: legendAt) {
+                    Text("Bottom").tag("bottom")
+                    Text("Top").tag("top")
+                    Text("Right").tag("right")
+                }
+            }
+        }
+    }
+
+    /// The labels as they read; the kind's own (DataGraphics.labelAs) is
+    /// kept as nil, so only a choice that differs is written.
+    private var labelAs: Binding<String> {
+        Binding(get: { DataGraphics.labelAs(withKind(format)) },
+                set: { picked in
+                    var bare = withKind(format)
+                    bare.labelAs = nil
+                    format.labelAs = picked == DataGraphics.labelAs(bare) ? nil : picked
+                })
+    }
+
+    /// The legend's place; bottom, the default, kept as nil.
+    private var legendAt: Binding<String> {
+        Binding(get: { format.legendAt ?? "bottom" },
+                set: { format.legendAt = DataGraphics.keptLegendAt($0) })
+    }
+
+    /// `spec` as the kind picked draws it, which `format` may not be yet.
+    private func withKind(_ spec: ChartSpec) -> ChartSpec {
+        var out = spec
+        out.kind = kind.rawValue
+        return out
     }
 
     /// The value's prefix, suffix, decimals and compact form.

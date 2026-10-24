@@ -45,6 +45,8 @@ enum ChartSpeech {
     /// and y, "A, Sales: 10, 20", and a bubble its size after them; a kind
     /// coloured by row — a pie's slice ("Yes: 75%"), a funnel's stage, a
     /// pictogram's icons — its row alone; a progress kind its percentage.
+    /// A part-to-whole kind says its value, its share or both as its labels
+    /// read (DataGraphics.labelAs): a stack's segment its share of the stack.
     /// One series of columns or bars, each row its own colour, has its part
     /// numbered by row and reads series 0. A heat map's cells are all
     /// "series:0" and number row by row: `index` is row × series + series.
@@ -68,10 +70,11 @@ enum ChartSpeech {
             guard let r = row(index) else { return nil }
             let total = rows.reduce(0) { $0 + value($1, 0) }
             guard total > 0 else { return nil }
-            return tr("%@: %@", r.label, DataGraphics.shareText(value(r, 0) / total, spec))
+            return tr("%@: %@", r.label, DataGraphics.labelText(value(r, 0), share: value(r, 0) / total, spec))
         case .funnel, .pictogram:
             guard let r = row(index) else { return nil }
-            return tr("%@: %@", r.label, v(value(r, 0)))
+            let total = rows.reduce(0) { $0 + value($1, 0) }
+            return tr("%@: %@", r.label, DataGraphics.labelText(value(r, 0), share: total > 0 ? value(r, 0) / total : 0, spec))
         case .heatmap:
             guard !names.isEmpty, let r = row(index / names.count) else { return nil }
             let j = index % names.count
@@ -84,7 +87,11 @@ enum ChartSpeech {
         default:
             let j = names.count == 1 ? 0 : n
             guard let r = row(index), j >= 0, j < names.count else { return nil }
-            return tr("%@, %@: %@", r.label, names[j], v(value(r, j)))
+            guard kind.isStacked else { return tr("%@, %@: %@", r.label, names[j], v(value(r, j))) }
+            // A segment's share of its stack, as its label reads it.
+            let whole = r.values.reduce(0) { $0 + ($1 > 0 ? $1 : 0) }
+            let said = DataGraphics.labelText(value(r, j), share: whole > 0 ? max(value(r, j), 0) / whole : 0, spec)
+            return tr("%@, %@: %@", r.label, names[j], said)
         }
     }
 

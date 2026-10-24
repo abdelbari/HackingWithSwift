@@ -398,10 +398,10 @@ struct ElementAnimation: Codable, Equatable {
         if q >= 1 { return .settled }
         // A kind this build does not know pops, as a scatter's points do.
         switch DataGraphics.ChartKind(rawValue: spec.kind) ?? .scatter {
-        case .column, .stackedColumn:
+        case .column, .stackedColumn, .stackedColumn100:
             s.scaleY = q
             s.anchorY = 1
-        case .bar, .stackedBar, .progressBar:
+        case .bar, .stackedBar, .stackedBar100, .progressBar:
             s.scaleX = q
             s.anchorX = 0
         case .pie, .donut, .progressRing, .progressDial:

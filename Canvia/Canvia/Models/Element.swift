@@ -635,6 +635,11 @@ struct QRFormFields: Codable, Equatable {
 /// `roundBars`; a line's `lineWidth` (1 to 12, scaled by the frame) and its
 /// `points`; and the `icon` a pictogram is drawn in, an Icons.json id,
 /// "person" — not written — when it has none.
+///
+/// How a part-to-whole kind's values read, `labelAs`: "value", "percent" or
+/// "both" (DataGraphics.labelAs), nil for its kind's own; and where the
+/// legend sits, `legendAt`: "top" or "right", nil — never written — for
+/// "bottom". A value this build does not know reads as none.
 struct ChartSpec: Codable, Equatable, Hashable {
     /// "chart_<uid>", shared by every element of the chart.
     var id: String
@@ -671,10 +676,13 @@ struct ChartSpec: Codable, Equatable, Hashable {
     var lineWidth: Double?
     var points: Bool = false
     var icon: String?
+    var labelAs: String?
+    var legendAt: String?
 
     private enum CodingKeys: String, CodingKey {
         case id, kind, data, legend, values, gridlines, font, ink, textScale, smooth, axisMin, axisMax
         case prefix, suffix, decimals, compact, xTitle, yTitle, hole, gap, roundBars, lineWidth, points, icon
+        case labelAs, legendAt
     }
 
     init(id: String = UID.make("chart"), kind: String, data: String,
@@ -725,6 +733,8 @@ struct ChartSpec: Codable, Equatable, Hashable {
         lineWidth = Self.finiteNumber(c, .lineWidth).map { min(max($0, DataGraphics.minLineWidth), DataGraphics.maxLineWidth) }
         points = (try? c.decodeIfPresent(Bool.self, forKey: .points)) ?? false
         icon = (try? c.decodeIfPresent(String.self, forKey: .icon)).flatMap { $0.isEmpty ? nil : $0 }
+        labelAs = (try? c.decodeIfPresent(String.self, forKey: .labelAs)).flatMap(DataGraphics.keptLabelAs)
+        legendAt = (try? c.decodeIfPresent(String.self, forKey: .legendAt)).flatMap(DataGraphics.keptLegendAt)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -753,6 +763,8 @@ struct ChartSpec: Codable, Equatable, Hashable {
         try c.encodeIfPresent(lineWidth, forKey: .lineWidth)
         if points { try c.encode(true, forKey: .points) }
         if let icon, !icon.isEmpty, icon != DataGraphics.defaultIcon { try c.encode(icon, forKey: .icon) }
+        try c.encodeIfPresent(labelAs.flatMap(DataGraphics.keptLabelAs), forKey: .labelAs)
+        try c.encodeIfPresent(legendAt.flatMap(DataGraphics.keptLegendAt), forKey: .legendAt)
     }
 
     /// A prefix or suffix as kept: its first 4 characters, an emoji one, as

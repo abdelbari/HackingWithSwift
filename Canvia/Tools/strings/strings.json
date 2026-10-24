@@ -4286,6 +4286,24 @@
     "ja": "1. データを追加",
     "pt-BR": "1. Adicionar dados"
   },
+  "100% stacked bar": {
+    "ar": "أشرطة مكدسة 100%",
+    "de": "Gestapelte Balken (100 %)",
+    "es": "Barras apiladas al 100%",
+    "fr": "Barres empilées à 100 %",
+    "it": "Barre in pila al 100%",
+    "ja": "100% 積み上げ横棒",
+    "pt-BR": "Barras empilhadas 100%"
+  },
+  "100% stacked column": {
+    "ar": "أعمدة مكدسة 100%",
+    "de": "Gestapelte Säulen (100 %)",
+    "es": "Columnas apiladas al 100%",
+    "fr": "Colonnes empilées à 100 %",
+    "it": "Colonne in pila al 100%",
+    "ja": "100% 積み上げ縦棒",
+    "pt-BR": "Colunas empilhadas 100%"
+  },
   "2 across": {
     "ar": "2 أفقيًا",
     "de": "2 nebeneinander",
@@ -16352,6 +16370,15 @@
     "ja": "種類",
     "pt-BR": "Tipo"
   },
+  "Labels": {
+    "ar": "التسميات",
+    "de": "Beschriftungen",
+    "es": "Etiquetas",
+    "fr": "Étiquettes",
+    "it": "Etichette",
+    "ja": "ラベル",
+    "pt-BR": "Rótulos"
+  },
   "Landscape": {
     "ar": "أفقي",
     "de": "Querformat",
@@ -16540,6 +16567,15 @@
     "it": "Legenda",
     "ja": "凡例",
     "pt-BR": "Legenda"
+  },
+  "Legend position": {
+    "ar": "موضع وسيلة الإيضاح",
+    "de": "Position der Legende",
+    "es": "Posición de la leyenda",
+    "fr": "Position de la légende",
+    "it": "Posizione della legenda",
+    "ja": "凡例の位置",
+    "pt-BR": "Posição da legenda"
   },
   "Length": {
     "ar": "الطول",
@@ -30973,6 +31009,15 @@
     "it": "Valle",
     "ja": "谷",
     "pt-BR": "Vale"
+  },
+  "Value": {
+    "ar": "القيمة",
+    "de": "Wert",
+    "es": "Valor",
+    "fr": "Valeur",
+    "it": "Valore",
+    "ja": "値",
+    "pt-BR": "Valor"
   },
   "Values": {
     "ar": "القيم",

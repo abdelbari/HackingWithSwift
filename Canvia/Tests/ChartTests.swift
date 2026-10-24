@@ -292,11 +292,11 @@ final class ChartDataTests: XCTestCase {
         XCTAssertEqual(DataGraphics.ChartKind.allCases.map(\.name),
                        ["Column", "Bar", "Line", "Pie", "Donut", "Stacked column", "Stacked bar", "Area",
                         "Progress ring", "Progress bar", "Scatter", "Radar", "Bubble", "Funnel", "Pictogram",
-                        "Heat map", "Progress dial"])
+                        "Heat map", "Progress dial", "100% stacked column", "100% stacked bar"])
         XCTAssertEqual(DataGraphics.ChartKind.allCases.map(\.rawValue),
                        ["column", "bar", "line", "pie", "donut", "stackedColumn", "stackedBar", "area",
                         "progressRing", "progressBar", "scatter", "radar", "bubble", "funnel", "pictogram",
-                        "heatmap", "progressDial"])
+                        "heatmap", "progressDial", "stackedColumn100", "stackedBar100"])
     }
 
     // MARK: JSON

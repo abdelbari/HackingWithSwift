@@ -1,0 +1,24 @@
+{
+"about":"Round 34: how a part-to-whole chart's values read (labelAs) and a 100% stack's shares, as both phones write them. labels: a value and its share (0…1) of its whole, read as the chart's labelAs says on its kind (absent: the kind's own, a pie's or donut's share, any other kind's value; a kind that is not part-to-whole always reads its value), with the chart's prefix and decimals; both is the value then the share in brackets. normalised: a stack's values over the sum of those above 0, times 100, a value at or below 0 being 0.",
+"labels":[
+{"kind":"pie","value":3,"share":0.75,"text":"75%"},
+{"kind":"pie","labelAs":"value","value":3,"share":0.75,"text":"3"},
+{"kind":"donut","labelAs":"both","value":3,"share":0.75,"text":"3 (75%)"},
+{"kind":"funnel","value":30,"share":0.25,"text":"30"},
+{"kind":"funnel","labelAs":"percent","value":30,"share":0.25,"text":"25%"},
+{"kind":"pictogram","labelAs":"both","prefix":"$","value":30,"share":0.25,"text":"$30 (25%)"},
+{"kind":"stackedColumn","labelAs":"percent","decimals":1,"value":1,"share":0.3333333333333333,"text":"33.3%"},
+{"kind":"stackedBar100","labelAs":"both","decimals":1,"value":2,"share":0.6666666666666666,"text":"2.0 (66.7%)"},
+{"kind":"stackedColumn100","value":2,"share":0.5,"text":"2"},
+{"kind":"column","labelAs":"percent","value":30,"share":0.25,"text":"30"},
+{"kind":"line","labelAs":"both","value":12.5,"share":0.5,"text":"12.5"}
+],
+"normalised":[
+{"stack":[1,3],"out":[25,75]},
+{"stack":[2,2],"out":[50,50]},
+{"stack":[1,1,2],"out":[25,25,50]},
+{"stack":[2,-1,2],"out":[50,0,50]},
+{"stack":[0,0],"out":[0,0]},
+{"stack":[],"out":[]}
+]
+}

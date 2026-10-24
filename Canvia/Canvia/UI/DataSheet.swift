@@ -136,7 +136,7 @@ struct DataSheet: View {
 
     /// `spec` with the Format section's prefix, suffix, decimals, compact
     /// numbers, axis titles, hole, bar gap, rounded bars, line weight,
-    /// points and icon.
+    /// points, icon, labels and legend position.
     private func formatted(_ spec: ChartSpec) -> ChartSpec {
         var out = spec
         out.prefix = ChartSpec.affix(format.prefix)
@@ -151,6 +151,8 @@ struct DataSheet: View {
         out.lineWidth = format.lineWidth
         out.points = format.points
         out.icon = format.icon
+        out.labelAs = format.labelAs
+        out.legendAt = format.legendAt
         return out
     }
 
@@ -289,7 +291,7 @@ struct DataSheet: View {
             chartFooter
         }
         chartLook
-        ChartFormatSection(kind: kind, format: $format)
+        ChartFormatSection(kind: kind, values: values, legend: legend, format: $format)
         Section {
             // A progress kind writes its own value and has no
             // legend, nor has a heat map, whose shades are its key;
