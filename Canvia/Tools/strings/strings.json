@@ -179,6 +179,15 @@
     "ja": "%@をセクションとして、動画と一緒に.zipで。",
     "pt-BR": "%@ como seções, em um .zip com os vídeos."
   },
+  "%@ as slides, one at a time: arrow keys, swipes and clicks go on and back.": {
+    "ar": "%@ كشرائح، واحدة في كل مرة: مفاتيح الأسهم والسحب والنقر للتقدم والرجوع.",
+    "de": "%@ als Folien, eine nach der anderen: Pfeiltasten, Wischen und Klicks blättern vor und zurück.",
+    "es": "%@ como diapositivas, de una en una: las flechas, los deslizamientos y los clics avanzan y retroceden.",
+    "fr": "%@ en diapositives, une à la fois : les flèches, les balayages et les clics avancent et reculent.",
+    "it": "%@ come diapositive, una alla volta: frecce, scorrimenti e clic vanno avanti e indietro.",
+    "ja": "%@ を 1 枚ずつのスライドに：矢印キー、スワイプ、クリックで進んだり戻ったりできます。",
+    "pt-BR": "%@ como slides, um de cada vez: setas, deslizes e cliques avançam e voltam."
+  },
   "%@ badge": {
     "ar": "شارة (%@)",
     "de": "Abzeichen (%@)",
@@ -1487,6 +1496,15 @@
     "ja": "%@、お気に入り",
     "pt-BR": "%@, favorito"
   },
+  "%@, folder, %@": {
+    "ar": "%@، مجلد، %@",
+    "de": "%@, Ordner, %@",
+    "es": "%@, carpeta, %@",
+    "fr": "%@, dossier, %@",
+    "it": "%@, cartella, %@",
+    "ja": "%@、フォルダー、%@",
+    "pt-BR": "%@, pasta, %@"
+  },
   "%@, folder, %@, starred": {
     "ar": "%@، مجلد، %@، مميّز بنجمة",
     "de": "%@, Ordner, %@, mit Stern",
@@ -2169,6 +2187,39 @@
     "pt-BR": {
       "one": "%d gráfico",
       "other": "%d gráficos"
+    }
+  },
+  "%d colourway|%d colourways": {
+    "ar": {
+      "few": "%d أنظمة ألوان",
+      "many": "%d نظام ألوان",
+      "one": "%d نظام ألوان",
+      "other": "%d نظام ألوان",
+      "two": "%d نظاما ألوان",
+      "zero": "%d نظام ألوان"
+    },
+    "de": {
+      "one": "%d Farbvariante",
+      "other": "%d Farbvarianten"
+    },
+    "es": {
+      "one": "%d combinación de colores",
+      "other": "%d combinaciones de colores"
+    },
+    "fr": {
+      "one": "%d coloris",
+      "other": "%d coloris"
+    },
+    "it": {
+      "one": "%d variante di colore",
+      "other": "%d varianti di colore"
+    },
+    "ja": {
+      "other": "%d 種類の配色"
+    },
+    "pt-BR": {
+      "one": "%d combinação de cores",
+      "other": "%d combinações de cores"
     }
   },
   "%d column|%d columns": {
@@ -3290,6 +3341,39 @@
       "other": "%d possíveis erros"
     }
   },
+  "%d post|%d posts": {
+    "ar": {
+      "few": "%d منشورات",
+      "many": "%d منشورًا",
+      "one": "%d منشور",
+      "other": "%d منشور",
+      "two": "%d منشوران",
+      "zero": "%d منشور"
+    },
+    "de": {
+      "one": "%d Beitrag",
+      "other": "%d Beiträge"
+    },
+    "es": {
+      "one": "%d publicación",
+      "other": "%d publicaciones"
+    },
+    "fr": {
+      "one": "%d publication",
+      "other": "%d publications"
+    },
+    "it": {
+      "one": "%d post",
+      "other": "%d post"
+    },
+    "ja": {
+      "other": "%d 件の投稿"
+    },
+    "pt-BR": {
+      "one": "%d publicação",
+      "other": "%d publicações"
+    }
+  },
   "%d px": {
     "ar": "%d بكسل",
     "de": "%d px",
@@ -3396,6 +3480,39 @@
     "pt-BR": {
       "one": "%d linha",
       "other": "%d linhas"
+    }
+  },
+  "%d second|%d seconds": {
+    "ar": {
+      "few": "%d ثوانٍ",
+      "many": "%d ثانية",
+      "one": "%d ثانية",
+      "other": "%d ثانية",
+      "two": "%d ثانيتان",
+      "zero": "%d ثانية"
+    },
+    "de": {
+      "one": "%d Sekunde",
+      "other": "%d Sekunden"
+    },
+    "es": {
+      "one": "%d segundo",
+      "other": "%d segundos"
+    },
+    "fr": {
+      "one": "%d seconde",
+      "other": "%d secondes"
+    },
+    "it": {
+      "one": "%d secondo",
+      "other": "%d secondi"
+    },
+    "ja": {
+      "other": "%d 秒"
+    },
+    "pt-BR": {
+      "one": "%d segundo",
+      "other": "%d segundos"
     }
   },
   "%d selected|%d selected": {
@@ -3835,6 +3952,39 @@
     "it": "%d volte le dimensioni della pagina",
     "ja": "ページサイズの %d 倍",
     "pt-BR": "%d vezes o tamanho da página"
+  },
+  "%d upload in this folder|%d uploads in this folder": {
+    "ar": {
+      "few": "%d ملفات مرفوعة في هذا المجلد",
+      "many": "%d ملفًا مرفوعًا في هذا المجلد",
+      "one": "%d ملف مرفوع في هذا المجلد",
+      "other": "%d ملف مرفوع في هذا المجلد",
+      "two": "%d ملفان مرفوعان في هذا المجلد",
+      "zero": "%d ملف مرفوع في هذا المجلد"
+    },
+    "de": {
+      "one": "%d Upload in diesem Ordner",
+      "other": "%d Uploads in diesem Ordner"
+    },
+    "es": {
+      "one": "%d archivo subido en esta carpeta",
+      "other": "%d archivos subidos en esta carpeta"
+    },
+    "fr": {
+      "one": "%d import dans ce dossier",
+      "other": "%d imports dans ce dossier"
+    },
+    "it": {
+      "one": "%d caricamento in questa cartella",
+      "other": "%d caricamenti in questa cartella"
+    },
+    "ja": {
+      "other": "このフォルダーのアップロード %d 件"
+    },
+    "pt-BR": {
+      "one": "%d upload nesta pasta",
+      "other": "%d uploads nesta pasta"
+    }
   },
   "%d upload|%d uploads": {
     "ar": {
@@ -7010,6 +7160,15 @@
     "ja": "太字",
     "pt-BR": "Negrito"
   },
+  "Bold\u0004style": {
+    "ar": "جريء",
+    "de": "Auffällig",
+    "es": "Llamativo",
+    "fr": "Audacieux",
+    "it": "Audace",
+    "ja": "大胆",
+    "pt-BR": "Marcante"
+  },
   "Bold brush": {
     "ar": "فرشاة عريضة",
     "de": "Kräftiger Pinsel",
@@ -7709,6 +7868,15 @@
     "ja": "キャッシュ",
     "pt-BR": "Caches"
   },
+  "Calendar": {
+    "ar": "التقويم",
+    "de": "Kalender",
+    "es": "Calendario",
+    "fr": "Calendrier",
+    "it": "Calendario",
+    "ja": "カレンダー",
+    "pt-BR": "Calendário"
+  },
   "Callouts": {
     "ar": "وسائل الشرح",
     "de": "Sprechblasen",
@@ -8369,6 +8537,15 @@
     "ja": "チル",
     "pt-BR": "Relaxante"
   },
+  "Choose a design": {
+    "ar": "اختر تصميمًا",
+    "de": "Design auswählen",
+    "es": "Elige un diseño",
+    "fr": "Choisissez un design",
+    "it": "Scegli un design",
+    "ja": "デザインを選択",
+    "pt-BR": "Escolha um design"
+  },
   "Choose a photo": {
     "ar": "اختيار صورة",
     "de": "Foto auswählen",
@@ -8566,6 +8743,15 @@
     "it": "Cancella ricerca",
     "ja": "検索をクリア",
     "pt-BR": "Limpar pesquisa"
+  },
+  "Clear search history": {
+    "ar": "مسح سجل البحث",
+    "de": "Suchverlauf löschen",
+    "es": "Borrar el historial de búsqueda",
+    "fr": "Effacer l’historique de recherche",
+    "it": "Cancella la cronologia delle ricerche",
+    "ja": "検索履歴を消去",
+    "pt-BR": "Limpar histórico de pesquisa"
   },
   "Clear word colours and sizes": {
     "ar": "مسح ألوان الكلمات وأحجامها",
@@ -10012,6 +10198,15 @@
     "it": "Attuale",
     "ja": "現在",
     "pt-BR": "Atual"
+  },
+  "Current folder": {
+    "ar": "المجلد الحالي",
+    "de": "Aktueller Ordner",
+    "es": "Carpeta actual",
+    "fr": "Dossier actuel",
+    "it": "Cartella attuale",
+    "ja": "現在のフォルダー",
+    "pt-BR": "Pasta atual"
   },
   "Current page": {
     "ar": "الصفحة الحالية",
@@ -12404,6 +12599,15 @@
     "ja": "エルボー",
     "pt-BR": "Cotovelo"
   },
+  "Elegant": {
+    "ar": "أنيق",
+    "de": "Elegant",
+    "es": "Elegante",
+    "fr": "Élégant",
+    "it": "Elegante",
+    "ja": "エレガント",
+    "pt-BR": "Elegante"
+  },
   "Elements": {
     "ar": "العناصر",
     "de": "Elemente",
@@ -14180,6 +14384,15 @@
     "ja": "フル HD（1920）",
     "pt-BR": "Full HD (1920)"
   },
+  "Full screen": {
+    "ar": "ملء الشاشة",
+    "de": "Vollbild",
+    "es": "Pantalla completa",
+    "fr": "Plein écran",
+    "it": "Schermo intero",
+    "ja": "全画面",
+    "pt-BR": "Tela cheia"
+  },
   "Funnel": {
     "ar": "قمع",
     "de": "Trichter",
@@ -15865,6 +16078,39 @@
     "it": "Articolo",
     "ja": "品目",
     "pt-BR": "Item"
+  },
+  "Its %d design can move up a level, out of the folder, or go to Recently deleted.|Its %d designs can move up a level, out of the folder, or go to Recently deleted.": {
+    "ar": {
+      "few": "يمكن نقل تصاميمه الـ%d مستوى إلى الأعلى خارج المجلد، أو إلى المحذوفة مؤخرًا.",
+      "many": "يمكن نقل تصاميمه الـ%d مستوى إلى الأعلى خارج المجلد، أو إلى المحذوفة مؤخرًا.",
+      "one": "يمكن نقل تصميمه (%d) مستوى إلى الأعلى خارج المجلد، أو إلى المحذوفة مؤخرًا.",
+      "other": "يمكن نقل تصاميمه الـ%d مستوى إلى الأعلى خارج المجلد، أو إلى المحذوفة مؤخرًا.",
+      "two": "يمكن نقل تصميميه (%d) مستوى إلى الأعلى خارج المجلد، أو إلى المحذوفة مؤخرًا.",
+      "zero": "يمكن نقل تصاميمه البالغة %d مستوى إلى الأعلى خارج المجلد، أو إلى المحذوفة مؤخرًا."
+    },
+    "de": {
+      "one": "Sein %d Design kann eine Ebene nach oben, aus dem Ordner, oder in „Zuletzt gelöscht“.",
+      "other": "Seine %d Designs können eine Ebene nach oben, aus dem Ordner, oder in „Zuletzt gelöscht“."
+    },
+    "es": {
+      "one": "Su %d diseño puede subir un nivel, fuera de la carpeta, o ir a Eliminados recientemente.",
+      "other": "Sus %d diseños pueden subir un nivel, fuera de la carpeta, o ir a Eliminados recientemente."
+    },
+    "fr": {
+      "one": "Son %d design peut remonter d’un niveau, hors du dossier, ou aller dans Supprimés récemment.",
+      "other": "Ses %d designs peuvent remonter d’un niveau, hors du dossier, ou aller dans Supprimés récemment."
+    },
+    "it": {
+      "one": "Il suo %d design può salire di un livello, fuori dalla cartella, o andare in Eliminati di recente.",
+      "other": "I suoi %d design possono salire di un livello, fuori dalla cartella, o andare in Eliminati di recente."
+    },
+    "ja": {
+      "other": "中の %d 件のデザインは、フォルダーの外の一つ上の階層に移すか、「最近削除した項目」に移せます。"
+    },
+    "pt-BR": {
+      "one": "O %d design pode subir um nível, para fora da pasta, ou ir para Excluídos recentemente.",
+      "other": "Os %d designs podem subir um nível, para fora da pasta, ou ir para Excluídos recentemente."
+    }
   },
   "Its %d design can stay, out of any folder, or go to Recently deleted.|Its %d designs can stay, out of any folder, or go to Recently deleted.": {
     "ar": {
@@ -17729,6 +17975,15 @@
     "ja": "その他の色",
     "pt-BR": "Mais cores"
   },
+  "More colourways": {
+    "ar": "أنظمة ألوان أخرى",
+    "de": "Weitere Farbvarianten",
+    "es": "Más combinaciones de colores",
+    "fr": "Plus de coloris",
+    "it": "Altre varianti di colore",
+    "ja": "ほかの配色",
+    "pt-BR": "Mais combinações de cores"
+  },
   "More decimals": {
     "ar": "منازل عشرية أكثر",
     "de": "Mehr Dezimalstellen",
@@ -17933,6 +18188,15 @@
     "ja": "列を右へ移動",
     "pt-BR": "Mover coluna para a direita"
   },
+  "Move contents up": {
+    "ar": "نقل المحتوى إلى الأعلى",
+    "de": "Inhalt nach oben verschieben",
+    "es": "Subir el contenido",
+    "fr": "Remonter le contenu",
+    "it": "Sposta il contenuto in su",
+    "ja": "中身を一つ上へ移動",
+    "pt-BR": "Mover o conteúdo para cima"
+  },
   "Move down": {
     "ar": "تحريك لأسفل",
     "de": "Nach unten verschieben",
@@ -17950,6 +18214,24 @@
     "it": "Sposta più indietro",
     "ja": "前へ移動",
     "pt-BR": "Mover para antes"
+  },
+  "Move folder “%@”": {
+    "ar": "نقل المجلد «%@»",
+    "de": "Ordner „%@“ verschieben",
+    "es": "Mover la carpeta «%@»",
+    "fr": "Déplacer le dossier « %@ »",
+    "it": "Sposta la cartella «%@»",
+    "ja": "フォルダー「%@」を移動",
+    "pt-BR": "Mover a pasta “%@”"
+  },
+  "Move folder…": {
+    "ar": "نقل المجلد…",
+    "de": "Ordner verschieben…",
+    "es": "Mover carpeta…",
+    "fr": "Déplacer le dossier…",
+    "it": "Sposta cartella…",
+    "ja": "フォルダーを移動…",
+    "pt-BR": "Mover pasta…"
   },
   "Move in front": {
     "ar": "نقل إلى الأمام",
@@ -18122,6 +18404,15 @@
     "ja": "分割するには再生ヘッドをトラック内に移動してください",
     "pt-BR": "Mova o indicador de reprodução para dentro da faixa para dividi-la"
   },
+  "Move to date…": {
+    "ar": "النقل إلى تاريخ…",
+    "de": "Auf Datum verschieben…",
+    "es": "Mover a una fecha…",
+    "fr": "Déplacer à une date…",
+    "it": "Sposta a una data…",
+    "ja": "日付を変更…",
+    "pt-BR": "Mover para uma data…"
+  },
   "Move to end": {
     "ar": "نقل إلى النهاية",
     "de": "Ans Ende verschieben",
@@ -18235,6 +18526,15 @@
       "one": "%d design movido para Excluídos recentemente",
       "other": "%d designs movidos para Excluídos recentemente"
     }
+  },
+  "Moved to %@": {
+    "ar": "نُقل إلى %@",
+    "de": "Verschoben auf %@",
+    "es": "Movido al %@",
+    "fr": "Déplacé au %@",
+    "it": "Spostato al %@",
+    "ja": "%@ に移動しました",
+    "pt-BR": "Movido para %@"
   },
   "Moved to page %d": {
     "ar": "تم النقل إلى الصفحة %d",
@@ -18524,6 +18824,24 @@
     "ja": "新しいフォルダー",
     "pt-BR": "Nova pasta"
   },
+  "New folder here": {
+    "ar": "مجلد جديد هنا",
+    "de": "Neuer Ordner hier",
+    "es": "Nueva carpeta aquí",
+    "fr": "Nouveau dossier ici",
+    "it": "Nuova cartella qui",
+    "ja": "ここに新しいフォルダー",
+    "pt-BR": "Nova pasta aqui"
+  },
+  "New folder in %@": {
+    "ar": "مجلد جديد في %@",
+    "de": "Neuer Ordner in %@",
+    "es": "Nueva carpeta en %@",
+    "fr": "Nouveau dossier dans %@",
+    "it": "Nuova cartella in %@",
+    "ja": "%@ 内の新しいフォルダー",
+    "pt-BR": "Nova pasta em %@"
+  },
   "New folder…": {
     "ar": "مجلد جديد…",
     "de": "Neuer Ordner …",
@@ -18622,6 +18940,15 @@
     "it": "Cella successiva",
     "ja": "次のセル",
     "pt-BR": "Próxima célula"
+  },
+  "Next month": {
+    "ar": "الشهر التالي",
+    "de": "Nächster Monat",
+    "es": "Mes siguiente",
+    "fr": "Mois suivant",
+    "it": "Mese successivo",
+    "ja": "次の月",
+    "pt-BR": "Próximo mês"
   },
   "Next page": {
     "ar": "الصفحة التالية",
@@ -18838,6 +19165,15 @@
     "it": "Nessuna uscita",
     "ja": "退場なし",
     "pt-BR": "Sem saída"
+  },
+  "No folder": {
+    "ar": "بلا مجلد",
+    "de": "Kein Ordner",
+    "es": "Sin carpeta",
+    "fr": "Aucun dossier",
+    "it": "Nessuna cartella",
+    "ja": "フォルダーなし",
+    "pt-BR": "Sem pasta"
   },
   "No font": {
     "ar": "بلا خط",
@@ -20207,6 +20543,15 @@
     "ja": "デザインを開く",
     "pt-BR": "Abrir design"
   },
+  "Open in another window": {
+    "ar": "مفتوح في نافذة أخرى",
+    "de": "In einem anderen Fenster geöffnet",
+    "es": "Abierto en otra ventana",
+    "fr": "Ouvert dans une autre fenêtre",
+    "it": "Aperto in un’altra finestra",
+    "ja": "別のウィンドウで開いています",
+    "pt-BR": "Aberto em outra janela"
+  },
   "Open in new window": {
     "ar": "فتح في نافذة جديدة",
     "de": "In neuem Fenster öffnen",
@@ -20422,6 +20767,15 @@
     "it": "Ovale",
     "ja": "楕円",
     "pt-BR": "Oval"
+  },
+  "Overdue": {
+    "ar": "متأخرة",
+    "de": "Überfällig",
+    "es": "Atrasadas",
+    "fr": "En retard",
+    "it": "In ritardo",
+    "ja": "期限切れ",
+    "pt-BR": "Atrasadas"
   },
   "Overlapping": {
     "ar": "متداخل",
@@ -22172,6 +22526,15 @@
     "ja": "前へ",
     "pt-BR": "Anterior"
   },
+  "Previous month": {
+    "ar": "الشهر السابق",
+    "de": "Vorheriger Monat",
+    "es": "Mes anterior",
+    "fr": "Mois précédent",
+    "it": "Mese precedente",
+    "ja": "前の月",
+    "pt-BR": "Mês anterior"
+  },
   "Previous page": {
     "ar": "الصفحة السابقة",
     "de": "Vorherige Seite",
@@ -22990,6 +23353,15 @@
     "it": "Rimuovi punto",
     "ja": "停止点を削除",
     "pt-BR": "Remover parada"
+  },
+  "Remove “%@”": {
+    "ar": "إزالة «%@»",
+    "de": "„%@“ entfernen",
+    "es": "Quitar «%@»",
+    "fr": "Retirer « %@ »",
+    "it": "Rimuovi «%@»",
+    "ja": "「%@」を削除",
+    "pt-BR": "Remover “%@”"
   },
   "Removed the track": {
     "ar": "تمت إزالة المسار",
@@ -24520,6 +24892,15 @@
     "it": "Script",
     "ja": "筆記体",
     "pt-BR": "Cursiva"
+  },
+  "Scroll": {
+    "ar": "تمرير",
+    "de": "Scrollen",
+    "es": "Desplazamiento",
+    "fr": "Défilement",
+    "it": "Scorrimento",
+    "ja": "スクロール",
+    "pt-BR": "Rolagem"
   },
   "Scroll through pages": {
     "ar": "التمرير عبر الصفحات",
@@ -26062,6 +26443,15 @@
     "it": "Scorri a destra",
     "ja": "右へスライド",
     "pt-BR": "Deslizar para a direita"
+  },
+  "Slides": {
+    "ar": "شرائح",
+    "de": "Folien",
+    "es": "Diapositivas",
+    "fr": "Diapositives",
+    "it": "Diapositive",
+    "ja": "スライド",
+    "pt-BR": "Slides"
   },
   "Slow": {
     "ar": "بطيء",
@@ -30176,6 +30566,15 @@
     "ja": "アップビート",
     "pt-BR": "Animado"
   },
+  "Upcoming": {
+    "ar": "القادمة",
+    "de": "Anstehend",
+    "es": "Próximas",
+    "fr": "À venir",
+    "it": "In arrivo",
+    "ja": "今後の予定",
+    "pt-BR": "Próximas"
+  },
   "Update": {
     "ar": "تحديث",
     "de": "Aktualisieren",
@@ -30239,6 +30638,15 @@
     "ja": "このデザインで「%@」を更新しました",
     "pt-BR": "“%@” atualizado a partir deste design"
   },
+  "Upload": {
+    "ar": "ملف مرفوع",
+    "de": "Upload",
+    "es": "Archivo subido",
+    "fr": "Import",
+    "it": "Caricamento",
+    "ja": "アップロード",
+    "pt-BR": "Upload"
+  },
   "Uploaded SVG graphic %d of %d": {
     "ar": "رسم SVG المحمّل %d من %d",
     "de": "Hochgeladene SVG-Grafik %d von %d",
@@ -30274,6 +30682,15 @@
     "it": "Caricamenti",
     "ja": "アップロード",
     "pt-BR": "Uploads"
+  },
+  "Uploads in %@": {
+    "ar": "الملفات المرفوعة في %@",
+    "de": "Uploads in %@",
+    "es": "Archivos subidos en %@",
+    "fr": "Imports dans %@",
+    "it": "Caricamenti in %@",
+    "ja": "%@ のアップロード",
+    "pt-BR": "Uploads em %@"
   },
   "Uppercase": {
     "ar": "أحرف كبيرة",
@@ -31714,6 +32131,15 @@
     "it": "angolare",
     "ja": "円錐",
     "pt-BR": "angular"
+  },
+  "animated": {
+    "ar": "متحرك",
+    "de": "animiert",
+    "es": "animada",
+    "fr": "animé",
+    "it": "animato",
+    "ja": "アニメーション付き",
+    "pt-BR": "animado"
   },
   "arrow": {
     "ar": "سهم",

@@ -52,7 +52,7 @@ final class ExportPlanTests: XCTestCase {
     func testTheNewKeysAreRememberedAndReadLeniently() throws {
         let on = ExportLast(format: "png", scale: 2, longEdge: nil, jpegQuality: 0.85, transparent: false,
                             pages: "all", zip: true, pngCompress: true)
-        XCTAssertTrue(on.json.hasSuffix(#""embedMedia":true},"zip":true,"pngCompress":true,"pdfTagged":true}"#))
+        XCTAssertTrue(on.json.hasSuffix(#""embedMedia":true,"layout":"scroll","autoplay":0.0,"loop":false},"zip":true,"pngCompress":true,"pdfTagged":true}"#))
         XCTAssertEqual(ExportLast.read(on.json), on)
         let old = try XCTUnwrap(ExportLast.read(#"{"format":"png"}"#))
         XCTAssertFalse(old.zip)

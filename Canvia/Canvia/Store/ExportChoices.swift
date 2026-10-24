@@ -256,7 +256,8 @@ enum ExportChoices {
 ///  "transparent":false,"pages":"all","pdfNotes":false,"pdfCompress":false,
 ///  "pptxStyledText":"editable","suggested":false,"pdfBookmarks":true,
 ///  "colourProfile":"rgb","html":{"nav":true,"mobileStack":true,
-///  "embedMedia":true},"zip":false,"pngCompress":false,"pdfTagged":true}. A
+///  "embedMedia":true,"layout":"scroll","autoplay":0.0,"loop":false},
+///  "zip":false,"pngCompress":false,"pdfTagged":true}. A
 ///  missing "pptxStyledText" is "editable"; a missing "zip" or "pngCompress"
 ///  off, and a missing "pdfTagged" false.
 struct ExportLast: Codable, Equatable {

@@ -228,9 +228,9 @@ enum DesignLibrary {
     /// The recents that match a query, in an order. Matching is on the
     /// title, case- and diacritic-insensitively, and on the size ("1080")
     /// because that is how people remember a design they never named.
-    /// Every folder in use, alphabetically.
+    /// Every folder in use, and every folder those are in, alphabetically.
     static func folders(in designs: [RecentDesign]) -> [String] {
-        Array(Set(designs.compactMap(\.folder))).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        allFolders(designs.compactMap(\.folder))
     }
 
     /// Files a design under a folder — nil or blank takes it out of one.

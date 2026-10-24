@@ -41,6 +41,13 @@ enum ExportSuggestion {
         return !shown.isEmpty && shown.allSatisfy({ isPhoto(design, $0) }) ? "jpg" : "png"
     }
 
+    /// The web page's layout the sheet suggests for `design`: the slide
+    /// player for a design of a Presentations type (`category`), else the
+    /// scrolling site.
+    static func htmlLayout(_ design: Design, presets: [SizePreset] = ContentLibrary.sizes) -> String {
+        category(design, presets: presets) == "Presentations" ? HTMLExporter.slides : HTMLExporter.scroll
+    }
+
     /// The Website type's id.
     static let website = "website"
 

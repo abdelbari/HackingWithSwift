@@ -57,9 +57,11 @@ enum SVGExporter {
     @MainActor
     /// With `moving`, for the web page: a graphic drawing itself on or
     /// twinkling plays as CSS (`moving(_:_:)`); anywhere else it is still,
-    /// its drawing finished.
+    /// its drawing finished. With `entrances`, for the slide player
+    /// (HTMLExporter, "slides"): each simple entrance plays as CSS round
+    /// the element's own group (`entranceGroup`).
     static func svg(design: Design, page: Page, aria: Bool, standIns: StandIns?,
-                    anchors: [String: Int] = [:], moving: Bool = false) -> String {
+                    anchors: [String: Int] = [:], moving: Bool = false, entrances: Bool = false) -> String {
         var defs: [String] = []
         var body: [String] = []
 
@@ -74,7 +76,9 @@ enum SVGExporter {
             }
             let group = elementGroup(resolved, index: index, aria: aria, standIns: standIns, anchors: anchors,
                                      defs: &defs)
-            parts.append((el: el as Element?, part: moving ? Self.moving(group, el) : group))
+            let played = moving ? Self.moving(group, el) : group
+            let entrance = entrances ? entranceGroup(el) : nil
+            parts.append((el: el as Element?, part: entrance.map { $0 + played + "</g>" } ?? played))
         }
         // Groups, nested ones too, as <g> round their members (Groups.nested).
         body += Groups.nested(parts) { _, _, inner in "<g>" + inner.joined() + "</g>" }
@@ -744,6 +748,32 @@ enum SVGExporter {
         default:
             return group
         }
+    }
+
+    /// The CSS animation a slide-player page gives an element's entrance,
+    /// by its kind: fade, rise, pan (Slide from right or left) and pop; wipe
+    /// reveals it from its left. Any other kind stays still there — the
+    /// simplest rule both phones share (the twin's SvgWriter.entranceClass).
+    static func entranceClass(_ kind: String?) -> String? {
+        switch kind {
+        case "fade": return "canvia-in-fade"
+        case "rise": return "canvia-in-rise"
+        case "slideLeft": return "canvia-in-pan-left"
+        case "slideRight": return "canvia-in-pan-right"
+        case "pop": return "canvia-in-pop"
+        case "wipe": return "canvia-in-wipe"
+        default: return nil
+        }
+    }
+
+    /// The opening of the group an element's entrance plays in on a
+    /// slide-player page — its class, its delay and how long it takes — or
+    /// nil for one that comes in still. Round the element's own group, so
+    /// the move is on the page, never inside its turn.
+    static func entranceGroup(_ el: Element) -> String? {
+        guard let anim = el.animation, let name = entranceClass(anim.kind) else { return nil }
+        return "<g class=\"canvia-in \(name)\" style=\"animation-delay:\(num(anim.delay))s;"
+            + "animation-duration:\(num(anim.duration))s\">"
     }
 
     /// Whether `page` has a graphic that moves on a web page.

@@ -30,16 +30,69 @@ enum Templates {
         return score + nameTokens(other.name).intersection(nameTokens(template.name)).count
     }
 
-    /// The `limit` templates most like `template`, itself left out: the
-    /// highest likeness first, a tie in the library's order.
+    /// The `limit` templates most like `template`, itself left out: first
+    /// the rest of its family — its base and its colourways (colourways) —
+    /// in the library's order; then the others, the highest likeness
+    /// first, a tie in the library's order.
     static func similar(_ template: Template, limit: Int = similarCount,
                         among library: [Template] = ContentLibrary.templates) -> [Template] {
+        let family = moreColourways(template, among: library)
+        let kin = Set(family.map(\.id))
         let scored: [(offset: Int, template: Template, score: Int)] = library.enumerated()
-            .filter { $0.element.id != template.id }
+            .filter { $0.element.id != template.id && !kin.contains($0.element.id) }
             .map { (offset: $0.offset, template: $0.element, score: likeness($0.element, to: template)) }
         let ranked = scored.sorted { a, b in a.score != b.score ? a.score > b.score : a.offset < b.offset }
-        return ranked.prefix(max(0, limit)).map { $0.template }
+        let rest = ranked.prefix(max(0, limit - family.count)).map { $0.template }
+        return Array(family.prefix(max(0, limit))) + rest
     }
+
+    // MARK: colourways
+
+    /// The library's families, by their base's id, each in the library's
+    /// order — worked out once for the bundled library.
+    private static let families: [String: [Template]] = Dictionary(grouping: ContentLibrary.templates, by: \.family)
+
+    /// `template`'s base and every colourway of it, in the library's order,
+    /// itself among them; just itself for a template with none.
+    static func colourways(_ template: Template) -> [Template] {
+        guard let family = families[template.family], !family.isEmpty else { return [template] }
+        return family
+    }
+
+    /// The same among `library`.
+    static func colourways(_ template: Template, among library: [Template]) -> [Template] {
+        let family = library.filter { $0.family == template.family }
+        return family.isEmpty ? [template] : family
+    }
+
+    /// "More colourways" in a template's preview: the rest of its family.
+    static func moreColourways(_ template: Template) -> [Template] {
+        colourways(template).filter { $0.id != template.id }
+    }
+
+    static func moreColourways(_ template: Template, among library: [Template]) -> [Template] {
+        colourways(template, among: library).filter { $0.id != template.id }
+    }
+
+    /// `templates` with every variant whose base is among them left out,
+    /// so a Start sheet shows each layout once, its colourways under it (in
+    /// the preview's More colourways). A variant whose base is not there — a
+    /// filter let it through and not its base — stays, in its place.
+    static func grouped(_ templates: [Template]) -> [Template] {
+        let shown = Set(templates.map(\.id))
+        return templates.filter { t in t.variantOf.map { !shown.contains($0) } ?? true }
+    }
+
+    /// "8 colourways", under a base's card; nil for a template with none.
+    static func colourwaysBadge(_ template: Template) -> String? {
+        let count = colourways(template).count
+        return count > 1 ? trn("%d colourway|%d colourways", count) : nil
+    }
+
+    // MARK: animated
+
+    /// The topic chip Start and Home add: every animated template.
+    static let animated: [Template] = ContentLibrary.templates.filter { $0.shownFacets.animated }
 
     // MARK: adapted from other sizes
 
@@ -76,14 +129,15 @@ enum Templates {
     }
 
     /// The templates of other sizes a type borrows, at most `limit`: those
-    /// within nearbyReach of its shape, nearest first; at the same distance
+    /// not a colourway of another, within nearbyReach of its shape, nearest first; at the same distance
     /// those of the type's own family first; then the library's order.
     static func nearbyTemplates(_ preset: SizePreset, limit: Int = nearbyCount,
                                 among library: [Template] = ContentLibrary.templates,
                                 presets: [SizePreset] = SizePreset.all) -> [Template] {
         let ranked = library.enumerated().compactMap { entry -> (Double, Int, Int, Template)? in
             let template = entry.element
-            guard !isOwn(template, of: preset) else { return nil }
+            // A colourway is never borrowed: its base stands for it.
+            guard !isOwn(template, of: preset), template.variantOf == nil else { return nil }
             let distance = aspectDistance(template, preset)
             guard distance < nearbyReach else { return nil }
             let kin = family(of: template, in: presets) == preset.category ? 0 : 1

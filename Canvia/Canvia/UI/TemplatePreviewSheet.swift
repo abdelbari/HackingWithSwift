@@ -2,9 +2,14 @@
 // sheet and in the editor's Templates panel: every page large, to swipe
 // through; what it is — "Business · 1920 × 1080 · 10 pages"; its star; and
 // "Customize this template", which for several pages still asks all of them
-// or the page shown. Under it, "More like this" (Templates.similar); a tap
-// on one shows that one here instead. Pressing and holding a card still
-// opens its menu where it is. The Android twin's TemplatePreviewSheet.
+// or the page shown. An animated one has Play, which plays the page shown
+// as Present does — without its sound, round and round (TemplatePlayer) —
+// and not while Reduce motion is on. Under it, "More colourways", the rest
+// of its family (Templates.moreColourways), and "More like this"
+// (Templates.similar); a tap on either shows that one here instead. A
+// template used from here leads Recently used (RecentSearches). Pressing
+// and holding a card still opens its menu where it is. The Android twin's
+// TemplatePreviewSheet.
 
 import SwiftUI
 
@@ -21,8 +26,20 @@ struct TemplatePreviewSheet: View {
     @State private var shown = 0
     @State private var starred: Bool
     @State private var similar: [Template]
+    @State private var colourways: [Template]
     /// Customize asked of several pages: all, or the one shown.
     @State private var choosing = false
+    /// Play, on an animated template: the page shown plays.
+    @State private var playing = false
+    @Environment(\.accessibilityReduceMotion) private var systemReducesMotion
+    /// Settings ▸ Accessibility's Reduce motion, over the phone's own.
+    @AppStorage(AccessibilityPrefs.reduceMotionKey) private var reduceMotionChoice = AccessibilityPrefs.system
+
+    /// Whether Play is offered: an animated template, while motion is on.
+    private var canPlay: Bool {
+        template.shownFacets.animated
+            && !AccessibilityPrefs.reducesMotion(reduceMotionChoice, systemReduces: systemReducesMotion)
+    }
 
     init(template: Template, note: String, onUse: @escaping (Template, Int?) -> Void) {
         self.note = note
@@ -31,6 +48,7 @@ struct TemplatePreviewSheet: View {
         _design = State(initialValue: template.instantiate())
         _starred = State(initialValue: Favorites.isFavorite("template", template.id))
         _similar = State(initialValue: Templates.similar(template))
+        _colourways = State(initialValue: Templates.moreColourways(template))
     }
 
     var body: some View {
@@ -39,8 +57,10 @@ struct TemplatePreviewSheet: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         pager.id(Self.top)
+                        if canPlay { playButton }
                         header
                         customizeButton
+                        moreColourways(proxy)
                         moreLikeThis(proxy)
                     }
                     .padding(.vertical, 12)
@@ -89,9 +109,24 @@ struct TemplatePreviewSheet: View {
         .frame(maxWidth: .infinity, maxHeight: 460)
     }
 
+    /// The page, still — or, playing, the page shown as Present plays it.
+    @ViewBuilder
     private func pagePicture(_ page: Page) -> some View {
         let size = design.size(for: page)
-        return PageThumbnail(design: design, page: page, pixelWidth: 720)
+        let index = design.pages.firstIndex { $0.id == page.id } ?? 0
+        if playing && canPlay && index == shown {
+            TemplatePlayer(design: design, page: page)
+                .aspectRatio(size.width / max(size.height, 1), contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.hairline))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            stillPicture(page, size: size)
+        }
+    }
+
+    private func stillPicture(_ page: Page, size: CGSize) -> some View {
+        PageThumbnail(design: design, page: page, pixelWidth: 720)
             .aspectRatio(size.width / max(size.height, 1), contentMode: .fit)
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.hairline))
@@ -129,6 +164,42 @@ struct TemplatePreviewSheet: View {
         .tint(Theme.accent)
         .controlSize(.large)
         .padding(.horizontal, 16)
+    }
+
+    /// Play or Pause.
+    private var playButton: some View {
+        Button {
+            playing.toggle()
+        } label: {
+            Label(playing ? tr("Pause") : tr("Play"), systemImage: playing ? "pause.fill" : "play.fill")
+                .frame(minHeight: 32)
+        }
+        .buttonStyle(.bordered)
+        .frame(maxWidth: .infinity)
+    }
+
+    /// The rest of its family, in a row; a tap shows that one here.
+    @ViewBuilder
+    private func moreColourways(_ proxy: ScrollViewProxy) -> some View {
+        if !colourways.isEmpty {
+            Text("More colourways")
+                .font(.headline)
+                .accessibilityAddTraits(.isHeader)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 12) {
+                    ForEach(colourways) { other in
+                        similarCard(other) {
+                            show(other)
+                            withAnimation { proxy.scrollTo(Self.top, anchor: .top) }
+                        }
+                        .frame(width: 132)
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+        }
     }
 
     /// Eight like it; a tap shows that one here, from the top.
@@ -172,10 +243,14 @@ struct TemplatePreviewSheet: View {
         shown = 0
         starred = Favorites.isFavorite("template", other.id)
         similar = Templates.similar(other)
+        colourways = Templates.moreColourways(other)
+        playing = false
     }
 
     private func use(_ page: Int?) {
         let chosen = template
+        // A template opened from here leads Recently used.
+        RecentSearches.used(chosen.id)
         dismiss()
         onUse(chosen, page)
     }

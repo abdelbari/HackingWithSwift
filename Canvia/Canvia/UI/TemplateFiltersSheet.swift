@@ -1,5 +1,6 @@
 // Canva's Filters button for templates, on Home and in the Start sheet: a
-// sheet of colour dots, Animated, With photos and Single page or Set; what
+// sheet of colour dots, Animated, With photos, Single page or Set and a
+// Style, one at a time; what
 // is set shows as chips with an X under the search; nothing found says so,
 // with Clear filters. The filter is kept for the session only
 // (TemplateFilter.session). The Android twin's TemplateFiltersSheet.
@@ -100,6 +101,10 @@ struct TemplateFiltersSheet: View {
                         .font(.headline)
                         .accessibilityAddTraits(.isHeader)
                     pagesRow
+                    Text("Style")
+                        .font(.headline)
+                        .accessibilityAddTraits(.isHeader)
+                    stylesRow
                     Button("Clear filters") { filter = TemplateFilter() }
                         .disabled(filter.isEmpty)
                 }
@@ -154,6 +159,19 @@ struct TemplateFiltersSheet: View {
             }
             toggleChip(tr("Set", context: "pages"), on: filter.multiPage == true) {
                 filter.multiPage = filter.multiPage == true ? nil : true
+            }
+        }
+    }
+
+    /// The five styles, one at a time: a tap on the one set clears it.
+    private var stylesRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(TemplateFilter.styles, id: \.self) { style in
+                    toggleChip(TemplateFilter.styleName(style), on: filter.style == style) {
+                        filter.style = filter.style == style ? nil : style
+                    }
+                }
             }
         }
     }

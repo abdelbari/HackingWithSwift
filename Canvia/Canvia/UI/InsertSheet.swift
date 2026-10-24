@@ -347,6 +347,8 @@ struct InsertSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             // Your own first, every size, fitted to this page.
             EditorYourTemplates(store: store, search: search) { dismiss() }
+            // "Recently used" leads Home's templates and the Start sheet
+            // only, on both phones; a template used here still counts there.
             if !exactTemplates.isEmpty {
                 Toggle("Every size, fitted to this page", isOn: $everySizeTemplates)
                     .toggleStyle(.button)
@@ -425,6 +427,7 @@ struct InsertSheet: View {
     private func addAsPage(_ template: Template, page index: Int) {
         let page = template.makePage(at: index, width: store.pageWidth, height: store.pageHeight)
         store.addTemplatePage(page, name: template.name)
+        RecentSearches.used(template.id)
         dismiss()
     }
 
@@ -442,6 +445,7 @@ struct InsertSheet: View {
         guard !store.refusesLockedPage() else { return }
         store.applyTemplateSet(template.makePages(width: store.pageWidth, height: store.pageHeight),
                                name: template.name)
+        RecentSearches.used(template.id)
         dismiss()
     }
 
@@ -464,6 +468,7 @@ struct InsertSheet: View {
         store.selection.removeAll()
         store.buzz(.confirm)
         store.announce(tr("Started over from \u{201C}%@\u{201D}", template.name))
+        RecentSearches.used(template.id)
         dismiss()
     }
 
@@ -2267,11 +2272,26 @@ struct TemplateThumb: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(alignment: .bottomTrailing) { PageCountBadge(count: badge ? template.pageCount : 1) }
+        .overlay(alignment: .topLeading) { if template.shownFacets.animated { PlayBadge() } }
         .task {
             if image == nil {
                 image = TemplateThumbCache.thumbnail(for: template)
             }
         }
+    }
+}
+
+/// An animated template's small play badge, as Canva's card has: it plays
+/// in its preview. Said as "animated" with the card.
+struct PlayBadge: View {
+    var body: some View {
+        Image(systemName: "play.fill")
+            .font(.system(size: 9, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: 20, height: 20)
+            .background(.black.opacity(0.6), in: Circle())
+            .padding(6)
+            .accessibilityLabel(tr("animated"))
     }
 }
 

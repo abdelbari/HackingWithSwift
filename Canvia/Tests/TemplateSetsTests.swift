@@ -18,7 +18,9 @@ final class TemplateSetsTests: XCTestCase {
     // MARK: what ships
 
     func testTheSetsTheSpecAsksFor() {
-        let decks = sets(width: 1920, height: 1080)
+        // The animated presentations are sets of five of their own
+        // (RoundThirtyThreeTemplatesTests).
+        let decks = sets(width: 1920, height: 1080).filter { $0.topic != "animated" }
         XCTAssertGreaterThanOrEqual(decks.count, 8, "eight decks")
         for deck in decks {
             XCTAssertTrue((8...12).contains(deck.pageCount), "\(deck.id) has \(deck.pageCount) slides")

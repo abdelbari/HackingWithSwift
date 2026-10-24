@@ -122,6 +122,7 @@ struct SettingsSheet: View {
     @AppStorage(AppDefaults.unitKey) private var unit = "px"
     /// What Canvia is used for, as the first launch asked; "" for none.
     @AppStorage(UseProfile.key) private var use = ""
+    @AppStorage(RecentSearches.searchesKey) private var recentSearchesText = ""
     /// Settings ▸ Accessibility (AccessibilityPrefs).
     @AppStorage(AccessibilityPrefs.reduceMotionKey) private var reduceMotion = AccessibilityPrefs.system
     @AppStorage(AccessibilityPrefs.autoplayClipsKey) private var autoplayClips = true
@@ -345,14 +346,16 @@ struct SettingsSheet: View {
 
     private var storageSection: some View {
         Section {
-            storageRow(tr("Designs"), storage?.designs)
-            storageRow(tr("Photos & clips"), storage?.photosAndClips)
-            storageRow(tr("Your uploads"), storage?.uploads)
-            storageRow(tr("Fonts"), storage?.fonts)
-            storageRow(tr("Templates"), storage?.templates)
-            storageRow(tr("Versions"), storage?.versions)
-            storageRow(tr("Recently deleted"), storage?.recentlyDeleted)
-            storageRow(tr("Caches"), storage?.caches)
+            Group {
+                storageRow(tr("Designs"), storage?.designs)
+                storageRow(tr("Photos & clips"), storage?.photosAndClips)
+                storageRow(tr("Your uploads"), storage?.uploads)
+                storageRow(tr("Fonts"), storage?.fonts)
+                storageRow(tr("Templates"), storage?.templates)
+                storageRow(tr("Versions"), storage?.versions)
+                storageRow(tr("Recently deleted"), storage?.recentlyDeleted)
+                storageRow(tr("Caches"), storage?.caches)
+            }
             // Neither while a backup or restore runs: a backup is written
             // among the caches, and a restore fills Recently deleted.
             Button("Clear caches") { clearingCaches = true }
@@ -362,6 +365,9 @@ struct SettingsSheet: View {
                 emptyingTrash = true
             }
             .disabled(storage?.recentlyDeleted == 0 || progress != nil)
+            // Home's Recent searches, all of them.
+            Button("Clear search history") { recentSearchesText = RecentSearches.encode([]) }
+                .disabled(RecentSearches.decode(recentSearchesText).isEmpty)
         } header: {
             Text("Storage")
         } footer: {

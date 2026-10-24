@@ -3,9 +3,11 @@
 // first, each tile with its size and what it is. A tap previews one, a
 // clip or a song playing; its ⋯ menu starts a new design from it (as a
 // share into Canvia does), says and lists the designs that use it, shares
-// it or deletes it. Select deletes several at once. The header's figure is
-// Settings' "Your uploads" (StorageReport.uploadsBytes). The Android
-// twin's home/UploadsSheet.kt.
+// it, files it in a folder (Move to folder…) or deletes it. Select deletes
+// several at once. The header's figure is Settings' "Your uploads"
+// (StorageReport.uploadsBytes). Opened from a folder of Home's, it shows
+// what is filed in that folder alone. The Android twin's
+// home/UploadsSheet.kt.
 
 import AVKit
 import SwiftUI
@@ -20,6 +22,8 @@ struct UploadItem: Identifiable, Equatable {
     var pixels: CGSize?
     var seconds: Double?
     var label: String?
+    /// The folder it is filed in (Uploads.Entry.folder); a font is in none.
+    var folder: String?
 
     var id: String { listed.id }
     var kind: String { listed.kind }
@@ -66,6 +70,7 @@ enum UploadsHome {
             guard let file = StorageReport.file(of: entry) else { continue }
             let listed = Uploads.Listed(id: entry.id, kind: entry.kind.rawValue, added: entry.added)
             var item = UploadItem(listed: listed, file: file, bytes: StorageReport.bytes(of: file))
+            item.folder = entry.folder
             switch entry.kind {
             case .image:
                 item.pixels = MediaStore.pixelSize(entry.id)
@@ -115,6 +120,10 @@ enum UploadsHome {
 }
 
 struct UploadsSheet: View {
+    /// The folder whose uploads it shows; nil for every one.
+    var folder: String? = nil
+    /// Every folder in use, for Move to folder….
+    var folders: [String] = []
     /// A design that uses an upload, to open.
     var onOpen: (Design) -> Void
     /// Import's photo and clip picker.
@@ -139,11 +148,13 @@ struct UploadsSheet: View {
     @State private var listing: UploadItem?
     @State private var sharing: ShareURL?
     @State private var deleting: [UploadItem]?
+    /// The upload being filed, while Move to folder… asks where.
+    @State private var filing: UploadItem?
 
     var body: some View {
         NavigationStack {
             content
-                .navigationTitle("Uploads")
+                .navigationTitle(folder.map { tr("Uploads in %@", DesignLibrary.leafName($0)) } ?? tr("Uploads"))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { toolbar }
                 .safeAreaInset(edge: .bottom, spacing: 0) { if selecting { selectBar } }
@@ -152,6 +163,10 @@ struct UploadsSheet: View {
         .sheet(item: $previewing) { UploadPreview(item: $0) }
         .sheet(item: $sharing) { ShareSheet(urls: [$0.url]) }
         .sheet(item: $listing) { item in usageList(item) }
+        .sheet(item: $filing) { item in
+            FolderPicker(heading: tr("Move to folder"), current: item.folder, folders: folders,
+                         onMove: { to in file(item, in: to) })
+        }
         .confirmationDialog(deleteQuestion.title, isPresented: Binding(
             get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
                             titleVisibility: .visible, presenting: deleting) { chosen in
@@ -310,6 +325,10 @@ struct UploadsSheet: View {
             Label(Uploads.usedIn(usages[item.id]?.count ?? 0, brandKit: inBrandKit(item)), systemImage: "doc.on.doc")
         }
         Button { sharing = ShareURL(url: item.file) } label: { Label("Share", systemImage: "square.and.arrow.up") }
+        // A font of your own is no picture to file.
+        if item.kind != Uploads.fontKind {
+            Button { filing = item } label: { Label("Move to folder…", systemImage: "folder") }
+        }
         Button(role: .destructive) { deleting = [item] } label: { Label("Delete", systemImage: "trash") }
     }
 
@@ -329,7 +348,7 @@ struct UploadsSheet: View {
     // MARK: what is shown
 
     private var shown: [UploadItem] {
-        let all = items ?? []
+        let all = (items ?? []).filter { folder == nil || $0.folder == folder }
         let byId = Dictionary(all.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         return Uploads.sorted(all.map(\.listed), kind: filter, largest: largest) { byId[$0.id]?.bytes ?? 0 }
             .compactMap { byId[$0.id] }
@@ -358,6 +377,13 @@ struct UploadsSheet: View {
     }
 
     // MARK: work
+
+    /// `item` filed in `to`, or out of any folder for nil, and the list read
+    /// again.
+    private func file(_ item: UploadItem, in to: String?) {
+        Uploads.file(item.id, inFolder: to)
+        Task { await load() }
+    }
 
     private func load() async {
         let read = await UploadsHome.items()
