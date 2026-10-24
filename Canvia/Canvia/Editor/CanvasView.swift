@@ -24,6 +24,9 @@ struct CanvasView: View {
     /// nothing of where it is: the menu a still hold on the empty page
     /// brings up, a hold on the selection's body (ZoomableCanvas.onPress).
     @State private var pagePress: CGPoint?
+    /// The value VoiceOver's Next value and Previous value have reached on
+    /// each chart, by chart id: an index into its parts' labels.
+    @State private var chartValue: [String: Int] = [:]
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @Environment(\.displayScale) private var displayScale
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -570,10 +573,13 @@ struct CanvasView: View {
             // Hit layer: one transparent overlay per element for taps/drags,
             // announced in reading order rather than stacking order. A hidden
             // element has none: it is picked from Layers.
+            // A chart is one stop: its other parts are hidden from VoiceOver.
             let order = CanvasAccessibility.readingOrder(store.page.elements, pageHeight: store.pageHeight)
+            let charts = CanvasAccessibility.chartStops(store.page.elements.filter { !$0.isHidden }, order: order)
             ForEach(store.page.elements.filter { !$0.isHidden }) { el in
                 elementHitArea(el)
                     .accessibilitySortPriority(Double(order.count - (order.firstIndex(of: el.id) ?? 0)))
+                    .accessibilityHidden(charts.hidden.contains(el.id))
             }
 
             if let moved = gesture.movedBox, store.cropping == nil, store.previewTime == nil {
@@ -1524,8 +1530,8 @@ struct CanvasView: View {
                                 perform: { elementHold(el) }, onPressingChanged: pressed)
             .gesture(moveGesture(el))
             .accessibilityElement()
-            .accessibilityLabel(CanvasAccessibility.label(for: el))
-            .accessibilityValue(CanvasAccessibility.value(for: el, design: store.design))
+            .accessibilityLabel(CanvasAccessibility.label(for: el, on: store.page.elements))
+            .accessibilityValue(spokenValue(of: el))
             .accessibilityAddTraits(store.selection.contains(el.id) ? [.isButton, .isSelected] : .isButton)
             .accessibilityHint(el.type == .text ? tr("Double tap to select; double tap and hold to edit")
                                : el.type == .image ? tr("Double tap to select; Crop is in the actions")
@@ -1717,6 +1723,7 @@ struct CanvasView: View {
         if el.type == .image && !el.locked {
             Button("Crop") { store.startCrop(el.id) }
         }
+        chartActions(for: el)
         // A table's cell moves its row or column, as the Table panel's
         // arrows do — the cell alone selected first, not its whole table.
         if el.table != nil && !el.locked {
@@ -1724,6 +1731,43 @@ struct CanvasView: View {
             Button("Move row down") { inCell(el) { store.moveTableRow(by: 1) } }
             Button("Move column left") { inCell(el) { store.moveTableColumn(by: -1) } }
             Button("Move column right") { inCell(el) { store.moveTableColumn(by: 1) } }
+            // Its row's edge, a step either way, as a drag moves it.
+            Button("Taller row") { inCell(el) { store.resizeTableRow(taller: true) } }
+            Button("Shorter row") { inCell(el) { store.resizeTableRow(taller: false) } }
+        }
+    }
+
+    /// What VoiceOver says an element's value is: on a chart, the value
+    /// Next value or Previous value last reached, when one has; else where
+    /// it is and how big.
+    private func spokenValue(of el: Element) -> String {
+        if let chart = el.chart?.id, el.chartPart != nil, let at = chartValue[chart] {
+            let values = CanvasAccessibility.values(ofChart: chart, in: store.page.elements)
+            if values.indices.contains(at) { return values[at] }
+        }
+        return CanvasAccessibility.value(for: el, design: store.design)
+    }
+
+    /// Next value (or Previous value) on chart `id`: the next of its parts'
+    /// labels, said.
+    private func stepChart(_ id: String, forward: Bool) {
+        let values = CanvasAccessibility.values(ofChart: id, in: store.page.elements)
+        guard let at = CanvasAccessibility.steppedValue(chartValue[id], count: values.count, forward: forward) else { return }
+        chartValue[id] = at
+        AccessibilityNotification.Announcement(values[at]).post()
+    }
+
+    /// The chart's own actions: its values one by one, and Edit data, which
+    /// opens Edit chart on it.
+    @ViewBuilder
+    private func chartActions(for el: Element) -> some View {
+        if let chart = el.chart?.id, el.chartPart != nil {
+            Button("Next value") { stepChart(chart, forward: true) }
+            Button("Previous value") { stepChart(chart, forward: false) }
+            Button("Edit data") {
+                store.select(el.id)
+                store.chartEditRequested = true
+            }
         }
     }
 

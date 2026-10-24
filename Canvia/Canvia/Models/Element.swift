@@ -317,20 +317,28 @@ struct TableCell: Codable, Equatable, Hashable {
     /// The table's alternating rows' colour, "#rrggbb", on every cell of it
     /// alike; nil is no alternating rows kept (DataGraphics.withTableBands).
     var bands: String?
+    /// The least height of the row this cell starts, in page units, when it
+    /// was dragged taller than its words need (DataGraphics
+    /// .withRowDragged): kept on the row's first cell, its rectangle and
+    /// words, written "minH" only then; nil is as tall as the words.
+    var minH: Double?
 
-    private enum CodingKeys: String, CodingKey { case id, row, col, rowSpan, colSpan, pad, bands }
+    private enum CodingKeys: String, CodingKey { case id, row, col, rowSpan, colSpan, pad, bands, minH }
 
-    /// `cell` with its spacing, in page units, times `scale` — as a table
-    /// scaled with its page or its selection keeps its inset in proportion,
-    /// so its next relayout holds its rows; as it is when it is no cell or
-    /// keeps none. The Android twin's Tables.scaledPad.
+    /// `cell` with its spacing and its row's least height, in page units,
+    /// times `scale` — as a table scaled with its page or its selection
+    /// keeps its inset and its rows in proportion, so its next relayout
+    /// holds them; as it is when it is no cell or keeps neither. The
+    /// Android twin's Tables.scaledPad.
     static func scaledPad(_ cell: TableCell?, by scale: Double) -> TableCell? {
-        guard var out = cell, let pad = out.pad else { return cell }
-        out.pad = pad * scale
+        guard var out = cell, out.pad != nil || out.minH != nil else { return cell }
+        out.pad = out.pad.map { $0 * scale }
+        out.minH = out.minH.map { $0 * scale }
         return out
     }
 
-    init(id: String, row: Int, col: Int, rowSpan: Int = 1, colSpan: Int = 1, pad: Double? = nil, bands: String? = nil) {
+    init(id: String, row: Int, col: Int, rowSpan: Int = 1, colSpan: Int = 1, pad: Double? = nil, bands: String? = nil,
+         minH: Double? = nil) {
         self.id = id
         self.row = row
         self.col = col
@@ -338,6 +346,7 @@ struct TableCell: Codable, Equatable, Hashable {
         self.colSpan = max(1, colSpan)
         self.pad = pad
         self.bands = bands
+        self.minH = minH
     }
 
     init(from decoder: Decoder) throws {
@@ -355,6 +364,7 @@ struct TableCell: Codable, Equatable, Hashable {
         // colour that is none, is no key.
         pad = (try? c.decode(Double.self, forKey: .pad)).flatMap { $0.isFinite && $0 >= 0 ? $0 : nil }
         bands = (try? c.decode(String.self, forKey: .bands)).flatMap { ColorTools.rgb255($0) != nil ? $0 : nil }
+        minH = (try? c.decode(Double.self, forKey: .minH)).flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
     }
 
     func encode(to encoder: Encoder) throws {
@@ -366,6 +376,7 @@ struct TableCell: Codable, Equatable, Hashable {
         if colSpan > 1 { try c.encode(colSpan, forKey: .colSpan) }
         try c.encodeIfPresent(pad, forKey: .pad)
         try c.encodeIfPresent(bands, forKey: .bands)
+        try c.encodeIfPresent(minH, forKey: .minH)
     }
 
     /// The rows the cell covers: its own, and those merged into it below.
@@ -461,6 +472,30 @@ struct GridCell: Codable, Equatable, Hashable {
     }
 }
 
+/// A QR code's form as kept: its type ("wifi", "contact"…) and what is
+/// typed in each of its fields, by the fields' keys — the Android twin's
+/// `qrForm` object, `{type, fields}`. Read tolerantly: a field that is no
+/// words is left out; a type this build does not know is kept as it is and
+/// opens no form (QRForms.form(of:)).
+struct QRFormFields: Codable, Equatable {
+    var type: String
+    var fields: [String: String]
+
+    private enum CodingKeys: String, CodingKey { case type, fields }
+
+    init(type: String, fields: [String: String]) {
+        self.type = type
+        self.fields = fields
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        type = try c.decode(String.self, forKey: .type)
+        let raw = (try? c.decodeIfPresent([String: Lossy<String>].self, forKey: .fields)) ?? nil
+        fields = (raw ?? [:]).compactMapValues(\.value)
+    }
+}
+
 /// The chart an element was drawn as part of: what Edit chart reopens. Every
 /// element of one chart carries the same object — its id, its kind, the data
 /// exactly as typed and its three switches — beside a `chartPart` of its
@@ -474,6 +509,18 @@ struct GridCell: Codable, Equatable, Hashable {
 /// `smooth` lines and areas and the scale's ends, `axisMin` and `axisMax`.
 /// Each is written only when set: nil, false and a scale of 1 are not — as
 /// the Android twin writes them.
+///
+/// Its format, each written only when it is not the default: a value's
+/// `prefix` and `suffix` (4 characters at most, as a String counts them —
+/// an emoji is one — and as the Android twin counts them), its `decimals`
+/// (0 to 3, nil for as many as it needs) and whether it is `compact` (1.2k,
+/// 3.4M) — see
+/// DataGraphics.formatValue; the axes' titles, `xTitle` and `yTitle`; a
+/// donut's or a progress ring's `hole` (0.3 to 0.85 of its radius); the
+/// bars' `gap` (0 to 0.8 of each slot, the default not written) and
+/// `roundBars`; a line's `lineWidth` (1 to 12, scaled by the frame) and its
+/// `points`; and the `icon` a pictogram is drawn in, an Icons.json id,
+/// "person" — not written — when it has none.
 struct ChartSpec: Codable, Equatable, Hashable {
     /// "chart_<uid>", shared by every element of the chart.
     var id: String
@@ -498,9 +545,22 @@ struct ChartSpec: Codable, Equatable, Hashable {
     /// when the low one is not below the high one.
     var axisMin: Double?
     var axisMax: Double?
+    var prefix: String?
+    var suffix: String?
+    var decimals: Int?
+    var compact: Bool = false
+    var xTitle: String?
+    var yTitle: String?
+    var hole: Double?
+    var gap: Double?
+    var roundBars: Bool = false
+    var lineWidth: Double?
+    var points: Bool = false
+    var icon: String?
 
     private enum CodingKeys: String, CodingKey {
         case id, kind, data, legend, values, gridlines, font, ink, textScale, smooth, axisMin, axisMax
+        case prefix, suffix, decimals, compact, xTitle, yTitle, hole, gap, roundBars, lineWidth, points, icon
     }
 
     init(id: String = UID.make("chart"), kind: String, data: String,
@@ -538,6 +598,19 @@ struct ChartSpec: Codable, Equatable, Hashable {
         smooth = (try? c.decodeIfPresent(Bool.self, forKey: .smooth)) ?? false
         axisMin = Self.finiteNumber(c, .axisMin)
         axisMax = Self.finiteNumber(c, .axisMax)
+        // The format, each held to its range as the Android twin reads it.
+        prefix = Self.affix(try? c.decodeIfPresent(String.self, forKey: .prefix))
+        suffix = Self.affix(try? c.decodeIfPresent(String.self, forKey: .suffix))
+        decimals = Self.finiteNumber(c, .decimals).map { Int(min(max($0.rounded(.towardZero), 0), 3)) }
+        compact = (try? c.decodeIfPresent(Bool.self, forKey: .compact)) ?? false
+        xTitle = Self.title(try? c.decodeIfPresent(String.self, forKey: .xTitle))
+        yTitle = Self.title(try? c.decodeIfPresent(String.self, forKey: .yTitle))
+        hole = Self.finiteNumber(c, .hole).map { min(max($0, DataGraphics.minHole), DataGraphics.maxHole) }
+        gap = Self.finiteNumber(c, .gap).map { min(max($0, 0), DataGraphics.maxGap) }
+        roundBars = (try? c.decodeIfPresent(Bool.self, forKey: .roundBars)) ?? false
+        lineWidth = Self.finiteNumber(c, .lineWidth).map { min(max($0, DataGraphics.minLineWidth), DataGraphics.maxLineWidth) }
+        points = (try? c.decodeIfPresent(Bool.self, forKey: .points)) ?? false
+        icon = (try? c.decodeIfPresent(String.self, forKey: .icon)).flatMap { $0.isEmpty ? nil : $0 }
     }
 
     func encode(to encoder: Encoder) throws {
@@ -554,6 +627,31 @@ struct ChartSpec: Codable, Equatable, Hashable {
         if smooth { try c.encode(true, forKey: .smooth) }
         try c.encodeIfPresent(axisMin, forKey: .axisMin)
         try c.encodeIfPresent(axisMax, forKey: .axisMax)
+        try c.encodeIfPresent(Self.affix(prefix), forKey: .prefix)
+        try c.encodeIfPresent(Self.affix(suffix), forKey: .suffix)
+        try c.encodeIfPresent(decimals.map { min(max($0, 0), 3) }, forKey: .decimals)
+        if compact { try c.encode(true, forKey: .compact) }
+        try c.encodeIfPresent(Self.title(xTitle), forKey: .xTitle)
+        try c.encodeIfPresent(Self.title(yTitle), forKey: .yTitle)
+        try c.encodeIfPresent(hole, forKey: .hole)
+        if let gap, gap != DataGraphics.defaultGap { try c.encode(gap, forKey: .gap) }
+        if roundBars { try c.encode(true, forKey: .roundBars) }
+        try c.encodeIfPresent(lineWidth, forKey: .lineWidth)
+        if points { try c.encode(true, forKey: .points) }
+        if let icon, !icon.isEmpty, icon != DataGraphics.defaultIcon { try c.encode(icon, forKey: .icon) }
+    }
+
+    /// A prefix or suffix as kept: its first 4 characters, an emoji one, as
+    /// the Android twin's DataGraphics.affix counts them; nil when empty.
+    static func affix(_ text: String?) -> String? {
+        guard let text, !text.isEmpty else { return nil }
+        return String(text.prefix(DataGraphics.maxAffix))
+    }
+
+    /// An axis title as kept: nil when blank.
+    private static func title(_ text: String?) -> String? {
+        guard let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return text
     }
 
     /// A finite number at `key`, or nil.
@@ -787,6 +885,21 @@ struct Element: Codable, Equatable, Identifiable {
     var qrColor: String?
     var qrBackground: String?
     var qrMargin: Int?
+    /// A QR code's dots' shape ("round", "rounded"), its finder eyes'
+    /// ("rounded", "circle"), a logo in its middle (an image src) and its
+    /// error correction level ("L", "Q", "H"): each nil at its default —
+    /// square, square, none, M — and H whenever there is a logo; written
+    /// only when not the default, as on the Android twin (CodeGenerator.Look).
+    var qrDots: String?
+    var qrEyes: String?
+    var qrLogo: String?
+    var qrEc: String?
+    /// A barcode's words under its bars: never true — nil is shown — so
+    /// written only when false (Barcodes).
+    var barcodeText: Bool?
+    /// The form a QR code was made from, kept beside its payload only so it
+    /// opens again filled in (QRForms); nil for a code typed as it is.
+    var qrForm: QRFormFields?
 
     // sticker
     var glyph: String?
@@ -933,6 +1046,12 @@ struct Element: Codable, Equatable, Identifiable {
         qrColor = (try? c.decode(String.self, forKey: .qrColor)).flatMap(CodeGenerator.keptColor)
         qrBackground = (try? c.decode(String.self, forKey: .qrBackground)).flatMap(CodeGenerator.keptBackground)
         qrMargin = (try? c.decode(Double.self, forKey: .qrMargin)).flatMap(CodeGenerator.keptMargin)
+        qrDots = (try? c.decode(String.self, forKey: .qrDots)).flatMap { CodeGenerator.kept($0, among: CodeGenerator.dotShapes) }
+        qrEyes = (try? c.decode(String.self, forKey: .qrEyes)).flatMap { CodeGenerator.kept($0, among: CodeGenerator.eyeShapes) }
+        qrLogo = (try? c.decode(String.self, forKey: .qrLogo)).flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0 }
+        qrEc = (try? c.decode(String.self, forKey: .qrEc)).flatMap { $0 == CodeGenerator.defaultLevel || !CodeGenerator.levels.contains($0) ? nil : $0 }
+        barcodeText = (try? c.decode(Bool.self, forKey: .barcodeText)) == false ? false : nil
+        qrForm = try? c.decode(QRFormFields.self, forKey: .qrForm)
         glyph = try? c.decode(String.self, forKey: .glyph)
         thickness = try? c.decode(Double.self, forKey: .thickness)
         dash = try? c.decode(String.self, forKey: .dash)
@@ -973,7 +1092,7 @@ struct Element: Codable, Equatable, Identifiable {
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns, timing
         case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit, clip
         case filterStrength, pixelate, focusBlur, edge, fx, mask, retouch
-        case qrColor, qrBackground, qrMargin
+        case qrColor, qrBackground, qrMargin, qrDots, qrEyes, qrLogo, qrEc, barcodeText, qrForm
         case glyph
         case thickness, dash, startCap, endCap
         case lineType, ends, bend

@@ -195,7 +195,7 @@ final class ChartDataTests: XCTestCase {
         XCTAssertEqual(rect(els[3]), [496, 299, 8, 8])
         XCTAssertEqual(els[2].shapeId, "circle")
         XCTAssertEqual(els[2].fill?.color, "#ff0000")
-        XCTAssertEqual(els[2].altText, "A: 10, 20")
+        XCTAssertEqual(els[2].altText, "A, Series 1: 10, 20")
         XCTAssertEqual(els.dropFirst(4).map(\.text), ["0", "40"])
         XCTAssertEqual(near(els[4]), [100, 376.6, 54, 20])
         XCTAssertEqual(near(els[5]), [446, 376.6, 54, 20])
@@ -291,10 +291,12 @@ final class ChartDataTests: XCTestCase {
     func testTheKindsAreNamedAsOnAndroid() {
         XCTAssertEqual(DataGraphics.ChartKind.allCases.map(\.name),
                        ["Column", "Bar", "Line", "Pie", "Donut", "Stacked column", "Stacked bar", "Area",
-                        "Progress ring", "Progress bar", "Scatter"])
+                        "Progress ring", "Progress bar", "Scatter", "Radar", "Bubble", "Funnel", "Pictogram",
+                        "Heat map", "Progress dial"])
         XCTAssertEqual(DataGraphics.ChartKind.allCases.map(\.rawValue),
                        ["column", "bar", "line", "pie", "donut", "stackedColumn", "stackedBar", "area",
-                        "progressRing", "progressBar", "scatter"])
+                        "progressRing", "progressBar", "scatter", "radar", "bubble", "funnel", "pictogram",
+                        "heatmap", "progressDial"])
     }
 
     // MARK: JSON
@@ -314,9 +316,9 @@ final class ChartDataTests: XCTestCase {
     }
 
     func testTheChartObjectReadsTolerantly() throws {
-        let android = #"{"type":"shape","chart":{"id":"chart_a","kind":"radar","data":"A, 1","legend":false,"values":true},"chartPart":"label"}"#
+        let android = #"{"type":"shape","chart":{"id":"chart_a","kind":"sankey","data":"A, 1","legend":false,"values":true},"chartPart":"label"}"#
         let el = try JSONDecoder().decode(Element.self, from: Data(android.utf8))
-        XCTAssertEqual(el.chart?.kind, "radar", "a kind this build does not know is kept")
+        XCTAssertEqual(el.chart?.kind, "sankey", "a kind this build does not know is kept")
         XCTAssertEqual(el.chart?.values, true)
         XCTAssertEqual(el.chart?.legend, false)
         XCTAssertEqual(el.chart?.gridlines, false)

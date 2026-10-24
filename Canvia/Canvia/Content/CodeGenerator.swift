@@ -27,6 +27,13 @@
 // qrBackground and qrMargin, each written only when not the default). The
 // canvas, the PDF, SVG and PowerPoint draw a plain code's modules as
 // rectangles (vector), as the Android twin does.
+//
+// A code can also be styled: round or rounded dots, rounded or circle
+// finder eyes — each finder found by its module position and drawn as its
+// own ring and middle — an error correction level, and a logo in its middle
+// over a pad of its background, which makes the level H (qrDots, qrEyes,
+// qrLogo, qrEc). marks and outline make the same shapes for the canvas, the
+// SVG and the PowerPoint, as on the Android twin.
 
 import CoreGraphics
 import CoreImage
@@ -43,6 +50,13 @@ enum CodeGenerator {
         source.hasPrefix(prefix) ? String(source.dropFirst(prefix.count)) : nil
     }
 
+    /// Whether `src` is a code the phone draws — a QR code or a barcode
+    /// (Barcodes) — rather than a picture kept as a file.
+    static func isCode(_ src: String?) -> Bool {
+        guard let src else { return false }
+        return payload(from: src) != nil || Barcodes.isBarcode(src)
+    }
+
     /// Why `text` cannot be a code — nothing to encode, or more than a code
     /// holds — or nil when it can. Said under the field while a code is
     /// edited in place, which keeps the last good code until then, in the
@@ -51,6 +65,14 @@ enum CodeGenerator {
     static func problem(with text: String) -> String? {
         if text.isEmpty { return tr("A code needs a link or some words; it keeps the last until then.") }
         if modules(for: text) == nil { return tr("Too long for a QR code; it keeps the last that fitted.") }
+        return nil
+    }
+
+    /// The same at error correction `level`, which holds less the higher it
+    /// is.
+    static func problem(with text: String, level: String) -> String? {
+        if text.isEmpty { return tr("A code needs a link or some words; it keeps the last until then.") }
+        if modules(for: text, level: level) == nil { return tr("Too long for a QR code; it keeps the last that fitted.") }
         return nil
     }
 
@@ -75,7 +97,8 @@ enum CodeGenerator {
         let pixels = Int(min(max(side, 24), 2048).rounded())
         let key = "\(pixels)|\(styleKey(style))|\(payload)" as NSString
         if let cached = cache.object(forKey: key) { return cached }
-        guard let grid = modules(for: payload), let image = render(grid, side: pixels, style: style) else {
+        guard let grid = modules(for: payload, level: style.level),
+              let image = style.styled ? drawn(grid, side: pixels, style: style) : render(grid, side: pixels, style: style) else {
             return nil
         }
         cache.setObject(image, forKey: key)
@@ -103,6 +126,38 @@ enum CodeGenerator {
         var color: String = CodeGenerator.defaultColor
         var background: String? = CodeGenerator.defaultBackground
         var margin: Int = CodeGenerator.quiet
+        /// The modules' shape and the finder eyes': CodeGenerator.dotShapes
+        /// and eyeShapes, "square" at their default.
+        var dots: String = CodeGenerator.square
+        var eyes: String = CodeGenerator.square
+        /// A picture's src drawn in the code's middle; nil for none.
+        var logo: String?
+        /// The error correction level chosen: one of `levels`.
+        var ec: String = CodeGenerator.defaultLevel
+
+        /// The level the code is made at: H under a logo, else its own.
+        var level: String { logo != nil ? "H" : ec }
+
+        /// Drawn as anything but square modules and eyes with no logo.
+        var styled: Bool { dots != CodeGenerator.square || eyes != CodeGenerator.square || logo != nil }
+    }
+
+    /// The shapes a code's modules and finder eyes are drawn in, their
+    /// error correction levels, and the defaults.
+    static let square = "square"
+    static let dotShapes = [square, "round", "rounded"]
+    static let eyeShapes = [square, "rounded", "circle"]
+    static let levels = ["L", "M", "Q", "H"]
+    static let defaultLevel = "M"
+
+    /// The most of a code's width its logo and the pad under it take.
+    static let logoShare = 0.22
+    /// The fewest modules across a code with a logo should have.
+    static let logoMinModules = 25
+
+    /// A shape key as kept: one of `choices` but square; nil otherwise.
+    static func kept(_ raw: String, among choices: [String]) -> String? {
+        raw != square && choices.contains(raw) ? raw : nil
     }
 
     /// `el`'s code style, a key it lacks — or one that is not a colour —
@@ -116,7 +171,12 @@ enum CodeGenerator {
             background = paper
         }
         let margin = min(max(el.qrMargin ?? quiet, 0), quiet)
-        return Look(color: color, background: background, margin: margin)
+        var look = Look(color: color, background: background, margin: margin)
+        look.dots = el.qrDots.flatMap { kept($0, among: dotShapes) } ?? square
+        look.eyes = el.qrEyes.flatMap { kept($0, among: eyeShapes) } ?? square
+        look.logo = el.qrLogo.flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0 }
+        look.ec = el.qrEc.flatMap { levels.contains($0) ? $0 : nil } ?? defaultLevel
+        return look
     }
 
     /// `el` in `style`, each key kept only when it is not the default — so a
@@ -130,6 +190,11 @@ enum CodeGenerator {
             out.qrBackground = noBackground
         }
         out.qrMargin = keptMargin(Double(style.margin))
+        out.qrDots = kept(style.dots, among: dotShapes)
+        out.qrEyes = kept(style.eyes, among: eyeShapes)
+        out.qrLogo = style.logo.flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0 }
+        let level = levels.contains(style.level) ? style.level : defaultLevel
+        out.qrEc = level == defaultLevel ? nil : level
         return out
     }
 
@@ -165,6 +230,44 @@ enum CodeGenerator {
 
     /// What the code sheet says of a look that may not scan.
     static let scanRiskWarning = tr("This may be hard to scan")
+
+    /// What it says of a logo that covers too much of a small code.
+    static let logoRisk = tr("Logo too large")
+
+    /// What it says of round or rounded dots without the contrast they need.
+    static let dotsRisk = tr("Low contrast dots")
+
+    /// Every way `el`'s code may not scan on `pageBehind`, each said once:
+    /// scanRisk; dotsRisk for round or rounded dots — which cover less of
+    /// each module — under 4.5:1 apart from what is behind them; and
+    /// logoRisk when it has a logo on a code of fewer than logoMinModules
+    /// modules across — the smallest, version 1, whose few codewords leave
+    /// level H too little to restore what the pad covers (logoCover). The
+    /// Android twin's QrCodes.risks, on the same rows.
+    static func risks(_ el: Element, pageBehind: String) -> [String] {
+        let style = style(of: el)
+        let behind = style.background ?? pageBehind
+        var out: [String] = []
+        if let risk = scanRisk(color: style.color, background: style.background, pageBehind: pageBehind) { out.append(risk) }
+        if style.dots != square && ContrastAudit.ratio(style.color, behind) < 4.5 { out.append(dotsRisk) }
+        if style.logo != nil, let grid = modules(of: el), grid.count < logoMinModules { out.append(logoRisk) }
+        return out
+    }
+
+    /// The modules, from and to (exclusive), across and down, an
+    /// `n`-module code's logo pad touches: the pad logoShare of its width,
+    /// centred, rounded out to whole modules.
+    static func logoModules(_ n: Int) -> (from: Int, to: Int) {
+        let side = Double(n) * logoShare
+        return (Int(((Double(n) - side) / 2).rounded(.down)), Int(((Double(n) + side) / 2).rounded(.up)))
+    }
+
+    /// The share of an `n`-module code's modules its logo's pad touches.
+    static func logoCover(_ n: Int) -> Double {
+        let span = logoModules(n)
+        let side = Double(span.to - span.from)
+        return side * side / Double(max(n * n, 1))
+    }
 
     /// scanRiskWarning when a code in `color` over `background` — nil for
     /// none, when `pageBehind` is what shows — may not scan: the two under
@@ -215,6 +318,13 @@ enum CodeGenerator {
         var style: Look
         var background: CGRect?
         var modules: [CGRect]
+        /// A code with dots or eyes not square drawn as its outline (marks,
+        /// outline) in place of `modules`, which is then empty.
+        var marks: [Step] = []
+        /// Its logo's pad, in the background's colour (white for none), the
+        /// logo fitted inside it a tenth of it in from each side; nil
+        /// without a logo.
+        var logoPad: CGRect?
     }
 
     /// `el`'s code as Vector rectangles: its picture placed in the frame as
@@ -225,9 +335,9 @@ enum CodeGenerator {
     /// a frame shape, rounded corners or a border — which is drawn as its
     /// picture. The Android twin's QrCodes.vector.
     static func vector(_ el: Element) -> Vector? {
-        guard el.type == .image, el.w > 0, el.h > 0, let payload = payload(from: el.src ?? ""),
-              plainLook(el), let grid = modules(for: payload) else { return nil }
         let style = style(of: el)
+        guard el.type == .image, el.w > 0, el.h > 0, let payload = payload(from: el.src ?? ""),
+              plainLook(el), let grid = modules(for: payload, level: style.level) else { return nil }
         let side = Double(pictureSide)
         let picture = Crop.drawnPicture(el, image: CGSize(width: side, height: side))
         let n = grid.count
@@ -236,13 +346,35 @@ enum CodeGenerator {
         let left: Double = Double(picture.minX) + Double(picture.width) * place.from
         let top: Double = Double(picture.minY) + Double(picture.height) * place.from
         let frame = CGRect(x: 0, y: 0, width: el.w, height: el.h)
+        let pad = style.logo == nil ? nil : logoPad(n, left: left, top: top, module: module)
+        if style.dots != square || style.eyes != square {
+            // Shapes are not cut to the frame: a styled code is drawn whole.
+            let background = style.background == nil ? nil : cut(picture, to: frame)
+            return Vector(style: style, background: background, modules: [],
+                          marks: outline(marks(grid, style: style), unit: module, dx: left, dy: top), logoPad: pad)
+        }
         let modules = runs(grid).compactMap { run -> CGRect? in
             let r = CGRect(x: left + Double(run.minX) * module, y: top + Double(run.minY) * module,
                            width: Double(run.width) * module, height: module)
             return cut(r, to: frame)
         }
         let background = style.background == nil ? nil : cut(picture, to: frame)
-        return Vector(style: style, background: background, modules: modules)
+        return Vector(style: style, background: background, modules: modules, logoPad: pad)
+    }
+
+    /// The logo's pad of an `n`-module code whose modules start at `left`,
+    /// `top`, `module` across: logoShare of its width, centred.
+    private static func logoPad(_ n: Int, left: Double, top: Double, module: Double) -> CGRect {
+        let whole = Double(n) * module
+        let side = whole * logoShare
+        return CGRect(x: left + (whole - side) / 2, y: top + (whole - side) / 2, width: side, height: side)
+    }
+
+    /// Where `el`'s logo is drawn in its own space, filling the square a
+    /// tenth of its pad in from each side; nil without a logo.
+    static func logoBox(_ pad: CGRect?) -> CGRect? {
+        guard let pad else { return nil }
+        return pad.insetBy(dx: pad.width * 0.1, dy: pad.height * 0.1)
     }
 
     /// Whether `el` looks like nothing but its colours: what vector draws.
@@ -276,7 +408,7 @@ enum CodeGenerator {
 
     /// A style as a cache key's part.
     private static func styleKey(_ style: Look) -> String {
-        "\(style.color)/\(style.background ?? noBackground)/\(style.margin)"
+        "\(style.color)/\(style.background ?? noBackground)/\(style.margin)/\(style.dots)/\(style.eyes)/\(style.level)/\(style.logo ?? "")"
     }
 
     // MARK: the code as data
@@ -287,11 +419,19 @@ enum CodeGenerator {
     /// Internal rather than private so the tests can assert the structure the
     /// QR standard guarantees — which is the only check that does not depend
     /// on a decoder being available.
-    static func modules(for payload: String) -> [[Bool]]? {
-        if let kept = grids.object(forKey: payload as NSString) { return kept.rows }
-        guard let made = madeModules(for: payload) else { return nil }
-        grids.setObject(Grid(made), forKey: payload as NSString)
+    static func modules(for payload: String, level: String = defaultLevel) -> [[Bool]]? {
+        let ec = levels.contains(level) ? level : defaultLevel
+        let key = (ec == defaultLevel ? payload : "\(ec)\u{0}\(payload)") as NSString
+        if let kept = grids.object(forKey: key) { return kept.rows }
+        guard let made = madeModules(for: payload, level: ec) else { return nil }
+        grids.setObject(Grid(made), forKey: key)
         return made
+    }
+
+    /// `el`'s grid, at its look's level; nil when it is no QR code.
+    static func modules(of el: Element) -> [[Bool]]? {
+        guard let payload = payload(from: el.src ?? "") else { return nil }
+        return modules(for: payload, level: style(of: el).level)
     }
 
     /// A code's modules, kept: the canvas draws a code's rectangles from
@@ -307,14 +447,15 @@ enum CodeGenerator {
         return c
     }()
 
-    private static func madeModules(for payload: String) -> [[Bool]]? {
+    private static func madeModules(for payload: String, level: String) -> [[Bool]]? {
         guard !payload.isEmpty,
               let data = payload.data(using: .utf8),
               let filter = CIFilter(name: "CIQRCodeGenerator") else { return nil }
         filter.setValue(data, forKey: "inputMessage")
         // Medium recovers ~15% of a damaged or partly covered code, which is
-        // the level almost every printed code in the world uses.
-        filter.setValue("M", forKey: "inputCorrectionLevel")
+        // the level almost every printed code in the world uses, and the
+        // default; H, ~30%, is what a logo over the middle needs.
+        filter.setValue(level, forKey: "inputCorrectionLevel")
         guard let output = filter.outputImage,
               let raw = ciContext.createCGImage(output, from: output.extent) else { return nil }
 

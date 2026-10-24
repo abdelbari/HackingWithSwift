@@ -475,11 +475,7 @@ struct ContextToolbar: View {
                 Label("No animation", systemImage: el.animation == nil ? "checkmark" : "circle")
             }
             Divider()
-            ForEach(ElementAnimation.kinds.filter { !ElementAnimation.textKinds.contains($0) && !ElementAnimation.loopKinds.contains($0) }, id: \.self) { kind in
-                Button { store.animateSelected(kind); store.playPreview() } label: {
-                    Label(ElementAnimation.name(kind), systemImage: el.animation?.kind == kind ? "checkmark" : "circle")
-                }
-            }
+            entranceButtons(el)
             Divider()
             ForEach(ElementAnimation.kinds.filter { ElementAnimation.loopKinds.contains($0) }, id: \.self) { kind in
                 Button { store.animateSelected(kind); store.playPreview() } label: {
@@ -504,6 +500,24 @@ struct ContextToolbar: View {
             }
         } label: {
             toolLabel("sparkles.rectangle.stack", "Animate", active: el.animation != nil || el.exitAnimation != nil)
+        }
+    }
+
+    /// The entrances that are not a loop or a text's own: Grow first, for a
+    /// chart — its bars rise, its slices sweep and its lines draw on, every
+    /// part of it together — then the rest.
+    @ViewBuilder
+    private func entranceButtons(_ el: Element) -> some View {
+        if ElementAnimation.canGrow(store.selectedElements) {
+            Button { store.animateSelected(ElementAnimation.grow); store.playPreview() } label: {
+                Label(ElementAnimation.name(ElementAnimation.grow),
+                      systemImage: el.animation?.kind == ElementAnimation.grow ? "checkmark" : "circle")
+            }
+        }
+        ForEach(ElementAnimation.kinds.filter { $0 != ElementAnimation.grow && !ElementAnimation.textKinds.contains($0) && !ElementAnimation.loopKinds.contains($0) }, id: \.self) { kind in
+            Button { store.animateSelected(kind); store.playPreview() } label: {
+                Label(ElementAnimation.name(kind), systemImage: el.animation?.kind == kind ? "checkmark" : "circle")
+            }
         }
     }
 
@@ -1110,12 +1124,13 @@ struct ContextToolbar: View {
             // A clip: its trim, speed and loop, and Play to see it move;
             // stills come from the frame at its start.
             toolButton("film", "Clip") { activeSheet = .clip }
-        } else if let payload = CodeGenerator.payload(from: el.src ?? "") {
+        } else if CodeGenerator.isCode(el.src) {
             // A code's words, changed where it sits — erasing part of a code
-            // only stops it scanning, so that is not offered.
+            // only stops it scanning, so that is not offered. A barcode's
+            // too.
             toolButton("qrcode", "Edit code") { editingCode = true }
                 .sheet(isPresented: $editingCode) {
-                    QRCodeSheet(store: store, id: el.id, payload: payload)
+                    QRCodeSheet(store: store, id: el.id, payload: CodeGenerator.payload(from: el.src ?? "") ?? "")
                 }
         } else if AnimStore.isAnim(el.src) {
             // An animated picture always plays in Present and in a video or

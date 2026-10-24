@@ -76,6 +76,9 @@ struct ElementView: View {
     /// photo's crop drifted along its Ken Burns.
     private var shown: Element {
         var el = resolved
+        // A chart's slice or ring sweeping round as it grows.
+        let sweep = motion.sweep
+        if sweep < 1 { el = DataGraphics.swept(el, share: sweep) }
         if let n = motion.visibleCharacters, let text = el.text {
             // Fitted type stays at the size the whole text fits at, rather than
             // filling the box with the first letter and shrinking as the rest
@@ -127,6 +130,9 @@ struct ElementView: View {
             // drawn behind the element in the element's space, where the
             // drop shadow below is cast too.
             .background { styledShadow }
+            // A chart's part growing from its anchor, or a line drawn on
+            // from its left, in the element's own turned space.
+            .modifier(GrowReveal(state: motion, w: element.w, h: element.h, reach: (element.strokeWidth ?? 0) + 1))
             .scaleEffect(motion.scale)
             .offset(motion.offset)
             // Before the flip and rotation, so the shadow is cast in the
@@ -137,7 +143,7 @@ struct ElementView: View {
                     x: element.shadow?.offsetX ?? 0, y: element.shadow?.offsetY ?? 0)
             .scaleEffect(x: element.flipH ? -1 : 1, y: element.flipV ? -1 : 1)
             .rotationEffect(.degrees(element.rotation + motion.rotation))
-            .opacity(element.opacity * motion.opacity)
+            .opacity(motion.showsNothing ? 0 : element.opacity * motion.opacity)
             .blendMode(BlendModes.swiftUI(element.blendMode))
             .position(x: element.x + element.w / 2, y: element.y + element.h / 2)
             // Left to right in any language, drawn alone for an export too.
@@ -205,6 +211,32 @@ struct ElementView: View {
             }
         case .sticker: StickerElementView(element: el)
         case .line: LineElementView(element: el)
+        }
+    }
+}
+
+/// A chart part as it grows in (ElementAnimation.growState): scaled about
+/// its anchor, and a line or area cut to the share of its box drawn on so
+/// far from the left — its stroke's reach beyond the box kept, as the
+/// Android twin's renderer clips it. Nothing is masked once it is in.
+private struct GrowReveal: ViewModifier {
+    let state: ElementAnimation.State
+    let w: Double
+    let h: Double
+    let reach: Double
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        let scaled = content
+            .scaleEffect(x: state.scaleX, y: state.scaleY, anchor: UnitPoint(x: state.anchorX, y: state.anchorY))
+        if state.reveal < 1 {
+            scaled.mask(alignment: .topLeading) {
+                Rectangle()
+                    .frame(width: max(0, w * state.reveal + reach), height: 3 * h + 2 * reach)
+                    .offset(x: -reach, y: -h - reach)
+            }
+        } else {
+            scaled
         }
     }
 }
@@ -808,7 +840,8 @@ struct ImageElementView: View {
         // A plain code is drawn as rectangles, sharp at any size and vectors
         // in a PDF; any other picture through its look.
         let code = CodeGenerator.vector(element)
-        let picture = code == nil ? resolvedPicture() : nil
+        let barcode = code == nil ? Barcodes.vector(element) : nil
+        let picture = code == nil && barcode == nil ? resolvedPicture() : nil
         let waits = waitsForSubject()
         let later = makesLookLater()
         let resolved = picture.map {
@@ -817,6 +850,8 @@ struct ImageElementView: View {
         GeometryReader { _ in
             if let code {
                 CodeVectorView(code: code)
+            } else if let barcode {
+                BarcodeVectorView(element: element, code: barcode)
             } else if let ui = resolved {
                 let frameW = element.w, frameH = element.h
                 // Fill covers the frame and crops; fit shows the whole picture
@@ -959,6 +994,9 @@ struct ImageElementView: View {
 /// A QR code as rectangles (CodeGenerator.vector): its background, unless
 /// it has none, then its modules in its colour, in the element's own space.
 /// Shapes, not pixels, so a PDF of the page keeps them as vectors.
+/// A styled code's dots and eyes are its outline (CodeGenerator.marks),
+/// filled even-odd so the eyes' rings stay open; a logo sits on a pad of
+/// the background's colour in its middle.
 struct CodeVectorView: View {
     let code: CodeGenerator.Vector
 
@@ -967,9 +1005,62 @@ struct CodeVectorView: View {
             if let paper = code.style.background, let box = code.background {
                 Path(box).fill(Color(hex: paper))
             }
-            Path { path in path.addRects(code.modules) }
-                .fill(Color(hex: code.style.color))
+            if code.marks.isEmpty {
+                Path { path in path.addRects(code.modules) }
+                    .fill(Color(hex: code.style.color))
+            } else {
+                Path(CodeGenerator.path(code.marks))
+                    .fill(Color(hex: code.style.color), style: FillStyle(eoFill: true))
+            }
+            if let pad = code.logoPad {
+                logo(on: pad)
+            }
         }
+    }
+
+    @ViewBuilder
+    private func logo(on pad: CGRect) -> some View {
+        Path(pad).fill(Color(hex: code.style.background ?? CodeGenerator.defaultBackground))
+        if let src = code.style.logo, let picture = PhotoLibrary.resolve(src), let box = CodeGenerator.logoBox(pad) {
+            let shown = CodeGenerator.fitted(picture.size, in: box)
+            Image(uiImage: picture)
+                .resizable()
+                .frame(width: shown.width, height: shown.height)
+                .offset(x: shown.minX, y: shown.minY)
+        }
+    }
+}
+
+/// A barcode as rectangles (Barcodes.vector): its background, unless it
+/// has none, its bars in its colour, and its words — or why it cannot be
+/// made — under them, in the element's own space: a text element
+/// (Barcodes.captionElement) drawn as any other is, wrapping as it does,
+/// as the SVG, the PowerPoint and the Android twin draw it. Shapes and
+/// text, not pixels, so a PDF of the page keeps them as vectors.
+struct BarcodeVectorView: View {
+    let element: Element
+    let code: Barcodes.Drawing
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            if let paper = code.style.background, let box = code.background {
+                Path(box).fill(Color(hex: paper))
+            }
+            Path { path in path.addRects(code.bars) }
+                .fill(Color(hex: code.style.color))
+            if let words = caption {
+                TextElementView(element: words)
+                    .position(x: words.x + words.w / 2, y: words.y + words.h / 2)
+            }
+        }
+    }
+
+    /// The words under the bars, at full opacity: the element's own is
+    /// applied to the whole code.
+    private var caption: Element? {
+        guard var words = Barcodes.captionElement(element, code) else { return nil }
+        words.opacity = 1
+        return words
     }
 }
 

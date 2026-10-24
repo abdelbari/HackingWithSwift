@@ -18,6 +18,9 @@ enum ElementNames {
     /// one made from what it is.
     static func name(of el: Element) -> String {
         if let own = LayerNames.custom(of: el) { return own }
+        // Any part of a chart is its chart's summary, as a reader meets the
+        // chart as one thing — as on the Android twin.
+        if let chart = ChartSpeech.summary(of: el) { return chart }
         switch el.type {
         case .text:
             let words = RichText.strip(el.text ?? "").replacingOccurrences(of: "\n", with: " ")
@@ -46,7 +49,12 @@ enum ElementNames {
         case .image:
             let shape = ContentLibrary.frameShape(el.maskShapeId)
             let frame = shape.map { tr(englishNoun($0)) }
-            if let src = el.src, CodeGenerator.payload(from: src) != nil { return tr("QR code") }
+            // Named for what it holds, as its sheet names it: "Wi-Fi QR
+            // code", "EAN-13 barcode".
+            if let src = el.src, CodeGenerator.payload(from: src) != nil {
+                return QRForms.form(of: el).map { tr("%@ QR code", $0.kind.name) } ?? tr("QR code")
+            }
+            if let code = Barcodes.parse(el.src) { return tr("%@ barcode", code.kind.name) }
             // A letter frame is named for its glyph, as its tile is: "Empty
             // A letter frame", the same on both phones.
             if let glyph = GlyphFrames.frame(shape?.id)?.glyph {

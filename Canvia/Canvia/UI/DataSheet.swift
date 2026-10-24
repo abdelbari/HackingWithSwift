@@ -61,6 +61,9 @@ struct DataSheet: View {
     @State private var smooth: Bool
     @State private var axisMin: String
     @State private var axisMax: String
+    /// The chart's format (ChartFormatSection): only its format fields are
+    /// read, into the spec Add or Update makes.
+    @State private var format: ChartSpec
     @State private var choosingFont = false
     @State private var choosingInk = false
     /// Import CSV's file picker, and what the last import left out — or why
@@ -93,6 +96,7 @@ struct DataSheet: View {
         _smooth = State(initialValue: editing?.smooth ?? false)
         _axisMin = State(initialValue: Self.axisText(editing?.axisMin))
         _axisMax = State(initialValue: Self.axisText(editing?.axisMax))
+        _format = State(initialValue: editing ?? ChartSpec(kind: "column", data: ""))
     }
 
     /// An axis end as typed: a number, a comma for its point too; nil when
@@ -117,6 +121,26 @@ struct DataSheet: View {
         out.smooth = smooth
         out.axisMin = Self.axisNumber(axisMin)
         out.axisMax = Self.axisNumber(axisMax)
+        return formatted(out)
+    }
+
+    /// `spec` with the Format section's prefix, suffix, decimals, compact
+    /// numbers, axis titles, hole, bar gap, rounded bars, line weight,
+    /// points and icon.
+    private func formatted(_ spec: ChartSpec) -> ChartSpec {
+        var out = spec
+        out.prefix = ChartSpec.affix(format.prefix)
+        out.suffix = ChartSpec.affix(format.suffix)
+        out.decimals = format.decimals
+        out.compact = format.compact
+        out.xTitle = format.xTitle
+        out.yTitle = format.yTitle
+        out.hole = format.hole
+        out.gap = format.gap
+        out.roundBars = format.roundBars
+        out.lineWidth = format.lineWidth
+        out.points = format.points
+        out.icon = format.icon
         return out
     }
 
@@ -234,7 +258,7 @@ struct DataSheet: View {
     @ViewBuilder
     private var chartSections: some View {
         Section {
-            // Eleven kinds: a menu, where a segmented row would not fit.
+            // Seventeen kinds: a menu, where a segmented row would not fit.
             Picker("Chart", selection: $kind) {
                 ForEach(DataGraphics.ChartKind.allCases) { Text($0.name).tag($0) }
             }
@@ -255,12 +279,13 @@ struct DataSheet: View {
             chartFooter
         }
         chartLook
+        ChartFormatSection(kind: kind, format: $format)
         Section {
             // A progress kind writes its own value and has no
-            // legend; only kinds with a scale have lines to
-            // draw across it.
+            // legend, nor has a heat map, whose shades are its key;
+            // only kinds with a scale have lines to draw across it.
             Toggle("Legend", isOn: $legend)
-                .disabled(kind.isProgress)
+                .disabled(!kind.hasLegend)
             Toggle("Values", isOn: $values)
                 .disabled(kind.isProgress)
             Toggle("Gridlines", isOn: $gridlines)
@@ -278,8 +303,17 @@ struct DataSheet: View {
         } else {
             VStack(alignment: .leading, spacing: 4) {
                 Text(DataGraphics.chartSummary(data, kind: kind))
-                Text(kind == .scatter ? DataGraphics.scatterHint : DataGraphics.seriesHint)
+                Text(hint)
             }
+        }
+    }
+
+    /// The hint under the chart's data: how its kind reads its rows.
+    private var hint: String {
+        switch kind {
+        case .scatter: return DataGraphics.scatterHint
+        case .bubble: return DataGraphics.bubbleHint
+        default: return DataGraphics.seriesHint
         }
     }
 

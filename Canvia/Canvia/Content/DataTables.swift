@@ -47,6 +47,33 @@ extension DataGraphics {
             .flatMap { Array($0.spannedCols) }).sorted()
     }
 
+    /// What VoiceOver says of table `id`'s cell at `row`, `col` — the
+    /// Android twin's Tables.spokenCell, word for word: "Row 2 of 5, Column
+    /// 3 of 4, Price: 3.50", its place counted from 1 among the table's rows
+    /// and columns, then its column's header (the words of row 0's cell over
+    /// it) and its own words. The header row says its words alone, as does
+    /// a cell under a blank header; a merged cell adds how far it spans,
+    /// "spans 2 columns", "spans 3 rows". Its lines are read as one. Nil
+    /// when the table has no such cell.
+    static func spokenCell(_ elements: [Element], id: String, row: Int, col: Int) -> String? {
+        let cells = tableMembers(elements, id: id).compactMap { el in el.table.map { (el: el, cell: $0) } }
+        guard let cell = cells.first(where: { $0.cell.row == row && $0.cell.col == col })?.cell else { return nil }
+        func words(_ r: Int, _ c: Int) -> String {
+            let text = cells.first { $0.el.type == .text && $0.cell.row == r && $0.cell.spannedCols.contains(c) }?.el.text
+            return RichText.strip(text ?? "").replacingOccurrences(of: "\n", with: " ")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        let place = tr("Row %d of %d, Column %d of %d", row + 1, tableRows(elements, id: id).count,
+                       col + 1, tableColumns(elements, id: id).count)
+        let own = words(row, col)
+        let header = row == 0 ? "" : words(0, col)
+        let said = header.isEmpty ? own : tr("%@: %@", header, own)
+        var parts = [place, said]
+        if cell.colSpan > 1 { parts.append(trn("spans %d column|spans %d columns", cell.colSpan)) }
+        if cell.rowSpan > 1 { parts.append(trn("spans %d row|spans %d rows", cell.rowSpan)) }
+        return parts.filter { !$0.isEmpty }.joined(separator: ", ")
+    }
+
     /// Whether table `id` is turned — whose rows and columns are not
     /// edited, as a turned table's cells no longer stand in rows.
     static func tableIsTurned(_ elements: [Element], id: String) -> Bool {
@@ -122,7 +149,8 @@ extension DataGraphics {
     /// rectangle over it leaves of its height once its other rows are taken
     /// away; a row still unknown is none tall. Then a merged text taller
     /// than its rows, inset, makes the last of them taller by what it
-    /// lacks, merged cells from the top and left first.
+    /// lacks, merged cells from the top and left first. A row that keeps a
+    /// least height (TableCell.minH) is at least that tall.
     private static func rowHeights(rects: [(el: Element, cell: TableCell)], texts: [(el: Element, cell: TableCell)],
                                    fitted: [String: Element], pad: Double) -> [Int: Double] {
         let rows = Set((rects + texts).flatMap { Array($0.cell.spannedRows) }).sorted()
@@ -143,6 +171,10 @@ extension DataGraphics {
             for r in unknown { heights[r] = share }
         }
         for row in rows where heights[row] == nil { heights[row] = 0 }
+        // A row dragged taller than its words keeps that height.
+        for (row, least) in tableRowMinimums((rects + texts).map(\.el)) {
+            if let h = heights[row] { heights[row] = max(h, least) }
+        }
         for (t, cell) in merged(texts) {
             guard let h = fitted[t.id]?.h, let last = cell.spannedRows.last else { continue }
             let have = cell.spannedRows.compactMap { heights[$0] }.reduce(0, +)
@@ -315,6 +347,8 @@ extension DataGraphics {
             guard cell.row == merged.row && cell.col == merged.col else { return nil }
             var kept = el
             kept.table = merged
+            // Its row's least height, as it had it, so a merge keeps it.
+            kept.table?.minH = cell.minH
             if el.type == .text && words(el) != joined { kept.setText(RichText.escapeLiteral(joined)) }
             if el.type == .shape {
                 kept.x = Double(box.minX)
@@ -364,7 +398,7 @@ extension DataGraphics {
         let parted = elements.map { el -> Element in
             guard let cell = el.table, cell.id == id, parting(cell) else { return el }
             var out = placed(el, cell, row: cell.row, col: cell.col)
-            out.table = TableCell(id: id, row: cell.row, col: cell.col, pad: cell.pad, bands: cell.bands)
+            out.table = TableCell(id: id, row: cell.row, col: cell.col, pad: cell.pad, bands: cell.bands, minH: cell.minH)
             return out
         }
         return relaidTable(inserting(fresh, into: parted, id: id), id: id, heightFor: heightFor)
@@ -410,6 +444,110 @@ extension DataGraphics {
             if let color { out.stroke = color }
             return out
         }
+    }
+
+    // MARK: row heights
+
+    /// The shortest a row is dragged to.
+    static let minRowHeight = 24.0
+
+    /// Each row of a table's `cells` that keeps a least height, and that
+    /// height: the largest any cell starting in it keeps — a merged cell
+    /// carrying its first row's, so a merge keeps it. The Android twin's
+    /// Tables.rowMinimums.
+    static func tableRowMinimums(_ cells: [Element]) -> [Int: Double] {
+        var out: [Int: Double] = [:]
+        for el in cells {
+            guard let cell = el.table, let least = cell.minH else { continue }
+            out[cell.row] = max(out[cell.row] ?? 0, least)
+        }
+        return out
+    }
+
+    /// Table `id` with row `row`'s least height `height` — or none, for nil
+    /// — on its first cell's rectangle and words, taken off the other cells
+    /// starting in it.
+    static func withRowMinimum(_ elements: [Element], id: String, row: Int, height: Double?) -> [Element] {
+        let holder = tableMembers(elements, id: id).compactMap(\.table).filter { $0.row == row }.map(\.col).min()
+        return elements.map { el in
+            guard let cell = el.table, cell.id == id, cell.row == row else { return el }
+            var out = el
+            out.table?.minH = cell.col == holder ? height : nil
+            return out
+        }
+    }
+
+    /// Each of table `id`'s rows' y and height, as its rectangles one row
+    /// tall have them, by row.
+    static func tableRowBoxes(_ elements: [Element], id: String) -> [Int: (y: Double, h: Double)] {
+        var out: [Int: (y: Double, h: Double)] = [:]
+        for el in tableMembers(elements, id: id) where el.type == .shape {
+            guard let cell = el.table, cell.rowSpan == 1, out[cell.row] == nil else { continue }
+            out[cell.row] = (el.y, el.h)
+        }
+        return out
+    }
+
+    /// The height row `row` of table `id` lays out at with no least height
+    /// of its own: as tall as its words.
+    private static func naturalRowHeight(_ elements: [Element], id: String, row: Int,
+                                         heightFor: (Element) -> Double) -> Double? {
+        let bare = relaidTable(withRowMinimum(elements, id: id, row: row, height: nil), id: id, heightFor: heightFor)
+        return tableRowBoxes(bare, id: id)[row]?.h
+    }
+
+    /// Table `id` with the edge under its row `boundary` (counting from 0,
+    /// top to bottom) dragged by `dy` and laid out again: the row the whole
+    /// number nearest its height and `dy`, at least minRowHeight — kept as
+    /// its least height (TableCell.minH) when that is taller than its words
+    /// need, else back to their height, which it is never shorter than. The
+    /// rows below move with it. Nil when nothing moved, or there is no such
+    /// row. The Android twin's Tables.withRowDragged, row for row in the
+    /// tests.
+    static func withRowDragged(_ elements: [Element], id: String, boundary: Int, dy: Double,
+                               heightFor: (Element) -> Double) -> [Element]? {
+        guard let box = tableRowBoxes(elements, id: id)[boundary],
+              let natural = naturalRowHeight(elements, id: id, row: boundary, heightFor: heightFor) else { return nil }
+        let target = max((box.h + dy).rounded(), minRowHeight)
+        let made = relaidTable(withRowMinimum(elements, id: id, row: boundary, height: target > natural ? target : nil),
+                               id: id, heightFor: heightFor)
+        return made == elements ? nil : made
+    }
+
+    /// The least VoiceOver's Taller row or Shorter row moves an edge.
+    static let rowStep = 8.0
+
+    /// VoiceOver's Taller row (or Shorter row) on table `id` with rows
+    /// `rows` selected — the rows a selection covers, a merged cell's every
+    /// row: the edge under the last of them moved one step, a tenth of that
+    /// row's height to the nearest whole number (halves up), at least
+    /// rowStep, as its drag would (withRowDragged). The same rule on both
+    /// phones: the Android twin's Tables.withRowStepped. Nil when nothing
+    /// moved.
+    static func withRowStepped(_ elements: [Element], id: String, rows: [Int], taller: Bool,
+                               heightFor: (Element) -> Double) -> [Element]? {
+        guard let row = rows.max(), let box = tableRowBoxes(elements, id: id)[row] else { return nil }
+        let step = max(rowStep, (box.h / 10 + 0.5).rounded(.down))
+        return withRowDragged(elements, id: id, boundary: row, dy: taller ? step : -step, heightFor: heightFor)
+    }
+
+    /// Distribute rows: table `id`'s rows made one height, the table as
+    /// tall as it was — each the whole number nearest its share
+    /// (evenColumns' rule), kept as its least height where its words need
+    /// less, and as tall as its words where they need more (the table then
+    /// grows). Nil when nothing changes. The Android twin's Tables.evenRows.
+    static func evenRows(_ elements: [Element], id: String, heightFor: (Element) -> Double) -> [Element]? {
+        let boxes = tableRowBoxes(elements, id: id)
+        guard !boxes.isEmpty else { return nil }
+        let rows = boxes.keys.sorted()
+        let even = evenColumns(total: rows.compactMap { boxes[$0]?.h }.reduce(0, +), count: rows.count)
+        var out = elements
+        for (row, height) in zip(rows, even) {
+            guard let natural = naturalRowHeight(out, id: id, row: row, heightFor: heightFor) else { continue }
+            out = withRowMinimum(out, id: id, row: row, height: height > natural ? height : nil)
+        }
+        let made = relaidTable(out, id: id, heightFor: heightFor)
+        return made == elements ? nil : made
     }
 
     // MARK: column widths
@@ -1011,14 +1149,19 @@ extension DataGraphics {
         }
     }
 
-    /// A cell's copy for a new row or column: a new element, no words, and
-    /// no name of its own — the layers list gives it the generated one.
+    /// A cell's copy for a new row or column: a new element, no words, no
+    /// name of its own — the layers list gives it the generated one — and
+    /// no least height (minH): that stays with the cell it was copied
+    /// from, so a new row, or a merged cell's rows split again, is as tall
+    /// as its words.
     private static func blank(_ el: Element, row: Int, col: Int) -> Element {
         var copy = el
         copy.id = UID.make()
         copy.layerName = nil
         if el.type == .text { copy.setText("") }
-        if let cell = el.table { copy.table = TableCell(id: cell.id, row: row, col: col, pad: cell.pad, bands: cell.bands) }
+        if let cell = el.table {
+            copy.table = TableCell(id: cell.id, row: row, col: col, pad: cell.pad, bands: cell.bands)
+        }
         return copy
     }
 

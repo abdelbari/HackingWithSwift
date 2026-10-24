@@ -135,6 +135,7 @@ struct AccessibilitySheet: View {
         case .smallText: return "textformat.size.smaller"
         case .flashing: return "bolt.horizontal"
         case .linkText: return "link"
+        case .chartColours: return "chart.pie"
         case .readingOrder: return "list.number"
         case .missingLetters: return "character.textbox"
         }

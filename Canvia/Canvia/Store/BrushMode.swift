@@ -79,7 +79,7 @@ extension DesignStore {
             announce(tr("This photo is locked. Tap Unlock to edit it."), undoable: false)
             return false
         }
-        guard let src = photo.src, CodeGenerator.payload(from: src) == nil, !VideoStore.isVideo(src),
+        guard let src = photo.src, !CodeGenerator.isCode(src), !VideoStore.isVideo(src),
               !AnimStore.isAnim(src), let image = PhotoLibrary.resolve(src),
               image.size.width > 0, image.size.height > 0 else {
             buzz(.reject)

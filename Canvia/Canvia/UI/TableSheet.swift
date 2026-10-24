@@ -192,15 +192,21 @@ struct TableSheet: View {
         }
     }
 
-    /// Distribute columns, and where the edges between them are dragged.
+    /// Distribute columns and rows, and where the edges between them are
+    /// dragged.
     private func columns(_ table: TableSelection) -> some View {
         Section {
             Button { store.distributeTableColumns() } label: {
                 Label("Distribute columns", systemImage: "rectangle.split.3x1")
             }
             .disabled(table.columnCount < 2)
+            Button { store.distributeTableRows() } label: {
+                Label("Distribute rows", systemImage: "rectangle.split.1x2")
+            }
+            .disabled(table.rowCount < 2)
         } footer: {
-            Text("Select the whole table to drag the edges between its columns.")
+            Text(tr("Select the whole table to drag the edges between its columns.") + " "
+                 + tr("Drag the handle at the left of a row's lower edge to make it taller."))
         }
     }
 

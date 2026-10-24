@@ -253,7 +253,7 @@ enum Timeline {
         }
         let size = max(el.w, el.h)
         let start = el.timing?.start ?? 0
-        let entrance = el.animation?.state(at: time - start, text: text, size: size) ?? .settled
+        let entrance = el.animation?.state(at: time - start, text: text, size: size, el: el) ?? .settled
         guard let exit = el.exitAnimation else { return entrance }
         if let end = el.timing?.end {
             // exitState is over `delay` before the hold it is given.

@@ -69,13 +69,23 @@ enum PDFMetadata {
     /// The pictures of `page` a screen reader is told about — photos,
     /// icons and stickers that are not decorative and have alt text, the
     /// master's behind it too, the hidden ones left out — in reading order
-    /// (CanvasAccessibility.readingOrder), each with its alt text.
+    /// (CanvasAccessibility.readingOrder), each with its alt text. A chart
+    /// is one figure, where its first part reads: the box all its parts fill
+    /// together, its alt text its summary (ChartSpeech) — not a figure a
+    /// bar — as on the Android twin.
     static func figures(_ design: Design, page: Page) -> [Figure] {
         let elements = design.masterElements(behind: page) + page.elements.filter { !$0.isHidden }
         let byId = Dictionary(elements.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let order = CanvasAccessibility.readingOrder(elements, pageHeight: Double(design.size(for: page).height))
+        var charts: Set<String> = []
         return order.compactMap { id -> Figure? in
-            guard let el = byId[id], AccessibilityAudit.isPicture(el), el.decorative != true else { return nil }
+            guard let el = byId[id] else { return nil }
+            if let chart = el.chart, let summary = ChartSpeech.summary(of: el) {
+                guard charts.insert(chart.id).inserted else { return nil }
+                let box = Geometry.union(elements.filter { $0.chart?.id == chart.id }.map { Geometry.aabb($0) })
+                return Figure(x: box.minX, y: box.minY, w: box.width, h: box.height, alt: summary)
+            }
+            guard AccessibilityAudit.isPicture(el), el.decorative != true else { return nil }
             let alt = (el.altText ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             guard !alt.isEmpty else { return nil }
             return Figure(x: el.x, y: el.y, w: el.w, h: el.h, alt: alt)

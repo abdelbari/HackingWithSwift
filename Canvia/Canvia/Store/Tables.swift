@@ -338,6 +338,56 @@ extension DesignStore {
         return setTableColumnWidths(DataGraphics.evenColumns(total: widths.reduce(0, +), count: widths.count))
     }
 
+    /// Where the row edges the canvas offers to drag are: the bottom edge
+    /// of each of the selected table's rows, and the table's left, where
+    /// their handles stand — while the table or a cell of it is selected,
+    /// level and with no cell locked, as on the Android twin.
+    var tableRowEdges: (ys: [Double], rows: [Int], left: Double)? {
+        guard let table = tableSelection, !table.turned else { return nil }
+        let members = DataGraphics.tableMembers(page.elements, id: table.id)
+        guard !members.contains(where: \.locked),
+              let left = members.filter({ $0.type == .shape }).map(\.x).min() else { return nil }
+        let boxes = DataGraphics.tableRowBoxes(page.elements, id: table.id)
+        let rows = boxes.keys.sorted()
+        return (rows.compactMap { boxes[$0].map { $0.y + $0.h } }, rows, left)
+    }
+
+    /// The selected table's rows' heights, by row.
+    var tableRowHeights: [Int: Double] {
+        guard let table = tableSelection else { return [:] }
+        return DataGraphics.tableRowBoxes(page.elements, id: table.id).mapValues(\.h)
+    }
+
+    /// The edge under row `row` of the selected table dragged `dy` from
+    /// where it was in `start` — the page's elements when the drag began —
+    /// while the drag goes on; letting go closes the step (commit).
+    func dragTableRowTransient(from start: [Element], row: Int, by dy: Double) {
+        guard let table = tableSelection, !table.turned,
+              !DataGraphics.tableMembers(start, id: table.id).contains(where: \.locked) else { return }
+        beginGesture()
+        design.pages[pageIndex].elements = DataGraphics.withRowDragged(start, id: table.id, boundary: row, dy: dy,
+                                                                       heightFor: measure) ?? start
+    }
+
+    /// The edge under the last row the selected cells cover made a step
+    /// lower (taller) or higher (DataGraphics.withRowStepped), as one step:
+    /// VoiceOver's Taller row and Shorter row. Whether it changed.
+    @discardableResult
+    func resizeTableRow(taller: Bool) -> Bool {
+        let measure = self.measure
+        return editTable { els, t in
+            DataGraphics.withRowStepped(els, id: t.id, rows: t.rows, taller: taller, heightFor: measure)
+        }
+    }
+
+    /// Distribute rows, as one step: the selected table's rows made one
+    /// height (DataGraphics.evenRows). Whether they changed.
+    @discardableResult
+    func distributeTableRows() -> Bool {
+        let measure = self.measure
+        return editTable { els, t in DataGraphics.evenRows(els, id: t.id, heightFor: measure) }
+    }
+
     /// The selected table's words as the data grid shows them.
     var tableGrid: [[String]] {
         tableSelection.map { DataGraphics.tableGrid(page.elements, id: $0.id) } ?? []

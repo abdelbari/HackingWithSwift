@@ -40,6 +40,8 @@ struct InsertSheet: View {
     @State private var removingComponent: Component?
     /// The words typed for a code are more than a code holds.
     @State private var qrTooLong = false
+    /// The code composer, open on a kind of QR code or a barcode.
+    @State private var composing: CodeStart?
     @FocusState private var qrFocused: Bool
     /// Recently used, read as the sheet opens.
     @State private var recent: [ElementSearch.Hit] = []
@@ -556,7 +558,33 @@ struct InsertSheet: View {
                     .font(.footnote)
                     .foregroundStyle(Color(.systemRed))
             }
+            codeKinds
         }
+        .sheet(item: $composing) { start in
+            CodeComposerSheet(store: store, barcode: start.kind == nil, kind: start.kind ?? .link)
+        }
+    }
+
+    /// What the composer opens on: a QR code's form of a kind, or a
+    /// barcode (no kind).
+    struct CodeStart: Identifiable {
+        var kind: QRForms.ContentType?
+        var id: String { kind?.rawValue ?? "barcode" }
+    }
+
+    /// A QR code of another kind — Wi-Fi, a contact, an email, a text, a
+    /// phone number — or a barcode, from the composer.
+    private var codeKinds: some View {
+        Menu {
+            ForEach(QRForms.ContentType.allCases) { kind in
+                Button(kind.name) { composing = CodeStart(kind: kind) }
+            }
+            Button("Barcode") { composing = CodeStart(kind: nil) }
+        } label: {
+            Label("More", systemImage: "barcode")
+                .font(.subheadline)
+        }
+        .padding(.leading, 54)
     }
 
     static var qrTooLongMessage: String { tr("That is too long for a QR code.") }

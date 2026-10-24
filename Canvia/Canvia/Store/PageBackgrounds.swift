@@ -30,7 +30,7 @@ extension DesignStore {
     /// the page and stop scanning.
     static func canBecomeBackground(_ el: Element) -> Bool {
         guard el.type == .image, !el.locked, let src = el.src, !src.isEmpty else { return false }
-        return !VideoStore.isVideo(src) && !AnimStore.isAnim(src) && CodeGenerator.payload(from: src) == nil
+        return !VideoStore.isVideo(src) && !AnimStore.isAnim(src) && !CodeGenerator.isCode(src)
     }
 
     /// Whether a photo shows its picture other than plain: a filter,

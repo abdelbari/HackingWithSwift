@@ -1051,9 +1051,10 @@ enum ImageFilterEngine {
                      waits: waits, later: later, owner: el.id, to: image, cacheKey: cacheKey)
     }
 
-    /// Whether `el` is a QR code, drawn crisp (see `apply(look:)`).
+    /// Whether `el` is a QR code or a barcode, drawn crisp (see
+    /// `apply(look:)`).
     static func isCode(_ el: Element) -> Bool {
-        CodeGenerator.payload(from: el.src ?? "") != nil
+        CodeGenerator.isCode(el.src)
     }
 
     /// Whether `el`'s look has steps done a pixel at a time — clarity,

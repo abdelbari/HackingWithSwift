@@ -16,12 +16,20 @@ enum CanvasAccessibility {
     /// text" for a box with no words; otherwise the same name the Layers
     /// sheet and the snap guides use — "Heading: SALE", "Red oval", "Blue
     /// line", "QR code", "Empty photo frame" — as the Android twin names its
-    /// TalkBack nodes.
-    static func label(for el: Element) -> String {
+    /// TalkBack nodes. A part of a chart is its chart's summary, and a
+    /// table's cell, among the page's `elements`, says where it is and under
+    /// which header (DataGraphics.spokenCell).
+    static func label(for el: Element, on elements: [Element] = []) -> String {
+        // A chart is one thing to a reader, named by its summary; its parts'
+        // own alt text is what Next value and Previous value step through.
+        if let chart = ChartSpeech.summary(of: el) { return chart }
         if let alt = el.altText?.trimmingCharacters(in: .whitespacesAndNewlines), !alt.isEmpty {
             return alt
         }
         if let own = LayerNames.custom(of: el) { return own }
+        if let cell = el.table, let words = DataGraphics.spokenCell(elements, id: cell.id, row: cell.row, col: cell.col) {
+            return words
+        }
         if el.type == .text, RichText.strip(el.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return tr("Empty text")
         }
@@ -48,6 +56,39 @@ enum CanvasAccessibility {
     /// poster.
     static func nudge(for design: Design) -> Double {
         (max(design.width, design.height) / 100).rounded()
+    }
+}
+
+extension CanvasAccessibility {
+    /// The elements of `elements` that stand for their chart to VoiceOver:
+    /// of each chart, the part read first in `order`. The chart's other
+    /// parts are hidden from it, so the chart is one stop — as the Android
+    /// twin groups a chart's members into one node.
+    static func chartStops(_ elements: [Element], order: [String]) -> (heads: Set<String>, hidden: Set<String>) {
+        var heads: Set<String> = []
+        var hidden: Set<String> = []
+        var seen: Set<String> = []
+        let byId = Dictionary(elements.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        for id in order {
+            guard let el = byId[id], let chart = el.chart?.id, el.chartPart != nil else { continue }
+            if seen.insert(chart).inserted { heads.insert(id) } else { hidden.insert(id) }
+        }
+        return (heads, hidden)
+    }
+
+    /// The labels Next value and Previous value step through on chart
+    /// `id`: its series parts' alt text, in the page's order
+    /// (ChartSpeech.stops).
+    static func values(ofChart id: String, in elements: [Element]) -> [String] {
+        ChartSpeech.stops(elements.filter { $0.chart?.id == id })
+    }
+
+    /// The stop after (or before) `current` among `count`, from the first
+    /// (or last) when none is current; held at the ends.
+    static func steppedValue(_ current: Int?, count: Int, forward: Bool) -> Int? {
+        guard count > 0 else { return nil }
+        guard let current else { return forward ? 0 : count - 1 }
+        return min(max(current + (forward ? 1 : -1), 0), count - 1)
     }
 }
 

@@ -274,7 +274,7 @@ struct BrandKit: Codable, Equatable, Identifiable {
     static func picture(of element: Element) -> String? {
         guard element.type == .image, let src = element.src, !src.isEmpty,
               VideoStore.split(src) == nil, AnimStore.split(src) == nil,
-              CodeGenerator.payload(from: src) == nil else { return nil }
+              !CodeGenerator.isCode(src) else { return nil }
         return src
     }
 
@@ -325,7 +325,7 @@ struct BrandKit: Codable, Equatable, Identifiable {
         let pictures = design.pages.flatMap(\.elements)
             .filter { $0.type == .image }
             .compactMap(\.src)
-            .filter { CodeGenerator.payload(from: $0) == nil }
+            .filter { !CodeGenerator.isCode($0) }
         var seen = Set<String>()
         return (openedWith + pictures + current).filter { seen.insert($0).inserted }
     }

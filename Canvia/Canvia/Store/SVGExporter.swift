@@ -189,7 +189,17 @@ enum SVGExporter {
         case .text: return textMarkup(el, index: index, defs: &defs)
         case .line: return lineMarkup(el)
         case .image:
-            if let code = CodeGenerator.vector(el) { return codeMarkup(el, code) }
+            if let code = CodeGenerator.vector(el) { return codeMarkup(el, code) + logoMarkup(el, code) }
+            if let code = Barcodes.vector(el) {
+                // Its words outlined as any text's are.
+                let words = Barcodes.captionElement(el, code, onPage: false).map { caption -> String in
+                    var placed = caption
+                    placed.x += el.x
+                    placed.y += el.y
+                    return textMarkup(placed, index: index, defs: &defs)
+                } ?? ""
+                return barcodeMarkup(el, code) + words
+            }
             return bitmapMarkup(el)
         case .sticker: return bitmapMarkup(el)
         }
@@ -210,6 +220,47 @@ enum SVGExporter {
         }
         if !code.modules.isEmpty {
             let d = code.modules.map(rect).joined()
+            out += "<path d=\"\(d)\" fill=\"\(escape(code.style.color))\" shape-rendering=\"crispEdges\"/>"
+        }
+        // A styled code's dots and eyes, one outline even-odd so the eyes'
+        // rings stay open (CodeGenerator.outline).
+        if !code.marks.isEmpty {
+            let d = CodeGenerator.svgData(code.marks)
+            out += "<path transform=\"translate(\(num(el.x)) \(num(el.y)))\" d=\"\(d)\" fill-rule=\"evenodd\" " +
+                "fill=\"\(escape(code.style.color))\"/>"
+        }
+        if let pad = code.logoPad {
+            out += "<path d=\"\(rect(pad))\" fill=\"\(escape(code.style.background ?? CodeGenerator.defaultBackground))\"/>"
+        }
+        return out
+    }
+
+    /// A code's logo over its pad, as the picture it is.
+    @MainActor
+    private static func logoMarkup(_ el: Element, _ code: CodeGenerator.Vector) -> String {
+        guard let src = code.style.logo, let box = CodeGenerator.logoBox(code.logoPad) else { return "" }
+        var logo = Element.image(src, w: box.width, h: box.height)
+        logo.x = el.x + box.minX
+        logo.y = el.y + box.minY
+        logo.radius = 0
+        logo.cropFit = true
+        return bitmapMarkup(logo)
+    }
+
+    /// A barcode as rectangles (Barcodes.vector): its background, unless it
+    /// has none, then one path of its bars in its colour — as the Android
+    /// twin writes it; its words follow, outlined.
+    static func barcodeMarkup(_ el: Element, _ code: Barcodes.Drawing) -> String {
+        func rect(_ r: CGRect) -> String {
+            "M\(num(el.x + Double(r.minX))) \(num(el.y + Double(r.minY)))H\(num(el.x + Double(r.maxX)))" +
+                "V\(num(el.y + Double(r.maxY)))H\(num(el.x + Double(r.minX)))Z"
+        }
+        var out = ""
+        if let paper = code.style.background, let box = code.background {
+            out += "<path d=\"\(rect(box))\" fill=\"\(escape(paper))\"/>"
+        }
+        if !code.bars.isEmpty {
+            let d = code.bars.map(rect).joined()
             out += "<path d=\"\(d)\" fill=\"\(escape(code.style.color))\" shape-rendering=\"crispEdges\"/>"
         }
         return out
