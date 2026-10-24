@@ -242,6 +242,13 @@ enum Docs {
         return (t.rows, t.header)
     }
 
+    /// A chart block's chart, when it is of a kind this build draws — nil
+    /// for one it does not know, which is skipped as the twin skips it.
+    static func chartSpec(_ block: DocBlock) -> ChartSpec? {
+        guard let spec = block.chart, DataGraphics.ChartKind(rawValue: spec.kind) != nil else { return nil }
+        return spec
+    }
+
     /// What a picture or chart block says to a reader: its alt text, else a
     /// chart's summary (ChartSpeech).
     static func altOf(_ block: DocBlock) -> String? {

@@ -570,6 +570,9 @@ final class DesignStore {
         historyVersion += 1
         let before = design
         design = entry.design
+        // A post that comes back, or goes, with the step has its reminder
+        // set again, or taken away, as on the Android twin.
+        if design.plannedPosts != before.plannedPosts { PostReminders.reschedule(design, before: before) }
         // An undone step brings words back rather than typing them: it never
         // renames the design.
         lastWords = Self.words(of: design)

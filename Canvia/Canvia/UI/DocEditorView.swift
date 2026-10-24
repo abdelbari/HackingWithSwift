@@ -26,6 +26,8 @@ struct DocEditorView: View {
     @State private var addingBlock = false
     /// The Doc laid out on its pages, for the Export sheet while it is up.
     @State private var exportStore: DesignStore?
+    /// Export's sheet is up, its pages still being laid out.
+    @State private var layingOut = false
     @State private var saveTask: Task<Void, Never>?
     @State private var note: String?
     /// The brand kit's heading and body faces, read once as it opens.
@@ -341,9 +343,21 @@ struct DocEditorView: View {
 
     // MARK: export, designs, saving
 
+    /// Export, the Doc laid out on its pages away from the main actor —
+    /// every block is measured — its sheet showing progress meanwhile.
     private func openExport() {
+        guard !layingOut else { return }
         store.commit()
-        exportStore = DesignStore(design: DocPages.drawn(store.design))
+        let doc = store.design
+        let styles = DocPages.styles()
+        layingOut = true
+        Task { @MainActor in
+            let laid = await Task.detached(priority: .userInitiated) { Docs.paginated(doc, styles: styles) }.value
+            // Closed meanwhile: nothing to show.
+            guard layingOut else { return }
+            layingOut = false
+            exportStore = DesignStore(design: laid)
+        }
     }
 
     /// The Doc made into a new design of its own, saved and opened in its
@@ -413,7 +427,12 @@ struct DocEditorView: View {
     }
 
     fileprivate var exportShown: Binding<Bool> {
-        Binding(get: { exportStore != nil }, set: { if !$0 { exportStore = nil } })
+        Binding(get: { exportStore != nil || layingOut }, set: {
+            if !$0 {
+                exportStore = nil
+                layingOut = false
+            }
+        })
     }
 
     fileprivate var noteShown: Binding<Bool> {
@@ -432,6 +451,9 @@ struct DocEditorView: View {
     fileprivate var exportSheet: some View {
         if let exportStore {
             ExportSheet(store: exportStore, readOnly: true, doc: store.design, docStore: store)
+        } else if layingOut {
+            ProgressView()
+                .presentationDetents([.medium])
         }
     }
 

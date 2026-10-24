@@ -156,6 +156,17 @@ final class DocsTests: XCTestCase {
         XCTAssertTrue(ExportLast.formats.contains("docx"))
     }
 
+    /// Shared: a chart of a kind this build does not know is no picture,
+    /// so the pictures after it keep their numbers on both phones.
+    func testAChartOfAnUnknownKindIsNoPicture() throws {
+        var blocks = Docs.blocks(try design())
+        blocks[14].chart?.kind = "hologram"
+        let d = Docs.withBlocks(try design(), blocks)
+        XCTAssertNil(Docs.chartSpec(blocks[14]))
+        XCTAssertEqual(DocxWriter.pictures(d).count, 1)
+        XCTAssertEqual(DocxWriter.documentXml(d).components(separatedBy: "<w:drawing>").count - 1, 1)
+    }
+
     @MainActor
     func testABlockTurnedIntoAnotherKeepsItsWords() {
         let typed = DocBlock(id: "x", type: Docs.p, text: "/Plan")

@@ -523,6 +523,8 @@ enum Backup {
         if UseProfile.current() == nil, let use = UseProfile.decodeSettings(reader.file(UseProfile.settingsFile)) {
             UseProfile.set(use)
         }
+        // The planned posts that came back, their reminders set.
+        await Task.detached(priority: .utility) { PostReminders.rescheduleAll(DesignLibrary.shelfDesigns()) }.value
         FontStore.installed()
         progress(1)
         return report
