@@ -12056,6 +12056,15 @@
     "ja": "描画",
     "pt-BR": "Desenhar"
   },
+  "Draw with stylus only": {
+    "ar": "الرسم بالقلم فقط",
+    "de": "Nur mit dem Stift zeichnen",
+    "es": "Dibujar solo con lápiz",
+    "fr": "Dessiner au stylet uniquement",
+    "it": "Disegna solo con la penna",
+    "ja": "スタイラスだけで描く",
+    "pt-BR": "Desenhar só com a caneta"
+  },
   "Draw with your finger": {
     "ar": "ارسم بإصبعك",
     "de": "Mit dem Finger zeichnen",
@@ -22616,6 +22625,15 @@
     "ja": "長押しで画面を指し示します",
     "pt-BR": "Toque e segure para apontar para a tela"
   },
+  "Pressure": {
+    "ar": "الضغط",
+    "de": "Druck",
+    "es": "Presión",
+    "fr": "Pression",
+    "it": "Pressione",
+    "ja": "筆圧",
+    "pt-BR": "Pressão"
+  },
   "Preview": {
     "ar": "معاينة",
     "de": "Vorschau",
@@ -27752,6 +27770,15 @@
     "ja": "ストライプ",
     "pt-BR": "Listras"
   },
+  "Strokes thin and thicken with how hard you press, or how fast you draw": {
+    "ar": "تَرِقّ الخطوط وتَغلُظ بحسب قوة الضغط أو سرعة الرسم",
+    "de": "Striche werden je nach Druck oder Tempo dünner und dicker",
+    "es": "Los trazos se afinan y engrosan según cuánto presionas o lo rápido que dibujas",
+    "fr": "Les traits s’affinent et s’épaississent selon la pression ou la vitesse",
+    "it": "I tratti si assottigliano e ingrossano in base alla pressione o alla velocità",
+    "ja": "押す強さや描く速さで線の太さが変わります",
+    "pt-BR": "Os traços afinam e engrossam conforme a pressão ou a velocidade"
+  },
   "Student": {
     "ar": "طالب",
     "de": "Studierende",
@@ -28663,6 +28690,15 @@
     "it": "Il pannello Livelli elenca tutto ciò che è nella pagina, dall’alto verso il basso. Trascina per riordinare, tocca per selezionare. L’occhio nasconde un elemento dalla pagina e da ogni esportazione, il lucchetto lo blocca (per intero o solo nella posizione, così parole, colori e ritaglio possono ancora cambiare) e tenendolo premuto puoi rinominarlo. Un gruppo è una riga che si apre per mostrare ciò che contiene; Sovrapposti elenca solo ciò che si sovrappone alla selezione. Il pannello Posizione sposta un elemento avanti o indietro di un livello.",
     "ja": "「レイヤー」シートには、ページ上のすべてが最前面から順に表示されます。ドラッグで並べ替え、タップで選択します。目のアイコンで素材をページとすべての書き出しから非表示にし、南京錠でロックします（全体、または位置のみ。位置のみの場合は文字、色、切り抜きを変更できます）。長押しで名前を変更します。グループは 1 行で表示され、開くと中身が表示されます。「重なり」には選択範囲と重なっているものだけが表示されます。「配置」シートでは素材を 1 つ前面または背面に移動します。",
     "pt-BR": "A folha Camadas lista tudo o que há na página, de cima para baixo. Arraste para reordenar, toque para selecionar. O olho oculta um elemento da página e de todas as exportações, o cadeado o bloqueia — inteiro ou só na posição, em que as palavras, as cores e o corte ainda podem mudar — e tocar e segurar permite renomeá-lo. Um grupo é uma linha que se abre para mostrar o que contém; Sobrepostos lista só o que se sobrepõe à seleção. A folha Posição move um elemento uma etapa para a frente ou para trás."
+  },
+  "The Pencil draws, one finger moves the page": {
+    "ar": "القلم يرسم، وإصبع واحد يحرّك الصفحة",
+    "de": "Der Stift zeichnet, ein Finger bewegt die Seite",
+    "es": "El lápiz dibuja; un dedo mueve la página",
+    "fr": "Le stylet dessine, un doigt déplace la page",
+    "it": "La penna disegna, un dito sposta la pagina",
+    "ja": "ペンで描き、指1本でページを動かします",
+    "pt-BR": "A caneta desenha; um dedo move a página"
   },
   "The bar at the bottom shows every page. Add, duplicate, reorder, copy and paste pages (even into another design), keep notes on a page, and open the organizer to manage many at once.": {
     "ar": "يعرض الشريط في الأسفل كل الصفحات. أضف الصفحات وكرّرها وأعد ترتيبها وانسخها والصقها (حتى في تصميم آخر)، واحتفظ بملاحظات على صفحة، وافتح المنظِّم لإدارة صفحات كثيرة معًا.",

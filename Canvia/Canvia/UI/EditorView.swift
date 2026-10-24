@@ -97,6 +97,10 @@ struct EditorView: View {
     @AppStorage(TimelineStrip.key) private var timeline = false
     /// Shape assist, on the Draw bar: on unless turned off (ShapeAssist).
     @AppStorage(ShapeAssist.key) private var shapeAssist = true
+    /// Draw with stylus only, and whether a Pencil has drawn on this phone,
+    /// which offers it (StylusInput).
+    @AppStorage(StylusInput.onlyKey) private var stylusOnly = false
+    @AppStorage(StylusInput.seenKey) private var stylusSeen = false
     @State private var namingComponent = false
     /// More's "Save as template…" asking for a name and a category.
     @State private var savingTemplate = false
@@ -1135,7 +1139,7 @@ struct EditorView: View {
             // the capsule has no room left on a phone held upright. Beside
             // it, for a pen with ink, the Shape assist switch.
             HStack(spacing: 8) {
-                Text(tool.pen.hint)
+                Text(stylusOnly && tool.pen.hasInk ? tr("The Pencil draws, one finger moves the page") : tool.pen.hint)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if tool.pen.hasInk {
@@ -1148,10 +1152,40 @@ struct EditorView: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
             .background(.regularMaterial, in: Capsule())
+            if tool.pen.hasInk || stylusSeen { stylusRow(tool) }
             penSliders(tool)
             drawingControls(tool)
         }
         .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    /// Pressure for the pen in hand — its strokes thinner where pressed
+    /// lightly or drawn fast — and, once a Pencil has drawn here, Draw with
+    /// stylus only.
+    private func stylusRow(_ tool: Freehand.Tool) -> some View {
+        HStack(spacing: 8) {
+            if tool.pen.hasInk {
+                Toggle("Pressure", isOn: Binding(get: { tool.pressure }, set: { on in
+                    if on {
+                        store.drawing?.pressurePens.insert(tool.pen)
+                    } else {
+                        store.drawing?.pressurePens.remove(tool.pen)
+                    }
+                }))
+                .toggleStyle(.button)
+                .font(.caption)
+                .accessibilityHint("Strokes thin and thicken with how hard you press, or how fast you draw")
+            }
+            if stylusSeen {
+                Toggle("Draw with stylus only", isOn: $stylusOnly)
+                    .toggleStyle(.button)
+                    .font(.caption)
+                    .accessibilityHint("The Pencil draws, one finger moves the page")
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(.regularMaterial, in: Capsule())
     }
 
     /// The pen's size, from 1 to 60 and settling on the old six widths,

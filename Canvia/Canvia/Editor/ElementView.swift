@@ -459,6 +459,18 @@ struct ShapeElementView: View {
     let element: Element
 
     var body: some View {
+        // A pressure stroke: its outline filled in its ink (Freehand.outline).
+        if let outline = Freehand.outline(element) {
+            Path(SVGPath.parse(outline))
+                .fill(Color(hex: element.stroke ?? "#1f2430"))
+                .frame(width: element.w, height: element.h)
+        } else {
+            shaped
+        }
+    }
+
+    @ViewBuilder
+    private var shaped: some View {
         let def = ContentLibrary.shape(for: element)
         let shape = LibraryShape(definition: def, cornerRadius: element.radius ?? 0, corners: element.corners,
                                  params: element.shapeParams, builds: true)

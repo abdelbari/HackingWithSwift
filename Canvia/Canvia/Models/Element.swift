@@ -908,6 +908,11 @@ struct Element: Codable, Equatable, Identifiable {
     /// or tag's "notch" — only those that differ from the shape's own, nil
     /// when none do. A build without them draws the stored shape.
     var shapeParams: [String: Double]?
+    /// A pressure stroke's width at each sample its curve passes, as a
+    /// share of its `strokeWidth`, 0.35…1 (Freehand.outline): drawn as a
+    /// filled outline. nil for a stroke at one width; a build without it
+    /// draws the line at that width.
+    var widths: [Double]?
 
     // text
     var text: String?
@@ -1191,6 +1196,7 @@ struct Element: Codable, Equatable, Identifiable {
         let params = ((try? c.decode([String: Lossy<Double>].self, forKey: .shapeParams)) ?? [:])
             .compactMapValues(\.value).filter { $0.value.isFinite }
         shapeParams = params.isEmpty ? nil : params
+        widths = (try? c.decode([Double].self, forKey: .widths)).flatMap { $0.isEmpty ? nil : $0 }
         text = try? c.decode(String.self, forKey: .text)
         fontFamily = try? c.decode(String.self, forKey: .fontFamily)
         fontSize = try? c.decode(Double.self, forKey: .fontSize)
@@ -1310,7 +1316,7 @@ struct Element: Codable, Equatable, Identifiable {
         case decorative
         case connectFrom, connectTo, link, hidden, layerName, table, sides, chart, chartPart, grid, photoFrame
         case shapeId, pathData, iconId, graphicId, bulkField, fill, stroke, strokeWidth, radius, corners, fillRule, pen
-        case shapeParams
+        case shapeParams, widths
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, curveStart, textPath, vertical, warp
         case spans, spansText, paragraphs, paragraphsText, captions

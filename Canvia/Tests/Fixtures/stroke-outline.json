@@ -1,0 +1,27 @@
+{
+"about":"Round 34: a pressure stroke's outline (Freehand.outlinePath) and its width factors, as both phones draw them. outline: points (in the stroke's own box, page units) and the radius at each; the left edge is each point moved out along the normal to the line there (the line's way turned a quarter anticlockwise on the page, y down; at an end, the way to or from its neighbour; where the way is nothing, the normal before, else straight up), smoothed through the midpoints as a stroke is (M, then Q control and the midpoint to the next, the last Q to the last point twice); then a half circle A r r 0 0 1 round the end to the right edge, that edge back the same way, a half circle round the start, Z. One point is a circle of two arcs. Numbers to the hundredth, a whole number with no point. pressure: a Pencil's pressure (0…1 of its most) to a width factor, 0.35 + 0.65 p to the hundredth; speed: a finger's speed in page units a second to 1 - 0.65 min(v, 2000)/2000, to the hundredth.",
+"outline":[
+{"points": [[10, 10]], "radii": [3], "d": "M7 10A3 3 0 1 1 13 10A3 3 0 1 1 7 10Z"},
+{"points": [[0, 0], [100, 0]], "radii": [5, 5], "d": "M0 -5Q100 -5 100 -5A5 5 0 0 1 100 5Q0 5 0 5A5 5 0 0 1 0 -5Z"},
+{"points": [[0, 0], [50, 0], [100, 50]], "radii": [4, 2, 1], "d": "M0 -4Q50.89 -1.79 75.8 23.75Q100.71 49.29 100.71 49.29A1 1 0 0 1 99.29 50.71Q49.11 1.79 24.55 2.89Q0 4 0 4A4 4 0 0 1 0 -4Z"},
+{"points": [[20, 80], [40, 60], [60, 70], [80, 40], [100, 45]], "radii": [2, 3.5, 5, 3, 1.4], "d": "M18.59 78.59Q39.15 56.6 48.46 61.07Q57.76 65.53 68.09 51.49Q78.41 37.46 89.37 40.55Q100.34 43.64 100.34 43.64A1.4 1.4 0 0 1 99.66 46.36Q81.59 42.54 71.91 58.51Q62.24 74.47 51.54 68.93Q40.85 63.4 31.13 72.4Q21.41 81.41 21.41 81.41A2 2 0 0 1 18.59 78.59Z"},
+{"points": [[0, 0], [0, 0], [10, 0]], "radii": [2, 2, 2], "d": "M0 -2Q0 -2 5 -2Q10 -2 10 -2A2 2 0 0 1 10 2Q0 2 0 2Q0 2 0 2A2 2 0 0 1 0 -2Z"}
+],
+"pressure":[
+{"in": 0, "factor": 0.35},
+{"in": 0.25, "factor": 0.51},
+{"in": 0.5, "factor": 0.68},
+{"in": 0.731, "factor": 0.83},
+{"in": 1, "factor": 1.0},
+{"in": 1.5, "factor": 1.0},
+{"in": -1, "factor": 0.35}
+],
+"speed":[
+{"in": 0, "factor": 1.0},
+{"in": 100, "factor": 0.97},
+{"in": 1000, "factor": 0.68},
+{"in": 1999, "factor": 0.35},
+{"in": 2000, "factor": 0.35},
+{"in": 5000, "factor": 0.35}
+]
+}

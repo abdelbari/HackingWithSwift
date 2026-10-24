@@ -61,6 +61,13 @@ struct CanvasView: View {
     @State private var restWait: Task<Void, Never>?
     /// Shape assist, from the Draw bar: on unless turned off.
     @AppStorage(ShapeAssist.key) private var shapeAssist = true
+    /// Draw with stylus only, from the Draw bar: the Pencil alone draws, and
+    /// one finger pans (StylusInput).
+    @AppStorage(StylusInput.onlyKey) private var stylusOnly = false
+    /// How wide the stroke under way is at each of its points, as a share
+    /// of the pen's width, and when its last point came: for Pressure.
+    @State private var strokeWidths: [Double] = []
+    @State private var strokeLast: (point: CGPoint, time: Date)?
     /// Settings ▸ Accessibility's Play clips automatically and Underline
     /// links (AccessibilityPrefs).
     @AppStorage(AccessibilityPrefs.autoplayClipsKey) private var autoplayClips = true
@@ -323,6 +330,7 @@ struct CanvasView: View {
             onBackgroundTap: { point in backgroundTap(at: point) },
             onPencilTap: { store.toggleDrawing() },
             pinchZooms: store.cropping == nil,
+            fingersPan: store.drawing != nil && stylusOnly,
             claimsDoubleTap: { point in claimsDoubleTap(at: point) },
             zoomsToSelection: { point in zoomsToSmallSelection(at: point) },
             pansFromPage: { point in pansFromPage(at: point) },
@@ -1251,8 +1259,8 @@ struct CanvasView: View {
                     restWait?.cancel()
                     if let snap = snapped {
                         store.finishSnappedStroke(snap)
-                    } else {
-                        store.finishStroke(strokePoints)
+                    } else if !strokePoints.isEmpty {
+                        store.finishStroke(strokePoints, widths: strokeWidths)
                     }
                     endStroke()
                 }
@@ -1269,17 +1277,33 @@ struct CanvasView: View {
     /// once it moves on; a pen with ink waits, each time the finger comes to
     /// rest, for it to rest long enough (awaitRest).
     private func drawn(to value: DragGesture.Value, tool: Freehand.Tool) {
+        // Drawing with the stylus only, a finger's drag pans instead.
+        if stylusOnly && !StylusInput.shared.isPencil { return }
         if strokePoints.isEmpty || strokeStart != value.startLocation {
             endStroke()
             strokeStart = value.startLocation
             strokePoints = [value.startLocation]
+            strokeWidths = [widthFactor(at: value.startLocation, time: value.time)]
         }
         if snapped != nil {
             guard let rest = restAt, ShapeAssist.movedOn(from: rest, to: value.location, zoom: store.zoom) else { return }
             snapped = nil
         }
         strokePoints.append(value.location)
+        strokeWidths.append(widthFactor(at: value.location, time: value.time))
         if shapeAssist && tool.pen.hasInk { awaitRest(at: value.location) }
+    }
+
+    /// How wide the line is at `point`, reached at `time`: from a Pencil's
+    /// pressure, or — a finger — from how fast it came from the last point
+    /// (Freehand.pressureFactor, speedFactor).
+    private func widthFactor(at point: CGPoint, time: Date) -> Double {
+        defer { strokeLast = (point, time) }
+        if let pressure = StylusInput.shared.pressure { return Freehand.pressureFactor(pressure) }
+        guard let last = strokeLast else { return 1 }
+        let seconds = time.timeIntervalSince(last.time)
+        guard seconds > 0 else { return Freehand.speedFactor(0) }
+        return Freehand.speedFactor(hypot(Double(point.x - last.point.x), Double(point.y - last.point.y)) / seconds)
     }
 
     /// Shape assist: the finger come to rest at `point` — or still resting,
@@ -1305,6 +1329,8 @@ struct CanvasView: View {
         restAt = nil
         snapped = nil
         strokePoints = []
+        strokeWidths = []
+        strokeLast = nil
         strokeStart = nil
     }
 

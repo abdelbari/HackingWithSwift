@@ -162,6 +162,9 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     /// Whether two fingers work the canvas — pinch to zoom, drag to pan. Off
     /// in crop mode, where a pinch zooms the picture instead.
     var pinchZooms = true
+    /// Drawing with the stylus only (StylusInput): one finger pans the view,
+    /// and the Pencil alone draws.
+    var fingersPan = false
     /// Whether a double tap at this point on the page is the page's own — a
     /// photo opening crop, a text box its editor — rather than the canvas
     /// zooming. Without it, double-tapping a photo zoomed the canvas as well.
@@ -267,6 +270,8 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         let pencil = UIPencilInteraction()
         pencil.delegate = context.coordinator
         scroll.addInteraction(pencil)
+        // Which kind of touch each is, and how hard a Pencil presses.
+        scroll.addGestureRecognizer(TouchKindRecognizer(target: nil, action: nil))
 
         let host = context.coordinator.host
         host.view.backgroundColor = .clear
@@ -343,6 +348,14 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
         coordinator.attach(edgeScroller)
         scroll.pinchGestureRecognizer?.isEnabled = pinchZooms
         scroll.panGestureRecognizer.isEnabled = pinchZooms
+        // Drawing with the stylus only, one finger pans and a Pencil never
+        // does; else two fingers of any kind.
+        let fingers = fingersPan ? 1 : 2
+        if scroll.panGestureRecognizer.minimumNumberOfTouches != fingers {
+            scroll.panGestureRecognizer.minimumNumberOfTouches = fingers
+            let kinds: [UITouch.TouchType] = fingersPan ? [.direct] : [.direct, .indirect, .pencil, .indirectPointer]
+            scroll.panGestureRecognizer.allowedTouchTypes = kinds.map { NSNumber(value: $0.rawValue) }
+        }
         // A whiteboard's dot grid is drawn behind the canvas, in screen
         // space, as far as the view reaches.
         let ground = board == nil ? UIColor(Theme.workspace) : .clear

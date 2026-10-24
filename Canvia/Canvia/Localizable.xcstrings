@@ -67803,6 +67803,59 @@
         }
       }
     },
+    "Draw with stylus only" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الرسم بالقلم فقط"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur mit dem Stift zeichnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draw with stylus only"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dibujar solo con lápiz"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dessiner au stylet uniquement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disegna solo con la penna"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スタイラスだけで描く"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desenhar só com a caneta"
+          }
+        }
+      }
+    },
     "Draw with your finger" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -129525,6 +129578,59 @@
         }
       }
     },
+    "Pressure" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الضغط"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Druck"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pressure"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presión"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pression"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pressione"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "筆圧"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pressão"
+          }
+        }
+      }
+    },
     "Preview" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -159415,6 +159521,59 @@
         }
       }
     },
+    "Strokes thin and thicken with how hard you press, or how fast you draw" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تَرِقّ الخطوط وتَغلُظ بحسب قوة الضغط أو سرعة الرسم"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Striche werden je nach Druck oder Tempo dünner und dicker"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strokes thin and thicken with how hard you press, or how fast you draw"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los trazos se afinan y engrosan según cuánto presionas o lo rápido que dibujas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les traits s’affinent et s’épaississent selon la pression ou la vitesse"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I tratti si assottigliano e ingrossano in base alla pressione o alla velocità"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "押す強さや描く速さで線の太さが変わります"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os traços afinam e engrossam conforme a pressão ou a velocidade"
+          }
+        }
+      }
+    },
     "Student" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -164727,6 +164886,59 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A folha Camadas lista tudo o que há na página, de cima para baixo. Arraste para reordenar, toque para selecionar. O olho oculta um elemento da página e de todas as exportações, o cadeado o bloqueia — inteiro ou só na posição, em que as palavras, as cores e o corte ainda podem mudar — e tocar e segurar permite renomeá-lo. Um grupo é uma linha que se abre para mostrar o que contém; Sobrepostos lista só o que se sobrepõe à seleção. A folha Posição move um elemento uma etapa para a frente ou para trás."
+          }
+        }
+      }
+    },
+    "The Pencil draws, one finger moves the page" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "القلم يرسم، وإصبع واحد يحرّك الصفحة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Stift zeichnet, ein Finger bewegt die Seite"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Pencil draws, one finger moves the page"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El lápiz dibuja; un dedo mueve la página"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le stylet dessine, un doigt déplace la page"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La penna disegna, un dito sposta la pagina"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペンで描き、指1本でページを動かします"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A caneta desenha; um dedo move a página"
           }
         }
       }

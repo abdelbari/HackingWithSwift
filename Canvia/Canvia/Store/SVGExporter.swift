@@ -337,6 +337,11 @@ enum SVGExporter {
         if el.fill?.kind == "gradient", el.fill?.gradientKind == "angular" {
             return bitmapMarkup(el)
         }
+        // A pressure stroke is its outline, filled in its ink.
+        if let outline = Freehand.outline(el) {
+            return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" +
+                   "<path d=\"\(outline)\" fill=\"\(escape(el.stroke ?? "#1f2430"))\"/></g>"
+        }
         // At the element's own size, placed at its corner: the library draws
         // in a 100-unit box, and scaling that box onto the element in the
         // file would stretch the outline with it — a non-scaling stroke is no
