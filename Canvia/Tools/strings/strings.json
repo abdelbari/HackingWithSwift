@@ -3230,6 +3230,39 @@
       "other": "%d possíveis erros"
     }
   },
+  "%d post|%d posts": {
+    "ar": {
+      "few": "%d منشورات",
+      "many": "%d منشورًا",
+      "one": "%d منشور",
+      "other": "%d منشور",
+      "two": "%d منشوران",
+      "zero": "%d منشور"
+    },
+    "de": {
+      "one": "%d Beitrag",
+      "other": "%d Beiträge"
+    },
+    "es": {
+      "one": "%d publicación",
+      "other": "%d publicaciones"
+    },
+    "fr": {
+      "one": "%d publication",
+      "other": "%d publications"
+    },
+    "it": {
+      "one": "%d post",
+      "other": "%d post"
+    },
+    "ja": {
+      "other": "%d 件の投稿"
+    },
+    "pt-BR": {
+      "one": "%d publicação",
+      "other": "%d publicações"
+    }
+  },
   "%d px": {
     "ar": "%d بكسل",
     "de": "%d px",
@@ -7370,6 +7403,15 @@
     "ja": "キャッシュ",
     "pt-BR": "Caches"
   },
+  "Calendar": {
+    "ar": "التقويم",
+    "de": "Kalender",
+    "es": "Calendario",
+    "fr": "Calendrier",
+    "it": "Calendario",
+    "ja": "カレンダー",
+    "pt-BR": "Calendário"
+  },
   "Callouts": {
     "ar": "وسائل الشرح",
     "de": "Sprechblasen",
@@ -7966,6 +8008,15 @@
     "it": "Chevron",
     "ja": "山形",
     "pt-BR": "Divisa"
+  },
+  "Choose a design": {
+    "ar": "اختر تصميمًا",
+    "de": "Design auswählen",
+    "es": "Elige un diseño",
+    "fr": "Choisissez un design",
+    "it": "Scegli un design",
+    "ja": "デザインを選択",
+    "pt-BR": "Escolha um design"
   },
   "Choose a photo": {
     "ar": "اختيار صورة",
@@ -17333,6 +17384,15 @@
     "ja": "分割するには再生ヘッドをトラック内に移動してください",
     "pt-BR": "Mova o indicador de reprodução para dentro da faixa para dividi-la"
   },
+  "Move to date…": {
+    "ar": "النقل إلى تاريخ…",
+    "de": "Auf Datum verschieben…",
+    "es": "Mover a una fecha…",
+    "fr": "Déplacer à une date…",
+    "it": "Sposta a una data…",
+    "ja": "日付を変更…",
+    "pt-BR": "Mover para uma data…"
+  },
   "Move to end": {
     "ar": "نقل إلى النهاية",
     "de": "Ans Ende verschieben",
@@ -17446,6 +17506,15 @@
       "one": "%d design movido para Excluídos recentemente",
       "other": "%d designs movidos para Excluídos recentemente"
     }
+  },
+  "Moved to %@": {
+    "ar": "نُقل إلى %@",
+    "de": "Verschoben auf %@",
+    "es": "Movido al %@",
+    "fr": "Déplacé au %@",
+    "it": "Spostato al %@",
+    "ja": "%@ に移動しました",
+    "pt-BR": "Movido para %@"
   },
   "Moved to page %d": {
     "ar": "تم النقل إلى الصفحة %d",
@@ -17833,6 +17902,15 @@
     "it": "Cella successiva",
     "ja": "次のセル",
     "pt-BR": "Próxima célula"
+  },
+  "Next month": {
+    "ar": "الشهر التالي",
+    "de": "Nächster Monat",
+    "es": "Mes siguiente",
+    "fr": "Mois suivant",
+    "it": "Mese successivo",
+    "ja": "次の月",
+    "pt-BR": "Próximo mês"
   },
   "Next page": {
     "ar": "الصفحة التالية",
@@ -19571,6 +19649,15 @@
     "ja": "楕円",
     "pt-BR": "Oval"
   },
+  "Overdue": {
+    "ar": "متأخرة",
+    "de": "Überfällig",
+    "es": "Atrasadas",
+    "fr": "En retard",
+    "it": "In ritardo",
+    "ja": "期限切れ",
+    "pt-BR": "Atrasadas"
+  },
   "Overlapping": {
     "ar": "متداخل",
     "de": "Überlappend",
@@ -21247,6 +21334,15 @@
     "it": "Precedente",
     "ja": "前へ",
     "pt-BR": "Anterior"
+  },
+  "Previous month": {
+    "ar": "الشهر السابق",
+    "de": "Vorheriger Monat",
+    "es": "Mes anterior",
+    "fr": "Mois précédent",
+    "it": "Mese precedente",
+    "ja": "前の月",
+    "pt-BR": "Mês anterior"
   },
   "Previous page": {
     "ar": "الصفحة السابقة",
@@ -28774,6 +28870,15 @@
     "it": "Fino a %d caratteri. Lascia vuoto per il nome che gli dà Canvia.",
     "ja": "最大 %d 文字。空欄にすると Canvia が付けた名前になります。",
     "pt-BR": "Até %d caracteres. Deixe vazio para usar o nome que o Canvia dá."
+  },
+  "Upcoming": {
+    "ar": "القادمة",
+    "de": "Anstehend",
+    "es": "Próximas",
+    "fr": "À venir",
+    "it": "In arrivo",
+    "ja": "今後の予定",
+    "pt-BR": "Próximas"
   },
   "Update": {
     "ar": "تحديث",

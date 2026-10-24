@@ -177,6 +177,92 @@ enum PostPlanner {
             }
     }
 
+    // MARK: the calendar
+
+    /// Every post, done or not, across `designs`, soonest first — what the
+    /// Planned calendar and list show.
+    static func all(_ designs: [Design]) -> [Planned] {
+        designs.flatMap { d in of(d).map { Planned(designId: d.id, title: d.title, post: $0) } }
+            .sorted(by: soonerFirst)
+    }
+
+    /// Sooner first, a post with no time that reads last, then by id.
+    private static func soonerFirst(_ a: Planned, _ b: Planned) -> Bool {
+        let da = date(a.post.at) ?? .distantFuture, db = date(b.post.at) ?? .distantFuture
+        return da != db ? da < db : a.post.id < b.post.id
+    }
+
+    /// One day of a month in the calendar: its number and its posts.
+    struct Day: Equatable {
+        var day: Int
+        var posts: [Planned]
+    }
+
+    /// A Gregorian calendar in `zone`, the one every day is reckoned by.
+    static func calendar(_ zone: TimeZone) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        return calendar
+    }
+
+    /// The calendar's `month` (1–12) of `year`: a bucket for every one of
+    /// its days, from 1 to its last, each holding the posts of `planned`
+    /// that fall on it in `zone`, soonest first (then by id); a post of
+    /// another month, or with no time that reads, is in none. The Android
+    /// twin's PostPlanner.month.
+    static func month(_ planned: [Planned], year: Int, month: Int, zone: TimeZone) -> [Day] {
+        let cal = calendar(zone)
+        guard let first = cal.date(from: DateComponents(year: year, month: month, day: 1)),
+              let days = cal.range(of: .day, in: .month, for: first) else { return [] }
+        var byDay: [Int: [Planned]] = [:]
+        for p in planned {
+            guard let at = date(p.post.at) else { continue }
+            let parts = cal.dateComponents([.year, .month, .day], from: at)
+            guard parts.year == year, parts.month == month, let day = parts.day else { continue }
+            byDay[day, default: []].append(p)
+        }
+        return days.map { Day(day: $0, posts: (byDay[$0] ?? []).sorted(by: soonerFirst)) }
+    }
+
+    /// How many empty cells come before the 1st of `month` in a grid whose
+    /// weeks start on `firstWeekday` (the locale's, Calendar's numbering:
+    /// 1 is Sunday), 0–6.
+    static func leadingBlanks(year: Int, month: Int, firstWeekday: Int) -> Int {
+        let cal = calendar(TimeZone(identifier: "UTC") ?? .current)
+        guard let first = cal.date(from: DateComponents(year: year, month: month, day: 1)) else { return 0 }
+        return (cal.component(.weekday, from: first) - firstWeekday + 7) % 7
+    }
+
+    /// The hour a post planned from a day of the calendar starts at.
+    static let planHour = 9
+
+    /// planHour:00 on `day` of `month` of `year` in `zone`, as `at` writes it.
+    static func morningOf(year: Int, month: Int, day: Int, zone: TimeZone) -> String {
+        let parts = DateComponents(year: year, month: month, day: day, hour: planHour, minute: 0)
+        return calendar(zone).date(from: parts).map(iso) ?? ""
+    }
+
+    /// `post` moved to `day` of `month` of `year`, keeping its time of day in
+    /// `zone` — a drag to another day, or Move to date…; one with no time
+    /// that reads is as it was.
+    static func movedTo(_ post: PlannedPost, year: Int, month: Int, day: Int, zone: TimeZone) -> PlannedPost {
+        let cal = calendar(zone)
+        guard let at = date(post.at) else { return post }
+        let time = cal.dateComponents([.hour, .minute, .second], from: at)
+        let parts = DateComponents(year: year, month: month, day: day, hour: time.hour, minute: time.minute,
+                                   second: time.second)
+        guard let moved = cal.date(from: parts) else { return post }
+        var out = post
+        out.at = iso(moved)
+        return out
+    }
+
+    /// Whether `post` is overdue: not done, and its time gone by at `now`.
+    static func overdue(_ post: PlannedPost, now: Date) -> Bool {
+        guard !post.done, let at = date(post.at) else { return false }
+        return at < now
+    }
+
     /// The caption counter: "12 / 2,200" as the sheet shows it, the
     /// caption counted in characters as the twin counts code points.
     static func counter(_ caption: String, limit: Int) -> String {
