@@ -29,6 +29,10 @@ struct ColorPickerSheet: View {
     var currentPaint: Paint?
     var onPick: (String) -> Void
     var onPickGradient: ((Paint) -> Void)?
+    /// A gradient changed as a finger drags in the editor (Custom
+    /// gradient), left open as one step until it lets go; with none, the
+    /// drag lands when it ends.
+    var onPickGradientTransient: ((Paint) -> Void)? = nil
     /// Continuous variant for the system ColorPicker, which updates its
     /// binding on every drag tick; falls back to onPick when absent.
     var onPickTransient: ((String) -> Void)?
@@ -53,6 +57,10 @@ struct ColorPickerSheet: View {
     @State private var photoColors: [String] = []
     @State private var eyedropping = false
     @State private var gradientKind = "linear"
+    /// The gradient the editor starts from after a tile is picked, and a
+    /// count that starts it again.
+    @State private var gradientSeed: Paint?
+    @State private var seedCount = 0
 
     private let columns = [GridItem(.adaptive(minimum: 40), spacing: 10)]
 
@@ -133,18 +141,7 @@ struct ColorPickerSheet: View {
                     section(tr("Default colours"), colors: ContentLibrary.defaultSwatches)
 
                     if allowGradients, swapTarget == nil, let onPickGradient {
-                        Text("Gradients").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
-                        Picker("Gradient shape", selection: $gradientKind) {
-                            Text("Linear").tag("linear")
-                            Text("Radial").tag("radial")
-                            Text("Angular").tag("angular")
-                        }
-                        .pickerStyle(.segmented)
-                        LazyVGrid(columns: columns, spacing: 10) {
-                            ForEach(ContentLibrary.gradients) { preset in
-                                gradientTile(preset, pick: onPickGradient)
-                            }
-                        }
+                        gradientsSection(onPickGradient)
                     }
 
                     if allowGradients, allowPatterns || allowPhotos, swapTarget == nil, let onPickGradient {
@@ -395,15 +392,85 @@ struct ColorPickerSheet: View {
         }
     }
 
+    /// The preset gradients in the shape chosen, the brand kit's and your
+    /// own, then the editor (Custom gradient) on the one there now.
+    @ViewBuilder
+    private func gradientsSection(_ pick: @escaping (Paint) -> Void) -> some View {
+        Text("Gradients").font(.footnote.weight(.bold)).foregroundStyle(.secondary)
+        Picker("Gradient shape", selection: $gradientKind) {
+            Text("Linear").tag("linear")
+            Text("Radial").tag("radial")
+            Text("Angular").tag("angular")
+        }
+        .pickerStyle(.segmented)
+        LazyVGrid(columns: columns, spacing: 10) {
+            ForEach(ContentLibrary.gradients) { preset in
+                gradientTile(preset, pick: { seeded($0, pick) })
+            }
+        }
+        savedGradients(pick)
+        GradientEditorSection(store: store,
+                              start: gradientSeed ?? GradientEditing.editable(currentPaint, colour: current),
+                              pick: { paint in
+                                  pick(paint)
+                                  gradientSeed = paint
+                              },
+                              pickLive: liveGradient)
+            .id(seedCount)
+    }
+
+    /// The brand kit's gradients and Your gradients, when there are some.
+    @ViewBuilder
+    private func savedGradients(_ pick: @escaping (Paint) -> Void) -> some View {
+        let kit = BrandKit.load()
+        if !kit.gradients.isEmpty {
+            GradientTileRow(title: tr("Brand gradients"), paints: kit.gradients, current: shownPaint,
+                            pick: { seeded($0, pick) },
+                            remove: { paint in
+                                var edited = BrandKit.load()
+                                edited.gradients.removeAll { $0 == paint }
+                                edited.save()
+                                seedCount += 1
+                            })
+        }
+        let recents = GradientRecents.all()
+        if !recents.isEmpty {
+            GradientTileRow(title: tr("Your gradients"), paints: recents, current: shownPaint,
+                            pick: { seeded($0, pick) })
+        }
+    }
+
+    /// The editor's live changes, through onPickGradientTransient when
+    /// there is one.
+    private var liveGradient: ((Paint) -> Void)? {
+        guard let onPickGradientTransient else { return nil }
+        return { (paint: Paint) in
+            onPickGradientTransient(paint)
+            gradientSeed = paint
+        }
+    }
+
+    /// The gradient there now: the last one picked here, else the one the
+    /// sheet opened on.
+    private var shownPaint: Paint? { gradientSeed ?? currentPaint }
+
+    /// A gradient picked from a tile, as one step, and the editor started
+    /// again on it.
+    private func seeded(_ paint: Paint, _ pick: (Paint) -> Void) {
+        pick(paint)
+        store.buzz(.tick)
+        gradientSeed = paint
+        seedCount += 1
+    }
+
     /// One of the gradients, in the shape chosen above: ringed when it is
     /// the fill there now, and then a tap records nothing.
     private func gradientTile(_ preset: GradientPreset, pick: @escaping (Paint) -> Void) -> some View {
         let paint = preset.paint(kind: gradientKind)
-        let chosen = FillChoices.isGradient(currentPaint, paint)
+        let chosen = FillChoices.isGradient(shownPaint, paint)
         return Button {
             guard !chosen else { return }
             pick(paint)
-            store.buzz(.tick)
         } label: {
             RoundedRectangle(cornerRadius: 9)
                 .fill(paint.gradientStyle())

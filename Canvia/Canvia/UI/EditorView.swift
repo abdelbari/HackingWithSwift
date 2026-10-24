@@ -1515,6 +1515,7 @@ struct EditorView: View {
                              currentPaint: store.singleSelection?.fill,
                              onPick: { c in store.updateSelected { $0 = Freehand.coloured($0, c) } },
                              onPickGradient: { p in store.updateSelected { $0.fill = p } },
+                             onPickGradientTransient: { p in store.updateSelectedTransient { $0.fill = p } },
                              onPickTransient: { c in store.updateSelectedTransient { $0 = Freehand.coloured($0, c) } },
                              swapsColours: true)
         case .colorText:
@@ -1531,6 +1532,7 @@ struct EditorView: View {
                              currentPaint: store.sharedText { $0.textFill } ?? nil,
                              onPick: { c in store.updateSelected { $0.color = c; $0.textFill = nil } },
                              onPickGradient: { p in store.updateSelected { $0.textFill = p } },
+                             onPickGradientTransient: { p in store.updateSelectedTransient { $0.textFill = p } },
                              onPickTransient: { c in
                                  store.updateSelectedTransient { $0.color = c; $0.textFill = nil }
                              },

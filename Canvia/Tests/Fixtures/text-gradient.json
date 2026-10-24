@@ -1,0 +1,8 @@
+{
+"comment": "A text whose letters carry a 4-stop gradient at 30 degrees, read and exported by both phones' tests (round 33).",
+"element": {"id":"sunset","type":"text","text":"Sunset","x":40,"y":40,"w":400,"h":120,"fontSize":72,"color":"#1f2430",
+  "textFill":{"kind":"gradient","angle":30,"stops":[{"offset":0,"color":"#ff5f6d"},{"offset":0.35,"color":"#ffc371"},{"offset":0.7,"color":"#47cacc"},{"offset":1,"color":"#3a1c71"}]}},
+"stops": 4,
+"angle": 30,
+"pptxLinAng": 18000000
+}

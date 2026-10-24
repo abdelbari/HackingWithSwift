@@ -101,6 +101,12 @@ struct BackgroundColourChoices: View {
         return nil
     }
 
+    /// The page's gradient, when it has one.
+    private var currentGradient: Paint? {
+        if case .gradient(let paint) = store.page.background { return paint }
+        return nil
+    }
+
     var body: some View {
         let kit = BrandKit.load()
         VStack(alignment: .leading, spacing: 10) {
@@ -115,8 +121,13 @@ struct BackgroundColourChoices: View {
             .sheet(isPresented: $choosing) {
                 // The wheel changes the page as it turns, and the sheet keeps
                 // the whole turn as one step when it closes.
+                // A gradient of your own too (Custom gradient), behind
+                // the whole page.
                 ColorPickerSheet(store: store, title: tr("Background colour"), current: current,
+                                 allowGradients: true, currentPaint: currentGradient,
                                  onPick: { hex in store.setBackground(.color(hex)) },
+                                 onPickGradient: { paint in store.setBackground(.gradient(paint)) },
+                                 onPickGradientTransient: { paint in store.setBackgroundTransient(.gradient(paint)) },
                                  onPickTransient: { hex in store.setBackgroundTransient(.color(hex)) })
             }
             // The active brand kit's palettes, each by name.

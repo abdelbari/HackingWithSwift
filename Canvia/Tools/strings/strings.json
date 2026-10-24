@@ -4721,6 +4721,15 @@
     "ja": "セクション見出しを追加",
     "pt-BR": "Adicionar um cabeçalho de seção"
   },
+  "Add a stop": {
+    "ar": "إضافة نقطة لون",
+    "de": "Farbpunkt hinzufügen",
+    "es": "Añadir una parada",
+    "fr": "Ajouter un point",
+    "it": "Aggiungi un punto",
+    "ja": "色の位置を追加",
+    "pt-BR": "Adicionar uma parada"
+  },
   "Add a subheading": {
     "ar": "إضافة عنوان فرعي",
     "de": "Unterüberschrift hinzufügen",
@@ -6902,6 +6911,15 @@
     "ja": "ブランドフォント",
     "pt-BR": "Fontes da marca"
   },
+  "Brand gradients": {
+    "ar": "تدرّجات العلامة التجارية",
+    "de": "Markenverläufe",
+    "es": "Degradados de marca",
+    "fr": "Dégradés de la marque",
+    "it": "Sfumature del brand",
+    "ja": "ブランドのグラデーション",
+    "pt-BR": "Degradês da marca"
+  },
   "Brand graphic %d of %d": {
     "ar": "رسم العلامة التجارية %d من %d",
     "de": "Markengrafik %d von %d",
@@ -7720,6 +7738,15 @@
       "one": "Cor de %d elemento alterada",
       "other": "Cor de %d elementos alterada"
     }
+  },
+  "Changes this colour": {
+    "ar": "يغيّر هذا اللون",
+    "de": "Ändert diese Farbe",
+    "es": "Cambia este color",
+    "fr": "Change cette couleur",
+    "it": "Cambia questo colore",
+    "ja": "この色を変更します",
+    "pt-BR": "Altera esta cor"
   },
   "Changes this design. Undo brings it back.": {
     "ar": "يغيّر هذا التصميم. التراجع يعيده.",
@@ -9553,6 +9580,15 @@
     "it": "Colore personalizzato",
     "ja": "カスタムカラー",
     "pt-BR": "Cor personalizada"
+  },
+  "Custom gradient": {
+    "ar": "تدرّج مخصص",
+    "de": "Eigener Verlauf",
+    "es": "Degradado personalizado",
+    "fr": "Dégradé personnalisé",
+    "it": "Sfumatura personalizzata",
+    "ja": "カスタムグラデーション",
+    "pt-BR": "Degradê personalizado"
   },
   "Custom grid": {
     "ar": "شبكة مخصّصة",
@@ -13681,6 +13717,24 @@
     "it": "Luccichio dorato",
     "ja": "ゴールドシマー",
     "pt-BR": "Cintilar dourado"
+  },
+  "Gradient %d": {
+    "ar": "التدرّج %d",
+    "de": "Verlauf %d",
+    "es": "Degradado %d",
+    "fr": "Dégradé %d",
+    "it": "Sfumatura %d",
+    "ja": "グラデーション %d",
+    "pt-BR": "Degradê %d"
+  },
+  "Gradient angle": {
+    "ar": "زاوية التدرّج",
+    "de": "Verlaufswinkel",
+    "es": "Ángulo del degradado",
+    "fr": "Angle du dégradé",
+    "it": "Angolo della sfumatura",
+    "ja": "グラデーションの角度",
+    "pt-BR": "Ângulo do degradê"
   },
   "Gradient letters colour every word. Choose a colour for the text to colour words on their own.": {
     "ar": "حروف التدرج تلوّن كل الكلمات. اختر لونًا للنص لتلوين الكلمات منفردة.",
@@ -21848,6 +21902,15 @@
     "ja": "フィルター「%@」を解除",
     "pt-BR": "Remover filtro %@"
   },
+  "Remove from brand kit": {
+    "ar": "إزالة من مجموعة العلامة التجارية",
+    "de": "Aus dem Brand Kit entfernen",
+    "es": "Quitar del kit de marca",
+    "fr": "Retirer du kit de marque",
+    "it": "Rimuovi dal Brand Kit",
+    "ja": "ブランドキットから削除",
+    "pt-BR": "Remover do kit de marca"
+  },
   "Remove from favourites": {
     "ar": "إزالة من المفضلة",
     "de": "Aus Favoriten entfernen",
@@ -21910,6 +21973,15 @@
     "it": "Rimuovi foto",
     "ja": "写真を削除",
     "pt-BR": "Remover foto"
+  },
+  "Remove stop": {
+    "ar": "إزالة نقطة اللون",
+    "de": "Farbpunkt entfernen",
+    "es": "Quitar parada",
+    "fr": "Supprimer le point",
+    "it": "Rimuovi punto",
+    "ja": "色の位置を削除",
+    "pt-BR": "Remover parada"
   },
   "Removed the track": {
     "ar": "تمت إزالة المسار",
@@ -23051,6 +23123,15 @@
     "ja": "この見た目を保存…",
     "pt-BR": "Salvar este visual…"
   },
+  "Save to brand kit": {
+    "ar": "حفظ في مجموعة العلامة التجارية",
+    "de": "Im Brand Kit speichern",
+    "es": "Guardar en el kit de marca",
+    "fr": "Enregistrer dans le kit de marque",
+    "it": "Salva nel Brand Kit",
+    "ja": "ブランドキットに保存",
+    "pt-BR": "Salvar no kit de marca"
+  },
   "Save to device": {
     "ar": "حفظ على الجهاز",
     "de": "Auf dem Gerät speichern",
@@ -23197,6 +23278,15 @@
     "it": "Video salvato nelle tue foto.",
     "ja": "動画を写真に保存しました。",
     "pt-BR": "O vídeo foi salvo nas suas fotos."
+  },
+  "Saved to brand kit": {
+    "ar": "حُفظ في مجموعة العلامة التجارية",
+    "de": "Im Brand Kit gespeichert",
+    "es": "Guardado en el kit de marca",
+    "fr": "Enregistré dans le kit de marque",
+    "it": "Salvato nel Brand Kit",
+    "ja": "ブランドキットに保存しました",
+    "pt-BR": "Salvo no kit de marca"
   },
   "Saved to your photos": {
     "ar": "تم الحفظ في صورك",
@@ -25675,6 +25765,24 @@
     "it": "Interrompi",
     "ja": "停止",
     "pt-BR": "Parar"
+  },
+  "Stop %d": {
+    "ar": "نقطة اللون %d",
+    "de": "Farbpunkt %d",
+    "es": "Parada %d",
+    "fr": "Point %d",
+    "it": "Punto %d",
+    "ja": "色の位置 %d",
+    "pt-BR": "Parada %d"
+  },
+  "Stop %d, %@": {
+    "ar": "نقطة اللون %d، %@",
+    "de": "Farbpunkt %d, %@",
+    "es": "Parada %d, %@",
+    "fr": "Point %d, %@",
+    "it": "Punto %d, %@",
+    "ja": "色の位置 %d、%@",
+    "pt-BR": "Parada %d, %@"
   },
   "Stop dictating": {
     "ar": "إيقاف الإملاء",
@@ -29908,6 +30016,15 @@
     "it": "I tuoi font",
     "ja": "あなたのフォント",
     "pt-BR": "Suas fontes"
+  },
+  "Your gradients": {
+    "ar": "تدرّجاتك",
+    "de": "Deine Verläufe",
+    "es": "Tus degradados",
+    "fr": "Vos dégradés",
+    "it": "Le tue sfumature",
+    "ja": "あなたのグラデーション",
+    "pt-BR": "Seus degradês"
   },
   "Your guide": {
     "ar": "خطك الإرشادي",
