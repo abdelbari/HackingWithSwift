@@ -135,6 +135,27 @@ enum ContrastAudit {
         }
     }
 
+    /// The first highlighted words of `el` (TextSpan.highlight), in the
+    /// order of its spans, that fall short against their marker — the
+    /// marker as drawn over `back`, the words in their own colour or the
+    /// box's, faded as the box is: their words, the ratio and the marker's
+    /// colour. Only asked once the box itself passes, so a box has one
+    /// finding at most — the rule both phones share.
+    static func markedShortfall(_ el: Element, on back: String) -> (words: String, ratio: Double, backdrop: String)? {
+        let plain = RichText.strip(el.text ?? "") as NSString
+        let need = required(for: el)
+        for span in el.liveSpans {
+            guard let mark = span.highlight, span.end <= plain.length, span.end > span.start else { continue }
+            let behind = drawn(mark, over: back, opacity: 1)
+            let ink = span.color ?? el.color ?? "#1f2430"
+            let r = ratio(drawn(ink, over: behind, opacity: el.opacity), behind)
+            guard r < need else { continue }
+            let words = plain.substring(with: span.range).trimmingCharacters(in: .whitespacesAndNewlines)
+            return (words, r, behind)
+        }
+        return nil
+    }
+
     /// Every text element that falls short, page by page.
     static func audit(_ design: Design) -> [Finding] {
         var findings: [Finding] = []
@@ -157,6 +178,10 @@ enum ContrastAudit {
                                             text: words,
                                             ratio: r, required: need, backdrop: back,
                                             suggestion: suggestion(on: back, need: need)))
+                } else if let marked = markedShortfall(el, on: back) {
+                    findings.append(Finding(pageIndex: p, elementId: el.id, text: marked.words,
+                                            ratio: marked.ratio, required: need, backdrop: marked.backdrop,
+                                            suggestion: suggestion(on: marked.backdrop, need: need)))
                 }
             }
         }

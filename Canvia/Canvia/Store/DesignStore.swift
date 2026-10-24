@@ -64,6 +64,12 @@ final class DesignStore {
     var wordColourTarget: WordRange?
     /// The words the font sheet is open for, from the typing bar's Aa.
     var wordFontTarget: WordRange?
+    /// The words the marker colours are open for, from the typing bar's
+    /// highlighter (see WordStyles).
+    var wordHighlightTarget: WordRange?
+    /// The text whose shape Edit shape has handles on — its warp's, or its
+    /// path's points (TextWarping); nil when none.
+    var shapeEditingId: String?
     /// Edit chart asked for from the canvas — VoiceOver's Edit data on a
     /// chart — with the chart selected; the editor opens it and clears this.
     var chartEditRequested = false

@@ -791,6 +791,8 @@ enum PptxExporter {
         var link: String? = nil
         /// A weight of its own (Spans); nil is the box's.
         var weight: Int? = nil
+        /// A marker behind its words (Spans); nil is none.
+        var highlight: String? = nil
     }
 
     /// The words as typed — page numbers filled in, the inline style marks
@@ -847,11 +849,12 @@ enum PptxExporter {
                                        underline: box.underline || own.underline, strike: own.strike)
             let linked = span?.link != nil ? Spans.linkColour : nil
             let run = TextRun(text: piece, style: style, color: span?.color ?? linked, scale: span?.scale,
-                              font: span?.font, link: Links.followable(span?.link), weight: span?.weight)
+                              font: span?.font, link: Links.followable(span?.link), weight: span?.weight,
+                              highlight: span?.highlight)
             let last = paragraphs.count - 1
             if var before = paragraphs[last].last, before.style == run.style, before.color == run.color,
                before.scale == run.scale, before.font == run.font, before.link == run.link,
-               before.weight == run.weight {
+               before.weight == run.weight, before.highlight == run.highlight {
                 before.text += piece
                 paragraphs[last][paragraphs[last].count - 1] = before
             } else {
@@ -1123,7 +1126,15 @@ enum PptxExporter {
         let paint = style.fill ?? "<a:solidFill>\(color(own ?? ink ?? el.color ?? "#1f2430", opacity: el.opacity))</a:solidFill>"
         var font = "<a:latin typeface=\"\(SVGExporter.escape(face))\"/>"
         if let link { font += "<a:hlinkClick r:id=\"\(link)\"/>" }
-        let look = style.line + paint + style.effects
+        // A word's own marker in place of the box's Highlight, which is
+        // the last of the effects (styledParts): PowerPoint takes one
+        // a:highlight a run.
+        var effects = style.effects
+        if let mark = run.highlight {
+            if let box = effects.range(of: "<a:highlight>") { effects = String(effects[..<box.lowerBound]) }
+            effects += "<a:highlight>\(color(mark))</a:highlight>"
+        }
+        let look = style.line + paint + effects
         return "<a:r><a:rPr\(attributes)>\(look)\(font)</a:rPr><a:t>\(SVGExporter.escape(run.text))</a:t></a:r>"
     }
 

@@ -41,6 +41,8 @@ enum EditorSheet: String, Identifiable {
     case photoInLetters
     /// More like this, for a selected icon, sticker, graphic or shape.
     case similar
+    /// The typing bar's highlighter: marker colours for the words chosen.
+    case highlightWords
     var id: String { rawValue }
 }
 
@@ -271,6 +273,7 @@ struct EditorView: View {
             }
             if sheet != .colorWords, store.wordColourTarget != nil { store.wordColourTarget = nil }
             if sheet != .fontWords, store.wordFontTarget != nil { store.wordFontTarget = nil }
+            if sheet != .highlightWords, store.wordHighlightTarget != nil { store.wordHighlightTarget = nil }
             if sheet != .photoInLetters, store.photoAdjustTarget != nil { store.photoAdjustTarget = nil }
         }
         // Crop, typing, the pen or the eraser taking the page ends Select
@@ -1489,6 +1492,8 @@ struct EditorView: View {
             FontSheet(store: store)
         case .fontWords:
             FontSheet(store: store, words: true)
+        case .highlightWords:
+            HighlightSheet(store: store)
         case .photoInLetters:
             PhotoInLettersSheet(store: store)
         case .effects:
@@ -1945,6 +1950,9 @@ private struct WordRequests: ViewModifier {
             }
             .onChange(of: store.wordFontTarget) { _, target in
                 if target != nil { activeSheet = .fontWords }
+            }
+            .onChange(of: store.wordHighlightTarget) { _, target in
+                if target != nil { activeSheet = .highlightWords }
             }
             .onChange(of: store.chartEditRequested) { _, asked in
                 guard asked else { return }

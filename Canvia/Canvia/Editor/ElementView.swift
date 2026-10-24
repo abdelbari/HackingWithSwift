@@ -477,6 +477,10 @@ struct TextElementView: View {
             }
         }
 
+        // Marks behind chosen words, over the bars and under the letters
+        // and whatever their effect casts.
+        TextHighlights.draw(TextHighlights.rects(for: el, width: size.width, top: rect.minY), in: cg)
+
         if fx.casts { Self.castShadow(fx, in: cg) }
 
         // A drop cap: the letter, then the rest framed around it. Only the
