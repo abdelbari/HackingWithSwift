@@ -819,9 +819,9 @@ private struct DocTextBlock: View {
                 .foregroundStyle(.tertiary)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
+                // A list item at depth stands in a step for each level.
+                .padding(.leading, CGFloat(24 * (block.level ?? 0)))
         }
-        // A list item at depth stands in a step for each level.
-        .padding(.leading, CGFloat(24 * (block.level ?? 0)))
     }
 
     private var placeholder: String {
