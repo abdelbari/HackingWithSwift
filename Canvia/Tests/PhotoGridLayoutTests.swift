@@ -39,7 +39,7 @@ final class PhotoGridLayoutTests: XCTestCase {
         XCTAssertEqual(l.lattice, [[0, 0, 3, 2], [3, 0, 2, 1], [3, 1, 2, 1]])
         XCTAssertEqual(PhotoGrids.ownSplits(l), GridSplits(x: [0.2, 0.4, 0.6, 0.8], y: [0.5]))
         XCTAssertEqual(PhotoGrids.unitCells(l, splits: nil), l.cells)
-        XCTAssertEqual(PhotoGrids.layouts.count, 19)
+        XCTAssertEqual(PhotoGrids.layouts.count, 31)
     }
 
     func testADividerIsALatticeLineNoCellRunsAcross() throws {

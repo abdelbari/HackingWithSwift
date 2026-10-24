@@ -10,6 +10,8 @@ struct FrameSheet: View {
     @Bindable var store: DesignStore
     @Environment(\.dismiss) private var dismiss
     private let columns = [GridItem(.adaptive(minimum: 72), spacing: 10)]
+    /// The shaped frames' category chip chosen; nil is all of them.
+    @State private var maskCategory: String?
 
     private var current: String? { store.singleSelection?.maskShapeId }
 
@@ -39,6 +41,7 @@ struct FrameSheet: View {
                             }
                         }
                     }
+                    maskSection
                 }
                 .padding()
             }
@@ -51,6 +54,39 @@ struct FrameSheet: View {
         .presentationDetents([.medium, .large])
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
         .onDisappear { if store.hasPendingChanges { store.commit() } }
+    }
+
+    /// Shaped frames (MaskFrames), by category chip.
+    @ViewBuilder
+    private var maskSection: some View {
+        Text("Shaped frames")
+            .font(.footnote.weight(.bold))
+            .foregroundStyle(.secondary)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                maskChip(nil, tr("All"))
+                ForEach(MaskFrames.categories, id: \.self) { maskChip($0, MaskFrames.categoryName($0)) }
+            }
+        }
+        LazyVGrid(columns: columns, spacing: 10) {
+            ForEach(MaskFrames.filter(category: maskCategory, query: "")) { mask in
+                tile(mask.shape, name: tr(mask.shape.name))
+            }
+        }
+    }
+
+    private func maskChip(_ category: String?, _ name: String) -> some View {
+        let chosen = maskCategory == category
+        return Button { maskCategory = category } label: {
+            Text(name)
+                .font(.caption)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Capsule().fill(chosen ? Theme.accentSubtle : Color(.systemGray6)))
+                .overlay(Capsule().stroke(chosen ? Theme.accent : Theme.hairline))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 
     private var noneTile: some View {
@@ -69,7 +105,7 @@ struct FrameSheet: View {
         .accessibilityAddTraits(current == nil ? .isSelected : [])
     }
 
-    private func tile(_ shape: ShapeDef) -> some View {
+    private func tile(_ shape: ShapeDef, name: String? = nil) -> some View {
         Button {
             apply(shape.id)
         } label: {
@@ -81,7 +117,7 @@ struct FrameSheet: View {
                 .background(selection(active: current == shape.id))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(shape.name) frame")
+        .accessibilityLabel(tr("%@ frame", name ?? shape.name))
         .accessibilityAddTraits(current == shape.id ? .isSelected : [])
     }
 
