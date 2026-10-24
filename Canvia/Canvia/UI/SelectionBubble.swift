@@ -1,6 +1,7 @@
 // Quick actions at the selection: a small pill floating just above what is
 // selected — below it when there is no room above — with Copy, Paste,
-// Duplicate, Detach image on a filled frame or grid cell, More like this on
+// Duplicate, a magnifier on something small on screen (Zoom to selection),
+// Detach image on a filled frame or grid cell, More like this on
 // an icon, sticker, graphic or shape (SimilarSheet), Delete, and on a photo
 // an overflow with Apply colours to page (PhotoColours), as
 // Canva puts them by the element and as the Android twin does. Each does what the menu's own does: Delete still says so with
@@ -81,13 +82,21 @@ struct SelectionBubble: View {
     /// A photo: its overflow offers Apply colours to page.
     private var overflows: Bool { store.photoForColours != nil }
 
+    /// Something small on screen: the magnifier frames it (Zoom to
+    /// selection).
+    private var magnifies: Bool { store.selectionIsSmallOnScreen }
+
     private var width: Double {
-        let extra = (pastes ? 1 : 0) + (detaches ? 1 : 0) + (similar ? 1 : 0) + (overflows ? 1 : 0)
+        let extras = [pastes, detaches, similar, overflows, magnifies]
+        let extra = extras.filter { $0 }.count
         return Self.slot * Double(3 + extra) + 12
     }
 
     private var pill: some View {
         HStack(spacing: 0) {
+            if magnifies {
+                action("plus.magnifyingglass", tr("Zoom to selection")) { store.zoomToSelection() }
+            }
             action("doc.on.doc", tr("Copy")) { store.copySelected() }
             if pastes {
                 action("doc.on.clipboard", tr("Paste")) { store.paste() }

@@ -115,6 +115,9 @@ struct CanvasView: View {
     /// Settings ▸ Editing's "Pinch resizes what is selected": on unless
     /// turned off (CanvasGestures.pinchesSelection).
     @AppStorage(CanvasGestures.pinchSelectionKey) private var pinchSelection = true
+    /// Settings ▸ Editing's "Show distances": on unless turned off
+    /// (Geometry.nearestDistances).
+    @AppStorage(AccessibilityPrefs.showDistancesKey) private var showDistances = true
     /// The view zoomed in on the words being typed, in page units, while it
     /// is; and the box last weighed for it, so it is weighed once a box.
     @State private var typingFocus: TypingFocus?
@@ -175,6 +178,9 @@ struct CanvasView: View {
         var dragUnion: CGRect = .zero
         /// Sibling boxes at grab time, for equal-spacing hints.
         var siblingBoxes: [CGRect] = []
+        /// What a move measures its distances to, taken at grab time —
+        /// none when Show distances is off or several apart are moved.
+        var distanceBoxes: [CGRect]?
         /// Their neighbours in rows and columns, worked out once: the
         /// siblings do not move while the drag lasts (Geometry.neighbours).
         var siblingRows: Geometry.Neighbours?
@@ -311,6 +317,7 @@ struct CanvasView: View {
             onPencilTap: { store.toggleDrawing() },
             pinchZooms: store.cropping == nil,
             claimsDoubleTap: { point in claimsDoubleTap(at: point) },
+            zoomsToSelection: { point in zoomsToSmallSelection(at: point) },
             pansFromPage: { point in pansFromPage(at: point) },
             holdsPage: { point in holdsWorkedPage(at: point) },
             request: canvasRequest(in: slot),
@@ -621,7 +628,7 @@ struct CanvasView: View {
                 if bleed > 0 { TrimLine(size: store.pageSize, unit: iz) }
                 if store.snapping.showGrid { gridOverlay }
                 if store.snapping.marginEnabled && store.snapping.showMargins { marginOverlay }
-                ForEach(store.design.guides) { guide in guideLine(guide) }
+                ForEach(Guides.shown(store.design)) { guide in guideLine(guide) }
                 if store.showsReadingOrder { readingOrderOverlay }
                 if underlineLinks { LinkUnderlines(design: store.design, page: shownPage) }
                 // Check accessibility's View as, over the page.
@@ -818,6 +825,15 @@ struct CanvasView: View {
         }
         page.elements.removeAll { hidden.contains($0.id) && $0.type != .shape }
         return page
+    }
+
+    /// A double tap on a small thing selected: the view zooms to it (Zoom
+    /// to selection), and the canvas's own zoom at the point is not done.
+    private func zoomsToSmallSelection(at point: CGPoint) -> Bool {
+        guard store.selectionIsSmallOnScreen,
+              store.selectedElements.contains(where: { Geometry.hits($0, point: point) }) else { return false }
+        store.zoomToSelection()
+        return true
     }
 
     /// Whether a double tap here belongs to the page rather than to the
@@ -1437,10 +1453,8 @@ struct CanvasView: View {
     private func pansFromPage(at point: CGPoint) -> Bool {
         guard store.drawing == nil, store.erasing == nil, store.cropping == nil, store.graphicCropping == nil,
               store.brushing == nil, store.motionRecording == nil else { return false }
-        let guideReach = Touch.pageUnits(12, zoom: store.zoom)
-        let onGuide = store.design.guides.contains { guide in
-            abs(Double(guide.vertical ? point.x : point.y) - guide.position) <= guideReach
-        }
+        // A hidden or locked guide is no guide to a touch (Guides.grabbed).
+        let onGuide = Guides.grabbed(store.design, at: point, reach: Touch.pageUnits(12, zoom: store.zoom)) != nil
         return CanvasGestures.pansFromPage(onElement: holdsWorkedPage(at: point) || onGuide, held: 0)
     }
 
@@ -1459,9 +1473,24 @@ struct CanvasView: View {
             Button(store.pastePageTitle) { chooseFromHoldMenu(.pastePage, at: centre) }
         }
         Button(HoldMenu.HoldItem.selectAll.title) { chooseFromHoldMenu(.selectAll, at: centre) }
+        recoverActions(at: centre)
         Button(HoldMenu.HoldItem.addText.title) { chooseFromHoldMenu(.addText, at: centre) }
         Button(HoldMenu.HoldItem.background.title) { chooseFromHoldMenu(.background, at: centre) }
         Button(HoldMenu.HoldItem.animate.title) { chooseFromHoldMenu(.animate, at: centre) }
+    }
+
+    /// Unlock all and Show hidden among the page's actions, as the hold
+    /// menu offers them.
+    @ViewBuilder
+    private func recoverActions(at centre: CGPoint) -> some View {
+        let locked = store.lockedCount(onPage: store.pageIndex)
+        let hidden = store.hiddenCount(onPage: store.pageIndex)
+        if locked > 0 && !store.isPageLocked {
+            Button(HoldMenu.unlockAllTitle(locked)) { chooseFromHoldMenu(.unlockAll, at: centre) }
+        }
+        if hidden > 0 {
+            Button(HoldMenu.showHiddenTitle(hidden)) { chooseFromHoldMenu(.showHidden, at: centre) }
+        }
     }
 
     private func chooseFromHoldMenu(_ item: HoldMenu.HoldItem, at point: CGPoint) {
@@ -1571,6 +1600,8 @@ struct CanvasView: View {
                     }
             )
             .onLongPressGesture(minimumDuration: 0.5) { guideMenu = guide }
+            // Locked, a touch on it goes to what is under it.
+            .allowsHitTesting(!store.guidesLocked)
             .position(x: guide.vertical ? guide.position : w / 2, y: guide.vertical ? h / 2 : guide.position)
             .accessibilityLabel(guideTitle(guide))
             .accessibilityHint("Drag to move, press and hold to place or remove; or use the actions to move, place or remove it")
@@ -1594,7 +1625,7 @@ struct CanvasView: View {
         Button(guide.vertical ? tr("Move left") : tr("Move up")) { nudgeGuide(guide, by: -step) }
         Button(guide.vertical ? tr("Move right") : tr("Move down")) { nudgeGuide(guide, by: step) }
         Button("Position…") { askPosition(guide) }
-        Button("Remove guide") { store.removeGuide(guide.id) }
+        Button("Remove guide") { if !store.refusesLockedGuides() { store.removeGuide(guide.id) } }
     }
 
     /// "Vertical guide at 540".
@@ -1606,6 +1637,8 @@ struct CanvasView: View {
 
     /// Position…: the guide's place typed in, starting from where it is.
     private func askPosition(_ guide: Guide) {
+        // A locked guide is refused, with Unlock, as a locked element is.
+        guard !store.refusesLockedGuides() else { return }
         let at = guide.position
         // In the design's unit when it has a physical one.
         guidePositionText = store.design.physicalUnit != nil ? Units.readout(at, store.design)
@@ -1614,6 +1647,7 @@ struct CanvasView: View {
     }
 
     private func nudgeGuide(_ guide: Guide, by step: Double) {
+        guard !store.refusesLockedGuides() else { return }
         store.moveGuideTransient(guide.id, to: guide.position + step)
         store.commit()
     }
@@ -1791,6 +1825,14 @@ struct CanvasView: View {
             if let at = pagePress, CanvasGestures.action(.hold, on: .backdrop) == .menu { store.holdMenuAt = at }
             return
         }
+        // Hold to measure: held still on the one thing or the one group
+        // selected, its distances show until the finger lifts, rather than
+        // taking it out and leaving nothing selected.
+        if showDistances && store.selection.contains(el.id) && store.selectionIsMeasurable {
+            store.measureSelection(true)
+            store.buzz(.tick)
+            return
+        }
         store.select(el.id, additive: true)
         store.buzz(.tick)
     }
@@ -1851,6 +1893,8 @@ struct CanvasView: View {
             if gesture.backdropHold != nil { gesture.backdropHold = nil }
         } else {
             press.held = press.began.map { Date().timeIntervalSince($0) }
+            // A hold to measure ends as the finger lifts.
+            if !gesture.dragActive && !store.distanceMarks.isEmpty { store.measureSelection(false) }
         }
     }
 
@@ -1882,6 +1926,11 @@ struct CanvasView: View {
             Button("Move right") { nudge(el, dx: step, dy: 0) }
             Button("Move up") { nudge(el, dx: 0, dy: -step) }
             Button("Move down") { nudge(el, dx: 0, dy: step) }
+            // The move handle's Distances, which VoiceOver reaches here: how
+            // far the selection is from its neighbours and the page's edges.
+            if store.selection.contains(el.id) {
+                Button("Distances") { AccessibilityNotification.Announcement(store.spokenDistances).post() }
+            }
             // Each said after, where it is and how big, as its value is.
             Button("Make larger") { if store.resizeForScreenReader(el.id, larger: true) { sayPlacement(el.id) } }
             Button("Make smaller") { if store.resizeForScreenReader(el.id, larger: false) { sayPlacement(el.id) } }
@@ -2051,6 +2100,10 @@ struct CanvasView: View {
                 .map(Geometry.aabb)
             gesture.siblingRows = Geometry.neighbours(gesture.siblingBoxes, alongX: true)
             gesture.siblingColumns = Geometry.neighbours(gesture.siblingBoxes, alongX: false)
+            // One thing or one group moved measures its distances.
+            if showDistances && store.selectionIsMeasurable {
+                gesture.distanceBoxes = store.distanceNeighbours(excluding: Set(gesture.dragOriginals.keys))
+            }
             // One photo on its own may be going into a frame.
             if gesture.dragOriginals.count == 1, let id = gesture.dragOriginals.keys.first,
                let photo = store.element(id), PhotoFrames.canDrop(photo) {
@@ -2116,6 +2169,11 @@ struct CanvasView: View {
         // the finger has really travelled — where it came from.
         if !gesture.dragUnion.isEmpty {
             gesture.movedBox = gesture.dragUnion.offsetBy(dx: dx, dy: dy)
+        }
+        // How far it now is from its neighbours and the page's edges.
+        if let others = gesture.distanceBoxes, let moved = gesture.movedBox {
+            let marks = Geometry.nearestDistances(moving: moved, others: others, page: store.pageSize)
+            if store.distanceMarks != marks { store.distanceMarks = marks }
         }
         // The frame under the finger, lit up: let go there, the photo
         // goes into it.
@@ -2608,6 +2666,7 @@ struct CanvasView: View {
         store.spacingSnapped = false
         if !store.gapMarks.isEmpty { store.gapMarks = [] }
         if !store.sizeMarks.isEmpty { store.sizeMarks = [] }
+        if !store.distanceMarks.isEmpty { store.distanceMarks = [] }
         store.canvasTouchActive = false
     }
 
@@ -2799,6 +2858,8 @@ struct CanvasView: View {
                                  serial: request.serial)
         case .page:
             return request
+        case .frame(let box):
+            return CanvasRequest(kind: .frame(slot.columnBox(box)), serial: request.serial)
         }
     }
 

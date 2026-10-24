@@ -71,6 +71,8 @@ struct EditorView: View {
     /// The locked page the toast offers to unlock, when it says a page is
     /// locked (DesignStore.refusesLockedPage).
     @State private var toastUnlocks: String?
+    /// Whether the toast offers to unlock the guides (refusesLockedGuides).
+    @State private var toastUnlocksGuides = false
     @State private var toastTask: Task<Void, Never>?
     @State private var tip: Tip?
     @State private var presenting = false
@@ -239,9 +241,12 @@ struct EditorView: View {
             guard let text else { return }
             store.announcement = nil
             let unlocks = store.announcementUnlocks
+            let unlocksGuides = store.announcementUnlocksGuides
             store.announcementUnlocks = nil
+            store.announcementUnlocksGuides = false
             show(toast: text, undoable: store.announcementUndoes)
             toastUnlocks = unlocks
+            toastUnlocksGuides = unlocksGuides
         }
         .onChange(of: store.tipEvent) { _, event in
             guard let event else { return }
@@ -519,8 +524,8 @@ struct EditorView: View {
 
     /// The view's keys, as Canva has them: ⌘= and ⌘- a quarter in and out
     /// about the middle of the screen, ⌘0 the whole page, ⌘1 actual size,
-    /// and ⌥↑ and ⌥↓ the page before and after, which the canvas settles on
-    /// as it brings it up.
+    /// ⌘2 the selection framed, and ⌥↑ and ⌥↓ the page before and after,
+    /// which the canvas settles on as it brings it up.
     private var viewCommands: some View {
         Group {
             Group {
@@ -538,6 +543,8 @@ struct EditorView: View {
             }
             shortcut("m", [.option, .shift], tr("Align middle")) { store.alignSelected(.centerY) }
             shortcut("b", [.option, .shift], tr("Align bottom")) { store.alignSelected(.bottom) }
+            // ⌘2 frames what is selected; ⌘0 fits the page again.
+            shortcut("2", [.command], tr("Zoom to selection")) { store.zoomToSelection() }
         }
     }
 
@@ -804,6 +811,11 @@ struct EditorView: View {
         Binding(get: { Bleed.shown(store.design) }, set: { store.setBleed($0) })
     }
 
+    /// Show guides, the design's own: one step each way.
+    private var guidesShown: Binding<Bool> {
+        Binding(get: { store.guidesShown }, set: { store.setGuidesShown($0) })
+    }
+
     private var overflowMenu: some View {
         Menu {
             // Sections rather than a flat list with dividers: a ViewBuilder
@@ -956,6 +968,7 @@ struct EditorView: View {
                 // this phone's.
                 Toggle(isOn: printBleed) { Label("Show print bleed", systemImage: "rectangle.dashed") }
                 Toggle(isOn: $rulers) { Label("Rulers", systemImage: "ruler") }
+                Toggle(isOn: guidesShown) { Label("Guides", systemImage: "squareshape.split.3x3") }
                 Toggle(isOn: $haptics) { Label("Vibration", systemImage: "iphone.radiowaves.left.and.right") }
                 Toggle(isOn: $quickActions) { Label("Quick actions at the selection", systemImage: "capsule") }
                 Toggle(isOn: $pageScroll) { Label("Scroll through pages", systemImage: "rectangle.stack") }
@@ -1036,6 +1049,13 @@ struct EditorView: View {
                         store.groupSelected()
                     } label: { Label("Group", systemImage: "square.on.square") }
                         .disabled(!store.canGroup)
+                }
+                // Something a tap a level deeper took inside a group: out
+                // of it, the rest of the group kept.
+                if store.canRemoveFromGroup {
+                    Button {
+                        store.removeSelectedFromGroup()
+                    } label: { Label("Remove from group", systemImage: "rectangle.portrait.and.arrow.right") }
                 }
                 // A frame's or a grid cell's picture, taken out as a photo
                 // of its own, the frame left empty.
@@ -1324,24 +1344,17 @@ struct EditorView: View {
         }
     }
 
-    /// The frame's shape: Free, the picture's own, and the usual ratios
-    /// (CropAspect), the one the frame has lit. Each trims the frame inside
-    /// itself (Crop.trimmedToRatio); a frame locked in position keeps its
-    /// shape, so its chips wait.
+    /// The frame's shape: Free, the picture's own, the orientation chip,
+    /// the usual ratios (CropAspect) and Custom…, the one the frame has lit
+    /// (CropRatioChips). Each trims the frame inside itself
+    /// (Crop.trimmedToRatio); a frame locked in position keeps its shape, so
+    /// its chips wait.
     private func cropAspectRow(_ photo: Element?) -> some View {
-        let lit = photo.flatMap { el in store.cropping.map { CropAspect.matching(el, image: $0.imageSize) } } ?? .free
-        return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(CropAspect.allCases, id: \.self) { aspect in
-                    Button(aspect.name) { store.setCropAspect(aspect) }
-                        .buttonStyle(.bordered)
-                        .tint(aspect == lit ? Theme.accent : .secondary)
-                        .controlSize(.small)
-                        .accessibilityAddTraits(aspect == lit ? .isSelected : [])
-                }
-            }
-        }
-        .disabled(photo?.holdsPlace ?? true)
+        CropRatioChips(match: store.cropMatch, portrait: (photo.map { $0.h > $0.w }) ?? false,
+                       onAspect: { aspect, turned in store.setCropAspect(aspect, turned: turned) },
+                       onTurn: { store.turnCropAspect() },
+                       onCustom: { ratio in store.setCropRatio(ratio) })
+            .disabled(photo?.holdsPlace ?? true)
     }
 
     /// The straighten dial: −45 to 45 degrees in half steps, a tick at
@@ -1425,19 +1438,15 @@ struct EditorView: View {
         store.graphicCropping?.ids.first.flatMap(store.element)?.clipBox != nil
     }
 
-    /// The window's shape, as a photo's frame has them; Original is the
-    /// graphic's own.
+    /// The window's shape, as a photo's frame has them — the orientation
+    /// chip and Custom… too; Original is the graphic's own.
     private var graphicAspectRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(CropAspect.allCases, id: \.self) { aspect in
-                    Button(aspect.name) { store.setGraphicCropAspect(aspect) }
-                        .buttonStyle(.bordered)
-                        .tint(.secondary)
-                        .controlSize(.small)
-                }
-            }
-        }
+        let window = store.graphicCropWindow
+        return CropRatioChips(match: store.graphicCropMatch,
+                              portrait: window.map { $0.height > $0.width } ?? false,
+                              onAspect: { aspect, turned in store.setGraphicCropAspect(aspect, turned: turned) },
+                              onTurn: { store.turnGraphicCropAspect() },
+                              onCustom: { ratio in store.setGraphicCropRatio(ratio) })
     }
 
     /// Brush size, the strokes so far, and the two ways out.
@@ -1688,6 +1697,13 @@ struct EditorView: View {
                     }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.accent)
+                } else if toastUnlocksGuides {
+                    Button("Unlock") {
+                        dismissToast()
+                        store.setGuidesLocked(false)
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
                 } else if !toastOpens.isEmpty {
                     Button("Open") {
                         let ids = toastOpens
@@ -1836,6 +1852,7 @@ struct EditorView: View {
         toastTask?.cancel()
         toastOpens = []
         toastUnlocks = nil
+        toastUnlocksGuides = false
         toastUndoes = undoable
         toastVersion = store.historyVersion
         withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85)) { toast = text }

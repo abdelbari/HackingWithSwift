@@ -84,6 +84,84 @@ enum Groups {
         return GraphicClip.regrouped(before: elements, after: out)
     }
 
+    /// Remove from group: each of the elements `ids` leaves its innermost
+    /// group (withChain, its chain less the last level) and the rest of
+    /// that group stays grouped. A group it left with one member lets it go
+    /// too, so the edit leaves no group of one behind (letGoOfOnes). An element whose outermost
+    /// group is no longer the one it was in loses its groupTurn: the turn
+    /// belongs to a group it has left. A crop stays where it shows
+    /// (GraphicClip.regrouped). The Android twin's Groups.removedFromGroup,
+    /// the same rows.
+    static func removedFromGroup(_ elements: [Element], ids: Set<String>) -> [Element] {
+        let taken = elements.map { el -> Element in
+            let levels = chain(el)
+            guard ids.contains(el.id), !levels.isEmpty else { return el }
+            return withChain(el, Array(levels.dropLast()))
+        }
+        let out = letGoOfOnes(before: elements, after: taken, moved: ids).map { el in
+            turnLetGo(el, was: elements.first { $0.id == el.id })
+        }
+        return GraphicClip.regrouped(before: elements, after: out)
+    }
+
+    /// Add to group: each of the elements `ids` takes the chain of group
+    /// `groupId`'s members, outermost first down to `groupId` — and so the
+    /// group's turn, written the same on each member — and moves in the
+    /// page's order to just above the group's top-most member, in the order
+    /// they were in. One already in the group, and a group with no members,
+    /// change nothing. A group they left with one member lets it go, its
+    /// groupTurn with it, as removedFromGroup does (letGoOfOnes). The
+    /// Android twin's Groups.addedToGroup, the same rows.
+    static func addedToGroup(_ elements: [Element], ids: Set<String>, groupId: String) -> [Element] {
+        guard let member = elements.first(where: { chain($0).contains(groupId) }) else { return elements }
+        let levels = chain(member)
+        let target = Array(levels.prefix(through: levels.firstIndex(of: groupId) ?? levels.count - 1))
+        let joining = Set(elements.filter { ids.contains($0.id) && !chain($0).contains(groupId) }.map(\.id))
+        guard !joining.isEmpty else { return elements }
+        let changed = elements.map { el -> Element in
+            guard joining.contains(el.id) else { return el }
+            var e = withChain(el, target)
+            e.groupTurn = member.groupTurn
+            return e
+        }
+        let moving = changed.filter { joining.contains($0.id) }
+        var rest = changed.filter { !joining.contains($0.id) }
+        let top = rest.lastIndex { chain($0).contains(groupId) } ?? rest.count - 1
+        rest.insert(contentsOf: moving, at: top + 1)
+        let out = letGoOfOnes(before: elements, after: rest, moved: joining).map { el in
+            joining.contains(el.id) ? el : turnLetGo(el, was: elements.first { $0.id == el.id })
+        }
+        return GraphicClip.regrouped(before: elements, after: out)
+    }
+
+    /// `after` with each group the `moved` elements left — in their chain
+    /// in `before`, not in `after` — let go of by its last member when only
+    /// one is left in it. Only the groups the edit touched: a group of one
+    /// already on the page stays as it is. The Android twin's Groups.tidied.
+    private static func letGoOfOnes(before: [Element], after: [Element], moved: Set<String>) -> [Element] {
+        var left: Set<String> = []
+        for el in after where moved.contains(el.id) {
+            let was = before.first { $0.id == el.id }.map(chain) ?? []
+            left.formUnion(Set(was).subtracting(chain(el)))
+        }
+        let ones = left.filter { members(after, of: $0).count == 1 }
+        guard !ones.isEmpty else { return after }
+        return after.map { el in
+            let levels = chain(el)
+            let kept = levels.filter { !ones.contains($0) }
+            return kept == levels ? el : withChain(el, kept)
+        }
+    }
+
+    /// `el` without its groupTurn when its outermost group is no longer the
+    /// one it had `was` it in.
+    private static func turnLetGo(_ el: Element, was: Element?) -> Element {
+        guard el.groupTurn != nil, el.group != was?.group else { return el }
+        var e = el
+        e.groupTurn = nil
+        return e
+    }
+
     /// A tap on `tapped` while `selection` is one of its groups, at any
     /// level: the next level down — the members of its next group below
     /// that one, passing over a level that is only the selection again or

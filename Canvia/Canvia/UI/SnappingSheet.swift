@@ -62,6 +62,10 @@ struct SnappingSheet: View {
 
     private var guidesSection: some View {
         Section {
+            // The design's own, each one step: hidden guides are kept but
+            // neither drawn nor snapped to; locked ones stay put.
+            Toggle("Show guides", isOn: Binding(get: { store.guidesShown }, set: { store.setGuidesShown($0) }))
+            Toggle("Lock guides", isOn: Binding(get: { store.guidesLocked }, set: { store.setGuidesLocked($0) }))
             Button { store.addGuide(vertical: true) } label: {
                 Label("Add vertical guide", systemImage: "line.vertical")
             }

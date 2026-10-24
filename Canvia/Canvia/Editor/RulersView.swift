@@ -161,10 +161,13 @@ struct RulersView: View {
     private func pullGesture(vertical: Bool) -> some Gesture {
         DragGesture(minimumDistance: 2, coordinateSpace: .named(Self.space))
             .onChanged { value in
+                // Locked guides are not picked up from a ruler.
+                guard !store.guidesLocked else { return }
                 let next = pull(vertical: vertical, at: value.location)
                 if pulling != next { pulling = next }
             }
             .onEnded { value in
+                guard !store.refusesLockedGuides() else { return }
                 let made = pull(vertical: vertical, at: value.location)
                 pulling = nil
                 guard !made.onRuler else { return }

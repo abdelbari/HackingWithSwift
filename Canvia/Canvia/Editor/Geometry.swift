@@ -816,8 +816,9 @@ enum Geometry {
             xs += [SnapLine(position: m, source: .margin), SnapLine(position: pw - m, source: .margin)]
             ys += [SnapLine(position: m, source: .margin), SnapLine(position: ph - m, source: .margin)]
         }
-        // Guides are placed on purpose, so they snap whatever else is off.
-        for guide in design.guides {
+        // Guides are placed on purpose, so they snap whatever else is off —
+        // unless Show guides is off (Guides.shown).
+        for guide in Guides.shown(design) {
             let line = SnapLine(position: guide.position, source: .guide)
             if guide.vertical { xs.append(line) } else { ys.append(line) }
         }

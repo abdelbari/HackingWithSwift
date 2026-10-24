@@ -131,6 +131,7 @@ struct SelectionOverlay: View {
             Group {
                 guides
                 spacingMarks
+                distanceMarks
             }
             badgeView
         }
@@ -736,6 +737,44 @@ struct SelectionOverlay: View {
                 ForEach(sizes.indices, id: \.self) { i in sizeLabel(sizes[i]) }
             }
         }
+    }
+
+    /// Show distances: from each side of what moves, or is held still to
+    /// measure, a thin guide-colour line to the nearest edge facing it, its
+    /// length in the design's unit in a pill at its middle. One the same as
+    /// an equal gap keeps its "=" (Geometry.isEqualGap), reading "= 24 px",
+    /// as on the Android twin; one of no length is not drawn.
+    @ViewBuilder
+    private var distanceMarks: some View {
+        let marks = store.distanceMarks.filter { $0.distance > 0 }
+        if !marks.isEmpty {
+            ZStack {
+                distanceLines(marks)
+                ForEach(marks.indices, id: \.self) { i in distanceLabel(marks[i]) }
+            }
+        }
+    }
+
+    private func distanceLines(_ marks: [Geometry.Distance]) -> some View {
+        let width = 1 * iz
+        return Canvas { context, _ in
+            var path = Path()
+            for mark in marks {
+                path.move(to: mark.from)
+                path.addLine(to: mark.to)
+            }
+            context.stroke(path, with: .color(Theme.guide), lineWidth: width)
+        }
+        .frame(width: store.pageWidth, height: store.pageHeight)
+        .position(x: store.pageWidth / 2, y: store.pageHeight / 2)
+        .allowsHitTesting(false)
+    }
+
+    private func distanceLabel(_ mark: Geometry.Distance) -> some View {
+        let mid = CGPoint(x: (mark.from.x + mark.to.x) / 2, y: (mark.from.y + mark.to.y) / 2)
+        let length = store.distanceText(mark.distance)
+        let text = Geometry.isEqualGap(mark, store.gapMarks) ? "= " + length : length
+        return pill(text, colour: Theme.guide, at: mid, alignment: .center)
     }
 
     /// A bracket across each gap: a line from edge to edge, a tick at each.

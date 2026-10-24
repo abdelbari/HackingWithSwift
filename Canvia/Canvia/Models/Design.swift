@@ -683,6 +683,13 @@ struct Design: Codable, Equatable, Identifiable {
     var masterPageId: String?
     /// Draggable alignment guides, in page units, kept with the design.
     var guides: [Guide] = []
+    /// Show guides off: the guides kept but neither drawn nor snapped to.
+    /// True, or nil and not written — so a file from before reads as it did.
+    var guidesHidden: Bool?
+    /// Lock guides: drawn and snapped to, but never dragged or picked up,
+    /// a touch on one going to what is under it. True, or nil and not
+    /// written.
+    var guidesLocked: Bool?
     /// The folder on the home screen this design is filed under, if any.
     var folder: String?
     /// True while the title is still one an app chose, so the Android twin
@@ -813,6 +820,8 @@ struct Design: Codable, Equatable, Identifiable {
         motion = try? c.decode(MotionSettings.self, forKey: .motion)
         masterPageId = try? c.decode(String.self, forKey: .masterPageId)
         guides = (try? c.decode([Guide].self, forKey: .guides)) ?? []
+        guidesHidden = (try? c.decode(Bool.self, forKey: .guidesHidden)) == true ? true : nil
+        guidesLocked = (try? c.decode(Bool.self, forKey: .guidesLocked)) == true ? true : nil
         folder = try? c.decode(String.self, forKey: .folder)
         titleAuto = (try? c.decode(Bool.self, forKey: .titleAuto)) ?? true
         let records = (try? c.decode([CustomFonts.Lenient].self, forKey: .fonts))?.compactMap(\.record) ?? []
@@ -879,6 +888,7 @@ struct Design: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case version, id, title, width, height, createdAt, updatedAt, pages, motion, masterPageId, guides, folder
+        case guidesHidden, guidesLocked
         case titleAuto, fonts, unit, dpi, bleed, audio, starred, spellIgnore, language, present, beatSyncRestore, recordings
         case bulk
         case plannedPosts, kind, blocks, docPage

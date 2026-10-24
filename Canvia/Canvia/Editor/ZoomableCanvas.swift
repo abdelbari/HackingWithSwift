@@ -70,6 +70,9 @@ struct CanvasRequest: Equatable {
         /// (PageColumn.fitTop), at the zoom as it is: a page made current
         /// from elsewhere, as the Android twin brings it.
         case page
+        /// Zoom to selection: this box, in page units, framed with a margin
+        /// round it (Viewport.zoomToBox), animated as typing zoom is.
+        case frame(CGRect)
     }
     var kind: Kind
     var serial: Int
@@ -163,6 +166,10 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
     /// photo opening crop, a text box its editor — rather than the canvas
     /// zooming. Without it, double-tapping a photo zoomed the canvas as well.
     var claimsDoubleTap: (CGPoint) -> Bool = { _ in false }
+    /// A double tap at this point, in the page worked's units: true when it
+    /// fell on a small selected thing, which the view then zooms to (Zoom
+    /// to selection) rather than zooming in on the point.
+    var zoomsToSelection: (CGPoint) -> Bool = { _ in false }
     /// Whether one finger dragged from this point on the page moves the
     /// view: nothing there to work.
     var pansFromPage: (CGPoint) -> Bool = { _ in false }
@@ -612,6 +619,22 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
                 let z = scroll.zoomScale
                 let y = column.page.minY * z - pageTop(column, zoom: z, in: scroll)
                 scroll.setContentOffset(clamped(CGPoint(x: scroll.contentOffset.x, y: y), in: scroll), animated: true)
+            case .frame(let box):
+                frameBox(box, in: scroll)
+            }
+        }
+
+        /// Zoom to selection: `box`, in the content's units, framed in the
+        /// screen with Viewport.selectionMargin round it, no further out than
+        /// fit and no further in than the canvas goes.
+        private func frameBox(_ box: CGRect, in scroll: UIScrollView) {
+            let local = box.offsetBy(dx: inward(.zero).x, dy: inward(.zero).y)
+            let to = Viewport.zoomToBox(local, viewport: scroll.bounds.size, fit: Double(fitZoom(in: scroll)),
+                                        maxZoom: Double(scroll.maximumZoomScale))
+            animateTyping { [self] in
+                scroll.zoomScale = CGFloat(to.zoom)
+                // A content point p shows at p × zoom less the offset.
+                scroll.contentOffset = clamped(CGPoint(x: -to.pan.x, y: -to.pan.y), in: scroll)
             }
         }
 
@@ -1025,6 +1048,8 @@ struct ZoomableCanvas<Content: View>: UIViewRepresentable {
             // page's to crop or type in, as on the Android twin.
             let at = tap.location(in: host.view)
             if let column = parent.column, !column.page.contains(at), parent.onOtherPageDoubleTap(at) { return }
+            // On a small thing selected, the view frames it.
+            if parent.zoomsToSelection(pagePoint(at)) { return }
             let fit = fitZoom(in: scroll)
             if scroll.zoomScale > fit * 1.05 {
                 fitToScreen(animated: true)

@@ -3,7 +3,8 @@
 //
 // The zoom pill says how far in you are — "Fit", or a percentage — and one
 // tap goes between the whole page and actual size, which a pinch can only
-// approximate. "Bring it back" appears when the selection has been scrolled
+// approximate; held, it offers Fit, 100% and Zoom to selection. "Bring it
+// back" appears when the selection has been scrolled
 // clean out of sight: it is still selected, the toolbar still acts on it,
 // and without a word about where it went the next edit lands on something
 // you cannot see.
@@ -44,7 +45,13 @@ struct CanvasChips: View {
                 chip(zoomLabel) {
                     store.requestCanvas(atFit ? .zoom(secondZoom) : .fit)
                 }
+                .contextMenu { zoomMenu }
                 .accessibilityLabel(zoomDescription)
+                .accessibilityActions {
+                    if !store.selection.isEmpty {
+                        Button("Zoom to selection") { store.zoomToSelection() }
+                    }
+                }
                 .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
@@ -98,6 +105,21 @@ struct CanvasChips: View {
     /// already actual size, so the tap always changes something.
     private var secondZoom: Double {
         abs(store.fitZoom - 1) <= 0.02 ? 2 : 1
+    }
+
+    /// The pill held: Fit, 100% and — with something selected — Zoom to
+    /// selection, which Fit takes back.
+    @ViewBuilder
+    private var zoomMenu: some View {
+        Button { store.requestCanvas(.fit) } label: { Label("Fit", systemImage: "arrow.down.right.and.arrow.up.left") }
+        Button { store.requestCanvas(.zoom(1)) } label: {
+            Label { Text(verbatim: "100%") } icon: { Image(systemName: "1.magnifyingglass") }
+        }
+        if !store.selection.isEmpty {
+            Button { store.zoomToSelection() } label: {
+                Label("Zoom to selection", systemImage: "plus.magnifyingglass")
+            }
+        }
     }
 
     private var percent: Int { Int((store.zoom * 100).rounded()) }

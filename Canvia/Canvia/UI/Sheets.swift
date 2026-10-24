@@ -1322,11 +1322,11 @@ struct CropSheet: View {
     /// chips, dial, Rotate 90 and Flip carry on and Done keeps it all as one
     /// step or Cancel puts it all back, as the Android twin's Photo panel
     /// does.
-    private func intoCrop(_ el: Element, _ aspect: CropAspect? = nil) {
+    private func intoCrop(_ el: Element, _ aspect: CropAspect? = nil, turned: Bool = false) {
         if store.hasPendingChanges { store.commit() }
         dismiss()
         guard store.startCrop(el.id) else { return }
-        if let aspect { store.setCropAspect(aspect) }
+        if let aspect { store.setCropAspect(aspect, turned: turned) }
     }
 
     /// The frame's shapes, as the crop bar's chips have them (CropAspect):
@@ -1334,18 +1334,26 @@ struct CropSheet: View {
     /// (intoCrop) — Free opens it with the frame as it is.
     private func aspectRow(_ el: Element) -> some View {
         let image = PhotoLibrary.resolve(el.src)?.size ?? .zero
-        let lit = CropAspect.matching(el, image: image)
+        let match = CropAspect.matched(el, image: image)
         return ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(CropAspect.allCases, id: \.self) { aspect in
-                    Button(aspect.name) { intoCrop(el, aspect) }
-                    .buttonStyle(.bordered)
-                    .tint(aspect == lit ? Theme.accent : .secondary)
-                    .controlSize(.small)
-                    .accessibilityAddTraits(aspect == lit ? .isSelected : [])
+                    aspectButton(el, aspect, match: match)
                 }
             }
         }
+    }
+
+    /// One of aspectRow's chips: the lit one named the way round the frame
+    /// has it, as the crop bar names it (CropRatioChips), and kept that way.
+    private func aspectButton(_ el: Element, _ aspect: CropAspect, match: CropAspect.Match) -> some View {
+        let lit = aspect == match.aspect
+        let turned = lit && match.turned
+        return Button(aspect.name(turned: turned)) { intoCrop(el, aspect, turned: turned) }
+            .buttonStyle(.bordered)
+            .tint(lit ? Theme.accent : .secondary)
+            .controlSize(.small)
+            .accessibilityAddTraits(lit ? .isSelected : [])
     }
 
     /// Put the crop's focus where Vision says the subject is, and zoom in a
@@ -1856,8 +1864,8 @@ struct LayersSheet: View {
                 if locked { lockedNote }
                 if rows.isEmpty { emptyState }
                 ForEach(rows) { row in
-                    rowView(row)
-                        .moveDisabled(locked || filter != .all || !row.movable)
+                    rowView(row, in: rows)
+                        .moveDisabled(locked || filter != .all || !row.draggable)
                         .deleteDisabled(locked || !row.elements.contains { !$0.locked })
                 }
                 .onMove(perform: moveAction(rows))
@@ -1966,18 +1974,23 @@ struct LayersSheet: View {
         store.selection.subtract(ids)
     }
 
-    private func rowView(_ row: LayerRows.Row) -> some View {
-        HStack(spacing: 10) {
+    private func rowView(_ row: LayerRows.Row, in rows: [LayerRows.Row]) -> some View {
+        // The group VoiceOver's Move into group above joins; none outside All.
+        var above: String?
+        if filter == .all, let at = rows.firstIndex(where: { $0.id == row.id }) {
+            above = LayerRows.groupAbove(rows, at: at)
+        }
+        return HStack(spacing: 10) {
             if selecting { tickMark(row) }
-            rowContent(row)
+            rowContent(row, above: above)
         }
     }
 
     @ViewBuilder
-    private func rowContent(_ row: LayerRows.Row) -> some View {
+    private func rowContent(_ row: LayerRows.Row, above: String?) -> some View {
         switch row {
         case .element(let el, let member, let depth):
-            elementRow(el, member: member, depth: depth)
+            elementRow(el, member: member, depth: depth, above: above)
         case .group(let id, let members, let depth):
             groupRow(id, members: members, depth: depth)
         }
@@ -2071,7 +2084,7 @@ struct LayersSheet: View {
     /// alone, as it does on a row of Overlapping, which lists elements one
     /// by one — as on the Android twin; any other row's tap takes its group,
     /// as on the canvas.
-    private func elementRow(_ el: Element, member: Bool, depth: Int) -> some View {
+    private func elementRow(_ el: Element, member: Bool, depth: Int, above: String?) -> some View {
         let name = layerName(el)
         let selected = store.selection.contains(el.id)
         let alone = member || filter == .overlapping
@@ -2088,6 +2101,7 @@ struct LayersSheet: View {
             .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
             .accessibilityAction { pick(el, alone: alone) }
             .accessibilityAction(named: "Rename…") { startRename(el) }
+            .accessibilityActions { membershipActions(el, above: above) }
             Spacer(minLength: 4)
             if selected {
                 Image(systemName: "checkmark").foregroundStyle(Theme.accent)
@@ -2099,6 +2113,19 @@ struct LayersSheet: View {
         .onTapGesture { pick(el, alone: alone) }
         .contextMenu {
             Button { startRename(el) } label: { Label("Rename…", systemImage: "pencil") }
+        }
+    }
+
+    /// VoiceOver's moves of a row across a group's edge, as a drag makes
+    /// them: Remove from group for an element in one, and Move into group
+    /// above when the row above it at its level is a group's.
+    @ViewBuilder
+    private func membershipActions(_ el: Element, above: String?) -> some View {
+        if el.group != nil {
+            Button("Remove from group") { store.removeFromGroup([el.id]) }
+        }
+        if let above {
+            Button("Move into group above") { store.addToGroup([el.id], group: above) }
         }
     }
 
