@@ -64,6 +64,11 @@ struct HomeView: View {
     @State private var importAfterSheet: ImportChoice?
     /// The PowerPoint file picker, up.
     @State private var pickingDeck = false
+    /// Word documents picked, made Docs one at a time (WordImport).
+    @State private var pickingWord = false
+    @State private var wordURLs: [URL] = []
+    /// The design whose card asked to Turn into a Doc.
+    @State private var turningIntoDoc: RecentDesign?
     /// Import's photo and clip picker, and its PDF picker, up.
     @State private var pickingMedia = false
     @State private var pickingPDF = false
@@ -206,6 +211,8 @@ struct HomeView: View {
             })
             .importPickers(media: $pickingMedia, pdf: $pickingPDF, onLanded: onImport) { importError = $0 }
             .powerPointImport($deckURLs, onOpen: onOpen)
+            .modifier(WordDocsOnHome(picking: $pickingWord, documents: $wordURLs, turning: $turningIntoDoc,
+                                     onOpen: onOpen, changed: { reload() }))
             .onReceive(NotificationCenter.default.publisher(for: PowerPoints.didImport)) { _ in reload() }
             .modifier(HomeDialogs(filingInto: $filingInto, newFolderName: $newFolderName, renaming: $renaming,
                                   renameText: $renameText, move: move) { reload() })
@@ -375,6 +382,7 @@ struct HomeView: View {
         case .media: pickingMedia = true
         case .pdf: pickingPDF = true
         case .powerPoint: pickingDeck = true
+        case .word: pickingWord = true
         case .designFile: importing = true
         }
     }
@@ -462,8 +470,12 @@ struct HomeView: View {
         // what is inside decides.
         Color.clear.fileImporter(isPresented: $importing, allowedContentTypes: [.json, .data]) { result in
             guard case .success(let url) = result else { return }
-            // A PowerPoint is a ZIP, which a design file never is: it comes
-            // in as a deck.
+            // A Word document comes in as a Doc, and a PowerPoint, a ZIP as
+            // one is, which a design file never is, as a deck.
+            if WordDocs.isWordDocument(url) {
+                wordURLs.append(url)
+                return
+            }
             if PowerPoints.isDeck(url) {
                 deckURLs.append(url)
                 return
@@ -1369,6 +1381,12 @@ struct HomeView: View {
                 Button {
                     copyResizing = DesignLibrary.load(id: recent.id)
                 } label: { Label("Copy & resize", systemImage: "rectangle.on.rectangle.angled") }
+                // A new Doc of its words; none for a Doc.
+                if recent.type != Docs.presetId {
+                    Button {
+                        turningIntoDoc = recent
+                    } label: { Label("Turn into a Doc", systemImage: "doc.text") }
+                }
                 Section { shareItems(recent) }
                 Menu {
                     moveItems([recent])

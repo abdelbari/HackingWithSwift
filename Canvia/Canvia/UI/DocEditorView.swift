@@ -191,6 +191,7 @@ struct DocEditorView: View {
     /// A block type's name, as the '/' menu and Turn into say it.
     static func typeName(_ type: String) -> String {
         switch type {
+        case Docs.title: return tr("Title")
         case Docs.h1: return tr("Heading 1")
         case Docs.h2: return tr("Heading 2")
         case Docs.h3: return tr("Heading 3")
@@ -199,6 +200,7 @@ struct DocEditorView: View {
         case Docs.number: return tr("Numbered list")
         case Docs.checklist: return tr("Checklist")
         case Docs.quote: return tr("Quote")
+        case Docs.caption: return tr("Caption")
         case Docs.divider: return tr("Divider")
         case Docs.image: return tr("Image")
         case Docs.table: return tr("Table")
@@ -275,7 +277,7 @@ struct DocEditorView: View {
     func typeInto(_ new: String, in id: String) {
         let old = wordsOf(id)
         if new == "/" && old.isEmpty {
-            updateBlock(id, live: true) { $0.text = new }
+            updateBlock(id, live: true) { $0 = Docs.withText($0, new) }
             slashFor = id
             return
         }
@@ -364,7 +366,8 @@ struct DocEditorView: View {
             return
         }
         let nextType = listed.contains(block.type) ? block.type : Docs.p
-        let made = DocBlock(type: nextType, text: after, checked: nextType == Docs.checklist ? false : nil)
+        let made = DocBlock(type: nextType, text: after, checked: nextType == Docs.checklist ? false : nil,
+                            level: nextType == Docs.p ? nil : block.level)
         editBlocks { list in
             list.flatMap { b -> [DocBlock] in
                 guard b.id == id else { return [b] }
@@ -766,7 +769,7 @@ private struct DocTextBlock: View {
     @Binding var focus: String?
     let editor: DocEditorView
 
-    private var heading: Bool { [Docs.h1, Docs.h2, Docs.h3].contains(block.type) }
+    private var heading: Bool { Docs.headings.contains(block.type) }
 
     /// The block's face, at the Doc's size for its type.
     private var face: (family: String?, weight: Int) {
@@ -817,6 +820,8 @@ private struct DocTextBlock: View {
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }
+        // A list item at depth stands in a step for each level.
+        .padding(.leading, CGFloat(24 * (block.level ?? 0)))
     }
 
     private var placeholder: String {

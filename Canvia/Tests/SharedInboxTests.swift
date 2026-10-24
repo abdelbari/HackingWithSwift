@@ -140,8 +140,9 @@ final class SharedInboxTests: XCTestCase {
 
         let box = try XCTUnwrap(SharedInbox.land([svg, design, broken], now: Date(timeIntervalSince1970: 1_700_000_000)))
         defer { SharedInbox.remove(box.id) }
-        XCTAssertEqual(box.manifest.items, [SharedInbox.Item(kind: .svg, file: "0.svg", mime: "image/svg+xml"),
-                                            SharedInbox.Item(kind: .image, file: "1.jpg", mime: "image/jpeg")])
+        XCTAssertEqual(box.manifest.items, [SharedInbox.Item(kind: .svg, file: "0.svg", mime: "image/svg+xml", name: "star.svg"),
+                                            SharedInbox.Item(kind: .image, file: "1.jpg", mime: "image/jpeg",
+                                                             name: "broken.jpg")])
         XCTAssertEqual(box.manifest.createdAt, 1_700_000_000_000)
         XCTAssertEqual(box.asked, 3)
         XCTAssertEqual(SharedInbox.open(box.id)?.manifest, box.manifest)

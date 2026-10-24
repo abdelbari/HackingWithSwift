@@ -420,8 +420,16 @@ struct TableCell: Codable, Equatable, Hashable {
     /// .withRowDragged): kept on the row's first cell, its rectangle and
     /// words, written "minH" only then; nil is as tall as the words.
     var minH: Double?
+    /// Which of the table's lines show, on every cell of it alike: one of
+    /// Tables.borderModes; nil is "all", and is not written. Each
+    /// cell rectangle strokes the sides this leaves it (Element.sides).
+    var borders: String?
+    /// The table design it was last given (TableDesigns), on every cell of
+    /// it alike, so a theme or a brand applied can give it again; nil is
+    /// none.
+    var design: String?
 
-    private enum CodingKeys: String, CodingKey { case id, row, col, rowSpan, colSpan, pad, bands, minH }
+    private enum CodingKeys: String, CodingKey { case id, row, col, rowSpan, colSpan, pad, bands, minH, borders, design }
 
     /// `cell` with its spacing and its row's least height, in page units,
     /// times `scale` — as a table scaled with its page or its selection
@@ -436,7 +444,7 @@ struct TableCell: Codable, Equatable, Hashable {
     }
 
     init(id: String, row: Int, col: Int, rowSpan: Int = 1, colSpan: Int = 1, pad: Double? = nil, bands: String? = nil,
-         minH: Double? = nil) {
+         minH: Double? = nil, borders: String? = nil, design: String? = nil) {
         self.id = id
         self.row = row
         self.col = col
@@ -445,6 +453,8 @@ struct TableCell: Codable, Equatable, Hashable {
         self.pad = pad
         self.bands = bands
         self.minH = minH
+        self.borders = borders
+        self.design = design
     }
 
     init(from decoder: Decoder) throws {
@@ -463,6 +473,10 @@ struct TableCell: Codable, Equatable, Hashable {
         pad = (try? c.decode(Double.self, forKey: .pad)).flatMap { $0.isFinite && $0 >= 0 ? $0 : nil }
         bands = (try? c.decode(String.self, forKey: .bands)).flatMap { ColorTools.rgb255($0) != nil ? $0 : nil }
         minH = (try? c.decode(Double.self, forKey: .minH)).flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
+        // A border mode this build does not know is every line, as on the
+        // Android twin; a design is kept as read, a name it may not know.
+        borders = (try? c.decode(String.self, forKey: .borders)).flatMap { Tables.borderModes.contains($0) ? $0 : nil }
+        design = (try? c.decode(String.self, forKey: .design)).flatMap { $0.isEmpty ? nil : $0 }
     }
 
     func encode(to encoder: Encoder) throws {
@@ -475,6 +489,8 @@ struct TableCell: Codable, Equatable, Hashable {
         try c.encodeIfPresent(pad, forKey: .pad)
         try c.encodeIfPresent(bands, forKey: .bands)
         try c.encodeIfPresent(minH, forKey: .minH)
+        try c.encodeIfPresent(borders, forKey: .borders)
+        try c.encodeIfPresent(design, forKey: .design)
     }
 
     /// The rows the cell covers: its own, and those merged into it below.
@@ -819,6 +835,11 @@ struct Element: Codable, Equatable, Identifiable {
     /// A cell rectangle or text of a table that can be edited: which table,
     /// and which row and column (see DataGraphics.relayout).
     var table: TableCell?
+    /// The sides a table cell's rectangle strokes, some of "tlbr" in that
+    /// order, derived by every relayout from its table's borders
+    /// (DataGraphics.withSides); nil strokes its whole outline, "" none.
+    /// The Android twin's "sides" extra.
+    var sides: String?
     /// The chart this element was drawn as part of, and which part of it it
     /// is: "series:<n>", "label", "value", "axis", "grid" or "legend". See
     /// DataGraphics.chart.
@@ -1126,6 +1147,7 @@ struct Element: Codable, Equatable, Identifiable {
         hidden = (try? c.decode(Bool.self, forKey: .hidden)) == true ? true : nil
         layerName = (try? c.decode(String.self, forKey: .layerName)).flatMap(LayerNames.kept)
         table = try? c.decode(TableCell.self, forKey: .table)
+        sides = (try? c.decode(String.self, forKey: .sides)).map { $0.filter { "tlbr".contains($0) } }
         chart = try? c.decode(ChartSpec.self, forKey: .chart)
         chartPart = try? c.decode(String.self, forKey: .chartPart)
         grid = try? c.decode(GridCell.self, forKey: .grid)
@@ -1259,7 +1281,7 @@ struct Element: Codable, Equatable, Identifiable {
         case id, type, x, y, w, h, rotation, opacity, locked, lockPosition, flipH, flipV, group, shadow, blendMode, altText
         case subgroups, groupTurn
         case decorative
-        case connectFrom, connectTo, link, hidden, layerName, table, chart, chartPart, grid, photoFrame
+        case connectFrom, connectTo, link, hidden, layerName, table, sides, chart, chartPart, grid, photoFrame
         case shapeId, pathData, iconId, graphicId, bulkField, fill, stroke, strokeWidth, radius, corners, fillRule, pen
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, curveStart, textPath, vertical, warp

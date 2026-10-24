@@ -976,6 +976,12 @@ enum RichText {
         return escapeLiteral(plain)
     }
 
+    /// Each character of `text`'s words, as they read, in its style: what
+    /// `written` takes back.
+    static func styles(of text: String) -> [Style] {
+        parseMapped(text).styles
+    }
+
     /// Whether `text` reads as `chars`, each but the spaces in its style.
     private static func reads(_ text: String, as chars: [Character], styles: [Style]) -> Bool {
         let back = parseMapped(text)

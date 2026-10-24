@@ -187,6 +187,11 @@ enum ElementSearch {
                              words: ["chart", "graph"], category: "Charts"))
         }
         out.append(Entry(hit: Hit(kind: .table, id: "table", name: tr("Table")), words: ["table", "data"], category: "Tables"))
+        // The table designs by name (TableDesigns), each a table in that look.
+        for design in TableDesigns.all {
+            out.append(Entry(hit: Hit(kind: .table, id: design.id, name: tr("%@ table", design.label)),
+                             words: ["table", "design"], category: "Tables"))
+        }
         out.append(Entry(hit: Hit(kind: .qr, id: "qr", name: tr("QR code")), words: ["qr", "code", "link"], category: "Codes"))
         for art in PhotoLibrary.photos {
             out.append(Entry(hit: Hit(kind: .stockArt, id: art.id, name: art.name), words: ["artwork", "background"],

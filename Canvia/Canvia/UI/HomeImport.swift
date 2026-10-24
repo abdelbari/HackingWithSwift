@@ -1,5 +1,6 @@
 // Import, on Home's ⋯ and at the top of the New design sheet: a photo or a
-// clip from the library, a PDF, a PowerPoint, or a Canvia design file. A
+// clip from the library, a PDF, a PowerPoint, a Word document (a new Doc,
+// WordImport), or a Canvia design file. A
 // photo, a clip or a PDF lands as something shared from another app does —
 // copied into the inbox with its manifest (SharedInbox) while the picker's
 // grant lasts — and the "New design from shared" sheet makes a design of
@@ -13,7 +14,7 @@ import UniformTypeIdentifiers
 
 /// The rows of Import, in order.
 enum ImportChoice: String, CaseIterable, Identifiable {
-    case media, pdf, powerPoint, designFile
+    case media, pdf, powerPoint, word, designFile
 
     var id: String { rawValue }
 
@@ -25,6 +26,7 @@ enum ImportChoice: String, CaseIterable, Identifiable {
         case .media: return tr("Photo or video…")
         case .pdf: return tr("PDF…")
         case .powerPoint: return tr("PowerPoint…")
+        case .word: return tr("Word document")
         case .designFile: return tr("Canvia design file…")
         }
     }
@@ -34,6 +36,7 @@ enum ImportChoice: String, CaseIterable, Identifiable {
         case .media: return "photo.on.rectangle"
         case .pdf: return "doc.richtext"
         case .powerPoint: return "rectangle.on.rectangle"
+        case .word: return "doc.text"
         case .designFile: return "square.and.arrow.down"
         }
     }

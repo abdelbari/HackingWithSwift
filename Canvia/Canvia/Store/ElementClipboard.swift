@@ -83,6 +83,16 @@ enum ElementClipboard {
         pasteboard.contains(pasteboardTypes: [type]) || pasteboard.hasImages || pasteboard.hasStrings
     }
 
+    /// A spreadsheet's range another app left on the pasteboard — its HTML
+    /// table, else its tab-separated words (ClipboardTable) — or nil when
+    /// it holds none.
+    static func table(from pasteboard: UIPasteboard = .general) -> ClipboardTable.Block? {
+        let html = pasteboard.data(forPasteboardType: ForeignText.htmlType).flatMap { String(data: $0, encoding: .utf8) }
+        let text = pasteboard.hasStrings ? pasteboard.string : nil
+        guard html != nil || text != nil else { return nil }
+        return ClipboardTable.parse(text: text, html: html)
+    }
+
     /// Something from another app as an element: a picture becomes a photo
     /// (stored like an import, and kept among your uploads), text becomes a
     /// text element. Half the design's width, so it lands visible and not

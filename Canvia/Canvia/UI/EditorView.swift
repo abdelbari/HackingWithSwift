@@ -49,6 +49,8 @@ enum EditorSheet: String, Identifiable {
     case highlightWords
     /// More's "Bulk create…": a page, or a design, for each row of a table.
     case bulk
+    /// More's "Turn into a Doc": whether the speaker notes come too.
+    case turnIntoDoc
     var id: String { rawValue }
 }
 
@@ -948,6 +950,10 @@ struct EditorView: View {
                 } label: { Label("Make a copy", systemImage: "plus.square.on.square") }
 
                 Button {
+                    activeSheet = .turnIntoDoc
+                } label: { Label("Turn into a Doc", systemImage: "doc.text") }
+
+                Button {
                     activeSheet = .bulk
                 } label: { Label("Bulk create…", systemImage: "tablecells.badge.ellipsis") }
 
@@ -1030,6 +1036,13 @@ struct EditorView: View {
                     Button {
                         store.paste(at: nil, plain: true)
                     } label: { Label("Paste as plain text", systemImage: "doc.plaintext") }
+                }
+
+                // A spreadsheet's range as the selected chart's data.
+                if store.selectedChart != nil && UIPasteboard.general.hasStrings {
+                    Button {
+                        store.replaceChartData()
+                    } label: { Label("Replace chart data", systemImage: "chart.bar.doc.horizontal") }
                 }
 
                 // The selection carried to another page, where it sat.
@@ -1618,6 +1631,8 @@ struct EditorView: View {
             ResizeSheet(store: store, copying: true) { made in showCopies(made) }
         case .bulk:
             BulkCreateSheet(store: store) { made in showMade(made) }
+        case .turnIntoDoc:
+            TurnIntoDocSheet { notes in turnIntoDoc(notes: notes) }
         case .find:
             FindReplaceSheet(store: store)
         case .frame:
@@ -1928,6 +1943,22 @@ struct EditorView: View {
         }
         DesignLibrary.writeThumbnail(for: copy)
         openDesign(copy.id)
+    }
+
+    /// Turn into a Doc: this design saved, a new Doc of its words saved
+    /// beside it (Docs.fromDesign), and opened in its place; the design is
+    /// left as it is.
+    @MainActor
+    private func turnIntoDoc(notes: Bool) {
+        closeRename()
+        store.finishCrop()
+        store.endTextEdit()
+        saveNow()
+        guard let doc = WordDocs.turnIntoDoc(store.design, notes: notes) else {
+            show(toast: tr("Couldn't make the Doc"), undoable: false)
+            return
+        }
+        openDesign(doc.id)
     }
 
     /// Make brand guidelines from the kit sheet: this design saved, the

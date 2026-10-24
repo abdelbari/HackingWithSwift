@@ -17,6 +17,15 @@
     "ja": "%@ %@ グラデーション",
     "pt-BR": "Degradê %@ %@"
   },
+  "%@ (Doc)": {
+    "ar": "%@ (مستند)",
+    "de": "%@ (Dokument)",
+    "es": "%@ (documento)",
+    "fr": "%@ (document)",
+    "it": "%@ (documento)",
+    "ja": "%@（ドキュメント）",
+    "pt-BR": "%@ (documento)"
+  },
   "%@ (copy)": {
     "ar": "%@ (نسخة)",
     "de": "%@ (Kopie)",
@@ -952,6 +961,15 @@
     "it": "Raggiera (%@)",
     "ja": "%@のサンバースト",
     "pt-BR": "Raios de sol (%@)"
+  },
+  "%@ table": {
+    "ar": "جدول %@",
+    "de": "Tabelle %@",
+    "es": "Tabla %@",
+    "fr": "Tableau %@",
+    "it": "Tabella %@",
+    "ja": "%@ の表",
+    "pt-BR": "Tabela %@"
   },
   "%@ tag": {
     "ar": "وسم (%@)",
@@ -2990,6 +3008,39 @@
       "other": "%d outros itens"
     }
   },
+  "%d page came in as a picture: its text could not be read.|%d pages came in as pictures: their text could not be read.": {
+    "ar": {
+      "few": "دخلت %d صفحات كصور: تعذّرت قراءة نصها.",
+      "many": "دخلت %d صفحة كصور: تعذّرت قراءة نصها.",
+      "one": "دخلت صفحة واحدة (%d) كصورة: تعذّرت قراءة نصها.",
+      "other": "دخلت %d صفحة كصور: تعذّرت قراءة نصها.",
+      "two": "دخلت صفحتان (%d) كصورتين: تعذّرت قراءة نصهما.",
+      "zero": "دخلت %d صفحة كصور: تعذّرت قراءة نصها."
+    },
+    "de": {
+      "one": "%d Seite kam als Bild: Ihr Text war nicht lesbar.",
+      "other": "%d Seiten kamen als Bilder: Ihr Text war nicht lesbar."
+    },
+    "es": {
+      "one": "%d página entró como imagen: no se pudo leer su texto.",
+      "other": "%d páginas entraron como imágenes: no se pudo leer su texto."
+    },
+    "fr": {
+      "one": "%d page est arrivée en image : son texte n'a pas pu être lu.",
+      "other": "%d pages sont arrivées en images : leur texte n'a pas pu être lu."
+    },
+    "it": {
+      "one": "%d pagina è arrivata come immagine: non è stato possibile leggerne il testo.",
+      "other": "%d pagine sono arrivate come immagini: non è stato possibile leggerne il testo."
+    },
+    "ja": {
+      "other": "%d ページは文字を読み取れなかったため、画像として取り込みました。"
+    },
+    "pt-BR": {
+      "one": "%d página entrou como imagem: não foi possível ler o texto.",
+      "other": "%d páginas entraram como imagens: não foi possível ler o texto."
+    }
+  },
   "%d page copied|%d pages copied": {
     "ar": {
       "few": "تم نسخ %d صفحات",
@@ -4481,6 +4532,15 @@
     "ja": "名前を付けたバージョンはずっと保存されます。",
     "pt-BR": "Uma versão nomeada é mantida para sempre."
   },
+  "A new Doc of this design's headings, words, tables, charts and pictures. The design stays as it is.": {
+    "ar": "مستند جديد بعناوين هذا التصميم ونصوصه وجداوله ومخططاته وصوره. يبقى التصميم كما هو.",
+    "de": "Ein neues Dokument mit den Überschriften, Texten, Tabellen, Diagrammen und Bildern dieses Designs. Das Design bleibt, wie es ist.",
+    "es": "Un documento nuevo con los títulos, textos, tablas, gráficos e imágenes de este diseño. El diseño no cambia.",
+    "fr": "Un nouveau document avec les titres, textes, tableaux, graphiques et images de ce design. Le design reste tel quel.",
+    "it": "Un nuovo documento con titoli, testi, tabelle, grafici e immagini di questo design. Il design resta com'è.",
+    "ja": "このデザインの見出し、文章、表、グラフ、画像から新しいドキュメントを作ります。デザインはそのままです。",
+    "pt-BR": "Um novo documento com os títulos, textos, tabelas, gráficos e imagens deste design. O design continua como está."
+  },
   "A new design for each size ticked, reflowed to fit, in the same folder. This design stays as it is.": {
     "ar": "تصميم جديد لكل حجم محدد، مُعاد ترتيبه ليناسب، في المجلد نفسه. يبقى هذا التصميم كما هو.",
     "de": "Ein neues Design für jede ausgewählte Größe, passend neu angeordnet, im selben Ordner. Dieses Design bleibt unverändert.",
@@ -4669,6 +4729,15 @@
     "it": "Circa %d KB",
     "ja": "約 %d KB",
     "pt-BR": "Cerca de %d KB"
+  },
+  "Accent bands": {
+    "ar": "أشرطة مميزة",
+    "de": "Akzentstreifen",
+    "es": "Franjas de acento",
+    "fr": "Bandes d'accent",
+    "it": "Bande d'accento",
+    "ja": "アクセントの縞",
+    "pt-BR": "Faixas de destaque"
   },
   "Accessibility": {
     "ar": "إمكانية الوصول",
@@ -5563,6 +5632,15 @@
     "it": "Centra",
     "ja": "中央揃え",
     "pt-BR": "Centralizar"
+  },
+  "Align in cell": {
+    "ar": "المحاذاة داخل الخلية",
+    "de": "In Zelle ausrichten",
+    "es": "Alinear en la celda",
+    "fr": "Aligner dans la cellule",
+    "it": "Allinea nella cella",
+    "ja": "セル内の配置",
+    "pt-BR": "Alinhar na célula"
   },
   "Align left": {
     "ar": "محاذاة لليسار",
@@ -6617,6 +6695,15 @@
     "ja": "バッジ",
     "pt-BR": "Selos"
   },
+  "Bagel": {
+    "ar": "بيغل",
+    "de": "Bagel",
+    "es": "Bagel",
+    "fr": "Bagel",
+    "it": "Bagel",
+    "ja": "ベーグル",
+    "pt-BR": "Bagel"
+  },
   "Banner": {
     "ar": "لافتة",
     "de": "Banner",
@@ -7012,6 +7099,15 @@
     "it": "Spessore bordo",
     "ja": "枠線の太さ",
     "pt-BR": "Espessura da borda"
+  },
+  "Bordered": {
+    "ar": "بحدود",
+    "de": "Mit Rahmen",
+    "es": "Con bordes",
+    "fr": "Bordé",
+    "it": "Con bordi",
+    "ja": "枠線あり",
+    "pt-BR": "Com bordas"
   },
   "Borders": {
     "ar": "الحدود",
@@ -7847,6 +7943,15 @@
     "ja": "字幕",
     "pt-BR": "Legendas"
   },
+  "Card": {
+    "ar": "بطاقة",
+    "de": "Karte",
+    "es": "Tarjeta",
+    "fr": "Carte",
+    "it": "Scheda",
+    "ja": "カード",
+    "pt-BR": "Cartão"
+  },
   "Card %d of %d": {
     "ar": "البطاقة %d من %d",
     "de": "Karte %d von %d",
@@ -8578,6 +8683,15 @@
     "it": "Colore del codice",
     "ja": "コードの色",
     "pt-BR": "Cor do código"
+  },
+  "Coffee": {
+    "ar": "قهوة",
+    "de": "Kaffee",
+    "es": "Café",
+    "fr": "Café",
+    "it": "Caffè",
+    "ja": "コーヒー",
+    "pt-BR": "Café"
   },
   "Collapse": {
     "ar": "طي",
@@ -9358,6 +9472,15 @@
     "it": "Impossibile usare quella foto come sfondo",
     "ja": "その写真を背景にできませんでした",
     "pt-BR": "Não foi possível usar essa foto como fundo"
+  },
+  "Couldn't make the Doc": {
+    "ar": "تعذّر إنشاء المستند",
+    "de": "Das Dokument konnte nicht erstellt werden",
+    "es": "No se pudo crear el documento",
+    "fr": "Impossible de créer le document",
+    "it": "Impossibile creare il documento",
+    "ja": "ドキュメントを作成できませんでした",
+    "pt-BR": "Não foi possível criar o documento"
   },
   "Couldn't make the GIF": {
     "ar": "تعذّر إنشاء GIF",
@@ -10147,6 +10270,15 @@
     "it": "Scuro",
     "ja": "ダーク",
     "pt-BR": "Escuro"
+  },
+  "Dark header": {
+    "ar": "ترويسة داكنة",
+    "de": "Dunkle Kopfzeile",
+    "es": "Encabezado oscuro",
+    "fr": "En-tête foncé",
+    "it": "Intestazione scura",
+    "ja": "濃いヘッダー",
+    "pt-BR": "Cabeçalho escuro"
   },
   "Dark skin tone": {
     "ar": "لون بشرة داكن",
@@ -11876,6 +12008,15 @@
     "ja": "それぞれこのページの後の新しいページに追加されます。このページで使うには長押ししてください。",
     "pt-BR": "Cada um vai para uma nova página depois desta. Toque e segure um para usá-lo nesta página."
   },
+  "Each page as a picture, exactly as it looks.": {
+    "ar": "كل صفحة صورة، تمامًا كما تبدو.",
+    "de": "Jede Seite als Bild, genau wie sie aussieht.",
+    "es": "Cada página como una imagen, tal como se ve.",
+    "fr": "Chaque page en image, exactement comme elle est.",
+    "it": "Ogni pagina come immagine, esattamente com'è.",
+    "ja": "各ページを見た目そのままの画像にします。",
+    "pt-BR": "Cada página como uma imagem, exatamente como aparece."
+  },
   "Each page holds %@s unless it has its own time, and cuts to the next.": {
     "ar": "تبقى كل صفحة %@ ث ما لم يكن لها وقتها الخاص، ثم تنتقل مباشرةً إلى التالية.",
     "de": "Jede Seite steht %@ s, sofern sie keine eigene Zeit hat, und schneidet dann zur nächsten.",
@@ -12163,6 +12304,15 @@
     "it": "Diapositive modificabili.",
     "ja": "編集できるスライドです。",
     "pt-BR": "Slides editáveis."
+  },
+  "Editable text": {
+    "ar": "نص قابل للتحرير",
+    "de": "Bearbeitbarer Text",
+    "es": "Texto editable",
+    "fr": "Texte modifiable",
+    "it": "Testo modificabile",
+    "ja": "編集できるテキスト",
+    "pt-BR": "Texto editável"
   },
   "Editable vectors for another program.": {
     "ar": "متجهات قابلة للتعديل لبرنامج آخر.",
@@ -14378,6 +14528,15 @@
     "ja": "グリッド",
     "pt-BR": "Grade"
   },
+  "Grid lines": {
+    "ar": "خطوط الشبكة",
+    "de": "Gitterlinien",
+    "es": "Líneas de cuadrícula",
+    "fr": "Quadrillage",
+    "it": "Linee della griglia",
+    "ja": "格子線",
+    "pt-BR": "Linhas de grade"
+  },
   "Grid spacing, %d to %d px.": {
     "ar": "تباعد الشبكة، من %d إلى %d بكسل.",
     "de": "Rasterabstand, %d bis %d px.",
@@ -15392,6 +15551,15 @@
     "ja": "ノートを含める",
     "pt-BR": "Incluir anotações"
   },
+  "Include speaker notes": {
+    "ar": "تضمين ملاحظات المتحدث",
+    "de": "Sprechernotizen einbeziehen",
+    "es": "Incluir notas del orador",
+    "fr": "Inclure les notes de l'orateur",
+    "it": "Includi note del relatore",
+    "ja": "発表者ノートを含める",
+    "pt-BR": "Incluir notas do apresentador"
+  },
   "Include videos": {
     "ar": "تضمين مقاطع الفيديو",
     "de": "Videos einbeziehen",
@@ -15463,6 +15631,15 @@
     "it": "Colore inchiostro",
     "ja": "インクの色",
     "pt-BR": "Cor da tinta"
+  },
+  "Inner": {
+    "ar": "داخلي",
+    "de": "Innen",
+    "es": "Interior",
+    "fr": "Intérieur",
+    "it": "Interno",
+    "ja": "内側",
+    "pt-BR": "Interna"
   },
   "Instagram post (1080)": {
     "ar": "منشور Instagram (1080)",
@@ -15680,6 +15857,15 @@
     "ja": "斜体: %@",
     "pt-BR": "Itálico: %@"
   },
+  "Item": {
+    "ar": "الصنف",
+    "de": "Artikel",
+    "es": "Artículo",
+    "fr": "Article",
+    "it": "Articolo",
+    "ja": "品目",
+    "pt-BR": "Item"
+  },
   "Its %d design can stay, out of any folder, or go to Recently deleted.|Its %d designs can stay, out of any folder, or go to Recently deleted.": {
     "ar": {
       "few": "يمكن أن تبقى تصاميمه (%d) خارج أي مجلد، أو تُنقل إلى «المحذوفة مؤخرًا».",
@@ -15748,6 +15934,15 @@
     "it": "La sua posizione è bloccata.",
     "ja": "位置がロックされています。",
     "pt-BR": "A posição está bloqueada."
+  },
+  "Its words as text boxes you can retype, over a picture of the page.": {
+    "ar": "كلماتها في مربعات نص يمكنك إعادة كتابتها، فوق صورة للصفحة.",
+    "de": "Die Wörter als Textfelder zum Überschreiben, über einem Bild der Seite.",
+    "es": "Sus palabras como cuadros de texto que puedes reescribir, sobre una imagen de la página.",
+    "fr": "Ses mots en zones de texte modifiables, sur une image de la page.",
+    "it": "Le parole come caselle di testo da riscrivere, sopra un'immagine della pagina.",
+    "ja": "文字は打ち直せるテキストボックスに、ページの画像の上に置きます。",
+    "pt-BR": "As palavras como caixas de texto que você pode reescrever, sobre uma imagem da página."
   },
   "JPEG quality": {
     "ar": "جودة JPEG",
@@ -16261,6 +16456,15 @@
     "it": "Luce",
     "ja": "ライト",
     "pt-BR": "Luz"
+  },
+  "Light header": {
+    "ar": "ترويسة فاتحة",
+    "de": "Helle Kopfzeile",
+    "es": "Encabezado claro",
+    "fr": "En-tête clair",
+    "it": "Intestazione chiara",
+    "ja": "淡いヘッダー",
+    "pt-BR": "Cabeçalho claro"
   },
   "Light skin tone": {
     "ar": "لون بشرة فاتح",
@@ -18455,6 +18659,15 @@
     "ja": "次：ページ %d",
     "pt-BR": "A seguir: página %d"
   },
+  "Night": {
+    "ar": "ليلي",
+    "de": "Nacht",
+    "es": "Noche",
+    "fr": "Nuit",
+    "it": "Notte",
+    "ja": "ナイト",
+    "pt-BR": "Noite"
+  },
   "No %@ combinations match “%@”.": {
     "ar": "لا توجد تشكيلات %@ تطابق «%@».",
     "de": "Keine %@-Kombinationen passen zu „%@“.",
@@ -20030,6 +20243,15 @@
     "ja": "PowerPoint を開いています…",
     "pt-BR": "Abrindo o PowerPoint…"
   },
+  "Opening the Word document…": {
+    "ar": "جارٍ فتح مستند Word…",
+    "de": "Word-Dokument wird geöffnet …",
+    "es": "Abriendo el documento de Word…",
+    "fr": "Ouverture du document Word…",
+    "it": "Apertura del documento Word…",
+    "ja": "Word 文書を開いています…",
+    "pt-BR": "Abrindo o documento do Word…"
+  },
   "Opening the design…": {
     "ar": "جارٍ فتح التصميم…",
     "de": "Design wird geöffnet …",
@@ -20156,6 +20378,15 @@
     "ja": "インデントを解除",
     "pt-BR": "Diminuir recuo"
   },
+  "Outer": {
+    "ar": "خارجي",
+    "de": "Außen",
+    "es": "Exterior",
+    "fr": "Extérieur",
+    "it": "Esterno",
+    "ja": "外枠",
+    "pt-BR": "Externa"
+  },
   "Outline": {
     "ar": "الإطار الخارجي",
     "de": "Kontur",
@@ -20209,6 +20440,15 @@
     "it": "Sovrapponi",
     "ja": "オーバーレイ",
     "pt-BR": "Sobrepor"
+  },
+  "PDF page": {
+    "ar": "صفحة PDF",
+    "de": "PDF-Seite",
+    "es": "Página PDF",
+    "fr": "Page PDF",
+    "it": "Pagina PDF",
+    "ja": "PDF ページ",
+    "pt-BR": "Página PDF"
   },
   "PDF…": {
     "ar": "ملف PDF…",
@@ -20774,6 +21014,15 @@
     "ja": "プレーンテキストとして貼り付け",
     "pt-BR": "Colar como texto simples"
   },
+  "Paste cells": {
+    "ar": "لصق الخلايا",
+    "de": "Zellen einfügen",
+    "es": "Pegar celdas",
+    "fr": "Coller les cellules",
+    "it": "Incolla celle",
+    "ja": "セルを貼り付け",
+    "pt-BR": "Colar células"
+  },
   "Paste page": {
     "ar": "لصق الصفحة",
     "de": "Seite einfügen",
@@ -21322,6 +21571,15 @@
     "it": "Immagine: %@",
     "ja": "画像：%@",
     "pt-BR": "Imagem: %@"
+  },
+  "Pictures (exact look)": {
+    "ar": "صور (المظهر نفسه تمامًا)",
+    "de": "Bilder (genaues Aussehen)",
+    "es": "Imágenes (aspecto exacto)",
+    "fr": "Images (rendu exact)",
+    "it": "Immagini (aspetto esatto)",
+    "ja": "画像（見た目そのまま）",
+    "pt-BR": "Imagens (aparência exata)"
   },
   "Pie": {
     "ar": "دائري",
@@ -21932,6 +22190,15 @@
     "ja": "前の値",
     "pt-BR": "Valor anterior"
   },
+  "Price": {
+    "ar": "السعر",
+    "de": "Preis",
+    "es": "Precio",
+    "fr": "Prix",
+    "it": "Prezzo",
+    "ja": "価格",
+    "pt-BR": "Preço"
+  },
   "Primary, Seasonal, Accents…": {
     "ar": "أساسية، موسمية، ألوان مميزة…",
     "de": "Primär, Saisonal, Akzente …",
@@ -22138,6 +22405,15 @@
     "it": "Codice QR in questa immagine → elemento codice",
     "ja": "この画像の QR コード → コード素材",
     "pt-BR": "Código QR nesta imagem → elemento de código"
+  },
+  "Qty": {
+    "ar": "الكمية",
+    "de": "Menge",
+    "es": "Cant.",
+    "fr": "Qté",
+    "it": "Qtà",
+    "ja": "数量",
+    "pt-BR": "Qtd."
   },
   "Quality %d% — about %@": {
     "ar": "الجودة %d% — حوالي %@",
@@ -22903,6 +23179,15 @@
     "it": "Sostituisci tutte (%d)",
     "ja": "%d 件すべて置換",
     "pt-BR": "Substituir todos os %d"
+  },
+  "Replace chart data": {
+    "ar": "استبدال بيانات المخطط",
+    "de": "Diagrammdaten ersetzen",
+    "es": "Reemplazar los datos del gráfico",
+    "fr": "Remplacer les données du graphique",
+    "it": "Sostituisci i dati del grafico",
+    "ja": "グラフのデータを置き換え",
+    "pt-BR": "Substituir os dados do gráfico"
   },
   "Replace everywhere…": {
     "ar": "استبدال في كل مكان…",
@@ -26873,6 +27158,15 @@
     "ja": "取り消し線",
     "pt-BR": "Tachado"
   },
+  "Striped": {
+    "ar": "مخطط",
+    "de": "Gestreift",
+    "es": "A rayas",
+    "fr": "Rayé",
+    "it": "A righe",
+    "ja": "ストライプ",
+    "pt-BR": "Listrado"
+  },
   "Stripes": {
     "ar": "خطوط مقلّمة",
     "de": "Streifen",
@@ -27070,6 +27364,15 @@
     "it": "Tabella",
     "ja": "表",
     "pt-BR": "Tabela"
+  },
+  "Table designs": {
+    "ar": "تصاميم الجداول",
+    "de": "Tabellendesigns",
+    "es": "Diseños de tabla",
+    "fr": "Styles de tableau",
+    "it": "Stili di tabella",
+    "ja": "表のデザイン",
+    "pt-BR": "Estilos de tabela"
   },
   "Tablet": {
     "ar": "جهاز لوحي",
@@ -27503,6 +27806,15 @@
     "ja": "その SVG は 2 MB を超えています",
     "pt-BR": "Esse SVG tem mais de 2 MB"
   },
+  "That Word document is too big to open.": {
+    "ar": "مستند Word هذا أكبر من أن يُفتح.",
+    "de": "Dieses Word-Dokument ist zu groß zum Öffnen.",
+    "es": "Ese documento de Word es demasiado grande para abrirlo.",
+    "fr": "Ce document Word est trop volumineux pour être ouvert.",
+    "it": "Quel documento Word è troppo grande per essere aperto.",
+    "ja": "この Word 文書は大きすぎて開けません。",
+    "pt-BR": "Esse documento do Word é grande demais para abrir."
+  },
   "That code holds more than a QR code can": {
     "ar": "يحتوي هذا الرمز على أكثر مما يتسع له رمز QR",
     "de": "Dieser Inhalt ist zu groß für einen QR-Code",
@@ -27601,6 +27913,15 @@
     "it": "Quel file non è una presentazione PowerPoint.",
     "ja": "そのファイルは PowerPoint のプレゼンテーションではありません。",
     "pt-BR": "Esse arquivo não é uma apresentação do PowerPoint."
+  },
+  "That file isn't a Word document.": {
+    "ar": "هذا الملف ليس مستند Word.",
+    "de": "Diese Datei ist kein Word-Dokument.",
+    "es": "Ese archivo no es un documento de Word.",
+    "fr": "Ce fichier n'est pas un document Word.",
+    "it": "Quel file non è un documento Word.",
+    "ja": "このファイルは Word 文書ではありません。",
+    "pt-BR": "Esse arquivo não é um documento do Word."
   },
   "That file isn't a spreadsheet Canvia can read.": {
     "ar": "هذا الملف ليس جدول بيانات يستطيع Canvia قراءته.",
@@ -29287,6 +29608,15 @@
     "it": "Trasforma in",
     "ja": "変換",
     "pt-BR": "Transformar em"
+  },
+  "Turn into a Doc": {
+    "ar": "تحويل إلى مستند",
+    "de": "In ein Dokument umwandeln",
+    "es": "Convertir en documento",
+    "fr": "Transformer en document",
+    "it": "Trasforma in documento",
+    "ja": "ドキュメントに変換",
+    "pt-BR": "Transformar em documento"
   },
   "Turn into presentation": {
     "ar": "تحويل إلى عرض تقديمي",

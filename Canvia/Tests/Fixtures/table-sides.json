@@ -1,0 +1,14 @@
+{
+  "about": "Tables.sides on a 3x3 table whose top-left cell is merged over 2x2; each cell is [row, col, rowSpan, colSpan] and the sides it strokes, in tlbr order, for each border mode.",
+  "rows": 3,
+  "cols": 3,
+  "cells": [[0, 0, 2, 2], [0, 2, 1, 1], [1, 2, 1, 1], [2, 0, 1, 1], [2, 1, 1, 1], [2, 2, 1, 1]],
+  "sides": {
+    "all": ["tlbr", "tlbr", "tlbr", "tlbr", "tlbr", "tlbr"],
+    "outer": ["tl", "tr", "r", "lb", "b", "br"],
+    "inner": ["br", "lb", "tlb", "tr", "tlr", "tl"],
+    "horizontal": ["tb", "tb", "tb", "tb", "tb", "tb"],
+    "vertical": ["lr", "lr", "lr", "lr", "lr", "lr"],
+    "none": ["", "", "", "", "", ""]
+  }
+}

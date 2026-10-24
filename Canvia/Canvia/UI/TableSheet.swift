@@ -5,8 +5,9 @@
 // moved up or down and its column left or right, its row or column deleted
 // (never the last), the selected cells merged or parted, their colour, the
 // header row off and on, alternating rows in a colour, the cell spacing,
-// the table's borders, its columns made even, and the whole table in the
-// data grid it is typed in.
+// the table's borders and which of its lines show, its words top, middle
+// or bottom in their cells, a design from the gallery (TableDesigns), its
+// columns made even, and the whole table in the data grid it is typed in.
 // Each change is one undo step, and the rows then stand as tall as their
 // words. The Android twin's TablePanel offers the same, in the same words.
 
@@ -28,6 +29,8 @@ struct TableSheet: View {
                     deleting(table)
                     merging(table)
                     look(table)
+                    design
+                    aligning
                     spacing
                     columns(table)
                     borders
@@ -225,6 +228,10 @@ struct TableSheet: View {
                 ForEach(weights.indices, id: \.self) { i in Text(weights[i].name).tag(i) }
             }
             .pickerStyle(.segmented)
+            // Which lines show: every one, the outside, the inside, the
+            // rows', the columns', or none — kept with the table, so a row
+            // added keeps it.
+            chips(Self.borderModes, selected: store.tableBorderMode) { mode in store.setTableBorderMode(mode) }
             borderSlider(width ?? 0)
             Button { choosingBorderColour = true } label: {
                 swatchRow(tr("Border colour"), colour: store.tableBorderColour ?? DataGraphics.tableHairline)
@@ -254,6 +261,69 @@ struct TableSheet: View {
             .accessibilityLabel("Border width")
             .accessibilityValue(readout)
         }
+    }
+
+    /// Design: a look from the gallery, the table's words and shape kept.
+    private var design: some View {
+        Section("Design") {
+            TableDesignRow(accents: store.tableAccents, selected: store.tableDesignId) { look in
+                store.setTableDesign(look)
+            }
+        }
+    }
+
+    /// Align in cell: the words of the selected cells — every cell's, when
+    /// the whole table is selected — at the top, the middle or the bottom
+    /// of their cells, which shows where a row is taller than its words.
+    private var aligning: some View {
+        Section("Align in cell") {
+            chips(Self.cellAlignments, selected: store.tableCellAlignment) { align in
+                store.setTableCellAlignment(align)
+            }
+        }
+    }
+
+    /// The border modes' chips (Tables.borderModes): each key, its words and
+    /// its symbol.
+    private static let borderModes: [(key: String, label: String, symbol: String)] = [
+        ("all", tr("All"), "square.grid.3x3"),
+        ("outer", tr("Outer"), "square"),
+        ("inner", tr("Inner"), "plus"),
+        ("horizontal", tr("Horizontal"), "line.3.horizontal"),
+        ("vertical", tr("Vertical"), "rectangle.split.3x1"),
+        ("none", tr("None"), "square.dashed"),
+    ]
+
+    private static let cellAlignments: [(key: String, label: String, symbol: String)] = [
+        ("top", tr("Top"), "align.vertical.top"),
+        ("middle", tr("Middle"), "align.vertical.center"),
+        ("bottom", tr("Bottom"), "align.vertical.bottom"),
+    ]
+
+    /// A row of chips, the `selected` one filled, swiped along when it is
+    /// wider than the sheet.
+    private func chips(_ items: [(key: String, label: String, symbol: String)], selected: String?,
+                       pick: @escaping (String) -> Void) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(items.indices, id: \.self) { i in
+                    chip(items[i].label, symbol: items[i].symbol, on: selected == items[i].key) { pick(items[i].key) }
+                }
+            }
+        }
+    }
+
+    private func chip(_ title: String, symbol: String, on: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: symbol)
+                .font(.subheadline.weight(.medium))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(on ? Theme.accent : Theme.card, in: Capsule())
+                .foregroundStyle(on ? Color.white : Theme.ink)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(on ? .isSelected : [])
     }
 
     private func swatchRow(_ title: String, colour: String) -> some View {

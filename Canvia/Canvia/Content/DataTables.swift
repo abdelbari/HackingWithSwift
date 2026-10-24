@@ -86,8 +86,10 @@ extension DataGraphics {
     /// table's first cell, and measured by `heightFor`; each row is as tall
     /// as rowHeights makes it, the rows stacked down from the table's top;
     /// each rectangle spans its cell's columns and rows; and each text sits
-    /// in its cell — rounded as table() rounds, so a table just made comes
-    /// back unchanged. Elements that are not cells, and a turned table, come
+    /// in its cell — set down the room its cell leaves it when it is set
+    /// middle or bottom ("vAlign", Tables.cellSlack) — rounded as table()
+    /// rounds, so a table just made comes back unchanged; each rectangle
+    /// strokes the sides the table's borders show (Tables.withSides). Elements that are not cells, and a turned table, come
     /// back as they were.
     static func relayout(_ table: [Element], heightFor: (Element) -> Double) -> [Element] {
         let cells: [(el: Element, cell: TableCell)] = table.compactMap { el in el.table.map { (el: el, cell: $0) } }
@@ -109,7 +111,11 @@ extension DataGraphics {
             guard let span = across(cell) else { continue }
             var sized = t
             sized.w = max(span.w - 2 * pad, t.fontSize ?? size)
-            sized.h = heightFor(sized)
+            // Measured as words at the top, so a box set lower in its cell
+            // is no taller than its words and shrinks with them.
+            var probe = sized
+            probe.vAlign = nil
+            sized.h = heightFor(probe)
             fitted[t.id] = sized
         }
         let heights = rowHeights(rects: rects, texts: texts, fitted: fitted, pad: pad)
@@ -119,25 +125,28 @@ extension DataGraphics {
             tops[row] = y
             y += heights[row] ?? 0
         }
-        return table.map { el in
+        let laid = table.map { el -> Element in
             guard let cell = el.table, let span = across(cell), let top = tops[cell.row] else { return el }
+            let h = cell.spannedRows.compactMap { heights[$0] }.reduce(0, +)
             switch el.type {
             case .shape:
                 var out = el
                 out.x = span.x.rounded()
                 out.y = top.rounded()
                 out.w = span.w
-                out.h = cell.spannedRows.compactMap { heights[$0] }.reduce(0, +)
+                out.h = h
                 return out
             case .text:
                 guard var out = fitted[el.id] else { return el }
                 out.x = (span.x + pad).rounded()
-                out.y = (top + pad).rounded()
+                out.y = (top + pad + Tables.cellSlack(out, room: h - 2 * pad)).rounded()
                 return out
             default:
                 return el
             }
         }
+        // Each rectangle strokes the sides the table's borders show.
+        return Tables.withSides(laid)
     }
 
     /// Each row's height, for relayout, by the Android twin's rule, number
@@ -341,7 +350,8 @@ extension DataGraphics {
             .filter { $0.type == .shape && $0.table.map(inBlock) == true }.map(\.frame))
         let look = tableMembers(elements, id: id).lazy.compactMap(\.table).first
         let merged = TableCell(id: id, row: block.rows.lowerBound, col: block.cols.lowerBound,
-                               rowSpan: block.rows.count, colSpan: block.cols.count, pad: look?.pad, bands: look?.bands)
+                               rowSpan: block.rows.count, colSpan: block.cols.count, pad: look?.pad, bands: look?.bands,
+                               borders: look?.borders, design: look?.design)
         let out = elements.compactMap { el -> Element? in
             guard let cell = el.table, inBlock(cell) else { return el }
             guard cell.row == merged.row && cell.col == merged.col else { return nil }
@@ -398,7 +408,8 @@ extension DataGraphics {
         let parted = elements.map { el -> Element in
             guard let cell = el.table, cell.id == id, parting(cell) else { return el }
             var out = placed(el, cell, row: cell.row, col: cell.col)
-            out.table = TableCell(id: id, row: cell.row, col: cell.col, pad: cell.pad, bands: cell.bands, minH: cell.minH)
+            out.table = TableCell(id: id, row: cell.row, col: cell.col, pad: cell.pad, bands: cell.bands, minH: cell.minH,
+                                  borders: cell.borders, design: cell.design)
             return out
         }
         return relaidTable(inserting(fresh, into: parted, id: id), id: id, heightFor: heightFor)
@@ -1174,7 +1185,8 @@ extension DataGraphics {
         copy.layerName = nil
         if el.type == .text { copy.setText("") }
         if let cell = el.table {
-            copy.table = TableCell(id: cell.id, row: row, col: col, pad: cell.pad, bands: cell.bands)
+            copy.table = TableCell(id: cell.id, row: row, col: col, pad: cell.pad, bands: cell.bands,
+                                   borders: cell.borders, design: cell.design)
         }
         return copy
     }

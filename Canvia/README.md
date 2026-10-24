@@ -345,6 +345,23 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   longest cell. Both arrive as ordinary grouped elements — pie slices and
   line paths are shapes with their own path data — so they recolour,
   export and read aloud like anything else.
+- Table looks: the Table sheet's Align in cell sets the selected cells'
+  words top, middle or bottom (each text's `vAlign`), and a row of six
+  border choices — all, outer, inner, horizontal, vertical, none — keeps
+  `borders` on the table key, each cell rectangle stroking only its
+  derived `sides` (Tables.sides) on the canvas and as SVG `<line>`s. Add >
+  Table and the sheet's Design row offer sixteen designs from the shared
+  `Content/tables.json` (`Tools/generate_tables.py`), restyling a table's
+  look while keeping its words, merges, column widths and row heights; the
+  table keeps its `design`, so a theme or the brand applied gives it again
+  in the new colours, and search finds each by name.
+- Spreadsheet paste: a range copied from Sheets, Excel or Numbers — its
+  HTML table, merged cells and entities and all, else tab-separated lines
+  (`ClipboardTable`) — pastes as a table with its merges kept, or with a
+  table cell selected fills the table from that cell, growing rows and
+  columns, as one step named Paste cells; with a chart selected the ⋮ menu
+  offers Replace chart data, and the data grid takes a multi-cell paste at
+  the cell worked last. Paste as plain text still brings the words.
 - Read a picture: Live Text turns the words in a photo into editable text
   elements where they were; a QR code in a photo comes back as a clean
   code element with its payload.
@@ -487,6 +504,32 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   the first N of M pages". Replacing a photo with a PDF page draws only
   that page. Refusals elsewhere (crop, erase, handwriting) no longer offer
   an Undo that would take back something unrelated.
+- Editable PDF import: a PDF opened in Canvia or picked from Import asks
+  Editable text (chosen when it has words) or Pictures (exact look). With
+  editable text each page keeps its picture, the words painted over with
+  the median colour round them and locked as a "PDF page" layer, and every
+  paragraph becomes a text box in the nearest of the families, at its
+  size, weight, slant and colour; the page keeps `pdfSource` (its file's
+  name and page number). The words are read by `PdfText` — cross-reference
+  tables and streams, object streams, FlateDecode, the text operators,
+  ToUnicode CMaps and the WinAnsi, MacRoman and Standard encodings — held
+  to golden runs of `Tools/generate_pdf_fixture.py`'s fixture. Encrypted
+  files, Type3 fonts and pages with no words come in as pictures, and a
+  toast says how many.
+- Word documents: a .docx opened in Canvia, tapped in Files or picked from
+  Import > Word document becomes a new Doc named after its file — title,
+  headings, paragraphs with bold, italic, underline, strikethrough, colour,
+  highlight and links, nested bullets and numbers, checklists, quotes,
+  tables, pictures, captions, dividers, page breaks and the page size and
+  margins — read by `DocxReader` and held to the fixture
+  `Tools/generate_docx_fixture.py` writes. Docs gain Title and Caption
+  blocks, list levels and spans, which `DocxWriter` now writes too, so a
+  Doc sent to Word reads back the same.
+- Turn into a Doc (the editor's More menu and a design's card on Home)
+  makes a new Doc beside the design from its pages in reading order: a
+  heading per page, its text boxes by role as headings, paragraphs and
+  lists, tables and charts as blocks, large pictures as pictures, and the
+  speaker notes when asked. The design stays as it is.
 - A QR code's words are edited where it sits: Edit code (in place of
   Erase, which would only stop it scanning) opens a field that rewrites
   the code as you type, keeping size, place, turn and frame. While the

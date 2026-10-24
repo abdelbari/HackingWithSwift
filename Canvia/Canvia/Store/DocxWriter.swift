@@ -3,14 +3,18 @@
 // byte the Android twin's DocxWriter's for the same Doc (the shared fixture,
 // Tests/Fixtures/doc-document.xml, checks it).
 //
-//  - h1–h3 as paragraphs in the Heading1–Heading3 styles, a quote in Quote,
-//    a paragraph in Normal; each RichText run its own w:r, bold, italic,
-//    underlined or struck as marked, and coloured, highlighted (a w:shd
-//    fill) or linked (a w:hyperlink, in the link colour and underlined
-//    unless coloured) as its block's spans say; a block's alignment its
-//    w:jc.
+//  - a title in the Title style, h1–h3 as paragraphs in the Heading1–
+//    Heading3 styles, a quote in Quote, a caption in Caption, a paragraph
+//    in Normal; each RichText run its own w:r, bold, italic, underlined or
+//    struck as marked, and coloured, highlighted (a w:shd fill) or linked
+//    (a w:hyperlink, each address once, its rId after the styles', the
+//    numbering's and the pictures' — `links`; a link with no colour of its
+//    own in the Hyperlink character style, the link colour underlined,
+//    which DocxReader leaves unread) as its block's spans say; a block's
+//    alignment its w:jc.
 //  - bullets and numbers as list paragraphs (numbering.xml: numId 1
-//    bullets, numId 2 decimal), a checklist item behind ☐ or ☑.
+//    bullets, numId 2 decimal, levels 0 to 4, the block's level its
+//    w:ilvl), a checklist item behind ☐ or ☑.
 //  - a divider as an empty paragraph with a bottom border, a page break as
 //    a w:br of type page.
 //  - a table as w:tbl, its columns sharing the text's width, the header
@@ -67,8 +71,9 @@ enum DocxWriter {
     /// and its span's (Spans, `spans` over the words as they read) colour,
     /// highlight and link — as a w:r, a line break in it a w:br: a colour a
     /// w:color, a highlight a w:shd fill, a linked stretch inside a
-    /// w:hyperlink to its relationship in `links`, drawn in the link colour
-    /// and underlined unless it has a colour of its own.
+    /// w:hyperlink to its relationship in `links`, in the Hyperlink
+    /// character style (the link colour, underlined) unless it has a colour
+    /// of its own.
     private static func runs(_ markup: String, bold: Bool = false, spans: [TextSpan] = [],
                              links: [String: String] = [:]) -> String {
         let parsed = RichText.parse(markup)
@@ -92,14 +97,16 @@ enum DocxWriter {
         return out
     }
 
-    /// A stretch's w:rPr: bold, italic, its colour — the link colour for a
-    /// link with none of its own — underline, strike and highlight.
+    /// A stretch's w:rPr: a link with no colour of its own the Hyperlink
+    /// character style (the link colour, underlined), then bold, italic,
+    /// its colour, underline, strike and highlight.
     private static func props(_ style: RichText.Style, bold: Bool, span: TextSpan?, linked: Bool) -> String {
         var props = ""
+        if linked && span?.color == nil { props += "<w:rStyle w:val=\"Hyperlink\"/>" }
         if bold || style.bold { props += "<w:b/>" }
         if style.italic { props += "<w:i/>" }
-        if let colour = span?.color ?? (linked ? Spans.linkColour : nil) { props += "<w:color w:val=\"\(hex(colour))\"/>" }
-        if style.underline || (linked && span?.color == nil) { props += "<w:u w:val=\"single\"/>" }
+        if let colour = span?.color { props += "<w:color w:val=\"\(hex(colour))\"/>" }
+        if style.underline { props += "<w:u w:val=\"single\"/>" }
         if style.strike { props += "<w:strike/>" }
         if let highlight = span?.highlight {
             props += "<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"\(hex(highlight))\"/>"
@@ -129,10 +136,11 @@ enum DocxWriter {
         return runs(prefix + block.text, spans: spans, links: links)
     }
 
-    private static func paragraph(_ style: String?, _ body: String, numId: Int? = nil, align: String? = nil) -> String {
+    private static func paragraph(_ style: String?, _ body: String, numId: Int? = nil, align: String? = nil,
+                                  level: Int = 0) -> String {
         var props = ""
         if let style { props += "<w:pStyle w:val=\"\(style)\"/>" }
-        if let numId { props += "<w:numPr><w:ilvl w:val=\"0\"/><w:numId w:val=\"\(numId)\"/></w:numPr>" }
+        if let numId { props += "<w:numPr><w:ilvl w:val=\"\(level)\"/><w:numId w:val=\"\(numId)\"/></w:numPr>" }
         if let jc = jc(align) { props += "<w:jc w:val=\"\(jc)\"/>" }
         return "<w:p>" + (props.isEmpty ? "" : "<w:pPr>" + props + "</w:pPr>") + body + "</w:p>"
     }
@@ -181,13 +189,17 @@ enum DocxWriter {
         let linked = links(design)
         for b in Docs.blocks(design) {
             switch b.type {
+            case Docs.title: out += paragraph("Title", runs(b, links: linked), align: b.align)
             case Docs.h1: out += paragraph("Heading1", runs(b, links: linked), align: b.align)
             case Docs.h2: out += paragraph("Heading2", runs(b, links: linked), align: b.align)
             case Docs.h3: out += paragraph("Heading3", runs(b, links: linked), align: b.align)
             case Docs.quote: out += paragraph("Quote", runs(b, links: linked), align: b.align)
+            case Docs.caption: out += paragraph("Caption", runs(b, links: linked), align: b.align)
             case Docs.p: out += paragraph(nil, runs(b, links: linked), align: b.align)
-            case Docs.bullet: out += paragraph("ListParagraph", runs(b, links: linked), numId: 1, align: b.align)
-            case Docs.number: out += paragraph("ListParagraph", runs(b, links: linked), numId: 2, align: b.align)
+            case Docs.bullet:
+                out += paragraph("ListParagraph", runs(b, links: linked), numId: 1, align: b.align, level: b.level ?? 0)
+            case Docs.number:
+                out += paragraph("ListParagraph", runs(b, links: linked), numId: 2, align: b.align, level: b.level ?? 0)
             case Docs.checklist:
                 let box = b.checked == true ? "☑ " : "☐ "
                 out += paragraph(nil, runs(b, prefix: box, links: linked), align: b.align)
@@ -289,8 +301,9 @@ enum DocxWriter {
             + "<dc:title>\(esc(design.title))</dc:title><dc:creator>\(PDFMetadata.creator)</dc:creator></cp:coreProperties>"
     }
 
-    /// The styles: Normal, Heading1–3 at the Doc's sizes (Docs.fontSize, in
-    /// half-points at 72 dpi), Quote, ListParagraph and TableGrid, in
+    /// The styles: Normal, Heading1–3 and Title at the Doc's sizes
+    /// (Docs.fontSize, in half-points at 72 dpi), Caption, Quote,
+    /// ListParagraph, the Hyperlink character style and TableGrid, in
     /// `heading` and `body`'s faces.
     static func stylesXml(heading: String, body: String) -> String {
         func font(_ face: String) -> String {
@@ -309,27 +322,38 @@ enum DocxWriter {
             + "<w:pPrDefault><w:pPr><w:spacing w:after=\"160\" w:line=\"324\" w:lineRule=\"auto\"/></w:pPr></w:pPrDefault></w:docDefaults>"
         out += "<w:style w:type=\"paragraph\" w:default=\"1\" w:styleId=\"Normal\"><w:name w:val=\"Normal\"/><w:qFormat/></w:style>"
         out += headingStyle(1, Docs.h1) + headingStyle(2, Docs.h2) + headingStyle(3, Docs.h3)
+        out += "<w:style w:type=\"paragraph\" w:styleId=\"Title\"><w:name w:val=\"Title\"/><w:basedOn w:val=\"Normal\"/>"
+            + "<w:next w:val=\"Normal\"/><w:qFormat/><w:pPr><w:spacing w:after=\"240\"/><w:outlineLvl w:val=\"0\"/></w:pPr>"
+            + "<w:rPr>\(font(heading))<w:b/><w:sz w:val=\"\(half(Docs.title))\"/></w:rPr></w:style>"
+        out += "<w:style w:type=\"paragraph\" w:styleId=\"Caption\"><w:name w:val=\"caption\"/><w:basedOn w:val=\"Normal\"/><w:qFormat/>"
+            + "<w:rPr><w:color w:val=\"5F6470\"/><w:sz w:val=\"\(half(Docs.caption))\"/></w:rPr></w:style>"
         out += "<w:style w:type=\"paragraph\" w:styleId=\"Quote\"><w:name w:val=\"Quote\"/><w:basedOn w:val=\"Normal\"/><w:qFormat/>"
             + "<w:pPr><w:ind w:left=\"720\" w:right=\"720\"/></w:pPr><w:rPr><w:i/><w:sz w:val=\"\(half(Docs.quote))\"/></w:rPr></w:style>"
         out += "<w:style w:type=\"paragraph\" w:styleId=\"ListParagraph\"><w:name w:val=\"List Paragraph\"/><w:basedOn w:val=\"Normal\"/>"
             + "<w:pPr><w:ind w:left=\"720\"/><w:contextualSpacing/></w:pPr></w:style>"
+        out += "<w:style w:type=\"character\" w:styleId=\"Hyperlink\"><w:name w:val=\"Hyperlink\"/>"
+            + "<w:rPr><w:color w:val=\"\(hex(Spans.linkColour))\"/><w:u w:val=\"single\"/></w:rPr></w:style>"
         out += "<w:style w:type=\"table\" w:styleId=\"TableGrid\"><w:name w:val=\"Table Grid\"/><w:tblPr><w:tblBorders>"
             + borders + "</w:tblBorders><w:tblCellMar><w:left w:w=\"108\" w:type=\"dxa\"/><w:right w:w=\"108\" w:type=\"dxa\"/>"
             + "</w:tblCellMar></w:tblPr></w:style>"
         return out + "</w:styles>"
     }
 
-    /// Bullets (numId 1) and decimal numbers (numId 2), one level each.
+    /// Bullets (numId 1) and decimal numbers (numId 2), levels 0 to
+    /// TextLists.maxLevel, each level 720 twips further in.
     static var numbering: String {
-        head + "<w:numbering xmlns:w=\"\(w)\">"
-            + "<w:abstractNum w:abstractNumId=\"0\"><w:multiLevelType w:val=\"singleLevel\"/><w:lvl w:ilvl=\"0\"><w:start w:val=\"1\"/>"
-            + "<w:numFmt w:val=\"bullet\"/><w:lvlText w:val=\"•\"/><w:lvlJc w:val=\"left\"/><w:pPr><w:ind w:left=\"720\" w:hanging=\"360\"/>"
-            + "</w:pPr></w:lvl></w:abstractNum>"
-            + "<w:abstractNum w:abstractNumId=\"1\"><w:multiLevelType w:val=\"singleLevel\"/><w:lvl w:ilvl=\"0\"><w:start w:val=\"1\"/>"
-            + "<w:numFmt w:val=\"decimal\"/><w:lvlText w:val=\"%1.\"/><w:lvlJc w:val=\"left\"/><w:pPr><w:ind w:left=\"720\" w:hanging=\"360\"/>"
-            + "</w:pPr></w:lvl></w:abstractNum>"
-            + "<w:num w:numId=\"1\"><w:abstractNumId w:val=\"0\"/></w:num><w:num w:numId=\"2\"><w:abstractNumId w:val=\"1\"/></w:num>"
-            + "</w:numbering>"
+        let bullets = (0...TextLists.maxLevel).map { level($0, format: "bullet", text: "•") }.joined()
+        let numbers = (0...TextLists.maxLevel).map { level($0, format: "decimal", text: "%\($0 + 1).") }.joined()
+        var out = head + "<w:numbering xmlns:w=\"\(w)\">"
+        out += "<w:abstractNum w:abstractNumId=\"0\"><w:multiLevelType w:val=\"hybridMultilevel\"/>" + bullets + "</w:abstractNum>"
+        out += "<w:abstractNum w:abstractNumId=\"1\"><w:multiLevelType w:val=\"hybridMultilevel\"/>" + numbers + "</w:abstractNum>"
+        out += "<w:num w:numId=\"1\"><w:abstractNumId w:val=\"0\"/></w:num><w:num w:numId=\"2\"><w:abstractNumId w:val=\"1\"/></w:num>"
+        return out + "</w:numbering>"
+    }
+
+    private static func level(_ n: Int, format: String, text: String) -> String {
+        "<w:lvl w:ilvl=\"\(n)\"><w:start w:val=\"1\"/><w:numFmt w:val=\"\(format)\"/><w:lvlText w:val=\"\(text)\"/>"
+            + "<w:lvlJc w:val=\"left\"/><w:pPr><w:ind w:left=\"\(720 * (n + 1))\" w:hanging=\"360\"/></w:pPr></w:lvl>"
     }
 
     /// A white pixel, for a picture that could not be drawn: the file still

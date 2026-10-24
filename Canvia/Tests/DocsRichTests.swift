@@ -85,11 +85,14 @@ final class DocsRichTests: XCTestCase {
         XCTAssertTrue(xml.contains("<w:r><w:rPr><w:b/><w:color w:val=\"E11D48\"/></w:rPr><w:t xml:space=\"preserve\">big</w:t></w:r>"))
         XCTAssertTrue(xml.contains("<w:r><w:rPr><w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"FDE68A\"/></w:rPr>"
                                    + "<w:t xml:space=\"preserve\">May</w:t></w:r>"))
-        XCTAssertTrue(xml.contains("<w:hyperlink r:id=\"rId3\"><w:r><w:rPr><w:color w:val=\"2563EB\"/><w:u w:val=\"single\"/></w:rPr>"
+        XCTAssertTrue(xml.contains("<w:hyperlink r:id=\"rId3\"><w:r><w:rPr><w:rStyle w:val=\"Hyperlink\"/></w:rPr>"
                                    + "<w:t xml:space=\"preserve\">brief</w:t></w:r></w:hyperlink>"))
         XCTAssertTrue(xml.contains("<w:jc w:val=\"both\"/>"))
         XCTAssertTrue(xml.contains("<w:numPr><w:ilvl w:val=\"0\"/><w:numId w:val=\"1\"/></w:numPr><w:jc w:val=\"right\"/>"))
         XCTAssertEqual(DocxWriter.links(d), ["https://example.com/brief": "rId3"])
+        let hyperlink = "<w:style w:type=\"character\" w:styleId=\"Hyperlink\"><w:name w:val=\"Hyperlink\"/>"
+            + "<w:rPr><w:color w:val=\"2563EB\"/><w:u w:val=\"single\"/></w:rPr></w:style>"
+        XCTAssertTrue(DocxWriter.stylesXml(heading: "Calibri", body: "Calibri").contains(hyperlink))
     }
 
     /// Shared: Find goes through a Doc's blocks and cells, in order.

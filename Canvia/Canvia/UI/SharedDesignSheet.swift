@@ -1,7 +1,10 @@
 // "New design from shared": what to make of photos, videos, PDFs or SVGs
 // opened in Canvia from another app (SharedInbox). A design the size of the
 // first photo, one of the four design types nearest its shape, or the pages
-// added to a design already made — each item on a page of its own.
+// added to a design already made — each item on a page of its own. A single
+// PDF offers Editable text — its words as text boxes (PdfEditable) — or
+// Pictures (exact look) first, Editable text chosen when it has words, as
+// the Android twin's sheet offers them.
 
 import SwiftUI
 
@@ -19,6 +22,12 @@ struct SharedDesignSheet: View {
     @State private var measured = false
     @State private var recents: [RecentDesign] = []
     @State private var working = false
+    /// A single PDF: whether it can come in as editable text (nil for any
+    /// other share), and whether it will — Editable text when it has words.
+    @State private var pdfHasText: Bool?
+    @State private var editable: Bool?
+
+    private var asText: Bool { editable == true }
 
     /// What the sheet made of the share; each carries what to say of the
     /// items that could not be opened.
@@ -34,6 +43,7 @@ struct SharedDesignSheet: View {
     var body: some View {
         NavigationStack {
             List {
+                if pdfHasText != nil { pdfChoice }
                 Section {
                     // No size to fit to — an SVG first, or a picture that
                     // does not read — no "Fit to the photo".
@@ -71,8 +81,40 @@ struct SharedDesignSheet: View {
                 firstSize = await SharedInbox.pixelSize(of: first, in: box)
             }
             measured = true
+            let box = self.box
+            let hasText = await Task.detached(priority: .userInitiated) { SharedInbox.pdfHasText(box) }.value
+            pdfHasText = hasText
+            if editable == nil { editable = hasText }
             recents = await Task.detached(priority: .userInitiated) { DesignLibrary.recents() }.value
         }
+    }
+
+    /// A PDF's two ways in: Editable text, waiting while it has no words,
+    /// and Pictures (exact look).
+    private var pdfChoice: some View {
+        Section {
+            choiceRow(tr("Editable text"), detail: tr("Its words as text boxes you can retype, over a picture of the page."),
+                      on: asText) { editable = true }
+                .disabled(pdfHasText != true)
+            choiceRow(tr("Pictures (exact look)"), detail: tr("Each page as a picture, exactly as it looks."),
+                      on: !asText) { editable = false }
+        }
+    }
+
+    private func choiceRow(_ title: String, detail: String, on: Bool, pick: @escaping () -> Void) -> some View {
+        Button(action: pick) {
+            HStack(spacing: 12) {
+                Image(systemName: on ? "largecircle.fill.circle" : "circle")
+                    .frame(width: 28)
+                    .foregroundStyle(Theme.accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).foregroundStyle(.primary)
+                    Text(detail).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(on ? .isSelected : [])
     }
 
     /// "3 items", or what the one item is.
@@ -161,8 +203,9 @@ struct SharedDesignSheet: View {
     /// The items brought in at `size`, away from the main actor.
     private func bringIn(at size: CGSize) async -> SharedInbox.Brought {
         let box = self.box
+        let editablePdf = asText
         return await Task.detached(priority: .userInitiated) {
-            SharedInbox.bringIn(box, pageSize: size)
+            SharedInbox.bringIn(box, pageSize: size, editablePdf: editablePdf)
         }.value
     }
 
@@ -214,7 +257,10 @@ struct SharedDesignSheet: View {
     /// nothing is made.
     private func finish(_ brought: SharedInbox.Brought, design: Design?) {
         SharedInbox.remove(box.id)
-        let note = SharedInbox.failureText(failed: brought.failed, total: brought.total)
+        // Pages whose words could not be read came in as pictures, and say so.
+        let said = [SharedInbox.failureText(failed: brought.failed, total: brought.total),
+                    SharedInbox.picturedText(brought.pictured)].compactMap { $0 }
+        let note = said.isEmpty ? nil : said.joined(separator: " ")
         working = false
         if brought.pages.isEmpty {
             onDone(.nothing(note: note))

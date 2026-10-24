@@ -31,6 +31,8 @@ struct CanviaApp: App {
     /// one after another before the view updates, and each must be kept.
     /// The host empties it as it takes them, so each is read once.
     @State private var deckURLs: [URL] = []
+    /// Word documents opened in Canvia, each made a new Doc (WordImport).
+    @State private var wordURLs: [URL] = []
     @Environment(\.scenePhase) private var scenePhase
     /// Settings' Appearance: System, Light or Dark.
     @AppStorage(Appearance.key) private var appearance = Appearance.system.rawValue
@@ -307,6 +309,9 @@ struct CanviaApp: App {
                     receiveShared(url)
                 } else if Spreadsheets.isSpreadsheet(url) {
                     openSpreadsheet(url)
+                } else if WordDocs.isWordDocument(url) {
+                    // A Word document, a ZIP as a deck is, becomes a Doc.
+                    wordURLs.append(url)
                 } else if PowerPoints.isDeck(url) {
                     deckURLs.append(url)
                 } else {
@@ -314,6 +319,9 @@ struct CanviaApp: App {
                 }
             }
             .powerPointImport($deckURLs) { design in
+                withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
+            }
+            .wordImport($wordURLs) { design in
                 withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
             }
             .sharedDesignSheet($sharedBox, editing: $editingStore, failure: $openError)

@@ -39,15 +39,19 @@ enum SharedInbox {
         /// Set when it is one of your uploads already ("media:<id>",
         /// "video:<id>"): it goes in as that upload, not stored again.
         var src: String?
+        /// The file's own name, when it came with one: what a PDF's pages
+        /// say they came from (PdfSource).
+        var name: String?
 
-        init(kind: Kind, file: String, mime: String, src: String? = nil) {
+        init(kind: Kind, file: String, mime: String, src: String? = nil, name: String? = nil) {
             self.kind = kind
             self.file = file
             self.mime = mime
             self.src = src
+            self.name = name
         }
 
-        private enum CodingKeys: String, CodingKey { case kind, file, mime, src }
+        private enum CodingKeys: String, CodingKey { case kind, file, mime, src, name }
 
         /// A missing mime reads as "", as the Android twin reads it; the
         /// kind and the file are needed.
@@ -57,6 +61,7 @@ enum SharedInbox {
             file = try c.decode(String.self, forKey: .file)
             mime = (try? c.decode(String.self, forKey: .mime)) ?? ""
             src = (try? c.decode(String.self, forKey: .src)).flatMap { SharedInbox.isUploadSrc($0) ? $0 : nil }
+            name = try? c.decode(String.self, forKey: .name)
         }
     }
 
@@ -200,7 +205,8 @@ enum SharedInbox {
             guard (try? FileManager.default.copyItem(at: url, to: dir.appendingPathComponent(file))) != nil else { continue }
             let mime = UTType(filenameExtension: ext)?.preferredMIMEType ?? "application/octet-stream"
             let src = n < srcs.count ? srcs[n] : nil
-            items.append(Item(kind: kind, file: file, mime: mime, src: isUploadSrc(src) ? src : nil))
+            items.append(Item(kind: kind, file: file, mime: mime, src: isUploadSrc(src) ? src : nil,
+                              name: url.lastPathComponent.isEmpty ? nil : url.lastPathComponent))
         }
         let manifest = ShareManifest(items: items, createdAt: Int64((now.timeIntervalSince1970 * 1000).rounded()))
         guard !items.isEmpty, let data = manifest.data,
@@ -322,6 +328,26 @@ enum SharedInbox {
         var pages: [Page] = []
         var failed = 0
         var total = 0
+        /// A PDF's pages asked for as editable text that came in as
+        /// pictures: encrypted, a Type3 font, or no words.
+        var pictured = 0
+    }
+
+    /// What to say of a PDF's pages that came in as pictures when they were
+    /// asked for as editable text, or nil when none did.
+    static func picturedText(_ pictured: Int) -> String? {
+        guard pictured > 0 else { return nil }
+        return trn("%d page came in as a picture: its text could not be read.|%d pages came in as pictures: their text could not be read.",
+                   pictured)
+    }
+
+    /// Whether the share is one PDF with words that can come in as
+    /// editable text (PdfText) — the sheet's choice then starts at Editable
+    /// text; nil when it is no single PDF. Files only, away from the main
+    /// actor.
+    static func pdfHasText(_ box: Box) -> Bool? {
+        guard box.manifest.items.count == 1, let item = box.manifest.items.first, item.kind == .pdf else { return nil }
+        return PdfEditable.hasText(PdfEditable.text(at: box.url(of: item)))
     }
 
     /// "Couldn't open 1 of 3 items" — "Couldn't open that item" when it
@@ -337,10 +363,25 @@ enum SharedInbox {
     /// your uploads, an animated GIF or WebP as it came, an SVG's first
     /// outline as a shape, a PDF a page for each of its pages. Files only,
     /// away from the main actor.
-    static func bringIn(_ box: Box, pageSize: CGSize) -> Brought {
+    ///
+    /// With `editablePdf`, a PDF's words come in as text boxes over its
+    /// pictures (PdfEditable); its pages that cannot are counted in
+    /// `pictured`, and a PDF whose words do not read at all comes in as
+    /// pictures, every page counted.
+    static func bringIn(_ box: Box, pageSize: CGSize, editablePdf: Bool = false) -> Brought {
         // Those handed over that never landed are counted as not opened.
         var brought = Brought(failed: box.asked - box.manifest.items.count, total: box.asked)
         for item in box.manifest.items {
+            if editablePdf && item.kind == .pdf {
+                let url = box.url(of: item)
+                if let editable = PdfEditable.pages(at: url, name: item.name ?? item.file, pageSize: pageSize),
+                   !editable.pages.isEmpty {
+                    brought.pages += editable.pages
+                    brought.pictured += editable.pictured
+                    continue
+                }
+                if FileManager.default.fileExists(atPath: url.path) { brought.pictured += 1 }
+            }
             let pages = bringIn(item, from: box, pageSize: pageSize)
             if pages.isEmpty { brought.failed += 1 }
             brought.pages += pages

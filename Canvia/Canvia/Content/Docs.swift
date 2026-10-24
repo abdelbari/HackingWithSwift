@@ -6,15 +6,19 @@
 //
 // Kept in the design as both phones write it: "kind": "doc", "blocks":
 // [{"id", "type", "text", "spans", "spansText", "align", "src", "alt",
-// "table", "chart", "checked"}] — a block writes only the keys it has, `text`
-// in RichText markup as a text box keeps it, `spans` and `spansText` its
-// words' colours, highlights and links as a text box's (Spans: [{start, end,
-// color?, link?, highlight?}] over the words as they read), `align` one of
-// center, right or justify — never written for left — `table` as {"rows":
-// [[…]], "header": true}, `chart` the ChartSpec
-// JSON a chart's elements keep under "chart" — and "docPage": {"size": "a4"
-// | "letter", "margins": 72}, the margins in points. The design's own size is
-// its page's, in pixels at 96 dpi.
+// "table", "chart", "checked", "level"}] — a block writes only the keys it
+// has, `text` in RichText markup as a text box keeps it, `spans` and
+// `spansText` its words' colours, highlights and links as a text box's
+// (Spans: [{start, end, color?, link?, highlight?}] over the words as they
+// read), `align` one of center, right or justify — never written for left
+// — `table` as {"rows": [[…]], "header": true}, `chart` the ChartSpec JSON
+// a chart's elements keep under "chart", `level` a list item's depth from
+// 0 (written only above 0, at most TextLists.maxLevel) — and "docPage":
+// {"size": "a4" | "letter", "margins": 72}, the margins in points. The
+// design's own size is its page's, in pixels at 96 dpi. Every block that
+// has spans writes them with `spansText` (Docs.withSpans), a Word import's
+// and a design turned into a Doc's alike, so spans are only ever read over
+// the words they were made for.
 
 import CoreGraphics
 import Foundation
@@ -57,10 +61,12 @@ struct DocBlock: Codable, Equatable, Identifiable {
     var spansText: String?
     /// center, right or justify; nil for left.
     var align: String?
+    /// A list item's depth, 1…TextLists.maxLevel; nil is the first level.
+    var level: Int?
 
     init(id: String = Docs.newId(), type: String, text: String = "", src: String? = nil, alt: String? = nil,
          table: DocTable? = nil, chart: ChartSpec? = nil, checked: Bool? = nil,
-         spans: [TextSpan]? = nil, spansText: String? = nil, align: String? = nil) {
+         spans: [TextSpan]? = nil, spansText: String? = nil, align: String? = nil, level: Int? = nil) {
         self.id = id
         self.type = type
         self.text = text
@@ -72,10 +78,11 @@ struct DocBlock: Codable, Equatable, Identifiable {
         self.spans = spans
         self.spansText = spansText
         self.align = align
+        self.level = level.flatMap { $0 > 0 ? min($0, TextLists.maxLevel) : nil }
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, type, text, spans, spansText, align, src, alt, table, chart, checked
+        case id, type, text, spans, spansText, align, src, alt, table, chart, checked, level
     }
 
     /// A type this build does not know is no block; one with no id is given
@@ -98,6 +105,10 @@ struct DocBlock: Codable, Equatable, Identifiable {
         spansText = try? c.decode(String.self, forKey: .spansText)
         let aligned = try? c.decode(String.self, forKey: .align)
         align = Docs.keptAlign(aligned)
+        // A level written as words is none, and one past reach held to it,
+        // as on the Android twin.
+        let depth = (try? c.decode(Double.self, forKey: .level)).flatMap { $0.isFinite ? Int($0) : nil } ?? 0
+        level = depth > 0 ? min(depth, TextLists.maxLevel) : nil
     }
 
     /// Id, type, then only the keys it has: words for a block that is typed
@@ -117,6 +128,7 @@ struct DocBlock: Codable, Equatable, Identifiable {
         try c.encodeIfPresent(table, forKey: .table)
         try c.encodeIfPresent(chart, forKey: .chart)
         if type == Docs.checklist { try c.encode(checked == true, forKey: .checked) }
+        if let level, level > 0 { try c.encode(level, forKey: .level) }
     }
 }
 
@@ -170,6 +182,7 @@ enum Docs {
     /// The Doc design type's id.
     static let presetId = "doc"
 
+    static let title = "title"
     static let h1 = "h1"
     static let h2 = "h2"
     static let h3 = "h3"
@@ -178,6 +191,7 @@ enum Docs {
     static let number = "number"
     static let checklist = "checklist"
     static let quote = "quote"
+    static let caption = "caption"
     static let divider = "divider"
     static let image = "image"
     static let table = "table"
@@ -185,10 +199,14 @@ enum Docs {
     static let pagebreak = "pagebreak"
 
     /// Every block type, in the order the '/' menu offers them.
-    static let types = [h1, h2, h3, p, bullet, number, checklist, quote, divider, image, table, chart, pagebreak]
+    static let types = [title, h1, h2, h3, p, bullet, number, checklist, quote, caption, divider, image, table, chart,
+                        pagebreak]
 
     /// The types whose words are typed.
-    static let textTypes: Set<String> = [h1, h2, h3, p, bullet, number, checklist, quote]
+    static let textTypes: Set<String> = [title, h1, h2, h3, p, bullet, number, checklist, quote, caption]
+
+    /// The types set as headings: bold, in the heading face.
+    static let headings: Set<String> = [title, h1, h2, h3]
 
     static let a4 = "a4"
     static let letter = "letter"
@@ -305,6 +323,15 @@ enum Docs {
         asElement(block).liveSpans
     }
 
+    /// `block` with `spans` over its plain words, written with the words
+    /// they were made for (Element.setSpans) — how a Word import and a
+    /// design turned into a Doc give a block its spans; none clears them.
+    static func withSpans(_ block: DocBlock, _ spans: [TextSpan]) -> DocBlock {
+        var el = asElement(block)
+        el.setSpans(spans)
+        return withElement(block, el)
+    }
+
     /// `spans` moved `by` UTF-16 units along: past what is put before the
     /// words they were made for.
     static func moved(_ spans: [TextSpan], by: Int) -> [TextSpan] {
@@ -415,10 +442,12 @@ enum Docs {
     /// A block type's font size in page pixels.
     static func fontSize(_ type: String) -> Double {
         switch type {
+        case title: return 44
         case h1: return 36
         case h2: return 28
         case h3: return 22
         case quote: return 20
+        case caption: return 13
         default: return 16
         }
     }
@@ -450,7 +479,7 @@ enum Docs {
     private static func textBox(_ words: String, type: String, x: Double, y: Double, width: Double, styles: Styles,
                                 align: String? = nil, spans: [TextSpan] = [],
                                 heightFor: (Element) -> Double) -> Element {
-        let heading = type == h1 || type == h2 || type == h3
+        let heading = headings.contains(type)
         let face = heading ? (styles.heading ?? styles.body) : (styles.body ?? styles.heading)
         var el = Element.text(words, fontSize: fontSize(type), w: width)
         el.x = x
@@ -460,7 +489,7 @@ enum Docs {
         el.fontFamily = face?.family ?? "sans"
         el.fontWeight = face?.weight ?? (heading ? 700 : 400)
         if type == quote { el.italic = true }
-        el = TextRoles.with(el, heading ? type : (type == quote ? TextRoles.quote : TextRoles.body))
+        el = TextRoles.with(el, heading ? type : (type == quote || type == caption ? type : TextRoles.body))
         if !spans.isEmpty { el.setSpans(spans) }
         el.h = heightFor(el)
         return el
@@ -478,7 +507,7 @@ enum Docs {
                     heightFor: heightFor)
         }
         switch first.type {
-        case h1, h2, h3, p, quote:
+        case title, h1, h2, h3, p, quote, caption:
             return [text(first.text, first.type, spansOf(first))]
         case checklist:
             // Its spans moved past the box before its words.
@@ -494,7 +523,14 @@ enum Docs {
                 at += (RichText.strip(blocks[i].text) as NSString).length + 1
             }
             var listed = text(unit.map { blocks[$0].text }.joined(separator: "\n"), p, spans)
-            listed.setListStyle(first.type == bullet ? "bullet" : "number")
+            let style = first.type == bullet ? "bullet" : "number"
+            // A list with items at depth is one paragraph a line, each at
+            // its level.
+            if unit.contains(where: { (blocks[$0].level ?? 0) > 0 }) {
+                listed.setLines(unit.map { TextParagraph(list: style, level: blocks[$0].level ?? 0) })
+            } else {
+                listed.setListStyle(style)
+            }
             listed.h = heightFor(listed)
             return [listed]
         case divider:
@@ -566,7 +602,7 @@ enum Docs {
             let need = onPage == 0 ? h : gap + h
             if onPage > 0 && cursor + need > contentHeight {
                 let before = units[u - 1]
-                let heading = [h1, h2, h3].contains(blocks[before.lowerBound].type)
+                let heading = headings.contains(blocks[before.lowerBound].type)
                 if heading && onPage > 1 {
                     breaks.append(before.lowerBound)
                     cursor = heights[u - 1] + gap + h
@@ -633,6 +669,147 @@ enum Docs {
         return out
     }
 
+    // MARK: turn a design into a Doc
+
+    /// A picture wider than this share of its page comes into the Doc; a
+    /// smaller one is taken for decoration.
+    static let pictureShare = 0.25
+
+    /// Turn into a Doc: `design`'s pages that are not hidden, in order, read
+    /// as a Doc's blocks — the Android twin's Docs.fromDesign, block for
+    /// block (Fixtures/design-to-doc.json). Each page's elements, the
+    /// master's behind them, are read in reading order
+    /// (CanvasAccessibility.readingOrder), as a tagged PDF reads them
+    /// (PdfTags):
+    ///  - the page's title, else its first text whose role (TextRoles) is a
+    ///    title or a first-level heading, heads it: "title" on the first page
+    ///    shown, "h1" on the rest;
+    ///  - every other text by its role — a title or first-level heading h2,
+    ///    a second- or third-level heading h3, a quote a quote, a caption a
+    ///    caption, anything else a paragraph — its words in their RichText
+    ///    markup and its spans kept; a text with list lines a block a line,
+    ///    each listed line a bullet, or a number (lettered lines too), at its
+    ///    level, and the others paragraphs;
+    ///  - a table a table block of its words (DataGraphics.tableGrid), its
+    ///    first row the header when it has one; a chart a chart block of its
+    ///    spec;
+    ///  - a photo, sticker or icon (AccessibilityAudit.isPicture) with a
+    ///    picture, not a clip, more than `pictureShare` of its page wide, an
+    ///    image block with its alt text; any other picture, shape or line is
+    ///    left out;
+    ///  - with `notes`, the page's notes a paragraph after it.
+    /// The Doc is new — titled "<title> (Doc)", in `design`'s folder — and
+    /// `design` is not changed.
+    static func fromDesign(_ design: Design, notes: Bool = false) -> Design {
+        var blocks: [DocBlock] = []
+        var first = true
+        for page in design.pages where page.hidden != true {
+            let size = design.size(for: page)
+            let elements = design.drawnElements(on: page)
+            let byId = Dictionary(elements.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            let ordered = CanvasAccessibility.readingOrder(elements, pageHeight: Double(size.height)).compactMap { byId[$0] }
+            let headType = first ? title : h1
+            first = false
+            var head: Element?
+            if let titled = page.title.flatMap(PageTitles.kept) {
+                blocks.append(DocBlock(type: headType, text: RichText.escapeLiteral(titled)))
+            } else {
+                head = ordered.first { el in
+                    guard el.type == .text, AccessibilityAudit.hasWords(el) else { return false }
+                    let role = TextRoles.of(el, in: design)
+                    return role == TextRoles.title || role == TextRoles.h1
+                }
+                if let head {
+                    let words = (head.text ?? "").replacingOccurrences(of: "\n", with: " ")
+                    blocks.append(withSpans(DocBlock(type: headType, text: words), head.liveSpans))
+                }
+            }
+            blocks += pageBlocks(ordered, among: elements, design: design, pageWidth: Double(size.width), skipping: head?.id)
+            if notes, let said = page.notes?.trimmingCharacters(in: .whitespacesAndNewlines), !said.isEmpty {
+                blocks.append(DocBlock(type: p, text: RichText.escapeLiteral(said)))
+            }
+        }
+        var doc = withBlocks(started(tr("%@ (Doc)", design.title)), blocks)
+        doc.folder = design.folder
+        return doc
+    }
+
+    /// A page's elements, in reading order, as blocks (fromDesign), but the
+    /// one that heads it.
+    private static func pageBlocks(_ ordered: [Element], among elements: [Element], design: Design, pageWidth: Double,
+                                   skipping head: String?) -> [DocBlock] {
+        var out: [DocBlock] = []
+        var done: Set<String> = []
+        for el in ordered where el.id != head {
+            if let cell = el.table {
+                if done.insert("table:" + cell.id).inserted {
+                    let rows = DataGraphics.tableGrid(elements, id: cell.id)
+                    out.append(DocBlock(type: table, table: DocTable(rows: rows,
+                                                                     header: DataGraphics.tableHasHeader(elements, id: cell.id))))
+                }
+                continue
+            }
+            if let spec = el.chart {
+                if done.insert("chart:" + spec.id).inserted { out.append(DocBlock(type: chart, chart: spec)) }
+                continue
+            }
+            if el.type == .text && AccessibilityAudit.hasWords(el) {
+                out += textBlocks(el, design: design)
+                continue
+            }
+            if AccessibilityAudit.isPicture(el), let src = el.src, !VideoStore.isVideo(src), el.w > pageWidth * pictureShare {
+                let alt = el.altText?.trimmingCharacters(in: .whitespacesAndNewlines)
+                out.append(DocBlock(type: image, src: src, alt: alt?.isEmpty == false ? alt : nil))
+            }
+        }
+        return out
+    }
+
+    /// A text box's blocks: one, in the type its role gives it, or a block a
+    /// line when it has list lines.
+    private static func textBlocks(_ el: Element, design: Design) -> [DocBlock] {
+        let type: String
+        switch TextRoles.of(el, in: design) {
+        case TextRoles.title, TextRoles.h1: type = h2
+        case TextRoles.h2, TextRoles.h3: type = h3
+        case TextRoles.quote: type = quote
+        case TextRoles.caption: type = caption
+        default: type = p
+        }
+        let spans = el.liveSpans
+        let lines = TextLists.lines(el)
+        guard lines.contains(where: \.isListed) else { return [withSpans(DocBlock(type: type, text: el.text ?? ""), spans)] }
+        // A line at a time: its words, styles and spans cut from the box's.
+        let raw = el.text ?? ""
+        let chars = Array(RichText.strip(raw))
+        let styles = RichText.styles(of: raw)
+        var out: [DocBlock] = []
+        var at = 0
+        var start = 0
+        for (i, line) in String(chars).components(separatedBy: "\n").enumerated() {
+            let count = Array(line).count
+            let units = (line as NSString).length
+            let lineStyles = at + count <= styles.count ? Array(styles[at..<(at + count)]) : []
+            let text = RichText.written(line, styles: lineStyles)
+            let end = start + units
+            let own = spans.compactMap { s -> TextSpan? in
+                let a = max(s.start, start), b = min(s.end, end)
+                return a < b ? s.over(a - start, b - start) : nil
+            }
+            let para = i < lines.count ? lines[i] : TextParagraph()
+            let level = para.level > 0 ? para.level : nil
+            switch para.list {
+            case "none": out.append(withSpans(DocBlock(type: p, text: text), own))
+            case "bullet": out.append(withSpans(DocBlock(type: bullet, text: text, level: level), own))
+            // Numbers and letters alike are an ordered list.
+            default: out.append(withSpans(DocBlock(type: number, text: text, level: level), own))
+            }
+            at += count + 1
+            start = end + 1
+        }
+        return out.filter { !RichText.strip($0.text).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+
     // MARK: turn into a presentation
 
     /// A presentation's slide.
@@ -651,7 +828,7 @@ enum Docs {
         var title: String?
         var body: [DocBlock] = []
         for b in blocks(design) {
-            if b.type == h1 {
+            if b.type == h1 || b.type == Self.title {
                 if title != nil || !body.isEmpty { groups.append((title ?? design.title, body)) }
                 title = b.text
                 body = []

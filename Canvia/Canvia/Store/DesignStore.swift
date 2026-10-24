@@ -1157,6 +1157,12 @@ final class DesignStore {
                 clipboardFonts = ElementClipboard.fonts()
                 pastedOnto = nil
                 pasteCount = 0
+            } else if let block = ElementClipboard.table() {
+                // A spreadsheet's range: into the selected table from its
+                // selected cell, else a table of its own — Paste as plain
+                // text still brings the words.
+                if tableSelection != nil { pasteCells(block) } else { pasteTable(block, at: point) }
+                return
             } else if var stranger = ElementClipboard.foreign(designWidth: pageWidth) {
                 // A picture over a frame, or a photo, selected goes into it.
                 if pasteIntoFrame([stranger], foreign: true, at: point) { return }
@@ -2910,6 +2916,15 @@ final class DesignStore {
                     if let spacing = spec.letterSpacing { out.pages[p].elements[i].letterSpacing = spacing }
                     out.pages[p].elements[i].h = FontLibrary.layoutHeight(for: out.pages[p].elements[i])
                 }
+            }
+        }
+        // A table given a design (TableCell.design) takes it again in the
+        // palette's first two colours, so its header follows the theme.
+        if let palette, let accent = palette.first {
+            let accent2 = palette.count > 1 ? palette[1] : accent
+            for p in out.pages.indices {
+                out.pages[p].elements = Tables.redesigned(out.pages[p].elements, accent: accent, accent2: accent2,
+                                                          heightFor: { FontLibrary.layoutHeight(for: $0) })
             }
         }
         // A locked page is kept as it was, its background and words alike.

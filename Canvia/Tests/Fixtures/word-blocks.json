@@ -1,0 +1,28 @@
+{
+"about": "DocxReader on fixtures/word.docx (tools/generate_docx_fixture.py): the Doc's blocks without their ids, and its docPage.",
+"docPage": {"size":"a4","margins":56.7},
+"blocks": [
+{"type":"title","text":"Café menu"},
+{"type":"h1","text":"Breakfast"},
+{"type":"p","text":"Plain, **bold**, *italic* and __under__ not ~~gone~~ red marked shaded __our site__.","spans":[{"start":39,"end":42,"color":"#c00000"},{"start":43,"end":49,"highlight":"#ffff00"},{"start":50,"end":56,"highlight":"#ddeeff"},{"start":57,"end":65,"link":"https://example.com/menu?a=1&b=2"}],"spansText":"Plain, bold, italic and under not gone red marked shaded our site."},
+{"type":"h2","text":"Fresh\tdaily\nsince 1990"},
+{"type":"bullet","text":"Toast"},
+{"type":"bullet","text":"Butter","level":1},
+{"type":"number","text":"Coffee"},
+{"type":"number","text":"Oat milk","level":1},
+{"type":"checklist","text":"Open the doors","checked":true},
+{"type":"h3","text":"Small print"},
+{"type":"quote","text":"Good food, good mood."},
+{"type":"divider"},
+{"type":"p","text":"Before the break"},
+{"type":"pagebreak"},
+{"type":"p","text":"after the break"},
+{"type":"pagebreak"},
+{"type":"p","text":"Starts a page"},
+{"type":"p","text":"Inside a content control"},
+{"type":"table","table":{"rows":[["Item","Size","Price"],["Latte","Large & hot",""]],"header":true}},
+{"type":"p","text":"A photo:"},
+{"type":"image","src":"media:image1.png","alt":"A cup of coffee"},
+{"type":"caption","text":"Figure 1: our café"}
+]
+}
