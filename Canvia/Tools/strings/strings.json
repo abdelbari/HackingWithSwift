@@ -584,6 +584,15 @@
     "ja": "%@ はこのデザインの他の場所でも使われています",
     "pt-BR": "%@ é usada em outras partes deste design"
   },
+  "%@ isn't installed on this phone": {
+    "ar": "%@ غير مثبَّت على هذا الهاتف",
+    "de": "%@ ist auf diesem Telefon nicht installiert",
+    "es": "%@ no está instalada en este teléfono",
+    "fr": "%@ n'est pas installée sur ce téléphone",
+    "it": "%@ non è installata su questo telefono",
+    "ja": "%@ はこのスマートフォンにインストールされていません",
+    "pt-BR": "%@ não está instalado neste celular"
+  },
   "%@ later": {
     "ar": "%@ لاحقًا",
     "de": "%@ später",
@@ -1079,6 +1088,15 @@
     "ja": "%@ · %d BPM",
     "pt-BR": "%@ · %d bpm"
   },
+  "%@ · Not on this phone": {
+    "ar": "%@ · غير موجود على هذا الهاتف",
+    "de": "%@ · Nicht auf diesem Telefon",
+    "es": "%@ · No está en este teléfono",
+    "fr": "%@ · Absente de ce téléphone",
+    "it": "%@ · Non presente su questo telefono",
+    "ja": "%@ · このスマートフォンにありません",
+    "pt-BR": "%@ · Não está neste celular"
+  },
   "%@ · Page %d of %d": {
     "ar": "%@ · الصفحة %d من %d",
     "de": "%@ · Seite %d von %d",
@@ -1309,6 +1327,15 @@
     "it": "%@, %@ s.",
     "ja": "%@、%@ 秒。",
     "pt-BR": "%@, %@ s."
+  },
+  "%@, %d hidden": {
+    "ar": "%@، %d مخفية",
+    "de": "%@, %d ausgeblendet",
+    "es": "%@, %d ocultas",
+    "fr": "%@, %d masquées",
+    "it": "%@, %d nascoste",
+    "ja": "%@、非表示 %d",
+    "pt-BR": "%@, %d ocultas"
   },
   "%@, %d hidden left out|%@, %d hidden left out": {
     "ar": {
@@ -2046,6 +2073,39 @@
     "pt-BR": {
       "one": "%d que já estava aqui foi mantido.",
       "other": "%d que já estavam aqui foram mantidos."
+    }
+  },
+  "%d audio file|%d audio files": {
+    "ar": {
+      "few": "%d ملفات صوتية",
+      "many": "%d ملفًا صوتيًا",
+      "one": "%d ملف صوتي",
+      "other": "%d ملف صوتي",
+      "two": "%d ملفان صوتيان",
+      "zero": "%d ملف صوتي"
+    },
+    "de": {
+      "one": "%d Audiodatei",
+      "other": "%d Audiodateien"
+    },
+    "es": {
+      "one": "%d archivo de audio",
+      "other": "%d archivos de audio"
+    },
+    "fr": {
+      "one": "%d fichier audio",
+      "other": "%d fichiers audio"
+    },
+    "it": {
+      "one": "%d file audio",
+      "other": "%d file audio"
+    },
+    "ja": {
+      "other": "%d 個の音声ファイル"
+    },
+    "pt-BR": {
+      "one": "%d arquivo de áudio",
+      "other": "%d arquivos de áudio"
     }
   },
   "%d brand kit|%d brand kits": {
@@ -3240,6 +3300,39 @@
     "pt-BR": {
       "one": "%d foto tem menos pixels do que este tamanho exige e vai ficar desfocada.",
       "other": "%d fotos têm menos pixels do que este tamanho exige e vão ficar desfocadas."
+    }
+  },
+  "%d photo|%d photos": {
+    "ar": {
+      "few": "%d صور",
+      "many": "%d صورة",
+      "one": "%d صورة",
+      "other": "%d صورة",
+      "two": "%d صورتان",
+      "zero": "%d صورة"
+    },
+    "de": {
+      "one": "%d Foto",
+      "other": "%d Fotos"
+    },
+    "es": {
+      "one": "%d foto",
+      "other": "%d fotos"
+    },
+    "fr": {
+      "one": "%d photo",
+      "other": "%d photos"
+    },
+    "it": {
+      "one": "%d foto",
+      "other": "%d foto"
+    },
+    "ja": {
+      "other": "%d 枚の写真"
+    },
+    "pt-BR": {
+      "one": "%d foto",
+      "other": "%d fotos"
     }
   },
   "%d picture|%d pictures": {
@@ -4970,6 +5063,15 @@
     "ja": "%@を追加",
     "pt-BR": "Adicionar %@"
   },
+  "Add New %@ to Home screen": {
+    "ar": "إضافة «%@ جديد» إلى الشاشة الرئيسية",
+    "de": "„Neu: %@“ zum Startbildschirm hinzufügen",
+    "es": "Añadir «Nuevo %@» a la pantalla de inicio",
+    "fr": "Ajouter « Nouveau %@ » à l'écran d'accueil",
+    "it": "Aggiungi \"Nuovo %@\" alla schermata Home",
+    "ja": "「新規 %@」をホーム画面に追加",
+    "pt-BR": "Adicionar \"Novo %@\" à tela inicial"
+  },
   "Add a QR code": {
     "ar": "إضافة رمز QR",
     "de": "QR-Code hinzufügen",
@@ -5249,6 +5351,15 @@
     "ja": "本文を追加",
     "pt-BR": "Adicionar corpo de texto"
   },
+  "Add captions": {
+    "ar": "إضافة ترجمة مكتوبة",
+    "de": "Untertitel hinzufügen",
+    "es": "Añadir subtítulos",
+    "fr": "Ajouter des sous-titres",
+    "it": "Aggiungi sottotitoli",
+    "ja": "字幕を追加",
+    "pt-BR": "Adicionar legendas"
+  },
   "Add column": {
     "ar": "إضافة عمود",
     "de": "Spalte hinzufügen",
@@ -5473,6 +5584,15 @@
     "it": "Aggiungi i colori di questo design",
     "ja": "このデザインの色を追加",
     "pt-BR": "Adicionar as cores deste design"
+  },
+  "Add to Home screen": {
+    "ar": "إضافة إلى الشاشة الرئيسية",
+    "de": "Zum Startbildschirm hinzufügen",
+    "es": "Añadir a la pantalla de inicio",
+    "fr": "Ajouter à l'écran d'accueil",
+    "it": "Aggiungi alla schermata Home",
+    "ja": "ホーム画面に追加",
+    "pt-BR": "Adicionar à tela inicial"
   },
   "Add to a design": {
     "ar": "إضافة إلى تصميم",
@@ -9587,6 +9707,15 @@
     "ja": "バックアップできませんでした。",
     "pt-BR": "Não foi possível fazer o backup."
   },
+  "Couldn't change the font": {
+    "ar": "تعذّر تغيير الخط",
+    "de": "Die Schrift konnte nicht geändert werden",
+    "es": "No se pudo cambiar la fuente",
+    "fr": "Impossible de changer la police",
+    "it": "Impossibile cambiare il carattere",
+    "ja": "フォントを変更できませんでした",
+    "pt-BR": "Não foi possível trocar a fonte"
+  },
   "Couldn't copy the image": {
     "ar": "تعذّر نسخ الصورة",
     "de": "Das Bild konnte nicht kopiert werden",
@@ -10028,6 +10157,15 @@
     "ja": "この画像から背景を分離できませんでした。",
     "pt-BR": "Não foi possível separar o fundo desta imagem."
   },
+  "Couldn't share to %@": {
+    "ar": "تعذّرت المشاركة على %@",
+    "de": "Teilen mit %@ nicht möglich",
+    "es": "No se pudo compartir en %@",
+    "fr": "Impossible de partager sur %@",
+    "it": "Impossibile condividere su %@",
+    "ja": "%@ に共有できませんでした",
+    "pt-BR": "Não foi possível compartilhar no %@"
+  },
   "Couldn't start printing": {
     "ar": "تعذّر بدء الطباعة",
     "de": "Drucken konnte nicht gestartet werden",
@@ -10064,6 +10202,15 @@
     "ja": "テンプレートを更新できませんでした",
     "pt-BR": "Não foi possível atualizar o modelo"
   },
+  "Counting…": {
+    "ar": "جارٍ الحساب…",
+    "de": "Wird berechnet …",
+    "es": "Calculando…",
+    "fr": "Calcul…",
+    "it": "Calcolo…",
+    "ja": "計算中…",
+    "pt-BR": "Calculando…"
+  },
   "Coupon": {
     "ar": "قسيمة",
     "de": "Gutschein",
@@ -10090,6 +10237,15 @@
     "it": "Crea un’animazione",
     "ja": "アニメーションを作成",
     "pt-BR": "Criar uma animação"
+  },
+  "Created": {
+    "ar": "تاريخ الإنشاء",
+    "de": "Erstellt",
+    "es": "Creado",
+    "fr": "Créé",
+    "it": "Creato",
+    "ja": "作成日",
+    "pt-BR": "Criado"
   },
   "Crop": {
     "ar": "اقتصاص",
@@ -11285,6 +11441,15 @@
     "ja": "画像を切り離す",
     "pt-BR": "Separar imagem"
   },
+  "Details": {
+    "ar": "التفاصيل",
+    "de": "Details",
+    "es": "Detalles",
+    "fr": "Détails",
+    "it": "Dettagli",
+    "ja": "詳細",
+    "pt-BR": "Detalhes"
+  },
   "Devices": {
     "ar": "الأجهزة",
     "de": "Geräte",
@@ -12158,6 +12323,15 @@
     "ja": "ページを複製、コピー、貼り付け、表示、ロック解除",
     "pt-BR": "Duplicar, copiar, colar, mostrar ou desbloquear página"
   },
+  "Duration": {
+    "ar": "المدة",
+    "de": "Dauer",
+    "es": "Duración",
+    "fr": "Durée",
+    "it": "Durata",
+    "ja": "長さ",
+    "pt-BR": "Duração"
+  },
   "Dutch": {
     "ar": "مائل",
     "de": "Gekippt",
@@ -12517,6 +12691,15 @@
     "it": "Vettori modificabili per un altro programma.",
     "ja": "他のプログラムで編集できるベクター形式です。",
     "pt-BR": "Vetores editáveis para outro programa."
+  },
+  "Edited": {
+    "ar": "آخر تعديل",
+    "de": "Bearbeitet",
+    "es": "Editado",
+    "fr": "Modifié",
+    "it": "Modificato",
+    "ja": "編集日",
+    "pt-BR": "Editado"
   },
   "Edited: %@": {
     "ar": "آخر تعديل: %@",
@@ -13466,6 +13649,15 @@
     "ja": "目（位置検出）",
     "pt-BR": "Olhos"
   },
+  "F5 presents from the beginning, and ⇧F5 from this page.": {
+    "ar": "يعرض F5 من البداية، و⇧F5 من هذه الصفحة.",
+    "de": "F5 präsentiert von Anfang an, ⇧F5 ab dieser Seite.",
+    "es": "F5 presenta desde el principio y ⇧F5 desde esta página.",
+    "fr": "F5 lance la présentation depuis le début, et ⇧F5 depuis cette page.",
+    "it": "F5 avvia la presentazione dall'inizio, ⇧F5 da questa pagina.",
+    "ja": "F5 で最初から、⇧F5 でこのページからプレゼンテーションします。",
+    "pt-BR": "F5 apresenta desde o início, e ⇧F5 a partir desta página."
+  },
   "Fade": {
     "ar": "تلاشٍ",
     "de": "Verblassen",
@@ -14096,6 +14288,15 @@
     "ja": "この文字に対応するフォント",
     "pt-BR": "Fontes para estas letras"
   },
+  "Fonts used": {
+    "ar": "الخطوط المستخدمة",
+    "de": "Verwendete Schriften",
+    "es": "Fuentes usadas",
+    "fr": "Polices utilisées",
+    "it": "Caratteri usati",
+    "ja": "使用フォント",
+    "pt-BR": "Fontes usadas"
+  },
   "Fonts: SIL Open Font License 1.1, each by its own designers.": {
     "ar": "الخطوط: رخصة SIL Open Font License 1.1، كلٌّ من تصميم مصمميه.",
     "de": "Schriften: SIL Open Font License 1.1, jeweils von ihren eigenen Designern.",
@@ -14338,6 +14539,24 @@
     "it": "Da Canvia",
     "ja": "Canvia から",
     "pt-BR": "Do Canvia"
+  },
+  "From page %d": {
+    "ar": "من الصفحة %d",
+    "de": "Ab Seite %d",
+    "es": "Desde la página %d",
+    "fr": "À partir de la page %d",
+    "it": "Dalla pagina %d",
+    "ja": "%d ページ目から",
+    "pt-BR": "Da página %d"
+  },
+  "From the beginning": {
+    "ar": "من البداية",
+    "de": "Von Anfang an",
+    "es": "Desde el principio",
+    "fr": "Depuis le début",
+    "it": "Dall'inizio",
+    "ja": "最初から",
+    "pt-BR": "Do início"
   },
   "From the left (%@)": {
     "ar": "من اليسار (%@)",
@@ -16442,6 +16661,15 @@
     "ja": "最終編集",
     "pt-BR": "Última edição"
   },
+  "Last export": {
+    "ar": "آخر تصدير",
+    "de": "Letzter Export",
+    "es": "Última exportación",
+    "fr": "Dernière exportation",
+    "it": "Ultima esportazione",
+    "ja": "前回の書き出し",
+    "pt-BR": "Última exportação"
+  },
   "Last name": {
     "ar": "اسم العائلة",
     "de": "Nachname",
@@ -17678,6 +17906,15 @@
     "ja": "最大",
     "pt-BR": "Máx."
   },
+  "Media": {
+    "ar": "الوسائط",
+    "de": "Medien",
+    "es": "Multimedia",
+    "fr": "Médias",
+    "it": "Contenuti multimediali",
+    "ja": "メディア",
+    "pt-BR": "Mídia"
+  },
   "Medium": {
     "ar": "متوسط",
     "de": "Mittel",
@@ -18716,6 +18953,15 @@
     "ja": "ページ一覧、検索、プレゼンテーションでページの名前として使われます。ページ上や書き出しには表示されません。",
     "pt-BR": "Dá nome à página na lista de páginas, em Localizar e em Apresentar. Nunca aparece na página nem em uma exportação."
   },
+  "Narration has no captions": {
+    "ar": "السرد بلا ترجمة مكتوبة",
+    "de": "Die Sprachaufnahme hat keine Untertitel",
+    "es": "La narración no tiene subtítulos",
+    "fr": "La narration n'a pas de sous-titres",
+    "it": "La narrazione non ha sottotitoli",
+    "ja": "ナレーションに字幕がありません",
+    "pt-BR": "A narração não tem legendas"
+  },
   "Nature": {
     "ar": "الطبيعة",
     "de": "Natur",
@@ -18742,6 +18988,15 @@
     "it": "Nome della rete",
     "ja": "ネットワーク名",
     "pt-BR": "Nome da rede"
+  },
+  "New %@": {
+    "ar": "%@ جديد",
+    "de": "Neu: %@",
+    "es": "Nuevo %@",
+    "fr": "Nouveau %@",
+    "it": "Nuovo %@",
+    "ja": "新規 %@",
+    "pt-BR": "Novo %@"
   },
   "New Design": {
     "ar": "تصميم جديد",
@@ -19499,6 +19754,15 @@
     "ja": "その条件に合うテンプレートはありません",
     "pt-BR": "Nenhum modelo corresponde a esses filtros"
   },
+  "No text in this design": {
+    "ar": "لا يوجد نص في هذا التصميم",
+    "de": "Kein Text in diesem Design",
+    "es": "No hay texto en este diseño",
+    "fr": "Aucun texte dans ce design",
+    "it": "Nessun testo in questo design",
+    "ja": "このデザインにテキストはありません",
+    "pt-BR": "Não há texto neste design"
+  },
   "No version to restore": {
     "ar": "لا يوجد إصدار لاستعادته",
     "de": "Keine Version zum Wiederherstellen",
@@ -19642,6 +19906,15 @@
     "it": "Non collegato",
     "ja": "未接続",
     "pt-BR": "Não conectado"
+  },
+  "Not exported yet": {
+    "ar": "لم يُصدَّر بعد",
+    "de": "Noch nicht exportiert",
+    "es": "Aún sin exportar",
+    "fr": "Pas encore exporté",
+    "it": "Non ancora esportato",
+    "ja": "まだ書き出していません",
+    "pt-BR": "Ainda não exportado"
   },
   "Not found in this design.": {
     "ar": "غير موجود في هذا التصميم.",
@@ -22412,6 +22685,24 @@
     "ja": "プレゼンして録画",
     "pt-BR": "Apresentar e gravar"
   },
+  "Present from the beginning": {
+    "ar": "العرض من البداية",
+    "de": "Von Anfang an präsentieren",
+    "es": "Presentar desde el principio",
+    "fr": "Présenter depuis le début",
+    "it": "Presenta dall'inizio",
+    "ja": "最初からプレゼンテーション",
+    "pt-BR": "Apresentar do início"
+  },
+  "Present from this page": {
+    "ar": "العرض من هذه الصفحة",
+    "de": "Ab dieser Seite präsentieren",
+    "es": "Presentar desde esta página",
+    "fr": "Présenter à partir de cette page",
+    "it": "Presenta da questa pagina",
+    "ja": "このページからプレゼンテーション",
+    "pt-BR": "Apresentar desta página"
+  },
   "Present full screen": {
     "ar": "عرض تقديمي بملء الشاشة",
     "de": "Im Vollbild präsentieren",
@@ -22438,6 +22729,15 @@
     "it": "Presentazioni",
     "ja": "プレゼンテーション",
     "pt-BR": "Apresentações"
+  },
+  "Presenting from page %d of %d": {
+    "ar": "العرض من الصفحة %d من %d",
+    "de": "Präsentation ab Seite %d von %d",
+    "es": "Presentando desde la página %d de %d",
+    "fr": "Présentation à partir de la page %d sur %d",
+    "it": "Presentazione dalla pagina %d di %d",
+    "ja": "%d / %d ページからプレゼンテーション中",
+    "pt-BR": "Apresentando da página %d de %d"
   },
   "Presets": {
     "ar": "الإعدادات المسبقة",
@@ -23764,6 +24064,15 @@
     "it": "Sostituisce ciò che c’è in questa pagina. Annulla lo ripristina.",
     "ja": "このページの内容を置き換えます。元に戻すで復元できます。",
     "pt-BR": "Substitui o que está nesta página. Desfazer traz de volta."
+  },
+  "Replace…": {
+    "ar": "استبدال…",
+    "de": "Ersetzen …",
+    "es": "Reemplazar…",
+    "fr": "Remplacer…",
+    "it": "Sostituisci…",
+    "ja": "置き換え…",
+    "pt-BR": "Substituir…"
   },
   "Report": {
     "ar": "تقرير",
@@ -25883,6 +26192,24 @@
     "ja": "このキットを共有…",
     "pt-BR": "Compartilhar este kit…"
   },
+  "Share to": {
+    "ar": "المشاركة على",
+    "de": "Teilen mit",
+    "es": "Compartir en",
+    "fr": "Partager sur",
+    "it": "Condividi su",
+    "ja": "共有先",
+    "pt-BR": "Compartilhar no"
+  },
+  "Share to %@": {
+    "ar": "المشاركة على %@",
+    "de": "Mit %@ teilen",
+    "es": "Compartir en %@",
+    "fr": "Partager sur %@",
+    "it": "Condividi su %@",
+    "ja": "%@ に共有",
+    "pt-BR": "Compartilhar no %@"
+  },
   "Share web page": {
     "ar": "مشاركة صفحة الويب",
     "de": "Webseite teilen",
@@ -25909,6 +26236,15 @@
     "it": "Condividi…",
     "ja": "共有…",
     "pt-BR": "Compartilhar…"
+  },
+  "Sharing to %@": {
+    "ar": "جارٍ المشاركة على %@",
+    "de": "Wird mit %@ geteilt",
+    "es": "Compartiendo en %@",
+    "fr": "Partage sur %@",
+    "it": "Condivisione su %@",
+    "ja": "%@ に共有中",
+    "pt-BR": "Compartilhando no %@"
   },
   "Sharp edges, and can be clear": {
     "ar": "حواف حادة، ويمكن أن يكون شفافًا",
@@ -26044,6 +26380,15 @@
     "it": "Mostra nascosti (%d)",
     "ja": "非表示を表示（%d）",
     "pt-BR": "Mostrar ocultos (%d)"
+  },
+  "Show in Uploads": {
+    "ar": "العرض في المرفوعات",
+    "de": "In Uploads zeigen",
+    "es": "Mostrar en Subidas",
+    "fr": "Afficher dans Importations",
+    "it": "Mostra nei caricamenti",
+    "ja": "アップロードに表示",
+    "pt-BR": "Mostrar em Uploads"
   },
   "Show margins": {
     "ar": "إظهار الهوامش",
@@ -29045,6 +29390,15 @@
     "ja": "このデザインはもうありません",
     "pt-BR": "Este design não está mais aqui"
   },
+  "This design was deleted": {
+    "ar": "حُذف هذا التصميم",
+    "de": "Dieses Design wurde gelöscht",
+    "es": "Este diseño se eliminó",
+    "fr": "Ce design a été supprimé",
+    "it": "Questo design è stato eliminato",
+    "ja": "このデザインは削除されました",
+    "pt-BR": "Este design foi excluído"
+  },
   "This design's file can't be opened.": {
     "ar": "يتعذّر فتح ملف هذا التصميم.",
     "de": "Die Datei dieses Designs kann nicht geöffnet werden.",
@@ -31135,6 +31489,15 @@
     "it": "Il video non ha testo alternativo",
     "ja": "動画に代替テキストがありません",
     "pt-BR": "O vídeo não tem texto alternativo"
+  },
+  "Video has sound but no captions": {
+    "ar": "للفيديو صوت لكن بلا ترجمة مكتوبة",
+    "de": "Das Video hat Ton, aber keine Untertitel",
+    "es": "El vídeo tiene sonido pero no subtítulos",
+    "fr": "La vidéo a du son mais pas de sous-titres",
+    "it": "Il video ha l'audio ma non i sottotitoli",
+    "ja": "動画に音声がありますが字幕がありません",
+    "pt-BR": "O vídeo tem som, mas não tem legendas"
   },
   "Video size": {
     "ar": "حجم الفيديو",
