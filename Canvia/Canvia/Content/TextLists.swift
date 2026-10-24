@@ -328,47 +328,44 @@ enum TextLists {
         return out
     }
 
+    /// A line pasted with a list item's prefix: its indent (tabs, or
+    /// spaces two a level), then a bullet ("•", "◦", "▪", "-" or "*"), a
+    /// number or a letter and "." or ")", then spaces or tabs.
+    private static let pastedItem = try! NSRegularExpression(
+        pattern: "^(\\t*| *)(?:([-*•◦▪])|([0-9]+)[.)]|([a-z])[.)])[ \\t]+")
+
     /// Text from outside — a paste, a share — as a list: each line with a
-    /// bullet ("-", "*", "•", "◦", "▪"), a number ("1." or "1)") or a letter
-    /// ("a." or "a)") and a space at its start loses them and becomes an
-    /// item of that list, its leading tabs and pairs of spaces its level
-    /// (to the deepest); every other line is kept as it is, no list. When
-    /// `firstStartsLine` is false — pasted within a line, whose list the
-    /// first line cannot take — the first line is kept as it is too, its
-    /// bullet or number still in its words. The rule both phones share.
+    /// bullet, number or letter prefix (`pastedItem`) loses it and becomes
+    /// an item of that list, at the level its leading tabs (one each) or
+    /// spaces (two each) give, to the deepest; every other line is kept as
+    /// it is, no list. When `firstStartsLine` is false — pasted within a
+    /// line, whose list the first line cannot take — the first line is
+    /// kept as it is too, its bullet or number still in its words. The
+    /// rule both phones share.
     static func fromPasted(_ text: String, firstStartsLine: Bool = true) -> (text: String, paragraphs: [TextParagraph]) {
-        let rules: [(pattern: String, list: String)] = [
-            ("^[-*•◦▪] +", "bullet"), ("^[0-9]+[.)] +", "number"), ("^[a-z][.)] +", "letter"),
-        ]
         var lines: [String] = []
         var paragraphs: [TextParagraph] = []
         for (index, line) in text.components(separatedBy: "\n").enumerated() {
-            if index == 0 && !firstStartsLine {
+            let ns = line as NSString
+            let all = NSRange(location: 0, length: ns.length)
+            guard index > 0 || firstStartsLine,
+                  let m = pastedItem.firstMatch(in: line, options: [], range: all) else {
                 lines.append(line)
                 paragraphs.append(TextParagraph())
                 continue
             }
-            var rest = Substring(line)
-            var level = 0
-            while true {
-                if rest.hasPrefix("\t") {
-                    rest = rest.dropFirst()
-                } else if rest.hasPrefix("  ") {
-                    rest = rest.dropFirst(2)
-                } else {
-                    break
-                }
-                level += 1
+            let indent = ns.substring(with: m.range(at: 1)) as NSString
+            let level = indent.hasPrefix("\t") ? indent.length : indent.length / 2
+            let list: String
+            if m.range(at: 2).location != NSNotFound {
+                list = "bullet"
+            } else if m.range(at: 3).location != NSNotFound {
+                list = "number"
+            } else {
+                list = "letter"
             }
-            let body = String(rest)
-            guard let rule = rules.first(where: { body.range(of: $0.pattern, options: .regularExpression) != nil }),
-                  let found = body.range(of: rule.pattern, options: .regularExpression) else {
-                lines.append(line)
-                paragraphs.append(TextParagraph())
-                continue
-            }
-            lines.append(String(body[found.upperBound...]))
-            paragraphs.append(TextParagraph(list: rule.list, level: min(level, maxLevel)))
+            lines.append(ns.substring(from: NSMaxRange(m.range)))
+            paragraphs.append(TextParagraph(list: list, level: min(level, maxLevel)))
         }
         return (lines.joined(separator: "\n"), paragraphs)
     }
