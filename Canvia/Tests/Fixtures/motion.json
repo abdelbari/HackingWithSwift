@@ -169,7 +169,7 @@
           "trimEnd": 4.0,
           "volume": 0.8,
           "fadeIn": 1.0,
-          "fadeOut": 2.0,
+          "fadeOut": 0.0,
           "loop": false,
           "name": "Song"
         },
@@ -210,7 +210,7 @@
           "trimEnd": 4.0,
           "volume": 0.8,
           "fadeIn": 1.0,
-          "fadeOut": 2.0,
+          "fadeOut": 0.0,
           "loop": false,
           "name": "Song"
         },
@@ -251,7 +251,7 @@
           "trimEnd": 1.1,
           "volume": 0.8,
           "fadeIn": 1.0,
-          "fadeOut": 2.0,
+          "fadeOut": 0.0,
           "loop": false,
           "name": "Song"
         },
@@ -309,7 +309,7 @@
           "trimEnd": 8.9,
           "volume": 0.8,
           "fadeIn": 1.0,
-          "fadeOut": 2.0,
+          "fadeOut": 0.0,
           "loop": false,
           "name": "Song"
         },
@@ -360,7 +360,7 @@
           "volume": 1.0,
           "fadeIn": 0.0,
           "fadeOut": 0.0,
-          "loop": true,
+          "loop": false,
           "name": "Loop"
         }
       ]
@@ -415,8 +415,47 @@
           "volume": 1.0,
           "fadeIn": 0.0,
           "fadeOut": 0.0,
-          "loop": true,
+          "loop": false,
           "name": "Loop"
+        }
+      ]
+    },
+    {
+      "track": {
+        "id": "song",
+        "src": "audio:song-1.mp3",
+        "start": 0.0,
+        "trimStart": 0.0,
+        "volume": 1.0,
+        "fadeIn": 1.0,
+        "fadeOut": 2.0,
+        "loop": true,
+        "name": "Song"
+      },
+      "t": 10.0,
+      "duration": 30.0,
+      "tracks": [
+        {
+          "id": "song",
+          "src": "audio:song-1.mp3",
+          "start": 0.0,
+          "trimStart": 0.0,
+          "volume": 1.0,
+          "fadeIn": 1.0,
+          "fadeOut": 0.0,
+          "loop": false,
+          "name": "Song",
+          "trimEnd": 10.0
+        },
+        {
+          "src": "audio:song-1.mp3",
+          "start": 10.0,
+          "trimStart": 10.0,
+          "volume": 1.0,
+          "fadeIn": 0.0,
+          "fadeOut": 2.0,
+          "loop": false,
+          "name": "Song"
         }
       ]
     }

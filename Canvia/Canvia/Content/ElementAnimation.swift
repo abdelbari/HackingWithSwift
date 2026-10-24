@@ -649,8 +649,10 @@ struct ElementAnimation: Codable, Equatable {
     /// As an exit: what the element looks like `t` seconds into a page held
     /// `hold` seconds. It is gone by `delay` seconds before the end, having
     /// taken `duration` to go — settled before that, eased in (q cubed)
-    /// while it goes, so it leaves slowly and then quickly.
-    func exitState(at t: Double, hold: Double, size: Double = 100) -> State {
+    /// while it goes, so it leaves slowly and then quickly. Tumble off text
+    /// (`onText` false) turns the whole element out, its entrance played
+    /// backwards (anyElementKinds).
+    func exitState(at t: Double, hold: Double, size: Double = 100, onText: Bool = true) -> State {
         let end = hold - delay
         let begin = end - duration
         // Gone from its end, whatever its length — even none, or one
@@ -659,6 +661,12 @@ struct ElementAnimation: Codable, Equatable {
         let q = duration > 0 ? min(max((t - begin) / duration, 0), 1) : 1
         let e = t >= end ? 1 : q * q * q
         var s = State()
+        if kind == "tumble" && !onText {
+            s.opacity = t >= end ? 0 : min(1, (1 - e) * 2)
+            s.rotation = -90 * e
+            s.scale = 1 - 0.5 * e
+            return s
+        }
         if Self.unitKinds.contains(kind) {
             // The entrance's frames played backwards: the moment as far
             // from the end of an entrance as this is into the exit.

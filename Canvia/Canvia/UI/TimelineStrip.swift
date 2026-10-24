@@ -46,6 +46,10 @@ struct TimelineStrip: View {
     /// A lane being dragged: what it was when the finger came down, and the
     /// scale then.
     @State private var laneDrag: LaneDrag?
+    /// A lane's drag under way; back to false when it ends or is taken
+    /// away — the ScrollView taking the touch, a sheet over it — which
+    /// closes the drag (finishLaneDrag) as its end would.
+    @GestureState private var laneDragging = false
     /// The track lane tapped, whose actions show over the strip.
     @State private var chosenTrack: String?
     /// The track whose Edit is open.
@@ -132,6 +136,9 @@ struct TimelineStrip: View {
         .background(Theme.chrome)
         .overlay(alignment: .top) { Divider() }
         .task(id: trackSources) { await readTrackLengths() }
+        .onChange(of: laneDragging) { _, now in
+            if !now { finishLaneDrag() }
+        }
         .sheet(item: $editing) { ref in
             NavigationStack { AudioTrackView(store: store, trackId: ref.id) }
                 .presentationDetents([.medium, .large])
@@ -523,7 +530,7 @@ struct TimelineStrip: View {
     private func trackGesture(_ lane: Lane, edge: Timeline.Edge?, film: Double, scale: Double) -> some Gesture {
         DragGesture(minimumDistance: 2, coordinateSpace: .global)
             .onChanged { value in
-                if laneDrag?.id != lane.id {
+                if laneDrag?.id != lane.id || laneDrag?.edge != edge {
                     laneDrag = LaneDrag(id: lane.id, edge: edge, track: lane.track, scale: scale,
                                         beats: Timeline.laneBeats(store.design.audioTracks, id: lane.id) { beatsInFilm($0) })
                 }
@@ -538,11 +545,20 @@ struct TimelineStrip: View {
                 }
                 store.dragTrack(lane.id, to: next)
             }
-            .onEnded { _ in
-                let trims = laneDrag?.edge != nil
-                laneDrag = nil
-                store.endLaneDrag(trims ? tr("Trim audio") : tr("Move audio"))
-            }
+            .updating($laneDragging) { _, dragging, _ in dragging = true }
+            .onEnded { _ in finishLaneDrag() }
+    }
+
+    /// A lane's drag over, ended or taken away: its one step, named for
+    /// what was dragged, once — later calls find nothing to close.
+    private func finishLaneDrag() {
+        guard let current = laneDrag else { return }
+        laneDrag = nil
+        if current.track == nil {
+            store.endLaneDrag(tr("Edit"))
+        } else {
+            store.endLaneDrag(current.edge != nil ? tr("Trim audio") : tr("Move audio"))
+        }
     }
 
     /// VoiceOver's adjust of a track's lane, and its Move earlier and
@@ -600,7 +616,7 @@ struct TimelineStrip: View {
     private func timingGesture(_ lane: Lane, edge: Timeline.Edge?, hold: Double, scale: Double) -> some Gesture {
         DragGesture(minimumDistance: 2, coordinateSpace: .global)
             .onChanged { value in
-                if laneDrag?.id != lane.id {
+                if laneDrag?.id != lane.id || laneDrag?.edge != edge {
                     laneDrag = LaneDrag(id: lane.id, edge: edge, timing: store.element(lane.id)?.timing, scale: scale)
                 }
                 guard let current = laneDrag else { return }
@@ -610,10 +626,8 @@ struct TimelineStrip: View {
                 } ?? Timeline.movedTiming(current.timing, dx: dx, scale: current.scale, hold: hold)
                 store.dragTiming(lane.id, to: next)
             }
-            .onEnded { _ in
-                laneDrag = nil
-                store.endLaneDrag(tr("Edit"))
-            }
+            .updating($laneDragging) { _, dragging, _ in dragging = true }
+            .onEnded { _ in finishLaneDrag() }
     }
 
     /// The chosen track's actions: Edit — its volume, fades and Beat Sync —
