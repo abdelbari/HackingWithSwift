@@ -767,22 +767,23 @@ struct FiltersSheet: View {
     /// Both are needed — a preset alone cannot rescue an underexposed photo,
     /// and a stack of dials is not a starting point.
     private var adjustmentDials: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let whole = store.adjustAreaShown == .whole
+        return VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Adjust").font(.headline)
                 Spacer()
-                if !isCode {
+                if !isCode && whole {
                     Button("Auto adjust") { autoAdjust() }
                         .font(.callout)
                         .disabled(store.singleSelection?.src == nil)
                         .accessibilityHint("Sets the blacks, whites and brightness from the photo itself")
                 }
-                Button("Reset") {
-                    store.updateSelected { $0.adjustments = nil }
-                }
+                Button("Reset") { store.resetAllDials() }
                 .font(.callout)
-                .disabled(store.singleSelection?.adjustments?.isNeutral ?? true)
+                .disabled(store.dialsShown?.isNeutral ?? true)
             }
+            if !isCode { applyToRow }
+            if !isCode { adjustLayerList }
             // The dials in Canva's three groups, each in its order.
             dialGroup(tr("Light", context: "photo adjustments"), .light) {
                 dial(tr("Brightness"), \.brightness, in: -1...1)
@@ -797,7 +798,7 @@ struct FiltersSheet: View {
                 dial(tr("Vibrance"), \.vibrance, in: -1...1)
                 dial(tr("Warmth"), \.warmth, in: -1...1)
                 dial(tr("Tint"), \.tint, in: -1...1)
-                if !isCode { selectiveColour }
+                if !isCode && whole { selectiveColour }
             }
             dialGroup(tr("Texture"), .texture) {
                 dial(tr("Clarity"), \.clarity, in: -1...1)
@@ -805,7 +806,74 @@ struct FiltersSheet: View {
                 dial(tr("Vignette"), \.vignette, in: 0...1)
                 dial(tr("Fade"), \.fade, in: 0...1)
             }
-            curveRow
+            if whole { curveRow }
+        }
+    }
+
+    /// Apply to: the dials for the whole photo, a painted area — the brush
+    /// taken up first, the sheet going meanwhile — the subject or the
+    /// background (AreaAdjust).
+    private var applyToRow: some View {
+        let shown = store.adjustAreaShown
+        return VStack(alignment: .leading, spacing: 6) {
+            Text("Apply to").font(.subheadline).foregroundStyle(.secondary)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(AdjustArea.allCases) { choice in
+                        areaChip(choice, chosen: choice == shown)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    private func areaChip(_ choice: AdjustArea, chosen: Bool) -> some View {
+        Button {
+            if store.applyAdjust(to: choice) { dismiss() }
+        } label: {
+            Text(choice.name)
+                .font(.callout)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(chosen ? Theme.accent.opacity(0.18) : Color(.systemGray6)))
+                .overlay(Capsule().stroke(chosen ? Theme.accent : Theme.hairline, lineWidth: chosen ? 2 : 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(chosen ? .isSelected : [])
+    }
+
+    /// The photo's adjusted areas, each to choose for the dials and with a
+    /// delete button.
+    @ViewBuilder
+    private var adjustLayerList: some View {
+        let places = store.adjustLayers.map { $0.index }
+        if !places.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(places, id: \.self) { index in adjustLayerRow(index) }
+            }
+        }
+    }
+
+    private func adjustLayerRow(_ index: Int) -> some View {
+        let name = store.adjustLayerName(index)
+        let chosen = store.adjustTarget == index
+        return HStack {
+            Button {
+                store.adjustTarget = index
+            } label: {
+                Label(name, systemImage: chosen ? "checkmark.circle.fill" : "circle")
+                    .font(.callout)
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(chosen ? .isSelected : [])
+            Spacer()
+            Button(role: .destructive) {
+                store.removeAdjustLayer(at: index)
+            } label: {
+                Image(systemName: "trash").frame(width: 30, height: 30)
+            }
+            .accessibilityLabel(tr("Delete %@", name))
         }
     }
 
@@ -898,7 +966,7 @@ struct FiltersSheet: View {
     /// Reset that puts back only that group's dials, as one step.
     private func dialGroup<Dials: View>(_ name: String, _ group: DialPrecision.DialGroup,
                                         @ViewBuilder _ dials: () -> Dials) -> some View {
-        let moved = DialPrecision.isMoved(store.singleSelection?.adjustments, group)
+        let moved = DialPrecision.isMoved(store.dialsShown, group)
         return VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(name)
@@ -907,7 +975,7 @@ struct FiltersSheet: View {
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
                 Button("Reset") {
-                    store.updateSelected { $0.adjustments = DialPrecision.cleared($0.adjustments, group) }
+                    store.resetDials(group)
                 }
                 .font(.caption)
                 .disabled(!moved)
@@ -1223,12 +1291,12 @@ struct FiltersSheet: View {
     /// number typed, a reset or a VoiceOver step one step each.
     private func dial(_ label: String, _ key: WritableKeyPath<Adjustments, Double>,
                       in range: ClosedRange<Double>) -> some View {
-        let current = store.singleSelection?.adjustments ?? .neutral
+        let current = store.dialsShown ?? .neutral
         return PreciseDial(label: label, value: (current[keyPath: key] * 100).rounded(),
                            range: DialPrecision.steps(range),
-                           live: { v in store.updateSelectedTransient { $0.setAdjustment(key, to: v / 100) } },
+                           live: { v in store.setDial(key, to: v / 100, live: true) },
                            done: { store.commit() },
-                           set: { v in store.updateSelected { $0.setAdjustment(key, to: v / 100) } })
+                           set: { v in store.setDial(key, to: v / 100, live: false) })
     }
 
     private func filterPreview(_ preset: ImageFilterPreset) -> some View {

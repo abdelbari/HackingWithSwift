@@ -31,6 +31,8 @@ final class DesignStore {
             if let crop = graphicCropping, selection != Set(crop.ids) { finishGraphicCrop() }
             // So does a brush's, kept as its one step.
             if let brush = brushing, selection != [brush.id] { finishBrush() }
+            // The dials go back to the whole photo when another is chosen.
+            if adjustTarget != nil, selection != oldValue { adjustTarget = nil }
             // And recording a motion path, which belongs to its element.
             if let recording = motionRecording, selection != [recording.id] { motionRecording = nil }
             // Typing in place ends however the box stops being the one thing
@@ -1747,6 +1749,11 @@ final class DesignStore {
     /// The photo being brushed — erased and restored, or blurred or
     /// pixelated in part — and how (see BrushMode.swift).
     var brushing: BrushSession?
+    /// The adjust layer Filters ▸ Adjust's dials set, by its place in the
+    /// selected photo's retouch list; nil for the whole photo (AreaAdjust).
+    var adjustTarget: Int?
+    /// A painted area was brushed for the dials: Filters opens on it.
+    var adjustAreaAsked = false
     /// The element whose motion path Animate's Create is recording, and
     /// whether a path has been recorded yet (see MotionEditing.swift).
     var motionRecording: MotionRecording?

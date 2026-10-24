@@ -1350,9 +1350,18 @@ enum ImageFilterEngine {
             }
         }
         // The blur and pixelate brushed on, each over what its strokes
-        // cover: after the filter, the dials and the effects, before the
-        // vignette and the duotone.
-        output = retouched(output, effects, extent: extent)
+        // cover, and the dials of an adjust layer over its area: after the
+        // filter, the dials and the effects, before the vignette and the
+        // duotone. A layer over the subject or the background finds the
+        // subject as focus does.
+        var areaSubject: CIImage?
+        if effects.retouch.contains(where: { !$0.paintsArea }) {
+            switch subjectMask(of: image, key: cacheKey, extent: extent, waits: waits) {
+            case .found(let mask): areaSubject = mask
+            case .finding: stopgap = true
+            }
+        }
+        output = retouched(output, effects, extent: extent, subject: areaSubject)
         // The vignette over the blur, the blocks and the fx, a smooth fade as
         // the Android twin lays it over the drawn picture — the filter's own
         // added to the dial's, at the filter's strength.
@@ -1380,10 +1389,17 @@ enum ImageFilterEngine {
     }
 
     /// `image` with each retouch layer of `effects` laid over what its
-    /// strokes cover (MaskRaster): blurred, or in blocks of its own.
-    private static func retouched(_ image: CIImage, _ effects: PhotoEffects.Plan, extent: CGRect) -> CIImage {
+    /// strokes cover (MaskRaster): blurred, or in blocks of its own — or,
+    /// for an adjust layer, the picture so far run through the dials again
+    /// with its own and mixed in by its area (adjustedOver).
+    private static func retouched(_ image: CIImage, _ effects: PhotoEffects.Plan, extent: CGRect,
+                                  subject: CIImage?) -> CIImage {
         var output = image
         for (i, layer) in effects.retouch.enumerated() {
+            if layer.adjusts {
+                output = adjustedOver(output, layer, extent: extent, subject: subject)
+                continue
+            }
             guard let cover = ImageMasking.coverage(layer, picture: extent.size) else { continue }
             var effect: CIImage?
             if layer.kind == RetouchLayer.blur {
@@ -1399,6 +1415,28 @@ enum ImageFilterEngine {
             if let effect { output = ImageMasking.mixed(effect, over: output, by: cover, extent: extent) }
         }
         return output
+    }
+
+    /// An adjust layer over `image`: a copy through the dials
+    /// (`adjusted`) with the layer's own, mixed in by what its strokes cover
+    /// (RetouchLayer.cover), or by the subject — or all but it — where
+    /// `subject` is found; nothing while it is not.
+    private static func adjustedOver(_ image: CIImage, _ layer: RetouchLayer, extent: CGRect,
+                                     subject: CIImage?) -> CIImage {
+        let dials = layer.adjust ?? .neutral
+        guard !dials.isNeutral else { return image }
+        let effect = adjusted(image, dials, extent: extent).cropped(to: extent)
+        if layer.paintsArea {
+            guard let cover = ImageMasking.coverage(layer, picture: extent.size) else { return image }
+            return ImageMasking.mixed(effect, over: image, by: cover, extent: extent)
+        }
+        guard let subject else { return image }
+        let onSubject = layer.area == RetouchLayer.subjectArea
+        let mix = CIFilter.blendWithAlphaMask()
+        mix.inputImage = onSubject ? effect : image
+        mix.backgroundImage = onSubject ? image : effect
+        mix.maskImage = subject
+        return (mix.outputImage ?? image).cropped(to: extent)
     }
 
     // MARK: looks made off the main thread

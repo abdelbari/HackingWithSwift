@@ -3,7 +3,9 @@
 // its `mask` ({strokes: [{mode, w, soft, pts}], base}) makes what they
 // cover clear (Erase) or puts it back (Restore), and each of its `retouch`
 // layers ({kind, amount, strokes: [{w, pts}]}) blurs or pixelates what its
-// strokes cover. A stroke's points are shares of the picture across and
+// strokes cover — or, of kind "adjust", lays dials of its own ({kind,
+// adjust: {…}, strokes, area}) over the painted area, the subject or the
+// background. A stroke's points are shares of the picture across and
 // down, 0…1, and its width a share of the picture's shorter side, so the
 // strokes keep their place whatever size the picture is drawn at, on
 // either phone.
@@ -284,21 +286,51 @@ struct RetouchStroke: Codable, Equatable, Hashable {
 /// The element's `retouch` is a list of them, drawn in order, and written
 /// only when it has one; a layer of a kind this build does not know, or
 /// with no stroke, is left out when read.
+///
+/// Of kind "adjust", the layer is the photo's dials of its own — `adjust`,
+/// the Adjustments fields less selective colour, which it never keeps —
+/// laid over `area`: "brush" what its strokes cover (written so; a layer
+/// with none is left out), "subject" the photo's cut-out and "background"
+/// all but it, which need no strokes. It has no amount. A missing or
+/// unknown area is "brush"; missing dials are all at rest.
 struct RetouchLayer: Codable, Equatable, Hashable {
     var kind: String
     var amount: Double = 0.5
     var strokes: [RetouchStroke] = []
+    /// An adjust layer's dials; nil for the other kinds.
+    var adjust: Adjustments?
+    /// An adjust layer's area; nil for the other kinds.
+    var area: String?
 
     static let blur = "blur"
     static let pixelate = "pixelate"
-    static let kinds = [blur, pixelate]
+    static let adjusting = "adjust"
+    static let kinds = [blur, pixelate, adjusting]
 
-    private enum CodingKeys: String, CodingKey { case kind, amount, strokes }
+    /// Where an adjust layer's dials go.
+    static let brushArea = "brush"
+    static let subjectArea = "subject"
+    static let backgroundArea = "background"
+    static let areas = [brushArea, subjectArea, backgroundArea]
+    /// The most adjust layers a photo takes.
+    static let maxAdjust = 4
+
+    private enum CodingKeys: String, CodingKey { case kind, amount, strokes, adjust, area }
 
     init(kind: String, amount: Double = 0.5, strokes: [RetouchStroke] = []) {
         self.kind = kind
         self.amount = amount
         self.strokes = strokes
+    }
+
+    /// An adjust layer over `area`, its dials at rest unless given.
+    init(adjustOver area: String, strokes: [RetouchStroke] = [], adjust: Adjustments = .neutral) {
+        kind = Self.adjusting
+        self.strokes = strokes
+        self.area = Self.areas.contains(area) ? area : Self.brushArea
+        var dials = adjust
+        dials.hsl = [:]
+        self.adjust = dials
     }
 
     init(from decoder: Decoder) throws {
@@ -308,22 +340,73 @@ struct RetouchLayer: Codable, Equatable, Hashable {
             throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "Not a retouch")
         }
         self.kind = kind
-        let amount = (try? c.decode(Double.self, forKey: .amount)).flatMap { $0.isFinite ? $0 : nil } ?? 0.5
-        self.amount = min(max(amount, 0), 1)
         strokes = (try? c.decode([Lossy<RetouchStroke>].self, forKey: .strokes))?.compactMap(\.value) ?? []
-        guard !strokes.isEmpty else {
+        if kind == Self.adjusting {
+            let named = try? c.decode(String.self, forKey: .area)
+            area = named.flatMap { Self.areas.contains($0) ? $0 : nil } ?? Self.brushArea
+            var dials = (try? c.decode(Adjustments.self, forKey: .adjust)) ?? .neutral
+            dials.hsl = [:]
+            adjust = dials
+        } else {
+            let amount = (try? c.decode(Double.self, forKey: .amount)).flatMap { $0.isFinite ? $0 : nil } ?? 0.5
+            self.amount = min(max(amount, 0), 1)
+        }
+        guard !strokes.isEmpty || !paintsArea else {
             throw DecodingError.dataCorruptedError(forKey: .strokes, in: c, debugDescription: "No strokes")
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(kind, forKey: .kind)
+        if adjusts {
+            var dials = adjust ?? .neutral
+            dials.hsl = [:]
+            try c.encode(dials, forKey: .adjust)
+            try c.encode(strokes, forKey: .strokes)
+            try c.encode(area ?? Self.brushArea, forKey: .area)
+        } else {
+            try c.encode(amount, forKey: .amount)
+            try c.encode(strokes, forKey: .strokes)
         }
     }
 
     /// Its amount within 0…1.
     var share: Double { min(max(amount, 0), 1) }
 
-    /// The layers as they are kept on an element: those with a stroke, and
-    /// nil when none has.
+    /// Whether it is an adjust layer.
+    var adjusts: Bool { kind == Self.adjusting }
+
+    /// Whether what it covers is its strokes': every layer but an adjust
+    /// layer over the subject or the background.
+    var paintsArea: Bool { !adjusts || (area ?? Self.brushArea) == Self.brushArea }
+
+    /// The layers as they are kept on an element: those with a stroke — or
+    /// over the subject or background — and nil when none is left.
     static func kept(_ layers: [RetouchLayer]?) -> [RetouchLayer]? {
-        let painted = (layers ?? []).filter { !$0.strokes.isEmpty }
+        let painted = (layers ?? []).filter { !$0.strokes.isEmpty || !$0.paintsArea }
         return painted.isEmpty ? nil : painted
+    }
+
+    /// How much an adjust layer over `area` shows at a pixel its strokes
+    /// cover by `strokes` (0…1) and the photo's cut-out by `subject` (0…1):
+    /// the strokes' cover for "brush", the subject's for "subject" and the
+    /// rest for "background". The rule both phones mix by.
+    static func cover(area: String?, strokes: Double, subject: Double) -> Double {
+        switch area ?? brushArea {
+        case subjectArea: return min(max(subject, 0), 1)
+        case backgroundArea: return 1 - min(max(subject, 0), 1)
+        default: return min(max(strokes, 0), 1)
+        }
+    }
+
+    /// A channel of the adjusted copy, `adjusted`, mixed into the picture's,
+    /// `base`, by `cover` 0…1: base + (adjusted − base) × cover, rounded
+    /// half up — as the layer is laid over the picture, on both phones.
+    static func mixed(_ base: UInt8, _ adjusted: UInt8, cover: Double) -> UInt8 {
+        let c = min(max(cover, 0), 1)
+        let v = Double(base) + (Double(adjusted) - Double(base)) * c
+        return UInt8(min(max((v + 0.5).rounded(.down), 0), 255))
     }
 }
 

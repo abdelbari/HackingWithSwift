@@ -2120,6 +2120,12 @@ private struct WordRequests: ViewModifier {
                 store.chartEditRequested = false
                 if store.selectedChart != nil { activeSheet = .chart }
             }
+            // A painted area brushed for the dials: back to them.
+            .onChange(of: store.adjustAreaAsked) { _, asked in
+                guard asked else { return }
+                store.adjustAreaAsked = false
+                if store.singleSelection?.type == .image { activeSheet = .filters }
+            }
             .modifier(WordLinkPrompt(store: store))
             .modifier(PhotoInLettersPrompts(store: store, openAdjust: { activeSheet = .photoInLetters }))
             .modifier(AltTextPrompt(store: store))

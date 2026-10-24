@@ -20,6 +20,8 @@ struct BrushSession: Equatable {
         case mask
         /// A retouch layer of that kind.
         case blur, pixelate
+        /// A new adjust layer's painted area (AreaAdjust).
+        case adjust
     }
 
     var id: String
@@ -68,6 +70,7 @@ struct BrushSession: Equatable {
         case .mask: return nil
         case .blur: return RetouchLayer.blur
         case .pixelate: return RetouchLayer.pixelate
+        case .adjust: return RetouchLayer.adjusting
         }
     }
 }
@@ -107,7 +110,9 @@ extension DesignStore {
         if hasPendingChanges { commit() }
         selection = [id]
         var session = BrushSession(id: id, kind: kind, imageSize: image.size)
-        if let kind = session.layerKind, let at = photo.retouch?.firstIndex(where: { $0.kind == kind }) {
+        // A painted area for the dials is a layer of its own each time.
+        if let kind = session.layerKind, kind != RetouchLayer.adjusting,
+           let at = photo.retouch?.firstIndex(where: { $0.kind == kind }) {
             session.layer = at
             session.strength = photo.retouch?[at].share ?? BrushSession.defaultStrength
         }
@@ -137,7 +142,9 @@ extension DesignStore {
             if let at = session.layer, layers.indices.contains(at) {
                 layers[at].strokes.append(painted)
             } else {
-                layers.append(RetouchLayer(kind: kind, amount: session.strength, strokes: [painted]))
+                layers.append(kind == RetouchLayer.adjusting
+                              ? RetouchLayer(adjustOver: RetouchLayer.brushArea, strokes: [painted])
+                              : RetouchLayer(kind: kind, amount: session.strength, strokes: [painted]))
                 session.layer = layers.count - 1
             }
             brushEdit { $0.retouch = layers }
@@ -259,9 +266,14 @@ extension DesignStore {
 
     /// Done: the strokes kept as one step — or none, if nothing changed.
     func finishBrush() {
-        guard brushing != nil else { return }
+        guard let session = brushing else { return }
         brushing = nil
         if hasPendingChanges { commit() }
+        // A painted area for the dials: Filters ▸ Adjust opens on its layer.
+        if session.kind == .adjust, let at = session.layer {
+            adjustTarget = at
+            adjustAreaAsked = true
+        }
     }
 
     /// Cancel: the photo put back exactly as it was when the brush was

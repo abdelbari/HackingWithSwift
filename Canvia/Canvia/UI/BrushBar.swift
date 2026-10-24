@@ -73,7 +73,7 @@ struct BrushBar: View {
         HStack(spacing: 14) {
             slider(tr("Size"), value: session.size, in: BrushSession.sizeRange,
                    readout: Self.percent(session.size)) { store.brushing?.size = $0 }
-            if session.retouching {
+            if session.retouching && session.kind != .adjust {
                 slider(tr("Strength"), value: session.strength, in: 0...1,
                        readout: Self.percent(session.strength)) { store.setBrushStrength($0) }
             } else {

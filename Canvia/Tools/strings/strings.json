@@ -4718,6 +4718,15 @@
     "ja": "A と an（英語）",
     "pt-BR": "A ou an (inglês)"
   },
+  "A photo takes up to 4 adjusted areas. Delete one to add another.": {
+    "ar": "تقبل الصورة حتى 4 مناطق معدّلة. احذف واحدة لإضافة أخرى.",
+    "de": "Ein Foto kann bis zu 4 angepasste Bereiche haben. Lösche einen, um einen weiteren hinzuzufügen.",
+    "es": "Una foto admite hasta 4 zonas ajustadas. Elimina una para añadir otra.",
+    "fr": "Une photo accepte jusqu’à 4 zones ajustées. Supprimez-en une pour en ajouter une autre.",
+    "it": "Una foto accetta fino a 4 aree regolate. Eliminane una per aggiungerne un’altra.",
+    "ja": "1枚の写真で調整できる範囲は4つまでです。追加するには1つ削除してください。",
+    "pt-BR": "Uma foto aceita até 4 áreas ajustadas. Exclua uma para adicionar outra."
+  },
   "A picture of each page": {
     "ar": "صورة لكل صفحة",
     "de": "Ein Bild pro Seite",
@@ -21296,6 +21305,24 @@
     "ja": "消したい部分をなぞってください",
     "pt-BR": "Pinte sobre o que deve sair"
   },
+  "Painted area": {
+    "ar": "المنطقة المرسومة",
+    "de": "Gemalter Bereich",
+    "es": "Zona pintada",
+    "fr": "Zone peinte",
+    "it": "Area dipinta",
+    "ja": "塗った範囲",
+    "pt-BR": "Área pintada"
+  },
+  "Painted area %d": {
+    "ar": "المنطقة المرسومة %d",
+    "de": "Gemalter Bereich %d",
+    "es": "Zona pintada %d",
+    "fr": "Zone peinte %d",
+    "it": "Area dipinta %d",
+    "ja": "塗った範囲 %d",
+    "pt-BR": "Área pintada %d"
+  },
   "Palette options": {
     "ar": "خيارات لوحة الألوان",
     "de": "Paletten-Optionen",
@@ -31666,6 +31693,15 @@
     "it": "Pagina intera. Tocca per ingrandire al %d per cento.",
     "ja": "ページ全体。タップすると %d パーセントにズームします。",
     "pt-BR": "Página inteira. Toque para ampliar para %d por cento."
+  },
+  "Whole photo": {
+    "ar": "الصورة كاملة",
+    "de": "Ganzes Foto",
+    "es": "Toda la foto",
+    "fr": "Toute la photo",
+    "it": "Tutta la foto",
+    "ja": "写真全体",
+    "pt-BR": "Foto inteira"
   },
   "Whole stroke": {
     "ar": "الضربة كاملة",
