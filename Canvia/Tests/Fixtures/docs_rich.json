@@ -1,0 +1,39 @@
+{
+  "note": "The shared rich Doc fixture: blocks with spans (colour, highlight, link), spansText and align. Read and written back by both phones, every block must come out key for key as it went in; Find, Check spelling, the word count and the Word document read it as the tests say. wordRows: words counted between any Unicode spaces (a no-break space parts two), each with a letter or a number in it.",
+  "design": {
+    "id": "d-rich",
+    "title": "Launch plan",
+    "width": 816,
+    "height": 1056,
+    "createdAt": 0,
+    "updatedAt": 0,
+    "kind": "doc",
+    "docPage": {"size": "letter", "margins": 72},
+    "blocks": [
+      {"id": "r1", "type": "h1", "text": "Launch plan", "align": "center"},
+      {"id": "r2", "type": "p", "text": "Our **big** launch is in May.", "spans": [{"start": 4, "end": 7, "color": "#e11d48"}, {"start": 21, "end": 24, "highlight": "#fde68a"}], "spansText": "Our big launch is in May."},
+      {"id": "r3", "type": "p", "text": "Read the brief first.", "spans": [{"start": 9, "end": 14, "link": "https://example.com/brief"}], "spansText": "Read the brief first.", "align": "justify"},
+      {"id": "r4", "type": "bullet", "text": "Teh launch date", "align": "right"},
+      {"id": "r5", "type": "table", "table": {"rows": [["Task", "Owner"], ["Launch the site", "Ana"]], "header": true}},
+      {"id": "r6", "type": "checklist", "text": "Book the launch venue", "spans": [{"start": 9, "end": 15, "color": "#2563eb"}], "spansText": "Book the launch venue", "checked": false}
+    ]
+  },
+  "launchMatches": [
+    {"blockId": "r1", "start": 0, "end": 6},
+    {"blockId": "r2", "start": 12, "end": 18},
+    {"blockId": "r4", "start": 4, "end": 10},
+    {"blockId": "r5", "row": 1, "col": 0, "start": 0, "end": 6},
+    {"blockId": "r6", "start": 9, "end": 15}
+  ],
+  "words": 25,
+  "wordCountLine": "25 words · 1 min read",
+  "wordRows": [
+    {"text": "deux\u00a0mots", "words": 2},
+    {"text": "un\u3000deux", "words": 2},
+    {"text": "line\u2028break\u2029here\u0085now", "words": 4},
+    {"text": "\u00bd cup", "words": 2},
+    {"text": "\u2014 \u2013 \u2026", "words": 0},
+    {"text": "\ud83d\ude00 hi", "words": 1},
+    {"text": "tab\there", "words": 2}
+  ]
+}

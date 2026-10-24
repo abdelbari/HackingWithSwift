@@ -17,8 +17,9 @@
 //   settings.json            the settings that travel, in one object:
 //                            {"autoLists": true, "canvia.use": …} — what
 //                            Canvia is used for only when it was answered
-//                            (UseProfile), and Settings ▸ Accessibility's
-//                            (AccessibilityPrefs)
+//                            (UseProfile), Settings ▸ Accessibility's
+//                            (AccessibilityPrefs), and Settings ▸
+//                            Proofing's "proofTypography"
 //   uploads.json             your uploads' list, as kept in Documents
 //   media/<id>.<ext>         the photos your uploads and kits' assets are,
 //   videos/<id>.<ext>        their clips,
@@ -103,20 +104,24 @@ enum Backup {
     /// nil, and the accessibility settings it is given (AccessibilityPrefs).
     static func encodeSettings(autoLists: Bool, use: String?,
                                accessibility: AccessibilityPrefs.Settings = AccessibilityPrefs.Settings()) -> Data {
-        settingsData(autoLists: autoLists, use: use, exportA11yNudge: nil, accessibility: accessibility)
+        settingsData(autoLists: autoLists, use: use, exportA11yNudge: nil, proofTypography: nil,
+                     accessibility: accessibility)
     }
 
-    /// The same, with Export's "exportA11yNudge" too.
-    static func encodeSettings(autoLists: Bool, use: String?, exportA11yNudge: Bool,
+    /// The same, with Export's "exportA11yNudge" and Proofing's
+    /// "proofTypography" too (on unless turned off, as the setting is).
+    static func encodeSettings(autoLists: Bool, use: String?, exportA11yNudge: Bool, proofTypography: Bool = true,
                                accessibility: AccessibilityPrefs.Settings = AccessibilityPrefs.Settings()) -> Data {
-        settingsData(autoLists: autoLists, use: use, exportA11yNudge: exportA11yNudge, accessibility: accessibility)
+        settingsData(autoLists: autoLists, use: use, exportA11yNudge: exportA11yNudge, proofTypography: proofTypography,
+                     accessibility: accessibility)
     }
 
-    private static func settingsData(autoLists: Bool, use: String?, exportA11yNudge: Bool?,
+    private static func settingsData(autoLists: Bool, use: String?, exportA11yNudge: Bool?, proofTypography: Bool?,
                                      accessibility: AccessibilityPrefs.Settings) -> Data {
         var object: [String: Any] = ["autoLists": autoLists]
         if let use { object[UseProfile.key] = use }
         if let exportA11yNudge { object[ExportPlan.a11yNudgeKey] = exportA11yNudge }
+        if let proofTypography { object[Proofing.typographySetting] = proofTypography }
         AccessibilityPrefs.write(accessibility, into: &object)
         return (try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])) ?? Data("{}".utf8)
     }
@@ -125,6 +130,20 @@ enum Backup {
     static func decodeA11yNudge(_ data: Data?) -> Bool? {
         guard let data, let settings = try? JSONDecoder().decode(Settings.self, from: data) else { return nil }
         return settings.exportA11yNudge
+    }
+
+    /// Settings ▸ Proofing's key alone, so a value of another kind there
+    /// leaves only it unread.
+    private struct ProofSettings: Decodable {
+        var proofTypography: Bool?
+    }
+
+    /// The backup's "proofTypography" (Proofing.typographySetting); nil
+    /// when it has none or not a true or false — this phone's kept, as the
+    /// Android twin's.
+    static func decodeProofTypography(_ data: Data?) -> Bool? {
+        guard let data, let settings = try? JSONDecoder().decode(ProofSettings.self, from: data) else { return nil }
+        return settings.proofTypography
     }
 
     /// The backup's "autoLists"; nil when it has none, as an older backup.
@@ -316,6 +335,7 @@ enum Backup {
         // it was answered: one settings.json for both.
         try writer.add(settingsFile, encodeSettings(autoLists: TextLists.autoListsOn, use: UseProfile.current(),
                                                     exportA11yNudge: ExportPlan.remindsA11y(),
+                                                    proofTypography: Proofing.typographyOn,
                                                     accessibility: AccessibilityPrefs.current()))
         for src in kits.allAssets {
             try await addSource(src, into: writer, written: &written)
@@ -517,6 +537,9 @@ enum Backup {
         }
         if let remind = decodeA11yNudge(reader.file(settingsFile)) {
             UserDefaults.standard.set(remind, forKey: ExportPlan.a11yNudgeKey)
+        }
+        if let typography = decodeProofTypography(reader.file(settingsFile)) {
+            UserDefaults.standard.set(typography, forKey: Proofing.typographySetting)
         }
         AccessibilityPrefs.apply(AccessibilityPrefs.decodeSettings(reader.file(settingsFile)))
         // What Canvia is used for, on a phone with no answer yet.

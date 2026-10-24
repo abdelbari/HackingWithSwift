@@ -225,9 +225,7 @@ struct ContextToolbar: View {
                     .frame(width: 150, alignment: .leading)
             } else {
                 pathMenu(el)
-                sliderControl("Curve", value: el.curve ?? 0, in: -180...180) { degrees in
-                    store.updateSelectedTransient { curve(&$0, to: degrees) }
-                }
+                curveSliders(el)
             }
         }
     }
@@ -458,6 +456,7 @@ struct ContextToolbar: View {
                     store.updateSelected { e in
                         e.textPath = preset.data
                         e.curve = nil
+                        e.curveStart = nil
                         e.warp = nil
                         // A path wants room above and below its line.
                         if e.h < (e.fontSize ?? 42) * 3 { e.h = (e.fontSize ?? 42) * 3 }
@@ -909,6 +908,27 @@ struct ContextToolbar: View {
         }
     }
 
+    /// Curve, from a valley closed into a ring to a rainbow closed into one
+    /// (TextPaths.maxCurve), pulled onto ±180 and ±360 with a tick as it
+    /// lands; and, past half a ring, Rotate to turn it (curveStart).
+    @ViewBuilder
+    private func curveSliders(_ el: Element) -> some View {
+        sliderControl("Curve", value: el.curve ?? 0, in: -TextPaths.maxCurve...TextPaths.maxCurve) { raw in
+            let degrees = TextPaths.snappedCurve(raw)
+            if degrees != raw && degrees != el.curve { store.buzz(.tick) }
+            store.updateSelectedTransient { curve(&$0, to: degrees) }
+        }
+        if TextPaths.showsRotate(el.curve) {
+            sliderControl("Rotate", value: el.curveStart ?? 0,
+                          in: -TextPaths.maxCurveStart...TextPaths.maxCurveStart) { degrees in
+                store.updateSelectedTransient { e in
+                    let turned = degrees.rounded()
+                    e.curveStart = turned == 0 ? nil : turned
+                }
+            }
+        }
+    }
+
     /// Bend a text element's baseline, and resize its box to the ink.
     ///
     /// Curving makes a line of text shorter and much taller, and nothing else
@@ -924,6 +944,9 @@ struct ContextToolbar: View {
         let centre = CGPoint(x: el.x + el.w / 2, y: el.y + el.h / 2)
         let straight = abs(degrees) < TextOutliner.straightBelowDegrees
         el.curve = straight ? nil : degrees
+        // The ring's turn goes once the words are no longer a ring, as the
+        // Rotate slider does.
+        if !TextPaths.showsRotate(el.curve) { el.curveStart = nil }
         if straight {
             // measuredHeight, not layoutHeight: the curve has just been
             // cleared and this is deliberately the flat measurement.
@@ -931,6 +954,8 @@ struct ContextToolbar: View {
         } else if let size = TextOutliner.curvedSize(for: el, degrees: degrees) {
             el.w = max(el.w, size.width)
             el.h = max(size.height, el.fontSize ?? 42)
+            // A ring stands in its square.
+            if abs(degrees) >= TextPaths.halfCurve { el.w = max(size.width, el.fontSize ?? 42) }
         }
         el.x = centre.x - el.w / 2
         el.y = centre.y - el.h / 2

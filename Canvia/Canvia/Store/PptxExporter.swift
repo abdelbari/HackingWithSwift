@@ -1089,7 +1089,8 @@ enum PptxExporter {
     ///  - Highlight: a:highlight in the bar's colour, on each run
     ///  - gradient letters: gradFill, where the effect takes a gradient
     ///  - a curve: prstTxWarp textArchUp, textArchDown when negative, adj
-    ///    the arc's degrees in 60000ths
+    ///    the arc's degrees in 60000ths; past half a ring, WordArt's
+    ///    textCircle, as it comes — the words still editable
     ///  - vertical: vert eaVert for CJK words, else wordArtVert
     ///  - letters full of a photo (`photo`, its media's relationship id and
     ///    pixels): a blipFill, srcRect cropping it to the window PhotoFills
@@ -1130,7 +1131,9 @@ enum PptxExporter {
         if effect == .highlight {
             out.effects += "<a:highlight>\(color(fx.color, opacity: fx.alpha))</a:highlight>"
         }
-        if let curve = el.curve, abs(curve) >= TextOutliner.straightBelowDegrees {
+        if let curve = el.curve, abs(curve) > TextPaths.halfCurve {
+            out.warp = "<a:prstTxWarp prst=\"textCircle\"><a:avLst/></a:prstTxWarp>"
+        } else if let curve = el.curve, abs(curve) >= TextOutliner.straightBelowDegrees {
             let preset = curve < 0 ? "textArchDown" : "textArchUp"
             let adj = Int((abs(curve) * 60000).rounded())
             out.warp = "<a:prstTxWarp prst=\"\(preset)\"><a:avLst><a:gd name=\"adj\" fmla=\"val \(adj)\"/></a:avLst></a:prstTxWarp>"

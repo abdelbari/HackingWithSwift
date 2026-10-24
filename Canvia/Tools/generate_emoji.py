@@ -27,6 +27,11 @@ Stickers panel shows them, each {"name", "emoji": [...]}, and each emoji
 
 Each emoji goes in the group whose code points hold it (GROUPS, the first
 range that does), in code point order; flags in country-code order.
+
+After the groups, "pictographic": the Extended_Pictographic code points
+(emoji-data.txt, Unicode 15) as [first, last] pairs, in order — the table
+both phones' Emoji.isEmojiCluster reads, so a curve, a path or an outline
+effect keeps a colour emoji its font has no outline for.
 """
 import json
 import pathlib
@@ -160,6 +165,22 @@ YE Yemen|YT Mayotte|
 ZA South Africa|ZM Zambia|ZW Zimbabwe
 '''
 
+# Extended_Pictographic=Yes (emoji-data.txt, Unicode 15): what an emoji
+# cluster starts from, sequences aside.
+PICTOGRAPHIC = ranges('''
+00A9 00AE 203C 2049 2122 2139 2194..2199 21A9..21AA 231A..231B 2328 2388
+23CF 23E9..23F3 23F8..23FA 24C2 25AA..25AB 25B6 25C0 25FB..25FE 2600..2605
+2607..2612 2614..2685 2690..2705 2708..2712 2714 2716 271D 2721 2728
+2733..2734 2744 2747 274C 274E 2753..2755 2757 2763..2767 2795..2797 27A1
+27B0 27BF 2934..2935 2B05..2B07 2B1B..2B1C 2B50 2B55 3030 303D 3297 3299
+1F000..1F0FF 1F10D..1F10F 1F12F 1F16C..1F171 1F17E..1F17F 1F18E
+1F191..1F19A 1F1AD..1F1E5 1F201..1F20F 1F21A 1F22F 1F232..1F23A
+1F23C..1F23F 1F249..1F3FA 1F400..1F53D 1F546..1F64F 1F680..1F6FF
+1F774..1F77F 1F7D5..1F7FF 1F80C..1F80F 1F848..1F84F 1F85A..1F85F
+1F888..1F88F 1F8AE..1F8FF 1F90C..1F93A 1F93C..1F945 1F947..1FAFF
+1FC00..1FFFD
+''')
+
 ORDER = ['Smileys & People', 'Animals & Nature', 'Food', 'Activities', 'Travel', 'Objects', 'Symbols', 'Flags']
 
 
@@ -231,7 +252,8 @@ def main():
     for i, group in enumerate(groups):
         body = ',\n'.join(json.dumps(e, ensure_ascii=False, sort_keys=True, separators=(',', ':')) for e in group['emoji'])
         lines.append('{"emoji":[\n' + body + '\n],"name":' + json.dumps(group['name'], ensure_ascii=False) + '}')
-    text = '{"groups":[\n' + ',\n'.join(lines) + '\n]}\n'
+    pictographic = json.dumps([[a, b] for a, b in PICTOGRAPHIC], separators=(',', ':'))
+    text = '{"groups":[\n' + ',\n'.join(lines) + '\n],\n"pictographic":' + pictographic + '}\n'
     RESOURCE.write_text(text, encoding='utf-8')
     total = sum(len(g['emoji']) for g in groups)
     print('%d emoji in %d groups (%s)' % (total, len(groups), ', '.join('%s %d' % (g['name'], len(g['emoji'])) for g in groups)))

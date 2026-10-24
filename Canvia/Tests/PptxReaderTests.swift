@@ -248,6 +248,8 @@ final class PptxReaderTests: XCTestCase {
         XCTAssertEqual(arched.curve, 90)
         let valley = try styledBox("<a:rPr/>", bodyPr: "<a:bodyPr><a:prstTxWarp prst=\"textArchDown\"><a:avLst><a:gd name=\"adj\" fmla=\"val 3600000\"/></a:avLst></a:prstTxWarp></a:bodyPr>")
         XCTAssertEqual(valley.curve, -60)
+        let ring = try styledBox("<a:rPr/>", bodyPr: "<a:bodyPr><a:prstTxWarp prst=\"textCircle\"><a:avLst/></a:prstTxWarp></a:bodyPr>")
+        XCTAssertEqual(ring.curve, 360)
         XCTAssertEqual(try styledBox("<a:rPr/>", bodyPr: "<a:bodyPr vert=\"eaVert\"/>").vertical, true)
         XCTAssertNil(try styledBox("<a:rPr/>").effect)
         let poured = try styledBox("<a:rPr sz=\"3150\"><a:gradFill><a:gsLst><a:gs pos=\"0\"><a:srgbClr val=\"000000\"/></a:gs>"

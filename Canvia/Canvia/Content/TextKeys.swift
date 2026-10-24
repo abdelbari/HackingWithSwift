@@ -3,8 +3,10 @@
 // two phones answer the same keys with the same functions as the bar over
 // the keyboard — the words chosen marked (RichText.toggling), the whole box
 // set (TextSelection), the lines the choice covers listed (TextLists), the
-// words chosen a step smaller or larger (Spans) — each as a step of its
-// own between the words typed before and after.
+// words chosen a step smaller or larger (Spans), the words chosen linked
+// (a Spans `link`), the box's line and letter spacing a step tighter or
+// looser, and its whole look copied and pasted as Copy style does — each as
+// a step of its own between the words typed before and after.
 
 import Foundation
 
@@ -16,13 +18,31 @@ enum TextKeys {
         case alignLeft, alignCenter, alignRight, alignJustify
         case numberedList, bulletedList
         case smaller, larger
+        case link
+        case lineTighter, lineLooser, letterTighter, letterLooser
+        case copyStyle, pasteStyle
     }
 
-    /// A key with Ctrl on Android and ⌘ on the iPhone, with Shift or not.
+    /// The arrow keys, as `Key.key` names them.
+    static let up = "↑"
+    static let down = "↓"
+    static let left = "←"
+    static let right = "→"
+
+    /// What one press of ⌥⌘↑ or ↓ moves line spacing by.
+    static let lineStep = 0.1
+    /// What one press of ⌥⌘→ or ← moves letter spacing by, as a share of
+    /// the type size: 1%.
+    static let letterStep = 0.01
+
+    /// A key with Ctrl on Android and ⌘ on the iPhone, with Shift or not,
+    /// and with Alt (⌥) or not: a lower-case letter, a digit, a mark as the
+    /// key cap shows it, or an arrow (`up`, `down`, `left`, `right`).
     struct Key: Equatable {
         var key: String
         var shift: Bool
         var action: Command
+        var alt = false
     }
 
     /// Every key, as Canva has them: B, I and U; Shift with X to strike
@@ -42,17 +62,66 @@ enum TextKeys {
         Key(key: "8", shift: true, action: .bulletedList),
         Key(key: ",", shift: true, action: .smaller),
         Key(key: ".", shift: true, action: .larger),
+        Key(key: "k", shift: false, action: .link),
+        Key(key: down, shift: false, action: .lineTighter, alt: true),
+        Key(key: up, shift: false, action: .lineLooser, alt: true),
+        Key(key: left, shift: false, action: .letterTighter, alt: true),
+        Key(key: right, shift: false, action: .letterLooser, alt: true),
+        Key(key: "c", shift: false, action: .copyStyle, alt: true),
+        Key(key: "v", shift: false, action: .pasteStyle, alt: true),
     ]
 
     /// Outside typing, the one key with nothing held: T adds a text box in
     /// the middle of the page.
     static let addText = "t"
 
-    /// What `key` (either case) does with Shift held or not; nil for a key
-    /// that is none of these.
-    static func action(for key: String, shift: Bool) -> Command? {
+    /// What `key` (either case) does with Shift and Alt held or not; nil
+    /// for a key that is none of these.
+    static func action(for key: String, shift: Bool, alt: Bool = false) -> Command? {
         let lower = key.lowercased()
-        return all.first { $0.key == lower && $0.shift == shift }?.action
+        return all.first { $0.key == lower && $0.shift == shift && $0.alt == alt }?.action
+    }
+
+    /// How a key is written in the ⌘ overlay's order: ⌥⇧⌘ and the key cap,
+    /// "⇧⌘K", "⌥⌘↑".
+    static func shown(_ key: Key) -> String {
+        (key.alt ? "⌥" : "") + (key.shift ? "⇧" : "") + "⌘" + key.key.uppercased()
+    }
+
+    /// Line spacing one step looser (by 1) or tighter (by -1) than
+    /// `lineHeight` (nil for the box's 1.25): `lineStep` a press, to two
+    /// places, within TypeReadouts.lineHeightRange — the Android twin's
+    /// TextBoxes.MIN_LINE to MAX_LINE.
+    static func lineHeightStepped(_ lineHeight: Double?, by step: Int) -> Double {
+        let next = (lineHeight ?? 1.25) + lineStep * Double(step)
+        let range = TypeReadouts.lineHeightRange
+        return min(max((next * 100 + 0.5).rounded(.down) / 100, range.lowerBound), range.upperBound)
+    }
+
+    /// Letter spacing one step looser (by 1) or tighter (by -1) than
+    /// `spacing` (nil for none), `letterStep` of type `size` a press, within
+    /// TypeReadouts.letterSpacingRange.
+    static func letterSpacingStepped(_ spacing: Double?, size: Double, by step: Int) -> Double {
+        let now = spacing ?? 0
+        let range = TypeReadouts.letterSpacingRange(size: size, current: now)
+        let next = now + letterStep * size * Double(step)
+        return min(max((next * 10_000 + 0.5).rounded(.down) / 10_000, range.lowerBound), range.upperBound)
+    }
+
+    /// What VoiceOver says after a line spacing step: "Line spacing 1.4" —
+    /// to at most two places, no trailing zeros.
+    static func lineHeightSaid(_ lineHeight: Double) -> String {
+        let hundredths = Int((lineHeight * 100 + 0.5).rounded(.down))
+        var text = String(hundredths / 100) + "." + String(format: "%02d", hundredths % 100)
+        while text.hasSuffix("0") { text.removeLast() }
+        if text.hasSuffix(".") { text.removeLast() }
+        return tr("Line spacing %@", text)
+    }
+
+    /// What VoiceOver says after a letter spacing step: "Letter spacing
+    /// 4%", in whole percent of type `size`, as its readout shows it.
+    static func letterSpacingSaid(_ spacing: Double, size: Double) -> String {
+        tr("Letter spacing %d%%", Int((spacing / max(size, 1) * 100 + 0.5).rounded(.down)))
     }
 
     /// The key's name in the ⌘ overlay and the keyboard help.
@@ -71,6 +140,13 @@ enum TextKeys {
         case .bulletedList: return tr("Bulleted list")
         case .smaller: return tr("Smaller")
         case .larger: return tr("Larger")
+        case .link: return tr("Add link")
+        case .lineTighter: return tr("Decrease line spacing")
+        case .lineLooser: return tr("Increase line spacing")
+        case .letterTighter: return tr("Decrease letter spacing")
+        case .letterLooser: return tr("Increase letter spacing")
+        case .copyStyle: return tr("Copy style")
+        case .pasteStyle: return tr("Paste style")
         }
     }
 

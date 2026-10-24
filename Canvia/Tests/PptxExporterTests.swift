@@ -487,6 +487,11 @@ final class PptxExporterTests: XCTestCase {
                                       + "<a:avLst><a:gd name=\"adj\" fmla=\"val 5400000\"/></a:avLst></a:prstTxWarp></a:bodyPr>"), arched)
         XCTAssertTrue(slideXML([with(text) { $0.curve = -60 }])
             .contains("<a:prstTxWarp prst=\"textArchDown\"><a:avLst><a:gd name=\"adj\" fmla=\"val 3600000\"/></a:avLst></a:prstTxWarp>"))
+        // Past half a ring, WordArt's circle, the words still editable.
+        let ring = slideXML([with(text) { $0.curve = 300 }])
+        XCTAssertTrue(ring.contains("<a:prstTxWarp prst=\"textCircle\"><a:avLst/></a:prstTxWarp>"), ring)
+        XCTAssertTrue(ring.contains("<a:t>"))
+        XCTAssertTrue(slideXML([with(text) { $0.curve = 180 }]).contains("prst=\"textArchUp\""))
         XCTAssertTrue(slideXML([with(text) { $0.vertical = true }])
             .contains("<a:bodyPr lIns=\"0\" tIns=\"0\" rIns=\"0\" bIns=\"0\" vert=\"wordArtVert\"/>"))
         XCTAssertTrue(slideXML([with(text) { $0.vertical = true; $0.text = "縦書き" }]).contains(" vert=\"eaVert\"/>"))

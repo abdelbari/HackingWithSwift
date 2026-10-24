@@ -81,6 +81,10 @@ struct InlineTextField: UIViewRepresentable {
     var onToggle: (TextToggle) -> Void = { _ in }
     /// ⇧⌘L, C, R and J: the whole box aligned, as a step of its own.
     var onAlign: (String) -> Void = { _ in }
+    /// ⌥⌘ and an arrow, ⌥⌘C and ⌥⌘V: the whole box's line or letter
+    /// spacing a step tighter or looser, or its look copied or pasted, as
+    /// a step of its own (TextKeys).
+    var onBoxKey: (TextKeys.Command) -> Void = { _ in }
     /// List, Indent, Outdent, Return on an empty item and Tab: the lines
     /// a range of the stored words covers changed, as a step of its own;
     /// whether anything changed.
@@ -797,6 +801,16 @@ struct InlineTextField: UIViewRepresentable {
                 guard parent.wordStyles, let range = chosenWords(view) else { return }
                 coalescer.close()
                 parent.onWordScale(range, action == .smaller ? Spans.smaller : Spans.larger)
+            case .link:
+                // As the bar's Link: only with words chosen, and never a
+                // shape's words, which take no links.
+                guard parent.wordStyles, let range = chosenWords(view) else { return }
+                coalescer.close()
+                parent.onWordLink(range)
+            case .lineTighter, .lineLooser, .letterTighter, .letterLooser, .copyStyle, .pasteStyle:
+                guard view.markedTextRange == nil else { return }
+                coalescer.close()
+                parent.onBoxKey(action)
             }
         }
 
@@ -1096,8 +1110,11 @@ final class InlineTextView: UITextView {
     override var keyCommands: [UIKeyCommand]? {
         let own = TextKeys.all.map { key -> UIKeyCommand in
             let name = TextKeys.keyName(key.action)
-            let command = UIKeyCommand(title: name, action: #selector(formatKey(_:)), input: key.key,
-                                       modifierFlags: key.shift ? [.command, .shift] : [.command])
+            var flags: UIKeyModifierFlags = [.command]
+            if key.shift { flags.insert(.shift) }
+            if key.alt { flags.insert(.alternate) }
+            let command = UIKeyCommand(title: name, action: #selector(formatKey(_:)), input: Self.input(of: key.key),
+                                       modifierFlags: flags)
             command.discoverabilityTitle = name
             command.wantsPriorityOverSystemBehavior = true
             return command
@@ -1105,9 +1122,33 @@ final class InlineTextView: UITextView {
         return (super.keyCommands ?? []) + own
     }
 
+    /// The key command input for a TextKeys key: an arrow as UIKit names
+    /// it, any other key as it is.
+    static func input(of key: String) -> String {
+        switch key {
+        case TextKeys.up: return UIKeyCommand.inputUpArrow
+        case TextKeys.down: return UIKeyCommand.inputDownArrow
+        case TextKeys.left: return UIKeyCommand.inputLeftArrow
+        case TextKeys.right: return UIKeyCommand.inputRightArrow
+        default: return key
+        }
+    }
+
+    /// A TextKeys key for a key command input: an arrow back to the table's.
+    static func key(of input: String) -> String {
+        switch input {
+        case UIKeyCommand.inputUpArrow: return TextKeys.up
+        case UIKeyCommand.inputDownArrow: return TextKeys.down
+        case UIKeyCommand.inputLeftArrow: return TextKeys.left
+        case UIKeyCommand.inputRightArrow: return TextKeys.right
+        default: return input
+        }
+    }
+
     @objc private func formatKey(_ sender: UIKeyCommand) {
         guard let input = sender.input,
-              let action = TextKeys.action(for: input, shift: sender.modifierFlags.contains(.shift)) else { return }
+              let action = TextKeys.action(for: Self.key(of: input), shift: sender.modifierFlags.contains(.shift),
+                                           alt: sender.modifierFlags.contains(.alternate)) else { return }
         onKey(action)
     }
 

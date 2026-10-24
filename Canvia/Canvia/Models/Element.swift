@@ -932,7 +932,13 @@ struct Element: Codable, Equatable, Identifiable {
     var effect: TextEffectSpec?
     /// Degrees of arc for curved text. Positive bends the baseline into a
     /// rainbow, negative into a valley; nil or zero is a straight line.
+    /// From -360 to 360 (TextPaths.maxCurve): past ±180 the words close
+    /// towards a ring, a space apart at a full one.
     var curve: Double?
+    /// How far a curve is turned, in degrees clockwise from its centre —
+    /// the top for a positive curve, the bottom for a negative one: the
+    /// Rotate slider, which turns a ring. nil is 0, and no key.
+    var curveStart: Double?
     /// Path data in the element's 0…100 box that the text follows; the
     /// curve is ignored while this is set.
     var textPath: String?
@@ -1159,7 +1165,8 @@ struct Element: Codable, Equatable, Identifiable {
         timing = (try? c.decode(ElementTiming.self, forKey: .timing)).flatMap(ElementTiming.kept)
         textFill = try? c.decode(Paint.self, forKey: .textFill)
         effect = try? c.decode(TextEffectSpec.self, forKey: .effect)
-        curve = try? c.decode(Double.self, forKey: .curve)
+        curve = (try? c.decode(Double.self, forKey: .curve)).flatMap { TextPaths.keptCurve($0) }
+        curveStart = (try? c.decode(Double.self, forKey: .curveStart)).flatMap { $0.isFinite && $0 != 0 ? $0 : nil }
         textPath = try? c.decode(String.self, forKey: .textPath)
         vertical = try? c.decode(Bool.self, forKey: .vertical)
         warp = try? c.decode(TextWarpSpec.self, forKey: .warp)
@@ -1251,7 +1258,7 @@ struct Element: Codable, Equatable, Identifiable {
         case connectFrom, connectTo, link, hidden, layerName, table, chart, chartPart, grid, photoFrame
         case shapeId, pathData, iconId, graphicId, bulkField, fill, stroke, strokeWidth, radius, corners, fillRule, pen
         case text, fontFamily, fontSize, fontWeight, italic, underline, uppercase, align
-        case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical, warp
+        case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, curveStart, textPath, vertical, warp
         case spans, spansText, paragraphs, paragraphsText, captions
         case textRole, a11yRole
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns, timing

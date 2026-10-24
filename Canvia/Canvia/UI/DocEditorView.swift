@@ -7,6 +7,12 @@
 // a Word document; More has the page size, Turn into presentation and
 // Convert to design. Typing in a block is one undo step, closed as the
 // caret leaves it. The Android twin's DocEditor.
+//
+// A block's words are typed as they read (DocBlockField): bold, italic,
+// underlined, struck, coloured, highlighted and linked words shown so, the
+// markers never seen, with the format bar over the keyboard; each style is
+// a step of its own. More also has Find and replace and Check spelling,
+// which go through every block and table cell, and the Doc's word count.
 
 import PhotosUI
 import SwiftUI
@@ -16,7 +22,8 @@ struct DocEditorView: View {
     var onHome: () -> Void
 
     @Environment(\.scenePhase) private var scenePhase
-    @FocusState private var focused: String?
+    /// The block with the caret.
+    @State private var focused: String?
     /// The block whose '/' menu is open.
     @State private var slashFor: String?
     /// The block a photo being picked goes into.
@@ -35,6 +42,15 @@ struct DocEditorView: View {
     @State private var note: String?
     /// The brand kit's heading and body faces, read once as it opens.
     @State fileprivate var styles = DocPages.styles()
+    /// Find and replace, and Check spelling, over the Doc's blocks.
+    @State fileprivate var finding = false
+    @State fileprivate var proofreading = false
+    /// The words of a block the colour sheet, the highlighter or the link
+    /// prompt is open for: the block's id, and the words as they read.
+    @State fileprivate var colourFor: WordRange?
+    @State fileprivate var highlightFor: WordRange?
+    @State fileprivate var linkFor: WordRange?
+    @State fileprivate var linkDraft = ""
 
     private var blocks: [DocBlock] { Docs.blocks(store.design) }
     private var setup: DocPage { Docs.pageSetup(store.design) }
@@ -62,17 +78,24 @@ struct DocEditorView: View {
     // MARK: the list
 
     private var blockList: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 6) {
-                ForEach(Array(blocks.enumerated()), id: \.element.id) { index, block in
-                    row(block, index: index)
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 6) {
+                    ForEach(Array(blocks.enumerated()), id: \.element.id) { index, block in
+                        row(block, index: index)
+                    }
+                    addButton
                 }
-                addButton
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .scrollDismissesKeyboard(.interactively)
+            // A match or a finding shown: its block brought into sight.
+            .onChange(of: store.findHighlight) { _, match in
+                guard let id = match?.blockId else { return }
+                withAnimation { proxy.scrollTo(id, anchor: .center) }
+            }
         }
-        .scrollDismissesKeyboard(.interactively)
     }
 
     private func row(_ block: DocBlock, index: Int) -> some View {
@@ -133,12 +156,26 @@ struct DocEditorView: View {
             } label: { EmptyView() }
             .pickerStyle(.inline)
             Divider()
+            Button("Find and replace") { openChecks(find: true) }
+            Button("Check spelling") { openChecks(find: false) }
+            Divider()
             Button("Turn into presentation") { makeDesign(presentation: true) }
             Button("Convert to design") { makeDesign(presentation: false) }
+            Divider()
+            // "1,234 words · 6 min read", as it stands.
+            Text(verbatim: Docs.wordCountLine(Docs.wordCount(store.design)))
         } label: {
             Image(systemName: "ellipsis.circle")
         }
         .accessibilityLabel("More")
+    }
+
+    /// Find and replace, or Check spelling: the typing so far closed as
+    /// its own step first, and the keyboard put away.
+    private func openChecks(find: Bool) {
+        focused = nil
+        store.commit()
+        if find { finding = true } else { proofreading = true }
     }
 
     private var pageSize: Binding<String> {
@@ -188,8 +225,14 @@ struct DocEditorView: View {
         case Docs.divider, Docs.pagebreak, Docs.image:
             b.text = ""
         default:
-            if b.text.hasPrefix("/") { b.text.removeFirst() }
+            if b.text.hasPrefix("/") { b = Docs.withText(b, String(b.text.dropFirst())) }
             b.checked = type == Docs.checklist ? (b.checked ?? false) : nil
+        }
+        // A block with no words to type keeps no styles for them.
+        if !Docs.textTypes.contains(type) {
+            b.spans = nil
+            b.spansText = nil
+            b.align = nil
         }
         return b
     }
@@ -240,7 +283,72 @@ struct DocEditorView: View {
             splitBlock(id, before: String(new[..<cut]), after: String(new[new.index(after: cut)...]))
             return
         }
-        updateBlock(id, live: true) { $0.text = new }
+        // The words' colours, highlights and links move with them.
+        updateBlock(id, live: true) { $0 = Docs.withText($0, new) }
+    }
+
+    // MARK: styles on a block's words
+
+    /// A style the format bar put on block `id`'s words, as a step of its
+    /// own between the words typed before it and after.
+    func styleBlock(_ id: String, _ words: String) {
+        updateBlock(id, live: false) { $0 = Docs.withText($0, words) }
+    }
+
+    /// Block `id`'s spans over `range` of its words as they read changed by
+    /// `change`, as one step — as a text box's words are restyled — or
+    /// `live`, while the colour wheel is dragged, a step once it is let go.
+    func restyleWords(_ target: WordRange, live: Bool = false, _ change: ([TextSpan], NSRange) -> [TextSpan]) {
+        updateBlock(target.id, live: live) { block in
+            var el = Docs.asElement(block)
+            DesignStore.restyleWords(&el, target.range, change)
+            block = Docs.withElement(block, el)
+        }
+    }
+
+    /// Block `id` aligned, as one step.
+    func alignBlock(_ id: String, _ align: String) {
+        updateBlock(id, live: false) { $0.align = Docs.keptAlign(align) }
+    }
+
+    /// The colour the words `target` covers share — the text's own where
+    /// they have none — or nil when they differ.
+    fileprivate func sharedColour(_ target: WordRange) -> String? {
+        guard let block = blocks.first(where: { $0.id == target.id }) else { return nil }
+        let shared = Spans.colour(of: Docs.spansOf(block), in: target.range)
+        return shared.shared ? (shared.color ?? "#1f2430") : nil
+    }
+
+    /// The marker they share, and whether they share one.
+    fileprivate func sharedHighlight(_ target: WordRange) -> (highlight: String?, shared: Bool) {
+        guard let block = blocks.first(where: { $0.id == target.id }) else { return (nil, true) }
+        return Spans.highlight(of: Docs.spansOf(block), in: target.range)
+    }
+
+    /// The link they share, if they share one.
+    fileprivate func sharedLink(_ target: WordRange) -> String? {
+        guard let block = blocks.first(where: { $0.id == target.id }) else { return nil }
+        let shared = Spans.link(of: Docs.spansOf(block), in: target.range)
+        return shared.shared ? shared.link : nil
+    }
+
+    /// Colour on the format bar: the colour sheet, for the words chosen.
+    func askColour(_ target: WordRange) {
+        store.commit()
+        colourFor = target
+    }
+
+    /// Highlight on the format bar: the highlighter, for the words chosen.
+    func askHighlight(_ target: WordRange) {
+        store.commit()
+        highlightFor = target
+    }
+
+    /// Link on the format bar: the prompt, for the words chosen.
+    func askLink(_ target: WordRange) {
+        store.commit()
+        linkDraft = sharedLink(target) ?? ""
+        linkFor = target
     }
 
     /// Return: a new block after this one — the same kind of list item,
@@ -260,9 +368,7 @@ struct DocEditorView: View {
         editBlocks { list in
             list.flatMap { b -> [DocBlock] in
                 guard b.id == id else { return [b] }
-                var kept = b
-                kept.text = before
-                return [kept, made]
+                return [Docs.withText(b, before), made]
             }
         }
         focusSoon(made.id)
@@ -466,6 +572,59 @@ struct DocEditorView: View {
     }
 
     fileprivate var noteText: String { note ?? "" }
+
+    fileprivate var colourShown: Binding<Bool> {
+        Binding(get: { colourFor != nil }, set: { if !$0 { colourFor = nil } })
+    }
+
+    fileprivate var highlightShown: Binding<Bool> {
+        Binding(get: { highlightFor != nil }, set: { if !$0 { highlightFor = nil } })
+    }
+
+    fileprivate var linkShown: Binding<Bool> {
+        Binding(get: { linkFor != nil }, set: { if !$0 { linkFor = nil } })
+    }
+
+    fileprivate var linkDraftBinding: Binding<String> {
+        Binding(get: { linkDraft }, set: { linkDraft = $0 })
+    }
+
+    fileprivate var findingShown: Binding<Bool> {
+        Binding(get: { finding }, set: { finding = $0 })
+    }
+
+    fileprivate var proofreadingShown: Binding<Bool> {
+        Binding(get: { proofreading }, set: { proofreading = $0 })
+    }
+
+    /// The words chosen in `target` linked to what was typed, or unlinked.
+    fileprivate func link(_ url: String?, _ target: WordRange) {
+        let link = url.flatMap { Links.normalized($0) }
+        restyleWords(target) { Spans.linking($0, range: $1, link: link) }
+    }
+
+    /// The colour sheet for the words chosen.
+    @ViewBuilder
+    fileprivate var colourSheet: some View {
+        if let target = colourFor {
+            ColorPickerSheet(store: store, title: tr("Text colour"), current: sharedColour(target),
+                             note: DesignStore.wordColourNote,
+                             onPick: { hex in restyleWords(target) { Spans.colouring($0, range: $1, color: hex) } },
+                             onPickTransient: { hex in
+                                 restyleWords(target, live: true) { Spans.colouring($0, range: $1, color: hex) }
+                             })
+        }
+    }
+
+    /// The highlighter for the words chosen.
+    @ViewBuilder
+    fileprivate var highlightSheet: some View {
+        if let target = highlightFor {
+            HighlightSheet(store: store, marked: sharedHighlight(target)) { hex in
+                restyleWords(target) { Spans.highlighting($0, range: $1, highlight: hex) }
+            }
+        }
+    }
 }
 
 /// The editor's sheets and dialogs, kept out of its body.
@@ -481,6 +640,25 @@ private struct DocEditorSheets: ViewModifier {
             .alert(editor.noteText, isPresented: editor.noteShown) {
                 Button("OK", role: .cancel) {}
             }
+            .modifier(DocWordSheets(editor: editor))
+    }
+}
+
+/// Find and replace, Check spelling, and the format bar's colour sheet,
+/// highlighter and link prompt.
+private struct DocWordSheets: ViewModifier {
+    let editor: DocEditorView
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(isPresented: editor.findingShown) { FindReplaceSheet(store: editor.store) }
+            .sheet(isPresented: editor.proofreadingShown) { ProofreadSheet(store: editor.store) }
+            .sheet(isPresented: editor.colourShown) { editor.colourSheet }
+            .sheet(isPresented: editor.highlightShown) { editor.highlightSheet }
+            .linkAlert(isPresented: editor.linkShown, draft: editor.linkDraftBinding,
+                       linked: editor.linkFor.flatMap { editor.sharedLink($0) } != nil) { url in
+                if let target = editor.linkFor { editor.link(url, target) }
+            }
     }
 }
 
@@ -493,7 +671,7 @@ private struct DocBlockRow: View {
     let index: Int
     let count: Int
     let number: Int
-    var focus: FocusState<String?>.Binding
+    @Binding var focus: String?
     let editor: DocEditorView
     /// Places moved by the drag under way.
     @State private var moved = 0
@@ -560,7 +738,7 @@ private struct DocBlockRow: View {
         case Docs.chart:
             DocChartBlock(block: block, editor: editor)
         default:
-            DocTextBlock(block: block, number: number, focus: focus, editor: editor)
+            DocTextBlock(block: block, number: number, focus: $focus, editor: editor)
         }
     }
 }
@@ -585,32 +763,59 @@ private struct DocMoveActions: ViewModifier {
 private struct DocTextBlock: View {
     let block: DocBlock
     let number: Int
-    var focus: FocusState<String?>.Binding
+    @Binding var focus: String?
     let editor: DocEditorView
 
     private var heading: Bool { [Docs.h1, Docs.h2, Docs.h3].contains(block.type) }
 
-    private var font: Font {
+    /// The block's face, at the Doc's size for its type.
+    private var face: (family: String?, weight: Int) {
         let styles = editor.styles
         let face = heading ? (styles.heading ?? styles.body) : (styles.body ?? styles.heading)
-        return FontLibrary.font(family: face?.family, size: Docs.fontSize(block.type),
-                                weight: heading ? max(face?.weight ?? 700, 600) : (face?.weight ?? 400),
-                                italic: block.type == Docs.quote)
+        return (face?.family, heading ? max(face?.weight ?? 700, 600) : (face?.weight ?? 400))
     }
 
-    private var words: Binding<String> {
-        let id = block.id
-        return Binding(get: { editor.wordsOf(id) }, set: { editor.typeInto($0, in: id) })
+    private var font: Font {
+        FontLibrary.font(family: face.family, size: Docs.fontSize(block.type), weight: face.weight,
+                         italic: block.type == Docs.quote)
+    }
+
+    private var uiFont: UIFont {
+        FontLibrary.uiFont(family: face.family, size: Docs.fontSize(block.type), weight: face.weight,
+                           italic: block.type == Docs.quote)
     }
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             marker
-            TextField(placeholder, text: words, axis: .vertical)
+            field
+                .overlay(alignment: .topLeading) { placeholderText }
+        }
+    }
+
+    private var field: some View {
+        let id = block.id
+        return DocBlockField(block: block, font: uiFont, label: DocEditorView.typeName(block.type), heading: heading,
+                             focus: $focus,
+                             onChange: { editor.typeInto($0, in: id) },
+                             onStyled: { editor.styleBlock(id, $0) },
+                             onColour: { editor.askColour(WordRange(id: id, range: $0)) },
+                             onHighlight: { editor.askHighlight(WordRange(id: id, range: $0)) },
+                             onLink: { editor.askLink(WordRange(id: id, range: $0)) },
+                             onAlign: { editor.alignBlock(id, $0) },
+                             onUndo: { editor.store.undo() },
+                             onRedo: { editor.store.redo() })
+    }
+
+    /// What an empty block says, under the caret.
+    @ViewBuilder
+    private var placeholderText: some View {
+        if block.text.isEmpty {
+            Text(placeholder)
                 .font(font)
-                .focused(focus, equals: block.id)
-                .accessibilityLabel(DocEditorView.typeName(block.type))
-                .accessibilityAddTraits(heading ? .isHeader : [])
+                .foregroundStyle(.tertiary)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
         }
     }
 

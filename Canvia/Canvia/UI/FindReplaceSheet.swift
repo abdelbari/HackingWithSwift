@@ -14,7 +14,9 @@
 // and Whole words narrow the search (FindReplace), as on the Android twin.
 // The pages' speaker notes are searched too, after each page's boxes: a
 // match there is listed as "Notes, page N", and showing it opens the
-// page's notes.
+// page's notes. A Doc is searched as its blocks and its tables' cells, a
+// match listed as "Doc, paragraph N", shown by bringing its block into
+// sight.
 
 import SwiftUI
 
@@ -201,15 +203,22 @@ struct FindReplaceSheet: View {
         }
     }
 
-    /// Where a match is: its page, by title, or "Notes, page N".
+    /// Where a match is: its page, by title, "Notes, page N", or in a Doc
+    /// "Doc, paragraph N".
     private func whereFound(_ match: DesignStore.TextMatch) -> String {
         if match.kind == .notes { return Self.notesPlace(match.pageIndex) }
+        if match.kind == .doc { return Self.docPlace(Proofreader.docPlace(store.design, blockId: match.blockId)) }
         return PageTitles.named(match.pageIndex + 1, title: pageTitle(match.pageIndex))
     }
 
     /// "Notes, page 3", for a match in page 3's notes.
     static func notesPlace(_ pageIndex: Int) -> String {
         tr("Notes, page %d", pageIndex + 1)
+    }
+
+    /// "Doc, paragraph 3", for a match in a Doc's third block.
+    static func docPlace(_ place: Int) -> String {
+        tr("Doc, paragraph %d", place)
     }
 
     /// The title of page `index`, to name a match's page by.

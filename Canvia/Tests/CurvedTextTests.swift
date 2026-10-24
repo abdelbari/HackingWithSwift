@@ -226,4 +226,67 @@ final class CurvedTextTests: XCTestCase {
         let boldWidth = try XCTUnwrap(TextOutliner.path(for: bold)).boundingBox.width
         XCTAssertGreaterThan(boldWidth, plainWidth)
     }
+
+    // MARK: a full ring
+
+    /// Shared row: 'BADGE • BADGE • ' curved 360 — its letters equally
+    /// spaced round the ring, summing to 360° less one space, so the last
+    /// and the first stand a space apart. The trailing space is trimmed as
+    /// the outliner trims it; the gap stands for it.
+    func testAFullRingLeavesOneSpaceBetweenItsEnds() {
+        let words = Array("BADGE • BADGE •")
+        let advances = words.map { _ in 10.0 }
+        let angles = TextPaths.arcAngles(advances, space: 10, degrees: 360)
+        XCTAssertEqual(angles.count, 15)
+        let steps = zip(angles, angles.dropFirst()).map { $1 - $0 }
+        for step in steps { XCTAssertEqual(step, 22.5, accuracy: 1e-9) }
+        // The letters' own arcs, end to end, are 360 less one space.
+        XCTAssertEqual(steps.reduce(0, +) + 22.5, 360 - 22.5, accuracy: 1e-9)
+        XCTAssertEqual((angles.first ?? 0) + (angles.last ?? 0), 0, accuracy: 1e-9, "centred on the top")
+        // Turned, every letter moves by the same.
+        let turned = TextPaths.arcAngles(advances, space: 10, degrees: 360, start: 90)
+        for (a, b) in zip(angles, turned) { XCTAssertEqual(b - a, 90, accuracy: 1e-9) }
+        // At half a ring and below there is no gap.
+        XCTAssertEqual(TextPaths.arcLength(width: 150, space: 10, degrees: 180), 150)
+        XCTAssertEqual(TextPaths.arcLength(width: 150, space: 10, degrees: -270), 155)
+        XCTAssertEqual(TextPaths.arcLength(width: 150, space: 10, degrees: 360), 160)
+    }
+
+    /// Shared rows: the slider snaps at ±180 and ±360, the Rotate slider
+    /// shows past half a ring, and a stored curve past ±180 reads as it is.
+    func testTheCurveReachesARing() throws {
+        XCTAssertEqual(TextPaths.snappedCurve(357), 360)
+        XCTAssertEqual(TextPaths.snappedCurve(-183), -180)
+        XCTAssertEqual(TextPaths.snappedCurve(170), 170)
+        XCTAssertFalse(TextPaths.showsRotate(180))
+        XCTAssertTrue(TextPaths.showsRotate(-181))
+        XCTAssertFalse(TextPaths.showsRotate(nil))
+        let json = #"{"id":"el_1","type":"text","text":"Hi","w":200,"h":50,"curve":270,"curveStart":45}"#
+        let el = try JSONDecoder().decode(Element.self, from: Data(json.utf8))
+        XCTAssertEqual(el.curve, 270)
+        XCTAssertEqual(el.curveStart, 45)
+        let back = try JSONDecoder().decode(Element.self, from: JSONEncoder().encode(el))
+        XCTAssertEqual(back.curveStart, 45)
+        let far = #"{"id":"el_1","type":"text","text":"Hi","w":200,"h":50,"curve":500,"curveStart":0}"#
+        let held = try JSONDecoder().decode(Element.self, from: Data(far.utf8))
+        XCTAssertEqual(held.curve, 360)
+        XCTAssertNil(held.curveStart, "no turn is no key")
+    }
+
+    /// From half a ring the box is the ring's square, and turning the ring
+    /// never moves its circle.
+    func testARingStandsInItsSquare() throws {
+        let el = text("BADGE • BADGE • ", curve: 360)
+        let size = try XCTUnwrap(TextOutliner.curvedSize(for: el, degrees: 360))
+        XCTAssertEqual(size.width, size.height)
+        var ring = el
+        ring.w = size.width
+        ring.h = size.height
+        let still = try XCTUnwrap(TextOutliner.path(for: ring)).boundingBox
+        ring.curveStart = 90
+        let turned = try XCTUnwrap(TextOutliner.path(for: ring)).boundingBox
+        XCTAssertLessThanOrEqual(still.maxX, size.width + 1)
+        XCTAssertLessThanOrEqual(turned.maxY, size.height + 1)
+        XCTAssertEqual(still.midX, turned.midX, accuracy: 40 * 0.75, "the ring's centre stays put")
+    }
 }

@@ -9,6 +9,7 @@
 // when it turns it off for all — so one tap never leaves them still mixed.
 
 import Foundation
+import UIKit
 
 /// A style a text box has, or has not, as a whole.
 enum TextToggle: CaseIterable {
@@ -130,6 +131,54 @@ extension DesignStore {
         updateSelected { el in
             guard ShapeText.carriesWords(el) else { return }
             toggle.apply(on, to: &el)
+        }
+    }
+
+    /// ⌥⌘ and an arrow, ⌥⌘C or ⌥⌘V while typing (TextKeys): the box's line
+    /// spacing a tenth looser or tighter, its letter spacing a hundredth of
+    /// its type size, or its look copied or pasted as Copy style and Paste
+    /// style do — each a step of its own between the words typed before and
+    /// after. A spacing step is said to VoiceOver, "Line spacing 1.4", and
+    /// returned; nil for the other keys, or when nothing changed.
+    @discardableResult
+    func typingBoxKey(_ action: TextKeys.Command) -> String? {
+        switch action {
+        case .copyStyle:
+            copyStyle()
+            return nil
+        case .pasteStyle:
+            styleWhileTyping { pasteStyle() }
+            return nil
+        case .lineTighter, .lineLooser, .letterTighter, .letterLooser:
+            guard let el = singleSelection, ShapeText.carriesWords(el), !el.locked else { return nil }
+            var said: String?
+            styleWhileTyping {
+                updateSelected { e in
+                    guard ShapeText.carriesWords(e) else { return }
+                    said = Self.steppedSpacing(&e, action)
+                }
+            }
+            if let said { UIAccessibility.post(notification: .announcement, argument: said) }
+            return said
+        default:
+            return nil
+        }
+    }
+
+    /// `el` a spacing step tighter or looser (TextKeys), and what that says.
+    static func steppedSpacing(_ el: inout Element, _ action: TextKeys.Command) -> String? {
+        switch action {
+        case .lineTighter, .lineLooser:
+            let next = TextKeys.lineHeightStepped(el.lineHeight, by: action == .lineLooser ? 1 : -1)
+            el.lineHeight = next
+            return TextKeys.lineHeightSaid(next)
+        case .letterTighter, .letterLooser:
+            let size = el.fontSize ?? 42
+            let next = TextKeys.letterSpacingStepped(el.letterSpacing, size: size, by: action == .letterLooser ? 1 : -1)
+            el.letterSpacing = next
+            return TextKeys.letterSpacingSaid(next, size: size)
+        default:
+            return nil
         }
     }
 
