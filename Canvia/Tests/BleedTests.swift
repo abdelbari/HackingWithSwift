@@ -326,7 +326,10 @@ final class BleedTests: XCTestCase {
         try await DesignExporter.exportPDF(design: design, to: plain)
         let plainBox = try XCTUnwrap(CGPDFDocument(plain as CFURL)?.page(at: 1)).getBoxRect(.mediaBox)
         XCTAssertEqual(plainBox.width, 750, accuracy: 0.01, "the plain PDF is the trim")
-        XCTAssertFalse(isRed(try colour(of: plain, at: CGPoint(x: 0.5, y: Double(plainBox.maxY) - 250 * pxToPt))))
+        let plainY = Double(plainBox.maxY) - 250 * pxToPt
+        let plainSeen = try [0.5, 1.5, 3.0, 6.0, 12.0, 24.0].map { x in "\(x): \(try colour(of: plain, at: CGPoint(x: x, y: plainY)))" }
+        XCTAssertFalse(isRed(try colour(of: plain, at: CGPoint(x: 0.5, y: plainY))),
+                       "plain PDF \(plainBox) bleed \(bleed) pxToPt \(pxToPt); colours along the bar's row: \(plainSeen.joined(separator: ", "))")
 
         var bare = design
         bare.bleed = nil
