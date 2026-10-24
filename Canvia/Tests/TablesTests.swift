@@ -1112,6 +1112,21 @@ final class TablesTests: XCTestCase {
         XCTAssertNil(text(added, 1, 0).table?.minH)
     }
 
+    func testARowKeepsItsHeightWhenItsFirstColumnIsDeletedOrMergedAway() throws {
+        let t = made()
+        let id = tableId(t)
+        let tall = try XCTUnwrap(DataGraphics.withRowDragged(t, id: id, boundary: 1, dy: 30, heightFor: heightFor))
+        XCTAssertEqual(rowHeights(tall), [46, 76, 46])
+        // Column 0 deleted: the row's next cell holds it.
+        let narrow = try XCTUnwrap(DataGraphics.deletingTableColumn(tall, id: id, col: 0, heightFor: heightFor))
+        XCTAssertEqual(rowHeights(narrow), [46, 76, 46])
+        XCTAssertEqual(rect(narrow, 1, 0).table?.minH, 76)
+        // Its first cell merged into the one above: the same.
+        let merged = try XCTUnwrap(merging(tall, [(0, 0), (1, 0)]))
+        XCTAssertEqual(rowHeights(merged), [46, 76, 46])
+        XCTAssertEqual(rect(merged, 1, 1).table?.minH, 76)
+    }
+
     func testAReadersRowStepMovesTheLastSelectedRowATenthOfItAtLeast8() throws {
         let t = made()
         let id = tableId(t)

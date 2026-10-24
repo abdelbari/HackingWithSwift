@@ -161,4 +161,56 @@ final class BeatsTests: XCTestCase {
         XCTAssertEqual(s.design.pages[0].holdSeconds, 3)
         XCTAssertNil(s.design.beatSyncRestore)
     }
+
+    func testOffOnOneTrackLeavesTheHoldsWhileAnotherHasItOnAndTheLastOneOffOrGoneBringsThemBack() throws {
+        var a = Page()
+        a.holdSeconds = 3
+        var design = Design(title: "beats")
+        design.pages = [a, Page()]
+        var one = AudioTrack(id: "t1", src: "audio:a.m4a")
+        one.beatSync = true
+        var two = AudioTrack(id: "t2", src: "audio:b.m4a")
+        two.beatSync = true
+        design.audioTracks = [one, two]
+        let synced = BeatSync.on(design, beats: [1.0, 2.0, 3.2, 4.0, 5.0])
+        var oneOff = synced
+        oneOff.audioTracks[0].beatSync = false
+        oneOff = BeatSync.settled(oneOff)
+        XCTAssertEqual(try XCTUnwrap(oneOff.pages[0].holdSeconds), 3.2, accuracy: 1e-9)
+        XCTAssertNotNil(oneOff.beatSyncRestore)
+        var bothOff = oneOff
+        bothOff.audioTracks[1].beatSync = false
+        bothOff = BeatSync.settled(bothOff)
+        XCTAssertEqual(try XCTUnwrap(bothOff.pages[0].holdSeconds), 3.0, accuracy: 1e-9)
+        XCTAssertNil(bothOff.beatSyncRestore)
+        // The last synced track taken out: the same.
+        var gone = oneOff
+        gone.audioTracks.removeAll { $0.id == "t2" }
+        gone = BeatSync.settled(gone)
+        XCTAssertEqual(try XCTUnwrap(gone.pages[0].holdSeconds), 3.0, accuracy: 1e-9)
+        XCTAssertNil(gone.beatSyncRestore)
+    }
+
+    func testTheKeptHoldsAndTheTalksFollowTheirPagesToACopy() throws {
+        var a = Page()
+        a.holdSeconds = 3
+        let b = Page()
+        var design = Design(title: "beats")
+        design.pages = [a, b]
+        let talk = Recording(id: "rec_1", createdAt: 0, audio: "a1", camera: nil,
+                             pages: [RecordingSpan(pageId: a.id, start: 0, end: 2), RecordingSpan(pageId: b.id, start: 2, end: 5)])
+        design = Recordings.added(design, talk)
+        let synced = BeatSync.on(design, beats: [1.0, 2.0, 3.2, 4.0, 5.0])
+        // Renamed, a page not among the new ids dropped.
+        let renamed = BeatSync.withPageIds(synced, [a.id: "x"])
+        XCTAssertEqual(renamed.beatSyncRestore, ["x": .some(3.0)])
+        let talks = Recordings.of(Recordings.withPageIds(synced, [a.id: "x"]))
+        XCTAssertEqual(try XCTUnwrap(talks.first).pages.map(\.pageId), ["x"])
+        // A copy's pages are new, and what named the old ones names them.
+        let copy = CopyResize.freshCopy(of: synced)
+        let ids = copy.pages.map(\.id)
+        XCTAssertEqual(Set(try XCTUnwrap(copy.beatSyncRestore).keys), Set(ids))
+        XCTAssertEqual(try XCTUnwrap(Recordings.of(copy).first).pages.map(\.pageId), ids)
+        XCTAssertEqual(try XCTUnwrap(BeatSync.off(copy).pages[0].holdSeconds), 3.0, accuracy: 1e-9)
+    }
 }

@@ -228,6 +228,19 @@ enum CodeGenerator {
         return String(format: "#%02x%02x%02x", c.r, c.g, c.b)
     }
 
+    /// Whether `el` can take `look`: a QR code's words still fit at the
+    /// level the look makes it at (a logo's H, or its own correction) —
+    /// else it would draw as nothing. Anything but a QR code, and a look at
+    /// the level it already has, always can. The Android twin's
+    /// QrCodes.holds, with the same rows.
+    static func holds(_ el: Element, _ look: Look) -> Bool {
+        guard let payload = payload(from: el.src ?? "") else { return true }
+        return look.level == style(of: el).level || modules(for: payload, level: look.level) != nil
+    }
+
+    /// What the code sheet says when a correction or a logo is refused.
+    static var tooLongForLevel: String { tr("Too long for this error correction") }
+
     /// What the code sheet says of a look that may not scan.
     static let scanRiskWarning = tr("This may be hard to scan")
 

@@ -233,7 +233,7 @@ extension DataGraphics {
         let boxes = columnBoxes(elements, id: id)
         guard boxes[col] != nil, boxes.count > 1,
               let removed = withoutColumn(elements, id: id, col: col) else { return nil }
-        return relaidTable(removed, id: id, heightFor: heightFor)
+        return relaidTable(tableMinimumsKept(elements, removed, id: id), id: id, heightFor: heightFor)
     }
 
     // MARK: look
@@ -358,7 +358,7 @@ extension DataGraphics {
             }
             return kept
         }
-        return relaidTable(out, id: id, heightFor: heightFor)
+        return relaidTable(tableMinimumsKept(elements, out, id: id), id: id, heightFor: heightFor)
     }
 
     /// The merged cells among `cells` of table `id` parted again: each one
@@ -475,6 +475,20 @@ extension DataGraphics {
             out.table?.minH = cell.col == holder ? height : nil
             return out
         }
+    }
+
+    /// `after` — table `id` with a column taken out, or cells merged — with
+    /// each row's least height `before` kept: a row whose holder went (its
+    /// first column's cell deleted, or merged into the cell above) has it
+    /// on the first cell left starting in it. The Android twin's
+    /// Tables.minimumsKept, with the same rows.
+    static func tableMinimumsKept(_ before: [Element], _ after: [Element], id: String) -> [Element] {
+        let has = tableRowMinimums(tableMembers(after, id: id))
+        var out = after
+        for (row, least) in tableRowMinimums(tableMembers(before, id: id)) where has[row] == nil {
+            out = withRowMinimum(out, id: id, row: row, height: least)
+        }
+        return out
     }
 
     /// Each of table `id`'s rows' y and height, as its rectangles one row

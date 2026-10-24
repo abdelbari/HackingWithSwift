@@ -320,4 +320,26 @@ enum BeatSync {
         out.beatSyncRestore = nil
         return out
     }
+
+    /// `design` once a track's Beat Sync is turned off or a track is taken
+    /// out: as it is while another track still has it on — its holds on
+    /// the beats, the kept ones still kept — else as `off` leaves it. The
+    /// Android twin's BeatSync.settled, with the same rows.
+    static func settled(_ design: Design) -> Design {
+        active(design) ? design : off(design)
+    }
+
+    /// `design` with the kept holds' pages renamed by `pageIds` (old page
+    /// id to new), as a design's pages are when it is copied or read from a
+    /// file; a page not among them is dropped.
+    static func withPageIds(_ design: Design, _ pageIds: [String: String]) -> Design {
+        guard let kept = design.beatSyncRestore else { return design }
+        var renamed: [String: Double?] = [:]
+        for (old, hold) in kept {
+            if let new = pageIds[old] { renamed[new] = .some(hold) }
+        }
+        var out = design
+        out.beatSyncRestore = renamed
+        return out
+    }
 }

@@ -25946,6 +25946,15 @@
     "ja": "QR コードには長すぎます。最後に収まった内容を保持します。",
     "pt-BR": "Longo demais para um código QR; mantém o último que coube."
   },
+  "Too long for this error correction": {
+    "ar": "أطول من أن يتسع له هذا المستوى من تصحيح الأخطاء",
+    "de": "Zu lang für diese Fehlerkorrektur",
+    "es": "Demasiado largo para esta corrección de errores",
+    "fr": "Trop long pour cette correction d’erreurs",
+    "it": "Troppo lungo per questa correzione degli errori",
+    "ja": "この誤り訂正には長すぎます",
+    "pt-BR": "Longo demais para esta correção de erros"
+  },
   "Top": {
     "ar": "أعلى",
     "de": "Oben",
