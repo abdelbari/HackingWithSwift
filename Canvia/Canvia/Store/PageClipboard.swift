@@ -109,10 +109,15 @@ enum PageClipboard {
 
     /// The pages as they land in a design of `width` × `height`, in order:
     /// each fitted as one page is (fitted), with fresh ids and its arrows
-    /// joined to the copies.
+    /// joined to the copies. Each is drawn at the design's size, so a size
+    /// of its own is left behind — as on the Android twin.
     static func landed(_ pages: Pages, width: Double, height: Double) -> [Page] {
         pages.pages.map { entry in
-            fitted(Payload(page: entry.page, width: entry.width, height: entry.height), width: width, height: height)
+            var page = fitted(Payload(page: entry.page, width: entry.width, height: entry.height),
+                              width: width, height: height)
+            page.width = nil
+            page.height = nil
+            return page
         }
     }
 

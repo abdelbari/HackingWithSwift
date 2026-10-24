@@ -29,7 +29,7 @@ final class UndoStepNamesTests: XCTestCase {
 
     func testTheSharedVectors() throws {
         let vectors = try JSONDecoder().decode(StepVectors.self, from: fixture("history-labels")).vectors
-        XCTAssertEqual(vectors.count, 17)
+        XCTAssertEqual(vectors.count, 19)
         for c in vectors {
             XCTAssertEqual(History.label(before: c.before, after: c.after), c.label, c.name)
         }

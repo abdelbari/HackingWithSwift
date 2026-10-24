@@ -632,12 +632,11 @@ final class DesignStore {
     /// it, as in Canva and on the Android twin: the first tap takes the
     /// outermost group, the next the group inside it that the thing tapped
     /// is in, and so on down, and the last the thing tapped (Groups.deeper).
-    /// A drag still moves what is selected. True when the tap was taken
-    /// that way.
+    /// A tap on a member already selected alone keeps it so. A drag still
+    /// moves what is selected. True when the tap was taken that way.
     @discardableResult
     func selectMember(_ id: String) -> Bool {
-        guard selection.count > 1,
-              let next = Groups.deeper(page.elements, selection: selection, tapped: id) else { return false }
+        guard let next = Groups.deeper(page.elements, selection: selection, tapped: id) else { return false }
         endTextEdit()
         selection = next
         return true
@@ -3144,7 +3143,7 @@ final class DesignStore {
     /// of them shown.
     func pastePage() {
         guard let copied = PageClipboard.pastePages() else { return }
-        let landed = PageClipboard.landed(copied, width: pageWidth, height: pageHeight)
+        let landed = PageClipboard.landed(copied, width: design.width, height: design.height)
         guard !landed.isEmpty else { return }
         let at = pageIndex + 1
         // The fonts of your own they brought recorded with them, one step.

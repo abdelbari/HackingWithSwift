@@ -85,6 +85,53 @@ final class LikeThisTests: XCTestCase {
         XCTAssertTrue(swapped.allSatisfy { $0.x >= minX && $0.x + $0.w <= maxX })
     }
 
+    /// The Android twin's "a graphic inside a group stays a group of its
+    /// own inside it, with that group's turn".
+    func testAGraphicInsideAGroupStaysAGroupOfItsOwnInsideItWithThatGroupsTurn() throws {
+        let old = GraphicsLibrary.elements(try XCTUnwrap(GraphicsLibrary.graphic("blob-02")), pageWidth: 1000, pageHeight: 1000)
+            .map { el -> Element in
+                var out = Groups.withChain(el, ["outer"] + Groups.chain(el))
+                out.groupTurn = 30
+                return out
+            }
+        let fresh = GraphicsLibrary.elements(try XCTUnwrap(GraphicsLibrary.graphic("blob-03")), pageWidth: 500, pageHeight: 500)
+        XCTAssertTrue(old.count > 1 && fresh.count > 1)
+        let inner = try XCTUnwrap(Groups.chain(old[0]).last)
+        let swapped = LikeThis.replaced(old, with: fresh)
+        XCTAssertTrue(swapped.allSatisfy { Groups.chain($0) == ["outer", inner] && $0.groupTurn == 30 })
+        // One shape in that group swapped for several parts: a group of
+        // their own inside it.
+        var shape = Element.shape("star")
+        shape.group = "outer"
+        shape.groupTurn = 30
+        let parts = LikeThis.replaced([shape], with: fresh)
+        XCTAssertTrue(parts.allSatisfy { Groups.chain($0).count == 2 && Groups.chain($0).first == "outer" && $0.groupTurn == 30 })
+        XCTAssertEqual(Set(parts.compactMap { Groups.chain($0).last }).count, 1)
+        // The graphic swapped for one shape: still in the group round it.
+        let one = LikeThis.replaced(old, with: [Element.shape("heart")])
+        XCTAssertEqual(one.count, 1)
+        XCTAssertEqual(one.first.map(Groups.chain), ["outer"])
+        XCTAssertEqual(one.first?.groupTurn, 30)
+    }
+
+    /// The Android twin's "one part of a graphic selected swaps the whole
+    /// graphic".
+    func testOnePartOfAGraphicSelectedSwapsTheWholeGraphic() throws {
+        let parts = GraphicsLibrary.elements(try XCTUnwrap(GraphicsLibrary.graphic("blob-02")), pageWidth: 1000, pageHeight: 1000)
+        let heading = Element.text("Hi")
+        XCTAssertEqual(LikeThis.wholeGraphic(parts + [heading], selection: [parts[1].id])?.map(\.id), parts.map(\.id))
+        XCTAssertNil(LikeThis.wholeGraphic(parts + [heading], selection: [heading.id]))
+        XCTAssertNil(LikeThis.wholeGraphic(parts, selection: [parts[0].id, parts[1].id]))
+        var design = Design(title: "like", width: 1000, height: 1000)
+        design.pages[0].elements = parts + [heading]
+        let s = DesignStore(design: design)
+        s.selection = [parts[1].id]
+        let fresh = GraphicsLibrary.elements(try XCTUnwrap(GraphicsLibrary.graphic("blob-03")), pageWidth: 1000, pageHeight: 1000)
+        XCTAssertTrue(s.replaceSelected(with: fresh))
+        XCTAssertEqual(s.page.elements.count, fresh.count + 1)
+        XCTAssertFalse(s.page.elements.contains { el in parts.contains { $0.id == el.id } })
+    }
+
     func testTheStoreSwapsTheSelectionInOneStepInItsPlaceAmongTheLayers() {
         let s = DesignStore(design: Design(title: "like", width: 1000, height: 1000))
         s.add(.shape("rect"))

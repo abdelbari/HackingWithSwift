@@ -1085,6 +1085,210 @@
       }
     },
     {
+      "name": "a group turned whole",
+      "label": "Rotate",
+      "before": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "group": "g"
+              },
+              {
+                "id": "b",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 400,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "group": "g"
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      },
+      "after": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 200,
+                "y": 0,
+                "w": 200,
+                "h": 100,
+                "rotation": 90,
+                "group": "g",
+                "groupTurn": 90
+              },
+              {
+                "id": "b",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 200,
+                "y": 300,
+                "w": 200,
+                "h": 100,
+                "rotation": 90,
+                "group": "g",
+                "groupTurn": 90
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "a turned group turned back upright",
+      "label": "Rotate",
+      "before": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 200,
+                "y": 0,
+                "w": 200,
+                "h": 100,
+                "rotation": 90,
+                "group": "g",
+                "groupTurn": 90
+              },
+              {
+                "id": "b",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 200,
+                "y": 300,
+                "w": 200,
+                "h": 100,
+                "rotation": 90,
+                "group": "g",
+                "groupTurn": 90
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      },
+      "after": {
+        "id": "d",
+        "title": "History",
+        "width": 1080,
+        "height": 1080,
+        "createdAt": 0,
+        "updatedAt": 0,
+        "pages": [
+          {
+            "id": "p1",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": [
+              {
+                "id": "a",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 100,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "group": "g"
+              },
+              {
+                "id": "b",
+                "type": "shape",
+                "shapeId": "rect",
+                "x": 400,
+                "y": 100,
+                "w": 200,
+                "h": 100,
+                "group": "g"
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "background": {
+              "type": "color",
+              "value": "#ffffff"
+            },
+            "elements": []
+          }
+        ]
+      }
+    },
+    {
       "name": "moved and resized",
       "label": "Resize",
       "before": {

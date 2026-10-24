@@ -83,7 +83,8 @@ enum History {
         a.w = 0; b.w = 0; a.h = 0; b.h = 0
         a.fontSize = nil; b.fontSize = nil; a.letterSpacing = nil; b.letterSpacing = nil
         if a == b { return .resized }
-        a.rotation = 0; b.rotation = 0
+        // A whole group's turn is recorded on each member too: part of turning.
+        a.rotation = 0; b.rotation = 0; a.groupTurn = nil; b.groupTurn = nil
         if a == b { return .turned }
         return before.text != after.text ? .typed : .styled
     }
