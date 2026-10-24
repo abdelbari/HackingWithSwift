@@ -66,6 +66,20 @@ enum ElementLock {
         }
     }
 
+    /// The elements of `page` locked either way: what Unlock all frees.
+    static func lockedIds(_ page: Page) -> [String] {
+        page.elements.filter { mode(of: $0) != .unlocked }.map(\.id)
+    }
+
+    /// Unlock all: `page` with every element's lock and position lock
+    /// cleared — the keys left off, as Unlock leaves them. The Android twin's
+    /// ElementLock.unlockedAll, the same rows.
+    static func unlockedAll(_ page: Page) -> Page {
+        var out = page
+        out.elements = page.elements.map { with($0, .unlocked) }
+        return out
+    }
+
     /// The badge's symbol on a locked element: a padlock in outline for a
     /// position lock, a filled one for a full lock, as on the Android twin.
     static func symbol(_ mode: Mode) -> String {

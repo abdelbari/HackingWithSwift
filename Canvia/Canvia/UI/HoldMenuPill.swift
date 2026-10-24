@@ -1,5 +1,6 @@
 // The menu a still hold on the empty page brings up, at the finger: Paste —
-// put down where you pressed — Paste page, Select all, Add text here,
+// put down where you pressed — Paste page, Select all, Unlock all and Show
+// hidden with how many, Add text here,
 // Background and Animate (HoldMenu). A pill like the quick actions at the selection,
 // placed as they are placed (Geometry.bubbleAnchor). A tap anywhere else on
 // the canvas puts it away, as does the view moving; VoiceOver has the same
@@ -26,7 +27,7 @@ struct HoldMenuPill: View {
         GeometryReader { proxy in
             ZStack {
                 if let at = store.holdMenuAt, let place = anchor(at, in: proxy.size) {
-                    pill(at)
+                    pill(at, room: Double(proxy.size.width) - 28)
                         .position(place)
                         .transition(.opacity)
                 }
@@ -47,6 +48,8 @@ struct HoldMenuPill: View {
         case .pastePlain: store.paste(at: point, plain: true)
         case .pastePage: store.pastePage()
         case .selectAll: store.selectAll()
+        case .unlockAll: store.unlockAll(onPage: store.pageIndex)
+        case .showHidden: store.showAllHidden(onPage: store.pageIndex)
         case .addText: store.addText(at: point)
         case .background: openBackground()
         case .animate: store.asksPageAnimation = true
@@ -55,7 +58,19 @@ struct HoldMenuPill: View {
 
     private var items: [HoldMenu.HoldItem] {
         HoldMenu.items(canPaste: store.canPasteAtFinger, canPastePlain: UIPasteboard.general.hasStrings,
-                       canPastePage: store.hasPageOnClipboard)
+                       canPastePage: store.hasPageOnClipboard, locked: store.lockedCount(onPage: store.pageIndex),
+                       hidden: store.hiddenCount(onPage: store.pageIndex), pageLocked: store.isPageLocked)
+    }
+
+    /// An item's words on the pill: Paste page's as the clipboard has it,
+    /// and Unlock all and Show hidden with how many.
+    private func title(_ item: HoldMenu.HoldItem) -> String {
+        switch item {
+        case .pastePage: return store.pastePageTitle
+        case .unlockAll: return HoldMenu.unlockAllTitle(store.lockedCount(onPage: store.pageIndex))
+        case .showHidden: return HoldMenu.showHiddenTitle(store.hiddenCount(onPage: store.pageIndex))
+        default: return item.title
+        }
     }
 
     /// The pill's middle on screen, or nil when the point pressed is out of
@@ -74,12 +89,17 @@ struct HoldMenuPill: View {
         return CGPoint(x: x, y: y)
     }
 
-    private func pill(_ at: CGPoint) -> some View {
-        HStack(spacing: 0) {
-            ForEach(items) { item in
-                button(item, at: at)
+    private func pill(_ at: CGPoint, room: Double) -> some View {
+        // Wider than the screen with every item, it scrolls across.
+        let width = Self.slot * Double(items.count)
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 0) {
+                ForEach(items) { item in
+                    button(item, at: at)
+                }
             }
         }
+        .frame(width: CGFloat(min(width, max(room, Self.slot))))
         .padding(.horizontal, 6)
         .frame(height: Self.height)
         .background(.regularMaterial, in: Capsule())
@@ -96,7 +116,7 @@ struct HoldMenuPill: View {
             VStack(spacing: 3) {
                 Image(systemName: item.symbol)
                     .font(.callout.weight(.medium))
-                Text(item == .pastePage ? store.pastePageTitle : item.title)
+                Text(title(item))
                     .font(.caption2.weight(.medium))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)

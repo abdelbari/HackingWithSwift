@@ -1473,9 +1473,24 @@ struct CanvasView: View {
             Button(store.pastePageTitle) { chooseFromHoldMenu(.pastePage, at: centre) }
         }
         Button(HoldMenu.HoldItem.selectAll.title) { chooseFromHoldMenu(.selectAll, at: centre) }
+        recoverActions(at: centre)
         Button(HoldMenu.HoldItem.addText.title) { chooseFromHoldMenu(.addText, at: centre) }
         Button(HoldMenu.HoldItem.background.title) { chooseFromHoldMenu(.background, at: centre) }
         Button(HoldMenu.HoldItem.animate.title) { chooseFromHoldMenu(.animate, at: centre) }
+    }
+
+    /// Unlock all and Show hidden among the page's actions, as the hold
+    /// menu offers them.
+    @ViewBuilder
+    private func recoverActions(at centre: CGPoint) -> some View {
+        let locked = store.lockedCount(onPage: store.pageIndex)
+        let hidden = store.hiddenCount(onPage: store.pageIndex)
+        if locked > 0 && !store.isPageLocked {
+            Button(HoldMenu.unlockAllTitle(locked)) { chooseFromHoldMenu(.unlockAll, at: centre) }
+        }
+        if hidden > 0 {
+            Button(HoldMenu.showHiddenTitle(hidden)) { chooseFromHoldMenu(.showHidden, at: centre) }
+        }
     }
 
     private func chooseFromHoldMenu(_ item: HoldMenu.HoldItem, at point: CGPoint) {

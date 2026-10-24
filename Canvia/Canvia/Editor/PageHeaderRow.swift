@@ -68,7 +68,8 @@ struct PageHeaderRow: View {
         moreMenu
     }
 
-    /// Hide or show, Lock or unlock, Expand to whiteboard or Collapse, Copy
+    /// Hide or show, Lock or unlock, Unlock all and Show hidden when there
+    /// is something to free, Expand to whiteboard or Collapse, Copy
     /// page, Paste page (or pages), and the page's title and notes. Hiding the only page is not offered, as in the pages bar.
     private var moreMenu: some View {
         Menu {
@@ -82,6 +83,7 @@ struct PageHeaderRow: View {
                 Label(PageLocks.isLocked(page) ? tr("Unlock page") : tr("Lock page"),
                       systemImage: PageLocks.isLocked(page) ? "lock.open" : "lock")
             }
+            PageRecoverItems(store: store, index: index)
             // An endless canvas round the page, and back to its frame.
             Button { onPage { store.toggleWhiteboard() } } label: {
                 Label(Whiteboards.isExpanded(page) ? tr("Collapse") : tr("Expand to whiteboard"),

@@ -9,6 +9,20 @@ import Foundation
 
 enum PageVisibility {
 
+    /// The elements of `page` hidden: what Show hidden brings back.
+    static func hiddenIds(_ page: Page) -> [String] {
+        page.elements.filter(\.isHidden).map(\.id)
+    }
+
+    /// Show hidden: `page` with no element hidden — the key left off, as
+    /// Show leaves it. The Android twin's PageVisibility.shownAll, the same
+    /// rows.
+    static func shownAll(_ page: Page) -> Page {
+        var out = page
+        for i in out.elements.indices { out.elements[i].hidden = nil }
+        return out
+    }
+
     /// Said where Present, or an export of every page, has nothing to show.
     static let everyPageHidden = tr("Every page is hidden")
 

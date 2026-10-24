@@ -304,15 +304,40 @@ struct PageOrganizerSheet: View {
     }
 
     /// Unlock when every page picked is locked; otherwise Lock, which locks
-    /// the rest of them too — one undo step either way.
+    /// the rest of them too — one undo step either way. With one page picked
+    /// that has things locked or hidden on it, the page's menu: that, then
+    /// Unlock all and Show hidden, which go to the page to show what they
+    /// freed (PageRecoverItems).
+    @ViewBuilder
     private var lockButton: some View {
+        if let index = recoverable {
+            Menu {
+                lockPagesButton
+                PageRecoverItems(store: store, index: index) { dismiss() }
+            } label: {
+                Label(selectionLocked ? tr("Unlock") : tr("Lock"), systemImage: selectionLocked ? "lock.open" : "lock")
+            }
+        } else {
+            lockPagesButton
+                .disabled(selected.isEmpty)
+        }
+    }
+
+    private var lockPagesButton: some View {
         Button {
             store.setPagesLocked(selected, locked: !selectionLocked)
             selected = []
         } label: {
             Label(selectionLocked ? tr("Unlock") : tr("Lock"), systemImage: selectionLocked ? "lock.open" : "lock")
         }
-        .disabled(selected.isEmpty)
+    }
+
+    /// The one page picked, by index, when it has something locked or
+    /// hidden on it to free; nil otherwise.
+    private var recoverable: Int? {
+        guard selected.count == 1, let id = selected.first,
+              let index = store.design.pages.firstIndex(where: { $0.id == id }) else { return nil }
+        return store.lockedCount(onPage: index) + store.hiddenCount(onPage: index) > 0 ? index : nil
     }
 
     /// How many of the pages picked Delete would take: the unlocked ones.
