@@ -75,6 +75,15 @@ enum GraphicClip {
         return out
     }
 
+    /// `chosen` — some of `page`'s elements, to be copied, cut or moved on
+    /// their own — with the crop of each that is part of a cropped group but
+    /// not the whole of it put on the frame of the part that goes, so it
+    /// still shows what it showed (regrouped); a whole group as it is. The
+    /// Android twin's Clips.copied, the same rows.
+    static func copied(_ page: [Element], _ chosen: [Element]) -> [Element] {
+        regrouped(before: page, after: chosen)
+    }
+
     /// `after` — the page's elements once some have left a group, joined
     /// one or been deleted from one — with every crop whose group is no
     /// longer the same members kept where it shows on the page: the part

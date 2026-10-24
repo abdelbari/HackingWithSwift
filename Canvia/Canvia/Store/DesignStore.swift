@@ -903,7 +903,9 @@ final class DesignStore {
     }
 
     func duplicateSelected() {
-        let copies = Copies.of(selectedElements.filter { !$0.locked }, offset: 24)
+        // Part of a cropped group crops as it showed: its crop put on the
+        // frame of the part copied (GraphicClip.copied).
+        let copies = Copies.of(GraphicClip.copied(page.elements, selectedElements.filter { !$0.locked }), offset: 24)
         guard !copies.isEmpty else { return }
         applyToPage { $0.elements.append(contentsOf: copies) }
         selection = Set(copies.map(\.id))
@@ -1075,7 +1077,9 @@ final class DesignStore {
     var canDistribute: Bool { movableSelectionCount >= 3 }
 
     func copySelected() {
-        let selected = selectedElements
+        // Part of a cropped group goes with its crop put on the frame of the
+        // part copied (GraphicClip.copied), so it pastes showing the same.
+        let selected = GraphicClip.copied(page.elements, selectedElements)
         guard !selected.isEmpty else { return }
         clipboard = selected
         clipboardPage = page.id
@@ -1092,7 +1096,7 @@ final class DesignStore {
         // both left behind and on the clipboard. A cut is a move by way of
         // the clipboard, so, as with Move to page, a position lock stays
         // too, as on the Android twin (its DesignStore.cutSelected).
-        let removable = selectedElements.filter { !$0.holdsPlace }
+        let removable = GraphicClip.copied(page.elements, selectedElements.filter { !$0.holdsPlace })
         guard !removable.isEmpty else {
             if !selection.isEmpty { buzz(.reject) }
             return

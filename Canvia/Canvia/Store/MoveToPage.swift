@@ -39,7 +39,7 @@ extension DesignStore {
             return false
         }
         let source = pageIndex
-        let moving = page.elements.filter { ids.contains($0.id) }
+        let moving = GraphicClip.copied(page.elements, page.elements.filter { ids.contains($0.id) })
         let size = design.size(at: index)
         var moved = PageMove.clamped(moving, from: pageSize, to: size)
         if let drop {
