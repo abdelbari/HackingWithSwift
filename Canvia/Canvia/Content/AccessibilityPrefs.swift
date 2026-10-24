@@ -14,7 +14,8 @@
 //  - "a11yLargerHandles": false, unless turned on: true makes selection
 //    handles and their hit targets `largerScale` times as big.
 //
-// And one of Settings ▸ Editing kept with them, on this phone only:
+// And one of Settings ▸ Editing kept with them, under the same key on
+// both phones and carried in settings.json too:
 //
 //  - "canvia.showDistances": true, unless turned off: a move, or a hold
 //    still on what is selected, measures the distances to its neighbours
@@ -90,6 +91,7 @@ enum AccessibilityPrefs {
         var altTextPrompt: Bool?
         var underlineLinks: Bool?
         var largerHandles: Bool?
+        var showDistances: Bool?
     }
 
     /// This phone's, every one of them, defaults where none was set.
@@ -99,7 +101,8 @@ enum AccessibilityPrefs {
                         autoplayClips: flag(autoplayClipsKey, true),
                         altTextPrompt: flag(altTextPromptKey, false),
                         underlineLinks: flag(underlineLinksKey, false),
-                        largerHandles: flag(largerHandlesKey, false))
+                        largerHandles: flag(largerHandlesKey, false),
+                        showDistances: flag(showDistancesKey, true))
     }
 
     /// `settings` kept on this phone, those it has.
@@ -109,6 +112,7 @@ enum AccessibilityPrefs {
         if let v = settings.altTextPrompt { defaults.set(v, forKey: altTextPromptKey) }
         if let v = settings.underlineLinks { defaults.set(v, forKey: underlineLinksKey) }
         if let v = settings.largerHandles { defaults.set(v, forKey: largerHandlesKey) }
+        if let v = settings.showDistances { defaults.set(v, forKey: showDistancesKey) }
     }
 
     /// `settings` written into a settings object, those it has.
@@ -118,6 +122,7 @@ enum AccessibilityPrefs {
         if let v = settings.altTextPrompt { object[altTextPromptKey] = v }
         if let v = settings.underlineLinks { object[underlineLinksKey] = v }
         if let v = settings.largerHandles { object[largerHandlesKey] = v }
+        if let v = settings.showDistances { object[showDistancesKey] = v }
     }
 
     /// The settings in a backup's settings.json: a key missing, or of
@@ -131,6 +136,7 @@ enum AccessibilityPrefs {
         }
         let motion = (object[reduceMotionKey] as? String).flatMap { reduceMotionChoices.contains($0) ? $0 : nil }
         return Settings(reduceMotion: motion, autoplayClips: flag(autoplayClipsKey), altTextPrompt: flag(altTextPromptKey),
-                        underlineLinks: flag(underlineLinksKey), largerHandles: flag(largerHandlesKey))
+                        underlineLinks: flag(underlineLinksKey), largerHandles: flag(largerHandlesKey),
+                        showDistances: flag(showDistancesKey))
     }
 }
