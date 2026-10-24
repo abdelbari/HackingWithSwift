@@ -28,10 +28,13 @@ final class PasteIntoFrameTests: XCTestCase {
         let plain = photo("plain")
         let text = Element.text("Hello")
         let picture = photo()
+        var lockedPicture = photo("lockedPicture")
+        lockedPicture.locked = true
         let page = [f, other, locked, plain]
         let rows: [(String, [Element], [Element], Bool, Copies.PasteTarget)] = [
             ("frame + picture", [f], [picture], true, .fill("frame")),
             ("frame + a copied photo", [f], [picture], false, .fill("frame")),
+            ("frame + a copied locked photo", [f], [lockedPicture], false, .add),
             ("frame + text", [f], [text], true, .add),
             ("frame + two copied photos", [f], [picture, photo("p2")], false, .add),
             ("two selected", [f, other], [picture], true, .add),
