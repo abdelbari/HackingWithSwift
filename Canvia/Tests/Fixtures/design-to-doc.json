@@ -1,0 +1,445 @@
+{
+  "about": "Docs.fromDesign on both phones: the design (in the iPhone's file format), read with speaker notes, into these blocks — their ids left out.",
+  "design": {
+    "id": "d-doc",
+    "title": "Spring deck",
+    "width": 1080,
+    "height": 1080,
+    "createdAt": 0,
+    "updatedAt": 0,
+    "folder": "f-work",
+    "pages": [
+      {
+        "id": "p1",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "notes": "Speak slowly.",
+        "elements": [
+          {
+            "id": "bg",
+            "type": "shape",
+            "shapeId": "rect",
+            "x": 0,
+            "y": 0,
+            "w": 1080,
+            "h": 40,
+            "fill": {
+              "kind": "solid",
+              "color": "#3355ff"
+            }
+          },
+          {
+            "id": "e1",
+            "type": "text",
+            "text": "Spring *launch*",
+            "x": 100,
+            "y": 60,
+            "w": 880,
+            "h": 40,
+            "fontSize": 80,
+            "color": "#111111",
+            "textRole": "title"
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "text": "Why now",
+            "x": 100,
+            "y": 160,
+            "w": 880,
+            "h": 40,
+            "fontSize": 48,
+            "color": "#111111",
+            "textRole": "h1"
+          },
+          {
+            "id": "e3",
+            "type": "text",
+            "text": "We grew **fast** this year.",
+            "x": 100,
+            "y": 240,
+            "w": 880,
+            "h": 40,
+            "fontSize": 24,
+            "color": "#111111",
+            "textRole": "body",
+            "spans": [
+              {
+                "start": 0,
+                "end": 2,
+                "color": "#c00000"
+              }
+            ],
+            "spansText": "We grew fast this year."
+          },
+          {
+            "id": "e4",
+            "type": "text",
+            "text": "Plan\nCall the team\nBook the room",
+            "x": 100,
+            "y": 300,
+            "w": 880,
+            "h": 40,
+            "fontSize": 24,
+            "color": "#111111",
+            "listStyle": "number",
+            "paragraphs": [
+              {
+                "list": "none"
+              },
+              {
+                "list": "number"
+              },
+              {
+                "list": "number",
+                "level": 1
+              }
+            ],
+            "paragraphsText": "Plan\nCall the team\nBook the room"
+          },
+          {
+            "id": "e5",
+            "type": "image",
+            "src": "img-wide",
+            "x": 100,
+            "y": 420,
+            "w": 600,
+            "h": 160,
+            "altText": "The new shop"
+          },
+          {
+            "id": "e6",
+            "type": "image",
+            "src": "img-small",
+            "x": 800,
+            "y": 420,
+            "w": 200,
+            "h": 160
+          },
+          {
+            "id": "r1",
+            "type": "shape",
+            "shapeId": "rect",
+            "x": 100,
+            "y": 600,
+            "w": 300,
+            "h": 40,
+            "fill": {
+              "kind": "solid",
+              "color": "#eeeeee"
+            },
+            "table": {
+              "id": "t1",
+              "row": 0,
+              "col": 0
+            }
+          },
+          {
+            "id": "r2",
+            "type": "shape",
+            "shapeId": "rect",
+            "x": 400,
+            "y": 600,
+            "w": 300,
+            "h": 40,
+            "fill": {
+              "kind": "solid",
+              "color": "#eeeeee"
+            },
+            "table": {
+              "id": "t1",
+              "row": 0,
+              "col": 1
+            }
+          },
+          {
+            "id": "r3",
+            "type": "shape",
+            "shapeId": "rect",
+            "x": 100,
+            "y": 640,
+            "w": 300,
+            "h": 40,
+            "fill": {
+              "kind": "solid",
+              "color": "#eeeeee"
+            },
+            "table": {
+              "id": "t1",
+              "row": 1,
+              "col": 0
+            }
+          },
+          {
+            "id": "r4",
+            "type": "shape",
+            "shapeId": "rect",
+            "x": 400,
+            "y": 640,
+            "w": 300,
+            "h": 40,
+            "fill": {
+              "kind": "solid",
+              "color": "#eeeeee"
+            },
+            "table": {
+              "id": "t1",
+              "row": 1,
+              "col": 1
+            }
+          },
+          {
+            "id": "c1",
+            "type": "text",
+            "text": "Item",
+            "x": 100,
+            "y": 600,
+            "w": 300,
+            "h": 40,
+            "fontSize": 24,
+            "color": "#111111",
+            "table": {
+              "id": "t1",
+              "row": 0,
+              "col": 0
+            },
+            "fontWeight": 700
+          },
+          {
+            "id": "c2",
+            "type": "text",
+            "text": "Price",
+            "x": 400,
+            "y": 600,
+            "w": 300,
+            "h": 40,
+            "fontSize": 24,
+            "color": "#111111",
+            "table": {
+              "id": "t1",
+              "row": 0,
+              "col": 1
+            },
+            "fontWeight": 700
+          },
+          {
+            "id": "c3",
+            "type": "text",
+            "text": "Tea",
+            "x": 100,
+            "y": 640,
+            "w": 300,
+            "h": 40,
+            "fontSize": 24,
+            "color": "#111111",
+            "table": {
+              "id": "t1",
+              "row": 1,
+              "col": 0
+            }
+          },
+          {
+            "id": "c4",
+            "type": "text",
+            "text": "2",
+            "x": 400,
+            "y": 640,
+            "w": 300,
+            "h": 40,
+            "fontSize": 24,
+            "color": "#111111",
+            "table": {
+              "id": "t1",
+              "row": 1,
+              "col": 1
+            }
+          },
+          {
+            "id": "e7",
+            "type": "text",
+            "text": "Simple is best.",
+            "x": 100,
+            "y": 800,
+            "w": 880,
+            "h": 40,
+            "fontSize": 28,
+            "color": "#111111",
+            "textRole": "quote"
+          },
+          {
+            "id": "e8",
+            "type": "text",
+            "text": "Figure 1: the shop",
+            "x": 100,
+            "y": 900,
+            "w": 880,
+            "h": 40,
+            "fontSize": 18,
+            "color": "#111111",
+            "textRole": "caption"
+          }
+        ]
+      },
+      {
+        "id": "p2",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "hidden": true,
+        "elements": [
+          {
+            "id": "h1",
+            "type": "text",
+            "text": "Hidden page",
+            "x": 100,
+            "y": 60,
+            "w": 880,
+            "h": 40,
+            "fontSize": 80,
+            "color": "#111111",
+            "textRole": "title"
+          }
+        ]
+      },
+      {
+        "id": "p3",
+        "background": {
+          "type": "color",
+          "value": "#ffffff"
+        },
+        "title": "Next steps",
+        "notes": "",
+        "elements": [
+          {
+            "id": "f1",
+            "type": "text",
+            "text": "Timeline",
+            "x": 100,
+            "y": 60,
+            "w": 880,
+            "h": 40,
+            "fontSize": 60,
+            "color": "#111111",
+            "textRole": "h1"
+          },
+          {
+            "id": "f2",
+            "type": "text",
+            "text": "Phase one",
+            "x": 100,
+            "y": 160,
+            "w": 880,
+            "h": 40,
+            "fontSize": 36,
+            "color": "#111111",
+            "textRole": "h2"
+          },
+          {
+            "id": "f3",
+            "type": "text",
+            "text": "Apples\nPears",
+            "x": 100,
+            "y": 240,
+            "w": 880,
+            "h": 40,
+            "fontSize": 24,
+            "color": "#111111",
+            "listStyle": "bullet"
+          }
+        ]
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "type": "title",
+      "text": "Spring *launch*"
+    },
+    {
+      "type": "h2",
+      "text": "Why now"
+    },
+    {
+      "type": "p",
+      "text": "We grew **fast** this year.",
+      "spans": [
+        {
+          "start": 0,
+          "end": 2,
+          "color": "#c00000"
+        }
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Plan"
+    },
+    {
+      "type": "number",
+      "text": "Call the team"
+    },
+    {
+      "type": "number",
+      "text": "Book the room",
+      "level": 1
+    },
+    {
+      "type": "image",
+      "src": "img-wide",
+      "alt": "The new shop"
+    },
+    {
+      "type": "table",
+      "table": {
+        "rows": [
+          [
+            "Item",
+            "Price"
+          ],
+          [
+            "Tea",
+            "2"
+          ]
+        ],
+        "header": true
+      }
+    },
+    {
+      "type": "quote",
+      "text": "Simple is best."
+    },
+    {
+      "type": "caption",
+      "text": "Figure 1: the shop"
+    },
+    {
+      "type": "p",
+      "text": "Speak slowly."
+    },
+    {
+      "type": "h1",
+      "text": "Next steps"
+    },
+    {
+      "type": "h2",
+      "text": "Timeline"
+    },
+    {
+      "type": "h3",
+      "text": "Phase one"
+    },
+    {
+      "type": "bullet",
+      "text": "Apples"
+    },
+    {
+      "type": "bullet",
+      "text": "Pears"
+    }
+  ],
+  "title": "Spring deck (Doc)",
+  "folder": "f-work"
+}

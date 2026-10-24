@@ -21,6 +21,9 @@
 	chart of its first sheet with words in it (XlsxReader, Spreadsheets);
 	its type is imported the same way.
 
+	A Word document (.docx) opens in Canvia as a new Doc (DocxReader,
+	WordDocs); its type is imported the same way.
+
 	The scene manifest is kept here, not generated, so that it can name a
 	configuration for a screen attached by HDMI, USB-C or AirPlay: Present
 	shows the slides there, and the presenter's console on the phone.
@@ -80,6 +83,18 @@
 				<string>org.openxmlformats.spreadsheetml.sheet</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Word document</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>org.openxmlformats.wordprocessingml.document</string>
+			</array>
+		</dict>
 	</array>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
@@ -124,6 +139,28 @@
 				<key>public.mime-type</key>
 				<array>
 					<string>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>org.openxmlformats.wordprocessingml.document</string>
+			<key>UTTypeDescription</key>
+			<string>Word document</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+				<string>public.composite-content</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>docx</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/vnd.openxmlformats-officedocument.wordprocessingml.document</string>
 				</array>
 			</dict>
 		</dict>

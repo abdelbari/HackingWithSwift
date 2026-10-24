@@ -17,6 +17,15 @@
     "ja": "%@ %@ グラデーション",
     "pt-BR": "Degradê %@ %@"
   },
+  "%@ (Doc)": {
+    "ar": "%@ (مستند)",
+    "de": "%@ (Dokument)",
+    "es": "%@ (documento)",
+    "fr": "%@ (document)",
+    "it": "%@ (documento)",
+    "ja": "%@（ドキュメント）",
+    "pt-BR": "%@ (documento)"
+  },
   "%@ (copy)": {
     "ar": "%@ (نسخة)",
     "de": "%@ (Kopie)",
@@ -4339,6 +4348,15 @@
     "it": "Una versione con nome viene conservata per sempre.",
     "ja": "名前を付けたバージョンはずっと保存されます。",
     "pt-BR": "Uma versão nomeada é mantida para sempre."
+  },
+  "A new Doc of this design's headings, words, tables, charts and pictures. The design stays as it is.": {
+    "ar": "مستند جديد بعناوين هذا التصميم ونصوصه وجداوله ومخططاته وصوره. يبقى التصميم كما هو.",
+    "de": "Ein neues Dokument mit den Überschriften, Texten, Tabellen, Diagrammen und Bildern dieses Designs. Das Design bleibt, wie es ist.",
+    "es": "Un documento nuevo con los títulos, textos, tablas, gráficos e imágenes de este diseño. El diseño no cambia.",
+    "fr": "Un nouveau document avec les titres, textes, tableaux, graphiques et images de ce design. Le design reste tel quel.",
+    "it": "Un nuovo documento con titoli, testi, tabelle, grafici e immagini di questo design. Il design resta com'è.",
+    "ja": "このデザインの見出し、文章、表、グラフ、画像から新しいドキュメントを作ります。デザインはそのままです。",
+    "pt-BR": "Um novo documento com os títulos, textos, tabelas, gráficos e imagens deste design. O design continua como está."
   },
   "A new design for each size ticked, reflowed to fit, in the same folder. This design stays as it is.": {
     "ar": "تصميم جديد لكل حجم محدد، مُعاد ترتيبه ليناسب، في المجلد نفسه. يبقى هذا التصميم كما هو.",
@@ -9046,6 +9064,15 @@
     "it": "Impossibile usare quella foto come sfondo",
     "ja": "その写真を背景にできませんでした",
     "pt-BR": "Não foi possível usar essa foto como fundo"
+  },
+  "Couldn't make the Doc": {
+    "ar": "تعذّر إنشاء المستند",
+    "de": "Das Dokument konnte nicht erstellt werden",
+    "es": "No se pudo crear el documento",
+    "fr": "Impossible de créer le document",
+    "it": "Impossibile creare il documento",
+    "ja": "ドキュメントを作成できませんでした",
+    "pt-BR": "Não foi possível criar o documento"
   },
   "Couldn't make the GIF": {
     "ar": "تعذّر إنشاء GIF",
@@ -14882,6 +14909,15 @@
     "ja": "ノートを含める",
     "pt-BR": "Incluir anotações"
   },
+  "Include speaker notes": {
+    "ar": "تضمين ملاحظات المتحدث",
+    "de": "Sprechernotizen einbeziehen",
+    "es": "Incluir notas del orador",
+    "fr": "Inclure les notes de l'orateur",
+    "it": "Includi note del relatore",
+    "ja": "発表者ノートを含める",
+    "pt-BR": "Incluir notas do apresentador"
+  },
   "Include videos": {
     "ar": "تضمين مقاطع الفيديو",
     "de": "Videos einbeziehen",
@@ -19456,6 +19492,15 @@
     "it": "Apertura del PowerPoint…",
     "ja": "PowerPoint を開いています…",
     "pt-BR": "Abrindo o PowerPoint…"
+  },
+  "Opening the Word document…": {
+    "ar": "جارٍ فتح مستند Word…",
+    "de": "Word-Dokument wird geöffnet …",
+    "es": "Abriendo el documento de Word…",
+    "fr": "Ouverture du document Word…",
+    "it": "Apertura del documento Word…",
+    "ja": "Word 文書を開いています…",
+    "pt-BR": "Abrindo o documento do Word…"
   },
   "Opening the design…": {
     "ar": "جارٍ فتح التصميم…",
@@ -26669,6 +26714,15 @@
     "ja": "その SVG は 2 MB を超えています",
     "pt-BR": "Esse SVG tem mais de 2 MB"
   },
+  "That Word document is too big to open.": {
+    "ar": "مستند Word هذا أكبر من أن يُفتح.",
+    "de": "Dieses Word-Dokument ist zu groß zum Öffnen.",
+    "es": "Ese documento de Word es demasiado grande para abrirlo.",
+    "fr": "Ce document Word est trop volumineux pour être ouvert.",
+    "it": "Quel documento Word è troppo grande per essere aperto.",
+    "ja": "この Word 文書は大きすぎて開けません。",
+    "pt-BR": "Esse documento do Word é grande demais para abrir."
+  },
   "That code holds more than a QR code can": {
     "ar": "يحتوي هذا الرمز على أكثر مما يتسع له رمز QR",
     "de": "Dieser Inhalt ist zu groß für einen QR-Code",
@@ -26767,6 +26821,15 @@
     "it": "Quel file non è una presentazione PowerPoint.",
     "ja": "そのファイルは PowerPoint のプレゼンテーションではありません。",
     "pt-BR": "Esse arquivo não é uma apresentação do PowerPoint."
+  },
+  "That file isn't a Word document.": {
+    "ar": "هذا الملف ليس مستند Word.",
+    "de": "Diese Datei ist kein Word-Dokument.",
+    "es": "Ese archivo no es un documento de Word.",
+    "fr": "Ce fichier n'est pas un document Word.",
+    "it": "Quel file non è un documento Word.",
+    "ja": "このファイルは Word 文書ではありません。",
+    "pt-BR": "Esse arquivo não é um documento do Word."
   },
   "That file isn't a spreadsheet Canvia can read.": {
     "ar": "هذا الملف ليس جدول بيانات يستطيع Canvia قراءته.",
@@ -28372,6 +28435,15 @@
     "it": "Trasforma in",
     "ja": "変換",
     "pt-BR": "Transformar em"
+  },
+  "Turn into a Doc": {
+    "ar": "تحويل إلى مستند",
+    "de": "In ein Dokument umwandeln",
+    "es": "Convertir en documento",
+    "fr": "Transformer en document",
+    "it": "Trasforma in documento",
+    "ja": "ドキュメントに変換",
+    "pt-BR": "Transformar em documento"
   },
   "Turn into presentation": {
     "ar": "تحويل إلى عرض تقديمي",

@@ -516,6 +516,20 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   to golden runs of `Tools/generate_pdf_fixture.py`'s fixture. Encrypted
   files, Type3 fonts and pages with no words come in as pictures, and a
   toast says how many.
+- Word documents: a .docx opened in Canvia, tapped in Files or picked from
+  Import > Word document becomes a new Doc named after its file — title,
+  headings, paragraphs with bold, italic, underline, strikethrough, colour,
+  highlight and links, nested bullets and numbers, checklists, quotes,
+  tables, pictures, captions, dividers, page breaks and the page size and
+  margins — read by `DocxReader` and held to the fixture
+  `Tools/generate_docx_fixture.py` writes. Docs gain Title and Caption
+  blocks, list levels and spans, which `DocxWriter` now writes too, so a
+  Doc sent to Word reads back the same.
+- Turn into a Doc (the editor's More menu and a design's card on Home)
+  makes a new Doc beside the design from its pages in reading order: a
+  heading per page, its text boxes by role as headings, paragraphs and
+  lists, tables and charts as blocks, large pictures as pictures, and the
+  speaker notes when asked. The design stays as it is.
 - A QR code's words are edited where it sits: Edit code (in place of
   Erase, which would only stop it scanning) opens a field that rewrites
   the code as you type, keeping size, place, turn and frame. While the
