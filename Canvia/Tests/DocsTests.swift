@@ -153,7 +153,7 @@ final class DocsTests: XCTestCase {
         ])
         XCTAssertEqual(DocxWriter.pictures(d).count, 2)
         XCTAssertNotNil(Docs.blocks(d)[14].chart)
-        XCTAssertTrue(ExportChoices.formats.contains("docx"))
+        XCTAssertTrue(ExportLast.formats.contains("docx"))
     }
 
     @MainActor
