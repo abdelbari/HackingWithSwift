@@ -232,7 +232,10 @@ struct SettingsSheet: View {
         } header: {
             Text("Export")
         } footer: {
-            Text("What the export sheet starts on, unless it remembers your last export.")
+            VStack(alignment: .leading, spacing: 4) {
+                Text("What the export sheet starts on, unless it remembers your last export.")
+                Text("The export sheet says when Check accessibility finds something on the pages you're exporting.")
+            }
         }
     }
 

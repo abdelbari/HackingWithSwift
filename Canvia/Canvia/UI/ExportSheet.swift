@@ -460,6 +460,8 @@ struct ExportSheet: View {
             }
             if ExportPlan.offersZip(format: fileType, files: exportedIndices.count) {
                 Toggle("Save as one ZIP", isOn: $zip)
+                Text(tr("%@, with a file for each page inside.", ExportPlan.zipName(store.design.title)))
+                    .font(.footnote).foregroundStyle(.secondary)
             }
         } header: {
             Text("Pages")
@@ -490,12 +492,7 @@ struct ExportSheet: View {
         return Section {
             Toggle("Compress file", isOn: $pngCompress)
         } footer: {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(tr("Normal: %@", before))
-                Text(tr("Compressed: %@", after))
-                Text(tr("Up to 256 colours, for flat graphics; kept only when at least %d%% smaller.",
-                        Int((ExportPlan.compressGain * 100).rounded())))
-            }
+            Text(tr("About %@, or about %@ compressed (lower quality)", before, after))
         }
     }
 
@@ -597,7 +594,7 @@ struct ExportSheet: View {
 
     @ViewBuilder
     private var shareButtons: some View {
-        Button(zipping ? tr("Share ZIP") : Self.shareLabel(fileType, count: shareCount)) { shareNow() }
+        Button(Self.shareLabel(fileType, count: shareCount)) { shareNow() }
             .buttonStyle(.borderedProminent)
             .disabled(!canShare)
         // A ZIP is no picture for Photos.

@@ -47,20 +47,17 @@ enum ExportPlan {
         Double(compressed) <= Double(normal) * (1 - compressGain)
     }
 
-    /// About how big a normal PNG of `width` × `height` pixels comes out,
-    /// for flat graphics: 1.4 bytes a pixel, rounded to the kilobyte.
-    static func estimatedPngBytes(width: Int, height: Int) -> Int {
-        kilobytes(Double(max(width, 0) * max(height, 0)) * 1.4)
+    /// About how big a PNG of `width` × `height` pixels comes out: 12 bits
+    /// a pixel as it is, 4 compressed to 256 colours (PngWriter); never
+    /// under 2 KB. Android's ExportPlan.estimatedPngBytes, to the byte.
+    static func estimatedPngBytes(width: Int, height: Int, compressed: Bool = false) -> Int {
+        let bitsPerPixel = compressed ? 4.0 : 12.0
+        return max(2048, Int(Double(max(width, 0)) * Double(max(height, 0)) * bitsPerPixel / 8))
     }
 
-    /// About how big it comes out compressed to 256 colours: 0.45 bytes a
-    /// pixel and its palette, 1 KB, rounded to the kilobyte.
+    /// The same, compressed.
     static func estimatedCompressedPngBytes(width: Int, height: Int) -> Int {
-        kilobytes(Double(max(width, 0) * max(height, 0)) * 0.45 + 1024)
-    }
-
-    private static func kilobytes(_ bytes: Double) -> Int {
-        Int((bytes / 1024).rounded()) * 1024
+        estimatedPngBytes(width: width, height: height, compressed: true)
     }
 
     // MARK: accessibility first

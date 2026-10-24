@@ -1,29 +1,29 @@
 // Compress file for PNG: the picture cut to at most 256 colours and written
 // as an indexed PNG — colour type 3, its palette, a tRNS of the palette's
-// alphas when any is not opaque — which is much smaller for flat graphics.
-// The colours are chosen as the Android twin's GifWriter chooses a frame's,
-// step for step, with alpha beside red, green and blue:
+// alphas up to the last that is not opaque — which is much smaller for flat
+// graphics. The colours are chosen as the Android twin's MedianCut chooses
+// them, step for step, so the same pixels give the same file on both:
 //
 //   • every pixel goes in a bucket by the top five bits of red, green and
-//     blue and the top three of alpha; a pixel with no alpha at all is put
-//     in the black one, its colour unseen
+//     blue and the top three of alpha; every fully clear pixel in one bucket
+//     of its own, the last, whatever colour it carries, so clear stays
+//     exactly clear
 //   • 256 buckets or fewer used: each is a colour, its pixels' mean (whole
 //     numbers, rounded down), in bucket order
 //   • more: median cut — the box of buckets whose channel spread is widest
-//     (red, green, blue, then alpha, its three bits counted four apart, the
-//     first on a tie) is cut at its pixels' median along that channel,
-//     until there are 256 boxes or none can be cut; each box is its pixels'
-//     mean, and each bucket takes the nearest of them (3·dr² + 4·dg² +
-//     2·db² + 3·da²), the first on a tie
+//     (red, green, blue in their five bits, then alpha as its level, clear
+//     0 and then 1…8, times four; the first on a tie) is cut at its pixels'
+//     median along that channel, until there are 256 boxes or none can be
+//     cut; each box is its pixels' mean — the clear ones counted, their
+//     colour not — and each bucket takes the nearest of them (3·dr² +
+//     4·dg² + 2·db² + 4·da²), the first on a tie
 //   • no dithering: a design is flat colour and type, which a dither
 //     speckles
 //
-// Rows are written with filter 0 under a zlib stream (the system's
-// Compression deflate, in zlib's header and Adler-32), and pHYs carries the
-// dpi as the normal PNG does. ExportPlan.keepsCompressed says whether it is
-// worth keeping.
+// Rows are written with filter 0 under the zlib stream both phones write
+// alike (Deflate), and pHYs carries the dpi as the normal PNG does.
+// ExportPlan.keepsCompressed says whether it is worth keeping.
 
-import Compression
 import CoreGraphics
 import Foundation
 
@@ -36,20 +36,25 @@ enum PngWriter {
         var indices: [UInt8]
     }
 
-    private static let buckets = 8 * 32 * 32 * 32
+    private static let rgbBuckets = 32 * 32 * 32
+    /// The bucket every fully clear pixel is counted in: after the eight
+    /// levels of opacity.
+    private static let clear = rgbBuckets * 8
+    private static let buckets = clear + 1
 
     private static func bucket(_ r: Int, _ g: Int, _ b: Int, _ a: Int) -> Int {
-        guard a > 0 else { return 0 }
+        guard a > 0 else { return clear }
         return (a >> 5) << 15 | (r >> 3) << 10 | (g >> 3) << 5 | (b >> 3)
     }
 
-    /// One channel of bucket `k` on a 0…31 scale: red, green, blue, alpha.
+    /// One channel of bucket `k`, as the cut measures it: red, green and
+    /// blue 0…31, alpha its level — clear 0, then 1…8 — times four.
     private static func channel(_ k: Int, _ c: Int) -> Int {
         switch c {
         case 0: return (k >> 10) & 31
         case 1: return (k >> 5) & 31
         case 2: return k & 31
-        default: return (k >> 15) * 4
+        default: return k == clear ? 0 : ((k >> 15) + 1) * 4
         }
     }
 
@@ -62,21 +67,21 @@ enum PngWriter {
         var sumB = [Int](repeating: 0, count: buckets), sumA = [Int](repeating: 0, count: buckets)
         var keys = [Int](repeating: 0, count: n)
         for i in 0..<n {
-            let a = Int(rgba[i * 4 + 3])
-            let r = a > 0 ? Int(rgba[i * 4]) : 0
-            let g = a > 0 ? Int(rgba[i * 4 + 1]) : 0
-            let b = a > 0 ? Int(rgba[i * 4 + 2]) : 0
+            let r = Int(rgba[i * 4]), g = Int(rgba[i * 4 + 1]), b = Int(rgba[i * 4 + 2]), a = Int(rgba[i * 4 + 3])
             let k = bucket(r, g, b, a)
             keys[i] = k
             count[k] += 1
+            if k == clear { continue }
             sumR[k] += r
             sumG[k] += g
             sumB[k] += b
             sumA[k] += a
         }
         var used = (0..<buckets).filter { count[$0] > 0 }
+        /// A bucket's own average colour, RGBA; clear for the clear one.
         func mean(_ k: Int) -> [Int] {
-            [sumR[k] / count[k], sumG[k] / count[k], sumB[k] / count[k], sumA[k] / count[k]]
+            guard k != clear else { return [0, 0, 0, 0] }
+            return [sumR[k] / count[k], sumG[k] / count[k], sumB[k] / count[k], sumA[k] / count[k]]
         }
         var palette: [[Int]]
         var lut = [Int](repeating: 0, count: buckets)
@@ -93,6 +98,8 @@ enum PngWriter {
                 }
                 return [r / total, g / total, b / total, a / total]
             }
+            // Each bucket takes the nearest colour, not merely its box's: a
+            // box's average can sit nearer another bucket than its own.
             for k in used { lut[k] = nearest(palette, mean(k)) }
         }
         let indices = keys.map { UInt8(lut[$0]) }
@@ -157,7 +164,8 @@ enum PngWriter {
         var best = 0, bestD = Int.max
         for (i, p) in palette.enumerated() {
             let dr = p[0] - c[0], dg = p[1] - c[1], db = p[2] - c[2], da = p[3] - c[3]
-            let d = 3 * dr * dr + 4 * dg * dg + 2 * db * db + 3 * da * da
+            // Weighted as the eye weights the channels.
+            let d = 3 * dr * dr + 4 * dg * dg + 2 * db * db + 4 * da * da
             if d < bestD {
                 bestD = d
                 best = i
@@ -209,33 +217,14 @@ enum PngWriter {
         out.appendBig(ZipWriter.crc32(typed))
     }
 
-    /// `data` as a zlib stream: its header, the system's deflate, and its
-    /// Adler-32.
+    /// `data` as a zlib stream, as Android writes it (Deflate).
     static func zlib(_ data: Data) -> Data? {
-        var out = Data([0x78, 0xDA])
         guard !data.isEmpty else { return nil }
-        let capacity = data.count + data.count / 10 + 1024
-        var deflated = Data(count: capacity)
-        let written = deflated.withUnsafeMutableBytes { (dst: UnsafeMutableRawBufferPointer) -> Int in
-            data.withUnsafeBytes { (src: UnsafeRawBufferPointer) -> Int in
-                guard let to = dst.bindMemory(to: UInt8.self).baseAddress,
-                      let from = src.bindMemory(to: UInt8.self).baseAddress else { return 0 }
-                return compression_encode_buffer(to, capacity, from, data.count, nil, COMPRESSION_ZLIB)
-            }
-        }
-        guard written > 0 else { return nil }
-        out.append(deflated.prefix(written))
-        out.appendBig(adler32(data))
-        return out
+        return Deflate.zlib([UInt8](data))
     }
 
     static func adler32(_ data: Data) -> UInt32 {
-        var a: UInt32 = 1, b: UInt32 = 0
-        for byte in data {
-            a = (a + UInt32(byte)) % 65521
-            b = (b + a) % 65521
-        }
-        return b << 16 | a
+        Deflate.adler32([UInt8](data))
     }
 
     // MARK: from a picture

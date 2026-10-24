@@ -28,8 +28,7 @@ enum ExportJobs {
 
     /// Said when a compressed PNG would not have been enough smaller.
     static var compressFellBack: String {
-        tr("Compressing wouldn't have made it at least %d%% smaller, so it's a normal PNG.",
-           Int((ExportPlan.compressGain * 100).rounded()))
+        tr("Compressing would have saved too little, so it was saved as a normal PNG.")
     }
 
     /// `work`'s files put together in one ZIP named after the design
