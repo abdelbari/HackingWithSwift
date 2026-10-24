@@ -89,6 +89,44 @@ enum TextHighlights {
         return out
     }
 
+    /// The lines the body beside a drop cap is set in, as the canvas frames
+    /// it: `rect` less the cap's corner (`capRect`), so lines wrap beside the
+    /// letter and run full width past it — offsets in `body`, places in the
+    /// box's space. What text moving a unit at a time is laid on when it
+    /// starts with a drop cap.
+    static func dropCapLines(_ body: NSAttributedString, capRect: CGRect, rect: CGRect) -> [LineBox] {
+        let framesetter = CTFramesetterCreateWithAttributedString(body)
+        let path = CGMutablePath()
+        path.addRect(CGRect(x: rect.minX, y: 0, width: rect.width, height: rect.height))
+        path.addRect(CGRect(x: rect.minX, y: rect.height - capRect.height, width: capRect.width, height: capRect.height))
+        let options = [kCTFramePathFillRuleAttributeName: CTFramePathFillRule.evenOdd.rawValue] as CFDictionary
+        let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: 0, length: 0), path, options)
+        guard let lines = CTFrameGetLines(frame) as? [CTLine], !lines.isEmpty else { return [] }
+        var origins = [CGPoint](repeating: .zero, count: lines.count)
+        CTFrameGetLineOrigins(frame, CFRange(location: 0, length: 0), &origins)
+        let string = body.string as NSString
+        let bounds = path.boundingBox
+        var out: [LineBox] = []
+        for (i, line) in lines.enumerated() {
+            let range = CTLineGetStringRange(line)
+            var end = range.location + range.length
+            while end > range.location, let last = UnicodeScalar(string.character(at: end - 1)),
+                  CharacterSet.whitespacesAndNewlines.contains(last) {
+                end -= 1
+            }
+            var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
+            CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
+            // CoreText sets the frame y up; the box runs y down from rect's top.
+            let baseline = Double(rect.minY + rect.height - (bounds.minY + origins[i].y))
+            let x = Double(bounds.minX + origins[i].x)
+            out.append(LineBox(start: range.location, end: end, top: baseline - Double(ascent),
+                               bottom: baseline + Double(descent)) { index in
+                x + Double(CTLineGetOffsetForStringIndex(line, index, nil))
+            })
+        }
+        return out
+    }
+
     /// `hex` ("#rrggbb" or "#rrggbbaa") as a colour and an opacity, for
     /// formats that write the two apart.
     static func split(_ hex: String) -> (color: String, alpha: Double) {

@@ -263,6 +263,18 @@ enum Timeline {
         return entrance.combined(with: exit.exitState(at: exitTime ?? time, hold: hold, size: size))
     }
 
+    /// `el` without the entrance and exit that are text kinds — what is
+    /// drawn whole, and stays to the page's end, when motion is reduced, as
+    /// the Android twin shows it. Not text: as it is, a tumble moving it
+    /// whole.
+    static func withoutTextKinds(_ el: Element) -> Element {
+        guard el.type == .text else { return el }
+        var out = el
+        if let kind = el.animation?.kind, ElementAnimation.textKinds.contains(kind) { out.animation = nil }
+        if let kind = el.exitAnimation?.kind, ElementAnimation.textKinds.contains(kind) { out.exitAnimation = nil }
+        return out
+    }
+
     // MARK: lanes
 
     /// `v` to the nearest 1/`per`, halves up, as the Android twin rounds the

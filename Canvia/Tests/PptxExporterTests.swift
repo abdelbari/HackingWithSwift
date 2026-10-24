@@ -256,6 +256,33 @@ final class PptxExporterTests: XCTestCase {
         XCTAssertNil(PptxExporter.notesText(design: flat, page: flat.pages[0]), "straight words are in the slide")
     }
 
+    /// The Android twin's rule: warped words are outlines whatever the
+    /// styled setting, a picture for what flat colours would lose — and a
+    /// shape for each colour, a word's own kept.
+    func testWarpedWordsAreOutlinesInEachColour() {
+        var bent = Element.text("Bent", w: 100)
+        bent.h = 50
+        bent.color = "#00ff00"
+        bent.warp = TextWarpSpec(kind: "arch", amount: 50)
+        XCTAssertEqual(PptxExporter.form(of: bent), .warped)
+        XCTAssertEqual(PptxExporter.form(of: bent, styled: false), .warped)
+        var gradient = bent
+        gradient.textFill = Paint(kind: "gradient", color: nil, angle: 90, stops: twoStops())
+        XCTAssertEqual(PptxExporter.form(of: gradient), .picture)
+        var neon = bent
+        neon.effect = TextEffectSpec(type: "neon")
+        XCTAssertEqual(PptxExporter.form(of: neon), .picture)
+        var flipped = bent
+        flipped.flipH = true
+        XCTAssertEqual(PptxExporter.form(of: flipped), .picture)
+        var two = bent
+        two.setSpans([TextSpan(start: 0, end: 2, color: "#ff0000")])
+        let xml = slide(onePage([two])).xml
+        XCTAssertEqual(xml.components(separatedBy: "<a:custGeom>").count - 1, 2, xml)
+        XCTAssertTrue(xml.contains("<a:srgbClr val=\"00FF00\"/>"), xml)
+        XCTAssertTrue(xml.contains("<a:srgbClr val=\"FF0000\"/>"), xml)
+    }
+
     /// The fixed parts first, then each slide's pictures, the slide, and
     /// its notes — a hidden page left out of All pages, as the PDF leaves
     /// it — every entry intact.

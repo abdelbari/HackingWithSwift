@@ -174,8 +174,8 @@ enum PptxExporter {
         /// A QR code drawn in its colours alone (CodeGenerator.vector):
         /// its background and its modules, free-form rectangles.
         case code
-        /// Warped words (TextWarp): their bent outlines, one free-form
-        /// shape in the text's colour.
+        /// Warped words (TextWarp): their bent outlines, a free-form shape
+        /// for each colour — a word's own, the text's for the rest.
         case warped
     }
 
@@ -540,9 +540,12 @@ enum PptxExporter {
             case .shape(let preset):
                 shapes.append(shapeXML(el, preset: preset, id: id, link: link, frame: frame))
             case .warped:
-                if let outline = TextOutliner.path(for: el) {
-                    shapes.append(outlineXML(el, properties: cNvPr(el, id: id, link: link), steps: steps(of: outline),
-                                             colour: el.color ?? "#1f2430", frame: frame))
+                // A shape a colour: each word's own, the text's for the
+                // rest; the first carries the element's name and link, as
+                // the Android twin writes them.
+                if let inked = TextOutliner.inkedPaths(for: el) {
+                    shapes.append(contentsOf: warpedXML(el, parts: inked.parts, id: id, nextId: &nextId,
+                                                        link: link, frame: frame))
                 }
             case .line:
                 shapes.append(lineXML(el, id: id, link: link, frame: frame))
@@ -733,6 +736,27 @@ enum PptxExporter {
         if let words = Barcodes.captionElement(el, bars, onPage: true) {
             out.append(textXML(words, id: nextId, link: nil, design: design, slides: [:], frame: frame, rels: &rels))
             nextId += 1
+        }
+        return out
+    }
+
+    /// Warped words as their outlines, a shape for each colour piece
+    /// (`parts`, nil the text's own): the first with `id` and the element's
+    /// name and link, each after it with the next id and the name with its
+    /// place among the pieces.
+    private static func warpedXML(_ el: Element, parts: [TextOutliner.InkedPath], id: Int, nextId: inout Int,
+                                  link: String?, frame: Frame) -> [String] {
+        let ink = el.color ?? "#1f2430"
+        var out: [String] = []
+        for (k, part) in parts.enumerated() {
+            let pieceSteps = steps(of: part.path)
+            if pieceSteps.isEmpty { continue }
+            var properties = cNvPr(el, id: id, link: link)
+            if !out.isEmpty {
+                properties = "<p:cNvPr id=\"\(nextId)\" name=\"\(SVGExporter.escape(el.id)) \(k)\"/>"
+                nextId += 1
+            }
+            out.append(outlineXML(el, properties: properties, steps: pieceSteps, colour: part.color ?? ink, frame: frame))
         }
         return out
     }

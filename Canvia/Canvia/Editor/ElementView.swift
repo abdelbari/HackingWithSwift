@@ -71,11 +71,14 @@ struct ElementView: View {
         guard let clock = animationTime else { return .settled }
         // A reveal counts the characters as they read, style marks left out.
         // Exits are played by their own clock where Present holds them back.
-        var state = Timeline.motion(of: element, time: clock.time, hold: clock.hold, exitTime: exitTime,
+        // Reduce Motion: words on screen are shown whole and stay, never
+        // cut, rising or moving a unit at a time — their text-kind entrance
+        // and exit left out, as the Android twin shows them.
+        let reduced = reduceMotion && onScreen
+        var state = Timeline.motion(of: reduced ? Timeline.withoutTextKinds(element) : element,
+                                    time: clock.time, hold: clock.hold, exitTime: exitTime,
                                     text: resolved.text.map(RichText.strip))
-        // Reduce Motion: words on screen are shown whole, never cut or
-        // moving a unit at a time.
-        if reduceMotion && onScreen {
+        if reduced {
             state.visibleCharacters = nil
             state.unitClock = nil
         }
@@ -727,32 +730,37 @@ struct TextElementView: View {
     // MARK: a unit at a time
 
     /// The words moving a unit at a time: each letter, word or line of the
-    /// words as drawn (ElementAnimation.units) clipped out of the whole
-    /// drawing — spans, lists and effects as they are — and drawn at its
-    /// frame's place, scale, turn, opacity, blur and share shown; what
-    /// belongs to no unit (a list's markers) drawn as it stands. Text round
-    /// a curve, along a path, warped or with a drop cap is drawn whole.
+    /// words as they read (ElementAnimation.units over RichText.strip, at
+    /// the box's own size, as unitFrames counts them) clipped out of the
+    /// whole drawing — spans, lists and effects as they are — and drawn at
+    /// its frame's place, scale, turn, opacity, blur and share shown; what
+    /// belongs to no unit (a list's markers, a drop cap's letter) drawn as
+    /// it stands. Words not set in lines (a curve, a path, a column, a
+    /// warp) fade as one, as far in as their units are on average — as the
+    /// Android twin draws them.
     private func drawUnits(_ clock: ElementAnimation.UnitClock, in cg: CGContext, size: CGSize) {
         var el = element
         if let pageNumber { el.fillPageTokens(number: pageNumber.number, count: pageNumber.count) }
-        guard !TextOutliner.followsAPath(el), FontLibrary.dropCapLayout(for: el) == nil else {
+        let units = ElementAnimation.units(RichText.strip(el.text ?? ""), by: clock.animation.unit)
+        let frames = clock.animation.frames(units, at: clock.time, size: el.fontSize ?? 42)
+        // Every unit in place: the words whole, as they stand.
+        guard !frames.isEmpty, !frames.allSatisfy(clock.animation.atRest) else {
             drawText(in: cg, size: size)
+            return
+        }
+        guard !TextOutliner.followsAPath(el) else {
+            drawFaded(frames, in: cg, size: size)
             return
         }
         if el.fitText == true { el.fontSize = FontLibrary.fittingFontSize(for: el) }
         let slack = max(0, Double(size.height) - FontLibrary.measuredHeight(for: el))
         let top: Double = el.vAlign == "middle" ? slack / 2 : el.vAlign == "bottom" ? slack : 0
-        let attributed = FontLibrary.attributedString(for: el)
-        let units = ElementAnimation.units(attributed.string, by: clock.animation.unit)
-        let frames = clock.animation.frames(units, at: clock.time, size: el.fontSize ?? 42)
-        // Every unit in place: the words whole, as they stand.
-        guard !frames.allSatisfy(clock.animation.atRest) else {
-            drawText(in: cg, size: size)
+        guard let placed = unitLines(el, units: units, width: Double(size.width), top: top, height: Double(size.height)) else {
+            drawFaded(frames, in: cg, size: size)
             return
         }
-        let lines = TextHighlights.lines(attributed, el: el, width: Double(size.width), top: top)
-        let boxes: [[CGRect]] = units.map { unit in
-            lines.compactMap { line -> CGRect? in
+        let boxes: [[CGRect]] = placed.ranges.map { unit in
+            placed.lines.compactMap { line -> CGRect? in
                 let from = max(unit.location, line.start), to = min(NSMaxRange(unit), line.end)
                 guard to > from else { return nil }
                 let left = line.x(from), right = line.x(to)
@@ -775,6 +783,44 @@ struct TextElementView: View {
         for (frame, rects) in zip(frames, boxes) where !rects.isEmpty && !clock.animation.atRest(frame) {
             drawUnit(frame, rects: rects, clock: clock, ink: ink, in: cg, size: size)
         }
+    }
+
+    /// The whole words at the average of their units' opacity, none drawn
+    /// while every unit is hidden.
+    private func drawFaded(_ frames: [ElementAnimation.UnitFrame], in cg: CGContext, size: CGSize) {
+        let alpha = frames.map(\.alpha).reduce(0, +) / Double(max(frames.count, 1))
+        guard alpha > 0 else { return }
+        cg.saveGState()
+        cg.setAlpha(alpha)
+        cg.beginTransparencyLayer(auxiliaryInfo: nil)
+        drawText(in: cg, size: size)
+        cg.endTransparencyLayer()
+        cg.restoreGState()
+    }
+
+    /// The lines `el`'s words are drawn in, and each unit (plain offsets)
+    /// moved onto them: past a list's markers, and past a drop cap's letter
+    /// onto the body framed beside it. Nil where the units cannot be found.
+    private func unitLines(_ el: Element, units: [NSRange], width: Double, top: Double,
+                           height: Double) -> (lines: [TextHighlights.LineBox], ranges: [NSRange])? {
+        let shown = FontLibrary.displayRanges(units, for: el)
+        guard TextEffect.from(el.effect) == .none, let layout = FontLibrary.dropCapLayout(for: el) else {
+            let lines = TextHighlights.lines(FontLibrary.attributedString(for: el), el: el, width: width, top: top)
+            return (lines, shown)
+        }
+        let drawn = FontLibrary.attributedString(for: el).string as NSString
+        guard drawn.hasPrefix(layout.letter) else { return nil }
+        var cut = (layout.letter as NSString).length
+        while cut < drawn.length, drawn.character(at: cut) == 32 { cut += 1 }
+        let body = FontLibrary.dropCapText(for: el, layout).body
+        let rect = CGRect(x: 0, y: top, width: width, height: height - top)
+        let lines = TextHighlights.dropCapLines(body, capRect: layout.capRect, rect: rect)
+        let ranges = shown.map { unit -> NSRange in
+            let from = min(max(0, unit.location - cut), body.length)
+            let to = min(max(from, NSMaxRange(unit) - cut), body.length)
+            return NSRange(location: from, length: to - from)
+        }
+        return (lines, ranges)
     }
 
     /// One unit at its frame, about its centre.
