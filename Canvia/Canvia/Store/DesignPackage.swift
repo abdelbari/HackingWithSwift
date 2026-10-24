@@ -712,8 +712,8 @@ enum DesignPackage {
             return next
         }
         // What names a page by its id follows it: the talks' pages and the
-        // holds Beat Sync keeps.
-        design = BeatSync.withPageIds(Recordings.withPageIds(design, pageIds), pageIds)
+        // holds Beat Sync keeps, and the links to pages.
+        design = Links.withPageIds(BeatSync.withPageIds(Recordings.withPageIds(design, pageIds), pageIds), pageIds)
         // The talks pointed at where their voices and cameras went.
         design = Recordings.remapped(design, audio: music, video: clips)
         if normalize { design.normalizeTextHeights() }

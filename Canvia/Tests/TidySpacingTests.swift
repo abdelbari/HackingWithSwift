@@ -125,4 +125,20 @@ final class TidySpacingTests: XCTestCase {
         s.undo()
         XCTAssertEqual(s.tidyLayout?.gap ?? 0, 40, accuracy: 0.001, "the whole drag was one step")
     }
+
+    /// Android's TidySpacingTest row: one held in place among a tidied row
+    /// is left out of Spacing.
+    func testOneHeldInPlaceAmongATidiedRowIsLeftOutOfSpacing() {
+        var held = box("d", x: 600, y: 500)
+        held.lockPosition = true
+        var d = Design(title: "tidy", width: 1080, height: 1080)
+        d.pages = [Page(id: "p1", elements: [box("a", x: 0, y: 0), box("b", x: 124, y: 0), box("c", x: 248, y: 0), held])]
+        let s = DesignStore(design: d)
+        s.selection = ["a", "b", "c", "d"]
+        XCTAssertEqual(s.tidyLayout, Geometry.TidyLayout(mode: .row, gap: 24))
+        s.setTidySpacingLive(40)
+        s.commitSpacing()
+        XCTAssertEqual(s.tidyLayout?.gap ?? 0, 40, accuracy: 0.001)
+        XCTAssertEqual(s.page.elements.first { $0.id == "d" }, held)
+    }
 }

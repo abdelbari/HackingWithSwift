@@ -127,6 +127,50 @@ final class GraphicClipTests: XCTestCase {
         XCTAssertEqual(GraphicClip.regrouped(before: [a, b], after: [movedA, movedB]), [movedA, movedB])
     }
 
+    /// Android's ClipsTest row: part of a cropped group copied shows what
+    /// it showed.
+    func testPartOfACroppedGroupCopiedShowsWhatItShowed() {
+        let spots: [(String, Double)] = [("a", 0), ("b", 100), ("c", 200)]
+        let members: [Element] = spots.map { spot -> Element in
+            var el = Element.shape("rect", w: 100, h: 100)
+            el.id = spot.0
+            el.x = spot.1
+            el.y = 0
+            el.group = "g"
+            el.clipBox = ClipBox(x: 0, y: 0, w: 0.5, h: 1)
+            return el
+        }
+        // The left half of the three shows all of a and half of b: copied
+        // without a, b and c's crop is on the frame of the two.
+        let copied = GraphicClip.copied(members, Array(members.dropFirst()))
+        XCTAssertEqual(copied.map(\.clipBox), [ClipBox(x: 0, y: 0, w: 0.25, h: 1), ClipBox(x: 0, y: 0, w: 0.25, h: 1)])
+        // Its copies keep it, a group of their own.
+        XCTAssertEqual(Copies.of(copied).map(\.clipBox), copied.map(\.clipBox))
+        // The whole group as it is.
+        XCTAssertEqual(GraphicClip.copied(members, members), members)
+    }
+
+    /// Android's ClipsTest row: part of a cropped group that showed nothing
+    /// is left out of a copy.
+    func testPartOfACroppedGroupThatShowedNothingIsLeftOutOfACopy() {
+        // Cropped to its left third, the three show only a; c alone copies
+        // as nothing, as it showed.
+        let spots: [(String, Double)] = [("a", 0), ("b", 100), ("c", 200)]
+        let members: [Element] = spots.map { spot -> Element in
+            var el = Element.shape("rect", w: 100, h: 100)
+            el.id = spot.0
+            el.x = spot.1
+            el.y = 0
+            el.group = "g"
+            el.clipBox = ClipBox(x: 0, y: 0, w: 1.0 / 3, h: 1)
+            return el
+        }
+        XCTAssertTrue(GraphicClip.copied(members, [members[2]]).isEmpty)
+        XCTAssertTrue(GraphicClip.copied(members, Array(members.dropFirst())).isEmpty)
+        // Deleted instead, what stays lets its crop go: a shows whole.
+        XCTAssertNil(GraphicClip.regrouped(before: members, after: [members[0]])[0].clipBox)
+    }
+
     @MainActor
     func testTheRendererDrawsOnlyTheCrop() throws {
         var square = Element.shape("rect", w: 100, h: 100)

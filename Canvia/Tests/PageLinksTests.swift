@@ -127,4 +127,27 @@ final class PageLinksTests: XCTestCase {
         // An SVG of its own has nowhere to go.
         XCTAssertFalse(SVGExporter.svg(design: d, page: d.pages[0]).contains("<a "))
     }
+
+    /// The Android twin's row: a page link follows its page to a fresh id,
+    /// so a copy and an import keep it.
+    func testAPageLinkFollowsItsPageToAFreshIdACopyAndAnImportKeepingIt() throws {
+        var d = deck()
+        var words = Element.text("See pricing")
+        words.id = "t"
+        words.spans = [TextSpan(start: 4, end: 11, link: "page:p3")]
+        words.spansText = "See pricing"
+        d.pages[0].elements.append(words)
+        let renamed = Links.withPageIds(d, ["p3": "q3", "p1": "q1"])
+        XCTAssertEqual(renamed.pages[0].elements[0].link, "page:q3")
+        XCTAssertEqual(renamed.pages[0].elements[1].spans?.first?.link, "page:q3")
+        // A page not among them is left as it is.
+        let gone = Links.withPageIds(deck(link: "page:gone"), ["p1": "q1"])
+        XCTAssertEqual(gone.pages[0].elements[0].link, "page:gone")
+        let imported = try DesignPackage.import(DesignPackage.export(d))
+        for copy in [CopyResize.freshCopy(of: d), imported] {
+            XCTAssertNotEqual(copy.pages[2].id, "p3")
+            XCTAssertEqual(Links.pageIndex(copy.pages[0].elements[0].link, in: copy), 2)
+            XCTAssertEqual(Links.pageIndex(copy.pages[0].elements[1].spans?.first?.link, in: copy), 2)
+        }
+    }
 }

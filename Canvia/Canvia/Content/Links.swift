@@ -96,6 +96,33 @@ enum Links {
         return id.isEmpty || id.contains(where: \.isWhitespace) ? nil : id
     }
 
+    /// `design` with every link to a page — an element's and each word's —
+    /// renamed by `pageIds` (old page id to new), as its pages are when it
+    /// is copied or read from a package, so a link still goes to its page.
+    /// A link to a page not among them is left as it is. The Android twin's
+    /// Links.withPageIds.
+    static func withPageIds(_ design: Design, _ pageIds: [String: String]) -> Design {
+        guard !pageIds.isEmpty else { return design }
+        func renamed(_ link: String?) -> String? {
+            guard let old = pageId(link), let new = pageIds[old] else { return link }
+            return pageLink(new)
+        }
+        var out = design
+        for p in out.pages.indices {
+            for i in out.pages[p].elements.indices {
+                var el = out.pages[p].elements[i]
+                el.link = renamed(el.link)
+                el.spans = el.spans?.map { span -> TextSpan in
+                    var moved = span
+                    moved.link = renamed(span.link)
+                    return moved
+                }
+                out.pages[p].elements[i] = el
+            }
+        }
+        return out
+    }
+
     /// Where in `design` the page a page link names is; nil for another
     /// link, or a page no longer there.
     static func pageIndex(_ link: String?, in design: Design) -> Int? {

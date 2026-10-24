@@ -9,12 +9,18 @@ import Foundation
 
 extension DesignStore {
 
-    /// The selection's tidied layout and gap (Geometry.tidyLayout): what
-    /// Spacing shows and changes. Nil for one thing, for something holding
-    /// its place among them, or for anything not laid out evenly.
+    /// What Spacing lays out: the selected things that can move — one
+    /// holding its place stays where it is, as on the Android twin.
+    var tidyMembers: [Element] {
+        selectedElements.filter { !$0.holdsPlace }
+    }
+
+    /// The tidied layout and gap of the selection's things that can move
+    /// (Geometry.tidyLayout): what Spacing shows and changes. Nil for fewer
+    /// than two of them, or for anything not laid out evenly.
     var tidyLayout: Geometry.TidyLayout? {
-        let members = selectedElements
-        guard members.count >= 2, !members.contains(where: \.holdsPlace) else { return nil }
+        let members = tidyMembers
+        guard members.count >= 2 else { return nil }
         return Geometry.tidyLayout(members)
     }
 
@@ -23,7 +29,7 @@ extension DesignStore {
     /// a locked page.
     func setTidySpacingLive(_ gap: Double) {
         guard tidyLayout != nil, !refusesLockedPage(),
-              let spaced = Geometry.respaced(selectedElements, gap: gap) else { return }
+              let spaced = Geometry.respaced(tidyMembers, gap: gap) else { return }
         replaceTransient(spaced)
     }
 

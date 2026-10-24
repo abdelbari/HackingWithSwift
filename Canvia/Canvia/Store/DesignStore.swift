@@ -903,7 +903,9 @@ final class DesignStore {
     }
 
     func duplicateSelected() {
-        let copies = Copies.of(selectedElements.filter { !$0.locked }, offset: 24)
+        // Part of a cropped group crops as it showed: its crop put on the
+        // frame of the part copied (GraphicClip.copied).
+        let copies = Copies.of(GraphicClip.copied(page.elements, selectedElements.filter { !$0.locked }), offset: 24)
         guard !copies.isEmpty else { return }
         applyToPage { $0.elements.append(contentsOf: copies) }
         selection = Set(copies.map(\.id))
@@ -1075,7 +1077,9 @@ final class DesignStore {
     var canDistribute: Bool { movableSelectionCount >= 3 }
 
     func copySelected() {
-        let selected = selectedElements
+        // Part of a cropped group goes with its crop put on the frame of the
+        // part copied (GraphicClip.copied), so it pastes showing the same.
+        let selected = GraphicClip.copied(page.elements, selectedElements)
         guard !selected.isEmpty else { return }
         clipboard = selected
         clipboardPage = page.id
@@ -1092,20 +1096,27 @@ final class DesignStore {
         // both left behind and on the clipboard. A cut is a move by way of
         // the clipboard, so, as with Move to page, a position lock stays
         // too, as on the Android twin (its DesignStore.cutSelected).
-        let removable = selectedElements.filter { !$0.holdsPlace }
-        guard !removable.isEmpty else {
+        let taken = selectedElements.filter { !$0.holdsPlace }
+        guard !taken.isEmpty else {
             if !selection.isEmpty { buzz(.reject) }
             return
         }
-        clipboard = removable
-        clipboardPage = page.id
-        clipboardFonts = CustomFonts.carried(removable, from: design)
-        pastedOnto = nil
-        pasteCount = 0
-        ElementClipboard.write(removable, sourcePage: page.id, fonts: clipboardFonts)
-        let ids = Set(removable.map(\.id))
+        // Part of a cropped group that showed nothing goes with no copy
+        // (GraphicClip.copied); with nothing to copy, the clipboard is kept.
+        let removable = GraphicClip.copied(page.elements, taken)
+        if !removable.isEmpty {
+            clipboard = removable
+            clipboardPage = page.id
+            clipboardFonts = CustomFonts.carried(removable, from: design)
+            pastedOnto = nil
+            pasteCount = 0
+            ElementClipboard.write(removable, sourcePage: page.id, fonts: clipboardFonts)
+        }
+        let ids = Set(taken.map(\.id))
+        // What stays of a cropped group keeps showing what it showed, as
+        // with Delete.
         applyToPage { page in
-            page.elements.removeAll { ids.contains($0.id) }
+            page.elements = GraphicClip.regrouped(before: page.elements, after: page.elements.filter { !ids.contains($0.id) })
         }
         selection.subtract(ids)
         announce(ids.count == 1 ? tr("Cut") : trn("Cut %d thing|Cut %d things", ids.count))

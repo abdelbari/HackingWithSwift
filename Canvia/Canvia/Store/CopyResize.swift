@@ -75,9 +75,9 @@ enum CopyResize {
             return fresh
         }
         copy.masterPageId = design.masterPageId.flatMap { pageIds[$0] }
-        // What else names a page by its id follows it: the talks' pages and
-        // the holds Beat Sync keeps.
-        copy = BeatSync.withPageIds(Recordings.withPageIds(copy, pageIds), pageIds)
+        // What else names a page by its id follows it: the talks' pages,
+        // the holds Beat Sync keeps and the links to pages.
+        copy = Links.withPageIds(BeatSync.withPageIds(Recordings.withPageIds(copy, pageIds), pageIds), pageIds)
         copy.guides = design.guides.map { guide in
             var g = guide
             g.id = UID.make("guide")

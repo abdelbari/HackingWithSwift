@@ -23,7 +23,8 @@ final class PinchSelectionTests: XCTestCase {
 
     private func pinches(_ a: CGPoint, _ b: CGPoint, _ selected: [Element], zoom: Double = 1,
                          pageLocked: Bool = false, busy: Bool = false) -> Bool {
-        CanvasGestures.pinchesSelection(a, b, selected: selected, zoom: zoom, pageLocked: pageLocked, busy: busy)
+        CanvasGestures.pinchesSelection(a, b, selected: selected, zoom: zoom, pageLocked: pageLocked, busy: busy,
+                                        turned: nil)
     }
 
     // MARK: the gesture
@@ -69,6 +70,29 @@ final class PinchSelectionTests: XCTestCase {
         XCTAssertFalse(pinches(CGPoint(x: 50, y: 50), CGPoint(x: 50, y: 150), [a, b]))
     }
 
+    /// A whole group turned as one: its turned frame is its body, as
+    /// Android's groupBox at groupAngle — not the box round it.
+    func testATurnedGroupsBodyIsItsTurnedFrame() {
+        var bar = box("a", x: 50, y: 190, w: 300, h: 20, rotation: 45, group: "g")
+        var dot = box("b", x: 195, y: 195, w: 10, h: 10, rotation: 45, group: "g")
+        bar.groupTurn = 45
+        dot.groupTurn = 45
+        var d = Design(title: "pinch", width: 1000, height: 1000)
+        d.pages = [Page(id: "p1", elements: [bar, dot])]
+        let s = DesignStore(design: d)
+        s.selection = ["a", "b"]
+        let frame = s.turnedGroupFrame
+        XCTAssertNotNil(frame)
+        // Two fingers in the empty corners of the box round it: the view.
+        XCTAssertFalse(CanvasGestures.pinchesSelection(CGPoint(x: 110, y: 290), CGPoint(x: 290, y: 110), selected: [bar, dot],
+                                                       zoom: 1, pageLocked: false, busy: false, turned: frame))
+        XCTAssertTrue(pinches(CGPoint(x: 110, y: 290), CGPoint(x: 290, y: 110), [bar, dot]), "loose, the box round them")
+        // Along the bar: the group.
+        XCTAssertEqual(CanvasGestures.twoFingerInput(CGPoint(x: 150, y: 150), CGPoint(x: 250, y: 250), selected: [bar, dot],
+                                                     zoom: 1, pageLocked: false, busy: false, turned: frame),
+                       .twoFingersOnSelection)
+    }
+
     func testThePinchIsRefusedWhereNothingMayChange() {
         let at = (CGPoint(x: 120, y: 120), CGPoint(x: 180, y: 180))
         var locked = box("a", x: 100, y: 100)
@@ -80,9 +104,11 @@ final class PinchSelectionTests: XCTestCase {
         let free = box("a", x: 100, y: 100)
         XCTAssertFalse(pinches(at.0, at.1, [free], pageLocked: true), "a locked page")
         XCTAssertFalse(pinches(at.0, at.1, [free], busy: true), "crop, typing, draw, erase or brush")
-        XCTAssertEqual(CanvasGestures.twoFingerInput(at.0, at.1, selected: [free], zoom: 1, pageLocked: false, busy: false),
+        XCTAssertEqual(CanvasGestures.twoFingerInput(at.0, at.1, selected: [free], zoom: 1, pageLocked: false, busy: false,
+                                                     turned: nil),
                        .twoFingersOnSelection)
-        XCTAssertEqual(CanvasGestures.twoFingerInput(at.0, at.1, selected: [locked], zoom: 1, pageLocked: false, busy: false),
+        XCTAssertEqual(CanvasGestures.twoFingerInput(at.0, at.1, selected: [locked], zoom: 1, pageLocked: false, busy: false,
+                                                     turned: nil),
                        .twoFingers)
         XCTAssertEqual(CanvasGestures.pinchSelectionKey, "canvia.pinchSelection")
     }

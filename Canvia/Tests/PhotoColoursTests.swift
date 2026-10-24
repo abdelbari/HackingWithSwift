@@ -94,4 +94,31 @@ final class PhotoColoursTests: XCTestCase {
         s.selection = ["p"]
         XCTAssertEqual(s.photoColourTurn, 0, "a new selection starts again")
     }
+
+    /// Android's PhotoColoursTest row: every colour of the page is ranked, a
+    /// pattern's second colour not among them.
+    func testEveryColourOfThePageIsRankedAPatternsSecondColourNotAmongThem() {
+        let shades = (0..<30).map { String(format: "#%02x4080", $0 * 8) }
+        var elements: [Element] = shades.enumerated().map { i, shade -> Element in
+            var el = Element.shape("rectangle", w: 10, h: 10)
+            el.id = "s\(i)"
+            el.x = Double(i) * 10
+            el.fill = .solid(shade)
+            return el
+        }
+        var pattern = Element.shape("rectangle", w: 10, h: 10)
+        pattern.id = "pt"
+        pattern.y = 300
+        pattern.fill = .pattern("dots", color: "#123456", secondary: "#abcdef")
+        elements.append(pattern)
+        elements.append(page().elements[2])
+        let crowded = Page(id: "pg", background: .color("#ffffff"), elements: elements)
+        // Rows: the background's, then each element's in turn, every one.
+        XCTAssertEqual(PhotoColours.pageColours(crowded, photo: "p"), ["#ffffff"] + shades + ["#123456"])
+        let out = PhotoColours.applied(crowded, palette: palette, turn: 0, photo: "p")
+        // All thirty moved onto the palette, the last too; the pattern's second colour kept.
+        XCTAssertTrue(out.elements.prefix(30).allSatisfy { palette.contains($0.fill?.color ?? "") })
+        XCTAssertTrue(palette.contains(out.elements[30].fill?.color ?? ""))
+        XCTAssertEqual(out.elements[30].fill?.secondary, "#abcdef")
+    }
 }

@@ -75,6 +75,16 @@ enum GraphicClip {
         return out
     }
 
+    /// `chosen` — some of `page`'s elements, to be copied, cut or moved on
+    /// their own — with the crop of each that is part of a cropped group but
+    /// not the whole of it put on the frame of the part that goes, so it
+    /// still shows what it showed (regrouped); a whole group as it is. One
+    /// that showed none of itself is left out, so its copy shows nothing,
+    /// as it did. The Android twin's Clips.copied, the same rows.
+    static func copied(_ page: [Element], _ chosen: [Element]) -> [Element] {
+        reclipped(before: page, after: chosen, dropBlank: true)
+    }
+
     /// `after` — the page's elements once some have left a group, joined
     /// one or been deleted from one — with every crop whose group is no
     /// longer the same members kept where it shows on the page: the part
@@ -86,13 +96,21 @@ enum GraphicClip {
     /// so its crop moves with it. The Android twin's Clips.regrouped, the
     /// same rows.
     static func regrouped(before: [Element], after: [Element]) -> [Element] {
+        reclipped(before: before, after: after, dropBlank: false)
+    }
+
+    /// regrouped, with an element none of which would show left out when
+    /// `dropBlank`, its crop let go otherwise.
+    private static func reclipped(before: [Element], after: [Element], dropBlank: Bool) -> [Element] {
         guard before.contains(where: { $0.clipBox != nil }) else { return after }
         let was = Dictionary(before.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        return after.map { el in
+        return after.compactMap { el -> Element? in
             guard let old = was[el.id], let clip = old.clipBox,
                   membership(old, in: before) != membership(el, in: after) else { return el }
+            let box = reframed(clip, was: old, from: frame(of: old, in: before), now: el, to: frame(of: el, in: after))
+            if box == nil && dropBlank { return nil }
             var out = el
-            out.clipBox = reframed(clip, was: old, from: frame(of: old, in: before), now: el, to: frame(of: el, in: after))
+            out.clipBox = ClipBox.kept(box)
             return out
         }
     }
@@ -115,7 +133,8 @@ enum GraphicClip {
     }
 
     /// `clip`, a share of `from` for `was`, as a share of `to` for `now`:
-    /// the box round its corners there, held in it; nil for none of it.
+    /// the box round its corners there, held in it — the whole box too, which
+    /// ClipBox.kept lets go; nil for none of it.
     private static func reframed(_ clip: ClipBox, was: Element, from: Geometry.GroupFrame,
                                  now: Element, to: Geometry.GroupFrame) -> ClipBox? {
         let ownBefore = was.group == nil
@@ -136,7 +155,7 @@ enum GraphicClip {
         guard right - left > 1e-9, bottom - top > 1e-9 else { return nil }
         if now.group == nil && now.flipH { (left, right) = (1 - right, 1 - left) }
         if now.group == nil && now.flipV { (top, bottom) = (1 - bottom, 1 - top) }
-        return ClipBox.kept(ClipBox(x: left, y: top, w: right - left, h: bottom - top))
+        return ClipBox(x: left, y: top, w: right - left, h: bottom - top)
     }
 
     /// The crop `clip`, in shares of `frame`, as shares of `el`'s own box.
