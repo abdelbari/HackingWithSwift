@@ -55,11 +55,13 @@ enum AudioStore {
 
     /// Where track id `id` is played from: a song in the store, or — for
     /// an effect's "sfx:<id>" (AudioTrack.audioId) — the WAV bundled with
-    /// the app (SoundEffects.url), or — for a clip's sound, "video:<id>" —
+    /// the app (SoundEffects.url), a loop's "music:<id>" its WAV
+    /// (MusicLibrary.url), or — for a clip's sound, "video:<id>" —
     /// the clip's own file.
     static func url(for id: String?) -> URL? {
         guard let id, !id.isEmpty else { return nil }
         if AudioTrack.isEffect(id) { return SoundEffects.url(AudioTrack.sfxId(of: id)) }
+        if AudioTrack.isMusic(id) { return MusicLibrary.url(AudioTrack.musicId(of: id)) }
         if let clip = AudioTrack.videoId(of: id) { return VideoStore.url(for: clip) }
         let url = directory.appendingPathComponent(id)
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
@@ -92,6 +94,7 @@ enum AudioStore {
     /// id's extension says it is.
     static func label(for id: String) -> String {
         if let effect = SoundEffects.effect(AudioTrack.sfxId(of: id)) { return effect.name }
+        if let music = MusicLibrary.of(id) { return music.name }
         if AudioTrack.isClipSound(id) { return AudioTracks.clipSoundName }
         if let data = try? Data(contentsOf: nameFile(for: id)) {
             let name = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -109,6 +112,8 @@ extension AudioStore {
     /// the Android twin keeps them. Nil for a song not on this phone, or one
     /// it cannot play. Never on the main thread.
     static func beats(of id: String) async -> [Double]? {
+        // A built-in loop's beats come from its tempo, not from listening.
+        if let music = MusicLibrary.of(id) { return MusicLibrary.beats(of: music) }
         let file = Peaks.directory.appendingPathComponent("\(id).beats")
         if let data = try? Data(contentsOf: file), let kept = Beats.decode(String(decoding: data, as: UTF8.self)) {
             return kept

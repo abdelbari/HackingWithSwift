@@ -67,11 +67,12 @@ enum Soundtrack {
     /// that `packs`, while the running total stays within
     /// `maxPackedTotalBytes` — the rule the clips are chosen by, and the
     /// Android twin's, so either phone packs the same. The rest stay on the
-    /// phone they were chosen on.
+    /// phone they were chosen on. A built-in loop ("music:<id>") is never
+    /// packed: both phones ship it.
     static func packed(_ files: [String: (bytes: Int, ext: String)]) -> Set<String> {
         var packed = Set<String>()
         var total = 0
-        for id in files.keys.sorted() {
+        for id in files.keys.sorted() where !AudioTrack.isMusic(id) {
             guard let file = files[id], packs(bytes: file.bytes, ext: file.ext),
                   total + file.bytes <= maxPackedTotalBytes else { continue }
             total += file.bytes

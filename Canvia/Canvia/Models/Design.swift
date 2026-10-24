@@ -496,7 +496,8 @@ struct PresentSettings: Codable, Equatable {
 
 /// One sound under the design's film — a song, a voice-over, one of the
 /// built-in sound effects — as the Audio sheet sets it. `src` names its
-/// file, "audio:<AudioStore id>", or an effect, "sfx:<id>" (SoundEffects);
+/// file, "audio:<AudioStore id>", an effect, "sfx:<id>" (SoundEffects), or
+/// a built-in loop, "music:<id>" (MusicLibrary);
 /// `start` is
 /// where it comes in, in seconds into the film; `trimStart` and `trimEnd`
 /// the part of the file it plays, nil being to the file's end; `volume`
@@ -527,6 +528,8 @@ struct AudioTrack: Codable, Equatable, Identifiable {
     static let prefix = "audio:"
     /// A built-in sound effect's source: "sfx:<id>" (SoundEffects).
     static let sfxPrefix = "sfx:"
+    /// A built-in music loop's source: "music:<id>" (MusicLibrary).
+    static let musicPrefix = "music:"
     /// What the sheet offers a fade, and what the mix plays one within.
     static let fadeRange = 0.0...5.0
     /// The shortest a trim leaves a track, in seconds, as a clip's.
@@ -546,7 +549,7 @@ struct AudioTrack: Codable, Equatable, Identifiable {
     /// app comes with or the clips. Nil for any other source. As the
     /// Android twin's AudioTracks.idOf.
     var audioId: String? {
-        if Self.isEffect(src) || Self.isClipSound(src) { return src }
+        if Self.isEffect(src) || Self.isMusic(src) || Self.isClipSound(src) { return src }
         guard src.hasPrefix(Self.prefix) else { return nil }
         let id = String(src.dropFirst(Self.prefix.count))
         return id.isEmpty ? nil : id
@@ -560,6 +563,20 @@ struct AudioTrack: Codable, Equatable, Identifiable {
     static func isEffect(_ src: String?) -> Bool {
         guard let src else { return false }
         return src.hasPrefix(sfxPrefix) && src.count > sfxPrefix.count
+    }
+
+    static func musicSrc(_ musicId: String) -> String { musicPrefix + musicId }
+
+    /// Whether `src` — or an audioId — is a built-in music loop's.
+    static func isMusic(_ src: String?) -> Bool {
+        guard let src else { return false }
+        return src.hasPrefix(musicPrefix) && src.count > musicPrefix.count
+    }
+
+    /// The loop a "music:" source (or its audioId) names.
+    static func musicId(of src: String?) -> String? {
+        guard let src, isMusic(src) else { return nil }
+        return String(src.dropFirst(musicPrefix.count))
     }
 
     /// Whether `src` — or an audioId — is a clip's sound: "video:<id>".
@@ -581,10 +598,11 @@ struct AudioTrack: Codable, Equatable, Identifiable {
     }
 
     /// The song's id in the audio store — what a design file and a backup
-    /// carry — or nil for an effect, which every copy of the app has, and
+    /// carry — or nil for an effect or a built-in loop, which every copy of
+    /// the app has, and
     /// for a clip's sound, which travels with its clip.
     var storedAudioId: String? {
-        Self.isEffect(src) || Self.isClipSound(src) ? nil : audioId
+        Self.isEffect(src) || Self.isMusic(src) || Self.isClipSound(src) ? nil : audioId
     }
 
     init(id: String = UID.make("track"), src: String, start: Double = 0, trimStart: Double = 0,
@@ -619,7 +637,7 @@ struct AudioTrack: Codable, Equatable, Identifiable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         src = try c.decode(String.self, forKey: .src)
         guard (src.hasPrefix(Self.prefix) && src.count > Self.prefix.count) || Self.isEffect(src)
-                || Self.isClipSound(src) else {
+                || Self.isMusic(src) || Self.isClipSound(src) else {
             throw DecodingError.dataCorrupted(.init(codingPath: c.codingPath, debugDescription: "Not an audio track"))
         }
         // One with no id of its own goes by its source, as on Android: the

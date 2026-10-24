@@ -222,6 +222,16 @@ extension DesignStore {
         return track
     }
 
+    /// One of the built-in loops as a new track, last in the list, as one
+    /// step: from the film's start, looping to fill it (MusicLibrary.track),
+    /// as on the Android twin.
+    @discardableResult
+    func addMusic(_ music: MusicTrack) -> AudioTrack {
+        let track = MusicLibrary.track(music)
+        apply { $0.audioTracks.append(track) }
+        return track
+    }
+
     /// Beat Sync turned on for track `id`, its song's `beats` (seconds into
     /// the file, AudioStore.beats) and `length` known, as one step: the
     /// track says so, and each shown page's hold moves to the nearest beat

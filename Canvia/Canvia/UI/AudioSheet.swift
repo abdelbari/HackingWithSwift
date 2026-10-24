@@ -28,6 +28,8 @@ struct AudioSheet: View {
     @State private var detent: PresentationDetent = .medium
     /// The built-in sound effects, over the list.
     @State private var showingEffects = false
+    /// The built-in music, over the list.
+    @State private var showingMusic = false
 
     private var tracks: [AudioTrack] { store.design.audioTracks }
 
@@ -41,6 +43,9 @@ struct AudioSheet: View {
                 }
                 .navigationDestination(isPresented: $showingEffects) {
                     SoundEffectsList(store: store)
+                }
+                .navigationDestination(isPresented: $showingMusic) {
+                    MusicLibraryList(store: store)
                 }
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
@@ -112,7 +117,8 @@ struct AudioSheet: View {
     private func trackRow(_ track: AudioTrack) -> some View {
         let duration = track.audioId.flatMap { lengths[$0] }
         return HStack(spacing: 12) {
-            Image(systemName: AudioTrack.isEffect(track.src) ? "speaker.wave.2" : "waveform")
+            Image(systemName: AudioTrack.isEffect(track.src) ? "speaker.wave.2"
+                  : AudioTrack.isMusic(track.src) ? "music.note" : "waveform")
                 .foregroundStyle(Theme.accent)
                 .frame(width: 34, height: 34)
                 .background(RoundedRectangle(cornerRadius: 8).fill(Theme.accentSubtle))
@@ -129,6 +135,9 @@ struct AudioSheet: View {
 
     private var addSection: some View {
         Section("Add") {
+            Button { showingMusic = true } label: {
+                Label("Music", systemImage: "music.note")
+            }
             Button { importing = true } label: {
                 Label("Music from Files…", systemImage: "folder")
             }
@@ -692,5 +701,123 @@ struct SoundEffectsList: View {
         store.addSoundEffect(effect)
         store.buzz(.confirm)
         store.announce(tr("Added to the audio."))
+    }
+}
+
+// MARK: - built-in music
+
+/// The music that comes with the app (MusicLibrary): mood chips, a search
+/// over names and tags, each loop heard with a tap — again, to stop — and
+/// added with +, from the film's start, looping to fill it.
+struct MusicLibraryList: View {
+    @Bindable var store: DesignStore
+    @State private var query = ""
+    @State private var mood: String?
+    /// The loop being heard, if one is.
+    @State private var playing: String?
+    @State private var stopper: Task<Void, Never>?
+
+    var body: some View {
+        List {
+            Section { moodChips }
+            let found = MusicLibrary.filter(mood: mood, query: query)
+            if found.isEmpty {
+                Text(tr("No music matches “%@”.", query.trimmingCharacters(in: .whitespaces)))
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(found) { music in row(music) }
+        }
+        .searchable(text: $query, prompt: Text("Search music"))
+        .navigationTitle("Music")
+        .navigationBarTitleDisplayMode(.inline)
+        .onDisappear { stop() }
+    }
+
+    private var moodChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                chip(nil, tr("All"))
+                ForEach(MusicLibrary.moods, id: \.self) { key in chip(key, MusicLibrary.moodName(key)) }
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
+    private func chip(_ key: String?, _ name: String) -> some View {
+        let chosen = mood == key
+        return Button { mood = key } label: {
+            Text(name)
+                .font(.callout)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(Capsule().fill(chosen ? Theme.accentSubtle : Color(.systemGray6)))
+                .overlay(Capsule().stroke(chosen ? Theme.accent : Theme.hairline))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(chosen ? .isSelected : [])
+    }
+
+    private func row(_ music: MusicTrack) -> some View {
+        let on = playing == music.id
+        let length = VideoStore.timeLabel(music.seconds)
+        return HStack(spacing: 12) {
+            Button { toggle(music) } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: on ? "stop.circle.fill" : "play.circle")
+                        .font(.title3)
+                        .foregroundStyle(Theme.accent)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(music.name)
+                        Text(verbatim: [MusicLibrary.moodName(music.mood), music.genre, tr("%d BPM", Int(music.bpm))]
+                            .filter { !$0.isEmpty }.joined(separator: " · "))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                    Text(length)
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(tr("%@, %@", music.name, length))
+            .accessibilityHint(on ? tr("Stop") : tr("Play"))
+            Button { add(music) } label: {
+                Image(systemName: "plus.circle.fill").font(.title3)
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel(tr("Add %@", music.name))
+        }
+    }
+
+    /// The loop heard once through, or stopped when it is the one playing.
+    private func toggle(_ music: MusicTrack) {
+        if playing == music.id {
+            stop()
+            return
+        }
+        guard let url = MusicLibrary.url(music.id) else { return }
+        Audition.shared.play(url, 0...max(music.seconds, 0.05))
+        playing = music.id
+        stopper?.cancel()
+        stopper = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(music.seconds + 0.25))
+            if !Task.isCancelled, playing == music.id { playing = nil }
+        }
+    }
+
+    private func stop() {
+        stopper?.cancel()
+        stopper = nil
+        Audition.shared.stop()
+        playing = nil
+    }
+
+    private func add(_ music: MusicTrack) {
+        stop()
+        store.addMusic(music)
+        store.buzz(.confirm)
+        store.announce(tr("Added %@", music.name))
     }
 }

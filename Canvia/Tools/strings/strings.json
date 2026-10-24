@@ -1862,6 +1862,15 @@
     "ja": "%d / %d",
     "pt-BR": "%d / %d"
   },
+  "%d BPM": {
+    "ar": "%d نبضة/دقيقة",
+    "de": "%d BPM",
+    "es": "%d BPM",
+    "fr": "%d BPM",
+    "it": "%d BPM",
+    "ja": "%d BPM",
+    "pt-BR": "%d BPM"
+  },
   "%d SmartArt|%d SmartArt": {
     "ar": {
       "few": "%d SmartArt",
@@ -7322,6 +7331,15 @@
     "ja": "吹き出し",
     "pt-BR": "Destaques"
   },
+  "Calm": {
+    "ar": "هادئة",
+    "de": "Ruhig",
+    "es": "Tranquila",
+    "fr": "Calme",
+    "it": "Calma",
+    "ja": "穏やか",
+    "pt-BR": "Calma"
+  },
   "Camera": {
     "ar": "الكاميرا",
     "de": "Kamera",
@@ -7918,6 +7936,15 @@
     "it": "Chevron",
     "ja": "山形",
     "pt-BR": "Divisa"
+  },
+  "Chill": {
+    "ar": "مريحة",
+    "de": "Entspannt",
+    "es": "Relajada",
+    "fr": "Détente",
+    "it": "Rilassata",
+    "ja": "チル",
+    "pt-BR": "Relaxante"
   },
   "Choose a photo": {
     "ar": "اختيار صورة",
@@ -8887,6 +8914,15 @@
     "it": "Angoli %d",
     "ja": "角 %d",
     "pt-BR": "Cantos %d"
+  },
+  "Corporate": {
+    "ar": "مؤسسية",
+    "de": "Business",
+    "es": "Corporativa",
+    "fr": "Entreprise",
+    "it": "Aziendale",
+    "ja": "コーポレート",
+    "pt-BR": "Corporativa"
   },
   "Couldn't add every photo picked.": {
     "ar": "تعذّرت إضافة كل الصور المختارة.",
@@ -13979,6 +14015,15 @@
     "ja": "手書きをテキストに変換しました — 元に戻すとストロークが残ります",
     "pt-BR": "A escrita à mão virou texto — Desfazer mantém os traços"
   },
+  "Happy": {
+    "ar": "مبهجة",
+    "de": "Fröhlich",
+    "es": "Alegre",
+    "fr": "Joyeuse",
+    "it": "Allegra",
+    "ja": "ハッピー",
+    "pt-BR": "Alegre"
+  },
   "Haptics": {
     "ar": "اللمس الاهتزازي",
     "de": "Haptik",
@@ -18100,6 +18145,15 @@
     "it": "Nessun margine",
     "ja": "余白なし",
     "pt-BR": "Sem margens"
+  },
+  "No music matches “%@”.": {
+    "ar": "لا توجد موسيقى تطابق “%@”.",
+    "de": "Keine Musik passt zu „%@“.",
+    "es": "Ninguna música coincide con “%@”.",
+    "fr": "Aucune musique ne correspond à « %@ ».",
+    "it": "Nessuna musica corrisponde a “%@”.",
+    "ja": "“%@” に一致する音楽はありません。",
+    "pt-BR": "Nenhuma música corresponde a “%@”."
   },
   "No notes for this page.": {
     "ar": "لا توجد ملاحظات لهذه الصفحة.",
@@ -23531,6 +23585,15 @@
     "ja": "ヘルプを検索",
     "pt-BR": "Pesquisar na ajuda"
   },
+  "Search music": {
+    "ar": "البحث عن موسيقى",
+    "de": "Musik suchen",
+    "es": "Buscar música",
+    "fr": "Rechercher de la musique",
+    "it": "Cerca musica",
+    "ja": "音楽を検索",
+    "pt-BR": "Pesquisar música"
+  },
   "Search sizes, like TikTok or A4": {
     "ar": "ابحث عن أحجام، مثل TikTok أو A4",
     "de": "Größen suchen, z. B. TikTok oder A4",
@@ -28798,6 +28861,15 @@
     "it": "Fino a %d caratteri. Lascia vuoto per il nome che gli dà Canvia.",
     "ja": "最大 %d 文字。空欄にすると Canvia が付けた名前になります。",
     "pt-BR": "Até %d caracteres. Deixe vazio para usar o nome que o Canvia dá."
+  },
+  "Upbeat": {
+    "ar": "حماسية",
+    "de": "Schwungvoll",
+    "es": "Animada",
+    "fr": "Entraînante",
+    "it": "Ritmata",
+    "ja": "アップビート",
+    "pt-BR": "Animada"
   },
   "Update": {
     "ar": "تحديث",

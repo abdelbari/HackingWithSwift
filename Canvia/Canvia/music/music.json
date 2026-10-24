@@ -1,0 +1,14 @@
+[
+{"bpm":128,"genre":"Pop","id":"sunny-skip","mood":"happy","name":"Sunny Skip","seconds":15.0,"tags":["bright","cheerful","summer","fun","positive"]},
+{"bpm":120,"genre":"Acoustic","id":"bright-side","mood":"happy","name":"Bright Side","seconds":16.0,"tags":["guitar","warm","family","sunny","light"]},
+{"bpm":128,"genre":"Electronic","id":"city-rush","mood":"upbeat","name":"City Rush","seconds":15.0,"tags":["dance","energy","fast","club","sport"]},
+{"bpm":124,"genre":"Funk","id":"high-five","mood":"upbeat","name":"High Five","seconds":15.484,"tags":["groove","party","bass","retro","energy"]},
+{"bpm":120,"genre":"Ambient","id":"still-water","mood":"calm","name":"Still Water","seconds":16.0,"tags":["relax","peaceful","meditation","soft","spa"]},
+{"bpm":120,"genre":"Piano","id":"morning-light","mood":"calm","name":"Morning Light","seconds":16.0,"tags":["gentle","sunrise","soft","hope","keys"]},
+{"bpm":120,"genre":"Cinematic","id":"rising-storm","mood":"dramatic","name":"Rising Storm","seconds":16.0,"tags":["epic","tension","trailer","drums","dark"]},
+{"bpm":132,"genre":"Epic","id":"last-stand","mood":"dramatic","name":"Last Stand","seconds":14.545,"tags":["battle","heroic","intense","trailer","power"]},
+{"bpm":120,"genre":"Lo-fi","id":"lazy-sunday","mood":"chill","name":"Lazy Sunday","seconds":16.0,"tags":["study","relaxed","jazzy","cafe","beats"]},
+{"bpm":124,"genre":"Synthwave","id":"night-drive","mood":"chill","name":"Night Drive","seconds":15.484,"tags":["retro","neon","night","80s","cruise"]},
+{"bpm":120,"genre":"Corporate","id":"big-pitch","mood":"corporate","name":"Big Pitch","seconds":16.0,"tags":["business","presentation","success","tech","clean"]},
+{"bpm":126,"genre":"Inspiring","id":"forward-plan","mood":"corporate","name":"Forward Plan","seconds":15.238,"tags":["motivation","growth","startup","uplifting","explainer"]}
+]
