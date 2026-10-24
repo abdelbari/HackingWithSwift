@@ -967,7 +967,9 @@ struct TextElementView: View {
     /// effects that survive that are the ones a filled path can carry — the
     /// shadows and the glow; outline and splice become a stroke on the same
     /// path at the effect's thickness, Outline a stroke under the filled
-    /// path, and glitch and echo become offset fills.
+    /// path, and glitch and echo become offset fills. A colour emoji, which
+    /// has no outline, is drawn by the emoji font once, over them — never
+    /// stroked, copied or tinted, at its full colour, whatever the effect.
     private func drawCurvedText(_ resolved: Element, in cg: CGContext, size: CGSize, effect: TextEffect) {
         var el = resolved
         el.w = size.width
@@ -1047,6 +1049,7 @@ struct TextElementView: View {
                 cg.restoreGState()
             }
         }
+        for piece in outlines.emoji { TextOutliner.drawEmoji(piece, in: cg) }
     }
 
     private struct LineFragment {

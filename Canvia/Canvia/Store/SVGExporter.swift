@@ -414,7 +414,9 @@ enum SVGExporter {
             TextOutliner.svgPathData(top > 0 ? (outline.copy(using: &shift) ?? outline) : outline)
         }
         let d = standIns?.letters(drawn) ?? outlines.map { data($0.whole) } ?? ""
-        guard !d.isEmpty else { return "" }
+        // The colour emoji, which have no outline, as pictures after them.
+        let emoji = emojiMarkup(outlines?.emoji ?? [], el: el, top: top)
+        guard !d.isEmpty else { return emoji }
         let gradient = el.textFill?.kind == "gradient" && !(el.textFill?.stops ?? []).isEmpty
         // Marks behind chosen words, before the letters, so under them.
         let marks = standIns == nil ? highlightMarkup(drawn, top: top) : ""
@@ -435,7 +437,7 @@ enum SVGExporter {
             let place = "x=\"\(num(window.minX))\" y=\"\(num(window.minY))\" width=\"\(num(window.width))\" height=\"\(num(window.height))\""
             let picture = "<image clip-path=\"url(#textclip\(index))\" \(place) preserveAspectRatio=\"none\" " +
                 "xlink:href=\"data:image/\(photo.type);base64,\(photo.data.base64EncodedString())\"/>"
-            return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + marks + ring + clip + picture + "</g>"
+            return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + marks + ring + clip + picture + "</g>" + emoji
         }
         let ink = textInk(el)
         if !gradient, el.textFill?.isPhoto != true, let parts = outlines?.parts, parts.contains(where: { $0.color != nil }) {
@@ -443,7 +445,7 @@ enum SVGExporter {
             let paths = parts.map { part in
                 "<path d=\"\(data(part.path))\" fill=\"\(escape(part.color ?? ink))\" fill-rule=\"nonzero\"/>"
             }
-            return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + marks + ring + paths.joined() + "</g>"
+            return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + marks + ring + paths.joined() + "</g>" + emoji
         }
         let paint: String
         if let fill = el.textFill, fill.kind == "gradient", let stops = fill.stops, !stops.isEmpty {
@@ -458,8 +460,24 @@ enum SVGExporter {
         } else {
             paint = escape(ink)
         }
-        return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + marks + ring +
-               "<path d=\"\(d)\" fill=\"\(paint)\" fill-rule=\"nonzero\"/></g>"
+        let letters = "<path d=\"\(d)\" fill=\"\(paint)\" fill-rule=\"nonzero\"/></g>"
+        return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + marks + ring + letters + emoji
+    }
+
+    /// The colour emoji among outlined letters (TextOutliner.EmojiPiece),
+    /// each an <image> of its PNG at twice its size, placed and turned as
+    /// its letter, in the box's space moved down to where its lines start
+    /// — after the letters, as the Android twin writes them.
+    static func emojiMarkup(_ pieces: [TextOutliner.EmojiPiece], el: Element, top: Double) -> String {
+        let images = pieces.compactMap { piece -> String? in
+            guard let png = TextOutliner.emojiImage(piece, scale: 2)?.pngData() else { return nil }
+            let w = Double(piece.rect.width), h = Double(piece.rect.height)
+            let box = "x=\"\(num(-w / 2))\" y=\"\(num(-h / 2))\" width=\"\(num(w))\" height=\"\(num(h))\""
+            let turn = "translate(\(num(Double(piece.rect.midX))) \(num(Double(piece.rect.midY) + top))) rotate(\(num(piece.angle)))"
+            return "<image \(box) transform=\"\(turn)\" href=\"data:image/png;base64,\(png.base64EncodedString())\"/>"
+        }
+        guard !images.isEmpty else { return "" }
+        return "<g transform=\"translate(\(num(el.x)) \(num(el.y)))\">" + images.joined() + "</g>"
     }
 
     /// The marks behind highlighted words (TextHighlights), as rounded

@@ -40,6 +40,63 @@ struct Emoji: Codable, Equatable, Hashable {
     }
 }
 
+extension Emoji {
+
+    private static let zwj: UInt32 = 0x200D
+    private static let vs15: UInt32 = 0xFE0E
+    private static let keycap: UInt32 = 0x20E3
+
+    /// Whether `scalar` is Extended_Pictographic, by the generator's table.
+    static func isPictographic(_ scalar: UInt32) -> Bool {
+        let table = EmojiCatalogue.pictographic
+        var lo = 0, hi = table.count - 1
+        while lo <= hi {
+            let mid = (lo + hi) / 2
+            if scalar < table[mid].lowerBound {
+                hi = mid - 1
+            } else if scalar > table[mid].upperBound {
+                lo = mid + 1
+            } else {
+                return true
+            }
+        }
+        return false
+    }
+
+    private static func isRegional(_ scalar: UInt32) -> Bool { (0x1F1E6...0x1F1FF).contains(scalar) }
+
+    /// Whether `cluster` — one character as a reader sees it — is an emoji,
+    /// drawn in colour by the phone's emoji font rather than traced as an
+    /// outline: a keycap (a digit, # or * with U+20E3), a flag (two regional
+    /// indicators), or anything with an Extended_Pictographic code point in
+    /// it — ZWJ, skin tone and U+FE0F sequences included — unless U+FE0E
+    /// asks for it as text (and no ZWJ joins it). The rule both phones
+    /// share, over Fixtures/emoji_clusters.json.
+    static func isEmojiCluster(_ cluster: String) -> Bool {
+        let scalars = cluster.unicodeScalars.map(\.value)
+        guard let first = scalars.first else { return false }
+        if scalars.contains(keycap), (0x30...0x39).contains(first) || first == 0x23 || first == 0x2A { return true }
+        if scalars.count >= 2, isRegional(scalars[0]), isRegional(scalars[1]) { return true }
+        if scalars.contains(vs15), !scalars.contains(zwj) { return false }
+        return scalars.contains(where: isPictographic)
+    }
+
+    /// `text`'s characters as a reader sees them, each with its UTF-16
+    /// range and whether it is an emoji (isEmojiCluster) — what the
+    /// outliners place one by one.
+    static func clusters(_ text: String) -> [(range: NSRange, emoji: Bool)] {
+        var out: [(range: NSRange, emoji: Bool)] = []
+        var offset = 0
+        for character in text {
+            let cluster = String(character)
+            let length = cluster.utf16.count
+            out.append((range: NSRange(location: offset, length: length), emoji: isEmojiCluster(cluster)))
+            offset += length
+        }
+        return out
+    }
+}
+
 /// A tab of the catalogue: Smileys & People, Animals & Nature, … Flags.
 struct EmojiGroup: Codable, Equatable, Identifiable {
     var name: String
@@ -67,18 +124,29 @@ enum EmojiCatalogue {
 
     private struct Catalogue: Codable {
         var groups: [EmojiGroup]
+        /// The Extended_Pictographic code points as [first, last] pairs.
+        var pictographic: [[UInt32]]?
     }
 
     /// Read once, on first use.
-    static let groups: [EmojiGroup] = {
+    private static let catalogue: Catalogue = {
         guard let url = Bundle.main.url(forResource: "emoji", withExtension: "json"),
               let data = try? Data(contentsOf: url),
               let decoded = try? JSONDecoder().decode(Catalogue.self, from: data) else {
             assertionFailure("emoji.json missing or invalid")
-            return []
+            return Catalogue(groups: [], pictographic: nil)
         }
-        return decoded.groups
+        return decoded
     }()
+
+    static var groups: [EmojiGroup] { catalogue.groups }
+
+    /// The Extended_Pictographic code points, as ranges in order
+    /// (Emoji.isPictographic): the generator's table, emoji.json's
+    /// "pictographic", both phones read.
+    static let pictographic: [ClosedRange<UInt32>] = (catalogue.pictographic ?? []).compactMap { pair in
+        pair.count == 2 && pair[0] <= pair[1] ? pair[0]...pair[1] : nil
+    }
 
     static let all: [Emoji] = groups.flatMap(\.emoji)
 

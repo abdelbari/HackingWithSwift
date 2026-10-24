@@ -2213,6 +2213,7 @@ final class DesignStore {
         var paragraphSpacing: Double?
         var effect: TextEffectSpec?
         var curve: Double?
+        var curveStart: Double?
         var filter: String?
         var adjustments: Adjustments?
         var maskShapeId: String?
@@ -2243,7 +2244,7 @@ final class DesignStore {
                           lineHeight: el.lineHeight, letterSpacing: el.letterSpacing,
                           listStyle: el.listStyle, indent: el.indent, textFill: el.textFill,
                           vAlign: el.vAlign, paragraphSpacing: el.paragraphSpacing,
-                          effect: el.effect, curve: el.curve, filter: el.filter,
+                          effect: el.effect, curve: el.curve, curveStart: el.curveStart, filter: el.filter,
                           adjustments: el.adjustments, maskShapeId: el.maskShapeId, duotone: el.duotone,
                           filterStrength: el.filterStrength, opacity: el.opacity, shadow: el.shadow, blendMode: el.blendMode,
                           thickness: el.thickness, dash: el.dash,
@@ -2302,6 +2303,7 @@ final class DesignStore {
             el.paragraphSpacing = style.paragraphSpacing
             el.effect = style.effect
             el.curve = style.curve
+            el.curveStart = style.curveStart
             el.h = FontLibrary.layoutHeight(for: el)
         case .image:
             el.filter = style.filter

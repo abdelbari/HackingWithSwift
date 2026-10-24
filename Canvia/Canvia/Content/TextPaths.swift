@@ -30,6 +30,76 @@ enum TextPaths {
         guard let id else { return nil }
         return presets.first { $0.id == id }
     }
+
+    // MARK: a curve round to a ring
+
+    /// The Curve slider's reach, in degrees of arc the words span: a full
+    /// ring each way. A stored value past ±180 is read as it is.
+    static let maxCurve = 360.0
+    /// Half a ring: past it the Rotate slider shows and the ends start to
+    /// part (arcLength); from it the box is the ring's square (ringSide).
+    static let halfCurve = 180.0
+    /// The Rotate slider's reach (`curveStart`).
+    static let maxCurveStart = 180.0
+    /// How near ±180 or ±360 the Curve slider is pulled onto them, with a
+    /// tick felt as it lands.
+    static let curveSnap = 4.0
+
+    /// A curve within ±maxCurve; nil for one that is not a finite number.
+    static func keptCurve(_ degrees: Double?) -> Double? {
+        guard let degrees, degrees.isFinite else { return nil }
+        return min(max(degrees, -maxCurve), maxCurve)
+    }
+
+    /// Whether the Rotate slider shows: the curve past half a ring.
+    static func showsRotate(_ curve: Double?) -> Bool {
+        abs(keptCurve(curve) ?? 0) > halfCurve
+    }
+
+    /// The Curve slider's value pulled onto ±180 or ±360 when within
+    /// `curveSnap` of one — the half ring and the closed ring people aim
+    /// for — and left as it is anywhere else.
+    static func snappedCurve(_ degrees: Double) -> Double {
+        for stop in [-maxCurve, -halfCurve, halfCurve, maxCurve] where abs(degrees - stop) <= curveSnap {
+            return stop
+        }
+        return degrees
+    }
+
+    /// How long the arc is along its baseline, for words `width` long whose
+    /// space is `space` wide, curved `degrees`: the words, and past half a
+    /// ring a gap growing to one space at a full ring — so at ±360 the last
+    /// letter and the first stand a space apart, as if the words went round
+    /// once more. The gap is (|degrees| − 180) / 180 of a space: none at 180
+    /// and below. The rule both phones share (the Android twin's
+    /// TextPaths.arcLength).
+    static func arcLength(width: Double, space: Double, degrees: Double) -> Double {
+        width + space * min(max((abs(degrees) - halfCurve) / halfCurve, 0), 1)
+    }
+
+    /// Where each piece's centre stands round the arc, in degrees clockwise
+    /// from the curve's centre — the top for a positive curve, the bottom
+    /// for a negative one: pieces `advances` wide laid end to end, the words
+    /// centred on it, the whole turned by `start` (curveStart). The rule
+    /// both phones place letters by.
+    static func arcAngles(_ advances: [Double], space: Double, degrees: Double, start: Double = 0) -> [Double] {
+        let width = advances.reduce(0, +)
+        let length = arcLength(width: width, space: space, degrees: degrees)
+        guard length > 0 else { return advances.map { _ in start } }
+        var position = 0.0
+        return advances.map { advance in
+            let centre = position + advance / 2
+            position += advance
+            return (centre - width / 2) / length * degrees + start
+        }
+    }
+
+    /// The side of the square a ring of `radius` with type `size` stands
+    /// in, from |curve| ≥ halfCurve: the circle and a type size round it, so
+    /// it fits whichever way it is turned.
+    static func ringSide(radius: Double, size: Double) -> Double {
+        (2 * (abs(radius) + size)).rounded(.up)
+    }
 }
 
 struct PathWalker {

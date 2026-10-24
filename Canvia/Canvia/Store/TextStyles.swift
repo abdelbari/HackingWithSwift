@@ -41,7 +41,7 @@ enum TextStyles {
         s.align = style.align; s.lineHeight = style.lineHeight; s.letterSpacing = style.letterSpacing
         s.listStyle = style.listStyle; s.indent = style.indent; s.textFill = style.textFill
         s.vAlign = style.vAlign; s.paragraphSpacing = style.paragraphSpacing
-        s.effect = style.effect; s.curve = style.curve; s.shadow = style.shadow
+        s.effect = style.effect; s.curve = style.curve; s.curveStart = style.curveStart; s.shadow = style.shadow
         return s
     }
 

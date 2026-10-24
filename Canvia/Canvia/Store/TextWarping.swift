@@ -23,6 +23,7 @@ extension DesignStore {
             }
             el.warp = TextWarpSpec(kind: kind, amount: el.warp?.amount ?? 50)
             el.curve = nil
+            el.curveStart = nil
             el.textPath = nil
             el.vertical = nil
         }

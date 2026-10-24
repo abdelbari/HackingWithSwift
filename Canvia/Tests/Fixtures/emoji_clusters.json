@@ -1,0 +1,95 @@
+{
+  "about": "Emoji.isEmojiCluster: each cluster and whether it is an emoji, drawn in colour rather than traced.",
+  "clusters": [
+    {
+      "cluster": "👋",
+      "emoji": true,
+      "why": "waving hand"
+    },
+    {
+      "cluster": "👋🏽",
+      "emoji": true,
+      "why": "skin tone"
+    },
+    {
+      "cluster": "❤️",
+      "emoji": true,
+      "why": "VS16"
+    },
+    {
+      "cluster": "❤",
+      "emoji": true,
+      "why": "pictographic alone"
+    },
+    {
+      "cluster": "❤︎",
+      "emoji": false,
+      "why": "VS15 asks for text"
+    },
+    {
+      "cluster": "1️⃣",
+      "emoji": true,
+      "why": "keycap"
+    },
+    {
+      "cluster": "#⃣",
+      "emoji": true,
+      "why": "keycap without VS16"
+    },
+    {
+      "cluster": "🇫🇷",
+      "emoji": true,
+      "why": "flag"
+    },
+    {
+      "cluster": "👨‍👩‍👧",
+      "emoji": true,
+      "why": "ZWJ family"
+    },
+    {
+      "cluster": "🏳️‍🌈",
+      "emoji": true,
+      "why": "ZWJ flag"
+    },
+    {
+      "cluster": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+      "emoji": true,
+      "why": "tag flag"
+    },
+    {
+      "cluster": "™",
+      "emoji": true,
+      "why": "pictographic: traced when the font has an outline"
+    },
+    {
+      "cluster": "A",
+      "emoji": false,
+      "why": "letter"
+    },
+    {
+      "cluster": "1",
+      "emoji": false,
+      "why": "digit"
+    },
+    {
+      "cluster": "é",
+      "emoji": false,
+      "why": "letter and accent"
+    },
+    {
+      "cluster": " ",
+      "emoji": false,
+      "why": "space"
+    },
+    {
+      "cluster": "•",
+      "emoji": false,
+      "why": "bullet"
+    },
+    {
+      "cluster": "🇫",
+      "emoji": false,
+      "why": "one regional indicator"
+    }
+  ]
+}

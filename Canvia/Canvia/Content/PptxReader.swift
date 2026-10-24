@@ -936,6 +936,8 @@ enum PptxReader {
                 switch warp.attributes["prst"] {
                 case "textArchUp": out.curve = degrees
                 case "textArchDown": out.curve = -degrees
+                // A ring, as this app writes one past half a ring: a whole one.
+                case "textCircle": out.curve = TextPaths.maxCurve
                 default: break
                 }
             }
