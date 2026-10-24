@@ -70,9 +70,28 @@ final class DesignUndo: UndoManager {
 /// undo gestures and shake reach the design's history. Nothing to see.
 final class UndoHostView: UIView {
     let designUndo = DesignUndo()
+    /// F5 and ⇧F5, which SwiftUI's shortcuts cannot name: Present from
+    /// the beginning or from this page (PresentFrom.keys), heard while this
+    /// view has the keys — while no text field has the keyboard.
+    var onPresent: (String) -> Void = { _ in }
 
     override var canBecomeFirstResponder: Bool { true }
     override var undoManager: UndoManager? { designUndo }
+
+    override var keyCommands: [UIKeyCommand]? {
+        let own = PresentFrom.keys.map { key -> UIKeyCommand in
+            let name = tr(key.name)
+            let command = UIKeyCommand(title: name, action: #selector(presentKey(_:)), input: UIKeyCommand.f5,
+                                       modifierFlags: key.shift ? [.shift] : [])
+            command.discoverabilityTitle = name
+            return command
+        }
+        return (super.keyCommands ?? []) + own
+    }
+
+    @objc private func presentKey(_ sender: UIKeyCommand) {
+        onPresent(PresentFrom.choice(shift: sender.modifierFlags.contains(.shift)))
+    }
 
     /// First responder — once in a window, and only while no text field
     /// has the keyboard, which the host (UndoHost.live) is the judge of.
@@ -89,18 +108,22 @@ struct UndoHost: UIViewRepresentable {
     let store: DesignStore
     var live: Bool
     var claim: Int
+    /// F5 and ⇧F5: Present from "start" or "current" (PresentFrom).
+    var present: (String) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeUIView(context: Context) -> UndoHostView {
         let view = UndoHostView()
         view.designUndo.store = store
+        view.onPresent = present
         view.isAccessibilityElement = false
         return view
     }
 
     func updateUIView(_ view: UndoHostView, context: Context) {
         view.designUndo.store = store
+        view.onPresent = present
         guard live, context.coordinator.claimed != claim else { return }
         context.coordinator.claimed = claim
         // After whatever let the keyboard go has finished letting it go.

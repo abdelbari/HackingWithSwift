@@ -29,6 +29,9 @@ import SwiftUI
 struct PresentationView: View {
     let design: Design
     var startPage = 0
+    /// Whether VoiceOver hears where the talk starts — "Presenting from
+    /// page 3 of 9" — as it opens from the editor (PresentFrom).
+    var announcesStart = false
     /// Loop turned on or off, for the design to keep.
     var onLoopChange: (Bool) -> Void = { _ in }
     @Environment(\.dismiss) private var dismiss
@@ -95,12 +98,14 @@ struct PresentationView: View {
     @State private var pinchedThisTouch = false
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
-    init(design: Design, startPage: Int = 0, onLoopChange: @escaping (Bool) -> Void = { _ in }) {
+    init(design: Design, startPage: Int = 0, announcesStart: Bool = false,
+         onLoopChange: @escaping (Bool) -> Void = { _ in }) {
         // An expanded whiteboard shows its bounds and their margin, as it
         // exports (Whiteboards).
         let shown = Whiteboards.flattened(design)
         self.design = shown
         self.startPage = startPage
+        self.announcesStart = announcesStart
         self.onLoopChange = onLoopChange
         boards = Set(design.pages.filter(Whiteboards.isExpanded).map(\.id))
         _session = State(initialValue: PresentSession(design: shown))
@@ -136,6 +141,9 @@ struct PresentationView: View {
             // that is, or the one before when none after it is.
             let asked = min(max(startPage, 0), design.pages.count - 1)
             session.index = PageVisibility.start(at: asked, in: design.visiblePageIndices) ?? asked
+            if announcesStart {
+                AccessibilityNotification.Announcement(PresentFrom.announcement(design, index: session.index)).post()
+            }
             started = Date()
             timer = PresenterTimer(startingAt: started)
             now = started
