@@ -167,9 +167,10 @@ enum DataGrid {
     /// A quote opens a quoted cell only where the cell begins, spaces
     /// before it aside; anywhere else it is a quote. Each cell's spaces are
     /// trimmed, as cells trims them, and rows with no words are left out.
-    /// The first csvRows rows and csvColumns columns are kept, every row as
-    /// wide as the widest kept.
-    static func fromCsv(_ text: String) -> CsvImport {
+    /// The first csvRows rows and csvColumns columns are kept — or
+    /// `maxRows` and `maxColumns`, for Bulk create — every row as wide as
+    /// the widest kept.
+    static func fromCsv(_ text: String, maxRows: Int = csvRows, maxColumns: Int = csvColumns) -> CsvImport {
         var body = Array(text.unicodeScalars)
         if body.first == "\u{FEFF}" { body.removeFirst() }
         let firstLine = body.prefix { $0 != "\n" && $0 != "\r" }
@@ -218,7 +219,7 @@ enum DataGrid {
             i += 1
         }
         if !cell.isEmpty || started || !row.isEmpty { endRow() }
-        return fromRows(rows)
+        return fromRows(rows, maxRows: maxRows, maxColumns: maxColumns)
     }
 
     /// Rows read some other way — a workbook's sheet (XlsxReader) — into
@@ -226,11 +227,11 @@ enum DataGrid {
     /// no words left out, the first csvRows rows of the first csvColumns
     /// columns kept, every row as wide as the widest kept, and how many of
     /// each there were for the same note of what was left out.
-    static func fromRows(_ cells: [[String]]) -> CsvImport {
+    static func fromRows(_ cells: [[String]], maxRows: Int = csvRows, maxColumns: Int = csvColumns) -> CsvImport {
         let rows = cells.map { row in row.map { $0.trimmingCharacters(in: .whitespaces) } }
             .filter { row in row.contains { !$0.isEmpty } }
         let columns = rows.map(\.count).max() ?? 0
-        let kept = padded(rows.prefix(csvRows).map { Array($0.prefix(csvColumns)) })
+        let kept = padded(rows.prefix(maxRows).map { Array($0.prefix(maxColumns)) })
         return CsvImport(cells: kept, rows: rows.count, columns: columns)
     }
 
@@ -243,21 +244,22 @@ enum DataGrid {
     /// A file's bytes for the grid, in the Android twin's words when they
     /// will not do: none read, more than csvBytes, or no rows with words.
     /// Read as UTF-8, anything that is not standing in for a character.
-    static func read(csv data: Data?) -> CsvRead {
+    static func read(csv data: Data?, maxRows: Int = csvRows, maxColumns: Int = csvColumns) -> CsvRead {
         guard let data else { return .refused(tr("That file could not be read")) }
         guard data.count <= csvBytes else { return .refused(tr("That file is over 1 MB")) }
-        let read = fromCsv(String(decoding: data, as: UTF8.self))
+        let read = fromCsv(String(decoding: data, as: UTF8.self), maxRows: maxRows, maxColumns: maxColumns)
         return read.cells.isEmpty ? .refused(tr("No rows to import in that file")) : .rows(read)
     }
 
     /// The file at `url` — one the file picker handed over — read for the
     /// grid, no more of it than one byte past csvBytes.
-    static func read(csvAt url: URL) -> CsvRead {
+    static func read(csvAt url: URL, maxRows: Int = csvRows, maxColumns: Int = csvColumns) -> CsvRead {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         guard let handle = try? FileHandle(forReadingFrom: url) else { return read(csv: nil) }
         defer { try? handle.close() }
-        return read(csv: (try? handle.read(upToCount: csvBytes + 1)) ?? Data())
+        return read(csv: (try? handle.read(upToCount: csvBytes + 1)) ?? Data(), maxRows: maxRows,
+                    maxColumns: maxColumns)
     }
 
     // MARK: Import data

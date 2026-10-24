@@ -1,0 +1,30 @@
+{
+ "grid": [
+  ["Name", "Course", " Photo "],
+  ["Ada Lovelace", "Maths", "pic_ada"],
+  ["  ", "", ""],
+  ["Alan *Turing*", "Computing", "media:pic_alan.jpg"],
+  ["Grace"]
+ ],
+ "columns": ["Name", "Course", "Photo"],
+ "rows": [
+  ["Ada Lovelace", "Maths", "pic_ada"],
+  ["Alan *Turing*", "Computing", "media:pic_alan.jpg"],
+  ["Grace", "", ""]
+ ],
+ "page": {
+  "id": "page_cert",
+  "elements": [
+   {"id": "t1", "type": "text", "x": 100, "y": 100, "w": 880, "h": 80, "fontSize": 48, "text": "Certificate for {{ Name }}"},
+   {"id": "t2", "type": "text", "x": 100, "y": 300, "w": 880, "h": 60, "fontSize": 36, "text": "Course", "bulkField": "Course"},
+   {"id": "i1", "type": "image", "x": 400, "y": 500, "w": 280, "h": 280, "src": "media:placeholder", "bulkField": "Photo"},
+   {"id": "t3", "type": "text", "x": 100, "y": 900, "w": 880, "h": 60, "fontSize": 24, "text": "{{Unknown}} stays"}
+  ]
+ },
+ "pictures": {"pic_ada": "media:pic_ada", "pic_alan": "media:pic_alan"},
+ "pages": [
+  {"texts": ["Certificate for Ada Lovelace", "Maths", "{{Unknown}} stays"], "srcs": ["media:pic_ada"]},
+  {"texts": ["Certificate for Alan \\*Turing\\*", "Computing", "{{Unknown}} stays"], "srcs": ["media:pic_alan"]},
+  {"texts": ["Certificate for Grace", "", "{{Unknown}} stays"], "srcs": ["media:placeholder"]}
+ ]
+}

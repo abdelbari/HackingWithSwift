@@ -3845,6 +3845,15 @@
     "ja": "動画 1 本",
     "pt-BR": "1 vídeo"
   },
+  "1. Data": {
+    "ar": "1. البيانات",
+    "de": "1. Daten",
+    "es": "1. Datos",
+    "fr": "1. Données",
+    "it": "1. Dati",
+    "ja": "1. データ",
+    "pt-BR": "1. Dados"
+  },
   "2 across": {
     "ar": "2 أفقيًا",
     "de": "2 nebeneinander",
@@ -3908,6 +3917,15 @@
     "ja": "縦に2枚",
     "pt-BR": "2 empilhadas"
   },
+  "2. Connect fields": {
+    "ar": "2. ربط الحقول",
+    "de": "2. Felder verbinden",
+    "es": "2. Conectar campos",
+    "fr": "2. Associer les champs",
+    "it": "2. Collega i campi",
+    "ja": "2. フィールドを接続",
+    "pt-BR": "2. Conectar campos"
+  },
   "3 across": {
     "ar": "3 أفقيًا",
     "de": "3 nebeneinander",
@@ -3943,6 +3961,15 @@
     "it": "3 impilate",
     "ja": "縦に3枚",
     "pt-BR": "3 empilhadas"
+  },
+  "3. Generate": {
+    "ar": "3. الإنشاء",
+    "de": "3. Erstellen",
+    "es": "3. Generar",
+    "fr": "3. Générer",
+    "it": "3. Genera",
+    "ja": "3. 生成",
+    "pt-BR": "3. Gerar"
   },
   "4 across": {
     "ar": "4 أفقيًا",
@@ -4958,6 +4985,39 @@
       "other": "%d guias adicionadas"
     }
   },
+  "Added %d page|Added %d pages": {
+    "ar": {
+      "few": "تمت إضافة %d صفحات",
+      "many": "تمت إضافة %d صفحة",
+      "one": "تمت إضافة %d صفحة",
+      "other": "تمت إضافة %d صفحة",
+      "two": "تمت إضافة %d صفحتين",
+      "zero": "تمت إضافة %d صفحة"
+    },
+    "de": {
+      "one": "%d Seite hinzugefügt",
+      "other": "%d Seiten hinzugefügt"
+    },
+    "es": {
+      "one": "Se añadió %d página",
+      "other": "Se añadieron %d páginas"
+    },
+    "fr": {
+      "one": "%d page ajoutée",
+      "other": "%d pages ajoutées"
+    },
+    "it": {
+      "one": "Aggiunta %d pagina",
+      "other": "Aggiunte %d pagine"
+    },
+    "ja": {
+      "other": "%d ページを追加しました"
+    },
+    "pt-BR": {
+      "one": "%d página adicionada",
+      "other": "%d páginas adicionadas"
+    }
+  },
   "Added a page from “%@”": {
     "ar": "تمت إضافة صفحة من «%@»",
     "de": "Seite aus „%@“ hinzugefügt",
@@ -5698,6 +5758,15 @@
     "it": "Grafica",
     "ja": "アートワーク",
     "pt-BR": "Arte"
+  },
+  "As separate designs": {
+    "ar": "كتصاميم منفصلة",
+    "de": "Als einzelne Designs",
+    "es": "Como diseños separados",
+    "fr": "En designs séparés",
+    "it": "Come design separati",
+    "ja": "別々のデザインとして",
+    "pt-BR": "Como designs separados"
   },
   "Audio": {
     "ar": "الصوت",
@@ -6772,6 +6841,24 @@
     "it": "Fumetti",
     "ja": "バブル",
     "pt-BR": "Bolhas"
+  },
+  "Bulk create": {
+    "ar": "إنشاء مجمّع",
+    "de": "Massenerstellung",
+    "es": "Creación en lote",
+    "fr": "Création en masse",
+    "it": "Creazione in blocco",
+    "ja": "一括作成",
+    "pt-BR": "Criação em massa"
+  },
+  "Bulk create…": {
+    "ar": "إنشاء مجمّع…",
+    "de": "Massenerstellung…",
+    "es": "Creación en lote…",
+    "fr": "Création en masse…",
+    "it": "Creazione in blocco…",
+    "ja": "一括作成…",
+    "pt-BR": "Criação em massa…"
   },
   "Bulleted list": {
     "ar": "قائمة نقطية",
@@ -12704,6 +12791,39 @@
     "ja": "生成",
     "pt-BR": "Gerar"
   },
+  "Generate %d page|Generate %d pages": {
+    "ar": {
+      "few": "إنشاء %d صفحات",
+      "many": "إنشاء %d صفحة",
+      "one": "إنشاء %d صفحة",
+      "other": "إنشاء %d صفحة",
+      "two": "إنشاء %d صفحتين",
+      "zero": "إنشاء %d صفحة"
+    },
+    "de": {
+      "one": "%d Seite erstellen",
+      "other": "%d Seiten erstellen"
+    },
+    "es": {
+      "one": "Generar %d página",
+      "other": "Generar %d páginas"
+    },
+    "fr": {
+      "one": "Générer %d page",
+      "other": "Générer %d pages"
+    },
+    "it": {
+      "one": "Genera %d pagina",
+      "other": "Genera %d pagine"
+    },
+    "ja": {
+      "other": "%d ページを生成"
+    },
+    "pt-BR": {
+      "one": "Gerar %d página",
+      "other": "Gerar %d páginas"
+    }
+  },
   "Generating captions…": {
     "ar": "جارٍ إنشاء التسميات التوضيحية…",
     "de": "Untertitel werden erzeugt …",
@@ -14237,6 +14357,15 @@
     "ja": "位置がロックされています。",
     "pt-BR": "A posição está bloqueada."
   },
+  "Its words name %@": {
+    "ar": "يذكر نصه %@",
+    "de": "Sein Text nennt %@",
+    "es": "Su texto nombra %@",
+    "fr": "Son texte nomme %@",
+    "it": "Il suo testo nomina %@",
+    "ja": "テキスト内の列: %@",
+    "pt-BR": "Seu texto cita %@"
+  },
   "JPEG quality": {
     "ar": "جودة JPEG",
     "de": "JPEG-Qualität",
@@ -15101,6 +15230,39 @@
     "ja": "MP4 動画",
     "pt-BR": "Vídeo MP4"
   },
+  "Made %d design|Made %d designs": {
+    "ar": {
+      "few": "تم إنشاء %d تصاميم",
+      "many": "تم إنشاء %d تصميم",
+      "one": "تم إنشاء %d تصميم",
+      "other": "تم إنشاء %d تصميم",
+      "two": "تم إنشاء %d تصميمين",
+      "zero": "تم إنشاء %d تصميم"
+    },
+    "de": {
+      "one": "%d Design erstellt",
+      "other": "%d Designs erstellt"
+    },
+    "es": {
+      "one": "Se creó %d diseño",
+      "other": "Se crearon %d diseños"
+    },
+    "fr": {
+      "one": "%d design créé",
+      "other": "%d designs créés"
+    },
+    "it": {
+      "one": "Creato %d design",
+      "other": "Creati %d design"
+    },
+    "ja": {
+      "other": "%d 件のデザインを作成しました"
+    },
+    "pt-BR": {
+      "one": "%d design criado",
+      "other": "%d designs criados"
+    }
+  },
   "Made %d resized copy|Made %d resized copies": {
     "ar": {
       "few": "تم إنشاء %d نسخ بحجم مختلف",
@@ -15201,6 +15363,39 @@
     "pt-BR": {
       "one": "Criar %d cópia",
       "other": "Criar %d cópias"
+    }
+  },
+  "Make %d design|Make %d designs": {
+    "ar": {
+      "few": "إنشاء %d تصاميم",
+      "many": "إنشاء %d تصميم",
+      "one": "إنشاء %d تصميم",
+      "other": "إنشاء %d تصميم",
+      "two": "إنشاء %d تصميمين",
+      "zero": "إنشاء %d تصميم"
+    },
+    "de": {
+      "one": "%d Design erstellen",
+      "other": "%d Designs erstellen"
+    },
+    "es": {
+      "one": "Crear %d diseño",
+      "other": "Crear %d diseños"
+    },
+    "fr": {
+      "one": "Créer %d design",
+      "other": "Créer %d designs"
+    },
+    "it": {
+      "one": "Crea %d design",
+      "other": "Crea %d design"
+    },
+    "ja": {
+      "other": "%d 件のデザインを作成"
+    },
+    "pt-BR": {
+      "one": "Criar %d design",
+      "other": "Criar %d designs"
     }
   },
   "Make a copy": {
@@ -17966,6 +18161,15 @@
     "ja": "写真に保存できるのは PNG、JPEG、GIF、MP4 のみです。",
     "pt-BR": "Só PNG, JPEG, GIF e MP4 podem ser salvos em Fotos."
   },
+  "Only the first %d of %d rows will be made": {
+    "ar": "سيُنشأ أول %d فقط من أصل %d صفًا",
+    "de": "Nur die ersten %d von %d Zeilen werden erstellt",
+    "es": "Solo se crearán las primeras %d de %d filas",
+    "fr": "Seules les %d premières lignes sur %d seront créées",
+    "it": "Verranno create solo le prime %d di %d righe",
+    "ja": "最初の %d 行（全 %d 行）だけが作成されます",
+    "pt-BR": "Somente as primeiras %d de %d linhas serão criadas"
+  },
   "Opacity": {
     "ar": "العتامة",
     "de": "Deckkraft",
@@ -19159,6 +19363,15 @@
     "it": "Foto: ritaglio, filtri, cornici, scontorno",
     "ja": "写真：切り抜き、フィルター、フレーム、背景削除",
     "pt-BR": "Fotos: cortar, filtros, molduras, remover fundo"
+  },
+  "Pick a column for a text or photo, or type {{Column}} in a text. A photo takes the upload its cell names.": {
+    "ar": "اختر عمودًا لنص أو صورة، أو اكتب {{Column}} في نص. تأخذ الصورة الملف المرفوع الذي تسمّيه خليتها.",
+    "de": "Wähle eine Spalte für einen Text oder ein Foto, oder tippe {{Column}} in einen Text. Ein Foto übernimmt den Upload, den seine Zelle nennt.",
+    "es": "Elige una columna para un texto o una foto, o escribe {{Column}} en un texto. Una foto toma la subida que nombra su celda.",
+    "fr": "Choisissez une colonne pour un texte ou une photo, ou tapez {{Column}} dans un texte. Une photo prend l’import que nomme sa cellule.",
+    "it": "Scegli una colonna per un testo o una foto, oppure scrivi {{Column}} in un testo. Una foto prende il caricamento indicato dalla sua cella.",
+    "ja": "テキストや写真に列を選ぶか、テキストに {{Column}} と入力します。写真にはセルで指定したアップロードが入ります。",
+    "pt-BR": "Escolha uma coluna para um texto ou foto, ou digite {{Column}} em um texto. Uma foto usa o upload que a célula indica."
   },
   "Pick a size above or a template below to start. Everything saves itself.": {
     "ar": "اختر حجمًا أعلاه أو قالبًا أدناه للبدء. كل شيء يُحفظ تلقائيًا.",
@@ -21340,6 +21553,15 @@
     "it": "Riga %d, colonna %d",
     "ja": "行 %d、列 %d",
     "pt-BR": "Linha %d, coluna %d"
+  },
+  "Row %d: %@ is too long": {
+    "ar": "الصف %d: ‏%@ طويل جدًا",
+    "de": "Zeile %d: %@ ist zu lang",
+    "es": "Fila %d: %@ es demasiado largo",
+    "fr": "Ligne %d : %@ est trop long",
+    "it": "Riga %d: %@ è troppo lungo",
+    "ja": "%d 行目: %@ が長すぎます",
+    "pt-BR": "Linha %d: %@ é longo demais"
   },
   "Rows": {
     "ar": "الصفوف",
@@ -25081,6 +25303,15 @@
     "it": "Del design",
     "ja": "デザインの設定",
     "pt-BR": "A do design"
+  },
+  "The first row is the column names.": {
+    "ar": "الصف الأول هو أسماء الأعمدة.",
+    "de": "Die erste Zeile enthält die Spaltennamen.",
+    "es": "La primera fila son los nombres de las columnas.",
+    "fr": "La première ligne contient les noms des colonnes.",
+    "it": "La prima riga contiene i nomi delle colonne.",
+    "ja": "1 行目は列の名前です。",
+    "pt-BR": "A primeira linha são os nomes das colunas."
   },
   "The first value, as a percentage: %@.": {
     "ar": "القيمة الأولى، كنسبة مئوية: %@.",

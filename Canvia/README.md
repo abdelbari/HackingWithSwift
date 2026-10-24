@@ -132,6 +132,14 @@ it stays until used or closed (or the next delete), and VoiceOver hears it.
   columns), asking which sheet when there are several; a workbook opened
   in Canvia from another app becomes a new design with a chart of its
   first sheet (`Spreadsheets`)
+- Bulk create: More ▸ Bulk create… takes rows — a CSV or TSV file, or
+  typed in the grid, the first row the columns' names — and connects each
+  text or photo on the page to a column (`bulkField`; `{{Column}}` in a
+  text connects it too, and a photo takes the upload its cell names), then
+  makes a copy of the page for every row, filled in, as one Undo, or a
+  design of its own for every row titled by its first cell; the rows stay
+  on the design (`bulk`), at most 500, and words that no longer fit are
+  said row by row (`BulkCreate`)
 - Mockups: from the Export sheet's Share row and a design's card on Home,
   a page shown on a phone, laptop, tablet, framed print, poster, business
   card, T-shirt, mug and more — twenty-one vector scenes

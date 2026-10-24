@@ -41,6 +41,8 @@ enum EditorSheet: String, Identifiable {
     case photoInLetters
     /// More like this, for a selected icon, sticker, graphic or shape.
     case similar
+    /// More's "Bulk create…": a page, or a design, for each row of a table.
+    case bulk
     var id: String { rawValue }
 }
 
@@ -897,6 +899,10 @@ struct EditorView: View {
                 } label: { Label("Make a copy", systemImage: "plus.square.on.square") }
 
                 Button {
+                    activeSheet = .bulk
+                } label: { Label("Bulk create…", systemImage: "tablecells.badge.ellipsis") }
+
+                Button {
                     // Typing under way is kept first, so the template has it.
                     store.finishCrop()
                     store.endTextEdit()
@@ -1509,6 +1515,8 @@ struct EditorView: View {
             ResizeSheet(store: store) { made in showCopies(made) }
         case .copyResize:
             ResizeSheet(store: store, copying: true) { made in showCopies(made) }
+        case .bulk:
+            BulkCreateSheet(store: store) { made in showMade(made) }
         case .find:
             FindReplaceSheet(store: store)
         case .frame:
@@ -1767,6 +1775,13 @@ struct EditorView: View {
     /// "Made 3 resized copies", with Open: straight into the copy when there
     /// is one, else to Home with them highlighted. Nothing here changed, so
     /// there is nothing to undo.
+    /// The designs Bulk create made, said, with Open.
+    private func showMade(_ made: [Design]) {
+        guard !made.isEmpty else { return }
+        show(toast: trn("Made %d design|Made %d designs", made.count), undoable: false)
+        toastOpens = made.map(\.id)
+    }
+
     private func showCopies(_ made: [Design]) {
         guard !made.isEmpty else { return }
         show(toast: CopyResize.doneText(count: made.count), undoable: false)
