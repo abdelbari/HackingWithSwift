@@ -22,8 +22,8 @@
 import Foundation
 
 /// One illustrated graphic: its id, what Add calls it, its category, words
-/// to find it by, the whole SVG it is drawn from, and its fills in the order
-/// they are first used.
+/// to find it by, the whole SVG it is drawn from, its fills in the order
+/// they are first used, and its dominant colours, most of it first.
 struct GraphicDef: Codable, Identifiable, Equatable {
     var id: String
     var name: String
@@ -31,10 +31,14 @@ struct GraphicDef: Codable, Identifiable, Equatable {
     var tags: [String] = []
     var svg: String
     var colours: [String] = []
+    /// At most three of its colours, the one covering the most first, as
+    /// tools/generate_graphics.py measures them: what Add's colour filter
+    /// matches (ElementSearch.filtered).
+    var hues: [String] = []
     /// "draw" | "twinkle" | "float"; nil for a graphic that stays still.
     var motion: String?
 
-    private enum CodingKeys: String, CodingKey { case id, name, category, tags, svg, colours, motion }
+    private enum CodingKeys: String, CodingKey { case id, name, category, tags, svg, colours, hues, motion }
 
     init(id: String, name: String, category: String, tags: [String] = [], svg: String, colours: [String] = [],
          motion: String? = nil) {
@@ -55,6 +59,7 @@ struct GraphicDef: Codable, Identifiable, Equatable {
         tags = (try? c.decodeIfPresent([String].self, forKey: .tags)) ?? []
         svg = try c.decode(String.self, forKey: .svg)
         colours = (try? c.decodeIfPresent([String].self, forKey: .colours)) ?? []
+        hues = (try? c.decodeIfPresent([String].self, forKey: .hues)) ?? []
         motion = try? c.decodeIfPresent(String.self, forKey: .motion)
     }
 
@@ -77,6 +82,9 @@ enum GraphicsLibrary {
     private struct Pack: Codable {
         var categories: [String]
         var graphics: [GraphicDef]
+        /// The curated stickers' dominant colours by glyph (the emoji
+        /// palette), most of each first.
+        var stickers: [String: [String]]?
     }
 
     /// Read once, on first use.
@@ -95,6 +103,12 @@ enum GraphicsLibrary {
 
     /// The categories, in the order Add's chips show them.
     static var categories: [String] { file.categories }
+
+    /// A curated sticker's dominant colours, most of it first; none for a
+    /// glyph the pack does not colour.
+    static func stickerHues(_ glyph: String) -> [String] {
+        file.stickers?[glyph] ?? []
+    }
 
     /// The category of the graphics that move, and only they: its chip is
     /// Add's like any other's, as the Android twin's ANIMATED.

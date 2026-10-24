@@ -3449,6 +3449,39 @@
       "other": "%d prontos"
     }
   },
+  "%d result|%d results": {
+    "ar": {
+      "few": "%d نتائج",
+      "many": "%d نتيجة",
+      "one": "نتيجة واحدة (%d)",
+      "other": "%d نتيجة",
+      "two": "نتيجتان (%d)",
+      "zero": "%d نتيجة"
+    },
+    "de": {
+      "one": "%d Ergebnis",
+      "other": "%d Ergebnisse"
+    },
+    "es": {
+      "one": "%d resultado",
+      "other": "%d resultados"
+    },
+    "fr": {
+      "one": "%d résultat",
+      "other": "%d résultats"
+    },
+    "it": {
+      "one": "%d risultato",
+      "other": "%d risultati"
+    },
+    "ja": {
+      "other": "%d 件の結果"
+    },
+    "pt-BR": {
+      "one": "%d resultado",
+      "other": "%d resultados"
+    }
+  },
   "%d row|%d rows": {
     "ar": {
       "few": "%d صفوف",
@@ -8438,6 +8471,15 @@
     "ja": "入力したデータからグラフや表を作成",
     "pt-BR": "Gráfico ou tabela a partir de dados digitados"
   },
+  "Charts": {
+    "ar": "المخططات",
+    "de": "Diagramme",
+    "es": "Gráficos",
+    "fr": "Graphiques",
+    "it": "Grafici",
+    "ja": "グラフ",
+    "pt-BR": "Gráficos"
+  },
   "Charts and tables": {
     "ar": "المخططات والجداول",
     "de": "Diagramme und Tabellen",
@@ -8644,6 +8686,15 @@
     "it": "Scegli foto o video",
     "ja": "写真または動画を選択",
     "pt-BR": "Escolher fotos ou vídeos"
+  },
+  "Choose the types of element to show": {
+    "ar": "اختر أنواع العناصر التي تظهر",
+    "de": "Wähle die Elementtypen, die angezeigt werden",
+    "es": "Elige los tipos de elemento que se muestran",
+    "fr": "Choisir les types d’éléments à afficher",
+    "it": "Scegli i tipi di elemento da mostrare",
+    "ja": "表示する素材の種類を選びます",
+    "pt-BR": "Escolha os tipos de elemento a mostrar"
   },
   "Choose…": {
     "ar": "اختيار…",
@@ -13663,6 +13714,24 @@
     "it": "Pellicola",
     "ja": "フィルムストリップ",
     "pt-BR": "Tira de filme"
+  },
+  "Filter: %@, off": {
+    "ar": "عامل التصفية: %@، غير مفعّل",
+    "de": "Filter: %@, aus",
+    "es": "Filtro: %@, desactivado",
+    "fr": "Filtre : %@, désactivé",
+    "it": "Filtro: %@, non attivo",
+    "ja": "フィルター：%@、オフ",
+    "pt-BR": "Filtro: %@, desativado"
+  },
+  "Filter: %@, on": {
+    "ar": "عامل التصفية: %@، مفعّل",
+    "de": "Filter: %@, an",
+    "es": "Filtro: %@, activado",
+    "fr": "Filtre : %@, activé",
+    "it": "Filtro: %@, attivo",
+    "ja": "フィルター：%@、オン",
+    "pt-BR": "Filtro: %@, ativado"
   },
   "Filters": {
     "ar": "الفلاتر",
@@ -19192,6 +19261,15 @@
     "it": "Ancora nessuna versione precedente. Ne viene salvata una ogni paio di minuti mentre modifichi e ogni volta che esci dall’editor.",
     "ja": "以前のバージョンはまだありません。編集中は数分ごと、またエディタを閉じるたびに保存されます。",
     "pt-BR": "Ainda não há versões anteriores. Uma é salva a cada dois minutos enquanto você edita e sempre que você sai do editor."
+  },
+  "No elements match these filters.": {
+    "ar": "لا توجد عناصر تطابق عوامل التصفية هذه.",
+    "de": "Keine Elemente entsprechen diesen Filtern.",
+    "es": "Ningún elemento coincide con estos filtros.",
+    "fr": "Aucun élément ne correspond à ces filtres.",
+    "it": "Nessun elemento corrisponde a questi filtri.",
+    "ja": "このフィルターに一致する素材はありません。",
+    "pt-BR": "Nenhum elemento corresponde a esses filtros."
   },
   "No exit": {
     "ar": "بلا خروج",
@@ -27290,6 +27368,15 @@
     "ja": "開始位置 %@",
     "pt-BR": "Começa em %@"
   },
+  "Static": {
+    "ar": "ثابت",
+    "de": "Statisch",
+    "es": "Estático",
+    "fr": "Statique",
+    "it": "Statico",
+    "ja": "静止",
+    "pt-BR": "Estático"
+  },
   "Steel": {
     "ar": "فولاذ",
     "de": "Stahl",
@@ -27799,6 +27886,15 @@
     "it": "Stili di tabella",
     "ja": "表のデザイン",
     "pt-BR": "Estilos de tabela"
+  },
+  "Tables": {
+    "ar": "الجداول",
+    "de": "Tabellen",
+    "es": "Tablas",
+    "fr": "Tableaux",
+    "it": "Tabelle",
+    "ja": "表",
+    "pt-BR": "Tabelas"
   },
   "Tablet": {
     "ar": "جهاز لوحي",
@@ -30158,6 +30254,15 @@
     "es": "Tipo",
     "fr": "Texte",
     "it": "Testo",
+    "ja": "種類",
+    "pt-BR": "Tipo"
+  },
+  "Type\u0004element kind": {
+    "ar": "النوع",
+    "de": "Typ",
+    "es": "Tipo",
+    "fr": "Type",
+    "it": "Tipo",
     "ja": "種類",
     "pt-BR": "Tipo"
   },

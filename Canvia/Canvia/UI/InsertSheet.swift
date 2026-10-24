@@ -87,7 +87,7 @@ struct InsertSheet: View {
                 ScrollView {
                     Color.clear.frame(height: 0).id(favoritesVersion)
                     if searchesElements {
-                        ElementResults(query: search) { insertHit($0) }
+                        ElementResults(query: search, brandColours: brandKit.colors) { insertHit($0) }
                     } else if nothingMatches {
                         ContentUnavailableView.search(text: search)
                             .padding(.top, 40)
