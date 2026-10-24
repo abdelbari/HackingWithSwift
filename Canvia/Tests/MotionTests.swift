@@ -284,7 +284,7 @@ final class MotionTests: XCTestCase {
             // Eased: progress at the half way is 1 - 0.5³.
             ElementAnimation(kind: kind, delay: 0, duration: 1).state(at: 0.5, size: 100, el: el)
         }
-        let p = 1 - pow(0.5, 3)
+        let p: Double = 1 - pow(Double(0.5), Double(3))
         XCTAssertEqual(half("wipe").reveal, p, accuracy: 1e-9)
         XCTAssertEqual(half("breathe").scale, 0.9 + 0.1 * p, accuracy: 1e-9)
         XCTAssertEqual(half("breathe").opacity, p, accuracy: 1e-9)

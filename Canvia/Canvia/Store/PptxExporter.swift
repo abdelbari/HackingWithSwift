@@ -767,11 +767,19 @@ enum PptxExporter {
 
     /// `path` as the steps outlineXML writes: its lines, its curves as
     /// cubics (a quadratic raised to one), its closes.
+    /// Two thirds of the way from `from` toward `control`: a quadratic's
+    /// control point as one of the matching cubic's.
+    private static func twoThirds(_ from: CGPoint, toward control: CGPoint) -> CGPoint {
+        let x: CGFloat = from.x + (control.x - from.x) * 2 / 3
+        let y: CGFloat = from.y + (control.y - from.y) * 2 / 3
+        return CGPoint(x: x, y: y)
+    }
+
     static func steps(of path: CGPath) -> [CodeGenerator.Step] {
         var out: [CodeGenerator.Step] = []
         var current = CGPoint.zero
-        path.applyWithBlock { element in
-            let e = element.pointee
+        path.applyWithBlock { (element: UnsafePointer<CGPathElement>) in
+            let e: CGPathElement = element.pointee
             switch e.type {
             case .moveToPoint:
                 current = e.points[0]
@@ -780,10 +788,8 @@ enum PptxExporter {
                 current = e.points[0]
                 out.append(.line(current))
             case .addQuadCurveToPoint:
-                let c = e.points[0], p = e.points[1], s = current
-                let a = CGPoint(x: s.x + (c.x - s.x) * 2 / 3, y: s.y + (c.y - s.y) * 2 / 3)
-                let b = CGPoint(x: p.x + (c.x - p.x) * 2 / 3, y: p.y + (c.y - p.y) * 2 / 3)
-                out.append(.cubic(a, b, p))
+                let c: CGPoint = e.points[0], p: CGPoint = e.points[1]
+                out.append(.cubic(twoThirds(current, toward: c), twoThirds(p, toward: c), p))
                 current = p
             case .addCurveToPoint:
                 current = e.points[2]

@@ -208,8 +208,8 @@ enum SVGPath {
             length += hypot(Double(to.x - current.x) * sx, Double(to.y - current.y) * sy)
             current = to
         }
-        path.applyWithBlock { pointer in
-            let e = pointer.pointee
+        path.applyWithBlock { (pointer: UnsafePointer<CGPathElement>) in
+            let e: CGPathElement = pointer.pointee
             switch e.type {
             case .moveToPoint:
                 if inside { out.append(length) }
@@ -220,20 +220,11 @@ enum SVGPath {
             case .addLineToPoint:
                 step(e.points[0])
             case .addQuadCurveToPoint:
-                let from = current, c = e.points[0], p = e.points[1]
-                for k in 1...16 {
-                    let t = CGFloat(k) / 16, m = 1 - t
-                    step(CGPoint(x: m * m * from.x + 2 * m * t * c.x + t * t * p.x,
-                                 y: m * m * from.y + 2 * m * t * c.y + t * t * p.y))
-                }
+                let ends: [CGPoint] = [current, e.points[0], e.points[1]]
+                for k in 1...16 { step(bezierPoint(ends, CGFloat(k) / 16)) }
             case .addCurveToPoint:
-                let from = current, c1 = e.points[0], c2 = e.points[1], p = e.points[2]
-                for k in 1...16 {
-                    let t = CGFloat(k) / 16, m = 1 - t
-                    let a = m * m * m, b = 3 * m * m * t, c = 3 * m * t * t, d = t * t * t
-                    step(CGPoint(x: a * from.x + b * c1.x + c * c2.x + d * p.x,
-                                 y: a * from.y + b * c1.y + c * c2.y + d * p.y))
-                }
+                let ends: [CGPoint] = [current, e.points[0], e.points[1], e.points[2]]
+                for k in 1...16 { step(bezierPoint(ends, CGFloat(k) / 16)) }
             case .closeSubpath:
                 step(start)
             @unknown default:
@@ -242,6 +233,22 @@ enum SVGPath {
         }
         if inside { out.append(length) }
         return out
+    }
+
+    /// The point `t` along a quadratic (3 points) or cubic (4) Bézier, by
+    /// its Bernstein weights, in steps the compiler checks quickly.
+    private static func bezierPoint(_ points: [CGPoint], _ t: CGFloat) -> CGPoint {
+        let m: CGFloat = 1 - t
+        let weights: [CGFloat] = points.count == 3
+            ? [m * m, 2 * m * t, t * t]
+            : [m * m * m, 3 * m * m * t, 3 * m * t * t, t * t * t]
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        for (k, w) in weights.enumerated() where k < points.count {
+            x += w * points[k].x
+            y += w * points[k].y
+        }
+        return CGPoint(x: x, y: y)
     }
 
     /// `path` cut into its subpaths, each from a move, in order: what a
