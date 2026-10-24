@@ -51,6 +51,9 @@ struct CanvasView: View {
     /// Shape assist, from the Draw bar: on unless turned off.
     @AppStorage(ShapeAssist.key) private var shapeAssist = true
     @State private var dropTargeted = false
+    /// The frame a tile carried from the Add sheet would fill, while it is
+    /// over one (LibraryDrag).
+    @State private var libraryFrame: String?
     /// When a tap on the photo in crop mode last landed, for the double tap
     /// that finishes it.
     @State private var lastCropTap: Date?
@@ -670,13 +673,21 @@ struct CanvasView: View {
                 BleedBand(design: store.design, page: shownPage, bleed: bleed, unit: iz, labelled: bleedLabel)
             }
         }
-        // Pictures, text and links from other apps land where they are let go.
-        .onDrop(of: CanvasDrop.types, isTargeted: $dropTargeted) { providers, location in
-            CanvasDrop.handle(providers, at: location, store: store)
-        }
+        // Pictures, text and links from other apps land where they are let
+        // go, and so does a tile carried from the Add sheet (LibraryDrag).
+        .onDrop(of: CanvasDrop.types, delegate: pageDropDelegate)
         .overlay {
             if dropTargeted {
                 Rectangle().stroke(Theme.accent, lineWidth: 4 * iz).allowsHitTesting(false)
+            }
+        }
+        // The frame a carried picture would go into, lit.
+        .overlay {
+            if let id = libraryFrame, let frame = store.element(id) {
+                Self.outline(frame)
+                    .stroke(Theme.accent, lineWidth: 3 * iz)
+                    .background(Self.outline(frame).fill(Theme.accent.opacity(0.14)))
+                    .allowsHitTesting(false)
             }
         }
     }
@@ -3030,6 +3041,50 @@ struct CanvasView: View {
         }
         .frame(width: canvasWidth, height: PageColumn.columnHeight(slots, gap: PageColumn.room),
                alignment: .topLeading)
+        // A tile from the Add sheet let go on another page of the column.
+        .onDrop(of: CanvasDrop.types, delegate: columnDropDelegate(slots))
+    }
+
+    // MARK: a tile from the Add sheet
+
+    /// The page worked as a drop target: its own points, and anything from
+    /// another app as ever (CanvasDrop).
+    private var pageDropDelegate: CanvasDropDelegate {
+        let slot = columnSlot
+        let index = store.pageIndex
+        let store = self.store
+        return CanvasDropDelegate(store: store, edges: edges,
+                                  locate: { point in (index: index, point: point) },
+                                  toContent: { point in slot?.toColumn(point) ?? point },
+                                  hover: { page, frame in libraryHover(page, frame) },
+                                  targeted: $dropTargeted,
+                                  fallback: { providers, point in
+                                      MainActor.assumeIsolated { CanvasDrop.handle(providers, at: point, store: store) }
+                                  })
+    }
+
+    /// The column as a drop target, for the pages other than the one
+    /// worked: a point of the column on the page there.
+    private func columnDropDelegate(_ slots: [PageColumn.Slot]) -> CanvasDropDelegate {
+        CanvasDropDelegate(store: store, edges: edges,
+                           locate: { point in
+                               guard let index = PageColumn.pageAt(point, in: slots), slots.indices.contains(index) else {
+                                   return nil
+                               }
+                               return (index: index, point: slots[index].toPage(point))
+                           },
+                           toContent: { $0 },
+                           hover: { page, frame in libraryHover(page, frame) },
+                           targeted: .constant(false))
+    }
+
+    /// A carried tile over page `page` of the column, and frame `frame` on
+    /// it: that page outlined when it is not the one worked, the frame lit.
+    private func libraryHover(_ page: Int?, _ frame: String?) {
+        let other = page == store.pageIndex ? nil : page
+        if gesture.dropPage != other { gesture.dropPage = other }
+        let lit = page == store.pageIndex ? frame : nil
+        if libraryFrame != lit { libraryFrame = lit }
     }
 
     /// `content` laid out at its size on screen, `height` points tall, and

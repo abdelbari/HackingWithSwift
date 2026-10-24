@@ -17,6 +17,9 @@ struct EmojiPicker: View {
     /// Bumped when a favourite is toggled, so the tab re-reads the set.
     @Binding var favouritesVersion: Int
     let onPick: (String) -> Void
+    /// What a sticker carries when it is held and dragged onto the page
+    /// (LibraryDrag); none, and it is only tapped.
+    var drag: ((String) -> LibraryDrag.Item)? = nil
     @State private var group = EmojiCatalogue.groups.first?.name ?? ""
     /// The emoji whose skin tones are offered, by its plain glyph.
     @State private var toning: String?
@@ -86,6 +89,7 @@ struct EmojiPicker: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(emoji.name)
                 .contextMenu { favouriteButton(emoji.g) }
+                .modifier(LibraryDragTile(item: drag.map { carry in { carry(glyph) } }))
         }
     }
 

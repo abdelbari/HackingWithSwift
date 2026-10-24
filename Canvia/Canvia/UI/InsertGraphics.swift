@@ -11,6 +11,9 @@ import UIKit
 
 struct GraphicsSection: View {
     let onAdd: (GraphicDef) -> Void
+    /// What a tile carries when it is held and dragged onto the page
+    /// (LibraryDrag); none, and it is only tapped.
+    var drag: ((GraphicDef) -> LibraryDrag.Item)? = nil
     /// The category chosen; nil is all of them.
     @State private var category: String?
 
@@ -58,6 +61,7 @@ struct GraphicsSection: View {
                 .background(RoundedRectangle(cornerRadius: 10).fill(Color(.systemGray6)))
         }
         .buttonStyle(.plain)
+        .modifier(LibraryDragTile(item: drag.map { carry in { carry(graphic) } }))
         .accessibilityLabel(tr("%@ graphic", graphic.name))
     }
 }

@@ -4871,6 +4871,15 @@
     "ja": "スター付きに追加",
     "pt-BR": "Adicionar às estrelas"
   },
+  "Add to the selected frame": {
+    "ar": "إضافة إلى الإطار المحدد",
+    "de": "Zum ausgewählten Rahmen hinzufügen",
+    "es": "Añadir al marco seleccionado",
+    "fr": "Ajouter au cadre sélectionné",
+    "it": "Aggiungi alla cornice selezionata",
+    "ja": "選択中のフレームに追加",
+    "pt-BR": "Adicionar ao quadro selecionado"
+  },
   "Add to this design": {
     "ar": "أضف إلى هذا التصميم",
     "de": "Zu diesem Design hinzufügen",

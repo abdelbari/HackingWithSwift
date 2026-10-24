@@ -51,6 +51,12 @@ struct InsertSheet: View {
     @State private var recentEmoji: [String] = []
     /// The brand kit in use, read as the sheet opens.
     @State private var brandKit = BrandKit()
+    /// How far up the sheet is: down to its peek while a tile is carried
+    /// out of it onto the canvas (LibraryDrag).
+    @State private var detent: PresentationDetent = .medium
+
+    /// The sheet's height while a tile is carried out of it.
+    private static let peek = PresentationDetent.height(120)
 
     // Six in a segmented control, which gives each the same width: a
     // seventh cuts the longer names short on a small phone. Icons are a
@@ -105,9 +111,15 @@ struct InsertSheet: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([Self.peek, .medium, .large], selection: $detent)
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
         .onAppear {
+            // A held tile lifts, felt, and the sheet drops out of its way.
+            LibraryDrag.shared.item = nil
+            LibraryDrag.shared.onLift = {
+                store.buzz(.tick)
+                detent = Self.peek
+            }
             // Replacing? Go straight to the picture sources.
             if isReplacing { tab = "Photos" }
             recent = ElementSearch.recent()
@@ -121,6 +133,7 @@ struct InsertSheet: View {
         .onDisappear {
             // Abandoning the sheet must not leave a replace pending.
             store.replaceTargetId = nil
+            LibraryDrag.shared.onLift = nil
         }
         .onChange(of: pickedItems) {
             let items = pickedItems
@@ -497,7 +510,7 @@ struct InsertSheet: View {
                 svgImportRow
                 componentsSection
             }
-            GraphicsSection { addPackGraphic($0) }
+            GraphicsSection(onAdd: { addPackGraphic($0) }, drag: { packDrag($0) })
             let starred = search.isEmpty ? Favorites.ids(of: "shape").compactMap { ContentLibrary.shapeMap[$0] } : []
             ForEach(["Favourites"] + ContentLibrary.shapeCategories, id: \.self) { category in
                 let shapes = category == "Favourites" ? starred : ContentLibrary.shapes.filter {
@@ -706,6 +719,7 @@ struct InsertSheet: View {
         }
         .accessibilityLabel(starred ? tr("%@, favourite", icon.name) : icon.name)
         .contextMenu { favoriteButton("icon", icon.id) }
+        .libraryDrag { iconDrag(icon) }
     }
 
     /// One of the illustrated graphics, as an SVG graphic goes on: its
@@ -886,6 +900,9 @@ struct InsertSheet: View {
         }
         .accessibilityLabel(AddSheetNames.picture(AddSheetNames.upload(index, of: count),
                                               starred: starred, inFrame: inFrame))
+        .modifier(PictureTile(store: store, src: src,
+                              natural: { MediaStore.load(id)?.size ?? CGSize(width: 4, height: 3) },
+                              fill: { addToSelectedFrame(src, natural: $0) }))
         .contextMenu {
             favoriteButton("upload", id)
             deleteUploadButton(id, kind: .image)
@@ -912,6 +929,7 @@ struct InsertSheet: View {
         }
         .accessibilityLabel(AddSheetNames.picture(AddSheetNames.uploadedGraphic(index, of: count),
                                                   starred: starred, inFrame: false))
+        .libraryDrag { graphicDrag(id) }
         .contextMenu {
             favoriteButton("upload", id)
             deleteUploadButton(id, kind: .image)
@@ -939,6 +957,8 @@ struct InsertSheet: View {
         }
         .accessibilityLabel(AddSheetNames.picture(AddSheetNames.uploadedVideo(index, of: count),
                                                   starred: starred, inFrame: false))
+        .libraryDrag { clipDrag(id) }
+        .accessibilityAction(named: Text("Add to the selected frame")) { clipToSelectedFrame(id) }
         .contextMenu {
             favoriteButton("upload", id)
             deleteUploadButton(id, kind: .video)
@@ -1529,6 +1549,9 @@ struct InsertSheet: View {
             .overlay { if inFrame { currentRing(cornerRadius: 10) } }
         }
         .accessibilityLabel(AddSheetNames.picture(label, starred: false, inFrame: inFrame))
+        .modifier(PictureTile(store: store, src: src,
+                              natural: { PhotoLibrary.resolve(src)?.size ?? CGSize(width: 4, height: 3) },
+                              fill: { addToSelectedFrame(src, natural: $0) }))
     }
 
     /// One of the built-in pictures, named with its kind and place, starred
@@ -1557,6 +1580,8 @@ struct InsertSheet: View {
             AddSheetNames.artwork(photo, index, of: count),
             starred: starred, inFrame: inFrame))
         .contextMenu { favoriteButton("photo", photo.id) }
+        .modifier(PictureTile(store: store, src: src, natural: { PhotoLibrary.size },
+                              fill: { addToSelectedFrame(src, natural: $0) }))
     }
 
     // MARK: brand
@@ -1658,6 +1683,7 @@ struct InsertSheet: View {
             .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .accessibilityLabel(label)
+        .libraryDrag { graphicDrag(id) }
     }
 
     /// A palette's swatches under its name.
@@ -1851,6 +1877,103 @@ struct InsertSheet: View {
         }
     }
 
+    // MARK: carried onto the page
+
+    /// A photo carried out of the sheet: into a frame, or on the page at
+    /// the finger, half the page wide at its own shape, as a tap puts it.
+    static func pictureDrop(_ store: DesignStore, src: String, natural: CGSize, at point: CGPoint) {
+        let w = store.pageWidth * 0.5
+        let h = natural.width > 0 ? w * natural.height / natural.width : w * 0.75
+        if store.add(.image(src, w: w.rounded(), h: h.rounded())) { store.moveAdded(to: point) }
+    }
+
+    /// A clip carried out of the sheet, once its first frame says its shape.
+    private func clipDrag(_ id: String) -> LibraryDrag.Item {
+        let store = self.store
+        return LibraryDrag.Item(kind: .clip, src: VideoStore.src(id, at: nil)) { point in
+            Task {
+                let natural = await Task.detached(priority: .userInitiated) { VideoStore.poster(id)?.size }.value
+                guard let natural else {
+                    store.buzz(.reject)
+                    store.announce(tr("Couldn't open that"), undoable: false)
+                    return
+                }
+                Self.pictureDrop(store, src: VideoStore.src(id, at: nil), natural: natural, at: point)
+            }
+        }
+    }
+
+    /// An SVG graphic of your own or the brand kit's, read and placed.
+    private func graphicDrag(_ id: String) -> LibraryDrag.Item {
+        let store = self.store
+        let width = store.pageWidth, height = store.pageHeight
+        let url = MediaStore.graphicURL(id)
+        return LibraryDrag.Item(kind: .svgGraphic, src: nil) { point in
+            Task {
+                let read = await Task.detached(priority: .userInitiated) {
+                    GraphicRead.of(url, keep: false, pageWidth: width, pageHeight: height)
+                }.value
+                switch read {
+                case .graphic(let graphic):
+                    store.addGraphic(graphic)
+                    store.moveAdded(to: point)
+                case .refused(let note):
+                    store.buzz(.reject)
+                    store.announce(note, undoable: false)
+                }
+            }
+        }
+    }
+
+    private func iconDrag(_ icon: IconDef) -> LibraryDrag.Item {
+        LibraryDrag.Item(kind: .icon, src: nil) { point in
+            let fill = IconLibrary.fill(for: store.page, brandColours: BrandKit.load().colors)
+            let el = IconLibrary.element(icon, pageWidth: store.pageWidth, pageHeight: store.pageHeight, fill: fill)
+            guard store.add(el) else { return }
+            ElementSearch.remember(.icon, icon.id)
+            store.moveAdded(to: point)
+        }
+    }
+
+    private func packDrag(_ graphic: GraphicDef) -> LibraryDrag.Item {
+        LibraryDrag.Item(kind: .graphic, src: nil) { point in
+            guard store.addPackGraphic(graphic) else { return }
+            ElementSearch.remember(.graphic, graphic.id)
+            store.moveAdded(to: point)
+        }
+    }
+
+    private func stickerDrag(_ glyph: String) -> LibraryDrag.Item {
+        LibraryDrag.Item(kind: .sticker, src: nil) { point in
+            guard store.add(.sticker(glyph, size: min(store.pageWidth, store.pageHeight) * 0.18)) else { return }
+            ElementSearch.remember(.sticker, glyph)
+            EmojiCatalogue.remember(glyph)
+            store.moveAdded(to: point)
+        }
+    }
+
+    /// A picture tile's "Add to the selected frame", for VoiceOver: what a
+    /// drag onto the frame does — into the one frame or cell selected, as
+    /// one Replace step — else onto the page as a tap puts it.
+    private func addToSelectedFrame(_ src: String, natural: CGSize) {
+        if let frame = store.selectedFrame {
+            store.dropPicture(src, intoFrame: frame)
+        } else {
+            place(src, natural: natural)
+        }
+        dismiss()
+    }
+
+    /// The same for a clip.
+    private func clipToSelectedFrame(_ id: String) {
+        if let frame = store.selectedFrame {
+            store.dropPicture(VideoStore.src(id, at: nil), intoFrame: frame)
+            dismiss()
+        } else {
+            insertClip(id)
+        }
+    }
+
     // MARK: stickers
 
     /// What was put on lately, the stickers that move, those starred, then
@@ -1868,7 +1991,8 @@ struct InsertSheet: View {
                 sectionHeader(tr("Favourites"))
                 glyphRow(starred)
             }
-            EmojiPicker(query: search, side: stickerSide, favouritesVersion: $favoritesVersion) { addSticker($0) }
+            EmojiPicker(query: search, side: stickerSide, favouritesVersion: $favoritesVersion,
+                        onPick: { addSticker($0) }, drag: { stickerDrag($0) })
         }
         .padding()
     }
@@ -1893,6 +2017,7 @@ struct InsertSheet: View {
                 .frame(width: stickerSide, height: stickerSide)
         }
         .accessibilityLabel(EmojiCatalogue.of(glyph)?.name ?? glyph)
+        .libraryDrag { stickerDrag(glyph) }
     }
 
     /// A text style's weight in its preview.
@@ -1953,6 +2078,29 @@ struct InsertSheet: View {
 
 /// An animated sticker's glyph going through its loop, as it will on the
 /// page; standing still with Reduce Motion.
+/// A picture tile of the Add sheet: held, it lifts and is carried onto the
+/// page or into a frame (LibraryDrag); and, for VoiceOver, "Add to the
+/// selected frame" does what that drop does (`fill`).
+private struct PictureTile: ViewModifier {
+    let store: DesignStore
+    let src: String
+    /// The picture's own size, read when it is needed.
+    let natural: () -> CGSize
+    let fill: (CGSize) -> Void
+
+    func body(content: Content) -> some View {
+        let store = self.store, src = self.src, natural = self.natural
+        return content
+            .libraryDrag {
+                let size = natural()
+                return LibraryDrag.Item(kind: .photo, src: src) { point in
+                    InsertSheet.pictureDrop(store, src: src, natural: size, at: point)
+                }
+            }
+            .accessibilityAction(named: Text("Add to the selected frame")) { fill(natural()) }
+    }
+}
+
 private struct AnimatedStickerFace: View {
     let sticker: AnimatedSticker
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
