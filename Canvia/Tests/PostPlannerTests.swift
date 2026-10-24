@@ -36,9 +36,9 @@ final class PostPlannerTests: XCTestCase {
         XCTAssertNil(none["plannedPosts"])
     }
 
-    /// Shared: a new document copied from a design plans none of its
-    /// posts, which stay with the original; the same design back from a
-    /// backup keeps them.
+    /// Shared: a new document copied from a design, or saved from one of
+    /// its kept versions, plans none of its posts, which stay with the
+    /// original; the same design back from a backup keeps them.
     func testACopyPlansNoneOfTheOriginalsPosts() throws {
         let planned = PostPlanner.saved(design(), PlannedPost(id: "post_1", at: "2030-01-01T09:00:00Z"))
         XCTAssertNil(CopyResize.freshCopy(of: planned).plannedPosts)
@@ -51,6 +51,12 @@ final class PostPlannerTests: XCTestCase {
         XCTAssertNil(try DesignPackage.import(data, mediaDirectory: directory, normalize: false).plannedPosts)
         let package = try JSONDecoder().decode(DesignPackage.Package.self, from: data)
         XCTAssertEqual(PostPlanner.of(DesignPackage.storeKeepingIds(package, mediaDirectory: directory)).count, 1)
+        // A kept version saved as a design of its own.
+        let version = try XCTUnwrap(DesignLibrary.saveCopy(of: planned, savedAt: Date(), folder: nil))
+        defer { DesignLibrary.delete(id: version.id) }
+        XCTAssertNil(version.plannedPosts)
+        XCTAssertNil(DesignLibrary.load(id: version.id)?.plannedPosts)
+        XCTAssertNotEqual(version.id, planned.id)
     }
 
     /// The Android twin's file reads here.

@@ -424,8 +424,9 @@ enum DesignLibrary {
 
     /// A kept version saved as a design of its own, beside the one it was
     /// kept of, which is left as it is: a fresh id, made now, a title that
-    /// says which version it was, and the folder that design is in now. Nil
-    /// when it could not be written.
+    /// says which version it was, the folder that design is in now, and no
+    /// planned posts, as the Android twin's Shelf.asNew. Nil when it could
+    /// not be written.
     @discardableResult
     static func saveCopy(of version: Design, savedAt: Date, folder: String?, now: Date = Date()) -> Design? {
         var copy = version
@@ -434,6 +435,8 @@ enum DesignLibrary {
         copy.titleAuto = false
         copy.isStarred = false
         copy.folder = folder
+        // Its posts stay with the design it came from, and their reminders.
+        copy.plannedPosts = nil
         copy.createdAt = now.timeIntervalSince1970 * 1000
         copy.updatedAt = copy.createdAt
         return save(copy) ? copy : nil
@@ -536,12 +539,16 @@ enum DesignLibrary {
         collectPhotos(in: page.elements, into: &found)
     }
 
-    /// The photos these designs show — as a picture, filling a shape, or
-    /// behind a page — by MediaStore id.
+    /// The photos these designs show — as a picture, filling a shape,
+    /// behind a page, or in a Doc's image block — by MediaStore id.
     static func photos(in designs: [Design]) -> Set<String> {
         var found = Set<String>()
         for design in designs {
             for page in design.pages { collectPhotos(on: page, into: &found) }
+            // A Doc's photos live in its image blocks, not on its pages.
+            for block in Docs.blocks(design) where block.type == Docs.image {
+                if let id = photoID(block.src) { found.insert(id) }
+            }
         }
         return found
     }

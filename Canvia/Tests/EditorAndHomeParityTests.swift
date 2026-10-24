@@ -109,4 +109,14 @@ final class EditorAndHomeParityTests: XCTestCase {
         XCTAssertNotEqual(src, "media:docpic")
         XCTAssertEqual(back.blocks?.last?.text, "Hi")
     }
+
+    /// Shared: a Doc's photo, kept in an image block rather than on a page,
+    /// counts as used in Uploads and survives the launch sweep, which keeps
+    /// what photos(in:) finds.
+    func testADocsPhotoCountsAsUsedAndSurvivesTheSweep() {
+        let doc = Docs.withBlocks(Design(title: "Doc", width: 816, height: 1056),
+                                  [DocBlock(id: "i", type: Docs.image, src: "media:docpic")])
+        XCTAssertEqual(DesignLibrary.photos(in: [doc]), ["docpic"])
+        XCTAssertTrue(DesignLibrary.uses(doc, upload: "docpic", kind: .image))
+    }
 }

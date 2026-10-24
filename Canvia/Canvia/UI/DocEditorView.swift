@@ -28,6 +28,9 @@ struct DocEditorView: View {
     @State private var exportStore: DesignStore?
     /// Export's sheet is up, its pages still being laid out.
     @State private var layingOut = false
+    /// That layout, cancelled when the sheet closes, so a layout of older
+    /// words never lands in a sheet opened again since.
+    @State private var exportTask: Task<Void, Never>?
     @State private var saveTask: Task<Void, Never>?
     @State private var note: String?
     /// The brand kit's heading and body faces, read once as it opens.
@@ -350,12 +353,15 @@ struct DocEditorView: View {
         store.commit()
         let doc = store.design
         let styles = DocPages.styles()
+        exportTask?.cancel()
         layingOut = true
-        Task { @MainActor in
+        exportTask = Task { @MainActor in
             let laid = await Task.detached(priority: .userInitiated) { Docs.paginated(doc, styles: styles) }.value
-            // Closed meanwhile: nothing to show.
-            guard layingOut else { return }
+            // Closed meanwhile, and maybe opened again on newer words:
+            // not this layout.
+            guard !Task.isCancelled, layingOut else { return }
             layingOut = false
+            exportTask = nil
             exportStore = DesignStore(design: laid)
         }
     }
@@ -429,6 +435,8 @@ struct DocEditorView: View {
     fileprivate var exportShown: Binding<Bool> {
         Binding(get: { exportStore != nil || layingOut }, set: {
             if !$0 {
+                exportTask?.cancel()
+                exportTask = nil
                 exportStore = nil
                 layingOut = false
             }
