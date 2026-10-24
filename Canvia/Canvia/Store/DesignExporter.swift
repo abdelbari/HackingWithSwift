@@ -975,7 +975,12 @@ enum DesignExporter {
     private static func draw(design: Design, page: Page,
                              into context: CGContext, drawing: PrintLayout.Drawing) {
         let reach = max(0, -Double(drawing.clip.minX))
-        let renderer = ImageRenderer(content: PageRenderView(design: design, page: page, bleed: reach))
+        // At a fine display scale, so SwiftUI's pixel rounding moves nothing
+        // that a vector page would show: at 1 it snaps every frame to whole
+        // page units, and a box set half a unit into the bleed came out
+        // reaching half a unit over the trim instead.
+        let renderer = ImageRenderer(content: PageRenderView(design: design, page: page, bleed: reach)
+            .environment(\.displayScale, vectorScale))
         renderer.render { size, drawInContext in
             context.saveGState()
             // The view's top left is the bleed's, `reach` before the page's.
@@ -987,6 +992,11 @@ enum DesignExporter {
             context.restoreGState()
         }
     }
+
+    /// The display scale a vector page is laid out at: fine enough that
+    /// rounding to its pixels (a sixteenth of a page unit) is below anything
+    /// a PDF shows, and no more, as some effects size their work by it.
+    static let vectorScale: CGFloat = 16
 
     /// The scale a flattened PDF renders a page at: 300 dpi from the
     /// design's own, so a 96-dpi design is drawn at 3.125× and an A4 page
