@@ -2822,6 +2822,39 @@
     "ja": "%d 分",
     "pt-BR": "%d min"
   },
+  "%d min read|%d min read": {
+    "ar": {
+      "few": "%d دقائق قراءة",
+      "many": "%d دقيقة قراءة",
+      "one": "%d دقيقة قراءة",
+      "other": "%d دقيقة قراءة",
+      "two": "%d دقيقتا قراءة",
+      "zero": "%d دقيقة قراءة"
+    },
+    "de": {
+      "one": "%d Min. Lesezeit",
+      "other": "%d Min. Lesezeit"
+    },
+    "es": {
+      "one": "%d min de lectura",
+      "other": "%d min de lectura"
+    },
+    "fr": {
+      "one": "%d min de lecture",
+      "other": "%d min de lecture"
+    },
+    "it": {
+      "one": "%d min di lettura",
+      "other": "%d min di lettura"
+    },
+    "ja": {
+      "other": "%d 分で読めます"
+    },
+    "pt-BR": {
+      "one": "%d min de leitura",
+      "other": "%d min de leitura"
+    }
+  },
   "%d minute ago|%d minutes ago": {
     "ar": {
       "few": "منذ %d دقائق",
@@ -3866,6 +3899,39 @@
       "other": "%d pesos"
     }
   },
+  "%d word|%d words": {
+    "ar": {
+      "few": "%d كلمات",
+      "many": "%d كلمة",
+      "one": "%d كلمة",
+      "other": "%d كلمة",
+      "two": "%d كلمتان",
+      "zero": "%d كلمة"
+    },
+    "de": {
+      "one": "%d Wort",
+      "other": "%d Wörter"
+    },
+    "es": {
+      "one": "%d palabra",
+      "other": "%d palabras"
+    },
+    "fr": {
+      "one": "%d mot",
+      "other": "%d mots"
+    },
+    "it": {
+      "one": "%d parola",
+      "other": "%d parole"
+    },
+    "ja": {
+      "other": "%d 語"
+    },
+    "pt-BR": {
+      "one": "%d palavra",
+      "other": "%d palavras"
+    }
+  },
   "%d × %d grid": {
     "ar": "شبكة %d × %d",
     "de": "%d × %d-Raster",
@@ -4315,6 +4381,15 @@
     "it": "Una nuova tavolozza",
     "ja": "新しいパレット",
     "pt-BR": "Uma nova paleta"
+  },
+  "A or an": {
+    "ar": "a أو an (الإنجليزية)",
+    "de": "A oder an (Englisch)",
+    "es": "A o an (inglés)",
+    "fr": "A ou an (anglais)",
+    "it": "A o an (inglese)",
+    "ja": "a と an（英語）",
+    "pt-BR": "A ou an (inglês)"
   },
   "A picture of each page": {
     "ar": "صورة لكل صفحة",
@@ -4909,6 +4984,15 @@
     "it": "Aggiungi guida orizzontale",
     "ja": "水平ガイドを追加",
     "pt-BR": "Adicionar guia horizontal"
+  },
+  "Add link": {
+    "ar": "إضافة رابط",
+    "de": "Link hinzufügen",
+    "es": "Añadir enlace",
+    "fr": "Ajouter un lien",
+    "it": "Aggiungi link",
+    "ja": "リンクを追加",
+    "pt-BR": "Adicionar link"
   },
   "Add logo from photos…": {
     "ar": "إضافة شعار من الصور…",
@@ -5554,6 +5638,15 @@
     "it": "Salva anche i sottotitoli (.srt)",
     "ja": "字幕も保存 (.srt)",
     "pt-BR": "Salvar também as legendas (.srt)"
+  },
+  "Also while typing: ⌘K links the selected words, ⌥⌘↑ and ⌥⌘↓ loosen and tighten the line spacing, ⌥⌘→ and ⌥⌘← the letter spacing, and ⌥⌘C and ⌥⌘V copy and paste the box's style.": {
+    "ar": "وأثناء الكتابة أيضًا: ‏⌘K يضيف رابطًا إلى الكلمات المحددة، و⌥⌘↑ و⌥⌘↓ يوسّعان تباعد الأسطر ويضيّقانه، و⌥⌘→ و⌥⌘← تباعد الأحرف، و⌥⌘C و⌥⌘V ينسخان نمط المربع ويلصقانه.",
+    "de": "Auch beim Tippen: ⌘K verlinkt die ausgewählten Wörter, ⌥⌘↑ und ⌥⌘↓ vergrößern und verringern den Zeilenabstand, ⌥⌘→ und ⌥⌘← den Zeichenabstand, und ⌥⌘C und ⌥⌘V kopieren und fügen den Stil des Felds ein.",
+    "es": "También al escribir: ⌘K enlaza las palabras seleccionadas, ⌥⌘↑ y ⌥⌘↓ amplían y reducen el interlineado, ⌥⌘→ y ⌥⌘← el espaciado entre letras, y ⌥⌘C y ⌥⌘V copian y pegan el estilo del cuadro.",
+    "fr": "Aussi pendant la saisie : ⌘K ajoute un lien aux mots sélectionnés, ⌥⌘↑ et ⌥⌘↓ augmentent et réduisent l'interligne, ⌥⌘→ et ⌥⌘← l'espacement des lettres, et ⌥⌘C et ⌥⌘V copient et collent le style de la zone.",
+    "it": "Anche durante la digitazione: ⌘K aggiunge un link alle parole selezionate, ⌥⌘↑ e ⌥⌘↓ aumentano e riducono l'interlinea, ⌥⌘→ e ⌥⌘← la spaziatura delle lettere, e ⌥⌘C e ⌥⌘V copiano e incollano lo stile della casella.",
+    "ja": "入力中にも：⌘K で選択した語にリンク、⌥⌘↑ と ⌥⌘↓ で行間を広く・狭く、⌥⌘→ と ⌥⌘← で字間を調整、⌥⌘C と ⌥⌘V でボックスのスタイルをコピー・ペーストします。",
+    "pt-BR": "Também ao digitar: ⌘K cria um link nas palavras selecionadas, ⌥⌘↑ e ⌥⌘↓ aumentam e diminuem as entrelinhas, ⌥⌘→ e ⌥⌘← o espaçamento entre letras, e ⌥⌘C e ⌥⌘V copiam e colam o estilo da caixa."
   },
   "Alt text": {
     "ar": "النص البديل",
@@ -7484,6 +7577,15 @@
     "ja": "Canvia はスマートフォンの言語を使用します。Canvia だけ別の言語にするには、設定アプリで Canvia のページを開いてください。",
     "pt-BR": "O Canvia usa o idioma do seu celular. Para escolher outro só para o Canvia, abra a página dele no app Ajustes."
   },
+  "Capital letter": {
+    "ar": "حرف كبير",
+    "de": "Großbuchstabe",
+    "es": "Mayúscula inicial",
+    "fr": "Majuscule",
+    "it": "Lettera maiuscola",
+    "ja": "大文字",
+    "pt-BR": "Letra maiúscula"
+  },
   "Caption": {
     "ar": "تسمية توضيحية",
     "de": "Bildunterschrift",
@@ -7828,6 +7930,15 @@
     "it": "Controllo ortografico",
     "ja": "スペルチェック",
     "pt-BR": "Verificar ortografia"
+  },
+  "Check spelling also suggests curly quotes, an ellipsis for three full stops and a dash between numbers.": {
+    "ar": "يقترح التدقيق الإملائي أيضًا علامات اقتباس منحنية، وعلامة حذف بدل ثلاث نقاط، وشرطة بين الأرقام.",
+    "de": "Die Rechtschreibprüfung schlägt auch typografische Anführungszeichen, ein Auslassungszeichen statt drei Punkten und einen Gedankenstrich zwischen Zahlen vor.",
+    "es": "Revisar ortografía también sugiere comillas tipográficas, puntos suspensivos en lugar de tres puntos y una raya entre números.",
+    "fr": "La vérification orthographique propose aussi des guillemets typographiques, des points de suspension pour trois points et un tiret entre deux nombres.",
+    "it": "Il controllo ortografico suggerisce anche virgolette tipografiche, i puntini di sospensione al posto di tre punti e un trattino tra i numeri.",
+    "ja": "スペルチェックでは、カーリー引用符、3つのピリオドの代わりの三点リーダー、数字の間のダッシュも提案します。",
+    "pt-BR": "A verificação ortográfica também sugere aspas curvas, reticências no lugar de três pontos e um traço entre números."
   },
   "Check spelling…": {
     "ar": "التدقيق الإملائي…",
@@ -9455,6 +9566,15 @@
     "ja": "黒をつぶす",
     "pt-BR": "Intensificar pretos"
   },
+  "Curly quotes": {
+    "ar": "علامات اقتباس منحنية",
+    "de": "Typografische Anführungszeichen",
+    "es": "Comillas tipográficas",
+    "fr": "Guillemets typographiques",
+    "it": "Virgolette tipografiche",
+    "ja": "カーリー引用符",
+    "pt-BR": "Aspas curvas"
+  },
   "Current": {
     "ar": "الحالي",
     "de": "Aktuell",
@@ -9731,6 +9851,15 @@
     "ja": "ダッシュ",
     "pt-BR": "Traço"
   },
+  "Dash in a range": {
+    "ar": "شرطة في نطاق",
+    "de": "Strich in einem Bereich",
+    "es": "Raya en un intervalo",
+    "fr": "Tiret dans un intervalle",
+    "it": "Trattino in un intervallo",
+    "ja": "範囲のダッシュ",
+    "pt-BR": "Traço em um intervalo"
+  },
   "Dashed": {
     "ar": "متقطع",
     "de": "Gestrichelt",
@@ -9784,6 +9913,24 @@
     "it": "Decorativo",
     "ja": "装飾",
     "pt-BR": "Decorativo"
+  },
+  "Decrease letter spacing": {
+    "ar": "تقليل تباعد الأحرف",
+    "de": "Zeichenabstand verringern",
+    "es": "Reducir espaciado entre letras",
+    "fr": "Réduire l'espacement des lettres",
+    "it": "Riduci spaziatura lettere",
+    "ja": "字間を狭くする",
+    "pt-BR": "Diminuir espaçamento entre letras"
+  },
+  "Decrease line spacing": {
+    "ar": "تقليل تباعد الأسطر",
+    "de": "Zeilenabstand verringern",
+    "es": "Reducir interlineado",
+    "fr": "Réduire l'interligne",
+    "it": "Riduci interlinea",
+    "ja": "行間を狭くする",
+    "pt-BR": "Diminuir entrelinhas"
   },
   "Default": {
     "ar": "الافتراضي",
@@ -10657,6 +10804,15 @@
     "it": "Doc",
     "ja": "ドキュメント",
     "pt-BR": "Doc"
+  },
+  "Doc, paragraph %d": {
+    "ar": "المستند، الفقرة %d",
+    "de": "Dokument, Absatz %d",
+    "es": "Documento, párrafo %d",
+    "fr": "Document, paragraphe %d",
+    "it": "Documento, paragrafo %d",
+    "ja": "ドキュメント、段落 %d",
+    "pt-BR": "Documento, parágrafo %d"
   },
   "Docs": {
     "ar": "المستندات",
@@ -11720,6 +11876,15 @@
     "ja": "素材",
     "pt-BR": "Elementos"
   },
+  "Ellipsis": {
+    "ar": "علامة الحذف",
+    "de": "Auslassungszeichen",
+    "es": "Puntos suspensivos",
+    "fr": "Points de suspension",
+    "it": "Puntini di sospensione",
+    "ja": "三点リーダー",
+    "pt-BR": "Reticências"
+  },
   "Elongated Blob": {
     "ar": "فقاعة مستطيلة",
     "de": "Länglicher Klecks",
@@ -12524,6 +12689,15 @@
     "ja": "改行ごとに追加する間隔（em）。",
     "pt-BR": "Espaço extra após cada quebra de linha, em ems."
   },
+  "Extra spaces": {
+    "ar": "مسافات زائدة",
+    "de": "Überzählige Leerzeichen",
+    "es": "Espacios de más",
+    "fr": "Espaces en trop",
+    "it": "Spazi in eccesso",
+    "ja": "余分なスペース",
+    "pt-BR": "Espaços extras"
+  },
   "Eyedropper": {
     "ar": "القطّارة",
     "de": "Pipette",
@@ -12928,6 +13102,24 @@
     "it": "Adattamento e allineamento restano in attesa mentre le parole seguono una curva, un tracciato o sono disposte in colonne.",
     "ja": "文字がカーブやパスに沿っているときや段組みのときは、サイズ合わせと配置は待機します。",
     "pt-BR": "O ajuste e o alinhamento ficam em espera enquanto as palavras seguem uma curva, um caminho ou estão em colunas."
+  },
+  "Fix": {
+    "ar": "تصحيح",
+    "de": "Korrigieren",
+    "es": "Corregir",
+    "fr": "Corriger",
+    "it": "Correggi",
+    "ja": "修正",
+    "pt-BR": "Corrigir"
+  },
+  "Fix all": {
+    "ar": "تصحيح الكل",
+    "de": "Alle korrigieren",
+    "es": "Corregir todo",
+    "fr": "Tout corriger",
+    "it": "Correggi tutto",
+    "ja": "すべて修正",
+    "pt-BR": "Corrigir tudo"
   },
   "Fix all contrast": {
     "ar": "إصلاح كل التباين",
@@ -13681,6 +13873,15 @@
     "it": "Grana",
     "ja": "粒子",
     "pt-BR": "Granulado"
+  },
+  "Grammar": {
+    "ar": "القواعد",
+    "de": "Grammatik",
+    "es": "Gramática",
+    "fr": "Grammaire",
+    "it": "Grammatica",
+    "ja": "文法",
+    "pt-BR": "Gramática"
   },
   "Graphic %d of %d": {
     "ar": "الرسم %d من %d",
@@ -14759,6 +14960,24 @@
     "ja": "動画を含める",
     "pt-BR": "Incluir vídeos"
   },
+  "Increase letter spacing": {
+    "ar": "زيادة تباعد الأحرف",
+    "de": "Zeichenabstand vergrößern",
+    "es": "Aumentar espaciado entre letras",
+    "fr": "Augmenter l'espacement des lettres",
+    "it": "Aumenta spaziatura lettere",
+    "ja": "字間を広くする",
+    "pt-BR": "Aumentar espaçamento entre letras"
+  },
+  "Increase line spacing": {
+    "ar": "زيادة تباعد الأسطر",
+    "de": "Zeilenabstand vergrößern",
+    "es": "Aumentar interlineado",
+    "fr": "Augmenter l'interligne",
+    "it": "Aumenta interlinea",
+    "ja": "行間を広くする",
+    "pt-BR": "Aumentar entrelinhas"
+  },
   "Indent": {
     "ar": "مسافة بادئة",
     "de": "Einzug",
@@ -15485,6 +15704,15 @@
     "ja": "文字間隔",
     "pt-BR": "Espaçamento entre letras"
   },
+  "Letter spacing %d%%": {
+    "ar": "تباعد الأحرف %d%%",
+    "de": "Zeichenabstand %d%%",
+    "es": "Espaciado entre letras %d%%",
+    "fr": "Espacement des lettres %d%%",
+    "it": "Spaziatura lettere %d%%",
+    "ja": "字間 %d%%",
+    "pt-BR": "Espaçamento entre letras %d%%"
+  },
   "Letters": {
     "ar": "الأحرف",
     "de": "Buchstaben",
@@ -15673,6 +15901,15 @@
     "it": "Interlinea",
     "ja": "行間",
     "pt-BR": "Espaçamento entre linhas"
+  },
+  "Line spacing %@": {
+    "ar": "تباعد الأسطر %@",
+    "de": "Zeilenabstand %@",
+    "es": "Interlineado %@",
+    "fr": "Interligne %@",
+    "it": "Interlinea %@",
+    "ja": "行間 %@",
+    "pt-BR": "Entrelinhas %@"
   },
   "Line type": {
     "ar": "نوع الخط",
@@ -21254,6 +21491,15 @@
     "ja": "プログレスリング",
     "pt-BR": "Anel de progresso"
   },
+  "Proofing": {
+    "ar": "التدقيق",
+    "de": "Korrektur",
+    "es": "Revisión",
+    "fr": "Révision",
+    "it": "Revisione",
+    "ja": "校正",
+    "pt-BR": "Revisão"
+  },
   "Proposal": {
     "ar": "مقترح",
     "de": "Angebot",
@@ -22018,6 +22264,15 @@
     "it": "Ripeti questa pagina",
     "ja": "このページを繰り返す",
     "pt-BR": "Repetir esta página"
+  },
+  "Repeated word": {
+    "ar": "كلمة مكررة",
+    "de": "Wiederholtes Wort",
+    "es": "Palabra repetida",
+    "fr": "Mot répété",
+    "it": "Parola ripetuta",
+    "ja": "重複した語",
+    "pt-BR": "Palavra repetida"
   },
   "Replace": {
     "ar": "استبدال",
@@ -25117,6 +25372,15 @@
     "it": "Audio attivato",
     "ja": "サウンドオン",
     "pt-BR": "Som ativado"
+  },
+  "Space before punctuation": {
+    "ar": "مسافة قبل علامة الترقيم",
+    "de": "Leerzeichen vor Satzzeichen",
+    "es": "Espacio antes de la puntuación",
+    "fr": "Espace avant la ponctuation",
+    "it": "Spazio prima della punteggiatura",
+    "ja": "句読点の前のスペース",
+    "pt-BR": "Espaço antes da pontuação"
   },
   "Space evenly": {
     "ar": "توزيع بالتساوي",
@@ -28349,6 +28613,15 @@
     "ja": "ウルトラバイオレット",
     "pt-BR": "Ultravioleta"
   },
+  "Unclosed bracket or quote": {
+    "ar": "قوس أو علامة اقتباس غير مغلقة",
+    "de": "Nicht geschlossene Klammer oder Anführung",
+    "es": "Paréntesis o comillas sin cerrar",
+    "fr": "Parenthèse ou guillemet non fermé",
+    "it": "Parentesi o virgolette non chiuse",
+    "ja": "閉じていない括弧または引用符",
+    "pt-BR": "Parêntese ou aspas sem fechar"
+  },
   "Underline": {
     "ar": "تسطير",
     "de": "Unterstrichen",
@@ -29745,6 +30018,15 @@
     "fr": "Écriture",
     "it": "Scrittura",
     "ja": "手書き",
+    "pt-BR": "Escrita"
+  },
+  "Writing": {
+    "ar": "الكتابة",
+    "de": "Schreiben",
+    "es": "Redacción",
+    "fr": "Rédaction",
+    "it": "Scrittura",
+    "ja": "文章",
     "pt-BR": "Escrita"
   },
   "X axis": {
