@@ -14,6 +14,9 @@ struct CanviaApp: App {
     @State private var openError: String?
     /// A design file handed over, while it is being read in.
     @State private var openingFile = false
+    /// A workbook opened in Canvia with several sheets with rows, and the
+    /// title its design takes, while the sheet to chart is chosen.
+    @State private var sheetsIn: SheetsIn?
     /// A quick action or Siri asked for a design that has since gone.
     @State private var designMissing = false
     /// Photos, videos, PDFs or SVGs opened in Canvia, landed in the inbox,
@@ -83,24 +86,38 @@ struct CanviaApp: App {
         }
     }
 
-    /// An Excel workbook handed to the app, opened as a new design with a
-    /// chart of its first sheet (Spreadsheets), under the same card a
-    /// design file shows.
+    /// A workbook's sheets to choose one from, and the design's title.
+    struct SheetsIn {
+        var sheets: [XlsxReader.Sheet]
+        var title: String
+    }
+
+    /// An Excel workbook handed to the app, read under the same card a
+    /// design file shows, and opened as a new design with a chart of its
+    /// sheet (Spreadsheets) — the one chosen first when it has several.
     private func openSpreadsheet(_ url: URL) {
         guard url.isFileURL else { return }
-        let taken = DesignLibrary.recents().map(\.title)
+        let title = Spreadsheets.title(fromFileName: url.lastPathComponent)
         openingFile = true
         Task { @MainActor in
-            defer {
-                openingFile = false
-                DesignPackage.discardInboxCopy(url)
+            let read = await Spreadsheets.read(at: url)
+            openingFile = false
+            DesignPackage.discardInboxCopy(url)
+            switch read {
+            case .rows(let imported): chart(imported.cells, title: title)
+            case .sheets(let sheets): sheetsIn = SheetsIn(sheets: sheets, title: title)
+            case .refused(let why): openError = why
             }
-            do {
-                let design = try await Spreadsheets.importFile(at: url, taken: taken)
-                withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
-            } catch {
-                openError = error.localizedDescription
-            }
+        }
+    }
+
+    /// A sheet's rows as a new design with a chart of them, opened.
+    private func chart(_ rows: [[String]], title: String) {
+        do {
+            let design = try Spreadsheets.importRows(rows, title: title, taken: DesignLibrary.recents().map(\.title))
+            withAnimation(.snappy(duration: 0.28)) { editingStore = DesignStore(design: design) }
+        } catch {
+            openError = error.localizedDescription
         }
     }
 
@@ -184,6 +201,34 @@ struct CanviaApp: App {
         #endif
     }
 
+    /// The card shown while a file is read in, and the choice of sheet of
+    /// a workbook with several.
+    private var openingOverlay: some View {
+        ZStack { if openingFile { OpeningDesignCard() } }
+            .confirmationDialog("Choose a sheet", isPresented: choosingSheet, titleVisibility: .visible) {
+                sheetButtons
+            }
+    }
+
+    private var choosingSheet: Binding<Bool> {
+        Binding(get: { sheetsIn != nil }, set: { if !$0 { sheetsIn = nil } })
+    }
+
+    /// A button for each sheet of the workbook opened, as Import data lists
+    /// them.
+    @ViewBuilder
+    private var sheetButtons: some View {
+        if let choice = sheetsIn {
+            ForEach(Array(choice.sheets.enumerated()), id: \.offset) { _, sheet in
+                Button(sheet.name) {
+                    sheetsIn = nil
+                    chart(DataGrid.fromRows(sheet.cells).cells, title: choice.title)
+                }
+            }
+        }
+        Button("Cancel", role: .cancel) { sheetsIn = nil }
+    }
+
     var body: some Scene {
         WindowGroup {
             ZStack {
@@ -261,7 +306,7 @@ struct CanviaApp: App {
             // Exports finished with their sheet closed, shared as the app
             // comes back (ExportQueue).
             .modifier(ExportDelivery())
-            .overlay { if openingFile { OpeningDesignCard() } }
+            .overlay { openingOverlay }
             .preferredColorScheme(Appearance.scheme(appearance))
             .alert("Couldn't open that file", isPresented: Binding(
                 get: { openError != nil }, set: { if !$0 { openError = nil } })) {

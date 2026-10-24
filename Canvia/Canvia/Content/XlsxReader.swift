@@ -1,7 +1,8 @@
 // An Excel workbook (.xlsx) — or a Numbers or Google Sheets export of one —
 // read as grids of words for a chart's or a table's data, the Android
 // twin's XlsxReader rule for rule (the shared fixture, Tests/Fixtures
-// /sheets.xlsx from tools/generate_xlsx_fixture.py, holds both to it).
+// /sheet.xlsx and sheet.json from Tools/generate_xlsx_fixture.py, holds
+// both to it).
 //
 //   • the sheets are xl/workbook.xml's <sheet>s, in its order, each found
 //     through xl/_rels/workbook.xml.rels by its r:id — else as
@@ -11,17 +12,19 @@
 //   • its words by its t: "s" the shared string its <v> numbers (every <t>
 //     of the <si>, phonetic runs aside); "inlineStr" every <t> of its <is>;
 //     "str" and "e" its <v> as written; "b" TRUE or FALSE; a number (no t,
-//     or "n") its <v> as written — a formula's cached <v>, its expression
-//     left out — unless its style's number format is a date's, when it is
-//     the ISO date: yyyy-MM-dd for a whole number of days, HH:mm:ss for a
-//     time under a day, yyyy-MM-ddTHH:mm:ss otherwise, to the second
+//     or "n") its <v> trimmed — a formula's cached <v>, its expression
+//     left out — unless its style's number format (style 0 for a cell with
+//     no s) is a date's, when it is the ISO date: yyyy-MM-dd for a whole
+//     number of days, HH:mm:ss for a time under a day, yyyy-MM-ddTHH:mm:ss
+//     otherwise, to the second; a serial below 0 or past 9999 stays a number
 //   • a date format is a built-in one, 14 to 22 or 45 to 47, or a format of
-//     the workbook's own with a d or a y in it outside quotes and brackets;
-//     day 0 is 1899-12-30 (1904-01-01 for a workbook with date1904), and in
-//     the 1900 system a day before 61 is one later, as Excel counts 1900 a
-//     leap year
-//   • each cell's spaces are trimmed; a merged range keeps its words in its
-//     top-left cell, the rest empty
+//     the workbook's own with a d, a y or an h in it outside quotes,
+//     brackets and characters escaped with a backslash; day 0 is 1899-12-30
+//     (1904-01-01 for a workbook with date1904), and in the 1900 system a
+//     day before 61 is one later, as Excel counts 1900 a leap year
+//   • a cell's words are kept as written, spaces and all (DataGrid.fromRows
+//     trims them); a merged range keeps its words in its top-left cell, the
+//     rest empty
 //   • nothing past row 500 or column 50 is read
 //
 // DataGrid.fromRows takes a sheet's cells into the grid as Import CSV does,
@@ -52,7 +55,8 @@ enum XlsxReader {
         if let rels = document(zip.file("xl/_rels/workbook.xml.rels")) {
             for rel in descendants(rels, "Relationship") {
                 guard let id = rel.attributes["Id"], let target = rel.attributes["Target"] else { continue }
-                targets[id] = target.hasPrefix("/") ? String(target.dropFirst()) : "xl/" + target
+                targets[id] = target.hasPrefix("/") ? String(target.dropFirst())
+                    : "xl/" + (target.hasPrefix("./") ? String(target.dropFirst(2)) : target)
             }
         }
         var out: [Sheet] = []
@@ -127,16 +131,20 @@ enum XlsxReader {
         if (14...22).contains(id) || (45...47).contains(id) { return true }
         guard let code else { return false }
         var plain = ""
-        var quoted = false, bracket = false
+        var quoted = false, bracket = false, escaped = false
         for ch in code {
-            if ch == "\"" { quoted.toggle(); continue }
-            if quoted { continue }
-            if ch == "[" { bracket = true; continue }
-            if ch == "]" { bracket = false; continue }
-            if !bracket { plain.append(ch) }
+            if escaped { escaped = false; continue }
+            if quoted { if ch == "\"" { quoted = false }; continue }
+            if bracket { if ch == "]" { bracket = false }; continue }
+            switch ch {
+            case "\"": quoted = true
+            case "[": bracket = true
+            case "\\": escaped = true
+            default: plain.append(ch)
+            }
         }
         let lower = plain.lowercased()
-        return lower.contains("d") || lower.contains("y")
+        return lower.contains("d") || lower.contains("y") || lower.contains("h")
     }
 
     // MARK: a sheet
@@ -155,7 +163,6 @@ enum XlsxReader {
                 lastColumn = c
                 guard c >= 0, c < maxColumns else { continue }
                 let text = value(cell, shared: shared, dates: dates, base1904: base1904)
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !text.isEmpty else { continue }
                 while grid.count <= r { grid.append([]) }
                 while grid[r].count <= c { grid[r].append("") }
@@ -175,13 +182,15 @@ enum XlsxReader {
         case "inlineStr":
             return cell.children.first { $0.name == "is" }.map(words) ?? ""
         case "b":
-            return v.trimmingCharacters(in: .whitespaces) == "1" ? "TRUE" : "FALSE"
+            let b = v.trimmingCharacters(in: .whitespaces)
+            return b == "1" || b.lowercased() == "true" ? "TRUE" : "FALSE"
         case "str", "e":
             return v
         default:
+            let number = v.trimmingCharacters(in: .whitespacesAndNewlines)
             let style = cell.attributes["s"].flatMap(Int.init) ?? 0
-            guard dates.contains(style), let serial = Double(v.trimmingCharacters(in: .whitespaces)) else { return v }
-            return isoDate(serial, base1904: base1904)
+            guard dates.contains(style), let serial = Double(number) else { return number }
+            return isoDate(serial, base1904: base1904) ?? number
         }
     }
 
@@ -205,13 +214,19 @@ enum XlsxReader {
     }
 
     /// A date serial as ISO: the day alone for a whole day, the time alone
-    /// under a day, else both, to the second.
-    static func isoDate(_ serial: Double, base1904: Bool) -> String {
-        let seconds = Int((serial * 86400).rounded())
-        var days = Int((Double(seconds) / 86400).rounded(.down))
-        let clock = seconds - days * 86400
+    /// under a day, else both, to the second — the whole days, then the
+    /// rest rounded to the second, as Android counts them. Nil for one
+    /// that is not a number, below 0 or past 9999-12-31.
+    static func isoDate(_ serial: Double, base1904: Bool) -> String? {
+        guard serial.isFinite, serial >= 0, serial <= 2_958_466 else { return nil }
+        var days = Int(serial.rounded(.down))
+        var clock = Int(((serial - Double(days)) * 86400).rounded())
+        if clock >= 86400 {
+            days += 1
+            clock -= 86400
+        }
         let time = String(format: "%02d:%02d:%02d", clock / 3600, clock / 60 % 60, clock % 60)
-        if days == 0 && clock > 0 && !base1904 { return time }
+        if days == 0 && clock > 0 { return time }
         // Days since 1970-01-01.
         if base1904 {
             days -= 24107

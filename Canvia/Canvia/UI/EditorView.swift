@@ -1772,16 +1772,16 @@ struct EditorView: View {
 
     // MARK: copies
 
-    /// "Made 3 resized copies", with Open: straight into the copy when there
-    /// is one, else to Home with them highlighted. Nothing here changed, so
-    /// there is nothing to undo.
     /// The designs Bulk create made, said, with Open.
     private func showMade(_ made: [Design]) {
         guard !made.isEmpty else { return }
-        show(toast: trn("Made %d design|Made %d designs", made.count), undoable: false)
+        show(toast: trn("Made %d design on Home|Made %d designs on Home", made.count), undoable: false)
         toastOpens = made.map(\.id)
     }
 
+    /// "Made 3 resized copies", with Open: straight into the copy when there
+    /// is one, else to Home with them highlighted. Nothing here changed, so
+    /// there is nothing to undo.
     private func showCopies(_ made: [Design]) {
         guard !made.isEmpty else { return }
         show(toast: CopyResize.doneText(count: made.count), undoable: false)

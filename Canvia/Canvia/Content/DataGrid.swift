@@ -219,19 +219,23 @@ enum DataGrid {
             i += 1
         }
         if !cell.isEmpty || started || !row.isEmpty { endRow() }
-        return fromRows(rows, maxRows: maxRows, maxColumns: maxColumns)
+        let columns = rows.map(\.count).max() ?? 0
+        let kept = padded(rows.prefix(maxRows).map { Array($0.prefix(maxColumns)) })
+        return CsvImport(cells: kept, rows: rows.count, columns: columns)
     }
 
     /// Rows read some other way — a workbook's sheet (XlsxReader) — into
     /// the grid as a CSV file's are: each cell's spaces trimmed, rows with
     /// no words left out, the first csvRows rows of the first csvColumns
     /// columns kept, every row as wide as the widest kept, and how many of
-    /// each there were for the same note of what was left out.
+    /// each there were for the same note of what was left out. A sheet's
+    /// rows come padded, so its trailing empty cells are no columns of
+    /// their own, as on Android.
     static func fromRows(_ cells: [[String]], maxRows: Int = csvRows, maxColumns: Int = csvColumns) -> CsvImport {
         let rows = cells.map { row in row.map { $0.trimmingCharacters(in: .whitespaces) } }
             .filter { row in row.contains { !$0.isEmpty } }
-        let columns = rows.map(\.count).max() ?? 0
-        let kept = padded(rows.prefix(maxRows).map { Array($0.prefix(maxColumns)) })
+        let columns = rows.map { row in (row.lastIndex { !$0.isEmpty } ?? -1) + 1 }.max() ?? 0
+        let kept = padded(rows.prefix(maxRows).map { Array($0.prefix(min(maxColumns, columns))) })
         return CsvImport(cells: kept, rows: rows.count, columns: columns)
     }
 
@@ -264,8 +268,8 @@ enum DataGrid {
 
     // MARK: Import data
 
-    /// The largest workbook Import data opens.
-    static let xlsxBytes = 10 * 1024 * 1024
+    /// The largest workbook Import data opens: 20 MB, as on Android.
+    static let xlsxBytes = 20 * 1024 * 1024
 
     /// What Import data makes of a file: its rows, a workbook's sheets to
     /// choose from — each with rows — or why it brought none.
@@ -282,12 +286,12 @@ enum DataGrid {
 
     /// A workbook's bytes for the grid: its one sheet with rows, or its
     /// sheets with rows to choose from; why not, in the Android twin's
-    /// words, when none is read or none has rows.
+    /// words, when none is read, it is too big or none has rows.
     static func read(xlsx data: Data?) -> DataRead {
-        guard let data else { return .refused(tr("That file could not be read")) }
-        guard data.count <= xlsxBytes else { return .refused(tr("That file is over 10 MB")) }
+        guard let data else { return .refused(tr("That file isn't a spreadsheet Canvia can read.")) }
+        guard data.count <= xlsxBytes else { return .refused(tr("That spreadsheet is too big to open.")) }
         let sheets = XlsxReader.read(data)
-        guard !sheets.isEmpty else { return .refused(tr("That file could not be read")) }
+        guard !sheets.isEmpty else { return .refused(tr("That file isn't a spreadsheet Canvia can read.")) }
         let withRows = sheets.filter { !fromRows($0.cells).cells.isEmpty }
         guard let first = withRows.first else { return .refused(tr("No rows to import in that file")) }
         return withRows.count == 1 ? .rows(fromRows(first.cells)) : .sheets(withRows)

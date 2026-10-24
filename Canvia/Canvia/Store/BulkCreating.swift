@@ -27,24 +27,16 @@ extension DesignStore {
         }
     }
 
-    /// Every upload's photo or clip, by its id, as a cell names it.
-    static func bulkPictures() -> [String: String] {
-        var out: [String: String] = [:]
-        for entry in Uploads.all() {
-            switch entry.kind {
-            case .image: out[entry.id] = "media:\(entry.id)"
-            case .video: out[entry.id] = VideoStore.src(entry.id, at: nil)
-            case .audio: continue
-            }
-        }
-        return out
+    /// Every photo upload, as a cell may name it (BulkCreate.picture).
+    static func bulkPictures() -> [BulkCreate.Picture] {
+        Uploads.all(.image).map { BulkCreate.Picture(id: $0.id, name: $0.fileName, src: "media:\($0.id)") }
     }
 
     /// One copy of the page on screen for each row of `data`, filled in,
     /// after the last page, and the rows kept on the design — one step,
     /// "Bulk create". Nothing when there are no rows.
     @discardableResult
-    func bulkCreatePages(_ data: BulkData, pictures: [String: String] = DesignStore.bulkPictures()) -> BulkOutcome {
+    func bulkCreatePages(_ data: BulkData, pictures: [BulkCreate.Picture] = DesignStore.bulkPictures()) -> BulkOutcome {
         let template = page
         let made = BulkCreate.pages(design, pageId: template.id, data: data, pictures: pictures)
         guard !made.isEmpty else { return BulkOutcome(made: 0, overflows: []) }
@@ -63,17 +55,16 @@ extension DesignStore {
     /// screen filled in from it, titled by its first cell, as no design
     /// there is titled — and the rows kept on this design, as one step.
     @MainActor
-    func bulkCreateDesigns(_ data: BulkData, pictures: [String: String] = DesignStore.bulkPictures()) -> BulkOutcome {
+    func bulkCreateDesigns(_ data: BulkData, pictures: [BulkCreate.Picture] = DesignStore.bulkPictures()) -> BulkOutcome {
         let template = page
         let pages = BulkCreate.pages(design, pageId: template.id, data: data, pictures: pictures)
         guard !pages.isEmpty else { return BulkOutcome(made: 0, overflows: []) }
         let overflows = BulkCreate.overflows(pages, template: template, data: data, heightFor: measure)
-        var taken = DesignLibrary.recents().map(\.title) + [design.title]
+        let titles = BulkCreate.titles(of: data.rows, fallback: design.title,
+                                       taken: DesignLibrary.recents().map(\.title))
         var made: [Design] = []
         let now = Date().timeIntervalSince1970 * 1000
-        for (row, page) in zip(data.rows, pages) {
-            let title = Titles.unique(BulkCreate.title(of: row, fallback: design.title), taken: taken)
-            taken.append(title)
+        for (title, page) in zip(titles, pages) {
             let one = BulkCreate.separate(design, page: page, title: title, now: now)
             guard DesignLibrary.save(one) else { continue }
             DesignLibrary.writeThumbnail(for: one)
