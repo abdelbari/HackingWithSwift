@@ -578,7 +578,9 @@ struct CanvasView: View {
             // A chart is one stop: its other parts are hidden from VoiceOver.
             let order = CanvasAccessibility.readingOrder(store.page.elements, pageHeight: store.pageHeight)
             let charts = CanvasAccessibility.chartStops(store.page.elements.filter { !$0.isHidden }, order: order)
-            ForEach(store.page.elements.filter { !$0.isHidden }) { el in
+            // A group's crop put into each member's own box, so a hit is
+            // taken on what shows (GraphicClip).
+            ForEach(GraphicClip.shown(store.page.elements.filter { !$0.isHidden })) { el in
                 elementHitArea(el)
                     .accessibilitySortPriority(Double(order.count - (order.firstIndex(of: el.id) ?? 0)))
                     .accessibilityHidden(charts.hidden.contains(el.id))
@@ -588,7 +590,7 @@ struct CanvasView: View {
                 moveFurniture(moved)
             }
 
-            if store.cropping == nil {
+            if store.cropping == nil && store.graphicCropping == nil {
                 // Its badges grow with Larger Text, as far as accessibility2.
                 selectionOverlay.chromeTypeSize()
                 endTargetOutline
@@ -614,6 +616,7 @@ struct CanvasView: View {
                 if store.erasing != nil { eraserLayer }
                 if let brush = store.brushing, let photo = store.brushElement { brushLayer(brush, photo) }
                 if let crop = store.cropping, let photo = store.cropElement { cropLayer(photo, crop) }
+                if let crop = store.graphicCropping { GraphicCropLayer(store: store, crop: crop) }
             }
         }
         // The print bleed round the page, when the design shows one: behind
@@ -729,6 +732,12 @@ struct CanvasView: View {
            let i = page.elements.firstIndex(where: { $0.id == brush.id }) {
             page.elements[i] = ImageMasking.original(page.elements[i], retouching: brush.retouching)
         }
+        // A graphic being cropped shows whole, faint round its window.
+        if let crop = store.graphicCropping {
+            for i in page.elements.indices where crop.ids.contains(page.elements[i].id) {
+                page.elements[i].clipBox = nil
+            }
+        }
         let hidden = [store.cropping?.id, store.editingTextId].compactMap { $0 }
         guard !hidden.isEmpty else { return page }
         if let id = store.editingTextId, let i = page.elements.firstIndex(where: { $0.id == id && $0.type == .shape }) {
@@ -743,7 +752,7 @@ struct CanvasView: View {
     /// unlocked shape that takes words — a locked one zooms, as on the
     /// Android twin — or a table's cell, whose words are typed in.
     private func claimsDoubleTap(at point: CGPoint) -> Bool {
-        if store.cropping != nil { return true }
+        if store.cropping != nil || store.graphicCropping != nil { return true }
         guard let hit = store.page.elements.last(where: { Geometry.hits($0, point: point) }) else { return false }
         return hit.type == .image || hit.type == .text || store.typedIn(hit) != nil
     }
@@ -1283,7 +1292,8 @@ struct CanvasView: View {
     /// target's size), no handle of the selection, no guide — and never
     /// while the pen, the eraser or crop mode has the page's touches.
     private func pansFromPage(at point: CGPoint) -> Bool {
-        guard store.drawing == nil, store.erasing == nil, store.cropping == nil, store.brushing == nil else { return false }
+        guard store.drawing == nil, store.erasing == nil, store.cropping == nil, store.graphicCropping == nil,
+              store.brushing == nil else { return false }
         let guideReach = Touch.pageUnits(12, zoom: store.zoom)
         let onGuide = store.design.guides.contains { guide in
             abs(Double(guide.vertical ? point.x : point.y) - guide.position) <= guideReach
@@ -2582,7 +2592,7 @@ struct CanvasView: View {
     /// view to the page being worked: scrolling does not change it, and the
     /// headers only say which page is which.
     private var pagePinned: Bool {
-        store.cropping != nil || store.editingTextId != nil || store.drawing != nil
+        store.cropping != nil || store.graphicCropping != nil || store.editingTextId != nil || store.drawing != nil
             || store.erasing != nil || store.brushing != nil || store.previewTime != nil
     }
 
@@ -3103,8 +3113,12 @@ private struct HitZone {
 
     init(_ el: Element, target: Double) {
         guard LineRoutes.keepsLevel(el) else {
-            size = CGSize(width: max(el.w, target), height: max(el.h, target))
-            center = CGPoint(x: el.x + el.w / 2, y: el.y + el.h / 2)
+            // What a crop shows (GraphicClip), turned about the element's
+            // own middle.
+            let shown = GraphicClip.visibleFrame(el)
+            size = CGSize(width: max(Double(shown.width), target), height: max(Double(shown.height), target))
+            let middle = CGPoint(x: shown.midX, y: shown.midY)
+            center = el.rotation == 0 ? middle : Geometry.rotate(middle, around: el.center, degrees: el.rotation)
             rotation = el.rotation
             shape = AnyShape(Rectangle())
             return

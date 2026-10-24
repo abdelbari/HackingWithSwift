@@ -163,6 +163,11 @@ struct EditorView: View {
                         .padding(.horizontal, 10)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.bottom, 14)
+                } else if store.graphicCropping != nil {
+                    graphicCropBar
+                        .padding(.horizontal, 10)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.bottom, 14)
                 } else {
                     insertButton
                         .padding(18)
@@ -173,7 +178,7 @@ struct EditorView: View {
             // the eraser's and the crop's bars: a tap opens the sheet on its
             // progress.
             .overlay(alignment: .bottomLeading) {
-                if store.drawing == nil && store.erasing == nil && store.cropping == nil && store.brushing == nil {
+                if store.drawing == nil && store.erasing == nil && !cropMode && store.brushing == nil {
                     ExportPill { activeSheet = .export }
                         .padding(.trailing, 72)
                         .padding(.bottom, 26)
@@ -190,9 +195,9 @@ struct EditorView: View {
             // room, so the canvas keeps its size as the mode comes and goes.
             ContextToolbar(store: store, activeSheet: $activeSheet)
                 .frame(height: store.selection.isEmpty && !store.selectingMultiple ? 0 : nil)
-                .opacity(store.selection.isEmpty ? 0 : store.cropping == nil ? 1 : 0.35)
+                .opacity(store.selection.isEmpty ? 0 : !cropMode ? 1 : 0.35)
                 .clipped()
-                .allowsHitTesting(!store.selection.isEmpty && store.cropping == nil && !store.selectingMultiple)
+                .allowsHitTesting(!store.selection.isEmpty && !cropMode && !store.selectingMultiple)
                 .overlay {
                     if store.selectingMultiple { selectMultipleBanner }
                 }
@@ -238,9 +243,12 @@ struct EditorView: View {
         .background(Theme.workspace)
     }
 
+    /// A photo's or a graphic's crop mode is on.
+    private var cropMode: Bool { store.cropping != nil || store.graphicCropping != nil }
+
     /// Crop, typing, the pen, the eraser or a brush has the page.
     private var pageTaken: Bool {
-        store.cropping != nil || store.editingTextId != nil || store.drawing != nil || store.erasing != nil
+        cropMode || store.editingTextId != nil || store.drawing != nil || store.erasing != nil
             || store.brushing != nil
     }
 
@@ -379,6 +387,9 @@ struct EditorView: View {
                 // photo is the only thing being worked.
                 shortcut(.return, [], tr("Done cropping")) { store.finishCrop() }
                 shortcut(.escape, [], tr("Cancel crop")) { store.cancelCrop() }
+            } else if store.graphicCropping != nil {
+                shortcut(.return, [], tr("Done cropping")) { store.finishGraphicCrop() }
+                shortcut(.escape, [], tr("Cancel crop")) { store.cancelGraphicCrop() }
             } else if store.brushing != nil {
                 // So has a brush, and ⌘Z takes back the last stroke, as the
                 // bar's Undo stroke does.
@@ -1345,6 +1356,50 @@ struct EditorView: View {
             Button("Done") { store.finishCrop() }
                 .fontWeight(.semibold)
                 .buttonStyle(.borderedProminent)
+        }
+    }
+
+    /// A graphic's crop bar: the ratios, and Cancel, Reset and Done — no
+    /// zoom or straighten, which a vector has nothing to give.
+    private var graphicCropBar: some View {
+        VStack(spacing: 6) {
+            graphicAspectRow
+            HStack(spacing: 12) {
+                Button("Cancel") { store.cancelGraphicCrop() }
+                Spacer(minLength: 0)
+                Button("Reset") { store.resetGraphicCrop() }
+                    .disabled(!graphicCropped)
+                Spacer(minLength: 0)
+                Button("Done") { store.finishGraphicCrop() }
+                    .fontWeight(.semibold)
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .frame(maxWidth: 440)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    /// Whether the graphic being cropped shows less than its whole.
+    private var graphicCropped: Bool {
+        store.graphicCropping?.ids.first.flatMap(store.element)?.clipBox != nil
+    }
+
+    /// The window's shape, as a photo's frame has them; Original is the
+    /// graphic's own.
+    private var graphicAspectRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(CropAspect.allCases, id: \.self) { aspect in
+                    Button(aspect.name) { store.setGraphicCropAspect(aspect) }
+                        .buttonStyle(.bordered)
+                        .tint(.secondary)
+                        .controlSize(.small)
+                }
+            }
         }
     }
 

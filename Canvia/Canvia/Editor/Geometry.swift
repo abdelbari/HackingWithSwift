@@ -272,13 +272,14 @@ enum Geometry {
     }
 
     /// Hit test respecting rotation: an elbowed or curved line on its
-    /// route (LineRoutes.near), anything else in its turned frame. A hidden
-    /// element is never hit.
+    /// route (LineRoutes.near), anything else in its turned frame — the
+    /// part of it a crop shows (GraphicClip.visibleFrame). A hidden element
+    /// is never hit.
     static func hits(_ el: Element, point: CGPoint) -> Bool {
         guard !el.isHidden else { return false }
         if LineRoutes.keepsLevel(el) { return LineRoutes.near(el, point, reach: 4) }
         let p = el.rotation == 0 ? point : rotate(point, around: el.center, degrees: -el.rotation)
-        return el.frame.insetBy(dx: -4, dy: -4).contains(p)
+        return GraphicClip.visibleFrame(el).insetBy(dx: -4, dy: -4).contains(p)
     }
 
     // MARK: snapping

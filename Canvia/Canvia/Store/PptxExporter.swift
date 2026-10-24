@@ -196,6 +196,9 @@ enum PptxExporter {
         if el.table != nil || el.chart != nil || el.chartPart != nil || BlendModes.mode(el.blendMode).id != "normal" {
             return .picture
         }
+        // A cropped graphic (GraphicClip) as the picture of what shows: a
+        // preset or path has no crop of its own.
+        if GraphicClip.ownRect(el) != nil { return .picture }
         if el.shadow != nil && !(styled && el.type == .text) { return .picture }
         let flipped = el.flipH || el.flipV
         switch el.type {

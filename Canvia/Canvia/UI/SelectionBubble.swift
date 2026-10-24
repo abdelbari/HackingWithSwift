@@ -44,7 +44,7 @@ struct SelectionBubble: View {
     /// under way. Select multiple has its own bar.
     private var shown: Bool {
         on && !store.selection.isEmpty && !store.canvasTouchActive && !store.canvasMoving
-            && store.cropping == nil && store.editingTextId == nil && store.drawing == nil
+            && store.cropping == nil && store.graphicCropping == nil && store.editingTextId == nil && store.drawing == nil
             && store.erasing == nil && store.brushing == nil && !store.selectingMultiple && store.previewTime == nil
             && store.holdMenuAt == nil
     }

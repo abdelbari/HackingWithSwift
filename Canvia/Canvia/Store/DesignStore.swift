@@ -28,6 +28,7 @@ final class DesignStore {
         // so far is kept, never dropped.
         didSet {
             if let crop = cropping, selection != [crop.id] { finishCrop() }
+            if let crop = graphicCropping, selection != Set(crop.ids) { finishGraphicCrop() }
             // So does a brush's, kept as its one step.
             if let brush = brushing, selection != [brush.id] { finishBrush() }
             // Typing in place ends however the box stops being the one thing
@@ -1640,6 +1641,9 @@ final class DesignStore {
     /// True while the crop bar's straighten dial is held: the thirds stay
     /// up on the frame, as they do under a finger. View state only.
     var cropDialHeld = false
+    /// A graphic or a group being cropped — see GraphicCropMode.swift. One
+    /// open step, as a photo's crop is.
+    var graphicCropping: GraphicCropSession?
     /// The image being erased from, while the eraser is out, and the
     /// strokes painted over it so far, in page units.
     var erasing: String?

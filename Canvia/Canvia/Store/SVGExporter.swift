@@ -119,7 +119,16 @@ enum SVGExporter {
         // An alt text becomes the group's title, which is what screen readers
         // and browsers read for an SVG element.
         let title = el.altText.map { "<title>\(escape($0))</title>" } ?? ""
-        let inner = markup(el, index: index, standIns: standIns, defs: &defs)
+        var inner = markup(el, index: index, standIns: standIns, defs: &defs)
+        // A cropped graphic (GraphicClip): its markup cut to the crop, in
+        // its own box, inside the group's flip and turn.
+        if let crop = GraphicClip.ownRect(el) {
+            let id = "crop\(index)"
+            defs.append("<clipPath id=\"\(id)\"><rect x=\"\(num(el.x + Double(crop.minX)))\" "
+                        + "y=\"\(num(el.y + Double(crop.minY)))\" width=\"\(num(Double(crop.width)))\" "
+                        + "height=\"\(num(Double(crop.height)))\"/></clipPath>")
+            inner = "<g clip-path=\"url(#\(id))\">\(inner)</g>"
+        }
         let group = "<g\(attributes)>\(title)\(cast)\(inner)</g>"
         let words = wordLinksMarkup(el, transforms: transforms)
         // A link wraps the element, so a browser follows it on a click —

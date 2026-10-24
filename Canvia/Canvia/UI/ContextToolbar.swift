@@ -1382,6 +1382,10 @@ struct ContextToolbar: View {
             if store.offersSimilar {
                 toolButton("square.grid.2x2", "More like this") { activeSheet = .similar }
             }
+            // An icon, shape, sticker or graphic shows only part of itself.
+            if store.canCropGraphic {
+                toolButton("crop", "Crop") { store.startGraphicCrop() }
+            }
         }
         // Grouped to keep this block within a ViewBuilder's ten children.
         Group {

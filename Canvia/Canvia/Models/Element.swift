@@ -293,6 +293,95 @@ struct ClipPlayback: Codable, Equatable, Hashable {
     }
 }
 
+/// The part of a graphic shown when it is cropped (GraphicClip): a box in
+/// shares 0…1 of the element's own box — of its group's frame for a group's
+/// member — written as the element's `clip` object {x, y, w, h}, every key.
+/// The whole of it is no key at all. A build before this ignores it and
+/// shows the whole graphic.
+struct ClipBox: Codable, Equatable, Hashable {
+    var x: Double
+    var y: Double
+    var w: Double
+    var h: Double
+
+    /// The least share of the box a crop keeps across or down.
+    static let minShare = 0.01
+
+    static let whole = ClipBox(x: 0, y: 0, w: 1, h: 1)
+
+    init(x: Double, y: Double, w: Double, h: Double) {
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+    }
+
+    private enum CodingKeys: String, CodingKey { case x, y, w, h }
+
+    /// A key it lacks, or cannot give, is the whole box's.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        x = (try? c.decode(Double.self, forKey: .x)) ?? 0
+        y = (try? c.decode(Double.self, forKey: .y)) ?? 0
+        w = (try? c.decode(Double.self, forKey: .w)) ?? 1
+        h = (try? c.decode(Double.self, forKey: .h)) ?? 1
+    }
+
+    /// Whether it shows the whole box, within a millionth.
+    var isWhole: Bool {
+        x <= 1e-6 && y <= 1e-6 && x + w >= 1 - 1e-6 && y + h >= 1 - 1e-6
+    }
+
+    /// A crop as read or about to be kept: inside the box, at least
+    /// minShare across and down; nil for the whole box, or for one with a
+    /// part that is not a number.
+    static func kept(_ box: ClipBox?) -> ClipBox? {
+        guard let box, box.x.isFinite, box.y.isFinite, box.w.isFinite, box.h.isFinite else { return nil }
+        let x = min(max(box.x, 0), 1 - minShare)
+        let y = min(max(box.y, 0), 1 - minShare)
+        let out = ClipBox(x: x, y: y, w: min(max(box.w, minShare), 1 - x), h: min(max(box.h, minShare), 1 - y))
+        return out.isWhole ? nil : out
+    }
+}
+
+/// The element's `clip` object: a photo's playback, or a graphic's crop.
+enum ElementClip: Equatable {
+    case playback(ClipPlayback)
+    case box(ClipBox)
+}
+
+extension ElementClip: Codable {
+    /// A crop when it has a place and size ({x, y, w, h}); a playback else.
+    init(from decoder: Decoder) throws {
+        if let box = try? ClipBox.Probe(from: decoder), box.complete {
+            self = .box(try ClipBox(from: decoder))
+        } else {
+            self = .playback(try ClipPlayback(from: decoder))
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        switch self {
+        case .playback(let playback): try playback.encode(to: encoder)
+        case .box(let box): try box.encode(to: encoder)
+        }
+    }
+}
+
+extension ClipBox {
+    /// Whether an object carries all four of a crop's keys.
+    fileprivate struct Probe: Decodable {
+        var complete: Bool
+
+        private enum CodingKeys: String, CodingKey { case x, y, w, h }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            complete = c.contains(.x) && c.contains(.y) && c.contains(.w) && c.contains(.h)
+        }
+    }
+}
+
 /// Where a table's cell rectangle or its text sits in the table: the
 /// table's id ("tbl_<uid>"), shared by every cell and text of one table, and
 /// the row (0 is the header) and column. The texts are the table's content,
@@ -879,9 +968,45 @@ struct Element: Codable, Equatable, Identifiable {
     /// Blur and pixelate brushed onto parts of the picture, in order (see
     /// MaskRaster); nil is none, and no key in the file.
     var retouch: [RetouchLayer]?
+    /// What the file's `clip` key holds: on a photo or clip its playback
+    /// (`clip`), on anything else the part of it shown (`clipBox`). Read
+    /// and written through those two.
+    var clipField: ElementClip?
     /// For a clip ("video:" source): its trim, speed, loop and sound. Never a
     /// clip at all its defaults — that is nil, and no key in the file.
-    var clip: ClipPlayback?
+    var clip: ClipPlayback? {
+        get {
+            if case .playback(let playback) = clipField { return playback }
+            return nil
+        }
+        set {
+            if let newValue {
+                clipField = .playback(newValue)
+            } else if case .playback = clipField {
+                clipField = nil
+            }
+        }
+    }
+    /// A shape, sticker or group member cropped (GraphicClip): the part of
+    /// it shown, as shares 0…1 of its own box — of its group's frame for a
+    /// group's member, the same on each. Nil is the whole of it, and no key.
+    var clipBox: ClipBox? {
+        get {
+            if case .box(let box) = clipField { return box }
+            return nil
+        }
+        set {
+            if let newValue {
+                clipField = .box(newValue)
+            } else if case .box = clipField {
+                clipField = nil
+            }
+        }
+    }
+    /// Whether `clipBox` has been put into the member's own box for drawing
+    /// (GraphicClip.shown), whatever group it is in. Never in the file, and
+    /// never set on what the design holds.
+    var clipIsOwn = false
     /// A QR code's look (see CodeGenerator.Look): its modules' colour
     /// ("#rrggbb"), its background's ("#rrggbb", or "none" for clear) and
     /// the margin round it in whole modules, 0…3. Each nil at its default —
@@ -1044,7 +1169,12 @@ struct Element: Codable, Equatable, Identifiable {
         fx = try? c.decode(PhotoFx.self, forKey: .fx)
         mask = ImageMask.kept(try? c.decode(ImageMask.self, forKey: .mask))
         retouch = RetouchLayer.kept((try? c.decode([Lossy<RetouchLayer>].self, forKey: .retouch))?.compactMap(\.value))
-        clip = (try? c.decode(ClipPlayback.self, forKey: .clip)).flatMap { $0.isDefault ? nil : $0 }
+        // The `clip` key is a photo's playback, and anything else's crop.
+        if type == .image {
+            clip = (try? c.decode(ClipPlayback.self, forKey: .clipField)).flatMap { $0.isDefault ? nil : $0 }
+        } else {
+            clipBox = ClipBox.kept(try? c.decode(ClipBox.self, forKey: .clipField))
+        }
         // Read tolerantly, as the Android twin reads them: a colour that is
         // none, or a margin out of 0…4, is the default — and a default is no
         // key at all.
@@ -1095,7 +1225,8 @@ struct Element: Codable, Equatable, Identifiable {
         case lineHeight, letterSpacing, color, listStyle, indent, textFill, effect, curve, textPath, vertical
         case spans, spansText, paragraphs, paragraphsText, captions
         case vAlign, fitText, paragraphSpacing, textStyleId, dropCap, animation, exitAnimation, kenBurns, timing
-        case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit, clip
+        case src, filter, maskShapeId, adjustments, duotone, cropScale, cropX, cropY, straighten, cropFit
+        case clipField = "clip"
         case filterStrength, pixelate, focusBlur, edge, fx, mask, retouch
         case qrColor, qrBackground, qrMargin, qrDots, qrEyes, qrLogo, qrEc, barcodeText, qrForm
         case glyph

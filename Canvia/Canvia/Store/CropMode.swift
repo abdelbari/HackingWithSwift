@@ -36,6 +36,12 @@ extension DesignStore {
     @discardableResult
     func startCrop(_ id: String) -> Bool {
         if cropping != nil { return true }
+        // A graphic, or a group of them, has crop mode of its own: the
+        // window over it rather than the picture behind a frame.
+        if let el = element(id), el.type != .image {
+            if !selection.contains(id) { selection = [id] }
+            return startGraphicCrop()
+        }
         guard let photo = element(id), photo.type == .image, !refusesLockedPage() else { return false }
         if photo.locked {
             announce(tr("This photo is locked. Tap Unlock to crop it."), undoable: false)

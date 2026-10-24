@@ -77,7 +77,7 @@ struct CanvasChips: View {
     /// Not while a drag's readout is up, nor where a pinch works something
     /// other than the canvas, nor with the pen or the eraser out.
     private var showsZoom: Bool {
-        store.viewport.width > 0 && store.badge == nil && store.cropping == nil
+        store.viewport.width > 0 && store.badge == nil && store.cropping == nil && store.graphicCropping == nil
             && store.drawing == nil && store.erasing == nil && store.brushing == nil
     }
 

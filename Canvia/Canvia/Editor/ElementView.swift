@@ -126,6 +126,9 @@ struct ElementView: View {
     var body: some View {
         content
             .frame(width: element.w, height: element.h)
+            // A cropped graphic shows only its crop (GraphicClip), cut in
+            // its own box before it is flipped and turned.
+            .modifier(GraphicClipMask(rect: GraphicClip.ownRect(element)))
             // A styled shadow (ShadowShapes) is a silhouette of its own,
             // drawn behind the element in the element's space, where the
             // drop shadow below is cast too.
@@ -212,6 +215,31 @@ struct ElementView: View {
         case .sticker: StickerElementView(element: el)
         case .line: LineElementView(element: el)
         }
+    }
+}
+
+/// A cropped graphic cut to its crop (GraphicClip.ownRect), in the
+/// element's own box; nothing at all for no crop.
+private struct GraphicClipMask: ViewModifier {
+    let rect: CGRect?
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if let rect {
+            content.clipShape(ClipWindow(window: rect))
+        } else {
+            content
+        }
+    }
+}
+
+/// The crop's box, where it is in the element's box whatever size the
+/// element is laid out at.
+private struct ClipWindow: Shape {
+    let window: CGRect
+
+    func path(in rect: CGRect) -> Path {
+        Path(window)
     }
 }
 
@@ -1245,12 +1273,13 @@ struct PageRenderView: View {
     private var drawn: some View {
         // The master page's elements, behind this page's own. Not on
         // the master itself, and not on a page that opted out.
-        ForEach(design.masterElements(behind: page)) { el in
+        // A group's crop is put into each member's own box (GraphicClip).
+        ForEach(GraphicClip.shown(design.masterElements(behind: page))) { el in
             ElementView(element: el).equatable()
         }
         // A hidden element is never drawn, here or in anything that
         // renders through this view: exports, thumbnails, Present, video.
-        ForEach(page.elements.filter { !$0.isHidden }) { el in
+        ForEach(GraphicClip.shown(page.elements.filter { !$0.isHidden })) { el in
             // .equatable() so a drag re-renders the element that moved
             // rather than every element on the page. The store is
             // @Observable and a gesture mutates the document each frame,

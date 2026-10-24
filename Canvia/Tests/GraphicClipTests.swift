@@ -1,0 +1,169 @@
+// Round 32's cropped graphics, with the rows the Android twin's tests hold
+// too: the `clip` {x, y, w, h} through the file — a photo's `clip` still its
+// playback — the part shown, alone and in a group, where a touch takes it,
+// what the renderer draws and the exports write, and crop mode's step.
+
+import XCTest
+import SwiftUI
+@testable import Canvia
+
+final class GraphicClipTests: XCTestCase {
+
+    private func sticker(_ clip: ClipBox?) -> Element {
+        var el = Element.sticker("⭐", size: 100)
+        el.id = "s"
+        el.w = 200
+        el.clipBox = clip
+        return el
+    }
+
+    // MARK: the file
+
+    func testTheClipRoundTripsThroughTheFile() throws {
+        var shape = Element.shape("rect", w: 200, h: 100)
+        shape.clipBox = ClipBox(x: 0.25, y: 0, w: 0.5, h: 1)
+        let data = try JSONEncoder().encode(shape)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let clip = try XCTUnwrap(json["clip"] as? [String: Double])
+        XCTAssertEqual(clip, ["x": 0.25, "y": 0, "w": 0.5, "h": 1])
+        let back = try JSONDecoder().decode(Element.self, from: data)
+        XCTAssertEqual(back.clipBox, ClipBox(x: 0.25, y: 0, w: 0.5, h: 1))
+        XCTAssertNil(back.clip, "a shape has no playback")
+
+        // A photo's `clip` is still its playback.
+        var photo = Element.image("video:abc", w: 200, h: 100)
+        photo.clip = ClipPlayback(start: 2)
+        let read = try JSONDecoder().decode(Element.self, from: JSONEncoder().encode(photo))
+        XCTAssertEqual(read.clip, ClipPlayback(start: 2))
+        XCTAssertNil(read.clipBox)
+    }
+
+    func testAClipIsReadAsKept() throws {
+        func read(_ clip: String) throws -> Element {
+            try JSONDecoder().decode(Element.self, from: Data("{\"type\":\"sticker\",\"glyph\":\"⭐\",\"clip\":\(clip)}".utf8))
+        }
+        XCTAssertNil(try read("{\"x\":0,\"y\":0,\"w\":1,\"h\":1}").clipBox, "the whole: no clip")
+        XCTAssertEqual(try read("{\"x\":-0.5,\"y\":0.5,\"w\":2,\"h\":0.25}").clipBox, ClipBox(x: 0, y: 0.5, w: 1, h: 0.25))
+        XCTAssertEqual(try read("{\"x\":0.5,\"y\":0,\"w\":0,\"h\":1}").clipBox?.w, ClipBox.minShare)
+        XCTAssertNil(try read("{\"start\":2}").clipBox, "a playback on a sticker is no crop")
+        XCTAssertEqual(ClipBox.kept(ClipBox(x: 0.2, y: 0.2, w: 0.5, h: 0.5)), ClipBox(x: 0.2, y: 0.2, w: 0.5, h: 0.5))
+        XCTAssertNil(ClipBox.kept(.whole))
+    }
+
+    // MARK: what shows
+
+    func testThePartShownAndWhereATouchTakesIt() {
+        let cropped = sticker(ClipBox(x: 0.25, y: 0, w: 0.5, h: 1))
+        XCTAssertEqual(GraphicClip.ownRect(cropped), CGRect(x: 50, y: 0, width: 100, height: 100))
+        XCTAssertEqual(GraphicClip.visibleFrame(cropped), CGRect(x: 50, y: 0, width: 100, height: 100))
+        XCTAssertTrue(Geometry.hits(cropped, point: CGPoint(x: 100, y: 50)))
+        XCTAssertFalse(Geometry.hits(cropped, point: CGPoint(x: 20, y: 50)), "cropped away")
+
+        // Flipped, the crop is drawn mirrored in its box.
+        var flipped = sticker(ClipBox(x: 0, y: 0, w: 0.25, h: 1))
+        flipped.flipH = true
+        XCTAssertEqual(GraphicClip.visibleFrame(flipped), CGRect(x: 150, y: 0, width: 50, height: 100))
+        XCTAssertNil(GraphicClip.ownRect(sticker(nil)))
+        XCTAssertEqual(GraphicClip.visibleFrame(sticker(nil)), CGRect(x: 0, y: 0, width: 200, height: 100))
+    }
+
+    /// A group's crop, in its frame, put into each member's own box.
+    func testAGroupsCropIsInItsFrame() {
+        var a = Element.shape("rect", w: 100, h: 100)
+        a.id = "a"
+        a.group = "g"
+        var b = a
+        b.id = "b"
+        b.x = 100
+        let crop = ClipBox(x: 0, y: 0, w: 0.75, h: 1)
+        a.clipBox = crop
+        b.clipBox = crop
+        XCTAssertNil(GraphicClip.ownRect(a), "not yet in its own box")
+        let shown = GraphicClip.shown([a, b])
+        XCTAssertEqual(shown[0].clipBox, ClipBox(x: 0, y: 0, w: 1, h: 1))
+        XCTAssertEqual(shown[1].clipBox, ClipBox(x: 0, y: 0, w: 0.5, h: 1))
+        XCTAssertTrue(shown.allSatisfy(\.clipIsOwn))
+        XCTAssertEqual(GraphicClip.ownRect(shown[1]), CGRect(x: 0, y: 0, width: 50, height: 100))
+        XCTAssertTrue(GraphicClip.croppableGroup([a, b]))
+        XCTAssertFalse(GraphicClip.croppableGroup([a, Element.image("asset:p")]), "a photo's clip is its playback")
+        // What the design holds keeps the group's crop; only drawing turns it.
+        var d = Design(title: "g", width: 400, height: 400)
+        d.pages = [Page(id: "p1", elements: [a, b])]
+        XCTAssertEqual(d.drawnElements(on: d.pages[0]).map(\.clipBox), shown.map(\.clipBox))
+        XCTAssertEqual(d.pages[0].elements[1].clipBox, crop)
+    }
+
+    @MainActor
+    func testTheRendererDrawsOnlyTheCrop() throws {
+        var square = Element.shape("rect", w: 100, h: 100)
+        square.fill = .solid("#ff0000")
+        square.clipBox = ClipBox(x: 0, y: 0, w: 0.5, h: 1)
+        let renderer = ImageRenderer(content: ElementView(element: square))
+        renderer.scale = 1
+        renderer.isOpaque = false
+        let image = try XCTUnwrap(renderer.cgImage)
+        XCTAssertGreaterThan(try alpha(image, x: 25, y: 50), 200, "inside the crop")
+        XCTAssertLessThan(try alpha(image, x: 75, y: 50), 10, "cropped away")
+    }
+
+    /// Alpha, 0…255, at (x, y) from the top left.
+    private func alpha(_ cg: CGImage, x: Int, y: Int) throws -> Int {
+        var bytes: [UInt8] = [0, 0, 0, 0]
+        try bytes.withUnsafeMutableBytes { raw in
+            let ctx = try XCTUnwrap(CGContext(
+                data: raw.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            ctx.interpolationQuality = .none
+            ctx.draw(cg, in: CGRect(x: -x, y: -(cg.height - 1 - y), width: cg.width, height: cg.height))
+        }
+        return Int(bytes[3])
+    }
+
+    // MARK: the exports
+
+    @MainActor
+    func testTheSVGAndPowerPointCutToTheCrop() {
+        var shape = Element.shape("rect", w: 200, h: 100)
+        shape.x = 10
+        shape.y = 20
+        shape.clipBox = ClipBox(x: 0.25, y: 0, w: 0.5, h: 1)
+        var d = Design(title: "crop", width: 400, height: 300)
+        d.pages = [Page(id: "p1", elements: [shape])]
+        let svg = SVGExporter.svg(design: d, page: d.pages[0])
+        XCTAssertTrue(svg.contains("<clipPath id=\"crop0\"><rect x=\"60\" y=\"20\" width=\"100\" height=\"100\"/></clipPath>"), svg)
+        XCTAssertTrue(svg.contains("<g clip-path=\"url(#crop0)\">"), svg)
+        XCTAssertEqual(PptxExporter.form(of: shape), .picture, "a vector cut to its crop goes as its picture")
+        shape.clipBox = nil
+        XCTAssertEqual(PptxExporter.form(of: shape), .shape("rect"))
+    }
+
+    // MARK: crop mode
+
+    @MainActor
+    func testCropModeIsOneStepAndResetShowsTheWhole() {
+        var star = Element.sticker("⭐", size: 100)
+        star.id = "s"
+        var d = Design(title: "crop", width: 400, height: 400)
+        d.pages = [Page(id: "p1", elements: [star])]
+        let s = DesignStore(design: d)
+        s.selection = ["s"]
+        XCTAssertTrue(s.canCropGraphic)
+        XCTAssertTrue(s.startGraphicCrop())
+        XCTAssertEqual(s.graphicCropWindow, CGRect(x: 0, y: 0, width: 100, height: 100))
+        s.setGraphicCropWindow(CGRect(x: 0, y: 0, width: 50, height: 100))
+        s.finishGraphicCrop()
+        XCTAssertEqual(s.element("s")?.clipBox, ClipBox(x: 0, y: 0, w: 0.5, h: 1))
+        XCTAssertEqual(s.undoLabel, "Crop")
+
+        XCTAssertTrue(s.startGraphicCrop())
+        s.resetGraphicCrop()
+        s.cancelGraphicCrop()
+        XCTAssertEqual(s.element("s")?.clipBox, ClipBox(x: 0, y: 0, w: 0.5, h: 1), "Cancel puts it back")
+        XCTAssertTrue(s.startGraphicCrop())
+        s.setGraphicCropAspect(.square)
+        XCTAssertEqual(s.graphicCropWindow, CGRect(x: 0, y: 25, width: 50, height: 50))
+        s.resetGraphicCrop()
+        s.finishGraphicCrop()
+        XCTAssertNil(s.element("s")?.clipBox, "Reset: the whole again")
+    }
+}
