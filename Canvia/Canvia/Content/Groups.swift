@@ -104,6 +104,21 @@ enum Groups {
         return GraphicClip.regrouped(before: elements, after: out)
     }
 
+    /// Whether More offers Remove from group for `selection`: something is
+    /// selected, every one of it is in a group, and some other member of
+    /// the outermost groups it is in is not selected — a part of a group,
+    /// reached by tapping in, never one or more whole groups. The Android
+    /// twin's Groups.removable, the same rows.
+    static func removable(_ elements: [Element], selection: Set<String>) -> Bool {
+        let chosen = elements.filter { selection.contains($0.id) }
+        guard !chosen.isEmpty, chosen.allSatisfy({ $0.group != nil }) else { return false }
+        let outer = Set(chosen.compactMap(\.group))
+        return elements.contains { el in
+            guard let g = el.group else { return false }
+            return outer.contains(g) && !selection.contains(el.id)
+        }
+    }
+
     /// Add to group: each of the elements `ids` takes the chain of group
     /// `groupId`'s members, outermost first down to `groupId` — and so the
     /// group's turn, written the same on each member — and moves in the

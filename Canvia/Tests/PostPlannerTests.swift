@@ -143,12 +143,31 @@ final class PostPlannerTests: XCTestCase {
         XCTAssertNil(plain["a11yReduceMotion"])
     }
 
+    /// Shared: Show distances travels as "canvia.showDistances", both ways.
+    func testShowDistancesTravelsInABackup() throws {
+        let off = AccessibilityPrefs.Settings(showDistances: false)
+        let data = Backup.encodeSettings(autoLists: true, use: nil, accessibility: off)
+        let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(object["canvia.showDistances"] as? Bool, false)
+        XCTAssertEqual(AccessibilityPrefs.decodeSettings(Data(#"{"canvia.showDistances":true}"#.utf8)),
+                       AccessibilityPrefs.Settings(showDistances: true))
+        XCTAssertEqual(AccessibilityPrefs.decodeSettings(Data(#"{"canvia.showDistances":"on"}"#.utf8)),
+                       AccessibilityPrefs.Settings())
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "showDistancesBackup"))
+        defer { defaults.removePersistentDomain(forName: "showDistancesBackup") }
+        XCTAssertEqual(AccessibilityPrefs.current(defaults).showDistances, true)
+        AccessibilityPrefs.apply(off, to: defaults)
+        XCTAssertEqual(AccessibilityPrefs.current(defaults).showDistances, false)
+        XCTAssertFalse(AccessibilityPrefs.showsDistances(defaults))
+    }
+
     func testSettingsAreKeptOnThePhoneAndReadBack() throws {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: "PostPlannerTests"))
         defaults.removePersistentDomain(forName: "PostPlannerTests")
         XCTAssertEqual(AccessibilityPrefs.current(defaults),
                        AccessibilityPrefs.Settings(reduceMotion: "system", autoplayClips: true, altTextPrompt: false,
-                                                   underlineLinks: false, largerHandles: false))
+                                                   underlineLinks: false, largerHandles: false,
+                                                   showDistances: true))
         AccessibilityPrefs.apply(AccessibilityPrefs.Settings(reduceMotion: "off", largerHandles: true), to: defaults)
         XCTAssertEqual(AccessibilityPrefs.current(defaults).reduceMotion, "off")
         XCTAssertEqual(AccessibilityPrefs.current(defaults).largerHandles, true)
