@@ -114,7 +114,8 @@ final class BrandKitsTests: XCTestCase {
         fonts.title = BrandFont(family: "anton")
         XCTAssertEqual(fonts.addTextRoles, [.title, .heading, .subheading, .body, .caption])
         XCTAssertEqual(BrandFonts.Role.allCases.map(\.addLabel),
-                       ["Add a title", "Add a heading", "Add a subheading", "Add body text", "Add a quote", "Add a caption"])
+                       ["Add a title", "Add a subtitle", "Add a heading", "Add a subheading", "Add a section header",
+                        "Add body text", "Add a quote", "Add a caption"])
     }
 
     func testARoleTextTakesTheKitsFaceAndItsSizeScaledFromTenEighty() {
@@ -141,7 +142,7 @@ final class BrandKitsTests: XCTestCase {
             XCTAssertEqual(el.fontWeight, 600)
             XCTAssertEqual(el.w, (row.width * 0.72).rounded())
         }
-        XCTAssertEqual(BrandFonts.Role.allCases.map(\.defaultWeight), [700, 700, 600, 400, 400, 400])
+        XCTAssertEqual(BrandFonts.Role.allCases.map(\.defaultWeight), [700, 500, 700, 600, 600, 400, 400, 400])
 
         // No face: the role's own size and weight, in the default face.
         let title = BrandFonts.element(.title, face: nil, pageWidth: 1080)

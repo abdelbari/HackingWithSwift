@@ -598,6 +598,11 @@ extension BrandFont {
         family = try c.decode(String.self, forKey: .family)
         weight = (try? c.decode(Int.self, forKey: .weight)) ?? 400
         size = try? c.decode(Double.self, forKey: .size)
+        color = try? c.decode(String.self, forKey: .color)
+        letterSpacing = try? c.decode(Double.self, forKey: .letterSpacing)
+        lineHeight = try? c.decode(Double.self, forKey: .lineHeight)
+        uppercase = try? c.decode(Bool.self, forKey: .uppercase)
+        italic = try? c.decode(Bool.self, forKey: .italic)
     }
 }
 
@@ -605,8 +610,10 @@ extension BrandFonts {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         title = try? c.decode(BrandFont.self, forKey: .title)
+        subtitle = try? c.decode(BrandFont.self, forKey: .subtitle)
         heading = try? c.decode(BrandFont.self, forKey: .heading)
         subheading = try? c.decode(BrandFont.self, forKey: .subheading)
+        sectionHeader = try? c.decode(BrandFont.self, forKey: .sectionHeader)
         body = try? c.decode(BrandFont.self, forKey: .body)
         quote = try? c.decode(BrandFont.self, forKey: .quote)
         caption = try? c.decode(BrandFont.self, forKey: .caption)

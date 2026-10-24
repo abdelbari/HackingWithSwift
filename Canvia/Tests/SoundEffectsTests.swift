@@ -50,7 +50,7 @@ final class SoundEffectsTests: XCTestCase {
         XCTAssertEqual(AudioStore.label(for: "sfx:pop"), "Pop")
         XCTAssertEqual(AudioTrack(src: "audio:song.m4a").audioId, "song.m4a")
         XCTAssertNil(AudioTrack(src: "sfx:").audioId)
-        XCTAssertNil(AudioTrack(src: "video:x").audioId)
+        XCTAssertEqual(AudioTrack(src: "video:x").audioId, "video:x", "a clip's detached sound, as on Android")
 
         var design = Design(title: "sfx")
         design.audioTracks = [AudioTrack(src: AudioTrack.src("song.m4a")), track]
