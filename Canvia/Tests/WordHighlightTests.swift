@@ -97,4 +97,45 @@ final class WordHighlightTests: XCTestCase {
         design.pages[0].elements[0].setSpans([])
         XCTAssertTrue(ContrastAudit.audit(design).isEmpty, "white on black passes")
     }
+
+    /// The Android twin's test of the same name: words that cannot be read
+    /// on their marker are found, and Fix colour recolours them, not the box.
+    func testWordsThatCannotBeReadOnTheirMarkerAreFoundAndFixColourRecoloursThem() {
+        var el = Element.text("Big sale", fontSize: 40)
+        el.color = "#000000"
+        el.setSpans([TextSpan(start: 4, end: 8, highlight: "#000080")])
+        var design = Design(title: "c", width: 800, height: 600)
+        design.pages[0] = Page(background: .color("#ffffff"), elements: [el])
+        let found = ContrastAudit.audit(design)
+        XCTAssertEqual(found.map(\.text), ["sale"])
+        XCTAssertEqual(found.first?.marked, NSRange(location: 4, length: 4))
+        guard let f = found.first else { return }
+        let fixed = ContrastAudit.fixed(el, for: f)
+        XCTAssertEqual(fixed.color, "#000000")
+        XCTAssertEqual(fixed.liveSpans.map(\.color), [f.suggestion])
+        design.pages[0].elements[0] = fixed
+        XCTAssertTrue(ContrastAudit.audit(design).isEmpty)
+    }
+
+    /// Shared: linked words are measured in the link colour, and the marker
+    /// fades as the box does — the Android twin's test of the same name.
+    func testLinkedWordsAndAFadedBoxAreMeasuredAsDrawn() {
+        var linked = Element.text("Big sale", fontSize: 16)
+        linked.color = "#ffffff"
+        linked.setSpans([TextSpan(start: 4, end: 8, link: "https://example.com", highlight: "#000000")])
+        var dark = Design(title: "c", width: 800, height: 600)
+        dark.pages[0] = Page(background: .color("#000000"), elements: [linked])
+        XCTAssertEqual(ContrastAudit.audit(dark).map(\.text), ["sale"])
+        var faded = Element.text("Big sale", fontSize: 40)
+        faded.color = "#000000"
+        faded.opacity = 0.5
+        faded.setSpans([TextSpan(start: 4, end: 8, highlight: "#000080")])
+        var light = Design(title: "c", width: 800, height: 600)
+        light.pages[0] = Page(background: .color("#ffffff"), elements: [faded])
+        let found = ContrastAudit.audit(light)
+        XCTAssertEqual(found.count, 1)
+        XCTAssertEqual(found.first?.marked, NSRange(location: 4, length: 4))
+        let marker = ContrastAudit.drawn(ContrastAudit.drawn("#000080", over: "#ffffff", opacity: 1), over: "#ffffff", opacity: 0.5)
+        XCTAssertEqual(found.first?.backdrop, marker)
+    }
 }
