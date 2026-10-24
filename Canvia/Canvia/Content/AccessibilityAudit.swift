@@ -21,12 +21,12 @@
 //  - readingOrder: a page whose layers, bottom to top, run in another order
 //    than the page reads — rows top to bottom, left to right — among what a
 //    reader says: words, and pictures with alt text.
-//  - missingLetters: words — a text's or a shape's — with letters their font
-//    does not have (FontLibrary.covers), which the phone draws in a
-//    stand-in font: Cyrillic in a Latin-only face.
 //  - colourVision: text that passes contrast but not as it is seen with a
 //    colour vision deficiency, and chart series that look alike so
 //    (ColourVision) — each saying which ways of seeing it fails in.
+//  - missingLetters: words — a text's or a shape's — with letters their font
+//    does not have (FontLibrary.covers), which the phone draws in a
+//    stand-in font: Cyrillic in a Latin-only face.
 //
 // Findings come page by page; within a page in that order of kinds, and
 // within a kind in layer order, back to front. Hidden elements and hidden
@@ -39,7 +39,7 @@ import Foundation
 enum AccessibilityAudit {
 
     enum Kind: String, CaseIterable {
-        case contrast, altText, smallText, flashing, linkText, chartColours, readingOrder, missingLetters, colourVision
+        case contrast, altText, smallText, flashing, linkText, chartColours, readingOrder, colourVision, missingLetters
     }
 
     /// What a finding's button does.
@@ -109,10 +109,6 @@ enum AccessibilityAudit {
                 out.append(Finding(kind: .readingOrder, pageIndex: p, elementId: first,
                                    message: tr("The layers are in a different order from how the page reads")))
             }
-            for el in shown where lacksLetters(el) {
-                out.append(Finding(kind: .missingLetters, pageIndex: p, elementId: el.id,
-                                   message: missingLettersNote))
-            }
             for f in seen[p] ?? [] {
                 out.append(Finding(kind: .colourVision, pageIndex: p, elementId: f.contrast.elementId,
                                    message: tr("Hard to read in %@ view: %@:1", ColourVision.names(f.kinds),
@@ -123,6 +119,10 @@ enum AccessibilityAudit {
                 out.append(Finding(kind: .colourVision, pageIndex: p, elementId: f.elementId,
                                    message: tr("Chart colours look alike in %@ view", ColourVision.names(f.kinds)),
                                    part: "\(f.first)-\(f.second)"))
+            }
+            for el in shown where lacksLetters(el) {
+                out.append(Finding(kind: .missingLetters, pageIndex: p, elementId: el.id,
+                                   message: missingLettersNote))
             }
         }
         return out

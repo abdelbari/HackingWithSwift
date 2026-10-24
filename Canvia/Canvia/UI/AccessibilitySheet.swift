@@ -159,8 +159,8 @@ struct AccessibilitySheet: View {
         case .linkText: return "link"
         case .chartColours: return "chart.pie"
         case .readingOrder: return "list.number"
-        case .missingLetters: return "character.textbox"
         case .colourVision: return "eye"
+        case .missingLetters: return "character.textbox"
         }
     }
 

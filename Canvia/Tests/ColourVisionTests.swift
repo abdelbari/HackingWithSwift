@@ -110,10 +110,10 @@ final class ColourVisionTests: XCTestCase {
         XCTAssertNil(found.first?.fix)
     }
 
-    func testKindsIncludeColourVisionLast() {
+    func testKindsInTheirOrder() {
         XCTAssertEqual(AccessibilityAudit.Kind.allCases.map(\.rawValue),
                        ["contrast", "altText", "smallText", "flashing", "linkText", "chartColours", "readingOrder",
-                        "missingLetters", "colourVision"])
+                        "colourVision", "missingLetters"])
     }
 
     // MARK: the shared fixture
